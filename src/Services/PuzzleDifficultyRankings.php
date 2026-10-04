@@ -78,9 +78,11 @@ readonly final class PuzzleDifficultyRankings
             return null;
         }
 
+        // v2: the entries lost their alternative name - a new shape under a new key, so the old and the new release never
+        // read each other's lists (Redis is shared across blue-green)
         /** @var list<DifficultyRankingEntry> $entries */
         $entries = $this->difficultyRankingsCache->get(
-            sprintf('pieces_%d_%s', $piecesCount, $direction->value),
+            sprintf('pieces_%d_%s_v2', $piecesCount, $direction->value),
             function (ItemInterface $item) use ($piecesCount, $direction): array {
                 $item->expiresAfter(self::CACHE_TTL);
 
@@ -98,7 +100,7 @@ readonly final class PuzzleDifficultyRankings
     {
         /** @var list<DifficultyRankingEntry> $entries */
         $entries = $this->difficultyRankingsCache->get(
-            sprintf('brand_%s_%s', $brand->brandId, $direction->value),
+            sprintf('brand_%s_%s_v2', $brand->brandId, $direction->value),
             function (ItemInterface $item) use ($brand, $direction): array {
                 $item->expiresAfter(self::CACHE_TTL);
 

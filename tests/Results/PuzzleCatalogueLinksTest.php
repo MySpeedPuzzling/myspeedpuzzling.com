@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Results\BrandHubStats;
 use SpeedPuzzling\Web\Results\BrandPiecesHubStats;
 use SpeedPuzzling\Web\Results\PuzzleCatalogueLinks;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 /**
  * Which catalogue pages a puzzle page links to - its breadcrumb, the piece count
@@ -68,7 +69,7 @@ final class PuzzleCatalogueLinksTest extends TestCase
         return new PuzzleOverview(
             puzzleId: '018d0003-0000-0000-0000-000000000001',
             puzzleName: 'Puzzle',
-            puzzleAlternativeName: null,
+            puzzleAlternativeNames: new PuzzleNames(),
             puzzleApproved: true,
             manufacturerId: '018d0002-0000-0000-0000-000000000001',
             manufacturerName: 'Brand',

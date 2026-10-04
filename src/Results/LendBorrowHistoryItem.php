@@ -13,7 +13,6 @@ readonly final class LendBorrowHistoryItem
         public string $transferId,
         public null|string $puzzleId,
         public null|string $puzzleName,
-        public null|string $puzzleAlternativeName,
         public null|int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,

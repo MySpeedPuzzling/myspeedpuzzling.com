@@ -61,7 +61,7 @@ final class PuzzleRecordFormData
     {
         $data = new self();
         $data->name = $puzzle->name;
-        $data->alternativeName = $puzzle->alternativeName;
+        $data->alternativeName = $puzzle->alternativeNames->legacyAlternativeName();
         $data->manufacturerId = $puzzle->manufacturerId;
         $data->piecesCount = $puzzle->piecesCount;
         $data->ean = $puzzle->ean;
@@ -78,7 +78,7 @@ final class PuzzleRecordFormData
     {
         $data = new self();
         $data->name = $request->hasNameChange() ? $request->proposedName : $request->puzzleName;
-        $data->alternativeName = $request->puzzleAlternativeName;
+        $data->alternativeName = $request->puzzleAlternativeNames->legacyAlternativeName();
         $data->manufacturerId = $request->hasManufacturerChange() ? $request->proposedManufacturerId : $request->puzzleManufacturerId;
         $data->piecesCount = $request->hasPiecesCountChange() ? $request->proposedPiecesCount : $request->puzzlePiecesCount;
         $data->ean = $request->hasEanChange() ? $request->proposedEan : $request->puzzleEan;

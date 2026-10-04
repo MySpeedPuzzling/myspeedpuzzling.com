@@ -356,7 +356,7 @@ final class PlayerSolvedPuzzles
         $normalizedQuery = $this->normalizeString($this->searchQuery);
         $searchFields = [
             $puzzle->puzzleName,
-            $puzzle->puzzleAlternativeName,
+            $puzzle->puzzleAlternativeNames->legacyAlternativeName(),
             $puzzle->puzzleIdentificationNumber,
         ];
 

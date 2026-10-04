@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Tests\OpenApiAssertions;
 use SpeedPuzzling\Web\Tests\PatTestHelper;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Value\MetricConfidence;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -43,6 +44,7 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
  *     id: string,
  *     name: string,
  *     alternative_name: null|string,
+ *     alternative_names: list<array{name: string, language: null|string}>,
  *     manufacturer: array{id: string, name: string},
  *     pieces_count: int,
  *     image: null|string,
@@ -64,7 +66,7 @@ final class PuzzleDetailEndpointTest extends WebTestCase
     private const string ENDPOINT = '/api/v1/puzzles/';
 
     /** @var list<string> the JSON keys of the detail - exactly the card of GET /api/v1/puzzles, in the same order */
-    private const array CARD_KEYS = ['id', 'name', 'alternative_name', 'manufacturer', 'pieces_count', 'image', 'ean', 'identification_number', 'is_available', 'is_approved', 'statistics', 'difficulty', 'prediction', 'solves'];
+    private const array CARD_KEYS = ['id', 'name', 'alternative_name', 'alternative_names', 'manufacturer', 'pieces_count', 'image', 'ean', 'identification_number', 'is_available', 'is_approved', 'statistics', 'difficulty', 'prediction', 'solves'];
 
     private const array EMPTY_SOLVES_GROUP = ['count' => 0, 'best_time_seconds' => null, 'last_time_seconds' => null, 'first_solved_at' => null, 'last_solved_at' => null];
 
@@ -337,12 +339,39 @@ final class PuzzleDetailEndpointTest extends WebTestCase
         $this->assertSame(PuzzleFixture::PUZZLE_500_01, $typed['id']);
         $this->assertSame('Puzzle 1', $typed['name']);
         $this->assertNull($typed['alternative_name']);
+        $this->assertSame([], $typed['alternative_names']);
         $this->assertSame(['id' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER, 'name' => 'Ravensburger'], $typed['manufacturer']);
         $this->assertSame(500, $typed['pieces_count']);
         $this->assertNull($typed['ean']);
         $this->assertSame('RB-500-001', $typed['identification_number']);
         $this->assertTrue($typed['is_available']);
         $this->assertTrue($typed['is_approved']);
+    }
+
+    /**
+     * Every other name comes as `alternative_names`, in order and with its language; `alternative_name` keeps its
+     * meaning for existing clients - one of those names, the Czech one when there is one.
+     */
+    public function testOtherNamesComeAsAListAndTheSingleFieldKeepsTheCzechOne(): void
+    {
+        $browser = self::createClient();
+        $this->changeAlternativeNames($browser, PuzzleFixture::PUZZLE_500_02, [
+            ['name' => 'Bayerische Romanze', 'language' => 'de'],
+            ['name' => 'Bavorská romance', 'language' => 'cs'],
+            ['name' => 'Romance in Bavaria', 'language' => null],
+        ]);
+        $this->authenticateClientCredentials($browser);
+
+        $browser->request('GET', self::ENDPOINT . PuzzleFixture::PUZZLE_500_02);
+
+        $this->assertResponseIsSuccessful();
+        $detail = $this->decode($browser);
+        $this->assertSame('Bavorská romance', $detail['alternative_name']);
+        $this->assertSame([
+            ['name' => 'Bayerische Romanze', 'language' => 'de'],
+            ['name' => 'Bavorská romance', 'language' => 'cs'],
+            ['name' => 'Romance in Bavaria', 'language' => null],
+        ], $detail['alternative_names']);
     }
 
     /**
@@ -520,6 +549,13 @@ final class PuzzleDetailEndpointTest extends WebTestCase
         $this->assertCount(1, $pathParameters);
         $this->assertSame('puzzleId', $pathParameters[0]['name']);
         $this->assertTrue($pathParameters[0]['required'] ?? false);
+
+        /** @var array{schemas: array<string, array{properties: array<string, array<string, mixed>>}>} $components */
+        $components = $document['components'];
+        $schemas = $components['schemas'];
+        $this->assertSame(self::CARD_KEYS, array_keys($schemas['Puzzle']['properties']));
+        $this->assertSame('array', $schemas['Puzzle']['properties']['alternative_names']['type'] ?? null);
+        $this->assertSame(['name', 'language'], array_keys($schemas['PuzzleNameResponse']['properties']));
     }
 
     private function authenticatePat(KernelBrowser $browser, string $playerId): void
@@ -607,6 +643,21 @@ final class PuzzleDetailEndpointTest extends WebTestCase
 
         $puzzle->image = $image;
         $puzzle->hideImageUntil = $hideUntil;
+        $entityManager->flush();
+        $entityManager->clear();
+    }
+
+    /**
+     * @param list<array{name: string, language: null|string}> $alternativeNames
+     */
+    private function changeAlternativeNames(KernelBrowser $browser, string $puzzleId, array $alternativeNames): void
+    {
+        $entityManager = $this->entityManager($browser);
+
+        $puzzle = $entityManager->find(Puzzle::class, $puzzleId);
+        $this->assertNotNull($puzzle);
+
+        $puzzle->changeNames($puzzle->name, $puzzle->nameLanguage, PuzzleNames::fromArray($alternativeNames), new DateTimeImmutable());
         $entityManager->flush();
         $entityManager->clear();
     }

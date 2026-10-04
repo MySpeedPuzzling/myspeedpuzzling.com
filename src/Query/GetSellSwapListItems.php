@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\SellSwapListItemOverview;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 readonly final class GetSellSwapListItems
 {
@@ -42,7 +43,7 @@ SELECT
     ssli.published_on_marketplace,
     p.id as puzzle_id,
     p.name as puzzle_name,
-    p.alternative_name as puzzle_alternative_name,
+    p.alternative_names as puzzle_alternative_names,
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
@@ -75,7 +76,7 @@ SQL;
              *     published_on_marketplace: bool,
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: string|null,
+             *     puzzle_alternative_names: string,
              *     puzzle_identification_number: string|null,
              *     ean: string|null,
              *     pieces_count: int,
@@ -89,7 +90,7 @@ SQL;
                 sellSwapListItemId: $row['sell_swap_list_item_id'],
                 puzzleId: $row['puzzle_id'],
                 puzzleName: $row['puzzle_name'],
-                puzzleAlternativeName: $row['puzzle_alternative_name'],
+                puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
                 puzzleIdentificationNumber: $row['puzzle_identification_number'],
                 ean: $row['ean'],
                 piecesCount: $row['pieces_count'],
@@ -125,7 +126,7 @@ SELECT
     ssli.published_on_marketplace,
     p.id as puzzle_id,
     p.name as puzzle_name,
-    p.alternative_name as puzzle_alternative_name,
+    p.alternative_names as puzzle_alternative_names,
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
@@ -160,7 +161,7 @@ SQL;
          *     published_on_marketplace: bool,
          *     puzzle_id: string,
          *     puzzle_name: string,
-         *     puzzle_alternative_name: string|null,
+         *     puzzle_alternative_names: string,
          *     puzzle_identification_number: string|null,
          *     ean: string|null,
          *     pieces_count: int,
@@ -174,7 +175,7 @@ SQL;
             sellSwapListItemId: $row['sell_swap_list_item_id'],
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
-            puzzleAlternativeName: $row['puzzle_alternative_name'],
+            puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
             puzzleIdentificationNumber: $row['puzzle_identification_number'],
             ean: $row['ean'],
             piecesCount: $row['pieces_count'],

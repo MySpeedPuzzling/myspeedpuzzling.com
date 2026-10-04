@@ -16,7 +16,6 @@ readonly final class DifficultyRankingEntry
     public function __construct(
         public string $puzzleId,
         public string $puzzleName,
-        public null|string $puzzleAlternativeName,
         public null|string $puzzleImage,
         public null|float $puzzleImageRatio,
         public int $piecesCount,
@@ -32,7 +31,6 @@ readonly final class DifficultyRankingEntry
      * @param array{
      *     puzzle_id: string,
      *     puzzle_name: string,
-     *     puzzle_alternative_name: null|string,
      *     puzzle_image: null|string,
      *     puzzle_image_ratio: null|float|string,
      *     pieces_count: int|string,
@@ -50,7 +48,6 @@ readonly final class DifficultyRankingEntry
         return new self(
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
-            puzzleAlternativeName: $row['puzzle_alternative_name'],
             puzzleImage: $row['puzzle_image'],
             puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
             piecesCount: (int) $row['pieces_count'],
@@ -67,7 +64,6 @@ readonly final class DifficultyRankingEntry
         return new self(
             puzzleId: $this->puzzleId,
             puzzleName: $this->puzzleName,
-            puzzleAlternativeName: $this->puzzleAlternativeName,
             puzzleImage: $this->puzzleImage,
             puzzleImageRatio: $this->puzzleImageRatio,
             piecesCount: $this->piecesCount,

@@ -37,9 +37,10 @@ readonly final class PuzzleChoicesBuilder
         $options = [];
 
         foreach ($puzzles as $puzzle) {
+            $alternativeName = $puzzle->puzzleAlternativeNames->legacyAlternativeName();
             $search = implode(' ', array_filter([
                 $puzzle->puzzleName,
-                $puzzle->puzzleAlternativeName,
+                $alternativeName,
                 $puzzle->puzzleIdentificationNumber,
                 $puzzle->puzzleEan,
                 (string) $puzzle->piecesCount,
@@ -51,8 +52,8 @@ readonly final class PuzzleChoicesBuilder
             $name = self::escape($puzzle->puzzleName);
 
             // Czech pages lead with the alternative name
-            if ($locale === 'cs' && $puzzle->puzzleAlternativeName !== null) {
-                $name = self::escape($puzzle->puzzleAlternativeName) . ' <small>(' . $name . ')</small>';
+            if ($locale === 'cs' && $alternativeName !== null) {
+                $name = self::escape($alternativeName) . ' <small>(' . $name . ')</small>';
             }
 
             $identificationNumber = self::escape($puzzle->puzzleIdentificationNumber ?? '');

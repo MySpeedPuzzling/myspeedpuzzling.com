@@ -541,6 +541,19 @@ components:
           type: string
         alternativeName:
           type: [string, "null"]
+          description: The one other name of old - the first Czech name of alternativeNames, else its first name. Kept for existing callers; read alternativeNames.
+        alternativeNames:
+          type: array
+          description: Every other name of the puzzle in order (the box titles it is also sold under), with the BCP 47 language of each when it is known.
+          items:
+            type: object
+            required: [name, language]
+            properties:
+              name:
+                type: string
+              language:
+                type: [string, "null"]
+                description: Normalised BCP 47 tag (cs, de, pt-BR, zh-Hant), null when not known.
         piecesCount:
           type: integer
         ean:

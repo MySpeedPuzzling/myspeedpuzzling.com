@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\WishListItemOverview;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 readonly final class GetWishListItems
 {
@@ -29,7 +30,7 @@ SELECT
     wli.added_at,
     p.id as puzzle_id,
     p.name as puzzle_name,
-    p.alternative_name as puzzle_alternative_name,
+    p.alternative_names as puzzle_alternative_names,
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
@@ -54,7 +55,7 @@ SQL;
              *     added_at: string,
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: string|null,
+             *     puzzle_alternative_names: string,
              *     puzzle_identification_number: string|null,
              *     ean: string|null,
              *     pieces_count: int,
@@ -68,7 +69,7 @@ SQL;
                 wishListItemId: $row['wish_list_item_id'],
                 puzzleId: $row['puzzle_id'],
                 puzzleName: $row['puzzle_name'],
-                puzzleAlternativeName: $row['puzzle_alternative_name'],
+                puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
                 puzzleIdentificationNumber: $row['puzzle_identification_number'],
                 ean: $row['ean'],
                 piecesCount: $row['pieces_count'],

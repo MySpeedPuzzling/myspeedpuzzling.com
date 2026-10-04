@@ -92,7 +92,7 @@
      data-predicted-seconds="{{ my_prediction is not null ? my_prediction.predictedSeconds : '' }}"
      {% endif %}
      data-puzzle-name="{{ item.puzzleName }}"
-     data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
+     data-puzzle-alternative-name="{{ item.puzzleAlternativeNames.legacyAlternativeName() ?? '' }}"
      data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
      data-ean="{{ item.ean ?? '' }}"
      data-manufacturer="{{ item.manufacturerName ?? '' }}"

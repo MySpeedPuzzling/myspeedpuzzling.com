@@ -13,7 +13,6 @@ readonly final class ComparisonPuzzle
     public function __construct(
         public string $puzzleId,
         public string $name,
-        public null|string $alternativeName,
         public null|string $manufacturerName,
         public int $piecesCount,
         public null|string $image,

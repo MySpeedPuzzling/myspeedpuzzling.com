@@ -154,7 +154,8 @@ No filter at all lists the whole catalog (most solved first) - the catalog is pu
 **Response** `{ count, total, page, limit, has_more, puzzles: [ … ] }` - `count` is this page, `total` the whole result. Each card:
 
 ```json
-{ "id": "018d0003-0000-0000-0000-000000000002", "name": "Puzzle 2", "alternative_name": null,
+{ "id": "018d0003-0000-0000-0000-000000000002", "name": "Puzzle 2", "alternative_name": "Hádanka 2",
+  "alternative_names": [ { "name": "Hádanka 2", "language": "cs" }, { "name": "Rätsel 2", "language": "de" } ],
   "manufacturer": { "id": "018d0002-0000-0000-0000-000000000001", "name": "Ravensburger" },
   "pieces_count": 500, "image": "puzzles/…/box.jpg", "ean": "4005556123456", "identification_number": null,
   "is_available": true, "is_approved": true,
@@ -170,6 +171,7 @@ No filter at all lists the whole catalog (most solved first) - the catalog is pu
               "team": { "count": 0, "best_time_seconds": null, "last_time_seconds": null, "first_solved_at": null, "last_solved_at": null } } }
 ```
 
+- `alternative_names` (added 2026-10, additive) is every other name of the puzzle - the titles of its other boxes - in order, each with the BCP 47 language of that box (`cs`, `de`, `pt-BR`, `zh-Hant`) or `null` when it is not known; an empty list when there is none. `alternative_name` keeps its meaning for existing clients: one of those names, the first Czech one, else the first (`PuzzleNames::legacyAlternativeName()`), `null` when the list is empty. Design: `docs/features/puzzle-names/README.md`.
 - `statistics` is public, from the precomputed `puzzle_statistics` row (`GetPuzzleStatistics::forPuzzleList`), **always split by discipline** - solo, duo and team are different disciplines and are never merged; a puzzle nobody has solved has zeros and nulls. `count` is the number of recorded solves; `average_seconds` and `median_seconds` are both over **each player's best time** in the discipline (one value per player, so a player who solved the puzzle ten times weighs the same as one who solved it once - the `player_best_per_type` population in `PuzzleStatisticsCalculator`), the median as `percentile_cont(0.5)` rounded to whole seconds (the puzzle page's runtime median is over all attempts of the shown category and differs on purpose). The row is recomputed by `RecalculatePuzzleStatisticsOnSolvingTimeChange` on every solve change; `median_seconds` is `null` for rows written before the medians existed. **Ops note (PR 5a, 2026-08-19): after deploying, run `php bin/console myspeedpuzzling:recalculate-puzzle-statistics` once on the box to backfill medians; until then `median_seconds` is null.**
 - The three insight objects are **always present** and `null` means exactly "not available to this token" (never an error, so one client code path works for every kind of token). When present, the object is complete and carries `null` *inside* for "not enough data":
   - `difficulty` - token owner is a member (`ApiTokenOwner::isMember()`); a member looking at a puzzle without a difficulty row gets `{ score: null, level: null, confidence: "insufficient", sample_size: 0 }`
@@ -506,7 +508,7 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Api/V1/LibraryResponse.php`, `WishlistResponse.php`, `UnsolvedPuzzlesResponse.php`, `LendBorrowResponse.php`, `SellSwapResponse.php` | The puzzle-library resources, each with its `/me/…` and `/players/{playerId}/…` operation (providers `My*ResponseProvider` / `Player*ResponseProvider`) |
 | `src/Api/V1/PlayerConnectionsResponse.php`, `PlayerConnectionResponse.php`, `src/Query/GetPlayerConnections.php` | `/me/favorites` + `/me/followers` (providers `MyFavoritesResponseProvider` / `MyFollowersResponseProvider`); `countsOf()` feeds `favorites_count` / `followers_count` on `/me` |
 | `src/Services/Api/PuzzleLibraryVisibility.php`, `PuzzleLibraryItemsFactory.php`, `PuzzleLibrarySummaryFactory.php` | The website's library visibility rule; the list items (one insights batch per list); the summary counts |
-| `src/Api/V1/PuzzleResponse.php` | The puzzle card (+ `PuzzleStatisticsResponse`, `PuzzleDifficultyResponse`, `TimePredictionResponse`, `PlayerSolvesResponse`) |
+| `src/Api/V1/PuzzleResponse.php` | The puzzle card (+ `PuzzleNameResponse`, `PuzzleStatisticsResponse`, `PuzzleDifficultyResponse`, `TimePredictionResponse`, `PlayerSolvesResponse`) |
 | `src/Services/Api/ApiTokenOwner.php` | The single membership / scope gate behind every provider |
 | `src/Services/Api/PuzzleResponseFactory.php` | Builds puzzle cards for the calling token at a fixed query cost (one batch call per object); `insightsFor()` + `PuzzleInsightsBatch` serve the collection-item and result lists with the same batch |
 | `src/Api/V1/PlayerProfileResponse.php` | `GET /api/v1/players/{id}` resource (+ `PlayerRatingResponse`, `PlayerSkillResponse`, shared with `CurrentUserResponse`) |

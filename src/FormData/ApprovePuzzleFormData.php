@@ -64,6 +64,7 @@ final class ApprovePuzzleFormData
     {
         $data = new self();
         $data->name = $puzzle->puzzleName;
+        $data->alternativeName = $puzzle->alternativeNames->legacyAlternativeName();
         $data->piecesCount = $puzzle->piecesCount;
         $data->ean = $puzzle->ean;
         $data->currentEan = $puzzle->ean;

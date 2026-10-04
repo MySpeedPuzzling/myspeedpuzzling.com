@@ -276,9 +276,13 @@ final class PuzzleDetailControllerTest extends WebTestCase
     public function testSummaryShowsAlternativeNameAndEveryEan(): void
     {
         $browser = self::createClient();
+        // "Also known as" is the one other name of old until the names display ships: the Czech one, else the first
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE puzzle SET alternative_name = 'Bavorská romance', ean = '4005556175895, 4005555008385' WHERE id = :puzzleId",
-            ['puzzleId' => PuzzleFixture::PUZZLE_500_01],
+            "UPDATE puzzle SET alternative_names = CAST(:alternativeNames AS jsonb), ean = '4005556175895, 4005555008385' WHERE id = :puzzleId",
+            [
+                'puzzleId' => PuzzleFixture::PUZZLE_500_01,
+                'alternativeNames' => '[{"name": "Bayerische Romanze", "language": "de"}, {"name": "Bavorská romance", "language": "cs"}]',
+            ],
         );
 
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);

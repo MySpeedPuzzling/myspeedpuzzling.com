@@ -304,7 +304,6 @@ SELECT
     picked.gap_seconds,
     picked.total_matching,
     p.name AS puzzle_name,
-    p.alternative_name AS puzzle_alternative_name,
     p.identification_number AS puzzle_identification_number,
     p.ean AS puzzle_ean,
     p.pieces_count,
@@ -336,7 +335,6 @@ SQL;
              * @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: null|string,
              *     puzzle_identification_number: null|string,
              *     puzzle_ean: null|string,
              *     manufacturer_id: null|string,

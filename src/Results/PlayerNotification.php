@@ -23,7 +23,6 @@ readonly final class PlayerNotification
         public null|CountryCode $targetPlayerCountry,
         public null|string $puzzleId,
         public null|string $puzzleName,
-        public null|string $puzzleAlternativeName,
         public null|string $manufacturerName,
         public null|int $piecesCount,
         public null|int $time,
@@ -115,7 +114,6 @@ readonly final class PlayerNotification
         $targetPlayerCountry = $row['target_player_country'] ?? null;
         $puzzleId = $row['puzzle_id'] ?? null;
         $puzzleName = $row['puzzle_name'] ?? null;
-        $puzzleAlternativeName = $row['puzzle_alternative_name'] ?? null;
         $manufacturerName = $row['manufacturer_name'] ?? null;
         $puzzleImage = $row['puzzle_image'] ?? null;
         $teamId = $row['team_id'] ?? null;
@@ -145,7 +143,6 @@ readonly final class PlayerNotification
             targetPlayerCountry: is_string($targetPlayerCountry) ? CountryCode::fromCode($targetPlayerCountry) : null,
             puzzleId: is_string($puzzleId) ? $puzzleId : null,
             puzzleName: is_string($puzzleName) ? $puzzleName : null,
-            puzzleAlternativeName: is_string($puzzleAlternativeName) ? $puzzleAlternativeName : null,
             manufacturerName: is_string($manufacturerName) ? $manufacturerName : null,
             piecesCount: isset($row['pieces_count']) && is_numeric($row['pieces_count']) ? (int) $row['pieces_count'] : null,
             time: isset($row['time']) && is_numeric($row['time']) ? (int) $row['time'] : null,

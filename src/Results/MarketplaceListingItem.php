@@ -17,7 +17,6 @@ readonly final class MarketplaceListingItem
         public string $itemId,
         public string $puzzleId,
         public string $puzzleName,
-        public null|string $puzzleAlternativeName,
         public int $piecesCount,
         public null|string $puzzleImage,
         public null|float $puzzleImageRatio,

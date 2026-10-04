@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\UnsolvedPuzzleItem;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 /**
  * "Solved" means a time of the player's own or one as a team member. Team membership is a jsonb
@@ -34,7 +35,7 @@ readonly final class GetUnsolvedPuzzles
 SELECT
     p.id as puzzle_id,
     p.name as puzzle_name,
-    p.alternative_name as puzzle_alternative_name,
+    p.alternative_names as puzzle_alternative_names,
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
@@ -54,7 +55,7 @@ WHERE ci.player_id = :playerId
         OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
       )
   )
-GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, m.name
+GROUP BY p.id, p.name, p.alternative_names, p.identification_number, p.ean, p.pieces_count, m.name
 ORDER BY added_at DESC
 SQL;
 
@@ -66,7 +67,7 @@ SQL;
             /** @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: string|null,
+             *     puzzle_alternative_names: string,
              *     puzzle_identification_number: string|null,
              *     ean: string|null,
              *     pieces_count: int,
@@ -80,7 +81,7 @@ SQL;
             return new UnsolvedPuzzleItem(
                 puzzleId: $row['puzzle_id'],
                 puzzleName: $row['puzzle_name'],
-                puzzleAlternativeName: $row['puzzle_alternative_name'],
+                puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
                 puzzleIdentificationNumber: $row['puzzle_identification_number'],
                 ean: $row['ean'],
                 piecesCount: $row['pieces_count'],
@@ -125,7 +126,7 @@ SQL;
 SELECT
     p.id as puzzle_id,
     p.name as puzzle_name,
-    p.alternative_name as puzzle_alternative_name,
+    p.alternative_names as puzzle_alternative_names,
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
@@ -146,7 +147,7 @@ WHERE ci.player_id = :playerId
         OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
       )
   )
-GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, m.name
+GROUP BY p.id, p.name, p.alternative_names, p.identification_number, p.ean, p.pieces_count, m.name
 SQL;
 
         $data = $this->database
@@ -160,7 +161,7 @@ SQL;
         /** @var array{
          *     puzzle_id: string,
          *     puzzle_name: string,
-         *     puzzle_alternative_name: string|null,
+         *     puzzle_alternative_names: string,
          *     puzzle_identification_number: string|null,
          *     ean: string|null,
          *     pieces_count: int,
@@ -174,7 +175,7 @@ SQL;
         return new UnsolvedPuzzleItem(
             puzzleId: $data['puzzle_id'],
             puzzleName: $data['puzzle_name'],
-            puzzleAlternativeName: $data['puzzle_alternative_name'],
+            puzzleAlternativeNames: PuzzleNames::fromJson($data['puzzle_alternative_names']),
             puzzleIdentificationNumber: $data['puzzle_identification_number'],
             ean: $data['ean'],
             piecesCount: $data['pieces_count'],

@@ -52,10 +52,15 @@ use ApiPlatform\OpenApi\Model\Response as OpenApiResponse;
 )]
 final class PuzzleDetailResponse
 {
+    /**
+     * @param null|string $alternativeName one of the other names, kept for existing clients: the first Czech one, else the first
+     * @param list<PuzzleNameResponse> $alternativeNames every other name of the puzzle (the titles of its other boxes), in order
+     */
     public function __construct(
         public string $id,
         public string $name,
         public null|string $alternativeName,
+        public array $alternativeNames,
         public PuzzleManufacturerResponse $manufacturer,
         public int $piecesCount,
         public null|string $image,
@@ -80,6 +85,7 @@ final class PuzzleDetailResponse
             id: $card->id,
             name: $card->name,
             alternativeName: $card->alternativeName,
+            alternativeNames: $card->alternativeNames,
             manufacturer: $card->manufacturer,
             piecesCount: $card->piecesCount,
             image: $card->image,

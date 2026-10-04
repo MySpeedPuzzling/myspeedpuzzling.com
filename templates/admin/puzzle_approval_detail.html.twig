@@ -177,7 +177,7 @@
             {# 2. Approve #}
             {% set approve_fields = [
                 {label: 'Name', widget: form.name, help: null, current: puzzle.puzzleName, currentValue: puzzle.puzzleName},
-                {label: 'Alternative name', widget: form.alternativeName, help: 'Another title the puzzle is sold under, if any', current: null, currentValue: null},
+                {label: 'Alternative name', widget: form.alternativeName, help: 'Another title the puzzle is sold under, if any', current: puzzle.alternativeNames.legacyAlternativeName(), currentValue: puzzle.alternativeNames.legacyAlternativeName()},
                 {label: 'Pieces', widget: form.piecesCount, help: null, current: puzzle.piecesCount, currentValue: puzzle.piecesCount},
                 {label: 'EAN', widget: form.ean, help: 'Comma-separated - one code per edition or region.', current: puzzle.ean, currentValue: puzzle.ean},
                 {label: 'Brand code', widget: form.identificationNumber, help: 'Comma-separated', current: puzzle.identificationNumber, currentValue: puzzle.identificationNumber},

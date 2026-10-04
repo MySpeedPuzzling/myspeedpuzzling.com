@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Results\SolvedPuzzleOverview;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Contracts\Service\ResetInterface;
 
 final class GetPlayerSolvedPuzzles implements ResetInterface
@@ -91,7 +92,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle_solving_time.puzzling_team_id::varchar AS team_id,
     puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.alternative_names AS puzzle_alternative_names,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     (puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp) AS puzzle_image_hidden,
@@ -139,7 +140,7 @@ SQL;
          *     player_id: string,
          *     puzzle_id: string,
          *     puzzle_name: string,
-         *     puzzle_alternative_name: null|string,
+         *     puzzle_alternative_names: string,
          *     manufacturer_name: string,
          *     manufacturer_id: string,
          *     puzzle_image: null|string,
@@ -202,7 +203,7 @@ SELECT
     puzzle_solving_time.id as time_id,
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.alternative_names AS puzzle_alternative_names,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle_solving_time.seconds_to_solve AS time,
@@ -288,7 +289,7 @@ SQL;
              *     player_country: null|string,
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: null|string,
+             *     puzzle_alternative_names: string,
              *     manufacturer_name: string,
              *     puzzle_image: null|string,
              *     puzzle_image_ratio: null|string,
@@ -344,7 +345,7 @@ SELECT
     puzzle_solving_time.id as time_id,
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.alternative_names AS puzzle_alternative_names,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle_solving_time.seconds_to_solve AS time,
@@ -403,7 +404,7 @@ SQL;
              *     player_country: null|string,
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: null|string,
+             *     puzzle_alternative_names: string,
              *     manufacturer_name: string,
              *     puzzle_image: null|string,
              *     puzzle_image_ratio: null|string,
@@ -490,7 +491,7 @@ SELECT
     pst.id as time_id,
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.alternative_names AS puzzle_alternative_names,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     pst.seconds_to_solve AS time,
@@ -548,7 +549,7 @@ SQL;
              *     player_country: null,
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: null|string,
+             *     puzzle_alternative_names: string,
              *     manufacturer_name: string,
              *     puzzle_image: null|string,
              *     puzzle_image_ratio: null|string,
@@ -641,7 +642,7 @@ SELECT
     pst.id as time_id,
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.alternative_names AS puzzle_alternative_names,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     pst.seconds_to_solve AS time,
@@ -699,7 +700,7 @@ SQL;
              *     player_country: null,
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: null|string,
+             *     puzzle_alternative_names: string,
              *     manufacturer_name: string,
              *     puzzle_image: null|string,
              *     puzzle_image_ratio: null|string,
@@ -778,7 +779,7 @@ SQL;
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.alternative_names AS puzzle_alternative_names,
     puzzle.identification_number AS puzzle_identification_number,
     puzzle.ean AS ean,
     puzzle.pieces_count,
@@ -815,7 +816,7 @@ SQL;
          * @var array{
          *     puzzle_id: string,
          *     puzzle_name: string,
-         *     puzzle_alternative_name: null|string,
+         *     puzzle_alternative_names: string,
          *     puzzle_identification_number: null|string,
          *     ean: null|string,
          *     pieces_count: int,
@@ -829,7 +830,7 @@ SQL;
         return new SolvedPuzzleOverview(
             puzzleId: $data['puzzle_id'],
             puzzleName: $data['puzzle_name'],
-            puzzleAlternativeName: $data['puzzle_alternative_name'],
+            puzzleAlternativeNames: PuzzleNames::fromJson($data['puzzle_alternative_names']),
             puzzleIdentificationNumber: $data['puzzle_identification_number'],
             ean: $data['ean'],
             piecesCount: $data['pieces_count'],
@@ -858,7 +859,7 @@ SQL;
 SELECT DISTINCT ON (puzzle.name, puzzle.id)
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.alternative_names AS puzzle_alternative_names,
     puzzle.identification_number AS puzzle_identification_number,
     puzzle.ean AS ean,
     puzzle.pieces_count,
@@ -887,7 +888,7 @@ SQL;
              * @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: null|string,
+             *     puzzle_alternative_names: string,
              *     puzzle_identification_number: null|string,
              *     ean: null|string,
              *     pieces_count: int,
@@ -901,7 +902,7 @@ SQL;
             return new SolvedPuzzleOverview(
                 puzzleId: $row['puzzle_id'],
                 puzzleName: $row['puzzle_name'],
-                puzzleAlternativeName: $row['puzzle_alternative_name'],
+                puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
                 puzzleIdentificationNumber: $row['puzzle_identification_number'],
                 ean: $row['ean'],
                 piecesCount: $row['pieces_count'],

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\PuzzleNames;
+
 /**
  * One puzzle put forward as a duplicate, with everything a reviewer needs to
  * judge whether it really is the same product - and what would be lost if it
@@ -14,7 +16,7 @@ readonly final class PuzzleMergeReviewCandidate
     public function __construct(
         public string $puzzleId,
         public string $name,
-        public null|string $alternativeName,
+        public PuzzleNames $alternativeNames,
         public int $piecesCount,
         public null|string $ean,
         public null|string $identificationNumber,
@@ -49,7 +51,7 @@ readonly final class PuzzleMergeReviewCandidate
         return new self(
             puzzleId: $puzzleId,
             name: $name,
-            alternativeName: is_string($row['alternative_name']) ? $row['alternative_name'] : null,
+            alternativeNames: PuzzleNames::fromJson(is_string($row['alternative_names']) ? $row['alternative_names'] : null),
             piecesCount: $piecesCount,
             ean: is_string($row['ean']) ? $row['ean'] : null,
             identificationNumber: is_string($row['identification_number']) ? $row['identification_number'] : null,

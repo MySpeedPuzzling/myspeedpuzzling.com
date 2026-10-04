@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\Api;
 
 use SpeedPuzzling\Web\Api\V1\PuzzleManufacturerResponse;
+use SpeedPuzzling\Web\Api\V1\PuzzleNameResponse;
 use SpeedPuzzling\Web\Api\V1\PuzzleResponse;
 use SpeedPuzzling\Web\Query\GetPlayerPredictions;
 use SpeedPuzzling\Web\Query\GetPlayerPuzzleSolves;
@@ -116,7 +117,8 @@ final readonly class PuzzleResponseFactory
             $cards[] = new PuzzleResponse(
                 id: $puzzleId,
                 name: $overview->puzzleName,
-                alternativeName: $overview->puzzleAlternativeName,
+                alternativeName: $overview->puzzleAlternativeNames->legacyAlternativeName(),
+                alternativeNames: PuzzleNameResponse::listFrom($overview->puzzleAlternativeNames),
                 manufacturer: new PuzzleManufacturerResponse(
                     id: $overview->manufacturerId,
                     name: $overview->manufacturerName,

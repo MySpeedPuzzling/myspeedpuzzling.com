@@ -509,8 +509,9 @@ final class PuzzleSearch
      */
     private function getInitialPuzzlesFromCache(): array
     {
-        // v3: the puzzles carry their brand's slug (the cards link the brand hub)
-        return $this->cache->get('initial_puzzles_v3', function (ItemInterface $item): array {
+        // v4: the puzzles carry every other name (PuzzleNames) - a new shape, so the old and the new release never read
+        // each other's entry (Redis is shared across blue-green)
+        return $this->cache->get('initial_puzzles_v4', function (ItemInterface $item): array {
             $item->expiresAfter(3600);
             $pieces = PiecesRange::any();
 

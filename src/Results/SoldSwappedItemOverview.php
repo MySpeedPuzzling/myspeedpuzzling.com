@@ -13,7 +13,6 @@ readonly final class SoldSwappedItemOverview
         public string $soldSwappedItemId,
         public string $puzzleId,
         public string $puzzleName,
-        public null|string $puzzleAlternativeName,
         public null|string $puzzleIdentificationNumber,
         public int $piecesCount,
         public null|string $manufacturerName,

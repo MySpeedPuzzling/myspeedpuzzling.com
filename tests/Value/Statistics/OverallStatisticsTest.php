@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Value\Statistics;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\Statistics\OverallStatistics;
 use SpeedPuzzling\Web\Value\Statistics\PerCategoryStatistics;
 
@@ -90,7 +91,7 @@ final class OverallStatisticsTest extends TestCase
             playerCountry: null,
             puzzleId: 'puzzle-1',
             puzzleName: 'Puzzle 1',
-            puzzleAlternativeName: null,
+            puzzleAlternativeNames: new PuzzleNames(),
             manufacturerName: 'Manufacturer',
             piecesCount: 500,
             time: $time,

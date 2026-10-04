@@ -139,7 +139,7 @@ SQL;
 SELECT
     p.id AS puzzle_id,
     p.name,
-    p.alternative_name,
+    p.alternative_names,
     p.pieces_count,
     p.ean,
     p.identification_number,

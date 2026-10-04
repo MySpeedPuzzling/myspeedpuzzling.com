@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Results;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 readonly final class SellSwapListItemOverview
 {
@@ -14,7 +15,7 @@ readonly final class SellSwapListItemOverview
         public string $sellSwapListItemId,
         public string $puzzleId,
         public string $puzzleName,
-        public null|string $puzzleAlternativeName,
+        public PuzzleNames $puzzleAlternativeNames,
         public null|string $puzzleIdentificationNumber,
         public null|string $ean,
         public int $piecesCount,

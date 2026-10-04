@@ -80,7 +80,8 @@ final class ListPuzzleMergeRequestsController extends AbstractController
         return [
             'puzzleId' => $candidate->puzzleId,
             'name' => $candidate->name,
-            'alternativeName' => $candidate->alternativeName,
+            'alternativeName' => $candidate->alternativeNames->legacyAlternativeName(),
+            'alternativeNames' => $candidate->alternativeNames->toArray(),
             'piecesCount' => $candidate->piecesCount,
             'ean' => $candidate->ean,
             'identificationNumber' => $candidate->identificationNumber,

@@ -111,8 +111,9 @@
                                 <h3 class="h6 mt-2 mb-1 text-break">
                                     <a class="{{ differs.name ? differs_class }}" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" target="_blank">{{ puzzle.puzzleName }}</a>
                                 </h3>
-                                {% if puzzle.puzzleAlternativeName %}
-                                    <div class="small text-muted text-break mb-1">{{ puzzle.puzzleAlternativeName }}</div>
+                                {% set alternative_name = puzzle.puzzleAlternativeNames.legacyAlternativeName() %}
+                                {% if alternative_name %}
+                                    <div class="small text-muted text-break mb-1">{{ alternative_name }}</div>
                                 {% endif %}
 
                                 <dl class="row small mb-2">

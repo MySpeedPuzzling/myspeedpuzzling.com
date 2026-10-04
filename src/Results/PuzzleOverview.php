@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 readonly final class PuzzleOverview
 {
     public function __construct(
         public string $puzzleId,
         public string $puzzleName,
-        public null|string $puzzleAlternativeName,
+        public PuzzleNames $puzzleAlternativeNames,
         public bool $puzzleApproved,
         public string $manufacturerId,
         public string $manufacturerName,
@@ -41,7 +42,7 @@ readonly final class PuzzleOverview
      *     puzzle_name: string,
      *     puzzle_image: null|string,
      *     puzzle_image_ratio: null|string,
-     *     puzzle_alternative_name: null|string,
+     *     puzzle_alternative_names: string,
      *     puzzle_approved: bool,
      *     manufacturer_id: string,
      *     manufacturer_name: string,
@@ -68,7 +69,7 @@ readonly final class PuzzleOverview
         return new self(
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
-            puzzleAlternativeName: $row['puzzle_alternative_name'],
+            puzzleAlternativeNames: PuzzleNames::fromJson($row['puzzle_alternative_names']),
             puzzleApproved: $row['puzzle_approved'],
             manufacturerId: $row['manufacturer_id'],
             manufacturerName: $row['manufacturer_name'],

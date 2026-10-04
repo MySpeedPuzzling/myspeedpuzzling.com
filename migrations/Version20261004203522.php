@@ -49,13 +49,13 @@ WITH cleaned AS (
         id,
         btrim(regexp_replace(regexp_replace(regexp_replace(
             alternative_name,
-            '[\s   -     　]+', ' ', 'g'),
-            '[\x01-\x1F\x7F-\x9F­​-‏‪-‮⁠-⁯﻿]', '', 'g'),
+            '[\s\x00A0\x1680\x2000-\x200A\x2028\x2029\x202F\x205F\x3000]+', ' ', 'g'),
+            '[\x01-\x1F\x7F-\x9F\x00AD\x200B-\x200F\x202A-\x202E\x2060-\x206F\xFEFF]', '', 'g'),
             ' {2,}', ' ', 'g')) AS alternative,
         btrim(regexp_replace(regexp_replace(regexp_replace(
             name,
-            '[\s   -     　]+', ' ', 'g'),
-            '[\x01-\x1F\x7F-\x9F­​-‏‪-‮⁠-⁯﻿]', '', 'g'),
+            '[\s\x00A0\x1680\x2000-\x200A\x2028\x2029\x202F\x205F\x3000]+', ' ', 'g'),
+            '[\x01-\x1F\x7F-\x9F\x00AD\x200B-\x200F\x202A-\x202E\x2060-\x206F\xFEFF]', '', 'g'),
             ' {2,}', ' ', 'g')) AS main_title
     FROM puzzle
     WHERE alternative_name IS NOT NULL
@@ -63,7 +63,7 @@ WITH cleaned AS (
 UPDATE puzzle
 SET alternative_names = jsonb_build_array(jsonb_build_object(
     'name', cleaned.alternative,
-    'language', CASE WHEN cleaned.alternative ~ '[ěščřžůťďňĚŠČŘŽŮŤĎŇ]' THEN 'cs' END
+    'language', CASE WHEN cleaned.alternative ~ '[\x011B\x0161\x010D\x0159\x017E\x016F\x0165\x010F\x0148\x011A\x0160\x010C\x0158\x017D\x016E\x0164\x010E\x0147]' THEN 'cs' END
 ))
 FROM cleaned
 WHERE puzzle.id = cleaned.id

@@ -340,10 +340,9 @@ jobs:
       concurrency:
           group: deploy-prod
           cancel-in-progress: false
+      outputs:
+          deployed: ${{ steps.guard.outputs.deploy }}
       steps:
-          -   name: Checkout
-              uses: actions/checkout@v7
-
           -   name: Login to GHCR
               uses: docker/login-action@v4
               with:
@@ -385,8 +384,19 @@ jobs:
                     -H "X-Hub-Signature-256: sha256=$SIG" \
                     --data-raw "$BODY"
 
+  # Its own job: the action is a Docker image that a job pulls before its first
+  # step - inside `deploy` that held the webhook back by ~8s
+  sentry-release:
+      needs: deploy
+      if: needs.deploy.outputs.deployed == 'true' && github.event_name == 'push'
+      runs-on: ubuntu-latest
+      permissions:
+          contents: read
+      steps:
+          -   name: Checkout
+              uses: actions/checkout@v7
+
           -   name: Create Sentry release
-              if: steps.guard.outputs.deploy == 'true' && github.event_name == 'push'
               uses: getsentry/action-release@v3
               env:
                   SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"

@@ -232,6 +232,9 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
         self::assertSame(750, $puzzle->piecesCount);
         self::assertSame('1234567890123', $puzzle->ean);
         self::assertSame('ID-001', $puzzle->identificationNumber);
+        self::assertSame("\nbrand new puzzle\n", $puzzle->searchNames);
+        self::assertSame("\ne:1234567890123\nc:id001\n", $puzzle->searchCodes);
+        self::assertSame([], $puzzle->alternativeNames);
         self::assertFalse($puzzle->approved);
         self::assertSame('Brand New Manufacturer', $puzzle->manufacturer?->name);
     }

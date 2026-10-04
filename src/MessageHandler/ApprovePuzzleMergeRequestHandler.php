@@ -34,6 +34,9 @@ use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleMergeSnapshotBuilder;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\NotificationType;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\SearchText;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -93,8 +96,13 @@ readonly final class ApprovePuzzleMergeRequestHandler
             ),
         ];
 
-        // Update survivor puzzle with merged data
-        $survivorPuzzle->name = $message->mergedName;
+        // Update survivor puzzle with merged data - first: an invalid name is refused before anything changes
+        $survivorPuzzle->changeNames(
+            $message->mergedName,
+            self::mergedNameLanguage($message->mergedName, $survivorPuzzle, $puzzlesToMerge),
+            self::mergedAlternativeNames($survivorPuzzle, $puzzlesToMerge),
+            $this->clock->now(),
+        );
         $survivorPuzzle->piecesCount = $message->mergedPiecesCount;
 
         $survivorPuzzle->updateProductIdentifiers(
@@ -231,12 +239,51 @@ readonly final class ApprovePuzzleMergeRequestHandler
     }
 
     /**
+     * Every name of every merged puzzle survives as an other name of the survivor: its own names first, then each
+     * merged puzzle's main title and other names, then its own previous main title (dropped again by changeNames()
+     * when the reviewer kept it as the main title). Two names folding equal are one (PuzzleNames::union()).
+     *
+     * @param array<Puzzle> $puzzlesToMerge
+     */
+    private static function mergedAlternativeNames(Puzzle $survivorPuzzle, array $puzzlesToMerge): PuzzleNames
+    {
+        $names = $survivorPuzzle->alternativeNames();
+
+        foreach ($puzzlesToMerge as $puzzleToMerge) {
+            $names = $names
+                ->union(new PuzzleNames([new PuzzleName($puzzleToMerge->name, $puzzleToMerge->nameLanguage)]))
+                ->union($puzzleToMerge->alternativeNames());
+        }
+
+        return $names->union(new PuzzleNames([new PuzzleName($survivorPuzzle->name, $survivorPuzzle->nameLanguage)]));
+    }
+
+    /**
+     * The language of the main title the reviewer picked, as the puzzle that had it knew it - the survivor's for a
+     * title of its own or a typed one.
+     *
+     * @param array<Puzzle> $puzzlesToMerge
+     */
+    private static function mergedNameLanguage(string $mergedName, Puzzle $survivorPuzzle, array $puzzlesToMerge): null|string
+    {
+        $mergedNameKey = SearchText::fold($mergedName);
+
+        foreach ([$survivorPuzzle, ...$puzzlesToMerge] as $puzzle) {
+            if (SearchText::fold($puzzle->name) === $mergedNameKey) {
+                return $puzzle->nameLanguage;
+            }
+        }
+
+        return $survivorPuzzle->nameLanguage;
+    }
+
+    /**
      * Fills gaps on the survivor from the puzzles about to be deleted.
      *
      * Only ever writes where the survivor holds nothing, so an explicit choice made
      * by the reviewer always wins. Without this, merging a bare duplicate into a
-     * richer record silently discards whichever EAN, catalogue number, localised
-     * name or cover image only the duplicate happened to have.
+     * richer record silently discards whichever EAN, catalogue number or cover image
+     * only the duplicate happened to have (names: mergedAlternativeNames()).
      *
      * @param array<Puzzle> $puzzlesToMerge
      */
@@ -251,10 +298,6 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 ),
             );
 
-            if (self::isBlank($survivorPuzzle->alternativeName) && self::isBlank($puzzleToMerge->alternativeName) === false) {
-                $survivorPuzzle->alternativeName = $puzzleToMerge->alternativeName;
-            }
-
             if ($survivorPuzzle->image === null && $puzzleToMerge->image !== null) {
                 $survivorPuzzle->image = $puzzleToMerge->image;
                 $survivorPuzzle->imageRatio = $puzzleToMerge->imageRatio;
@@ -264,11 +307,6 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 $survivorPuzzle->manufacturer = $puzzleToMerge->manufacturer;
             }
         }
-    }
-
-    private static function isBlank(null|string $value): bool
-    {
-        return $value === null || trim($value) === '';
     }
 
     /**

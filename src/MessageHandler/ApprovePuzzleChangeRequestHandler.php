@@ -127,7 +127,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
 
         return new PuzzleRecordValues(
             name: $selected('name') ? ($changeRequest->proposedName ?? $puzzle->name) : $puzzle->name,
-            alternativeName: $puzzle->alternativeName,
+            alternativeName: $puzzle->alternativeNames()->legacyAlternativeName(),
             manufacturerId: $manufacturer?->id->toString(),
             piecesCount: $selected('piecesCount') ? ($changeRequest->proposedPiecesCount ?? $puzzle->piecesCount) : $puzzle->piecesCount,
             ean: $selected('ean') ? ($changeRequest->proposedEan ?? $puzzle->ean) : $puzzle->ean,

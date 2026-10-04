@@ -84,6 +84,50 @@ readonly final class EanList
         }
     }
 
+    /**
+     * The codes of a stored EAN value for the search key (PuzzleSearchKeys): every barcode number as digits without
+     * leading zeros, and apart from them every token that is no number at all (junk like "X002ROECA7" or "None").
+     *
+     * Codes are separated by `,` `;` `/` `|`. Spaces, dashes and dots inside a number are how it was printed - except
+     * in a run of digits too long for one code, where spaces separate several.
+     *
+     * @return array{numbers: list<string>, other: list<string>}
+     */
+    public static function searchTokens(null|string $value): array
+    {
+        $numbers = [];
+        $other = [];
+
+        foreach (preg_split('/[,;\/|]/', $value ?? '') ?: [] as $token) {
+            $token = trim($token);
+
+            if ($token === '') {
+                continue;
+            }
+
+            if (preg_match('/^[\d\s\p{Z}.\-]+$/u', $token) !== 1) {
+                $other[] = $token;
+                continue;
+            }
+
+            $parts = [$token];
+
+            if (strlen(preg_replace('/\D+/', '', $token) ?? '') > 14 && preg_match('/[\s\p{Z}]/u', $token) === 1) {
+                $parts = preg_split('/[\s\p{Z}]+/u', $token) ?: [];
+            }
+
+            foreach ($parts as $part) {
+                $number = ltrim(preg_replace('/\D+/', '', $part) ?? '', '0');
+
+                if ($number !== '') {
+                    $numbers[] = $number;
+                }
+            }
+        }
+
+        return ['numbers' => $numbers, 'other' => $other];
+    }
+
     private static function key(string $code): string
     {
         if (preg_match('/^[\d\s-]+$/', $code) !== 1) {

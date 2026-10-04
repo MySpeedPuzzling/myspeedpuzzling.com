@@ -10,11 +10,17 @@ final class TestingDatabaseCaching
 {
     private const CACHE_VALID_FOR_SECONDS = 24 * 60 * 60;  // 24 hours
 
-    public static function calculateDirectoriesHash(string ...$directories): string
+    /**
+     * Every PHP file in the directories, plus the files given directly.
+     */
+    public static function calculateDirectoriesHash(string ...$paths): string
     {
+        $directories = array_filter($paths, is_dir(...));
+        $givenFiles = array_values(array_filter($paths, is_file(...)));
+
         $finder = new Finder();
         $finder = $finder->in($directories)->name('*.php')->files();
-        $files = array_keys(iterator_to_array($finder->getIterator()));
+        $files = [...array_keys(iterator_to_array($finder->getIterator())), ...$givenFiles];
         $hash = '';
 
         foreach ($files as $file) {

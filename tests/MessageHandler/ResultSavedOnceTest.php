@@ -28,6 +28,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\StopwatchFixture;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -322,15 +324,28 @@ final class ResultSavedOnceTest extends KernelTestCase
         $puzzleId = Uuid::uuid7();
         $this->addPuzzle($puzzleId, PlayerFixture::PLAYER_REGULAR_USER_ID, piecesCount: 5000);
 
-        // The result saved with it was refused, the form came back corrected
-        $this->addPuzzle($puzzleId, PlayerFixture::PLAYER_REGULAR_USER_ID, name: 'Sent twice, corrected', piecesCount: 500, ean: '04005556123456');
+        self::assertSame("\nsent twice\n", $this->database->fetchOne('SELECT search_names FROM puzzle WHERE id = :id', ['id' => $puzzleId->toString()]));
 
-        /** @var array{name: string, pieces_count: int, ean: string, image: string} $puzzle */
-        $puzzle = $this->database->fetchAssociative('SELECT name, pieces_count, ean, image FROM puzzle WHERE id = :id', ['id' => $puzzleId->toString()]);
+        // The result saved with it was refused, the form came back corrected
+        $this->addPuzzle(
+            $puzzleId,
+            PlayerFixture::PLAYER_REGULAR_USER_ID,
+            name: 'Sent twice, corrected',
+            piecesCount: 500,
+            ean: '04005556123456',
+            alternativeNames: new PuzzleNames([new PuzzleName('Poslané dvakrát', 'cs')]),
+        );
+
+        /** @var array{name: string, pieces_count: int, ean: string, image: string, alternative_name: string, alternative_names: string, search_names: string, search_codes: string} $puzzle */
+        $puzzle = $this->database->fetchAssociative('SELECT name, pieces_count, ean, image, alternative_name, alternative_names, search_names, search_codes FROM puzzle WHERE id = :id', ['id' => $puzzleId->toString()]);
         self::assertSame('Sent twice, corrected', $puzzle['name']);
         self::assertSame(500, $puzzle['pieces_count']);
         self::assertSame('4005556123456', $puzzle['ean']);
         self::assertStringContainsString('sent-twice-corrected-500', $puzzle['image']);
+        self::assertSame([['name' => 'Poslané dvakrát', 'language' => 'cs']], PuzzleNames::fromJson($puzzle['alternative_names'])->toArray());
+        self::assertSame('Poslané dvakrát', $puzzle['alternative_name']);
+        self::assertSame("\nsent twice, corrected\nposlane dvakrat\n", $puzzle['search_names']);
+        self::assertSame("\ne:4005556123456\n", $puzzle['search_codes']);
 
         // Once a result uses it, the puzzle stays as it is
         $this->addTime(Uuid::uuid7(), puzzleId: $puzzleId->toString(), time: '00:41:00');
@@ -425,6 +440,7 @@ final class ResultSavedOnceTest extends KernelTestCase
         int $piecesCount = 1000,
         null|string $ean = null,
         string $brand = ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+        PuzzleNames $alternativeNames = new PuzzleNames(),
     ): void {
         $imagePath = tempnam(sys_get_temp_dir(), 'puzzle_test_') . '.jpg';
         $image = imagecreatetruecolor(10, 10);
@@ -440,6 +456,7 @@ final class ResultSavedOnceTest extends KernelTestCase
             puzzlePhoto: new UploadedFile($imagePath, 'box.jpg', 'image/jpeg', null, true),
             puzzleEan: $ean,
             puzzleIdentificationNumber: null,
+            alternativeNames: $alternativeNames,
         ));
     }
 

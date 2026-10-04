@@ -108,6 +108,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         self::assertSame($originalName, $puzzle->name);
         // EAN should be updated
         self::assertSame('1234567890123', $puzzle->ean);
+        self::assertSame("\ne:1234567890123\nc:rb500001\n", $puzzle->searchCodes);
+        self::assertNull($puzzle->namesChangedAt);
     }
 
     public function testTheReviewAppliesEveryFieldAsTheReviewerSetIt(): void
@@ -132,6 +134,10 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
         self::assertSame('Admin Corrected Name', $puzzle->name);
         self::assertSame('Alternative Title', $puzzle->alternativeName);
+        self::assertSame([['name' => 'Alternative Title', 'language' => null]], $puzzle->alternativeNames);
+        self::assertSame("\nadmin corrected name\nalternative title\n", $puzzle->searchNames);
+        self::assertSame("\ne:4005556123452\n", $puzzle->searchCodes);
+        self::assertNotNull($puzzle->namesChangedAt);
         self::assertSame(ManufacturerFixture::MANUFACTURER_TREFL, $puzzle->manufacturer?->id->toString());
         self::assertSame(1000, $puzzle->piecesCount);
         self::assertSame('4005556123452', $puzzle->ean);

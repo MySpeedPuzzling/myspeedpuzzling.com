@@ -12,6 +12,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 
 final class PuzzleFixture extends Fixture implements DependentFixtureInterface
 {
@@ -47,6 +49,17 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
     public const string EAN_SHARED_4000_5000 = '4005556999996';
     public const string EAN_PUZZLE_6000 = '5900511505054';
     public const string EAN_UNKNOWN = '4005556555550';
+
+    // Two editions of PUZZLE_1000_05, each with its own EAN (valid) and brand code
+    public const string EANS_PUZZLE_1000_05 = '4005556174812, 4005556197484';
+    public const string BRAND_CODES_PUZZLE_1000_05 = '17481, 19748-2';
+
+    // Other names (docs/features/puzzle-names/): PUZZLE_1000_02 in Czech and German, PUZZLE_300 the Czech one
+    // without accents and without a language, PUZZLE_HIDDEN_IMAGE in Japanese
+    public const string NAME_CS_MAGIC_GARDEN = 'Kouzelná zahrada';
+    public const string NAME_DE_MAGIC_GARDEN = 'Zauberhafter Garten';
+    public const string NAME_UNTAGGED_MAGIC_GARDEN = 'Kouzelna zahrada';
+    public const string NAME_JA_MAGIC_GARDEN = '魔法の庭';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -139,6 +152,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
         $manager->persist($puzzle);
         $this->addReference(self::PUZZLE_1000_01, $puzzle);
 
+        // Names of other boxes in two languages - the Czech one differs only by accents from PUZZLE_300's untagged name
         $puzzle = $this->createPuzzle(
             id: self::PUZZLE_1000_02,
             name: 'Puzzle 7',
@@ -147,6 +161,10 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
             addedByUser: $adminPlayer,
             approved: true,
             isAvailable: true,
+            alternativeNames: new PuzzleNames([
+                new PuzzleName(self::NAME_CS_MAGIC_GARDEN, 'cs'),
+                new PuzzleName(self::NAME_DE_MAGIC_GARDEN, 'de'),
+            ]),
         );
         $manager->persist($puzzle);
         $this->addReference(self::PUZZLE_1000_02, $puzzle);
@@ -176,6 +194,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
         $manager->persist($puzzle);
         $this->addReference(self::PUZZLE_1000_04, $puzzle);
 
+        // Two boxes of the same puzzle: two EANs and two brand codes
         $puzzle = $this->createPuzzle(
             id: self::PUZZLE_1000_05,
             name: 'Puzzle 10',
@@ -184,15 +203,18 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
             addedByUser: $adminPlayer,
             approved: true,
             isAvailable: true,
+            identificationNumber: self::BRAND_CODES_PUZZLE_1000_05,
+            ean: self::EANS_PUZZLE_1000_05,
         );
         $manager->persist($puzzle);
         $this->addReference(self::PUZZLE_1000_05, $puzzle);
 
         // Various piece counts
         // EANs below carry a valid GS1 check digit (multiscan validates codes); PUZZLE_4000 and
-        // PUZZLE_5000 deliberately share one (ambiguous scan), PUZZLE_9000 has none (linking tests)
+        // PUZZLE_5000 deliberately share one (ambiguous scan), PUZZLE_9000 has none (linking tests),
+        // PUZZLE_1500_02's ends in 0
         $variousPuzzles = [
-            ['id' => self::PUZZLE_300, 'name' => 'Puzzle 11', 'pieces' => 300, 'manufacturer' => $ravensburger, 'ean' => self::EAN_PUZZLE_300],
+            ['id' => self::PUZZLE_300, 'name' => 'Puzzle 11', 'pieces' => 300, 'manufacturer' => $ravensburger, 'ean' => self::EAN_PUZZLE_300, 'alternativeNames' => new PuzzleNames([new PuzzleName(self::NAME_UNTAGGED_MAGIC_GARDEN, null)])],
             ['id' => self::PUZZLE_1500_01, 'name' => 'Puzzle 12', 'pieces' => 1500, 'manufacturer' => $ravensburger, 'ean' => self::EAN_PUZZLE_1500_01],
             ['id' => self::PUZZLE_1500_02, 'name' => 'Puzzle 13', 'pieces' => 1500, 'manufacturer' => $trefl, 'ean' => self::EAN_PUZZLE_1500_02],
             ['id' => self::PUZZLE_2000, 'name' => 'Puzzle 14', 'pieces' => 2000, 'manufacturer' => $ravensburger, 'ean' => self::EAN_PUZZLE_2000],
@@ -213,6 +235,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
                 approved: true,
                 isAvailable: true,
                 ean: $data['ean'],
+                alternativeNames: $data['alternativeNames'] ?? new PuzzleNames(),
             );
             $manager->persist($puzzle);
             $this->addReference($data['id'], $puzzle);
@@ -240,6 +263,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
             addedByUser: $adminPlayer,
             approved: true,
             isAvailable: true,
+            alternativeNames: new PuzzleNames([new PuzzleName(self::NAME_JA_MAGIC_GARDEN, 'ja')]),
             hideImageUntil: new \DateTimeImmutable('2099-12-31'),
         );
         $manager->persist($hiddenImagePuzzle);
@@ -266,7 +290,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
         bool $isAvailable = false,
         null|string $identificationNumber = null,
         null|string $ean = null,
-        null|string $alternativeName = null,
+        PuzzleNames $alternativeNames = new PuzzleNames(),
         null|\DateTimeImmutable $hideImageUntil = null,
     ): Puzzle {
         return new Puzzle(
@@ -276,7 +300,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
             approved: $approved,
             image: null,
             manufacturer: $manufacturer,
-            alternativeName: $alternativeName,
+            alternativeNames: $alternativeNames,
             addedByUser: $addedByUser,
             addedAt: $this->clock->now(),
             identificationNumber: $identificationNumber,

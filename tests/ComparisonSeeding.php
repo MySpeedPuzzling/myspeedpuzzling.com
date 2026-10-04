@@ -8,6 +8,8 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleSearchKeys;
 
 /**
  * Isolated players, puzzles, pairs/teams and times for the comparison read side (docs/features/player-comparison.md) -
@@ -76,18 +78,23 @@ SQL,
         null|string $alternativeName = null,
     ): string {
         $id = Uuid::uuid7()->toString();
+        // As the entity writes them (Puzzle::changeNames()): the list, the old single column and the search keys
+        $alternativeNames = (new PuzzleNames())->withLegacyAlternativeName($alternativeName);
 
         $this->comparisonDatabase()->executeStatement(
             <<<SQL
-INSERT INTO puzzle (id, manufacturer_id, pieces_count, name, alternative_name, approved, is_available, image, image_ratio, hide_until, hide_image_until)
-VALUES (:id, :manufacturerId, :pieces, :name, :alternativeName, true, true, :image, :imageRatio, :hideUntil, :hideImageUntil)
+INSERT INTO puzzle (id, manufacturer_id, pieces_count, name, alternative_name, alternative_names, search_names, search_codes, approved, is_available, image, image_ratio, hide_until, hide_image_until)
+VALUES (:id, :manufacturerId, :pieces, :name, :alternativeName, :alternativeNames, :searchNames, :searchCodes, true, true, :image, :imageRatio, :hideUntil, :hideImageUntil)
 SQL,
             [
                 'id' => $id,
                 'manufacturerId' => $manufacturerId,
                 'pieces' => $pieces,
                 'name' => $name,
-                'alternativeName' => $alternativeName,
+                'alternativeName' => $alternativeNames->legacyAlternativeName(),
+                'alternativeNames' => json_encode($alternativeNames->toArray(), JSON_THROW_ON_ERROR),
+                'searchNames' => PuzzleSearchKeys::names($name, $alternativeNames),
+                'searchCodes' => PuzzleSearchKeys::codes(null, null),
                 'image' => $image,
                 'imageRatio' => $imageRatio,
                 'hideUntil' => $hideUntil?->format('Y-m-d H:i:s'),

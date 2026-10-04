@@ -20,6 +20,8 @@ $cacheFilePath = __DIR__ . '/.database.cache';
 $currentDatabaseHash = TestingDatabaseCaching::calculateDirectoriesHash(
     __DIR__ . '/../migrations',
     __DIR__ . '/DataFixtures',
+    // The extensions and custom indexes it creates
+    __FILE__,
 );
 
 // ParaTest (vendor/bin/paratest) runs the suite in several processes at once, each
@@ -232,6 +234,10 @@ function createCustomIndexes(): void
     // Puzzle search by catalogue number and EAN (Version20260918131133)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_identification_number_trgm ON puzzle USING GIN (identification_number gin_trgm_ops)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_ean_trgm ON puzzle USING GIN (ean gin_trgm_ops)');
+
+    // Puzzle search keys of every name and code (Version20261004203522)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_search_names_trgm ON puzzle USING GIN (search_names gin_trgm_ops)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_search_codes_trgm ON puzzle USING GIN (search_codes gin_trgm_ops)');
 
     // Query optimization composite indexes (Version20260102230000; custom_pst_tracked_at_type dropped in Version20260930163200)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_player_puzzle_type ON puzzle_solving_time (player_id, puzzle_id, puzzling_type)');

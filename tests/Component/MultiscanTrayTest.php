@@ -108,10 +108,112 @@ final class MultiscanTrayTest extends WebTestCase
         self::assertSame('ambiguous', self::rows($tray)[0]['state']);
         self::assertStringContainsString('Add 0 to library', $html, 'an unresolved row never counts');
 
-        $tray->call('choose', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000, 'puzzleId' => PuzzleFixture::PUZZLE_5000]);
+        $tray->call('choose', ['row' => self::rows($tray)[0]['key'], 'puzzleId' => PuzzleFixture::PUZZLE_5000]);
         $html = $tray->render()->toString();
         self::assertSame(PuzzleFixture::PUZZLE_5000, self::rows($tray)[0]['puzzleId']);
         self::assertStringContainsString('Add 1 to library', $html);
+    }
+
+    public function testSharedCodeScannedAgainAddsTheNextPuzzleUntilAllAreIn(): void
+    {
+        $client = self::createClient();
+        // A multipack: PUZZLE_4000 and PUZZLE_5000 carry one code, PLAYER_ADMIN owns neither
+        $tray = $this->tray($client, PlayerFixture::PLAYER_ADMIN);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000]);
+        $tray->call('choose', ['row' => self::rows($tray)[0]['key'], 'puzzleId' => PuzzleFixture::PUZZLE_5000]);
+        self::assertStringContainsString(
+            'data-multiscan-open-eans="' . PuzzleFixture::EAN_SHARED_4000_5000 . '"',
+            $tray->render()->toString(),
+            'the browser must let a repeat scan of this code through',
+        );
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000]);
+        $rows = self::rows($tray);
+        self::assertCount(2, $rows);
+        self::assertSame(['resolved', PuzzleFixture::PUZZLE_4000], [$rows[1]['state'], $rows[1]['puzzleId']], 'the one puzzle left goes straight in');
+        self::assertNotSame($rows[0]['key'], $rows[1]['key']);
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('data-multiscan-notice="found"', $html);
+        self::assertStringContainsString('data-multiscan-notice-row="' . $rows[1]['key'] . '"', $html);
+        self::assertStringContainsString('data-multiscan-open-eans=""', $html, 'both puzzles are in');
+        self::assertStringContainsString('Add 2 to library', $html);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000]);
+        self::assertCount(2, self::rows($tray));
+        self::assertStringContainsString('data-multiscan-notice="duplicate"', $tray->render()->toString());
+    }
+
+    public function testSharedCodeScannedAgainWhileItsRowStillAsksIsADuplicate(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, PlayerFixture::PLAYER_ADMIN);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000]);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000]);
+
+        self::assertCount(1, self::rows($tray));
+        self::assertStringContainsString('data-multiscan-notice="duplicate"', $tray->render()->toString());
+    }
+
+    public function testRowsOfASharedCodeAreRemovedAndReopenedOneByOne(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, PlayerFixture::PLAYER_ADMIN);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000]);
+        $tray->call('choose', ['row' => self::rows($tray)[0]['key'], 'puzzleId' => PuzzleFixture::PUZZLE_5000]);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_SHARED_4000_5000]);
+        [$first, $second] = self::rows($tray);
+
+        // The other puzzle is held by the other row: nothing to change to
+        $tray->call('reopen', ['row' => $second['key']]);
+        self::assertSame('resolved', self::rows($tray)[1]['state']);
+
+        $tray->call('remove', ['row' => $first['key']]);
+        self::assertSame([PuzzleFixture::PUZZLE_4000], array_column(self::rows($tray), 'puzzleId'));
+
+        // Now both puzzles are free for it again
+        $tray->call('reopen', ['row' => $second['key']]);
+        self::assertSame('ambiguous', self::rows($tray)[0]['state']);
+        self::assertStringContainsString('2 puzzles share the code', $tray->render()->toString());
+
+        $tray->call('choose', ['row' => $second['key'], 'puzzleId' => PuzzleFixture::PUZZLE_5000]);
+        self::assertSame([PuzzleFixture::PUZZLE_5000], array_column(self::rows($tray), 'puzzleId'));
+    }
+
+    public function testAmbiguousRowOffersOnlyThePuzzlesNoOtherRowHoldsAndRefusesATakenOne(): void
+    {
+        $client = self::createClient();
+        $shared = [PuzzleFixture::PUZZLE_4000, PuzzleFixture::PUZZLE_5000];
+        $tray = $this->tray($client, PlayerFixture::PLAYER_ADMIN, ['rows' => [
+            ['key' => 'asking', 'ean' => PuzzleFixture::EAN_SHARED_4000_5000, 'puzzleId' => null, 'state' => 'ambiguous', 'candidateIds' => $shared],
+            ['key' => 'holding', 'ean' => PuzzleFixture::EAN_SHARED_4000_5000, 'puzzleId' => PuzzleFixture::PUZZLE_4000, 'state' => 'resolved', 'candidateIds' => $shared],
+        ]]);
+
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('data-live-puzzle-id-param="' . PuzzleFixture::PUZZLE_5000 . '"', $html);
+        self::assertStringNotContainsString('data-live-puzzle-id-param="' . PuzzleFixture::PUZZLE_4000 . '"', $html, 'the puzzle the other row holds is not offered');
+
+        // A click from a page that still showed it: refused, the row keeps asking for the one left
+        $tray->call('choose', ['row' => 'asking', 'puzzleId' => PuzzleFixture::PUZZLE_4000]);
+        self::assertSame(['ambiguous', 'resolved'], array_column(self::rows($tray), 'state'));
+        self::assertStringContainsString('data-multiscan-notice="duplicate"', $tray->render()->toString());
+
+        $tray->call('choose', ['row' => 'asking', 'puzzleId' => PuzzleFixture::PUZZLE_5000]);
+        self::assertSame([PuzzleFixture::PUZZLE_5000, PuzzleFixture::PUZZLE_4000], array_column(self::rows($tray), 'puzzleId'));
+    }
+
+    public function testRowsWithoutKeysFromAPageRenderedBeforeTheyExistedStillWork(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, PlayerFixture::PLAYER_ADMIN, ['rows' => [
+            ['ean' => PuzzleFixture::EAN_PUZZLE_6000, 'puzzleId' => PuzzleFixture::PUZZLE_6000, 'state' => 'resolved', 'candidateIds' => []],
+        ]]);
+
+        $tray->call('remove', ['row' => PuzzleFixture::EAN_PUZZLE_6000]);
+
+        self::assertSame([], self::rows($tray));
     }
 
     public function testAmbiguousCodeAutoPicksTheCandidateInMyLibrary(): void
@@ -313,6 +415,26 @@ final class MultiscanTrayTest extends WebTestCase
         self::assertCount(3, self::rows($tray));
     }
 
+    public function testRestoreBringsBackEveryPuzzleOfASharedCode(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, PlayerFixture::PLAYER_ADMIN);
+
+        $tray->call('restore', ['state' => (string) json_encode([
+            'rows' => [
+                ['ean' => PuzzleFixture::EAN_SHARED_4000_5000, 'puzzleId' => PuzzleFixture::PUZZLE_5000],
+                ['ean' => PuzzleFixture::EAN_SHARED_4000_5000, 'puzzleId' => PuzzleFixture::PUZZLE_4000],
+                ['ean' => PuzzleFixture::EAN_SHARED_4000_5000, 'puzzleId' => PuzzleFixture::PUZZLE_4000], // twice: once
+                ['ean' => PuzzleFixture::EAN_SHARED_4000_5000, 'puzzleId' => null], // no pick next to rows of the code: dropped
+            ],
+        ])]);
+
+        $rows = self::rows($tray);
+        self::assertSame([PuzzleFixture::PUZZLE_5000, PuzzleFixture::PUZZLE_4000], array_column($rows, 'puzzleId'));
+        self::assertSame(['resolved', 'resolved'], array_column($rows, 'state'));
+        self::assertCount(2, array_unique(array_column($rows, 'key')));
+    }
+
     private static function component(TestLiveComponent $tray): MultiscanTray
     {
         $component = $tray->component();
@@ -444,7 +566,7 @@ final class MultiscanTrayTest extends WebTestCase
     }
 
     /**
-     * @return list<array{ean: string, puzzleId: null|string, state: string, candidateIds: list<string>}>
+     * @return list<array{key: string, ean: string, puzzleId: null|string, state: string, candidateIds: list<string>}>
      */
     private static function rows(TestLiveComponent $tray): array
     {

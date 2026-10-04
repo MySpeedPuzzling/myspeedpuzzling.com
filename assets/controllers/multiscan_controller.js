@@ -127,13 +127,17 @@ export default class extends Controller {
             return false;
         }
 
+        // A code several puzzles share (a multipack) with a puzzle not in the tray yet: scanning it
+        // again adds the next one - the server decides
+        const open = (this.trayTarget.getAttribute('data-multiscan-open-eans') || '').split(' ').filter(Boolean);
+        if (open.some((code) => this.normalize(code) === this.normalize(ean))) {
+            return false;
+        }
+
         // Friendly, not an error: the row it already has pulses, a short buzz and note
-        const row = document.getElementById('multiscan-row-' + rowEan);
+        const row = this.trayTarget.querySelector(`[data-multiscan-row-ean="${rowEan}"]`);
         if (row) {
-            row.classList.remove('is-pulse');
-            void row.offsetWidth;
-            row.classList.add('is-pulse');
-            window.setTimeout(() => row.classList.remove('is-pulse'), 1200);
+            this.pulse(row);
             const name = row.querySelector('.fw-medium');
             this.toast(this.duplicateMessageValue.replace('%name%', name ? name.textContent.trim() : ean), 'info', 1800);
         } else {
@@ -259,6 +263,7 @@ export default class extends Controller {
         const notice = tray.getAttribute('data-multiscan-notice') || '';
         const ean = tray.getAttribute('data-multiscan-notice-ean') || '';
         const name = tray.getAttribute('data-multiscan-notice-name') || '';
+        const rowKey = tray.getAttribute('data-multiscan-notice-row') || '';
         const sheetOpen = tray.getAttribute('data-multiscan-sheet-open') === '1';
 
         if (sheetOpen) {
@@ -286,9 +291,10 @@ export default class extends Controller {
             case 'created':
                 this.forgetPhoto(ean);
                 this.scannerFeedback('found');
-                this.highlightRow(ean);
+                this.highlightRow(rowKey);
                 break;
             case 'duplicate':
+                this.pulse(rowKey ? document.getElementById('multiscan-row-' + rowKey) : null);
                 this.scannerFeedback('duplicate');
                 this.toast(this.duplicateMessageValue.replace('%name%', name || ean), 'info', 1800);
                 break;
@@ -317,8 +323,8 @@ export default class extends Controller {
     /**
      * The freshly added row is the success signal: green sweep, and on screen even on a phone
      */
-    highlightRow(ean) {
-        const row = document.getElementById('multiscan-row-' + ean);
+    highlightRow(rowKey) {
+        const row = rowKey ? document.getElementById('multiscan-row-' + rowKey) : null;
         if (!row) {
             return;
         }
@@ -332,6 +338,20 @@ export default class extends Controller {
         if (rect.top < 0 || rect.bottom > window.innerHeight - 120) {
             row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
+    }
+
+    /**
+     * The row a repeated scan points at pulses
+     */
+    pulse(row) {
+        if (!row) {
+            return;
+        }
+
+        row.classList.remove('is-pulse');
+        void row.offsetWidth;
+        row.classList.add('is-pulse');
+        window.setTimeout(() => row.classList.remove('is-pulse'), 1200);
     }
 
     onVisibilityChange() {

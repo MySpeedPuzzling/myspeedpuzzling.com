@@ -10,12 +10,14 @@
      data-multiscan-notice-seq="{{ this.noticeSeq }}"
      data-multiscan-notice-ean="{{ this.notice ? this.notice.ean : '' }}"
      data-multiscan-notice-name="{{ this.notice ? (this.notice.name ?? '') : '' }}"
+     data-multiscan-notice-row="{{ this.notice ? (this.notice.row ?? '') : '' }}"
      data-multiscan-sheet-open="{{ this.resolvingEan ? '1' : '0' }}"
      data-multiscan-sheet-ean="{{ this.resolvingEan }}"
      data-multiscan-quick-add-open="{{ this.quickAddOpen ? '1' : '0' }}"
      data-multiscan-quick-add-id="{{ this.quickAddId }}"
      data-multiscan-unknown-count="{{ unresolved|length }}"
      data-multiscan-eans="{{ this.rows|map(r => r.ean)|join(' ') }}"
+     data-multiscan-open-eans="{{ this.openSharedCodes|join(' ') }}"
      data-loading="addClass(is-loading)">
 
     {% if this.error %}
@@ -82,7 +84,8 @@
                 {# newest scan first: on a phone it must be the row right under the camera #}
                 {% for row in actionable|reverse %}
                     <div class="list-group-item px-3 py-2 multiscan-row {% if not row.eligible and row.isResolved %}multiscan-row-skipped{% endif %}"
-                         id="multiscan-row-{{ row.ean }}"
+                         id="multiscan-row-{{ row.key }}"
+                         data-multiscan-row-ean="{{ row.ean }}"
                          data-multiscan-row-state="{{ row.state }}">
                         {% if row.isResolved %}
                             <div class="d-flex align-items-center gap-2">
@@ -103,10 +106,10 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="reopen" data-live-ean-param="{{ row.ean }}" title="{{ 'multiscan.row.change'|trans }}" aria-label="{{ 'multiscan.row.change'|trans }}">
+                                <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="reopen" data-live-row-param="{{ row.key }}" title="{{ 'multiscan.row.change'|trans }}" aria-label="{{ 'multiscan.row.change'|trans }}">
                                     <i class="bi-arrow-repeat"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="remove" data-live-ean-param="{{ row.ean }}" title="{{ 'multiscan.row.remove'|trans }}" aria-label="{{ 'multiscan.row.remove'|trans }}">
+                                <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="remove" data-live-row-param="{{ row.key }}" title="{{ 'multiscan.row.remove'|trans }}" aria-label="{{ 'multiscan.row.remove'|trans }}">
                                     <i class="bi-x-lg"></i>
                                 </button>
                             </div>
@@ -114,12 +117,12 @@
                             {# ambiguous: the code means several puzzles - pick by eye #}
                             <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
                                 <span class="small fw-medium"><i class="bi-question-circle me-1 text-info"></i>{{ 'multiscan.row.ambiguous'|trans({'%count%': row.candidates|length, '%ean%': row.ean}) }}</span>
-                                <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="remove" data-live-ean-param="{{ row.ean }}" aria-label="{{ 'multiscan.row.remove'|trans }}"><i class="bi-x-lg"></i></button>
+                                <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="remove" data-live-row-param="{{ row.key }}" aria-label="{{ 'multiscan.row.remove'|trans }}"><i class="bi-x-lg"></i></button>
                             </div>
                             <div class="d-flex flex-column gap-1">
                                 {% for candidate in row.candidates %}
                                     <button type="button" class="btn btn-outline-secondary btn-sm text-start d-flex align-items-center gap-2 py-1"
-                                            data-action="live#action" data-live-action-param="choose" data-live-ean-param="{{ row.ean }}" data-live-puzzle-id-param="{{ candidate.puzzleId }}">
+                                            data-action="live#action" data-live-action-param="choose" data-live-row-param="{{ row.key }}" data-live-puzzle-id-param="{{ candidate.puzzleId }}">
                                         {{ lazy_puzzle_image(candidate.puzzleImage, 'puzzle_small', candidate.puzzleName, 999, 36, 'rounded-1', 36, candidate.puzzleImageRatio) }}
                                         <span class="flex-grow-1 min-w-0">
                                             <span class="d-block text-truncate">{{ candidate.puzzleName }}</span>
@@ -140,16 +143,16 @@
                 </div>
                 <div class="list-group list-group-flush">
                     {% for row in unresolved|reverse %}
-                        <div class="list-group-item px-3 py-2 d-flex align-items-center gap-2" id="multiscan-row-{{ row.ean }}" data-multiscan-row-state="unknown">
+                        <div class="list-group-item px-3 py-2 d-flex align-items-center gap-2" id="multiscan-row-{{ row.key }}" data-multiscan-row-ean="{{ row.ean }}" data-multiscan-row-state="unknown">
                             <span class="multiscan-unknown-thumb rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"><i class="bi-question-lg"></i></span>
                             <div class="flex-grow-1 min-w-0">
                                 <div class="fw-medium small">{{ 'multiscan.row.unknown'|trans }}</div>
                                 <div class="small text-muted font-monospace">{{ row.ean }}</div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="live#action" data-live-action-param="reopen" data-live-ean-param="{{ row.ean }}">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="live#action" data-live-action-param="reopen" data-live-row-param="{{ row.key }}">
                                 {{ 'multiscan.row.resolve'|trans }}
                             </button>
-                            <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="remove" data-live-ean-param="{{ row.ean }}" aria-label="{{ 'multiscan.row.remove'|trans }}"><i class="bi-x-lg"></i></button>
+                            <button type="button" class="btn btn-sm btn-link text-muted px-1" data-action="live#action" data-live-action-param="remove" data-live-row-param="{{ row.key }}" aria-label="{{ 'multiscan.row.remove'|trans }}"><i class="bi-x-lg"></i></button>
                         </div>
                     {% endfor %}
                 </div>
@@ -373,7 +376,7 @@
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-action="live#action" data-live-action-param="closeResolve">
                     <i class="bi-skip-forward me-1"></i>{{ 'multiscan.resolve.skip'|trans }}
                 </button>
-                <button type="button" class="btn btn-link btn-sm text-danger" data-action="live#action" data-live-action-param="remove" data-live-ean-param="{{ this.resolvingEan }}">
+                <button type="button" class="btn btn-link btn-sm text-danger" data-action="live#action" data-live-action-param="remove" data-live-row-param="{{ this.resolvingRowKey }}">
                     {{ 'multiscan.row.remove'|trans }}
                 </button>
             </div>

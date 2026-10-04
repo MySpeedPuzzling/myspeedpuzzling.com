@@ -56,6 +56,7 @@ use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\Attribute\PostHydrate;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -74,7 +75,11 @@ final class MultiscanTray
     private const int SEARCH_LIMIT = 8;
 
     /**
-     * @var list<array{ean: string, puzzleId: null|string, state: string, candidateIds: list<string>}>
+     * One row per scanned box. A code several puzzles share (a multipack) can have one row per puzzle,
+     * so rows are addressed by `key`. `candidateIds` = every puzzle of a shared code (ambiguous rows
+     * offer those no other row holds), empty for a code of one puzzle or none.
+     *
+     * @var list<array{key: string, ean: string, puzzleId: null|string, state: string, candidateIds: list<string>}>
      */
     #[LiveProp]
     public array $rows = [];
@@ -93,8 +98,9 @@ final class MultiscanTray
 
     /**
      * What just happened to the last scan, for the bridge (feedback + toast); cleared on the next action.
+     * `row` is the key of the row it concerns, when there is one.
      *
-     * @var null|array{type: string, ean: string, name: null|string}
+     * @var null|array{type: string, ean: string, name: null|string, row: null|string}
      */
     #[LiveProp]
     public null|array $notice = null;
@@ -198,6 +204,21 @@ final class MultiscanTray
         }
     }
 
+    /**
+     * A tray rendered before rows had keys (one row per code then) keeps working: the code is its key.
+     */
+    #[PostHydrate]
+    public function keyLegacyRows(): void
+    {
+        /** @var list<array{key?: string, ean: string, puzzleId: null|string, state: string, candidateIds: list<string>}> $rows */
+        $rows = $this->rows;
+
+        $this->rows = array_map(
+            static fn (array $row): array => ['key' => $row['key'] ?? $row['ean']] + $row,
+            $rows,
+        );
+    }
+
     // ------------------------------------------------------------------ scanning
 
     #[LiveAction]
@@ -213,8 +234,19 @@ final class MultiscanTray
             return;
         }
 
-        if ($this->findRow($code) !== null) {
-            $this->notify('duplicate', $code->digits, $this->rowName($code));
+        $inTray = $this->rowsOf($code);
+
+        // Scanned again while its row still waits for a decision: nothing new to add
+        foreach ($inTray as $row) {
+            if ($row['state'] !== 'resolved') {
+                $this->notify('duplicate', $code->digits, null, $row['key']);
+                return;
+            }
+        }
+
+        // Only a code several puzzles share can have another row
+        if ($inTray !== [] && array_merge(...array_column($inTray, 'candidateIds')) === []) {
+            $this->notify('duplicate', $code->digits, $this->rowName($code), $inTray[0]['key']);
             return;
         }
 
@@ -224,10 +256,23 @@ final class MultiscanTray
         }
 
         $candidates = $this->getMultiscanCandidates->forEan($code);
+        $candidateIds = count($candidates) > 1
+            ? array_map(static fn (PuzzleOverview $c): string => $c->puzzleId, $candidates)
+            : [];
 
-        if ($candidates === []) {
-            $this->rows[] = ['ean' => $code->digits, 'puzzleId' => null, 'state' => 'unknown', 'candidateIds' => []];
-            $this->notify('unknown', $code->digits, null);
+        if ($inTray !== []) {
+            // A code several puzzles share (a multipack) scanned again: the next row takes a puzzle
+            // the tray does not hold yet - a duplicate only once every one of them is in
+            $candidates = array_values(array_filter($candidates, fn (PuzzleOverview $c): bool => !$this->hasPuzzle($c->puzzleId)));
+
+            if ($candidates === []) {
+                $this->notify('duplicate', $code->digits, $this->rowName($code), $inTray[0]['key']);
+                return;
+            }
+        } elseif ($candidates === []) {
+            $key = $this->newRowKey();
+            $this->rows[] = ['key' => $key, 'ean' => $code->digits, 'puzzleId' => null, 'state' => 'unknown', 'candidateIds' => []];
+            $this->notify('unknown', $code->digits, null, $key);
             $this->openResolveSheet($code);
             return;
         }
@@ -235,56 +280,63 @@ final class MultiscanTray
         $picked = count($candidates) === 1 ? $candidates[0] : $this->autoPick($candidates);
 
         if ($picked === null) {
+            $key = $this->newRowKey();
             $this->rows[] = [
+                'key' => $key,
                 'ean' => $code->digits,
                 'puzzleId' => null,
                 'state' => 'ambiguous',
-                'candidateIds' => array_map(static fn (PuzzleOverview $c): string => $c->puzzleId, $candidates),
+                'candidateIds' => $candidateIds,
             ];
-            $this->notify('ambiguous', $code->digits, null);
+            $this->notify('ambiguous', $code->digits, null, $key);
             return;
         }
 
-        $this->addResolvedRow($code, $picked->puzzleId, $picked->puzzleName);
+        $this->addResolvedRow($code, $picked->puzzleId, $picked->puzzleName, $candidateIds);
     }
 
     #[LiveAction]
-    public function choose(#[LiveArg] string $ean, #[LiveArg] string $puzzleId): void
+    public function choose(#[LiveArg] string $row, #[LiveArg] string $puzzleId): void
     {
         $this->clearTransient();
         $this->requireMember();
 
-        $index = $this->rowIndex($ean);
+        $index = $this->rowIndex($row);
 
         if ($index === null || !in_array($puzzleId, $this->rows[$index]['candidateIds'], true)) {
             return;
         }
 
-        if ($this->hasPuzzle($puzzleId)) {
-            $this->remove($ean);
+        $ean = $this->rows[$index]['ean'];
+
+        if ($this->hasPuzzle($puzzleId, exceptRow: $row)) {
+            // Taken by another row meanwhile: this row goes when it has nothing else to offer
+            if ($this->offeredCandidateIds($this->rows[$index]) === []) {
+                $this->remove($row);
+            }
+
             $this->notify('duplicate', $ean, null);
             return;
         }
 
-        $this->resolveRowTo($ean, $puzzleId);
-        $this->notify('chosen', $ean, null);
+        $this->resolveRowTo($row, $puzzleId);
+        $this->notify('chosen', $ean, null, $row);
     }
 
     #[LiveAction]
-    public function reopen(#[LiveArg] string $ean): void
+    public function reopen(#[LiveArg] string $row): void
     {
         $this->clearTransient();
-        $index = $this->rowIndex($ean);
+        $index = $this->rowIndex($row);
 
         if ($index === null) {
             return;
         }
 
-        $row = $this->rows[$index];
+        $ean = $this->rows[$index]['ean'];
+        $code = Ean::tryFrom($ean);
 
-        if ($row['state'] === 'unknown') {
-            $code = Ean::tryFrom($ean);
-
+        if ($this->rows[$index]['state'] === 'unknown') {
             if ($code !== null) {
                 $this->openResolveSheet($code);
             }
@@ -293,26 +345,35 @@ final class MultiscanTray
         }
 
         // A resolved row goes back to the chooser when the code has several candidates
-        $code = Ean::tryFrom($ean);
+        // that no other row holds (its own pick stays among them)
         $candidates = $code !== null ? $this->getMultiscanCandidates->forEan($code) : [];
+        $reopened = [
+            'key' => $row,
+            'ean' => $ean,
+            'puzzleId' => null,
+            'state' => 'ambiguous',
+            'candidateIds' => array_map(static fn (PuzzleOverview $c): string => $c->puzzleId, $candidates),
+        ];
 
-        if (count($candidates) > 1) {
-            $this->replaceRow($ean, [
-                'ean' => $ean,
-                'puzzleId' => null,
-                'state' => 'ambiguous',
-                'candidateIds' => array_map(static fn (PuzzleOverview $c): string => $c->puzzleId, $candidates),
-            ]);
+        if (count($candidates) > 1 && count($this->offeredCandidateIds($reopened)) > 1) {
+            $this->replaceRow($row, $reopened);
         }
     }
 
     #[LiveAction]
-    public function remove(#[LiveArg] string $ean): void
+    public function remove(#[LiveArg] string $row): void
     {
         $this->clearTransient();
-        $this->rows = array_values(array_filter($this->rows, static fn (array $row): bool => $row['ean'] !== $ean));
+        $index = $this->rowIndex($row);
 
-        if ($this->resolvingEan === $ean) {
+        if ($index === null) {
+            return;
+        }
+
+        $removed = $this->rows[$index];
+        $this->rows = array_values(array_filter($this->rows, static fn (array $r): bool => $r['key'] !== $row));
+
+        if ($removed['state'] === 'unknown' && $this->resolvingEan === $removed['ean']) {
             $this->closeResolveSheet();
         }
     }
@@ -348,6 +409,9 @@ final class MultiscanTray
             return;
         }
 
+        /** @var array<string, list<PuzzleOverview>> $candidatesByCode */
+        $candidatesByCode = [];
+
         foreach ($data['rows'] as $saved) {
             if (count($this->rows) >= self::MAX_ROWS) {
                 break;
@@ -359,20 +423,32 @@ final class MultiscanTray
 
             $code = Ean::tryFrom($saved['ean']);
 
-            if ($code === null || $this->findRow($code) !== null) {
+            if ($code === null) {
                 continue;
             }
 
-            $candidates = $this->getMultiscanCandidates->forEan($code);
+            $candidates = $candidatesByCode[$code->digits] ??= $this->getMultiscanCandidates->forEan($code);
             $candidateIds = array_map(static fn (PuzzleOverview $c): string => $c->puzzleId, $candidates);
-            $pickedId = is_string($saved['puzzleId'] ?? null) && in_array($saved['puzzleId'], $candidateIds, true)
+            $sharedIds = count($candidates) > 1 ? $candidateIds : [];
+            $savedPick = is_string($saved['puzzleId'] ?? null) && in_array($saved['puzzleId'], $candidateIds, true) && !$this->hasPuzzle($saved['puzzleId'])
                 ? $saved['puzzleId']
-                : (count($candidates) === 1 ? $candidates[0]->puzzleId : null);
+                : null;
+
+            if ($this->rowsOf($code) !== []) {
+                // Another row of a code several puzzles share comes back only with its own pick
+                if ($savedPick !== null) {
+                    $this->rows[] = ['key' => $this->newRowKey(), 'ean' => $code->digits, 'puzzleId' => $savedPick, 'state' => 'resolved', 'candidateIds' => $sharedIds];
+                }
+
+                continue;
+            }
+
+            $pickedId = $savedPick ?? (count($candidates) === 1 ? $candidates[0]->puzzleId : null);
 
             $this->rows[] = match (true) {
-                $pickedId !== null => ['ean' => $code->digits, 'puzzleId' => $pickedId, 'state' => 'resolved', 'candidateIds' => []],
-                $candidates === [] => ['ean' => $code->digits, 'puzzleId' => null, 'state' => 'unknown', 'candidateIds' => []],
-                default => ['ean' => $code->digits, 'puzzleId' => null, 'state' => 'ambiguous', 'candidateIds' => $candidateIds],
+                $pickedId !== null => ['key' => $this->newRowKey(), 'ean' => $code->digits, 'puzzleId' => $pickedId, 'state' => 'resolved', 'candidateIds' => $sharedIds],
+                $candidates === [] => ['key' => $this->newRowKey(), 'ean' => $code->digits, 'puzzleId' => null, 'state' => 'unknown', 'candidateIds' => []],
+                default => ['key' => $this->newRowKey(), 'ean' => $code->digits, 'puzzleId' => null, 'state' => 'ambiguous', 'candidateIds' => $candidateIds],
             };
         }
 
@@ -387,26 +463,22 @@ final class MultiscanTray
         // A quick-add that was being filled in comes back with what was typed (the photo is retaken)
         $sheet = $data['sheet'] ?? null;
 
-        $sheetIndex = is_array($sheet) && is_string($sheet['ean'] ?? null) ? $this->rowIndex($sheet['ean']) : null;
+        $sheetCode = is_array($sheet) && is_string($sheet['ean'] ?? null) ? Ean::tryFrom($sheet['ean']) : null;
 
-        if (is_array($sheet) && is_string($sheet['ean'] ?? null) && $sheetIndex !== null) {
-            $code = Ean::tryFrom($sheet['ean']);
+        if (is_array($sheet) && $sheetCode !== null && $this->unknownRowKey($sheetCode->digits) !== null) {
+            $this->openResolveSheet($sheetCode);
+            $this->quickAddOpen = ($sheet['quickAddOpen'] ?? false) === true;
+            $this->newName = is_string($sheet['name'] ?? null) ? mb_substr($sheet['name'], 0, 255) : '';
+            $this->newPiecesCount = is_string($sheet['pieces'] ?? null) ? mb_substr($sheet['pieces'], 0, 6) : '';
+            $this->newBrandName = is_string($sheet['brandName'] ?? null) ? mb_substr($sheet['brandName'], 0, 100) : '';
 
-            if ($code !== null && $this->rows[$sheetIndex]['state'] === 'unknown') {
-                $this->openResolveSheet($code);
-                $this->quickAddOpen = ($sheet['quickAddOpen'] ?? false) === true;
-                $this->newName = is_string($sheet['name'] ?? null) ? mb_substr($sheet['name'], 0, 255) : '';
-                $this->newPiecesCount = is_string($sheet['pieces'] ?? null) ? mb_substr($sheet['pieces'], 0, 6) : '';
-                $this->newBrandName = is_string($sheet['brandName'] ?? null) ? mb_substr($sheet['brandName'], 0, 100) : '';
+            if (is_string($sheet['brand'] ?? null) && Uuid::isValid($sheet['brand'])) {
+                $this->newBrand = $sheet['brand'];
+            }
 
-                if (is_string($sheet['brand'] ?? null) && Uuid::isValid($sheet['brand'])) {
-                    $this->newBrand = $sheet['brand'];
-                }
-
-                // Same puzzle id as before the reload: a create that did go through is found, not repeated
-                if (is_string($sheet['quickAddId'] ?? null) && Uuid::isValid($sheet['quickAddId'])) {
-                    $this->quickAddId = $sheet['quickAddId'];
-                }
+            // Same puzzle id as before the reload: a create that did go through is found, not repeated
+            if (is_string($sheet['quickAddId'] ?? null) && Uuid::isValid($sheet['quickAddId'])) {
+                $this->quickAddId = $sheet['quickAddId'];
             }
         }
 
@@ -452,7 +524,7 @@ final class MultiscanTray
             $candidates = $this->getMultiscanCandidates->forEan($code);
 
             if (count($candidates) === 1 && !$this->hasPuzzle($candidates[0]->puzzleId)) {
-                $this->resolveRowTo($row['ean'], $candidates[0]->puzzleId);
+                $this->resolveRowTo($row['key'], $candidates[0]->puzzleId);
                 $resolved++;
 
                 if ($this->resolvingEan === $row['ean']) {
@@ -583,9 +655,10 @@ final class MultiscanTray
         }
 
         $ean = $this->resolvingEan;
+        $key = $this->resolvingRowKey() ?? $this->newRowKey();
 
         if ($this->hasPuzzle($puzzleId)) {
-            $this->remove($ean);
+            $this->remove($key);
             $this->notify('duplicate', $ean, null);
             return;
         }
@@ -599,8 +672,8 @@ final class MultiscanTray
             return;
         }
 
-        $this->resolveRowTo($ean, $puzzleId);
-        $this->notify('linked', $ean, null);
+        $this->resolveRowTo($key, $puzzleId);
+        $this->notify('linked', $ean, null, $key);
         $this->closeResolveSheet();
     }
 
@@ -629,14 +702,15 @@ final class MultiscanTray
             throw new PlayerNotFound();
         }
 
+        $key = $this->resolvingRowKey() ?? $this->newRowKey();
         $puzzleId = $this->quickAddId !== null && Uuid::isValid($this->quickAddId)
             ? Uuid::fromString($this->quickAddId)
             : Uuid::uuid7();
 
         // A retry after the answer got lost on the way: the puzzle exists already - just use it
         if ($this->puzzleExists($puzzleId->toString())) {
-            $this->resolveRowTo($ean->digits, $puzzleId->toString());
-            $this->notify('created', $ean->digits, $name);
+            $this->resolveRowTo($key, $puzzleId->toString());
+            $this->notify('created', $ean->digits, $name, $key);
             $this->closeResolveSheet();
             return;
         }
@@ -648,18 +722,19 @@ final class MultiscanTray
             $candidates = $this->getMultiscanCandidates->forEan($ean);
 
             if (count($candidates) === 1) {
-                $this->resolveRowTo($ean->digits, $candidates[0]->puzzleId);
+                $this->resolveRowTo($key, $candidates[0]->puzzleId);
                 $this->notify('rechecked', $ean->digits, '1');
                 $this->closeResolveSheet();
             } elseif (count($candidates) > 1) {
                 // Several visible puzzles carry it now: let the member pick, as a fresh scan would
-                $this->replaceRow($ean->digits, [
+                $this->replaceRow($key, [
+                    'key' => $key,
                     'ean' => $ean->digits,
                     'puzzleId' => null,
                     'state' => 'ambiguous',
                     'candidateIds' => array_map(static fn (PuzzleOverview $c): string => $c->puzzleId, $candidates),
                 ]);
-                $this->notify('ambiguous', $ean->digits, null);
+                $this->notify('ambiguous', $ean->digits, null, $key);
                 $this->closeResolveSheet();
             } else {
                 // Only a hidden puzzle carries it
@@ -707,8 +782,8 @@ final class MultiscanTray
             return;
         }
 
-        $this->resolveRowTo($ean->digits, $puzzleId->toString());
-        $this->notify('created', $ean->digits, $name);
+        $this->resolveRowTo($key, $puzzleId->toString());
+        $this->notify('created', $ean->digits, $name, $key);
         $this->closeResolveSheet();
     }
 
@@ -737,14 +812,16 @@ final class MultiscanTray
         }
 
         $ids = [];
+        $offered = [];
 
         foreach ($this->rows as $row) {
             if ($row['puzzleId'] !== null) {
                 $ids[] = $row['puzzleId'];
             }
 
-            foreach ($row['candidateIds'] as $candidateId) {
-                $ids[] = $candidateId;
+            if ($row['state'] === 'ambiguous') {
+                $offered[$row['key']] = $this->offeredCandidateIds($row);
+                array_push($ids, ...$offered[$row['key']]);
             }
         }
 
@@ -764,13 +841,13 @@ final class MultiscanTray
 
             if ($row['state'] === 'resolved' && $puzzle === null) {
                 // Deleted or merged away since it was scanned - shows as unknown, never crashes the tray
-                $rows[] = new MultiscanRow($row['ean'], 'unknown', null, [], null, [], false, null, []);
+                $rows[] = new MultiscanRow($row['key'], $row['ean'], 'unknown', null, [], null, [], false, null, []);
                 continue;
             }
 
             $candidates = [];
 
-            foreach ($row['candidateIds'] as $candidateId) {
+            foreach ($offered[$row['key']] ?? [] as $candidateId) {
                 if (isset($puzzles[$candidateId])) {
                     $candidates[] = $puzzles[$candidateId];
                 }
@@ -789,7 +866,7 @@ final class MultiscanTray
 
             $state = in_array($row['state'], ['resolved', 'ambiguous'], true) ? $row['state'] : 'unknown';
 
-            $rows[] = new MultiscanRow($row['ean'], $state, $puzzle, $candidates, $chip, $chipParams, $eligible, $reason, $reasonParams);
+            $rows[] = new MultiscanRow($row['key'], $row['ean'], $state, $puzzle, $candidates, $chip, $chipParams, $eligible, $reason, $reasonParams);
         }
 
         return $this->hydratedRows = $rows;
@@ -1115,32 +1192,43 @@ final class MultiscanTray
         return count($mine) === 1 ? $mine[0] : null;
     }
 
-    private function addResolvedRow(Ean $code, string $puzzleId, string $puzzleName): void
+    /**
+     * @param list<string> $candidateIds every puzzle of the code when several share it
+     */
+    private function addResolvedRow(Ean $code, string $puzzleId, string $puzzleName, array $candidateIds): void
     {
         if ($this->hasPuzzle($puzzleId)) {
             $this->notify('duplicate', $code->digits, $puzzleName);
             return;
         }
 
-        $this->rows[] = ['ean' => $code->digits, 'puzzleId' => $puzzleId, 'state' => 'resolved', 'candidateIds' => []];
-        $this->notify('found', $code->digits, $puzzleName);
-    }
-
-    private function resolveRowTo(string $ean, string $puzzleId): void
-    {
-        $this->replaceRow($ean, ['ean' => $ean, 'puzzleId' => $puzzleId, 'state' => 'resolved', 'candidateIds' => []]);
+        $key = $this->newRowKey();
+        $this->rows[] = ['key' => $key, 'ean' => $code->digits, 'puzzleId' => $puzzleId, 'state' => 'resolved', 'candidateIds' => $candidateIds];
+        $this->notify('found', $code->digits, $puzzleName, $key);
     }
 
     /**
-     * @param array{ean: string, puzzleId: null|string, state: string, candidateIds: list<string>} $replacement
+     * Resolves the row (or appends one, when it is gone meanwhile); a row of a shared code keeps its candidates.
      */
-    private function replaceRow(string $ean, array $replacement): void
+    private function resolveRowTo(string $key, string $puzzleId): void
+    {
+        $index = $this->rowIndex($key);
+        $ean = $index !== null ? $this->rows[$index]['ean'] : (string) $this->resolvingEan;
+        $candidateIds = $index !== null ? $this->rows[$index]['candidateIds'] : [];
+
+        $this->replaceRow($key, ['key' => $key, 'ean' => $ean, 'puzzleId' => $puzzleId, 'state' => 'resolved', 'candidateIds' => $candidateIds]);
+    }
+
+    /**
+     * @param array{key: string, ean: string, puzzleId: null|string, state: string, candidateIds: list<string>} $replacement
+     */
+    private function replaceRow(string $key, array $replacement): void
     {
         $rows = [];
         $found = false;
 
         foreach ($this->rows as $row) {
-            if ($row['ean'] === $ean) {
+            if ($row['key'] === $key) {
                 $rows[] = $replacement;
                 $found = true;
             } else {
@@ -1189,9 +1277,9 @@ final class MultiscanTray
         $this->resolveBrandName = null;
     }
 
-    private function notify(string $type, string $ean, null|string $name): void
+    private function notify(string $type, string $ean, null|string $name, null|string $row = null): void
     {
-        $this->notice = ['type' => $type, 'ean' => $ean, 'name' => $name];
+        $this->notice = ['type' => $type, 'ean' => $ean, 'name' => $name, 'row' => $row];
         $this->noticeSeq++;
     }
 
@@ -1214,12 +1302,30 @@ final class MultiscanTray
         };
     }
 
-    private function findRow(Ean $code): null|int
+    /**
+     * Rows of this code - several when puzzles share it (a multipack)
+     *
+     * @return list<array{key: string, ean: string, puzzleId: null|string, state: string, candidateIds: list<string>}>
+     */
+    private function rowsOf(Ean $code): array
     {
-        foreach ($this->rows as $index => $row) {
+        $rows = [];
+
+        foreach ($this->rows as $row) {
             $rowCode = Ean::tryFrom($row['ean']);
 
             if ($rowCode !== null && $rowCode->equals($code)) {
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
+    }
+
+    private function rowIndex(string $key): null|int
+    {
+        foreach ($this->rows as $index => $row) {
+            if ($row['key'] === $key) {
                 return $index;
             }
         }
@@ -1227,15 +1333,75 @@ final class MultiscanTray
         return null;
     }
 
-    private function rowIndex(string $ean): null|int
+    private function unknownRowKey(string $ean): null|string
     {
-        foreach ($this->rows as $index => $row) {
-            if ($row['ean'] === $ean) {
-                return $index;
+        foreach ($this->rows as $row) {
+            if ($row['ean'] === $ean && $row['state'] === 'unknown') {
+                return $row['key'];
             }
         }
 
         return null;
+    }
+
+    /**
+     * The row the resolve sheet works on (a code nobody has is in the tray once)
+     */
+    public function resolvingRowKey(): null|string
+    {
+        return $this->resolvingEan !== null ? $this->unknownRowKey($this->resolvingEan) : null;
+    }
+
+    private function newRowKey(): string
+    {
+        return 'r' . bin2hex(random_bytes(6));
+    }
+
+    /**
+     * What an ambiguous row offers: the code's puzzles that no other row holds
+     *
+     * @param array{key: string, ean: string, puzzleId: null|string, state: string, candidateIds: list<string>} $row
+     * @return list<string>
+     */
+    private function offeredCandidateIds(array $row): array
+    {
+        return array_values(array_filter(
+            $row['candidateIds'],
+            fn (string $candidateId): bool => !$this->hasPuzzle($candidateId, exceptRow: $row['key']),
+        ));
+    }
+
+    /**
+     * Codes in the tray that more of their puzzles can still join - scanning such a code again is no
+     * duplicate, so the browser asks the server instead of answering "already in the tray" itself.
+     *
+     * @return list<string>
+     */
+    public function openSharedCodes(): array
+    {
+        $codes = [];
+
+        foreach ($this->rows as $row) {
+            if ($row['state'] !== 'resolved' || $row['candidateIds'] === []) {
+                continue;
+            }
+
+            foreach ($row['candidateIds'] as $candidateId) {
+                if (!$this->hasPuzzle($candidateId)) {
+                    $codes[$row['ean']] = true;
+                    break;
+                }
+            }
+        }
+
+        // A code with a row still waiting for a decision is a plain duplicate
+        foreach ($this->rows as $row) {
+            if ($row['state'] !== 'resolved') {
+                unset($codes[$row['ean']]);
+            }
+        }
+
+        return array_keys($codes);
     }
 
     private function rowName(Ean $code): null|string
@@ -1263,10 +1429,10 @@ final class MultiscanTray
         }
     }
 
-    private function hasPuzzle(string $puzzleId): bool
+    private function hasPuzzle(string $puzzleId, null|string $exceptRow = null): bool
     {
         foreach ($this->rows as $row) {
-            if ($row['puzzleId'] === $puzzleId) {
+            if ($row['puzzleId'] === $puzzleId && $row['key'] !== $exceptRow) {
                 return true;
             }
         }

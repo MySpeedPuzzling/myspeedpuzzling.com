@@ -57,6 +57,11 @@ would commit immediately, and lending sends a notification that cannot be unsent
 - **Ambiguous EAN**: if exactly one candidate is already in the player's library / lent / borrowed
   lists, it is picked silently. Otherwise the row shows a chooser (image + pieces) and is excluded
   from actions until chosen.
+- **A code several puzzles share (a multipack) can be scanned once per puzzle** (2026-10-04). A repeat scan of it
+  is no duplicate while one of its puzzles is not in the tray: one left = added straight away, several = a new
+  chooser offering only those. It is a duplicate once all of them are in, or while a row of the code still asks.
+  The browser lets such codes through its own duplicate check (`data-multiscan-open-eans`).
+  "Change" on a row offers only the puzzles no other row holds.
 - **Action bar** pinned to the bottom (wrapping, never scrolling): every action shows how many rows
   it applies to, greys out at zero; ineligible rows say why (*already lent*, *not yours*). The
   person picker suggests the people you lend to / borrow from first, then favourites, searches
@@ -161,7 +166,9 @@ touch the `<video>`. A tiny `multiscan` Stimulus bridge listens for `barcode-sca
 `component.action('scan', {ean})`, reads `data-multiscan-*` attributes after `render:finished` to
 fire feedback, pause/resume the camera and re-open the native scanner.
 
-State is a `LiveProp` list of rows `{ean, puzzleId|null, state, candidateIds}`; each render hydrates
+State is a `LiveProp` list of rows `{key, ean, puzzleId|null, state, candidateIds}`, addressed by `key` (one code can
+have several rows). `candidateIds` holds every puzzle of a shared code, also on resolved rows, and stays empty for a code of
+one puzzle or none. A tray rendered before keys existed gets the code as its key (`#[PostHydrate]`). Each render hydrates
 rows with **one** `GetPuzzleOverview::byIds()` and the request-cached `GetUserPuzzleStatuses`, so a
 scan costs the lookup + 2 queries. Chips, eligibility and skip reasons are computed in PHP by one
 `MultiscanEligibility` service that the batch handlers use too — the counts the user sees are the

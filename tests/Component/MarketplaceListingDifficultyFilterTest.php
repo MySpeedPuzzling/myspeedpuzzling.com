@@ -84,6 +84,92 @@ final class MarketplaceListingDifficultyFilterTest extends WebTestCase
         self::assertSame(['Hard'], array_values(array_unique($crawler->filter('[data-testid="difficulty-corner"]')->each(static fn (Crawler $corner): string => (string) $corner->attr('title')))));
     }
 
+    public function testMemberSortsTheListingsByDifficulty(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->rateTheOldestListingEasy();
+        $component = $this->listing($browser);
+        $crawler = $component->render()->crawler();
+        self::assertCount(1, $crawler->filter('select[data-model="sort"] option[value="easiest"]'));
+        self::assertCount(1, $crawler->filter('select[data-model="sort"] option[value="hardest"]'));
+
+        $component->set('sort', 'hardest');
+        self::assertSame(['Hard', 'Easy', 'Unknown'], $this->cornerSequence($component->render()->crawler()));
+
+        $component->set('sort', 'easiest');
+        $crawler = $component->render()->crawler();
+        self::assertSame(['Easy', 'Hard', 'Unknown'], $this->cornerSequence($crawler));
+        self::assertCount(1, $crawler->filter('option[value="easiest"][selected]'));
+        self::assertStringContainsString('sort=easiest', $this->listingOf($component)->getReturnUrl());
+
+        // Only the rated tiers asked for, still in order
+        $component->set('difficulty', ['2', '5']);
+        self::assertSame(['Easy', 'Hard'], $this->cornerSequence($component->render()->crawler()));
+    }
+
+    public function testWithoutMembershipTheDifficultySortIsNotOfferedAndIgnored(): void
+    {
+        foreach ([PlayerFixture::PLAYER_REGULAR, null] as $viewer) {
+            $browser = $viewer === null ? $this->guest() : $this->signedIn($viewer);
+            $this->rateTheOldestListingEasy();
+            $component = $this->listing($browser);
+            $crawler = $component->render()->crawler();
+            $newest = $this->cards($crawler)->each(static fn (Crawler $card): string => (string) $card->attr('id'));
+
+            self::assertCount(0, $crawler->filter('select[data-model="sort"] option[value="easiest"], select[data-model="sort"] option[value="hardest"]'));
+
+            $component->set('sort', 'easiest');
+            $crawler = $component->render()->crawler();
+            self::assertSame('newest', $this->listingOf($component)->sort);
+            self::assertSame($newest, $this->cards($crawler)->each(static fn (Crawler $card): string => (string) $card->attr('id')));
+
+            self::ensureKernelShutdown();
+        }
+    }
+
+    public function testTheUrlCarriesTheDifficultySort(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->rateTheOldestListingEasy();
+
+        $crawler = $browser->request('GET', '/en/marketplace?sort=easiest');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('option[value="easiest"][selected]'));
+        self::assertSame(['Easy', 'Hard', 'Unknown'], $this->cornerSequence($crawler));
+    }
+
+    /**
+     * Besides the newest listing's Hard puzzle (guest()), the oldest listing's puzzle is Easy
+     */
+    private function rateTheOldestListingEasy(): void
+    {
+        $connection = self::getContainer()->get(Connection::class);
+        $puzzleId = $connection->fetchOne('SELECT puzzle_id FROM sell_swap_list_item WHERE published_on_marketplace = true ORDER BY added_at ASC LIMIT 1');
+        self::assertIsString($puzzleId);
+
+        $connection->executeStatement(
+            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, 2, 0.8, 'high', 10, NOW())",
+            ['puzzleId' => $puzzleId],
+        );
+    }
+
+    /**
+     * @return list<string> the tier names on the cards in their order, each run of one name once
+     */
+    private function cornerSequence(Crawler $crawler): array
+    {
+        $names = $this->cards($crawler)->each(static fn (Crawler $card): string => (string) $card->filter('[data-testid="difficulty-corner"]')->attr('title'));
+        $sequence = [];
+
+        foreach ($names as $name) {
+            if ($sequence === [] || $sequence[array_key_last($sequence)] !== $name) {
+                $sequence[] = $name;
+            }
+        }
+
+        return $sequence;
+    }
+
     private function signedIn(string $playerId): KernelBrowser
     {
         $browser = $this->guest();

@@ -112,8 +112,9 @@
                     </div>
                     </div>
 
-                    {# Sort #}
-                    <div class="col-6 col-md-3 col-lg-1">
+                    {# Sort - by difficulty for members, like the difficulty filter below #}
+                    {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
+                    <div class="col-6 col-md-3 col-lg-2">
                         <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.sort'|trans }}</small></label>
                         <select data-model="sort" class="form-select form-select-sm">
                             <option value="newest" {{ this.sort == 'newest' ? 'selected' }}>{{ 'marketplace.sort.newest'|trans }}</option>
@@ -121,6 +122,10 @@
                             <option value="price_desc" {{ this.sort == 'price_desc' ? 'selected' }}>{{ 'marketplace.sort.price_desc'|trans }}</option>
                             <option value="name_asc" {{ this.sort == 'name_asc' ? 'selected' }}>{{ 'marketplace.sort.name_asc'|trans }}</option>
                             <option value="name_desc" {{ this.sort == 'name_desc' ? 'selected' }}>{{ 'marketplace.sort.name_desc'|trans }}</option>
+                            {% if is_member %}
+                                <option value="easiest" {{ this.sort == 'easiest' ? 'selected' }}>{{ 'sorting.easiest'|trans }}</option>
+                                <option value="hardest" {{ this.sort == 'hardest' ? 'selected' }}>{{ 'sorting.hardest'|trans }}</option>
+                            {% endif %}
                             {% if this.search is not empty %}
                                 <option value="relevance" {{ this.sort == 'relevance' ? 'selected' }}>{{ 'marketplace.sort.relevance'|trans }}</option>
                             {% endif %}
@@ -172,7 +177,6 @@
                 </div>
 
                 {# Difficulty (members) - the tiers of the puzzle search, "Unknown" = not rated yet #}
-                {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
                 <div class="mt-2">
                     <label class="form-label form-label-sm mb-0">
                         <small>{{ 'puzzle_intelligence.difficulty.filter_label'|trans }}</small>

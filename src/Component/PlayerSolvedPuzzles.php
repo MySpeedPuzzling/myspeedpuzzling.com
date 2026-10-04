@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\PlayerRanking;
+use SpeedPuzzling\Web\Results\PuzzleDifficultyRating;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Value\DifficultyFilter;
 use SpeedPuzzling\Web\Value\DifficultyTier;
@@ -30,6 +31,11 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 final class PlayerSolvedPuzzles
 {
     use DefaultActionTrait;
+
+    private const array SORTS = ['fastest', 'slowest', 'newest', 'oldest', 'fastest_ppm', 'slowest_ppm'];
+
+    // Members only, like the difficulty filter
+    private const array DIFFICULTY_SORTS = ['easiest', 'hardest'];
 
     #[LiveProp]
     public null|string $playerId = null;
@@ -119,6 +125,13 @@ final class PlayerSolvedPuzzles
      */
     public array $difficultyTiers = [];
 
+    /**
+     * Difficulty score of every rated puzzle in the player's results (members only), for the difficulty sorts
+     *
+     * @var array<string, float>
+     */
+    private array $difficultyScores = [];
+
     /** @var array<SolvedPuzzle> */
     private array $allSoloPuzzles = [];
 
@@ -160,7 +173,7 @@ final class PlayerSolvedPuzzles
     #[LiveAction]
     public function changeSortBy(#[LiveArg] string $sort): void
     {
-        if (in_array($sort, ['fastest', 'slowest', 'newest', 'oldest', 'fastest_ppm', 'slowest_ppm'], true)) {
+        if (in_array($sort, self::SORTS, true) || (in_array($sort, self::DIFFICULTY_SORTS, true) && $this->hasMembership())) {
             $this->sortBy = $sort;
         }
     }
@@ -220,15 +233,21 @@ final class PlayerSolvedPuzzles
 
         // Difficulty is members-only: for everyone else it is not even queried. The whole history, not just the
         // shown rows - the filter needs every tier
-        $difficultyTiers = $this->resolveDifficultyTiers->forViewer(
+        $difficultyRatings = $this->resolveDifficultyTiers->ratingsForViewer(
             $this->retrieveLoggedUserProfile->getProfile(),
             array_map(
                 static fn(SolvedPuzzle $puzzle): string => $puzzle->puzzleId,
                 [...$this->allSoloPuzzles, ...$this->allDuoPuzzles, ...$this->allTeamPuzzles],
             ),
         );
-        $this->withDifficulty = $difficultyTiers !== null;
-        $this->difficultyTiers = $difficultyTiers ?? [];
+        $this->withDifficulty = $difficultyRatings !== null;
+        $this->difficultyTiers = array_map(static fn(PuzzleDifficultyRating $rating): DifficultyTier => $rating->tier, $difficultyRatings ?? []);
+        $this->difficultyScores = array_map(static fn(PuzzleDifficultyRating $rating): float => $rating->score, $difficultyRatings ?? []);
+
+        // sortBy is writable: a difficulty sort without membership (sent, or left over from a lapsed one) falls back
+        if ($this->withDifficulty === false && in_array($this->sortBy, self::DIFFICULTY_SORTS, true)) {
+            $this->sortBy = 'fastest';
+        }
 
         // Apply filters
         $soloSolvedPuzzles = $this->applyFilters($this->allSoloPuzzles);
@@ -422,6 +441,8 @@ final class PlayerSolvedPuzzles
             'oldest' => $this->puzzlesSorter->sortByOldest($puzzles),
             'fastest_ppm' => $this->puzzlesSorter->sortByFastestPpm($puzzles),
             'slowest_ppm' => $this->puzzlesSorter->sortBySlowestPpm($puzzles),
+            'easiest' => $this->puzzlesSorter->sortByDifficulty($puzzles, $this->difficultyScores, hardestFirst: false),
+            'hardest' => $this->puzzlesSorter->sortByDifficulty($puzzles, $this->difficultyScores, hardestFirst: true),
             default => $puzzles,
         };
     }
@@ -439,6 +460,8 @@ final class PlayerSolvedPuzzles
             'oldest' => $this->puzzlesSorter->sortGroupedByOldest($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
             'fastest_ppm' => $this->puzzlesSorter->sortGroupedByFastestPpm($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
             'slowest_ppm' => $this->puzzlesSorter->sortGroupedBySlowestPpm($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
+            'easiest' => $this->puzzlesSorter->sortGroupedByDifficulty($groupedPuzzles, $this->difficultyScores, false, $this->onlyFirstTries, $this->onlyUnboxed),
+            'hardest' => $this->puzzlesSorter->sortGroupedByDifficulty($groupedPuzzles, $this->difficultyScores, true, $this->onlyFirstTries, $this->onlyUnboxed),
             default => $groupedPuzzles,
         };
     }

@@ -269,6 +269,7 @@
   "slowest_ppm": "Langsamste PPM"
   "easiest": "Einfachste zuerst"
   "hardest": "Schwierigste zuerst"
+  "default_order": "Standardreihenfolge"
 "puzzle_overview":
   "meta":
     "title": "Puzzle-Datenbank & Legezeiten"

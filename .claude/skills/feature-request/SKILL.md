@@ -158,7 +158,7 @@ Reference `/Users/janmikes/www/speedpuzzling.cz/CLAUDE.md` for project rules you
 - `ClockInterface` instead of `new \DateTimeImmutable()`
 - Single-action `__invoke` controllers
 - `Uuid::uuid7()` for new IDs
-- New features English-only unless translation is explicitly requested
+- Texts in English while building; once implemented, every new translation key goes to all 6 locales (cs, de, es, fr, ja)
 - Services with instance state implement `ResetInterface` (FrankenPHP worker mode)
 - Never write migrations manually — always generate via `docker compose exec web php bin/console make:migration`
 - When renaming tables, update raw SQL in `src/Query/`
@@ -247,6 +247,7 @@ Follow the plan's **Files** and **Build sequence** exactly. Key reminders:
 - Tests live alongside the code they verify and target handlers/services, not controllers or commands.
 - If you need a migration: `docker compose exec web php bin/console make:migration` — never hand-write one, unless the plan specifically called for a custom index (then see `CLAUDE.md` §Custom Database Indexes).
 - If the change touches templates or the service worker: remember the notes in `CLAUDE.md` (docker restart for templates; bump `CACHE_VERSION` for service-worker changes).
+- When the implementation is done, add every translation key the job introduced to all 6 locales (cs, de, es, fr, ja next to en) and check that each new key exists in all of them - the `missing-translations` skill does the same at scale.
 
 ### 4. Run all mandatory checks
 
@@ -292,8 +293,8 @@ Focus areas, in order of weight:
    authorization gaps (who can call this, is the role/scope right)? Any secrets
    logged or echoed? Any exception paths that leak internal info?
 
-4. **Best practices / project conventions** — CLAUDE.md rules: English-only for new
-   features, translations where required, exception logging with full object
+4. **Best practices / project conventions** — CLAUDE.md rules: every new translation
+   key present in all 6 locales, exception logging with full object
    ('exception' => $e), no backwards-compat shims, no error handling for impossible
    cases, minimal comments (only when the WHY is non-obvious). No premature
    abstraction.

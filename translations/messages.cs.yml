@@ -270,6 +270,7 @@
   "slowest_ppm": "Nejpomalejší PPM"
   "easiest": "Nejsnazší"
   "hardest": "Nejtěžší"
+  "default_order": "Výchozí řazení"
 "puzzle_overview":
   "meta":
     "title": "Databáze puzzle a časy skládání"

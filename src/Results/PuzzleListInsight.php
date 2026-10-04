@@ -11,6 +11,8 @@ readonly final class PuzzleListInsight
     public function __construct(
         public int $solvedTimes,
         public null|DifficultyTier $difficultyTier,
+        // Orders the list by difficulty (members), finer than the tier
+        public null|float $difficultyScore = null,
     ) {
     }
 }

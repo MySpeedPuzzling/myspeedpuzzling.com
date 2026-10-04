@@ -1,6 +1,7 @@
 # Difficulty on puzzle lists + "My list" filter on the puzzle database
 
-Issue #214, feature request "Difficulty filter for puzzles in collection". Shipped as one PR.
+Issue #214, feature request "Difficulty filter for puzzles in collection". Shipped as one PR. The difficulty sort
+followed with issue #230 (see "Difficulty sort" below).
 
 ## Puzzle-list pages
 
@@ -64,6 +65,54 @@ chips disabled, and a value they send is ignored.
 Tests: `tests/Controller/DifficultyOnThumbnailsTest.php`, `tests/Component/PlayerSolvedPuzzlesDifficultyTest.php`,
 `tests/Component/MarketplaceListingDifficultyFilterTest.php`, `tests/Query/GetMarketplaceListingsTest.php`,
 `tests/Query/GetPuzzleDifficultyTest.php`, `tests/Services/ResolveDifficultyTiersTest.php`.
+
+### Difficulty sort (members, 2026-10-04)
+
+Issue #230, feature request "Filter/sort Collection/solved puzzles by difficulty". "Easiest first" / "Hardest first"
+(`easiest` / `hardest`, labels `sorting.easiest` / `sorting.hardest` as on the puzzle database) on the profile results,
+the collection-like pages and the marketplace. The order is `puzzle_difficulty.difficulty_score` - finer than the tier,
+which is a band of it, so the order always agrees with the icons - and **not rated yet comes last in both
+directions**, as on the puzzle database. The viewer's membership decides; a difficulty sort sent by anybody else is
+dropped back to the default.
+
+- **Profile results**: two more items in the sort dropdown; non-members get them locked (`#membersExclusiveModal`).
+  `ResolveDifficultyTiers::ratingsForViewer()` → `GetPuzzleDifficulty::ratingsOf()` replaces the tier lookup (tier +
+  score from the same rows, still one query); `PuzzlesSorter::sortGroupedByDifficulty()` (solo: puzzle groups by
+  score, fastest within a puzzle, the first-try / unboxed head kept) and `sortByDifficulty()` (pairs/teams, then
+  grouped by team as before); equally difficult = fastest first. `sortBy` is a writable LiveProp, so `populate()`
+  resets a difficulty sort to `fastest` without membership.
+- **Collection-like pages** (collections, wishlist, unsolved, solved, sell/swap): `_difficulty_sort.html.twig`
+  (members only, like the chips) - "Default order" (the page's own: recently added, A-Z on the solved page) /
+  Easiest first / Hardest first. Client-side in `collection_filter_controller.js#sort` (reorders the item nodes,
+  independent of the filters); items carry `data-difficulty-score` next to `data-difficulty-tier` (empty = not rated
+  yet, also on an item a turbo stream re-rendered without insights). The score rides on `GetPuzzleListInsights`.
+- **Marketplace**: two more options in the sort select, rendered for members only (an `<option>` cannot open the
+  members modal; the difficulty filter's lock button is the upsell). `MarketplaceListing::normalizePieces()` drops a
+  difficulty sort to `newest` without membership. `GetMarketplaceListings::orderKeys()` +
+  `pd.difficulty_score` as a page column, through the tier filter's join or its own (`DIFFICULTY_JOIN`, never twice);
+  equally difficult = newest first, the item id breaks ties, so "Load more" pages stay stable. Under an event the
+  listings they are bringing still come first.
+
+Measured on the dev copy (production data: 41k puzzles, 6,285 rated, 1,482 listings, 523k times), median of 5 warm
+`EXPLAIN ANALYZE` runs:
+
+| Statement | Before | With the difficulty sort |
+|---|---|---|
+| Marketplace page 1 (21 rows) | newest 9.95 ms | hardest 7.26 ms |
+| Marketplace page 10 (210 rows) | newest 10.23 ms | easiest 6.78 ms |
+| `GetPuzzleListInsights`, largest collection (1,722 items) | tier 6.88 ms | tier + score 6.99 ms |
+| Difficulty of the heaviest history (2,159 puzzles) | tiers 1.10 ms | tiers + scores 1.07 ms |
+
+The marketplace join is a PK lookup per listing and makes the planner hash the listings instead of every puzzle, so
+the difficulty sort is the cheaper one. **No custom index**: an index on the score could not help - the marketplace
+sorts after the join, which starts from `sell_swap_list_item`, and the lists look the scores up by primary key. No
+extra query anywhere.
+
+Tests: `tests/Services/PuzzlesSorterTest.php`, `tests/Component/PlayerSolvedPuzzlesDifficultyTest.php`,
+`tests/Query/GetMarketplaceListingsTest.php`, `tests/Query/GetMarketplaceListingsAtEventsTest.php`,
+`tests/Component/MarketplaceListingDifficultyFilterTest.php`, `tests/Controller/PuzzleListInsightsTest.php`,
+`tests/Query/GetPuzzleListInsightsTest.php`, `tests/Query/GetPuzzleDifficultyTest.php`,
+`tests/Services/ResolveDifficultyTiersTest.php`.
 
 ## "My list" on the puzzle database (`/en/puzzle?list=...`)
 

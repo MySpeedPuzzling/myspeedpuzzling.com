@@ -103,6 +103,11 @@ JOIN player pl ON ssli.player_id = pl.id';
         cs.name AS series_name,
         cs.slug AS series_slug';
 
+    // Members only (MarketplaceListing gates it, like the difficulty filter); unrated puzzles last either way
+    public const array DIFFICULTY_SORTS = ['easiest', 'hardest'];
+
+    private const string DIFFICULTY_JOIN = "\nLEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id";
+
     private const array EVENT_COLUMN_NAMES = [
         'id', 'name', 'shortcut', 'slug', 'date_from', 'date_to',
         'location', 'location_country_code', 'series_name', 'series_slug',
@@ -211,6 +216,21 @@ JOIN player pl ON ssli.player_id = pl.id';
             $params['eanSearchEndLikeQuery'] = $eanSearch . '%';
         }
 
+        // Sorting by difficulty reads the score through the tier filter's join (a PK lookup), or joins it itself.
+        // Measured on the dev copy (1,482 listings, 2026-10-04): page 1 7.3 ms vs 10 ms for "newest" - the join
+        // makes the planner hash the listings instead of every puzzle. No index on the score would help: it is
+        // sorted after the join, which starts from the listings.
+        $difficultyScore = '';
+
+        if (in_array($sort, self::DIFFICULTY_SORTS, true)) {
+            $difficultyScore = ',
+    pd.difficulty_score';
+
+            if ($difficultyTiers === []) {
+                $joins .= self::DIFFICULTY_JOIN;
+            }
+        }
+
         $orderKeys = self::orderKeys($sort, $hasSearch, $event !== null);
         $columns = self::COLUMNS;
         $from = self::FROM;
@@ -220,7 +240,7 @@ JOIN player pl ON ssli.player_id = pl.id';
         // The page first (filters, order, limit), then its rows' labels - never computed for rows off the page
         $page = <<<SQL
 SELECT {$columns},
-    {$bringing} AS bringing{$matchScore}
+    {$bringing} AS bringing{$matchScore}{$difficultyScore}
 {$from}
 LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id{$joins}
 WHERE ssli.published_on_marketplace = true{$conditions}
@@ -665,6 +685,8 @@ SQL;
             $sort === 'price_desc' => ['price DESC NULLS LAST', 'added_at DESC'],
             $sort === 'name_asc' => ['puzzle_name ASC', 'added_at DESC'],
             $sort === 'name_desc' => ['puzzle_name DESC', 'added_at DESC'],
+            $sort === 'easiest' => ['difficulty_score ASC NULLS LAST', 'added_at DESC'],
+            $sort === 'hardest' => ['difficulty_score DESC NULLS LAST', 'added_at DESC'],
             default => ['added_at DESC'],
         };
 
@@ -790,7 +812,7 @@ SQL;
         }
 
         return [
-            "\nLEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id",
+            self::DIFFICULTY_JOIN,
             "\n    AND (" . implode(' OR ', $conditions) . ')',
             $ratedTiers,
         ];

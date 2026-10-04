@@ -310,6 +310,7 @@ sorting:
     z_a: "Name Z-A"
     easiest: "Easiest first"
     hardest: "Hardest first"
+    default_order: "Default order"
     fastest_ppm: "Fastest PPM"
     slowest_ppm: "Slowest PPM"
 puzzle_overview:

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -214,6 +215,92 @@ final class GetMarketplaceListingsTest extends KernelTestCase
         self::assertCount(count($all), $this->query->search(limit: 1000, difficultyTiers: [0, 5]));
         self::assertSame([], $this->query->search(limit: 1000, difficultyTiers: [1]));
         self::assertSame(0, $this->query->count(difficultyTiers: [1]));
+    }
+
+    public function testSortByDifficulty(): void
+    {
+        $all = $this->query->search(limit: 1000);
+        $puzzleIds = array_values(array_unique(array_map(static fn (MarketplaceListingItem $item): string => $item->puzzleId, $all)));
+        self::assertGreaterThanOrEqual(4, count($puzzleIds));
+
+        // Three listed puzzles rated (Hard, Easy, Average), the others not yet
+        $scores = [$puzzleIds[0] => 1.3, $puzzleIds[1] => 0.8, $puzzleIds[2] => 1.0];
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement('DELETE FROM puzzle_difficulty');
+
+        foreach ($scores as $puzzleId => $score) {
+            $connection->executeStatement(
+                "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, :tier, :score, 'high', 10, NOW())",
+                ['puzzleId' => $puzzleId, 'tier' => DifficultyTier::fromScore($score)->value, 'score' => $score],
+            );
+        }
+
+        $easiest = $this->query->search(sort: 'easiest', limit: 1000);
+        self::assertCount(count($all), $easiest);
+        self::assertSame([0.8, 1.0, 1.3], self::distinctScores($easiest, $scores));
+        self::assertDifficultySorted($easiest, $scores, hardestFirst: false);
+
+        $hardest = $this->query->search(sort: 'hardest', limit: 1000);
+        self::assertSame([1.3, 1.0, 0.8], self::distinctScores($hardest, $scores));
+        self::assertDifficultySorted($hardest, $scores, hardestFirst: true);
+
+        // Pages follow the same order
+        $pages = [...$this->query->search(sort: 'hardest', limit: 2), ...$this->query->search(sort: 'hardest', limit: 2, offset: 2)];
+        self::assertSame(self::itemIds(array_slice($hardest, 0, 4)), self::itemIds($pages));
+
+        // Together with the difficulty filter, which joins the same table
+        $easyOrHard = $this->query->search(sort: 'hardest', limit: 1000, difficultyTiers: [DifficultyTier::Easy->value, DifficultyTier::Hard->value]);
+        self::assertSame([1.3, 0.8], self::distinctScores($easyOrHard, $scores));
+
+        $averageOrUnrated = $this->query->search(sort: 'easiest', limit: 1000, difficultyTiers: [DifficultyTier::Average->value, 0]);
+        self::assertSame([1.0], self::distinctScores($averageOrUnrated, $scores));
+        self::assertDifficultySorted($averageOrUnrated, $scores, hardestFirst: false);
+        self::assertSame(count($averageOrUnrated), $this->query->count(difficultyTiers: [DifficultyTier::Average->value, 0]));
+    }
+
+    /**
+     * Rated first in score order, not rated yet last; equally difficult listings newest first.
+     *
+     * @param array<MarketplaceListingItem> $items
+     * @param array<string, float> $scores
+     */
+    private static function assertDifficultySorted(array $items, array $scores, bool $hardestFirst): void
+    {
+        for ($i = 0; $i < count($items) - 1; $i++) {
+            $a = $scores[$items[$i]->puzzleId] ?? null;
+            $b = $scores[$items[$i + 1]->puzzleId] ?? null;
+
+            if ($a === null) {
+                self::assertNull($b, 'Not rated yet comes last');
+            } elseif ($b !== null && $a !== $b) {
+                $hardestFirst ? self::assertGreaterThan($b, $a) : self::assertLessThan($b, $a);
+            }
+
+            if ($a === $b) {
+                self::assertGreaterThanOrEqual($items[$i + 1]->addedAt, $items[$i]->addedAt);
+            }
+        }
+    }
+
+    /**
+     * @param array<MarketplaceListingItem> $items
+     * @param array<string, float> $scores
+     * @return list<float> the rated listings' scores in their order, once each
+     */
+    private static function distinctScores(array $items, array $scores): array
+    {
+        $listed = array_map(static fn (MarketplaceListingItem $item): null|float => $scores[$item->puzzleId] ?? null, $items);
+
+        return array_values(array_unique(array_filter($listed, static fn (null|float $score): bool => $score !== null), SORT_REGULAR));
+    }
+
+    /**
+     * @param array<MarketplaceListingItem> $items
+     * @return list<string>
+     */
+    private static function itemIds(array $items): array
+    {
+        return array_values(array_map(static fn (MarketplaceListingItem $item): string => $item->itemId, $items));
     }
 
     public function testEmptyResultWithNonMatchingFilters(): void

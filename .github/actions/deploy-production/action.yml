@@ -1,0 +1,71 @@
+name: Deploy production
+description: >
+  Gives the commit's image the `main` tag lily runs and fires the lily deploy
+  webhook - unless production already runs a newer commit.
+
+inputs:
+    image:
+        description: The commit's image, e.g. ghcr.io/myspeedpuzzling/website:sha-1234567
+        required: true
+    github-token:
+        description: Token with packages:write (re-tag) and contents:read (compare commits)
+        required: true
+    webhook-secret:
+        description: HMAC secret of the lily deploy webhook
+        required: true
+    dry-run:
+        description: "'true' runs the guard and prints the re-tag, without pushing it or calling the webhook"
+        required: false
+        default: 'false'
+
+outputs:
+    deployed:
+        description: "'true' when the webhook was fired"
+        value: ${{ steps.guard.outputs.deploy }}
+
+runs:
+    using: composite
+    steps:
+        -   name: Login to GHCR
+            uses: docker/login-action@v4
+            with:
+                registry: ghcr.io
+                username: ${{ github.repository_owner }}
+                password: ${{ inputs.github-token }}
+
+        # Pipelines of quick successive pushes can finish out of order - never
+        # roll production back to an older commit. Anything unexpected (no label,
+        # unknown commit) deploys, like before.
+        -   name: Skip when production already runs a newer commit
+            id: guard
+            shell: bash
+            env:
+                GH_TOKEN: ${{ inputs.github-token }}
+            run: |
+                live="$(docker buildx imagetools inspect ghcr.io/myspeedpuzzling/website:main --format '{{ index .Image.Config.Labels "org.opencontainers.image.revision" }}' || true)"
+                status="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${live}...${GITHUB_SHA}" --jq .status || true)"
+                echo "Production runs ${live:-unknown}, this commit is ${status:-unknown} relative to it"
+                if [ "$status" = "behind" ]; then
+                    echo "::notice::Production already runs ${live}, a newer commit - not deploying ${GITHUB_SHA}"
+                    echo "deploy=false" >> "$GITHUB_OUTPUT"
+                else
+                    echo "deploy=true" >> "$GITHUB_OUTPUT"
+                fi
+
+        -   name: Tag the image as main
+            if: steps.guard.outputs.deploy == 'true'
+            shell: bash
+            run: docker buildx imagetools create ${{ inputs.dry-run == 'true' && '--dry-run' || '' }} --tag ghcr.io/myspeedpuzzling/website:main "${{ inputs.image }}"
+
+        -   name: Trigger lily deploy (HMAC webhook)
+            if: steps.guard.outputs.deploy == 'true' && inputs.dry-run != 'true'
+            shell: bash
+            env:
+                SECRET: ${{ inputs.webhook-secret }}
+            run: |
+                BODY='{"app":"myspeedpuzzling","tag":"main"}'
+                SIG="$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')"
+                curl -fsS -X POST https://deploy.lily.srv.thedevs.cz/hooks/myspeedpuzzling \
+                  -H 'Content-Type: application/json' \
+                  -H "X-Hub-Signature-256: sha256=$SIG" \
+                  --data-raw "$BODY"

@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Tests\ChangesPuzzleRecords;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -108,6 +109,32 @@ final class SearchPuzzleBestMatchTest extends KernelTestCase
         self::assertSame([PuzzleFixture::PUZZLE_2000], $this->search('\\'));
         self::assertSame([PuzzleFixture::PUZZLE_2000], $this->search('＼'));
         self::assertSame([], $this->search('abc\\'));
+    }
+
+    /**
+     * One brand sells several puzzles under one name: such ties straddle page boundaries, and every page must order
+     * them the same way - by id last - or a puzzle shows twice and another never
+     */
+    public function testPagesNeitherRepeatNorSkipPuzzlesThatTie(): void
+    {
+        // Ravensburger puzzles nobody solved: the same score, solves, name and brand
+        $twins = [PuzzleFixture::PUZZLE_300, PuzzleFixture::PUZZLE_4000, PuzzleFixture::PUZZLE_5000, PuzzleFixture::PUZZLE_9000, PuzzleFixture::PUZZLE_1000_05];
+
+        foreach ($twins as $puzzleId) {
+            self::renamePuzzle($puzzleId, 'Twin Tower');
+        }
+
+        foreach (PuzzleSearchCriteria::VALID_SORTS as $sort) {
+            $pageByPage = [];
+
+            foreach (array_keys($twins) as $offset) {
+                $page = $this->searchPuzzle->byUserInput(null, 'twin tower', PiecesRange::any(), null, $sort, $offset, 1);
+                $pageByPage = [...$pageByPage, ...self::ids($page)];
+            }
+
+            self::assertSame($this->search('twin tower', $sort), $pageByPage, $sort);
+            self::assertEqualsCanonicalizing($twins, $pageByPage, $sort);
+        }
     }
 
     public function testNothingTypedIsNoTextFilter(): void

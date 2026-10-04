@@ -48,6 +48,7 @@ use SpeedPuzzling\Web\Value\Ean;
 use SpeedPuzzling\Web\Value\MultiscanAction;
 use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
+use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -1002,6 +1003,7 @@ final class MultiscanTray
                 search: $query,
                 pieces: PiecesRange::any(),
                 tag: null,
+                sortBy: PuzzleSearchCriteria::BEST_MATCH,
                 limit: self::SEARCH_LIMIT,
             );
         } catch (ManufacturerNotFound) {

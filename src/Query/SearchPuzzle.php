@@ -131,15 +131,16 @@ SQL;
         $textCondition = self::andCondition($textSearch->condition('puzzle'));
         $matchScore = $textSearch->score('puzzle');
 
-        // Every other sort keeps the match as its tiebreak
+        // Every other sort keeps the match as its tiebreak. The id comes last: the same brand sells several puzzles
+        // under one name, and pages cut by LIMIT/OFFSET must order such ties the same way, or they repeat and skip
         $orderBy = match ($sortBy) {
-            'best-match' => 'pb.match_score DESC, solved_times DESC, pb.puzzle_name, m.name',
-            'least-solved' => 'solved_times ASC, pb.match_score DESC, pb.puzzle_name, m.name',
-            'a-z' => 'pb.puzzle_name, pb.match_score DESC, m.name, pb.pieces_count',
-            'z-a' => 'pb.puzzle_name DESC, pb.match_score DESC, m.name DESC, pb.pieces_count',
-            'easiest' => 'pdi.difficulty_score ASC NULLS LAST, pb.match_score DESC, pb.puzzle_name',
-            'hardest' => 'pdi.difficulty_score DESC NULLS LAST, pb.match_score DESC, pb.puzzle_name',
-            default => 'solved_times DESC, pb.match_score DESC, pb.puzzle_name, m.name',
+            'best-match' => 'pb.match_score DESC, solved_times DESC, pb.puzzle_name, m.name, pb.puzzle_id',
+            'least-solved' => 'solved_times ASC, pb.match_score DESC, pb.puzzle_name, m.name, pb.puzzle_id',
+            'a-z' => 'pb.puzzle_name, pb.match_score DESC, m.name, pb.pieces_count, pb.puzzle_id',
+            'z-a' => 'pb.puzzle_name DESC, pb.match_score DESC, m.name DESC, pb.pieces_count, pb.puzzle_id',
+            'easiest' => 'pdi.difficulty_score ASC NULLS LAST, pb.match_score DESC, pb.puzzle_name, pb.puzzle_id',
+            'hardest' => 'pdi.difficulty_score DESC NULLS LAST, pb.match_score DESC, pb.puzzle_name, pb.puzzle_id',
+            default => 'solved_times DESC, pb.match_score DESC, pb.puzzle_name, m.name, pb.puzzle_id',
         };
 
         $query = <<<SQL
@@ -364,7 +365,8 @@ SQL;
      * zeros tolerated (barcode scanners and typed-in codes differ in exactly
      * that) - never a longer code containing it (PuzzleTextSearch).
      * Secret competition puzzles (hide_until in the future) are never returned;
-     * an embargoed image (hide_image_until) comes back null.
+     * an embargoed image (hide_image_until) comes back null. Always in the same
+     * order, so the multiscan tray's auto-pick is deterministic.
      *
      * @return list<PuzzleOverview>
      */
@@ -405,7 +407,7 @@ LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = puzzle.id
 WHERE
     {$barcodeCondition}
     AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
-ORDER BY solved_times DESC, puzzle.name, manufacturer.name
+ORDER BY solved_times DESC, puzzle.name, manufacturer.name, puzzle.id
 SQL;
 
         $rows = $this->database

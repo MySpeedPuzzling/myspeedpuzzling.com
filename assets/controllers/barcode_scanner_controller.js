@@ -166,31 +166,32 @@ export default class extends Controller {
         }
     }
 
-    async _ensureBarcodeDetector() {
-        if (this._polyfillLoaded) return;
+    async _detectorClass() {
+        if (this._Detector !== undefined) return this._Detector;
 
-        // Load zbar-wasm first, then the polyfill that depends on it
-        await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js');
-        await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js');
-
-        const polyfillAvailable = typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-
+        // Our own decoder (zbar) on every platform, even where the browser has a BarcodeDetector:
+        // Android's (Google's engine in Chrome and Samsung Internet) reads some EAN-13 left halves with
+        // the wrong parity and returns another code that still passes the check digit - Ravensburger
+        // 4005555011897 as 0045555011897, stored as 45555011897
+        // (docs/features/multiscan/README.md "Decoder: zbar on every platform").
+        // The browser's own detector is only the fallback when zbar cannot be loaded.
         try {
-            if (window.BarcodeDetector && typeof window.BarcodeDetector.getSupportedFormats === 'function') {
-                const formats = await window.BarcodeDetector.getSupportedFormats();
-                if (formats.indexOf('ean_13') === -1 && polyfillAvailable) {
-                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-                }
-            } else if (polyfillAvailable) {
-                window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-            }
+            // Load zbar-wasm first, then the polyfill that depends on it
+            await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js');
+            await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js');
         } catch (e) {
-            if (polyfillAvailable) {
-                window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-            }
+            console.error('Barcode decoder could not be loaded:', e);
         }
 
-        this._polyfillLoaded = true;
+        if (typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
+            this._Detector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+        } else if (window.BarcodeDetector) {
+            this._Detector = window.BarcodeDetector;
+        } else {
+            this._Detector = null;
+        }
+
+        return this._Detector;
     }
 
     _loadScript(src) {
@@ -213,14 +214,14 @@ export default class extends Controller {
             const mod = await import('barcoder');
             this._Barcoder = mod.default;
         }
-        await this._ensureBarcodeDetector();
+        const Detector = await this._detectorClass();
 
-        if (typeof BarcodeDetector === 'undefined') {
+        if (Detector === null) {
             console.error('BarcodeDetector is not available');
             return;
         }
 
-        const barcodeDetector = new BarcodeDetector({ formats: ['ean_8', 'ean_13'] });
+        const barcodeDetector = new Detector({ formats: ['ean_8', 'ean_13'] });
         const ctx = this.overlayTarget.getContext('2d');
 
         const scanFrame = async () => {

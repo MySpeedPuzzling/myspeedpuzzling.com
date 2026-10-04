@@ -22,8 +22,11 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] 4 pending ones carry an invalid code but change other fields too - manual review
       (`019df4f1-d64d-7179-b8ef-0e5ab1f77b56`, `019e4530-f7ca-72a3-b365-c2df422784e1`, `019e98f1-dc2a-7225-9842-257ab9cd377e`,
       `019ea2a3-e359-724c-9327-76f86c03c125`).
-- [ ] Where the `45555…` form comes from is still unknown - 9 players in 7 countries since 2024-03; e-mail asking them
-      sent by Jan to all 9 (2026-10-04) - waiting for answers (a box photo should settle it).
+- [x] Where the `45555…` form comes from: Android's built-in barcode detector misreads `4005555…` as `0045555…`
+      (a valid code, stored without leading zeros). Vanja reproduced it on her box, 8 of the 9 players scan on Android.
+      The scanner now uses our zbar on every platform (2026-10-04, `docs/features/multiscan/README.md` "Decoder").
+      Matilda's Aurore `778649925052` is the same misread of `3770039925052` - not a real code.
+- [ ] Ask Vanja or Matilda to scan one of those boxes again after the deploy (Android) to confirm the fix.
 
 ## Players page (`docs/features/players-page/README.md`)
 

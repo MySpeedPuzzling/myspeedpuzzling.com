@@ -304,6 +304,7 @@ result_review:
 
 badges_earned:
     subject: "Vous avez obtenu de nouveaux badges sur MySpeedPuzzling !"
+    preheader: "Félicitations – vos nouveaux succès vous attendent sur votre profil."
     title: "%count% nouveau(x) badge(s) obtenu(s) !"
     intro: "Félicitations ! Vous venez de franchir de nouvelles étapes sur MySpeedPuzzling."
     cta: |
@@ -314,6 +315,8 @@ content_digest:
     weekly:
         subject: "Votre semaine puzzle 🧩"
         subject_quiet: "Une semaine puzzle bien calme — nous vous avons gardé une place"
+        preheader: "Vos XP, vos puzzles terminés et vos succès de la semaine dans un court e-mail."
+        preheader_quiet: "Une semaine calme – voici ce qui s’est passé autour de vous sur MySpeedPuzzling."
         greeting: "Bonjour %name%, voici votre semaine puzzle !"
         greeting_anonymous: "Bonjour puzzleur, voici votre semaine puzzle !"
         xp_title: "Vos XP cette semaine"
@@ -338,6 +341,7 @@ content_digest:
 
 xp_reveal:
     subject: "Tout votre parcours puzzle vient de se transformer en XP ✨"
+    preheader: "Chaque puzzle que vous avez enregistré compte déjà – découvrez votre niveau et vos XP."
     greeting: "Bonjour %name%, il vient de se passer quelque chose de charmant !"
     greeting_anonymous: "Bonjour puzzleur, il vient de se passer quelque chose de charmant !"
     intro: "MySpeedPuzzling célèbre désormais votre activité avec des XP et des niveaux — et chaque puzzle que vous avez enregistré compte déjà. Rien à configurer, aucun piège : voici ce que vaut votre historique."

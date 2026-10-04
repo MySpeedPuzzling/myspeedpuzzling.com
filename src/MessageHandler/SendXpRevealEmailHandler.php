@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateInterval;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
@@ -16,16 +15,16 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetXpProfile;
 use SpeedPuzzling\Web\Repository\ContentDigestLogRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use Doctrine\DBAL\Connection;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\HttpFoundation\UriSigner;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Part\DataPart;
 use Symfony\Component\Mime\Part\File;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -50,12 +49,12 @@ readonly final class SendXpRevealEmailHandler
         private ContentDigestLogRepository $contentDigestLogRepository,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
-        private UriSigner $uriSigner,
-        private UrlGeneratorInterface $urlGenerator,
+        private ContentDigestUnsubscribeUrl $contentDigestUnsubscribeUrl,
         private Connection $database,
         private ClockInterface $clock,
         private XpFeatureGate $xpFeatureGate,
         private LoggerInterface $logger,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -75,8 +74,10 @@ readonly final class SendXpRevealEmailHandler
             return;
         }
 
+        $address = $this->playerAccountEmail->ofPlayer($player);
+
         if (
-            $player->email === null
+            $address === null
             || $player->emailNotificationsEnabled === false
             || $player->experienceSystemOptedOut
             || $this->alreadySent($message->playerId)
@@ -89,20 +90,14 @@ readonly final class SendXpRevealEmailHandler
         $badgesCount = count($this->getBadges->forPlayer($message->playerId));
         $locale = $player->locale ?? 'en';
 
-        $unsubscribeUrl = $this->uriSigner->sign(
-            $this->urlGenerator->generate(
-                'unsubscribe_content_digest',
-                ['playerId' => $message->playerId],
-                UrlGeneratorInterface::ABSOLUTE_URL,
-            ),
-            new DateInterval('P30D'),
-        );
+        // Never expires - an unsubscribe link in an old e-mail must keep working
+        $unsubscribeUrl = $this->contentDigestUnsubscribeUrl->forPlayer($message->playerId, $locale);
 
         $subject = $this->translator->trans('xp_reveal.subject', domain: 'emails', locale: $locale);
 
         $email = (new TemplatedEmail())
             ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
-            ->to($player->email)
+            ->to($address)
             ->locale($locale)
             ->subject($subject)
             ->htmlTemplate('emails/xp_reveal.html.twig')
@@ -117,7 +112,9 @@ readonly final class SendXpRevealEmailHandler
             ->addPart((new DataPart(new File(__DIR__ . '/../../public/img/xp/xp-hero-1200.png'), 'xp-hero', 'image/png'))->asInline());
 
         $headers = $email->getHeaders();
-        $headers->addTextHeader('X-Transport', 'transactional');
+        // A one-off mail to everybody from notify@ - the notifications transport, never the transactional one that
+        // sign-in links depend on (docs/features/transactional-emails.md)
+        $headers->addTextHeader('X-Transport', 'notifications');
         $headers->addTextHeader('List-Unsubscribe', sprintf('<%s>', $unsubscribeUrl));
         $headers->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
 

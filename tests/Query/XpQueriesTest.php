@@ -54,10 +54,16 @@ final class XpQueriesTest extends KernelTestCase
 
         $lines = $query->forPlayerAndSolvingTime(PlayerFixture::PLAYER_REGULAR, PuzzleSolvingTimeFixture::TIME_06);
 
-        self::assertCount(1, $lines);
-        self::assertSame(XpReason::SolveBase, $lines[0]->reason);
-        self::assertSame(5, $lines[0]->amount);
-        self::assertSame(5, $query->totalForPlayerAndSolvingTime(PlayerFixture::PLAYER_REGULAR, PuzzleSolvingTimeFixture::TIME_06));
+        // The first solve of a 500-piece puzzle: base 5. The fixtures are dated relative to now, so once the
+        // full-formula cutoff (XpCalculator::FULL_FORMULA_FROM) is weeks old the weekly boost + daily warm-up
+        // lines come along too - the total is whatever the lines add up to
+        $amounts = [];
+        foreach ($lines as $line) {
+            $amounts[$line->reason->value] = $line->amount;
+        }
+
+        self::assertSame(5, $amounts[XpReason::SolveBase->value] ?? null);
+        self::assertSame(array_sum($amounts), $query->totalForPlayerAndSolvingTime(PlayerFixture::PLAYER_REGULAR, PuzzleSolvingTimeFixture::TIME_06));
         self::assertSame(0, $query->totalForPlayerAndSolvingTime(PlayerFixture::PLAYER_REGULAR, '00000000-0000-0000-0000-000000000000'));
     }
 

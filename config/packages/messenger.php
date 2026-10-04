@@ -61,8 +61,8 @@ return App::config([
                 ],
                 // Dedicated queue on the same Doctrine table, drained by the digest
                 // consumer container — SMTP pacing stays isolated from transactional mail.
-                'digest_emails' => [
-                    'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=digest_emails',
+                'content_digest_emails' => [
+                    'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=content_digest_emails',
                     'retry_strategy' => [
                         'max_retries' => 5,
                         'delay' => 60_000,         // 1m → 4m → 16m → 64m → 4h (capped)
@@ -86,7 +86,7 @@ return App::config([
                 RecalculateXpChainForSolve::class => 'async',
                 CompensateXpForDeletedSolve::class => 'async',
                 SettleXpBonuses::class => 'async',
-                SendPlayerContentDigest::class => 'digest_emails',
+                SendPlayerContentDigest::class => 'content_digest_emails',
                 SendBadgeNotificationEmail::class => 'async',
                 SendXpRevealEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)

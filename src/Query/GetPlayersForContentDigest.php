@@ -10,13 +10,13 @@ use SpeedPuzzling\Web\Entity\ContentDigestLog;
 /**
  * Weekly-digest eligibility (content-digest README §7/§8 + §1.10 deltas):
  *
- *  - has email + global email kill-switch on
+ *  - has an account e-mail (user_account.email, the only address a player has) + global email kill-switch on
  *  - frequency daily OR weekly (daily subscribes to both digests)
  *  - experience-system opt-outs excluded entirely (locked §1.10 delta)
  *  - not already logged for this period (re-run safe)
  *  - never two no-activity digests in a row: skip players whose most recent weekly
  *    digest was the no-activity variant AND who have not solved anything since
- *  - one player per email address (family accounts sharing an inbox)
+ *  - one player per email address (user_account.email is unique, this only guards against case/whitespace twins)
  */
 readonly class GetPlayersForContentDigest
 {
@@ -32,9 +32,10 @@ readonly class GetPlayersForContentDigest
     {
         $sql = <<<SQL
 SELECT id FROM (
-    SELECT DISTINCT ON (LOWER(p.email)) p.id, p.email
+    SELECT DISTINCT ON (LOWER(TRIM(ua.email))) p.id
     FROM player p
-    WHERE p.email IS NOT NULL
+    INNER JOIN user_account ua ON ua.user_id = p.user_id
+    WHERE TRIM(ua.email) != ''
       AND p.email_notifications_enabled = true
       AND p.experience_system_opted_out = false
       AND p.content_digest_frequency IN ('daily', 'weekly')
@@ -62,7 +63,7 @@ SELECT id FROM (
               AND pst.tracked_at >= last_log.sent_at
           )
       )
-    ORDER BY LOWER(p.email), p.registered_at ASC
+    ORDER BY LOWER(TRIM(ua.email)), p.registered_at ASC
 ) eligible
 ORDER BY id
 SQL;

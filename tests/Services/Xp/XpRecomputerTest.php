@@ -43,6 +43,11 @@ final class XpRecomputerTest extends KernelTestCase
         $solveA = $this->insertSolve($playerId, PuzzleFixture::PUZZLE_500_04, 3600, $afterCutoff->setTime(9, 0), 500);
         $solveB = $this->insertSolve($playerId, PuzzleFixture::PUZZLE_1500_02, 7200, $afterCutoff->setTime(15, 0), 1500);
 
+        // A solve logged before the cutoff, built here: the fixture solves are dated relative to now, so they are
+        // past the cutoff once it is more than a few weeks old and cannot stand for the backfill formula
+        $beforeCutoff = XpCalculator::fullFormulaFrom()->modify('-10 days');
+        $backfillSolve = $this->insertSolve($playerId, PuzzleFixture::PUZZLE_500_05, 3600, $beforeCutoff->setTime(9, 0), 500);
+
         $this->recompute($playerId);
 
         // Occurrence ladder on PUZZLE_500_02 (fixture solves 20/15/10 days ago): 5 → 3 → 1.
@@ -56,7 +61,7 @@ final class XpRecomputerTest extends KernelTestCase
         // Backfill solves never receive weekly boost or daily warm-up.
         self::assertSame(
             ['solve_base' => 5],
-            $this->entriesFor(PuzzleSolvingTimeFixture::TIME_06),
+            $this->entriesFor($backfillSolve),
         );
 
         // Post-cutoff solve A: base 5, weekly boost 3 (first of week), warm-up 2 (first of day).

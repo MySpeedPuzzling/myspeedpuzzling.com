@@ -230,14 +230,14 @@ return static function (ContainerConfigurator $configurator): void {
     // API Resource Providers and Processors
     $services->load('SpeedPuzzling\\Web\\Api\\', __DIR__ . '/../src/Api/**/{*Provider.php,*Processor.php}');
 
-    // The nested API DTOs are normalized with the same snake_case converter API Platform
-    // uses for the resources themselves (config/packages/api_platform.php)
     // The gate is autoloaded with the rest of Services/; this definition only feeds
     // it the flag value (its constructor default keeps the admin-only side in tests
     // that build it directly).
     $services->set(XpFeatureGate::class)
         ->arg('$adminOnly', '%xpSystemAdminOnly%');
 
+    // The nested API DTOs are normalized with the same snake_case converter API Platform
+    // uses for the resources themselves (config/packages/api_platform.php)
     $services->set(ApiDtoNormalizer::class)
         ->arg('$nameConverter', service('serializer.name_converter.camel_case_to_snake_case'));
 

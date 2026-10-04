@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateInterval;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
@@ -14,7 +13,9 @@ use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\ContentDigestLogRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
 use SpeedPuzzling\Web\Services\Digest\WeeklyDigestDataProvider;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\DigestPeriod;
@@ -24,8 +25,6 @@ use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Address;
-use Symfony\Component\HttpFoundation\UriSigner;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -50,12 +49,12 @@ readonly final class SendPlayerContentDigestHandler
         private WeeklyDigestDataProvider $weeklyDigestDataProvider,
         private TransportInterface $transport,
         private TranslatorInterface $translator,
-        private UriSigner $uriSigner,
-        private UrlGeneratorInterface $urlGenerator,
+        private ContentDigestUnsubscribeUrl $contentDigestUnsubscribeUrl,
         private Connection $database,
         private ClockInterface $clock,
         private XpFeatureGate $xpFeatureGate,
         private LoggerInterface $logger,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -89,8 +88,10 @@ readonly final class SendPlayerContentDigestHandler
             return;
         }
 
+        $email = $this->playerAccountEmail->ofPlayer($player);
+
         if (
-            $player->email === null
+            $email === null
             || $player->emailNotificationsEnabled === false
             || $player->experienceSystemOptedOut
             || in_array($player->contentDigestFrequency, [ContentDigestFrequency::Daily, ContentDigestFrequency::Weekly], true) === false
@@ -101,17 +102,10 @@ readonly final class SendPlayerContentDigestHandler
 
         $profile = $this->getPlayerProfile->byId($message->playerId);
         $data = $this->weeklyDigestDataProvider->forPlayer($player, $period);
-        $email = $player->email;
         $locale = $player->locale ?? 'en';
 
-        $unsubscribeUrl = $this->uriSigner->sign(
-            $this->urlGenerator->generate(
-                'unsubscribe_content_digest',
-                ['playerId' => $message->playerId],
-                UrlGeneratorInterface::ABSOLUTE_URL,
-            ),
-            new DateInterval('P30D'),
-        );
+        // Never expires - an unsubscribe link in an old e-mail must keep working
+        $unsubscribeUrl = $this->contentDigestUnsubscribeUrl->forPlayer($message->playerId, $locale);
 
         $subject = $this->translator->trans(
             $data->hadActivity() ? 'content_digest.weekly.subject' : 'content_digest.weekly.subject_quiet',
@@ -148,7 +142,8 @@ readonly final class SendPlayerContentDigestHandler
             // denied) and 535 at auth — those are sender-side, so they bubble and retry
             // where Sentry can see them.
             if (in_array($exception->getCode(), [550, 551, 552, 553], true)) {
-                $this->logger->warning('Digest permanently rejected for recipient', [
+                // Info: a mailbox that does not exist any more is routine at digest volume, not something to look at
+                $this->logger->info('Digest permanently rejected for recipient', [
                     'playerId' => $message->playerId,
                     'code' => $exception->getCode(),
                     'exception' => $exception,

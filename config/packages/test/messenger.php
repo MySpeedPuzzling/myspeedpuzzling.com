@@ -14,7 +14,7 @@ return App::config([
                 'async' => [
                     'dsn' => 'in-memory://',
                 ],
-                'digest_emails' => [
+                'content_digest_emails' => [
                     'dsn' => 'in-memory://',
                 ],
             ],

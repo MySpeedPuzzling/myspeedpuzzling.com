@@ -304,6 +304,7 @@ result_review:
 
 badges_earned:
     subject: "MySpeedPuzzlingで新しいバッジを獲得しました！"
+    preheader: "おめでとうございます。新しい実績がプロフィールで待っています。"
     title: "新しいバッジを%count%個獲得しました！"
     intro: "おめでとうございます！MySpeedPuzzlingで新たなマイルストーンに到達しました。"
     cta: |
@@ -314,6 +315,8 @@ content_digest:
     weekly:
         subject: "あなたのパズルな一週間 🧩"
         subject_quiet: "静かなパズル週間でした — お席はちゃんと取ってあります"
+        preheader: "先週のXP、完成したパズル、実績を短いメールでお届けします。"
+        preheader_quiet: "静かな一週間でした。MySpeedPuzzlingでのあなたの周りの出来事をお届けします。"
         greeting: "%name%さん、こんにちは。あなたの一週間のパズル活動をお届けします！"
         greeting_anonymous: "パズラーさん、こんにちは。あなたの一週間のパズル活動をお届けします！"
         xp_title: "今週のXP"
@@ -338,6 +341,7 @@ content_digest:
 
 xp_reveal:
     subject: "あなたのパズルの歩みが、まるごとXPになりました ✨"
+    preheader: "これまでに記録したパズルはすべてカウント済みです。レベルとXPをご覧ください。"
     greeting: "%name%さん、こんにちは。素敵なことが起こりました！"
     greeting_anonymous: "パズラーさん、こんにちは。素敵なことが起こりました！"
     intro: "MySpeedPuzzlingでは、XPとレベルであなたの活動をたたえるようになりました — これまでに記録したすべてのパズルが、もう反映されています。設定は不要、裏もありません。あなたのこれまでの歩みの価値はこちらです。"

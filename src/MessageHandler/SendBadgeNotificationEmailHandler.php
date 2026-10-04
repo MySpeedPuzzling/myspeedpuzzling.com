@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -21,6 +22,7 @@ readonly final class SendBadgeNotificationEmailHandler
         private GetPlayerProfile $getPlayerProfile,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
+        private PlayerAccountEmail $playerAccountEmail,
     ) {
     }
 
@@ -33,15 +35,17 @@ readonly final class SendBadgeNotificationEmailHandler
             return;
         }
 
-        if ($player->email === null) {
-            return;
-        }
-
         // Achievement detail is a members-only surface (§1.7) — free players can't see
         // their badges, so they never receive per-achievement emails; the weekly digest
         // teaser covers them instead. The weekly digest + this email are the ONLY
         // recurring emails of the achievements system.
         if ($profile->activeMembership === false) {
+            return;
+        }
+
+        $address = $this->playerAccountEmail->ofPlayer($player);
+
+        if ($address === null) {
             return;
         }
 
@@ -52,7 +56,7 @@ readonly final class SendBadgeNotificationEmailHandler
         );
 
         $email = (new TemplatedEmail())
-            ->to($player->email)
+            ->to($address)
             ->locale($player->locale)
             ->subject($subject)
             ->htmlTemplate('emails/badges_earned.html.twig')

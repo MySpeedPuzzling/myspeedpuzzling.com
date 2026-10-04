@@ -40,7 +40,29 @@ Measured side by side on the runners (throwaway workflow on `ci/static-analysis-
   - "Used memory" sums the parallel workers. 2 GB on a full run is not near any limit.
 - **PHPCS runs on plain PHP (`setup-php`), with its cache** (`phpcs.xml`: `cache` + `parallel`). PHPCS only reads
   tokens, so the image's extensions do not matter. Job time: 66-103s down to ~17s.
-- The job containers' `Initialize containers` step (pulling the ~640 MB base image) is 25-48s of every other job.
+- The job containers' `Initialize containers` step (pulling the base image) is a fixed cost of every other job - see below.
+
+## Base image
+
+`ghcr.io/myspeedpuzzling/web-base-php85:main` (repo `MySpeedPuzzling/Docker`,
+rebuilt daily) is the job container of the gates, the dev `web` service and the
+`FROM` of the production image. Since 2026-10-04 (Docker#2) it ships no
+compilers or -dev headers (libheif is built in a separate stage) and its layers
+are **zstd**-compressed: 640 → 536 MB on amd64, cold pull on a runner 24-33 s →
+19-22 s. Pulling needs Docker >= 23 (runners 28, lily 29).
+
+Every runtime tool is kept on purpose - inkscape is ImageMagick's SVG delegate
+(SVG avatar uploads), wkhtmltopdf / librsvg2-bin are used by hand for print
+PDFs (QR codes, vouchers). A change to the base image is validated the way
+myspeedpuzzling.com#235 did it: build the Docker repo branch as its own tag
+(`workflow_dispatch` on the branch), run the app CI inside it, and compare every
+image generator, the upload pipeline and the PDF tools pixel by pixel against
+the current image.
+
+Rollback: `docker buildx imagetools create -t ghcr.io/myspeedpuzzling/web-base-php85:main
+ghcr.io/myspeedpuzzling/web-base-php85@<previous digest>`, then push to main
+(the next build uses it). The digest before Docker#2 was
+`sha256:75d4a8165fdea5ba821601b427f68e9ef0a336f32001392d4793589c31b4e5a6`.
 
 ## Carried build assets
 

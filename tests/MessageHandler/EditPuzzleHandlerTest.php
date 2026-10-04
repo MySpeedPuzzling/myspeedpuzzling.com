@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
@@ -14,6 +15,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -127,15 +130,25 @@ final class EditPuzzleHandlerTest extends KernelTestCase
         self::assertSame([], $this->decisions(PuzzleFixture::PUZZLE_1000_02));
         self::assertCount(2, $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->alternativeNames);
 
+        // Re-spelled: still the Czech name
+        $edit('KOUZELNÁ ZAHRADA');
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
+        self::assertSame([
+            ['name' => 'KOUZELNÁ ZAHRADA', 'language' => 'cs'],
+            ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
+        ], $puzzle->alternativeNames);
+
+        // Another name: nothing says it is Czech
         $edit('Kouzelná zahrádka');
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
         self::assertSame([
-            ['name' => 'Kouzelná zahrádka', 'language' => 'cs'],
+            ['name' => 'Kouzelná zahrádka', 'language' => null],
             ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
         ], $puzzle->alternativeNames);
+        self::assertSame('Kouzelná zahrádka', $puzzle->alternativeName);
         self::assertSame("\npuzzle 7\nkouzelna zahradka\nzauberhafter garten\n", $puzzle->searchNames);
 
-        // Emptied: only the Czech name goes
+        // Emptied: only the name the field showed goes
         $edit('  ');
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
         self::assertSame([['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de']], $puzzle->alternativeNames);
@@ -143,11 +156,57 @@ final class EditPuzzleHandlerTest extends KernelTestCase
         self::assertSame("\npuzzle 7\nzauberhafter garten\n", $puzzle->searchNames);
 
         $decisions = $this->decisions(PuzzleFixture::PUZZLE_1000_02);
-        self::assertCount(2, $decisions);
+        self::assertCount(3, $decisions);
         $afterSnapshots = array_map(static fn (PuzzleModerationDecision $decision): mixed => $decision->details['after'] ?? null, $decisions);
         self::assertContains([['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de']], array_map(
             static fn (mixed $after): mixed => is_array($after) ? $after['alternativeNames'] : null,
             $afterSnapshots,
+        ));
+    }
+
+    public function testANameIsRemovedFromAPuzzleWithMoreNamesThanAFormMayAdd(): void
+    {
+        // A merge collects names without a cap
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_03);
+        $puzzle->changeNames('Puzzle 3', null, new PuzzleNames(array_map(
+            static fn (int $i): PuzzleName => new PuzzleName('Merged name ' . $i, null),
+            range(1, PuzzleNames::FORM_MAX_NAMES + 5),
+        )), new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        $this->messageBus->dispatch(new EditPuzzle(
+            puzzleId: PuzzleFixture::PUZZLE_500_03,
+            editorId: PlayerFixture::PLAYER_ADMIN,
+            values: new PuzzleRecordValues(
+                name: 'Puzzle 3',
+                alternativeName: '',
+                manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                piecesCount: 500,
+                ean: PuzzleFixture::EAN_PUZZLE_500_03,
+                identificationNumber: null,
+            ),
+        ));
+
+        $names = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_03)->alternativeNames;
+        self::assertCount(PuzzleNames::FORM_MAX_NAMES + 4, $names);
+        self::assertSame('Merged name 2', $names[0]['name']);
+    }
+
+    public function testAnAlternativeNameTooLongIsRefused(): void
+    {
+        $this->expectException(InvalidPuzzleValues::class);
+
+        $this->messageBus->dispatch(new EditPuzzle(
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
+            editorId: PlayerFixture::PLAYER_ADMIN,
+            values: new PuzzleRecordValues(
+                name: 'Puzzle 1',
+                alternativeName: str_repeat('ř', PuzzleNames::MAX_NAME_LENGTH + 1),
+                manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                piecesCount: 500,
+                ean: null,
+                identificationNumber: 'RB-500-001',
+            ),
         ));
     }
 

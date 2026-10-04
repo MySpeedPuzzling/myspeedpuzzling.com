@@ -20,7 +20,8 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
  * Run once after the release that added the keys (and its old containers are gone - they create puzzles without
- * keys), and again whenever SearchText::VERSION changes (docs/features/puzzle-names/README.md, "Search").
+ * keys), after a puzzle was inserted by SQL (docs/ravensburger-puzzle-month.md), and whenever SearchText::VERSION
+ * changes (docs/features/puzzle-names/README.md, "Search").
  */
 #[AsCommand(
     'myspeedpuzzling:rebuild-puzzle-search-keys',
@@ -80,7 +81,10 @@ final class RebuildPuzzleSearchKeysConsoleCommand extends Command
         $io->table(['Keys changed', 'Puzzles without a name key'], [[$changed, $withoutNameKey]]);
 
         if ($withoutNameKey > 0) {
-            $io->error('Some puzzles have no name key - added meanwhile by an older release? Run it again.');
+            $io->error(sprintf(
+                '%d puzzles still have no name key: added while this ran, by the previous release during a deploy or by SQL. Run it again.',
+                $withoutNameKey,
+            ));
 
             return self::FAILURE;
         }

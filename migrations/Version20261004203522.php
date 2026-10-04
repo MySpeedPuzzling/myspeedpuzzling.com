@@ -14,7 +14,8 @@ use Doctrine\Migrations\AbstractMigration;
  * - alternative_names: the single alternative_name copied in as the first entry - cleaned like PuzzleNames::cleanName()
  *   (whitespace runs one space, control and format characters removed, trimmed), tagged `cs` when it has a letter only
  *   Czech uses, skipped when it is the main title again (compared without accents and case). alternative_name stays
- *   until phase 1c; the entity writes both meanwhile.
+ *   until phase 1c and gets the same cleaned value (NULL when skipped), so it equals
+ *   PuzzleNames::legacyAlternativeName() of every row, as the entity keeps it from now on.
  * - search_names / search_codes stay NULL here: the fold lives in PHP only (SearchText), so
  *   myspeedpuzzling:rebuild-puzzle-search-keys fills them right after the deploy. Nothing reads them before phase 1b.
  * - custom_puzzle_search_names_trgm / custom_puzzle_search_codes_trgm: GIN trigram indexes for the phase 1b search,
@@ -59,16 +60,23 @@ WITH cleaned AS (
             ' {2,}', ' ', 'g')) AS main_title
     FROM puzzle
     WHERE alternative_name IS NOT NULL
+),
+decided AS (
+    SELECT
+        id,
+        alternative,
+        alternative <> ''
+            AND lower(immutable_unaccent(alternative)) <> lower(immutable_unaccent(main_title)) AS kept
+    FROM cleaned
 )
 UPDATE puzzle
-SET alternative_names = jsonb_build_array(jsonb_build_object(
-    'name', cleaned.alternative,
-    'language', CASE WHEN cleaned.alternative ~ '[\x011B\x0161\x010D\x0159\x017E\x016F\x0165\x010F\x0148\x011A\x0160\x010C\x0158\x017D\x016E\x0164\x010E\x0147]' THEN 'cs' END
-))
-FROM cleaned
-WHERE puzzle.id = cleaned.id
-    AND cleaned.alternative <> ''
-    AND lower(immutable_unaccent(cleaned.alternative)) <> lower(immutable_unaccent(cleaned.main_title))
+SET alternative_names = CASE WHEN decided.kept THEN jsonb_build_array(jsonb_build_object(
+        'name', decided.alternative,
+        'language', CASE WHEN decided.alternative ~ '[\x011B\x0161\x010D\x0159\x017E\x016F\x0165\x010F\x0148\x011A\x0160\x010C\x0158\x017D\x016E\x0164\x010E\x0147]' THEN 'cs' END
+    )) ELSE CAST('[]' AS jsonb) END,
+    alternative_name = CASE WHEN decided.kept THEN decided.alternative END
+FROM decided
+WHERE puzzle.id = decided.id
 SQL);
 
         $this->addSql('CREATE INDEX custom_puzzle_search_names_trgm ON puzzle USING GIN (search_names gin_trgm_ops)');

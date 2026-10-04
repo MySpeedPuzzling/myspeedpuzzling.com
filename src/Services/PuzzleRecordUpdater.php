@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -70,7 +71,12 @@ readonly final class PuzzleRecordUpdater
         // The forms' single "Alternative name" field edits one name of the list (until the names editor comes)
         $alternativeNames = $puzzle->alternativeNames()->withLegacyAlternativeName($values->alternativeName);
 
-        if ($alternativeNames->toArray() !== $puzzle->alternativeNames) {
+        if (mb_strlen(PuzzleNames::cleanName($values->alternativeName ?? '')) > PuzzleNames::MAX_NAME_LENGTH) {
+            throw new InvalidPuzzleValues(sprintf('A name can be at most %d characters long.', PuzzleNames::MAX_NAME_LENGTH));
+        }
+
+        // Only a growing list can break the cap - a merge may have left more names, editing or removing one must work
+        if ($alternativeNames->count() > $puzzle->alternativeNames()->count()) {
             $alternativeNames->assertFormLimits();
         }
 

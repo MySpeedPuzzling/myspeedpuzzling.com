@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
@@ -35,6 +35,7 @@ readonly final class AddPuzzleHandler
         private PuzzleRepository $puzzleRepository,
         private IsPuzzleInUse $isPuzzleInUse,
         private IdLock $idLock,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -67,7 +68,7 @@ readonly final class AddPuzzleHandler
             return;
         }
 
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
         $manufacturer = $this->manufacturerResolver->resolve($message->brand, $player, $now);
         [$puzzlePhotoPath, $puzzleImageRatio] = $this->storePhoto($message, $manufacturer);
 
@@ -94,7 +95,7 @@ readonly final class AddPuzzleHandler
      */
     private function correct(Puzzle $puzzle, AddPuzzle $message, Player $player): void
     {
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
 
         // The brand typed again finds the one this form created the first time - not a second new brand
         $manufacturer = $this->manufacturerResolver->resolve($message->brand, $player, $now);

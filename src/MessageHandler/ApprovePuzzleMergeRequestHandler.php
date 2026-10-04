@@ -239,9 +239,12 @@ readonly final class ApprovePuzzleMergeRequestHandler
     }
 
     /**
-     * Every name of every merged puzzle survives as an other name of the survivor: its own names first, then each
-     * merged puzzle's main title and other names, then its own previous main title (dropped again by changeNames()
-     * when the reviewer kept it as the main title). Two names folding equal are one (PuzzleNames::union()).
+     * Every name of every merged puzzle survives as an other name of the survivor: its own names first, then every
+     * merged puzzle's other names, then their main titles, then its own previous main title (dropped again by
+     * changeNames() when the reviewer kept it as the main title). The other names come before the main titles on
+     * purpose: the first name of a language is the one shown, and the first one at all is the old single alternative
+     * name (PuzzleNames::legacyAlternativeName()) - a box name, not a duplicate's English title. Two names folding
+     * equal are one (PuzzleNames::union()).
      *
      * @param array<Puzzle> $puzzlesToMerge
      */
@@ -250,27 +253,38 @@ readonly final class ApprovePuzzleMergeRequestHandler
         $names = $survivorPuzzle->alternativeNames();
 
         foreach ($puzzlesToMerge as $puzzleToMerge) {
-            $names = $names
-                ->union(new PuzzleNames([new PuzzleName($puzzleToMerge->name, $puzzleToMerge->nameLanguage)]))
-                ->union($puzzleToMerge->alternativeNames());
+            $names = $names->union($puzzleToMerge->alternativeNames());
+        }
+
+        foreach ($puzzlesToMerge as $puzzleToMerge) {
+            $names = $names->union(new PuzzleNames([new PuzzleName($puzzleToMerge->name, $puzzleToMerge->nameLanguage)]));
         }
 
         return $names->union(new PuzzleNames([new PuzzleName($survivorPuzzle->name, $survivorPuzzle->nameLanguage)]));
     }
 
     /**
-     * The language of the main title the reviewer picked, as the puzzle that had it knew it - the survivor's for a
-     * title of its own or a typed one.
+     * The language of the main title the reviewer picked, as the puzzles knew it: a main title's language, else the
+     * language of an other name it is - the survivor's for a typed one.
      *
      * @param array<Puzzle> $puzzlesToMerge
      */
     private static function mergedNameLanguage(string $mergedName, Puzzle $survivorPuzzle, array $puzzlesToMerge): null|string
     {
         $mergedNameKey = SearchText::fold($mergedName);
+        $puzzles = [$survivorPuzzle, ...$puzzlesToMerge];
 
-        foreach ([$survivorPuzzle, ...$puzzlesToMerge] as $puzzle) {
+        foreach ($puzzles as $puzzle) {
             if (SearchText::fold($puzzle->name) === $mergedNameKey) {
                 return $puzzle->nameLanguage;
+            }
+        }
+
+        foreach ($puzzles as $puzzle) {
+            foreach ($puzzle->alternativeNames()->all() as $alternativeName) {
+                if (SearchText::fold($alternativeName->name) === $mergedNameKey) {
+                    return $alternativeName->language;
+                }
             }
         }
 

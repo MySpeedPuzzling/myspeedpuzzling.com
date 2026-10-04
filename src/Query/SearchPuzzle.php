@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Results\AutocompletePuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PuzzleCodeSearch;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use SpeedPuzzling\Web\Value\PuzzleSearchList;
 use SpeedPuzzling\Web\Value\PuzzleSearchListKind;
@@ -62,20 +63,21 @@ WHERE
         OR puzzle.name ILIKE :searchFullLikeQuery
         OR immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchFullLikeQuery)
         OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchFullLikeQuery)
-        OR identification_number ILIKE :searchFullLikeQuery
-        OR ean ILIKE :eanSearchFullLikeQuery
+        OR identification_number ILIKE :codeSearchLikeQuery
+        OR ean ILIKE :eanSearchLikeQuery
    )
     AND (:useTags = false OR tag_puzzle.tag_id IN(:tag))
     {$difficultyCondition}
     {$listCondition}
 SQL;
 
-        $eanSearch = trim($search ?? '', '0');
+        $codeSearch = PuzzleCodeSearch::fromUserInput($search);
 
         $params = [
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             'searchFullLikeQuery' => "%$search%",
-            'eanSearchFullLikeQuery' => "%$eanSearch%",
+            'codeSearchLikeQuery' => $codeSearch->codePattern(),
+            'eanSearchLikeQuery' => $codeSearch->eanPattern(),
             'brandId' => $brandId,
             'minPieces' => $pieces->minPieces,
             'maxPieces' => $pieces->maxPieces,
@@ -151,12 +153,12 @@ WITH puzzle_base AS (
         CASE
             WHEN puzzle.alternative_name ILIKE :searchQuery
               OR puzzle.name ILIKE :searchQuery
-              OR puzzle.identification_number = :searchQuery
-              OR puzzle.ean = :eanSearchQuery THEN 7
+              OR puzzle.identification_number ILIKE :codeSearchQuery
+              OR ltrim(puzzle.ean, '0') = :eanSearchQuery THEN 7
             WHEN immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchQuery)
               OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchQuery) THEN 6
-            WHEN puzzle.identification_number ILIKE :searchEndLikeQuery
-              OR puzzle.identification_number ILIKE :searchStartLikeQuery
+            WHEN puzzle.identification_number ILIKE :codeSearchEndLikeQuery
+              OR puzzle.identification_number ILIKE :codeSearchStartLikeQuery
               OR puzzle.ean ILIKE :eanSearchEndLikeQuery
               OR puzzle.ean ILIKE :eanSearchStartLikeQuery THEN 5
             WHEN puzzle.alternative_name ILIKE :searchEndLikeQuery
@@ -167,8 +169,8 @@ WITH puzzle_base AS (
               OR immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchStartLikeQuery)
               OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchEndLikeQuery)
               OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchStartLikeQuery) THEN 3
-            WHEN puzzle.identification_number ILIKE :searchFullLikeQuery
-              OR puzzle.ean ILIKE :eanSearchFullLikeQuery THEN 2
+            WHEN puzzle.identification_number ILIKE :codeSearchLikeQuery
+              OR puzzle.ean ILIKE :eanSearchLikeQuery THEN 2
             WHEN puzzle.alternative_name ILIKE :searchFullLikeQuery
               OR puzzle.name ILIKE :searchFullLikeQuery THEN 1
             ELSE 0
@@ -186,8 +188,8 @@ WITH puzzle_base AS (
             OR puzzle.name ILIKE :searchFullLikeQuery
             OR immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchFullLikeQuery)
             OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchFullLikeQuery)
-            OR puzzle.identification_number ILIKE :searchFullLikeQuery
-            OR puzzle.ean ILIKE :eanSearchFullLikeQuery
+            OR puzzle.identification_number ILIKE :codeSearchLikeQuery
+            OR puzzle.ean ILIKE :eanSearchLikeQuery
         )
         AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
         {$difficultyCondition}
@@ -246,7 +248,7 @@ SQL;
 
          $query .= ' LIMIT :limit OFFSET :offset';
 
-        $eanSearch = trim($search ?? '', '0');
+        $codeSearch = PuzzleCodeSearch::fromUserInput($search);
 
         $params = [
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
@@ -254,10 +256,9 @@ SQL;
             'searchStartLikeQuery' => "%$search",
             'searchEndLikeQuery' => "$search%",
             'searchFullLikeQuery' => "%$search%",
-            'eanSearchQuery' => $eanSearch,
-            'eanSearchStartLikeQuery' => "%$eanSearch",
-            'eanSearchEndLikeQuery' => "$eanSearch%",
-            'eanSearchFullLikeQuery' => "%$eanSearch%",
+            'codeSearchLikeQuery' => $codeSearch->codePattern(),
+            'eanSearchLikeQuery' => $codeSearch->eanPattern(),
+            ...$codeSearch->scoreParameters(),
             'brandId' => $brandId,
             'limit' => $limit,
             'minPieces' => $pieces->minPieces,
@@ -409,19 +410,19 @@ SQL;
     }
 
     /**
-     * Every puzzle whose barcode matches the given EAN, leading and trailing
-     * zeros tolerated on both sides (barcode scanners and typed-in codes differ
-     * in exactly that). Secret competition puzzles (hide_until in the future)
-     * are never returned; an embargoed image (hide_image_until) comes back null.
+     * Every puzzle whose barcode (list) contains the given EAN, leading zeros
+     * tolerated (barcode scanners and typed-in codes differ in exactly that) -
+     * a code shorter than 5 digits only as the whole column (PuzzleCodeSearch).
+     * Secret competition puzzles (hide_until in the future) are never returned;
+     * an embargoed image (hide_image_until) comes back null.
      *
      * @return list<PuzzleOverview>
      */
     public function allByEan(string $ean): array
     {
-        // Strip leading/trailing zeros for flexible matching
-        $eanSearch = trim($ean, '0');
+        $eanPattern = PuzzleCodeSearch::fromUserInput($ean)->eanPattern();
 
-        if ($eanSearch === '') {
+        if ($eanPattern === null) {
             return [];
         }
 
@@ -459,7 +460,7 @@ SQL;
         $rows = $this->database
             ->executeQuery($query, [
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-                'eanPattern' => '%' . $eanSearch . '%',
+                'eanPattern' => $eanPattern,
             ])
             ->fetchAllAssociative();
 
@@ -494,10 +495,29 @@ SQL;
     }
 
     /**
+     * The puzzle picker of one brand. Unapproved puzzles are listed, secret ones (hide_until in the future) never -
+     * apart from the ones in rounds of $secretPuzzlesOfCompetitionId, for its organiser adding puzzles to a round.
+     *
      * @return array<AutocompletePuzzle>
      */
-    public function byBrandId(string $brandId): array
+    public function byBrandId(string $brandId, null|string $secretPuzzlesOfCompetitionId = null): array
     {
+        $params = [
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            'manufacturerId' => $brandId,
+        ];
+        $secretPuzzlesOfCompetition = '';
+
+        if ($secretPuzzlesOfCompetitionId !== null) {
+            $secretPuzzlesOfCompetition = 'OR puzzle.id IN (
+            SELECT crp.puzzle_id
+            FROM competition_round_puzzle crp
+            INNER JOIN competition_round cr ON cr.id = crp.round_id
+            WHERE cr.competition_id = :competitionId
+        )';
+            $params['competitionId'] = $secretPuzzlesOfCompetitionId;
+        }
+
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -514,14 +534,16 @@ FROM puzzle
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE
     manufacturer_id = :manufacturerId
+    AND (
+        puzzle.hide_until IS NULL
+        OR puzzle.hide_until <= :now::timestamp
+        {$secretPuzzlesOfCompetition}
+    )
 ORDER BY COALESCE(puzzle.alternative_name, puzzle.name) ASC, manufacturer_name ASC, pieces_count ASC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, [
-                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-                'manufacturerId' => $brandId,
-            ])
+            ->executeQuery($query, $params)
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): AutocompletePuzzle {

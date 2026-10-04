@@ -11,7 +11,7 @@ use SpeedPuzzling\Web\Value\Ean;
  * The puzzles a scanned code may mean, exact matches first.
  *
  * Reuses the tolerant lookup of the single scanner (SearchPuzzle::allByEan -
- * substring match, zeros stripped, hidden puzzles excluded) and puts the
+ * substring match, leading zeros stripped, hidden puzzles excluded) and puts the
  * puzzles whose code list literally carries the scanned code before the
  * substring matches, so the tray's silent auto-pick is deterministic.
  */

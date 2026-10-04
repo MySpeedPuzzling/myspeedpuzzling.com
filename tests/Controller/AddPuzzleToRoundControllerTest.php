@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
@@ -27,9 +28,14 @@ final class AddPuzzleToRoundControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $browser->request('GET', '/en/add-puzzle-to-round/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
+        $crawler = $browser->request('GET', '/en/add-puzzle-to-round/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
 
         $this->assertResponseIsSuccessful();
+        // The puzzle picker of the organiser also lists the competition's own secret puzzles
+        self::assertStringContainsString(
+            'competition=' . CompetitionFixture::COMPETITION_WJPC_2024,
+            (string) $crawler->filter('input[data-time-form-autocomplete-target="brand"]')->attr('data-fetch-url'),
+        );
     }
 
     public function testNonMaintainerDenied(): void

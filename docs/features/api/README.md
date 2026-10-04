@@ -139,7 +139,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | Parameter | Type / constraints | Meaning |
 |-----------|-------------------|---------|
 | `query` | string, trimmed, 2-100 characters | name / alternative name (accent-insensitive), identification number, EAN substring - the same matching as the web search box |
-| `ean` | `^\d{8,14}$` | exact barcode lookup, leading / trailing zeros tolerated. **Mutually exclusive** with `query`, `manufacturer`, `pieces_min`, `pieces_max`, `sort`, `difficulty` (422 "ean cannot be combined with …"). `page` / `limit` still apply |
+| `ean` | `^\d{8,14}$` | exact barcode lookup, leading zeros tolerated. **Mutually exclusive** with `query`, `manufacturer`, `pieces_min`, `pieces_max`, `sort`, `difficulty` (422 "ean cannot be combined with …"). `page` / `limit` still apply |
 | `manufacturer` | UUID | brand filter; an unknown id yields an empty result, not 404 |
 | `pieces_min`, `pieces_max` | int 1-50000, `pieces_min ≤ pieces_max` (422 otherwise) | inclusive piece-count range; exact count = both equal (`PiecesRange`) |
 | `sort` | `most-solved` (default) `least-solved` `a-z` `z-a` `easiest` `hardest` | `easiest` / `hardest` are **members-only → 403** `sort=easiest requires an active membership` (the website silently falls back, the API is explicit) |

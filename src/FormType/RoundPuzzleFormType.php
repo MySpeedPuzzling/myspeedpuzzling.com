@@ -38,6 +38,9 @@ final class RoundPuzzleFormType extends AbstractType
     {
         $brandChoices = $this->brandChoicesBuilder->build();
 
+        /** @var string $competitionId */
+        $competitionId = $options['competition_id'];
+
         $builder->add('brand', TextType::class, [
             'label' => 'forms.brand',
             'help' => 'forms.brand_help',
@@ -56,7 +59,8 @@ final class RoundPuzzleFormType extends AbstractType
                 'searchField' => ['name', 'eanPrefix'],
             ],
             'attr' => [
-                'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete'),
+                // The competition's own secret puzzles are listed for its organiser (PuzzleByBrandAutocompleteController)
+                'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete', ['competition' => $competitionId]),
             ],
         ]);
 
@@ -127,5 +131,8 @@ final class RoundPuzzleFormType extends AbstractType
         $resolver->setDefaults([
             'data_class' => RoundPuzzleFormData::class,
         ]);
+
+        $resolver->setRequired('competition_id');
+        $resolver->setAllowedTypes('competition_id', 'string');
     }
 }

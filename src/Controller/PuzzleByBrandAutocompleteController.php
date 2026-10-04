@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,7 +18,7 @@ final class PuzzleByBrandAutocompleteController extends AbstractController
 {
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,
-        readonly private ImageThumbnailTwigExtension $imageThumbnail,
+        readonly private PuzzleChoicesBuilder $puzzleChoicesBuilder,
     ) {
     }
 
@@ -34,65 +35,18 @@ final class PuzzleByBrandAutocompleteController extends AbstractController
             return $this->json(['error' => 'Unknown brand id'], 404);
         }
 
-        $results = [];
-
-        foreach ($this->searchPuzzle->byBrandId($brandSearch) as $puzzle) {
-            if ($request->getLocale() === 'cs' && $puzzle->puzzleAlternativeName !== null) {
-                $puzzleName = <<<HTML
-{$puzzle->puzzleAlternativeName} <small>({$puzzle->puzzleName})</small>
-HTML;
-            } else {
-                $puzzleName = $puzzle->puzzleName;
-            }
-
-            $imgSrc = $puzzle->puzzleImage !== null
-                ? $this->imageThumbnail->thumbnailUrl($puzzle->puzzleImage, 'puzzle_small')
-                : '/img/placeholder-puzzle.jpg';
-
-            $img = <<<HTML
-<img alt="Puzzle image" class="img-fluid rounded-2"
-    style="max-width: 60px; max-height: 60px;"
-    src="{$imgSrc}"
-/>
-HTML;
-
-            $eanHtml = $puzzle->puzzleEan !== null
-                ? "<small class=\"text-muted ms-2\">EAN: {$puzzle->puzzleEan}</small>"
-                : '';
-
-            $html = <<<HTML
-<div class="py-1 d-flex low-line-height">
-    <div class="icon me-2">{$img}</div>
-    <div class="pe-1">
-        <div class="mb-1">
-            <span class="h6">{$puzzleName}</span>
-            <small class="text-muted">{$puzzle->puzzleIdentificationNumber}</small>
-        </div>
-        <div class="description"><small>{$puzzle->piecesCount} <span class="no-highlight">pieces</span></small>{$eanHtml}</div>
-    </div>
-</div>
-HTML;
-
-            // Tom Select searches this, never `text`: that one is markup, so typing "pieces" (or "div")
-            // matched every puzzle. Only what identifies the puzzle belongs here - no labels, no locale.
-            $search = implode(' ', array_filter([
-                $puzzle->puzzleName,
-                $puzzle->puzzleAlternativeName,
-                $puzzle->puzzleIdentificationNumber,
-                $puzzle->puzzleEan,
-                (string) $puzzle->piecesCount,
-            ], static fn (null|string $value): bool => $value !== null && $value !== ''));
-
-            $results[] = [
-                'value' => $puzzle->puzzleId,
-                'text' => $html,
-                'search' => $search,
-                'piecesCount' => $puzzle->piecesCount,
-            ];
-        }
+        // The add-to-round form: whoever organises the competition also gets its own secret puzzles - one puzzle may
+        // serve a round of every category. Anybody else never gets a puzzle before its hide_until.
+        $competitionId = $request->query->getString('competition');
+        $secretPuzzlesOfCompetition = Uuid::isValid($competitionId) && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId)
+            ? $competitionId
+            : null;
 
         return new JsonResponse([
-            'results' => $results,
+            'results' => $this->puzzleChoicesBuilder->build(
+                $this->searchPuzzle->byBrandId($brandSearch, $secretPuzzlesOfCompetition),
+                $request->getLocale(),
+            ),
         ]);
     }
 }

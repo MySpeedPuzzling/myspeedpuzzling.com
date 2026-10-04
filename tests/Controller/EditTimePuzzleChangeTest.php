@@ -49,6 +49,34 @@ final class EditTimePuzzleChangeTest extends WebTestCase
         self::assertSame('', $crawler->filter('form[name="edit_puzzle_solving_time_form"]')->attr('data-first-try-check-puzzle-value'));
     }
 
+    public function testAResultOnASecretPuzzleKeepsItSelectable(): void
+    {
+        $browser = $this->browser();
+        $browser->getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE puzzle SET hide_until = '2999-01-01 00:00:00' WHERE id = :id",
+            ['id' => PuzzleFixture::PUZZLE_500_02],
+        );
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', self::EDIT_URL);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame(PuzzleFixture::PUZZLE_500_02, $crawler->filter('#edit_puzzle_solving_time_form_puzzle')->attr('value'));
+        self::assertStringContainsString('Puzzle 2', $crawler->filter('[data-toggle-target="chosenPuzzle"]')->text());
+
+        // The brand's list leaves a secret puzzle out - the picker takes the result's own one from the page
+        /** @var array{brand: string, option: array{value: string, text: string, search: string, piecesCount: int}} $ownPuzzle */
+        $ownPuzzle = json_decode((string) $crawler->filter('[data-controller="time-form-autocomplete"]')->attr('data-time-form-autocomplete-own-puzzle-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame(ManufacturerFixture::MANUFACTURER_RAVENSBURGER, $ownPuzzle['brand']);
+        self::assertSame(PuzzleFixture::PUZZLE_500_02, $ownPuzzle['option']['value']);
+        self::assertStringContainsString('<span class="h6">Puzzle 2</span>', $ownPuzzle['option']['text']);
+
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
+        /** @var array{results: list<array{value: string}>} $listed */
+        $listed = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertNotContains(PuzzleFixture::PUZZLE_500_02, array_column($listed['results'], 'value'));
+    }
+
     public function testAnotherMemberOfThePairSeesThePuzzleOnly(): void
     {
         // TIME_12: a pair tracked by PLAYER_REGULAR

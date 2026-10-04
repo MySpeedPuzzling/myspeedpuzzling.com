@@ -53,6 +53,7 @@
              data-controller="time-form-autocomplete"
              data-time-form-autocomplete-allow-new-value="{{ puzzle_change ? 'false' : 'true' }}"
              data-time-form-autocomplete-options-on-demand-value="{{ puzzle_change and not puzzle_picker_open ? 'true' : 'false' }}"
+             {% if own_puzzle|default(null) is not null %}data-time-form-autocomplete-own-puzzle-value="{{ own_puzzle|json_encode }}"{% endif %}
              data-time-form-autocomplete-ean-search-url-value="{{ path('puzzle_by_ean_search', {ean: '__EAN__'}) }}"
              data-time-form-autocomplete-not-found-message-value="{{ 'scan.puzzle_form.not_found'|trans }}"
              data-time-form-autocomplete-multiple-brands-message-value="{{ 'scan.puzzle_form.multiple_brands'|trans }}"

@@ -17,12 +17,11 @@ use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
-use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
+use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
@@ -50,13 +49,13 @@ final class EditTimeController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private CoPuzzlerPicker $coPuzzlerPicker,
         readonly private FirstTryFormCheck $firstTryFormCheck,
         readonly private FormPhotoStash $formPhotoStash,
+        readonly private PuzzleChoicesBuilder $puzzleChoicesBuilder,
     ) {
     }
 
@@ -243,21 +242,19 @@ final class EditTimeController extends AbstractController
             }
         }
 
-        /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */
-        $puzzlesPerManufacturer = [];
-        foreach ($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($player->playerId) as $puzzle) {
-            $puzzlesPerManufacturer[$puzzle->manufacturerName][] = $puzzle;
-        }
-
         $templateParams = [
             'active_puzzle' => $activePuzzle,
             'can_change_puzzle' => $canChangePuzzle,
+            // The picker lists no secret puzzle - a result already on one keeps it selectable
+            'own_puzzle' => $canChangePuzzle ? [
+                'brand' => $storedPuzzle->manufacturerId,
+                'option' => $this->puzzleChoicesBuilder->build([$storedPuzzle], $request->getLocale())[0],
+            ] : null,
             'solved_puzzle' => $solvedPuzzle,
             'solving_time_form' => $editTimeForm,
             'filled_group_players' => $groupPlayers,
             'selected_add_puzzle' => false,
             'selected_add_manufacturer' => false,
-            'puzzles' => $puzzlesPerManufacturer,
             'active_stopwatch' => null,
             // Only the old co-puzzler rows list favorites up front; the picker fetches its suggestions on demand
             'favorite_players' => $this->coPuzzlerPicker->isEnabled() ? [] : $this->getFavoritePlayers->forPlayerId($player->playerId),

@@ -1,0 +1,18 @@
+{#- One option of the puzzle picker (PuzzleChoicesBuilder). Tom Select shows it as HTML and names and codes are player-typed: auto-escaping is the protection - never |raw on puzzle data -#}
+<div class="py-1 d-flex low-line-height">
+    <div class="icon me-2"><img alt="Puzzle image" class="img-fluid rounded-2" style="max-width: 60px; max-height: 60px;" src="{{ image is not null ? image|thumbnail('puzzle_small') : '/img/placeholder-puzzle.jpg' }}"></div>
+    <div class="pe-1">
+        <div class="mb-1">
+            {%- if leading_alternative_name is not null %}
+            <span class="h6">{{ leading_alternative_name }} <small>({{ name }})</small></span>
+            {%- else %}
+            <span class="h6">{{ name }}</span>
+            {%- endif %}
+            <small class="text-muted">{{ identification_number }}</small>
+        </div>
+        {#- The label is translation markup (&nbsp;) around the number; "no-highlight" keeps Tom Select from marking a typed "pieces" in it #}
+        <div class="description"><small><span class="no-highlight">{{ pieces_label_before|raw }}</span>{{ pieces_count }}<span class="no-highlight">{{ pieces_label_after|raw }}</span></small>
+            {%- if ean is not null %}<small class="text-muted ms-2">EAN: {{ ean }}</small>{% endif -%}
+        </div>
+    </div>
+</div>

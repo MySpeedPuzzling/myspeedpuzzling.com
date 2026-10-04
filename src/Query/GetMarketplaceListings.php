@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Results\MarketplaceListingsCount;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\ListingType;
+use SpeedPuzzling\Web\Value\PuzzleCodeSearch;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 
@@ -181,17 +182,16 @@ JOIN player pl ON ssli.player_id = pl.id';
         $matchScore = '';
 
         if ($hasSearch && $sort === 'relevance') {
-            $eanSearch = trim((string) $searchTerm, '0');
             $matchScore = ',
     CASE
         WHEN p.alternative_name ILIKE :searchQuery
           OR p.name ILIKE :searchQuery
-          OR p.identification_number = :searchQuery
-          OR p.ean = :eanSearchQuery THEN 7
+          OR p.identification_number ILIKE :codeSearchQuery
+          OR ltrim(p.ean, \'0\') = :eanSearchQuery THEN 7
         WHEN immutable_unaccent(p.alternative_name) ILIKE immutable_unaccent(:searchQuery)
           OR immutable_unaccent(p.name) ILIKE immutable_unaccent(:searchQuery) THEN 6
-        WHEN p.identification_number ILIKE :searchEndLikeQuery
-          OR p.identification_number ILIKE :searchStartLikeQuery
+        WHEN p.identification_number ILIKE :codeSearchEndLikeQuery
+          OR p.identification_number ILIKE :codeSearchStartLikeQuery
           OR p.ean ILIKE :eanSearchEndLikeQuery
           OR p.ean ILIKE :eanSearchStartLikeQuery THEN 5
         WHEN p.alternative_name ILIKE :searchEndLikeQuery
@@ -202,8 +202,8 @@ JOIN player pl ON ssli.player_id = pl.id';
           OR immutable_unaccent(p.alternative_name) ILIKE immutable_unaccent(:searchStartLikeQuery)
           OR immutable_unaccent(p.name) ILIKE immutable_unaccent(:searchEndLikeQuery)
           OR immutable_unaccent(p.name) ILIKE immutable_unaccent(:searchStartLikeQuery) THEN 3
-        WHEN p.identification_number ILIKE :searchFullLikeQuery
-          OR p.ean ILIKE :eanSearchFullLikeQuery THEN 2
+        WHEN p.identification_number ILIKE :codeSearchLikeQuery
+          OR p.ean ILIKE :eanSearchLikeQuery THEN 2
         WHEN p.alternative_name ILIKE :searchFullLikeQuery
           OR p.name ILIKE :searchFullLikeQuery THEN 1
         ELSE 0
@@ -211,9 +211,7 @@ JOIN player pl ON ssli.player_id = pl.id';
             $params['searchQuery'] = $searchTerm;
             $params['searchStartLikeQuery'] = '%' . $searchTerm;
             $params['searchEndLikeQuery'] = $searchTerm . '%';
-            $params['eanSearchQuery'] = $eanSearch;
-            $params['eanSearchStartLikeQuery'] = '%' . $eanSearch;
-            $params['eanSearchEndLikeQuery'] = $eanSearch . '%';
+            $params = [...$params, ...PuzzleCodeSearch::fromUserInput($searchTerm)->scoreParameters()];
         }
 
         // Sorting by difficulty reads the score through the tier filter's join (a PK lookup), or joins it itself.
@@ -480,11 +478,13 @@ SQL;
         OR p.name ILIKE :searchFullLikeQuery
         OR immutable_unaccent(p.alternative_name) ILIKE immutable_unaccent(:searchFullLikeQuery)
         OR immutable_unaccent(p.name) ILIKE immutable_unaccent(:searchFullLikeQuery)
-        OR p.identification_number ILIKE :searchFullLikeQuery
-        OR p.ean ILIKE :eanSearchFullLikeQuery
+        OR p.identification_number ILIKE :codeSearchLikeQuery
+        OR p.ean ILIKE :eanSearchLikeQuery
     )';
+            $codeSearch = PuzzleCodeSearch::fromUserInput($searchTerm);
             $params['searchFullLikeQuery'] = '%' . $searchTerm . '%';
-            $params['eanSearchFullLikeQuery'] = '%' . trim($searchTerm, '0') . '%';
+            $params['codeSearchLikeQuery'] = $codeSearch->codePattern();
+            $params['eanSearchLikeQuery'] = $codeSearch->eanPattern();
         }
 
         if ($manufacturerId !== null && $manufacturerId !== '') {

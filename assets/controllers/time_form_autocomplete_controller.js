@@ -1,6 +1,11 @@
 import { Controller } from '@hotwired/stimulus';
 import * as bootstrap from 'bootstrap';
 
+// Brand and puzzle show an option's `text` as HTML (`options_as_html`): whatever a player typed is escaped first
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[char]));
+
 export default class extends Controller {
     static targets = ['brand', 'puzzle', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'eanClear', 'eanErrors', 'hideOptions'];
 
@@ -16,6 +21,9 @@ export default class extends Controller {
         allowNew: { type: Boolean, default: true },
         // The edit form's picker stays closed until asked for - its brand's puzzles are fetched only then
         optionsOnDemand: { type: Boolean, default: false },
+        // The edit form: the result's own puzzle ({brand, option}) stays selectable where its brand's list leaves it
+        // out - a secret puzzle is never listed
+        ownPuzzle: { type: Object, default: {} },
     };
 
     uuidRegex= /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -121,7 +129,7 @@ export default class extends Controller {
 
             return {
                 value: input,
-                text: input,
+                text: escapeHtml(input),
             };
         };
     }
@@ -135,6 +143,13 @@ export default class extends Controller {
         event.detail.options.onChange = (value) => {
             this.onPuzzleValueChanged(value);
         };
+
+        if (this.allowNewValue) {
+            event.detail.options.create = (input) => ({
+                value: input,
+                text: escapeHtml(input),
+            });
+        }
 
         event.detail.options.onInitialize = () => {
             this.handleInitialValues();
@@ -210,8 +225,12 @@ export default class extends Controller {
         const fetchUrl = this.brandTarget.getAttribute('data-fetch-url');
 
         if (this.uuidRegex.test(brandValue)) {
+            // The add-to-round form's URL already carries its competition
+            const url = new URL(fetchUrl, window.location.href);
+            url.searchParams.set('brand', brandValue);
+
             // Store the promise so it can be awaited by barcode scan handler
-            this._puzzleOptionsFetchPromise = fetch(`${fetchUrl}?brand=${brandValue}`)
+            this._puzzleOptionsFetchPromise = fetch(url)
                 .then(response => {
                     if (response.status === 404) {
                         this.onNewBrandCreated();
@@ -229,7 +248,7 @@ export default class extends Controller {
                     if (data) {
                         const existingValue = this.puzzleTarget.tomselect.getValue();
 
-                        this.updatePuzzleSelectValues(data, openDropdown);
+                        this.updatePuzzleSelectValues(this.withOwnPuzzle(data, brandValue), openDropdown);
 
                         if (existingValue && this.puzzleTarget.tomselect.getOption(existingValue)) {
                             this.puzzleTarget.tomselect.setValue(existingValue);
@@ -258,6 +277,16 @@ export default class extends Controller {
         }
 
         return Promise.resolve(null);
+    }
+
+    withOwnPuzzle(data, brandValue) {
+        const ownPuzzle = this.ownPuzzleValue;
+
+        if (!ownPuzzle.option || ownPuzzle.brand !== brandValue || data.results.some((option) => option.value === ownPuzzle.option.value)) {
+            return data;
+        }
+
+        return { results: [...data.results, ownPuzzle.option] };
     }
 
     updatePuzzleSelectValues(data, openDropdown) {
@@ -362,7 +391,7 @@ export default class extends Controller {
         // and clear the (possibly also restored) puzzle value.
         if (this.brandTarget.value && !brandTomSelect.getValue()) {
             if (!brandTomSelect.getOption(this.brandTarget.value)) {
-                brandTomSelect.addOption({ value: this.brandTarget.value, text: this.brandTarget.value });
+                brandTomSelect.addOption({ value: this.brandTarget.value, text: escapeHtml(this.brandTarget.value) });
             }
             brandTomSelect.addItem(this.brandTarget.value, true);
         }
@@ -603,7 +632,7 @@ export default class extends Controller {
 
         // Add brand option if not exists
         if (!brandTom.getOption(brand.id)) {
-            brandTom.addOption({ value: brand.id, text: brand.name, name: brand.name });
+            brandTom.addOption({ value: brand.id, text: escapeHtml(brand.name), name: brand.name });
         }
 
         // Set brand value - this triggers fetchPuzzleOptions via onBrandValueChanged
@@ -628,7 +657,7 @@ export default class extends Controller {
 
             // Add brand option if not exists, then select it
             if (!brandTom.getOption(brand.id)) {
-                brandTom.addOption({ value: brand.id, text: brand.name, name: brand.name });
+                brandTom.addOption({ value: brand.id, text: escapeHtml(brand.name), name: brand.name });
             }
 
             // Setting brand value triggers the normal flow
@@ -658,7 +687,7 @@ export default class extends Controller {
 
         // Add brand option if not exists, then select it
         if (!brandTom.getOption(brand.id)) {
-            brandTom.addOption({ value: brand.id, text: brand.name, name: brand.name });
+            brandTom.addOption({ value: brand.id, text: escapeHtml(brand.name), name: brand.name });
         }
         brandTom.setValue(brand.id);
 

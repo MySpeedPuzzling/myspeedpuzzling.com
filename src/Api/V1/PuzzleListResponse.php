@@ -39,7 +39,7 @@ use Symfony\Component\Validator\Constraints\Type;
                 description: 'Returns puzzle cards - the same catalog as the website\'s puzzle search. '
                     . 'Without any filter the whole catalog is listed (most solved first); "query" searches names, '
                     . 'alternative names, identification numbers and barcodes accent-insensitively; "ean" is an exact '
-                    . 'barcode lookup (leading/trailing zeros tolerated) and cannot be combined with the other filters. '
+                    . 'barcode lookup (leading zeros tolerated) and cannot be combined with the other filters. '
                     . 'Secret competition puzzles are never returned and an embargoed image is null until its release. '
                     . 'Every card carries three insight objects that are always present and null when the token is not '
                     . 'entitled to them: "difficulty" (token owner must be a member), "prediction" (member who has not '
@@ -69,7 +69,7 @@ use Symfony\Component\Validator\Constraints\Type;
                 'ean' => new QueryParameter(
                     key: 'ean',
                     schema: ['type' => 'string', 'pattern' => '^\d{8,14}$'],
-                    description: 'Exact barcode (EAN/UPC, 8-14 digits) lookup; leading and trailing zeros are tolerated. Mutually exclusive with query, manufacturer, pieces_min, pieces_max, sort and difficulty (422 when combined).',
+                    description: 'Exact barcode (EAN/UPC, 8-14 digits) lookup; leading zeros are tolerated. Mutually exclusive with query, manufacturer, pieces_min, pieces_max, sort and difficulty (422 when combined).',
                     constraints: [new Regex(pattern: '/^\d{8,14}$/', message: 'ean must be 8 to 14 digits.')],
                 ),
                 'manufacturer' => new QueryParameter(

@@ -55,7 +55,9 @@ final class AddPuzzleToRoundController extends AbstractController
         $competition = $this->getCompetitionEvents->byId($competitionId);
 
         $formData = new RoundPuzzleFormData();
-        $form = $this->createForm(RoundPuzzleFormType::class, $formData);
+        $form = $this->createForm(RoundPuzzleFormType::class, $formData, [
+            'competition_id' => $competitionId,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {

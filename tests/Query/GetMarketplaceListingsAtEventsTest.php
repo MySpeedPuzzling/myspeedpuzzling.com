@@ -108,7 +108,7 @@ final class GetMarketplaceListingsAtEventsTest extends KernelTestCase
      */
     public static function provideSorts(): iterable
     {
-        foreach (['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'] as $sort) {
+        foreach (['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc', 'easiest', 'hardest'] as $sort) {
             yield $sort => [$sort];
         }
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Component;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Component\PlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -114,6 +115,111 @@ final class PlayerSolvedPuzzlesDifficultyTest extends WebTestCase
 
             self::ensureKernelShutdown();
         }
+    }
+
+    public function testMemberSortsTheResultsByDifficulty(): void
+    {
+        $client = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->spreadDifficulties();
+        $component = $this->results($client);
+        $crawler = $component->render()->crawler();
+        self::assertCount(1, $crawler->filter('[data-live-sort-param="easiest"]'));
+        self::assertCount(1, $crawler->filter('[data-live-sort-param="hardest"]'));
+        self::assertCount(0, $crawler->filter('#sortingDropdown + .dropdown-menu [data-bs-target="#membersExclusiveModal"]'));
+
+        $component->call('changeSortBy', ['sort' => 'easiest']);
+        $easiest = $this->cornerTiers($component->render()->crawler());
+        $this->assertDifficultyOrder($easiest, hardestFirst: false);
+        self::assertGreaterThan(2, count(array_unique(array_diff($easiest, [0]))), 'Several rated tiers to order');
+        self::assertContains(0, $easiest, 'A puzzle not rated yet');
+
+        $component->call('changeSortBy', ['sort' => 'hardest']);
+        $crawler = $component->render()->crawler();
+        $this->assertDifficultyOrder($this->cornerTiers($crawler), hardestFirst: true);
+        self::assertStringContainsString('Hardest first', $crawler->filter('#sortingDropdown')->text());
+
+        // Pairs are sorted the same way
+        $component->call('changeResultsCategory', ['category' => 'duo']);
+        $duo = $this->cornerTiers($component->render()->crawler());
+        self::assertGreaterThan(1, count($duo));
+        $this->assertDifficultyOrder($duo, hardestFirst: true);
+
+        // Together with the difficulty filter
+        $component->call('changeResultsCategory', ['category' => 'solo']);
+        $rated = array_values(array_unique(array_diff($easiest, [0])));
+        $component->set('difficulty', [(string) $rated[0], (string) $rated[1], '0']);
+        $filtered = $this->cornerTiers($component->render()->crawler());
+        self::assertSame([], array_values(array_diff($filtered, [$rated[0], $rated[1], 0])));
+        $this->assertDifficultyOrder($filtered, hardestFirst: true);
+    }
+
+    public function testWithoutMembershipTheDifficultySortIsLockedAndIgnored(): void
+    {
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            $component = $this->results($viewer === null ? self::createClient() : $this->signedIn($viewer));
+            $crawler = $component->render()->crawler();
+            $fastest = $this->rows($crawler)->each(static fn (Crawler $row): string => $row->html());
+
+            self::assertCount(0, $crawler->filter('[data-live-sort-param="easiest"], [data-live-sort-param="hardest"]'));
+            self::assertCount(2, $crawler->filter('#sortingDropdown + .dropdown-menu [data-bs-target="#membersExclusiveModal"]'));
+
+            $component->call('changeSortBy', ['sort' => 'hardest']);
+            self::assertSame('fastest', $this->component($component)->sortBy);
+
+            // The prop is writable: a sent (or left over) difficulty sort falls back to the default
+            $component->set('sortBy', 'easiest');
+            $crawler = $component->render()->crawler();
+            self::assertSame('fastest', $this->component($component)->sortBy);
+            self::assertSame($fastest, $this->rows($crawler)->each(static fn (Crawler $row): string => $row->html()));
+
+            self::ensureKernelShutdown();
+        }
+    }
+
+    /**
+     * The fixture's puzzles mostly share one tier: rate every solved puzzle across the tiers, the regular player's
+     * first solo puzzle not at all (rolled back after the test)
+     */
+    private function spreadDifficulties(): void
+    {
+        $connection = self::getContainer()->get(Connection::class);
+        $scores = [0.6, 0.8, 1.0, 1.2, 1.3, 1.5];
+
+        foreach ($connection->fetchFirstColumn('SELECT DISTINCT puzzle_id FROM puzzle_solving_time ORDER BY puzzle_id') as $index => $puzzleId) {
+            $score = $scores[$index % count($scores)];
+            $connection->executeStatement(
+                "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at)
+                VALUES (:puzzleId, :tier, :score, 'high', 10, NOW())
+                ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_tier = EXCLUDED.difficulty_tier, difficulty_score = EXCLUDED.difficulty_score",
+                ['puzzleId' => $puzzleId, 'tier' => DifficultyTier::fromScore($score)->value, 'score' => $score],
+            );
+        }
+
+        $connection->executeStatement(
+            'DELETE FROM puzzle_difficulty WHERE puzzle_id = (SELECT puzzle_id FROM puzzle_solving_time WHERE player_id = :player AND team IS NULL ORDER BY puzzle_id LIMIT 1)',
+            ['player' => PlayerFixture::PLAYER_REGULAR],
+        );
+    }
+
+    /**
+     * @param list<int> $tiers tier value per row, 0 = not rated yet
+     */
+    private function assertDifficultyOrder(array $tiers, bool $hardestFirst): void
+    {
+        $rated = array_values(array_filter($tiers, static fn (int $tier): bool => $tier !== 0));
+        self::assertSame($rated, array_slice($tiers, 0, count($rated)), 'Not rated yet comes last');
+
+        $expected = $rated;
+        $hardestFirst ? rsort($expected) : sort($expected);
+        self::assertSame($expected, $rated);
+    }
+
+    /**
+     * @return list<int> tier value on each row's thumbnail, 0 = not rated yet
+     */
+    private function cornerTiers(Crawler $crawler): array
+    {
+        return array_map(fn (string $name): int => (int) $this->valueNamed($name), $this->cornerNames($crawler));
     }
 
     private function signedIn(string $playerId): KernelBrowser

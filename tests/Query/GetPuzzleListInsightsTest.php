@@ -28,14 +28,16 @@ final class GetPuzzleListInsightsTest extends KernelTestCase
 
         self::assertCount(2, $insights);
 
-        $expectedTier = self::getContainer()->get(GetPuzzleDifficulty::class)->byPuzzleId(PuzzleFixture::PUZZLE_500_01)?->difficultyTier;
-        self::assertNotNull($expectedTier);
-        self::assertSame($expectedTier, $insights[PuzzleFixture::PUZZLE_500_01]->difficultyTier);
+        $expected = self::getContainer()->get(GetPuzzleDifficulty::class)->byPuzzleId(PuzzleFixture::PUZZLE_500_01);
+        self::assertNotNull($expected?->difficultyTier);
+        self::assertSame($expected->difficultyTier, $insights[PuzzleFixture::PUZZLE_500_01]->difficultyTier);
+        self::assertSame($expected->difficultyScore, $insights[PuzzleFixture::PUZZLE_500_01]->difficultyScore);
         self::assertGreaterThan(0, $insights[PuzzleFixture::PUZZLE_500_01]->solvedTimes);
 
         // Never solved: no statistics row, no tier
         self::assertSame(0, $insights[PuzzleFixture::PUZZLE_9000]->solvedTimes);
         self::assertNull($insights[PuzzleFixture::PUZZLE_9000]->difficultyTier);
+        self::assertNull($insights[PuzzleFixture::PUZZLE_9000]->difficultyScore);
     }
 
     public function testWithoutDifficultyKeepsSolveCountsAndNeverReadsDifficulty(): void
@@ -45,6 +47,7 @@ final class GetPuzzleListInsightsTest extends KernelTestCase
         $insights = $this->query->forPuzzles([PuzzleFixture::PUZZLE_500_01], false);
 
         self::assertNull($insights[PuzzleFixture::PUZZLE_500_01]->difficultyTier);
+        self::assertNull($insights[PuzzleFixture::PUZZLE_500_01]->difficultyScore);
         self::assertGreaterThan(0, $insights[PuzzleFixture::PUZZLE_500_01]->solvedTimes);
 
         $queries = $this->executedSql($holder);

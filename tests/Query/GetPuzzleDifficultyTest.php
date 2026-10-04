@@ -80,6 +80,22 @@ final class GetPuzzleDifficultyTest extends KernelTestCase
         self::assertSame([], $this->query->tiersOf([]));
     }
 
+    public function testRatingsOfReturnsTierAndScoreOfRatedPuzzles(): void
+    {
+        $ratings = $this->query->ratingsOf([
+            PuzzleFixture::PUZZLE_500_01,
+            PuzzleFixture::PUZZLE_500_01,
+            PuzzleFixture::PUZZLE_9000,
+        ]);
+
+        $full = $this->query->byPuzzleId(PuzzleFixture::PUZZLE_500_01);
+        self::assertNotNull($full);
+        self::assertSame([PuzzleFixture::PUZZLE_500_01], array_keys($ratings), 'Not rated yet = missing');
+        self::assertSame($full->difficultyTier, $ratings[PuzzleFixture::PUZZLE_500_01]->tier);
+        self::assertSame($full->difficultyScore, $ratings[PuzzleFixture::PUZZLE_500_01]->score);
+        self::assertSame([], $this->query->ratingsOf([]));
+    }
+
     public function testForPuzzleListWithEmptyArrayReturnsEmpty(): void
     {
         $results = $this->query->forPuzzleList([]);

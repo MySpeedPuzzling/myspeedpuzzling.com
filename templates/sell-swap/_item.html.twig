@@ -16,6 +16,7 @@
      data-pieces-count="{{ item.piecesCount }}"
      {% if with_difficulty %}
      data-difficulty-tier="{{ insight is not null and insight.difficultyTier is not null ? insight.difficultyTier.value : 0 }}"
+     data-difficulty-score="{{ insight is not null and insight.difficultyScore is not null ? insight.difficultyScore|number_format(4, '.', '') : '' }}"
      {% endif %}
      data-puzzle-name="{{ item.puzzleName }}"
      data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"

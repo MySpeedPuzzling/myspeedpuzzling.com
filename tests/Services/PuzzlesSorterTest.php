@@ -80,16 +80,130 @@ final class PuzzlesSorterTest extends TestCase
         self::assertSame('time-2', $grouped[0][0]->timeId);
     }
 
-    private static function createSolvedPuzzle(string $timeId, int $time, bool $unboxed): SolvedPuzzle
+    public function testSortByDifficultyPutsUnratedPuzzlesLastInBothDirections(): void
     {
+        $sorter = new PuzzlesSorter();
+        $scores = ['easy' => 0.8, 'hard' => 1.3, 'average' => 1.0];
+        $times = [
+            self::createSolvedPuzzle('unrated', time: 900, puzzleId: 'unrated'),
+            self::createSolvedPuzzle('hard', time: 3000, puzzleId: 'hard'),
+            self::createSolvedPuzzle('easy', time: 1000, puzzleId: 'easy'),
+            self::createSolvedPuzzle('average', time: 2000, puzzleId: 'average'),
+        ];
+
+        self::assertSame(['easy', 'average', 'hard', 'unrated'], self::timeIds($sorter->sortByDifficulty($times, $scores, hardestFirst: false)));
+        self::assertSame(['hard', 'average', 'easy', 'unrated'], self::timeIds($sorter->sortByDifficulty($times, $scores, hardestFirst: true)));
+    }
+
+    public function testSortByDifficultyOrdersEquallyDifficultResultsFastestFirst(): void
+    {
+        $sorter = new PuzzlesSorter();
+        $scores = ['puzzle-a' => 1.1, 'puzzle-b' => 1.1];
+        $times = [
+            self::createSolvedPuzzle('slow-a', time: 3000, puzzleId: 'puzzle-a', teamId: 'team-1'),
+            self::createSolvedPuzzle('unrated-slow', time: 5000, puzzleId: 'unrated'),
+            self::createSolvedPuzzle('fast-b', time: 1000, puzzleId: 'puzzle-b', teamId: 'team-2'),
+            self::createSolvedPuzzle('unrated-fast', time: 4000, puzzleId: 'unrated'),
+            self::createSolvedPuzzle('mid-a', time: 2000, puzzleId: 'puzzle-a', teamId: 'team-3'),
+        ];
+
+        self::assertSame(
+            ['fast-b', 'mid-a', 'slow-a', 'unrated-fast', 'unrated-slow'],
+            self::timeIds($sorter->sortByDifficulty($times, $scores, hardestFirst: true)),
+        );
+    }
+
+    public function testSortGroupedByDifficultyOrdersPuzzleGroupsByScore(): void
+    {
+        $sorter = new PuzzlesSorter();
+        $scores = ['easy' => 0.8, 'hard' => 1.3];
+        $grouped = [
+            'unrated' => [self::createSolvedPuzzle('unrated', time: 900, puzzleId: 'unrated')],
+            'easy' => [
+                self::createSolvedPuzzle('easy-slow', time: 1500, puzzleId: 'easy'),
+                self::createSolvedPuzzle('easy-fast', time: 1200, puzzleId: 'easy'),
+            ],
+            'hard' => [self::createSolvedPuzzle('hard', time: 3000, puzzleId: 'hard')],
+        ];
+
+        $easiest = $sorter->sortGroupedByDifficulty($grouped, $scores, hardestFirst: false, onlyFirstTries: false);
+        self::assertSame(['easy-fast', 'hard', 'unrated'], self::groupHeads($easiest));
+        self::assertSame(['easy-fast', 'easy-slow'], self::timeIds($easiest[0]), 'Fastest first within a puzzle');
+
+        $hardest = $sorter->sortGroupedByDifficulty($grouped, $scores, hardestFirst: true, onlyFirstTries: false);
+        self::assertSame(['hard', 'easy-fast', 'unrated'], self::groupHeads($hardest));
+    }
+
+    public function testSortGroupedByDifficultyKeepsTheFirstTryOrUnboxedHead(): void
+    {
+        $sorter = new PuzzlesSorter();
+        $grouped = [
+            'puzzle-1' => [
+                self::createSolvedPuzzle('fast', time: 1200),
+                self::createSolvedPuzzle('first-try', time: 1800, firstAttempt: true),
+                self::createSolvedPuzzle('unboxed', time: 1500, unboxed: true),
+            ],
+        ];
+
+        $firstTries = $sorter->sortGroupedByDifficulty($grouped, ['puzzle-1' => 1.0], hardestFirst: false, onlyFirstTries: true);
+        self::assertSame('first-try', $firstTries[0][0]->timeId);
+
+        $unboxed = $sorter->sortGroupedByDifficulty($grouped, ['puzzle-1' => 1.0], hardestFirst: false, onlyFirstTries: false, onlyUnboxed: true);
+        self::assertSame('unboxed', $unboxed[0][0]->timeId);
+    }
+
+    public function testSortGroupedByDifficultyOrdersEquallyDifficultPuzzlesByFastestHead(): void
+    {
+        $sorter = new PuzzlesSorter();
+        $grouped = [
+            'slower' => [self::createSolvedPuzzle('slower', time: 2000, puzzleId: 'slower')],
+            'faster' => [self::createSolvedPuzzle('faster', time: 1000, puzzleId: 'faster')],
+        ];
+
+        $sorted = $sorter->sortGroupedByDifficulty($grouped, ['slower' => 1.2, 'faster' => 1.2], hardestFirst: true, onlyFirstTries: false);
+
+        self::assertSame(['faster', 'slower'], self::groupHeads($sorted));
+    }
+
+    /**
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return list<string>
+     */
+    private static function timeIds(array $solvedPuzzles): array
+    {
+        return array_values(array_map(static fn (SolvedPuzzle $puzzle): string => $puzzle->timeId, $solvedPuzzles));
+    }
+
+    /**
+     * @param array<array<SolvedPuzzle>> $grouped
+     * @return list<string>
+     */
+    private static function groupHeads(array $grouped): array
+    {
+        return array_values(array_map(static function (array $group): string {
+            $head = reset($group);
+            self::assertInstanceOf(SolvedPuzzle::class, $head);
+
+            return $head->timeId;
+        }, $grouped));
+    }
+
+    private static function createSolvedPuzzle(
+        string $timeId,
+        int $time,
+        bool $unboxed = false,
+        string $puzzleId = 'puzzle-1',
+        bool $firstAttempt = false,
+        null|string $teamId = null,
+    ): SolvedPuzzle {
         return new SolvedPuzzle(
             timeId: $timeId,
             playerId: 'player-1',
             playerName: 'player-1',
             playerCode: 'PLAYER-1',
             playerCountry: null,
-            puzzleId: 'puzzle-1',
-            puzzleName: 'Puzzle 1',
+            puzzleId: $puzzleId,
+            puzzleName: $puzzleId,
             puzzleAlternativeName: null,
             manufacturerName: 'Manufacturer',
             piecesCount: 500,
@@ -99,12 +213,12 @@ final class PuzzlesSorterTest extends TestCase
             comment: null,
             trackedAt: new DateTimeImmutable('2026-01-01 12:00:00'),
             finishedPuzzlePhoto: null,
-            teamId: null,
+            teamId: $teamId,
             players: null,
             solvedTimes: 1,
             puzzleIdentificationNumber: null,
             finishedAt: new DateTimeImmutable('2026-01-01 12:00:00'),
-            firstAttempt: false,
+            firstAttempt: $firstAttempt,
             unboxed: $unboxed,
             isPrivate: false,
             competitionId: null,

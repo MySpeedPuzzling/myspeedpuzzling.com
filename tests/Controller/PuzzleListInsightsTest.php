@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Twig\Environment;
@@ -57,9 +58,11 @@ final class PuzzleListInsightsTest extends WebTestCase
 
         if (str_contains($url, 'lend-borrow') === false) {
             self::assertGreaterThan(0, $crawler->filter('[data-difficulty-tier]')->count());
+            $this->assertScoresMatchTiers($crawler);
         }
 
         self::assertCount($hasFilters ? 7 : 0, $crawler->filter('input[data-collection-filter-target="difficultyTier"]'));
+        self::assertCount($hasFilters ? 1 : 0, $crawler->filter('select[data-collection-filter-target="sortSelect"]'));
     }
 
     public function testWishlistAndUnsolvedPagesGetTiersAndChips(): void
@@ -90,6 +93,7 @@ final class PuzzleListInsightsTest extends WebTestCase
                 self::assertCount(1, $crawler->filter(sprintf('[data-puzzle-id="%s"][data-difficulty-tier="0"]', $puzzleId)), "$url: never solved = not rated yet");
             }
             self::assertCount(7, $crawler->filter('input[data-collection-filter-target="difficultyTier"]'), $url);
+            self::assertCount(1, $crawler->filter('select[data-collection-filter-target="sortSelect"] option[value="hardest"]'), $url);
             self::assertCount(0, $this->icons($crawler, 'diff-locked'), $url);
         }
     }
@@ -111,6 +115,7 @@ final class PuzzleListInsightsTest extends WebTestCase
             self::assertSame('item', $wrapper->attr('data-collection-filter-target'));
             self::assertSame($item->listingType->value, $wrapper->attr('data-listing-type'));
             self::assertNull($wrapper->attr('data-difficulty-tier'));
+            self::assertNull($wrapper->attr('data-difficulty-score'));
             self::assertCount(0, $replaced->filter('svg.diff-icon'));
         }
     }
@@ -192,7 +197,36 @@ final class PuzzleListInsightsTest extends WebTestCase
         self::assertCount($this->icons($crawler)->count(), $this->icons($crawler, 'diff-locked'));
         self::assertSame('#membersExclusiveModal', $this->icons($crawler, 'diff-locked')->closest('svg')?->attr('data-bs-target'));
         self::assertCount(0, $crawler->filter('[data-difficulty-tier]'));
+        self::assertCount(0, $crawler->filter('[data-difficulty-score]'));
         self::assertCount(0, $crawler->filter('input[data-collection-filter-target="difficultyTier"]'));
+        self::assertCount(0, $crawler->filter('[data-collection-filter-target="sortSelect"]'));
+    }
+
+    /**
+     * Every item the filter reads carries the score next to the tier: empty = not rated yet, else within the tier's band
+     */
+    private function assertScoresMatchTiers(Crawler $crawler): void
+    {
+        $items = $crawler->filter('[data-collection-filter-target="item"]');
+        self::assertCount($items->count(), $crawler->filter('[data-collection-filter-target="item"][data-difficulty-score]'));
+        $rated = 0;
+
+        foreach ($items as $item) {
+            self::assertInstanceOf(\DOMElement::class, $item);
+            $tier = (int) $item->getAttribute('data-difficulty-tier');
+            $score = $item->getAttribute('data-difficulty-score');
+
+            if ($tier === 0) {
+                self::assertSame('', $score);
+                continue;
+            }
+
+            self::assertMatchesRegularExpression('/^\d+\.\d{4}$/', $score);
+            self::assertSame($tier, DifficultyTier::fromScore((float) $score)->value);
+            $rated++;
+        }
+
+        self::assertGreaterThan(0, $rated, 'Some puzzles on the page are rated');
     }
 
     /**

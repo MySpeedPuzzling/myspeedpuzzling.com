@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Results\PlayerProfile;
+use SpeedPuzzling\Web\Results\PuzzleDifficultyRating;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 
 /**
@@ -33,5 +34,22 @@ readonly final class ResolveDifficultyTiers
         }
 
         return $this->getPuzzleDifficulty->tiersOf($puzzleIds);
+    }
+
+    /**
+     * forViewer() with the score too, for a list members can sort by difficulty. Same rule, same one query.
+     *
+     * @param array<string> $puzzleIds duplicates are fine
+     *
+     * @return null|array<string, PuzzleDifficultyRating> null = nothing for this viewer; a puzzle missing from the
+     *                                                    array is not rated yet
+     */
+    public function ratingsForViewer(null|PlayerProfile $viewer, array $puzzleIds): null|array
+    {
+        if ($viewer?->activeMembership !== true) {
+            return null;
+        }
+
+        return $this->getPuzzleDifficulty->ratingsOf($puzzleIds);
     }
 }

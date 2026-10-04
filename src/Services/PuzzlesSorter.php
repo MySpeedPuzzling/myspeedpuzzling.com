@@ -50,6 +50,24 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * Compare two nullable difficulty scores, placing unrated puzzles (null) at the end in both directions.
+     */
+    private static function compareDifficultyScores(null|float $a, null|float $b, bool $hardestFirst): int
+    {
+        if ($a === null && $b === null) {
+            return 0;
+        }
+        if ($a === null) {
+            return 1;
+        }
+        if ($b === null) {
+            return -1;
+        }
+
+        return $hardestFirst ? $b <=> $a : $a <=> $b;
+    }
+
+    /**
      * Get effective finishedAt for sorting, falling back to trackedAt for SolvedPuzzle.
      */
     private static function getEffectiveFinishedAt(PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $item): \DateTimeImmutable
@@ -821,6 +839,81 @@ readonly final class PuzzlesSorter
             $b = $groupedB[array_key_first($groupedB)];
 
             return self::getEffectiveFinishedAt($a)->getTimestamp() <=> self::getEffectiveFinishedAt($b)->getTimestamp();
+        });
+
+        return $groupedSolvedPuzzles;
+    }
+
+    /**
+     * By the puzzle's difficulty score, fastest first within one difficulty. groupPuzzlesByTeam() afterwards
+     * gathers one puzzle's rows wherever they are, so they need not be next to each other here.
+     *
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @param array<string, float> $scores puzzle id => difficulty score; a puzzle missing here is not rated yet
+     * @return array<SolvedPuzzle>
+     */
+    public function sortByDifficulty(array $solvedPuzzles, array $scores, bool $hardestFirst): array
+    {
+        usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b) use ($scores, $hardestFirst): int {
+            $scoreComparison = self::compareDifficultyScores($scores[$a->puzzleId] ?? null, $scores[$b->puzzleId] ?? null, $hardestFirst);
+
+            if ($scoreComparison !== 0) {
+                return $scoreComparison;
+            }
+
+            $timeComparison = self::compareTimesAscending($a->time, $b->time);
+
+            if ($timeComparison !== 0) {
+                return $timeComparison;
+            }
+
+            return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
+        });
+
+        return $solvedPuzzles;
+    }
+
+    /**
+     * Puzzle groups by their difficulty score; within a group (one puzzle) the fastest first, as by default.
+     *
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @param array<string, float> $scores puzzle id => difficulty score; a puzzle missing here is not rated yet
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function sortGroupedByDifficulty(array $groupedSolvedPuzzles, array $scores, bool $hardestFirst, bool $onlyFirstTries, bool $onlyUnboxed = false): array
+    {
+        // 1) Sort times within groups as they are supposed to be
+        foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
+            $groupedSolvedPuzzles[$index] = $this->sortByFastest($solvedPuzzle);
+
+            if ($onlyFirstTries === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            } elseif ($onlyUnboxed === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeUnboxedFirst($groupedSolvedPuzzles[$index]);
+            }
+        }
+
+        // 2) Sort groups by the puzzle's difficulty, equally difficult ones by first result
+        usort($groupedSolvedPuzzles, static function (array $groupedA, array $groupedB) use ($scores, $hardestFirst): int {
+            /** @var non-empty-array<SolvedPuzzle> $groupedA */
+            /** @var non-empty-array<SolvedPuzzle> $groupedB */
+
+            $a = $groupedA[array_key_first($groupedA)];
+            $b = $groupedB[array_key_first($groupedB)];
+
+            $scoreComparison = self::compareDifficultyScores($scores[$a->puzzleId] ?? null, $scores[$b->puzzleId] ?? null, $hardestFirst);
+
+            if ($scoreComparison !== 0) {
+                return $scoreComparison;
+            }
+
+            $timeComparison = self::compareTimesAscending($a->time, $b->time);
+
+            if ($timeComparison !== 0) {
+                return $timeComparison;
+            }
+
+            return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
         });
 
         return $groupedSolvedPuzzles;

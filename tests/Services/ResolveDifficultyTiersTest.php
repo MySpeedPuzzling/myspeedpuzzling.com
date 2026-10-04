@@ -31,4 +31,22 @@ final class ResolveDifficultyTiersTest extends KernelTestCase
         self::assertNull($resolver->forViewer($profiles->byId(PlayerFixture::PLAYER_REGULAR), $puzzles));
         self::assertNull($resolver->forViewer(null, $puzzles));
     }
+
+    public function testOnlyAMemberGetsRatings(): void
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+        $container->get(PuzzleIntelligenceRecalculator::class)->recalculate();
+        $resolver = $container->get(ResolveDifficultyTiers::class);
+        $profiles = $container->get(GetPlayerProfile::class);
+        $puzzles = [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_9000];
+
+        $ratings = $resolver->ratingsForViewer($profiles->byId(PlayerFixture::PLAYER_WITH_STRIPE), $puzzles);
+        self::assertNotNull($ratings);
+        self::assertArrayHasKey(PuzzleFixture::PUZZLE_500_01, $ratings);
+        self::assertArrayNotHasKey(PuzzleFixture::PUZZLE_9000, $ratings, 'Not rated yet = missing');
+
+        self::assertNull($resolver->ratingsForViewer($profiles->byId(PlayerFixture::PLAYER_REGULAR), $puzzles));
+        self::assertNull($resolver->ratingsForViewer(null, $puzzles));
+    }
 }

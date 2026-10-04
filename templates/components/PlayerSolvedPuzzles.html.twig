@@ -251,6 +251,8 @@
                 {% if this.sortBy == 'oldest' %}{{ 'sorting.oldest_times'|trans }}{% endif %}
                 {% if this.sortBy == 'fastest_ppm' %}{{ 'sorting.fastest_ppm'|trans }}{% endif %}
                 {% if this.sortBy == 'slowest_ppm' %}{{ 'sorting.slowest_ppm'|trans }}{% endif %}
+                {% if this.sortBy == 'easiest' %}{{ 'sorting.easiest'|trans }}{% endif %}
+                {% if this.sortBy == 'hardest' %}{{ 'sorting.hardest'|trans }}{% endif %}
             </button>
 
             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="sortingDropdown">
@@ -291,6 +293,22 @@
                         data-live-sort-param="slowest_ppm">
                     {{ 'sorting.slowest_ppm'|trans }}
                 </button>
+                <div class="dropdown-divider"></div>
+                {% for sort in ['easiest', 'hardest'] %}
+                    {% if isMember %}
+                        <button type="button" class="dropdown-item {% if this.sortBy == sort %}active{% endif %}"
+                                data-action="live#action"
+                                data-live-action-param="changeSortBy"
+                                data-live-sort-param="{{ sort }}">
+                            {{ ('sorting.' ~ sort)|trans }}
+                        </button>
+                    {% else %}
+                        <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-muted" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                            <i class="ci-locked"></i>{{ ('sorting.' ~ sort)|trans }}
+                            <span class="badge bg-primary ms-auto">{{ 'membership.members_exclusive_short'|trans }}</span>
+                        </button>
+                    {% endif %}
+                {% endfor %}
             </div>
         </div>
     </div>

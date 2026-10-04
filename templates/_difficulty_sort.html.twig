@@ -1,0 +1,19 @@
+{#
+    Difficulty sort for the client-side collection-filter controller: reorders the items by their
+    data-difficulty-score, not rated yet last either way; "Default order" brings back the page's own order.
+    Members only, like _difficulty_filter_chips.html.twig - the items carry no score for anybody else.
+#}
+{% if insights_with_difficulty|default(false) %}
+    <div class="col-12 mb-2">
+        <div class="d-flex align-items-center gap-2">
+            <label for="list-difficulty-sort" class="text-muted text-nowrap mb-0"><small>{{ 'sorting.sort_by'|trans }}:</small></label>
+            <select id="list-difficulty-sort" class="form-select form-select-sm w-auto"
+                    data-collection-filter-target="sortSelect"
+                    data-action="change->collection-filter#sort">
+                <option value="">{{ 'sorting.default_order'|trans }}</option>
+                <option value="easiest">{{ 'sorting.easiest'|trans }}</option>
+                <option value="hardest">{{ 'sorting.hardest'|trans }}</option>
+            </select>
+        </div>
+    </div>
+{% endif %}

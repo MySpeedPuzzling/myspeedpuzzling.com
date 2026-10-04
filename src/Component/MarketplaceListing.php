@@ -171,6 +171,11 @@ final class MarketplaceListing
         // Comes from the URL as well
         $this->difficulty = DifficultyFilter::normalize($this->difficulty);
         $this->event = strtolower(trim($this->event));
+
+        // Sorting by difficulty is members-only, like the difficulty filter
+        if (in_array($this->sort, GetMarketplaceListings::DIFFICULTY_SORTS, true) && $this->isMember() === false) {
+            $this->sort = 'newest';
+        }
     }
 
     #[PreReRender]

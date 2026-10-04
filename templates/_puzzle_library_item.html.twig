@@ -85,6 +85,7 @@
      data-pieces-count="{{ item.piecesCount }}"
      {% if with_difficulty %}
      data-difficulty-tier="{{ insight is not null and insight.difficultyTier is not null ? insight.difficultyTier.value : 0 }}"
+     data-difficulty-score="{{ insight is not null and insight.difficultyScore is not null ? insight.difficultyScore|number_format(4, '.', '') : '' }}"
      {% endif %}
      {% if show_my_times %}
      data-my-fastest-seconds="{{ my_time is not null and my_time.fastestSeconds is not null ? my_time.fastestSeconds : '' }}"

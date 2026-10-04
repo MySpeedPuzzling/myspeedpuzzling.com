@@ -6,7 +6,7 @@ import TomSelect from 'tom-select';
  *
  * A unified filter for collection/library items across all pages.
  * Features: text search, manufacturer dropdown, piece-count chips + custom from-to,
- * difficulty tier chips (members), listing type filter, price range filter.
+ * difficulty tier chips + difficulty sort (members), listing type filter, price range filter.
  *
  * All targets are optional - the controller gracefully handles missing elements.
  */
@@ -19,6 +19,7 @@ export default class extends Controller {
         "piecesMin",         // Custom piece-count "from" input - what the filter actually reads
         "piecesMax",         // Custom piece-count "to" input
         "difficultyTier",    // Difficulty tier checkboxes (members) - items carry data-difficulty-tier
+        "sortSelect",        // Difficulty sort (members) - items carry data-difficulty-score, empty = not rated yet
         "listingTypeSelect", // Listing type select dropdown (sell-swap)
         "priceMin",          // Price min input (sell-swap)
         "priceMax",          // Price max input (sell-swap)
@@ -29,8 +30,16 @@ export default class extends Controller {
     static classes = ["hidden"];
 
     connect() {
+        // The page's own order, for "Default order" - by puzzle id, so an item a turbo stream replaced keeps its place
+        this.defaultPositions = new Map(this.itemTargets.map((item, index) => [item.dataset.puzzleId, index]));
+
         this.initializeFilters();
         this.updateVisibleCount();
+
+        // A browser restoring form values on reload (Firefox) keeps the chosen sort - apply it
+        if (this.hasSortSelectTarget && this.sortSelectTarget.value !== '') {
+            this.sort();
+        }
     }
 
     initializeFilters() {
@@ -264,6 +273,39 @@ export default class extends Controller {
         this.noResultsTarget.classList.toggle('hidden', !show);
     }
 
+    // Reorders the items, independent of the filters (they only hide). Not rated yet - or an item a turbo stream
+    // re-rendered without the score - goes last either way, equal ones keep the page's own order.
+    sort() {
+        if (this.itemTargets.length < 2) return;
+
+        const direction = this.hasSortSelectTarget ? this.sortSelectTarget.value : '';
+        const items = this.itemTargets;
+        const container = items[0].parentElement;
+        const anchor = items[items.length - 1].nextSibling;
+        const position = item => this.defaultPositions.get(item.dataset.puzzleId) ?? Number.MAX_SAFE_INTEGER;
+        const score = item => {
+            const value = parseFloat(item.dataset.difficultyScore ?? '');
+            return Number.isFinite(value) ? value : null;
+        };
+
+        const sorted = [...items].sort((a, b) => {
+            if (direction === 'easiest' || direction === 'hardest') {
+                const scoreA = score(a);
+                const scoreB = score(b);
+
+                if (scoreA !== scoreB) {
+                    if (scoreA === null) return 1;
+                    if (scoreB === null) return -1;
+                    return direction === 'hardest' ? scoreB - scoreA : scoreA - scoreB;
+                }
+            }
+
+            return position(a) - position(b);
+        });
+
+        sorted.forEach(item => container.insertBefore(item, anchor));
+    }
+
     reset() {
         // Reset search
         if (this.hasSearchTarget) {
@@ -295,6 +337,11 @@ export default class extends Controller {
         }
         if (this.hasPriceMaxTarget) {
             this.priceMaxTarget.value = '';
+        }
+
+        if (this.hasSortSelectTarget) {
+            this.sortSelectTarget.value = '';
+            this.sort();
         }
 
         this.filter();

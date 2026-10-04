@@ -1116,7 +1116,7 @@ comparison:
   "moderation":
     "heading": "Moderování"
     "edit": "Upravit puzzle"
-    "history": "Historie úprav"
+    "history": "Historie"
   "meta":
     "title": "%brand% %name% – puzzle %pieces% dílků"
     "ean": ", EAN %ean%"

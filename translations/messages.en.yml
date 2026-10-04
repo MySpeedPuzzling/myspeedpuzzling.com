@@ -1315,7 +1315,7 @@ puzzle_detail:
     moderation:
         heading: "Moderation"
         edit: "Edit puzzle"
-        history: "Edit history"
+        history: "History"
     meta:
         title: "%brand% %name% – %pieces% Piece Puzzle"
         ean: ", EAN %ean%"

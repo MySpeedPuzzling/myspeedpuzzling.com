@@ -848,7 +848,7 @@
   "moderation":
     "heading": "Moderación"
     "edit": "Editar puzzle"
-    "history": "Historial de cambios"
+    "history": "Historial"
   "meta":
     "title": "%brand% %name% – Puzzle de %pieces% piezas"
     "ean": ", EAN %ean%"

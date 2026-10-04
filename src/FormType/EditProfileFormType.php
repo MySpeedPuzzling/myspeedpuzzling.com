@@ -99,12 +99,24 @@ final class EditProfileFormType extends AbstractType
             'required' => false,
         ]);
 
+        // Raster formats only, like every other image upload: an SVG would be rendered on
+        // the server (ImageMagick hands SVG to an external delegate)
         $builder->add('avatar', FileType::class, [
             'label' => 'forms.avatar',
             'required' => false,
             'constraints' => [
                 new Image(
                     maxSize: '2m',
+                    mimeTypes: [
+                        'image/jpeg',
+                        'image/png',
+                        'image/gif',
+                        'image/webp',
+                        'image/heic',
+                        'image/heif',
+                        'image/avif',
+                    ],
+                    mimeTypesMessage: 'image_invalid_mime_type',
                 ),
             ],
         ]);

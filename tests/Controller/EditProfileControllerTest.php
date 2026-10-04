@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Profile settings: the credential cards (issue #147). The #161 Auth0
@@ -87,6 +88,36 @@ final class EditProfileControllerTest extends WebTestCase
         $reloadedAccount = $entityManager->getRepository(UserAccount::class)->findOneBy(['userId' => $userAccount->userId]);
         self::assertNotNull($reloadedAccount);
         self::assertSame($originalEmail, $reloadedAccount->email);
+    }
+
+    public function testAnSvgAvatarIsRefused(): void
+    {
+        $browser = self::createClient();
+        $userAccount = $this->seedNativeAccount($browser);
+        $browser->loginUser($userAccount, 'main');
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+        $form = $crawler->filter('form[name="edit_profile_form"]')->form();
+        $formValues = $form->getPhpValues()['edit_profile_form'] ?? null;
+        self::assertIsArray($formValues);
+
+        $svg = tempnam(sys_get_temp_dir(), 'avatar');
+        self::assertIsString($svg);
+        file_put_contents($svg, '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>');
+
+        $browser->request(
+            'POST',
+            '/en/edit-profile',
+            ['edit_profile_form' => $formValues],
+            ['edit_profile_form' => ['avatar' => new UploadedFile($svg, 'avatar.svg', 'image/svg+xml', null, true)]],
+        );
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('form[name="edit_profile_form"]', 'Supported are: jpg, jpeg, gif, png, webp, heic, heif, avif');
+
+        $player = $browser->getContainer()->get(PlayerRepository::class)->findByUserId($userAccount->userId);
+        self::assertNotNull($player);
+        self::assertNull($player->avatar);
     }
 
     public function testResultEmailsSwitchIsSavedWithTheMessagingSettings(): void

@@ -13,7 +13,9 @@ use SpeedPuzzling\Web\MessageHandler\SendPlayerContentDigestHandler;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\ContentDigestLogRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
 use SpeedPuzzling\Web\Services\Digest\WeeklyDigestDataProvider;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -21,10 +23,8 @@ use SpeedPuzzling\Web\Tests\TestDouble\TransportSpy;
 use SpeedPuzzling\Web\Value\DigestPeriod;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\HttpFoundation\UriSigner;
 use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
 use Symfony\Component\Mailer\Transport\TransportInterface;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Psr\Log\NullLogger;
 
@@ -207,12 +207,12 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
             weeklyDigestDataProvider: $container->get(WeeklyDigestDataProvider::class),
             transport: $transport,
             translator: $container->get(TranslatorInterface::class),
-            uriSigner: $container->get(UriSigner::class),
-            urlGenerator: $container->get(UrlGeneratorInterface::class),
+            contentDigestUnsubscribeUrl: $container->get(ContentDigestUnsubscribeUrl::class),
             database: $this->database,
             clock: $this->clock,
             xpFeatureGate: new XpFeatureGate(adminOnly: $flagActive),
             logger: new NullLogger(),
+            playerAccountEmail: $container->get(PlayerAccountEmail::class),
         );
     }
 

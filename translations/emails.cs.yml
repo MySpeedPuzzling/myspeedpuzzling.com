@@ -374,6 +374,7 @@ organization_rejected:
 
 badges_earned:
     subject: "Máš nové odznaky na MySpeedPuzzling!"
+    preheader: "Gratulujeme – tvoje nové úspěchy na tebe čekají na profilu."
     title: "%count%× nový odznak!"
     intro: "Gratulujeme! Máš za sebou nové milníky na MySpeedPuzzling."
     cta: |
@@ -384,6 +385,8 @@ content_digest:
     weekly:
         subject: "Tvůj týden ve skládání 🧩"
         subject_quiet: "Klidný puzzle týden — držíme ti místo u stolu"
+        preheader: "Tvoje XP, složení a úspěchy za uplynulý týden v jednom krátkém e-mailu."
+        preheader_quiet: "Klidný týden – tady je, co se kolem tebe na MySpeedPuzzling dělo."
         greeting: "Ahoj %name%, tady je tvůj týden ve skládání!"
         greeting_anonymous: "Ahoj puzzlere, tady je tvůj týden ve skládání!"
         xp_title: "Tvoje XP tento týden"
@@ -408,6 +411,7 @@ content_digest:
 
 xp_reveal:
     subject: "Celá tvoje puzzle cesta se právě proměnila v XP ✨"
+    preheader: "Každé puzzle, které jsi kdy zapsal(a), se už počítá – mrkni na svou úroveň a XP."
     greeting: "Ahoj %name%, stalo se něco krásného!"
     greeting_anonymous: "Ahoj puzzlere, stalo se něco krásného!"
     intro: "MySpeedPuzzling nově oslavuje tvoji aktivitu pomocí XP a úrovní — a počítají se všechna puzzle, která máš zaznamenaná. Žádné nastavování, žádný háček: tady je, jakou hodnotu má tvoje historie."

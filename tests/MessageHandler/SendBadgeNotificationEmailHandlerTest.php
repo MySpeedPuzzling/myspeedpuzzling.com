@@ -8,8 +8,8 @@ use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
 use SpeedPuzzling\Web\MessageHandler\SendBadgeNotificationEmailHandler;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\TestDouble\FakePlayerRepository;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
@@ -69,26 +69,18 @@ final class SendBadgeNotificationEmailHandlerTest extends KernelTestCase
         self::assertCount(0, $this->mailer->sent);
     }
 
-    public function testSkipsEmailWhenPlayerHasNoEmail(): void
+    /**
+     * user_account.email is the only address a player has - a member without an account row cannot be reached
+     */
+    public function testSkipsEmailWhenPlayerHasNoAccountEmail(): void
     {
-        $player = new \SpeedPuzzling\Web\Entity\Player(
-            id: \Ramsey\Uuid\Uuid::uuid7(),
-            code: 'noemail-test',
-            userId: null,
-            email: null,
-            name: 'No Email',
-            registeredAt: new \DateTimeImmutable(),
-        );
+        $playerAccountEmail = $this->createStub(PlayerAccountEmail::class);
+        $playerAccountEmail->method('ofPlayer')->willReturn(null);
 
-        $handler = new SendBadgeNotificationEmailHandler(
-            playerRepository: new FakePlayerRepository($player),
-            getPlayerProfile: $this->getPlayerProfile,
-            mailer: $this->mailer,
-            translator: $this->translator,
-        );
+        $handler = $this->handler($playerAccountEmail);
 
         $handler(new SendBadgeNotificationEmail(
-            playerId: $player->id->toString(),
+            playerId: PlayerFixture::PLAYER_WITH_STRIPE,
             badgeSummary: [['type' => BadgeType::Streak, 'tier' => BadgeTier::Bronze]],
         ));
 
@@ -107,13 +99,14 @@ final class SendBadgeNotificationEmailHandlerTest extends KernelTestCase
         self::assertCount(0, $this->mailer->sent);
     }
 
-    private function handler(): SendBadgeNotificationEmailHandler
+    private function handler(null|PlayerAccountEmail $playerAccountEmail = null): SendBadgeNotificationEmailHandler
     {
         return new SendBadgeNotificationEmailHandler(
             playerRepository: $this->playerRepository,
             getPlayerProfile: $this->getPlayerProfile,
             mailer: $this->mailer,
             translator: $this->translator,
+            playerAccountEmail: $playerAccountEmail ?? self::getContainer()->get(PlayerAccountEmail::class),
         );
     }
 }

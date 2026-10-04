@@ -129,8 +129,8 @@ final class GetAchievementPointsTest extends KernelTestCase
         $playerId = Uuid::uuid7()->toString();
 
         $this->database->executeStatement(
-            "INSERT INTO player (id, code, name, email, registered_at) VALUES (:id, :code, 'AP Tester', :email, NOW())",
-            ['id' => $playerId, 'code' => 'ap-' . substr($playerId, -8), 'email' => 'ap-' . substr($playerId, -8) . '@test.local'],
+            "INSERT INTO player (id, code, name, registered_at) VALUES (:id, :code, 'AP Tester', NOW())",
+            ['id' => $playerId, 'code' => 'ap-' . substr($playerId, -8)],
         );
 
         if ($member) {

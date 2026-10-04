@@ -4,62 +4,94 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpFoundation\UriSigner;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
+/**
+ * One-click unsubscribe from the weekly content digest - the same contract as the unread-messages digest
+ * (DigestEmailsUnsubscribeControllerTest): the signed link works without signing in, a POST switches the digest off,
+ * a GET (a mail scanner) changes nothing.
+ */
 final class UnsubscribeContentDigestControllerTest extends WebTestCase
 {
-    public function testSignedGetShowsConfirmationAndPostUnsubscribes(): void
+    private const string PLAYER = PlayerFixture::PLAYER_REGULAR;
+
+    public function testOneClickPostSwitchesOffOnlyTheContentDigest(): void
     {
         $browser = self::createClient();
-        $container = self::getContainer();
+        $url = $this->signedUrl($browser);
 
-        $url = $container->get(UrlGeneratorInterface::class)->generate(
-            'unsubscribe_content_digest',
-            ['playerId' => PlayerFixture::PLAYER_REGULAR],
-            UrlGeneratorInterface::ABSOLUTE_URL,
-        );
-        $signedUrl = $container->get(UriSigner::class)->sign($url, new \DateInterval('P30D'));
+        // What a mail client sends for List-Unsubscribe-Post (RFC 8058) - answered without a redirect
+        $browser->request('POST', $url, ['List-Unsubscribe' => 'One-Click']);
 
-        // GET never unsubscribes (link prefetchers!) — it shows the confirm button.
-        $browser->request('GET', $signedUrl);
-        self::assertResponseIsSuccessful();
+        $this->assertResponseStatusCodeSame(200);
+        self::assertSame('Unsubscribed.', $browser->getResponse()->getContent());
 
-        $frequency = $container->get(Connection::class)->fetchOne(
-            'SELECT content_digest_frequency FROM player WHERE id = :id',
-            ['id' => PlayerFixture::PLAYER_REGULAR],
-        );
-        self::assertSame('weekly', $frequency);
+        $player = $browser->getContainer()->get(PlayerRepository::class)->get(self::PLAYER);
+        self::assertSame(ContentDigestFrequency::None, $player->contentDigestFrequency);
+        self::assertTrue($player->emailNotificationsEnabled);
+        self::assertTrue($player->newsletterEnabled);
 
-        // POST (one-click / confirm button) flips the preference.
-        $browser->request('POST', $signedUrl);
-        self::assertResponseIsSuccessful();
-
-        $frequency = $container->get(Connection::class)->fetchOne(
-            'SELECT content_digest_frequency FROM player WHERE id = :id',
-            ['id' => PlayerFixture::PLAYER_REGULAR],
-        );
-        self::assertSame('none', $frequency);
+        $crawler = $browser->request('GET', $url);
+        $this->assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-testid="content-digest-unsubscribed"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="content-digest-unsubscribe-form"]'));
     }
 
-    public function testTamperedSignatureIs404(): void
+    public function testOpeningTheLinkChangesNothingAndTheButtonRedirectsBack(): void
     {
         $browser = self::createClient();
+        $url = $this->signedUrl($browser);
 
-        $browser->request('POST', '/unsubscribe/content-digest/' . PlayerFixture::PLAYER_REGULAR . '?_hash=forged');
+        // GET never unsubscribes (link prefetchers!) - it shows the confirm button
+        $crawler = $browser->request('GET', $url);
 
-        self::assertResponseStatusCodeSame(404);
+        $this->assertResponseIsSuccessful();
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+        self::assertSame(
+            ContentDigestFrequency::Weekly,
+            $browser->getContainer()->get(PlayerRepository::class)->get(self::PLAYER)->contentDigestFrequency,
+        );
+
+        // The page's button posts to the very same signed link
+        $form = $crawler->filter('[data-testid="content-digest-unsubscribe-form"]')->form();
+        $browser->submit($form);
+
+        $this->assertResponseRedirects($url, 303);
+        self::assertSame(
+            ContentDigestFrequency::None,
+            $browser->getContainer()->get(PlayerRepository::class)->get(self::PLAYER)->contentDigestFrequency,
+        );
     }
 
-    public function testUnsignedRequestIs404(): void
+    public function testAnUnsignedOrTamperedLinkIsNotFound(): void
     {
         $browser = self::createClient();
+        $url = $this->signedUrl($browser);
 
-        $browser->request('GET', '/unsubscribe/content-digest/' . PlayerFixture::PLAYER_REGULAR);
+        $browser->request('POST', '/en/weekly-digest/unsubscribe/' . self::PLAYER);
+        $this->assertResponseStatusCodeSame(404);
 
-        self::assertResponseStatusCodeSame(404);
+        // Somebody else's id with this player's signature
+        $browser->request('POST', str_replace(self::PLAYER, PlayerFixture::PLAYER_ADMIN, $url));
+        $this->assertResponseStatusCodeSame(404);
+
+        // An unread-messages digest signature does not open this page (different path, different signature)
+        $browser->request('POST', str_replace('/weekly-digest/', '/message-emails/', $url));
+        $this->assertResponseStatusCodeSame(404);
+
+        self::assertSame(
+            ContentDigestFrequency::Weekly,
+            $browser->getContainer()->get(PlayerRepository::class)->get(self::PLAYER)->contentDigestFrequency,
+        );
+    }
+
+    private function signedUrl(KernelBrowser $browser): string
+    {
+        return $browser->getContainer()->get(ContentDigestUnsubscribeUrl::class)->forPlayer(self::PLAYER, 'en');
     }
 }

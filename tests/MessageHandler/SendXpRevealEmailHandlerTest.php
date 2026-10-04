@@ -15,12 +15,12 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetXpProfile;
 use SpeedPuzzling\Web\Repository\ContentDigestLogRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\HttpFoundation\UriSigner;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class SendXpRevealEmailHandlerTest extends KernelTestCase
@@ -49,7 +49,7 @@ final class SendXpRevealEmailHandlerTest extends KernelTestCase
         $email = $mailer->sent[0];
         self::assertInstanceOf(TemplatedEmail::class, $email);
         self::assertSame('emails/xp_reveal.html.twig', $email->getHtmlTemplate());
-        self::assertSame('transactional', $email->getHeaders()->get('X-Transport')?->getBodyAsString());
+        self::assertSame('notifications', $email->getHeaders()->get('X-Transport')?->getBodyAsString());
         self::assertNotNull($email->getHeaders()->get('List-Unsubscribe'));
 
         // Second run: the idempotency log blocks a duplicate.
@@ -101,12 +101,12 @@ final class SendXpRevealEmailHandlerTest extends KernelTestCase
             contentDigestLogRepository: $container->get(ContentDigestLogRepository::class),
             mailer: $mailer,
             translator: $container->get(TranslatorInterface::class),
-            uriSigner: $container->get(UriSigner::class),
-            urlGenerator: $container->get(UrlGeneratorInterface::class),
+            contentDigestUnsubscribeUrl: $container->get(ContentDigestUnsubscribeUrl::class),
             database: $this->database,
             clock: $container->get(ClockInterface::class),
             xpFeatureGate: new XpFeatureGate(adminOnly: $flagActive),
             logger: new NullLogger(),
+            playerAccountEmail: $container->get(PlayerAccountEmail::class),
         );
     }
 }

@@ -381,6 +381,7 @@ organization_rejected:
 
 badges_earned:
     subject: "You earned new badges on MySpeedPuzzling!"
+    preheader: "Congratulations – your new achievements are waiting on your profile."
     title: "%count% new badge(s) earned!"
     intro: "Congratulations! You've reached new milestones on MySpeedPuzzling."
     cta: |
@@ -391,6 +392,8 @@ content_digest:
     weekly:
         subject: "Your week in puzzling 🧩"
         subject_quiet: "A quiet puzzle week — we saved you a seat"
+        preheader: "Your XP, solves and achievements from the past week in one short e-mail."
+        preheader_quiet: "A calm week – here is what happened around you on MySpeedPuzzling."
         greeting: "Hi %name%, here is your week in puzzling!"
         greeting_anonymous: "Hi puzzler, here is your week in puzzling!"
         xp_title: "Your XP this week"
@@ -415,6 +418,7 @@ content_digest:
 
 xp_reveal:
     subject: "Your whole puzzling journey just turned into XP ✨"
+    preheader: "Every puzzle you ever logged already counts – see your level and XP."
     greeting: "Hi %name%, something lovely happened!"
     greeting_anonymous: "Hi puzzler, something lovely happened!"
     intro: "MySpeedPuzzling now celebrates your activity with XP and levels — and every puzzle you ever logged already counts. No setup, no catch: here is what your history is worth."

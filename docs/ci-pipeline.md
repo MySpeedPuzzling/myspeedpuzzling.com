@@ -46,23 +46,29 @@ Measured side by side on the runners (throwaway workflow on `ci/static-analysis-
 
 `ghcr.io/myspeedpuzzling/web-base-php85:main` (repo `MySpeedPuzzling/Docker`,
 rebuilt daily) is the job container of the gates, the dev `web` service and the
-`FROM` of the production image. Since 2026-10-04 (Docker#2) it ships no
-compilers or -dev headers (libheif is built in a separate stage) and its layers
-are **zstd**-compressed: 640 → 536 MB on amd64, cold pull on a runner 24-33 s →
-19-22 s. Pulling needs Docker >= 23 (runners 28, lily 29).
+`FROM` of the production image. Since 2026-10-04 it ships no cmake or -dev
+headers (libheif is built in a separate stage, Docker#2), no wkhtmltopdf,
+inkscape or librsvg2-bin (Docker#3), and its layers are **zstd**-compressed:
+amd64 640 → 348 MB, cold pull on a runner 24-33 s → 11 s. Pulling needs
+Docker >= 23 (runners 28, lily 29).
 
-Every runtime tool is kept on purpose - inkscape is ImageMagick's SVG delegate
-(SVG avatar uploads), wkhtmltopdf / librsvg2-bin are used by hand for print
-PDFs (QR codes, vouchers). A change to the base image is validated the way
-myspeedpuzzling.com#235 did it: build the Docker repo branch as its own tag
-(`workflow_dispatch` on the branch), run the app CI inside it, and compare every
-image generator, the upload pipeline and the PDF tools pixel by pixel against
-the current image.
+Why the tools could go: the app never shells out; QR codes and vouchers are PNG
+endpoints (PDFs for print are made from them outside the app); inkscape was only
+ImageMagick's `svg:decode` delegate, and no upload accepts SVG
+(`EditProfileFormType` was the last one) and no stored image is one. Every text
+the app draws uses its bundled TTF files (`assets/fonts`), never system fonts.
+
+A change to the base image is validated the way myspeedpuzzling.com#235 and
+#237 did it: build the Docker repo branch as its own tag (`workflow_dispatch` on
+the branch), run the app CI inside it, and compare every image generator and the
+upload pipeline pixel by pixel against the current image (temporary
+`ImageParityDumpTest` + `base-image-check.yml`, recoverable from those PRs).
 
 Rollback: `docker buildx imagetools create -t ghcr.io/myspeedpuzzling/web-base-php85:main
 ghcr.io/myspeedpuzzling/web-base-php85@<previous digest>`, then push to main
-(the next build uses it). The digest before Docker#2 was
-`sha256:75d4a8165fdea5ba821601b427f68e9ef0a336f32001392d4793589c31b4e5a6`.
+(the next build uses it). Digests: before Docker#2
+`sha256:75d4a8165fdea5ba821601b427f68e9ef0a336f32001392d4793589c31b4e5a6`,
+before Docker#3 `sha256:3ebd588bef8eb04f1c483351623ec67267f739d31f231c7d9e7850d64134f511`.
 
 ## Carried build assets
 

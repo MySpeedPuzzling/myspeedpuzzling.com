@@ -273,10 +273,10 @@ final class PuzzleDetailControllerTest extends WebTestCase
         }
     }
 
-    public function testSummaryShowsAlternativeNameAndEveryEan(): void
+    public function testSummaryShowsEveryOtherNameAndEveryEan(): void
     {
         $browser = self::createClient();
-        // "Also known as" is the one other name of old until the names display ships: the Czech one, else the first
+        // "Also known as": every other name with its language, on an English page in their stored order
         self::getContainer()->get(Connection::class)->executeStatement(
             "UPDATE puzzle SET alternative_names = CAST(:alternativeNames AS jsonb), ean = '4005556175895, 4005555008385' WHERE id = :puzzleId",
             [
@@ -291,7 +291,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertSame([
             'EAN' => '4005556175895 / 4005555008385',
             'Product number' => 'RB-500-001',
-            'Also known as' => 'Bavorská romance',
+            'Also known as' => 'Bayerische Romanze · German Bavorská romance · Czech',
             'Used at' => 'WJPC 2024 Czech National Championship 2024',
         ], self::summaryFacts($crawler->filter('section.puzzle-summary')));
 
@@ -390,7 +390,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
 
         $this->assertResponseIsSuccessful();
-        self::assertSame('Ravensburger Puzzle 1 – 500 Piece Puzzle – MySpeedPuzzling', $crawler->filter('title')->text());
+        self::assertSame('Ravensburger Puzzle 1 – 500 Piece Puzzle', $crawler->filter('title')->text());
 
         $description = 'Ravensburger Puzzle 1 (500 pieces): median solo time 1h 2min, fastest 27min 46s from 12 solves. Compare your time on MySpeedPuzzling.';
         self::assertSame($description, $this->metaDescription($crawler));
@@ -494,7 +494,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
             static fn (array $row): array => array_map(self::normalizedSpaces(...), $row),
             self::summaryTimes($crawler->filter('section.puzzle-summary')),
         ));
-        self::assertSame('Ravensburger Puzzle 11 – puzzle 300 dílků – MySpeedPuzzling', $crawler->filter('title')->text());
+        self::assertSame('Ravensburger Puzzle 11 – puzzle 300 dílků', $crawler->filter('title')->text());
 
         // PUZZLE_1000_01: used at one competition
         $crawler = $browser->request('GET', '/puzzle/' . PuzzleFixture::PUZZLE_1000_01);

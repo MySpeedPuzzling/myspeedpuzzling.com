@@ -40,10 +40,12 @@
                 {% endif %}
                 <div class="col">
                     <h3 class="card-title">{{ tracked_puzzle.puzzleName }}</h3>
-                    {% set alternative_name = tracked_puzzle.puzzleAlternativeNames.legacyAlternativeName() %}
-                    {% if alternative_name %}
-                        <p class="text-muted mb-2">{{ alternative_name }}</p>
-                    {% endif %}
+                    {{ include('puzzle/_name.html.twig', {
+                        name: tracked_puzzle.puzzleName,
+                        alternative_names: tracked_puzzle.puzzleAlternativeNames,
+                        tag: 'p',
+                        class: 'fs-base mt-n2 mb-2',
+                    }, with_context = false) }}
                     <p class="mb-2">
                         <strong>{{ 'added_tracking_recap.manufacturer'|trans }}:</strong> {{ tracked_puzzle.manufacturerName }}<br>
                         <strong>{{ 'added_tracking_recap.pieces'|trans }}:</strong> {{ tracked_puzzle.piecesCount }}

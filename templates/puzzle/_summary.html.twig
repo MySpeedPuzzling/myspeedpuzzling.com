@@ -34,9 +34,10 @@
 {% if summary_product_number %}
     {% set facts = facts|merge([{label: 'puzzle_detail.summary.facts.product_number'|trans, html: summary_product_number|e}]) %}
 {% endif %}
-{% set alternative_name = puzzle.puzzleAlternativeNames.legacyAlternativeName() %}
-{% if alternative_name and alternative_name != puzzle.puzzleName %}
-    {% set facts = facts|merge([{label: 'puzzle_detail.summary.facts.also_known_as'|trans, html: alternative_name|e}]) %}
+{% if not puzzle.puzzleAlternativeNames.isEmpty() %}
+    {# Every other name with its language - the local copies of this page differ by these names, not by their chrome #}
+    {% set other_names_html %}{{ include('puzzle/_other_names.html.twig', {alternative_names: puzzle.puzzleAlternativeNames}, with_context = false) }}{% endset %}
+    {% set facts = facts|merge([{label: 'puzzle_detail.summary.facts.also_known_as'|trans, html: other_names_html}]) %}
 {% endif %}
 {% if summary.usedAt is not empty %}
     {# The same badges as the competition tags in the header's Details #}

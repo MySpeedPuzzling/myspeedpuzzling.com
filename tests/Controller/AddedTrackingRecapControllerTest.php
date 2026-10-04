@@ -38,9 +38,10 @@ final class AddedTrackingRecapControllerTest extends WebTestCase
     }
 
     /**
-     * Until the names display ships, the recap shows the one other name of old: the Czech one, not simply the first
+     * The name in the viewer's language under the main title: PLAYER_REGULAR is from Czechia, so on an English page
+     * the Czech one - and on a German page the German one
      */
-    public function testShowsTheCzechOtherName(): void
+    public function testShowsTheNameInTheViewersLanguage(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
@@ -50,6 +51,7 @@ final class AddedTrackingRecapControllerTest extends WebTestCase
         self::assertNotNull($puzzle);
         $puzzle->changeNames($puzzle->name, $puzzle->nameLanguage, PuzzleNames::fromArray([
             ['name' => 'Puzzle One', 'language' => null],
+            ['name' => 'Bayerische Romanze', 'language' => 'de'],
             ['name' => 'Hádanka jedna', 'language' => 'cs'],
         ]), new DateTimeImmutable());
         $entityManager->flush();
@@ -58,7 +60,12 @@ final class AddedTrackingRecapControllerTest extends WebTestCase
         $browser->request('GET', '/en/tracking-added/' . PuzzleSolvingTimeFixture::TIME_01);
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextSame('h3.card-title + p', 'Hádanka jedna');
+        $this->assertSelectorTextSame('h3.card-title + p.puzzle-name-local[lang="cs"]', 'Hádanka jedna');
+
+        $browser->request('GET', '/de/tracking-hinzugefuegt/' . PuzzleSolvingTimeFixture::TIME_01);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame('h3.card-title + p.puzzle-name-local[lang="de"]', 'Bayerische Romanze');
     }
 
     public function testCollectionCtaIsShownForPuzzleNotInCollection(): void

@@ -6,9 +6,15 @@
     ? 'puzzle_detail.meta.ean'|trans({'%ean%': puzzle.puzzleEan|split(',')|first|trim})
     : ''
 %}
+{# What crawlers read names the puzzle in the page language too (docs/features/puzzle-names/README.md "SEO"): the
+   name in the page language next to the main title - never the signed-in viewer's country language, every guest of
+   one URL gets the same HTML #}
+{% set page_local_name = puzzle_page_local_name(puzzle.puzzleAlternativeNames, puzzle.puzzleName) %}
 {% set puzzle_meta_parameters = {
     '%brand%': puzzle.manufacturerName,
-    '%name%': puzzle.puzzleName,
+    '%name%': page_local_name is not null
+        ? 'puzzle_detail.meta.name_with_local_name'|trans({'%name%': puzzle.puzzleName, '%local_name%': page_local_name.name})
+        : puzzle.puzzleName,
     '%pieces%': puzzle.piecesCount,
     '%ean%': puzzle_meta_ean,
 } %}
@@ -73,7 +79,15 @@
     url: null,
 }]) %}
 
-{% block title %}{{ 'puzzle_detail.meta.title'|trans({ '%brand%': puzzle.manufacturerName, '%name%': puzzle.puzzleName, '%pieces%': puzzle.piecesCount }) }}{% endblock %}
+{% block title %}
+    {%- if page_local_name is not null -%}
+        {{ 'puzzle_detail.meta.title_with_local_name'|trans({ '%brand%': puzzle.manufacturerName, '%name%': puzzle.puzzleName, '%local_name%': page_local_name.name, '%pieces%': puzzle.piecesCount }) }}
+    {%- else -%}
+        {{ 'puzzle_detail.meta.title'|trans({ '%brand%': puzzle.manufacturerName, '%name%': puzzle.puzzleName, '%pieces%': puzzle.piecesCount }) }}
+    {%- endif -%}
+{% endblock %}
+{# Google shows the site name on its own - the title is all puzzle (and long with a second name) #}
+{% block title_suffix %}{% endblock %}
 {% block meta_description %}{{ puzzle_meta_description }}{% endblock %}
 {# puzzle_large: 1200 px JPEG with metadata stripped - link previews show a large card, and it is never
    the uploaded original (older uploads may still carry EXIF/GPS) #}
@@ -95,6 +109,9 @@
         "@context": "https://schema.org",
         "@type": "Product",
         "name": {{ puzzle.puzzleName|json_encode|raw }},
+        {% if not puzzle.puzzleAlternativeNames.isEmpty() %}
+        "alternateName": {{ puzzle.puzzleAlternativeNames.all()|map(other => other.name)|json_encode|raw }},
+        {% endif %}
         "brand": {
             "@type": "Brand",
             "name": {{ puzzle.manufacturerName|json_encode|raw }}
@@ -102,9 +119,14 @@
         {% if puzzle.puzzleImage is not null and not is_image_hidden %}
         "image": {{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_large'))|json_encode|raw }},
         {% endif %}
-        {# The codes stay out while the image is embargoed, as everywhere else on the page #}
-        {% if puzzle.puzzleEan is not null and puzzle.puzzleEan matches '/^\\d{13}$/' and not is_image_hidden %}
-        "gtin13": {{ puzzle.puzzleEan|json_encode|raw }},
+        {# The codes stay out while the image is embargoed, as everywhere else on the page. Only barcodes with a right
+           check digit, each one (EanList::gtins()) #}
+        {% if not is_image_hidden %}
+            {% for gtin_property, gtins in puzzle_gtins(puzzle.puzzleEan) %}
+                {% if gtins is not empty %}
+        "{{ gtin_property }}": {{ (gtins|length == 1 ? gtins|first : gtins)|json_encode|raw }},
+                {% endif %}
+            {% endfor %}
         {% endif %}
         {% if puzzle.puzzleIdentificationNumber is not null and not is_image_hidden %}
         "sku": {{ puzzle.puzzleIdentificationNumber|json_encode|raw }},
@@ -219,7 +241,12 @@
                        the same page as the breadcrumb) #}
                     <div class="puzzle-head-titles">
                         <h1 class="puzzle-head-title">
-                            <span class="puzzle-head-name">{{ puzzle.puzzleName }}</span>
+                            <span class="puzzle-head-name"{% if puzzle.nameLanguage is not null %} lang="{{ puzzle.nameLanguage }}"{% endif %}>{{ puzzle.puzzleName }}</span>
+                            {{ include('puzzle/_name.html.twig', {
+                                name: puzzle.puzzleName,
+                                alternative_names: puzzle.puzzleAlternativeNames,
+                                class: 'puzzle-head-local-name',
+                            }, with_context = false) }}
                             <span class="puzzle-head-pieces">
                                 {%- if pieces_page is not null -%}
                                     <a class="text-reset text-decoration-none" href="{{ pieces_page.url }}" title="{{ pieces_page.name }}">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</a>
@@ -320,6 +347,7 @@
 
             {# Like the EAN: a secret puzzle's product number would give it away while its image is embargoed #}
             {% set has_codes = not is_image_hidden and (puzzle.puzzleIdentificationNumber is not null or puzzle.puzzleEan) %}
+            {% set has_other_names = not puzzle.puzzleAlternativeNames.isEmpty() %}
             {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
             <div class="puzzle-head-toggles" data-nosnippet>
                 <button class="puzzle-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#puzzleInsights" aria-expanded="false" aria-controls="puzzleInsights">
@@ -328,7 +356,7 @@
                     {% if not is_member %}<i class="ci-locked" aria-hidden="true"></i>{% endif %}
                     <i class="bi bi-chevron-down puzzle-toggle-chevron" aria-hidden="true"></i>
                 </button>
-                {% if has_codes or tags %}
+                {% if has_codes or tags or has_other_names %}
                     <button class="puzzle-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#puzzleDetails" aria-expanded="false" aria-controls="puzzleDetails">
                         {{ 'puzzle_detail.details'|trans }}
                         <i class="bi bi-chevron-down puzzle-toggle-chevron" aria-hidden="true"></i>
@@ -336,9 +364,15 @@
                 {% endif %}
             </div>
 
-            {% if has_codes or tags %}
+            {% if has_codes or tags or has_other_names %}
                 <div class="collapse" id="puzzleDetails">
                     <div class="puzzle-details-body">
+                        {% if has_other_names %}
+                            <div class="puzzle-details-names small mb-1">
+                                <span class="d-block text-muted">{{ 'puzzle_detail.summary.facts.also_known_as'|trans }}</span>
+                                {{ include('puzzle/_other_names.html.twig', {alternative_names: puzzle.puzzleAlternativeNames}, with_context = false) }}
+                            </div>
+                        {% endif %}
                         {% if not is_image_hidden and puzzle.puzzleIdentificationNumber is not null %}
                             <div><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small></div>
                         {% endif %}

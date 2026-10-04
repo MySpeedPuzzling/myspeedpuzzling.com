@@ -4,6 +4,13 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Puzzle names on pages and in search (`docs/features/puzzle-names/README.md`, phase 2)
+
+- [ ] 6-8 weeks after phase 2 ships: Search Console index coverage per language (`/puzzle/…` cs, `/de/puzzle/…`,
+      `/fr/…`, `/es/…`, `/ja/…`) - do the locale copies of puzzles with a name in that language leave "crawled -
+      currently not indexed" more than the others? Compare with the numbers before the deploy
+      (`docs/features/seo/research-2026-09.md` §4.1, §9).
+
 ## EAN codes in the catalogue (2026-10-04)
 
 - [x] "Suggest a change" refuses codes that are not EAN/UPC codes, each one of a comma-separated list

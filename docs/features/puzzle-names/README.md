@@ -243,3 +243,28 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   (nothing else read those two there); lend/borrow lists have no filter and render no `data-search`.
 - **Phase 1b - the wishlist list query** reads the two key columns and is ~4 % slower on the heaviest wishlist
   (655 items, 9.7 → 10.1 ms, same plan); accepted - folding the names per item in PHP would cost far more.
+- **Phase 2 - two languages, one service** (`PuzzleNameLanguage`): `forViewer()` = the page language, on `/en/` the
+  signed-in player's country language (`Value\CountryLanguage`, only countries with one clear language; English and
+  multilingual countries have none); `forPage()` = the page language only, for `<title>`, meta description and
+  JSON-LD, so every guest of one URL gets the same HTML. The profile is the one `UserLocaleListener` loaded already.
+- **Phase 2 - Norwegian:** `LanguageTag::base()` reads `no` as `nb` (Norway maps to `nb`), the stored tag stays as
+  given (`normalize('no')` = `no`), so "Also known as" still names what the moderator picked.
+- **Phase 2 - the partial `puzzle/_name.html.twig` renders only the lines under the main title** (second line,
+  "Matched: …"); every surface keeps its own markup for the main title. Second line = `PuzzleNames::shownUnder()`
+  (shownFor, unless it folds equal to the main title). Lines are `span` by default (valid inside links and buttons);
+  multiscan rows truncate them like the title. "Matched" highlights the typed words like the main title does.
+- **Phase 2 - puzzle page:** the second line sits inside the H1, right under the main title span (the H1 stays
+  inline with "500 pieces · Brand" after it), so a Czech page's H1 holds the Czech name too. "Also known as" lists
+  every name as "name · language" (`LanguageTag::displayName()`: Symfony Intl, a tag Intl has no locale for = base
+  language + region/script/variant in brackets; untagged = "language not set" with `lang=""`) in the Details block -
+  for everyone, like the codes there - and in the guests' "About this puzzle". The ` – MySpeedPuzzling` suffix is a
+  `title_suffix` block in `base.html.twig` (`og:title` / `twitter:title` reuse it); only the puzzle page empties it.
+- **Phase 2 - meta description:** no new variants - `%name%` becomes `puzzle_detail.meta.name_with_local_name`
+  ("Main (Local)", Japanese with full-width brackets), so all four sentences and the Product description get it.
+- **Phase 2 - GTINs** (`EanList::gtins()`): every stored code with a right check digit, EAN-13 / UPC-A as `gtin13`
+  (13 digits, a UPC-A with its preceding zero as schema.org's `gtin13` says), EAN-8 as `gtin8`; one value as a string,
+  several as an array. Only 7-8 and 11-13 significant digits: the field also holds ISBN-like and catalogue numbers
+  (171 ten-digit values on production), and padding those would pass every tenth by chance.
+- **Phase 2 - picker label:** `main <small lang="xx">(local)</small>` in every locale from the viewer language
+  (replaces the Czech pages' rule that put the other name first). Puzzles without a name in that language cost no
+  fold, so Ravensburger's 6,000 options stay as cheap as before.

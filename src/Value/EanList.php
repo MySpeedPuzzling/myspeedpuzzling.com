@@ -130,6 +130,40 @@ readonly final class EanList
         return ['numbers' => $numbers, 'other' => $other];
     }
 
+    /**
+     * The valid barcodes of a stored EAN value as GTINs for structured data (schema.org `gtin8` / `gtin13`): only
+     * codes whose check digit is right, junk and brand codes left out. Stored without leading zeros, so they are
+     * padded back: a UPC-A becomes its GTIN-13 with a preceding zero, as schema.org's `gtin13` asks for. Only numbers
+     * of an EAN-8 (7-8 digits) or an EAN-13 / UPC-A (11-13 digits) length count: the field also holds ISBN-like and
+     * catalogue numbers, and padding those would pass every tenth by chance.
+     *
+     * @return array{gtin8: list<string>, gtin13: list<string>}
+     */
+    public static function gtins(null|string $value): array
+    {
+        $gtins = ['gtin8' => [], 'gtin13' => []];
+
+        foreach (self::searchTokens($value)['numbers'] as $number) {
+            [$property, $length] = match (strlen($number)) {
+                7, 8 => ['gtin8', 8],
+                11, 12, 13 => ['gtin13', 13],
+                default => [null, 0],
+            };
+
+            if ($property === null) {
+                continue;
+            }
+
+            $ean = Ean::tryFrom(str_pad($number, $length, '0', STR_PAD_LEFT));
+
+            if ($ean !== null && in_array($ean->digits, $gtins[$property], true) === false) {
+                $gtins[$property][] = $ean->digits;
+            }
+        }
+
+        return $gtins;
+    }
+
     private static function key(string $code): string
     {
         if (preg_match('/^[\d\s-]+$/', $code) !== 1) {

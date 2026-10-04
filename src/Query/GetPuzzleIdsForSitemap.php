@@ -36,7 +36,8 @@ SQL;
 
     /**
      * `lastmod` is the day the puzzle page last changed in a way worth recrawling: the puzzle was
-     * added, approved, or somebody logged a time on it (the page shows every time). The page of
+     * added, approved, its names changed (title, "Also known as" - names_changed_at), or somebody
+     * logged a time on it (the page shows every time). The page of
      * puzzles is cut first and only its rows are aggregated - one scan of the solving times,
      * 0.1-0.45 s per sitemap file (1 666 puzzles, or 20 000 for images) on the production copy,
      * whatever the offset.
@@ -48,9 +49,9 @@ SQL;
         $query = <<<SQL
 SELECT
     page.id,
-    to_char(GREATEST(page.added_at, page.approved_at, MAX(puzzle_solving_time.tracked_at)), 'YYYY-MM-DD') AS lastmod
+    to_char(GREATEST(page.added_at, page.approved_at, page.names_changed_at, MAX(puzzle_solving_time.tracked_at)), 'YYYY-MM-DD') AS lastmod
 FROM (
-    SELECT puzzle.id, puzzle.added_at, puzzle.approved_at
+    SELECT puzzle.id, puzzle.added_at, puzzle.approved_at, puzzle.names_changed_at
     FROM puzzle
     WHERE puzzle.approved = true
         AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now)
@@ -59,7 +60,7 @@ FROM (
     LIMIT :limit OFFSET :offset
 ) page
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = page.id
-GROUP BY page.id, page.added_at, page.approved_at
+GROUP BY page.id, page.added_at, page.approved_at, page.names_changed_at
 ORDER BY page.id
 SQL;
 
@@ -105,10 +106,10 @@ SQL;
         $query = <<<SQL
 SELECT
     page.id,
-    to_char(GREATEST(page.added_at, page.approved_at, MAX(puzzle_solving_time.tracked_at)), 'YYYY-MM-DD') AS lastmod,
+    to_char(GREATEST(page.added_at, page.approved_at, page.names_changed_at, MAX(puzzle_solving_time.tracked_at)), 'YYYY-MM-DD') AS lastmod,
     page.image
 FROM (
-    SELECT puzzle.id, puzzle.added_at, puzzle.approved_at, puzzle.image
+    SELECT puzzle.id, puzzle.added_at, puzzle.approved_at, puzzle.names_changed_at, puzzle.image
     FROM puzzle
     WHERE puzzle.approved = true
         AND puzzle.image IS NOT NULL
@@ -118,7 +119,7 @@ FROM (
     LIMIT :limit OFFSET :offset
 ) page
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = page.id
-GROUP BY page.id, page.added_at, page.approved_at, page.image
+GROUP BY page.id, page.added_at, page.approved_at, page.names_changed_at, page.image
 ORDER BY page.id
 SQL;
 

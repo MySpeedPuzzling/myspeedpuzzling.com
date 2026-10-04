@@ -90,7 +90,14 @@
                                         #}
                                     </a>
 
-                                    <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                                    <br>
+                                    {{ include('puzzle/_name.html.twig', {
+                                        name: puzzle.puzzleName,
+                                        alternative_names: puzzle.puzzleAlternativeNames,
+                                        query: this.query,
+                                        class: 'mb-1',
+                                    }, with_context = false) }}
+                                    <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
                                 </div>
 
                                 <div class="fs-sm manufacturer-name">

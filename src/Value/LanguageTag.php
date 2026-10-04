@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
+use Symfony\Component\Intl\Countries;
 use Symfony\Component\Intl\Languages;
+use Symfony\Component\Intl\Locales;
+use Symfony\Component\Intl\Scripts;
 
 /**
  * The language of a puzzle name as a BCP 47 tag: `cs`, `de`, `pt-BR`, `zh-Hant`.
@@ -47,10 +50,42 @@ readonly final class LanguageTag
     }
 
     /**
-     * The base language of a tag, lower case: `pt` for `pt-BR`.
+     * The base language of a tag, lower case: `pt` for `pt-BR`. Norwegian `no` (the macrolanguage) is Bokmål `nb` -
+     * what Norway's boxes print and the language of a player from Norway (CountryLanguage), so a name tagged either
+     * way is shown to them. The tag itself stays as it was given.
      */
     public static function base(string $tag): string
     {
-        return strtolower(explode('-', str_replace('_', '-', trim($tag)))[0]);
+        $base = strtolower(explode('-', str_replace('_', '-', trim($tag)))[0]);
+
+        return $base === 'no' ? 'nb' : $base;
+    }
+
+    /**
+     * The tag's language named in another language by Symfony Intl: "Czech", "čeština" in Czech, "Portuguese (Brazil)"
+     * for `pt-BR`. A tag Intl knows no name for as a whole gets its base language and the rest in brackets.
+     */
+    public static function displayName(string $tag, string $displayLocale): string
+    {
+        $subtags = explode('-', str_replace('_', '-', trim($tag)));
+        $base = strtolower(array_shift($subtags));
+        $locale = implode('_', [$base, ...$subtags]);
+
+        if ($subtags !== [] && Locales::exists($locale)) {
+            return Locales::getName($locale, $displayLocale);
+        }
+
+        $name = Languages::exists($base) ? Languages::getName($base, $displayLocale) : $base;
+        $details = [];
+
+        foreach ($subtags as $subtag) {
+            $details[] = match (true) {
+                strlen($subtag) === 4 && Scripts::exists(ucfirst(strtolower($subtag))) => Scripts::getName(ucfirst(strtolower($subtag)), $displayLocale),
+                strlen($subtag) === 2 && Countries::exists(strtoupper($subtag)) => Countries::getName(strtoupper($subtag), $displayLocale),
+                default => $subtag,
+            };
+        }
+
+        return $details === [] ? $name : sprintf('%s (%s)', $name, implode(', ', $details));
     }
 }

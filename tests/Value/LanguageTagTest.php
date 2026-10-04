@@ -46,4 +46,37 @@ final class LanguageTagTest extends TestCase
         self::assertSame('zh', LanguageTag::base('ZH_Hant'));
         self::assertSame('cs', LanguageTag::base(' cs '));
     }
+
+    /**
+     * Norway's boxes print Bokmål and a player from Norway reads `nb` (CountryLanguage): a name tagged with the
+     * macrolanguage `no` is the same language for showing it - and stays tagged as it was
+     */
+    public function testNorwegianIsBokmal(): void
+    {
+        self::assertSame('nb', LanguageTag::base('no'));
+        self::assertSame('nb', LanguageTag::base('NO-no'));
+        self::assertSame('nb', LanguageTag::base('nb'));
+        self::assertSame('nn', LanguageTag::base('nn'));
+        self::assertSame('no', LanguageTag::normalize('no'));
+    }
+
+    #[DataProvider('displayNames')]
+    public function testDisplayName(string $tag, string $locale, string $expected): void
+    {
+        self::assertSame($expected, LanguageTag::displayName($tag, $locale));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function displayNames(): iterable
+    {
+        yield 'base language' => ['cs', 'en', 'Czech'];
+        yield 'in the page language' => ['cs', 'cs', 'čeština'];
+        yield 'in Japanese' => ['de', 'ja', 'ドイツ語'];
+        yield 'a locale Intl knows' => ['pt-BR', 'en', 'Portuguese (Brazil)'];
+        yield 'a script' => ['zh-Hant', 'en', 'Chinese (Traditional)'];
+        yield 'a region Intl has no locale for' => ['de-CZ', 'en', 'German (Czechia)'];
+        yield 'a variant' => ['de-CH-1996', 'en', 'German (Switzerland, 1996)'];
+    }
 }

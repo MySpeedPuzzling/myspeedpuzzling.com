@@ -37,6 +37,7 @@ readonly final class PuzzleChoicesBuilder
     public function __construct(
         private ImageThumbnailTwigExtension $imageThumbnail,
         private TranslatorInterface $translator,
+        private PuzzleNameLanguage $puzzleNameLanguage,
     ) {
     }
 
@@ -50,6 +51,7 @@ readonly final class PuzzleChoicesBuilder
         // Translated once and split around the number: the number can be highlighted as a match, the label not.
         // The label is translation markup (&nbsp;), never player input.
         [$piecesLabelBefore, $piecesLabelAfter] = explode('%count%', $this->translator->trans('pieces_count', ['%count%' => '%count%'], locale: $locale), 2) + ['', ''];
+        $viewerLanguage = $this->puzzleNameLanguage->forViewer();
         $options = [];
 
         foreach ($puzzles as $puzzle) {
@@ -60,9 +62,11 @@ readonly final class PuzzleChoicesBuilder
                 : '/img/placeholder-puzzle.jpg');
             $name = self::escape($puzzle->puzzleName);
 
-            // Czech pages lead with the alternative name
-            if ($locale === 'cs' && $alternativeName !== null) {
-                $name = self::escape($alternativeName) . ' <small>(' . $name . ')</small>';
+            // The main title first, the name in the viewer's language after it, as in every list
+            $localName = $puzzle->puzzleAlternativeNames->shownUnder($puzzle->puzzleName, $viewerLanguage);
+
+            if ($localName !== null) {
+                $name .= ' <small lang="' . self::escape((string) $localName->language) . '">(' . self::escape($localName->name) . ')</small>';
             }
 
             $identificationNumber = self::escape($puzzle->puzzleIdentificationNumber ?? '');

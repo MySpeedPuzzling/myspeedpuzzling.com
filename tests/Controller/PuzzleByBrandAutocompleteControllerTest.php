@@ -78,7 +78,7 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
             ],
         );
 
-        // Czech pages lead with the alternative name - both names end up in the option there
+        // Czech pages add the Czech name after the main title - both names end up in the option there
         foreach (['/en/', '/cs/'] as $prefix) {
             $browser->request('GET', $prefix . 'puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
             $this->assertResponseIsSuccessful();
@@ -100,9 +100,36 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
             self::assertSame('<img src=x onerror=alert(1)> <b onmouseover=alert(2)>Kočky</b> <script>alert(3)</script> "><svg onload=alert(4)> 500', $option['search']);
         }
 
-        self::assertStringContainsString('&lt;b onmouseover=alert(2)&gt;Kočky&lt;/b&gt; <small>(&lt;img src=x onerror=alert(1)&gt;)</small>', $option['text']);
+        self::assertStringContainsString('&lt;img src=x onerror=alert(1)&gt; <small lang="cs">(&lt;b onmouseover=alert(2)&gt;Kočky&lt;/b&gt;)</small>', $option['text']);
         // "pieces" in the page language
         self::assertStringContainsString('500<span class="no-highlight">&nbsp;dílků</span>', $option['text']);
+    }
+
+    /**
+     * The main title first in every language, the viewer's language after it - as in every list. PUZZLE_1000_02 is
+     * Trefl "Puzzle 7", also "Kouzelná zahrada" (cs) and "Zauberhafter Garten" (de).
+     */
+    public function testLabelIsTheMainTitleWithTheNameInTheViewersLanguage(): void
+    {
+        $browser = self::createClient();
+        $label = static function (string $prefix) use ($browser): string {
+            $browser->request('GET', $prefix . 'puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_TREFL);
+            self::assertResponseIsSuccessful();
+
+            return self::option($browser, PuzzleFixture::PUZZLE_1000_02)['text'];
+        };
+
+        self::assertStringContainsString('<span class="h6">Puzzle 7</span>', $label('/en/'), 'an English page for a guest');
+        self::assertStringContainsString('<span class="h6">Puzzle 7 <small lang="cs">(Kouzelná zahrada)</small></span>', $label('/cs/'));
+        self::assertStringContainsString('<span class="h6">Puzzle 7 <small lang="de">(Zauberhafter Garten)</small></span>', $label('/de/'));
+
+        // A Czech player on an English page reads the Czech box
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        self::assertStringContainsString('<span class="h6">Puzzle 7 <small lang="cs">(Kouzelná zahrada)</small></span>', $label('/en/'));
+
+        // A player from the United Kingdom has the English main title only
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertStringContainsString('<span class="h6">Puzzle 7</span>', $label('/en/'));
     }
 
     public function testSecretPuzzleIsNotListed(): void

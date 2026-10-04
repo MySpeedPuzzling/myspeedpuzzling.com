@@ -114,6 +114,68 @@ readonly final class PuzzleNames implements Countable
     }
 
     /**
+     * The second name line under a main title (null language = none): shownFor(), unless it folds equal to the main
+     * title - the same words twice say nothing.
+     */
+    public function shownUnder(string $mainTitle, null|string $language): null|PuzzleName
+    {
+        $shown = $language !== null ? $this->shownFor($language) : null;
+
+        if ($shown === null || SearchText::fold($shown->name) === SearchText::fold($mainTitle)) {
+            return null;
+        }
+
+        return $shown;
+    }
+
+    /**
+     * Every name in the order the puzzle page lists them ("Also known as"): the ones in $language first, then the
+     * other tagged ones, then the ones without a language - each group in its stored order.
+     *
+     * @return list<PuzzleName>
+     */
+    public function inListingOrder(null|string $language): array
+    {
+        $base = $language !== null ? LanguageTag::base($language) : null;
+        $groups = [[], [], []];
+
+        foreach ($this->names as $name) {
+            $group = match (true) {
+                $name->language === null => 2,
+                $base !== null && LanguageTag::base($name->language) === $base => 0,
+                default => 1,
+            };
+            $groups[$group][] = $name;
+        }
+
+        return [...$groups[0], ...$groups[1], ...$groups[2]];
+    }
+
+    /**
+     * The name a search found the puzzle by, when the shown lines do not say it ("Matched: …" under a search result):
+     * the first name holding the typed text (folded, as the search compares) - null when nothing was typed, or when
+     * the main title or the shown name holds it already. A match on a code is no name match.
+     */
+    public function matching(PuzzleSearchQuery $query, string $mainTitle, null|PuzzleName $shown): null|PuzzleName
+    {
+        if ($query->isEmpty() || str_contains(SearchText::fold($mainTitle), $query->folded)) {
+            return null;
+        }
+
+        if ($shown !== null && str_contains(SearchText::fold($shown->name), $query->folded)) {
+            return null;
+        }
+
+        foreach ($this->names as $name) {
+            if (str_contains(SearchText::fold($name->name), $query->folded)) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * What the single alternative name of old carries (the `alternative_name` column until it is dropped, API v1
      * `alternative_name`): the first Czech name, else the first name.
      */

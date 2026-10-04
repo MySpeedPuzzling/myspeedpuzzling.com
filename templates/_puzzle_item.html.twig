@@ -30,6 +30,12 @@
                             {{ highlight(puzzle.puzzleName, search) }}
                         </a>
                         <br>
+                        {{ include('puzzle/_name.html.twig', {
+                            name: puzzle.puzzleName,
+                            alternative_names: puzzle.puzzleAlternativeNames,
+                            query: search,
+                            class: 'mb-1',
+                        }, with_context = false) }}
                         <span class="d-inline-flex align-items-center gap-1">
                             {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
                             {% if logged_user.profile is not null and logged_user.profile.activeMembership %}

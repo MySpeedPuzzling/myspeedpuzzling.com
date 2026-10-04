@@ -9,8 +9,14 @@ that would otherwise be forgotten. Newest section on top.
 - [x] "Suggest a change" refuses codes that are not EAN/UPC codes, each one of a comma-separated list
       (`Value\EanList`); codes the puzzle already carries pass, so legacy junk never blocks another change.
       Ravensburger `4005555…`/`4005556…` typed without its two zeros (`45555…`) is refused with the full code suggested.
-- [ ] Same check on the add-puzzle form (10 puzzles hold a `45555…` code, the newest added 2026-10-03).
-- [ ] Fix the stored `45555…` / `045556…` codes to the full `400555…` (9 of the 11 lack the full code, so a box scan misses them).
+- [x] Same check on the add-puzzle form, for a new puzzle only, with a Clear button; the photo stays (2026-10-04).
+- [x] 7 of the 11 stored `45555…` codes: change proposals filed via the internal API (`puzzle-change-proposal` skill,
+      `01a106fe-…`, 2026-10-04) - waiting for review.
+- [ ] The other 4 need a person: *Library at St. Florian* (Barb's proposal `019e9cfd-de9e-7176-a416-f46f467ad92a` pending
+      since June - fix the EAN while deciding it); *Star wars the man* (pending merge into The Mandalorian and Grogu
+      `019ea35e-e36f-7026-be51-c6ce7b24739e` - drop `45555018124` from the merged EAN); *Have dog, will travel #1* (merge
+      `01a08232-606a-7187-884c-36dc111b9382` misses a third record `019fc37a-0a6c-722b-b07c-344caf3a7d72` holding the
+      full code); *Extinct Giants* (`045556130443` - its full code is on *By the River* `01934f99-de98-71e9-91e4-232499596903`).
 - [x] The 12 pending change requests that changed only the EAN, to an invalid code, rejected via the internal API
       ("The proposed EAN is not valid EAN barcode", 2026-10-04).
 - [ ] 4 pending ones carry an invalid code but change other fields too - manual review

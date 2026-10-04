@@ -1,0 +1,179 @@
+# TEMPORARY (never merged): validates a candidate base image against the current
+# one on amd64 - pixel parity of every image generator, the upload pipeline and
+# the PDF tools, the tool inventory, and the production image built on top.
+
+name: Base image check
+
+on: pull_request
+
+permissions:
+    contents: read
+    packages: read
+
+env:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/speedpuzzling_test?serverVersion=16&charset=utf8
+
+jobs:
+  inputs:
+      runs-on: ubuntu-latest
+      container: ghcr.io/myspeedpuzzling/web-base-php85:main
+      steps:
+          -   uses: actions/checkout@v7
+          -   name: Generate the same inputs for both images
+              run: |
+                  mkdir -p parity-inputs && cd parity-inputs
+                  convert ../public/img/placeholder-puzzle.jpg -resize '2400x1800!' base.png
+                  for ext in jpg png webp heic avif; do convert base.png -quality 85 upload.$ext; done
+                  convert base.png -quality 90 -orient right-top upload.oriented.jpg
+                  convert base.png -resize 50% -quality 92 -set comment 'camera comment' upload.small-with-comment.jpg
+                  cat > test.svg <<'SVG'
+                  <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+                    <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#fe696a"/><stop offset="1" stop-color="#2b3445"/></linearGradient></defs>
+                    <rect width="400" height="300" fill="url(#g)"/>
+                    <circle cx="80" cy="80" r="50" fill="#fff" opacity="0.7"/>
+                    <text x="200" y="160" font-family="sans-serif" font-size="32" text-anchor="middle" fill="#fff">Speed Puzzling ěščř</text>
+                    <text x="200" y="210" font-family="serif" font-size="24" text-anchor="middle" fill="#000">パズル 12:34:56</text>
+                  </svg>
+                  SVG
+                  cat > test.html <<'HTML'
+                  <html><head><meta charset="utf-8"><style>body{font-family:sans-serif} td{border:1px solid #333;padding:4px}</style></head>
+                  <body><h1>Voucher ěščř パズル</h1><table><tr><td>Code</td><td>TESTCODE12345678</td></tr><tr><td>Valid</td><td>31.12.2026</td></tr></table>
+                  <p style="font-family:serif">Serif text, <b>bold</b>, <i>italic</i>.</p></body></html>
+                  HTML
+                  ls -la
+          -   uses: actions/upload-artifact@v7
+              with:
+                  name: parity-inputs
+                  path: parity-inputs
+
+  dump:
+      needs: inputs
+      strategy:
+          fail-fast: false
+          matrix:
+              include:
+                  - label: current
+                    image: ghcr.io/myspeedpuzzling/web-base-php85:main
+                  - label: candidate
+                    image: ghcr.io/myspeedpuzzling/web-base-php85:slim-zstd
+      runs-on: ubuntu-latest
+      container: ${{ matrix.image }}
+      services:
+          postgres:
+              image: postgres:16
+              env:
+                  POSTGRES_PASSWORD: postgres
+              options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
+      steps:
+          -   uses: actions/checkout@v7
+          -   uses: actions/cache/restore@v6
+              with:
+                  path: |
+                      vendor
+                      .composer-cache
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-composer-
+          -   uses: actions/cache/restore@v6
+              with:
+                  path: public/build
+                  key: ${{ runner.os }}-webpack-${{ hashFiles('assets/**', 'package-lock.json', 'webpack.config.js') }}
+          -   run: composer install --no-scripts --no-progress
+              env:
+                  COMPOSER_CACHE_DIR: .composer-cache
+                  COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
+          -   uses: actions/download-artifact@v7
+              with:
+                  name: parity-inputs
+                  path: parity-inputs
+          -   name: Dump the generators' outputs
+              run: PARITY_DIR=$PWD/parity-out/gen PARITY_INPUTS=$PWD/parity-inputs vendor/bin/phpunit tests/ImageParityDumpTest.php
+          -   name: Tools and inventory
+              run: |
+                  O=$PWD/parity-out; mkdir -p $O/tools; cd $O
+                  php -m > php-m.txt
+                  for e in imagick intl gd redis xsl zip; do echo "== $e"; php --ri $e 2>&1 | grep -v -i -E "compiled|release date|Imagick using"; done > php-ri.txt
+                  php -r 'echo implode(",", (new Imagick())->queryFormats()), "\n";' > imagick-formats.txt
+                  convert -list format > im-formats.txt
+                  convert -list delegate > im-delegates.txt
+                  convert -list policy > im-policy.txt
+                  ldd "$(find /usr/lib -path '*coders*' -name heic.so | head -1)" | grep -i heif | sed 's/ (0x.*//' > heic-coder-ldd.txt
+                  { node --version; npm --version; composer --version 2>/dev/null | head -1; sentry-cli --version; brotli --version; zstd --version | head -1; git --version; wkhtmltopdf --version; inkscape --version 2>/dev/null; rsvg-convert --version; heif-info --version; php -v | head -1; frankenphp version; curl --version | head -1; } > versions.txt 2>&1
+                  fc-list | sort > fc-list.txt
+                  for f in sans-serif serif monospace "Noto Sans CJK JP" DejaVu; do echo "$f => $(fc-match "$f")"; done > fc-match.txt
+                  dpkg-query -Wf '${Package}\n' | grep -i -E 'font|magick|heif|rsvg|cairo|pango|freetype|harfbuzz|png|jpeg|webp|tiff|ghostscript|poppler|inkscape|wkhtml|icu' | sort > image-font-pkgs.txt
+                  cd tools; I=$GITHUB_WORKSPACE/parity-inputs
+                  wkhtmltopdf -q $I/test.html wk.pdf; echo "wkhtmltopdf exit $?" > exits.txt
+                  inkscape $I/test.svg --export-type=pdf --export-filename=ink.pdf 2>/dev/null; echo "inkscape pdf exit $?" >> exits.txt
+                  inkscape $I/test.svg --export-type=png --export-filename=ink.png 2>/dev/null; echo "inkscape png exit $?" >> exits.txt
+                  rsvg-convert -f pdf -o rsvg.pdf $I/test.svg; rsvg-convert -o rsvg.png $I/test.svg; echo "rsvg exit $?" >> exits.txt
+                  convert $I/test.svg im-svg.png; echo "convert svg exit $?" >> exits.txt
+                  php -r '$i=new Imagick($argv[1]); $i->setImageFormat("png"); $i->writeImage("imagick-svg.png");' $I/test.svg; echo "imagick svg exit $?" >> exits.txt
+                  convert $I/upload.heic heic-decoded.png; convert $I/upload.avif avif-decoded.png; echo "heic/avif decode exit $?" >> exits.txt
+                  ls -la
+          -   uses: actions/upload-artifact@v7
+              with:
+                  name: parity-${{ matrix.label }}
+                  path: parity-out
+
+  compare:
+      needs: dump
+      runs-on: ubuntu-latest
+      container: ghcr.io/myspeedpuzzling/web-base-php85:main
+      steps:
+          -   uses: actions/download-artifact@v7
+              with:
+                  pattern: parity-*
+          -   name: Pixel parity and inventory
+              run: |
+                  fail=0
+                  # PDFs rasterised by one ghostscript, so only the PDFs can differ
+                  for L in current candidate; do for f in wk ink rsvg; do gs -q -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -r100 -o parity-$L/tools/$f-pdf-%d.png parity-$L/tools/$f.pdf; done; done
+                  n=0
+                  for a in $(cd parity-current && find gen tools -type f \( -name '*.png' -o -name '*.out' \) | sort); do
+                      n=$((n+1)); b=parity-candidate/$a
+                      if [ ! -f "$b" ]; then echo "MISSING in candidate: $a"; fail=1; continue; fi
+                      ae=$(compare -metric AE "parity-current/$a" "$b" null: 2>&1 | cut -d' ' -f1)
+                      if [ "$ae" = "0" ]; then echo "identical  $a"; else echo "DIFFERS    $a (AE=$ae)"; fail=1; fi
+                  done
+                  echo "compared $n image outputs"
+                  for t in php-m.txt php-ri.txt imagick-formats.txt im-formats.txt im-delegates.txt im-policy.txt heic-coder-ldd.txt versions.txt fc-list.txt fc-match.txt image-font-pkgs.txt tools/exits.txt; do
+                      if diff -u parity-current/$t parity-candidate/$t > /tmp/d.txt; then echo "same       $t"; else echo "CHANGED    $t"; cat /tmp/d.txt; fail=1; fi
+                  done
+                  exit $fail
+
+  production-image:
+      runs-on: ubuntu-latest
+      steps:
+          -   uses: actions/checkout@v7
+          -   name: Build FROM the candidate base
+              run: sed -i 's#^FROM ghcr.io/myspeedpuzzling/web-base-php85:main AS app#FROM ghcr.io/myspeedpuzzling/web-base-php85:slim-zstd AS app#' Dockerfile && grep -n '^FROM' Dockerfile
+          -   uses: actions/cache/restore@v6
+              with:
+                  path: |
+                      vendor
+                      .composer-cache
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-composer-
+          -   run: mkdir -p .composer-cache
+          -   uses: docker/setup-buildx-action@v4
+          -   uses: docker/build-push-action@v7
+              with:
+                  context: .
+                  target: app
+                  load: true
+                  tags: local/website:candidate
+                  build-args: |
+                      APP_VERSION=${{ github.sha }}
+                  build-contexts: |
+                      composer-cache=.composer-cache
+                  secrets: |
+                      github_token=${{ secrets.GITHUB_TOKEN }}
+          -   name: Smoke test the production image
+              run: |
+                  set -x
+                  docker run --rm --entrypoint php local/website:candidate -m | tr '\n' ' '
+                  docker run --rm --entrypoint php local/website:candidate bin/console about
+                  docker run --rm --entrypoint php local/website:candidate -r 'echo implode(",", array_intersect(["HEIC","AVIF","WEBP","SVG","JPEG","PNG"], (new Imagick())->queryFormats())), "\n";'
+                  docker run --rm --entrypoint sh local/website:candidate -c 'frankenphp version; ls /app/public/build | wc -l; test -s /app/public/build/entrypoints.json && echo entrypoints-ok; which inkscape wkhtmltopdf rsvg-convert sentry-cli'

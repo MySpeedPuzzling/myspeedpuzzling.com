@@ -355,6 +355,7 @@ final class PuzzleAddController extends AbstractController
                             puzzlePhoto: $data->puzzlePhoto,
                             puzzleEan: $data->puzzleEan,
                             puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
+                            alternativeNames: $data->toPuzzleNames(),
                         ),
                     );
 

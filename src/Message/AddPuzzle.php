@@ -26,7 +26,7 @@ readonly final class AddPuzzle implements SerializedByLock
         public UploadedFile $puzzlePhoto,
         public null|string $puzzleEan,
         public null|string $puzzleIdentificationNumber,
-        // Names of other boxes of the puzzle (docs/features/puzzle-names/) - no form sends them yet
+        // Names of other boxes of the puzzle (docs/features/puzzle-names/) - the add form's "+ name in another language"
         public PuzzleNames $alternativeNames = new PuzzleNames(),
     ) {
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Controller\InternalApi\SubmitPuzzleMergeRequestController;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
@@ -58,6 +59,54 @@ final class SubmitPuzzleMergeRequestControllerTest extends TestCase
 
         (new SubmitPuzzleMergeRequestController($bus, self::REVIEWER_ID))(
             $this->jsonRequest(['puzzleIds' => [self::PUZZLE_A, self::PUZZLE_A]]),
+        );
+    }
+
+    public function testPassesTheLanguagesTheReportedNamesAreIn(): void
+    {
+        $dispatched = null;
+
+        $bus = $this->createStub(MessageBusInterface::class);
+        $bus->method('dispatch')->willReturnCallback(
+            static function (object $message) use (&$dispatched): Envelope {
+                $dispatched = $message;
+
+                return new Envelope($message);
+            },
+        );
+
+        (new SubmitPuzzleMergeRequestController($bus, self::REVIEWER_ID))(
+            $this->jsonRequest([
+                'puzzleIds' => [self::PUZZLE_A, self::PUZZLE_B],
+                'reportedNameLanguages' => [strtoupper(self::PUZZLE_B) => 'CS', self::PUZZLE_A => null],
+            ]),
+        );
+
+        self::assertInstanceOf(SubmitPuzzleMergeRequest::class, $dispatched);
+        self::assertSame([self::PUZZLE_B => 'cs'], $dispatched->reportedNameLanguages);
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function provideInvalidReportedNameLanguages(): iterable
+    {
+        yield 'a list' => [['cs']];
+        yield 'a puzzle not reported' => [['019e0000-0000-7000-8000-000000000009' => 'cs']];
+        yield 'no language' => [[self::PUZZLE_B => 'klingon-is-no-tag']];
+        yield 'not a string' => [[self::PUZZLE_B => 5]];
+    }
+
+    #[DataProvider('provideInvalidReportedNameLanguages')]
+    public function testRefusesReportedNameLanguagesItCannotStore(mixed $reportedNameLanguages): void
+    {
+        $bus = $this->createMock(MessageBusInterface::class);
+        $bus->expects(self::never())->method('dispatch');
+
+        $this->expectException(BadRequestHttpException::class);
+
+        (new SubmitPuzzleMergeRequestController($bus, self::REVIEWER_ID))(
+            $this->jsonRequest(['puzzleIds' => [self::PUZZLE_A, self::PUZZLE_B], 'reportedNameLanguages' => $reportedNameLanguages]),
         );
     }
 

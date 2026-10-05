@@ -12,6 +12,7 @@ readonly final class PuzzleMergeReviewItem
     /**
      * @param array<PuzzleMergeReviewCandidate> $candidates
      * @param array<string> $missingPuzzleIds
+     * @param array<string, string> $reportedNameLanguages Puzzle id => the language the reporter gave its name
      */
     public function __construct(
         public string $mergeRequestId,
@@ -24,6 +25,7 @@ readonly final class PuzzleMergeReviewItem
         // Reported puzzles that no longer exist - deleted by an earlier merge. A
         // request left with fewer than two live puzzles can no longer be merged.
         public array $missingPuzzleIds,
+        public array $reportedNameLanguages = [],
     ) {
     }
 

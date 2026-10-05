@@ -57,14 +57,16 @@ Players report duplicate puzzles; approving a report merges them. **A merge is d
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/approve` | Merge the puzzles |
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/reject` | Decline the report |
 
-`GET` takes `limit` (1-100, default 25) and `offset`. It returns `totalPending` plus, per request, every candidate puzzle with its name, its other names (`alternativeNames`: `[{"name", "language"}]` in order, language a BCP 47 tag or null; `alternativeName` keeps the one other name of old - the first Czech one, else the first), piece count, EAN, catalogue number, manufacturer, **a ready-to-fetch `imageUrl`**, and the weight of its history (`solvedTimesCount`, `collectionItemsCount`, …). Whether two puzzles are the same product is usually settled by comparing the artwork, so the image URL is the point of the endpoint. `actionable` is false when fewer than two of the reported puzzles still exist (an earlier merge already deleted one) — such a request cannot be merged, only rejected.
+`GET` takes `limit` (1-100, default 25) and `offset`. It returns `totalPending` plus, per request, `reportedNameLanguages` (what the reporter said each puzzle's name is in: an object puzzle id → base language, `{}` when nothing was said) and every candidate puzzle with its name, `nameLanguage` (the main title's language, null = English or not known), its other names (`alternativeNames`: `[{"name", "language"}]` in order, language a BCP 47 tag or null; `alternativeName` keeps the one other name of old - the first Czech one, else the first), piece count, EAN, catalogue number, manufacturer, **a ready-to-fetch `imageUrl`**, and the weight of its history (`solvedTimesCount`, `collectionItemsCount`, …). Whether two puzzles are the same product is usually settled by comparing the artwork, so the image URL is the point of the endpoint. `actionable` is false when fewer than two of the reported puzzles still exist (an earlier merge already deleted one) — such a request cannot be merged, only rejected.
 
 Approve body:
 
 | Field | Required | Notes |
 |---|---|---|
 | `survivorPuzzleId` | yes | The puzzle that stays. Normally the one carrying the most history |
-| `mergedName` | yes | Name the survivor ends up with |
+| `mergedName` | yes | Name the survivor ends up with - its main title, the English one when the box has one |
+| `mergedNameLanguage` | no | BCP 47 tag of the main title when it is not English (`"cs"`), null = English or not known. Without `mergedAlternativeNames` it only overrides the language the merge finds for `mergedName` |
+| `mergedAlternativeNames` | no | Every other name of the survivor, `[{"name", "language"}]` in order - **replaces** the union below, so list every name to keep. More than 20 only when the union already holds more |
 | `mergedPiecesCount` | yes | Positive integer |
 | `mergedEan` | no | Leave out to keep the survivor's own. May be a comma-separated list; the merged puzzle's codes are unioned in either way |
 | `mergedIdentificationNumber` | no | As above |
@@ -75,11 +77,13 @@ Approve body:
 
 Blank strings count as absent, so a blank `mergedEan` never blanks a real one.
 
-**A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any cover image or manufacturer that **only** a deleted puzzle had, and keeps every name of every merged puzzle (main title and other names) as an other name of the survivor - the survivor's previous main title too when `mergedName` is another one (docs/features/puzzle-names/).
+**A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any cover image or manufacturer that **only** a deleted puzzle had, and - unless `mergedAlternativeNames` is given - keeps every name of every merged puzzle (main title and other names) as an other name of the survivor, the survivor's previous main title too when `mergedName` is another one; each main title in the language the reporter gave it (`reportedNameLanguages`), else in its own `nameLanguage` (docs/features/puzzle-names/). Re-read the queue right before approving: the endpoint does not check whether a puzzle changed since.
 
 Reject body: `rejectionReason` (required). **It is shown to the player who reported the duplicate**, as a notification, so write it for them.
 
-File body: `puzzleIds` (required, at least two distinct puzzle ids; the first is the request's source puzzle). The reviewer
+File body: `puzzleIds` (required, at least two distinct puzzle ids; the first is the request's source puzzle) and
+`reportedNameLanguages` (optional: `{"<puzzle id>": "cs"}` - the language a reported puzzle's name is in, null = not
+known; stored as the base language; a puzzle outside `puzzleIds` or no language tag is a `400`). The reviewer
 player is the reporter - like a moderator merging from the approval queue - so nobody is notified about the request or
 its approval. Answers `201` with `{"mergeRequestId": "…"}`; settle it with the approve/reject endpoints above. Use it for
 duplicates no player reported, e.g. the same puzzle left twice under one brand after a brand merge. An unknown puzzle id

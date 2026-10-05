@@ -68,6 +68,8 @@ final class ListPuzzleMergeRequestsController extends AbstractController
             'sourcePuzzleName' => $item->sourcePuzzleName,
             'actionable' => $item->isActionable(),
             'missingPuzzleIds' => $item->missingPuzzleIds,
+            // What the reporter said each puzzle's name is in - puzzle id => language, an object even when empty
+            'reportedNameLanguages' => (object) $item->reportedNameLanguages,
             'candidates' => array_map($this->serializeCandidate(...), $item->candidates),
         ];
     }
@@ -80,6 +82,7 @@ final class ListPuzzleMergeRequestsController extends AbstractController
         return [
             'puzzleId' => $candidate->puzzleId,
             'name' => $candidate->name,
+            'nameLanguage' => $candidate->nameLanguage,
             'alternativeName' => $candidate->alternativeNames->legacyAlternativeName(),
             'alternativeNames' => $candidate->alternativeNames->toArray(),
             'piecesCount' => $candidate->piecesCount,

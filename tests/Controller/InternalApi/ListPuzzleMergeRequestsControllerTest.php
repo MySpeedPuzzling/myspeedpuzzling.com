@@ -6,13 +6,17 @@ namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\InternalApi\ListPuzzleMergeRequestsController;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ListPuzzleMergeRequestsControllerTest extends KernelTestCase
 {
@@ -60,5 +64,46 @@ final class ListPuzzleMergeRequestsControllerTest extends KernelTestCase
             ['name' => 'Rätsel zwei', 'language' => 'de'],
             ['name' => 'Hádanka dvě', 'language' => 'cs'],
         ], $candidates[PuzzleFixture::PUZZLE_500_02]['alternativeNames']);
+    }
+
+    public function testItemsCarryTheReportedLanguagesAndCandidatesTheirMainTitlesLanguage(): void
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+
+        /** @var EntityManagerInterface $entityManager */
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $puzzle = $entityManager->find(Puzzle::class, PuzzleFixture::PUZZLE_1000_02);
+        self::assertNotNull($puzzle);
+        $puzzle->changeNames('Kouzelné ráno', 'cs', $puzzle->alternativeNames(), new DateTimeImmutable());
+        $entityManager->flush();
+
+        $mergeRequestId = Uuid::uuid7()->toString();
+        $container->get(MessageBusInterface::class)->dispatch(new SubmitPuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            sourcePuzzleId: PuzzleFixture::PUZZLE_1000_01,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            duplicatePuzzleIds: [PuzzleFixture::PUZZLE_1000_02],
+            reportedNameLanguages: [PuzzleFixture::PUZZLE_1000_02 => 'cs'],
+        ));
+
+        $controller = $container->get(ListPuzzleMergeRequestsController::class);
+        $response = $controller(Request::create('/internal-api/puzzle-merge-requests', 'GET', ['limit' => 100]));
+
+        $content = $response->getContent();
+        self::assertIsString($content);
+        // An object even when empty - a map, never a list
+        self::assertStringContainsString('"reportedNameLanguages":{}', $content);
+
+        /** @var array{mergeRequests: list<array{mergeRequestId: string, reportedNameLanguages: array<string, string>, candidates: list<array{puzzleId: string, nameLanguage: null|string}>}>} $body */
+        $body = json_decode($content, true, flags: JSON_THROW_ON_ERROR);
+        $items = array_values(array_filter($body['mergeRequests'], static fn (array $item): bool => $item['mergeRequestId'] === $mergeRequestId));
+        self::assertCount(1, $items);
+
+        self::assertSame([PuzzleFixture::PUZZLE_1000_02 => 'cs'], $items[0]['reportedNameLanguages']);
+        self::assertSame(
+            [PuzzleFixture::PUZZLE_1000_01 => null, PuzzleFixture::PUZZLE_1000_02 => 'cs'],
+            array_column($items[0]['candidates'], 'nameLanguage', 'puzzleId'),
+        );
     }
 }

@@ -82,6 +82,14 @@ class PuzzleMergeRequest implements EntityWithEvents
         #[Immutable]
         #[Column(type: Types::JSON)]
         public array $reportedDuplicatePuzzleIds = [],
+        // What the reporter said each reported puzzle's name is in ("this record is the Czech box"), optional:
+        // puzzle id => base language. The merge review starts from it (docs/features/puzzle-names/README.md)
+        /**
+         * @var array<string, string>
+         */
+        #[Immutable]
+        #[Column(type: Types::JSONB, options: ['default' => '{}'])]
+        public array $reportedNameLanguages = [],
     ) {
         // Store puzzle name for display even after puzzle is deleted
         $this->sourcePuzzleName = $sourcePuzzle?->name;

@@ -1,0 +1,20 @@
+{#
+    One "+ name in another language" row of the add form (optional_rows_controller.js): the name on another box of the
+    new puzzle, its language and ×. Required: row - a PuzzleNameType view (a row, or the collection's prototype)
+#}
+<div class="extra-name-row" data-optional-rows-target="row">
+    {{ form_widget(row.name, {attr: {
+        class: 'extra-name-row__name',
+        placeholder: 'puzzle_names.name_on_the_box'|trans,
+        'aria-label': 'puzzle_names.name_in_another_language'|trans,
+    }}) }}
+    {{ form_widget(row.language, {attr: {
+        class: 'extra-name-row__language',
+        'aria-label': 'puzzle_names.language'|trans,
+    }}) }}
+    <button type="button" class="btn btn-outline-secondary btn-sm extra-name-row__remove" data-action="optional-rows#remove" aria-label="{{ 'puzzle_names.remove_name'|trans }}" title="{{ 'puzzle_names.remove_name'|trans }}">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    {{ form_errors(row.name) }}
+    {{ form_errors(row.language) }}
+</div>

@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Message\GrantModeratorRole;
 use SpeedPuzzling\Web\Query\GetModerators;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
+use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -198,14 +199,23 @@ final class ModeratorAccessTest extends WebTestCase
         $crawler = $browser->request('GET', '/admin/puzzle-approvals/' . PuzzleFixture::PUZZLE_UNAPPROVED);
         $form = $crawler->filter('form[action$="/merge"]')->last()->form([
             'target_puzzle' => 'https://myspeedpuzzling.com/en/puzzle/' . PuzzleFixture::PUZZLE_1000_01,
+            'name_language' => 'cs',
         ]);
         $browser->submit($form);
 
         self::assertResponseRedirects();
-        self::assertStringStartsWith('/admin/puzzle-merge-requests/', (string) $browser->getResponse()->headers->get('Location'));
+        $location = (string) $browser->getResponse()->headers->get('Location');
+        self::assertStringStartsWith('/admin/puzzle-merge-requests/', $location);
+
+        // The moderator said the new puzzle's name is Czech
+        $mergeRequestId = substr((string) parse_url($location, PHP_URL_PATH), strlen('/admin/puzzle-merge-requests/'));
+        $mergeRequest = $browser->getContainer()->get(PuzzleMergeRequestRepository::class)->get($mergeRequestId);
+        self::assertSame([PuzzleFixture::PUZZLE_UNAPPROVED => 'cs'], $mergeRequest->reportedNameLanguages);
+
         $browser->followRedirect();
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('input[name="return"][value="/admin/puzzle-approvals"]');
+        // The review posts back to its own address - the way back to the approval queue rides along
+        self::assertSelectorExists('form[data-controller~="merge-review"][action*="return=/admin/puzzle-approvals"]');
     }
 
     private function signedInModerator(): KernelBrowser

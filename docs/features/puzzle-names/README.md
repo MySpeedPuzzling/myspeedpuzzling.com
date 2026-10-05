@@ -243,3 +243,18 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   (nothing else read those two there); lend/borrow lists have no filter and render no `data-search`.
 - **Phase 1b - the wishlist list query** reads the two key columns and is ~4 % slower on the heaviest wishlist
   (655 items, 9.7 → 10.1 ms, same plan); accepted - folding the names per item in PHP would cost far more.
+- **Phase 3C - the merge review is a Symfony form** (`PuzzleMergeReviewFormType`) posting back to the detail page, so a
+  refused one (record version, invalid names) comes back with what was typed; the raw-field admin `/approve` route is
+  gone. Its names start from `PuzzleMergeNames::forReview()`, the same rules as the automatic union. The editor's list
+  is final: a main title typed over is gone unless moved to the other names first; the internal API without
+  `mergedAlternativeNames` keeps the union.
+- **Phase 3C - reported languages** are stored as base languages keyed by the lower-case puzzle id. The reporter's
+  language of the survivor's own title prefills its `nameLanguage`; a language the merge derives for the main title is
+  never `en` (null = English).
+- **Phase 3C - where the reporter says it**: "Report duplicate" has both selects behind a quiet "Are they boxes in
+  different languages?" link (the duplicate's language only when the report names one duplicate); the approval
+  queue's merge asks for the new puzzle's language next to each merge button (Twig `puzzle_name_language_choices()`).
+- **Phase 3C - add form**: "+ name in another language" and its rows show only while a new puzzle is typed
+  (`newPuzzleExtra` targets of `time_form_autocomplete_controller.js`); rows left under an existing puzzle are ignored
+  and never block a save. The stopwatch's save page is the same form, so it has the link too; the competition-round form
+  and multiscan keep one name.

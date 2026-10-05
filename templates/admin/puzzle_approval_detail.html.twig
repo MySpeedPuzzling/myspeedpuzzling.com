@@ -46,15 +46,15 @@
                 </div>
             </div>
 
-            <div class="d-flex justify-content-end mt-3">
-                <form action="{{ path('admin_merge_unapproved_puzzle', {puzzleId: puzzle.puzzleId}) }}" method="post">
-                    <input type="hidden" name="_token" value="{{ csrf_token('merge-puzzle-' ~ puzzle.puzzleId) }}">
-                    <input type="hidden" name="target_puzzle" value="{{ candidate.puzzleId }}">
-                    <button type="submit" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-intersect me-1"></i> It's the same puzzle - merge
-                    </button>
-                </form>
-            </div>
+            <form action="{{ path('admin_merge_unapproved_puzzle', {puzzleId: puzzle.puzzleId}) }}" method="post"
+                  class="d-flex flex-wrap align-items-center justify-content-end gap-2 mt-3">
+                <input type="hidden" name="_token" value="{{ csrf_token('merge-puzzle-' ~ puzzle.puzzleId) }}">
+                <input type="hidden" name="target_puzzle" value="{{ candidate.puzzleId }}">
+                {{ include('admin/_merge_name_language.html.twig', {id: 'name_language_' ~ candidate.puzzleId}) }}
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-intersect me-1"></i> It's the same puzzle - merge
+                </button>
+            </form>
         </div>
     </div>
 {% endmacro %}
@@ -171,6 +171,9 @@
                            autocomplete="off"
                            placeholder="https://myspeedpuzzling.com/en/puzzle/…">
                     <button type="submit" class="btn btn-outline-primary flex-shrink-0">Merge</button>
+                </div>
+                <div class="mt-2">
+                    {{ include('admin/_merge_name_language.html.twig', {id: 'name_language_pasted'}) }}
                 </div>
             </form>
 

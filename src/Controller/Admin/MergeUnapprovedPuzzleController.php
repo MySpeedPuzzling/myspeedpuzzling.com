@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\LanguageTag;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,8 +21,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * "This new puzzle is a duplicate of that one": files a merge request with the
- * moderator as reporter and opens it in the existing merge review, where the
- * merged values are settled and every solving time moves to the survivor.
+ * moderator as reporter (and the language of the new puzzle's name, when given)
+ * and opens it in the existing merge review, where the merged values are
+ * settled and every solving time moves to the survivor.
  */
 final class MergeUnapprovedPuzzleController extends AbstractController
 {
@@ -66,11 +68,15 @@ final class MergeUnapprovedPuzzleController extends AbstractController
 
         $mergeRequestId = Uuid::uuid7()->toString();
 
+        // Optional: what the new puzzle's name is in - the merge review's names editor starts from it
+        $nameLanguage = LanguageTag::normalize($request->request->getString('name_language'));
+
         $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
             mergeRequestId: $mergeRequestId,
             sourcePuzzleId: $puzzleId,
             reporterId: $player->playerId,
             duplicatePuzzleIds: [$targetPuzzleId],
+            reportedNameLanguages: $nameLanguage !== null ? [$puzzleId => $nameLanguage] : [],
         ));
 
         return $this->redirectToRoute('admin_puzzle_merge_request_detail', [

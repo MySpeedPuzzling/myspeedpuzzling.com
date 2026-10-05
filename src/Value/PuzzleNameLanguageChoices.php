@@ -75,4 +75,15 @@ readonly final class PuzzleNameLanguageChoices
 
         return mb_strtoupper(mb_substr($label, 0, 1)) . mb_substr($label, 1);
     }
+
+    /**
+     * The language a name added in a form starts in: the page language, none on English pages (nor for a page
+     * language outside the list).
+     */
+    public static function forNewName(string $locale): null|string
+    {
+        $language = LanguageTag::base($locale);
+
+        return $language !== 'en' && in_array($language, self::LANGUAGES, true) ? $language : null;
+    }
 }

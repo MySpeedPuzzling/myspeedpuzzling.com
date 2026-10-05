@@ -31,6 +31,7 @@ SELECT
     pmr.id,
     pmr.submitted_at,
     pmr.reported_duplicate_puzzle_ids,
+    pmr.reported_name_languages,
     pmr.source_puzzle_id,
     pmr.source_puzzle_name AS stored_source_puzzle_name,
     source_p.name AS source_puzzle_name,
@@ -107,10 +108,28 @@ SQL;
                 sourcePuzzleName: $sourcePuzzleName,
                 candidates: $candidates,
                 missingPuzzleIds: $missingPuzzleIds,
+                reportedNameLanguages: self::reportedNameLanguages($row['reported_name_languages']),
             );
         }
 
         return $items;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function reportedNameLanguages(mixed $json): array
+    {
+        $decoded = is_string($json) ? json_decode($json, true) : null;
+        $languages = [];
+
+        foreach (is_array($decoded) ? $decoded : [] as $puzzleId => $language) {
+            if (is_string($puzzleId) && is_string($language)) {
+                $languages[$puzzleId] = $language;
+            }
+        }
+
+        return $languages;
     }
 
     public function countPending(): int
@@ -139,6 +158,7 @@ SQL;
 SELECT
     p.id AS puzzle_id,
     p.name,
+    p.name_language,
     p.alternative_names,
     p.pieces_count,
     p.ean,

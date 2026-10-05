@@ -1,0 +1,13 @@
+{#
+    The approval queue's "merge into duplicate": the language the new puzzle's name is in, optional - stored on the
+    merge request, the merge review's names editor starts from it. Required: id - unique on the page
+#}
+<div class="d-flex flex-wrap align-items-center gap-2">
+    <label for="{{ id }}" class="small text-muted mb-0">The new puzzle's name is in</label>
+    <select id="{{ id }}" name="name_language" class="form-select form-select-sm w-auto mw-100">
+        <option value="">Not known</option>
+        {% for label, tag in puzzle_name_language_choices() %}
+            <option value="{{ tag }}">{{ label }}</option>
+        {% endfor %}
+    </select>
+</div>

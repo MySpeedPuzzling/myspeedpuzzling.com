@@ -78,6 +78,7 @@ final class ReportDuplicatePuzzleController extends AbstractController
                     sourcePuzzleId: $puzzleId,
                     reporterId: $loggedPlayer->playerId,
                     duplicatePuzzleIds: $duplicateIds,
+                    reportedNameLanguages: self::reportedNameLanguages($formData, $puzzleId, $duplicateIds),
                 ));
 
                 if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
@@ -106,9 +107,32 @@ final class ReportDuplicatePuzzleController extends AbstractController
     }
 
     /**
+     * The languages the reporter gave - the duplicate's only when the report names one duplicate (the picker and an
+     * address may name two).
+     *
+     * @param list<string> $duplicateIds
+     *
+     * @return array<string, string>
+     */
+    private static function reportedNameLanguages(ReportDuplicatePuzzleFormData $formData, string $sourcePuzzleId, array $duplicateIds): array
+    {
+        $languages = [];
+
+        if ($formData->sourceNameLanguage !== null) {
+            $languages[$sourcePuzzleId] = $formData->sourceNameLanguage;
+        }
+
+        if ($formData->duplicateNameLanguage !== null && count($duplicateIds) === 1) {
+            $languages[$duplicateIds[0]] = $formData->duplicateNameLanguage;
+        }
+
+        return $languages;
+    }
+
+    /**
      * Parse duplicate puzzle IDs from form data and filter out self-duplicates.
      *
-     * @return array<string>
+     * @return list<string>
      */
     private function parseDuplicatePuzzleIds(ReportDuplicatePuzzleFormData $formData, string $sourcePuzzleId): array
     {

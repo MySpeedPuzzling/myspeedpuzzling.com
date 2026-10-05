@@ -175,6 +175,11 @@ paths:
         number, alternative name, cover image or manufacturer held **only** by a
         puzzle about to be deleted is carried over rather than lost.
 
+        Names: without `mergedAlternativeNames` every name of every puzzle stays
+        (each main title in the language the reporter gave it, else its own
+        `nameLanguage`); with it, that list is the survivor's other names. The
+        endpoint does not check whether a puzzle changed since the queue was read.
+
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
       parameters:
         - $ref: "#/components/parameters/MergeRequestId"
@@ -526,6 +531,11 @@ components:
           items:
             type: string
             format: uuid
+        reportedNameLanguages:
+          type: object
+          description: What the reporter said each reported puzzle's name is in - puzzle id => base language (cs, de). An empty object when nothing was said.
+          additionalProperties:
+            type: string
         candidates:
           type: array
           items:
@@ -539,6 +549,9 @@ components:
           format: uuid
         name:
           type: string
+        nameLanguage:
+          type: [string, "null"]
+          description: BCP 47 language of the main title when it is not English, null = English or not known.
         alternativeName:
           type: [string, "null"]
           description: The one other name of old - the first Czech name of alternativeNames, else its first name. Kept for existing callers; read alternativeNames.
@@ -594,6 +607,15 @@ components:
           description: The puzzle that stays; every other reported puzzle is deleted.
         mergedName:
           type: string
+          description: The survivor's main title - the English one when the box has one.
+        mergedNameLanguage:
+          type: [string, "null"]
+          description: BCP 47 language of the main title when it is not English (cs), null = English or not known. Without mergedAlternativeNames it only overrides the language the merge finds for mergedName.
+        mergedAlternativeNames:
+          type: [array, "null"]
+          description: The survivor's other names in order - replaces the union of every name, so list every name to keep. Omit or null for the union. At most 20 unless the union already holds more.
+          items:
+            $ref: "#/components/schemas/PuzzleName"
         mergedPiecesCount:
           type: integer
           minimum: 1
@@ -627,6 +649,11 @@ components:
           items:
             type: string
             format: uuid
+        reportedNameLanguages:
+          type: object
+          description: Optional - the language a reported puzzle's name is in, puzzle id => BCP 47 tag (null = not known). Stored as the base language; a puzzle outside puzzleIds is a 400.
+          additionalProperties:
+            type: [string, "null"]
 
     ManufacturerMerge:
       type: object

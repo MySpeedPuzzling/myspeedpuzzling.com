@@ -426,6 +426,89 @@ final class PuzzleAddControllerTest extends WebTestCase
         self::assertSame('4005555011897', $database->fetchOne('SELECT ean FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]));
     }
 
+    public function testANewPuzzleTakesTheNamesOfItsOtherBoxesKeptThroughARefusedSubmit(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        // Quiet: one link on the puzzle's label line, no row until it is tapped, all of it hidden until a new puzzle is typed
+        self::assertSame('+ name in another language', trim($crawler->filter('.label-row [data-action="optional-rows#add"]')->text()));
+        self::assertCount(0, $crawler->filter('[data-optional-rows-target="rows"] .extra-name-row'));
+        self::assertStringContainsString('d-none', (string) $crawler->filter('.label-row [data-time-form-autocomplete-target="newPuzzleExtra"]')->attr('class'));
+
+        $newPuzzleId = $crawler->filter('input[name="new_puzzle_id"]')->attr('value');
+        $ids = ['time_id' => $crawler->filter('input[name="time_id"]')->attr('value'), 'new_puzzle_id' => $newPuzzleId];
+
+        $submission = $this->submissionOf($crawler);
+        $submission['puzzle'] = 'Circle of Colors: Seashells';
+        $submission['puzzlePiecesCount'] = '500';
+        // Refused first - the rows must come back
+        $submission['puzzleEan'] = '45555011897';
+        $names = ['alternativeNames' => [
+            0 => ['name' => 'Kruh barev: Mušle', 'language' => 'cs'],
+            // A row left empty is dropped
+            3 => ['name' => '  ', 'language' => 'de'],
+            5 => ['name' => 'Farbkreis: Muscheln', 'language' => 'de'],
+        ]];
+
+        $crawler = $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission + $names, ...$ids], ['puzzle_add_form' => ['puzzlePhoto' => $this->boxPhoto()]]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertSame(['Kruh barev: Mušle', 'Farbkreis: Muscheln'], $crawler->filter('[data-optional-rows-target="rows"] .extra-name-row__name')->each(
+            static fn (Crawler $input): string => (string) $input->attr('value'),
+        ));
+        self::assertSame('cs', $crawler->filter('select[name="puzzle_add_form[alternativeNames][0][language]"] option[selected]')->attr('value'));
+        // A row added now does not take the index of one already there
+        self::assertSame('6', $crawler->filter('[data-controller="optional-rows"]')->attr('data-optional-rows-index-value'));
+        self::assertStringNotContainsString('d-none', (string) $crawler->filter('.label-row [data-time-form-autocomplete-target="newPuzzleExtra"]')->attr('class'));
+
+        $submission['puzzleEan'] = '4005555011897';
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission + $names, ...$ids], ['puzzle_add_form' => ['puzzlePhoto' => $this->boxPhoto()]]);
+
+        $this->assertResponseRedirects();
+        $alternativeNames = $database->fetchOne('SELECT alternative_names FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]);
+        self::assertIsString($alternativeNames);
+        self::assertSame([
+            ['name' => 'Kruh barev: Mušle', 'language' => 'cs'],
+            ['name' => 'Farbkreis: Muscheln', 'language' => 'de'],
+        ], json_decode($alternativeNames, true));
+    }
+
+    public function testANameAddedOnACzechPageStartsInCzech(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/pridat-puzzle');
+
+        $this->assertResponseIsSuccessful();
+        $prototype = (string) $crawler->filter('template[data-optional-rows-target="template"]')->html();
+        self::assertMatchesRegularExpression('/<option value="cs" selected/', $prototype);
+    }
+
+    public function testNamesLeftInTheHiddenRowsDoNotGoWithAResultOfAnExistingPuzzle(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $ids = ['time_id' => $crawler->filter('input[name="time_id"]')->attr('value'), 'new_puzzle_id' => $crawler->filter('input[name="new_puzzle_id"]')->attr('value')];
+        $names = ['alternativeNames' => [['name' => 'Typed, then an existing puzzle picked', 'language' => 'cs']]];
+
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $this->submissionOf($crawler) + $names, ...$ids]);
+
+        $this->assertResponseRedirects();
+        self::assertSame('[]', $database->fetchOne('SELECT alternative_names FROM puzzle WHERE id = :id', ['id' => PuzzleFixture::PUZZLE_500_01]));
+    }
+
     public function testInvalidEanLeftInTheHiddenFieldDoesNotBlockAResultOfAnExistingPuzzle(): void
     {
         $browser = self::createClient();

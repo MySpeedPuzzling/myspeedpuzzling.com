@@ -15,7 +15,6 @@ use Symfony\Component\Finder\Finder;
  */
 final class LegacyAlternativeNameCoverageTest extends TestCase
 {
-    private const string INTERIM_FORM_FIELD = 'Interim single "Alternative name" field of the moderator forms (PuzzleNames::withLegacyAlternativeName()) until the phase-3 names editor.';
     private const string API_V1 = 'API v1 field, additive list next to it: kept for existing clients as PuzzleNames::legacyAlternativeName(), `alternativeNames` holds every name.';
     private const string INTERNAL_API = 'Internal API legacy field: the merge queue lists it next to `alternativeNames`.';
     private const string APPEND_ONLY_LOG = 'Append-only logs keep the old shape: decision and merge snapshots written before the names list hold an `alternativeName` string.';
@@ -26,18 +25,7 @@ final class LegacyAlternativeNameCoverageTest extends TestCase
         'src/Services/Api/PuzzleResponseFactory.php' => self::API_V1,
         'src/Controller/InternalApi/ListPuzzleMergeRequestsController.php' => self::INTERNAL_API,
         'src/Results/PuzzleHistoryChange.php' => self::APPEND_ONLY_LOG,
-        'src/Controller/Admin/PuzzleApprovalDetailController.php' => self::INTERIM_FORM_FIELD,
-        'src/FormData/ApprovePuzzleFormData.php' => self::INTERIM_FORM_FIELD,
-        'src/FormData/PuzzleRecordFormData.php' => self::INTERIM_FORM_FIELD,
-        'src/FormType/PuzzleRecordFormType.php' => self::INTERIM_FORM_FIELD,
-        'src/Message/ApprovePuzzle.php' => self::INTERIM_FORM_FIELD,
-        'src/MessageHandler/ApprovePuzzleChangeRequestHandler.php' => self::INTERIM_FORM_FIELD,
-        'src/MessageHandler/ApprovePuzzleHandler.php' => self::INTERIM_FORM_FIELD,
-        'src/Services/PuzzleRecordUpdater.php' => self::INTERIM_FORM_FIELD . ' Also names the old snapshot shape PuzzleHistoryChange reads.',
-        'src/Value/PuzzleRecordValues.php' => self::INTERIM_FORM_FIELD,
-        'templates/admin/_puzzle_change_request_review.html.twig' => self::INTERIM_FORM_FIELD,
-        'templates/admin/puzzle_approval_detail.html.twig' => self::INTERIM_FORM_FIELD,
-        'templates/admin/puzzle_edit.html.twig' => self::INTERIM_FORM_FIELD,
+        'src/Services/PuzzleRecordUpdater.php' => self::APPEND_ONLY_LOG,
     ];
 
     public function testTheOldSingleAlternativeNameIsUsedOnlyWhereAllowListed(): void

@@ -20,9 +20,6 @@ readonly final class PuzzleNames implements Countable
     public const int FORM_MAX_NAMES = 20;
     public const int MAX_NAME_LENGTH = 255;
 
-    // Letters only Czech uses among the catalogue's languages - the migration tags such names `cs` the same way
-    private const string CZECH_ONLY_LETTERS = '/[ěščřžůťďňĚŠČŘŽŮŤĎŇ]/u';
-
     /**
      * @param list<PuzzleName> $names
      */
@@ -187,43 +184,6 @@ readonly final class PuzzleNames implements Countable
     }
 
     /**
-     * The single "Alternative name" field of the moderator forms applied onto the list: unchanged value = unchanged
-     * list, blank = that name removed, another value = that name replaced - keeping its language when it is the same
-     * name re-spelled (accents, case), otherwise in Czech when it has a letter only Czech uses, else without one. A
-     * puzzle without names gets it as its first, tagged the same way.
-     */
-    public function withLegacyAlternativeName(null|string $value): self
-    {
-        $value = self::cleanName($value ?? '');
-        $index = $this->legacyIndex();
-
-        if ($index === null) {
-            return $value === '' ? $this : new self([new PuzzleName($value, self::guessedLanguage($value))]);
-        }
-
-        $replaced = $this->names[$index];
-
-        if ($value === self::cleanName($replaced->name)) {
-            return $this;
-        }
-
-        $names = $this->names;
-
-        if ($value === '') {
-            unset($names[$index]);
-
-            return new self(array_values($names));
-        }
-
-        $names[$index] = new PuzzleName(
-            $value,
-            SearchText::fold($value) === SearchText::fold($replaced->name) ? $replaced->language : self::guessedLanguage($value),
-        );
-
-        return new self(array_values($names));
-    }
-
-    /**
      * This list, then the other's names it does not hold yet.
      */
     public function union(self $other): self
@@ -323,11 +283,6 @@ readonly final class PuzzleNames implements Countable
             'respelled' => SearchText::fold($new->name) === SearchText::fold($old->name),
             default => $new->language === $old->language,
         };
-    }
-
-    private static function guessedLanguage(string $name): null|string
-    {
-        return preg_match(self::CZECH_ONLY_LETTERS, $name) === 1 ? 'cs' : null;
     }
 
     private function legacyIndex(): null|int

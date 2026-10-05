@@ -177,68 +177,6 @@ final class PuzzleNamesTest extends TestCase
         self::assertNull((new PuzzleNames())->legacyAlternativeName());
     }
 
-    /**
-     * @param list<array{name: string, language: null|string}> $rows
-     * @param list<array{name: string, language: null|string}> $expected
-     */
-    #[DataProvider('legacyFieldValues')]
-    public function testWithLegacyAlternativeName(array $rows, null|string $value, array $expected): void
-    {
-        self::assertSame($expected, PuzzleNames::fromArray($rows)->withLegacyAlternativeName($value)->toArray());
-    }
-
-    /**
-     * @return iterable<string, array{list<array{name: string, language: null|string}>, null|string, list<array{name: string, language: null|string}>}>
-     */
-    public static function legacyFieldValues(): iterable
-    {
-        $names = [
-            ['name' => 'Muscheln', 'language' => 'de'],
-            ['name' => 'Mušle', 'language' => 'cs'],
-            ['name' => 'Seashells', 'language' => null],
-        ];
-
-        yield 'the same value: unchanged' => [$names, 'Mušle', $names];
-        yield 'the same value with spaces around: unchanged' => [$names, '  Mušle ', $names];
-        yield 'blank: the Czech name removed' => [$names, '  ', [$names[0], $names[2]]];
-        yield 'null: the Czech name removed' => [$names, null, [$names[0], $names[2]]];
-        yield 'the same name re-spelled: its language kept' => [
-            $names,
-            'MUŠLE',
-            [$names[0], ['name' => 'MUŠLE', 'language' => 'cs'], $names[2]],
-        ];
-        yield 'the same name with its accents fixed: its language kept' => [
-            [['name' => 'Musle', 'language' => 'cs']],
-            'Mušle',
-            [['name' => 'Mušle', 'language' => 'cs']],
-        ];
-        yield 'another name with a letter only Czech uses: Czech' => [
-            $names,
-            'Lastury moře',
-            [$names[0], ['name' => 'Lastury moře', 'language' => 'cs'], $names[2]],
-        ];
-        yield 'another name without one: no language, never the replaced name\'s' => [
-            $names,
-            'Lastury',
-            [$names[0], ['name' => 'Lastury', 'language' => null], $names[2]],
-        ];
-        yield 'without a Czech name the first one is edited' => [
-            [$names[0], $names[2]],
-            'Meeresmuscheln',
-            [['name' => 'Meeresmuscheln', 'language' => null], $names[2]],
-        ];
-        yield 'without a Czech name, a re-spelling keeps the first one\'s language' => [
-            [$names[0], $names[2]],
-            'muscheln',
-            [['name' => 'muscheln', 'language' => 'de'], $names[2]],
-        ];
-        yield 'empty list, Czech letters: a Czech name' => [[], 'Kouzelná zahrada s řekou', [['name' => 'Kouzelná zahrada s řekou', 'language' => 'cs']]];
-        yield 'empty list, accents Czech shares with others: no language' => [[], 'Café à Paris', [['name' => 'Café à Paris', 'language' => null]]];
-        yield 'empty list, blank: still empty' => [[], '', []];
-        yield 'empty list, null: still empty' => [[], null, []];
-        yield 'whitespace inside is cleaned' => [[], "Sea \t shells", [['name' => 'Sea shells', 'language' => null]]];
-    }
-
     public function testUnionKeepsThisListFirstAndAddsTheOthersNames(): void
     {
         $survivor = PuzzleNames::fromArray([['name' => 'Mušle', 'language' => 'cs']]);

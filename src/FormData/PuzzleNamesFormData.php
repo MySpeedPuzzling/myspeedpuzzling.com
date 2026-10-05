@@ -44,7 +44,7 @@ final class PuzzleNamesFormData
         $data->name = $name;
         $data->nameLanguage = $nameLanguage;
         $data->alternativeNames = array_map(
-            static fn (PuzzleName $alternativeName): PuzzleNameFormData => new PuzzleNameFormData($alternativeName->name, $alternativeName->language),
+            static fn (PuzzleName $otherName): PuzzleNameFormData => new PuzzleNameFormData($otherName->name, $otherName->language),
             $alternativeNames->all(),
         );
         $data->loadedAlternativeNamesCount = count($alternativeNames);

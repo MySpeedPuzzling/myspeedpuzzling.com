@@ -75,11 +75,10 @@ SQL,
         null|DateTimeImmutable $hideImageUntil = null,
         null|string $image = null,
         null|float $imageRatio = null,
-        null|string $alternativeName = null,
     ): string {
         $id = Uuid::uuid7()->toString();
         // As the entity writes them (Puzzle::changeNames()): the list and the search keys
-        $alternativeNames = (new PuzzleNames())->withLegacyAlternativeName($alternativeName);
+        $alternativeNames = new PuzzleNames();
 
         $this->comparisonDatabase()->executeStatement(
             <<<SQL

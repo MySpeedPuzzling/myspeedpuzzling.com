@@ -62,9 +62,9 @@ readonly final class PuzzleMergeNames
         }
 
         foreach ($puzzles as $puzzle) {
-            foreach ($puzzle->alternativeNames->all() as $alternativeName) {
-                if (SearchText::fold($alternativeName->name) === $mainTitleKey) {
-                    return self::asMainTitleLanguage($alternativeName->language);
+            foreach ($puzzle->alternativeNames->all() as $otherName) {
+                if (SearchText::fold($otherName->name) === $mainTitleKey) {
+                    return self::asMainTitleLanguage($otherName->language);
                 }
             }
         }

@@ -26,7 +26,6 @@ final class LegacyAlternativeNameCoverageTest extends TestCase
         'src/Services/Api/PuzzleResponseFactory.php' => self::API_V1,
         'src/Controller/InternalApi/ListPuzzleMergeRequestsController.php' => self::INTERNAL_API,
         'src/Results/PuzzleHistoryChange.php' => self::APPEND_ONLY_LOG,
-        'src/Doctrine/CustomIndexFilteringPostgreSQLSchemaManager.php' => 'The unmapped column stays in the database until phase 1c-2 drops it (blue-green) - kept away from the schema tools until then.',
         'src/Controller/Admin/PuzzleApprovalDetailController.php' => self::INTERIM_FORM_FIELD,
         'src/FormData/ApprovePuzzleFormData.php' => self::INTERIM_FORM_FIELD,
         'src/FormData/PuzzleRecordFormData.php' => self::INTERIM_FORM_FIELD,

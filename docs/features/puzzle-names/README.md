@@ -296,3 +296,8 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
 - **Phase 2 - picker label:** `main <small lang="xx">(local)</small>` in every locale from the viewer language
   (replaces the Czech pages' rule that put the other name first). Puzzles without a name in that language cost no
   fold, so Ravensburger's 6,000 options stay as cheap as before.
+- **Phase 1c-2 - the column drop** (`Version20261005001318`, hand-written: the column was hidden from the schema
+  tools, so `migrations:diff` could not see it) rides with the phase 2 release; the transitional column filter in
+  `CustomIndexFilteringPostgreSQLSchemaManager` went with it. The same two-release pattern (unmap + hide, then drop)
+  is the way to remove any column under blue-green deploys.
+

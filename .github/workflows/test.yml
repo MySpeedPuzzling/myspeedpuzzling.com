@@ -53,14 +53,16 @@ jobs:
               # Authenticated GitHub dist downloads on a cold cache - anonymous ones from
               # the shared runner IP get throttled (429), see the Release Dockerfile
               COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
-      -   if: steps.webpack-cache.outputs.cache-hit != 'true'
+      # node_modules also on a webpack cache hit: tests run real JS libraries under node
+      # (PuzzlePickerRankingTest imports @orchidjs/sifter)
+      -   id: npm-cache
           uses: actions/cache@v6
           with:
               path: node_modules
               key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
               restore-keys: |
                   ${{ runner.os }}-npm-
-      -   if: steps.webpack-cache.outputs.cache-hit != 'true'
+      -   if: steps.npm-cache.outputs.cache-hit != 'true'
           run: npm install
       -   if: steps.webpack-cache.outputs.cache-hit != 'true'
           run: npm run dev

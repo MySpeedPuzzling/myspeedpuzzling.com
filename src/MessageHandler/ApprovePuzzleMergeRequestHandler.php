@@ -132,20 +132,19 @@ readonly final class ApprovePuzzleMergeRequestHandler
         );
 
         // Update survivor puzzle with merged data - first: an invalid name is refused before anything changes
+        $nameLanguage = $message->mergedNameLanguage === false
+            ? $mergeNames->nameLanguageOf($message->mergedName)
+            : $message->mergedNameLanguage;
+
         if ($message->mergedAlternativeNames !== null) {
             // The reviewer's list - a merge may hold more names than a form may add, only a longer list is capped
             if ($message->mergedAlternativeNames->count() > $mergeNames->alternativeNames()->count()) {
                 $message->mergedAlternativeNames->assertFormLimits();
             }
 
-            $survivorPuzzle->changeNames($message->mergedName, $message->mergedNameLanguage, $message->mergedAlternativeNames, $this->clock->now());
+            $survivorPuzzle->changeNames($message->mergedName, $nameLanguage, $message->mergedAlternativeNames, $this->clock->now());
         } else {
-            $survivorPuzzle->changeNames(
-                $message->mergedName,
-                $message->mergedNameLanguage ?? $mergeNames->nameLanguageOf($message->mergedName),
-                $mergeNames->alternativeNames(),
-                $this->clock->now(),
-            );
+            $survivorPuzzle->changeNames($message->mergedName, $nameLanguage, $mergeNames->alternativeNames(), $this->clock->now());
         }
 
         $survivorPuzzle->piecesCount = $message->mergedPiecesCount;

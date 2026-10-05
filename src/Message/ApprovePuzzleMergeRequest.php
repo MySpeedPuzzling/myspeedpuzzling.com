@@ -37,10 +37,11 @@ readonly final class ApprovePuzzleMergeRequest implements SerializedByLock
         public MergeDecisionSource $decisionSource = MergeDecisionSource::AdminUi,
         public null|MergeDecisionConfidence $decisionConfidence = null,
         public null|string $decisionNote = null,
-        // The reviewer's names (the merge review's names editor): with mergedAlternativeNames, mergedNameLanguage is
-        // taken as it is (null = English or not known). Without them the merge unions every name of the puzzles
-        // (PuzzleMergeNames) and mergedNameLanguage, when given, only overrides the language it finds for mergedName
-        public null|string $mergedNameLanguage = null,
+        // The main title's language (null = English or not known), false = not given: the language the puzzles know
+        // for mergedName (PuzzleMergeNames::nameLanguageOf()) - with or without mergedAlternativeNames
+        public null|false|string $mergedNameLanguage = false,
+        // The reviewer's other names (the merge review's names editor) - null = every name of the puzzles
+        // (PuzzleMergeNames::alternativeNames())
         public null|PuzzleNames $mergedAlternativeNames = null,
         public array $recordVersions = [],
     ) {

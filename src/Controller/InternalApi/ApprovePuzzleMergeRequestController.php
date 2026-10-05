@@ -89,8 +89,9 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
             decisionSource: MergeDecisionSource::InternalApi,
             decisionConfidence: InternalApiJsonBody::confidence($body),
             decisionNote: InternalApiJsonBody::optionalString($body, 'decisionNote'),
-            // Optional: without mergedAlternativeNames every name of the puzzles stays (with the reporter's languages)
-            mergedNameLanguage: InternalApiJsonBody::optionalLanguageTag($body, 'mergedNameLanguage') ?: null,
+            // Optional: left out, the language the puzzles know for mergedName; null = English or not known
+            mergedNameLanguage: InternalApiJsonBody::optionalLanguageTag($body, 'mergedNameLanguage'),
+            // Optional: without it every name of the puzzles stays (with the reporter's languages)
             mergedAlternativeNames: InternalApiJsonBody::optionalPuzzleNames($body, 'mergedAlternativeNames'),
         ));
 

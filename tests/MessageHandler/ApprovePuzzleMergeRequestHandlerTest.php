@@ -731,6 +731,57 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertSame([['name' => 'Puzzle 4', 'language' => null]], $survivorPuzzle->alternativeNames);
     }
 
+    public function testWithTheReviewersNamesButNoLanguageTheMainTitleKeepsTheLanguageThePuzzlesKnow(): void
+    {
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        // The internal API without mergedNameLanguage
+        $this->messageBus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $this->submitMergeRequest([PuzzleFixture::PUZZLE_500_05 => 'cs']),
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+            mergedName: 'Kouzelné ráno',
+            mergedEan: null,
+            mergedIdentificationNumber: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: null,
+            selectedImagePuzzleId: null,
+            mergedAlternativeNames: new PuzzleNames([new PuzzleName('Puzzle 4', null)]),
+        ));
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('Kouzelné ráno', $survivorPuzzle->name);
+        self::assertSame('cs', $survivorPuzzle->nameLanguage);
+    }
+
+    public function testAnExplicitlyEmptyLanguageIsHonouredWithoutTheReviewersNames(): void
+    {
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        // The reporter said Czech - the reviewer says the main title is English (or not known)
+        $this->messageBus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $this->submitMergeRequest([PuzzleFixture::PUZZLE_500_05 => 'cs']),
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+            mergedName: 'Kouzelné ráno',
+            mergedEan: null,
+            mergedIdentificationNumber: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: null,
+            selectedImagePuzzleId: null,
+            mergedNameLanguage: null,
+        ));
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('Kouzelné ráno', $survivorPuzzle->name);
+        self::assertNull($survivorPuzzle->nameLanguage);
+        self::assertSame([['name' => 'Puzzle 4', 'language' => null]], $survivorPuzzle->alternativeNames);
+    }
+
     public function testAPuzzleSavedAfterTheReviewWasLoadedRefusesTheMerge(): void
     {
         $survivorVersion = PuzzleRecordVersion::ofPuzzle($this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04));

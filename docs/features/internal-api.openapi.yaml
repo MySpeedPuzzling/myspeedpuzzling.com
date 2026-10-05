@@ -625,7 +625,7 @@ components:
           description: The survivor's main title - the English one when the box has one.
         mergedNameLanguage:
           type: [string, "null"]
-          description: BCP 47 language of the main title when it is not English (cs), null = English or not known. Without mergedAlternativeNames it only overrides the language the merge finds for mergedName.
+          description: BCP 47 language of the main title when it is not English (cs); an explicit null = English or not known. Left out, the main title keeps the language the puzzles know for mergedName (the reporter's language, else the puzzle's own, else the language of the other name it is) - with or without mergedAlternativeNames.
         mergedAlternativeNames:
           type: [array, "null"]
           description: The survivor's other names in order - replaces the union of every name, so list every name to keep. Omit or null for the union. At most 20 unless the union already holds more.

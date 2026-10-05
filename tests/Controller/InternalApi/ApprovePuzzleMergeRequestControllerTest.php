@@ -119,8 +119,26 @@ final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
         ]));
 
         self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
-        self::assertNull($dispatched->mergedNameLanguage);
+        // Not given: the handler takes the language the puzzles know for the main title
+        self::assertFalse($dispatched->mergedNameLanguage);
         self::assertNull($dispatched->mergedAlternativeNames);
+    }
+
+    public function testAnExplicitNullLanguageIsEnglishOrNotKnown(): void
+    {
+        $dispatched = null;
+
+        $controller = $this->controller($this->messageBusCapturing($dispatched));
+
+        $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedNameLanguage' => null,
+            'mergedPiecesCount' => 500,
+        ]));
+
+        self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
+        self::assertNull($dispatched->mergedNameLanguage);
     }
 
     public function testRejectsNamesItCannotStore(): void

@@ -862,7 +862,7 @@
     "facts_separator": "; "
     "facts":
       "solo_times": "{1}mejor tiempo en solitario %fastest%, mediana %median%, %count% resolución|]1,Inf[mejor tiempo en solitario %fastest%, mediana %median%, %count% resoluciones"
-      "solo_single": "mejor tiempo en solitario hasta ahora %fastest%"
+      "solo_single": "%fastest%, el mejor tiempo en solitario hasta ahora"
       "solo_none": "aún sin tiempos en solitario"
       "pairs": "{1}1 resolución en pareja en %fastest%|]1,Inf[%count% resoluciones en pareja, la mejor en %fastest%"
       "teams": "{1}1 resolución en equipo en %fastest%|]1,Inf[%count% resoluciones en equipo, la mejor en %fastest%"

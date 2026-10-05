@@ -1119,7 +1119,7 @@
     "facts_separator": " ; "
     "facts":
       "solo_times": "{1}meilleur temps en solo %fastest%, médiane %median%, %count% assemblage|]1,Inf[meilleur temps en solo %fastest%, médiane %median%, %count% assemblages"
-      "solo_single": "meilleur temps en solo à ce jour %fastest%"
+      "solo_single": "%fastest%, le meilleur temps en solo à ce jour"
       "solo_none": "pas encore de temps en solo"
       "pairs": "{1}1 assemblage en duo en %fastest%|]1,Inf[%count% assemblages en duo, meilleur temps %fastest%"
       "teams": "{1}1 assemblage en équipe en %fastest%|]1,Inf[%count% assemblages en équipe, meilleur temps %fastest%"

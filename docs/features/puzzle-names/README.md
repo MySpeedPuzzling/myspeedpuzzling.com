@@ -299,9 +299,9 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   for signed-in players and in the guests' "About this puzzle" - once per page. The ` – MySpeedPuzzling` suffix is a
   `title_suffix` block in `base.html.twig` (`og:title` / `twitter:title` reuse it); only the puzzle page empties it.
 - **Phase 2 - meta description:** no new variants - `%name%` becomes
-  `puzzle_detail.meta.name_with_local_name_description` ("Main / Local", Japanese "Main／Local"), so all four sentences
-  and the Product description get it. Not "Main (Local)" like the title: two sentences put "(500 pieces…)" right
-  after the name, and a dash would meet the " – 500-piece jigsaw puzzle" of the other two.
+  `puzzle_detail.meta.name_with_local_name_description` ("Main / Local", Japanese "Main／Local"), so both description
+  sentences and the Product description get it. Not "Main (Local)" like the title: the description puts
+  "(500 pieces)" right after the name.
 - **Phase 2 - structured data escaping:** every JSON-LD value in every template goes through the `json_ld` filter
   (`JsonLdTwigExtension`: `JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT`). Names are player-typed, and
   `json_encode` left `<!--<script>` alone - the HTML parser then swallowed the rest of the page into the script element.

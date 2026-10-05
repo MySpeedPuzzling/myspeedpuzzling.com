@@ -162,6 +162,19 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
         yield 'a blank name' => [['alternativeNames' => [['name' => '  ', 'language' => 'cs']]]];
         yield 'an unknown language' => [['alternativeNames' => [['name' => 'X', 'language' => 'xx-invalid-tag-long']]]];
         yield 'an unknown main title language' => [['nameLanguage' => 'qqq']];
+        yield 'an unknown key in an entry' => [['alternativeNames' => [['name' => 'Jardín mágico', 'lang' => 'es']]]];
+        yield 'an entry as a list' => [['alternativeNames' => [['Jardín mágico', 'es']]]];
+    }
+
+    public function testAnUnknownKeyInAnEntryIsNamed(): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('An entry of "alternativeNames" holds only "name" and "language" - not: lang.');
+
+        $this->controller()($this->jsonRequest([
+            'puzzleId' => PuzzleFixture::PUZZLE_1000_02,
+            'alternativeNames' => [['name' => 'Jardín mágico', 'lang' => 'es']],
+        ]));
     }
 
     /**

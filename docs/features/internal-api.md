@@ -119,7 +119,8 @@ it has one). `nameLanguage` is the main title's BCP 47 language when the box has
 `null` = English or not known). `alternativeNames` is the **whole list of the other names as it should end up**, in
 order: `[{"name": "Kruh barev: Mušle", "language": "cs"}, {"name": "Seashells", "language": null}]` - re-read the
 puzzle's names first (API v1 `alternative_names`, or `puzzle.alternative_names`), then add, re-tag, edit or remove
-entries. Names are cleaned like the puzzle stores them (spaces, a name equal to the main title or to another name
+entries. An entry holds `name` and `language` only (any other key - a typo like `lang` - is a `400`, in every names list
+of this API). Names are cleaned like the puzzle stores them (spaces, a name equal to the main title or to another name
 dropped); at most 20 when the list grows; an order of its own is no change. The two are proposed together: the `201`
 answer then also holds `nameLanguage` and `alternativeNames` as filed. On approval the list is applied **as a diff**
 against the names when it was filed (added, re-tagged/edited and removed names), never as a replacement - names

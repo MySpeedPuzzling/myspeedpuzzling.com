@@ -160,7 +160,8 @@ final class InternalApiJsonBody
     /**
      * Puzzle names as a list of `{"name": "…", "language": "cs" | null}`, in order - null when the key is absent or
      * null, `[]` is an empty list. Names are cleaned (PuzzleNames::cleanName()), languages normalised (LanguageTag); a
-     * blank or too long name or an unknown language is a 400. How many names a puzzle may have is the caller's check.
+     * blank or too long name, an unknown language or any other key in an entry (a typo like "lang" would drop the
+     * language unnoticed) is a 400. How many names a puzzle may have is the caller's check.
      *
      * @param array<string, mixed> $body
      */
@@ -179,6 +180,16 @@ final class InternalApiJsonBody
         $names = [];
 
         foreach ($values as $value) {
+            $unknownKeys = is_array($value) ? array_diff(array_map(strval(...), array_keys($value)), ['name', 'language']) : [];
+
+            if ($unknownKeys !== []) {
+                throw new BadRequestHttpException(sprintf(
+                    'An entry of "%s" holds only "name" and "language" - not: %s.',
+                    $key,
+                    implode(', ', $unknownKeys),
+                ));
+            }
+
             $name = is_array($value) && is_string($value['name'] ?? null) ? PuzzleNames::cleanName($value['name']) : '';
 
             if ($name === '') {

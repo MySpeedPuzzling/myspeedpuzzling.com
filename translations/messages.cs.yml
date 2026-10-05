@@ -5191,6 +5191,10 @@ marketplace_events:
         buyer_text: "Puzzleři, kteří tam jdou, přivezou %count% puzzle. Podívejte se na něj, ještě než vyrazíte.|Puzzleři, kteří tam jdou, přivezou %count% puzzle. Podívejte se na ně, ještě než vyrazíte.|Puzzleři, kteří tam jdou, přivezou %count% puzzlí. Podívejte se na ně, ještě než vyrazíte."
         buyer_button: "Podívat se, co přivezou"
 
+# A puzzle's EANs and brand codes in a form - one input per code (templates/puzzle/_code_inputs.html.twig)
+puzzle_codes:
+    add_another: "+ další"
+    remove: "Odebrat tento kód"
 puzzle_names:
     main_title: "Hlavní název"
     main_title_hint: "Anglický název z krabice. Zobrazuje se jako první na každé stránce, ve všech jazycích."

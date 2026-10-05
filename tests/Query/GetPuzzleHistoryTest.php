@@ -18,6 +18,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHistoryEntryKind;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleName;
@@ -49,8 +51,8 @@ final class GetPuzzleHistoryTest extends KernelTestCase
                 alternativeNames: new PuzzleNames(),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
-                ean: '4005556123456',
-                identificationNumber: null,
+                eans: EanList::fromStored('4005556123456'),
+                brandCodes: BrandCodeList::fromStored(null),
             ),
             note: 'Year on the box',
         ));
@@ -79,8 +81,8 @@ final class GetPuzzleHistoryTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             survivorPuzzleId: PuzzleFixture::PUZZLE_500_01,
             mergedName: 'Merged Name',
-            mergedEan: null,
-            mergedIdentificationNumber: null,
+            mergedEans: null,
+            mergedBrandCodes: null,
             mergedPiecesCount: 500,
             mergedManufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
             selectedImagePuzzleId: null,
@@ -120,8 +122,8 @@ final class GetPuzzleHistoryTest extends KernelTestCase
                 ]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
-                ean: null,
-                identificationNumber: null,
+                eans: EanList::fromStored(null),
+                brandCodes: BrandCodeList::fromStored(null),
             ),
         ));
 

@@ -60,8 +60,8 @@
                         </h2>
                         <p class="mb-0 text-muted small text-break">
                             {{ puzzle.manufacturerName ?? 'No brand' }} &bull; {{ puzzle.piecesCount }} pieces
-                            {% if puzzle.ean %}&bull; EAN {{ puzzle.ean }}{% endif %}
-                            {% if puzzle.identificationNumber %}&bull; {{ puzzle.identificationNumber }}{% endif %}
+                            {% if puzzle.ean %}&bull; EAN {{ puzzle_eans(puzzle.ean)|join(', ') }}{% endif %}
+                            {% if puzzle.identificationNumber %}&bull; {{ puzzle_brand_codes(puzzle.identificationNumber)|join(', ') }}{% endif %}
                         </p>
                     {% else %}
                         <h2 class="h6 mb-1 text-break">{{ puzzle_name ?? 'Unknown puzzle' }}</h2>

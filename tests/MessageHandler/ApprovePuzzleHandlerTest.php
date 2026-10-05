@@ -14,6 +14,8 @@ use SpeedPuzzling\Web\Message\ApprovePuzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleNames;
@@ -39,8 +41,8 @@ final class ApprovePuzzleHandlerTest extends KernelTestCase
             brandChoice: PuzzleApprovalBrandChoice::Approve,
             name: '  Corrected name ',
             piecesCount: 500,
-            ean: ' 4005556123456, 4005556123457 ',
-            identificationNumber: '',
+            eans: EanList::fromInputs([' 4005556123456', '04005556123457 ']),
+            brandCodes: BrandCodeList::fromInputs(['']),
         );
 
         $puzzle = $this->puzzle(PuzzleFixture::PUZZLE_UNAPPROVED);
@@ -117,8 +119,8 @@ final class ApprovePuzzleHandlerTest extends KernelTestCase
                 nameLanguage: null,
                 alternativeNames: new PuzzleNames(),
                 piecesCount: 500,
-                ean: null,
-                identificationNumber: null,
+                eans: EanList::fromStored(null),
+                brandCodes: BrandCodeList::fromStored(null),
             ));
             self::fail('Expected the approval to be refused');
         } catch (HandlerFailedException $exception) {
@@ -148,8 +150,8 @@ final class ApprovePuzzleHandlerTest extends KernelTestCase
         null|string $targetManufacturerId = null,
         string $name = 'Puzzle 20',
         int $piecesCount = 1000,
-        null|string $ean = null,
-        null|string $identificationNumber = null,
+        null|EanList $eans = null,
+        null|BrandCodeList $brandCodes = null,
     ): void {
         $this->messageBus->dispatch(new ApprovePuzzle(
             puzzleId: PuzzleFixture::PUZZLE_UNAPPROVED,
@@ -158,8 +160,8 @@ final class ApprovePuzzleHandlerTest extends KernelTestCase
             nameLanguage: null,
             alternativeNames: new PuzzleNames(),
             piecesCount: $piecesCount,
-            ean: $ean,
-            identificationNumber: $identificationNumber,
+            eans: $eans ?? EanList::fromStored(null),
+            brandCodes: $brandCodes ?? BrandCodeList::fromStored(null),
             brandChoice: $brandChoice,
             targetManufacturerId: $targetManufacturerId,
         ));

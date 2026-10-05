@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Query\GetPlayerPuzzleSolves;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleStatistics;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Value\EanList;
 
 /**
  * Builds the public API's per-puzzle insight objects for the calling token,
@@ -125,7 +126,8 @@ final readonly class PuzzleResponseFactory
                 ),
                 piecesCount: $overview->piecesCount,
                 image: $overview->puzzleImage,
-                ean: $overview->puzzleEan,
+                // Each barcode as printed - a UPC-A keeps its 12th digit (stored without its leading zero)
+                ean: implode(', ', EanList::fromStored($overview->puzzleEan)->display()) ?: null,
                 identificationNumber: $overview->puzzleIdentificationNumber,
                 isAvailable: $overview->isAvailable,
                 isApproved: $overview->puzzleApproved,

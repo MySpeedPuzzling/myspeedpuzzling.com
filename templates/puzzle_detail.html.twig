@@ -1,9 +1,9 @@
 {% extends 'base.html.twig' %}
 
 {# The same public facts as the summary paragraph (puzzle/_summary.html.twig), EAN only while the image is not
-   embargoed. One EAN is enough here - a puzzle may list several, comma-separated. #}
+   embargoed. One EAN is enough here - a puzzle may list several (one per edition or region). #}
 {% set puzzle_meta_ean = (puzzle.puzzleEan and not is_image_hidden)
-    ? 'puzzle_detail.meta.ean'|trans({'%ean%': puzzle.puzzleEan|split(',')|first|trim})
+    ? 'puzzle_detail.meta.ean'|trans({'%ean%': puzzle_eans(puzzle.puzzleEan)|first})
     : ''
 %}
 {# What crawlers read names the puzzle in the page language too (docs/features/puzzle-names/README.md "SEO"): the
@@ -374,11 +374,14 @@
                                 {{ include('puzzle/_other_names.html.twig', {alternative_names: puzzle.puzzleAlternativeNames}, with_context = false) }}
                             </div>
                         {% endif %}
-                        {% if not is_image_hidden and puzzle.puzzleIdentificationNumber is not null %}
-                            <div><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small></div>
-                        {% endif %}
-                        {% if not is_image_hidden and puzzle.puzzleEan %}
-                            <div><small class="text-muted"><i class="bi-upc-scan"></i> {{ puzzle.puzzleEan }}</small></div>
+                        {# Every code on its own line - a puzzle may carry one per edition or region #}
+                        {% if not is_image_hidden %}
+                            {% for brand_code in puzzle_brand_codes(puzzle.puzzleIdentificationNumber) %}
+                                <div><small class="text-muted">{{ brand_code }}</small></div>
+                            {% endfor %}
+                            {% for ean in puzzle_eans(puzzle.puzzleEan) %}
+                                <div><small class="text-muted"><i class="bi-upc-scan" aria-hidden="true"></i> {{ ean }}</small></div>
+                            {% endfor %}
                         {% endif %}
                         {% if tags %}
                             <p class="mb-0 mt-1">

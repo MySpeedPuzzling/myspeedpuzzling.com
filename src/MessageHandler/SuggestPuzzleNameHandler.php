@@ -108,8 +108,8 @@ readonly final class SuggestPuzzleNameHandler
             alternativeNames: $alternativeNames,
             manufacturerId: $puzzle->manufacturer?->id->toString(),
             piecesCount: $puzzle->piecesCount,
-            ean: $puzzle->ean,
-            identificationNumber: $puzzle->identificationNumber,
+            eans: $puzzle->eans(),
+            brandCodes: $puzzle->brandCodes(),
         ));
 
         $this->puzzleModerationDecisionRecorder->record(

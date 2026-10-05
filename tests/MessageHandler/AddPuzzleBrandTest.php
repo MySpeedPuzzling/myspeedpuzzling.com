@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -133,8 +135,8 @@ final class AddPuzzleBrandTest extends KernelTestCase
             brand: $brand,
             piecesCount: $piecesCount,
             puzzlePhoto: new UploadedFile($imagePath, 'box.jpg', 'image/jpeg', null, true),
-            puzzleEan: null,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
         ));
 
         return $puzzleId;

@@ -32,7 +32,7 @@
                     <a href="{{ path('puzzle_detail', {puzzleId: candidate.puzzleId}) }}" target="_blank" class="fw-semibold text-break">{{ candidate.puzzleName }}</a>
                     <div class="small text-muted text-break">
                         {{ candidate.manufacturerName ?? 'No brand' }} &bull; {{ candidate.piecesCount }} pieces
-                        {% if candidate.ean %}&bull; EAN {{ candidate.ean }}{% endif %}
+                        {% if candidate.ean %}&bull; EAN {{ puzzle_eans(candidate.ean)|join(', ') }}{% endif %}
                     </div>
                     <div class="d-flex flex-wrap gap-1 mt-1">
                         <span class="badge bg-light text-dark border">{{ candidate.sameName ? 'Same name' : 'Similar name' }}</span>
@@ -91,9 +91,9 @@
                     </p>
                     <dl class="row small mb-0">
                         <dt class="col-5 col-sm-4 fw-normal text-muted">EAN</dt>
-                        <dd class="col-7 col-sm-8 text-break mb-1">{{ macros.shown(puzzle.ean) }}</dd>
+                        <dd class="col-7 col-sm-8 text-break mb-1">{{ macros.shown_list(puzzle_eans(puzzle.ean)) }}</dd>
                         <dt class="col-5 col-sm-4 fw-normal text-muted">Brand code</dt>
-                        <dd class="col-7 col-sm-8 text-break mb-1">{{ macros.shown(puzzle.identificationNumber) }}</dd>
+                        <dd class="col-7 col-sm-8 text-break mb-1">{{ macros.shown_list(puzzle_brand_codes(puzzle.identificationNumber)) }}</dd>
                         <dt class="col-5 col-sm-4 fw-normal text-muted">Solving times</dt>
                         <dd class="col-7 col-sm-8 mb-1">{{ puzzle.solvedTimes }}</dd>
                         <dt class="col-5 col-sm-4 fw-normal text-muted">Added</dt>
@@ -180,8 +180,8 @@
             {# 2. Approve #}
             {% set approve_fields = [
                 {label: 'Pieces', widget: form.piecesCount, help: null, current: puzzle.piecesCount, currentValue: puzzle.piecesCount},
-                {label: 'EAN', widget: form.ean, help: 'Comma-separated - one code per edition or region.', current: puzzle.ean, currentValue: puzzle.ean},
-                {label: 'Brand code', widget: form.identificationNumber, help: 'Comma-separated', current: puzzle.identificationNumber, currentValue: puzzle.identificationNumber},
+                {label: 'EAN', widget: form.eans, codes: true, help: 'One per edition or region.', current: puzzle_eans(puzzle.ean), currentValue: puzzle_eans(puzzle.ean)},
+                {label: 'Brand code', widget: form.brandCodes, codes: true, help: null, current: puzzle_brand_codes(puzzle.identificationNumber), currentValue: puzzle_brand_codes(puzzle.identificationNumber)},
             ]|map(field => field|merge({proposed: false, proposedShown: null, proposedValue: null, original: null, originalDiffers: false})) %}
 
             <h2 class="h5 mb-1">2. Check and approve</h2>
@@ -192,7 +192,7 @@
 
             {{ form_start(form, {attr: {
                 'data-controller': 'puzzle-record',
-                'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update names-editor:change->puzzle-record#update',
+                'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update names-editor:change->puzzle-record#update optional-rows:change->puzzle-record#update',
                 'data-puzzle-record-proposed-label-value': 'Proposed',
                 'data-puzzle-record-edit-label-value': 'Your edit',
                 'data-puzzle-record-kept-label-value': 'Keeping current',

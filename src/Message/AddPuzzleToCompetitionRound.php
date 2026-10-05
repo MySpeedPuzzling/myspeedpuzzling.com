@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -18,8 +20,8 @@ readonly final class AddPuzzleToCompetitionRound
         public string $puzzle,
         public null|int $piecesCount,
         public null|UploadedFile $puzzlePhoto,
-        public null|string $puzzleEan,
-        public null|string $puzzleIdentificationNumber,
+        public EanList $eans,
+        public BrandCodeList $brandCodes,
         public bool $hideUntilRoundStarts,
         public PuzzleHideMode $hideMode = PuzzleHideMode::ImageOnly,
     ) {

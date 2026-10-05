@@ -240,9 +240,10 @@ paths:
       operationId: submitPuzzleChangeRequest
       description: |
         Files the same review item a player's "Suggest a change" creates, as the reviewer
-        player. A field left out keeps the puzzle's current value. `ean` is the whole
-        comma-separated list as it should end up; every code not already on the puzzle
-        must be a valid EAN/UPC. `alternativeNames` is the whole list of the other names
+        player. A field left out keeps the puzzle's current value. `ean` and
+        `identificationNumber` are each the whole list of codes as it should end up - a
+        list (one code per entry, `[]` removes every code) or one comma-separated string;
+        every EAN not already on the puzzle must be a valid EAN/UPC. `alternativeNames` is the whole list of the other names
         as it should end up (re-read the puzzle's names first); it is proposed together
         with `nameLanguage` and applied as a diff against the names when filed.
 
@@ -651,10 +652,19 @@ components:
           type: integer
           minimum: 1
         mergedEan:
-          type: [string, "null"]
-          description: Omit or blank to keep the survivor's own.
+          description: Omit or blank to keep the survivor's own - a list of codes or one comma-separated string. The merged puzzles' codes are added either way.
+          oneOf:
+            - type: [string, "null"]
+            - type: array
+              items:
+                type: string
         mergedIdentificationNumber:
-          type: [string, "null"]
+          description: As mergedEan, for the brand codes.
+          oneOf:
+            - type: [string, "null"]
+            - type: array
+              items:
+                type: string
         mergedManufacturerId:
           type: [string, "null"]
         selectedImagePuzzleId:
@@ -759,10 +769,19 @@ components:
           minimum: 10
           maximum: 25000
         ean:
-          type: string
-          description: The whole comma-separated list as it should end up.
+          description: Every EAN as it should end up - a list, one code per entry (`[]` removes every code), or one comma-separated string.
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
         identificationNumber:
-          type: string
+          description: Every brand code as it should end up - like `ean`.
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
         nameLanguage:
           type: [string, "null"]
           description: BCP 47 language of the main title when the box has no English title (`cs`, `pt-BR`); null = English or not known.

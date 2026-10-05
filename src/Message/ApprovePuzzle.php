@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
@@ -24,8 +26,8 @@ readonly final class ApprovePuzzle implements SerializedByLock
         // Every other name as approved, in order
         public PuzzleNames $alternativeNames,
         public int $piecesCount,
-        public null|string $ean,
-        public null|string $identificationNumber,
+        public EanList $eans,
+        public BrandCodeList $brandCodes,
         public PuzzleApprovalBrandChoice $brandChoice = PuzzleApprovalBrandChoice::Keep,
         // Target brand for UseExisting and MergeInto
         public null|string $targetManufacturerId = null,

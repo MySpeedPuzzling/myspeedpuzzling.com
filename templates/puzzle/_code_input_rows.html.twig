@@ -1,0 +1,30 @@
+{#
+    The inputs of a code list (CodeListType - a puzzle's EANs or brand codes, one input per code) inside an element
+    holding optional_rows_controller.js: the first input always there, without ×, every other row with ×, and the
+    <template> "+ another" adds a row from. Used by puzzle/_code_inputs.html.twig and the moderators' record cards.
+
+    Required: field - the CodeListType view
+    Optional: input_attr - attributes of every input; remove_label - the ×'s accessible name;
+              first_input - HTML replacing the first input's widget (the add form's scan button next to it),
+              first_errors - HTML replacing the first input's errors
+#}
+{% set input_attr = input_attr|default({}) %}
+{% set remove_label = remove_label|default('puzzle_codes.remove'|trans) %}
+
+<div class="code-inputs__rows" data-optional-rows-target="rows">
+    {%- for row in field -%}
+        {% if loop.first %}
+            <div class="code-inputs__row" data-optional-rows-target="row">
+                {% if first_input is defined %}{{ first_input|raw }}{% else %}{{ form_widget(row, {attr: input_attr}) }}{% endif %}
+                {% if first_errors is defined %}{{ first_errors|raw }}{% else %}{{ form_errors(row) }}{% endif %}
+            </div>
+        {% else %}
+            {{ include('puzzle/_code_input_row.html.twig', {row: row, input_attr: input_attr, remove_label: remove_label}, with_context = false) }}
+        {% endif %}
+    {%- endfor -%}
+</div>
+<template data-optional-rows-target="template">
+    {{- include('puzzle/_code_input_row.html.twig', {row: field.vars.prototype, input_attr: input_attr, remove_label: remove_label}, with_context = false) -}}
+</template>
+{{ form_errors(field) }}
+{% do field.setRendered %}

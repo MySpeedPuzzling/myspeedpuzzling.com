@@ -85,17 +85,18 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
             $option = self::option($browser, PuzzleFixture::PUZZLE_500_02);
 
             self::assertStringContainsString('&lt;img src=x onerror=alert(1)&gt;', $option['text']);
-            self::assertStringContainsString('&lt;script&gt;alert(3)&lt;/script&gt;', $option['text']);
+            // Brand codes are shown in upper case (BrandCodeList)
+            self::assertStringContainsString('&lt;SCRIPT&gt;ALERT(3)&lt;/SCRIPT&gt;', $option['text']);
             self::assertStringContainsString('&quot;&gt;&lt;svg onload=alert(4)&gt;', $option['text']);
 
             foreach (['<img src=x', '<script', '<svg', '<b '] as $markup) {
-                self::assertStringNotContainsString($markup, $option['text']);
+                self::assertStringNotContainsStringIgnoringCase($markup, $option['text']);
             }
 
             // Plain text: Tom Select only searches these, never renders them
             self::assertSame('<img src=x onerror=alert(1)>', $option['name']);
             self::assertSame('<b onmouseover=alert(2)>Kočky</b>', $option['names']);
-            self::assertSame("\"><svg onload=alert(4)>\n<script>alert(3)</script>", $option['codes']);
+            self::assertSame("\"><svg onload=alert(4)>\n<SCRIPT>ALERT(3)</SCRIPT>", $option['codes']);
         }
 
         self::assertStringContainsString('&lt;img src=x onerror=alert(1)&gt; <small lang="cs">(&lt;b onmouseover=alert(2)&gt;Kočky&lt;/b&gt;)</small>', $option['text']);

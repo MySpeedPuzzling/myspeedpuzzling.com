@@ -136,9 +136,9 @@
                                     <dt class="col-5 fw-normal text-muted">Pieces</dt>
                                     <dd class="col-7 mb-1"><span class="{{ differs.pieces ? differs_class }}">{{ puzzle.piecesCount }}</span></dd>
                                     <dt class="col-5 fw-normal text-muted">EAN</dt>
-                                    <dd class="col-7 text-break mb-1"><span class="{{ differs.ean ? differs_class }}">{{ macros.shown(puzzle.puzzleEan) }}</span></dd>
+                                    <dd class="col-7 text-break mb-1"><span class="d-block {{ differs.ean ? differs_class }}">{{ macros.shown_list(puzzle_eans(puzzle.puzzleEan)) }}</span></dd>
                                     <dt class="col-5 fw-normal text-muted">Brand code</dt>
-                                    <dd class="col-7 text-break mb-1"><span class="{{ differs.code ? differs_class }}">{{ macros.shown(puzzle.puzzleIdentificationNumber) }}</span></dd>
+                                    <dd class="col-7 text-break mb-1"><span class="d-block {{ differs.code ? differs_class }}">{{ macros.shown_list(puzzle_brand_codes(puzzle.puzzleIdentificationNumber)) }}</span></dd>
                                     <dt class="col-5 fw-normal text-muted">Solving times</dt>
                                     <dd class="col-7 mb-0">{{ puzzle.solvedTimes }}</dd>
                                 </dl>
@@ -204,20 +204,28 @@
                         {% endif %}
                     </div>
 
-                    {# EAN and brand code: the union of all - a puzzle may have one per edition or region #}
-                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
-                        {{ form_label(form.ean, 'EAN', {label_attr: {class: 'form-label fw-semibold'}}) }}
-                        {{ form_widget(form.ean) }}
-                        {{ form_errors(form.ean) }}
-                        <div class="form-text">All codes of the puzzles, comma-separated - one per edition or region. Never reduce the list.</div>
-                    </div>
+                    {# EAN and brand code: the union of all - a puzzle may have one per edition or region; the merge adds every
+                       code of the merged puzzles either way #}
+                    {{ include('puzzle/_code_inputs.html.twig', {
+                        field: form.eans,
+                        label: 'EAN',
+                        add_label: '+ another',
+                        remove_label: 'Remove this code',
+                        help: 'All codes of the puzzles - one per edition or region. Never reduce the list.',
+                        max: 0,
+                        label_class: 'form-label fw-semibold',
+                        wrapper_class: 'border rounded-3 p-3 mb-3 shadow-sm',
+                    }, with_context = false) }}
 
-                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
-                        {{ form_label(form.identificationNumber, 'Brand code', {label_attr: {class: 'form-label fw-semibold'}}) }}
-                        {{ form_widget(form.identificationNumber) }}
-                        {{ form_errors(form.identificationNumber) }}
-                        <div class="form-text">Comma-separated</div>
-                    </div>
+                    {{ include('puzzle/_code_inputs.html.twig', {
+                        field: form.brandCodes,
+                        label: 'Brand code',
+                        add_label: '+ another',
+                        remove_label: 'Remove this code',
+                        max: 0,
+                        label_class: 'form-label fw-semibold',
+                        wrapper_class: 'border rounded-3 p-3 mb-3 shadow-sm',
+                    }, with_context = false) }}
 
                     {# Image: one of the reported puzzles' images #}
                     {% if form.selectedImagePuzzleId is defined %}

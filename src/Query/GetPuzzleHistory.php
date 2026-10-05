@@ -471,7 +471,10 @@ SQL;
             $proposed = self::text($row[$proposedColumn]);
             $original = self::text($row[$originalColumn]);
 
-            if ($proposed !== null && $proposed !== $original) {
+            // A code list proposed empty ('') removes every code (PuzzleChangeRequest::$proposedEan)
+            $removed = $row[$proposedColumn] === '' && $original !== null;
+
+            if (($proposed !== null && $proposed !== $original) || $removed) {
                 $proposal[] = new PuzzleHistoryChange(PuzzleHistoryChange::label($field), $original, $proposed);
             }
 

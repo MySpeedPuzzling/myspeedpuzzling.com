@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -43,8 +45,8 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: PuzzleFixture::PUZZLE_300,
             piecesCount: null,
             puzzlePhoto: null,
-            puzzleEan: null,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: false,
         ));
 
@@ -71,8 +73,8 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: PuzzleFixture::PUZZLE_300,
             piecesCount: null,
             puzzlePhoto: null,
-            puzzleEan: null,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
         ));
@@ -104,8 +106,8 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: PuzzleFixture::PUZZLE_300,
             piecesCount: null,
             puzzlePhoto: null,
-            puzzleEan: null,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::ImageOnly,
         ));
@@ -133,8 +135,8 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: 'Secret Competition Puzzle',
             piecesCount: 1000,
             puzzlePhoto: null,
-            puzzleEan: null,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
         ));
@@ -163,8 +165,8 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: 'Another Secret Puzzle',
             piecesCount: 500,
             puzzlePhoto: null,
-            puzzleEan: null,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::ImageOnly,
         ));
@@ -193,8 +195,8 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: 'Visible New Puzzle',
             piecesCount: 500,
             puzzlePhoto: null,
-            puzzleEan: null,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: false,
         ));
 
@@ -220,8 +222,8 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: 'Brand New Puzzle',
             piecesCount: 750,
             puzzlePhoto: null,
-            puzzleEan: '1234567890123',
-            puzzleIdentificationNumber: 'ID-001',
+            eans: EanList::fromInputs(['01234567890123']),
+            brandCodes: BrandCodeList::fromInputs(['id-001']),
             hideUntilRoundStarts: false,
         ));
 
@@ -262,8 +264,8 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: PuzzleFixture::PUZZLE_300,
             piecesCount: null,
             puzzlePhoto: null,
-            puzzleEan: null,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: false,
         ));
 
@@ -285,8 +287,8 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: 'Round puzzle with a typed brand',
             piecesCount: 500,
             puzzlePhoto: null,
-            puzzleEan: null,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: false,
         ));
 

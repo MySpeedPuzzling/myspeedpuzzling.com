@@ -103,7 +103,7 @@
                                 <div class="fs-sm manufacturer-name">
                                     {{ puzzle.manufacturerName }}
                                     {% if puzzle.puzzleIdentificationNumber is not null %}
-                                        <small class="text-muted">{{ highlight(puzzle.puzzleIdentificationNumber, this.query) }}</small>
+                                        <small class="text-muted">{{ highlight(puzzle_brand_codes(puzzle.puzzleIdentificationNumber)|join(', '), this.query) }}</small>
                                     {% endif %}
                                 </div>
 

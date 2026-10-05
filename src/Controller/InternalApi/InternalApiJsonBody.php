@@ -73,6 +73,38 @@ final class InternalApiJsonBody
     }
 
     /**
+     * A puzzle's codes (EANs or brand codes): a list of strings, one code each - `[]` removes every code - or, as
+     * before the lists, one string with the codes comma-separated. Null when not given; a blank string counts as not
+     * given, so it never overwrites a stored value.
+     *
+     * @param array<string, mixed> $body
+     *
+     * @return null|list<string>
+     */
+    public static function optionalCodeList(array $body, string $key): null|array
+    {
+        $value = $body[$key] ?? null;
+
+        if (is_array($value) === false) {
+            $code = self::optionalString($body, $key);
+
+            return $code !== null ? [$code] : null;
+        }
+
+        $codes = [];
+
+        foreach (array_is_list($value) ? $value : [null] as $code) {
+            if (is_string($code) === false) {
+                throw new BadRequestHttpException(sprintf('"%s" must be a string or a list of strings.', $key));
+            }
+
+            $codes[] = $code;
+        }
+
+        return $codes;
+    }
+
+    /**
      * @param array<string, mixed> $body
      */
     public static function confidence(array $body): null|MergeDecisionConfidence

@@ -36,8 +36,8 @@
                                 </p>
                                 {{ form_row(form.piecesCount) }}
                                 {{ form_row(form.puzzlePhoto) }}
-                                {{ form_row(form.puzzleEan) }}
-                                {{ form_row(form.puzzleIdentificationNumber) }}
+                                {{ include('puzzle/_code_inputs.html.twig', {field: form.puzzleEans, label: 'forms.ean'|trans}, with_context = false) }}
+                                {{ include('puzzle/_code_inputs.html.twig', {field: form.puzzleBrandCodes, label: 'forms.identification_number'|trans}, with_context = false) }}
                             </div>
 
                             <div class="mb-3">

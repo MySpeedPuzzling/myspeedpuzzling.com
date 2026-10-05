@@ -68,8 +68,8 @@ readonly final class SubmitPuzzleChangeRequestHandler
             proposedName: $message->proposedName,
             proposedManufacturer: $proposedManufacturer,
             proposedPiecesCount: $message->proposedPiecesCount,
-            proposedEan: $message->proposedEan,
-            proposedIdentificationNumber: $message->proposedIdentificationNumber,
+            proposedEan: self::proposedCodes($message->proposedEans->toStored(), $puzzle->eans()->toStored()),
+            proposedIdentificationNumber: self::proposedCodes($message->proposedBrandCodes->toStored(), $puzzle->brandCodes()->toStored()),
             proposedImage: $proposedImagePath,
             proposedImageRatio: $proposedImageRatio,
             // Stored as the puzzle would keep them next to the proposed main title (PuzzleNames::cleanedFor())
@@ -88,5 +88,14 @@ readonly final class SubmitPuzzleChangeRequestHandler
         );
 
         $this->entityManager->persist($changeRequest);
+    }
+
+    /**
+     * A code list as the change request stores it (PuzzleChangeRequest::$proposedEan): null when the puzzle has these
+     * codes already, '' when every code goes, otherwise the canonical list.
+     */
+    private static function proposedCodes(null|string $proposed, null|string $current): null|string
+    {
+        return $proposed === $current ? null : ($proposed ?? '');
     }
 }

@@ -58,7 +58,8 @@ final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
         self::assertSame(self::MERGE_REQUEST_ID, $dispatched->mergeRequestId);
         self::assertSame(self::REVIEWER_ID, $dispatched->reviewerId, 'Reviewer comes from config, never from the request body');
         self::assertSame(self::SURVIVOR_ID, $dispatched->survivorPuzzleId);
-        self::assertSame('850006234257', $dispatched->mergedEan);
+        self::assertSame(['850006234257'], $dispatched->mergedEans?->codes());
+        self::assertSame(['03.20B'], $dispatched->mergedBrandCodes?->codes());
         self::assertSame(500, $dispatched->mergedPiecesCount);
         self::assertNull($dispatched->mergedManufacturerId);
         self::assertSame(MergeDecisionSource::InternalApi, $dispatched->decisionSource);
@@ -81,7 +82,7 @@ final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
 
         self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
         // A blank EAN must not overwrite what the survivor already has
-        self::assertNull($dispatched->mergedEan);
+        self::assertNull($dispatched->mergedEans);
         self::assertNull($dispatched->decisionConfidence);
         self::assertNull($dispatched->decisionNote);
     }

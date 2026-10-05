@@ -12,6 +12,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 
@@ -303,8 +305,8 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
             alternativeNames: $alternativeNames,
             addedByUser: $addedByUser,
             addedAt: $this->clock->now(),
-            identificationNumber: $identificationNumber,
-            ean: $ean,
+            brandCodes: BrandCodeList::fromStored($identificationNumber),
+            eans: EanList::fromStored($ean),
             isAvailable: $isAvailable,
             hideImageUntil: $hideImageUntil,
         );

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Controller\InternalApi\SubmitPuzzleChangeRequestController;
+use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
@@ -47,8 +48,48 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
         self::assertSame('4005556789012, 4005555011897', $changeRequest->proposedEan);
         self::assertSame($changeRequest->originalName, $changeRequest->proposedName);
         self::assertSame($changeRequest->originalPiecesCount, $changeRequest->proposedPiecesCount);
-        self::assertSame($changeRequest->originalIdentificationNumber, $changeRequest->proposedIdentificationNumber);
+        // A list equal to the puzzle's proposes nothing for the field
+        self::assertNull($changeRequest->proposedIdentificationNumber);
         self::assertNull($changeRequest->proposedImage);
+    }
+
+    public function testTheCodesMayComeAsAListOneCodePerEntry(): void
+    {
+        $response = $this->controller()($this->jsonRequest([
+            'puzzleId' => self::PUZZLE,
+            'ean' => ['4005556789012', '04005555011897', ''],
+            'identificationNumber' => ['rb-8', ' 12000199 '],
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+        $changeRequest = $this->filed($response);
+        self::assertSame('4005556789012, 4005555011897', $changeRequest->proposedEan);
+        self::assertSame('RB-8, 12000199', $changeRequest->proposedIdentificationNumber);
+    }
+
+    public function testAnEmptyListRemovesEveryCode(): void
+    {
+        $response = $this->controller()($this->jsonRequest(['puzzleId' => self::PUZZLE, 'ean' => []]));
+
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+        $changeRequest = $this->filed($response);
+        self::assertSame('', $changeRequest->proposedEan, 'every code removed');
+        self::assertSame('4005556789012', $changeRequest->originalEan);
+    }
+
+    public function testCodesInTheirStoredFormAgainAreNothingToChange(): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+
+        $this->controller()($this->jsonRequest(['puzzleId' => self::PUZZLE, 'ean' => [' 04005556789012 ']]));
+    }
+
+    public function testACodeListOfAnythingButStringsIsRefused(): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('"ean" must be a string or a list of strings.');
+
+        $this->controller()($this->jsonRequest(['puzzleId' => self::PUZZLE, 'ean' => [4005555011897]]));
     }
 
     public function testInvalidNewCodeIsRefused(): void
@@ -198,6 +239,15 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
             $container->get(GetPendingPuzzleProposals::class),
             PlayerFixture::PLAYER_ADMIN,
         );
+    }
+
+    private function filed(Response $response): PuzzleChangeRequest
+    {
+        $body = json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($body);
+        self::assertIsString($body['changeRequestId'] ?? null);
+
+        return self::getContainer()->get(PuzzleChangeRequestRepository::class)->get($body['changeRequestId']);
     }
 
     /**

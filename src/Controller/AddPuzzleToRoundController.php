@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -74,8 +76,8 @@ final class AddPuzzleToRoundController extends AbstractController
                     puzzle: $data->puzzle,
                     piecesCount: $data->piecesCount,
                     puzzlePhoto: $data->puzzlePhoto,
-                    puzzleEan: $data->puzzleEan,
-                    puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
+                    eans: EanList::fromInputs($data->puzzleEans),
+                    brandCodes: BrandCodeList::fromInputs($data->puzzleBrandCodes),
                     hideUntilRoundStarts: $data->hideUntilRoundStarts,
                     hideMode: $data->hideMode,
                 ));

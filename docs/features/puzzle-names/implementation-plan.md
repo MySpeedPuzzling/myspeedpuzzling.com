@@ -158,3 +158,9 @@ moderators.
 3. Format-only canonicalisation command (batched, entity methods): separators, spaces, leading zeros. Anything that
    would change a value goes to a report → change proposals.
 4. Puzzle page lists each code on its own line (UPC padded back to 12 digits); JSON-LD uses the same list.
+
+Shipped as: `EanList` / `BrandCodeList` (canonical lists, `display()`, `union()`, `isFormatOnlyChangeOf()`),
+`CodeListType` + `puzzle/_code_inputs.html.twig` (reusing `optional_rows_controller.js`, which now also loads a list for
+the moderators' "Keep current" / "Undo my edit"), Twig `puzzle_eans()` / `puzzle_brand_codes()` / `puzzle_gtins()`,
+`myspeedpuzzling:canonicalize-puzzle-codes` (`PuzzleCodesCleanup`, `CanonicalizePuzzleCodes` handler, report CSV).
+Decisions and the production-copy numbers in [README.md](README.md) "Delivery decisions" (phase 5).

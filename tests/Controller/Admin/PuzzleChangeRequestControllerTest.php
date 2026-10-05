@@ -66,9 +66,9 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
 
         // Proposed by the player
         self::assertSame('Updated Puzzle Name', $values['puzzle_record_form[names][name]']);
-        self::assertSame('1234567890123', $values['puzzle_record_form[ean]']);
+        self::assertSame('1234567890123', $values['puzzle_record_form[eans][0]']);
         // Not proposed - the puzzle as it is now
-        self::assertSame('RB-500-001', $values['puzzle_record_form[identificationNumber]']);
+        self::assertSame('RB-500-001', $values['puzzle_record_form[brandCodes][0]']);
         self::assertSame('500', $values['puzzle_record_form[piecesCount]']);
         self::assertSame(ManufacturerFixture::MANUFACTURER_RAVENSBURGER, $values['puzzle_record_form[manufacturerId]']);
         // No image was proposed - nothing to choose, only a drop area for a new one
@@ -88,7 +88,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_PENDING);
         $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
 
-        $form['puzzle_record_form[ean]'] = '4005556123452';
+        $form['puzzle_record_form[eans][0]'] = '4005556123452';
         $form['puzzle_record_form[piecesCount]'] = '1000';
         $values = $form->getPhpValues();
         self::assertIsArray($values['puzzle_record_form']);
@@ -152,7 +152,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         // Sent again with the EAN fixed and only the token - the kept photo becomes the puzzle's image
         $fields = $values['puzzle_record_form'];
         self::assertIsArray($fields);
-        $fields['ean'] = '4005556123452';
+        $fields['eans'] = ['4005556123452'];
         $browser->request('POST', $url, [
             'puzzle_record_form' => $fields,
             'photo_stash' => ['puzzlePhoto' => $token],

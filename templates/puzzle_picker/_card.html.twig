@@ -30,7 +30,7 @@
                 <span>
                     <span class="fw-bold">{{ 'pieces_count'|trans({'%count%': suggestion.piecesCount})|raw }}</span>
                     {% if suggestion.puzzleIdentificationNumber is not null %}
-                        <span class="text-muted ms-1">{{ suggestion.puzzleIdentificationNumber }}</span>
+                        <span class="text-muted ms-1">{{ puzzle_brand_codes(suggestion.puzzleIdentificationNumber)|join(', ') }}</span>
                     {% endif %}
                 </span>
                 {# Difficulty tier - members only; non-members get no lock here, the one lock on the card is the prediction row #}

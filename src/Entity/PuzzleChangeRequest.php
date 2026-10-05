@@ -65,6 +65,8 @@ class PuzzleChangeRequest
         #[Immutable]
         #[Column(nullable: true)]
         public null|int $proposedPiecesCount = null,
+        // The code lists as proposed, canonical (EanList::toStored(), BrandCodeList::toStored()): null = not proposed,
+        // '' = every code removed. Requests filed before the lists hold whatever the form had, changed or not
         #[Immutable]
         #[Column(nullable: true)]
         public null|string $proposedEan = null,

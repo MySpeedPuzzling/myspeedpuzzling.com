@@ -1,0 +1,34 @@
+{#
+    A puzzle's EANs or brand codes in a form (CodeListType, docs/features/puzzle-names/README.md decision 6): the label
+    with a quiet "+ another" at the end of its line, the first input always there, every further code in a row of its
+    own with × (optional_rows_controller.js). Nothing more shows until "+ another" is tapped.
+
+    Required: field - the CodeListType view, label - the field's label (translated)
+    Optional: add_label (default "+ another"), help, max - inputs at most (default 10, 0 = no limit), label_class,
+              wrapper_class, wrapper_attr - more attributes of the wrapper (a Stimulus target), and what
+              puzzle/_code_input_rows.html.twig takes (input_attr, remove_label, first_input, first_errors)
+#}
+{% set first = field.children|first %}
+{% set code_keys = field|keys %}
+
+<div class="code-inputs {{ wrapper_class|default('mb-3') }}"
+     data-controller="optional-rows"
+     data-optional-rows-index-value="{{ code_keys|length > 0 ? max(code_keys) + 1 : 1 }}"
+     data-optional-rows-max-value="{{ max|default(constant('SpeedPuzzling\\Web\\Value\\EanList::FORM_MAX_CODES')) }}"
+     {% for attribute, value in wrapper_attr|default({}) %}{{ attribute }}="{{ value }}" {% endfor %}>
+    <div class="label-row">
+        <label class="{{ label_class|default('form-label') }}" {% if first %}for="{{ first.vars.id }}"{% endif %}>{{ label }}</label>
+        <button type="button"
+                class="btn btn-link label-row__link"
+                data-optional-rows-target="add"
+                data-action="optional-rows#add">
+            {{- add_label|default('puzzle_codes.add_another'|trans) -}}
+        </button>
+    </div>
+
+    {{ include('puzzle/_code_input_rows.html.twig') }}
+
+    {% if help|default(null) %}
+        <div class="form-text">{{ help }}</div>
+    {% endif %}
+</div>

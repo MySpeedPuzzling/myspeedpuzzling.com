@@ -30,9 +30,13 @@ filed against it, and approving with it refuses a puzzle that changed since.
 | `alternativeNames` | optional - the **whole list** of the other names as it should end up: `[{"name": "Kruh barev: Mušle", "language": "cs"}, …]` |
 | `nameLanguage` | optional - the main title's BCP 47 language when the box has no English title (`"cs"`, `"pt-BR"`), `null` = English or not known |
 
-`ean` is the puzzle's **whole** comma-separated list as it should end up (several codes are valid - one per edition or
-region; never reduce a list to one value). Every code not already on the puzzle must be a valid EAN/UPC (`400` otherwise).
-No photo through the API.
+`ean` and `identificationNumber` are each the puzzle's **whole** list of codes as it should end up (several codes are
+valid - one per edition or region; never reduce a list to one value): a JSON list, one code per entry
+(`"ean": ["4005556147090", "4005555001997"]`, `[]` removes every code - the way to drop junk like "None"), or one
+comma-separated string as before. Every EAN not already on the puzzle must be a valid EAN/UPC (`400` otherwise). Codes
+are stored canonical (EANs as digits without leading zeros, brand codes upper case, each once), so a list differing from
+the puzzle's only in that form proposes nothing. The rows of `myspeedpuzzling:canonicalize-puzzle-codes --report=…`
+(what the format-only cleanup left to a person) are meant to be filed this way. No photo through the API.
 
 ### Names (docs/features/puzzle-names/README.md)
 
@@ -62,7 +66,7 @@ TOKEN=$(grep '^INTERNAL_API_TOKEN=' .env.local | cut -d= -f2)
 STATUS=$(curl -sS -o /tmp/change-proposal.json -w '%{http_code}' \
   -X POST "https://myspeedpuzzling.com/internal-api/puzzle-change-requests" \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"puzzleId": "<uuid>", "ean": "4005555011903"}')
+  -d '{"puzzleId": "<uuid>", "ean": ["4005555011903"]}')
 echo "HTTP $STATUS"; cat /tmp/change-proposal.json
 ```
 

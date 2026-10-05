@@ -124,8 +124,8 @@ readonly final class AddPuzzleToCompetitionRoundHandler
             manufacturer: $manufacturer,
             addedByUser: $player,
             addedAt: $now,
-            identificationNumber: $message->puzzleIdentificationNumber,
-            ean: $message->puzzleEan !== null ? (ltrim($message->puzzleEan, '0') ?: null) : null,
+            brandCodes: $message->brandCodes,
+            eans: $message->eans,
         );
 
         $this->entityManager->persist($puzzle);

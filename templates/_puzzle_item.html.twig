@@ -55,7 +55,7 @@
                             {{ puzzle.manufacturerName }}
                         {% endif %}
                         {% if puzzle.puzzleIdentificationNumber is not null %}
-                            <br class="d-none d-md-block"><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
+                            <br class="d-none d-md-block"><small class="text-muted">{{ puzzle_brand_codes(puzzle.puzzleIdentificationNumber)|join(', ') }}</small>
                         {% endif %}
                     </div>
                 </div>

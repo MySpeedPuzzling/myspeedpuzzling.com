@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -69,7 +70,7 @@ final class EditPuzzleControllerTest extends WebTestCase
         $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
         $values = $form->getValues();
         self::assertSame('Puzzle 1', $values['puzzle_record_form[names][name]']);
-        self::assertSame('RB-500-001', $values['puzzle_record_form[identificationNumber]']);
+        self::assertSame('RB-500-001', $values['puzzle_record_form[brandCodes][0]']);
         self::assertArrayNotHasKey('puzzle_record_form[image]', $values);
 
         $browser->submit($form, [
@@ -101,7 +102,7 @@ final class EditPuzzleControllerTest extends WebTestCase
 
         $crawler = $browser->submit($form, [
             'puzzle_record_form[names][name]' => 'Typed By The Moderator',
-            'puzzle_record_form[ean]' => '1234567890123',
+            'puzzle_record_form[eans][0]' => '1234567890123',
         ]);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -112,6 +113,67 @@ final class EditPuzzleControllerTest extends WebTestCase
 
         $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01);
         self::assertSame('Puzzle 1', $puzzle->name);
+    }
+
+    public function testEveryCodeHasItsInputAndARefusedOneIsMarkedOnIt(): void
+    {
+        $browser = $this->signedInAdmin();
+        $editUrl = '/admin/puzzles/' . PuzzleFixture::PUZZLE_1000_05 . '/edit';
+
+        $crawler = $browser->request('GET', $editUrl);
+        self::assertResponseIsSuccessful();
+
+        // Two editions: one input per code, the codes card says so for the summary (data-codes, JSON lists)
+        $values = $crawler->filter('form[data-controller~="puzzle-record"]')->form()->getValues();
+        self::assertSame('4005556174812', $values['puzzle_record_form[eans][0]']);
+        self::assertSame('4005556197484', $values['puzzle_record_form[eans][1]']);
+        self::assertSame('17481', $values['puzzle_record_form[brandCodes][0]']);
+        self::assertSame('19748-2', $values['puzzle_record_form[brandCodes][1]']);
+        self::assertSelectorExists('[data-label="EAN"][data-codes][data-current=\'["4005556174812","4005556197484"]\']');
+        self::assertSelectorExists('template[data-optional-rows-target="template"] input[name="puzzle_record_form[eans][__name__]"]');
+
+        $form = $crawler->filter('form[data-controller~="puzzle-record"]')->form();
+        $fields = $form->getPhpValues();
+        self::assertIsArray($fields['puzzle_record_form']);
+        // The first code removed (×), one more typed - with a wrong check digit
+        $fields['puzzle_record_form']['eans'] = [1 => '4005556197484', 2 => '4005556197485'];
+        $crawler = $browser->request('POST', $editUrl, $fields);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertSame(['4005556197484', '4005556197485'], $crawler->filter('[data-optional-rows-target="rows"] input[name^="puzzle_record_form[eans]"]')->each(
+            static fn (Crawler $input): string => (string) $input->attr('value'),
+        ));
+        self::assertStringContainsString('is-invalid', (string) $crawler->filter('input[name="puzzle_record_form[eans][2]"]')->attr('class'));
+        self::assertStringNotContainsString('is-invalid', (string) $crawler->filter('input[name="puzzle_record_form[eans][1]"]')->attr('class'));
+
+        $fields['puzzle_record_form']['eans'] = [1 => '4005556197484', 2 => '036000291452'];
+        $browser->request('POST', $editUrl, $fields);
+
+        self::assertResponseRedirects();
+        $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_05);
+        self::assertSame('4005556197484, 36000291452', $puzzle->ean);
+        self::assertSame('17481, 19748-2', $puzzle->identificationNumber);
+    }
+
+    public function testAFormOfTheReleaseBeforeKeepsItsCodes(): void
+    {
+        $browser = $this->signedInAdmin();
+        $editUrl = '/admin/puzzles/' . PuzzleFixture::PUZZLE_1000_05 . '/edit';
+
+        $crawler = $browser->request('GET', $editUrl);
+        $fields = $crawler->filter('form[data-controller~="puzzle-record"]')->form()->getPhpValues();
+        self::assertIsArray($fields['puzzle_record_form']);
+        // One text field per list, comma-separated - as the release before rendered it
+        unset($fields['puzzle_record_form']['eans'], $fields['puzzle_record_form']['brandCodes']);
+        $fields['puzzle_record_form']['ean'] = '4005556174812, 4005556197484, 036000291452';
+        $fields['puzzle_record_form']['identificationNumber'] = '17481, 19748-2';
+
+        $browser->request('POST', $editUrl, $fields);
+
+        self::assertResponseRedirects();
+        $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_05);
+        self::assertSame('4005556174812, 4005556197484, 36000291452', $puzzle->ean);
+        self::assertSame('17481, 19748-2', $puzzle->identificationNumber);
     }
 
     public function testEveryNameIsEditedInTheNamesEditorAndTheLanguageChangeIsInTheHistory(): void

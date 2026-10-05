@@ -68,15 +68,17 @@ Approve body:
 | `mergedNameLanguage` | no | BCP 47 tag of the main title when it is not English (`"cs"`); an explicit `null` = English or not known. **Left out**, the main title keeps the language the puzzles know for `mergedName` (the reporter's language of a main title, else the puzzle's own, else the language of the other name it is) - with or without `mergedAlternativeNames` |
 | `mergedAlternativeNames` | no | Every other name of the survivor, `[{"name", "language"}]` in order - **replaces** the union below, so list every name to keep. More than 20 only when the union already holds more |
 | `mergedPiecesCount` | yes | Positive integer |
-| `mergedEan` | no | Leave out to keep the survivor's own. May be a comma-separated list; the merged puzzle's codes are unioned in either way |
-| `mergedIdentificationNumber` | no | As above |
+| `mergedEan` | no | Leave out to keep the survivor's own. A list of codes (`["4005556147090", "4005555001997"]`) or one comma-separated string; the merged puzzle's codes are unioned in either way |
+| `mergedIdentificationNumber` | no | As above (brand codes) |
 | `mergedManufacturerId` | no | Leave out to keep the survivor's own |
 | `selectedImagePuzzleId` | no | Take the cover image from this puzzle |
 | `decisionConfidence` | no | `high`, `medium` or `low` |
 | `decisionNote` | no | Why — stored on the audit row, not shown to players |
 | `recordVersions` | no | `{"<puzzle id>": "<recordVersion>"}` - every candidate's `recordVersion` as the queue showed it. A puzzle changed since (a moderator's edit, an EAN link) answers `409` and nothing is merged; a puzzle left out is not checked. Always send them |
 
-Blank strings count as absent, so a blank `mergedEan` never blanks a real one.
+Blank strings count as absent, so a blank `mergedEan` never blanks a real one. Codes are stored in their canonical form
+(EANs as digits without leading zeros, brand codes in upper case, `", "`-separated, each once - docs/features/puzzle-names/
+README.md, decision 6).
 
 **A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any cover image or manufacturer that **only** a deleted puzzle had, and - unless `mergedAlternativeNames` is given - keeps every name of every merged puzzle (main title and other names) as an other name of the survivor, the survivor's previous main title too when `mergedName` is another one; each main title in the language the reporter gave it (`reportedNameLanguages`), else in its own `nameLanguage` (docs/features/puzzle-names/). Re-read the queue right before approving and send every candidate's `recordVersion` as `recordVersions`: a puzzle saved in between answers `409` with `{"error": "…"}` - read the queue again and decide again.
 
@@ -103,8 +105,11 @@ number, photo; "Suggest another name": one more name).
 
 File body: `puzzleId` (required) and any of `name`, `nameLanguage`, `alternativeNames`, `manufacturerId`, `piecesCount`,
 `ean`, `identificationNumber`. **A field left out keeps the puzzle's current value**, so the review shows only what the
-proposal changes; `ean` is the whole comma-separated list as it should end up, and every code not already on the puzzle
-must be a valid EAN/UPC. The reviewer player is the reporter. Answers `400` for an invalid field or when nothing differs,
+proposal changes. `ean` and `identificationNumber` are each the whole list of codes as it should end up: a JSON list,
+one code per entry (`"ean": ["4005556147090", "4005555001997"]`, `[]` removes every code), or - as before the lists -
+one string with the codes comma-separated (a blank string counts as left out). Every EAN not already on the puzzle
+must be a valid EAN/UPC. The proposal is stored in the canonical form (EANs as digits without leading zeros, brand
+codes in upper case, each once); a list equal to the puzzle's in that form proposes nothing for the field. The reviewer player is the reporter. Answers `400` for an invalid field or when nothing differs,
 `404` for an unknown puzzle and `409` when the puzzle already has a pending merge request or a pending change request of
 more than its names (the web form allows one at a time too). A proposal of the names only (`name`, `nameLanguage`,
 `alternativeNames` - nothing else differs) is filed regardless and holds up nothing: names apply as a diff, so several

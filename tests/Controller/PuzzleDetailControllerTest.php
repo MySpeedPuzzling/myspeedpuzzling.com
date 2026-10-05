@@ -289,7 +289,8 @@ final class PuzzleDetailControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         self::assertSame([
-            'EAN' => '4005556175895 / 4005555008385',
+            // Each code on its own line
+            'EAN' => '4005556175895 4005555008385',
             'Product number' => 'RB-500-001',
             'Also known as' => 'Bayerische Romanze · German Bavorská romance · Czech',
             'Used at' => 'WJPC 2024 Czech National Championship 2024',

@@ -9,6 +9,8 @@ import { Controller } from '@hotwired/stimulus';
 // from a refused submit) is used instead of either, and picking keep / proposed again drops that photo.
 // The names card (data-names, admin/_puzzle_record_names.html.twig) holds the names editor: its value is every name with
 // its language in order, data-current / data-proposed hold the names as JSON ({name, nameLanguage, alternativeNames}).
+// A code card (data-codes - the EANs, the brand codes) has one input per code (optional_rows_controller.js): its value
+// is the codes typed, in order, data-current / data-proposed hold them as a JSON list.
 export default class extends Controller {
     static targets = ['field', 'summary'];
     static values = {
@@ -174,6 +176,10 @@ export default class extends Controller {
             return this.namesKey(this.namesEditorState(field));
         }
 
+        if (this.isCodes(field)) {
+            return this.codesKey(Array.from(field.querySelectorAll('[data-optional-rows-target="row"] input')).map((input) => input.value));
+        }
+
         if (this.uploadOf(field)) {
             return this.hasUpload(field) ? 'upload' : this.checkedImage(field);
         }
@@ -190,6 +196,10 @@ export default class extends Controller {
     }
 
     comparable(field, value) {
+        if (this.isCodes(field)) {
+            return this.codesKey(JSON.parse(value || '[]'));
+        }
+
         return this.isNames(field) ? this.namesKey(JSON.parse(value || '{}')) : (value || '').trim();
     }
 
@@ -197,6 +207,11 @@ export default class extends Controller {
         if (this.isNames(field)) {
             const editor = field.querySelector('[data-controller~="names-editor"]');
             this.application.getControllerForElementAndIdentifier(editor, 'names-editor')?.load(JSON.parse(value || '{}'));
+            return;
+        }
+
+        if (this.isCodes(field)) {
+            this.application.getControllerForElementAndIdentifier(field, 'optional-rows')?.load(JSON.parse(value || '[]'));
             return;
         }
 
@@ -220,6 +235,15 @@ export default class extends Controller {
 
     isNames(field) {
         return 'names' in field.dataset;
+    }
+
+    isCodes(field) {
+        return 'codes' in field.dataset;
+    }
+
+    // One string for comparing code lists: trimmed, empty inputs left out - like the server saves them
+    codesKey(codes) {
+        return JSON.stringify(codes.map((code) => (code || '').trim()).filter((code) => code !== ''));
     }
 
     // The names as the editor shows them - read from its inputs, so it works before the editor's controller loaded

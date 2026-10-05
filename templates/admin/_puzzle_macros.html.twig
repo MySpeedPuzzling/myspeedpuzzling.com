@@ -8,6 +8,15 @@
     {%- endif -%}
 {%- endmacro %}
 
+{# A list of codes (EanList::display(), BrandCodeList::display()) - one per line #}
+{% macro shown_list(values) -%}
+    {%- if values is empty -%}
+        <span class="text-muted fst-italic">Not set</span>
+    {%- else -%}
+        {%- for value in values -%}<span class="d-block">{{ value }}</span>{%- endfor -%}
+    {%- endif -%}
+{%- endmacro %}
+
 {# A thumbnail that opens in the lightbox - needs a .gallery around it #}
 {% macro thumbnail(path, alt, height = 160) %}
     {% if path %}

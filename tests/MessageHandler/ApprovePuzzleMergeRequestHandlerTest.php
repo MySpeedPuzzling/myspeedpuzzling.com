@@ -18,6 +18,8 @@ use SpeedPuzzling\Web\Entity\Tag;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
 use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Entity\Notification;
@@ -92,8 +94,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Merged Puzzle Name',
-                mergedEan: '9999999999999',
-                mergedIdentificationNumber: 'MERGED-001',
+                mergedEans: EanList::fromInputs(['9999999999999']),
+                mergedBrandCodes: BrandCodeList::fromInputs(['merged-001']),
                 mergedPiecesCount: 500,
                 mergedManufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 selectedImagePuzzleId: null,
@@ -184,8 +186,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Merged Puzzle with All Data',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 selectedImagePuzzleId: null,
@@ -341,8 +343,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Deduplicated Puzzle',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 selectedImagePuzzleId: null,
@@ -405,7 +407,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     {
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
         $duplicatePuzzle->changeNames('Doomed Duplicate', null, new PuzzleNames([new PuzzleName('Odsouzený duplikát', 'cs')]), new DateTimeImmutable());
-        $duplicatePuzzle->updateProductIdentifiers(ean: '1111111111111', identificationNumber: 'DUP-001');
+        $duplicatePuzzle->updateProductIdentifiers(EanList::fromStored('1111111111111'), BrandCodeList::fromStored('DUP-001'));
         $this->entityManager->flush();
 
         $migratedSolvingTimeIds = array_map(
@@ -422,8 +424,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Survivor Name',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -478,11 +480,11 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     {
         // The survivor is the bare record; everything descriptive sits on the duplicate
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
-        $survivorPuzzle->updateProductIdentifiers(ean: null, identificationNumber: null);
+        $survivorPuzzle->updateProductIdentifiers(EanList::fromStored(null), BrandCodeList::fromStored(null));
         $survivorPuzzle->image = null;
 
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->updateProductIdentifiers(ean: '5900511374414', identificationNumber: '37441');
+        $duplicatePuzzle->updateProductIdentifiers(EanList::fromStored('5900511374414'), BrandCodeList::fromStored('37441'));
         $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([new PuzzleName('Americké koblihy', 'cs')]), new DateTimeImmutable());
         $duplicatePuzzle->image = 'puzzles/duplicate-cover.jpg';
         $duplicatePuzzle->imageRatio = 1.4;
@@ -497,8 +499,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Survivor Name',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -517,12 +519,12 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     public function testMergeKeepsEveryNameAndBothProductCodesAndNeverOverwritesOtherSurvivorDetails(): void
     {
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
-        $survivorPuzzle->updateProductIdentifiers(ean: '1234567890123', identificationNumber: 'KEEP-ME');
+        $survivorPuzzle->updateProductIdentifiers(EanList::fromStored('1234567890123'), BrandCodeList::fromStored('KEEP-ME'));
         $survivorPuzzle->changeNames('Puzzle 4', null, new PuzzleNames([new PuzzleName('Survivor Alternative', null)]), new DateTimeImmutable());
         $survivorPuzzle->image = 'puzzles/survivor-cover.jpg';
 
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->updateProductIdentifiers(ean: '9999999999999', identificationNumber: 'SECOND-EDITION');
+        $duplicatePuzzle->updateProductIdentifiers(EanList::fromStored('9999999999999'), BrandCodeList::fromStored('SECOND-EDITION'));
         $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([
             new PuzzleName('Duplicate Alternative', null),
             // The survivor's name again, accented and in Czech: one name, the tagged variant kept
@@ -539,8 +541,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Survivor Name',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -617,8 +619,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Puzzle 5',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -642,8 +644,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Puzzle 4',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -670,8 +672,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
             mergedName: 'Magic Morning',
-            mergedEan: null,
-            mergedIdentificationNumber: null,
+            mergedEans: null,
+            mergedBrandCodes: null,
             mergedPiecesCount: 500,
             mergedManufacturerId: null,
             selectedImagePuzzleId: null,
@@ -743,8 +745,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
             mergedName: 'Kouzelné ráno',
-            mergedEan: null,
-            mergedIdentificationNumber: null,
+            mergedEans: null,
+            mergedBrandCodes: null,
             mergedPiecesCount: 500,
             mergedManufacturerId: null,
             selectedImagePuzzleId: null,
@@ -768,8 +770,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
             mergedName: 'Kouzelné ráno',
-            mergedEan: null,
-            mergedIdentificationNumber: null,
+            mergedEans: null,
+            mergedBrandCodes: null,
             mergedPiecesCount: 500,
             mergedManufacturerId: null,
             selectedImagePuzzleId: null,
@@ -799,8 +801,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Puzzle 4',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -860,8 +862,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             survivorPuzzleId: strtoupper(PuzzleFixture::PUZZLE_500_04),
             mergedName: 'Puzzle 4',
-            mergedEan: null,
-            mergedIdentificationNumber: null,
+            mergedEans: null,
+            mergedBrandCodes: null,
             mergedPiecesCount: 500,
             mergedManufacturerId: null,
             selectedImagePuzzleId: strtoupper(PuzzleFixture::PUZZLE_500_04),
@@ -884,8 +886,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_1000_01,
                 mergedName: 'Puzzle 4',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -911,8 +913,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
             mergedName: 'Puzzle 4',
-            mergedEan: null,
-            mergedIdentificationNumber: null,
+            mergedEans: null,
+            mergedBrandCodes: null,
             mergedPiecesCount: 500,
             mergedManufacturerId: null,
             selectedImagePuzzleId: null,
@@ -950,8 +952,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: $mergedName,
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -1022,8 +1024,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Survivor Name',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -1060,12 +1062,12 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     {
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
         $survivorPuzzle->updateProductIdentifiers(
-            ean: '4005556147090, 4005555001997',
-            identificationNumber: '14709, 12000199',
+            EanList::fromStored('4005556147090, 4005555001997'),
+            BrandCodeList::fromStored('14709, 12000199'),
         );
 
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->updateProductIdentifiers(ean: '4005555012740', identificationNumber: '12001274');
+        $duplicatePuzzle->updateProductIdentifiers(EanList::fromStored('4005555012740'), BrandCodeList::fromStored('12001274'));
         $this->entityManager->flush();
 
         $mergeRequestId = $this->submitMergeRequest();
@@ -1076,8 +1078,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Survivor Name',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -1092,10 +1094,10 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     public function testMergeDoesNotRepeatACodeBothPuzzlesAlreadyShare(): void
     {
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
-        $survivorPuzzle->updateProductIdentifiers(ean: '4005556147564, 4005555002017', identificationNumber: null);
+        $survivorPuzzle->updateProductIdentifiers(EanList::fromStored('4005556147564, 4005555002017'), BrandCodeList::fromStored(null));
 
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->updateProductIdentifiers(ean: '4005556147564', identificationNumber: null);
+        $duplicatePuzzle->updateProductIdentifiers(EanList::fromStored('4005556147564'), BrandCodeList::fromStored(null));
         $this->entityManager->flush();
 
         $mergeRequestId = $this->submitMergeRequest();
@@ -1106,8 +1108,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Survivor Name',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -1154,8 +1156,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
                 survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
                 mergedName: 'Survivor Name',
-                mergedEan: null,
-                mergedIdentificationNumber: null,
+                mergedEans: null,
+                mergedBrandCodes: null,
                 mergedPiecesCount: 500,
                 mergedManufacturerId: null,
                 selectedImagePuzzleId: null,
@@ -1197,8 +1199,8 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             survivorPuzzleId: PuzzleFixture::PUZZLE_UNAPPROVED,
             mergedName: 'Merged',
-            mergedEan: null,
-            mergedIdentificationNumber: null,
+            mergedEans: null,
+            mergedBrandCodes: null,
             mergedPiecesCount: 1000,
             mergedManufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
             selectedImagePuzzleId: null,

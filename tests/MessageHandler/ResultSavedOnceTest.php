@@ -8,6 +8,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Stopwatch;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -453,8 +455,8 @@ final class ResultSavedOnceTest extends KernelTestCase
             brand: $brand,
             piecesCount: $piecesCount,
             puzzlePhoto: new UploadedFile($imagePath, 'box.jpg', 'image/jpeg', null, true),
-            puzzleEan: $ean,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromInputs([$ean]),
+            brandCodes: BrandCodeList::fromStored(null),
             alternativeNames: $alternativeNames,
         ));
     }

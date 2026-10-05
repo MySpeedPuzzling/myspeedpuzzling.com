@@ -303,7 +303,7 @@
                                     <span class="flex-grow-1 min-w-0">
                                         <span class="d-block text-truncate">{{ candidate.puzzleName }}</span>
                                         {{ include('puzzle/_name.html.twig', {name: candidate.puzzleName, alternative_names: candidate.puzzleAlternativeNames, class: 'text-truncate'}, with_context = false) }}
-                                        <span class="d-block small text-muted">{{ candidate.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': candidate.piecesCount})|raw }}{% if candidate.puzzleEan %} · <span class="font-monospace">{{ candidate.puzzleEan }}</span>{% endif %}</span>
+                                        <span class="d-block small text-muted">{{ candidate.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': candidate.piecesCount})|raw }}{% if candidate.puzzleEan %} · <span class="font-monospace">{{ puzzle_eans(candidate.puzzleEan)|join(', ') }}</span>{% endif %}</span>
                                     </span>
                                     <span class="small text-primary text-nowrap"><i class="bi-link-45deg"></i> {{ 'multiscan.resolve.link'|trans }}</span>
                                 </button>

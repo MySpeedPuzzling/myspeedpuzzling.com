@@ -84,10 +84,7 @@ readonly final class PuzzleRecordUpdater
         $puzzle->changeNames($name, $values->nameLanguage, $values->alternativeNames, $this->clock->now());
         $puzzle->manufacturer = $manufacturer;
         $puzzle->piecesCount = $values->piecesCount;
-        $puzzle->updateProductIdentifiers(
-            ean: self::nullIfBlank($values->ean),
-            identificationNumber: self::nullIfBlank($values->identificationNumber),
-        );
+        $puzzle->updateProductIdentifiers($values->eans, $values->brandCodes);
 
         // After the fields above: the image's file name is built from the final brand, name and pieces
         if ($values->image === PuzzleImageChoice::Proposed) {
@@ -173,16 +170,5 @@ readonly final class PuzzleRecordUpdater
         }
 
         return $newImagePath;
-    }
-
-    private static function nullIfBlank(null|string $value): null|string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $value = trim($value);
-
-        return $value === '' ? null : $value;
     }
 }

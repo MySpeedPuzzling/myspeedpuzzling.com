@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Tests\OAuth2TestHelper;
 use SpeedPuzzling\Web\Tests\OpenApiAssertions;
 use SpeedPuzzling\Web\Tests\PatTestHelper;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\MetricConfidence;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -372,6 +374,26 @@ final class PuzzleDetailEndpointTest extends WebTestCase
             ['name' => 'Bavorská romance', 'language' => 'cs'],
             ['name' => 'Romance in Bavaria', 'language' => null],
         ], $detail['alternative_names']);
+    }
+
+    public function testEveryBarcodeIsShownAsPrintedAUpcWithItsTwelfthDigit(): void
+    {
+        $browser = self::createClient();
+        $entityManager = $this->entityManager($browser);
+        $puzzle = $entityManager->find(Puzzle::class, PuzzleFixture::PUZZLE_500_02);
+        $this->assertNotNull($puzzle);
+        // A UPC-A is stored without its leading zero
+        $puzzle->updateProductIdentifiers(EanList::fromInputs(['036000291452', '4005556147090']), BrandCodeList::fromInputs(['rb-500-001', '17481']));
+        $entityManager->flush();
+        $entityManager->clear();
+        $this->authenticateClientCredentials($browser);
+
+        $browser->request('GET', self::ENDPOINT . PuzzleFixture::PUZZLE_500_02);
+
+        $this->assertResponseIsSuccessful();
+        $detail = $this->decode($browser);
+        $this->assertSame('036000291452, 4005556147090', $detail['ean']);
+        $this->assertSame('RB-500-001, 17481', $detail['identification_number']);
     }
 
     /**

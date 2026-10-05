@@ -5195,6 +5195,10 @@ marketplace_events:
         buyer_text: "%count% puzzle sera apporté par des puzzleurs qui y vont. Jetez-y un œil avant de partir.|%count% puzzles seront apportés par des puzzleurs qui y vont. Jetez-y un œil avant de partir."
         buyer_button: "Voir les puzzles proposés"
 
+# A puzzle's EANs and brand codes in a form - one input per code (templates/puzzle/_code_inputs.html.twig)
+puzzle_codes:
+    add_another: "+ un autre"
+    remove: "Retirer ce code"
 puzzle_names:
     main_title: "Titre principal"
     main_title_hint: "Le titre anglais de la boîte. Affiché en premier sur chaque page, dans toutes les langues."

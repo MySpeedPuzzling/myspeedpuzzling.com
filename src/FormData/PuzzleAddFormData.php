@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormData;
 
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
@@ -13,7 +14,9 @@ use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\Callback;
+use Symfony\Component\Validator\Constraints\Count;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\PositiveOrZero;
@@ -38,11 +41,23 @@ final class PuzzleAddFormData
 
     public null|UploadedFile $puzzlePhoto = null;
 
-    #[Length(max: 15)]
-    public null|string $puzzleEan = null;
+    /**
+     * The new puzzle's barcodes, one input each (CodeListType) - blank inputs are dropped
+     *
+     * @var array<int, null|string>
+     */
+    #[Count(max: EanList::FORM_MAX_CODES)]
+    #[All([new Length(max: 30)])]
+    public array $puzzleEans = [];
 
-    #[Length(max: 50)]
-    public null|string $puzzleIdentificationNumber = null;
+    /**
+     * The new puzzle's brand codes, one input each
+     *
+     * @var array<int, null|string>
+     */
+    #[Count(max: BrandCodeList::FORM_MAX_CODES)]
+    #[All([new Length(max: 50)])]
+    public array $puzzleBrandCodes = [];
 
     /**
      * Names of other boxes of a new puzzle ("+ name in another language") - rows without a name are dropped
@@ -130,10 +145,11 @@ final class PuzzleAddFormData
     #[Callback]
     public function validatePuzzleEan(ExecutionContextInterface $context): void
     {
-        // Only a new puzzle takes the code - shown exactly then (`hide_new_puzzle`), so a code left
-        // hidden in the field (e.g. from a scan) never blocks saving a result of an existing puzzle
+        // Only a new puzzle takes the codes - shown exactly then (`hide_new_puzzle`), so a code left
+        // hidden in a field (e.g. from a scan) never blocks saving a result of an existing puzzle
         if ($this->addsNewPuzzle()) {
-            EanList::addViolations($context, 'puzzleEan', $this->puzzleEan, null);
+            EanList::addInputViolations($context, 'puzzleEans', $this->puzzleEans, null);
+            BrandCodeList::addViolations($context, 'puzzleBrandCodes', $this->puzzleBrandCodes);
         }
     }
 

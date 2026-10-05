@@ -16,7 +16,9 @@ use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Message\LinkEanToPuzzle;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
+use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\ComparisonKind;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -58,10 +60,10 @@ final class SerializedByLockMessagesTest extends TestCase
     {
         $puzzleId = '018D0003-0000-0000-0000-000000000001';
         $key = 'puzzle-018d0003-0000-0000-0000-000000000001';
-        $values = new PuzzleRecordValues(name: 'Puzzle', nameLanguage: null, alternativeNames: new PuzzleNames(), manufacturerId: null, piecesCount: 500, ean: null, identificationNumber: null);
+        $values = new PuzzleRecordValues(name: 'Puzzle', nameLanguage: null, alternativeNames: new PuzzleNames(), manufacturerId: null, piecesCount: 500, eans: EanList::fromStored(null), brandCodes: BrandCodeList::fromStored(null));
 
         self::assertSame($key, (new EditPuzzle($puzzleId, 'editor', $values))->lockKey());
-        self::assertSame($key, (new ApprovePuzzle($puzzleId, 'reviewer', 'Puzzle', null, new PuzzleNames(), 500, null, null))->lockKey());
+        self::assertSame($key, (new ApprovePuzzle($puzzleId, 'reviewer', 'Puzzle', null, new PuzzleNames(), 500, EanList::fromStored(null), BrandCodeList::fromStored(null)))->lockKey());
         self::assertSame($key, (new ApprovePuzzleChangeRequest('change-request', $puzzleId, 'reviewer'))->lockKey());
         self::assertSame($key, (new ApprovePuzzleMergeRequest('merge-request', 'reviewer', $puzzleId, 'Puzzle', null, null, 500, null, null))->lockKey());
         self::assertSame($key, (new LinkEanToPuzzle($puzzleId, 'player', '4005556147090'))->lockKey());
@@ -72,8 +74,8 @@ final class SerializedByLockMessagesTest extends TestCase
             'Brand',
             500,
             new UploadedFile(__FILE__, 'box.jpg', test: true),
-            null,
-            null,
+            EanList::fromStored(null),
+            BrandCodeList::fromStored(null),
         ))->lockKey());
     }
 }

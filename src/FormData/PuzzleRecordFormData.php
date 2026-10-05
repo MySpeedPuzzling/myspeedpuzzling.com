@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\FormData;
 
 use SpeedPuzzling\Web\Results\PuzzleChangeRequestOverview;
 use SpeedPuzzling\Web\Results\PuzzleRecord;
-use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -24,6 +23,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[Callback('validate')]
 final class PuzzleRecordFormData
 {
+    use PuzzleCodesFields;
+
     #[Valid]
     public PuzzleNamesFormData $names;
 
@@ -36,17 +37,6 @@ final class PuzzleRecordFormData
     #[NotBlank]
     #[Positive]
     public null|int $piecesCount = null;
-
-    #[Length(max: 100)]
-    public null|string $ean = null;
-
-    /**
-     * The puzzle's EAN list as it is now (not a form field) - its codes pass even when invalid
-     */
-    public null|string $currentEan = null;
-
-    #[Length(max: 100)]
-    public null|string $identificationNumber = null;
 
     // Keep or Proposed - an uploaded photo is used instead of either (the name FormPhotoStash knows)
     public PuzzleImageChoice $image = PuzzleImageChoice::Keep;
@@ -72,9 +62,7 @@ final class PuzzleRecordFormData
         $data->recordVersion = $puzzle->recordVersion();
         $data->manufacturerId = $puzzle->manufacturerId;
         $data->piecesCount = $puzzle->piecesCount;
-        $data->ean = $puzzle->ean;
-        $data->currentEan = $puzzle->ean;
-        $data->identificationNumber = $puzzle->identificationNumber;
+        $data->loadCodes($puzzle->ean, $puzzle->identificationNumber, currentEan: $puzzle->ean);
 
         return $data;
     }
@@ -96,9 +84,11 @@ final class PuzzleRecordFormData
         $data->recordVersion = $request->puzzleRecordVersion;
         $data->manufacturerId = $request->hasManufacturerChange() ? $request->proposedManufacturerId : $request->puzzleManufacturerId;
         $data->piecesCount = $request->hasPiecesCountChange() ? $request->proposedPiecesCount : $request->puzzlePiecesCount;
-        $data->ean = $request->hasEanChange() ? $request->proposedEan : $request->puzzleEan;
-        $data->currentEan = $request->puzzleEan;
-        $data->identificationNumber = $request->hasIdentificationNumberChange() ? $request->proposedIdentificationNumber : $request->puzzleIdentificationNumber;
+        $data->loadCodes(
+            $request->hasEanChange() ? $request->proposedEan : $request->puzzleEan,
+            $request->hasIdentificationNumberChange() ? $request->proposedIdentificationNumber : $request->puzzleIdentificationNumber,
+            currentEan: $request->puzzleEan,
+        );
         $data->image = $request->hasImageChange() ? PuzzleImageChoice::Proposed : PuzzleImageChoice::Keep;
 
         return $data;
@@ -117,8 +107,8 @@ final class PuzzleRecordFormData
             alternativeNames: $this->names->toPuzzleNames(),
             manufacturerId: $this->manufacturerId,
             piecesCount: $this->piecesCount,
-            ean: $this->ean,
-            identificationNumber: $this->identificationNumber,
+            eans: $this->eanList(),
+            brandCodes: $this->brandCodeList(),
             image: $this->puzzlePhoto !== null ? PuzzleImageChoice::Upload : $this->image,
             uploadedImage: $this->puzzlePhoto,
             recordVersion: $this->recordVersion,
@@ -127,6 +117,6 @@ final class PuzzleRecordFormData
 
     public function validate(ExecutionContextInterface $context): void
     {
-        EanList::addViolations($context, 'ean', $this->ean, $this->currentEan);
+        $this->validateCodes($context);
     }
 }

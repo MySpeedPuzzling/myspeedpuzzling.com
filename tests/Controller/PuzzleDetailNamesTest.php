@@ -175,6 +175,11 @@ final class PuzzleDetailNamesTest extends WebTestCase
         self::assertSame(['Bavorská romance', 'Bayerische Romanze'], $product['alternateName']);
         self::assertSame(['4005556175895', '0036000291452'], $product['gtin13']);
         self::assertSame('96385074', $product['gtin8']);
+        // Details: each code on its own line, as printed - the UPC-A with its 12th digit
+        self::assertSame(
+            ['4005556175895', '036000291452', '4005556147091', '96385074'],
+            $crawler->filterXPath('//*[@id="puzzleDetails"]//small[i[contains(@class, "bi-upc-scan")]]')->each(static fn (Crawler $line): string => trim($line->text())),
+        );
         self::assertIsString($product['description']);
         self::assertStringStartsWith('Ravensburger Puzzle 1 / Bavorská romance ', $product['description']);
         self::assertSame('Ravensburger Puzzle 1 (Bavorská romance) – puzzle 500 dílků', $crawler->filter('title')->text());

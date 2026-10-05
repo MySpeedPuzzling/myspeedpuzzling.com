@@ -14,6 +14,8 @@ use SpeedPuzzling\Web\Results\PuzzleDuplicateCandidate;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
@@ -55,8 +57,8 @@ final class GetPuzzleApprovalsTest extends KernelTestCase
             nameLanguage: null,
             alternativeNames: new PuzzleNames(),
             piecesCount: 1000,
-            ean: null,
-            identificationNumber: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
             brandChoice: PuzzleApprovalBrandChoice::UseExisting,
             targetManufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
         ));
@@ -147,7 +149,7 @@ final class GetPuzzleApprovalsTest extends KernelTestCase
             piecesCount: 750,
             name: 'Completely different title',
             approved: false,
-            ean: '0' . PuzzleFixture::EAN_PUZZLE_2000 . ', 9' . PuzzleFixture::EAN_PUZZLE_1500_01,
+            eans: EanList::fromStored('0' . PuzzleFixture::EAN_PUZZLE_2000 . ', 9' . PuzzleFixture::EAN_PUZZLE_1500_01),
         );
         $entityManager->persist($newRecord);
         $entityManager->flush();

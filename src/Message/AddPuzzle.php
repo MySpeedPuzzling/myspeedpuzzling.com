@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Message;
 
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -24,8 +26,8 @@ readonly final class AddPuzzle implements SerializedByLock
         public int $piecesCount,
         // Required: a new puzzle is never created without a photo of its box (PuzzleBoxPhoto)
         public UploadedFile $puzzlePhoto,
-        public null|string $puzzleEan,
-        public null|string $puzzleIdentificationNumber,
+        public EanList $eans,
+        public BrandCodeList $brandCodes,
         // Names of other boxes of the puzzle (docs/features/puzzle-names/) - the add form's "+ name in another language"
         public PuzzleNames $alternativeNames = new PuzzleNames(),
     ) {

@@ -5194,6 +5194,10 @@ marketplace_events:
         buyer_text: "Ya hay %count% puzzle en camino con puzzleros que asistirán. Échale un vistazo antes del evento.|Ya hay %count% puzzles en camino con puzzleros que asistirán. Échales un vistazo antes del evento."
         buyer_button: "Ver qué llega"
 
+# A puzzle's EANs and brand codes in a form - one input per code (templates/puzzle/_code_inputs.html.twig)
+puzzle_codes:
+    add_another: "+ otro"
+    remove: "Quitar este código"
 puzzle_names:
     main_title: "Título principal"
     main_title_hint: "El título en inglés de la caja. Se muestra primero en todas las páginas y en todos los idiomas."

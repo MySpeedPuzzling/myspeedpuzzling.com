@@ -9,6 +9,19 @@ use Psr\Clock\ClockInterface;
 
 readonly final class GetPuzzleIdsForSitemap
 {
+    /**
+     * The day every puzzle page was last rebuilt - the floor of every puzzle's `lastmod`. Bump it (to the deploy
+     * date of the change) only when EVERY puzzle page changes its main content, title/meta description,
+     * structured data or links - never for styling or the page chrome around it. Google uses `lastmod` only
+     * while it stays accurate, so this is never "today" or set automatically: a sitemap claiming changes that
+     * did not happen teaches Google to ignore it (docs/features/seo/implementation-plan-2026-10.md "Sitemap
+     * lastmod floor").
+     *
+     * 2026-10-05: title, meta description, the "About this puzzle" summary, catalogue links and the Product /
+     * BreadcrumbList structured data of every puzzle page (2026-09-30 .. 2026-10-05).
+     */
+    public const string PAGE_LAST_REBUILT_AT = '2026-10-05';
+
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
@@ -37,19 +50,20 @@ SQL;
     /**
      * `lastmod` is the day the puzzle page last changed in a way worth recrawling: the puzzle was
      * added, approved, its names changed (title, "Also known as" - names_changed_at), or somebody
-     * logged a time on it (the page shows every time). The page of
+     * logged a time on it (the page shows every time) - never earlier than PAGE_LAST_REBUILT_AT, the last
+     * change of every puzzle page at once (GREATEST skips the NULL dates). The page of
      * puzzles is cut first and only its rows are aggregated - one scan of the solving times,
      * 0.1-0.45 s per sitemap file (1 666 puzzles, or 20 000 for images) on the production copy,
      * whatever the offset.
      *
-     * @return list<array{id: string, lastmod: null|string}>
+     * @return list<array{id: string, lastmod: string}>
      */
     public function approvedPage(int $limit, int $offset): array
     {
         $query = <<<SQL
 SELECT
     page.id,
-    to_char(GREATEST(page.added_at, page.approved_at, page.names_changed_at, MAX(puzzle_solving_time.tracked_at)), 'YYYY-MM-DD') AS lastmod
+    to_char(GREATEST(page.added_at, page.approved_at, page.names_changed_at, MAX(puzzle_solving_time.tracked_at), CAST(:pageLastRebuiltAt AS timestamp)), 'YYYY-MM-DD') AS lastmod
 FROM (
     SELECT puzzle.id, puzzle.added_at, puzzle.approved_at, puzzle.names_changed_at
     FROM puzzle
@@ -64,12 +78,13 @@ GROUP BY page.id, page.added_at, page.approved_at, page.names_changed_at
 ORDER BY page.id
 SQL;
 
-        /** @var list<array{id: string, lastmod: null|string}> $rows */
+        /** @var list<array{id: string, lastmod: string}> $rows */
         $rows = $this->database
             ->executeQuery($query, [
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
                 'limit' => $limit,
                 'offset' => $offset,
+                'pageLastRebuiltAt' => self::PAGE_LAST_REBUILT_AT,
             ])
             ->fetchAllAssociative();
 
@@ -99,14 +114,14 @@ SQL;
     /**
      * Same `lastmod` rule as approvedPage().
      *
-     * @return list<array{id: string, lastmod: null|string, image: string}>
+     * @return list<array{id: string, lastmod: string, image: string}>
      */
     public function approvedPageWithImages(int $limit, int $offset): array
     {
         $query = <<<SQL
 SELECT
     page.id,
-    to_char(GREATEST(page.added_at, page.approved_at, page.names_changed_at, MAX(puzzle_solving_time.tracked_at)), 'YYYY-MM-DD') AS lastmod,
+    to_char(GREATEST(page.added_at, page.approved_at, page.names_changed_at, MAX(puzzle_solving_time.tracked_at), CAST(:pageLastRebuiltAt AS timestamp)), 'YYYY-MM-DD') AS lastmod,
     page.image
 FROM (
     SELECT puzzle.id, puzzle.added_at, puzzle.approved_at, puzzle.names_changed_at, puzzle.image
@@ -123,12 +138,13 @@ GROUP BY page.id, page.added_at, page.approved_at, page.names_changed_at, page.i
 ORDER BY page.id
 SQL;
 
-        /** @var list<array{id: string, lastmod: null|string, image: string}> $rows */
+        /** @var list<array{id: string, lastmod: string, image: string}> $rows */
         $rows = $this->database
             ->executeQuery($query, [
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
                 'limit' => $limit,
                 'offset' => $offset,
+                'pageLastRebuiltAt' => self::PAGE_LAST_REBUILT_AT,
             ])
             ->fetchAllAssociative();
 

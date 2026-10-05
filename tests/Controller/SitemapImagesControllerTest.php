@@ -49,14 +49,14 @@ final class SitemapImagesControllerTest extends WebTestCase
             ['id' => PuzzleFixture::PUZZLE_500_04],
         );
         $database->executeStatement(
-            "UPDATE puzzle SET added_at = '2024-01-01 10:00:00', approved_at = '2025-02-03 10:00:00' WHERE id = :id",
+            "UPDATE puzzle SET added_at = '2031-01-01 10:00:00', approved_at = '2032-02-03 10:00:00' WHERE id = :id",
             ['id' => PuzzleFixture::PUZZLE_500_04],
         );
 
         $content = $this->fetchImageSitemap($browser);
 
         self::assertStringContainsString(
-            sprintf('<url><loc>%s</loc><lastmod>2025-02-03</lastmod>', $this->absoluteUrl('en', PuzzleFixture::PUZZLE_500_04)),
+            sprintf('<url><loc>%s</loc><lastmod>2032-02-03</lastmod>', $this->absoluteUrl('en', PuzzleFixture::PUZZLE_500_04)),
             $content,
         );
     }

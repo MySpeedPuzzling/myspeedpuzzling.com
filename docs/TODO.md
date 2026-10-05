@@ -6,22 +6,34 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Codes in the forms (`docs/features/puzzle-names/README.md`, phase 5)
 
-- [ ] After the deploy: `myspeedpuzzling:canonicalize-puzzle-codes --report=…` on production (dry run first, then
-      `--write --undo=<a new path per run>` - keep the undo file, `\N` = NULL), then file the report rows as change
-      proposals in waves (`puzzle-change-proposal` skill; re-read each puzzle first; all rows of a puzzle carry one
-      proposal of both fields). Never file a removal of a part with a digit: catalogue numbers move into the brand codes,
-      only words and placeholders go. `ean_not_a_barcode` rows marked "(check digit)", `brand_code_prose` and
-      `comma_between_digits` rows propose no fix - a person with the box rewrites them. On a production copy: 460 rows
-      on 448 puzzles.
-- [ ] One release after phase 5: remove `CodeListType::acceptLegacyFields()` and its five calls (forms of the release
-      before posted one text field per code list).
+- [x] `myspeedpuzzling:canonicalize-puzzle-codes` on production (2026-10-05): 1,175 EAN + 157 brand-code fields
+      written, search keys unchanged, undo file `/root/codes-20261005T084536Z/codes-undo-20261005T084536Z.csv` on the
+      box (`\N` = NULL); 304 of the report's 316 puzzles with a fix filed as change proposals (one per puzzle, both
+      lists).
+- [ ] File the other 12 once their pending merge / change request is decided (the API answered 409):
+      `.claude/worktrees/pn-delivery-state/codes-cleanup/file/refile-409.json` (local to Jan's Mac) - re-read each
+      puzzle first, the proposal replaces both whole lists.
+- [ ] The 126 puzzles the report has no fix for wait for a person with the box (`codes-cleanup/file/nofix.json` next
+      to it): 65 barcode lengths with a wrong check digit, 60 brand codes with words in them, 1 comma between digits.
+- [ ] One release after phase 5 (shipped 2026-10-05): remove `CodeListType::acceptLegacyFields()` and its five calls
+      (forms of the release before posted one text field per code list).
+
+## Puzzle names - catalogue cleanup (`docs/features/puzzle-names/README.md`, phase 4)
+
+- [ ] File the 407 high-confidence language tags in waves of about 100 once moderators have worked through wave 1
+      (filed 2026-10-05: 45 merges, 54 splits, 3 swaps - check how many are still pending first). Tool and research
+      are local to Jan's Mac, `.claude/worktrees/pn-delivery-state/phase4/tool/` (`file_wave.py`, README in its
+      docstring): `./file_wave.py ids --wave waves/wave2-tags.json > w.ids`, `./fetch_current.sh w.ids
+      snapshots/w2.csv`, dry run, then `--live`; next `wave3-tags`, `wave4-tags`, `wave5-tags` (the rest). It re-reads
+      every puzzle and skips what changed since the research. File only, never approve.
+- [ ] Medium/low-confidence names (125 + 22: Czech vs Slovak spellings, no clear language) - decide by hand or leave.
 
 ## Puzzle names on pages and in search (`docs/features/puzzle-names/README.md`, phase 2)
 
-- [ ] 6-8 weeks after phase 2 ships: Search Console index coverage per language (`/puzzle/…` cs, `/de/puzzle/…`,
-      `/fr/…`, `/es/…`, `/ja/…`) - do the locale copies of puzzles with a name in that language leave "crawled -
-      currently not indexed" more than the others? Compare with the numbers before the deploy
-      (`docs/features/seo/research-2026-09.md` §4.1, §9).
+- [ ] 6-8 weeks after phase 2 shipped (2026-10-05, so 2026-11-16 to 2026-11-30): Search Console index coverage per
+      language (`/puzzle/…` cs, `/de/puzzle/…`, `/fr/…`, `/es/…`, `/ja/…`) - do the locale copies of puzzles with a
+      name in that language leave "crawled - currently not indexed" more than the others? Compare with the numbers
+      before the deploy (`docs/features/seo/research-2026-09.md` §4.1, §9).
 
 ## EAN codes in the catalogue (2026-10-04)
 

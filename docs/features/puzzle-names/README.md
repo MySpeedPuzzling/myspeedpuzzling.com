@@ -6,8 +6,13 @@ storing, searching and showing all of them. The step-by-step build is in [implem
 The interactive proposal with demos and the full review lives at https://claude.ai/artifact/2Jw17VQ8xrEPYa6cZ9mdNG
 (private to Jan).
 
-Status: **in delivery** (decisions taken 2026-10-04; phase 0 shipped 2026-10-04). Decisions taken during delivery are
-listed at the end under "Delivery decisions".
+Status: **shipped** - phase 0, 1a and 1b on 2026-10-04; 1c-1 (old column unmapped, 5 trigram indexes dropped),
+1c-2 + phase 2 (column dropped; names on pages, in search and SEO), phase 3 (names editor, change and merge requests
+with names) and phase 5 (one input per code, canonical lists) on 2026-10-05, each checked on production before the
+next. Data: the format-only codes cleanup ran on 2026-10-05 (1,175 EAN + 157 brand-code fields, undo file kept) and its
+report went to moderators as 304 change proposals (12 more wait for a pending request); phase 4 wave 1 (45 merges,
+54 splits, 3 main-title swaps) is filed, the 407 language tags follow in waves (`docs/TODO.md`). Decisions taken
+during delivery are listed at the end under "Delivery decisions".
 
 ## Decisions (Jan, 2026-10-04)
 
@@ -433,3 +438,23 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   nothing, a re-run with the same undo path is refused. Report: 460 rows on 448 puzzles - 168 EAN parts with a letter,
   48 catalogue numbers, 127 numbers that are no barcode, 11 Ravensburger misreads, 47 words and 58 codes with words in
   the brand codes, 1 comma between digits.
+
+- **Release - four releases on 2026-10-05, each checked on production before the next** (rollout, migrations, Sentry,
+  logs, failed messages, query timings against the window before, 6-locale smoke): 1c-1 (`20a0a579`, migration 50 ms,
+  0 names copied), 1c-2 + phase 2 (`3ca1e681`, column dropped in 2 ms), phase 3 (`f3859b77`, two column additions in
+  11 ms) and phase 5 (`818b864f`). The catalogue search page's mean went from 16.3 to 12.5 ms with phase 2 and
+  stayed there.
+- **Phase 5 - the cleanup on production** (2026-10-05 08:45 UTC, inside a container of the new release, right after
+  its check): 1,175 EAN and 157 brand-code fields written in 2.1 s; the code search key of all 42,088 puzzles byte for
+  byte the same (md5 per puzzle before and after); every changed field is in the undo file, a second run writes
+  nothing. The undo file and both reports are kept on the box (`/root/codes-20261005T084536Z/`) and with the delivery
+  files on Jan's Mac.
+- **Phase 5 - the report as proposals:** one change proposal per puzzle carrying the report's whole proposal (the EAN
+  list and the brand codes, as lists; `[]` where every code leaves the EAN field), from the report of a run after the
+  write (its "stored" values are the puzzle's values now) and only after re-reading every puzzle on production. A puzzle
+  whose proposal is no fix is not filed: a barcode length with a wrong check digit (65), brand codes with words in them
+  (60, upper case is no fix) and the comma between digits (1) - they wait for a person with the box. 304 filed; 12
+  puzzles had a pending merge or change request (the API's 409) and are filed again once it is decided.
+- **Phase 4 - wave 1 filed right after phase 3 shipped** (the API takes names only from that release): 102 requests,
+  each re-checked against a production snapshot taken minutes before; the 407 language tags follow in waves of about
+  100 once moderators have worked through wave 1, so the queue is not flooded.

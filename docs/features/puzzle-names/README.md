@@ -250,4 +250,15 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   flooded; medium/low-confidence rows (111 names spelled the same in Czech and Slovak, 22 without a clear language) are
   not filed in the first round. Every filing re-reads the puzzle first; puzzles with a pending request are skipped and
   listed. Nothing is approved by the delivering agent.
+- **Phase 1c-1 - the old column is unmapped, not kept mapped:** `doctrine:schema:validate` (CI's migrations job) fails
+  on a column the mapping does not know, and the contract's fallback (keep it mapped, never written) would have made
+  the 1c-2 drop break the 1c-1 containers still serving (every puzzle SELECT and INSERT lists mapped columns). So
+  `CustomIndexFilteringPostgreSQLSchemaManager` leaves `puzzle.alternative_name` out of the introspected columns
+  (`UNMAPPED_COLUMNS_AWAITING_DROP`), like it leaves out `custom_` indexes: validate passes, `migrations:diff` does
+  not want the column gone, and 1c-2 writes its `DROP` by hand and removes the entry.
+- **Phase 1c-1 - overlap copy:** appended at the end of the list (the list's order and what it shows stay as they
+  are), compared like the 1a backfill; a copied row keeps its old search key until
+  `myspeedpuzzling:rebuild-puzzle-search-keys` runs (Postgres never folds). `GetPuzzleOverview::byEan()` (only tests
+  called it, `ean LIKE`) was removed. The picker options lost the transitional `search` key, the picker trusts `name`
+  only.
 

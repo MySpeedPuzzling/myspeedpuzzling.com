@@ -54,7 +54,7 @@ final class EditPuzzleHandlerTest extends KernelTestCase
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
         self::assertSame('Edited Name', $puzzle->name);
         self::assertSame([['name' => 'Alternative Title', 'language' => null]], $puzzle->alternativeNames);
-        self::assertSame('Alternative Title', $puzzle->alternativeName);
+        self::assertSame('Alternative Title', $puzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame("\nedited name\nalternative title\n", $puzzle->searchNames);
         self::assertNotNull($puzzle->namesChangedAt);
         self::assertSame(ManufacturerFixture::MANUFACTURER_TREFL, $puzzle->manufacturer?->id->toString());
@@ -145,14 +145,14 @@ final class EditPuzzleHandlerTest extends KernelTestCase
             ['name' => 'Kouzelná zahrádka', 'language' => null],
             ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
         ], $puzzle->alternativeNames);
-        self::assertSame('Kouzelná zahrádka', $puzzle->alternativeName);
+        self::assertSame('Kouzelná zahrádka', $puzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame("\npuzzle 7\nkouzelna zahradka\nzauberhafter garten\n", $puzzle->searchNames);
 
         // Emptied: only the name the field showed goes
         $edit('  ');
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
         self::assertSame([['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de']], $puzzle->alternativeNames);
-        self::assertSame(PuzzleFixture::NAME_DE_MAGIC_GARDEN, $puzzle->alternativeName);
+        self::assertSame(PuzzleFixture::NAME_DE_MAGIC_GARDEN, $puzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame("\npuzzle 7\nzauberhafter garten\n", $puzzle->searchNames);
 
         $decisions = $this->decisions(PuzzleFixture::PUZZLE_1000_02);
@@ -258,7 +258,7 @@ final class EditPuzzleHandlerTest extends KernelTestCase
 
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
         self::assertSame('Puzzle 1', $puzzle->name);
-        self::assertNull($puzzle->alternativeName);
+        self::assertNull($puzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame([], $puzzle->alternativeNames);
         self::assertSame(500, $puzzle->piecesCount);
         self::assertSame([], $this->decisions());

@@ -133,7 +133,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
 
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
         self::assertSame('Admin Corrected Name', $puzzle->name);
-        self::assertSame('Alternative Title', $puzzle->alternativeName);
+        self::assertSame('Alternative Title', $puzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame([['name' => 'Alternative Title', 'language' => null]], $puzzle->alternativeNames);
         self::assertSame("\nadmin corrected name\nalternative title\n", $puzzle->searchNames);
         self::assertSame("\ne:4005556123452\n", $puzzle->searchCodes);

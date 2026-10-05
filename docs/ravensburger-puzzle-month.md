@@ -64,10 +64,10 @@ ID=$(docker compose exec -T web php -r 'require "vendor/autoload.php"; echo Rams
 echo "$ID"
 docker compose exec -T db psql -U speedpuzzling -d speedpuzzling -P pager=off -v ON_ERROR_STOP=1 -c "
 INSERT INTO puzzle (id, pieces_count, name, approved, image, image_ratio, manufacturer_id,
-    alternative_name, added_by_user_id, added_at, identification_number, ean, is_available,
+    added_by_user_id, added_at, identification_number, ean, is_available,
     hide_image_until, hide_until)
 VALUES ('$ID', 500, 'Puzzle Month #2', true, NULL, NULL, '2e6ea6b1-6ef8-46d7-8445-fd2d77cfd09c',
-    NULL, NULL, now(), NULL, NULL, false,
+    NULL, now(), NULL, NULL, false,
     '2099-01-01 00:00:00', '2099-01-01 00:00:00');" </dev/null
 docker compose exec -T web php bin/console myspeedpuzzling:rebuild-puzzle-search-keys </dev/null
 ```

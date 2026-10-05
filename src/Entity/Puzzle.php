@@ -55,11 +55,6 @@ class Puzzle
     #[Column(type: Types::TEXT, nullable: true)]
     public null|string $searchCodes = null;
 
-    // The single alternative name of old: PuzzleNames::legacyAlternativeName(), written along until the column is dropped
-    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-    #[Column(nullable: true)]
-    public null|string $alternativeName = null;
-
     /**
      * @throws InvalidPuzzleValues
      */
@@ -191,7 +186,7 @@ class Puzzle
     }
 
     /**
-     * Validates first, then writes the names, the name search key and the old single alternative name.
+     * Validates first, then writes the names and the name search key.
      *
      * @throws InvalidPuzzleValues
      */
@@ -208,12 +203,10 @@ class Puzzle
         }
 
         $alternatives = $alternatives->cleanedFor($name);
-        $legacyAlternativeName = $alternatives->legacyAlternativeName();
 
         $this->name = $name;
         $this->nameLanguage = $nameLanguage !== null ? LanguageTag::normalize($nameLanguage) : null;
         $this->alternativeNames = $alternatives->toArray();
-        $this->alternativeName = $legacyAlternativeName !== null ? mb_substr($legacyAlternativeName, 0, PuzzleNames::MAX_NAME_LENGTH) : null;
         $this->searchNames = PuzzleSearchKeys::names($name, $alternatives);
     }
 }

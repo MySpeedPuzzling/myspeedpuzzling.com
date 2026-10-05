@@ -89,7 +89,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
 
         $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01);
         self::assertSame('Updated Puzzle Name', $puzzle->name);
-        self::assertSame('Alternative Title', $puzzle->alternativeName);
+        self::assertSame('Alternative Title', $puzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame(1000, $puzzle->piecesCount);
         self::assertSame('4005556123452', $puzzle->ean);
         self::assertSame('RB-500-001', $puzzle->identificationNumber);

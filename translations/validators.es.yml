@@ -5,3 +5,7 @@ competition_date_to_before_date_from: "La fecha de fin no puede ser anterior a l
 competition_duration_too_long: "El evento no puede durar más de %limit% días. Por favor ingresa las fechas reales del evento."
 finished_at_required_for_speed: "La fecha completada es obligatoria para speed puzzling."
 duplicate_puzzle_or_url_required: "Por favor selecciona un puzzle duplicado o ingresa la URL de un puzzle."
+puzzle_names:
+    main_title_required: "El puzzle necesita un título principal."
+    name_too_long: "Un nombre puede tener como máximo {{ limit }} caracteres."
+    too_many_names: "Un puzzle puede tener como máximo %limit% nombres adicionales."

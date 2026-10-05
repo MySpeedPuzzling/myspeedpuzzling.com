@@ -5,3 +5,7 @@ competition_date_to_before_date_from: "終了日は開始日より前にでき�
 competition_duration_too_long: "イベントは%limit%日を超えることはできません。実際のイベント日程を入力してください。"
 finished_at_required_for_speed: "スピードパズルでは完成日が必須です。"
 duplicate_puzzle_or_url_required: "重複しているパズルを選択するか、パズルのURLを入力してください。"
+puzzle_names:
+    main_title_required: "パズルにはメインタイトルが必要です。"
+    name_too_long: "名前は{{ limit }}文字以内で入力してください。"
+    too_many_names: "パズルに登録できるその他の名前は最大%limit%件です。"

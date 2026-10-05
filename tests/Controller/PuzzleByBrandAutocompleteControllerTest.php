@@ -35,6 +35,8 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
             }
 
             self::assertNotSame('', $option['name']);
+            // The transitional `search` key of phase 1b is gone - `name` marks a server-built option
+            self::assertArrayNotHasKey('search', $option);
 
             foreach ([$option['name'], $option['names'], $option['codes']] as $searchable) {
                 self::assertStringNotContainsStringIgnoringCase('pieces', $searchable);
@@ -206,18 +208,18 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
     }
 
     /**
-     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, search: string}>
+     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>
      */
     private static function options(KernelBrowser $browser): array
     {
-        /** @var array{results: list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, search: string}>} $data */
+        /** @var array{results: list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>} $data */
         $data = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
 
         return $data['results'];
     }
 
     /**
-     * @return array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, search: string}
+     * @return array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}
      */
     private static function option(KernelBrowser $browser, string $puzzleId): array
     {

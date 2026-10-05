@@ -65,10 +65,13 @@ final class EditTimePuzzleChangeTest extends WebTestCase
         self::assertStringContainsString('Puzzle 2', $crawler->filter('[data-toggle-target="chosenPuzzle"]')->text());
 
         // The brand's list leaves a secret puzzle out - the picker takes the result's own one from the page
-        /** @var array{brand: string, option: array{value: string, text: string, search: string, piecesCount: int}} $ownPuzzle */
+        /** @var array{brand: string, option: array{value: string, text: string, name: string, piecesCount: int}} $ownPuzzle */
         $ownPuzzle = json_decode((string) $crawler->filter('[data-controller="time-form-autocomplete"]')->attr('data-time-form-autocomplete-own-puzzle-value'), true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(ManufacturerFixture::MANUFACTURER_RAVENSBURGER, $ownPuzzle['brand']);
         self::assertSame(PuzzleFixture::PUZZLE_500_02, $ownPuzzle['option']['value']);
+        // `name` is what the picker's renderer trusts as server-built HTML; the transitional `search` key is gone
+        self::assertSame('Puzzle 2', $ownPuzzle['option']['name']);
+        self::assertArrayNotHasKey('search', $ownPuzzle['option']);
         self::assertStringContainsString('<span class="h6">Puzzle 2</span>', $ownPuzzle['option']['text']);
 
         $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER);

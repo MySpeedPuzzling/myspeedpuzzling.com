@@ -8,6 +8,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;
 use RuntimeException;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use Stringable;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,8 +24,9 @@ use Throwable;
 
 /**
  * A request the client got wrong is answered with its 4xx and logged at info, so it never becomes
- * a Sentry issue (WEB-8F "Could not decode request body", WEB-BH, WEB-D0). Other failures keep
- * Symfony's levels and stay visible.
+ * a Sentry issue (WEB-8F "Could not decode request body", WEB-BH, WEB-D0). So is a moderation race - the
+ * request was decided or the puzzle changed after it was read (WEB-D2). Other failures keep Symfony's levels
+ * and stay visible.
  */
 final class ClientErrorLogLevelTest extends KernelTestCase
 {
@@ -64,6 +67,8 @@ final class ClientErrorLogLevelTest extends KernelTestCase
         yield '400 bad request' => [new BadRequestHttpException('"rejectionReason" is required.'), LogLevel::INFO];
         yield '406 not acceptable' => [new NotAcceptableHttpException('Requested format "application/json" is not supported.'), LogLevel::INFO];
         yield '415 unsupported media type' => [new UnsupportedMediaTypeHttpException(), LogLevel::INFO];
+        yield '409 change request already reviewed' => [new PuzzleChangeRequestAlreadyReviewed(), LogLevel::INFO];
+        yield '422 puzzle changed meanwhile' => [new PuzzleChangedMeanwhile(), LogLevel::INFO];
         yield '409 conflict stays visible' => [new ConflictHttpException('A team with results cannot be deleted.'), LogLevel::ERROR];
         yield 'a bug stays critical' => [new RuntimeException('A new entity was found'), LogLevel::CRITICAL];
     }

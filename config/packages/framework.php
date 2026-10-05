@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
@@ -67,6 +69,10 @@ return App::config([
             BadRequestHttpException::class => ['log_level' => 'info'],
             NotAcceptableHttpException::class => ['log_level' => 'info'],
             UnsupportedMediaTypeHttpException::class => ['log_level' => 'info'],
+            // Moderators racing each other (or a stale form / internal-API call): the request was decided or the
+            // puzzle changed after it was read - answered 409 / 422 with "read it again", nothing applied
+            PuzzleChangeRequestAlreadyReviewed::class => ['log_level' => 'info'],
+            PuzzleChangedMeanwhile::class => ['log_level' => 'info'],
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],
         'trusted_proxies' => '%env(TRUSTED_PROXIES)%',

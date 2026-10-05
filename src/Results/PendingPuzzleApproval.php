@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 
 /**
  * A newly added puzzle waiting in the approval queue.
@@ -15,6 +16,8 @@ readonly final class PendingPuzzleApproval
     public function __construct(
         public string $puzzleId,
         public string $puzzleName,
+        // The main title's language when the box has no English title
+        public null|string $nameLanguage,
         public PuzzleNames $alternativeNames,
         public int $piecesCount,
         public null|string $image,
@@ -44,6 +47,7 @@ readonly final class PendingPuzzleApproval
          * @var array{
          *     puzzle_id: string,
          *     puzzle_name: string,
+         *     name_language: null|string,
          *     alternative_names: string,
          *     pieces_count: int,
          *     image: null|string,
@@ -66,6 +70,7 @@ readonly final class PendingPuzzleApproval
         return new self(
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
+            nameLanguage: $row['name_language'],
             alternativeNames: PuzzleNames::fromJson($row['alternative_names']),
             piecesCount: $row['pieces_count'],
             image: $row['image'],
@@ -83,6 +88,23 @@ readonly final class PendingPuzzleApproval
             solvedTimes: (int) $row['solved_times'],
             hasSameEanPuzzle: $row['has_same_ean_puzzle'],
             inPendingMergeRequest: $row['in_pending_merge_request'],
+        );
+    }
+
+    /**
+     * What the approval form sends back (PuzzleRecordVersion)
+     */
+    public function recordVersion(): string
+    {
+        return PuzzleRecordVersion::of(
+            name: $this->puzzleName,
+            nameLanguage: $this->nameLanguage,
+            alternativeNames: $this->alternativeNames,
+            manufacturerId: $this->manufacturerId,
+            piecesCount: $this->piecesCount,
+            ean: $this->ean,
+            identificationNumber: $this->identificationNumber,
+            image: $this->image,
         );
     }
 }

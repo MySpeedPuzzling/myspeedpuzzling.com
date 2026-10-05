@@ -8,6 +8,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleApproval;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyApproved;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\FormData\ApprovePuzzleFormData;
 use SpeedPuzzling\Web\FormType\ApprovePuzzleFormType;
@@ -95,27 +96,32 @@ final class PuzzleApprovalDetailController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
-            assert($data->name !== null && $data->piecesCount !== null);
+            assert($data->piecesCount !== null);
 
             try {
                 $this->messageBus->dispatch(new ApprovePuzzle(
                     puzzleId: $puzzleId,
                     reviewerId: $player->playerId,
-                    name: $data->name,
+                    name: $data->names->mainTitle(),
+                    nameLanguage: $data->names->nameLanguage,
+                    alternativeNames: $data->names->toPuzzleNames(),
                     piecesCount: $data->piecesCount,
                     ean: $data->ean,
                     identificationNumber: $data->identificationNumber,
                     brandChoice: $data->resolvedBrandChoice(),
                     targetManufacturerId: $data->targetManufacturerId,
-                    alternativeName: $data->alternativeName,
                     uploadedImage: $data->puzzlePhoto,
                     note: $data->note,
+                    recordVersion: $data->recordVersion,
                 ));
 
                 $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
                 $this->addFlash('success', $this->translator->trans('admin.puzzle_approval.approved'));
 
                 return $this->redirectToRoute('admin_puzzle_approvals');
+            } catch (PuzzleChangedMeanwhile) {
+                // The form keeps what was typed - and the version it was loaded with, so it stays refused until reloaded
+                $form->addError(new FormError($this->translator->trans('puzzle_names.record_changed_meanwhile')));
             } catch (InvalidPuzzleValues $exception) {
                 $form->addError(new FormError($exception->getMessage()));
             } catch (HandlerFailedException $exception) {

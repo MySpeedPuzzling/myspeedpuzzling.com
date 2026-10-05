@@ -5520,3 +5520,27 @@ marketplace_events:
         buyer_title: "Looking for a puzzle at %event%?"
         buyer_text: "%count% is coming with puzzlers who are going. Have a look before you go.|%count% are coming with puzzlers who are going. Have a look before you go."
         buyer_button: "See what's coming"
+# Puzzle names (docs/features/puzzle-names/README.md) - the names editor and the stale-form message
+puzzle_names:
+    main_title: "Main title"
+    main_title_hint: "The English title of the box. Shown first on every page, in every language."
+    no_english_title: "The box has no English title"
+    main_title_language: "The box has no English title - the main title is in:"
+    # Empty choice of the main title's language
+    main_title_language_not_set: "English, or not known"
+    # Empty choice of an other name's language
+    language_not_known: "Language not known"
+    other_names: "Other names"
+    no_other_names: "No other names yet."
+    add_name: "+ Add a name"
+    name: "Name"
+    language: "Language"
+    make_main_title: "Make main title"
+    remove_name: "Remove this name"
+    same_as_another_name: "Same as another name - only one of them is kept."
+    was_main_title: "This was the main title. Set its language."
+    several_names_warning: "The main title holds several names."
+    split: "Split into separate names"
+    not_english_warning: "This does not look like an English title. If the box has an English title, add it and make it the main title."
+    move_to_other_names: "Move to other names"
+    record_changed_meanwhile: "This puzzle was changed while you were editing it. Reload to see the current state."

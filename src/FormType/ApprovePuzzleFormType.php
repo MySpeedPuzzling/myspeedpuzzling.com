@@ -33,6 +33,7 @@ final class ApprovePuzzleFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        PuzzleRecordFormType::addNamesEditor($builder);
         PuzzleRecordFormType::addRecordFields($builder);
 
         // Only approved brands can take the puzzle (ApprovePuzzleHandler) - the likely ones first.

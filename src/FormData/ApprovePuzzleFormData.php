@@ -12,6 +12,7 @@ use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Positive;
+use Symfony\Component\Validator\Constraints\Valid;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
@@ -21,12 +22,12 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[Callback('validate')]
 final class ApprovePuzzleFormData
 {
-    #[NotBlank]
-    #[Length(max: 255)]
-    public null|string $name = null;
+    // Every name, in the names editor
+    #[Valid]
+    public PuzzleNamesFormData $names;
 
-    #[Length(max: 255)]
-    public null|string $alternativeName = null;
+    // The record the form was loaded with (PuzzleRecordVersion) - a hidden field
+    public null|string $recordVersion = null;
 
     #[NotBlank]
     #[Positive]
@@ -60,11 +61,16 @@ final class ApprovePuzzleFormData
 
     public bool $newBrand = false;
 
+    public function __construct()
+    {
+        $this->names = new PuzzleNamesFormData();
+    }
+
     public static function fromPendingPuzzle(PendingPuzzleApproval $puzzle, null|string $suggestedBrandId): self
     {
         $data = new self();
-        $data->name = $puzzle->puzzleName;
-        $data->alternativeName = $puzzle->alternativeNames->legacyAlternativeName();
+        $data->names = PuzzleNamesFormData::fromNames($puzzle->puzzleName, $puzzle->nameLanguage, $puzzle->alternativeNames);
+        $data->recordVersion = $puzzle->recordVersion();
         $data->piecesCount = $puzzle->piecesCount;
         $data->ean = $puzzle->ean;
         $data->currentEan = $puzzle->ean;

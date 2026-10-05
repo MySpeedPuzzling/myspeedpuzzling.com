@@ -7,6 +7,8 @@ import { Controller } from '@hotwired/stimulus';
 // as raw form values; the direct edit has no proposal, so only edits are marked there.
 // The image field's value is "keep" / "proposed" (radios) or "upload" - a photo in its drop area (chosen, or kept
 // from a refused submit) is used instead of either, and picking keep / proposed again drops that photo.
+// The names card (data-names, admin/_puzzle_record_names.html.twig) holds the names editor: its value is every name with
+// its language in order, data-current / data-proposed hold the names as JSON ({name, nameLanguage, alternativeNames}).
 export default class extends Controller {
     static targets = ['field', 'summary'];
     static values = {
@@ -73,9 +75,9 @@ export default class extends Controller {
     // proposed: the proposal goes in · edit: the moderator's own value · kept: proposed, but the current value stays
     stateOf(field) {
         const value = this.valueOf(field);
-        const current = (field.dataset.current || '').trim();
+        const current = this.currentOf(field);
 
-        if ('proposed' in field.dataset && value === (field.dataset.proposed || '').trim()) {
+        if ('proposed' in field.dataset && value === this.proposedOf(field)) {
             return value === current ? 'unchanged' : 'proposed';
         }
 
@@ -117,8 +119,8 @@ export default class extends Controller {
             element.classList.toggle('opacity-50', value === 'upload');
         });
 
-        this.toggleRole(field, 'use-proposed', 'proposed' in field.dataset && value !== (field.dataset.proposed || '').trim());
-        this.toggleRole(field, 'use-current', value !== (field.dataset.current || '').trim());
+        this.toggleRole(field, 'use-proposed', 'proposed' in field.dataset && value !== this.proposedOf(field));
+        this.toggleRole(field, 'use-current', value !== this.currentOf(field));
         this.toggleRole(field, 'current-hint', state === 'edit');
     }
 
@@ -168,6 +170,10 @@ export default class extends Controller {
     }
 
     valueOf(field) {
+        if (this.isNames(field)) {
+            return this.namesKey(this.namesEditorState(field));
+        }
+
         if (this.uploadOf(field)) {
             return this.hasUpload(field) ? 'upload' : this.checkedImage(field);
         }
@@ -175,7 +181,25 @@ export default class extends Controller {
         return (this.inputOf(field).value || '').trim();
     }
 
+    currentOf(field) {
+        return this.comparable(field, field.dataset.current);
+    }
+
+    proposedOf(field) {
+        return this.comparable(field, field.dataset.proposed);
+    }
+
+    comparable(field, value) {
+        return this.isNames(field) ? this.namesKey(JSON.parse(value || '{}')) : (value || '').trim();
+    }
+
     setValue(field, value) {
+        if (this.isNames(field)) {
+            const editor = field.querySelector('[data-controller~="names-editor"]');
+            this.application.getControllerForElementAndIdentifier(editor, 'names-editor')?.load(JSON.parse(value || '{}'));
+            return;
+        }
+
         if (this.uploadOf(field)) {
             this.clearUpload(field);
             field.querySelectorAll('input[type="radio"]').forEach((radio) => {
@@ -192,6 +216,35 @@ export default class extends Controller {
         } else {
             input.value = value || '';
         }
+    }
+
+    isNames(field) {
+        return 'names' in field.dataset;
+    }
+
+    // The names as the editor shows them - read from its inputs, so it works before the editor's controller loaded
+    namesEditorState(field) {
+        const value = (selector, root = field) => root.querySelector(selector)?.value || '';
+
+        return {
+            name: value('[data-names-editor-target="main"]'),
+            nameLanguage: value('[data-names-editor-target="mainLanguageSelect"]'),
+            alternativeNames: Array.from(field.querySelectorAll('[data-names-editor-target="row"]')).map((row) => ({
+                name: value('[data-role="name"]', row),
+                language: value('[data-role="language"]', row),
+            })),
+        };
+    }
+
+    // One string for comparing names: trimmed, rows without a name left out - like the server saves them
+    namesKey(names) {
+        return JSON.stringify([
+            (names.name || '').trim(),
+            names.nameLanguage || '',
+            (names.alternativeNames || [])
+                .filter((alternative) => (alternative.name || '').trim() !== '')
+                .map((alternative) => [alternative.name.trim(), alternative.language || '']),
+        ]);
     }
 
     checkedImage(field) {

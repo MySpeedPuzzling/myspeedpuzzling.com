@@ -7,3 +7,7 @@ finished_at_required_for_speed: "Date completed is required for speed puzzling."
 duplicate_puzzle_or_url_required: "Please select a duplicate puzzle or enter a puzzle URL."
 ean_invalid: "\"%code%\" is not a valid EAN or UPC code. Copy the digits under the barcode on the box; separate several codes with a comma."
 ean_missing_zeros: "\"%code%\" looks like %suggestion% with two zeros missing. Please use the full code from under the barcode."
+puzzle_names:
+    main_title_required: "The puzzle needs a main title."
+    name_too_long: "A name can be at most {{ limit }} characters long."
+    too_many_names: "A puzzle can have at most %limit% other names."

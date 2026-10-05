@@ -1,0 +1,24 @@
+{#
+    The names card of the moderators' record forms: the names editor (puzzle/_names_editor.html.twig) as one field of
+    puzzle_record_controller.js - marked when the main title, a name, a language or the order differs from the
+    puzzle's, "Undo my edit" puts every name back.
+
+    Required variables: names (the form's PuzzleNamesType child), current (the names now - {name, nameLanguage,
+    alternativeNames: [{name, language}]})
+#}
+<div class="border rounded-3 p-3 mb-3 shadow-sm"
+     data-puzzle-record-target="field"
+     data-names
+     data-label="Names"
+     data-current="{{ current|json_encode }}">
+    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+        <span class="form-label fw-semibold mb-0">Names</span>
+        <span class="badge d-none" data-role="badge"></span>
+    </div>
+
+    {{ include('puzzle/_names_editor.html.twig', {names: names}) }}
+
+    <div class="d-flex flex-wrap gap-3 mt-2">
+        <button type="button" class="btn btn-link btn-sm p-0 d-none" data-role="use-current" data-action="puzzle-record#useCurrent">Undo my edit</button>
+    </div>
+</div>

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
+use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -27,6 +29,7 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
 
     public function __construct(
         private readonly MessageBusInterface $messageBus,
+        private readonly GetPuzzleChangeRequests $getPuzzleChangeRequests,
         #[Autowire(env: 'INTERNAL_API_REVIEWER_PLAYER_ID')]
         private readonly string $reviewerPlayerId,
     ) {
@@ -65,8 +68,11 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
             }
         }
 
+        $puzzleId = $this->getPuzzleChangeRequests->puzzleIdOf($changeRequestId) ?? throw new PuzzleChangeRequestNotFound();
+
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
             changeRequestId: $changeRequestId,
+            puzzleId: $puzzleId,
             reviewerId: $this->reviewerPlayerId,
             selectedFields: array_values(array_unique($selectedFields)),
             decisionSource: MergeDecisionSource::InternalApi,

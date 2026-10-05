@@ -63,6 +63,11 @@ readonly final class ApprovePuzzleChangeRequestHandler
     {
         $changeRequest = $this->puzzleChangeRequestRepository->get($message->changeRequestId);
 
+        // The message was locked on this puzzle - another one would not keep concurrent saves apart
+        if ($changeRequest->puzzle->id->toString() !== strtolower($message->puzzleId)) {
+            throw new PuzzleChangeRequestNotFound();
+        }
+
         if ($changeRequest->status !== PuzzleReportStatus::Pending) {
             throw new PuzzleChangeRequestAlreadyReviewed();
         }
@@ -127,7 +132,8 @@ readonly final class ApprovePuzzleChangeRequestHandler
 
         return new PuzzleRecordValues(
             name: $selected('name') ? ($changeRequest->proposedName ?? $puzzle->name) : $puzzle->name,
-            alternativeName: $puzzle->alternativeNames()->legacyAlternativeName(),
+            nameLanguage: $puzzle->nameLanguage,
+            alternativeNames: $puzzle->alternativeNames(),
             manufacturerId: $manufacturer?->id->toString(),
             piecesCount: $selected('piecesCount') ? ($changeRequest->proposedPiecesCount ?? $puzzle->piecesCount) : $puzzle->piecesCount,
             ean: $selected('ean') ? ($changeRequest->proposedEan ?? $puzzle->ean) : $puzzle->ean,

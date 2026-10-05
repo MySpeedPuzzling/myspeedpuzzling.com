@@ -12,6 +12,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -32,7 +33,7 @@ final class PuzzleRecordFormType extends AbstractType
     }
 
     /**
-     * @param array{has_proposed_image: bool} $options
+     * @param array{has_proposed_image: bool, names_editor: bool} $options
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
@@ -42,6 +43,16 @@ final class PuzzleRecordFormType extends AbstractType
         foreach ($this->getManufacturers->allIncludingUnapproved() as $manufacturer) {
             $manufacturerLabels[$manufacturer->manufacturerId] = "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})"
                 . ($manufacturer->manufacturerApproved ? '' : ' - not approved');
+        }
+
+        if ($options['names_editor']) {
+            self::addNamesEditor($builder);
+        } else {
+            $builder
+                ->add('name', TextType::class)
+                ->add('alternativeName', TextType::class, [
+                    'required' => false,
+                ]);
         }
 
         self::addRecordFields($builder);
@@ -67,8 +78,25 @@ final class PuzzleRecordFormType extends AbstractType
     }
 
     /**
-     * The record's fields every moderator form shares - name, alternative name, pieces, codes, a new photo and the
-     * note. The brand differs: the record form picks any brand, the approval settles a new one (ApprovePuzzleFormType).
+     * Every name of the puzzle (templates/puzzle/_names_editor.html.twig, in the record form's names card
+     * templates/admin/_puzzle_record_names.html.twig) and the version of the record the form was loaded with - the
+     * handler refuses a save over a newer one (PuzzleRecordVersion).
+     *
+     * @template TData
+     *
+     * @param FormBuilderInterface<TData> $builder
+     */
+    public static function addNamesEditor(FormBuilderInterface $builder): void
+    {
+        $builder
+            ->add('names', PuzzleNamesType::class)
+            ->add('recordVersion', HiddenType::class);
+    }
+
+    /**
+     * The record's fields every moderator form shares - pieces, codes, a new photo and the note. The names come
+     * from addNamesEditor(); the brand differs: the record form picks any brand, the approval settles a new one
+     * (ApprovePuzzleFormType).
      *
      * @template TData
      *
@@ -77,10 +105,6 @@ final class PuzzleRecordFormType extends AbstractType
     public static function addRecordFields(FormBuilderInterface $builder): void
     {
         $builder
-            ->add('name', TextType::class)
-            ->add('alternativeName', TextType::class, [
-                'required' => false,
-            ])
             ->add('piecesCount', IntegerType::class, [
                 'attr' => [
                     'min' => 1,
@@ -114,8 +138,11 @@ final class PuzzleRecordFormType extends AbstractType
             'data_class' => PuzzleRecordFormData::class,
             'translation_domain' => false,
             'has_proposed_image' => false,
+            // Every name in the names editor instead of the single name and alternative name fields
+            'names_editor' => false,
         ]);
 
         $resolver->setAllowedTypes('has_proposed_image', 'bool');
+        $resolver->setAllowedTypes('names_editor', 'bool');
     }
 }

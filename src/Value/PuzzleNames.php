@@ -264,11 +264,14 @@ readonly final class PuzzleNames implements Countable
     }
 
     /**
+     * @param int $loadedCount How many names the puzzle had - only a growing list can break the cap: a merge may have
+     *                         left more than a form may add, and removing or editing one of them must still work
+     *
      * @throws InvalidPuzzleValues
      */
-    public function assertFormLimits(): void
+    public function assertFormLimits(int $loadedCount = 0): void
     {
-        if (count($this->names) > self::FORM_MAX_NAMES) {
+        if (count($this->names) > self::FORM_MAX_NAMES && count($this->names) > $loadedCount) {
             throw new InvalidPuzzleValues(sprintf('A puzzle can have at most %d other names.', self::FORM_MAX_NAMES));
         }
 

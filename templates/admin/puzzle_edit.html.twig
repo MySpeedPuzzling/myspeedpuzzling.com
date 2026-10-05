@@ -8,8 +8,6 @@
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_detail', {puzzleId: puzzle.puzzleId}), fallbackTitle: puzzle.name} %}
 
     {% set edit_fields = [
-        {label: 'Name', widget: form.name, help: null, current: puzzle.name, currentValue: puzzle.name},
-        {label: 'Alternative name', widget: form.alternativeName, help: null, current: puzzle.alternativeNames.legacyAlternativeName(), currentValue: puzzle.alternativeNames.legacyAlternativeName()},
         {label: 'Brand', widget: form.manufacturerId, help: null, current: puzzle.manufacturerName, currentValue: puzzle.manufacturerId},
         {label: 'Pieces', widget: form.piecesCount, help: null, current: puzzle.piecesCount, currentValue: puzzle.piecesCount},
         {label: 'EAN', widget: form.ean, help: 'Comma-separated - one code per edition or region. Never reduce the list.', current: puzzle.ean, currentValue: puzzle.ean},
@@ -68,7 +66,7 @@
 
             {{ form_start(form, {attr: {
                 'data-controller': 'puzzle-record',
-                'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update',
+                'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update names-editor:change->puzzle-record#update',
                 'data-puzzle-record-proposed-label-value': 'Proposed',
                 'data-puzzle-record-edit-label-value': 'Your edit',
                 'data-puzzle-record-kept-label-value': 'Keeping current',
@@ -84,6 +82,10 @@
                     <span class="badge bg-accent">Your edit</span>, and the change is kept in the puzzle's history under your name.
                 </p>
 
+                {{ include('admin/_puzzle_record_names.html.twig', {
+                    names: form.names,
+                    current: {name: puzzle.name, nameLanguage: puzzle.nameLanguage, alternativeNames: puzzle.alternativeNames.toArray()},
+                }) }}
                 {{ include('admin/_puzzle_record_fields.html.twig', {fields: edit_fields}) }}
                 {{ include('admin/_puzzle_record_image.html.twig', {
                     current_image: puzzle.image,

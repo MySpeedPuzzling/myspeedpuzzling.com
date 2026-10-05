@@ -74,6 +74,20 @@ SQL;
         return $this->byStatus(PuzzleReportStatus::Rejected, 'pcr.reviewed_at DESC');
     }
 
+    /**
+     * The puzzle a change request is about - what its approval locks (ApprovePuzzleChangeRequest). Null when there is
+     * no such request.
+     */
+    public function puzzleIdOf(string $id): null|string
+    {
+        $puzzleId = $this->database->fetchOne(
+            'SELECT puzzle_id FROM puzzle_change_request WHERE id = :id',
+            ['id' => $id],
+        );
+
+        return is_string($puzzleId) ? $puzzleId : null;
+    }
+
     public function byId(string $id): null|PuzzleChangeRequestOverview
     {
         $query = <<<SQL
@@ -95,6 +109,7 @@ SELECT
     pcr.original_image,
     p.id as puzzle_id,
     p.name as puzzle_name,
+    p.name_language as puzzle_name_language,
     p.pieces_count as puzzle_pieces_count,
     p.alternative_names as puzzle_alternative_names,
     p.manufacturer_id as puzzle_manufacturer_id,
@@ -102,6 +117,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS puzzle_image_ratio,
+    p.image AS puzzle_record_image,
     pm.name as puzzle_manufacturer_name,
     reporter.id as reporter_id,
     reporter.name as reporter_name,
@@ -158,6 +174,7 @@ SELECT
     pcr.original_image,
     p.id as puzzle_id,
     p.name as puzzle_name,
+    p.name_language as puzzle_name_language,
     p.pieces_count as puzzle_pieces_count,
     p.alternative_names as puzzle_alternative_names,
     p.manufacturer_id as puzzle_manufacturer_id,
@@ -165,6 +182,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS puzzle_image_ratio,
+    p.image AS puzzle_record_image,
     pm.name as puzzle_manufacturer_name,
     reporter.id as reporter_id,
     reporter.name as reporter_name,

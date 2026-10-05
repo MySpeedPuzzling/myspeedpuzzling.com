@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyApproved;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
@@ -19,9 +20,9 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ManufacturerMerger;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleRecordUpdater;
-use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
+use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -53,6 +54,7 @@ readonly final class ApprovePuzzleHandler
      * @throws PuzzleAlreadyApproved
      * @throws InvalidPuzzleApproval
      * @throws InvalidPuzzleValues
+     * @throws PuzzleChangedMeanwhile
      */
     public function __invoke(ApprovePuzzle $message): void
     {
@@ -69,13 +71,15 @@ readonly final class ApprovePuzzleHandler
         // Validates every value before it changes anything - the record, the image included, gets the final brand
         $change = $this->puzzleRecordUpdater->update($puzzle, new PuzzleRecordValues(
             name: $message->name,
-            alternativeName: $message->alternativeName,
+            nameLanguage: $message->nameLanguage,
+            alternativeNames: $message->alternativeNames,
             manufacturerId: ($targetBrand ?? $currentBrand)?->id->toString(),
             piecesCount: $message->piecesCount,
             ean: $message->ean,
             identificationNumber: $message->identificationNumber,
             image: $message->uploadedImage !== null ? PuzzleImageChoice::Upload : PuzzleImageChoice::Keep,
             uploadedImage: $message->uploadedImage,
+            recordVersion: $message->recordVersion,
         ));
         $name = $puzzle->name;
 

@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
@@ -18,6 +19,7 @@ use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -42,7 +44,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
             editorId: PlayerFixture::PLAYER_REGULAR,
             values: new PuzzleRecordValues(
                 name: '  Edited Name ',
-                alternativeName: 'Alternative Title',
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames([new PuzzleName('Alternative Title', null)]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
                 ean: '4005556123452',
@@ -97,7 +100,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
             editorId: PlayerFixture::PLAYER_ADMIN,
             values: new PuzzleRecordValues(
                 name: $puzzle->name,
-                alternativeName: $puzzle->alternativeNames()->legacyAlternativeName(),
+                nameLanguage: $puzzle->nameLanguage,
+                alternativeNames: $puzzle->alternativeNames(),
                 manufacturerId: $puzzle->manufacturer?->id->toString(),
                 piecesCount: $puzzle->piecesCount,
                 ean: $puzzle->ean,
@@ -110,14 +114,20 @@ final class EditPuzzleHandlerTest extends KernelTestCase
         self::assertNull($this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01)->namesChangedAt);
     }
 
-    public function testTheSingleAlternativeNameFieldEditsTheCzechNameAndKeepsTheOthers(): void
+    public function testTheWholeListOfNamesIsSavedAsSentWithTheMainTitlesLanguage(): void
     {
-        $edit = fn (null|string $alternativeName) => $this->messageBus->dispatch(new EditPuzzle(
+        $this->messageBus->dispatch(new EditPuzzle(
             puzzleId: PuzzleFixture::PUZZLE_1000_02,
             editorId: PlayerFixture::PLAYER_ADMIN,
             values: new PuzzleRecordValues(
-                name: 'Puzzle 7',
-                alternativeName: $alternativeName,
+                // The Czech box had no English title - its name is the main title now, the old one an other name
+                name: PuzzleFixture::NAME_CS_MAGIC_GARDEN,
+                nameLanguage: 'cs',
+                alternativeNames: new PuzzleNames([
+                    new PuzzleName(PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'de'),
+                    new PuzzleName('Puzzle 7', 'en'),
+                    new PuzzleName('Jardín mágico', 'es'),
+                ]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
                 ean: null,
@@ -125,43 +135,52 @@ final class EditPuzzleHandlerTest extends KernelTestCase
             ),
         ));
 
-        // The form shows the Czech name and sends it back unchanged: both names stay, nothing is logged
-        $edit(PuzzleFixture::NAME_CS_MAGIC_GARDEN);
-        self::assertSame([], $this->decisions(PuzzleFixture::PUZZLE_1000_02));
-        self::assertCount(2, $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->alternativeNames);
-
-        // Re-spelled: still the Czech name
-        $edit('KOUZELNÁ ZAHRADA');
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
+        self::assertSame(PuzzleFixture::NAME_CS_MAGIC_GARDEN, $puzzle->name);
+        self::assertSame('cs', $puzzle->nameLanguage);
         self::assertSame([
-            ['name' => 'KOUZELNÁ ZAHRADA', 'language' => 'cs'],
             ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
+            ['name' => 'Puzzle 7', 'language' => 'en'],
+            ['name' => 'Jardín mágico', 'language' => 'es'],
         ], $puzzle->alternativeNames);
-
-        // Another name: nothing says it is Czech
-        $edit('Kouzelná zahrádka');
-        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
-        self::assertSame([
-            ['name' => 'Kouzelná zahrádka', 'language' => null],
-            ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
-        ], $puzzle->alternativeNames);
-        self::assertSame('Kouzelná zahrádka', $puzzle->alternativeNames()->legacyAlternativeName());
-        self::assertSame("\npuzzle 7\nkouzelna zahradka\nzauberhafter garten\n", $puzzle->searchNames);
-
-        // Emptied: only the name the field showed goes
-        $edit('  ');
-        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
-        self::assertSame([['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de']], $puzzle->alternativeNames);
-        self::assertSame(PuzzleFixture::NAME_DE_MAGIC_GARDEN, $puzzle->alternativeNames()->legacyAlternativeName());
-        self::assertSame("\npuzzle 7\nzauberhafter garten\n", $puzzle->searchNames);
+        self::assertSame("\nkouzelna zahrada\nzauberhafter garten\npuzzle 7\njardin magico\n", $puzzle->searchNames);
 
         $decisions = $this->decisions(PuzzleFixture::PUZZLE_1000_02);
-        self::assertCount(3, $decisions);
-        $afterSnapshots = array_map(static fn (PuzzleModerationDecision $decision): mixed => $decision->details['after'] ?? null, $decisions);
-        self::assertContains([['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de']], array_map(
-            static fn (mixed $after): mixed => is_array($after) ? $after['alternativeNames'] : null,
-            $afterSnapshots,
+        self::assertCount(1, $decisions);
+        $details = $decisions[0]->details;
+        self::assertIsArray($details);
+        self::assertIsArray($details['before']);
+        self::assertIsArray($details['after']);
+        self::assertNull($details['before']['nameLanguage']);
+        self::assertSame('cs', $details['after']['nameLanguage']);
+    }
+
+    public function testASaveOverANewerRecordIsRefusedBeforeAnythingChanges(): void
+    {
+        $loaded = PuzzleRecordVersion::ofPuzzle($this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01));
+
+        // Somebody else saved in between
+        $this->messageBus->dispatch(new EditPuzzle(
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
+            editorId: PlayerFixture::PLAYER_REGULAR,
+            values: $this->puzzle1(piecesCount: 520, recordVersion: $loaded),
         ));
+        $this->entityManager->clear();
+
+        try {
+            $this->messageBus->dispatch(new EditPuzzle(
+                puzzleId: PuzzleFixture::PUZZLE_500_01,
+                editorId: PlayerFixture::PLAYER_ADMIN,
+                values: $this->puzzle1(name: 'Typed over the old record', recordVersion: $loaded),
+            ));
+            self::fail('A stale form must be refused.');
+        } catch (PuzzleChangedMeanwhile) {
+        }
+
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
+        self::assertSame('Puzzle 1', $puzzle->name);
+        self::assertSame(520, $puzzle->piecesCount);
+        self::assertCount(1, $this->decisions());
     }
 
     public function testANameIsRemovedFromAPuzzleWithMoreNamesThanAFormMayAdd(): void
@@ -179,7 +198,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
             editorId: PlayerFixture::PLAYER_ADMIN,
             values: new PuzzleRecordValues(
                 name: 'Puzzle 3',
-                alternativeName: '',
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames(array_slice($puzzle->alternativeNames()->all(), 1)),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
                 ean: PuzzleFixture::EAN_PUZZLE_500_03,
@@ -201,7 +221,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
             editorId: PlayerFixture::PLAYER_ADMIN,
             values: new PuzzleRecordValues(
                 name: 'Puzzle 1',
-                alternativeName: str_repeat('ř', PuzzleNames::MAX_NAME_LENGTH + 1),
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames([new PuzzleName(str_repeat('ř', PuzzleNames::MAX_NAME_LENGTH + 1), 'cs')]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
                 ean: null,
@@ -218,7 +239,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
                 editorId: PlayerFixture::PLAYER_ADMIN,
                 values: new PuzzleRecordValues(
                     name: str_repeat('a', 256),
-                    alternativeName: 'Should not be saved',
+                    nameLanguage: null,
+                    alternativeNames: new PuzzleNames([new PuzzleName('Should not be saved', null)]),
                     manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                     piecesCount: 1000,
                     ean: '4005556123452',
@@ -245,7 +267,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
                 editorId: PlayerFixture::PLAYER_ADMIN,
                 values: new PuzzleRecordValues(
                     name: '   ',
-                    alternativeName: 'Should not be saved',
+                    nameLanguage: null,
+                    alternativeNames: new PuzzleNames([new PuzzleName('Should not be saved', null)]),
                     manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                     piecesCount: 1000,
                     ean: null,
@@ -262,6 +285,20 @@ final class EditPuzzleHandlerTest extends KernelTestCase
         self::assertSame([], $puzzle->alternativeNames);
         self::assertSame(500, $puzzle->piecesCount);
         self::assertSame([], $this->decisions());
+    }
+
+    private function puzzle1(string $name = 'Puzzle 1', int $piecesCount = 500, null|string $recordVersion = null): PuzzleRecordValues
+    {
+        return new PuzzleRecordValues(
+            name: $name,
+            nameLanguage: null,
+            alternativeNames: new PuzzleNames(),
+            manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            piecesCount: $piecesCount,
+            ean: null,
+            identificationNumber: 'RB-500-001',
+            recordVersion: $recordVersion,
+        );
     }
 
     /**

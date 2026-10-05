@@ -24,9 +24,10 @@ approving new puzzles is the same job of looking after the catalogue. The `acces
 A newly added puzzle almost always carries somebody's solving time, so it can never simply be deleted.
 
 1. **Approve**, correcting the record on the way - the moderators' record form (`ApprovePuzzleFormType`, sharing
-   `PuzzleRecordFormType::addRecordFields()` and the field / image / note partials): name, alternative name, pieces,
-   EAN, brand code, **a new photo of the box** (drop area + crop, `FormPhotoStash`) and a note for the history; every
-   changed field is marked *Your edit*, the summary lists the corrections. Saved by `PuzzleRecordUpdater` inside
+   `PuzzleRecordFormType::addNamesEditor()` / `addRecordFields()` and the names card / field / image / note partials):
+   every name in the names editor (main title, its language, other names with theirs - docs/features/puzzle-names/),
+   pieces, EAN, brand code, **a new photo of the box** (drop area + crop, `FormPhotoStash`) and a note for the history;
+   every changed field is marked *Your edit*, the summary lists the corrections. Saved by `PuzzleRecordUpdater` inside
    `ApprovePuzzleHandler` (the file gets the SEO name of the *final* brand). EAN and brand code may hold several
    comma-separated codes - never reduce such a list.
 2. **Merge** into the puzzle it duplicates. "Is it already in the catalogue?" shows what a search found - **similar
@@ -96,15 +97,20 @@ shared with the direct edit below.
 `ApprovePuzzleChangeRequest` carries the reviewer's values as `PuzzleRecordValues`; the internal API still sends
 `selectedFields` (those fields as proposed, the rest unchanged), which the handler turns into the same values. Both
 are saved by `PuzzleRecordUpdater` - **the one place that writes a puzzle's record** for an approval and a direct edit:
-everything is validated first (`InvalidPuzzleValues`, 422), then applied, and it returns the `before` / `after`
-snapshots the decision log keeps (+ the image choice, + `selectedFields` from the internal API).
+first the record version the form was loaded with is compared with the puzzle (`PuzzleRecordVersion` - a hidden field
+on the edit and approval forms; a save over a record somebody changed meanwhile is refused with
+`PuzzleChangedMeanwhile`, 422, and the form comes back with what was typed), then everything is validated
+(`InvalidPuzzleValues`, 422), then applied, and it returns the `before` / `after` snapshots the decision log keeps (+ the
+image choice, + `selectedFields` from the internal API). Every message changing a puzzle's record is
+`SerializedByLock` on `puzzle-<id>` (`PuzzleRecordVersion::lockKey()`), so two saves never check at the same moment.
 
 ## Editing a puzzle directly
 
 Admins and moderators change any puzzle without the change request round: "Edit puzzle" on the puzzle page (a button
 row under the actions + the ⋯ menu, `is_granted('PUZZLE_MODERATION_ACCESS')`; labels in all 6 locales) opens
-`/admin/puzzles/{id}/edit` (`EditPuzzleController`). The same record form as the review, without a proposal - every
-changed field is marked *Your edit*, the summary lists what saving changes, an optional note explains why. Pending
+`/admin/puzzles/{id}/edit` (`EditPuzzleController`). The same record form as the review, without a proposal, with every
+name in the names editor (`PuzzleRecordFormType` option `names_editor`) - every changed field is marked *Your edit*,
+the summary lists what saving changes, an optional note explains why. Pending
 proposals for the puzzle are listed above the form (a fix someone proposed is better approved - it tells them).
 `EditPuzzle` → `EditPuzzleHandler` → `PuzzleRecordUpdater`, logged as `puzzle_edited` with before/after; an edit that
 changes nothing records nothing. Success redirects to `?return=` (the puzzle page). Works for unapproved and hidden

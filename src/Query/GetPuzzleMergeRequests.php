@@ -74,6 +74,28 @@ SQL;
         return $this->byStatus(PuzzleReportStatus::Rejected, 'pmr.reviewed_at DESC');
     }
 
+    /**
+     * The puzzles a merge request reports, lower-case ids - what its approval may keep (the survivor) and merge. Null
+     * when there is no such request.
+     *
+     * @return null|list<string>
+     */
+    public function reportedPuzzleIdsOf(string $id): null|array
+    {
+        $reported = $this->database->fetchOne(
+            'SELECT reported_duplicate_puzzle_ids FROM puzzle_merge_request WHERE id = :id',
+            ['id' => $id],
+        );
+
+        if (is_string($reported) === false) {
+            return null;
+        }
+
+        $puzzleIds = json_decode($reported, true);
+
+        return is_array($puzzleIds) ? array_values(array_map(strtolower(...), array_filter($puzzleIds, is_string(...)))) : [];
+    }
+
     public function byId(string $id): null|PuzzleMergeRequestOverview
     {
         $query = <<<SQL

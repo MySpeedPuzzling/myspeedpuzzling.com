@@ -63,7 +63,7 @@ Approve body:
 
 | Field | Required | Notes |
 |---|---|---|
-| `survivorPuzzleId` | yes | The puzzle that stays. Normally the one carrying the most history |
+| `survivorPuzzleId` | yes | The puzzle that stays. Normally the one carrying the most history. Must be one of the request's reported puzzles (any letter case) - any other id is a `400` |
 | `mergedName` | yes | Name the survivor ends up with - its main title, the English one when the box has one |
 | `mergedNameLanguage` | no | BCP 47 tag of the main title when it is not English (`"cs"`), null = English or not known. Without `mergedAlternativeNames` it only overrides the language the merge finds for `mergedName` |
 | `mergedAlternativeNames` | no | Every other name of the survivor, `[{"name", "language"}]` in order - **replaces** the union below, so list every name to keep. More than 20 only when the union already holds more |

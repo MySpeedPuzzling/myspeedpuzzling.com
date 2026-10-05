@@ -70,17 +70,23 @@ readonly final class ApprovePuzzleMergeRequestHandler
     {
         $mergeRequest = $this->puzzleMergeRequestRepository->get($message->mergeRequestId);
         $reviewer = $this->playerRepository->get($message->reviewerId);
+        $survivorPuzzleId = strtolower($message->survivorPuzzleId);
+
+        // Every reported puzzle but the survivor is deleted - a survivor outside the request would be deleted itself
+        if (in_array($survivorPuzzleId, array_map(strtolower(...), $mergeRequest->reportedDuplicatePuzzleIds), true) === false) {
+            throw new InvalidPuzzleValues('The puzzle that stays must be one of the reported puzzles.');
+        }
 
         // Every puzzle of the merge is locked (SELECT … FOR UPDATE) before the record versions are compared - the
         // message's lock covers the survivor only: an edit or an EAN link of a merged puzzle either committed before
         // (the check below refuses the merge) or waits until the merge commits
         $lockedPuzzles = [];
 
-        foreach ($this->puzzleRepository->findByIdsForUpdate([$message->survivorPuzzleId, ...$mergeRequest->reportedDuplicatePuzzleIds]) as $puzzle) {
+        foreach ($this->puzzleRepository->findByIdsForUpdate(array_values($mergeRequest->reportedDuplicatePuzzleIds)) as $puzzle) {
             $lockedPuzzles[$puzzle->id->toString()] = $puzzle;
         }
 
-        $survivorPuzzle = $lockedPuzzles[strtolower($message->survivorPuzzleId)] ?? throw new PuzzleNotFound();
+        $survivorPuzzle = $lockedPuzzles[$survivorPuzzleId] ?? throw new PuzzleNotFound();
 
         // Collect all puzzle IDs to merge (including source puzzle, excluding survivor)
         $puzzlesToMerge = [];
@@ -155,7 +161,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
         }
 
         // Copy image from selected puzzle if different from survivor
-        if ($message->selectedImagePuzzleId !== null && $message->selectedImagePuzzleId !== $message->survivorPuzzleId) {
+        if ($message->selectedImagePuzzleId !== null && strtolower($message->selectedImagePuzzleId) !== $survivorPuzzleId) {
             try {
                 $imagePuzzle = $this->puzzleRepository->get($message->selectedImagePuzzleId);
                 if ($imagePuzzle->image !== null) {

@@ -800,6 +800,55 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertStringContainsString('FOR UPDATE', $failedStatement);
     }
 
+    public function testAnUpperCaseSurvivorIdKeepsTheSurvivor(): void
+    {
+        $mergeRequestId = $this->submitMergeRequest();
+
+        $this->messageBus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: strtoupper(PuzzleFixture::PUZZLE_500_04),
+            mergedName: 'Puzzle 4',
+            mergedEan: null,
+            mergedIdentificationNumber: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: null,
+            selectedImagePuzzleId: strtoupper(PuzzleFixture::PUZZLE_500_04),
+        ));
+
+        $this->entityManager->clear();
+        self::assertSame('Puzzle 4', $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04)->name);
+
+        $this->expectException(PuzzleNotFound::class);
+        $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+    }
+
+    public function testASurvivorOutsideTheRequestIsRefused(): void
+    {
+        $mergeRequestId = $this->submitMergeRequest();
+
+        try {
+            $this->messageBus->dispatch(new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_1000_01,
+                mergedName: 'Puzzle 4',
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+            ));
+            self::fail('Every reported puzzle would have been merged into a puzzle outside the request');
+        } catch (InvalidPuzzleValues) {
+        }
+
+        $this->entityManager->clear();
+        self::assertSame(PuzzleReportStatus::Pending, $this->mergeRequestRepository->get($mergeRequestId)->status);
+        $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+    }
+
     public function testTheReviewersNamesMayNotGrowPastTheFormLimit(): void
     {
         $mergeRequestId = $this->submitMergeRequest();

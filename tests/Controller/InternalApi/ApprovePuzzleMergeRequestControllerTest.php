@@ -4,33 +4,35 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
-use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Controller\InternalApi\ApprovePuzzleMergeRequestController;
+use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-final class ApprovePuzzleMergeRequestControllerTest extends TestCase
+final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
 {
-    private const string MERGE_REQUEST_ID = '019e281a-6b16-7324-8265-0f06673a49cb';
+    // Reports PUZZLE_500_01 and PUZZLE_500_02
+    private const string MERGE_REQUEST_ID = PuzzleReportFixture::MERGE_REQUEST_PENDING;
 
     private const string REVIEWER_ID = '018b9c2b-7437-7235-b231-162cdf07d234';
 
-    private const string SURVIVOR_ID = '018eb4c9-d751-70db-ab5d-0b8a4e55d2a7';
+    private const string SURVIVOR_ID = PuzzleFixture::PUZZLE_500_01;
 
     public function testDispatchesApprovalWithDecisionMetadata(): void
     {
         $dispatched = null;
 
-        $controller = new ApprovePuzzleMergeRequestController(
-            $this->messageBusCapturing($dispatched),
-            self::REVIEWER_ID,
-        );
+        $controller = $this->controller($this->messageBusCapturing($dispatched));
 
         $response = $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
             'survivorPuzzleId' => self::SURVIVOR_ID,
@@ -62,10 +64,7 @@ final class ApprovePuzzleMergeRequestControllerTest extends TestCase
     {
         $dispatched = null;
 
-        $controller = new ApprovePuzzleMergeRequestController(
-            $this->messageBusCapturing($dispatched),
-            self::REVIEWER_ID,
-        );
+        $controller = $this->controller($this->messageBusCapturing($dispatched));
 
         $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
             'survivorPuzzleId' => self::SURVIVOR_ID,
@@ -85,10 +84,7 @@ final class ApprovePuzzleMergeRequestControllerTest extends TestCase
     {
         $dispatched = null;
 
-        $controller = new ApprovePuzzleMergeRequestController(
-            $this->messageBusCapturing($dispatched),
-            self::REVIEWER_ID,
-        );
+        $controller = $this->controller($this->messageBusCapturing($dispatched));
 
         $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
             'survivorPuzzleId' => self::SURVIVOR_ID,
@@ -114,10 +110,7 @@ final class ApprovePuzzleMergeRequestControllerTest extends TestCase
     {
         $dispatched = null;
 
-        $controller = new ApprovePuzzleMergeRequestController(
-            $this->messageBusCapturing($dispatched),
-            self::REVIEWER_ID,
-        );
+        $controller = $this->controller($this->messageBusCapturing($dispatched));
 
         $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
             'survivorPuzzleId' => self::SURVIVOR_ID,
@@ -185,12 +178,68 @@ final class ApprovePuzzleMergeRequestControllerTest extends TestCase
         ]));
     }
 
+    public function testAnUpperCaseSurvivorIdIsTheSamePuzzle(): void
+    {
+        $dispatched = null;
+
+        $controller = $this->controller($this->messageBusCapturing($dispatched));
+
+        $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => strtoupper(self::SURVIVOR_ID),
+            'selectedImagePuzzleId' => strtoupper(PuzzleFixture::PUZZLE_500_02),
+            'mergedName' => 'Some Puzzle',
+            'mergedPiecesCount' => 500,
+        ]));
+
+        self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
+        self::assertSame(self::SURVIVOR_ID, $dispatched->survivorPuzzleId);
+        self::assertSame(PuzzleFixture::PUZZLE_500_02, $dispatched->selectedImagePuzzleId);
+    }
+
+    public function testRejectsASurvivorThatIsNotAnId(): void
+    {
+        $controller = $this->controllerWithNeverDispatchingBus();
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('"survivorPuzzleId" must be an id.');
+
+        $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => 'puzzle-1',
+            'mergedName' => 'Some Puzzle',
+            'mergedPiecesCount' => 500,
+        ]));
+    }
+
+    public function testRejectsASurvivorTheRequestDoesNotReport(): void
+    {
+        $controller = $this->controllerWithNeverDispatchingBus();
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('"survivorPuzzleId" must be one of the reported puzzles');
+
+        $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => PuzzleFixture::PUZZLE_1000_01,
+            'mergedName' => 'Some Puzzle',
+            'mergedPiecesCount' => 500,
+        ]));
+    }
+
+    public function testAnUnknownMergeRequestIsNotFound(): void
+    {
+        $controller = $this->controllerWithNeverDispatchingBus();
+
+        $this->expectException(PuzzleMergeRequestNotFound::class);
+
+        $controller('018e0001-0000-0000-0000-0000000000ff', $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedPiecesCount' => 500,
+        ]));
+    }
+
     public function testRefusesToActWhenNoReviewerIsConfigured(): void
     {
-        $controller = new ApprovePuzzleMergeRequestController(
-            $this->messageBusExpectingNoDispatch(),
-            '',
-        );
+        $controller = $this->controller($this->messageBusExpectingNoDispatch(), reviewerPlayerId: '');
 
         $this->expectException(BadRequestHttpException::class);
 
@@ -203,9 +252,17 @@ final class ApprovePuzzleMergeRequestControllerTest extends TestCase
 
     private function controllerWithNeverDispatchingBus(): ApprovePuzzleMergeRequestController
     {
+        return $this->controller($this->messageBusExpectingNoDispatch());
+    }
+
+    private function controller(MessageBusInterface $messageBus, string $reviewerPlayerId = self::REVIEWER_ID): ApprovePuzzleMergeRequestController
+    {
+        self::bootKernel();
+
         return new ApprovePuzzleMergeRequestController(
-            $this->messageBusExpectingNoDispatch(),
-            self::REVIEWER_ID,
+            $messageBus,
+            self::getContainer()->get(GetPuzzleMergeRequests::class),
+            $reviewerPlayerId,
         );
     }
 

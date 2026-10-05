@@ -619,7 +619,7 @@ components:
         survivorPuzzleId:
           type: string
           format: uuid
-          description: The puzzle that stays; every other reported puzzle is deleted.
+          description: The puzzle that stays; every other reported puzzle is deleted. Must be one of the request's reported puzzles (any letter case) - another id is a 400.
         mergedName:
           type: string
           description: The survivor's main title - the English one when the box has one.
@@ -643,6 +643,7 @@ components:
           type: [string, "null"]
         selectedImagePuzzleId:
           type: [string, "null"]
+          format: uuid
           description: Take the cover image from this puzzle.
         decisionConfidence:
           type: [string, "null"]

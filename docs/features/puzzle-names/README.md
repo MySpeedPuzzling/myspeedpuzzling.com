@@ -84,6 +84,10 @@ collapsed. NFKC turns full-width `％＿＼４` into ASCII *before* escaping, La
 `Łódź → lodz`, `Straße → strasse`, `Ørsted → orsted`, non-Latin scripts stay as they are (half-width katakana are
 normalised by NFKC). Postgres never folds puzzle text for search, so stored keys and queries cannot disagree.
 `SearchText::VERSION` is bumped whenever the fold changes; then `myspeedpuzzling:rebuild-puzzle-search-keys` runs.
+The command writes only the keys that changed (batches of 500, rows locked, safe to interrupt and re-run);
+`--dry-run [--report=<csv>]` counts and lists what a run would change without writing (`GetPuzzleSearchKeyDrift`),
+and lily runs it nightly with `--alert-on-drift` - a changed key logs a warning: a write went around the entity, or a
+release that changes the keys was not followed by a run (`codes-help-and-check-digit.md`, "Rollout and safety").
 
 **Keys** (stored with a leading and trailing newline so every whole-line match is a plain `LIKE`):
 

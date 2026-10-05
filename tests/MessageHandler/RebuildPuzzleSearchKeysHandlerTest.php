@@ -45,12 +45,16 @@ final class RebuildPuzzleSearchKeysHandlerTest extends KernelTestCase
         self::assertSame(3, $this->getPuzzlesForSearchKeys->countWithoutNameKey());
         self::getContainer()->get(EntityManagerInterface::class)->clear();
 
-        self::assertSame(3, $this->rebuild([...$puzzleIds, PuzzleFixture::PUZZLE_300]));
+        $changed = $this->rebuild([...$puzzleIds, PuzzleFixture::PUZZLE_300]);
+        sort($changed);
+        $sortedIds = $puzzleIds;
+        sort($sortedIds);
+        self::assertSame($sortedIds, $changed);
         self::assertSame($expected, $this->keysOf($puzzleIds));
         self::assertSame(0, $this->getPuzzlesForSearchKeys->countWithoutNameKey());
         self::assertSame("\npuzzle 7\nkouzelna zahrada\nzauberhafter garten\n", $expected[PuzzleFixture::PUZZLE_1000_02]['search_names']);
 
-        self::assertSame(0, $this->rebuild($puzzleIds));
+        self::assertSame([], $this->rebuild($puzzleIds));
         self::assertSame($expected, $this->keysOf($puzzleIds));
     }
 
@@ -108,13 +112,16 @@ final class RebuildPuzzleSearchKeysHandlerTest extends KernelTestCase
 
     /**
      * @param list<string> $puzzleIds
+     *
+     * @return list<string> The puzzles whose key changed
      */
-    private function rebuild(array $puzzleIds): int
+    private function rebuild(array $puzzleIds): array
     {
         $result = $this->messageBus->dispatch(new RebuildPuzzleSearchKeys($puzzleIds))->last(HandledStamp::class)?->getResult();
         self::getContainer()->get(EntityManagerInterface::class)->clear();
-        self::assertIsInt($result);
+        self::assertIsArray($result);
 
+        /** @var list<string> $result */
         return $result;
     }
 

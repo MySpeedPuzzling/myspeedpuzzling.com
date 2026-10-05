@@ -9,7 +9,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Returns how many of the puzzles got a different key - an unchanged key is no write, so running it again is cheap.
+ * Returns the ids of the puzzles that got a different key - an unchanged key is no write, so running it again is cheap.
  *
  * The batch is locked for update: a moderator's edit or a merge committing between loading the batch and its flush
  * would otherwise get its fresh key overwritten by one built from the names as they were loaded. Now it waits for the
@@ -23,9 +23,12 @@ readonly final class RebuildPuzzleSearchKeysHandler
     ) {
     }
 
-    public function __invoke(RebuildPuzzleSearchKeys $message): int
+    /**
+     * @return list<string>
+     */
+    public function __invoke(RebuildPuzzleSearchKeys $message): array
     {
-        $changed = 0;
+        $changed = [];
 
         foreach ($this->puzzleRepository->findByIdsForUpdate($message->puzzleIds) as $puzzle) {
             $keys = [$puzzle->searchNames, $puzzle->searchCodes];
@@ -33,7 +36,7 @@ readonly final class RebuildPuzzleSearchKeysHandler
             $puzzle->refreshSearchKeys();
 
             if ($keys !== [$puzzle->searchNames, $puzzle->searchCodes]) {
-                $changed++;
+                $changed[] = $puzzle->id->toString();
             }
         }
 

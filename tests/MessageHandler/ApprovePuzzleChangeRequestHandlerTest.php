@@ -508,6 +508,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
             proposedEan: $puzzle->ean,
             proposedIdentificationNumber: $puzzle->identificationNumber,
             proposedPhoto: null,
+            originalAlternativeNames: $puzzle->alternativeNames(),
+            originalNameLanguage: $puzzle->nameLanguage,
             proposedAlternativeNames: $alternativeNames,
             proposedNameLanguage: $nameLanguage,
         ));

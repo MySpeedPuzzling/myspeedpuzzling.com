@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -82,6 +83,7 @@ final class ProposeChangesController extends AbstractController
         // Pre-populate propose changes form with existing values
         $proposeFormData = new ProposePuzzleChangesFormData();
         $proposeFormData->names = PuzzleNamesFormData::fromNames($record->name, $record->nameLanguage, $record->alternativeNames);
+        $proposeFormData->recordVersion = $record->recordVersion();
         $proposeFormData->manufacturerId = $puzzle->manufacturerId;
         $proposeFormData->piecesCount = $puzzle->piecesCount;
         $proposeFormData->ean = $puzzle->puzzleEan;
@@ -96,6 +98,12 @@ final class ProposeChangesController extends AbstractController
         $activeTab = $request->query->getString('tab', 'propose');
 
         $proposeForm->handleRequest($request);
+
+        // The proposal is compared with - and its names applied as a diff against - the puzzle the player saw. When it
+        // changed since (a form without a version comes from the release before), the player looks at it again
+        if ($proposeForm->isSubmitted() && $proposeForm->isValid() && $proposeFormData->recordVersion !== $record->recordVersion()) {
+            $proposeForm->addError(new FormError($this->translator->trans('puzzle_names.record_changed_meanwhile')));
+        }
 
         // Handle propose changes submission
         if ($proposeForm->isSubmitted() && $proposeForm->isValid()) {
@@ -147,6 +155,9 @@ final class ProposeChangesController extends AbstractController
                 proposedEan: $formData->ean,
                 proposedIdentificationNumber: $formData->identificationNumber,
                 proposedPhoto: $formData->photo,
+                // What the player saw - the record version above equals it
+                originalAlternativeNames: $record->alternativeNames,
+                originalNameLanguage: $record->nameLanguage,
                 proposedAlternativeNames: $namesChanged ? $formData->names->toPuzzleNames() : null,
                 proposedNameLanguage: $formData->names->nameLanguage,
             ));

@@ -83,8 +83,8 @@ readonly final class SubmitPuzzleChangeRequestHandler
             originalEan: $puzzle->ean,
             originalIdentificationNumber: $puzzle->identificationNumber,
             originalImage: $puzzle->image,
-            originalAlternativeNames: $puzzle->alternativeNames,
-            originalNameLanguage: $puzzle->nameLanguage,
+            originalAlternativeNames: $message->originalAlternativeNames->toArray(),
+            originalNameLanguage: $message->originalNameLanguage,
         );
 
         $this->entityManager->persist($changeRequest);

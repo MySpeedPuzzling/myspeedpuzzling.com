@@ -61,6 +61,8 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
                 proposedEan: '1234567890123',
                 proposedIdentificationNumber: 'NEW-001',
                 proposedPhoto: null,
+                originalAlternativeNames: new PuzzleNames(),
+                originalNameLanguage: null,
             ),
         );
 
@@ -105,6 +107,8 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
                 proposedEan: null,
                 proposedIdentificationNumber: null,
                 proposedPhoto: $uploadedFile,
+                originalAlternativeNames: new PuzzleNames(),
+                originalNameLanguage: null,
             ),
         );
 
@@ -132,6 +136,8 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
                 proposedEan: null,
                 proposedIdentificationNumber: null,
                 proposedPhoto: null,
+                originalAlternativeNames: new PuzzleNames(),
+                originalNameLanguage: null,
             ),
         );
 
@@ -158,6 +164,11 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
             proposedEan: null,
             proposedIdentificationNumber: null,
             proposedPhoto: null,
+            originalAlternativeNames: new PuzzleNames([
+                new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
+                new PuzzleName(PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'de'),
+            ]),
+            originalNameLanguage: null,
             proposedAlternativeNames: new PuzzleNames([
                 new PuzzleName('  Puzzle   7 ', null),
                 new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'CS'),
@@ -195,6 +206,11 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
             proposedEan: null,
             proposedIdentificationNumber: null,
             proposedPhoto: null,
+            originalAlternativeNames: new PuzzleNames([
+                new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
+                new PuzzleName(PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'de'),
+            ]),
+            originalNameLanguage: null,
             proposedNameLanguage: 'cs',
         ));
 
@@ -204,5 +220,41 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
         self::assertNull($changeRequest->proposedNameLanguage);
         self::assertCount(2, $changeRequest->originalAlternativeNames ?? []);
         self::assertTrue($changeRequest->proposedNamesDiff()->isEmpty());
+    }
+
+    public function testTheOriginalNamesAreTheOnesTheProposalWasMadeAgainst(): void
+    {
+        $changeRequestId = Uuid::uuid7()->toString();
+
+        // The player saw the Czech name only - the German one came later; the proposal adds a Spanish one
+        $this->messageBus->dispatch(new SubmitPuzzleChangeRequest(
+            changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            proposedName: 'Puzzle 7',
+            proposedManufacturerId: null,
+            proposedPiecesCount: 1000,
+            proposedEan: null,
+            proposedIdentificationNumber: null,
+            proposedPhoto: null,
+            originalAlternativeNames: new PuzzleNames([new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs')]),
+            originalNameLanguage: 'it',
+            proposedAlternativeNames: new PuzzleNames([
+                new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
+                new PuzzleName('Jardín mágico', 'es'),
+            ]),
+            proposedNameLanguage: 'it',
+        ));
+
+        $changeRequest = $this->changeRequestRepository->get($changeRequestId);
+
+        self::assertSame([['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs']], $changeRequest->originalAlternativeNames);
+        self::assertSame('it', $changeRequest->originalNameLanguage);
+
+        // Applied to the puzzle as it is, the German name stays: nothing proposed removing it
+        $diff = $changeRequest->proposedNamesDiff();
+        self::assertSame([], $diff->removed);
+        self::assertSame([], $diff->changed);
+        self::assertEquals([new PuzzleName('Jardín mágico', 'es')], $diff->added);
     }
 }

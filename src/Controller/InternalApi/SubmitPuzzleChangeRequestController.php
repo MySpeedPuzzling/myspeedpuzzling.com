@@ -126,6 +126,8 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             proposedEan: $ean,
             proposedIdentificationNumber: $identificationNumber,
             proposedPhoto: null,
+            originalAlternativeNames: $puzzle->alternativeNames,
+            originalNameLanguage: $puzzle->nameLanguage,
             proposedAlternativeNames: $namesChanged ? $alternativeNames : null,
             proposedNameLanguage: $nameLanguage,
         ));

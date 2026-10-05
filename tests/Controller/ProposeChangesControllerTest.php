@@ -100,6 +100,81 @@ final class ProposeChangesControllerTest extends WebTestCase
         self::assertSame(0, $count);
     }
 
+    public function testAProposalOverAPuzzleChangedSinceTheFormWasLoadedIsRefused(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $url = '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02 . '/suggest-change';
+
+        $crawler = $browser->request('GET', $url);
+        $form = $crawler->filter('form[name="propose_puzzle_changes_form"]')->form();
+
+        // A moderator removes the German name while the player edits the pieces only
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle SET alternative_names = :names WHERE id = :puzzleId',
+            [
+                'names' => json_encode([['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs']], JSON_THROW_ON_ERROR),
+                'puzzleId' => PuzzleFixture::PUZZLE_1000_02,
+            ],
+        );
+
+        $form['propose_puzzle_changes_form[piecesCount]'] = '1500';
+        $crawler = $browser->submit($form);
+
+        // Filed, it would have proposed the German name back as "added"
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('This puzzle was changed while you were editing it', $crawler->filter('form[name="propose_puzzle_changes_form"]')->text());
+        self::assertSame(0, $this->changeRequestCount(PuzzleFixture::PUZZLE_1000_02));
+    }
+
+    public function testAFormWithoutARecordVersionIsTreatedAsStale(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $url = '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02 . '/suggest-change';
+
+        $crawler = $browser->request('GET', $url);
+        $values = $crawler->filter('form[name="propose_puzzle_changes_form"]')->form()->getPhpValues();
+        self::assertIsArray($values['propose_puzzle_changes_form']);
+
+        // A form rendered by the release before has no version
+        unset($values['propose_puzzle_changes_form']['recordVersion']);
+        $values['propose_puzzle_changes_form']['piecesCount'] = '1500';
+        $browser->request('POST', $url, $values);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->changeRequestCount(PuzzleFixture::PUZZLE_1000_02));
+    }
+
+    public function testAProposalIsFiledAgainstTheNamesThePlayerSaw(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $url = '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02 . '/suggest-change';
+
+        $crawler = $browser->request('GET', $url);
+        $form = $crawler->filter('form[name="propose_puzzle_changes_form"]')->form();
+        $form['propose_puzzle_changes_form[piecesCount]'] = '1500';
+        $browser->submit($form);
+
+        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02);
+
+        $row = self::getContainer()->get(Connection::class)->fetchAssociative(
+            'SELECT proposed_pieces_count, proposed_alternative_names, original_alternative_names, original_name_language FROM puzzle_change_request WHERE puzzle_id = :puzzleId',
+            ['puzzleId' => PuzzleFixture::PUZZLE_1000_02],
+        );
+        self::assertIsArray($row);
+        self::assertSame(1500, $row['proposed_pieces_count']);
+        // The names are no part of the proposal; the snapshot is what the form was loaded with
+        self::assertNull($row['proposed_alternative_names']);
+        self::assertNull($row['original_name_language']);
+        self::assertIsString($row['original_alternative_names']);
+        self::assertSame([
+            ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
+            ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
+        ], json_decode($row['original_alternative_names'], true));
+    }
+
     private function submit(KernelBrowser $browser, string $ean, null|string $name = null): Crawler
     {
         $crawler = $browser->request('GET', self::URL);
@@ -115,11 +190,11 @@ final class ProposeChangesControllerTest extends WebTestCase
         return $browser->submit($form);
     }
 
-    private function changeRequestCount(): int
+    private function changeRequestCount(string $puzzleId = PuzzleFixture::PUZZLE_1000_03): int
     {
         $count = self::getContainer()->get(Connection::class)->fetchOne(
             'SELECT count(*) FROM puzzle_change_request WHERE puzzle_id = :puzzleId',
-            ['puzzleId' => PuzzleFixture::PUZZLE_1000_03],
+            ['puzzleId' => $puzzleId],
         );
 
         return is_numeric($count) ? (int) $count : -1;

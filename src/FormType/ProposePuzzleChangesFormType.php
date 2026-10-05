@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetManufacturers;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -39,6 +40,7 @@ final class ProposePuzzleChangesFormType extends AbstractType
 
         $builder
             ->add('names', PuzzleNamesType::class)
+            ->add('recordVersion', HiddenType::class)
             ->add('manufacturerId', ChoiceType::class, [
                 'label' => 'puzzle_report.form.manufacturer',
                 'required' => false,

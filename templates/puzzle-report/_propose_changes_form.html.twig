@@ -14,6 +14,8 @@
         {{ 'puzzle_report.propose_changes.description'|trans }}
     </p>
 
+    {{ form_errors(propose_form) }}
+
     <div class="mb-3">
         {{ include('puzzle/_names_editor.html.twig', {names: propose_form.names}) }}
     </div>

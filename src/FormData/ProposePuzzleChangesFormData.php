@@ -22,6 +22,9 @@ final class ProposePuzzleChangesFormData
     #[Valid]
     public PuzzleNamesFormData $names;
 
+    // The record the form was loaded with (PuzzleRecordVersion) - a hidden field; the proposal is filed against it
+    public null|string $recordVersion = null;
+
     public null|string $manufacturerId = null;
 
     #[NotBlank]

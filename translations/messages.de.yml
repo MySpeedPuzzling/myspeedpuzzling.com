@@ -442,7 +442,7 @@
   "date_finished": "Datum der Fertigstellung"
   "do_not_remember_date": "Ich erinnere mich nicht an das Datum"
   "ean": "EAN-Code"
-  "puzzle_identification_number": "Code des Herstellers"
+  "puzzle_identification_number": "Markencode"
   "puzzle_photo_is_required": "Foto des gelösten Puzzles, Motivs oder der Schachtel ist erforderlich"
   "puzzle_photo_help": "Bitte fügen Sie ein Foto des gelösten Puzzles, Motivs oder der Schachtel hinzu, damit wir das Puzzle korrekt identifizieren und zuordnen können."
   "puzzle_choose_placeholder": "Suchen oder neuen Puzzle-Namen eingeben"
@@ -484,7 +484,7 @@
   "seconds_short": "Sek"
   "time_required": "Bitte geben Sie die Zeit ein"
   "puzzle_photo": "Puzzle-Foto"
-  "identification_number": "Herstellercode"
+  "identification_number": "Markencode"
 "comparison":
   "meta":
     "title": "Vergleichen"
@@ -2463,7 +2463,7 @@
     "ean": "EAN / Barcode"
     "ean_help": "Die Barcode-Nummer auf der Puzzle-Schachtel (normalerweise 13 Ziffern)."
     "ean_placeholder": "z.B. 4005556123456"
-    "identification_number": "Markencode / SKU"
+    "identification_number": "Markencode"
     "identification_number_help": "Der Produktcode des Herstellers (z.B. 19432 für Ravensburger-Puzzles)."
     "identification_number_placeholder": "z.B. 19432"
     "manufacturer": "Hersteller"

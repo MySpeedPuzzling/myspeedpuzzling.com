@@ -358,3 +358,8 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   of the names only (main title, its language, other names - nothing else differs) counts in neither direction, so
   several may wait at once next to a full one (`GetPendingPuzzleProposals::blocksNewProposal()`; the puzzle page's
   "pending" badge still shows every one). A "Suggest a change" opened before a full proposal was filed still files names.
+- **Phase 4 - no free-text note on filings:** neither change requests nor merge requests have a reporter comment, so
+  the filings carry none; moderators judge from what the review screens show (the names diff with languages, the
+  merge review's names editor with the reported languages and its "not English" warning, the shared codes). The
+  research notes stay in the filing log. A merge's main title and survivor are chosen at approval, as for any merge.
+

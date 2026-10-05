@@ -175,6 +175,39 @@ final class PuzzleTest extends TestCase
         self::assertNull($puzzle->searchCodes);
     }
 
+    public function testCodesPassedOnUnchangedKeepTheirStoredForm(): void
+    {
+        $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashells', approved: true);
+        // As typed before the lists (a row of an older release)
+        $puzzle->ean = '0091683108909, 6000-5468';
+        $puzzle->identificationNumber = 'Clementoni, rb 14709';
+
+        // A name suggestion, a field not approved: the same codes, read and passed on
+        $puzzle->updateProductIdentifiers($puzzle->eans(), BrandCodeList::fromInputs(['CLEMENTONI', 'RB  14709']));
+
+        self::assertSame('0091683108909, 6000-5468', $puzzle->ean);
+        self::assertSame('Clementoni, rb 14709', $puzzle->identificationNumber);
+
+        // A list that changes is stored in its canonical form - a number that is no barcode as typed
+        $puzzle->updateProductIdentifiers(EanList::fromInputs(['091683108909', '6000-5468', '4005556147090']), $puzzle->brandCodes());
+
+        self::assertSame('91683108909, 6000-5468, 4005556147090', $puzzle->ean);
+        self::assertSame('Clementoni, rb 14709', $puzzle->identificationNumber);
+    }
+
+    public function testCanonicalizingWritesTheCanonicalFormOfTheChosenLists(): void
+    {
+        $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashells', approved: true);
+        $puzzle->ean = '0091683108909';
+        $puzzle->identificationNumber = 'rb 14709';
+
+        $puzzle->canonicalizeProductIdentifiers(eans: true, brandCodes: false);
+
+        self::assertSame('91683108909', $puzzle->ean);
+        self::assertSame('rb 14709', $puzzle->identificationNumber);
+        self::assertSame("\ne:91683108909\nc:rb14709\n", $puzzle->searchCodes);
+    }
+
     public function testCorrectNewlyAddedGoesThroughTheNamesAndCodes(): void
     {
         $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashels', approved: false);

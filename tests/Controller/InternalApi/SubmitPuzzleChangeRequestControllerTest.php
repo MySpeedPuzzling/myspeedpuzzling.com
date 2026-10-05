@@ -81,7 +81,34 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
     {
         $this->expectException(BadRequestHttpException::class);
 
-        $this->controller()($this->jsonRequest(['puzzleId' => self::PUZZLE, 'ean' => [' 04005556789012 ']]));
+        $this->controller()($this->jsonRequest(['puzzleId' => self::PUZZLE, 'ean' => [' 4005556789012 ']]));
+    }
+
+    public function testAListOfBlankEntriesIsRefusedNeverARemoval(): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('"ean" holds no code - only an empty list [] removes every code.');
+
+        $this->controller()($this->jsonRequest(['puzzleId' => self::PUZZLE, 'ean' => ['', ' ']]));
+    }
+
+    public function testACodeLongerThanTheColumnIsRefused(): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('"identificationNumber" holds a value longer than 255 characters.');
+
+        $this->controller()($this->jsonRequest(['puzzleId' => self::PUZZLE, 'identificationNumber' => [str_repeat('A', 256)]]));
+    }
+
+    public function testCodesTogetherLongerThanTheColumnAreRefused(): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('at most 255 characters');
+
+        $this->controller()($this->jsonRequest([
+            'puzzleId' => self::PUZZLE,
+            'identificationNumber' => array_map(static fn (int $i): string => 'CODE-' . $i, range(1, 40)),
+        ]));
     }
 
     public function testACodeListOfAnythingButStringsIsRefused(): void

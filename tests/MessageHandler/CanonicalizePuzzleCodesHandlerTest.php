@@ -22,35 +22,39 @@ final class CanonicalizePuzzleCodesHandlerTest extends KernelTestCase
         $this->database = self::getContainer()->get(Connection::class);
     }
 
-    public function testWritesOnlyFormatOnlyChangesAndKeepsTheSearchKeys(): void
+    public function testWritesOnlyFormatOnlyChangesKeepsTheSearchKeysAndReturnsTheUndoRows(): void
     {
         // As typed before the lists - rows an older release or SQL wrote, with their keys built from them
-        $this->storeLegacyCodes(PuzzleFixture::PUZZLE_500_01, '0091683108909, 4 005556 157891', ' rb-500-001 ,RB-500-001');
-        $this->storeLegacyCodes(PuzzleFixture::PUZZLE_500_02, '4005556147090 4005555001997', 'rb 14709');
-        $this->storeLegacyCodes(PuzzleFixture::PUZZLE_500_03, 'None', null);
+        $this->storeLegacyCodes(PuzzleFixture::PUZZLE_500_01, '0091683108909, 4 005556 147090, 12 556 2', ' rb-500-001 ,RB-500-001');
+        $this->storeLegacyCodes(PuzzleFixture::PUZZLE_500_02, '4005556147090 4005555001997', 'Article 30226');
+        $this->storeLegacyCodes(PuzzleFixture::PUZZLE_500_03, 'None, 04512', null);
 
         $written = $this->canonicalize([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03]);
 
-        self::assertSame(['ean' => 1, 'identification_number' => 1], $written);
+        self::assertSame([
+            ['puzzleId' => PuzzleFixture::PUZZLE_500_01, 'field' => 'ean', 'before' => '0091683108909, 4 005556 147090, 12 556 2', 'after' => '91683108909, 4005556147090, 12 556 2'],
+            ['puzzleId' => PuzzleFixture::PUZZLE_500_01, 'field' => 'identification_number', 'before' => ' rb-500-001 ,RB-500-001', 'after' => 'RB-500-001'],
+        ], $written);
 
+        // The number that is no barcode keeps its spaces
         self::assertSame(
-            ['ean' => '91683108909, 4005556157891', 'identification_number' => 'RB-500-001', 'search_codes' => PuzzleSearchKeys::codes('0091683108909, 4 005556 157891', ' rb-500-001 ,RB-500-001')],
+            ['ean' => '91683108909, 4005556147090, 12 556 2', 'identification_number' => 'RB-500-001', 'search_codes' => PuzzleSearchKeys::codes('0091683108909, 4 005556 147090, 12 556 2', ' rb-500-001 ,RB-500-001')],
             $this->codesOf(PuzzleFixture::PUZZLE_500_01),
         );
-        // Two codes in one part are no format change - nothing of the puzzle is written, the brand code neither
+        // Two barcodes in one part are no format change, prose in the brand codes is never written
         self::assertSame(
-            ['ean' => '4005556147090 4005555001997', 'identification_number' => 'rb 14709', 'search_codes' => PuzzleSearchKeys::codes('4005556147090 4005555001997', 'rb 14709')],
+            ['ean' => '4005556147090 4005555001997', 'identification_number' => 'Article 30226', 'search_codes' => PuzzleSearchKeys::codes('4005556147090 4005555001997', 'Article 30226')],
             $this->codesOf(PuzzleFixture::PUZZLE_500_02),
         );
-        self::assertSame('None', $this->codesOf(PuzzleFixture::PUZZLE_500_03)['ean']);
+        self::assertSame('None, 04512', $this->codesOf(PuzzleFixture::PUZZLE_500_03)['ean']);
     }
 
     public function testASecondRunWritesNothing(): void
     {
         $this->storeLegacyCodes(PuzzleFixture::PUZZLE_500_01, '0091683108909', 'rb-500-001');
 
-        self::assertSame(['ean' => 1, 'identification_number' => 1], $this->canonicalize([PuzzleFixture::PUZZLE_500_01]));
-        self::assertSame(['ean' => 0, 'identification_number' => 0], $this->canonicalize([PuzzleFixture::PUZZLE_500_01]));
+        self::assertCount(2, $this->canonicalize([PuzzleFixture::PUZZLE_500_01]));
+        self::assertSame([], $this->canonicalize([PuzzleFixture::PUZZLE_500_01]));
     }
 
     private function storeLegacyCodes(string $puzzleId, null|string $ean, null|string $identificationNumber): void
@@ -64,13 +68,13 @@ final class CanonicalizePuzzleCodesHandlerTest extends KernelTestCase
     /**
      * @param list<string> $puzzleIds
      *
-     * @return array{ean: int, identification_number: int}
+     * @return list<array{puzzleId: string, field: string, before: null|string, after: null|string}>
      */
     private function canonicalize(array $puzzleIds): array
     {
         $envelope = self::getContainer()->get(MessageBusInterface::class)->dispatch(new CanonicalizePuzzleCodes($puzzleIds));
 
-        /** @var array{ean: int, identification_number: int} $written */
+        /** @var list<array{puzzleId: string, field: string, before: null|string, after: null|string}> $written */
         $written = $envelope->last(HandledStamp::class)?->getResult();
 
         return $written;

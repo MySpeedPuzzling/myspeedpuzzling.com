@@ -41,7 +41,7 @@ final class ApprovePuzzleHandlerTest extends KernelTestCase
             brandChoice: PuzzleApprovalBrandChoice::Approve,
             name: '  Corrected name ',
             piecesCount: 500,
-            eans: EanList::fromInputs([' 4005556123456', '04005556123457 ']),
+            eans: EanList::fromInputs([' 4005556123456', '4005556123457 ']),
             brandCodes: BrandCodeList::fromInputs(['']),
         );
 

@@ -73,9 +73,10 @@ final class InternalApiJsonBody
     }
 
     /**
-     * A puzzle's codes (EANs or brand codes): a list of strings, one code each - `[]` removes every code - or, as
-     * before the lists, one string with the codes comma-separated. Null when not given; a blank string counts as not
-     * given, so it never overwrites a stored value.
+     * A puzzle's codes (EANs or brand codes): a list of strings, one code each - only an explicit `[]` removes every
+     * code - or, as before the lists, one string with the codes comma-separated. Null when not given; a blank string
+     * counts as not given, so it never overwrites a stored value. A list of blank entries only is a 400 (a mistake,
+     * never a removal), so is an entry longer than the column.
      *
      * @param array<string, mixed> $body
      *
@@ -88,7 +89,7 @@ final class InternalApiJsonBody
         if (is_array($value) === false) {
             $code = self::optionalString($body, $key);
 
-            return $code !== null ? [$code] : null;
+            return $code !== null ? [self::codeOfColumnLength($key, $code)] : null;
         }
 
         $codes = [];
@@ -98,10 +99,23 @@ final class InternalApiJsonBody
                 throw new BadRequestHttpException(sprintf('"%s" must be a string or a list of strings.', $key));
             }
 
-            $codes[] = $code;
+            $codes[] = self::codeOfColumnLength($key, $code);
+        }
+
+        if ($codes !== [] && array_filter($codes, static fn (string $code): bool => trim($code) !== '') === []) {
+            throw new BadRequestHttpException(sprintf('"%s" holds no code - only an empty list [] removes every code.', $key));
         }
 
         return $codes;
+    }
+
+    private static function codeOfColumnLength(string $key, string $code): string
+    {
+        if (mb_strlen($code) > 255) {
+            throw new BadRequestHttpException(sprintf('"%s" holds a value longer than 255 characters.', $key));
+        }
+
+        return $code;
     }
 
     /**

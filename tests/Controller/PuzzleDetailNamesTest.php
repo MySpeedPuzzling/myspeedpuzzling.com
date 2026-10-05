@@ -166,6 +166,7 @@ final class PuzzleDetailNamesTest extends WebTestCase
         ]));
         // An EAN-13, a UPC-A stored without its leading zero, a wrong check digit, an EAN-8
         self::changePuzzleEan(PuzzleFixture::PUZZLE_500_01, '4005556175895, 36000291452, 4005556147091, 96385074');
+        self::changePuzzleBrandCode(PuzzleFixture::PUZZLE_500_01, 'RB-500-001, 17481');
 
         $crawler = $browser->request('GET', '/puzzle/' . PuzzleFixture::PUZZLE_500_01);
 
@@ -175,6 +176,9 @@ final class PuzzleDetailNamesTest extends WebTestCase
         self::assertSame(['Bavorská romance', 'Bayerische Romanze'], $product['alternateName']);
         self::assertSame(['4005556175895', '0036000291452'], $product['gtin13']);
         self::assertSame('96385074', $product['gtin8']);
+        // One value per property: the first brand code
+        self::assertSame('RB-500-001', $product['sku']);
+        self::assertSame('RB-500-001', $product['mpn']);
         // Details: each code on its own line, as printed - the UPC-A with its 12th digit
         self::assertSame(
             ['4005556175895', '036000291452', '4005556147091', '96385074'],

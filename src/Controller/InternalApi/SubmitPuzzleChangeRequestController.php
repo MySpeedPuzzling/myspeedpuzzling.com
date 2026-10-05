@@ -81,6 +81,10 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             throw new BadRequestHttpException('"manufacturerId" must be an id.');
         }
 
+        if ($eans->fitsColumn() === false || $brandCodes->fitsColumn() === false) {
+            throw new BadRequestHttpException('"ean" and "identificationNumber" can hold at most 255 characters each, written as a list.');
+        }
+
         $invalidCodes = [];
         foreach ($eanInputs ?? [] as $eanInput) {
             $invalidCodes = [...$invalidCodes, ...EanList::invalidCodes($eanInput, $puzzle->ean)];

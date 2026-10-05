@@ -63,7 +63,7 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
                 proposedName: 'New Puzzle Name',
                 proposedManufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 proposedPiecesCount: 600,
-                proposedEans: EanList::fromInputs(['01234567890123']),
+                proposedEans: EanList::fromInputs([' 1234567890123 ']),
                 proposedBrandCodes: BrandCodeList::fromInputs(['new-001']),
                 proposedPhoto: null,
                 originalAlternativeNames: new PuzzleNames(),

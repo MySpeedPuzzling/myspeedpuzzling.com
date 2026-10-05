@@ -12,33 +12,36 @@ final class BrandCodeListTest extends TestCase
 {
     /**
      * @param list<string> $codes
+     * @param list<string> $display
      */
     #[DataProvider('storedValues')]
-    public function testStoredValueIsReadAsTheCanonicalList(null|string $stored, array $codes, null|string $toStored, bool $formatOnly): void
+    public function testStoredValueIsReadAsTheCanonicalList(null|string $stored, array $codes, array $display, null|string $toStored): void
     {
         $list = BrandCodeList::fromStored($stored);
 
         self::assertSame($codes, $list->codes());
-        self::assertSame($codes, $list->display());
+        self::assertSame($display, $list->display());
         self::assertSame($toStored, $list->toStored());
-        self::assertSame($formatOnly, $list->isFormatOnlyChangeOf($stored));
+        self::assertTrue($list->isFormatOnlyChangeOf($stored));
+        self::assertTrue(BrandCodeList::fromStored($list->toStored())->equals($list));
     }
 
     /**
-     * @return iterable<string, array{null|string, list<string>, null|string, bool}>
+     * @return iterable<string, array{null|string, list<string>, list<string>, null|string}>
      */
     public static function storedValues(): iterable
     {
-        yield 'nothing' => [null, [], null, true];
-        yield 'canonical already' => ['14709, 12000-199', ['14709', '12000-199'], '14709, 12000-199', true];
-        yield 'spaces around codes' => [' 14709 , 12000199 ', ['14709', '12000199'], '14709, 12000199', true];
-        yield 'lower case' => ['rb 14709', ['RB 14709'], 'RB 14709', true];
-        yield 'whitespace inside collapsed' => ['17  331 p', ['17 331 P'], '17 331 P', true];
-        yield 'a slash belongs to the code' => ['12000/199', ['12000/199'], '12000/199', true];
-        yield 'the same code twice, once without its dash' => ['6500-5354,  6500-5354, 65005354', ['6500-5354'], '6500-5354', true];
-        yield 'other separators' => ['482;239|17', ['482', '239', '17'], '482, 239, 17', true];
-        yield 'full-width letters and digits' => ['ＲＢ１４７０９', ['RB14709'], 'RB14709', true];
-        yield 'a lone dash is nothing' => ['-', [], null, true];
+        yield 'nothing' => [null, [], [], null];
+        yield 'canonical already' => ['14709, 12000-199', ['14709', '12000-199'], ['14709', '12000-199'], '14709, 12000-199'];
+        yield 'spaces around codes' => [' 14709 , 12000199 ', ['14709', '12000199'], ['14709', '12000199'], '14709, 12000199'];
+        yield 'lower case is shown as typed, stored in upper case' => ['rb 14709', ['RB 14709'], ['rb 14709'], 'RB 14709'];
+        yield 'whitespace inside collapsed' => ['17  331 p', ['17 331 P'], ['17 331 p'], '17 331 P'];
+        yield 'a slash belongs to the code' => ['12000/199', ['12000/199'], ['12000/199'], '12000/199'];
+        yield 'the same code twice' => ['6500-5354,  6500-5354', ['6500-5354'], ['6500-5354'], '6500-5354'];
+        yield 'codes differing in their separators are two codes' => ['12-345, 123-45, 12345', ['12-345', '123-45', '12345'], ['12-345', '123-45', '12345'], '12-345, 123-45, 12345'];
+        yield 'other separators' => ['482;239|17', ['482', '239', '17'], ['482', '239', '17'], '482, 239, 17'];
+        yield 'full-width letters and digits' => ['ＲＢ１４７０９', ['RB14709'], ['RB14709'], 'RB14709'];
+        yield 'a lone dash is nothing' => ['-', [], [], null];
     }
 
     public function testInputsAreOneCodeEachAndBlankOnesAreDropped(): void
@@ -49,8 +52,14 @@ final class BrandCodeListTest extends TestCase
 
     public function testUnionKeepsTheFirstListsCodesFirstAndEveryCodeOnce(): void
     {
-        $union = BrandCodeList::fromStored('KEEP-ME, 14709')->union(BrandCodeList::fromStored('keep me, SECOND-EDITION'));
+        $union = BrandCodeList::fromStored('KEEP-ME, 14709')->union(BrandCodeList::fromStored('keep-me, keep me, SECOND-EDITION'));
 
-        self::assertSame('KEEP-ME, 14709, SECOND-EDITION', $union->toStored());
+        self::assertSame('KEEP-ME, 14709, KEEP ME, SECOND-EDITION', $union->toStored());
+    }
+
+    public function testTheSameCodesInTheSameOrderAreEqualWhateverTheirCase(): void
+    {
+        self::assertTrue(BrandCodeList::fromStored('rb 14709, 17481')->equals(BrandCodeList::fromInputs(['RB  14709', '17481'])));
+        self::assertFalse(BrandCodeList::fromStored('12-345')->equals(BrandCodeList::fromStored('123-45')));
     }
 }

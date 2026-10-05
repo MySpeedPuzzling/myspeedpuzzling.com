@@ -69,9 +69,11 @@ readonly final class LinkEanToPuzzleHandler
         $scanned = EanList::fromStored($ean->normalized());
 
         if ($currentEans->isEmpty()) {
+            // The audit keeps what was stored - a placeholder like "-" too
+            $storedEan = $puzzle->ean;
             $puzzle->updateProductIdentifiers($scanned, $puzzle->brandCodes());
 
-            $audit = $this->changeRequest($puzzle, $player, $now, $ean->normalized(), originalEan: null);
+            $audit = $this->changeRequest($puzzle, $player, $now, $ean->normalized(), originalEan: $storedEan);
             $audit->approve($player, $now);
             $this->puzzleChangeRequestRepository->save($audit);
 

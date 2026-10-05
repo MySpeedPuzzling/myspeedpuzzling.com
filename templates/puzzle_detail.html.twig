@@ -128,9 +128,12 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
-        {% if puzzle.puzzleIdentificationNumber is not null and not is_image_hidden %}
-        "sku": {{ puzzle.puzzleIdentificationNumber|json_ld }},
-        "mpn": {{ puzzle.puzzleIdentificationNumber|json_ld }},
+        {# schema.org takes one value per property: the first brand code - the first edition's, a merge keeps the
+           survivor's first #}
+        {% set product_brand_code = puzzle_brand_codes(puzzle.puzzleIdentificationNumber)|first %}
+        {% if product_brand_code and not is_image_hidden %}
+        "sku": {{ product_brand_code|json_ld }},
+        "mpn": {{ product_brand_code|json_ld }},
         {% endif %}
         "description": {{ puzzle_meta_description|json_ld }},
         "url": {{ url('puzzle_detail', {puzzleId: puzzle.puzzleId})|json_ld }},

@@ -26,7 +26,8 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  * separators, spaces, leading zeros, case (PuzzleCodesCleanup). Everything that would change a value is listed in
  * the report CSV instead, to be filed as change proposals (docs/features/puzzle-names/README.md, "Writing names and
  * codes"). A dry run by default: it reads, counts and reports; --write applies the format-only changes, in batches
- * locked for update. Safe to interrupt and to run again - a second run finds nothing to write.
+ * locked for update, and writes every changed field with its value before and after to the undo file (--undo, flushed
+ * per batch). Safe to interrupt and to run again - a second run finds nothing to write.
  */
 #[AsCommand(
     'myspeedpuzzling:canonicalize-puzzle-codes',
@@ -47,6 +48,7 @@ final class CanonicalizePuzzleCodesConsoleCommand extends Command
         $this
             ->addOption('write', null, InputOption::VALUE_NONE, 'Apply the format-only changes (without it nothing is written)')
             ->addOption('report', null, InputOption::VALUE_REQUIRED, 'Path of the report CSV (what a person decides)')
+            ->addOption('undo', null, InputOption::VALUE_REQUIRED, 'Path of the undo CSV - every written field before and after (required with --write)')
             ->addOption('batch', null, InputOption::VALUE_REQUIRED, 'Puzzles per transaction', '500');
     }
 
@@ -56,10 +58,34 @@ final class CanonicalizePuzzleCodesConsoleCommand extends Command
         $write = $input->getOption('write') === true;
         /** @var null|string $reportPath */
         $reportPath = $input->getOption('report');
+        /** @var null|string $undoPath */
+        $undoPath = $input->getOption('undo');
         /** @var string $batchOption */
         $batchOption = $input->getOption('batch');
         $batchSize = max(1, (int) $batchOption);
         $started = microtime(true);
+
+        if ($write && $undoPath === null) {
+            $io->error('--write needs --undo=<path>: every written field is kept there with its value before.');
+
+            return self::INVALID;
+        }
+
+        // Empty cells are NULL
+        $undo = null;
+
+        if ($write) {
+            $opened = fopen($undoPath, 'wb');
+
+            if ($opened === false) {
+                $io->error(sprintf('The undo file "%s" cannot be written.', $undoPath));
+
+                return self::FAILURE;
+            }
+
+            $undo = $opened;
+            fputcsv($undo, ['puzzle_id', 'field', 'before', 'after'], escape: '');
+        }
 
         $report = null;
 
@@ -99,22 +125,29 @@ final class CanonicalizePuzzleCodesConsoleCommand extends Command
                     }
                 }
 
-                if ($cleanup->writable) {
-                    $formatOnly['ean'] += $cleanup->eanChanges ? 1 : 0;
-                    $formatOnly['identification_number'] += $cleanup->brandCodesChange ? 1 : 0;
+                $formatOnly['ean'] += $cleanup->writeEans ? 1 : 0;
+                $formatOnly['identification_number'] += $cleanup->writeBrandCodes ? 1 : 0;
+
+                if ($cleanup->writeEans || $cleanup->writeBrandCodes) {
                     $writableIds[] = $row['id'];
                 }
             }
 
-            if ($write && $writableIds !== []) {
+            if ($undo !== null && $writableIds !== []) {
                 $envelope = $this->messageBus->dispatch(new CanonicalizePuzzleCodes($writableIds));
 
-                /** @var array{ean: int, identification_number: int} $writtenInBatch */
-                $writtenInBatch = $envelope->last(HandledStamp::class)?->getResult() ?? ['ean' => 0, 'identification_number' => 0];
-                $written['ean'] += $writtenInBatch['ean'];
-                $written['identification_number'] += $writtenInBatch['identification_number'];
+                /** @var list<array{puzzleId: string, field: string, before: null|string, after: null|string}> $writtenInBatch */
+                $writtenInBatch = $envelope->last(HandledStamp::class)?->getResult() ?? [];
 
-                // The doctrine_transaction middleware has committed the batch: the identity map stays at one batch
+                // The doctrine_transaction middleware has committed the batch - its undo rows go to the file now
+                foreach ($writtenInBatch as $change) {
+                    fputcsv($undo, [$change['puzzleId'], $change['field'], $change['before'] ?? '', $change['after'] ?? ''], escape: '');
+                    $written[$change['field']]++;
+                }
+
+                fflush($undo);
+
+                // The identity map stays at one batch
                 $this->entityManager->clear();
             }
 
@@ -129,6 +162,10 @@ final class CanonicalizePuzzleCodesConsoleCommand extends Command
             fclose($report);
         }
 
+        if ($undo !== null) {
+            fclose($undo);
+        }
+
         $io->table(['Field', 'Format-only changes', 'Written'], [
             ['EAN', $formatOnly['ean'], $write ? $written['ean'] : '- (dry run)'],
             ['Brand code', $formatOnly['identification_number'], $write ? $written['identification_number'] : '- (dry run)'],
@@ -141,10 +178,11 @@ final class CanonicalizePuzzleCodesConsoleCommand extends Command
         ));
 
         $io->writeln(sprintf(
-            'Took %.1f s, memory peak %s.%s',
+            'Took %.1f s, memory peak %s.%s%s',
             microtime(true) - $started,
             Helper::formatMemory(memory_get_peak_usage(true)),
-            $reportPath !== null ? sprintf(' Report: %s', $reportPath) : '',
+            $reportPath !== null ? sprintf(' Report: %s.', $reportPath) : '',
+            $undo !== null ? sprintf(' Undo: %s.', $undoPath) : '',
         ));
 
         return self::SUCCESS;

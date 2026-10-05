@@ -67,6 +67,30 @@ final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
         self::assertSame('Identical artwork and piece count.', $dispatched->decisionNote);
     }
 
+    public function testCodesComeAsAListAndAListOfBlankEntriesIsRefused(): void
+    {
+        $dispatched = null;
+
+        $this->controller($this->messageBusCapturing($dispatched))(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedEan' => ['850006234257', '0850006234264'],
+            'mergedPiecesCount' => 500,
+        ]));
+
+        self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
+        self::assertSame(['850006234257', '850006234264'], $dispatched->mergedEans?->codes());
+
+        $this->expectException(BadRequestHttpException::class);
+
+        $this->controller($this->messageBusCapturing($dispatched))(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedEan' => [' '],
+            'mergedPiecesCount' => 500,
+        ]));
+    }
+
     public function testBlankOptionalStringsBecomeNull(): void
     {
         $dispatched = null;

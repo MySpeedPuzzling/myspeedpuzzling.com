@@ -197,13 +197,38 @@ class Puzzle
     }
 
     /**
-     * The only way codes change: both lists are stored in their canonical form (EanList::toStored(),
-     * BrandCodeList::toStored()) and the code search key is built again.
+     * How codes change: a list that differs from the stored one is stored in its canonical form (EanList::toStored(),
+     * BrandCodeList::toStored()), and the code search key is built again. A list with the same codes in the same order
+     * keeps its stored value as it is - a writer passing the codes on unchanged (a name suggestion, a field not
+     * approved) never rewrites them, nor leaves a change in the puzzle's history.
      */
     public function updateProductIdentifiers(EanList $eans, BrandCodeList $brandCodes): void
     {
-        $this->ean = $eans->toStored();
-        $this->identificationNumber = $brandCodes->toStored();
+        if ($this->eans()->equals($eans) === false) {
+            $this->ean = $eans->toStored();
+        }
+
+        if ($this->brandCodes()->equals($brandCodes) === false) {
+            $this->identificationNumber = $brandCodes->toStored();
+        }
+
+        $this->searchCodes = PuzzleSearchKeys::codes($this->ean, $this->identificationNumber);
+    }
+
+    /**
+     * myspeedpuzzling:canonicalize-puzzle-codes: the stored lists written in their canonical form - only when that is
+     * a format-only change (PuzzleCodesCleanup decides), which keeps the code search key as it is.
+     */
+    public function canonicalizeProductIdentifiers(bool $eans, bool $brandCodes): void
+    {
+        if ($eans) {
+            $this->ean = $this->eans()->toStored();
+        }
+
+        if ($brandCodes) {
+            $this->identificationNumber = $this->brandCodes()->toStored();
+        }
+
         $this->searchCodes = PuzzleSearchKeys::codes($this->ean, $this->identificationNumber);
     }
 

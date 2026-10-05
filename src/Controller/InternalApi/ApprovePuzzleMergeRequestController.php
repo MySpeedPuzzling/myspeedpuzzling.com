@@ -60,6 +60,13 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
         $mergedName = InternalApiJsonBody::requiredString($body, 'mergedName');
         $mergedEans = InternalApiJsonBody::optionalCodeList($body, 'mergedEan');
         $mergedBrandCodes = InternalApiJsonBody::optionalCodeList($body, 'mergedIdentificationNumber');
+
+        if (
+            ($mergedEans !== null && EanList::fromInputs($mergedEans)->fitsColumn() === false)
+            || ($mergedBrandCodes !== null && BrandCodeList::fromInputs($mergedBrandCodes)->fitsColumn() === false)
+        ) {
+            throw new BadRequestHttpException('"mergedEan" and "mergedIdentificationNumber" can hold at most 255 characters each, written as a list.');
+        }
         $mergedPiecesCount = $body['mergedPiecesCount'] ?? null;
 
         if (is_int($mergedPiecesCount) === false || $mergedPiecesCount <= 0) {

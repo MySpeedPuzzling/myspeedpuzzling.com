@@ -222,7 +222,7 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             puzzle: 'Brand New Puzzle',
             piecesCount: 750,
             puzzlePhoto: null,
-            eans: EanList::fromInputs(['01234567890123']),
+            eans: EanList::fromInputs(['1234567890123']),
             brandCodes: BrandCodeList::fromInputs(['id-001']),
             hideUntilRoundStarts: false,
         ));

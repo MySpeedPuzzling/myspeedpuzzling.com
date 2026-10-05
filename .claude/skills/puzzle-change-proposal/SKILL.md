@@ -34,9 +34,14 @@ filed against it, and approving with it refuses a puzzle that changed since.
 valid - one per edition or region; never reduce a list to one value): a JSON list, one code per entry
 (`"ean": ["4005556147090", "4005555001997"]`, `[]` removes every code - the way to drop junk like "None"), or one
 comma-separated string as before. Every EAN not already on the puzzle must be a valid EAN/UPC (`400` otherwise). Codes
-are stored canonical (EANs as digits without leading zeros, brand codes upper case, each once), so a list differing from
+are stored canonical (barcodes as digits without leading zeros, other values as typed, brand codes upper case, each
+once), so a list differing from
 the puzzle's only in that form proposes nothing. The rows of `myspeedpuzzling:canonicalize-puzzle-codes --report=…`
-(what the format-only cleanup left to a person) are meant to be filed this way. No photo through the API.
+(what the format-only cleanup left to a person) are meant to be filed this way: one proposal per puzzle with both
+fields (`proposed` and `proposed_brand_codes` - every row of a puzzle carries the same), never removing a value with a
+digit - a catalogue number in the EAN field moves into `identificationNumber`, only words and placeholders ("None",
+"N/A") go. Rows whose proposal equals the current value ("(check digit)", `brand_code_prose`) need a person with the
+box. A list of blank entries is a `400`; only `[]` removes every code. No photo through the API.
 
 ### Names (docs/features/puzzle-names/README.md)
 

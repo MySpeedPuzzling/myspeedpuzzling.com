@@ -110,7 +110,7 @@ final class EanListTest extends TestCase
      * @param list<string> $display
      */
     #[DataProvider('storedValues')]
-    public function testStoredValueIsReadAsTheCanonicalList(null|string $stored, array $codes, array $junk, null|string $toStored, array $display, bool $formatOnly): void
+    public function testStoredValueIsReadAsTheList(null|string $stored, array $codes, array $junk, null|string $toStored, array $display, bool $formatOnly): void
     {
         $list = EanList::fromStored($stored);
 
@@ -119,6 +119,8 @@ final class EanListTest extends TestCase
         self::assertSame($toStored, $list->toStored());
         self::assertSame($display, $list->display());
         self::assertSame($formatOnly, $list->isFormatOnlyChangeOf($stored));
+        self::assertTrue(EanList::fromStored($list->toStored())->equals($list), 'the stored form reads as the same list');
+        self::assertTrue(EanList::fromInputs($list->display())->equals($list), 'the inputs a form shows read as the same list');
     }
 
     /**
@@ -128,10 +130,11 @@ final class EanListTest extends TestCase
     {
         yield 'nothing' => [null, [], [], null, [], true];
         yield 'canonical already' => ['4005556147090, 4005555001997', ['4005556147090', '4005555001997'], [], '4005556147090, 4005555001997', ['4005556147090', '4005555001997'], true];
-        yield 'two codes separated by a space only - split, no format change' => ['4005556147090 4005555001997', ['4005556147090', '4005555001997'], [], '4005556147090, 4005555001997', ['4005556147090', '4005555001997'], false];
+        yield 'two barcodes separated by a space only - split, no format change' => ['4005556147090 4005555001997', ['4005556147090', '4005555001997'], [], '4005556147090, 4005555001997', ['4005556147090', '4005555001997'], false];
         yield 'dashes in an EAN-13 with a right check digit' => ['400-5556-147090', ['4005556147090'], [], '4005556147090', ['4005556147090'], true];
         yield 'EAN-13 of a UPC-A with its leading zeros' => ['0091683108909', ['91683108909'], [], '91683108909', ['091683108909'], true];
         yield 'a UPC-A shown with its 12th digit' => ['91683108909', ['91683108909'], [], '91683108909', ['091683108909'], true];
+        yield 'an EAN-8 with its leading zero comes back as printed' => ['01234565', ['1234565'], [], '1234565', ['01234565'], true];
         yield 'the mark printed after the digits under a barcode' => ['5012269036039' . chr(62), ['5012269036039'], [], '5012269036039', ['5012269036039'], true];
         yield 'an Amazon code is no number' => ['X002ROECA7', [], ['X002ROECA7'], 'X002ROECA7', ['X002ROECA7'], true];
         yield 'a placeholder word is no number' => ['None', [], ['None'], 'None', ['None'], true];
@@ -140,14 +143,18 @@ final class EanListTest extends TestCase
         yield 'spaces around short numbers' => [' 14709 , 12000199 ', ['14709', '12000199'], [], '14709, 12000199', ['14709', '12000199'], true];
         yield 'a brand code in the EAN field' => ['rb 14709', [], ['rb 14709'], 'rb 14709', ['rb 14709'], true];
         yield 'full-width digits' => ['４００５５５６１４７０９０', ['4005556147090'], [], '4005556147090', ['4005556147090'], true];
-        yield 'junk moves after the codes - not format-only' => ['None, 0021081241953', ['21081241953'], ['None'], '21081241953, None', ['021081241953', 'None'], false];
-        yield 'a catalogue number keeps its dash until a person decides' => ['6000-5468', ['60005468'], [], '60005468', ['60005468'], false];
-        yield 'a # before a number' => ['#6255', ['6255'], [], '6255', ['6255'], false];
-        yield 'a slash between numbers' => ['4795/4', ['4795', '4'], [], '4795, 4', ['4795', '4'], false];
+        yield 'junk keeps its place' => ['None, 0021081241953', ['21081241953'], ['None'], 'None, 21081241953', ['None', '021081241953'], true];
+        yield 'a catalogue number stays as typed' => ['6000-5468', ['6000-5468'], [], '6000-5468', ['6000-5468'], true];
+        yield 'a # before a number stays' => ['#6255', ['#6255'], [], '#6255', ['#6255'], true];
+        yield 'numbers that are no barcodes are never split' => ['4795/4', ['4795/4'], [], '4795/4', ['4795/4'], true];
+        yield 'spaces inside a number that is no barcode stay' => ['12 556 2', ['12 556 2'], [], '12 556 2', ['12 556 2'], true];
+        yield 'leading zeros of a number that is no barcode stay' => ['04512', ['04512'], [], '04512', ['04512'], true];
+        yield 'a barcode length with a wrong check digit stays as typed' => ['5 051237 060134', ['5 051237 060134'], [], '5 051237 060134', ['5 051237 060134'], true];
+        yield 'a barcode that could not be shown as printed without its zeros stays' => ['007346037677', ['007346037677'], [], '007346037677', ['007346037677'], true];
         yield 'an ISBN printed with its dash' => ['978-0593137642', ['9780593137642'], [], '9780593137642', ['9780593137642'], true];
         yield 'the same code twice' => ['4005556147090, 04005556147090', ['4005556147090'], [], '4005556147090', ['4005556147090'], true];
-        yield 'an EAN-8 starting with 0 is never padded' => ['01234565', ['1234565'], [], '1234565', ['1234565'], true];
         yield 'an 11-digit number failing every check digit stays as stored' => ['12345678901', ['12345678901'], [], '12345678901', ['12345678901'], true];
+        yield 'a 10-digit number is never padded' => ['7934603125', ['7934603125'], [], '7934603125', ['7934603125'], true];
     }
 
     public function testInputsAreOneCodeEachAndBlankOnesAreDropped(): void
@@ -164,21 +171,37 @@ final class EanListTest extends TestCase
         $survivor = EanList::fromStored('4005556147090, None');
         $merged = EanList::fromStored('04005555001997, 4005556147090, NONE');
 
-        self::assertSame('4005556147090, 4005555001997, None', $survivor->union($merged)->toStored());
+        self::assertSame('4005556147090, None, 4005555001997', $survivor->union($merged)->toStored());
         self::assertSame('4005555001997, 4005556147090, NONE', $merged->union($survivor)->toStored());
+    }
+
+    public function testTheSameCodesInTheSameOrderAreEqualWhateverTheirStoredForm(): void
+    {
+        self::assertTrue(EanList::fromStored('0091683108909, None')->equals(EanList::fromInputs(['091683108909', 'none'])));
+        self::assertFalse(EanList::fromStored('4005556147090, 4005555001997')->equals(EanList::fromStored('4005555001997, 4005556147090')));
+        self::assertFalse(EanList::fromStored('6000-5468')->equals(EanList::fromStored('60005468')), 'a number kept as typed is its text');
     }
 
     public function testCodesAreComparedAsTheFormShowsThem(): void
     {
-        self::assertSame([], EanList::invalidCodes('6255', '#6255'), 'a stored code comes back as the form showed it');
+        self::assertSame([], EanList::invalidCodes('#6255', '#6255'), 'a stored code comes back as the form showed it');
         self::assertSame([], EanList::invalidCodes('021081241953', '0021081241953'));
+        self::assertSame([], EanList::invalidCodes('01234565', '1234565'));
         self::assertSame([], EanList::invalidCodes('N/A', 'N/A'));
-        self::assertSame([['code' => '6256', 'suggestion' => null]], EanList::invalidCodes('6256', '#6255'));
+        self::assertSame([['code' => '6255', 'suggestion' => null]], EanList::invalidCodes('6255', '#6255'));
     }
 
-    public function testThePartsAPersonDecides(): void
+    public function testBarcodesAreGtinsThatCanBeShownAsPrinted(): void
     {
-        self::assertSame(['4005556147090 4005555001997', '4795/4'], EanList::partsWithSeveralNumbers('4005556147090 4005555001997, 4795/4, 4005556202027'));
-        self::assertSame(['6000-5468', '#6255', '15.427'], EanList::catalogueNumbers('6000-5468, #6255, 15.427, 978-0593137642, 4 005556 157891, 5012269036039' . chr(62)));
+        self::assertTrue(EanList::isBarcode('4005556147090'));
+        self::assertTrue(EanList::isBarcode('01234565'), 'an EAN-8');
+        self::assertTrue(EanList::isBarcode('036000291452'), 'a UPC-A');
+        self::assertTrue(EanList::isBarcode('36000291452'), 'a UPC-A without its leading zero');
+        self::assertTrue(EanList::isBarcode('04005556147090'), 'a GTIN-14');
+        self::assertFalse(EanList::isBarcode('5051237060134'), 'a wrong check digit');
+        self::assertFalse(EanList::isBarcode('125562'), 'no GTIN length');
+        self::assertFalse(EanList::isBarcode('007346037677'), 'its 10 digits without the zeros could not be shown as printed');
+        self::assertSame('4005556195145', EanList::ravensburgerTruncationSuggestion('005556195145'));
+        self::assertNull(EanList::ravensburgerTruncationSuggestion('005556195146'));
     }
 }

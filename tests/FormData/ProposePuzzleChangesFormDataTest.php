@@ -39,8 +39,8 @@ final class ProposePuzzleChangesFormDataTest extends KernelTestCase
 
     public function testACodeComesBackFromTheFormAsItWasShown(): void
     {
-        // Stored as typed long ago: the inputs show "6255" and the UPC with its 12th digit - both pass as listed
-        $data = $this->formData(eans: ['6255', '021081241953'], currentEan: '#6255, 0021081241953');
+        // Stored as typed long ago: the inputs show "#6255" as it is and the UPC with its 12th digit - both pass as listed
+        $data = $this->formData(eans: ['#6255', '021081241953'], currentEan: '#6255, 0021081241953');
 
         self::assertSame([], $this->violations($data));
     }

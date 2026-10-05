@@ -10,10 +10,11 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * The brand code field of a puzzle (`identification_number`): one or more of the brand's own article numbers, stored
- * as the canonical list `"14709, 12000-199"` - each code trimmed, its whitespace collapsed, in upper case, each once
- * (two codes differing only in separators count as one), in the order given (docs/features/puzzle-names/README.md,
- * "Data model"). The one parser of the stored value and of the form's inputs. Codes are separated by `,` `;` `|` - a
- * slash or a dash belongs to the code ("12000/199").
+ * as the canonical list `"14709, 12000-199"` - each code trimmed, its whitespace collapsed, in upper case, each once,
+ * in the order given (docs/features/puzzle-names/README.md, "Data model"). Two codes are the same only when they read
+ * the same so ("12-345" and "123-45" are two codes - search may ignore the dash, storage never). The one parser of the
+ * stored value and of the form's inputs. Codes are separated by `,` `;` `|` - a slash or a dash belongs to the code
+ * ("12000/199").
  */
 readonly final class BrandCodeList
 {
@@ -21,13 +22,14 @@ readonly final class BrandCodeList
     public const int FORM_MAX_CODES = 10;
 
     // The column's length (varchar 255)
-    private const int MAX_STORED_LENGTH = 255;
+    public const int MAX_STORED_LENGTH = 255;
 
     /**
-     * @param list<string> $codes
+     * @param list<array{text: string, key: string}> $items Each code as typed (trimmed, whitespace collapsed) and as
+     *        stored (in upper case - also what makes two codes one)
      */
     private function __construct(
-        private array $codes,
+        private array $items,
     ) {
     }
 
@@ -44,20 +46,17 @@ readonly final class BrandCodeList
      */
     public static function fromInputs(array $inputs): self
     {
-        $codes = [];
+        $items = [];
 
         foreach ($inputs as $input) {
-            foreach (self::parts($input ?? '') as $token) {
-                $key = self::key($token);
-
-                if ($key !== '') {
-                    // Keyed with a prefix: a numeric string key would become an integer
-                    $codes['k' . $key] ??= mb_strtoupper($token);
-                }
+            foreach (self::parts($input ?? '') as $code) {
+                $key = mb_strtoupper($code);
+                // Keyed with a prefix: a numeric string key would become an integer
+                $items['k' . $key] ??= ['text' => $code, 'key' => $key];
             }
         }
 
-        return new self(array_values($codes));
+        return new self(array_values($items));
     }
 
     /**
@@ -65,30 +64,44 @@ readonly final class BrandCodeList
      */
     public function union(self $other): self
     {
-        return self::fromInputs([$this->toStored(), $other->toStored()]);
+        $items = [];
+
+        foreach ([...$this->items, ...$other->items] as $item) {
+            $items['k' . $item['key']] ??= $item;
+        }
+
+        return new self(array_values($items));
     }
 
     /**
-     * @return list<string>
+     * The same codes in the same order - whatever the case they are stored in.
+     */
+    public function equals(self $other): bool
+    {
+        return array_column($this->items, 'key') === array_column($other->items, 'key');
+    }
+
+    /**
+     * @return list<string> Every code as stored - in upper case
      */
     public function codes(): array
     {
-        return $this->codes;
+        return array_column($this->items, 'key');
     }
 
     /**
-     * Each code as shown - as stored.
+     * Each code as typed (trimmed, whitespace collapsed) - the stored value of a cleaned list is in upper case already.
      *
      * @return list<string>
      */
     public function display(): array
     {
-        return $this->codes;
+        return array_column($this->items, 'text');
     }
 
     public function isEmpty(): bool
     {
-        return $this->codes === [];
+        return $this->items === [];
     }
 
     /**
@@ -96,32 +109,21 @@ readonly final class BrandCodeList
      */
     public function toStored(): null|string
     {
-        return $this->isEmpty() ? null : implode(', ', $this->codes);
+        return $this->isEmpty() ? null : implode(', ', $this->codes());
+    }
+
+    public function fitsColumn(): bool
+    {
+        return mb_strlen($this->toStored() ?? '') <= self::MAX_STORED_LENGTH;
     }
 
     /**
      * Whether this list (built from $stored) only writes $stored in its canonical form: the same codes in the same
-     * order once spaces, separators and case are ignored (each code counted once) - nothing dropped, nothing split.
+     * order - whitespace around and inside them, separators between them, case and the same code twice aside.
      */
     public function isFormatOnlyChangeOf(null|string $stored): bool
     {
-        $storedKeys = [];
-
-        foreach (self::parts($stored ?? '') as $token) {
-            $key = self::key($token);
-
-            if ($key !== '') {
-                $storedKeys['k' . $key] = true;
-            }
-        }
-
-        $listKeys = [];
-
-        foreach ($this->codes as $code) {
-            $listKeys['k' . self::key($code)] = true;
-        }
-
-        return array_keys($storedKeys) === array_keys($listKeys);
+        return self::fromStored($stored)->equals($this);
     }
 
     /**
@@ -132,7 +134,7 @@ readonly final class BrandCodeList
      */
     public static function addViolations(ExecutionContextInterface $context, string $path, array $inputs): void
     {
-        if (mb_strlen(self::fromInputs($inputs)->toStored() ?? '') > self::MAX_STORED_LENGTH) {
+        if (self::fromInputs($inputs)->fitsColumn() === false) {
             $context->buildViolation((new Length(max: self::MAX_STORED_LENGTH))->maxMessage)
                 ->setParameter('{{ limit }}', (string) self::MAX_STORED_LENGTH)
                 ->setPlural(self::MAX_STORED_LENGTH)
@@ -143,7 +145,7 @@ readonly final class BrandCodeList
 
     /**
      * The codes of a stored value, separated by `,` `;` `|` (a slash or a dash belongs to the code: "12000/199"),
-     * trimmed - the search key's reading (PuzzleSearchKeys).
+     * trimmed, as typed - the search key's reading (PuzzleSearchKeys).
      *
      * @return list<string>
      */
@@ -174,7 +176,8 @@ readonly final class BrandCodeList
         foreach (preg_split('/[,;|]/u', self::normalized($value)) ?: [] as $part) {
             $part = trim(preg_replace('/[\s\p{Z}]+/u', ' ', $part) ?? '');
 
-            if ($part !== '') {
+            // A code holds a letter or a digit - "-" or "." alone is a placeholder
+            if (preg_match('/[\p{L}\p{N}]/u', $part) === 1) {
                 $parts[] = $part;
             }
         }
@@ -196,13 +199,5 @@ readonly final class BrandCodeList
         $normalized = Normalizer::normalize($value, Normalizer::FORM_KC);
 
         return is_string($normalized) ? $normalized : $value;
-    }
-
-    /**
-     * What makes two codes the same: their letters and digits, in lower case.
-     */
-    private static function key(string $code): string
-    {
-        return mb_strtolower(preg_replace('/[^\p{L}\p{N}]+/u', '', $code) ?? '');
     }
 }

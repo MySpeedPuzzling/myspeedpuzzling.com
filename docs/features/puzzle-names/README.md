@@ -42,8 +42,8 @@ listed at the end under "Delivery decisions".
 | `puzzle.names_changed_at` | timestamp, null | Last change of any name: feeds the sitemap `lastmod` |
 | `puzzle.search_names` | text, null | Folded search key of every name, built by the entity (below) |
 | `puzzle.search_codes` | text, null | Folded search key of every EAN and brand code, built by the entity |
-| `puzzle.ean` | varchar, null | Canonical list `"4005556147090, 4005555001997"`: digits, leading zeros stripped, `", "` separator |
-| `puzzle.identification_number` | varchar, null | Canonical list of brand codes: trimmed, upper case, `", "` separator |
+| `puzzle.ean` | varchar, null | List `"4005556147090, 4005555001997"`, `", "` separator: barcodes (a GTIN with a right check digit) as digits, leading zeros stripped; any other value exactly as typed (`EanList`) |
+| `puzzle.identification_number` | varchar, null | Canonical list of brand codes: trimmed, upper case, each once, `", "` separator (`BrandCodeList`) |
 
 `alternative_names` is a plain `Types::JSONB` array on the entity (no custom Doctrine type): arrays are compared by
 value, so an unchanged list never causes an UPDATE. The entity exposes it as a value object:
@@ -359,42 +359,63 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   several may wait at once next to a full one (`GetPendingPuzzleProposals::blocksNewProposal()`; the puzzle page's
   "pending" badge still shows every one). A "Suggest a change" opened before a full proposal was filed still files names.
 
-- **Phase 5 - one parser, junk kept apart:** `EanList::fromStored()` / `fromInputs()` and `BrandCodeList::...` read the
-  stored strings and the forms' inputs alike (an input may still hold a pasted comma list). A part of the EAN field with
-  a letter ("X002ROECA7", "None", "N/A") is no code: it stays whole, as typed, after the codes (`junk()`) - forms show it
-  in an input of its own, so a save never loses it; a change proposal removes it. The forms tolerate every code the
-  puzzle carries in the form they showed it (a stored "#6255" comes back as "6255", a UPC with its 12th digit), the
-  check digit applies to new codes only, as before.
-- **Phase 5 - format-only** (`isFormatOnlyChangeOf()`): the same codes in the same order once separators, spaces,
-  leading zeros and case are ignored, each counted once - nothing split, nothing dropped, no junk moved. A number
-  printed with marks other than spaces (a dash, a dot, a `#`) counts only when it is an EAN-13 / UPC-A with a right
-  check digit ("978-0593137642"): "6000-5468" or "15.427" are catalogue numbers in the wrong field, and dropping their
-  marks is no format change. On top, the code search key must stay byte for byte the same.
-- **Phase 5 - words in the brand codes** ("Clementoni", "Alpine village", "N/A", "None") are reported, and their field
-  is not written: in upper case they would no longer read as words. Codes of capital letters only ("PZFSLF",
-  "PZL/USA" - real codes of some brands) are codes.
+- **Phase 5 - only barcodes are normalised:** `EanList::fromStored()` / `fromInputs()` (one parser for the stored
+  value and the forms' inputs) write a number in its canonical form (digits, leading zeros stripped) only when its
+  digits as typed are a GTIN - EAN-8, UPC-A, EAN-13, GTIN-14, or 11 digits (a UPC-A as the catalogue stores it) - with
+  a right check digit, and `display()` can show it as printed again (`isBarcode()`). Every other number stays exactly as
+  typed ("6000-5468", "12 556 2", "04512", "4795/4", a 13-digit typo): its digits may be a catalogue number, a misread or
+  a typo, and only a person can tell. Parts with a letter ("X002ROECA7", "N/A") are `junk()`, kept as typed. Everything
+  keeps its place in the list (not the junk at the end, as first planned - keeping the order is what makes a rewrite
+  lossless), each code once - barcodes by their digits, anything else by its text in upper case.
+- **Phase 5 - display** pads a stored barcode of 7 digits (an EAN-8 whose leading zero was stripped) to 8 and one of
+  11 (UPC-A) to 12 when the check digit is right; anything else as stored. Not every length the review suggested: a
+  padded 10-digit or 5-digit number would turn ISBN-like and catalogue numbers whose check digit happens to fit (one in
+  ten) into fake barcodes on the page - and the cleanup never strips zeros a display could not show again
+  ("007346037677" stays).
+- **Phase 5 - writers never rewrite in passing:** `Puzzle::updateProductIdentifiers()` keeps the stored string of a list
+  when the new list has the same codes in the same order (`equals()`), so a name suggestion, a field not approved or an
+  EAN link leaves the other list as it is - no incidental upper-casing, no phantom change in the history. Only the
+  cleanup writes canonical forms of unchanged lists (`canonicalizeProductIdentifiers()`).
+- **Phase 5 - brand codes:** stored in upper case, each once by the whole code ("12-345" and "123-45" are two codes -
+  search may ignore the dash, storage never), shown as typed (`display()`; a cleaned list is upper case anyway).
+- **Phase 5 - the cleanup** (`myspeedpuzzling:canonicalize-puzzle-codes`, `PuzzleCodesCleanup`) writes a field only when
+  `isFormatOnlyChangeOf()` holds (every stored part stays one code in its place - a barcode's spaces, dashes and leading
+  zeros, separators, whitespace around parts, a duplicate, a lone "-"; for brand codes also case and inner whitespace)
+  and the code search key stays byte for byte. Words in the brand codes ("Clementoni", "N/A") and codes with words in
+  them ("Article 30226", "UPC is 0045622965214" - a letter word of 3+ with a lower-case letter, or a lower-case word
+  between spaces; "rb-500-001", "1183pz" are no words) are reported and their field is never written. `--write` needs
+  `--undo=<path>`: every written field with its value before and after, flushed per batch.
+- **Phase 5 - the report proposes, it never deletes a code:** all rows of a puzzle carry one proposal (EAN and brand
+  codes). A part of the EAN field with a letter, a catalogue number or a number that is no barcode moves into the brand
+  codes (after the existing ones, once); only words and placeholders without a digit ("None", "N/A", "Vintage") are
+  dropped. Ravensburger's misread (`45555…`) and its code typed without the first 4 (`005556195145`) get the full code;
+  a barcode length with a wrong check digit and a brand code with words in it stay as they are - a person with the box
+  rewrites them (their `proposed` is no fix). Cells starting like a formula get a `'` (names are typed by players).
 - **Phase 5 - a change request stores the code lists canonical** and only when they differ from the puzzle's
   (`proposed_ean` null = not proposed, `''` = every code removed - an empty list in the form or `[]` in the internal
   API). Requests filed before keep whatever the form had. The puzzle messages carry `EanList` / `BrandCodeList`
   objects: none of them is routed to the async transport.
-- **Phase 5 - caps:** at most 10 inputs per list (`FORM_MAX_CODES`, the most any puzzle has is 3) and the brand codes
-  together within the column's 255 characters. The merge review is not capped - its inputs start from the union of
-  every reported puzzle's codes, and the merge adds every code of the merged puzzles either way.
+- **Phase 5 - caps:** at most 10 inputs per list (`FORM_MAX_CODES`, the most any puzzle has is 3), each list within the
+  column's 255 characters. The merge review is not capped - its inputs start from the union of every reported puzzle's
+  codes, and the merge adds every code of the merged puzzles either way.
 - **Phase 5 - internal API:** `ean` / `identificationNumber` (change requests) and `mergedEan` /
   `mergedIdentificationNumber` (merge approve) take a list of codes as well as the comma-separated string - same keys,
-  additive. API v1 `ean` shows every barcode as printed (`EanList::display()`, a UPC-A with its 12th digit),
-  `", "`-separated.
+  additive. A list of blank entries only is a `400` (only an explicit `[]` removes every code), so is a value or a list
+  longer than the column. API v1 `ean` shows every barcode as printed (`display()`), `", "`-separated.
 - **Phase 5 - blue-green:** a form rendered by the release before posts one text field per list (`ean`,
   `puzzleEan`...); `CodeListType::acceptLegacyFields()` reads it as the inputs of the list for one release, so a page
   opened before the deploy keeps its codes (without it the form fails on the unknown field and comes back with the
   codes emptied - a moderator re-saving it would remove them).
 - **Phase 5 - display:** the puzzle page's Details and "About this puzzle" list each code on its own line; the meta
-  description names the first EAN as printed; picker options show and search the codes as printed (a typed UPC with
-  its leading zero finds it). Any moderator save writes the canonical lists - a record that was never cleaned shows
-  the format change in its history once.
-- **Phase 5 - the cleanup on a production copy** (`myspeedpuzzling:canonicalize-puzzle-codes`, 41,282 puzzles, warm
-  cache): dry run 0.6 s / 33 MiB, `--write` 1.1 s / 42.5 MiB in batches of 500 locked for update - 1,287 EAN fields
-  (1,175 leading zeros, 95 printed spaces, 7 dashes in a valid barcode, 5 lone dashes...) and 202 brand-code fields
-  (case, spaces, a duplicate) written, the code search key of every puzzle byte for byte the same; a second run writes
-  nothing. Report: 168 EAN parts with a letter, 48 catalogue numbers, 11 Ravensburger misreads, 1 `4795/4`, 47 words in
-  the brand codes - 275 rows on 263 puzzles, for change proposals.
+  description names the first EAN as printed; Product JSON-LD `sku` / `mpn` are the first brand code (schema.org takes
+  one value per property; the first is the earliest edition's, a merge keeps the survivor's first); picker options show
+  and search the codes as printed (a typed UPC with its leading zero finds it).
+- **Phase 5 - the cleanup on a production copy** (fresh clone, migrations, keys rebuilt; 41,282 puzzles, warm cache):
+  dry run 0.8 s / 33 MiB, `--write` 1.0 s / 44.5 MiB in batches of 500 locked for update - 1,163 EAN fields (by part: 723 UPC-A
+  and 338 EAN-13 typed with leading zeros, 58 + 9 + 4 + 2 barcodes typed with spaces, 9 GTIN-14, 7 dashes in a valid
+  EAN-13 / UPC-A, 5 EAN-8 with their zero or a dash, 2 `>`, 5 lone dashes, 4 separators) and 146 brand-code fields
+  (case, whitespace, separators, a duplicate). An independent check of the undo file: every touched number is a GTIN
+  with a right check digit and the same 14-digit form, every other part kept verbatim; the code search key of every
+  puzzle is byte for byte the same; a second run writes nothing. Report: 458 rows on 446 puzzles - 168 EAN parts with a
+  letter, 47 catalogue numbers, 127 numbers that are no barcode, 11 Ravensburger misreads, 47 words and 58 codes with
+  words in the brand codes.

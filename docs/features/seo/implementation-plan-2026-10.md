@@ -379,6 +379,8 @@ approved, `names_changed_at`, last solve) never moved, so Google kept the 2026-0
   deploy date of that change. Never for styling or chrome, never "today", never automatically: Google uses `lastmod`
   only while it stays accurate (a significant change = main content, structured data or links), and a sitemap that
   claims changes that did not happen teaches it to ignore the field.
+- Set to 2026-10-06 for the first rebuild: the deploy came late on 2026-10-05 UTC, and Google had fetched pages
+  earlier that day - a `lastmod` of the same day would not tell those copies apart from the rebuilt page.
 - Other sitemaps (players, events, brands, static, …) keep their own rules - their pages did not change that way.
 
 ---

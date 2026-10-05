@@ -426,7 +426,7 @@ final class PuzzleAddControllerTest extends WebTestCase
         self::assertSame('4005555011897', $database->fetchOne('SELECT ean FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]));
     }
 
-    public function testANewPuzzleTakesSeveralCodesOneInputEachAndARefusedOneIsMarkedOnItsInput(): void
+    public function testANewPuzzleTakesOneBarcodeAndOneBrandCode(): void
     {
         $browser = self::createClient();
 
@@ -435,18 +435,46 @@ final class PuzzleAddControllerTest extends WebTestCase
         $database = self::getContainer()->get(Connection::class);
 
         $crawler = $browser->request('GET', '/en/puzzle-add');
-        // One input for each, more behind a quiet "+ another" on the label line - nothing more until tapped
-        self::assertCount(1, $crawler->filter('[data-optional-rows-target="rows"] input[name^="puzzle_add_form[puzzleEans]"]'));
-        self::assertCount(1, $crawler->filter('[data-optional-rows-target="rows"] input[name^="puzzle_add_form[puzzleBrandCodes]"]'));
-        self::assertSame(['+ another', '+ another'], $crawler->filter('.code-inputs .label-row [data-action="optional-rows#add"]')->each(
+        // A box carries one barcode and one brand code: one input each, the only "+" link is the other names'
+        self::assertCount(1, $crawler->filter('input[name^="puzzle_add_form[puzzleEans]"]'));
+        self::assertCount(1, $crawler->filter('input[name^="puzzle_add_form[puzzleBrandCodes]"]'));
+        self::assertSame(['+ name in another language'], $crawler->filter('[data-action="optional-rows#add"]')->each(
             static fn (Crawler $link): string => trim($link->text()),
         ));
-        // The scanner fills the first EAN input
-        self::assertSame('puzzle_add_form[puzzleEans][0]', $crawler->filter('[data-time-form-autocomplete-target="eanInput"]')->attr('name'));
+        // The scanner fills the EAN input, the phone shows its number pad
+        $eanInput = $crawler->filter('[data-time-form-autocomplete-target="eanInput"]');
+        self::assertSame('puzzle_add_form[puzzleEans][0]', $eanInput->attr('name'));
+        self::assertSame('numeric', $eanInput->attr('inputmode'));
 
         $newPuzzleId = $crawler->filter('input[name="new_puzzle_id"]')->attr('value');
         $ids = ['time_id' => $crawler->filter('input[name="time_id"]')->attr('value'), 'new_puzzle_id' => $newPuzzleId];
 
+        $submission = $this->submissionOf($crawler);
+        $submission['puzzle'] = 'One Box Puzzle';
+        $submission['puzzlePiecesCount'] = '500';
+        $submission['puzzleEans'] = ['04005555011897'];
+        $submission['puzzleBrandCodes'] = [' 17481 '];
+
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids], ['puzzle_add_form' => ['puzzlePhoto' => $this->boxPhoto()]]);
+
+        $this->assertResponseRedirects();
+        self::assertSame('4005555011897', $database->fetchOne('SELECT ean FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]));
+        self::assertSame('17481', $database->fetchOne('SELECT identification_number FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]));
+    }
+
+    public function testAFormRenderedBeforeWithSeveralCodesKeepsThemAndMarksTheRefusedOne(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $database = self::getContainer()->get(Connection::class);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $newPuzzleId = $crawler->filter('input[name="new_puzzle_id"]')->attr('value');
+        $ids = ['time_id' => $crawler->filter('input[name="time_id"]')->attr('value'), 'new_puzzle_id' => $newPuzzleId];
+
+        // A page of the release before offered "+ another": it may post several codes
         $submission = $this->submissionOf($crawler);
         $submission['puzzle'] = 'Two Editions Puzzle';
         $submission['puzzlePiecesCount'] = '500';
@@ -458,16 +486,17 @@ final class PuzzleAddControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(422);
         self::assertFalse($database->fetchOne('SELECT 1 FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]), 'nothing is saved');
         // Every input comes back with what was typed, the refused code marked on its own input
-        self::assertSame(['4005555011897', '', '4005555011898'], $crawler->filter('[data-optional-rows-target="rows"] input[name^="puzzle_add_form[puzzleEans]"]')->each(
+        self::assertSame(['4005555011897', '', '4005555011898'], $crawler->filter('input[name^="puzzle_add_form[puzzleEans]"]')->each(
             static fn (Crawler $input): string => (string) $input->attr('value'),
         ));
-        self::assertSame(['17481', '19748-2'], $crawler->filter('[data-optional-rows-target="rows"] input[name^="puzzle_add_form[puzzleBrandCodes]"]')->each(
+        self::assertSame(['17481', '19748-2'], $crawler->filter('input[name^="puzzle_add_form[puzzleBrandCodes]"]')->each(
             static fn (Crawler $input): string => (string) $input->attr('value'),
         ));
-        self::assertStringContainsString('is-invalid', (string) $crawler->filter('input[name="puzzle_add_form[puzzleEans][3]"]')->attr('class'));
+        $refused = $crawler->filter('input[name="puzzle_add_form[puzzleEans][3]"]');
+        self::assertStringContainsString('is-invalid', (string) $refused->attr('class'));
         self::assertStringNotContainsString('is-invalid', (string) $crawler->filter('input[name="puzzle_add_form[puzzleEans][0]"]')->attr('class'));
         self::assertSame('', trim($crawler->filter('[data-time-form-autocomplete-target="eanErrors"]')->text()), 'the first input is fine');
-        self::assertStringContainsString('"4005555011898" is not a valid EAN', $crawler->filter('.code-inputs')->first()->text());
+        self::assertStringContainsString('"4005555011898" is not a valid EAN', $refused->ancestors()->first()->text());
 
         $submission['puzzleEans'] = [0 => '4005555011897', 3 => '04005556197484'];
         $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, ...$ids], ['puzzle_add_form' => ['puzzlePhoto' => $this->boxPhoto()]]);

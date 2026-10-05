@@ -159,18 +159,16 @@
                         {# Add form only - the edit form moves a result to an existing puzzle, never to a new one #}
                         {% if solving_time_form.puzzlePiecesCount is defined %}
                         <div data-time-form-autocomplete-target="newPuzzle" class="{{ hide_new_puzzle|default(false) ? 'd-none' }}">
-                            <p>
-                                <small class="text-muted">{{ 'puzzle_add.need_approve_info'|trans }}</small>
-                            </p>
-
                             {{ form_row(solving_time_form.puzzlePiecesCount, {'attr': {'data-ppm-validator-target': 'puzzlePiecesCount'}}) }}
 
-                            {# One input per code - more behind a quiet "+ another" on the label line. The scanner fills the first
-                               EAN input; a refused code there gets "Clear", one in another row has its × #}
+                            {# One input each: a box carries one barcode and one brand code - the codes of other editions come
+                               through suggestions. A form rendered before this release may have posted several; they are
+                               shown so nothing typed is lost. The scanner fills the EAN input, a refused code gets "Clear" #}
                             {% set first_ean = solving_time_form.puzzleEans.children|first %}
-                            {% set first_ean_input %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ first_ean.vars.id }}">{{ 'forms.ean'|trans }}</label>
                                 <div class="input-group">
-                                    {{ form_widget(first_ean, {'attr': {'data-time-form-autocomplete-target': 'eanInput'}}) }}
+                                    {{ form_widget(first_ean, {'attr': first_ean.vars.attr|merge({'data-time-form-autocomplete-target': 'eanInput'})}) }}
                                     {% if active_puzzle is null %}
                                         <button type="button" class="btn btn-outline-secondary"
                                                 data-action="click->time-form-autocomplete#openScanner"
@@ -187,18 +185,20 @@
                                         </button>
                                     {% endif %}
                                 </div>
-                            {% endset %}
-                            {% set first_ean_errors %}<div data-time-form-autocomplete-target="eanErrors">{{ form_errors(first_ean) }}</div>{% endset %}
-                            {{ include('puzzle/_code_inputs.html.twig', {
-                                field: solving_time_form.puzzleEans,
-                                label: 'forms.ean'|trans,
-                                first_input: first_ean_input,
-                                first_errors: first_ean_errors,
-                            }, with_context = false) }}
-                            {{ include('puzzle/_code_inputs.html.twig', {
-                                field: solving_time_form.puzzleBrandCodes,
-                                label: 'forms.puzzle_identification_number'|trans,
-                            }, with_context = false) }}
+                                <div data-time-form-autocomplete-target="eanErrors">{{ form_errors(first_ean) }}</div>
+                                {% for code in solving_time_form.puzzleEans.children|slice(1) %}
+                                    <div class="mt-2">{{ form_widget(code) }}{{ form_errors(code) }}</div>
+                                {% endfor %}
+                                {{ form_errors(solving_time_form.puzzleEans) }}
+                            </div>
+                            {% set first_brand_code = solving_time_form.puzzleBrandCodes.children|first %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ first_brand_code.vars.id }}">{{ 'forms.puzzle_identification_number'|trans }}</label>
+                                {% for code in solving_time_form.puzzleBrandCodes.children %}
+                                    <div class="{{ loop.first ? '' : 'mt-2' }}">{{ form_widget(code) }}{{ form_errors(code) }}</div>
+                                {% endfor %}
+                                {{ form_errors(solving_time_form.puzzleBrandCodes) }}
+                            </div>
 
                             {{ form_label(solving_time_form.puzzlePhoto) }}
                             {{ form_errors(solving_time_form.puzzlePhoto) }}

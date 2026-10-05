@@ -42,7 +42,8 @@ final class PuzzleAddFormData
     public null|UploadedFile $puzzlePhoto = null;
 
     /**
-     * The new puzzle's barcodes, one input each (CodeListType) - blank inputs are dropped
+     * The new puzzle's barcode - the form shows one input (CodeListType, more only from a form rendered before), blank
+     * inputs are dropped
      *
      * @var array<int, null|string>
      */
@@ -51,7 +52,7 @@ final class PuzzleAddFormData
     public array $puzzleEans = [];
 
     /**
-     * The new puzzle's brand codes, one input each
+     * The new puzzle's brand code - one input, like the barcode
      *
      * @var array<int, null|string>
      */

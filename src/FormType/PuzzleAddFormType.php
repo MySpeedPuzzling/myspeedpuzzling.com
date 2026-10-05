@@ -126,7 +126,8 @@ final class PuzzleAddFormType extends AbstractType
             ],
         ]);
 
-        // One input per code, more behind a quiet "+ another" on the label line (templates/puzzle/_code_inputs.html.twig)
+        // One input each on this form (a box carries one barcode and one brand code - other editions' codes come through
+        // suggestions); still code lists, so a form rendered before shows and keeps every code it posted
         $builder->add('puzzleEans', CodeListType::class, [
             'numeric' => true,
         ]);

@@ -31,9 +31,6 @@
                             {{ form_row(form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
 
                             <div data-time-form-autocomplete-target="newPuzzle" class="d-none">
-                                <p>
-                                    <small class="text-muted">{{ 'puzzle_add.need_approve_info'|trans }}</small>
-                                </p>
                                 {{ form_row(form.piecesCount) }}
                                 {{ form_row(form.puzzlePhoto) }}
                                 {{ include('puzzle/_code_inputs.html.twig', {field: form.puzzleEans, label: 'forms.ean'|trans}, with_context = false) }}

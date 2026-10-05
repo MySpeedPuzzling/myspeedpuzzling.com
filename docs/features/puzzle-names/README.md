@@ -31,7 +31,8 @@ report went to moderators as 304 change proposals (12 more wait for a pending re
    until a change proposal tags them.
 5. **SEO follows multilingual best practice** (locale copies are "crawled/discovered - not indexed" because only the
    interface differs, see `docs/features/seo/research-2026-09.md` §4.1).
-6. **Codes:** one input per code in every form; canonical lists in their columns; a search key for lookups.
+6. **Codes:** one input per code in every form (the add form: one of each - see "Delivery decisions"); canonical lists in
+   their columns; a search key for lookups.
 7. **The add form stays compact and non-disturbing.** Extras are quiet links on label lines; nothing opens until tapped.
 8. **No database triggers, functions or generated columns.** Everything that derives data lives in the app.
 9. **Best match first** when a search term is typed; global search gets "Show all N results".
@@ -459,6 +460,11 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
 - **Phase 4 - wave 1 filed right after phase 3 shipped** (the API takes names only from that release): 102 requests,
   each re-checked against a production snapshot taken minutes before. Jan then chose to file everything at once:
   401 high-confidence tags and 128 medium/low ones for moderators.
+- **The add form takes one EAN and one brand code (Jan, 2026-10-05):** a box carries one of each, so whoever adds a
+  puzzle has exactly those; the codes of other editions come through suggestions and moderators, which keep one input
+  per code. The fields stay code lists (`puzzleEans[0]`), so a page opened before still saves; it shows every code it
+  posted. Other names stay on the add form - a box can carry several. The add forms no longer promise approval
+  "within 24 hours"; the puzzle page's waiting note says it may take a while.
 - **Approving our own proposals (Jan, 2026-10-05): only what is technical and certain**, the rest waits for
   moderators. Approved through the internal API with the record version read at filing (a puzzle changed since is
   refused) and a decision note saying why, credited to Jan's player. Codes: a duplicate of an existing brand code, a

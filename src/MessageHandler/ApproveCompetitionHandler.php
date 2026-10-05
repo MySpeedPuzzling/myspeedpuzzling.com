@@ -38,7 +38,12 @@ readonly final class ApproveCompetitionHandler
 
         $creator = $competition->addedByPlayer;
 
-        $creatorEmail = $creator === null ? null : $this->playerAccountEmail->ofPlayer($creator);
+        // Nobody needs to be told about their own approval - an admin approving a competition they created
+        if ($creator === null || $creator->id->equals($approvedBy->id)) {
+            return;
+        }
+
+        $creatorEmail = $this->playerAccountEmail->ofPlayer($creator);
 
         if ($creatorEmail !== null) {
             $playerLocale = $creator->locale ?? 'en';

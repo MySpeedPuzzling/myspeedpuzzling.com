@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -18,9 +19,22 @@ readonly final class DeleteCompetitionRoundHandler
     ) {
     }
 
+    /**
+     * @throws CompetitionRoundHasResults
+     */
     public function __invoke(DeleteCompetitionRound $message): void
     {
         $params = ['id' => $message->roundId];
+
+        if ($message->refuseWhenItHasResults) {
+            $resultsCount = $this->database
+                ->executeQuery('SELECT COUNT(*) FROM puzzle_solving_time WHERE competition_round_id = :id', $params)
+                ->fetchOne();
+
+            if (is_numeric($resultsCount) && (int) $resultsCount > 0) {
+                throw new CompetitionRoundHasResults((int) $resultsCount);
+            }
+        }
 
         $this->database->executeStatement(
             'UPDATE puzzle_solving_time SET competition_round_id = NULL WHERE competition_round_id = :id',

@@ -27,6 +27,11 @@ readonly final class EditCompetition
         public bool $isOnline,
         public null|UploadedFile $logo,
         public array $maintainerIds,
+        // An explicitly chosen slug (validated unique) - null keeps or regenerates it, see below
+        public null|string $slug = null,
+        // The web form gives a renamed competition a new slug; the internal API keeps it, because published
+        // links and search engines know the competition by it
+        public bool $regenerateSlugOnRename = true,
     ) {
     }
 }

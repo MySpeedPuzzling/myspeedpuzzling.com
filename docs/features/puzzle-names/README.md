@@ -423,7 +423,7 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
 - **Phase 5 - blue-green:** a form rendered by the release before posts one text field per list (`ean`,
   `puzzleEan`...); `CodeListType::acceptLegacyFields()` reads it as the inputs of the list for one release, so a page
   opened before the deploy keeps its codes (without it the form fails on the unknown field and comes back with the
-  codes emptied - a moderator re-saving it would remove them).
+  codes emptied - a moderator re-saving it would remove them). Removed on 2026-10-05, once a release had passed.
 - **Phase 5 - display:** the puzzle page's Details and "About this puzzle" list each code on its own line; the meta
   description names the first EAN as printed; Product JSON-LD `sku` / `mpn` are the first brand code (schema.org takes
   one value per property; the first is the earliest edition's, a merge keeps the survivor's first); picker options show

@@ -155,27 +155,6 @@ final class EditPuzzleControllerTest extends WebTestCase
         self::assertSame('17481, 19748-2', $puzzle->identificationNumber);
     }
 
-    public function testAFormOfTheReleaseBeforeKeepsItsCodes(): void
-    {
-        $browser = $this->signedInAdmin();
-        $editUrl = '/admin/puzzles/' . PuzzleFixture::PUZZLE_1000_05 . '/edit';
-
-        $crawler = $browser->request('GET', $editUrl);
-        $fields = $crawler->filter('form[data-controller~="puzzle-record"]')->form()->getPhpValues();
-        self::assertIsArray($fields['puzzle_record_form']);
-        // One text field per list, comma-separated - as the release before rendered it
-        unset($fields['puzzle_record_form']['eans'], $fields['puzzle_record_form']['brandCodes']);
-        $fields['puzzle_record_form']['ean'] = '4005556174812, 4005556197484, 036000291452';
-        $fields['puzzle_record_form']['identificationNumber'] = '17481, 19748-2';
-
-        $browser->request('POST', $editUrl, $fields);
-
-        self::assertResponseRedirects();
-        $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_05);
-        self::assertSame('4005556174812, 4005556197484, 36000291452', $puzzle->ean);
-        self::assertSame('17481, 19748-2', $puzzle->identificationNumber);
-    }
-
     public function testEveryNameIsEditedInTheNamesEditorAndTheLanguageChangeIsInTheHistory(): void
     {
         $browser = $this->signedInAdmin();

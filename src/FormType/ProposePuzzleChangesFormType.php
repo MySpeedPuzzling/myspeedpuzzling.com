@@ -71,8 +71,6 @@ final class ProposePuzzleChangesFormType extends AbstractType
                     'accept' => 'image/jpeg,image/png,image/webp',
                 ],
             ]);
-
-        CodeListType::acceptLegacyFields($builder, ['ean' => 'eans', 'identificationNumber' => 'brandCodes']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

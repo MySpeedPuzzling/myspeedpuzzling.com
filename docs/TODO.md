@@ -15,8 +15,7 @@ that would otherwise be forgotten. Newest section on top.
       puzzle first, the proposal replaces both whole lists.
 - [ ] The 126 puzzles the report has no fix for wait for a person with the box (`codes-cleanup/file/nofix.json` next
       to it): 65 barcode lengths with a wrong check digit, 60 brand codes with words in them, 1 comma between digits.
-- [ ] One release after phase 5 (shipped 2026-10-05): remove `CodeListType::acceptLegacyFields()` and its five calls
-      (forms of the release before posted one text field per code list).
+- [x] One release after phase 5: `CodeListType::acceptLegacyFields()` and its five calls removed (2026-10-05).
 
 ## Puzzle names - catalogue cleanup (`docs/features/puzzle-names/README.md`, phase 4)
 

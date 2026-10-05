@@ -73,40 +73,4 @@ final class CodeListType extends AbstractType
     {
         return CollectionType::class;
     }
-
-    /**
-     * Blue-green: a form rendered by the release before has one text field per code list (`ean` with comma-separated
-     * codes). Read it as the inputs of the list, one code each, so a page opened before the deploy and sent after it
-     * keeps its codes instead of failing on an unknown field and coming back with them emptied. Remove one release
-     * later.
-     *
-     * @template TData
-     *
-     * @param FormBuilderInterface<TData> $builder The form holding the code lists
-     * @param array<string, string> $legacyFields The field of the release before => the code list replacing it
-     */
-    public static function acceptLegacyFields(FormBuilderInterface $builder, array $legacyFields): void
-    {
-        $builder->addEventListener(FormEvents::PRE_SUBMIT, static function (FormEvent $event) use ($legacyFields): void {
-            $data = $event->getData();
-
-            if (is_array($data) === false) {
-                return;
-            }
-
-            foreach ($legacyFields as $legacyField => $field) {
-                if (array_key_exists($legacyField, $data) === false) {
-                    continue;
-                }
-
-                if (isset($data[$field]) === false && is_string($data[$legacyField])) {
-                    $data[$field] = preg_split('/[,;|]/', $data[$legacyField]) ?: [];
-                }
-
-                unset($data[$legacyField]);
-            }
-
-            $event->setData($data);
-        });
-    }
 }

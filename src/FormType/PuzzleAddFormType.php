@@ -132,7 +132,6 @@ final class PuzzleAddFormType extends AbstractType
         ]);
 
         $builder->add('puzzleBrandCodes', CodeListType::class);
-        CodeListType::acceptLegacyFields($builder, ['puzzleEan' => 'puzzleEans', 'puzzleIdentificationNumber' => 'puzzleBrandCodes']);
 
         // Names of other boxes of a new puzzle, behind "+ name in another language" on the puzzle's label line
         $builder->add('alternativeNames', CollectionType::class, [

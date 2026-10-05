@@ -115,8 +115,6 @@ final class PuzzleRecordFormType extends AbstractType
                     'rows' => 2,
                 ],
             ]);
-
-        CodeListType::acceptLegacyFields($builder, ['ean' => 'eans', 'identificationNumber' => 'brandCodes']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

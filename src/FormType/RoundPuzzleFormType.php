@@ -107,7 +107,6 @@ final class RoundPuzzleFormType extends AbstractType
         ]);
 
         $builder->add('puzzleBrandCodes', CodeListType::class);
-        CodeListType::acceptLegacyFields($builder, ['puzzleEan' => 'puzzleEans', 'puzzleIdentificationNumber' => 'puzzleBrandCodes']);
 
         $builder->add('hideUntilRoundStarts', CheckboxType::class, [
             'label' => 'competition.round_puzzle.form.hide_until_round_starts',

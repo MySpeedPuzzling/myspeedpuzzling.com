@@ -81,8 +81,6 @@ final class PuzzleMergeReviewFormType extends AbstractType
                 'placeholder' => false,
             ]);
         }
-
-        CodeListType::acceptLegacyFields($builder, ['ean' => 'eans', 'identificationNumber' => 'brandCodes']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

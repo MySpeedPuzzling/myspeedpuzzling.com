@@ -5520,6 +5520,14 @@ marketplace_events:
 puzzle_codes:
     add_another: "+ another"
     remove: "Remove this code"
+    # "What is it?" next to the add form's EAN and brand code labels (templates/puzzle/_codes_help_modal.html.twig)
+    help:
+        link: "What is it?"
+        title: "Where to find the codes"
+        image_alt: "The side of a puzzle box: the EAN is the number under the barcode, the brand code is printed above it."
+        ean: "The number under the barcode, usually 13 digits. Quickest: the scan button next to the field."
+        brand_code: "The brand's own number for this puzzle, usually printed near the barcode. Some brands, Ravensburger for example, print one more digit after it - that digit belongs to the barcode, so leave it out. Searching finds the puzzle either way."
+        optional: "Both are optional, but they help others find the puzzle by scanning or searching."
 puzzle_names:
     main_title: "Main title"
     main_title_hint: "The English title of the box. Shown first on every page, in every language."

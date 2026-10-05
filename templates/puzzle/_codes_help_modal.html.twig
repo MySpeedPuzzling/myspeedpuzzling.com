@@ -1,0 +1,25 @@
+{#
+    Where the EAN and the brand code are on a box (docs/features/puzzle-names/codes-help-and-check-digit.md) - opened by
+    puzzle/_codes_help_link. The picture's tab texts are translated, one file per locale
+    (docs/features/puzzle-names/codes-help/make_images.py); lazy inside a hidden modal = nothing is downloaded until
+    it opens.
+#}
+{% set locale = app.request.locale in ['en', 'cs', 'de', 'es', 'fr', 'ja'] ? app.request.locale : 'en' %}
+<div class="modal fade" id="puzzleCodesHelpModal" tabindex="-1" aria-labelledby="puzzleCodesHelpModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="puzzleCodesHelpModalTitle">{{ 'puzzle_codes.help.title'|trans }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+            <div class="modal-body">
+                <img src="{{ asset('img/puzzle-codes/box-side.' ~ locale ~ '.webp') }}"
+                     alt="{{ 'puzzle_codes.help.image_alt'|trans }}"
+                     width="800" height="495" loading="lazy" class="img-fluid rounded mb-3">
+                <p class="mb-2"><strong>EAN</strong> - {{ 'puzzle_codes.help.ean'|trans }}</p>
+                <p class="mb-2"><strong>{{ 'forms.puzzle_identification_number'|trans }}</strong> - {{ 'puzzle_codes.help.brand_code'|trans }}</p>
+                <p class="text-muted small mb-0">{{ 'puzzle_codes.help.optional'|trans }}</p>
+            </div>
+        </div>
+    </div>
+</div>

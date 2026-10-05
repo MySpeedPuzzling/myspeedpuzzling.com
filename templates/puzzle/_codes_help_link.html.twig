@@ -1,0 +1,8 @@
+{#
+    "What is it?" at the right end of a code input's label line (inside .label-row) - opens puzzle/_codes_help_modal
+    (docs/features/puzzle-names/codes-help-and-check-digit.md). Required: field_label - the label it explains, read out
+    after the link by screen readers.
+#}
+<button type="button" class="btn btn-link label-row__link" data-bs-toggle="modal" data-bs-target="#puzzleCodesHelpModal">
+    {{- 'puzzle_codes.help.link'|trans -}}<span class="visually-hidden">: {{ field_label }}</span>
+</button>

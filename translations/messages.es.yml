@@ -5197,6 +5197,13 @@ marketplace_events:
 puzzle_codes:
     add_another: "+ otro"
     remove: "Quitar este código"
+    help:
+        link: "¿Qué es?"
+        title: "Dónde encontrar los códigos"
+        image_alt: "Lateral de una caja de puzzle: el EAN es el número bajo el código de barras, el código de marca está impreso encima."
+        ean: "El número bajo el código de barras, normalmente de 13 dígitos. Lo más rápido: el botón de escanear junto al campo."
+        brand_code: "El número propio de la marca para este puzzle, normalmente impreso junto al código de barras. Algunas marcas, como Ravensburger, imprimen un dígito más detrás - ese dígito pertenece al código de barras, así que no lo incluyas. La búsqueda encuentra el puzzle de todos modos."
+        optional: "Ambos son opcionales, pero ayudan a otros a encontrar el puzzle escaneando o buscando."
 puzzle_names:
     main_title: "Título principal"
     main_title_hint: "El título en inglés de la caja. Se muestra primero en todas las páginas y en todos los idiomas."

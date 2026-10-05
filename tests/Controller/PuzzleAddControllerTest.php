@@ -571,6 +571,26 @@ final class PuzzleAddControllerTest extends WebTestCase
         self::assertMatchesRegularExpression('/<option value="cs" selected/', $prototype);
     }
 
+    public function testBothCodeLabelsExplainWhereTheCodesAreInThePagesLanguage(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/pridat-puzzle');
+
+        $this->assertResponseIsSuccessful();
+        $links = $crawler->filter('.label-row button[data-bs-target="#puzzleCodesHelpModal"]');
+        self::assertCount(2, $links);
+        self::assertStringContainsString('Kód značky', $links->eq(1)->text());
+
+        $modal = $crawler->filter('#puzzleCodesHelpModal');
+        self::assertCount(1, $modal);
+        $image = $modal->filter('img');
+        self::assertStringContainsString('/img/puzzle-codes/box-side.cs.webp', (string) $image->attr('src'));
+        self::assertSame('lazy', $image->attr('loading'));
+    }
+
     public function testNamesLeftInTheHiddenRowsDoNotGoWithAResultOfAnExistingPuzzle(): void
     {
         $browser = self::createClient();

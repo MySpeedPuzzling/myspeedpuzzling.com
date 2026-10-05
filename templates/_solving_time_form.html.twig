@@ -166,7 +166,10 @@
                                shown so nothing typed is lost. The scanner fills the EAN input, a refused code gets "Clear" #}
                             {% set first_ean = solving_time_form.puzzleEans.children|first %}
                             <div class="mb-3">
-                                <label class="form-label" for="{{ first_ean.vars.id }}">{{ 'forms.ean'|trans }}</label>
+                                <div class="label-row">
+                                    <label class="form-label" for="{{ first_ean.vars.id }}">{{ 'forms.ean'|trans }}</label>
+                                    {{ include('puzzle/_codes_help_link.html.twig', {field_label: 'forms.ean'|trans}, with_context = false) }}
+                                </div>
                                 <div class="input-group">
                                     {{ form_widget(first_ean, {'attr': first_ean.vars.attr|merge({'data-time-form-autocomplete-target': 'eanInput'})}) }}
                                     {% if active_puzzle is null %}
@@ -193,7 +196,10 @@
                             </div>
                             {% set first_brand_code = solving_time_form.puzzleBrandCodes.children|first %}
                             <div class="mb-3">
-                                <label class="form-label" for="{{ first_brand_code.vars.id }}">{{ 'forms.puzzle_identification_number'|trans }}</label>
+                                <div class="label-row">
+                                    <label class="form-label" for="{{ first_brand_code.vars.id }}">{{ 'forms.puzzle_identification_number'|trans }}</label>
+                                    {{ include('puzzle/_codes_help_link.html.twig', {field_label: 'forms.puzzle_identification_number'|trans}, with_context = false) }}
+                                </div>
                                 {% for code in solving_time_form.puzzleBrandCodes.children %}
                                     <div class="{{ loop.first ? '' : 'mt-2' }}">{{ form_widget(code) }}{{ form_errors(code) }}</div>
                                 {% endfor %}
@@ -249,6 +255,9 @@
                                 {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: 'puzzlePhoto'}) }}
                             </div>
                         </div>
+                        {# Opened by "What is it?" on the EAN and brand code labels - here, not next to the scanner modal: that one
+                           renders only without an active puzzle, these labels also show while changing the puzzle of a result #}
+                        {{ include('puzzle/_codes_help_modal.html.twig', with_context = false) }}
                         {% endif %}
                     </div>
                 </div>

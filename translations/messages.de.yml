@@ -5196,6 +5196,13 @@ marketplace_events:
 puzzle_codes:
     add_another: "+ weiterer"
     remove: "Diesen Code entfernen"
+    help:
+        link: "Was ist das?"
+        title: "Wo die Codes stehen"
+        image_alt: "Seite einer Puzzleschachtel: Die EAN ist die Zahl unter dem Strichcode, der Markencode steht darüber."
+        ean: "Die Zahl unter dem Strichcode, meist 13 Ziffern. Am schnellsten geht es mit der Scan-Taste neben dem Feld."
+        brand_code: "Die eigene Nummer der Marke für dieses Puzzle, meist neben dem Strichcode gedruckt. Manche Marken, zum Beispiel Ravensburger, drucken dahinter noch eine Ziffer - sie gehört zum Strichcode, lassen Sie sie also weg. Die Suche findet das Puzzle so oder so."
+        optional: "Beide sind optional, helfen aber anderen, das Puzzle per Scan oder Suche zu finden."
 puzzle_names:
     main_title: "Haupttitel"
     main_title_hint: "Der englische Titel auf der Schachtel. Wird auf jeder Seite und in jeder Sprache zuerst angezeigt."

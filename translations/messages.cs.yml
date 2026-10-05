@@ -5194,6 +5194,13 @@ marketplace_events:
 puzzle_codes:
     add_another: "+ další"
     remove: "Odebrat tento kód"
+    help:
+        link: "Co to je?"
+        title: "Kde kódy najdete"
+        image_alt: "Bok krabice puzzle: EAN je číslo pod čárovým kódem, kód značky je vytištěný nad ním."
+        ean: "Číslo pod čárovým kódem, obvykle 13 číslic. Nejrychleji ho načtete tlačítkem pro skenování vedle pole."
+        brand_code: "Vlastní číslo, které puzzle dala značka, obvykle vytištěné u čárového kódu. Některé značky, třeba Ravensburger, za ním tisknou ještě jednu číslici - ta patří k čárovému kódu, takže ji vynechte. Vyhledávání puzzle najde v obou případech."
+        optional: "Oba kódy jsou nepovinné, ale ostatním pomohou puzzle najít skenováním nebo vyhledáváním."
 puzzle_names:
     main_title: "Hlavní název"
     main_title_hint: "Anglický název z krabice. Zobrazuje se jako první na každé stránce, ve všech jazycích."

@@ -11,9 +11,10 @@ use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 
 /**
- * Locked on the survivor only - the lock takes one key. The other puzzles are deleted by the merge: an edit of one of
- * them committed in the same moment is lost with it, which needs a moderator saving a puzzle reported as a duplicate
- * while another approves the merge; the review form's record versions refuse every earlier save.
+ * Locked on the survivor - the lock takes one key. The handler then locks the row of every puzzle of the merge (the
+ * survivor and the ones it deletes, SELECT … FOR UPDATE) before it compares the record versions: an edit or an EAN link
+ * of a merged puzzle committed before is seen by that check (the merge is refused), one committing later waits until
+ * the merge committed.
  */
 readonly final class ApprovePuzzleMergeRequest implements SerializedByLock
 {

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\ORM\EntityManagerInterface;
+use PDO;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
@@ -46,6 +48,7 @@ use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use SpeedPuzzling\Web\Value\TransferType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Throwable;
 
 final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
 {
@@ -764,6 +767,39 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertSame('Puzzle 5', $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05)->name);
     }
 
+    public function testEveryPuzzleOfTheMergeIsLockedBeforeTheRecordsAreCompared(): void
+    {
+        $mergeRequestId = $this->submitMergeRequest();
+
+        // Another request holds the duplicate's row - a moderator's edit of it, not committed yet
+        $otherRequest = $this->otherDatabaseConnection();
+        $otherRequest->beginTransaction();
+        $otherRequest->query(sprintf("SELECT id FROM puzzle WHERE id = '%s' FOR UPDATE", PuzzleFixture::PUZZLE_500_05));
+
+        // The merge waits for it; here the wait is cut short (until the end of the test's transaction)
+        $this->entityManager->getConnection()->executeStatement("SET LOCAL lock_timeout = '200ms'");
+
+        $failedStatement = null;
+
+        try {
+            $this->approveMerge($mergeRequestId, mergedName: 'Puzzle 4');
+        } catch (Throwable $exception) {
+            for ($cause = $exception; $cause !== null; $cause = $cause->getPrevious()) {
+                if ($cause instanceof DriverException && $cause->getSQLState() === '55P03') {
+                    $failedStatement = $cause->getQuery()?->getSQL();
+                }
+            }
+        } finally {
+            $otherRequest->rollBack();
+        }
+
+        // lock_not_available on the locking read at the start - not on the DELETE at the end, after the record
+        // versions were compared against a row somebody was changing
+        self::assertIsString($failedStatement, 'The merge must wait for the duplicate\'s row');
+        self::assertStringStartsWith('SELECT', $failedStatement);
+        self::assertStringContainsString('FOR UPDATE', $failedStatement);
+    }
+
     public function testTheReviewersNamesMayNotGrowPastTheFormLimit(): void
     {
         $mergeRequestId = $this->submitMergeRequest();
@@ -785,6 +821,25 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 range(1, PuzzleNames::FORM_MAX_NAMES + 1),
             )),
         ));
+    }
+
+    /**
+     * A connection of its own to this test process's database (tests/bootstrap.php gives every ParaTest worker one) -
+     * another request, outside the test's transaction
+     */
+    private function otherDatabaseConnection(): PDO
+    {
+        $databaseUrl = $_ENV['DATABASE_URL'] ?? null;
+        self::assertIsString($databaseUrl);
+        $url = parse_url($databaseUrl);
+        self::assertIsArray($url);
+
+        return new PDO(
+            sprintf('pgsql:host=%s;port=%d;dbname=%s', $url['host'] ?? 'postgres', $url['port'] ?? 5432, ltrim($url['path'] ?? '', '/')),
+            $url['user'] ?? null,
+            $url['pass'] ?? null,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
+        );
     }
 
     private function approveMerge(string $mergeRequestId, string $mergedName): void

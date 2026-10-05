@@ -70,25 +70,38 @@ readonly final class ApprovePuzzleMergeRequestHandler
     {
         $mergeRequest = $this->puzzleMergeRequestRepository->get($message->mergeRequestId);
         $reviewer = $this->playerRepository->get($message->reviewerId);
-        $survivorPuzzle = $this->puzzleRepository->get($message->survivorPuzzleId);
+
+        // Every puzzle of the merge is locked (SELECT … FOR UPDATE) before the record versions are compared - the
+        // message's lock covers the survivor only: an edit or an EAN link of a merged puzzle either committed before
+        // (the check below refuses the merge) or waits until the merge commits
+        $lockedPuzzles = [];
+
+        foreach ($this->puzzleRepository->findByIdsForUpdate([$message->survivorPuzzleId, ...$mergeRequest->reportedDuplicatePuzzleIds]) as $puzzle) {
+            $lockedPuzzles[$puzzle->id->toString()] = $puzzle;
+        }
+
+        $survivorPuzzle = $lockedPuzzles[strtolower($message->survivorPuzzleId)] ?? throw new PuzzleNotFound();
 
         // Collect all puzzle IDs to merge (including source puzzle, excluding survivor)
-        $allPuzzleIds = $mergeRequest->reportedDuplicatePuzzleIds;
         $puzzlesToMerge = [];
 
-        foreach ($allPuzzleIds as $puzzleId) {
-            if ($puzzleId === $message->survivorPuzzleId) {
+        foreach ($mergeRequest->reportedDuplicatePuzzleIds as $puzzleId) {
+            $puzzle = $lockedPuzzles[strtolower($puzzleId)] ?? null;
+
+            if ($puzzle === $survivorPuzzle) {
                 continue;
             }
 
-            try {
-                $puzzlesToMerge[] = $this->puzzleRepository->get($puzzleId);
-            } catch (PuzzleNotFound) {
+            if ($puzzle === null) {
                 $this->logger->debug('Puzzle {puzzleId} not found during merge, already deleted', [
                     'puzzleId' => $puzzleId,
                     'mergeRequestId' => $message->mergeRequestId,
                 ]);
+
+                continue;
             }
+
+            $puzzlesToMerge[] = $puzzle;
         }
 
         // The review shows every puzzle as it was loaded - a save in between refuses the merge before anything changes

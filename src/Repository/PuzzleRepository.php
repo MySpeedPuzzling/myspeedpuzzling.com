@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\Manufacturer;
@@ -41,7 +42,8 @@ readonly final class PuzzleRepository
     /**
      * The puzzles locked for update until the transaction ends (SELECT … FOR UPDATE) - for a write derived from what
      * they hold now: an edit committing meanwhile waits instead of being overwritten. Needs an open transaction (the
-     * doctrine_transaction middleware of a handler).
+     * doctrine_transaction middleware of a handler). Locked in id order, so two callers sharing puzzles do not
+     * deadlock; a puzzle already loaded is refreshed with the row as it is once locked. Unknown ids are left out.
      *
      * @param list<string> $puzzleIds
      *
@@ -49,15 +51,18 @@ readonly final class PuzzleRepository
      */
     public function findByIdsForUpdate(array $puzzleIds): array
     {
+        $puzzleIds = array_values(array_unique(array_map(strtolower(...), array_filter($puzzleIds, Uuid::isValid(...)))));
+
         if ($puzzleIds === []) {
             return [];
         }
 
         /** @var list<Puzzle> $puzzles */
         $puzzles = $this->entityManager
-            ->createQuery('SELECT puzzle FROM ' . Puzzle::class . ' puzzle WHERE puzzle.id IN (:ids)')
+            ->createQuery('SELECT puzzle FROM ' . Puzzle::class . ' puzzle WHERE puzzle.id IN (:ids) ORDER BY puzzle.id')
             ->setParameter('ids', $puzzleIds)
             ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->setHint(Query::HINT_REFRESH, true)
             ->getResult();
 
         return $puzzles;

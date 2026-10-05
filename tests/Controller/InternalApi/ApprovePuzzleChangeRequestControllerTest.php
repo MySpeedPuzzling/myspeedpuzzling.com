@@ -54,6 +54,80 @@ final class ApprovePuzzleChangeRequestControllerTest extends TestCase
         self::assertSame('Already fixed by the Edcu → Educa merge', $dispatched->decisionNote);
     }
 
+    public function testTheNamesCanBeCorrectedForASelectedField(): void
+    {
+        $dispatched = null;
+
+        $bus = $this->createStub(MessageBusInterface::class);
+        $bus->method('dispatch')->willReturnCallback(
+            static function (object $message) use (&$dispatched): Envelope {
+                $dispatched = $message;
+
+                return new Envelope($message);
+            },
+        );
+
+        (new ApprovePuzzleChangeRequestController($bus, $this->changeRequests(), self::REVIEWER_ID))(
+            self::CHANGE_REQUEST_ID,
+            $this->jsonRequest([
+                'selectedFields' => ['alternativeNames', 'nameLanguage'],
+                'alternativeNames' => [['name' => 'Kruh barev: Mušle', 'language' => 'cs'], ['name' => 'Seashells']],
+                'nameLanguage' => null,
+            ]),
+        );
+
+        self::assertInstanceOf(ApprovePuzzleChangeRequest::class, $dispatched);
+        self::assertSame(
+            [['name' => 'Kruh barev: Mušle', 'language' => 'cs'], ['name' => 'Seashells', 'language' => null]],
+            $dispatched->alternativeNamesOverride?->toArray(),
+        );
+        self::assertNull($dispatched->nameLanguageOverride);
+    }
+
+    public function testWithoutCorrectionsTheProposalIsApplied(): void
+    {
+        $dispatched = null;
+
+        $bus = $this->createStub(MessageBusInterface::class);
+        $bus->method('dispatch')->willReturnCallback(
+            static function (object $message) use (&$dispatched): Envelope {
+                $dispatched = $message;
+
+                return new Envelope($message);
+            },
+        );
+
+        (new ApprovePuzzleChangeRequestController($bus, $this->changeRequests(), self::REVIEWER_ID))(
+            self::CHANGE_REQUEST_ID,
+            $this->jsonRequest(['selectedFields' => ['alternativeNames']]),
+        );
+
+        self::assertInstanceOf(ApprovePuzzleChangeRequest::class, $dispatched);
+        self::assertNull($dispatched->alternativeNamesOverride);
+        self::assertFalse($dispatched->nameLanguageOverride);
+    }
+
+    public function testACorrectionOfAFieldNotSelectedIsRefused(): void
+    {
+        $bus = $this->createMock(MessageBusInterface::class);
+        $bus->expects(self::never())->method('dispatch');
+        $controller = new ApprovePuzzleChangeRequestController($bus, $this->changeRequests(), self::REVIEWER_ID);
+
+        foreach (
+            [
+            ['selectedFields' => ['name'], 'alternativeNames' => [['name' => 'Seashells']]],
+            ['selectedFields' => ['alternativeNames'], 'nameLanguage' => 'cs'],
+            ['selectedFields' => ['nameLanguage'], 'nameLanguage' => 'not a tag'],
+            ] as $body
+        ) {
+            try {
+                $controller(self::CHANGE_REQUEST_ID, $this->jsonRequest($body));
+                self::fail('Expected a 400 for ' . json_encode($body));
+            } catch (BadRequestHttpException) {
+            }
+        }
+    }
+
     public function testTheFieldsToApplyAreNeverImplied(): void
     {
         $bus = $this->createMock(MessageBusInterface::class);

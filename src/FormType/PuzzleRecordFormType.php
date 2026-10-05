@@ -33,7 +33,7 @@ final class PuzzleRecordFormType extends AbstractType
     }
 
     /**
-     * @param array{has_proposed_image: bool, names_editor: bool} $options
+     * @param array{has_proposed_image: bool} $options
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
@@ -45,16 +45,7 @@ final class PuzzleRecordFormType extends AbstractType
                 . ($manufacturer->manufacturerApproved ? '' : ' - not approved');
         }
 
-        if ($options['names_editor']) {
-            self::addNamesEditor($builder);
-        } else {
-            $builder
-                ->add('name', TextType::class)
-                ->add('alternativeName', TextType::class, [
-                    'required' => false,
-                ]);
-        }
-
+        self::addNamesEditor($builder);
         self::addRecordFields($builder);
 
         $builder->add('manufacturerId', ChoiceType::class, [
@@ -138,11 +129,8 @@ final class PuzzleRecordFormType extends AbstractType
             'data_class' => PuzzleRecordFormData::class,
             'translation_domain' => false,
             'has_proposed_image' => false,
-            // Every name in the names editor instead of the single name and alternative name fields
-            'names_editor' => false,
         ]);
 
         $resolver->setAllowedTypes('has_proposed_image', 'bool');
-        $resolver->setAllowedTypes('names_editor', 'bool');
     }
 }

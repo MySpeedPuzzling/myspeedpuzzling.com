@@ -38,13 +38,7 @@ final class ProposePuzzleChangesFormType extends AbstractType
         }
 
         $builder
-            ->add('name', TextType::class, [
-                'label' => 'puzzle_report.form.name',
-                'help' => 'puzzle_report.form.name_help',
-                'attr' => [
-                    'placeholder' => 'puzzle_report.form.name_placeholder',
-                ],
-            ])
+            ->add('names', PuzzleNamesType::class)
             ->add('manufacturerId', ChoiceType::class, [
                 'label' => 'puzzle_report.form.manufacturer',
                 'required' => false,

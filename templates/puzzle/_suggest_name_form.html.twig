@@ -1,0 +1,47 @@
+{#
+    "Suggest another name" (SuggestPuzzleNameController) - in the modal frame and on its full page.
+
+    Required variables: puzzle (PuzzleOverview), form, moderator, in_modal, known_names (the other names:
+    {name, language, languageLabel})
+#}
+
+{{ form_start(form, {attr: {
+    'data-turbo': 'true',
+    'data-turbo-frame': in_modal ? 'modal-frame' : '_top',
+}}) }}
+
+    <p class="text-muted small mb-3">
+        {{ (moderator ? 'puzzle_names.suggest_name.intro_moderator' : 'puzzle_names.suggest_name.intro')|trans }}
+    </p>
+
+    <div class="small mb-3">
+        <span class="text-muted">{{ 'puzzle_names.suggest_name.known_names'|trans }}</span>
+        <span class="fw-semibold">{{ puzzle.puzzleName }}</span>
+        {%- for known in known_names -%}
+            <span class="text-muted"> · </span><span{% if known.language %} lang="{{ known.language }}"{% endif %}>{{ known.name }}</span>
+            {%- if known.languageLabel %} <span class="text-muted">({{ known.languageLabel }})</span>{% endif -%}
+        {%- endfor -%}
+    </div>
+
+    {{ form_errors(form) }}
+
+    {{ form_row(form.name) }}
+    {{ form_row(form.language) }}
+
+    {% if form.makeMainTitle is defined %}
+        {{ form_row(form.makeMainTitle) }}
+    {% endif %}
+
+    <div class="d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary" data-loading-text="{{ 'forms.saving'|trans }}">
+            {{ (moderator ? 'puzzle_names.suggest_name.submit_moderator' : 'puzzle_names.suggest_name.submit')|trans }}
+        </button>
+
+        {% if in_modal %}
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+        {% else %}
+            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-secondary">{{ 'forms.cancel'|trans }}</a>
+        {% endif %}
+    </div>
+
+{{ form_end(form) }}

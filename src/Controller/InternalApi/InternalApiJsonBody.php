@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Value\LanguageTag;
 use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -119,5 +122,72 @@ final class InternalApiJsonBody
         }
 
         return $ids;
+    }
+
+    /**
+     * Puzzle names as a list of `{"name": "…", "language": "cs" | null}`, in order - null when the key is absent or
+     * null, `[]` is an empty list. Names are cleaned (PuzzleNames::cleanName()), languages normalised (LanguageTag); a
+     * blank or too long name or an unknown language is a 400. How many names a puzzle may have is the caller's check.
+     *
+     * @param array<string, mixed> $body
+     */
+    public static function optionalPuzzleNames(array $body, string $key): null|PuzzleNames
+    {
+        $values = $body[$key] ?? null;
+
+        if ($values === null) {
+            return null;
+        }
+
+        if (is_array($values) === false || array_is_list($values) === false) {
+            throw new BadRequestHttpException(sprintf('"%s" must be a list of {"name", "language"} objects.', $key));
+        }
+
+        $names = [];
+
+        foreach ($values as $value) {
+            $name = is_array($value) && is_string($value['name'] ?? null) ? PuzzleNames::cleanName($value['name']) : '';
+
+            if ($name === '') {
+                throw new BadRequestHttpException(sprintf('Every entry of "%s" needs a "name".', $key));
+            }
+
+            if (mb_strlen($name) > PuzzleNames::MAX_NAME_LENGTH) {
+                throw new BadRequestHttpException(sprintf('A name in "%s" can be at most %d characters long.', $key, PuzzleNames::MAX_NAME_LENGTH));
+            }
+
+            assert(is_array($value));
+            $language = self::optionalLanguageTag($value, 'language');
+
+            $names[] = new PuzzleName($name, $language === false ? null : $language);
+        }
+
+        return new PuzzleNames($names);
+    }
+
+    /**
+     * A BCP 47 language tag, normalised (LanguageTag) - false when the key is absent, null for null or a blank string
+     * (no language: English or not known), a 400 for anything that is no tag of a known language.
+     *
+     * @param array<mixed> $body
+     */
+    public static function optionalLanguageTag(array $body, string $key): null|false|string
+    {
+        if (array_key_exists($key, $body) === false) {
+            return false;
+        }
+
+        $value = $body[$key];
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $tag = is_string($value) ? LanguageTag::normalize($value) : null;
+
+        return $tag ?? throw new BadRequestHttpException(sprintf(
+            '"%s" must be a BCP 47 language tag such as "cs", "de" or "pt-BR", or null.',
+            $key,
+        ));
     }
 }

@@ -175,7 +175,7 @@ keys empty on purpose - a hidden placeholder must not be searchable; the reveal 
 - **History and audit logs** (`puzzle_moderation_decision`, `puzzle_merge_audit`) keep old `alternativeName` strings
   forever; readers handle both shapes.
 - **"Suggest another name"**: names-only change request; rate limited per player; kill switch
-  `PUZZLE_NAME_SUGGESTIONS_PUBLIC` (see `docs/features/feature_flags.md` when added).
+  `PUZZLE_NAME_SUGGESTIONS_PUBLIC` (`docs/features/feature_flags.md`); moderators and admins apply their name at once.
 
 ## Considered and rejected
 
@@ -243,3 +243,20 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   (nothing else read those two there); lend/borrow lists have no filter and render no `data-search`.
 - **Phase 1b - the wishlist list query** reads the two key columns and is ~4 % slower on the heaviest wishlist
   (655 items, 9.7 → 10.1 ms, same plan); accepted - folding the names per item in PHP would cost far more.
+- **Phase 3B - a change request proposes the names as one part:** `proposed_alternative_names` (the whole list, cleaned
+  like the puzzle stores it next to the proposed main title) and `proposed_name_language` are proposed together; null
+  list = the names are no part of the proposal (then the language is not either). `original_*` are snapshotted on every
+  new request (also EAN links). A list differing only in order is no change.
+- **Phase 3B - the review applies the reviewer's list as a diff** against the puzzle's names read in the same request as
+  the form (`ApprovePuzzleChangeRequest::$reviewedFrom`); the record version the form carries refuses the save when they
+  changed since the page was rendered, so the base equals the rendered list whenever a save goes through - no extra
+  hidden field. The internal API approve corrects a proposal with `alternativeNames` / `nameLanguage` (selected fields
+  only), applied as a diff against the list when filed, like the proposal itself.
+- **Phase 3B - "Suggest another name":** a fold-equal name the puzzle has without a language is tagged instead of added;
+  a fold-equal main title or tagged name is refused ("already has this name"). A moderator's or an admin's name is their
+  direct edit (`puzzle_edited` decision, history shows it) and the page refreshes; the rate limit (10 a day) counts
+  players only and every valid submit (also a refused known name). Allowed while other proposals are pending - names
+  apply as diffs. The modal lists the names the puzzle has, so nobody suggests one again.
+- **Phase 3B - the legacy single name fields of the record form are gone** (`PuzzleRecordFormType` always has the names
+  editor; option `names_editor` removed). `PuzzleNames::withLegacyAlternativeName()` stays while the approval queue's
+  `ApprovePuzzleHandler` uses it.

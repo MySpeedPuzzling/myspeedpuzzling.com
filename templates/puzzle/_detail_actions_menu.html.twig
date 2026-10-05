@@ -35,6 +35,16 @@
             puzzle_name: puzzle.puzzleName,
         }) }}
 
+        {# Under "Suggest a change" - signed-in players while PUZZLE_NAME_SUGGESTIONS_PUBLIC is on, moderators always #}
+        {% if puzzle_name_suggestions.isOpen() %}
+            <li>
+                <a class="dropdown-item" href="{{ path('puzzle_suggest_name', {puzzleId: puzzle.puzzleId}) }}" rel="nofollow" data-turbo="true" data-turbo-frame="modal-frame">
+                    <i class="bi bi-translate me-1"></i> {{ 'puzzle_names.suggest_name.menu'|trans }}
+                    <small class="d-block text-muted">{{ 'puzzle_names.suggest_name.menu_description'|trans }}</small>
+                </a>
+            </li>
+        {% endif %}
+
         {% if is_granted('PUZZLE_MODERATION_ACCESS') %}
             <li><hr class="dropdown-divider"></li>
             <li><h6 class="dropdown-header">{{ 'puzzle_detail.moderation.heading'|trans }}</h6></li>

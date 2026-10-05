@@ -148,12 +148,16 @@ SELECT
     cr.proposed_ean,
     cr.proposed_identification_number,
     cr.proposed_image,
+    cr.proposed_alternative_names,
+    cr.proposed_name_language,
     cr.original_name,
     cr.original_manufacturer_id,
     original_manufacturer.name AS original_manufacturer_name,
     cr.original_pieces_count,
     cr.original_ean,
     cr.original_identification_number,
+    cr.original_alternative_names,
+    cr.original_name_language,
     mr.reporter_id AS merge_reporter_id,
     merge_reporter.name AS merge_reporter_name,
     merge_reporter.code AS merge_reporter_code,
@@ -387,12 +391,16 @@ SELECT
     cr.proposed_ean,
     cr.proposed_identification_number,
     cr.proposed_image,
+    cr.proposed_alternative_names,
+    cr.proposed_name_language,
     cr.original_name,
     cr.original_manufacturer_id,
     original_manufacturer.name AS original_manufacturer_name,
     cr.original_pieces_count,
     cr.original_ean,
-    cr.original_identification_number
+    cr.original_identification_number,
+    cr.original_alternative_names,
+    cr.original_name_language
 FROM puzzle_change_request cr
 LEFT JOIN player reviewer ON reviewer.id = cr.reviewed_by_id
 LEFT JOIN player change_reporter ON change_reporter.id = cr.reporter_id
@@ -467,8 +475,18 @@ SQL;
                 $proposal[] = new PuzzleHistoryChange(PuzzleHistoryChange::label($field), $original, $proposed);
             }
 
-            // The brand right after the name, as everywhere else
+            // The other names and the main title's language, then the brand right after the name, as everywhere else
             if ($field === 'name') {
+                // Proposed together, only when proposedAlternativeNames is set (PuzzleChangeRequest)
+                if (is_string($row['proposed_alternative_names'] ?? null)) {
+                    $originalNames = self::json($row['original_alternative_names'] ?? null);
+
+                    array_push($proposal, ...PuzzleHistoryChange::between(
+                        ['nameLanguage' => $row['original_name_language'] ?? null, 'alternativeNames' => $originalNames],
+                        ['nameLanguage' => $row['proposed_name_language'] ?? null, 'alternativeNames' => self::json($row['proposed_alternative_names'])],
+                    ));
+                }
+
                 $proposedBrand = self::string($row['proposed_manufacturer_id']);
 
                 if ($proposedBrand !== null && $proposedBrand !== self::string($row['original_manufacturer_id'])) {

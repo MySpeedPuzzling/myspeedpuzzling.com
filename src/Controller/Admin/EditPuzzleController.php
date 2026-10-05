@@ -54,9 +54,7 @@ final class EditPuzzleController extends AbstractController
         $puzzle = $this->getPuzzleRecord->byId($puzzleId) ?? throw new PuzzleNotFound();
         $player = $this->retrieveLoggedUserProfile->getProfile() ?? throw $this->createAccessDeniedException();
 
-        $form = $this->createForm(PuzzleRecordFormType::class, PuzzleRecordFormData::fromPuzzle($puzzle), [
-            'names_editor' => true,
-        ]);
+        $form = $this->createForm(PuzzleRecordFormType::class, PuzzleRecordFormData::fromPuzzle($puzzle));
 
         $restoredPhotos = $this->formPhotoStash->restore($request, $form, $player->playerId);
         $form->handleRequest($request);

@@ -34,6 +34,8 @@ final class RobotsTxtTest extends KernelTestCase
     {
         return [
             'QR code modal' => ['puzzle_qr_code_modal', ['puzzleId' => self::SAMPLE_ID]],
+            // A modal form from the puzzle page's menu (docs/features/puzzle-names/README.md)
+            'suggest another name' => ['puzzle_suggest_name', ['puzzleId' => self::SAMPLE_ID]],
             'edit collection item comment' => ['edit_collection_item_comment', ['collectionItemId' => self::SAMPLE_ID]],
             'player statistics' => ['player_statistics', ['playerId' => self::SAMPLE_ID]],
             // The Players page's player card (docs/features/players-page/README.md)

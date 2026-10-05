@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Entity;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
@@ -13,6 +14,8 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleNamesDiff;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 #[Entity]
@@ -74,6 +77,20 @@ class PuzzleChangeRequest
         #[Immutable]
         #[Column(nullable: true)]
         public null|float $proposedImageRatio = null,
+        /**
+         * The other names as proposed - the whole list, [{name, language}]; null = the names are not part of the
+         * proposal. Approval applies it as a diff against originalAlternativeNames, never as a replacement.
+         *
+         * @var null|list<array{name: string, language: null|string}>
+         */
+        #[Immutable]
+        #[Column(type: Types::JSONB, nullable: true)]
+        public null|array $proposedAlternativeNames = null,
+        // The main title's language as proposed (null = English or not known) - proposed only together with the
+        // other names (proposedAlternativeNames not null)
+        #[Immutable]
+        #[Column(length: 16, nullable: true)]
+        public null|string $proposedNameLanguage = null,
         // Original values (snapshot at time of request for audit trail)
         #[Immutable]
         #[Column]
@@ -93,7 +110,31 @@ class PuzzleChangeRequest
         #[Immutable]
         #[Column(nullable: true)]
         public null|string $originalImage = null,
+        /**
+         * The other names when proposed - null on requests older than the names list
+         *
+         * @var null|list<array{name: string, language: null|string}>
+         */
+        #[Immutable]
+        #[Column(type: Types::JSONB, nullable: true)]
+        public null|array $originalAlternativeNames = null,
+        #[Immutable]
+        #[Column(length: 16, nullable: true)]
+        public null|string $originalNameLanguage = null,
     ) {
+    }
+
+    /**
+     * What the proposal does to the other names - empty when it proposes none.
+     */
+    public function proposedNamesDiff(): PuzzleNamesDiff
+    {
+        if ($this->proposedAlternativeNames === null) {
+            return new PuzzleNamesDiff([], [], []);
+        }
+
+        return PuzzleNames::fromArray($this->proposedAlternativeNames)
+            ->diff(PuzzleNames::fromArray($this->originalAlternativeNames ?? []));
     }
 
     public function approve(Player $reviewedBy, DateTimeImmutable $reviewedAt): void
@@ -118,7 +159,8 @@ class PuzzleChangeRequest
             || $this->proposedPiecesCount !== null
             || $this->proposedEan !== null
             || $this->proposedIdentificationNumber !== null
-            || $this->proposedImage !== null;
+            || $this->proposedImage !== null
+            || $this->proposedAlternativeNames !== null;
     }
 
     /**

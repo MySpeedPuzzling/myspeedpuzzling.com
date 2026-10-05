@@ -100,6 +100,9 @@ return static function (ContainerConfigurator $configurator): void {
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
+    // "Suggest another name" kill switch (docs/features/feature_flags.md): 0 = moderators and admins only.
+    $parameters->set('puzzleNameSuggestionsPublic', '%env(bool:PUZZLE_NAME_SUGGESTIONS_PUBLIC)%');
+
     $services = $configurator->services();
 
     $services->defaults()
@@ -117,6 +120,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$kernelSecret', '%kernel.secret%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
+        ->bind('$puzzleNameSuggestionsPublic', '%puzzleNameSuggestionsPublic%')
         ->bind('$resultReviewEmailsPerRun', '%result_review_emails_per_run%')
         ->bind('$resultReviewEmailsPerDay', '%result_review_emails_per_day%')
         ->bind('$resultReviewEmailSpacingSeconds', '%result_review_email_spacing_seconds%')

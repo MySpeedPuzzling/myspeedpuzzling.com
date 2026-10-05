@@ -92,6 +92,6 @@ readonly final class PuzzleMergeNames
 
     private static function asMainTitleLanguage(null|string $language): null|string
     {
-        return $language !== null && LanguageTag::base($language) === 'en' ? null : $language;
+        return LanguageTag::ofMainTitle($language);
     }
 }

@@ -58,8 +58,10 @@ final class PuzzleNamesType extends AbstractType
             ]);
 
         $addNameLanguage = static function (FormEvent $event): void {
+            // Empty = English or not known - English itself is no choice
             PuzzleNameLanguageType::addTo($event, 'nameLanguage', [
                 'placeholder' => 'puzzle_names.main_title_language_not_set',
+                'english' => false,
             ]);
         };
 

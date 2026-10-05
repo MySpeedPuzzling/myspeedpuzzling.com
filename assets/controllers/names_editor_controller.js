@@ -67,7 +67,8 @@ export default class extends Controller {
         }
 
         this.mainTarget.value = promoted;
-        this.setLanguage(this.mainLanguageSelectTarget, promotedLanguage === 'en' ? '' : promotedLanguage, labels);
+        // English is no language of a main title (en, en-GB... - empty = English)
+        this.setLanguage(this.mainLanguageSelectTarget, /^en(-|$)/i.test(promotedLanguage) ? '' : promotedLanguage, labels);
 
         if (this.mainLanguageSelectTarget.value !== '') {
             this.showMainLanguage();

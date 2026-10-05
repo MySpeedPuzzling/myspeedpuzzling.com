@@ -28,10 +28,11 @@ readonly final class PuzzleNameLanguageChoices
      *
      * @param list<null|string> $extraTags Tags to offer besides the list (what a name already has) - anything that is
      *                                     no valid tag is left out
+     * @param bool $english False for the main title's language: null stands for English there, never a tag
      *
      * @return array<string, string>
      */
-    public static function choices(string $locale, array $extraTags = []): array
+    public static function choices(string $locale, array $extraTags = [], bool $english = true): array
     {
         $tags = self::LANGUAGES;
 
@@ -39,6 +40,10 @@ readonly final class PuzzleNameLanguageChoices
             if ($extraTag !== null && LanguageTag::normalize($extraTag) === $extraTag && in_array($extraTag, $tags, true) === false) {
                 $tags[] = $extraTag;
             }
+        }
+
+        if ($english === false) {
+            $tags = array_filter($tags, static fn (string $tag): bool => LanguageTag::base($tag) !== 'en');
         }
 
         $choices = [];

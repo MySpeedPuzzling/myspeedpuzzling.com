@@ -205,7 +205,8 @@ class Puzzle
         $alternatives = $alternatives->cleanedFor($name);
 
         $this->name = $name;
-        $this->nameLanguage = $nameLanguage !== null ? LanguageTag::normalize($nameLanguage) : null;
+        // Null = English or not known - English is never stored
+        $this->nameLanguage = LanguageTag::ofMainTitle($nameLanguage);
         $this->alternativeNames = $alternatives->toArray();
         $this->searchNames = PuzzleSearchKeys::names($name, $alternatives);
     }

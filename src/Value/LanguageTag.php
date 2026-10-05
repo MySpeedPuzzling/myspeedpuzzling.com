@@ -50,6 +50,17 @@ readonly final class LanguageTag
     }
 
     /**
+     * The tag as the language of a main title (puzzle.name_language): normalized, and never English - null stands for
+     * English or not known, so `en`, `en-GB`... are null as well as no tag at all.
+     */
+    public static function ofMainTitle(null|string $tag): null|string
+    {
+        $tag = $tag !== null ? self::normalize($tag) : null;
+
+        return $tag !== null && self::base($tag) !== 'en' ? $tag : null;
+    }
+
+    /**
      * The base language of a tag, lower case: `pt` for `pt-BR`. Norwegian `no` (the macrolanguage) is Bokmål `nb` -
      * what Norway's boxes print and the language of a player from Norway (CountryLanguage), so a name tagged either
      * way is shown to them. The tag itself stays as it was given.

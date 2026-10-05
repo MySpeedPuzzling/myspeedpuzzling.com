@@ -30,11 +30,11 @@ final class PuzzleTest extends TestCase
             ]),
             identificationNumber: '14709',
             ean: '04005556147090',
-            nameLanguage: 'EN-gb',
+            nameLanguage: 'PT-br',
         );
 
         self::assertSame('Circle of Colors: Seashells', $puzzle->name);
-        self::assertSame('en-GB', $puzzle->nameLanguage);
+        self::assertSame('pt-BR', $puzzle->nameLanguage);
         self::assertSame([
             ['name' => 'Muscheln', 'language' => 'de'],
             ['name' => 'Kruh barev: Mušle', 'language' => 'cs'],
@@ -76,6 +76,24 @@ final class PuzzleTest extends TestCase
         self::assertEquals($now, $puzzle->namesChangedAt);
     }
 
+    public function testEnglishIsNeverStoredAsTheMainTitlesLanguage(): void
+    {
+        $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashells', approved: true, nameLanguage: 'en');
+        self::assertNull($puzzle->nameLanguage);
+
+        foreach (['en', 'EN-gb', 'en-US', 'en_AU'] as $english) {
+            $puzzle->changeNames('Seashells', 'cs', new PuzzleNames(), new DateTimeImmutable());
+            self::assertSame('cs', $puzzle->nameLanguage);
+
+            $puzzle->changeNames('Seashells', $english, new PuzzleNames(), new DateTimeImmutable());
+            self::assertNull($puzzle->nameLanguage, $english . ' is English: null');
+        }
+
+        // An other name keeps its English tag
+        $puzzle->changeNames('Kruh barev', 'cs', new PuzzleNames([new PuzzleName('Circle of Colors', 'en-GB')]), new DateTimeImmutable());
+        self::assertSame([['name' => 'Circle of Colors', 'language' => 'en-GB']], $puzzle->alternativeNames);
+    }
+
     public function testNamesChangedAtMovesOnlyOnARealChange(): void
     {
         $puzzle = new Puzzle(
@@ -91,13 +109,17 @@ final class PuzzleTest extends TestCase
         $puzzle->changeNames(' Seashells ', null, new PuzzleNames([new PuzzleName('Mušle ', 'cs'), new PuzzleName('musle', null)]), $first);
         self::assertNull($puzzle->namesChangedAt);
 
+        // English is no language of a main title - still the same names
         $puzzle->changeNames('Seashells', 'en', $puzzle->alternativeNames(), $first);
+        self::assertNull($puzzle->namesChangedAt);
+
+        $puzzle->changeNames('Seashells', 'de', $puzzle->alternativeNames(), $first);
         self::assertEquals($first, $puzzle->namesChangedAt);
 
-        $puzzle->changeNames('Seashells', 'en', $puzzle->alternativeNames(), new DateTimeImmutable('2026-10-02'));
+        $puzzle->changeNames('Seashells', 'de', $puzzle->alternativeNames(), new DateTimeImmutable('2026-10-02'));
         self::assertEquals($first, $puzzle->namesChangedAt);
 
-        $puzzle->changeNames('Seashells', 'en', new PuzzleNames([new PuzzleName('Mušle', 'sk')]), new DateTimeImmutable('2026-10-03'));
+        $puzzle->changeNames('Seashells', 'de', new PuzzleNames([new PuzzleName('Mušle', 'sk')]), new DateTimeImmutable('2026-10-03'));
         self::assertEquals(new DateTimeImmutable('2026-10-03'), $puzzle->namesChangedAt);
     }
 

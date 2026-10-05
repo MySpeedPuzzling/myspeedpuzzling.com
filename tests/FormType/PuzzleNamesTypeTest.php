@@ -83,6 +83,26 @@ final class PuzzleNamesTypeTest extends KernelTestCase
         ], $data->toPuzzleNames()->toArray());
     }
 
+    public function testTheMainTitlesLanguageNeverOffersEnglish(): void
+    {
+        // A tag of English the API stored on an other name stays offered there, never for the main title
+        $form = $this->form(PuzzleNamesFormData::fromNames('Kruh barev', 'cs', new PuzzleNames([new PuzzleName('Circle of Colors', 'en-GB')])));
+
+        $view = $form->createView();
+        self::assertNotContains('en', self::choiceValues($view['nameLanguage']));
+        self::assertContains('en', self::choiceValues($view['alternativeNames'][0]['language']));
+        self::assertContains('en-GB', self::choiceValues($view['alternativeNames'][0]['language']));
+
+        $form->submit([
+            'name' => 'Circle of Colors',
+            'nameLanguage' => 'en-GB',
+            'alternativeNames' => [['name' => 'Kruh barev', 'language' => 'cs']],
+        ]);
+
+        self::assertFalse($form->isValid());
+        self::assertCount(1, $form->get('nameLanguage')->getErrors());
+    }
+
     public function testALanguageThatIsNoTagIsRefused(): void
     {
         $form = $this->form(PuzzleNamesFormData::fromNames('Seashells', null, new PuzzleNames()));

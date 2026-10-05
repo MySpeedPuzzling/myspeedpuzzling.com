@@ -74,8 +74,8 @@ readonly final class SubmitPuzzleChangeRequestHandler
             proposedImageRatio: $proposedImageRatio,
             // Stored as the puzzle would keep them next to the proposed main title (PuzzleNames::cleanedFor())
             proposedAlternativeNames: $message->proposedAlternativeNames?->cleanedFor($message->proposedName)->toArray(),
-            proposedNameLanguage: $message->proposedAlternativeNames !== null && $message->proposedNameLanguage !== null
-                ? LanguageTag::normalize($message->proposedNameLanguage)
+            proposedNameLanguage: $message->proposedAlternativeNames !== null
+                ? LanguageTag::ofMainTitle($message->proposedNameLanguage)
                 : null,
             originalName: $puzzle->name,
             originalManufacturerId: $puzzle->manufacturer?->id,

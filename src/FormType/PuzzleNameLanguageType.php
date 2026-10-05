@@ -16,7 +16,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The language of a puzzle name: PuzzleNameLanguageChoices in the page language, empty = not known. `extra_tags` keeps
- * a tag outside the list selectable - the one the name already has. The names editor's types add the field through
+ * a tag outside the list selectable - the one the name already has. `english` false leaves English out (the main
+ * title's language, where empty = English). The names editor's types add the field through
  * addTo(), which offers the tag the name had and the one submitted, so a 422 re-render keeps either.
  *
  * @extends AbstractType<null|string>
@@ -53,6 +54,7 @@ final class PuzzleNameLanguageType extends AbstractType
     {
         $resolver->setDefaults([
             'extra_tags' => [],
+            'english' => true,
             'label' => false,
             'required' => false,
             'placeholder' => 'puzzle_names.language_not_known',
@@ -62,10 +64,12 @@ final class PuzzleNameLanguageType extends AbstractType
             'choices' => fn (Options $options): array => PuzzleNameLanguageChoices::choices(
                 $this->translator->getLocale(),
                 array_values(array_filter((array) $options['extra_tags'], is_string(...))),
+                $options['english'] === true,
             ),
         ]);
 
         $resolver->setAllowedTypes('extra_tags', 'array');
+        $resolver->setAllowedTypes('english', 'bool');
     }
 
     public function getParent(): string

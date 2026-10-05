@@ -196,7 +196,7 @@ readonly final class SuggestPuzzleNameHandler
 
         return [
             $suggested->name,
-            $suggested->language !== null && LanguageTag::base($suggested->language) === 'en' ? null : $suggested->language,
+            LanguageTag::ofMainTitle($suggested->language),
             new PuzzleNames([new PuzzleName($puzzle->name, $puzzle->nameLanguage), ...$others]),
         ];
     }

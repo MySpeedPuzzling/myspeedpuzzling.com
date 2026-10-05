@@ -462,6 +462,13 @@ Adding a field therefore means writing it in camelCase; the JSON key follows. Th
 
 ## Internal APIs (not for public use)
 
+### Internal admin API (`/internal-api/`)
+
+Admin-only operations for Claude Code and curl - catalogue moderation, feature requests, and creating/editing
+competitions, their rounds and puzzles. Static bearer token `INTERNAL_API_TOKEN`, its own firewall, not in `/api/docs`,
+not reachable with a PAT or an OAuth2 token: [`docs/features/internal-api.md`](../internal-api.md) (+ OpenAPI spec
+[`internal-api.openapi.yaml`](../internal-api.openapi.yaml)).
+
 ### Stopwatch API (`/api/stopwatch/`)
 
 Session-authenticated timer management for the web app's Stimulus controller.

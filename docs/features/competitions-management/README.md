@@ -26,7 +26,7 @@ An admin notification email is sent automatically when a new competition is subm
 
 Maintainers and admins can edit all competition fields. While unapproved, a warning banner is shown on the edit page. If rejected, a danger banner with the rejection reason is shown instead. The edit page provides navigation to round management and participant management.
 
-Changing the name regenerates the slug. Maintainer lists are fully replaced on each save (clear + re-add).
+Changing the name regenerates the slug in the web form. The internal API (`PATCH /internal-api/competitions/{id}`, [internal-api.md](../internal-api.md#competitions-and-events)) keeps it - published links depend on it - and changes it only to an explicitly sent, free slug (`EditCompetition::$slug` / `$regenerateSlugOnRename`, `CompetitionSlugGenerator`). Maintainer lists are fully replaced on each save (clear + re-add).
 
 ### 4. Public Listing
 

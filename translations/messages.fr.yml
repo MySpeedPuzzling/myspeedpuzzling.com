@@ -3408,8 +3408,10 @@ competition:
       "layout_generated": "La disposition des tables a été générée."
   "teams":
     "intro": "Organisez les participants en équipes pour cette manche. Ajoutez d'abord les participants à la manche via la gestion des participants, puis attribuez-les à des équipes ici."
-    "add_team": "Ajouter une équipe"
-    "team_name_placeholder": "Nom de l'équipe (facultatif)"
+    "add_teams": "Ajouter des équipes"
+    "team_names": "Noms des équipes"
+    "team_names_help": "Une équipe par ligne : vous pouvez coller toute la liste en une fois. Laissez le champ vide pour ajouter une équipe sans nom."
+    "team_names_placeholder": "Équipe 1\nÉquipe 2\nÉquipe 3"
     "unnamed_team": "Équipe sans nom"
     "confirm_delete": "Êtes-vous sûr de vouloir supprimer cette équipe ? Les membres seront désassignés."
     "no_members": "Aucun membre assigné pour le moment. Assignez des participants depuis la liste ci-dessous."
@@ -3419,7 +3421,7 @@ competition:
     "no_unassigned": "Tous les participants de cette manche sont assignés à des équipes."
     "remove_from_team": "Retirer de l'équipe"
     "flash":
-      "team_created": "Équipe créée."
+      "teams_created": "Équipe ajoutée.|%count% équipes ajoutées."
       "team_deleted": "Équipe supprimée."
   "stopwatch":
     "title": "Chronomètre de manche"

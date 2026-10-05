@@ -29,18 +29,40 @@ final class ManageRoundTeamsControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
-    public function testAddTeamFormWorks(): void
+    public function testPastedListAddsOneTeamPerLine(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $browser->request('POST', '/en/add-team-to-round/' . CompetitionSeriesFixture::ROUND_OFFLINE_TEAM, [
-            'team_name' => 'Test Team',
+        $crawler = $browser->request('GET', '/en/manage-round-teams/' . CompetitionSeriesFixture::ROUND_OFFLINE_TEAM);
+        $form = $crawler->filter('form[name="add_competition_teams_form"]')->form([
+            'add_competition_teams_form[teamNames]' => "Relay Rebels\nPiece of Cake\n",
         ]);
+        $browser->submit($form);
 
-        $this->assertResponseRedirects();
+        $this->assertResponseRedirects('/en/manage-round-teams/' . CompetitionSeriesFixture::ROUND_OFFLINE_TEAM);
 
         $browser->followRedirect();
         $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('.alert-success', '2 teams added.');
+        $this->assertAnySelectorTextContains('h3', 'Relay Rebels');
+        $this->assertAnySelectorTextContains('h3', 'Piece of Cake');
+    }
+
+    public function testListPastedOnOneLineIsRefusedWithAMessage(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/manage-round-teams/' . CompetitionSeriesFixture::ROUND_OFFLINE_TEAM);
+        $form = $crawler->filter('form[name="add_competition_teams_form"]')->form([
+            'add_competition_teams_form[teamNames]' => str_repeat('Some Assembly Required ', 12),
+        ]);
+        $crawler = $browser->submit($form);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('.invalid-feedback', 'is too long for one team name');
+        $this->assertSelectorTextContains('.invalid-feedback', 'Put each team on its own line.');
+        self::assertCount(0, $crawler->filter('h3'), 'No team may be added.');
     }
 }

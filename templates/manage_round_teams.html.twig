@@ -27,13 +27,15 @@
 
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <h2 class="h5 mb-3">{{ 'competition.teams.add_team'|trans }}</h2>
-                <form method="post" action="{{ path('add_team_to_round', {'roundId': round.id}) }}" class="d-flex gap-2">
-                    <input type="text" name="team_name" class="form-control" placeholder="{{ 'competition.teams.team_name_placeholder'|trans }}" style="max-width: 300px;">
+                <h2 class="h5 mb-3">{{ 'competition.teams.add_teams'|trans }}</h2>
+                {{ form_start(add_teams_form) }}
+                    <div style="max-width: 32rem;">
+                        {{ form_row(add_teams_form.teamNames) }}
+                    </div>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-plus-lg me-1"></i>{{ 'competition.teams.add_team'|trans }}
+                        <i class="bi bi-plus-lg me-1"></i>{{ 'competition.teams.add_teams'|trans }}
                     </button>
-                </form>
+                {{ form_end(add_teams_form) }}
             </div>
         </div>
 

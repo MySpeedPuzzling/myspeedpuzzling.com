@@ -188,12 +188,17 @@ readonly final class CompetitionParticipantImporter
 
             // Track round/team assignment for post-flush processing
             $roundName = $roundNameIdx !== null ? trim((string) ($row[$roundNameIdx] ?? '')) : '';
-            $teamName = $teamNameIdx !== null ? trim((string) ($row[$teamNameIdx] ?? '')) : '';
+            $teamName = $teamNameIdx !== null ? CompetitionTeam::cleanName((string) ($row[$teamNameIdx] ?? '')) : null;
+
+            if ($teamName !== null && mb_strlen($teamName) > CompetitionTeam::NAME_MAX_LENGTH) {
+                $warnings[] = sprintf('Row %d: team name is longer than %d characters, team assignment skipped.', $rowNum, CompetitionTeam::NAME_MAX_LENGTH);
+                $teamName = null;
+            }
 
             if ($roundName !== '' && isset($roundsByName[$roundName])) {
                 $roundAssignments[$participant->id->toString()] = [
                     'roundName' => $roundName,
-                    'teamName' => $teamName !== '' ? $teamName : null,
+                    'teamName' => $teamName,
                 ];
             } elseif ($roundName !== '' && !isset($roundsByName[$roundName])) {
                 $warnings[] = "Row {$rowNum}: round \"{$roundName}\" not found, skipping round assignment.";

@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\FormData\AddCompetitionTeamsFormData;
+use SpeedPuzzling\Web\FormType\AddCompetitionTeamsFormType;
+use SpeedPuzzling\Web\Message\CreateCompetitionTeams;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Query\GetRoundTeams;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ManageRoundTeamsController extends AbstractController
@@ -20,6 +26,8 @@ final class ManageRoundTeamsController extends AbstractController
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetRoundTeams $getRoundTeams,
         private readonly GetCompetitionRoundsForManagement $getRoundsForManagement,
+        private readonly MessageBusInterface $messageBus,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -34,11 +42,31 @@ final class ManageRoundTeamsController extends AbstractController
         ],
         name: 'manage_round_teams',
     )]
-    public function __invoke(string $roundId): Response
+    public function __invoke(Request $request, string $roundId): Response
     {
         $round = $this->competitionRoundRepository->get($roundId);
         $competitionId = $round->competition->id->toString();
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
+
+        $form = $this->createForm(AddCompetitionTeamsFormType::class, new AddCompetitionTeamsFormData(), [
+            'action' => $this->generateUrl('manage_round_teams', ['roundId' => $roundId]),
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $names = $form->getData()->names()->names;
+
+            $this->messageBus->dispatch(new CreateCompetitionTeams(
+                roundId: $roundId,
+                names: $names,
+            ));
+
+            $this->addFlash('success', $this->translator->trans('competition.teams.flash.teams_created', [
+                '%count%' => max(1, count($names)),
+            ]));
+
+            return $this->redirectToRoute('manage_round_teams', ['roundId' => $roundId]);
+        }
 
         $teams = $this->getRoundTeams->forRound($roundId);
         $unassigned = $this->getRoundTeams->unassignedParticipants($roundId);
@@ -58,6 +86,7 @@ final class ManageRoundTeamsController extends AbstractController
             'competitionId' => $competitionId,
             'teams' => $teams,
             'unassigned' => $unassigned,
+            'add_teams_form' => $form,
         ]);
     }
 }

@@ -3405,8 +3405,10 @@ qr_code:
       "layout_generated": "Rozložení stolů bylo vygenerováno."
   "teams":
     "intro": "Organizujte účastníky do týmů pro toto kolo. Nejprve přidejte účastníky do kola přes správu účastníků, poté je zde přiřaďte do týmů."
-    "add_team": "Přidat tým"
-    "team_name_placeholder": "Název týmu (nepovinné)"
+    "add_teams": "Přidat týmy"
+    "team_names": "Názvy týmů"
+    "team_names_help": "Jeden tým na řádek, takže můžete vložit celý seznam najednou. Když pole necháte prázdné, přidá se jeden tým bez názvu."
+    "team_names_placeholder": "Tým 1\nTým 2\nTým 3"
     "unnamed_team": "Nepojmenovaný tým"
     "confirm_delete": "Opravdu chcete smazat tento tým? Členové budou nepřiřazeni."
     "no_members": "Zatím žádní členové. Přiřaďte účastníky ze seznamu níže."
@@ -3416,7 +3418,7 @@ qr_code:
     "no_unassigned": "Všichni účastníci v tomto kole jsou přiřazeni do týmů."
     "remove_from_team": "Odebrat z týmu"
     "flash":
-      "team_created": "Tým vytvořen."
+      "teams_created": "Tým přidán.|%count% týmy přidány.|%count% týmů přidáno."
       "team_deleted": "Tým smazán."
   "stopwatch":
     "title": "Stopky kola"

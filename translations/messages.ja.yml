@@ -3398,8 +3398,10 @@ qr_code:
       "layout_generated": "テーブルレイアウトが生成されました。"
   "teams":
     "intro": "このラウンドの参加者をチームに編成します。まず参加者管理からラウンドに参加者を追加し、ここでチームに割り当てます。"
-    "add_team": "チームを追加"
-    "team_name_placeholder": "チーム名（任意）"
+    "add_teams": "チームを追加"
+    "team_names": "チーム名"
+    "team_names_help": "1行に1チームずつ入力します。リストをまとめて貼り付けられます。空欄のままにすると、名前のないチームが1つ追加されます。"
+    "team_names_placeholder": "チーム1\nチーム2\nチーム3"
     "unnamed_team": "名前なしチーム"
     "confirm_delete": "このチームを削除してよろしいですか？メンバーは未割り当てになります。"
     "no_members": "まだメンバーが割り当てられていません。下のリストから参加者を割り当ててください。"
@@ -3409,7 +3411,7 @@ qr_code:
     "no_unassigned": "このラウンドの全参加者がチームに割り当て済みです。"
     "remove_from_team": "チームから外す"
     "flash":
-      "team_created": "チームを作成しました。"
+      "teams_created": "%count%チームを追加しました。"
       "team_deleted": "チームを削除しました。"
   "stopwatch":
     "title": "ラウンドストップウォッチ"

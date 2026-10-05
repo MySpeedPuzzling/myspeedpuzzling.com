@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Message\CreateCompetitionTeam;
+use SpeedPuzzling\Web\Message\CreateCompetitionTeams;
 use SpeedPuzzling\Web\Query\GetRoundTeams;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -32,12 +31,9 @@ final class GetRoundTeamsTest extends KernelTestCase
 
     public function testCreatedTeamAppearsInResults(): void
     {
-        $teamId = Uuid::uuid7();
-
-        $this->messageBus->dispatch(new CreateCompetitionTeam(
-            teamId: $teamId,
+        $this->messageBus->dispatch(new CreateCompetitionTeams(
             roundId: CompetitionSeriesFixture::ROUND_OFFLINE_TEAM,
-            name: 'Test Team',
+            names: ['Test Team'],
         ));
 
         $teams = $this->query->forRound(CompetitionSeriesFixture::ROUND_OFFLINE_TEAM);

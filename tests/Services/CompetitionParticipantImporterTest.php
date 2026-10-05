@@ -7,9 +7,11 @@ namespace SpeedPuzzling\Web\Tests\Services;
 use Doctrine\DBAL\Connection;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Services\CompetitionParticipantImporter;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -213,6 +215,28 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         )->fetchOne();
 
         self::assertSame(1, $count);
+    }
+
+    public function testImportSkipsTeamAssignmentWhenTeamNameIsTooLong(): void
+    {
+        $file = $this->createXlsx([
+            ['name', 'round_name', 'team_name'],
+            ['Long Team Member', 'Team Round', str_repeat('x', CompetitionTeam::NAME_MAX_LENGTH + 1)],
+        ]);
+
+        $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $file);
+        unlink($file);
+
+        self::assertSame(1, $result->added);
+        self::assertSame([sprintf('Row 2: team name is longer than %d characters, team assignment skipped.', CompetitionTeam::NAME_MAX_LENGTH)], $result->warnings);
+
+        /** @var false|null|string $teamId */
+        $teamId = $this->database->executeQuery(
+            'SELECT cpr.team_id FROM competition_participant_round cpr INNER JOIN competition_participant cp ON cp.id = cpr.participant_id WHERE cp.name = :name AND cpr.round_id = :roundId',
+            ['name' => 'Long Team Member', 'roundId' => CompetitionSeriesFixture::ROUND_OFFLINE_TEAM],
+        )->fetchOne();
+
+        self::assertNull($teamId);
     }
 
     public function testImportDetectsDuplicateNamesInFile(): void

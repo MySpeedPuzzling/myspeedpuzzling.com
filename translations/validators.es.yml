@@ -11,3 +11,6 @@ puzzle_names:
     main_title_required: "El puzzle necesita un título principal."
     name_too_long: "Un nombre puede tener como máximo {{ limit }} caracteres."
     too_many_names: "Un puzzle puede tener como máximo %limit% nombres adicionales."
+competition_teams:
+    name_too_long: "«%name%» es demasiado largo para el nombre de un equipo (%length% caracteres, máximo %max%). Escribe cada equipo en su propia línea."
+    too_many: "Puedes añadir como máximo %max% equipos a la vez."

@@ -11,3 +11,6 @@ puzzle_names:
     main_title_required: "パズルにはメインタイトルが必要です。"
     name_too_long: "名前は{{ limit }}文字以内で入力してください。"
     too_many_names: "パズルに登録できるその他の名前は最大%limit%件です。"
+competition_teams:
+    name_too_long: "「%name%」はチーム名として長すぎます（%length%文字、最大%max%文字）。1行に1チームずつ入力してください。"
+    too_many: "一度に追加できるのは最大%max%チームです。"

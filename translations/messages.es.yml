@@ -3408,8 +3408,10 @@ fair_use_policy:
       "layout_generated": "La distribución de mesas ha sido generada."
   "teams":
     "intro": "Organiza a los participantes en equipos para esta ronda. Primero añade participantes a la ronda desde la gestión de participantes, luego asígnalos a equipos aquí."
-    "add_team": "Añadir equipo"
-    "team_name_placeholder": "Nombre del equipo (opcional)"
+    "add_teams": "Añadir equipos"
+    "team_names": "Nombres de los equipos"
+    "team_names_help": "Un equipo por línea, así puedes pegar toda la lista de una vez. Si lo dejas vacío, se añade un equipo sin nombre."
+    "team_names_placeholder": "Equipo 1\nEquipo 2\nEquipo 3"
     "unnamed_team": "Equipo sin nombre"
     "confirm_delete": "¿Estás seguro de que quieres eliminar este equipo? Los miembros quedarán sin asignar."
     "no_members": "Aún no hay miembros asignados. Asigna participantes de la lista de abajo."
@@ -3419,7 +3421,7 @@ fair_use_policy:
     "no_unassigned": "Todos los participantes de esta ronda están asignados a equipos."
     "remove_from_team": "Quitar del equipo"
     "flash":
-      "team_created": "Equipo creado."
+      "teams_created": "Equipo añadido.|%count% equipos añadidos."
       "team_deleted": "Equipo eliminado."
   "stopwatch":
     "title": "Cronómetro de ronda"

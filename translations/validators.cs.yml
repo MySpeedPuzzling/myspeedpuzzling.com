@@ -11,3 +11,6 @@ puzzle_names:
     main_title_required: "Puzzle musí mít hlavní název."
     name_too_long: "Název může mít nejvýše {{ limit }} znaků."
     too_many_names: "Puzzle může mít nejvýše %limit% dalších názvů."
+competition_teams:
+    name_too_long: "„%name%“ je na název jednoho týmu příliš dlouhé (%length% znaků, nejvýše %max%). Každý tým napište na samostatný řádek."
+    too_many: "Najednou lze přidat nejvýše %max% týmů."

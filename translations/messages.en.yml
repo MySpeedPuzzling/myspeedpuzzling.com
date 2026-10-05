@@ -3674,8 +3674,10 @@ competition:
             layout_generated: "Table layout has been generated."
     teams:
         intro: "Organize participants into teams for this round. First add participants to this round via the participant management page, then assign them to teams here."
-        add_team: "Add Team"
-        team_name_placeholder: "Team name (optional)"
+        add_teams: "Add teams"
+        team_names: "Team names"
+        team_names_help: "One team per line, so you can paste your whole list at once. Leave it empty to add one team without a name."
+        team_names_placeholder: "Puzzle Pros\nPiece Seekers\nEdge Lords"
         unnamed_team: "Unnamed team"
         confirm_delete: "Are you sure you want to delete this team? Team members will become unassigned."
         no_members: "No members assigned yet. Assign participants from the list below."
@@ -3685,7 +3687,7 @@ competition:
         no_unassigned: "All participants in this round are assigned to teams."
         remove_from_team: "Remove from team"
         flash:
-            team_created: "Team created."
+            teams_created: "Team added.|%count% teams added."
             team_deleted: "Team deleted."
     stopwatch:
         title: "Round Stopwatch"

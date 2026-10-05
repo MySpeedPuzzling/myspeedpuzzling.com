@@ -3407,8 +3407,10 @@ qr_code:
       "layout_generated": "Tischlayout wurde generiert."
   "teams":
     "intro": "Organisieren Sie Teilnehmer in Teams für diese Runde. Fügen Sie zuerst Teilnehmer über die Teilnehmerverwaltung zur Runde hinzu, dann weisen Sie sie hier Teams zu."
-    "add_team": "Team hinzufügen"
-    "team_name_placeholder": "Teamname (optional)"
+    "add_teams": "Teams hinzufügen"
+    "team_names": "Teamnamen"
+    "team_names_help": "Ein Team pro Zeile, so können Sie die ganze Liste auf einmal einfügen. Bleibt das Feld leer, wird ein Team ohne Namen hinzugefügt."
+    "team_names_placeholder": "Team 1\nTeam 2\nTeam 3"
     "unnamed_team": "Unbenanntes Team"
     "confirm_delete": "Möchten Sie dieses Team wirklich löschen? Mitglieder werden nicht zugeordnet."
     "no_members": "Noch keine Mitglieder zugewiesen. Weisen Sie Teilnehmer aus der Liste unten zu."
@@ -3418,7 +3420,7 @@ qr_code:
     "no_unassigned": "Alle Teilnehmer in dieser Runde sind Teams zugewiesen."
     "remove_from_team": "Aus Team entfernen"
     "flash":
-      "team_created": "Team erstellt."
+      "teams_created": "Team hinzugefügt.|%count% Teams hinzugefügt."
       "team_deleted": "Team gelöscht."
   "stopwatch":
     "title": "Runden-Stoppuhr"

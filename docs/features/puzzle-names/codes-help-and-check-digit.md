@@ -1,8 +1,9 @@
 # Codes on the add form: "What is it?" help, "Brand code", the check digit
 
-Status: shipped 2026-10-05 in four commits (rename, help modal, rebuild `--dry-run`/`--alert-on-drift`, aliases);
-the production rebuild runbook (4a) is the last step. Rehearsed on the dev copy of production: 8,734 of 41,282 code
-keys gain an alias (only added lines, no name key changed), the run takes ~80 s, a second dry run reports 0. Part of the puzzle-names work (codes = phase 5,
+Status: live 2026-10-05 - four commits (rename, help modal, rebuild `--dry-run`/`--alert-on-drift`, aliases) and
+the runbook (4a) done on production: 8,944 code keys gained an alias (only added `c:` lines, no name key changed,
+report `/root/search-key-aliases-20261005.csv` on lily), the run 5.5 s, a second dry run 0; nightly cron at 05:16
+(lily.srv bc00ef5). Rehearsed first on the dev copy: 8,734 of 41,282. Part of the puzzle-names work (codes = phase 5,
 see `README.md`).
 
 ## Why

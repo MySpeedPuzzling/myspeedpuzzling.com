@@ -31,8 +31,10 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Codes help and check-digit aliases (`docs/features/puzzle-names/codes-help-and-check-digit.md`)
 
-- [ ] Release runbook of the aliases on production (dry run with a report, then the run, again after the old
-      container is gone) - the nightly `rebuild-puzzle-search-keys --alert-on-drift` cron on lily is the safety net.
+- [x] Release runbook on production (2026-10-05): dry run 8,944 keys gain an alias (only added `c:` lines, report
+      `/root/search-key-aliases-20261005.csv` on lily), the run 5.5 s, a second dry run 0; "Finding Concentration"
+      found by `120020288`, `12 002 028 8` and `12002028`, the barcode lookup still exact. Nightly
+      `rebuild-puzzle-search-keys --alert-on-drift` at 05:16 (lily.srv bc00ef5).
 - [ ] The "What is it?" help also on "add puzzle to a round" and "Suggest a change" (`puzzle/_code_inputs.html.twig`).
 - [ ] A puzzle without a valid EAN gets no alias: `120020288` does not find a stored `12002028` there (an unchecked
       fallback would hit near-miss codes).

@@ -39,6 +39,7 @@ final class PuzzleCodesCleanupTest extends TestCase
         yield 'full-width digits' => ['４００５５５６１４７０９０', null, true, false];
         yield 'a placeholder dash' => ['-', null, true, false];
         yield 'brand codes in upper case, each once' => [null, ' 05-122s ,  05-122S, 6500-5354', false, true];
+        yield 'a stray left-to-right mark before a brand code' => [null, "\u{200E}3723-2", false, true];
     }
 
     #[DataProvider('neverWritten')]
@@ -63,6 +64,7 @@ final class PuzzleCodesCleanupTest extends TestCase
         yield 'Ravensburger without its first digit' => ['005556195145'];
         yield 'a barcode whose zeros could not be shown again' => ['007346037677'];
         yield 'a catalogue number with a dash' => ['6000-5468'];
+        yield 'an 8-digit catalogue number whose check digit fits' => ['6000-5533'];
     }
 
     public function testCanonicalCodesChangeNothing(): void
@@ -136,6 +138,16 @@ final class PuzzleCodesCleanupTest extends TestCase
             ['identification_number', PuzzleCodesCleanupReason::BrandCodeNotACode, 'PZFSLF', 'Alpine village | N/A', 'PZFSLF'],
         ]];
         yield 'a code of capital letters only is a code' => [null, 'PZFSLF, PZL/USA', false, false, []];
+        yield 'an 8-digit catalogue number with a dash moves, whatever its check digit' => ['6000-5533', null, false, false, [
+            ['ean', PuzzleCodesCleanupReason::EanCatalogueNumber, null, '6000-5533', '6000-5533'],
+        ]];
+        yield 'a comma between digits leaves the EAN field to a person' => ['15,427', null, false, false, [
+            ['ean', PuzzleCodesCleanupReason::CommaBetweenDigits, '15,427', '15,427', null],
+        ]];
+        yield 'a comma between digits leaves the brand codes to a person' => ['PZL6522', '482,239', false, false, [
+            ['ean', PuzzleCodesCleanupReason::EanNotANumber, null, 'PZL6522', '482,239, PZL6522'],
+            ['identification_number', PuzzleCodesCleanupReason::CommaBetweenDigits, '482,239, PZL6522', '482,239', '482,239, PZL6522'],
+        ]];
         yield 'prose with a number is kept for a person, never written' => [null, 'Article 30226, 68-08 lot number 23.10.18, UPC is 0045622965214', false, false, [
             ['identification_number', PuzzleCodesCleanupReason::BrandCodeProse, 'ARTICLE 30226, 68-08 LOT NUMBER 23.10.18, UPC IS 0045622965214', 'Article 30226 | 68-08 lot number 23.10.18 | UPC is 0045622965214', 'ARTICLE 30226, 68-08 LOT NUMBER 23.10.18, UPC IS 0045622965214'],
         ]];

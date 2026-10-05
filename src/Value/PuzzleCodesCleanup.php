@@ -45,11 +45,17 @@ readonly final class PuzzleCodesCleanup
             $issues[$reason->value]['parts'][] = $part;
         };
 
-        // The EAN field as proposed, part by part, and what moves from it into the brand codes
+        // The EAN field as proposed, part by part, and what moves from it into the brand codes. A comma right between
+        // digits leaves the field to a person as it is - one number with a thousands separator, or two
         $proposedEans = [];
         $moved = [];
+        $eanCommaBetweenDigits = EanList::hasAmbiguousComma($ean);
 
-        foreach (EanList::partsOf($ean) as $part) {
+        if ($eanCommaBetweenDigits) {
+            $issue(PuzzleCodesReportRow::FIELD_EAN, PuzzleCodesCleanupReason::CommaBetweenDigits, (string) $ean);
+        }
+
+        foreach ($eanCommaBetweenDigits ? [] : EanList::partsOf($ean) as $part) {
             $text = $part['text'];
 
             if ($part['letters']) {
@@ -58,25 +64,20 @@ readonly final class PuzzleCodesCleanup
                 continue;
             }
 
-            $numbers = array_values(array_filter($part['digits'], static fn (string $digits): bool => ltrim($digits, '0') !== ''));
+            // The part alone, as the list reads it: barcodes in their canonical form, anything else as typed
+            $codes = EanList::fromStored($text)->codes();
 
-            if ($numbers === []) {
+            if ($codes === []) {
                 continue;
             }
 
-            if (count($numbers) > 1) {
-                if (array_filter($numbers, EanList::isBarcode(...)) === $numbers) {
-                    $issue(PuzzleCodesReportRow::FIELD_EAN, PuzzleCodesCleanupReason::EanSeveralNumbersInOne, $text);
-                    array_push($proposedEans, ...$numbers);
-                } else {
-                    $issue(PuzzleCodesReportRow::FIELD_EAN, PuzzleCodesCleanupReason::EanCatalogueNumber, $text);
-                    $moved[] = $text;
-                }
-
+            if (count($codes) > 1) {
+                $issue(PuzzleCodesReportRow::FIELD_EAN, PuzzleCodesCleanupReason::EanSeveralNumbersInOne, $text);
+                array_push($proposedEans, ...$codes);
                 continue;
             }
 
-            $digits = $numbers[0];
+            $digits = $part['digits'];
             $number = ltrim($digits, '0');
             $misread = EanList::ravensburgerMisreadSuggestion($number);
 
@@ -86,7 +87,8 @@ readonly final class PuzzleCodesCleanup
                 continue;
             }
 
-            if ($number === $text || EanList::isBarcode($digits)) {
+            // A barcode written in its canonical form, or a plain number as it is
+            if ($codes[0] !== $text || $number === $text) {
                 $proposedEans[] = $text;
                 continue;
             }
@@ -132,14 +134,18 @@ readonly final class PuzzleCodesCleanup
             $proposedBrandCodes[] = $token;
         }
 
-        foreach ($moved as $part) {
-            if (self::isNotABrandCode($part) === false) {
-                $proposedBrandCodes[] = $part;
-            }
+        $moved = array_values(array_filter($moved, static fn (string $part): bool => self::isNotABrandCode($part) === false));
+        $brandCommaBetweenDigits = BrandCodeList::hasAmbiguousComma($identificationNumber);
+
+        if ($brandCommaBetweenDigits) {
+            $issue(PuzzleCodesReportRow::FIELD_BRAND_CODES, PuzzleCodesCleanupReason::CommaBetweenDigits, (string) $identificationNumber);
         }
 
-        $proposedEan = EanList::fromInputs($proposedEans)->toStored();
-        $proposedBrandCode = BrandCodeList::fromInputs($proposedBrandCodes)->toStored();
+        $proposedEan = $eanCommaBetweenDigits ? $ean : EanList::fromInputs($proposedEans)->toStored();
+        // A comma between digits: the brand codes stay as stored, what moves from the EAN field goes after them
+        $proposedBrandCode = $brandCommaBetweenDigits
+            ? implode(', ', array_filter([$identificationNumber, ...$moved], static fn (null|string $code): bool => $code !== null))
+            : BrandCodeList::fromInputs([...$proposedBrandCodes, ...$moved])->toStored();
 
         // Format-only, and the search key stays: what the command writes
         $eanChanges = $eans->toStored() !== $ean;
@@ -164,7 +170,7 @@ readonly final class PuzzleCodesCleanup
             $issue(PuzzleCodesReportRow::FIELD_EAN, $reason, (string) $ean);
         }
 
-        if ($brandCodesChange && $writeBrandCodes === false && $brandCodesForAPerson === false) {
+        if ($brandCodesChange && $writeBrandCodes === false && $brandCodesForAPerson === false && $brandCommaBetweenDigits === false) {
             $issue(PuzzleCodesReportRow::FIELD_BRAND_CODES, PuzzleCodesCleanupReason::SearchKeyWouldChange, (string) $identificationNumber);
         }
 

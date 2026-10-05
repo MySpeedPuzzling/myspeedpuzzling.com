@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
-use Normalizer;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
@@ -15,10 +14,12 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
  *
  * Only a barcode is written in its canonical form - digits, leading zeros stripped: a number whose digits as typed are
  * a GTIN (EAN-8, UPC-A, EAN-13, GTIN-14 - or 11 digits, a UPC-A as the catalogue stores it) with a right check digit,
- * and which display() can show as printed again. Every other number stays exactly as typed ("6000-5468", "12 556 2",
- * "04512", "4795/4") - its digits may be a catalogue number, a misread or a typo, and only a person can tell. Whatever
- * holds a letter ("X002ROECA7", "None", "N/A") is no number: junk(), kept as typed too. Everything keeps its place in
- * the list, each code once.
+ * and which display() can show as printed again; a dash, a dot or another mark inside it counts as how it was printed
+ * only for 12 digits and more ("978-0593137642" - an 8-digit "6000-5533" is a catalogue number). Every other number
+ * stays exactly as typed ("6000-5468", "12 556 2", "04512", "4795/4") - its digits may be a catalogue number, a misread
+ * or a typo, and only a person can tell. Whatever holds a letter ("X002ROECA7", "None", "N/A") is no number: junk(),
+ * kept verbatim too. Everything keeps its place in the list, each code once. Only control and format characters and
+ * whitespace around a part go (a stray U+200E), and full-width digits are read as digits.
  *
  * `invalidCodes()` finds the codes in a typed value that are no barcode number, so a form can refuse them. Codes the
  * puzzle already carries are left alone: the catalogue holds legacy values that are not valid codes, and proposing a
@@ -166,11 +167,16 @@ readonly final class EanList
      * Whether this list (built from $stored) only writes $stored in its canonical form: every part of it stays one code
      * (nothing split - "4005556147090 4005555001997" is no format change), in its place. What changes is how barcodes
      * are written (spaces, dashes, leading zeros inside a GTIN with a right check digit), the separators between
-     * parts, whitespace around them and the same code twice; any other number is kept as typed anyway.
-     * myspeedpuzzling:canonicalize-puzzle-codes writes such changes, a person decides the rest.
+     * parts, what surrounds them and the same code twice; any other number is kept as typed anyway. A comma right
+     * between two digits next to a number that is no barcode ("15,427") may be a thousands separator - no format
+     * change either. myspeedpuzzling:canonicalize-puzzle-codes writes such changes, a person decides the rest.
      */
     public function isFormatOnlyChangeOf(null|string $stored): bool
     {
+        if (self::hasAmbiguousComma($stored)) {
+            return false;
+        }
+
         $keys = [];
 
         foreach (self::parts($stored ?? '') as $part) {
@@ -189,11 +195,10 @@ readonly final class EanList
     }
 
     /**
-     * The parts of a stored value - separated by `,` `;` `|` - as typed, whether they hold a letter, and the digits as
-     * typed (leading zeros kept) of each number in them: several when `/` or spaces within a run of digits too long
-     * for one code separate them.
+     * The parts of a stored value - separated by `,` `;` `|` - as typed, whether they hold a letter, and all their
+     * digits as typed (leading zeros kept, full-width digits read as digits).
      *
-     * @return list<array{text: string, letters: bool, digits: list<string>}>
+     * @return list<array{text: string, letters: bool, digits: string}>
      */
     public static function partsOf(null|string $stored): array
     {
@@ -201,10 +206,39 @@ readonly final class EanList
             static fn (string $part): array => [
                 'text' => $part,
                 'letters' => self::hasLetter($part),
-                'digits' => self::hasLetter($part) ? [] : self::digitsOf($part),
+                'digits' => self::digitsOf($part),
             ],
             self::parts($stored ?? ''),
         );
+    }
+
+    /**
+     * A comma right between two digits ("15,427", "482,239") next to a part that is no barcode - perhaps a thousands
+     * separator, perhaps two codes: only a person can tell. Between two barcodes ("4005556147090,4005555001997") it is
+     * the list's separator.
+     */
+    public static function hasAmbiguousComma(null|string $stored): bool
+    {
+        $pieces = preg_split('/,/u', mb_scrub($stored ?? '', 'UTF-8')) ?: [];
+
+        for ($i = 0; $i < count($pieces) - 1; $i++) {
+            $left = self::narrow($pieces[$i]);
+            $right = self::narrow($pieces[$i + 1]);
+
+            if (preg_match('/\d$/', $left) !== 1 || preg_match('/^\d/', $right) !== 1) {
+                continue;
+            }
+
+            foreach ([$pieces[$i], $pieces[$i + 1]] as $piece) {
+                $items = self::itemsOf(self::trimmed($piece));
+
+                if (count($items) !== 1 || $items[0]['kind'] !== 'number' || self::isBarcodeAsTyped(self::trimmed($piece)) === false) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -216,6 +250,19 @@ readonly final class EanList
         return in_array(strlen($digits), self::GTIN_LENGTHS, true)
             && self::hasValidCheckDigit($digits)
             && in_array(strlen(ltrim($digits, '0')), self::DISPLAYABLE_LENGTHS, true);
+    }
+
+    /**
+     * A number as typed that is a barcode (isBarcode()): spaces and a `>` after it are how barcodes are printed, any
+     * other mark (a dash, a dot) only in one of 12 digits and more - "6000-5533" is a catalogue number, whatever its
+     * check digit.
+     */
+    public static function isBarcodeAsTyped(string $text): bool
+    {
+        $digits = self::digitsOf($text);
+
+        return self::isBarcode($digits)
+            && (strlen($digits) >= 12 || preg_match('/[^0-9\s\p{Z}>]/u', self::narrow($text)) !== 1);
     }
 
     /**
@@ -380,8 +427,8 @@ readonly final class EanList
                 continue;
             }
 
-            foreach (self::piecesOf($token) as $digits) {
-                $number = ltrim($digits, '0');
+            foreach (self::splitLongRun($token) as $piece) {
+                $number = ltrim(self::digitsOf($piece), '0');
 
                 if ($number !== '') {
                     $numbers[] = $number;
@@ -435,29 +482,29 @@ readonly final class EanList
      */
     private static function itemsOf(string $part): array
     {
-        $kept = ['text' => $part, 'key' => 't' . mb_strtoupper(preg_replace('/[\s\p{Z}]+/u', ' ', $part) ?? $part), 'kind' => 'typed'];
+        $kept = ['text' => $part, 'key' => 't' . $part, 'kind' => 'typed'];
 
         if (self::hasLetter($part)) {
             return [['kind' => 'junk'] + $kept];
         }
 
-        $digits = array_values(array_filter(self::digitsOf($part), static fn (string $number): bool => ltrim($number, '0') !== ''));
+        $pieces = array_values(array_filter(self::piecesOf($part), static fn (string $piece): bool => ltrim(self::digitsOf($piece), '0') !== ''));
 
-        if ($digits === []) {
+        if ($pieces === []) {
             return [];
         }
 
-        if (count($digits) === 1 && ltrim($digits[0], '0') === $part) {
+        if (count($pieces) === 1 && ltrim(self::digitsOf($pieces[0]), '0') === $part) {
             return [self::number($part)];
         }
 
-        foreach ($digits as $number) {
-            if (self::isBarcode($number) === false) {
+        foreach ($pieces as $piece) {
+            if (self::isBarcodeAsTyped($piece) === false) {
                 return [$kept];
             }
         }
 
-        return array_map(static fn (string $number): array => self::number(ltrim($number, '0')), $digits);
+        return array_map(static fn (string $piece): array => self::number(ltrim(self::digitsOf($piece), '0')), $pieces);
     }
 
     /**
@@ -469,49 +516,43 @@ readonly final class EanList
     }
 
     /**
-     * The digits as typed of each number of a part: split at `/`, and at spaces within a run of digits too long for
-     * one code.
-     *
-     * @return list<string>
+     * The digits of a text as typed - full-width ones read as digits, leading zeros kept.
      */
-    private static function digitsOf(string $part): array
+    private static function digitsOf(string $text): string
     {
-        $digits = [];
-
-        foreach (explode('/', $part) as $piece) {
-            foreach (self::piecesOf(trim($piece)) as $number) {
-                $digits[] = $number;
-            }
-        }
-
-        return $digits;
+        return preg_replace('/[^0-9]+/', '', self::narrow($text)) ?? '';
     }
 
     /**
-     * The digits of one token - several when spaces separate a run of digits too long for one code. Tokens without a
-     * digit give none.
+     * The numbers of a part as typed: split at `/`, and at spaces within a run of digits too long for one code.
      *
      * @return list<string>
      */
-    private static function piecesOf(string $token): array
+    private static function piecesOf(string $part): array
     {
-        $pieces = [$token];
+        $pieces = [];
 
-        if (strlen(preg_replace('/[^0-9]+/', '', $token) ?? '') > 14 && preg_match('/\s/u', $token) === 1) {
-            $pieces = preg_split('/[\s\p{Z}]+/u', $token) ?: [];
-        }
-
-        $digits = [];
-
-        foreach ($pieces as $piece) {
-            $number = preg_replace('/[^0-9]+/', '', $piece) ?? '';
-
-            if ($number !== '') {
-                $digits[] = $number;
+        foreach (explode('/', $part) as $piece) {
+            foreach (self::splitLongRun(trim($piece)) as $number) {
+                $pieces[] = $number;
             }
         }
 
-        return $digits;
+        return $pieces;
+    }
+
+    /**
+     * A token - or its words, when spaces separate a run of digits too long for one code.
+     *
+     * @return list<string>
+     */
+    private static function splitLongRun(string $token): array
+    {
+        if (strlen(self::digitsOf($token)) > 14 && preg_match('/[\s\p{Z}]/u', $token) === 1) {
+            return preg_split('/[\s\p{Z}]+/u', $token) ?: [];
+        }
+
+        return [$token];
     }
 
     /**
@@ -545,7 +586,7 @@ readonly final class EanList
     }
 
     /**
-     * The value split into its parts at `,` `;` `|`, each trimmed - full-width digits and separators as ASCII.
+     * The value split into its parts at `,` `;` `|` (full-width ones too), each trimmed (trimmed()).
      *
      * @return list<string>
      */
@@ -553,8 +594,8 @@ readonly final class EanList
     {
         $parts = [];
 
-        foreach (preg_split('/[,;|]/u', self::normalized($value)) ?: [] as $part) {
-            $part = preg_replace('/^[\s\p{Z}]+|[\s\p{Z}]+$/u', '', $part) ?? '';
+        foreach (preg_split('/[,;|\x{FF0C}\x{FF1B}\x{FF5C}]/u', mb_scrub($value, 'UTF-8')) ?: [] as $part) {
+            $part = self::trimmed($part);
 
             if ($part !== '') {
                 $parts[] = $part;
@@ -564,24 +605,33 @@ readonly final class EanList
         return $parts;
     }
 
+    /**
+     * Without whitespace, control and format characters at either end (a stray U+200E) - the rest verbatim.
+     */
+    private static function trimmed(string $part): string
+    {
+        return preg_replace('/^[\s\p{Z}\p{Cc}\p{Cf}]+|[\s\p{Z}\p{Cc}\p{Cf}]+$/u', '', $part) ?? '';
+    }
+
     private static function hasLetter(string $value): bool
     {
         return preg_match('/\p{L}/u', $value) === 1;
     }
 
     /**
-     * Full-width digits and separators as ASCII (NFKC) - the rest of the text as it is.
+     * Full-width ASCII (U+FF01-U+FF5E) and the ideographic space as their ASCII forms - nothing else, "№" stays.
      */
-    private static function normalized(string $value): string
+    private static function narrow(string $value): string
     {
-        // ASCII is its own NFKC - nearly every stored value, and the lists are parsed for every option of a picker
+        // ASCII is ASCII - nearly every stored value, and the lists are parsed for every option of a picker
         if (preg_match('/[^\x00-\x7F]/', $value) !== 1) {
             return $value;
         }
 
-        $value = mb_scrub($value, 'UTF-8');
-        $normalized = Normalizer::normalize($value, Normalizer::FORM_KC);
-
-        return is_string($normalized) ? $normalized : $value;
+        return preg_replace_callback(
+            '/[\x{FF01}-\x{FF5E}\x{3000}]/u',
+            static fn (array $match): string => $match[0] === "\u{3000}" ? ' ' : (string) mb_chr(mb_ord($match[0]) - 0xFEE0),
+            mb_scrub($value, 'UTF-8'),
+        ) ?? $value;
     }
 }

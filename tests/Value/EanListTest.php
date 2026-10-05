@@ -155,6 +155,13 @@ final class EanListTest extends TestCase
         yield 'the same code twice' => ['4005556147090, 04005556147090', ['4005556147090'], [], '4005556147090', ['4005556147090'], true];
         yield 'an 11-digit number failing every check digit stays as stored' => ['12345678901', ['12345678901'], [], '12345678901', ['12345678901'], true];
         yield 'a 10-digit number is never padded' => ['7934603125', ['7934603125'], [], '7934603125', ['7934603125'], true];
+        yield 'an 8-digit catalogue number with a dash is no EAN-8, whatever its check digit' => ['6000-5533', ['6000-5533'], [], '6000-5533', ['6000-5533'], true];
+        yield 'an EAN-8 printed with a space is one' => ['9638 5074', ['96385074'], [], '96385074', ['96385074'], true];
+        yield 'a stray left-to-right mark goes' => ["\u{200E}4005556147090", ['4005556147090'], [], '4005556147090', ['4005556147090'], true];
+        yield 'a numero sign stays as typed' => ['№ 14114', ['№ 14114'], [], '№ 14114', ['№ 14114'], true];
+        yield 'full-width junk stays verbatim' => ['ＸＹＺ', [], ['ＸＹＺ'], 'ＸＹＺ', ['ＸＹＺ'], true];
+        yield 'a comma between digit groups is no format change' => ['15,427', ['15', '427'], [], '15, 427', ['15', '427'], false];
+        yield 'a comma between two barcodes is the separator' => ['4005556147090,4005555001997', ['4005556147090', '4005555001997'], [], '4005556147090, 4005555001997', ['4005556147090', '4005555001997'], true];
     }
 
     public function testInputsAreOneCodeEachAndBlankOnesAreDropped(): void
@@ -171,13 +178,15 @@ final class EanListTest extends TestCase
         $survivor = EanList::fromStored('4005556147090, None');
         $merged = EanList::fromStored('04005555001997, 4005556147090, NONE');
 
-        self::assertSame('4005556147090, None, 4005555001997', $survivor->union($merged)->toStored());
-        self::assertSame('4005555001997, 4005556147090, NONE', $merged->union($survivor)->toStored());
+        // Junk is kept verbatim - "None" and "NONE" are two values
+        self::assertSame('4005556147090, None, 4005555001997, NONE', $survivor->union($merged)->toStored());
+        self::assertSame('4005555001997, 4005556147090, NONE, None', $merged->union($survivor)->toStored());
     }
 
     public function testTheSameCodesInTheSameOrderAreEqualWhateverTheirStoredForm(): void
     {
-        self::assertTrue(EanList::fromStored('0091683108909, None')->equals(EanList::fromInputs(['091683108909', 'none'])));
+        self::assertTrue(EanList::fromStored('0091683108909, None')->equals(EanList::fromInputs(['091683108909', ' None '])));
+        self::assertFalse(EanList::fromStored('None')->equals(EanList::fromStored('none')), 'junk is kept verbatim');
         self::assertFalse(EanList::fromStored('4005556147090, 4005555001997')->equals(EanList::fromStored('4005555001997, 4005556147090')));
         self::assertFalse(EanList::fromStored('6000-5468')->equals(EanList::fromStored('60005468')), 'a number kept as typed is its text');
     }
@@ -189,6 +198,22 @@ final class EanListTest extends TestCase
         self::assertSame([], EanList::invalidCodes('01234565', '1234565'));
         self::assertSame([], EanList::invalidCodes('N/A', 'N/A'));
         self::assertSame([['code' => '6255', 'suggestion' => null]], EanList::invalidCodes('6255', '#6255'));
+    }
+
+    public function testACatalogueNumberIsNoGtinWhateverItsCheckDigit(): void
+    {
+        self::assertSame(['gtin8' => [], 'gtin13' => []], EanList::fromStored('6000-5533')->gtins());
+        self::assertSame(['gtin8' => ['96385074'], 'gtin13' => []], EanList::fromStored('9638 5074')->gtins());
+        self::assertFalse(EanList::isBarcodeAsTyped('6000-5533'));
+        self::assertTrue(EanList::isBarcodeAsTyped('978-0593137642'), 'marks inside 12 digits and more are print');
+    }
+
+    public function testACommaBetweenDigitsNextToANumberThatIsNoBarcodeIsAmbiguous(): void
+    {
+        self::assertTrue(EanList::hasAmbiguousComma('15,427'));
+        self::assertTrue(EanList::hasAmbiguousComma('4005556147090,427'));
+        self::assertFalse(EanList::hasAmbiguousComma('4005556147090,4005555001997'));
+        self::assertFalse(EanList::hasAmbiguousComma('15, 427'));
     }
 
     public function testBarcodesAreGtinsThatCanBeShownAsPrinted(): void

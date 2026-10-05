@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
-use Normalizer;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
@@ -119,11 +118,21 @@ readonly final class BrandCodeList
 
     /**
      * Whether this list (built from $stored) only writes $stored in its canonical form: the same codes in the same
-     * order - whitespace around and inside them, separators between them, case and the same code twice aside.
+     * order - whitespace around and inside them, separators between them, case and the same code twice aside. A comma
+     * right between two digits ("482,239") may be part of one code - no format change.
      */
     public function isFormatOnlyChangeOf(null|string $stored): bool
     {
-        return self::fromStored($stored)->equals($this);
+        return self::hasAmbiguousComma($stored) === false && self::fromStored($stored)->equals($this);
+    }
+
+    /**
+     * A comma right between two digits ("482,239") - one code with a thousands separator, or two codes: only a person
+     * can tell.
+     */
+    public static function hasAmbiguousComma(null|string $stored): bool
+    {
+        return preg_match('/\d,\d/u', self::narrow(mb_scrub($stored ?? '', 'UTF-8'))) === 1;
     }
 
     /**
@@ -165,7 +174,8 @@ readonly final class BrandCodeList
     }
 
     /**
-     * The codes of a stored value or an input: full-width forms as ASCII, every whitespace run one space, trimmed.
+     * The codes of a stored value or an input: full-width ASCII as ASCII, every whitespace run one space, no whitespace,
+     * control or format character at either end (a stray U+200E).
      *
      * @return list<string>
      */
@@ -173,8 +183,9 @@ readonly final class BrandCodeList
     {
         $parts = [];
 
-        foreach (preg_split('/[,;|]/u', self::normalized($value)) ?: [] as $part) {
-            $part = trim(preg_replace('/[\s\p{Z}]+/u', ' ', $part) ?? '');
+        foreach (preg_split('/[,;|]/u', self::narrow(mb_scrub($value, 'UTF-8'))) ?: [] as $part) {
+            $part = preg_replace('/[\s\p{Z}]+/u', ' ', $part) ?? '';
+            $part = preg_replace('/^[\s\p{Z}\p{Cc}\p{Cf}]+|[\s\p{Z}\p{Cc}\p{Cf}]+$/u', '', $part) ?? '';
 
             // A code holds a letter or a digit - "-" or "." alone is a placeholder
             if (preg_match('/[\p{L}\p{N}]/u', $part) === 1) {
@@ -186,18 +197,19 @@ readonly final class BrandCodeList
     }
 
     /**
-     * Full-width letters, digits and separators as ASCII (NFKC) - the rest of the text as it is.
+     * Full-width ASCII (U+FF01-U+FF5E) and the ideographic space as their ASCII forms - nothing else, "№" stays.
      */
-    private static function normalized(string $value): string
+    private static function narrow(string $value): string
     {
-        // ASCII is its own NFKC - nearly every stored value, and the lists are parsed for every option of a picker
+        // ASCII is ASCII - nearly every stored value, and the lists are parsed for every option of a picker
         if (preg_match('/[^\x00-\x7F]/', $value) !== 1) {
             return $value;
         }
 
-        $value = mb_scrub($value, 'UTF-8');
-        $normalized = Normalizer::normalize($value, Normalizer::FORM_KC);
-
-        return is_string($normalized) ? $normalized : $value;
+        return preg_replace_callback(
+            '/[\x{FF01}-\x{FF5E}\x{3000}]/u',
+            static fn (array $match): string => $match[0] === "\u{3000}" ? ' ' : (string) mb_chr(mb_ord($match[0]) - 0xFEE0),
+            $value,
+        ) ?? $value;
     }
 }

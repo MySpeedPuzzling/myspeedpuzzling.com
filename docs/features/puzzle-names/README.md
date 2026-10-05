@@ -367,11 +367,15 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
 - **Phase 5 - only barcodes are normalised:** `EanList::fromStored()` / `fromInputs()` (one parser for the stored
   value and the forms' inputs) write a number in its canonical form (digits, leading zeros stripped) only when its
   digits as typed are a GTIN - EAN-8, UPC-A, EAN-13, GTIN-14, or 11 digits (a UPC-A as the catalogue stores it) - with
-  a right check digit, and `display()` can show it as printed again (`isBarcode()`). Every other number stays exactly as
-  typed ("6000-5468", "12 556 2", "04512", "4795/4", a 13-digit typo): its digits may be a catalogue number, a misread or
-  a typo, and only a person can tell. Parts with a letter ("X002ROECA7", "N/A") are `junk()`, kept as typed. Everything
-  keeps its place in the list (not the junk at the end, as first planned - keeping the order is what makes a rewrite
-  lossless), each code once - barcodes by their digits, anything else by its text in upper case.
+  a right check digit, and `display()` can show it as printed again (`isBarcode()`); a dash, a dot or another mark
+  inside it counts as print only from 12 digits on (`isBarcodeAsTyped()` - Eurographics' "6000-5533" has a fitting check
+  digit and is a catalogue number). Every other number stays exactly as typed ("6000-5468", "12 556 2", "04512",
+  "4795/4", "№ 14114", a 13-digit typo): its digits may be a catalogue number, a misread or a typo, and only a person can
+  tell. Parts with a letter ("X002ROECA7", "N/A") are `junk()`, kept verbatim - no NFKC, no case folding ("None" and
+  "NONE" are two values). Only whitespace, control and format characters at either end of a part go (5 production brand
+  codes start with U+200E, which Symfony's form trim strips - without it a no-change save rewrote them), and full-width
+  digits are read as digits. Everything keeps its place in the list (not the junk at the end, as first planned - keeping
+  the order is what makes a rewrite lossless), each code once - barcodes by their digits, anything else by its text.
 - **Phase 5 - display** pads a stored barcode of 7 digits (an EAN-8 whose leading zero was stripped) to 8 and one of
   11 (UPC-A) to 12 when the check digit is right; anything else as stored. Not every length the review suggested: a
   padded 10-digit or 5-digit number would turn ISBN-like and catalogue numbers whose check digit happens to fit (one in
@@ -386,10 +390,14 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
 - **Phase 5 - the cleanup** (`myspeedpuzzling:canonicalize-puzzle-codes`, `PuzzleCodesCleanup`) writes a field only when
   `isFormatOnlyChangeOf()` holds (every stored part stays one code in its place - a barcode's spaces, dashes and leading
   zeros, separators, whitespace around parts, a duplicate, a lone "-"; for brand codes also case and inner whitespace)
-  and the code search key stays byte for byte. Words in the brand codes ("Clementoni", "N/A") and codes with words in
+  and the code search key stays byte for byte. A comma right between two digits ("15,427", "482,239") is no separator for
+  sure - a thousands separator or two codes - so such a field is reported as it is (`comma_between_digits`) and never
+  written; between two barcodes ("4005556147090,4005555001997") it is the separator. Words in the brand codes ("Clementoni", "N/A") and codes with words in
   them ("Article 30226", "UPC is 0045622965214" - a letter word of 3+ with a lower-case letter, or a lower-case word
   between spaces; "rb-500-001", "1183pz" are no words) are reported and their field is never written. `--write` needs
-  `--undo=<path>`: every written field with its value before and after, flushed per batch.
+  `--undo=<path>` of a new file (an existing one is refused - a re-run would otherwise wipe what an interrupted run
+  saved; use a new path per run): every written field with its value before and after (`\N` = NULL), appended by each
+  batch before it commits.
 - **Phase 5 - the report proposes, it never deletes a code:** all rows of a puzzle carry one proposal (EAN and brand
   codes). A part of the EAN field with a letter, a catalogue number or a number that is no barcode moves into the brand
   codes (after the existing ones, once); only words and placeholders without a digit ("None", "N/A", "Vintage") are
@@ -416,11 +424,12 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   one value per property; the first is the earliest edition's, a merge keeps the survivor's first); picker options show
   and search the codes as printed (a typed UPC with its leading zero finds it).
 - **Phase 5 - the cleanup on a production copy** (fresh clone, migrations, keys rebuilt; 41,282 puzzles, warm cache):
-  dry run 0.8 s / 33 MiB, `--write` 1.0 s / 44.5 MiB in batches of 500 locked for update - 1,163 EAN fields (by part: 723 UPC-A
-  and 338 EAN-13 typed with leading zeros, 58 + 9 + 4 + 2 barcodes typed with spaces, 9 GTIN-14, 7 dashes in a valid
-  EAN-13 / UPC-A, 5 EAN-8 with their zero or a dash, 2 `>`, 5 lone dashes, 4 separators) and 146 brand-code fields
-  (case, whitespace, separators, a duplicate). An independent check of the undo file: every touched number is a GTIN
-  with a right check digit and the same 14-digit form, every other part kept verbatim; the code search key of every
-  puzzle is byte for byte the same; a second run writes nothing. Report: 458 rows on 446 puzzles - 168 EAN parts with a
-  letter, 47 catalogue numbers, 127 numbers that are no barcode, 11 Ravensburger misreads, 47 words and 58 codes with
-  words in the brand codes.
+  dry run 0.4 s / 33 MiB, `--write` 1.1 s / 42.5 MiB in batches of 500 locked for update - 1,162 EAN fields (by part:
+  723 UPC-A and 338 EAN-13 typed with leading zeros, 58 + 9 + 4 + 2 barcodes typed with spaces, 9 GTIN-14, 7 dashes in a
+  valid EAN-13 / UPC-A, 4 EAN-8 with their zero, 2 `>`, 5 lone dashes, 4 separators) and 150 brand-code fields (case,
+  whitespace, separators, a duplicate, 5 stray U+200E). An independent check of the undo file: every touched number is
+  a GTIN with a right check digit and the same 14-digit form, every other part kept verbatim; applied back, it restores
+  every code of the snapshot; the code search key of every puzzle is byte for byte the same; a second run writes
+  nothing, a re-run with the same undo path is refused. Report: 460 rows on 448 puzzles - 168 EAN parts with a letter,
+  48 catalogue numbers, 127 numbers that are no barcode, 11 Ravensburger misreads, 47 words and 58 codes with words in
+  the brand codes, 1 comma between digits.

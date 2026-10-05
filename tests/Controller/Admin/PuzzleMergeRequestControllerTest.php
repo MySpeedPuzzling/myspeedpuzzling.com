@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
@@ -24,6 +25,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 final class PuzzleMergeRequestControllerTest extends WebTestCase
 {
+    use QueryCountAssertions;
+
     private const string FORM = 'puzzle_merge_review_form';
 
     public function testListIsNotAccessibleByAnonymous(): void
@@ -66,6 +69,21 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
         self::assertSame('Puzzle 1', $values[self::FORM . '[names][name]']);
         self::assertSame('Puzzle 2', $values[self::FORM . '[names][alternativeNames][0][name]']);
         self::assertSelectorExists('.names-editor [data-action="names-editor#makeMain"]');
+    }
+
+    public function testTheReviewReadsThePuzzlesInOneStatementEachNotOnePerPuzzle(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/admin/puzzle-merge-requests/' . PuzzleReportFixture::MERGE_REQUEST_PENDING);
+        self::assertResponseIsSuccessful();
+
+        $sql = $this->executedSql($browser);
+        // Two reported puzzles: their overviews (GetPuzzleOverview::byIds()) and their stored records (GetPuzzleRecord::byIds())
+        self::assertCount(1, array_filter($sql, static fn (string $statement): bool => str_contains($statement, 'puzzle_statistics.fastest_time_team')));
+        self::assertCount(1, array_filter($sql, static fn (string $statement): bool => str_contains($statement, 'added_by.code AS added_by_code')));
     }
 
     public function testTheReviewStartsFromEveryNameInTheLanguagesTheReporterGave(): void

@@ -129,6 +129,12 @@
     color: $gray-600;
   }
 
+  &__cap {
+    margin-bottom: 0;
+    font-size: .85rem;
+    color: shade-color($warning, 55%);
+  }
+
   // On a phone: the name and × on one line, its language and "Make main title" under it, a line between two names
   @media (max-width: 560px) {
     &__rows {

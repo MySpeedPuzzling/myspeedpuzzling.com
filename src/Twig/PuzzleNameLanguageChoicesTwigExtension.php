@@ -5,16 +5,23 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Twig;
 
 use SpeedPuzzling\Web\Value\PuzzleNameLanguageChoices;
+use Symfony\Contracts\Service\ResetInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
  * `puzzle_name_language_choices()` - label => tag of PuzzleNameLanguageChoices in the page language, for a language
- * select outside a Symfony form (the approval queue's "merge into duplicate").
+ * select outside a Symfony form (the approval queue's "merge into duplicate", one per candidate). Built once per
+ * request and locale - the names and the sorting cost a few milliseconds each time.
  */
-final class PuzzleNameLanguageChoicesTwigExtension extends AbstractExtension
+final class PuzzleNameLanguageChoicesTwigExtension extends AbstractExtension implements ResetInterface
 {
+    /**
+     * @var array<string, array<string, string>> Locale => the choices
+     */
+    private array $choices = [];
+
     public function __construct(
         private readonly TranslatorInterface $translator,
     ) {
@@ -26,7 +33,22 @@ final class PuzzleNameLanguageChoicesTwigExtension extends AbstractExtension
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('puzzle_name_language_choices', fn (): array => PuzzleNameLanguageChoices::choices($this->translator->getLocale())),
+            new TwigFunction('puzzle_name_language_choices', $this->languageChoices(...)),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function languageChoices(): array
+    {
+        $locale = $this->translator->getLocale();
+
+        return $this->choices[$locale] ??= PuzzleNameLanguageChoices::choices($locale);
+    }
+
+    public function reset(): void
+    {
+        $this->choices = [];
     }
 }

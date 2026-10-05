@@ -14,7 +14,7 @@ import { foldSearchText } from '../search_fold.js';
 export default class extends Controller {
     static targets = [
         'main', 'mainLanguage', 'mainLanguageSelect', 'mainLanguageToggle',
-        'splitWarning', 'englishWarning', 'rows', 'row', 'empty', 'add', 'template',
+        'splitWarning', 'englishWarning', 'rows', 'row', 'empty', 'add', 'cap', 'template',
     ];
 
     static values = {
@@ -77,14 +77,21 @@ export default class extends Controller {
         this.changed();
     }
 
-    // "A / B / C": A stays the main title, B and C become other names - without a language, which the moderator sets
+    // "A / B / C": A stays the main title, B and C become other names - without a language, which the moderator sets.
+    // All of them or none: past the cap of other names nothing moves and the cap is said
     split() {
         const [first, ...others] = this.mainTarget.value.split(' / ').map((part) => part.trim()).filter((part) => part !== '');
+
+        if (this.rowTargets.length + others.length > this.maxNamesValue) {
+            this.capTarget.hidden = false;
+
+            return;
+        }
 
         this.mainTarget.value = first || '';
 
         const before = this.rowTargets[0] || null;
-        others.slice(0, Math.max(0, this.maxNamesValue - this.rowTargets.length)).forEach((name) => {
+        others.forEach((name) => {
             const row = this.newRow(name, '');
             this.rowsTarget.insertBefore(row, before);
         });
@@ -92,8 +99,15 @@ export default class extends Controller {
         this.changed();
     }
 
-    // The title printed on a box without an English one: it goes to the other names, the moderator types the English title
+    // The title printed on a box without an English one: it goes to the other names, the moderator types the English title.
+    // Not past the cap of other names - the cap is said instead
     moveToOtherNames() {
+        if (this.rowTargets.length >= this.maxNamesValue) {
+            this.capTarget.hidden = false;
+
+            return;
+        }
+
         const row = this.newRow(this.mainTarget.value.trim());
         this.setLanguage(this.languageSelect(row), this.mainLanguageSelectTarget.value, this.languageLabels());
         row.dataset.wasMain = '';
@@ -150,6 +164,7 @@ export default class extends Controller {
 
         this.emptyTarget.hidden = this.rowTargets.length > 0;
         this.addTarget.hidden = this.rowTargets.length >= this.maxNamesValue;
+        this.capTarget.hidden = !this.addTarget.hidden;
     }
 
     changed() {

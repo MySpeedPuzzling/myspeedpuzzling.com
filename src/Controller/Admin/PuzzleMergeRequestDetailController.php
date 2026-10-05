@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
-use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\FormData\PuzzleMergeReviewFormData;
 use SpeedPuzzling\Web\FormData\PuzzleNamesFormData;
 use SpeedPuzzling\Web\FormType\PuzzleMergeReviewFormType;
@@ -74,21 +73,18 @@ final class PuzzleMergeRequestDetailController extends AbstractController
     {
         $mergeRequest = $this->getPuzzleMergeRequests->byId($id) ?? throw new PuzzleMergeRequestNotFound();
 
-        // The reported puzzles still there - an earlier merge may have deleted some
+        // The reported puzzles still there - an earlier merge may have deleted some. One statement each for every
+        // puzzle's overview and its stored record (the image of a puzzle under embargo included - the record version)
+        $overviews = $this->getPuzzleOverview->byIds(array_values($mergeRequest->reportedDuplicatePuzzleIds));
+        $storedRecords = $this->getPuzzleRecord->byIds(array_values($mergeRequest->reportedDuplicatePuzzleIds));
         $puzzles = [];
         $records = [];
 
         foreach ($mergeRequest->reportedDuplicatePuzzleIds as $puzzleId) {
-            try {
-                $puzzle = $this->getPuzzleOverview->byId($puzzleId);
-            } catch (PuzzleNotFound) {
-                continue;
-            }
+            $puzzle = $overviews[strtolower($puzzleId)] ?? null;
+            $record = $storedRecords[strtolower($puzzleId)] ?? null;
 
-            // The stored record - the image of a puzzle under embargo included - for the record version
-            $record = $this->getPuzzleRecord->byId($puzzleId);
-
-            if ($record !== null) {
+            if ($puzzle !== null && $record !== null) {
                 $puzzles[] = $puzzle;
                 $records[$puzzle->puzzleId] = $record;
             }

@@ -6,7 +6,7 @@
 
     Required: names - the PuzzleNamesType child of the form (e.g. form.names)
     Optional: max_names - how many other names "+ Add a name" allows (default PuzzleNames::FORM_MAX_NAMES; a puzzle that
-              has more after a merge keeps them, the button is just hidden)
+              has more after a merge keeps them, the button is just hidden and the cap is said instead)
 #}
 {% import _self as names_editor %}
 
@@ -102,6 +102,11 @@
         <button type="button" class="btn btn-outline-primary btn-sm names-editor__add" data-names-editor-target="add" data-action="names-editor#add">
             {{- 'puzzle_names.add_name'|trans -}}
         </button>
+
+        {# Instead of "+ Add a name" at the cap, and when a split or a move would go past it (nothing moves then) #}
+        <p class="names-editor__cap" data-names-editor-target="cap" role="status" {% if names.alternativeNames|length < max_names %}hidden{% endif %}>
+            {{- 'puzzle_names.too_many_names'|trans({'%limit%': max_names}, 'validators') -}}
+        </p>
 
         <template data-names-editor-target="template">
             {{- names_editor.row(names.alternativeNames.vars.prototype) -}}

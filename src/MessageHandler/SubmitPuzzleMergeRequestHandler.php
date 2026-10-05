@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\PuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Value\LanguageTag;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -52,8 +53,35 @@ readonly final class SubmitPuzzleMergeRequestHandler
             reporter: $reporter,
             submittedAt: $now,
             reportedDuplicatePuzzleIds: $allPuzzleIds,
+            reportedNameLanguages: self::reportedNameLanguages($message->reportedNameLanguages, $allPuzzleIds),
         );
 
         $this->entityManager->persist($mergeRequest);
+    }
+
+    /**
+     * Base languages of the reported puzzles only, keyed by the lower-case id - a language of a puzzle outside the
+     * request, or no language at all, says nothing.
+     *
+     * @param array<string, string> $reportedNameLanguages
+     * @param array<string> $puzzleIds
+     *
+     * @return array<string, string>
+     */
+    private static function reportedNameLanguages(array $reportedNameLanguages, array $puzzleIds): array
+    {
+        $puzzleIds = array_map(strtolower(...), $puzzleIds);
+        $languages = [];
+
+        foreach ($reportedNameLanguages as $puzzleId => $language) {
+            $puzzleId = strtolower($puzzleId);
+            $tag = LanguageTag::normalize($language);
+
+            if ($tag !== null && in_array($puzzleId, $puzzleIds, true)) {
+                $languages[$puzzleId] = LanguageTag::base($tag);
+            }
+        }
+
+        return $languages;
     }
 }

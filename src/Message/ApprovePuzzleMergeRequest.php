@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Message;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 
 /**
@@ -16,6 +17,10 @@ use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
  */
 readonly final class ApprovePuzzleMergeRequest implements SerializedByLock
 {
+    /**
+     * @param array<string, string> $recordVersions Puzzle id => the PuzzleRecordVersion the review was loaded with,
+     *                                              for every reported puzzle - empty checks nothing (the internal API)
+     */
     public function __construct(
         public string $mergeRequestId,
         public string $reviewerId,
@@ -31,6 +36,12 @@ readonly final class ApprovePuzzleMergeRequest implements SerializedByLock
         public MergeDecisionSource $decisionSource = MergeDecisionSource::AdminUi,
         public null|MergeDecisionConfidence $decisionConfidence = null,
         public null|string $decisionNote = null,
+        // The reviewer's names (the merge review's names editor): with mergedAlternativeNames, mergedNameLanguage is
+        // taken as it is (null = English or not known). Without them the merge unions every name of the puzzles
+        // (PuzzleMergeNames) and mergedNameLanguage, when given, only overrides the language it finds for mergedName
+        public null|string $mergedNameLanguage = null,
+        public null|PuzzleNames $mergedAlternativeNames = null,
+        public array $recordVersions = [],
     ) {
     }
 

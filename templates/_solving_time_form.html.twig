@@ -115,7 +115,46 @@
 
                         {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
 
-                        {{ form_row(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle', 'data-first-try-check-target': 'puzzle'}}) }}
+                        {% set puzzle_attr = {'data-time-form-autocomplete-target': 'puzzle', 'data-first-try-check-target': 'puzzle'} %}
+                        {% if solving_time_form.alternativeNames is defined %}
+                            {# A new puzzle can bring the names of its other boxes: a quiet link on the label line, nothing more until tapped #}
+                            {% set extra_names = solving_time_form.alternativeNames %}
+                            {% set hide_extra_names = hide_new_puzzle|default(false) ? 'd-none' %}
+                            <div class="mb-3"
+                                 data-controller="optional-rows"
+                                 data-optional-rows-index-value="{{ extra_names|length > 0 ? max(extra_names|keys) + 1 : 0 }}"
+                                 data-optional-rows-max-value="{{ constant('SpeedPuzzling\\Web\\Value\\PuzzleNames::FORM_MAX_NAMES') }}">
+                                <div class="label-row">
+                                    {{ form_label(solving_time_form.puzzle) }}
+                                    <button type="button"
+                                            class="btn btn-link label-row__link {{ hide_extra_names }}"
+                                            data-time-form-autocomplete-target="newPuzzleExtra"
+                                            data-optional-rows-target="add"
+                                            data-action="optional-rows#add">
+                                        {{- 'puzzle_names.add_name_in_another_language'|trans -}}
+                                    </button>
+                                </div>
+                                {{ form_widget(solving_time_form.puzzle, {'attr': puzzle_attr}) }}
+                                {{ form_help(solving_time_form.puzzle) }}
+                                {{ form_errors(solving_time_form.puzzle) }}
+
+                                <div class="extra-names {{ hide_extra_names }}" data-time-form-autocomplete-target="newPuzzleExtra">
+                                    {{ form_errors(extra_names) }}
+                                    <div class="extra-names__rows" data-optional-rows-target="rows">
+                                        {%- for row in extra_names -%}
+                                            {{ include('puzzle/_extra_name_row.html.twig', {row: row}) }}
+                                        {%- endfor -%}
+                                    </div>
+                                    <template data-optional-rows-target="template">
+                                        {{- include('puzzle/_extra_name_row.html.twig', {row: extra_names.vars.prototype}) -}}
+                                    </template>
+                                </div>
+                            </div>
+                            {# Every row is rendered above - without rows the list itself would be left for form_rest() #}
+                            {% do extra_names.setRendered %}
+                        {% else %}
+                            {{ form_row(solving_time_form.puzzle, {'attr': puzzle_attr}) }}
+                        {% endif %}
 
                         {# Add form only - the edit form moves a result to an existing puzzle, never to a new one #}
                         {% if solving_time_form.puzzlePiecesCount is defined %}

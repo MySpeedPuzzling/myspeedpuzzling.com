@@ -81,6 +81,69 @@ final class ApprovePuzzleMergeRequestControllerTest extends TestCase
         self::assertNull($dispatched->decisionNote);
     }
 
+    public function testPassesTheReviewersNames(): void
+    {
+        $dispatched = null;
+
+        $controller = new ApprovePuzzleMergeRequestController(
+            $this->messageBusCapturing($dispatched),
+            self::REVIEWER_ID,
+        );
+
+        $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Kouzelné ráno',
+            'mergedNameLanguage' => 'CS',
+            'mergedAlternativeNames' => [
+                ['name' => 'Magic Morning', 'language' => 'en'],
+                ['name' => ' Magischer  Morgen ', 'language' => null],
+            ],
+            'mergedPiecesCount' => 500,
+        ]));
+
+        self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
+        self::assertSame('cs', $dispatched->mergedNameLanguage);
+        self::assertNotNull($dispatched->mergedAlternativeNames);
+        self::assertSame([
+            ['name' => 'Magic Morning', 'language' => 'en'],
+            ['name' => 'Magischer Morgen', 'language' => null],
+        ], $dispatched->mergedAlternativeNames->toArray());
+    }
+
+    public function testWithoutNamesTheMergeUnionsThem(): void
+    {
+        $dispatched = null;
+
+        $controller = new ApprovePuzzleMergeRequestController(
+            $this->messageBusCapturing($dispatched),
+            self::REVIEWER_ID,
+        );
+
+        $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedPiecesCount' => 500,
+        ]));
+
+        self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
+        self::assertNull($dispatched->mergedNameLanguage);
+        self::assertNull($dispatched->mergedAlternativeNames);
+    }
+
+    public function testRejectsNamesItCannotStore(): void
+    {
+        $controller = $this->controllerWithNeverDispatchingBus();
+
+        $this->expectException(BadRequestHttpException::class);
+
+        $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedPiecesCount' => 500,
+            'mergedAlternativeNames' => [['name' => 'Fine', 'language' => 'no such language']],
+        ]));
+    }
+
     public function testRejectsRequestWithoutSurvivorPuzzle(): void
     {
         $controller = $this->controllerWithNeverDispatchingBus();

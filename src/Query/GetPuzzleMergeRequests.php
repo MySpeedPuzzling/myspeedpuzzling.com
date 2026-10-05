@@ -86,6 +86,7 @@ SELECT
     pmr.reported_duplicate_puzzle_ids,
     pmr.survivor_puzzle_id,
     pmr.merged_puzzle_ids,
+    pmr.reported_name_languages,
     pmr.source_puzzle_name as stored_source_puzzle_name,
     source_p.id as source_puzzle_id,
     source_p.name as source_puzzle_name,

@@ -12,6 +12,7 @@ readonly final class PuzzleMergeRequestOverview
     /**
      * @param array<string> $reportedDuplicatePuzzleIds
      * @param array<string> $mergedPuzzleIds
+     * @param array<string, string> $reportedNameLanguages Puzzle id => the language the reporter gave its name
      */
     public function __construct(
         public string $id,
@@ -36,6 +37,7 @@ readonly final class PuzzleMergeRequestOverview
         public null|string $reporterCode,
         public null|string $reviewerId,
         public null|string $reviewerName,
+        public array $reportedNameLanguages = [],
     ) {
     }
 
@@ -92,7 +94,27 @@ readonly final class PuzzleMergeRequestOverview
             reporterCode: is_string($row['reporter_code']) ? $row['reporter_code'] : null,
             reviewerId: is_string($row['reviewer_id']) ? $row['reviewer_id'] : null,
             reviewerName: is_string($row['reviewer_name']) ? $row['reviewer_name'] : null,
+            reportedNameLanguages: self::reportedNameLanguages($row['reported_name_languages'] ?? null),
         );
+    }
+
+    /**
+     * Only the detail selects them (GetPuzzleMergeRequests::byId())
+     *
+     * @return array<string, string>
+     */
+    private static function reportedNameLanguages(mixed $json): array
+    {
+        $decoded = is_string($json) ? json_decode($json, true) : null;
+        $languages = [];
+
+        foreach (is_array($decoded) ? $decoded : [] as $puzzleId => $language) {
+            if (is_string($puzzleId) && is_string($language)) {
+                $languages[$puzzleId] = $language;
+            }
+        }
+
+        return $languages;
     }
 
     public function getDuplicateCount(): int

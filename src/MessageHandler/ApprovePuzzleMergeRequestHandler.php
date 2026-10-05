@@ -21,8 +21,10 @@ use SpeedPuzzling\Web\Entity\SoldSwappedItem;
 use SpeedPuzzling\Web\Entity\Stopwatch;
 use SpeedPuzzling\Web\Entity\Tag;
 use SpeedPuzzling\Web\Entity\WishListItem;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
@@ -34,9 +36,9 @@ use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleMergeSnapshotBuilder;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\NotificationType;
-use SpeedPuzzling\Web\Value\PuzzleName;
-use SpeedPuzzling\Web\Value\PuzzleNames;
-use SpeedPuzzling\Web\Value\SearchText;
+use SpeedPuzzling\Web\Value\NamedPuzzle;
+use SpeedPuzzling\Web\Value\PuzzleMergeNames;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -61,6 +63,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
      * @throws PuzzleNotFound
      * @throws PlayerNotFound
      * @throws ManufacturerNotFound
+     * @throws PuzzleChangedMeanwhile
+     * @throws InvalidPuzzleValues
      */
     public function __invoke(ApprovePuzzleMergeRequest $message): void
     {
@@ -87,6 +91,11 @@ readonly final class ApprovePuzzleMergeRequestHandler
             }
         }
 
+        // The review shows every puzzle as it was loaded - a save in between refuses the merge before anything changes
+        foreach ([$survivorPuzzle, ...$puzzlesToMerge] as $puzzle) {
+            PuzzleRecordVersion::assertUnchanged($puzzle, $message->recordVersions[$puzzle->id->toString()] ?? null);
+        }
+
         // Snapshot everything the merge is about to rewrite or destroy, before it happens
         $snapshotBefore = [
             'survivorPuzzle' => $this->snapshotBuilder->puzzleToArray($survivorPuzzle),
@@ -94,15 +103,32 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 fn(Puzzle $puzzle): array => $this->snapshotBuilder->puzzleToArray($puzzle),
                 $puzzlesToMerge,
             ),
+            'reportedNameLanguages' => $mergeRequest->reportedNameLanguages,
         ];
 
-        // Update survivor puzzle with merged data - first: an invalid name is refused before anything changes
-        $survivorPuzzle->changeNames(
-            $message->mergedName,
-            self::mergedNameLanguage($message->mergedName, $survivorPuzzle, $puzzlesToMerge),
-            self::mergedAlternativeNames($survivorPuzzle, $puzzlesToMerge),
-            $this->clock->now(),
+        $mergeNames = new PuzzleMergeNames(
+            NamedPuzzle::ofPuzzle($survivorPuzzle),
+            array_map(NamedPuzzle::ofPuzzle(...), $puzzlesToMerge),
+            $mergeRequest->reportedNameLanguages,
         );
+
+        // Update survivor puzzle with merged data - first: an invalid name is refused before anything changes
+        if ($message->mergedAlternativeNames !== null) {
+            // The reviewer's list - a merge may hold more names than a form may add, only a longer list is capped
+            if ($message->mergedAlternativeNames->count() > $mergeNames->alternativeNames()->count()) {
+                $message->mergedAlternativeNames->assertFormLimits();
+            }
+
+            $survivorPuzzle->changeNames($message->mergedName, $message->mergedNameLanguage, $message->mergedAlternativeNames, $this->clock->now());
+        } else {
+            $survivorPuzzle->changeNames(
+                $message->mergedName,
+                $message->mergedNameLanguage ?? $mergeNames->nameLanguageOf($message->mergedName),
+                $mergeNames->alternativeNames(),
+                $this->clock->now(),
+            );
+        }
+
         $survivorPuzzle->piecesCount = $message->mergedPiecesCount;
 
         $survivorPuzzle->updateProductIdentifiers(
@@ -239,65 +265,12 @@ readonly final class ApprovePuzzleMergeRequestHandler
     }
 
     /**
-     * Every name of every merged puzzle survives as an other name of the survivor: its own names first, then every
-     * merged puzzle's other names, then their main titles, then its own previous main title (dropped again by
-     * changeNames() when the reviewer kept it as the main title). The other names come before the main titles on
-     * purpose: the first name of a language is the one shown, and the first one at all is the old single alternative
-     * name (PuzzleNames::legacyAlternativeName()) - a box name, not a duplicate's English title. Two names folding
-     * equal are one (PuzzleNames::union()).
-     *
-     * @param array<Puzzle> $puzzlesToMerge
-     */
-    private static function mergedAlternativeNames(Puzzle $survivorPuzzle, array $puzzlesToMerge): PuzzleNames
-    {
-        $names = $survivorPuzzle->alternativeNames();
-
-        foreach ($puzzlesToMerge as $puzzleToMerge) {
-            $names = $names->union($puzzleToMerge->alternativeNames());
-        }
-
-        foreach ($puzzlesToMerge as $puzzleToMerge) {
-            $names = $names->union(new PuzzleNames([new PuzzleName($puzzleToMerge->name, $puzzleToMerge->nameLanguage)]));
-        }
-
-        return $names->union(new PuzzleNames([new PuzzleName($survivorPuzzle->name, $survivorPuzzle->nameLanguage)]));
-    }
-
-    /**
-     * The language of the main title the reviewer picked, as the puzzles knew it: a main title's language, else the
-     * language of an other name it is - the survivor's for a typed one.
-     *
-     * @param array<Puzzle> $puzzlesToMerge
-     */
-    private static function mergedNameLanguage(string $mergedName, Puzzle $survivorPuzzle, array $puzzlesToMerge): null|string
-    {
-        $mergedNameKey = SearchText::fold($mergedName);
-        $puzzles = [$survivorPuzzle, ...$puzzlesToMerge];
-
-        foreach ($puzzles as $puzzle) {
-            if (SearchText::fold($puzzle->name) === $mergedNameKey) {
-                return $puzzle->nameLanguage;
-            }
-        }
-
-        foreach ($puzzles as $puzzle) {
-            foreach ($puzzle->alternativeNames()->all() as $otherName) {
-                if (SearchText::fold($otherName->name) === $mergedNameKey) {
-                    return $otherName->language;
-                }
-            }
-        }
-
-        return $survivorPuzzle->nameLanguage;
-    }
-
-    /**
      * Fills gaps on the survivor from the puzzles about to be deleted.
      *
      * Only ever writes where the survivor holds nothing, so an explicit choice made
      * by the reviewer always wins. Without this, merging a bare duplicate into a
      * richer record silently discards whichever EAN, catalogue number or cover image
-     * only the duplicate happened to have (names: mergedAlternativeNames()).
+     * only the duplicate happened to have (names: PuzzleMergeNames).
      *
      * @param array<Puzzle> $puzzlesToMerge
      */

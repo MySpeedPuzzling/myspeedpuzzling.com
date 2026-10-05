@@ -5,7 +5,7 @@ import { Controller } from '@hotwired/stimulus';
 // puzzle's value into a field of the merged puzzle (the choice in use is shown pressed).
 // A choice carries data-input (the field's name) and data-value - read as strings, never type-cast.
 export default class extends Controller {
-    static targets = ['card', 'summary', 'choice'];
+    static targets = ['card', 'summary', 'choice', 'survivor'];
 
     connect() {
         this.survivorChanged();
@@ -13,7 +13,7 @@ export default class extends Controller {
     }
 
     survivorChanged() {
-        const checked = this.element.querySelector('input[name="survivor_puzzle_id"]:checked');
+        const checked = this.survivorTargets.find((radio) => radio.checked);
         const survivorId = checked ? checked.value : null;
 
         this.cardTargets.forEach((card) => {

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormType;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
+use SpeedPuzzling\Web\FormData\PuzzleNameFormData;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
@@ -13,8 +14,10 @@ use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
+use SpeedPuzzling\Web\Value\PuzzleNameLanguageChoices;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
@@ -131,6 +134,18 @@ final class PuzzleAddFormType extends AbstractType
         $builder->add('puzzleIdentificationNumber', TextType::class, [
             'label' => 'forms.puzzle_identification_number',
             'required' => false,
+        ]);
+
+        // Names of other boxes of a new puzzle, behind "+ name in another language" on the puzzle's label line
+        $builder->add('alternativeNames', CollectionType::class, [
+            'label' => false,
+            'required' => false,
+            'entry_type' => PuzzleNameType::class,
+            'allow_add' => true,
+            'allow_delete' => true,
+            'delete_empty' => static fn (null|PuzzleNameFormData $row): bool => $row === null || trim($row->name ?? '') === '',
+            'prototype_data' => new PuzzleNameFormData(language: PuzzleNameLanguageChoices::forNewName($this->translator->getLocale())),
+            'error_bubbling' => false,
         ]);
 
         // Speed puzzling specific fields - time as separate inputs

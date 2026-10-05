@@ -16,6 +16,7 @@ readonly final class PuzzleMergeReviewCandidate
     public function __construct(
         public string $puzzleId,
         public string $name,
+        public null|string $nameLanguage,
         public PuzzleNames $alternativeNames,
         public int $piecesCount,
         public null|string $ean,
@@ -51,6 +52,7 @@ readonly final class PuzzleMergeReviewCandidate
         return new self(
             puzzleId: $puzzleId,
             name: $name,
+            nameLanguage: is_string($row['name_language']) ? $row['name_language'] : null,
             alternativeNames: PuzzleNames::fromJson(is_string($row['alternative_names']) ? $row['alternative_names'] : null),
             piecesCount: $piecesCount,
             ean: is_string($row['ean']) ? $row['ean'] : null,

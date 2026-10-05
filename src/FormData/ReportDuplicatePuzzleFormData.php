@@ -23,6 +23,11 @@ final class ReportDuplicatePuzzleFormData
 
     public null|string $selectedPuzzleId = null;
 
+    // The languages the reporter says the names are in - optional, BCP 47 tags from PuzzleNameLanguageChoices
+    public null|string $sourceNameLanguage = null;
+
+    public null|string $duplicateNameLanguage = null;
+
     public function validateHasDuplicate(ExecutionContextInterface $context): void
     {
         $hasSelectedPuzzle = $this->selectedPuzzleId !== null && $this->selectedPuzzleId !== '';

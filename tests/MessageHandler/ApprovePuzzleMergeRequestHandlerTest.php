@@ -24,6 +24,8 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
 use SpeedPuzzling\Web\Entity\WishListItem;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
@@ -39,6 +41,7 @@ use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use SpeedPuzzling\Web\Value\TransferType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -649,6 +652,141 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertSame([['name' => 'Puzzle 5', 'language' => null]], $survivorPuzzle->alternativeNames);
         self::assertSame("\npuzzle 4\npuzzle 5\n", $survivorPuzzle->searchNames);
     }
+
+    public function testMergeTakesTheReviewersNamesAsTheyAre(): void
+    {
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames([new PuzzleName('Magischer Morgen', 'de')]), new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        $mergeRequestId = $this->submitMergeRequest();
+
+        // The reviewer picked a new English main title, tagged the Czech title and removed the German one
+        $this->messageBus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+            mergedName: 'Magic Morning',
+            mergedEan: null,
+            mergedIdentificationNumber: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: null,
+            selectedImagePuzzleId: null,
+            mergedNameLanguage: null,
+            mergedAlternativeNames: new PuzzleNames([
+                new PuzzleName('Kouzelné ráno', 'cs'),
+                new PuzzleName('Puzzle 4', null),
+            ]),
+        ));
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('Magic Morning', $survivorPuzzle->name);
+        self::assertNull($survivorPuzzle->nameLanguage);
+        self::assertSame([
+            ['name' => 'Kouzelné ráno', 'language' => 'cs'],
+            ['name' => 'Puzzle 4', 'language' => null],
+        ], $survivorPuzzle->alternativeNames);
+        self::assertSame("\nmagic morning\nkouzelne rano\npuzzle 4\n", $survivorPuzzle->searchNames);
+
+        $audit = $this->entityManager->getRepository(PuzzleMergeAudit::class)->findOneBy(['mergeRequestId' => $mergeRequestId]);
+        self::assertNotNull($audit);
+        $survivorAfter = $audit->snapshotAfter['survivorPuzzle'];
+        self::assertIsArray($survivorAfter);
+        self::assertSame($survivorPuzzle->alternativeNames, $survivorAfter['alternativeNames']);
+    }
+
+    public function testMergeWithoutTheReviewersNamesTagsTheMainTitlesInTheReportersLanguages(): void
+    {
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        $mergeRequestId = $this->submitMergeRequest([PuzzleFixture::PUZZLE_500_05 => 'cs']);
+
+        $this->approveMerge($mergeRequestId, mergedName: 'Puzzle 4');
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('Puzzle 4', $survivorPuzzle->name);
+        self::assertSame([['name' => 'Kouzelné ráno', 'language' => 'cs']], $survivorPuzzle->alternativeNames);
+
+        $audit = $this->entityManager->getRepository(PuzzleMergeAudit::class)->findOneBy(['mergeRequestId' => $mergeRequestId]);
+        self::assertNotNull($audit);
+        self::assertSame([PuzzleFixture::PUZZLE_500_05 => 'cs'], $audit->snapshotBefore['reportedNameLanguages']);
+    }
+
+    public function testTheReportersLanguageTagsTheMainTitleTheReviewerKeeps(): void
+    {
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        $this->approveMerge($this->submitMergeRequest([PuzzleFixture::PUZZLE_500_05 => 'cs']), mergedName: 'Kouzelné ráno');
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertSame('Kouzelné ráno', $survivorPuzzle->name);
+        self::assertSame('cs', $survivorPuzzle->nameLanguage);
+        self::assertSame([['name' => 'Puzzle 4', 'language' => null]], $survivorPuzzle->alternativeNames);
+    }
+
+    public function testAPuzzleSavedAfterTheReviewWasLoadedRefusesTheMerge(): void
+    {
+        $survivorVersion = PuzzleRecordVersion::ofPuzzle($this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04));
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $loadedVersion = PuzzleRecordVersion::ofPuzzle($duplicatePuzzle);
+        $mergeRequestId = $this->submitMergeRequest();
+
+        // Somebody saves the duplicate while the review is open
+        $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([new PuzzleName('Saved meanwhile', 'de')]), new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        try {
+            $this->messageBus->dispatch(new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Puzzle 4',
+                mergedEan: null,
+                mergedIdentificationNumber: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: null,
+                selectedImagePuzzleId: null,
+                recordVersions: [
+                    PuzzleFixture::PUZZLE_500_04 => $survivorVersion,
+                    PuzzleFixture::PUZZLE_500_05 => $loadedVersion,
+                ],
+            ));
+            self::fail('A stale review must not merge');
+        } catch (PuzzleChangedMeanwhile) {
+        }
+
+        $this->entityManager->clear();
+        self::assertSame(PuzzleReportStatus::Pending, $this->mergeRequestRepository->get($mergeRequestId)->status);
+        self::assertSame('Puzzle 5', $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05)->name);
+    }
+
+    public function testTheReviewersNamesMayNotGrowPastTheFormLimit(): void
+    {
+        $mergeRequestId = $this->submitMergeRequest();
+
+        $this->expectException(InvalidPuzzleValues::class);
+
+        $this->messageBus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+            mergedName: 'Puzzle 4',
+            mergedEan: null,
+            mergedIdentificationNumber: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: null,
+            selectedImagePuzzleId: null,
+            mergedAlternativeNames: new PuzzleNames(array_map(
+                static fn (int $number): PuzzleName => new PuzzleName('Name ' . $number, null),
+                range(1, PuzzleNames::FORM_MAX_NAMES + 1),
+            )),
+        ));
+    }
+
     private function approveMerge(string $mergeRequestId, string $mergedName): void
     {
         $this->messageBus->dispatch(
@@ -666,7 +804,10 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         );
     }
 
-    private function submitMergeRequest(): string
+    /**
+     * @param array<string, string> $reportedNameLanguages
+     */
+    private function submitMergeRequest(array $reportedNameLanguages = []): string
     {
         $mergeRequestId = Uuid::uuid7()->toString();
 
@@ -678,6 +819,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
                 duplicatePuzzleIds: [
                     PuzzleFixture::PUZZLE_500_05,
                 ],
+                reportedNameLanguages: $reportedNameLanguages,
             ),
         );
 

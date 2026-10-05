@@ -63,6 +63,32 @@ final class SubmitPuzzleMergeRequestHandlerTest extends KernelTestCase
         }
     }
 
+    public function testTheReportersLanguagesAreKeptAsBaseLanguagesOfTheReportedPuzzlesOnly(): void
+    {
+        $mergeRequestId = Uuid::uuid7()->toString();
+
+        $this->messageBus->dispatch(
+            new SubmitPuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                sourcePuzzleId: PuzzleFixture::PUZZLE_1000_01,
+                reporterId: PlayerFixture::PLAYER_REGULAR,
+                duplicatePuzzleIds: [PuzzleFixture::PUZZLE_1000_02],
+                reportedNameLanguages: [
+                    PuzzleFixture::PUZZLE_1000_01 => 'pt-BR',
+                    strtoupper(PuzzleFixture::PUZZLE_1000_02) => 'CS',
+                    // Not reported, no language
+                    PuzzleFixture::PUZZLE_1000_03 => 'de',
+                    PuzzleFixture::PUZZLE_1000_04 => 'not a language',
+                ],
+            ),
+        );
+
+        self::assertSame([
+            PuzzleFixture::PUZZLE_1000_01 => 'pt',
+            PuzzleFixture::PUZZLE_1000_02 => 'cs',
+        ], $this->mergeRequestRepository->get($mergeRequestId)->reportedNameLanguages);
+    }
+
     public function testSubmittingMergeRequestIncludesSourcePuzzleAutomatically(): void
     {
         $mergeRequestId = Uuid::uuid7()->toString();

@@ -78,6 +78,13 @@ final class ReportDuplicatePuzzleFormType extends AbstractType
                     'data-choose-manufacturer-placeholder' => $this->translator->trans('puzzle_report.form.select_manufacturer_first'),
                     'data-choose-puzzle-placeholder' => $this->translator->trans('puzzle_report.form.select_puzzle_placeholder'),
                 ],
+            ])
+            // Optional: "this record is the Czech box" - the merge review starts from it (docs/features/puzzle-names/)
+            ->add('sourceNameLanguage', PuzzleNameLanguageType::class, [
+                'label' => 'puzzle_names.source_name_language',
+            ])
+            ->add('duplicateNameLanguage', PuzzleNameLanguageType::class, [
+                'label' => 'puzzle_names.duplicate_name_language',
             ]);
     }
 

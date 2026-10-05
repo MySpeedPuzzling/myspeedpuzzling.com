@@ -9,6 +9,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Callback;
@@ -16,6 +18,7 @@ use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\PositiveOrZero;
 use Symfony\Component\Validator\Constraints\Range;
+use Symfony\Component\Validator\Constraints\Valid;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 final class PuzzleAddFormData
@@ -40,6 +43,14 @@ final class PuzzleAddFormData
 
     #[Length(max: 50)]
     public null|string $puzzleIdentificationNumber = null;
+
+    /**
+     * Names of other boxes of a new puzzle ("+ name in another language") - rows without a name are dropped
+     *
+     * @var array<PuzzleNameFormData>
+     */
+    #[Valid]
+    public array $alternativeNames = [];
 
     // Speed Puzzling specific - time as separate fields
     #[PositiveOrZero]
@@ -121,13 +132,46 @@ final class PuzzleAddFormData
     {
         // Only a new puzzle takes the code - shown exactly then (`hide_new_puzzle`), so a code left
         // hidden in the field (e.g. from a scan) never blocks saving a result of an existing puzzle
-        $addsNewPuzzle = $this->puzzle !== null
+        if ($this->addsNewPuzzle()) {
+            EanList::addViolations($context, 'puzzleEan', $this->puzzleEan, null);
+        }
+    }
+
+    #[Callback]
+    public function validateAlternativeNames(ExecutionContextInterface $context): void
+    {
+        // Like the code: rows left hidden under an existing puzzle never block a save
+        if ($this->addsNewPuzzle() && $this->toPuzzleNames()->count() > PuzzleNames::FORM_MAX_NAMES) {
+            $context->buildViolation('puzzle_names.too_many_names')
+                ->setParameter('%limit%', (string) PuzzleNames::FORM_MAX_NAMES)
+                ->atPath('alternativeNames')
+                ->addViolation();
+        }
+    }
+
+    /**
+     * The other names of the new puzzle in the order typed - the entity cleans and merges them
+     */
+    public function toPuzzleNames(): PuzzleNames
+    {
+        $names = [];
+
+        foreach ($this->alternativeNames as $row) {
+            $name = trim($row->name ?? '');
+
+            if ($name !== '') {
+                $names[] = new PuzzleName($name, $row->language !== null && $row->language !== '' ? $row->language : null);
+            }
+        }
+
+        return new PuzzleNames($names);
+    }
+
+    private function addsNewPuzzle(): bool
+    {
+        return $this->puzzle !== null
             && trim($this->puzzle) !== ''
             && Uuid::isValid($this->puzzle) === false
             && $this->brand !== null;
-
-        if ($addsNewPuzzle) {
-            EanList::addViolations($context, 'puzzleEan', $this->puzzleEan, null);
-        }
     }
 }

@@ -2813,7 +2813,6 @@ admin:
         approved: "Merge request has been approved. Puzzles have been merged."
         rejected: "Merge request has been rejected."
         rejection_reason_required: "Rejection reason is required."
-        validation_failed: "Survivor puzzle, name, and pieces count are required."
     competition_approvals:
         back_title: "Admin — approvals"
     moderators:
@@ -5559,3 +5558,11 @@ puzzle_names:
         too_many: "You have suggested many names today. Please try again tomorrow."
         submitted: "Thank you! A moderator will check the name."
         added: "The name was added."
+    # The add form: quiet link on the puzzle's label line, then one row per name (name + language)
+    add_name_in_another_language: "+ name in another language"
+    name_on_the_box: "Name on the box"
+    name_in_another_language: "Name in another language"
+    # "Report duplicate": what the reporter says the two records' names are in, optional
+    report_languages_link: "Are they boxes in different languages?"
+    source_name_language: "This puzzle's name is in"
+    duplicate_name_language: "The duplicate's name is in"

@@ -13,7 +13,9 @@ const isFromServer = (item) => typeof item.name === 'string';
 const renderOption = (item, escape) => `<div>${isFromServer(item) ? item.text : escape(item.text ?? item.value ?? '')}</div>`;
 
 export default class extends Controller {
-    static targets = ['brand', 'puzzle', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'eanClear', 'eanErrors', 'hideOptions'];
+    // newPuzzleExtra: what belongs to a new puzzle outside its block - "+ name in another language" on the puzzle's
+    // label line and the rows it adds
+    static targets = ['brand', 'puzzle', 'newPuzzle', 'newPuzzleExtra', 'scannerModal', 'scannerMessage', 'eanInput', 'eanClear', 'eanErrors', 'hideOptions'];
 
     static values = {
         eanSearchUrl: String,
@@ -313,6 +315,7 @@ export default class extends Controller {
         }
 
         this.newPuzzleTarget.classList.toggle('d-none', !show);
+        this.newPuzzleExtraTargets.forEach((element) => element.classList.toggle('d-none', !show));
     }
 
     handleInitialValues() {

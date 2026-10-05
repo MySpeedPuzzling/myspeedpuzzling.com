@@ -1,0 +1,86 @@
+// Quiet links on label lines and the rows they add (optional_rows_controller.js) - docs/features/puzzle-names/,
+// decision 7: the form is not one line taller until a player taps one
+
+// A field's label with a quiet link at the right end of the same line
+.label-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: .75rem;
+
+  .form-label {
+    margin-bottom: .5rem;
+  }
+
+  &__link {
+    padding: 0;
+    margin-bottom: .5rem;
+    border: 0;
+    font-size: .8rem;
+    font-weight: 400;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
+  }
+}
+
+.extra-names__rows {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+
+  &:not(:empty) {
+    margin-top: .6rem;
+  }
+
+  // Two lines per name on a phone - the names stand apart
+  @media (max-width: 560px) {
+    gap: .9rem;
+  }
+}
+
+// The add form's "+ name in another language" row: name, language, × - on a phone the name and × on one line,
+// the language under it
+.extra-name-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7rem, 11rem) auto;
+  grid-template-areas: "name lang rm";
+  gap: .4rem;
+  align-items: center;
+
+  &__name {
+    grid-area: name;
+  }
+
+  &__language {
+    grid-area: lang;
+  }
+
+  &__remove {
+    grid-area: rm;
+    align-self: stretch;
+    width: 2.25rem;
+    padding: 0;
+    line-height: 1;
+    font-size: 1.15rem;
+  }
+
+  > .invalid-feedback {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "name rm" "lang lang";
+
+    &__language {
+      justify-self: start;
+      width: auto;
+      max-width: 100%;
+    }
+  }
+}

@@ -120,11 +120,14 @@ puzzles too (`GetPuzzleRecord` hides nothing).
 
 `/admin/puzzle-merge-requests/{id}` shows the reported puzzles side by side (lightbox images, what differs between
 them highlighted, solving times, a History link each) and lets the moderator pick **which one keeps its address**
-("Keep this one", default = most solving times). The merged puzzle's name / brand / pieces come with one-click
-choices from the reported puzzles where they differ (`merge_review_controller.js`); EAN and brand code are the union
-(never reduce the list). The summary above the button says what approving keeps, deletes and moves. Brand picker =
-every brand (`allIncludingUnapproved()`, autocomplete). Optional note → `ApprovePuzzleMergeRequest::$decisionNote`.
-The approve endpoint (`ApprovePuzzleMergeRequestController`) and its field names are unchanged.
+("Keep this one", default = most solving times). The names are the names editor (docs/features/puzzle-names/),
+started from every name of all the puzzles (`PuzzleMergeNames`: the survivor's main title, each other main title in
+the language the reporter gave it); brand / pieces come with one-click choices from the reported puzzles where they
+differ (`merge_review_controller.js`); EAN and brand code are the union (never reduce the list). The summary above the
+button says what approving keeps, deletes and moves. Brand picker = every brand (`allIncludingUnapproved()`,
+autocomplete). Optional note → `ApprovePuzzleMergeRequest::$decisionNote`. The form (`PuzzleMergeReviewFormType`)
+posts back to the page (422 keeps what was typed) and carries every puzzle's record version - a puzzle saved in
+between refuses the merge. The approval queue's "merge" can say which language the new puzzle's name is in.
 
 ## A puzzle's history
 

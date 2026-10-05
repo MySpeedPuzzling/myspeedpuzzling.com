@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Controller\InternalApi\SubmitPuzzleChangeRequestController;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
-use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -69,13 +70,87 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
         self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
     }
 
+    public function testFilesTheOtherNamesAsTheWholeListWithTheMainTitlesLanguage(): void
+    {
+        $response = $this->controller()($this->jsonRequest([
+            'puzzleId' => PuzzleFixture::PUZZLE_1000_02,
+            'alternativeNames' => [
+                ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
+                ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
+                ['name' => ' Jardín  mágico ', 'language' => 'ES'],
+            ],
+            'nameLanguage' => null,
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+
+        $body = json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($body);
+        self::assertIsString($body['changeRequestId'] ?? null);
+        self::assertNull($body['nameLanguage']);
+        self::assertIsArray($body['alternativeNames'] ?? null);
+        self::assertSame(['name' => 'Jardín mágico', 'language' => 'es'], $body['alternativeNames'][2] ?? null);
+
+        $changeRequest = self::getContainer()->get(PuzzleChangeRequestRepository::class)->get($body['changeRequestId']);
+        self::assertSame($body['alternativeNames'], $changeRequest->proposedAlternativeNames);
+        self::assertCount(2, $changeRequest->originalAlternativeNames ?? []);
+        self::assertSame('Puzzle 7', $changeRequest->proposedName);
+    }
+
+    public function testTheMainTitlesLanguageAloneIsAProposal(): void
+    {
+        $response = $this->controller()($this->jsonRequest(['puzzleId' => PuzzleFixture::PUZZLE_1000_02, 'nameLanguage' => 'cs']));
+
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+
+        $body = json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($body);
+        self::assertSame('cs', $body['nameLanguage']);
+    }
+
+    public function testTheSameNamesInAnotherOrderAreNothingToChange(): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('Nothing to change');
+
+        $this->controller()($this->jsonRequest([
+            'puzzleId' => PuzzleFixture::PUZZLE_1000_02,
+            'alternativeNames' => [
+                ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
+                ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
+            ],
+        ]));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function invalidNames(): iterable
+    {
+        yield 'not a list' => [['alternativeNames' => ['name' => 'X']]];
+        yield 'a blank name' => [['alternativeNames' => [['name' => '  ', 'language' => 'cs']]]];
+        yield 'an unknown language' => [['alternativeNames' => [['name' => 'X', 'language' => 'xx-invalid-tag-long']]]];
+        yield 'an unknown main title language' => [['nameLanguage' => 'qqq']];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    #[DataProvider('invalidNames')]
+    public function testInvalidNamesAreRefused(array $body): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+
+        $this->controller()($this->jsonRequest(['puzzleId' => PuzzleFixture::PUZZLE_1000_02] + $body));
+    }
+
     private function controller(): SubmitPuzzleChangeRequestController
     {
         $container = self::getContainer();
 
         return new SubmitPuzzleChangeRequestController(
             $container->get(MessageBusInterface::class),
-            $container->get(GetPuzzleOverview::class),
+            $container->get(GetPuzzleRecord::class),
             $container->get(GetPendingPuzzleProposals::class),
             PlayerFixture::PLAYER_ADMIN,
         );

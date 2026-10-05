@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Admin;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\FormData\PuzzleRecordFormData;
@@ -16,6 +18,7 @@ use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -25,8 +28,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The review of a change request. A pending one is approved through a form holding the whole puzzle
- * (every field editable, the player's proposal prefilled and marked), posted back here so a refused
- * form comes back with what the reviewer typed - an uploaded photo included (FormPhotoStash).
+ * (every field editable, the player's proposal prefilled and marked, every name in the names editor), posted back
+ * here so a refused form comes back with what the reviewer typed - an uploaded photo included (FormPhotoStash).
+ *
+ * The reviewer's other names are applied as a diff against the ones the review was loaded with (the puzzle's names
+ * now - the record version the form carries refuses the save when they changed since the page was rendered).
  */
 final class PuzzleChangeRequestDetailController extends AbstractController
 {
@@ -82,18 +88,24 @@ final class PuzzleChangeRequestDetailController extends AbstractController
                     reviewerId: $player->playerId,
                     reviewed: $data->toValues(),
                     decisionNote: $data->note,
+                    reviewedFrom: $changeRequest->puzzleAlternativeNames,
                 ));
+
+                $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
+                $this->addFlash('success', $this->translator->trans('admin.puzzle_change_request.approved'));
+
+                return $this->redirectToRoute('admin_puzzle_change_requests');
             } catch (PuzzleChangeRequestAlreadyReviewed) {
                 $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
                 $this->addFlash('warning', $this->translator->trans('admin.puzzle_change_request.already_reviewed'));
 
                 return $this->redirectToRoute('admin_puzzle_change_request_detail', ['id' => $id]);
+            } catch (PuzzleChangedMeanwhile) {
+                // The form keeps what was typed - and the version it was loaded with, so it stays refused until reloaded
+                $form->addError(new FormError($this->translator->trans('puzzle_names.record_changed_meanwhile')));
+            } catch (InvalidPuzzleValues $exception) {
+                $form->addError(new FormError($exception->getMessage()));
             }
-
-            $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
-            $this->addFlash('success', $this->translator->trans('admin.puzzle_change_request.approved'));
-
-            return $this->redirectToRoute('admin_puzzle_change_requests');
         }
 
         return $this->render('admin/puzzle_change_request_detail.html.twig', [

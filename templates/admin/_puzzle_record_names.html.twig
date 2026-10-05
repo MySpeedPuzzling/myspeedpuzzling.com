@@ -5,20 +5,63 @@
 
     Required variables: names (the form's PuzzleNamesType child), current (the names now - {name, nameLanguage,
     alternativeNames: [{name, language}]})
+    Optional variables: proposed (the review of a change request: the names the editor starts with - the puzzle's now
+    with the proposal applied, same shape as current) and proposed_changes (what the player proposed, one line each:
+    {kind: main_title | main_title_language | added | changed | removed, before, after})
 #}
-<div class="border rounded-3 p-3 mb-3 shadow-sm"
+{% set proposed = proposed|default(null) %}
+{% set proposed_changes = proposed_changes|default([]) %}
+{% set change_badges = {
+    main_title: ['Main title changed', 'bg-warning text-dark'],
+    main_title_language: ['Main title language', 'bg-warning text-dark'],
+    added: ['Added', 'bg-success'],
+    changed: ['Changed', 'bg-warning text-dark'],
+    removed: ['Removed', 'bg-danger'],
+} %}
+
+<div class="border rounded-3 p-3 mb-3 shadow-sm {{ proposed is not null ? 'border-2 border-warning' : '' }}"
      data-puzzle-record-target="field"
      data-names
      data-label="Names"
-     data-current="{{ current|json_encode }}">
+     data-current="{{ current|json_encode }}"
+     {% if proposed is not null %}data-proposed="{{ proposed|json_encode }}"{% endif %}>
     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
         <span class="form-label fw-semibold mb-0">Names</span>
-        <span class="badge d-none" data-role="badge"></span>
+        <span class="badge {{ proposed is not null ? 'bg-warning text-dark' : 'd-none' }}" data-role="badge">{{ proposed is not null ? 'Proposed' }}</span>
     </div>
+
+    {% if proposed_changes is not empty %}
+        <div class="small mb-3">
+            <div class="text-muted mb-1">Proposed by the player - already in the names below:</div>
+            <ul class="list-unstyled mb-0 d-grid gap-1" data-role="proposed-value">
+                {% for change in proposed_changes %}
+                    <li class="d-flex flex-wrap align-items-baseline gap-1 text-break">
+                        <span class="badge {{ change_badges[change.kind][1] }}">{{ change_badges[change.kind][0] }}</span>
+                        {% if change.before is not null %}
+                            <span class="{{ change.kind == 'removed' ? 'text-decoration-line-through' : 'text-muted' }}">{{ change.before }}</span>
+                        {% elseif change.kind == 'main_title_language' %}
+                            <span class="text-muted fst-italic">English, or not known</span>
+                        {% endif %}
+                        {% if change.kind != 'removed' and change.kind != 'added' %}<span class="text-muted" aria-hidden="true">&rarr;</span>{% endif %}
+                        {% if change.after is not null %}
+                            <span class="fw-semibold">{{ change.after }}</span>
+                        {% elseif change.kind == 'main_title_language' %}
+                            <span class="fw-semibold fst-italic">English, or not known</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
 
     {{ include('puzzle/_names_editor.html.twig', {names: names}) }}
 
     <div class="d-flex flex-wrap gap-3 mt-2">
-        <button type="button" class="btn btn-link btn-sm p-0 d-none" data-role="use-current" data-action="puzzle-record#useCurrent">Undo my edit</button>
+        {% if proposed is not null %}
+            <button type="button" class="btn btn-link btn-sm p-0 d-none" data-role="use-proposed" data-action="puzzle-record#useProposed">Use proposed</button>
+        {% endif %}
+        <button type="button" class="btn btn-link btn-sm p-0 {{ proposed is not null ? '' : 'd-none' }}" data-role="use-current" data-action="puzzle-record#useCurrent">
+            {{- proposed is not null ? 'Keep current' : 'Undo my edit' -}}
+        </button>
     </div>
 </div>

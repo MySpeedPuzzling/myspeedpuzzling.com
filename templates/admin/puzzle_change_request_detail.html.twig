@@ -8,9 +8,6 @@
     {% set pending = form is not null %}
 
     {% set fields = [] %}
-    {% if request.hasNameChange() %}
-        {% set fields = fields|merge([{key: 'name', label: 'Name', original: request.originalName, proposed: request.proposedName}]) %}
-    {% endif %}
     {% if request.hasManufacturerChange() %}
         {% set fields = fields|merge([{key: 'manufacturer', label: 'Manufacturer', original: request.originalManufacturerName, proposed: request.proposedManufacturerName}]) %}
     {% endif %}
@@ -63,6 +60,28 @@
                 {{ include('admin/_puzzle_change_request_review.html.twig') }}
             {% else %}
                 <h2 class="h5 mb-3">Proposed Changes</h2>
+
+                {% set name_changes = request.proposedNameChanges() %}
+                {% if name_changes is not empty %}
+                    {% set name_change_labels = {main_title: 'Main title', main_title_language: 'Main title language', added: 'Added', changed: 'Changed', removed: 'Removed'} %}
+                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
+                        <div class="fw-semibold mb-2">Names</div>
+                        <ul class="list-unstyled mb-0 d-grid gap-2">
+                            {% for change in name_changes %}
+                                <li class="d-flex flex-wrap align-items-baseline gap-1 text-break">
+                                    <span class="badge bg-secondary">{{ name_change_labels[change.kind] }}</span>
+                                    {% if change.kind != 'added' %}
+                                        <span class="{{ change.kind == 'removed' ? 'text-decoration-line-through' : 'text-muted' }}">{{ change.before ?? 'English, or not known' }}</span>
+                                    {% endif %}
+                                    {% if change.kind != 'added' and change.kind != 'removed' %}<span class="text-muted" aria-hidden="true">&rarr;</span>{% endif %}
+                                    {% if change.kind != 'removed' %}
+                                        <span class="bg-warning bg-opacity-10 rounded px-2 fw-semibold">{{ change.after ?? 'English, or not known' }}</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
 
                 {% for field in fields %}
                     <div class="border rounded-3 p-3 mb-3 shadow-sm">

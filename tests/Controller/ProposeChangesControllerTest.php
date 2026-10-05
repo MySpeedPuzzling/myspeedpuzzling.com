@@ -40,6 +40,66 @@ final class ProposeChangesControllerTest extends WebTestCase
         self::assertSame(1, $this->changeRequestCount());
     }
 
+    public function testTheNamesEditorProposesNamesAndTheMainTitlesLanguage(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $url = '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02 . '/suggest-change';
+
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('form[name="propose_puzzle_changes_form"] [data-controller="names-editor"]');
+
+        $form = $crawler->filter('form[name="propose_puzzle_changes_form"]')->form();
+        self::assertSame('Puzzle 7', $form->getValues()['propose_puzzle_changes_form[names][name]']);
+        self::assertSame('de', $form->getValues()['propose_puzzle_changes_form[names][alternativeNames][1][language]']);
+
+        // What the editor sends after "+ Add a name" and the German name removed
+        $values = $form->getPhpValues();
+        self::assertIsArray($values['propose_puzzle_changes_form']);
+        $values['propose_puzzle_changes_form']['names'] = [
+            'name' => 'Puzzle 7',
+            'nameLanguage' => '',
+            'alternativeNames' => [
+                ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
+                ['name' => 'Jardín mágico', 'language' => 'es'],
+            ],
+        ];
+        $browser->request('POST', $url, $values);
+
+        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02);
+
+        $row = self::getContainer()->get(Connection::class)->fetchAssociative(
+            'SELECT proposed_name, proposed_alternative_names, proposed_name_language FROM puzzle_change_request WHERE puzzle_id = :puzzleId',
+            ['puzzleId' => PuzzleFixture::PUZZLE_1000_02],
+        );
+        self::assertIsArray($row);
+        self::assertSame('Puzzle 7', $row['proposed_name']);
+        self::assertNull($row['proposed_name_language']);
+        self::assertIsString($row['proposed_alternative_names']);
+        self::assertSame([
+            ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
+            ['name' => 'Jardín mágico', 'language' => 'es'],
+        ], json_decode($row['proposed_alternative_names'], true));
+    }
+
+    public function testTheNamesAsTheyAreProposeNothing(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $url = '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02 . '/suggest-change';
+
+        $crawler = $browser->request('GET', $url);
+        $browser->submit($crawler->filter('form[name="propose_puzzle_changes_form"]')->form());
+
+        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_02);
+        $count = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT count(*) FROM puzzle_change_request WHERE puzzle_id = :puzzleId',
+            ['puzzleId' => PuzzleFixture::PUZZLE_1000_02],
+        );
+        self::assertSame(0, $count);
+    }
+
     private function submit(KernelBrowser $browser, string $ean, null|string $name = null): Crawler
     {
         $crawler = $browser->request('GET', self::URL);
@@ -49,7 +109,7 @@ final class ProposeChangesControllerTest extends WebTestCase
         $form['propose_puzzle_changes_form[ean]'] = $ean;
 
         if ($name !== null) {
-            $form['propose_puzzle_changes_form[name]'] = $name;
+            $form['propose_puzzle_changes_form[names][name]'] = $name;
         }
 
         return $browser->submit($form);

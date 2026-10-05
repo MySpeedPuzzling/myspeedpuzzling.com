@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Value\LanguageTag;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -71,12 +72,19 @@ readonly final class SubmitPuzzleChangeRequestHandler
             proposedIdentificationNumber: $message->proposedIdentificationNumber,
             proposedImage: $proposedImagePath,
             proposedImageRatio: $proposedImageRatio,
+            // Stored as the puzzle would keep them next to the proposed main title (PuzzleNames::cleanedFor())
+            proposedAlternativeNames: $message->proposedAlternativeNames?->cleanedFor($message->proposedName)->toArray(),
+            proposedNameLanguage: $message->proposedAlternativeNames !== null && $message->proposedNameLanguage !== null
+                ? LanguageTag::normalize($message->proposedNameLanguage)
+                : null,
             originalName: $puzzle->name,
             originalManufacturerId: $puzzle->manufacturer?->id,
             originalPiecesCount: $puzzle->piecesCount,
             originalEan: $puzzle->ean,
             originalIdentificationNumber: $puzzle->identificationNumber,
             originalImage: $puzzle->image,
+            originalAlternativeNames: $puzzle->alternativeNames,
+            originalNameLanguage: $puzzle->nameLanguage,
         );
 
         $this->entityManager->persist($changeRequest);

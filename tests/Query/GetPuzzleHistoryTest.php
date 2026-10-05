@@ -8,6 +8,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\EditPuzzle;
+use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
+use SpeedPuzzling\Web\Message\SuggestPuzzleName;
 use SpeedPuzzling\Web\Query\GetPuzzleHistory;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\PuzzleHistoryChange;
@@ -175,6 +177,49 @@ final class GetPuzzleHistoryTest extends KernelTestCase
         // Neither shape recorded, or a broken value: left out, never a crash
         self::assertSame([], PuzzleHistoryChange::between(['name' => 'A'], ['name' => 'A']));
         self::assertSame([], PuzzleHistoryChange::between(['alternativeNames' => 'broken'], ['alternativeNames' => null]));
+    }
+
+    public function testARejectedNamesSuggestionShowsTheNamesItProposed(): void
+    {
+        $suggestionId = Uuid::uuid7()->toString();
+        $this->messageBus->dispatch(new SuggestPuzzleName(
+            suggestionId: $suggestionId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            playerId: PlayerFixture::PLAYER_REGULAR,
+            name: 'Jardín mágico',
+            language: 'es',
+        ));
+        $this->messageBus->dispatch(new RejectPuzzleChangeRequest(
+            changeRequestId: $suggestionId,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            rejectionReason: 'Not on any box',
+        ));
+
+        $entries = $this->getPuzzleHistory->forPuzzle(PuzzleFixture::PUZZLE_1000_02);
+
+        self::assertSame(PuzzleHistoryEntryKind::ChangeRequestRejected, $entries[0]->kind);
+        self::assertEquals([new PuzzleHistoryChange(
+            'Other names',
+            PuzzleFixture::NAME_CS_MAGIC_GARDEN . ' (cs), ' . PuzzleFixture::NAME_DE_MAGIC_GARDEN . ' (de)',
+            PuzzleFixture::NAME_CS_MAGIC_GARDEN . ' (cs), ' . PuzzleFixture::NAME_DE_MAGIC_GARDEN . ' (de), Jardín mágico (es)',
+        )], $entries[0]->proposal);
+    }
+
+    public function testAModeratorsSuggestedNameIsTheirDirectEdit(): void
+    {
+        $this->messageBus->dispatch(new SuggestPuzzleName(
+            suggestionId: Uuid::uuid7()->toString(),
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            playerId: PlayerFixture::PLAYER_ADMIN,
+            name: 'Jardín mágico',
+            language: 'es',
+        ));
+
+        $entries = $this->getPuzzleHistory->forPuzzle(PuzzleFixture::PUZZLE_1000_02);
+
+        self::assertSame(PuzzleHistoryEntryKind::Edited, $entries[0]->kind);
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $entries[0]->byId);
+        self::assertSame(['Other names'], array_map(static fn (PuzzleHistoryChange $change): string => $change->label, $entries[0]->changes));
     }
 
     public function testAnUnknownPuzzleHasNoHistory(): void

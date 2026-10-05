@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\FormData;
 
 use SpeedPuzzling\Web\FormData\ProposePuzzleChangesFormData;
+use SpeedPuzzling\Web\FormData\PuzzleNamesFormData;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -37,10 +39,18 @@ final class ProposePuzzleChangesFormDataTest extends KernelTestCase
         self::assertSame([], $this->violations($data));
     }
 
+    public function testTheNamesAreValidatedWithTheForm(): void
+    {
+        $data = $this->formData(ean: '4005555011897', currentEan: null);
+        $data->names->name = ' ';
+
+        self::assertSame(['names.name' => ['The puzzle needs a main title.']], $this->violations($data));
+    }
+
     private function formData(string $ean, null|string $currentEan): ProposePuzzleChangesFormData
     {
         $data = new ProposePuzzleChangesFormData();
-        $data->name = 'Pets of Palm Springs';
+        $data->names = PuzzleNamesFormData::fromNames('Pets of Palm Springs', null, new PuzzleNames());
         $data->piecesCount = 500;
         $data->ean = $ean;
         $data->currentEan = $currentEan;

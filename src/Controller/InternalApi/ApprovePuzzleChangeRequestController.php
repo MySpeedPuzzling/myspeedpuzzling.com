@@ -22,10 +22,14 @@ use Symfony\Component\Routing\Requirement\Requirement;
  * `selectedFields` as proposed - the rest of the puzzle stays as it is. An empty list
  * approves a proposal that is already satisfied (e.g. a brand fix a brand merge made) without
  * touching the puzzle. The player who proposed it is notified either way.
+ *
+ * `alternativeNames` and `nameLanguage` in the body correct the proposal before it is applied (a selected field
+ * only): the other names as they should end up and the main title's language. The other names are applied as a
+ * diff against the list when the request was filed, like the proposal itself.
  */
 final class ApprovePuzzleChangeRequestController extends AbstractController
 {
-    private const array FIELDS = ['name', 'manufacturer', 'piecesCount', 'ean', 'identificationNumber', 'image'];
+    private const array FIELDS = ['name', 'nameLanguage', 'alternativeNames', 'manufacturer', 'piecesCount', 'ean', 'identificationNumber', 'image'];
 
     public function __construct(
         private readonly MessageBusInterface $messageBus,
@@ -68,6 +72,15 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
             }
         }
 
+        $alternativeNames = InternalApiJsonBody::optionalPuzzleNames($body, 'alternativeNames');
+        $nameLanguage = InternalApiJsonBody::optionalLanguageTag($body, 'nameLanguage');
+
+        foreach (['alternativeNames' => $alternativeNames !== null, 'nameLanguage' => $nameLanguage !== false] as $field => $given) {
+            if ($given && in_array($field, $selectedFields, true) === false) {
+                throw new BadRequestHttpException(sprintf('"%s" corrects a selected field only - add it to "selectedFields".', $field));
+            }
+        }
+
         $puzzleId = $this->getPuzzleChangeRequests->puzzleIdOf($changeRequestId) ?? throw new PuzzleChangeRequestNotFound();
 
         $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
@@ -77,6 +90,8 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
             selectedFields: array_values(array_unique($selectedFields)),
             decisionSource: MergeDecisionSource::InternalApi,
             decisionNote: InternalApiJsonBody::optionalString($body, 'decisionNote'),
+            alternativeNamesOverride: $alternativeNames,
+            nameLanguageOverride: $nameLanguage,
         ));
 
         return new Response(null, Response::HTTP_NO_CONTENT);

@@ -10,9 +10,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
+use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Tests\ChangesPuzzleRecords;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -30,6 +33,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
 {
+    use ChangesPuzzleRecords;
+
     private MessageBusInterface $messageBus;
     private PuzzleChangeRequestRepository $changeRequestRepository;
     private PuzzleRepository $puzzleRepository;
@@ -355,5 +360,158 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
             puzzleId: PuzzleFixture::PUZZLE_500_02,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
         ));
+    }
+
+    public function testTheProposedNamesAreAppliedAsADiffOntoTheNamesAsTheyAreNow(): void
+    {
+        // Proposed: the German name removed, a Spanish one added, the main title in Czech
+        $changeRequestId = $this->proposeNames(new PuzzleNames([
+            new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
+            new PuzzleName('Jardín mágico', 'es'),
+        ]), nameLanguage: 'cs');
+
+        // Meanwhile somebody added an Italian name
+        self::renamePuzzle(PuzzleFixture::PUZZLE_1000_02, 'Puzzle 7', new PuzzleNames([
+            new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
+            new PuzzleName(PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'de'),
+            new PuzzleName('Giardino magico', 'it'),
+        ]));
+
+        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+            changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            selectedFields: ['alternativeNames', 'nameLanguage'],
+            decisionSource: MergeDecisionSource::InternalApi,
+        ));
+
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
+        self::assertSame([
+            ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
+            ['name' => 'Giardino magico', 'language' => 'it'],
+            ['name' => 'Jardín mágico', 'language' => 'es'],
+        ], $puzzle->alternativeNames);
+        self::assertSame('cs', $puzzle->nameLanguage);
+    }
+
+    public function testNamesNotSelectedStayAsTheyAre(): void
+    {
+        $changeRequestId = $this->proposeNames(new PuzzleNames([new PuzzleName('Jardín mágico', 'es')]), nameLanguage: 'cs');
+
+        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+            changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            selectedFields: [],
+        ));
+
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
+        self::assertCount(2, $puzzle->alternativeNames);
+        self::assertNull($puzzle->nameLanguage);
+    }
+
+    public function testTheInternalApiCorrectsTheProposedNamesBeforeTheyAreApplied(): void
+    {
+        $changeRequestId = $this->proposeNames(new PuzzleNames([
+            new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
+            new PuzzleName(PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'de'),
+            new PuzzleName('Jardin magico', null),
+        ]), nameLanguage: null);
+
+        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+            changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            selectedFields: ['alternativeNames', 'nameLanguage'],
+            decisionSource: MergeDecisionSource::InternalApi,
+            alternativeNamesOverride: new PuzzleNames([
+                new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
+                new PuzzleName(PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'de'),
+                new PuzzleName('Jardín mágico', 'es'),
+            ]),
+            nameLanguageOverride: null,
+        ));
+
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
+        self::assertSame(['name' => 'Jardín mágico', 'language' => 'es'], $puzzle->alternativeNames[2] ?? null);
+
+        $decision = $entityManager->getRepository(PuzzleModerationDecision::class)->findOneBy([
+            'action' => PuzzleModerationAction::ChangeRequestApproved,
+            'changeRequestId' => Uuid::fromString($changeRequestId),
+        ]);
+        self::assertNotNull($decision);
+        $overrides = $decision->details['overrides'] ?? null;
+        self::assertIsArray($overrides);
+        self::assertArrayHasKey('nameLanguage', $overrides);
+        self::assertNull($overrides['nameLanguage']);
+    }
+
+    public function testTheReviewsNamesAreADiffAgainstTheNamesItWasLoadedWith(): void
+    {
+        $changeRequestId = $this->proposeNames(new PuzzleNames([new PuzzleName('Jardín mágico', 'es')]), nameLanguage: null);
+        $loadedWith = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->alternativeNames();
+
+        // Saved by somebody else after the review was loaded (a form without the record version)
+        self::renamePuzzle(PuzzleFixture::PUZZLE_1000_02, 'Puzzle 7', new PuzzleNames([
+            new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
+            new PuzzleName(PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'de'),
+            new PuzzleName('Giardino magico', 'it'),
+        ]));
+
+        // The reviewer keeps the proposed name and re-tags the German one
+        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+            changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            reviewed: new PuzzleRecordValues(
+                name: 'Puzzle 7',
+                nameLanguage: null,
+                alternativeNames: new PuzzleNames([
+                    new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
+                    new PuzzleName(PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'de-AT'),
+                    new PuzzleName('Jardín mágico', 'es'),
+                ]),
+                manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
+                piecesCount: 1000,
+                ean: null,
+                identificationNumber: null,
+            ),
+            reviewedFrom: $loadedWith,
+        ));
+
+        self::assertSame([
+            ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
+            ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de-AT'],
+            ['name' => 'Giardino magico', 'language' => 'it'],
+            ['name' => 'Jardín mágico', 'language' => 'es'],
+        ], $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->alternativeNames);
+    }
+
+    /**
+     * A names-only proposal for PUZZLE_1000_02 (main title "Puzzle 7", Czech and German names)
+     */
+    private function proposeNames(PuzzleNames $alternativeNames, null|string $nameLanguage): string
+    {
+        $changeRequestId = Uuid::uuid7()->toString();
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02);
+
+        $this->messageBus->dispatch(new SubmitPuzzleChangeRequest(
+            changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            proposedName: $puzzle->name,
+            proposedManufacturerId: $puzzle->manufacturer?->id->toString(),
+            proposedPiecesCount: $puzzle->piecesCount,
+            proposedEan: $puzzle->ean,
+            proposedIdentificationNumber: $puzzle->identificationNumber,
+            proposedPhoto: null,
+            proposedAlternativeNames: $alternativeNames,
+            proposedNameLanguage: $nameLanguage,
+        ));
+
+        return $changeRequestId;
     }
 }

@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\SuggestPuzzleName;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class GetPendingPuzzleProposalsTest extends KernelTestCase
 {
@@ -25,6 +29,22 @@ final class GetPendingPuzzleProposalsTest extends KernelTestCase
         $proposals = $this->query->forPuzzle(PuzzleFixture::PUZZLE_500_01);
 
         self::assertNotEmpty($proposals);
+    }
+
+    public function testANamesSuggestionIsSummedUpAsOtherNames(): void
+    {
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new SuggestPuzzleName(
+            suggestionId: Uuid::uuid7()->toString(),
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            playerId: PlayerFixture::PLAYER_REGULAR,
+            name: 'Jardín mágico',
+            language: 'es',
+        ));
+
+        $proposals = $this->query->forPuzzle(PuzzleFixture::PUZZLE_1000_02);
+
+        self::assertCount(1, $proposals);
+        self::assertSame('Other names', $proposals[0]->summary);
     }
 
     public function testForPuzzleWithMergeRequestFetchesPuzzleDetails(): void

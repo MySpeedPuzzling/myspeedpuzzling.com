@@ -1,23 +1,11 @@
 {#
-    The review form of a pending change request: the whole puzzle, every field editable.
-    The player's proposal is prefilled and marked; puzzle_record_controller.js marks every field by what
+    The review form of a pending change request: the whole puzzle, every field editable, every name in the names
+    editor. The player's proposal is prefilled and marked; puzzle_record_controller.js marks every field by what
     approving does with it (proposed / your edit / keeping current) and sums it up above the approve button,
-    so the reviewer's own edits never get mixed up with the proposal.
+    so the reviewer's own edits never get mixed up with the proposal. The names start as the puzzle's now with the
+    proposal applied; what the player proposed is listed above them (added / changed / removed).
 #}
 {% set review_fields = [
-    {
-        label: 'Name', widget: form.name, help: null,
-        proposed: request.hasNameChange(),
-        current: request.puzzleName, currentValue: request.puzzleName,
-        proposedShown: request.proposedName, proposedValue: request.proposedName,
-        original: request.originalName, originalDiffers: request.originalName != request.puzzleName,
-    },
-    {
-        label: 'Alternative name', widget: form.alternativeName, help: null,
-        proposed: false,
-        current: request.puzzleAlternativeNames.legacyAlternativeName(), currentValue: request.puzzleAlternativeNames.legacyAlternativeName(),
-        proposedShown: null, proposedValue: null, original: null, originalDiffers: false,
-    },
     {
         label: 'Brand', widget: form.manufacturerId, help: null,
         proposed: request.hasManufacturerChange(),
@@ -50,7 +38,7 @@
 
 {{ form_start(form, {attr: {
     'data-controller': 'puzzle-record',
-    'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update',
+    'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update names-editor:change->puzzle-record#update',
     'data-puzzle-record-proposed-label-value': 'Proposed',
     'data-puzzle-record-edit-label-value': 'Your edit',
     'data-puzzle-record-kept-label-value': 'Keeping current',
@@ -67,6 +55,16 @@
         <span class="badge bg-accent">Your edit</span>.
     </p>
 
+    {{ include('admin/_puzzle_record_names.html.twig', {
+        names: form.names,
+        current: {name: request.puzzleName, nameLanguage: request.puzzleNameLanguage, alternativeNames: request.puzzleAlternativeNames.toArray()},
+        proposed: request.hasNamesProposal() ? {
+            name: request.hasNameChange() ? request.proposedName : request.puzzleName,
+            nameLanguage: request.reviewNameLanguage(),
+            alternativeNames: request.reviewAlternativeNames().toArray(),
+        } : null,
+        proposed_changes: request.proposedNameChanges(),
+    }) }}
     {{ include('admin/_puzzle_record_fields.html.twig', {fields: review_fields}) }}
     {{ include('admin/_puzzle_record_image.html.twig', {
         current_image: request.puzzleImage,

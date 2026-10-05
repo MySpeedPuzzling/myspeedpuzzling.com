@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\PuzzleReport;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\FormData\ProposePuzzleChangesFormData;
+use SpeedPuzzling\Web\FormData\PuzzleNamesFormData;
 use SpeedPuzzling\Web\FormData\ReportDuplicatePuzzleFormData;
 use SpeedPuzzling\Web\FormType\ProposePuzzleChangesFormType;
 use SpeedPuzzling\Web\FormType\ReportDuplicatePuzzleFormType;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,6 +33,7 @@ final class ProposeChangesController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
         private readonly GetPendingPuzzleProposals $getPendingPuzzleProposals,
+        private readonly GetPuzzleRecord $getPuzzleRecord,
     ) {
     }
 
@@ -72,9 +76,12 @@ final class ProposeChangesController extends AbstractController
             return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
         }
 
+        // Every name with its language - the overview has the names, not the main title's language
+        $record = $this->getPuzzleRecord->byId($puzzleId) ?? throw new PuzzleNotFound();
+
         // Pre-populate propose changes form with existing values
         $proposeFormData = new ProposePuzzleChangesFormData();
-        $proposeFormData->name = $puzzle->puzzleName;
+        $proposeFormData->names = PuzzleNamesFormData::fromNames($record->name, $record->nameLanguage, $record->alternativeNames);
         $proposeFormData->manufacturerId = $puzzle->manufacturerId;
         $proposeFormData->piecesCount = $puzzle->piecesCount;
         $proposeFormData->ean = $puzzle->puzzleEan;
@@ -95,8 +102,15 @@ final class ProposeChangesController extends AbstractController
             /** @var ProposePuzzleChangesFormData $formData */
             $formData = $proposeForm->getData();
 
+            $proposedName = $formData->names->mainTitle();
+
+            // The other names as the puzzle would keep them next to the proposed main title, and its language
+            $namesChanged = $formData->names->nameLanguage !== $record->nameLanguage
+                || $formData->names->toPuzzleNames()->cleanedFor($proposedName)->diff($record->alternativeNames)->isEmpty() === false;
+
             // Check if any values actually changed
-            $hasChanges = $formData->name !== $puzzle->puzzleName
+            $hasChanges = $proposedName !== $record->name
+                || $namesChanged
                 || $formData->manufacturerId !== $puzzle->manufacturerId
                 || $formData->piecesCount !== $puzzle->piecesCount
                 || $formData->ean !== $puzzle->puzzleEan
@@ -127,12 +141,14 @@ final class ProposeChangesController extends AbstractController
                 changeRequestId: $changeRequestId,
                 puzzleId: $puzzleId,
                 reporterId: $loggedPlayer->playerId,
-                proposedName: $formData->name,
+                proposedName: $proposedName,
                 proposedManufacturerId: $formData->manufacturerId,
                 proposedPiecesCount: $formData->piecesCount,
                 proposedEan: $formData->ean,
                 proposedIdentificationNumber: $formData->identificationNumber,
                 proposedPhoto: $formData->photo,
+                proposedAlternativeNames: $namesChanged ? $formData->names->toPuzzleNames() : null,
+                proposedNameLanguage: $formData->names->nameLanguage,
             ));
 
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {

@@ -11,6 +11,8 @@ use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -140,5 +142,67 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
         self::assertNull($changeRequest->proposedManufacturer);
         self::assertNull($changeRequest->proposedEan);
         self::assertNull($changeRequest->proposedIdentificationNumber);
+    }
+
+    public function testProposedNamesAreKeptAsThePuzzleWouldStoreThemWithTheNamesWhenProposed(): void
+    {
+        $changeRequestId = Uuid::uuid7()->toString();
+
+        $this->messageBus->dispatch(new SubmitPuzzleChangeRequest(
+            changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            proposedName: 'Magic Garden',
+            proposedManufacturerId: null,
+            proposedPiecesCount: 1000,
+            proposedEan: null,
+            proposedIdentificationNumber: null,
+            proposedPhoto: null,
+            proposedAlternativeNames: new PuzzleNames([
+                new PuzzleName('  Puzzle   7 ', null),
+                new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'CS'),
+                // The proposed main title again - dropped like the puzzle drops it
+                new PuzzleName('magic garden', 'en'),
+            ]),
+            proposedNameLanguage: null,
+        ));
+
+        $changeRequest = $this->changeRequestRepository->get($changeRequestId);
+
+        self::assertSame([
+            ['name' => 'Puzzle 7', 'language' => null],
+            ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
+        ], $changeRequest->proposedAlternativeNames);
+        self::assertNull($changeRequest->proposedNameLanguage);
+        self::assertSame([
+            ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
+            ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
+        ], $changeRequest->originalAlternativeNames);
+        self::assertNull($changeRequest->originalNameLanguage);
+    }
+
+    public function testWithoutProposedNamesTheNamesAreNoPartOfTheProposal(): void
+    {
+        $changeRequestId = Uuid::uuid7()->toString();
+
+        $this->messageBus->dispatch(new SubmitPuzzleChangeRequest(
+            changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            proposedName: 'Puzzle 7',
+            proposedManufacturerId: null,
+            proposedPiecesCount: 1500,
+            proposedEan: null,
+            proposedIdentificationNumber: null,
+            proposedPhoto: null,
+            proposedNameLanguage: 'cs',
+        ));
+
+        $changeRequest = $this->changeRequestRepository->get($changeRequestId);
+
+        self::assertNull($changeRequest->proposedAlternativeNames);
+        self::assertNull($changeRequest->proposedNameLanguage);
+        self::assertCount(2, $changeRequest->originalAlternativeNames ?? []);
+        self::assertTrue($changeRequest->proposedNamesDiff()->isEmpty());
     }
 }

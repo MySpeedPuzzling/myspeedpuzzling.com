@@ -12,14 +12,15 @@ use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\Range;
+use Symfony\Component\Validator\Constraints\Valid;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[Callback('validateEan')]
 final class ProposePuzzleChangesFormData
 {
-    #[NotBlank]
-    #[Length(max: 255)]
-    public string $name = '';
+    // Every name - the main title, its language and the other names (the names editor)
+    #[Valid]
+    public PuzzleNamesFormData $names;
 
     public null|string $manufacturerId = null;
 
@@ -45,6 +46,11 @@ final class ProposePuzzleChangesFormData
         mimeTypesMessage: 'Please upload a valid image (JPEG, PNG, or WebP, up to 20 MB).'
     )]
     public null|UploadedFile $photo = null;
+
+    public function __construct()
+    {
+        $this->names = new PuzzleNamesFormData();
+    }
 
     public function validateEan(ExecutionContextInterface $context): void
     {

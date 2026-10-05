@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PuzzleName;
+use SpeedPuzzling\Web\Value\PuzzleNameLanguageChoices;
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleNamesDiff;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
@@ -43,6 +46,10 @@ readonly final class PuzzleChangeRequestOverview
         public null|string $proposedEan,
         public null|string $proposedIdentificationNumber,
         public null|string $proposedImage,
+        // The other names as proposed - null = the names are not part of the proposal
+        public null|PuzzleNames $proposedAlternativeNames,
+        // The main title's language as proposed, together with the other names only
+        public null|string $proposedNameLanguage,
         public null|string $originalName,
         public null|string $originalManufacturerId,
         public null|string $originalManufacturerName,
@@ -50,6 +57,9 @@ readonly final class PuzzleChangeRequestOverview
         public null|string $originalEan,
         public null|string $originalIdentificationNumber,
         public null|string $originalImage,
+        // Null on requests older than the names list
+        public null|PuzzleNames $originalAlternativeNames,
+        public null|string $originalNameLanguage,
     ) {
     }
 
@@ -120,6 +130,8 @@ readonly final class PuzzleChangeRequestOverview
             proposedEan: is_string($row['proposed_ean']) ? $row['proposed_ean'] : null,
             proposedIdentificationNumber: is_string($row['proposed_identification_number']) ? $row['proposed_identification_number'] : null,
             proposedImage: is_string($row['proposed_image']) ? $row['proposed_image'] : null,
+            proposedAlternativeNames: is_string($row['proposed_alternative_names'] ?? null) ? PuzzleNames::fromJson($row['proposed_alternative_names']) : null,
+            proposedNameLanguage: is_string($row['proposed_name_language'] ?? null) ? $row['proposed_name_language'] : null,
             originalName: is_string($row['original_name']) ? $row['original_name'] : null,
             originalManufacturerId: is_string($row['original_manufacturer_id']) ? $row['original_manufacturer_id'] : null,
             originalManufacturerName: is_string($row['original_manufacturer_name']) ? $row['original_manufacturer_name'] : null,
@@ -127,12 +139,99 @@ readonly final class PuzzleChangeRequestOverview
             originalEan: is_string($row['original_ean']) ? $row['original_ean'] : null,
             originalIdentificationNumber: is_string($row['original_identification_number']) ? $row['original_identification_number'] : null,
             originalImage: is_string($row['original_image']) ? $row['original_image'] : null,
+            originalAlternativeNames: is_string($row['original_alternative_names'] ?? null) ? PuzzleNames::fromJson($row['original_alternative_names']) : null,
+            originalNameLanguage: is_string($row['original_name_language'] ?? null) ? $row['original_name_language'] : null,
         );
     }
 
     public function hasNameChange(): bool
     {
         return $this->proposedName !== null && $this->proposedName !== $this->originalName;
+    }
+
+    /**
+     * What the proposal does to the other names (PuzzleNames::diff() of the proposed list against the list when
+     * proposed) - empty when it proposes none.
+     */
+    public function proposedNamesDiff(): PuzzleNamesDiff
+    {
+        if ($this->proposedAlternativeNames === null) {
+            return new PuzzleNamesDiff([], [], []);
+        }
+
+        return $this->proposedAlternativeNames->diff($this->originalAlternativeNames ?? new PuzzleNames());
+    }
+
+    public function hasAlternativeNamesChange(): bool
+    {
+        return $this->proposedNamesDiff()->isEmpty() === false;
+    }
+
+    public function hasNameLanguageChange(): bool
+    {
+        return $this->proposedAlternativeNames !== null && $this->proposedNameLanguage !== $this->originalNameLanguage;
+    }
+
+    /**
+     * The other names the review starts from: the puzzle's names now with the proposal applied as a diff - names
+     * changed by somebody else since it was proposed stay.
+     */
+    public function reviewAlternativeNames(): PuzzleNames
+    {
+        return $this->proposedNamesDiff()->applyTo($this->puzzleAlternativeNames);
+    }
+
+    public function reviewNameLanguage(): null|string
+    {
+        return $this->hasNameLanguageChange() ? $this->proposedNameLanguage : $this->puzzleNameLanguage;
+    }
+
+    public function hasNamesProposal(): bool
+    {
+        return $this->hasNameChange() || $this->hasNameLanguageChange() || $this->hasAlternativeNamesChange();
+    }
+
+    /**
+     * What the player proposed for the names, one line each - "Kruh barev: Mušle (Czech)". The admin pages are English.
+     *
+     * @return list<array{kind: 'main_title'|'main_title_language'|'added'|'changed'|'removed', before: null|string, after: null|string}>
+     */
+    public function proposedNameChanges(): array
+    {
+        $changes = [];
+
+        if ($this->hasNameChange()) {
+            $changes[] = ['kind' => 'main_title', 'before' => $this->originalName, 'after' => $this->proposedName];
+        }
+
+        if ($this->hasNameLanguageChange()) {
+            $changes[] = [
+                'kind' => 'main_title_language',
+                'before' => $this->originalNameLanguage !== null ? PuzzleNameLanguageChoices::label($this->originalNameLanguage, 'en') : null,
+                'after' => $this->proposedNameLanguage !== null ? PuzzleNameLanguageChoices::label($this->proposedNameLanguage, 'en') : null,
+            ];
+        }
+
+        $diff = $this->proposedNamesDiff();
+
+        foreach ($diff->added as $added) {
+            $changes[] = ['kind' => 'added', 'before' => null, 'after' => self::shown($added)];
+        }
+
+        foreach ($diff->changed as $changed) {
+            $changes[] = ['kind' => 'changed', 'before' => self::shown($changed['from']), 'after' => self::shown($changed['to'])];
+        }
+
+        foreach ($diff->removed as $removed) {
+            $changes[] = ['kind' => 'removed', 'before' => self::shown($removed), 'after' => null];
+        }
+
+        return $changes;
+    }
+
+    private static function shown(PuzzleName $name): string
+    {
+        return $name->name . ($name->language !== null ? ' (' . PuzzleNameLanguageChoices::label($name->language, 'en') . ')' : '');
     }
 
     public function hasManufacturerChange(): bool
@@ -162,7 +261,7 @@ readonly final class PuzzleChangeRequestOverview
 
     public function hasAnyChange(): bool
     {
-        return $this->hasNameChange()
+        return $this->hasNamesProposal()
             || $this->hasManufacturerChange()
             || $this->hasPiecesCountChange()
             || $this->hasEanChange()

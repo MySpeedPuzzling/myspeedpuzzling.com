@@ -1,0 +1,13 @@
+{#
+    "Suggest another name" saved (SuggestPuzzleNameController): the modal closes. A player's suggestion waits for a
+    moderator - a toast says so; a moderator's name is on the puzzle - the page refreshes and shows it with the flash.
+
+    Required variables: message (the toast, null = refresh the page)
+#}
+{{ include('_modal_close_stream.html.twig') }}
+
+{% if message is not null %}
+    {{ include('_toast_stream.html.twig', {message: message}) }}
+{% else %}
+    <turbo-stream action="refresh"></turbo-stream>
+{% endif %}

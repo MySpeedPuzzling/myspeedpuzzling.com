@@ -87,30 +87,46 @@ answers `404` and files nothing.
 
 ### Puzzle change requests
 
-Players propose corrections to a puzzle ("Suggest a change": name, brand, pieces, EAN, catalogue number, photo).
+Players propose corrections to a puzzle ("Suggest a change": every name with its language, brand, pieces, EAN, catalogue
+number, photo; "Suggest another name": one more name).
 
 | Method | Path | Purpose |
 |---|---|---|
-| `POST` | `/internal-api/puzzle-change-requests` | File a proposal yourself (`201` + `{"changeRequestId"}`) |
+| `POST` | `/internal-api/puzzle-change-requests` | File a proposal yourself (`201` + `{"changeRequestId"}`, plus the names as filed) |
 | `POST` | `/internal-api/puzzle-change-requests/{id}/reject` | Decline the proposal |
 | `POST` | `/internal-api/puzzle-change-requests/{id}/approve` | Approve the proposal, applying only the fields you list |
 
-File body: `puzzleId` (required) and any of `name`, `manufacturerId`, `piecesCount`, `ean`, `identificationNumber`. **A
-field left out keeps the puzzle's current value**, so the review shows only what the proposal changes; `ean` is the whole
-comma-separated list as it should end up, and every code not already on the puzzle must be a valid EAN/UPC. The reviewer
-player is the reporter. Answers `400` for an invalid field or when nothing differs, `404` for an unknown puzzle and `409`
-when the puzzle already has a pending change or merge request (the web form allows one at a time too). No photo. Use it
-for catalogue corrections found by an analysis, so they go through moderator review instead of a database write - the
-`puzzle-change-proposal` skill wraps it.
+File body: `puzzleId` (required) and any of `name`, `nameLanguage`, `alternativeNames`, `manufacturerId`, `piecesCount`,
+`ean`, `identificationNumber`. **A field left out keeps the puzzle's current value**, so the review shows only what the
+proposal changes; `ean` is the whole comma-separated list as it should end up, and every code not already on the puzzle
+must be a valid EAN/UPC. The reviewer player is the reporter. Answers `400` for an invalid field or when nothing differs,
+`404` for an unknown puzzle and `409` when the puzzle already has a pending change or merge request (the web form allows
+one at a time too). No photo. Use it for catalogue corrections found by an analysis, so they go through moderator review
+instead of a database write - the `puzzle-change-proposal` skill wraps it.
+
+Names ([`puzzle-names/README.md`](./puzzle-names/README.md)): `name` is the main title (the English title of the box when
+it has one). `nameLanguage` is the main title's BCP 47 language when the box has no English title (`"cs"`, `"pt-BR"`;
+`null` = English or not known). `alternativeNames` is the **whole list of the other names as it should end up**, in
+order: `[{"name": "Kruh barev: Mušle", "language": "cs"}, {"name": "Seashells", "language": null}]` - re-read the
+puzzle's names first (API v1 `alternative_names`, or `puzzle.alternative_names`), then add, re-tag, edit or remove
+entries. Names are cleaned like the puzzle stores them (spaces, a name equal to the main title or to another name
+dropped); at most 20 when the list grows; an order of its own is no change. The two are proposed together: the `201`
+answer then also holds `nameLanguage` and `alternativeNames` as filed. On approval the list is applied **as a diff**
+against the names when it was filed (added, re-tagged/edited and removed names), never as a replacement - names
+somebody else changed in between stay.
 
 Reject body: `rejectionReason` (required). **It is shown to the player who proposed the change**, as a notification, so
 write it for them. Only send pending requests - like the merge-request reject, it does not check the status.
 
-Approve body: `selectedFields` (required) - the fields to apply, any of `name`, `manufacturer`, `piecesCount`, `ean`,
-`identificationNumber`, `image`, like ticking them in the admin review; `[]` approves without touching the puzzle (a
-proposal something else already satisfied, e.g. a brand fix a brand merge made). Optional `decisionNote`. The player who
-proposed it is notified, the decision is logged with `source = internal_api`. Answers `409` when the request was already
-approved or rejected - unlike reject, approve checks the status.
+Approve body: `selectedFields` (required) - the fields to apply, any of `name`, `nameLanguage`, `alternativeNames`,
+`manufacturer`, `piecesCount`, `ean`, `identificationNumber`, `image`, like ticking them in the admin review; `[]`
+approves without touching the puzzle (a proposal something else already satisfied, e.g. a brand fix a brand merge made).
+Optional `decisionNote`. Optional corrections of the proposal, each for a selected field only (`400` otherwise):
+`alternativeNames` (the list as it should end up, same shape as when filing - applied as a diff against the names when
+the request was filed, like the proposal) and `nameLanguage` (a tag or `null`); they are kept in the decision's
+`details.overrides`. The player who proposed it is notified, the decision is logged with `source = internal_api`.
+Answers `409` when the request was already approved or rejected - unlike reject, approve checks the status, and `422`
+when the result breaks a rule of the record (e.g. more than 20 other names).
 
 ### Brands
 

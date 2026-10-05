@@ -109,6 +109,8 @@ readonly final class LinkEanToPuzzleHandler
             originalEan: $originalEan,
             originalIdentificationNumber: $puzzle->identificationNumber,
             originalImage: $puzzle->image,
+            originalAlternativeNames: $puzzle->alternativeNames,
+            originalNameLanguage: $puzzle->nameLanguage,
         );
     }
 }

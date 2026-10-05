@@ -229,7 +229,9 @@ paths:
         Files the same review item a player's "Suggest a change" creates, as the reviewer
         player. A field left out keeps the puzzle's current value. `ean` is the whole
         comma-separated list as it should end up; every code not already on the puzzle
-        must be a valid EAN/UPC.
+        must be a valid EAN/UPC. `alternativeNames` is the whole list of the other names
+        as it should end up (re-read the puzzle's names first); it is proposed together
+        with `nameLanguage` and applied as a diff against the names when filed.
 
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
       requestBody:
@@ -251,6 +253,14 @@ paths:
                   changeRequestId:
                     type: string
                     format: uuid
+                  nameLanguage:
+                    type: [string, "null"]
+                    description: The main title's language as filed - only when the names are part of the proposal.
+                  alternativeNames:
+                    type: array
+                    description: The other names as filed (cleaned like the puzzle stores them) - only when the names are part of the proposal.
+                    items:
+                      $ref: "#/components/schemas/PuzzleName"
         "400":
           $ref: "#/components/responses/InvalidRequest"
         "401":
@@ -303,8 +313,11 @@ paths:
         Approves a "suggest a change" proposal, applying only the fields listed in
         `selectedFields` - like the admin review, where unticked fields stay unchanged.
         `[]` approves a proposal that is already satisfied (e.g. a brand fix a brand
-        merge made) without touching the puzzle. The player who proposed it is notified;
-        the decision is logged with `source = internal_api`.
+        merge made) without touching the puzzle. `alternativeNames` and `nameLanguage`
+        correct the proposal before it is applied (selected fields only); the other
+        names are always applied as a diff against the names when the request was filed.
+        The player who proposed it is notified; the decision is logged with
+        `source = internal_api`.
 
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
       parameters:
@@ -326,6 +339,8 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           description: The request was already approved or rejected.
+        "422":
+          description: The result breaks a rule of the record (e.g. more than 20 other names) - nothing is changed.
 
   /internal-api/manufacturers/{manufacturerId}/merge:
     post:
@@ -699,6 +714,27 @@ components:
           description: The whole comma-separated list as it should end up.
         identificationNumber:
           type: string
+        nameLanguage:
+          type: [string, "null"]
+          description: BCP 47 language of the main title when the box has no English title (`cs`, `pt-BR`); null = English or not known.
+        alternativeNames:
+          type: array
+          description: The whole list of the other names as it should end up, in order. At most 20 when it grows.
+          items:
+            $ref: "#/components/schemas/PuzzleName"
+
+    PuzzleName:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        language:
+          type: [string, "null"]
+          description: BCP 47 language tag of the box it is printed on; null = not known.
 
     PuzzleChangeApproval:
       type: object
@@ -710,10 +746,18 @@ components:
           description: Fields to apply to the puzzle; [] applies nothing. Required on purpose - never implied.
           items:
             type: string
-            enum: [name, manufacturer, piecesCount, ean, identificationNumber, image]
+            enum: [name, nameLanguage, alternativeNames, manufacturer, piecesCount, ean, identificationNumber, image]
         decisionNote:
           type: [string, "null"]
           description: Stored as the decision's note.
+        alternativeNames:
+          type: array
+          description: Corrects the proposed other names (requires `alternativeNames` in selectedFields) - the list as it should end up, applied as a diff against the names when the request was filed.
+          items:
+            $ref: "#/components/schemas/PuzzleName"
+        nameLanguage:
+          type: [string, "null"]
+          description: Corrects the proposed language of the main title (requires `nameLanguage` in selectedFields).
 
     PuzzleChangeRejection:
       type: object

@@ -52,6 +52,8 @@ SELECT
     reporter.code as reporter_code,
     CONCAT_WS(', ',
         CASE WHEN pcr.proposed_name IS NOT NULL AND pcr.proposed_name != pcr.original_name THEN 'Name' END,
+        CASE WHEN pcr.proposed_alternative_names IS NOT NULL AND pcr.proposed_name_language IS DISTINCT FROM pcr.original_name_language THEN 'Name language' END,
+        CASE WHEN pcr.proposed_alternative_names IS NOT NULL AND pcr.proposed_alternative_names IS DISTINCT FROM pcr.original_alternative_names THEN 'Other names' END,
         CASE WHEN pcr.proposed_manufacturer_id IS NOT NULL AND pcr.proposed_manufacturer_id != pcr.original_manufacturer_id THEN 'Manufacturer' END,
         CASE WHEN pcr.proposed_pieces_count IS NOT NULL AND pcr.proposed_pieces_count != pcr.original_pieces_count THEN 'Pieces' END,
         CASE WHEN pcr.proposed_ean IS NOT NULL AND pcr.proposed_ean != pcr.original_ean THEN 'EAN' END,

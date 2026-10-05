@@ -90,6 +90,11 @@
                     <h6 class="card-title mb-0 text-dark" style="padding-right: 45px; font-size: 0.8rem; line-height: 125% !important;" title="{{ item.puzzleName }}">
                         {{ item.puzzleName|length > 55 ? item.puzzleName|slice(0, 52) ~ '...' : item.puzzleName }}
                     </h6>
+                    {{ include('puzzle/_name.html.twig', {
+                        name: item.puzzleName,
+                        alternative_names: item.puzzleAlternativeNames,
+                        class: 'sell-swap-card-name',
+                    }, with_context = false) }}
 
                     <div class="fs-xs text-muted">
                         {{ item.piecesCount }} {{ 'marketplace.pcs'|trans }}{% if item.manufacturerName %} &middot; {{ item.manufacturerName }}{% endif %}

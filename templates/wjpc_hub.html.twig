@@ -15,19 +15,19 @@
             {
                 "@type": "ListItem",
                 "position": 1,
-                "name": {{ 'navigation.home'|trans|json_encode|raw }},
-                "item": {{ url('homepage')|json_encode|raw }}
+                "name": {{ 'navigation.home'|trans|json_ld }},
+                "item": {{ url('homepage')|json_ld }}
             },
             {
                 "@type": "ListItem",
                 "position": 2,
-                "name": {{ 'menu.events'|trans|json_encode|raw }},
-                "item": {{ url('events')|json_encode|raw }}
+                "name": {{ 'menu.events'|trans|json_ld }},
+                "item": {{ url('events')|json_ld }}
             },
             {
                 "@type": "ListItem",
                 "position": 3,
-                "name": {{ 'wjpc_hub.meta.title'|trans|json_encode|raw }}
+                "name": {{ 'wjpc_hub.meta.title'|trans|json_ld }}
             }
         ]
     }
@@ -37,14 +37,14 @@
     {
         "@context": "https://schema.org",
         "@type": "ItemList",
-        "name": {{ 'wjpc_hub.editions.heading'|trans|json_encode|raw }},
+        "name": {{ 'wjpc_hub.editions.heading'|trans|json_ld }},
         "itemListElement": [
             {% for edition in linked_editions %}
             {
                 "@type": "ListItem",
                 "position": {{ loop.index }},
-                "name": {{ edition.name|json_encode|raw }},
-                "url": {{ url('event_detail', {slug: edition.slug})|json_encode|raw }}
+                "name": {{ edition.name|json_ld }},
+                "url": {{ url('event_detail', {slug: edition.slug})|json_ld }}
             }{{ loop.last ? '' : ',' }}
             {% endfor %}
         ]

@@ -43,19 +43,19 @@
             {
                 "@type": "ListItem",
                 "position": 1,
-                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_encode|raw }},
-                "item": {{ url('puzzles')|json_encode|raw }}
+                "name": {{ 'puzzle_detail.breadcrumb.database'|trans|json_ld }},
+                "item": {{ url('puzzles')|json_ld }}
             },
             {
                 "@type": "ListItem",
                 "position": 2,
-                "name": {{ hub_label|json_encode|raw }},
-                "item": {{ url(hub_route, route_parameters)|json_encode|raw }}
+                "name": {{ hub_label|json_ld }},
+                "item": {{ url(hub_route, route_parameters)|json_ld }}
             },
             {
                 "@type": "ListItem",
                 "position": 3,
-                "name": {{ heading|json_encode|raw }}
+                "name": {{ heading|json_ld }}
             }
         ]
     }
@@ -65,15 +65,15 @@
     {
         "@context": "https://schema.org",
         "@type": "ItemList",
-        "name": {{ ('difficulty_ranking.' ~ variant ~ '.heading')|trans(trans_parameters|merge({'%count%': public_entries|length}))|json_encode|raw }},
+        "name": {{ ('difficulty_ranking.' ~ variant ~ '.heading')|trans(trans_parameters|merge({'%count%': public_entries|length}))|json_ld }},
         "numberOfItems": {{ public_entries|length }},
         "itemListElement": [
             {%- for entry in public_entries %}
             {
                 "@type": "ListItem",
                 "position": {{ loop.index }},
-                "url": {{ url('puzzle_detail', {puzzleId: entry.puzzleId})|json_encode|raw }},
-                "name": {{ (entry.manufacturerName ~ ' ' ~ entry.puzzleName)|json_encode|raw }}
+                "url": {{ url('puzzle_detail', {puzzleId: entry.puzzleId})|json_ld }},
+                "name": {{ (entry.manufacturerName ~ ' ' ~ entry.puzzleName)|json_ld }}
             }{{ loop.last ? '' : ',' }}
             {%- endfor %}
         ]

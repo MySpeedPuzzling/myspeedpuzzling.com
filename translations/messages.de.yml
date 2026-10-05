@@ -1097,6 +1097,9 @@
     "sent": "Wir haben einen Bestätigungslink an %email% geschickt. Er ist eine Stunde gültig – schauen Sie in Ihr Postfach (und in den Spam-Ordner)."
     "too_many_requests": "Sie haben mehrere Links hintereinander angefordert. Bitte prüfen Sie Ihr Postfach (und den Spam-Ordner) und warten Sie einen Moment, bevor Sie einen weiteren anfordern."
     "failed": "Wir konnten die Bestätigungs-E-Mail nicht senden. Bitte versuchen Sie es gleich noch einmal."
+"puzzle_name_display":
+  "matched": "Treffer: %name%"
+  "language_not_set": "Sprache nicht angegeben"
 "puzzle_detail":
   "details": "Details"
   "more_actions": "Weitere Aktionen"
@@ -1106,6 +1109,8 @@
     "history": "Verlauf"
   "meta":
     "title": "%brand% %name% – %pieces% Teile Puzzle"
+    "title_with_local_name": "%brand% %name% (%local_name%) – %pieces% Teile Puzzle"
+    "name_with_local_name_description": "%name% / %local_name%"
     "ean": ", EAN %ean%"
     "description": "%brand% %name% – %pieces%-teiliges Puzzle%ean%. Noch keine Legezeiten – erfassen Sie jetzt die erste auf MySpeedPuzzling."
     "description_no_solo_times": "%brand% %name% – %pieces%-teiliges Puzzle%ean%. Noch keine Solozeiten – erfassen Sie jetzt die erste auf MySpeedPuzzling."

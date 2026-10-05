@@ -30,12 +30,12 @@
         "@type": "ProfilePage",
         "mainEntity": {
             "@type": "Person",
-            "name": {{ (player.playerName ?? ('#' ~ player.code|upper))|json_encode|raw }},
-            "identifier": {{ player.code|upper|json_encode|raw }},
+            "name": {{ (player.playerName ?? ('#' ~ player.code|upper))|json_ld }},
+            "identifier": {{ player.code|upper|json_ld }},
             {% if player.avatar is not null %}
-            "image": {{ absolute_url(player.avatar|thumbnail('puzzle_medium'))|json_encode|raw }},
+            "image": {{ absolute_url(player.avatar|thumbnail('puzzle_medium'))|json_ld }},
             {% endif %}
-            "url": {{ url('player_profile', {playerId: player.playerId})|json_encode|raw }}
+            "url": {{ url('player_profile', {playerId: player.playerId})|json_ld }}
         }
     }
     </script>

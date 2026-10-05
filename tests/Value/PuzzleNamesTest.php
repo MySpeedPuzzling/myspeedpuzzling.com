@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleSearchQuery;
 
 final class PuzzleNamesTest extends TestCase
 {
@@ -85,6 +86,73 @@ final class PuzzleNamesTest extends TestCase
 
         self::assertSame('Conchas do Brasil', $names->shownFor('pt')?->name);
         self::assertSame('Conchas do Brasil', $names->shownFor('pt-PT')?->name);
+    }
+
+    public function testShownUnderAMainTitle(): void
+    {
+        $names = PuzzleNames::fromArray([
+            ['name' => 'Kouzelná zahrada', 'language' => 'cs'],
+            ['name' => 'Magic Garden', 'language' => 'de'],
+        ]);
+
+        self::assertSame('Kouzelná zahrada', $names->shownUnder('Magic Garden', 'cs')?->name);
+        // A German box under the same title: the same words twice say nothing
+        self::assertNull($names->shownUnder('Magic Garden', 'de'));
+        self::assertNull($names->shownUnder('MAGIC  garden', 'de'), 'folded equal');
+        self::assertNull($names->shownUnder('Magic Garden', null), 'no language, no second line');
+        self::assertNull($names->shownUnder('Magic Garden', 'fr'));
+    }
+
+    public function testInListingOrderPutsTheLanguageFirstAndUntaggedNamesLast(): void
+    {
+        $names = PuzzleNames::fromArray([
+            ['name' => 'Untagged', 'language' => null],
+            ['name' => 'Muscheln', 'language' => 'de'],
+            ['name' => 'Mušle', 'language' => 'cs'],
+            ['name' => 'Conchas', 'language' => 'pt-BR'],
+            ['name' => 'Lastury', 'language' => 'cs'],
+        ]);
+
+        self::assertSame(
+            ['Mušle', 'Lastury', 'Muscheln', 'Conchas', 'Untagged'],
+            array_map(static fn (PuzzleName $name): string => $name->name, $names->inListingOrder('cs')),
+        );
+        self::assertSame(
+            ['Muscheln', 'Mušle', 'Conchas', 'Lastury', 'Untagged'],
+            array_map(static fn (PuzzleName $name): string => $name->name, $names->inListingOrder(null)),
+        );
+        self::assertSame(
+            'Conchas',
+            $names->inListingOrder('pt')[0]->name,
+        );
+    }
+
+    #[DataProvider('matchingCases')]
+    public function testMatching(string $query, null|string $shownLanguage, null|string $expected): void
+    {
+        $names = PuzzleNames::fromArray([
+            ['name' => 'Kouzelná zahrada', 'language' => 'cs'],
+            ['name' => 'Zauberhafter Garten', 'language' => 'de'],
+            ['name' => 'Jardín mágico', 'language' => null],
+        ]);
+        $shown = $names->shownUnder('Magic Garden', $shownLanguage);
+
+        self::assertSame($expected, $names->matching(PuzzleSearchQuery::fromUserInput($query), 'Magic Garden', $shown)?->name);
+    }
+
+    /**
+     * @return iterable<string, array{string, null|string, null|string}>
+     */
+    public static function matchingCases(): iterable
+    {
+        yield 'a name not shown' => ['zauber', 'cs', 'Zauberhafter Garten'];
+        yield 'folded like the search: accents' => ['KOUZELNA', null, 'Kouzelná zahrada'];
+        yield 'an untagged name' => ['jardin mag', 'cs', 'Jardín mágico'];
+        yield 'the shown name says it already' => ['kouzelna', 'cs', null];
+        yield 'the main title says it already' => ['garden', null, null];
+        yield 'the main title holds it, another name too' => ['gar', null, null];
+        yield 'nothing typed' => ['  ', null, null];
+        yield 'no name holds it (a code matched)' => ['4005556147090', null, null];
     }
 
     public function testLegacyAlternativeNameIsTheFirstCzechName(): void

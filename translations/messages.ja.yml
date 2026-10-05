@@ -1238,6 +1238,9 @@
     "sent": "%email% に確認リンクをお送りしました。有効期限は1時間です。受信トレイ（と迷惑メールフォルダ）をご確認ください。"
     "too_many_requests": "短時間に何度もリンクをリクエストされました。受信トレイ（と迷惑メールフォルダ）を確認し、少し待ってから再度お試しください。"
     "failed": "確認メールを送信できませんでした。しばらくしてからもう一度お試しください。"
+"puzzle_name_display":
+  "matched": "一致：%name%"
+  "language_not_set": "言語未設定"
 "puzzle_detail":
   "details": "詳細"
   "more_actions": "その他の操作"
@@ -1247,6 +1250,8 @@
     "history": "履歴"
   "meta":
     "title": "%brand% %name% – %pieces%ピース パズル"
+    "title_with_local_name": "%brand% %name%（%local_name%） – %pieces%ピース パズル"
+    "name_with_local_name_description": "%name%／%local_name%"
     "ean": "、JANコード %ean%"
     "description": "%brand% %name% – %pieces%ピースのジグソーパズル%ean%。まだ完成タイムがありません。あなたのタイムを記録して、MySpeedPuzzlingで一番乗りしましょう。"
     "description_no_solo_times": "%brand% %name% – %pieces%ピースのジグソーパズル%ean%。まだソロの完成タイムがありません。あなたのタイムを記録して、MySpeedPuzzlingで一番乗りしましょう。"

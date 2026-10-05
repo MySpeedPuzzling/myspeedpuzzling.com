@@ -1,0 +1,10 @@
+{#
+    "Also known as" on the puzzle page (Details, and the guests' "About this puzzle"): every other name of the puzzle,
+    one per line, with its language named in the page language - the viewer's language first, then the other tagged
+    names, then the ones without a language (`lang=""`: not known). docs/features/puzzle-names/README.md "Display"
+
+    Parameters: alternative_names (PuzzleNames)
+#}
+{% for other in puzzle_other_names(alternative_names) %}
+    <span class="d-block puzzle-other-name"><span lang="{{ other.name.language ?? '' }}">{{ other.name.name }}</span> <span class="text-muted">· {{ other.language_name ?? 'puzzle_name_display.language_not_set'|trans }}</span></span>
+{% endfor %}

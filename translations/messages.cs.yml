@@ -1111,6 +1111,9 @@ comparison:
     "sent": "Potvrzovací odkaz jsme poslali na %email%. Platí jednu hodinu — podívejte se do schránky (i do spamu)."
     "too_many_requests": "Požádali jste o několik odkazů za sebou. Zkontrolujte prosím schránku (i spam) a chvíli počkejte, než požádáte o další."
     "failed": "Potvrzovací e-mail se nepodařilo odeslat. Zkuste to prosím za chvíli znovu."
+"puzzle_name_display":
+  "matched": "Shoda: %name%"
+  "language_not_set": "jazyk neuveden"
 "puzzle_detail":
   "details": "Podrobnosti"
   "more_actions": "Další akce"
@@ -1120,6 +1123,8 @@ comparison:
     "history": "Historie"
   "meta":
     "title": "%brand% %name% – puzzle %pieces% dílků"
+    "title_with_local_name": "%brand% %name% (%local_name%) – puzzle %pieces% dílků"
+    "name_with_local_name_description": "%name% / %local_name%"
     "ean": ", EAN %ean%"
     "description": "%brand% %name% – puzzle %pieces% dílků%ean%. Zatím žádné časy skládání – zapiš ten svůj a buď první na MySpeedPuzzling."
     "description_no_solo_times": "%brand% %name% – puzzle %pieces% dílků%ean%. Zatím žádné sólo časy – zapiš ten svůj a buď první na MySpeedPuzzling."

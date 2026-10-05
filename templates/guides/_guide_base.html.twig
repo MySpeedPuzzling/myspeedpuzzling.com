@@ -21,20 +21,20 @@
             {
                 "@type": "ListItem",
                 "position": 1,
-                "name": {{ 'guides.breadcrumb.home'|trans({}, 'messages', 'en')|json_encode|raw }},
-                "item": {{ url('homepage', {'_locale': 'en'})|json_encode|raw }}
+                "name": {{ 'guides.breadcrumb.home'|trans({}, 'messages', 'en')|json_ld }},
+                "item": {{ url('homepage', {'_locale': 'en'})|json_ld }}
             },
             {
                 "@type": "ListItem",
                 "position": 2,
-                "name": {{ 'guides.breadcrumb.guides'|trans({}, 'messages', 'en')|json_encode|raw }},
-                "item": {{ url('guides')|json_encode|raw }}
+                "name": {{ 'guides.breadcrumb.guides'|trans({}, 'messages', 'en')|json_ld }},
+                "item": {{ url('guides')|json_ld }}
             }{% if guide_published is defined %},
             {
                 "@type": "ListItem",
                 "position": 3,
-                "name": {{ guide_title|json_encode|raw }},
-                "item": {{ url(currentRoute, currentRouteParams)|json_encode|raw }}
+                "name": {{ guide_title|json_ld }},
+                "item": {{ url(currentRoute, currentRouteParams)|json_ld }}
             }{% endif %}
         ]
     }
@@ -44,20 +44,20 @@
     {
         "@context": "https://schema.org",
         "@type": "Article",
-        "headline": {{ guide_title|json_encode|raw }},
-        "description": {{ guide_description|json_encode|raw }},
-        "datePublished": {{ guide_published|json_encode|raw }},
-        "dateModified": {{ guide_modified|json_encode|raw }},
+        "headline": {{ guide_title|json_ld }},
+        "description": {{ guide_description|json_ld }},
+        "datePublished": {{ guide_published|json_ld }},
+        "dateModified": {{ guide_modified|json_ld }},
         "inLanguage": "en",
         "mainEntityOfPage": {
             "@type": "WebPage",
-            "@id": {{ url(currentRoute, currentRouteParams)|json_encode|raw }}
+            "@id": {{ url(currentRoute, currentRouteParams)|json_ld }}
         },
         "author": {
             "@type": "Organization",
             "@id": "https://myspeedpuzzling.com/#organization",
             "name": "MySpeedPuzzling",
-            "url": {{ url('homepage', {'_locale': 'en'})|json_encode|raw }}
+            "url": {{ url('homepage', {'_locale': 'en'})|json_ld }}
         },
         "publisher": {
             "@type": "Organization",
@@ -65,7 +65,7 @@
             "name": "MySpeedPuzzling",
             "logo": {
                 "@type": "ImageObject",
-                "url": {{ absolute_url(asset('img/speedpuzzling-logo.png'))|json_encode|raw }}
+                "url": {{ absolute_url(asset('img/speedpuzzling-logo.png'))|json_ld }}
             }
         }
     }

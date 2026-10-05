@@ -33,6 +33,8 @@ readonly final class PuzzleOverview
         public null|string $manufacturerSlug = null,
         /** Secret competition puzzle: hidden from every listing until this moment (only GetPuzzleOverview::byId loads it) */
         public null|DateTimeImmutable $hideUntil = null,
+        /** The main title's language when it is not English (only GetPuzzleOverview::byId loads it - the puzzle page H1) */
+        public null|string $nameLanguage = null,
     ) {
     }
 
@@ -60,6 +62,7 @@ readonly final class PuzzleOverview
      *     puzzle_identification_number: null|string,
      *     hide_image_until: null|string,
      *     hide_until?: null|string,
+     *     name_language?: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -89,6 +92,7 @@ readonly final class PuzzleOverview
             hideImageUntil: $row['hide_image_until'] !== null ? new DateTimeImmutable($row['hide_image_until']) : null,
             manufacturerSlug: $row['manufacturer_slug'] ?? null,
             hideUntil: $hideUntil !== null ? new DateTimeImmutable($hideUntil) : null,
+            nameLanguage: $row['name_language'] ?? null,
         );
     }
 }

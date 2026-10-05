@@ -1310,6 +1310,11 @@ edit_profile:
         too_many_requests: "You've asked for a few links in a row. Please check your inbox (and the spam folder) and wait a moment before asking for another."
         failed: "We couldn't send the confirmation e-mail. Please try again in a moment."
 
+# docs/features/puzzle-names/README.md "Display"
+puzzle_name_display:
+    matched: "Matched: %name%"
+    language_not_set: "language not set"
+
 puzzle_detail:
     details: "Details"
     more_actions: "More actions"
@@ -1319,6 +1324,8 @@ puzzle_detail:
         history: "History"
     meta:
         title: "%brand% %name% – %pieces% Piece Puzzle"
+        title_with_local_name: "%brand% %name% (%local_name%) – %pieces% Piece Puzzle"
+        name_with_local_name_description: "%name% / %local_name%"
         ean: ", EAN %ean%"
         description: "%brand% %name% – %pieces%-piece jigsaw puzzle%ean%. No solve times yet – log yours and be the first on MySpeedPuzzling."
         description_no_solo_times: "%brand% %name% – %pieces%-piece jigsaw puzzle%ean%. No solo times yet – log yours and be the first on MySpeedPuzzling."

@@ -85,4 +85,22 @@ final class EanListTest extends TestCase
             'a new invalid code next to an old one is still reported',
         );
     }
+
+    public function testGtinsAreTheValidBarcodesPaddedBack(): void
+    {
+        self::assertSame(
+            ['gtin8' => ['96385074'], 'gtin13' => ['4005556175895', '0036000291452', '0012345678905']],
+            // EAN-13, a UPC-A stored without its leading zero, a UPC-A stored without two, an EAN-8, a wrong check
+            // digit, a brand code, a catalogue number, the same code twice
+            EanList::gtins('4005556175895, 36000291452, 12345678905, 96385074, 4005556147091, RB-123, 14709, 004005556175895'),
+        );
+    }
+
+    public function testNoGtinsWithoutAValidBarcode(): void
+    {
+        self::assertSame(['gtin8' => [], 'gtin13' => []], EanList::gtins(null));
+        self::assertSame(['gtin8' => [], 'gtin13' => []], EanList::gtins('None, 4005556147091, 1005290289'));
+        // A valid EAN-8 of the restricted circulation range (starts with 0): a shop's own code, never a GTIN
+        self::assertSame(['gtin8' => [], 'gtin13' => []], EanList::gtins('01234565'));
+    }
 }

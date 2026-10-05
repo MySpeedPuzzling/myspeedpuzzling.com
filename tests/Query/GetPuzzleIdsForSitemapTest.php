@@ -42,6 +42,34 @@ final class GetPuzzleIdsForSitemapTest extends KernelTestCase
         self::assertSame('2025-08-09', $this->lastmodOf(PuzzleFixture::PUZZLE_500_01));
     }
 
+    /**
+     * A new name changes the page (title, "Also known as") - worth recrawling, also the image sitemap
+     */
+    public function testLastmodIsTheNamesChangeWhenItCameLast(): void
+    {
+        $this->setDates(PuzzleFixture::PUZZLE_500_01, addedAt: '2024-01-01 10:00:00', approvedAt: '2024-06-01 10:00:00', solvesTrackedAt: '2025-03-04 10:00:00');
+        $this->database->executeStatement(
+            "UPDATE puzzle SET names_changed_at = '2025-09-10 08:00:00', image = 'box.jpg' WHERE id = :id",
+            ['id' => PuzzleFixture::PUZZLE_500_01],
+        );
+
+        self::assertSame('2025-09-10', $this->lastmodOf(PuzzleFixture::PUZZLE_500_01));
+
+        $rows = array_values(array_filter(
+            $this->query->approvedPageWithImages(limit: 10_000, offset: 0),
+            static fn (array $row): bool => $row['id'] === PuzzleFixture::PUZZLE_500_01,
+        ));
+        self::assertSame('2025-09-10', $rows[0]['lastmod'] ?? null);
+
+        // An older names change does not move it back
+        $this->database->executeStatement(
+            "UPDATE puzzle SET names_changed_at = '2024-02-02 08:00:00' WHERE id = :id",
+            ['id' => PuzzleFixture::PUZZLE_500_01],
+        );
+
+        self::assertSame('2025-03-04', $this->lastmodOf(PuzzleFixture::PUZZLE_500_01));
+    }
+
     public function testLastmodOfAPuzzleWithoutSolvesIsWhenItWasAdded(): void
     {
         $this->setDates(PuzzleFixture::PUZZLE_500_04, addedAt: '2024-01-01 10:00:00', approvedAt: null, solvesTrackedAt: null);

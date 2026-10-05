@@ -128,6 +128,11 @@
                             {{ item.puzzleName }}
                         </a>
                         <br>
+                        {{ include('puzzle/_name.html.twig', {
+                            name: item.puzzleName,
+                            alternative_names: item.puzzleAlternativeNames,
+                            class: 'mb-1',
+                        }, with_context = false) }}
                         {% if show_insights %}
                             {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
                             <span class="d-inline-flex align-items-center gap-1">

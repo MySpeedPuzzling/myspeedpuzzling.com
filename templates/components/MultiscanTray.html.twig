@@ -94,6 +94,7 @@
                                 </a>
                                 <div class="flex-grow-1 min-w-0">
                                     <div class="fw-medium text-truncate">{{ row.puzzle.puzzleName }}</div>
+                                    {{ include('puzzle/_name.html.twig', {name: row.puzzle.puzzleName, alternative_names: row.puzzle.puzzleAlternativeNames, class: 'text-truncate'}, with_context = false) }}
                                     <div class="small text-muted text-truncate">
                                         {{ row.puzzle.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': row.puzzle.piecesCount})|raw }}
                                     </div>
@@ -126,6 +127,7 @@
                                         {{ lazy_puzzle_image(candidate.puzzleImage, 'puzzle_small', candidate.puzzleName, 999, 36, 'rounded-1', 36, candidate.puzzleImageRatio) }}
                                         <span class="flex-grow-1 min-w-0">
                                             <span class="d-block text-truncate">{{ candidate.puzzleName }}</span>
+                                            {{ include('puzzle/_name.html.twig', {name: candidate.puzzleName, alternative_names: candidate.puzzleAlternativeNames, class: 'text-truncate'}, with_context = false) }}
                                             <span class="d-block small text-muted">{{ candidate.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': candidate.piecesCount})|raw }}</span>
                                         </span>
                                         <i class="bi-check2"></i>
@@ -300,6 +302,7 @@
                                     {{ lazy_puzzle_image(candidate.puzzleImage, 'puzzle_small', candidate.puzzleName, 999, 40, 'rounded-1', 40, candidate.puzzleImageRatio) }}
                                     <span class="flex-grow-1 min-w-0">
                                         <span class="d-block text-truncate">{{ candidate.puzzleName }}</span>
+                                        {{ include('puzzle/_name.html.twig', {name: candidate.puzzleName, alternative_names: candidate.puzzleAlternativeNames, class: 'text-truncate'}, with_context = false) }}
                                         <span class="d-block small text-muted">{{ candidate.manufacturerName }} · {{ 'pieces_count'|trans({'%count%': candidate.piecesCount})|raw }}{% if candidate.puzzleEan %} · <span class="font-monospace">{{ candidate.puzzleEan }}</span>{% endif %}</span>
                                     </span>
                                     <span class="small text-primary text-nowrap"><i class="bi-link-45deg"></i> {{ 'multiscan.resolve.link'|trans }}</span>

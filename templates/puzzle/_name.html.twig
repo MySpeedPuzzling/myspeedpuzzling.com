@@ -1,0 +1,29 @@
+{#
+    The lines under a puzzle's main title (docs/features/puzzle-names/README.md "Display"): the name in the viewer's
+    language as a smaller, muted second line (PuzzleNameLanguage - the page language, on English pages a signed-in
+    player's country language), and in search results the name the search found the puzzle by when neither line says
+    it ("Matched: …"). Nothing when there is neither. The main title itself stays in the markup of each surface,
+    right above this.
+
+    Parameters:
+    - name: the main title
+    - alternative_names: PuzzleNames
+    - query (optional): the typed search - search results only; its words are highlighted like in the main title
+    - class (optional): extra classes for each line, e.g. text-truncate where the title is cut too
+    - tag (optional): the element of each line, `span` by default (valid inside links and buttons); display: block
+#}
+{% set query = query|default(null) %}
+{% set tag = tag|default('span') %}
+{% set local = puzzle_local_name(alternative_names, name) %}
+{% if local is not null %}
+    <{{ tag }} class="puzzle-name-local {{ class|default('') }}" lang="{{ local.language }}">{{ highlight(local.name, query) }}</{{ tag }}>
+{% endif %}
+{% if query is not empty %}
+    {% set matched = puzzle_matched_name(alternative_names, name, query, local) %}
+    {% if matched is not null %}
+        {# highlight() escapes the name, the label is a translation #}
+        <{{ tag }} class="puzzle-name-matched {{ class|default('') }}">{{ 'puzzle_name_display.matched'|trans({
+            '%name%': '<b' ~ (matched.language is not null ? ' lang="' ~ matched.language|e('html_attr') ~ '"' : '') ~ '>' ~ highlight(matched.name, query) ~ '</b>',
+        })|raw }}</{{ tag }}>
+    {% endif %}
+{% endif %}

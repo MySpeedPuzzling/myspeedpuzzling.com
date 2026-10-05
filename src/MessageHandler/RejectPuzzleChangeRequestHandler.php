@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Value\NotificationType;
+use SpeedPuzzling\Web\Services\ChangeRequestCreatedBrandSettler;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -29,6 +30,7 @@ readonly final class RejectPuzzleChangeRequestHandler
         private ClockInterface $clock,
         private Filesystem $filesystem,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
+        private ChangeRequestCreatedBrandSettler $changeRequestCreatedBrandSettler,
     ) {
     }
 
@@ -51,6 +53,9 @@ readonly final class RejectPuzzleChangeRequestHandler
             changeRequestId: $changeRequest->id,
             note: $message->rejectionReason,
         );
+
+        // A brand the proposal created is deleted when nothing else uses it
+        $this->changeRequestCreatedBrandSettler->settle($changeRequest, null, $reviewer);
 
         // Delete proposal image if exists
         if ($changeRequest->proposedImage !== null && $this->filesystem->fileExists($changeRequest->proposedImage)) {

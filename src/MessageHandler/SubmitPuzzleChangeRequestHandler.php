@@ -10,10 +10,10 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
-use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Services\ManufacturerResolver;
 use SpeedPuzzling\Web\Value\LanguageTag;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -24,7 +24,7 @@ readonly final class SubmitPuzzleChangeRequestHandler
         private EntityManagerInterface $entityManager,
         private PuzzleRepository $puzzleRepository,
         private PlayerRepository $playerRepository,
-        private ManufacturerRepository $manufacturerRepository,
+        private ManufacturerResolver $manufacturerResolver,
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
@@ -37,9 +37,20 @@ readonly final class SubmitPuzzleChangeRequestHandler
         $reporter = $this->playerRepository->get($message->reporterId);
         $now = $this->clock->now();
 
+        // A typed name no brand matches is a new, unapproved brand right away, like on the add form - it is how a
+        // misspelled brand gets its right name. The review approves it, or deletes it when it stays unused
+        // (ChangeRequestCreatedBrandSettler)
         $proposedManufacturer = null;
-        if ($message->proposedManufacturerId !== null && Uuid::isValid($message->proposedManufacturerId)) {
-            $proposedManufacturer = $this->manufacturerRepository->get($message->proposedManufacturerId);
+        $createdManufacturerName = null;
+        $proposedBrand = trim($message->proposedBrand ?? '');
+
+        if ($proposedBrand !== '') {
+            $proposedManufacturer = $this->manufacturerResolver->findExisting($proposedBrand);
+
+            if ($proposedManufacturer === null) {
+                $proposedManufacturer = $this->manufacturerResolver->create($proposedBrand, $reporter, $now);
+                $createdManufacturerName = $proposedManufacturer->name;
+            }
         }
 
         // Store proposed image with temporary name - proper SEO name is assigned on approval
@@ -85,6 +96,7 @@ readonly final class SubmitPuzzleChangeRequestHandler
             originalImage: $puzzle->image,
             originalAlternativeNames: $message->originalAlternativeNames->toArray(),
             originalNameLanguage: $message->originalNameLanguage,
+            createdManufacturerName: $createdManufacturerName,
         );
 
         $this->entityManager->persist($changeRequest);

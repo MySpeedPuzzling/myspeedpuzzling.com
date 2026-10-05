@@ -144,6 +144,7 @@ SELECT
     cr.proposed_name,
     cr.proposed_manufacturer_id,
     proposed_manufacturer.name AS proposed_manufacturer_name,
+    cr.created_manufacturer_name,
     cr.proposed_pieces_count,
     cr.proposed_ean,
     cr.proposed_identification_number,
@@ -387,6 +388,7 @@ SELECT
     cr.proposed_name,
     cr.proposed_manufacturer_id,
     proposed_manufacturer.name AS proposed_manufacturer_name,
+    cr.created_manufacturer_name,
     cr.proposed_pieces_count,
     cr.proposed_ean,
     cr.proposed_identification_number,
@@ -491,12 +493,20 @@ SQL;
                 }
 
                 $proposedBrand = self::string($row['proposed_manufacturer_id']);
+                // A brand the proposal created and nobody used is deleted on review - its name stays on the request
+                $createdBrandName = self::string($row['created_manufacturer_name'] ?? null);
 
                 if ($proposedBrand !== null && $proposedBrand !== self::string($row['original_manufacturer_id'])) {
                     $proposal[] = new PuzzleHistoryChange(
                         PuzzleHistoryChange::label('manufacturer'),
                         self::string($row['original_manufacturer_name']),
                         self::string($row['proposed_manufacturer_name']),
+                    );
+                } elseif ($proposedBrand === null && $createdBrandName !== null) {
+                    $proposal[] = new PuzzleHistoryChange(
+                        PuzzleHistoryChange::label('manufacturer'),
+                        self::string($row['original_manufacturer_name']),
+                        $createdBrandName,
                     );
                 }
             }

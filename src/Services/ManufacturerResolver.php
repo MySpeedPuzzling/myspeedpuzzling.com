@@ -12,11 +12,11 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 
 /**
- * The brand of a new puzzle, from what the form sent: an id is that brand; a typed name is the existing
+ * The brand of a new puzzle (or of a puzzle change proposal), from what the form sent: an id is that brand; a typed name is the existing
  * brand of that name ignoring case and spacing - approved or not, whoever added it - and only when there
  * is none a new, unapproved brand (docs/features/brand-duplicates.md). Every write path that takes a
- * brand as text goes through here: AddPuzzleHandler (add form, its correction, multiscan quick-add) and
- * AddPuzzleToCompetitionRoundHandler.
+ * brand as text goes through here: AddPuzzleHandler (add form, its correction, multiscan quick-add),
+ * AddPuzzleToCompetitionRoundHandler and SubmitPuzzleChangeRequestHandler ("Suggest a change").
  *
  * Not race-safe: two players typing the same new brand in the same second still get two brands.
  */
@@ -33,16 +33,29 @@ readonly final class ManufacturerResolver
      */
     public function resolve(string $brand, Player $addedBy, DateTimeImmutable $now): Manufacturer
     {
+        return $this->findExisting($brand) ?? $this->create($brand, $addedBy, $now);
+    }
+
+    /**
+     * The brand an id or a typed name stands for - null when a typed name matches no brand.
+     *
+     * @throws ManufacturerNotFound
+     */
+    public function findExisting(string $brand): null|Manufacturer
+    {
         if (Uuid::isValid($brand)) {
             return $this->manufacturerRepository->get($brand);
         }
 
-        $name = self::cleanName($brand);
-        $existing = $this->manufacturerRepository->findByNameIgnoringCase($name);
+        return $this->manufacturerRepository->findByNameIgnoringCase(self::cleanName($brand));
+    }
 
-        if ($existing !== null) {
-            return $existing;
-        }
+    /**
+     * A new, unapproved brand of a typed name that findExisting() did not find.
+     */
+    public function create(string $brand, Player $addedBy, DateTimeImmutable $now): Manufacturer
+    {
+        $name = self::cleanName($brand);
 
         $manufacturer = new Manufacturer(
             Uuid::uuid7(),

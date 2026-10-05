@@ -66,13 +66,15 @@ final class BrandChoicesBuilderTest extends KernelTestCase
         self::bootKernel();
 
         $data = new ProposePuzzleChangesFormData();
-        $data->manufacturerId = ManufacturerFixture::MANUFACTURER_UNAPPROVED;
+        $data->brand = ManufacturerFixture::MANUFACTURER_UNAPPROVED;
 
         $form = self::getContainer()->get(FormFactoryInterface::class)->create(ProposePuzzleChangesFormType::class, $data);
 
-        self::assertSame(ManufacturerFixture::MANUFACTURER_UNAPPROVED, $form->get('manufacturerId')->createView()->vars['value']);
-        $choices = $form->get('manufacturerId')->getConfig()->getOption('choices');
-        self::assertIsArray($choices);
+        self::assertSame(ManufacturerFixture::MANUFACTURER_UNAPPROVED, $form->get('brand')->createView()->vars['value']);
+        $options = $form->get('brand')->getConfig()->getOption('tom_select_options');
+        self::assertIsArray($options);
+        self::assertIsArray($options['options']);
+        $choices = array_column($options['options'], 'value');
         self::assertContains(ManufacturerFixture::MANUFACTURER_UNAPPROVED, $choices);
     }
 }

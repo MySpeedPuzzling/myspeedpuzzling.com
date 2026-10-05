@@ -138,6 +138,26 @@ a puzzle merge → approve the remaining genuine new brands.
 4. **Save once** (`docs/features/duplicate-results.md`): a resent add form carries the same new-puzzle id, waits on its
    lock, finds the puzzle and its brand through the resolver - covered (`ResultSavedOnceTest`, `AddPuzzleBrandTest`).
 
+### Renaming a misspelled brand through "Suggest a change" (2026-10-06)
+
+A player found a brand with one puzzle and a typo in its name, and could not fix it: the change proposal's picker only
+offered existing brands. Its field (now labelled **Brand** / Značka in every locale) takes a typed name too
+(`brand_picker_controller.js`; unlike the add form an exact name match only - the single-prefix rule would let the
+misspelled "Ravensburgerr" swallow the "Ravensburger" typed to correct it). The typed name goes through
+`ManufacturerResolver`: an existing brand of that name is proposed as it is; otherwise the brand is **created at submit,
+unapproved**, like on the add form, and `puzzle_change_request.created_manufacturer_name` records that the proposal
+created it. The review settles it (`ChangeRequestCreatedBrandSettler`, called by the approve and reject handlers, each
+step a decision in the log):
+
+- **approved with the new brand** → the brand is approved; when the puzzle's previous brand is then left with no puzzles,
+  the proposal was a rename and that brand is **merged into the new one** (`ManufacturerMerger`: its slug redirects, logo
+  and EAN prefixes are kept)
+- **rejected, or approved with another brand** → the new brand is deleted unless somebody used it meanwhile (a puzzle,
+  another proposal); the request keeps the name, so the admin detail and the puzzle history still show what was proposed
+
+A name differing from the misspelled brand only in case or spacing resolves to that same brand - such a rename still
+needs a moderator.
+
 ### Still open
 
 1. **A unique key** on the normalised name (race-safe insert like `PuzzlingTeamResolver`) - needs the identical-key
@@ -163,6 +183,7 @@ row within 10 s of it; multiscan = member, EAN, and a collection/wishlist/lendin
 
 - `src/Services/ManufacturerMerger.php` - the merge
 - `src/Services/ManufacturerResolver.php`, `ManufacturerRepository::findByNameIgnoringCase()` - a typed brand name
+- `src/Services/ChangeRequestCreatedBrandSettler.php` - a brand a change proposal created, on review
 - `src/Query/GetManufacturers.php` (`allIncludingUnapproved()`), `src/Services/BrandChoicesBuilder.php` - the pickers
 - `src/MessageHandler/MergeManufacturersHandler.php`, `ApproveManufacturerHandler.php`, `DeleteManufacturerHandler.php` - API decisions
 - `src/Entity/ManufacturerSlugRedirect.php`, `src/EventSubscriber/ManufacturerSlugRedirectSubscriber.php`,

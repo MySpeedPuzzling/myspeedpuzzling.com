@@ -151,6 +151,25 @@ final class ProposeChangesControllerTest extends WebTestCase
         self::assertSame(0, $this->changeRequestCount(PuzzleFixture::PUZZLE_1000_02));
     }
 
+    public function testABrandNameNoBrandMatchesIsProposedAsANewBrand(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', self::URL);
+        $form = $crawler->filter('form[name="propose_puzzle_changes_form"]')->form();
+        $form['propose_puzzle_changes_form[brand]'] = 'Ravensburger Junior';
+        $browser->submit($form);
+
+        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
+
+        $row = self::getContainer()->get(Connection::class)->fetchAssociative(
+            'SELECT m.name, m.approved, pcr.created_manufacturer_name FROM puzzle_change_request pcr JOIN manufacturer m ON m.id = pcr.proposed_manufacturer_id WHERE pcr.puzzle_id = :puzzleId',
+            ['puzzleId' => PuzzleFixture::PUZZLE_1000_03],
+        );
+        self::assertSame(['name' => 'Ravensburger Junior', 'approved' => false, 'created_manufacturer_name' => 'Ravensburger Junior'], $row);
+    }
+
     public function testAProposalIsFiledAgainstTheNamesThePlayerSaw(): void
     {
         $browser = self::createClient();
@@ -215,7 +234,7 @@ final class ProposeChangesControllerTest extends WebTestCase
             puzzleId: PuzzleFixture::PUZZLE_1000_03,
             reporterId: PlayerFixture::PLAYER_PRIVATE,
             proposedName: $puzzle->name,
-            proposedManufacturerId: $puzzle->manufacturer?->id->toString(),
+            proposedBrand: $puzzle->manufacturer?->id->toString(),
             proposedPiecesCount: 1500,
             proposedEans: $puzzle->eans(),
             proposedBrandCodes: $puzzle->brandCodes(),

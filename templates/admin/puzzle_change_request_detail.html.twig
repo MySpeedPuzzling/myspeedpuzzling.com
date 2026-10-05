@@ -8,8 +8,9 @@
     {% set pending = form is not null %}
 
     {% set fields = [] %}
-    {% if request.hasManufacturerChange() %}
-        {% set fields = fields|merge([{key: 'manufacturer', label: 'Manufacturer', original: request.originalManufacturerName, proposed: request.proposedManufacturerName}]) %}
+    {# A brand the proposal created and the review deleted unused shows by its name #}
+    {% if request.hasManufacturerChange() or (request.createdManufacturerName is not null and request.proposedManufacturerId is null) %}
+        {% set fields = fields|merge([{key: 'manufacturer', label: 'Brand', original: request.originalManufacturerName, proposed: request.proposedManufacturerShownName() ~ (request.createdManufacturerName is not null ? ' (new brand)' : '')}]) %}
     {% endif %}
     {% if request.hasPiecesCountChange() %}
         {% set fields = fields|merge([{key: 'piecesCount', label: 'Pieces', original: request.originalPiecesCount, proposed: request.proposedPiecesCount}]) %}

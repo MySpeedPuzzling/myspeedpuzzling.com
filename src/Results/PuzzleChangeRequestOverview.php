@@ -60,6 +60,8 @@ readonly final class PuzzleChangeRequestOverview
         // Null on requests older than the names list
         public null|PuzzleNames $originalAlternativeNames,
         public null|string $originalNameLanguage,
+        // The brand the proposal created (PuzzleChangeRequest::$createdManufacturerName) - kept when it was deleted unused
+        public null|string $createdManufacturerName = null,
     ) {
     }
 
@@ -141,6 +143,7 @@ readonly final class PuzzleChangeRequestOverview
             originalImage: is_string($row['original_image']) ? $row['original_image'] : null,
             originalAlternativeNames: is_string($row['original_alternative_names'] ?? null) ? PuzzleNames::fromJson($row['original_alternative_names']) : null,
             originalNameLanguage: is_string($row['original_name_language'] ?? null) ? $row['original_name_language'] : null,
+            createdManufacturerName: is_string($row['created_manufacturer_name'] ?? null) ? $row['created_manufacturer_name'] : null,
         );
     }
 
@@ -237,6 +240,22 @@ readonly final class PuzzleChangeRequestOverview
     public function hasManufacturerChange(): bool
     {
         return $this->proposedManufacturerId !== null && $this->proposedManufacturerId !== $this->originalManufacturerId;
+    }
+
+    /**
+     * The proposal created the brand it proposes - a name the player typed. Approving it approves the brand.
+     */
+    public function proposesCreatedManufacturer(): bool
+    {
+        return $this->createdManufacturerName !== null && $this->proposedManufacturerId !== null;
+    }
+
+    /**
+     * The proposed brand's name - also of a brand the proposal created and the review deleted unused.
+     */
+    public function proposedManufacturerShownName(): null|string
+    {
+        return $this->proposedManufacturerName ?? $this->createdManufacturerName;
     }
 
     public function hasPiecesCountChange(): bool

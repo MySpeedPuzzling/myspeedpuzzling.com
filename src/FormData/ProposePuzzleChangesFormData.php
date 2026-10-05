@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormData;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Image;
+use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\Range;
@@ -25,7 +26,9 @@ final class ProposePuzzleChangesFormData
     // The record the form was loaded with (PuzzleRecordVersion) - a hidden field; the proposal is filed against it
     public null|string $recordVersion = null;
 
-    public null|string $manufacturerId = null;
+    // A brand id, or a typed brand name (ManufacturerResolver) - '' = no brand
+    #[Length(max: 255)]
+    public string $brand = '';
 
     #[NotBlank]
     #[Positive]

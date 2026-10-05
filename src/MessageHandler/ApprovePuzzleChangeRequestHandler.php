@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\ChangeRequestCreatedBrandSettler;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleRecordUpdater;
 use SpeedPuzzling\Web\Value\BrandCodeList;
@@ -53,6 +54,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
         private ClockInterface $clock,
         private PuzzleRecordUpdater $puzzleRecordUpdater,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
+        private ChangeRequestCreatedBrandSettler $changeRequestCreatedBrandSettler,
     ) {
     }
 
@@ -83,6 +85,8 @@ readonly final class ApprovePuzzleChangeRequestHandler
         $values = $message->reviewed !== null
             ? self::reviewedValues($message->reviewed, $message->reviewedFrom, $puzzle)
             : self::proposedValues($changeRequest, $puzzle, $message);
+
+        $brandBefore = $puzzle->manufacturer;
 
         // Validates every value before it changes anything
         $change = $this->puzzleRecordUpdater->update(
@@ -122,6 +126,10 @@ readonly final class ApprovePuzzleChangeRequestHandler
             note: $message->decisionNote,
             details: $details,
         );
+
+        // After the decision above: a brand the proposal created is approved (a rename merges the emptied brand into
+        // it) or, unused, deleted
+        $this->changeRequestCreatedBrandSettler->settle($changeRequest, $brandBefore, $reviewer, $message->decisionSource);
 
         $notification = new Notification(
             id: Uuid::uuid7(),

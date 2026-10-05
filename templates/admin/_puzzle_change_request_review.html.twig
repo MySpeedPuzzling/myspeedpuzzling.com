@@ -7,7 +7,8 @@
 #}
 {% set review_fields = [
     {
-        label: 'Brand', widget: form.manufacturerId, help: null,
+        label: 'Brand', widget: form.manufacturerId,
+        help: request.proposesCreatedManufacturer() ? 'A new brand the player typed. Approving with it approves the brand; when the current brand is then left without puzzles, it is merged into the new one (a rename, its page redirects). Another brand or a rejection deletes the new one.' : null,
         proposed: request.hasManufacturerChange(),
         current: request.puzzleManufacturerName, currentValue: request.puzzleManufacturerId,
         proposedShown: request.proposedManufacturerName, proposedValue: request.proposedManufacturerId,

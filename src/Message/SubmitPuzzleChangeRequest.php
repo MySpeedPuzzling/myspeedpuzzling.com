@@ -16,7 +16,8 @@ readonly final class SubmitPuzzleChangeRequest
         public string $puzzleId,
         public string $reporterId,
         public string $proposedName,
-        public null|string $proposedManufacturerId,
+        // A brand id, or a typed brand name - a name no brand matches creates the brand (ManufacturerResolver)
+        public null|string $proposedBrand,
         public int $proposedPiecesCount,
         // Every code as it should end up - stored as proposed only when it differs from the puzzle's
         public EanList $proposedEans,

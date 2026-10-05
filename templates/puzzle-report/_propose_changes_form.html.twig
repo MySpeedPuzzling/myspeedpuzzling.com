@@ -20,7 +20,10 @@
         {{ include('puzzle/_names_editor.html.twig', {names: propose_form.names}) }}
     </div>
 
-    {{ form_row(propose_form.manufacturerId) }}
+    {# A brand not in the list - a misspelled one's right name - can be typed: it becomes a new brand #}
+    <div data-controller="brand-picker" data-brand-picker-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}">
+        {{ form_row(propose_form.brand) }}
+    </div>
 
     {{ form_row(propose_form.piecesCount) }}
 

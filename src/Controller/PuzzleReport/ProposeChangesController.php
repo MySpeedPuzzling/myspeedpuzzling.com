@@ -78,7 +78,7 @@ final class ProposeChangesController extends AbstractController
         $proposeFormData = new ProposePuzzleChangesFormData();
         $proposeFormData->names = PuzzleNamesFormData::fromNames($record->name, $record->nameLanguage, $record->alternativeNames);
         $proposeFormData->recordVersion = $record->recordVersion();
-        $proposeFormData->manufacturerId = $puzzle->manufacturerId;
+        $proposeFormData->brand = $puzzle->manufacturerId;
         $proposeFormData->piecesCount = $puzzle->piecesCount;
         $proposeFormData->loadPuzzleCodes($puzzle->puzzleEan, $puzzle->puzzleIdentificationNumber);
 
@@ -109,7 +109,7 @@ final class ProposeChangesController extends AbstractController
                 || $formData->names->toPuzzleNames()->cleanedFor($proposedName)->diff($record->alternativeNames)->isEmpty() === false;
 
             // The codes compared in their canonical form - the inputs show them as displayed (a UPC with its 12th digit)
-            $otherChanges = $formData->manufacturerId !== $puzzle->manufacturerId
+            $otherChanges = $formData->brand !== $puzzle->manufacturerId
                 || $formData->piecesCount !== $puzzle->piecesCount
                 || $formData->eanList()->toStored() !== EanList::fromStored($puzzle->puzzleEan)->toStored()
                 || $formData->brandCodeList()->toStored() !== BrandCodeList::fromStored($puzzle->puzzleIdentificationNumber)->toStored()
@@ -148,7 +148,7 @@ final class ProposeChangesController extends AbstractController
                 puzzleId: $puzzleId,
                 reporterId: $loggedPlayer->playerId,
                 proposedName: $proposedName,
-                proposedManufacturerId: $formData->manufacturerId,
+                proposedBrand: $formData->brand,
                 proposedPiecesCount: $formData->piecesCount,
                 proposedEans: $formData->eanList(),
                 proposedBrandCodes: $formData->brandCodeList(),

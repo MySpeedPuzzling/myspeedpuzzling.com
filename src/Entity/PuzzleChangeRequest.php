@@ -123,6 +123,12 @@ class PuzzleChangeRequest
         #[Immutable]
         #[Column(length: 16, nullable: true)]
         public null|string $originalNameLanguage = null,
+        // The name of the brand this proposal created - the player typed a brand no brand matched (ManufacturerResolver);
+        // null when it proposes an existing brand. Kept when the brand is gone: an unused one is deleted on review
+        // (ChangeRequestCreatedBrandSettler), the history still shows what was proposed
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(nullable: true)]
+        public null|string $createdManufacturerName = null,
     ) {
     }
 
@@ -172,6 +178,16 @@ class PuzzleChangeRequest
     public function proposedManufacturerMergedInto(Manufacturer $into): void
     {
         $this->proposedManufacturer = $into;
+        // It proposes an existing brand now - the one it created is gone
+        $this->createdManufacturerName = null;
+    }
+
+    /**
+     * The brand this proposal created was not used and is deleted - the proposal keeps its name only.
+     */
+    public function createdManufacturerDeleted(): void
+    {
+        $this->proposedManufacturer = null;
     }
 
     /**

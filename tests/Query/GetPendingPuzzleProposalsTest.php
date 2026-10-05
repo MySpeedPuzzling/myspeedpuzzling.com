@@ -107,7 +107,7 @@ final class GetPendingPuzzleProposalsTest extends KernelTestCase
             puzzleId: PuzzleFixture::PUZZLE_1000_02,
             reporterId: PlayerFixture::PLAYER_REGULAR,
             proposedName: 'Magic Garden',
-            proposedManufacturerId: $puzzle->manufacturer?->id->toString(),
+            proposedBrand: $puzzle->manufacturer?->id->toString(),
             proposedPiecesCount: $puzzle->piecesCount,
             proposedEans: $puzzle->eans(),
             proposedBrandCodes: $puzzle->brandCodes(),

@@ -132,7 +132,7 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             puzzleId: $puzzleId,
             reporterId: $this->reviewerPlayerId,
             proposedName: $name,
-            proposedManufacturerId: $manufacturerId,
+            proposedBrand: $manufacturerId,
             proposedPiecesCount: $piecesCount,
             proposedEans: $eans,
             proposedBrandCodes: $brandCodes,

@@ -57,7 +57,7 @@ Players report duplicate puzzles; approving a report merges them. **A merge is d
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/approve` | Merge the puzzles |
 | `POST` | `/internal-api/puzzle-merge-requests/{id}/reject` | Decline the report |
 
-`GET` takes `limit` (1-100, default 25) and `offset`. It returns `totalPending` plus, per request, `reportedNameLanguages` (what the reporter said each puzzle's name is in: an object puzzle id → base language, `{}` when nothing was said) and every candidate puzzle with its name, `nameLanguage` (the main title's language, null = English or not known), its other names (`alternativeNames`: `[{"name", "language"}]` in order, language a BCP 47 tag or null; `alternativeName` keeps the one other name of old - the first Czech one, else the first), piece count, EAN, catalogue number, manufacturer, **a ready-to-fetch `imageUrl`**, and the weight of its history (`solvedTimesCount`, `collectionItemsCount`, …). Whether two puzzles are the same product is usually settled by comparing the artwork, so the image URL is the point of the endpoint. `actionable` is false when fewer than two of the reported puzzles still exist (an earlier merge already deleted one) — such a request cannot be merged, only rejected.
+`GET` takes `limit` (1-100, default 25) and `offset`. It returns `totalPending` plus, per request, `reportedNameLanguages` (what the reporter said each puzzle's name is in: an object puzzle id → base language, `{}` when nothing was said) and every candidate puzzle with its name, `nameLanguage` (the main title's language, null = English or not known), its other names (`alternativeNames`: `[{"name", "language"}]` in order, language a BCP 47 tag or null; `alternativeName` keeps the one other name of old - the first Czech one, else the first), piece count, EAN, catalogue number, manufacturer, **a ready-to-fetch `imageUrl`**, the weight of its history (`solvedTimesCount`, `collectionItemsCount`, …) and its `recordVersion` (a fingerprint of the record - names, brand, pieces, codes, image - to send back on approve). Whether two puzzles are the same product is usually settled by comparing the artwork, so the image URL is the point of the endpoint. `actionable` is false when fewer than two of the reported puzzles still exist (an earlier merge already deleted one) — such a request cannot be merged, only rejected.
 
 Approve body:
 
@@ -74,10 +74,11 @@ Approve body:
 | `selectedImagePuzzleId` | no | Take the cover image from this puzzle |
 | `decisionConfidence` | no | `high`, `medium` or `low` |
 | `decisionNote` | no | Why — stored on the audit row, not shown to players |
+| `recordVersions` | no | `{"<puzzle id>": "<recordVersion>"}` - every candidate's `recordVersion` as the queue showed it. A puzzle changed since (a moderator's edit, an EAN link) answers `409` and nothing is merged; a puzzle left out is not checked. Always send them |
 
 Blank strings count as absent, so a blank `mergedEan` never blanks a real one.
 
-**A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any cover image or manufacturer that **only** a deleted puzzle had, and - unless `mergedAlternativeNames` is given - keeps every name of every merged puzzle (main title and other names) as an other name of the survivor, the survivor's previous main title too when `mergedName` is another one; each main title in the language the reporter gave it (`reportedNameLanguages`), else in its own `nameLanguage` (docs/features/puzzle-names/). Re-read the queue right before approving: the endpoint does not check whether a puzzle changed since.
+**A puzzle may legitimately carry several EANs or catalogue numbers**, held as a comma-separated list, because the same puzzle gets its own code per edition or region. A merge therefore takes the *union* of both records' codes rather than choosing between them, and `mergedEan` may itself be such a list. Never reduce an existing list to a single value — the codes you drop identify real editions, and the record holding them is deleted moments later. The merge likewise carries over any cover image or manufacturer that **only** a deleted puzzle had, and - unless `mergedAlternativeNames` is given - keeps every name of every merged puzzle (main title and other names) as an other name of the survivor, the survivor's previous main title too when `mergedName` is another one; each main title in the language the reporter gave it (`reportedNameLanguages`), else in its own `nameLanguage` (docs/features/puzzle-names/). Re-read the queue right before approving and send every candidate's `recordVersion` as `recordVersions`: a puzzle saved in between answers `409` with `{"error": "…"}` - read the queue again and decide again.
 
 Reject body: `rejectionReason` (required). **It is shown to the player who reported the duplicate**, as a notification, so write it for them.
 
@@ -108,6 +109,9 @@ must be a valid EAN/UPC. The reviewer player is the reporter. Answers `400` for 
 one at a time too). No photo. Use it for catalogue corrections found by an analysis, so they go through moderator review
 instead of a database write - the `puzzle-change-proposal` skill wraps it.
 
+The `201` answer also carries `recordVersion`: the puzzle's record the proposal was filed against (a fingerprint of
+names, brand, pieces, codes and image) - send it back on approve to approve only while the puzzle is still so.
+
 Names ([`puzzle-names/README.md`](./puzzle-names/README.md)): `name` is the main title (the English title of the box when
 it has one). `nameLanguage` is the main title's BCP 47 language when the box has no English title (`"cs"`, `"pt-BR"`;
 `null` = English or not known). `alternativeNames` is the **whole list of the other names as it should end up**, in
@@ -128,9 +132,13 @@ approves without touching the puzzle (a proposal something else already satisfie
 Optional `decisionNote`. Optional corrections of the proposal, each for a selected field only (`400` otherwise):
 `alternativeNames` (the list as it should end up, same shape as when filing - applied as a diff against the names when
 the request was filed, like the proposal) and `nameLanguage` (a tag or `null`); they are kept in the decision's
-`details.overrides`. The player who proposed it is notified, the decision is logged with `source = internal_api`.
-Answers `409` when the request was already approved or rejected - unlike reject, approve checks the status, and `422`
-when the result breaks a rule of the record (e.g. more than 20 other names).
+`details.overrides`. Optional `recordVersion`: the puzzle's record as you read it (the `201` answer of the filing) - a
+puzzle changed since answers `409` with `{"error": "…"}` and nothing is applied; left out, nothing is checked. A
+proposal of another main title ("make main title": the English title from the other names, the old main title into
+them) needs `name`, `nameLanguage` and `alternativeNames` selected **together** - `name` alone drops the old main title. The player who proposed it is notified, the decision is logged with `source = internal_api`.
+Answers `409` when the request was already approved or rejected - unlike reject, approve checks the status - or when
+the puzzle changed since `recordVersion`, and `422` when the result breaks a rule of the record (e.g. more than 20 other
+names).
 
 ### Brands
 
@@ -273,12 +281,13 @@ ORDER BY performed_at DESC;
 | Status | When | Body |
 |---|---|---|
 | `204 No Content` | Success | empty |
-| `201 Created` | A duplicate report was filed | `{"mergeRequestId": "..."}` |
+| `201 Created` | A duplicate report / change proposal was filed | `{"mergeRequestId": "..."}` / `{"changeRequestId": "...", "recordVersion": "..."}` |
 | `400 Bad Request` | Body present but not valid JSON object | `{"error": "..."}` |
 | `401 Unauthorized` | Missing / wrong / unconfigured token | `{"error": "..."}` |
 | `400 Bad Request` | Missing/invalid field, or `INTERNAL_API_REVIEWER_PLAYER_ID` unset on a moderation endpoint | `{"error": "..."}` |
 | `404 Not Found` | Unknown `featureRequestId` / `mergeRequestId` / brand / puzzle id | standard Symfony 404 |
-| `409 Conflict` | Brand already approved, or its name is taken by an approved brand, or a brand to delete is still in use | standard Symfony 409 |
+| `409 Conflict` | Brand already approved, or its name is taken by an approved brand, or a brand to delete is still in use; a change request already reviewed | standard Symfony 409 |
+| `409 Conflict` | A puzzle changed since the `recordVersion(s)` sent with a merge / change-request approve; a change proposal for a puzzle with a pending one | `{"error": "..."}` |
 | `422 Unprocessable Entity` | A brand merge that cannot be done (survivor in its own list) | standard Symfony 422 |
 
 ## Adding a new endpoint

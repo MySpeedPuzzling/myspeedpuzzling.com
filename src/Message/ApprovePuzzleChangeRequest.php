@@ -37,6 +37,9 @@ readonly final class ApprovePuzzleChangeRequest implements SerializedByLock
         // selected field only) - the list as it should end up, applied as a diff like the proposal. false = as proposed
         public null|PuzzleNames $alternativeNamesOverride = null,
         public null|false|string $nameLanguageOverride = false,
+        // The internal API: the puzzle's record as the caller read it (PuzzleRecordVersion) - a puzzle changed since
+        // refuses the approval; null checks nothing. The admin review sends it in $reviewed
+        public null|string $recordVersion = null,
     ) {
     }
 

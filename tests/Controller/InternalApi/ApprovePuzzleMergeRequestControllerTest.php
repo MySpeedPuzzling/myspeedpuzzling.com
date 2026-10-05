@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Controller\InternalApi\ApprovePuzzleMergeRequestController;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
+use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
+use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -253,6 +259,75 @@ final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
             'mergedName' => 'Some Puzzle',
             'mergedPiecesCount' => 500,
         ]));
+    }
+
+    public function testPassesTheRecordVersionsKeyedByTheLowerCaseId(): void
+    {
+        $dispatched = null;
+
+        $controller = $this->controller($this->messageBusCapturing($dispatched));
+
+        $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedPiecesCount' => 500,
+            'recordVersions' => [
+                strtoupper(PuzzleFixture::PUZZLE_500_01) => 'a1b2c3d4e5f60718',
+                PuzzleFixture::PUZZLE_500_02 => '0918f7e6d5c4b3a2',
+            ],
+        ]));
+
+        self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
+        self::assertSame([
+            PuzzleFixture::PUZZLE_500_01 => 'a1b2c3d4e5f60718',
+            PuzzleFixture::PUZZLE_500_02 => '0918f7e6d5c4b3a2',
+        ], $dispatched->recordVersions);
+    }
+
+    public function testRecordVersionsMustMapPuzzleIdsToVersions(): void
+    {
+        $controller = $this->controllerWithNeverDispatchingBus();
+
+        $this->expectException(BadRequestHttpException::class);
+
+        $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedPiecesCount' => 500,
+            'recordVersions' => ['a1b2c3d4e5f60718'],
+        ]));
+    }
+
+    public function testAPuzzleChangedSinceItsVersionWasReadAnswersConflictAndMergesNothing(): void
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+        $puzzleRepository = $container->get(PuzzleRepository::class);
+        $survivorVersion = PuzzleRecordVersion::ofPuzzle($puzzleRepository->get(PuzzleFixture::PUZZLE_500_01));
+
+        $controller = new ApprovePuzzleMergeRequestController(
+            $container->get(MessageBusInterface::class),
+            $container->get(GetPuzzleMergeRequests::class),
+            PlayerFixture::PLAYER_ADMIN,
+        );
+
+        $response = $controller(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedPiecesCount' => 500,
+            'recordVersions' => [
+                PuzzleFixture::PUZZLE_500_01 => $survivorVersion,
+                // Read before somebody saved the duplicate
+                PuzzleFixture::PUZZLE_500_02 => '0000000000000000',
+            ],
+        ]));
+
+        self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        self::assertStringContainsString('changed after its recordVersion was read', (string) $response->getContent());
+
+        $container->get(EntityManagerInterface::class)->clear();
+        $puzzleRepository->get(PuzzleFixture::PUZZLE_500_02);
+        self::assertSame(PuzzleReportStatus::Pending, $container->get(PuzzleMergeRequestRepository::class)->get(self::MERGE_REQUEST_ID)->status);
     }
 
     public function testRefusesToActWhenNoReviewerIsConfigured(): void

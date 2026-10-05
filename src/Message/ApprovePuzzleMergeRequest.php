@@ -20,7 +20,8 @@ readonly final class ApprovePuzzleMergeRequest implements SerializedByLock
 {
     /**
      * @param array<string, string> $recordVersions Puzzle id => the PuzzleRecordVersion the review was loaded with,
-     *                                              for every reported puzzle - empty checks nothing (the internal API)
+     *                                              for every reported puzzle - a puzzle left out is not checked
+     *                                              (the internal API without recordVersions)
      */
     public function __construct(
         public string $mergeRequestId,

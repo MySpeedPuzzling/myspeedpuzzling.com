@@ -5,20 +5,27 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
 use Doctrine\DBAL\Connection;
-use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\InternalApi\ApprovePuzzleChangeRequestController;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
+use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
+use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-final class ApprovePuzzleChangeRequestControllerTest extends TestCase
+final class ApprovePuzzleChangeRequestControllerTest extends KernelTestCase
 {
     private const string CHANGE_REQUEST_ID = '01a0db4b-0db4-7207-b080-5ba0e2549720';
 
@@ -163,6 +170,46 @@ final class ApprovePuzzleChangeRequestControllerTest extends TestCase
         (new ApprovePuzzleChangeRequestController($bus, $this->changeRequests(null), self::REVIEWER_ID))(
             self::CHANGE_REQUEST_ID,
             $this->jsonRequest(['selectedFields' => []]),
+        );
+    }
+
+    public function testAPuzzleChangedSinceItsVersionWasReadAnswersConflictAndAppliesNothing(): void
+    {
+        $response = $this->realController()(
+            PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            $this->jsonRequest(['selectedFields' => ['ean'], 'recordVersion' => '0000000000000000']),
+        );
+
+        self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
+        self::assertStringContainsString('changed after its recordVersion was read', (string) $response->getContent());
+
+        $changeRequest = self::getContainer()->get(PuzzleChangeRequestRepository::class)->get(PuzzleReportFixture::CHANGE_REQUEST_PENDING);
+        self::assertSame(PuzzleReportStatus::Pending, $changeRequest->status);
+    }
+
+    public function testThePuzzleAsItWasReadIsApproved(): void
+    {
+        self::bootKernel();
+        $puzzle = self::getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01);
+
+        $response = $this->realController()(
+            PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            $this->jsonRequest(['selectedFields' => ['ean'], 'recordVersion' => PuzzleRecordVersion::ofPuzzle($puzzle)]),
+        );
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertSame('1234567890123', self::getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01)->ean);
+    }
+
+    private function realController(): ApprovePuzzleChangeRequestController
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+
+        return new ApprovePuzzleChangeRequestController(
+            $container->get(MessageBusInterface::class),
+            $container->get(GetPuzzleChangeRequests::class),
+            PlayerFixture::PLAYER_ADMIN,
         );
     }
 

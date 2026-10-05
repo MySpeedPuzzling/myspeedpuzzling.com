@@ -177,8 +177,10 @@ paths:
 
         Names: without `mergedAlternativeNames` every name of every puzzle stays
         (each main title in the language the reporter gave it, else its own
-        `nameLanguage`); with it, that list is the survivor's other names. The
-        endpoint does not check whether a puzzle changed since the queue was read.
+        `nameLanguage`); with it, that list is the survivor's other names.
+
+        Send every candidate's `recordVersion` from the queue as `recordVersions`:
+        a puzzle saved since answers 409 and nothing is merged.
 
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
       parameters:
@@ -198,6 +200,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: A puzzle changed since the recordVersions were read - nothing is merged.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /internal-api/puzzle-merge-requests/{mergeRequestId}/reject:
     post:
@@ -253,11 +261,14 @@ paths:
               schema:
                 type: object
                 additionalProperties: false
-                required: [changeRequestId]
+                required: [changeRequestId, recordVersion]
                 properties:
                   changeRequestId:
                     type: string
                     format: uuid
+                  recordVersion:
+                    type: string
+                    description: The puzzle's record the proposal was filed against - send it back on approve.
                   nameLanguage:
                     type: [string, "null"]
                     description: The main title's language as filed - only when the names are part of the proposal.
@@ -321,8 +332,10 @@ paths:
         merge made) without touching the puzzle. `alternativeNames` and `nameLanguage`
         correct the proposal before it is applied (selected fields only); the other
         names are always applied as a diff against the names when the request was filed.
-        The player who proposed it is notified; the decision is logged with
-        `source = internal_api`.
+        `recordVersion` refuses the approval (409) when the puzzle changed since it was
+        read. A different main title needs `name`, `nameLanguage` and `alternativeNames`
+        selected together. The player who proposed it is notified; the decision is
+        logged with `source = internal_api`.
 
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
       parameters:
@@ -343,7 +356,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
-          description: The request was already approved or rejected.
+          description: The request was already approved or rejected, or the puzzle changed since `recordVersion` (then a JSON `error`) - nothing is applied.
         "422":
           description: The result breaks a rule of the record (e.g. more than 20 other names) - nothing is changed.
 
@@ -610,6 +623,9 @@ components:
           type: integer
         sellSwapItemsCount:
           type: integer
+        recordVersion:
+          type: string
+          description: Fingerprint of the record (names, brand, pieces, codes, image) - send it back on approve in recordVersions.
 
     PuzzleMergeApproval:
       type: object
@@ -652,6 +668,11 @@ components:
         decisionNote:
           type: [string, "null"]
           description: Why. Stored on the audit row; never shown to players.
+        recordVersions:
+          type: [object, "null"]
+          description: Every candidate's recordVersion as read from the queue, puzzle id => version. A puzzle changed since answers 409; a puzzle left out is not checked.
+          additionalProperties:
+            type: string
 
     PuzzleMergeSubmission:
       type: object
@@ -786,6 +807,9 @@ components:
         nameLanguage:
           type: [string, "null"]
           description: Corrects the proposed language of the main title (requires `nameLanguage` in selectedFields).
+        recordVersion:
+          type: [string, "null"]
+          description: The puzzle's record as read before deciding (the filing's 201 answer) - a puzzle changed since answers 409. Omit to check nothing.
 
     PuzzleChangeRejection:
       type: object

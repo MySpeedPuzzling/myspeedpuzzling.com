@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 
 /**
  * One puzzle put forward as a duplicate, with everything a reviewer needs to
@@ -66,6 +67,24 @@ readonly final class PuzzleMergeReviewCandidate
             collectionItemsCount: self::toCount($row['collection_items_count']),
             wishListItemsCount: self::toCount($row['wish_list_items_count']),
             sellSwapItemsCount: self::toCount($row['sell_swap_items_count']),
+        );
+    }
+
+    /**
+     * The record as the queue shows it (PuzzleRecordVersion) - what the internal API approve sends back to refuse a
+     * merge of a puzzle changed since.
+     */
+    public function recordVersion(): string
+    {
+        return PuzzleRecordVersion::of(
+            name: $this->name,
+            nameLanguage: $this->nameLanguage,
+            alternativeNames: $this->alternativeNames,
+            manufacturerId: $this->manufacturerId,
+            piecesCount: $this->piecesCount,
+            ean: $this->ean,
+            identificationNumber: $this->identificationNumber,
+            image: $this->image,
         );
     }
 

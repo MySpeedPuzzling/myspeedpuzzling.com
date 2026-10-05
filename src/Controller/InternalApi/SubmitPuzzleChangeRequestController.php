@@ -132,8 +132,9 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             proposedNameLanguage: $nameLanguage,
         ));
 
-        // The names as filed, when they are part of the proposal - cleaned the way the puzzle keeps them
-        return new JsonResponse(['changeRequestId' => $changeRequestId] + ($namesChanged ? [
+        // The record the proposal was filed against (to approve it only while the puzzle is still so), and the names
+        // as filed when they are part of the proposal - cleaned the way the puzzle keeps them
+        return new JsonResponse(['changeRequestId' => $changeRequestId, 'recordVersion' => $puzzle->recordVersion()] + ($namesChanged ? [
             'nameLanguage' => $nameLanguage,
             'alternativeNames' => $alternativeNames->toArray(),
         ] : []), Response::HTTP_CREATED);

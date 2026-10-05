@@ -125,6 +125,39 @@ final class InternalApiJsonBody
     }
 
     /**
+     * Record versions (PuzzleRecordVersion) of puzzles as read before deciding - an object puzzle id => version, keyed
+     * by the lower-case id; `[]` when the key is absent or null (nothing is checked).
+     *
+     * @param array<string, mixed> $body
+     *
+     * @return array<string, string>
+     */
+    public static function recordVersions(array $body, string $key): array
+    {
+        $values = $body[$key] ?? null;
+
+        if ($values === null) {
+            return [];
+        }
+
+        if (is_array($values) === false || ($values !== [] && array_is_list($values))) {
+            throw new BadRequestHttpException(sprintf('"%s" must be an object: puzzle id => recordVersion.', $key));
+        }
+
+        $versions = [];
+
+        foreach ($values as $puzzleId => $version) {
+            if (Uuid::isValid((string) $puzzleId) === false || is_string($version) === false || trim($version) === '') {
+                throw new BadRequestHttpException(sprintf('"%s" must map puzzle ids to the recordVersion read for them.', $key));
+            }
+
+            $versions[strtolower((string) $puzzleId)] = $version;
+        }
+
+        return $versions;
+    }
+
+    /**
      * Puzzle names as a list of `{"name": "…", "language": "cs" | null}`, in order - null when the key is absent or
      * null, `[]` is an empty list. Names are cleaned (PuzzleNames::cleanName()), languages normalised (LanguageTag); a
      * blank or too long name or an unknown language is a 400. How many names a puzzle may have is the caller's check.

@@ -16,7 +16,12 @@ Spec: `docs/features/internal-api.md` § Puzzle change requests. Token handling 
 
 ## File a proposal
 
-`POST /internal-api/puzzle-change-requests` → `201 {"changeRequestId": "…"}`
+`POST /internal-api/puzzle-change-requests` → `201 {"changeRequestId": "…", "recordVersion": "…"}`
+
+**Re-read the puzzle right before filing** (production `puzzle.*`, or API v1) - every field you send is compared with
+the puzzle as it is, and the names list is applied as a diff against the names when filed: a stale read proposes
+removing names you did not see. Keep the `recordVersion` of each `201` answer: it is the puzzle as the proposal was
+filed against it, and approving with it refuses a puzzle that changed since.
 
 | Field | Notes |
 |---|---|
@@ -39,8 +44,10 @@ or API v1 `alternative_names` - and send the list you want to end up with:
 - **add a name**: the current list plus the new entry
 - **tag a language**: the same entry with `language` set (a name without a language is never shown as the second line)
 - **edit / remove**: change or leave out that entry
-- **swap the main title**: `name` = the English title, the old main title as an entry with its language, and
-  `nameLanguage: null`
+- **swap the main title** ("make main title"): `name` = the English title, the old main title as an entry with its
+  language, and `nameLanguage: null` - approving it needs `name`, `nameLanguage` **and** `alternativeNames` selected
+  together - `name` without `alternativeNames` loses the old main title, without `nameLanguage` the English title
+  keeps the old title's language
 
 The list is applied as a diff against the names when the proposal was filed, so names somebody else changed meanwhile
 stay. An order of its own is no change; at most 20 names when the list grows. The `201` answer echoes the names as filed
@@ -74,13 +81,18 @@ player who proposed it, so write it for them. It does not check the status: conf
 
 ## Approve a proposal
 
-`POST /internal-api/puzzle-change-requests/{id}/approve` with `{"selectedFields": [...], "decisionNote": "..."}` → `204`.
+`POST /internal-api/puzzle-change-requests/{id}/approve` with `{"selectedFields": [...], "decisionNote": "...", "recordVersion": "..."}` → `204`.
+**Re-read the puzzle and the request right before approving** and send `recordVersion` - the one from the filing's
+`201` answer (the puzzle as the proposal was made against it): a puzzle changed since answers `409` with
+`{"error": "…"}` and nothing is applied; read it again and decide again. Left out, nothing is checked.
 `selectedFields` is required and lists what to apply to the puzzle (`name`, `nameLanguage`, `alternativeNames`,
 `manufacturer`, `piecesCount`, `ean`, `identificationNumber`, `image`) - `[]` approves without changing the puzzle, for a
 proposal something else already satisfied. To correct the proposed names before they go in, add `alternativeNames` (the
 list as it should end up, applied as a diff against the names when the request was filed) and/or `nameLanguage` - each
-only together with that field in `selectedFields`. The proposer is notified. `409` = already approved or rejected
-(approve checks the status, reject does not), `422` = the result breaks a record rule (e.g. more than 20 names).
+only together with that field in `selectedFields`. A proposal of another main title needs `name`, `nameLanguage` and
+`alternativeNames` selected together (see "swap the main title"). The proposer is notified. `409` = already approved
+or rejected (approve checks the status, reject does not) or the puzzle changed since `recordVersion`, `422` = the result
+breaks a record rule (e.g. more than 20 names).
 
 ## Rules
 

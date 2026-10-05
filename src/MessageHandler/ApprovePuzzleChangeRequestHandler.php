@@ -200,6 +200,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
             image: $selected('image') && $changeRequest->proposedImage !== null
                 ? PuzzleImageChoice::Proposed
                 : PuzzleImageChoice::Keep,
+            recordVersion: $message->recordVersion,
         );
     }
 }

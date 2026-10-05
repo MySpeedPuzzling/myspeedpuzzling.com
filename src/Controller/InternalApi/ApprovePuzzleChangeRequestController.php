@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -25,7 +27,8 @@ use Symfony\Component\Routing\Requirement\Requirement;
  *
  * `alternativeNames` and `nameLanguage` in the body correct the proposal before it is applied (a selected field
  * only): the other names as they should end up and the main title's language. The other names are applied as a
- * diff against the list when the request was filed, like the proposal itself.
+ * diff against the list when the request was filed, like the proposal itself. `recordVersion` (optional) is the
+ * puzzle's record as the caller read it: a puzzle changed since answers 409 and nothing is applied.
  */
 final class ApprovePuzzleChangeRequestController extends AbstractController
 {
@@ -83,16 +86,25 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
 
         $puzzleId = $this->getPuzzleChangeRequests->puzzleIdOf($changeRequestId) ?? throw new PuzzleChangeRequestNotFound();
 
-        $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
-            changeRequestId: $changeRequestId,
-            puzzleId: $puzzleId,
-            reviewerId: $this->reviewerPlayerId,
-            selectedFields: array_values(array_unique($selectedFields)),
-            decisionSource: MergeDecisionSource::InternalApi,
-            decisionNote: InternalApiJsonBody::optionalString($body, 'decisionNote'),
-            alternativeNamesOverride: $alternativeNames,
-            nameLanguageOverride: $nameLanguage,
-        ));
+        try {
+            $this->messageBus->dispatch(new ApprovePuzzleChangeRequest(
+                changeRequestId: $changeRequestId,
+                puzzleId: $puzzleId,
+                reviewerId: $this->reviewerPlayerId,
+                selectedFields: array_values(array_unique($selectedFields)),
+                decisionSource: MergeDecisionSource::InternalApi,
+                decisionNote: InternalApiJsonBody::optionalString($body, 'decisionNote'),
+                alternativeNamesOverride: $alternativeNames,
+                nameLanguageOverride: $nameLanguage,
+                // Optional: the puzzle's recordVersion as read before deciding - a puzzle changed since refuses it
+                recordVersion: InternalApiJsonBody::optionalString($body, 'recordVersion'),
+            ));
+        } catch (PuzzleChangedMeanwhile) {
+            return new JsonResponse(
+                ['error' => 'The puzzle changed after its recordVersion was read - nothing was approved. Read it again and decide again.'],
+                Response::HTTP_CONFLICT,
+            );
+        }
 
         return new Response(null, Response::HTTP_NO_CONTENT);
     }

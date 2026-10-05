@@ -9,8 +9,10 @@ use SpeedPuzzling\Web\Controller\InternalApi\SubmitPuzzleChangeRequestController
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,6 +36,11 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
         $body = json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($body);
         self::assertIsString($body['changeRequestId'] ?? null);
+        // The record the proposal was filed against - sent back on approve
+        self::assertSame(
+            PuzzleRecordVersion::ofPuzzle(self::getContainer()->get(PuzzleRepository::class)->get(self::PUZZLE)),
+            $body['recordVersion'] ?? null,
+        );
 
         $changeRequest = self::getContainer()->get(PuzzleChangeRequestRepository::class)->get($body['changeRequestId']);
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $changeRequest->reporter->id->toString());

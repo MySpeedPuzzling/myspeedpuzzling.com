@@ -111,8 +111,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
         }
 
         // The review shows every puzzle as it was loaded - a save in between refuses the merge before anything changes
+        $recordVersions = array_change_key_case($message->recordVersions, CASE_LOWER);
+
         foreach ([$survivorPuzzle, ...$puzzlesToMerge] as $puzzle) {
-            PuzzleRecordVersion::assertUnchanged($puzzle, $message->recordVersions[$puzzle->id->toString()] ?? null);
+            PuzzleRecordVersion::assertUnchanged($puzzle, $recordVersions[$puzzle->id->toString()] ?? null);
         }
 
         // Snapshot everything the merge is about to rewrite or destroy, before it happens

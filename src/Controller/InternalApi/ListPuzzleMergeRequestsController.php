@@ -100,6 +100,8 @@ final class ListPuzzleMergeRequestsController extends AbstractController
             'collectionItemsCount' => $candidate->collectionItemsCount,
             'wishListItemsCount' => $candidate->wishListItemsCount,
             'sellSwapItemsCount' => $candidate->sellSwapItemsCount,
+            // Sent back on approve (recordVersions) - a puzzle changed since refuses the merge
+            'recordVersion' => $candidate->recordVersion(),
         ];
     }
 }

@@ -16,6 +16,8 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\LanguageTag;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleSearchKeys;
@@ -55,6 +57,16 @@ class Puzzle
     #[Column(type: Types::TEXT, nullable: true)]
     public null|string $searchCodes = null;
 
+    // The brand codes, BrandCodeList::toStored() - read them as brandCodes(), change them with updateProductIdentifiers()
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $identificationNumber = null;
+
+    // The barcodes, EanList::toStored() - read them as eans(), change them with updateProductIdentifiers()
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $ean = null;
+
     /**
      * @throws InvalidPuzzleValues
      */
@@ -83,12 +95,8 @@ class Puzzle
         #[Immutable]
         #[Column(nullable: true)]
         public null|DateTimeImmutable $addedAt = null,
-        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-        #[Column(nullable: true)]
-        public null|string $identificationNumber = null,
-        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-        #[Column(nullable: true)]
-        public null|string $ean = null,
+        null|BrandCodeList $brandCodes = null,
+        null|EanList $eans = null,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
         public bool $isAvailable = false,
@@ -106,12 +114,22 @@ class Puzzle
         null|string $nameLanguage = null,
     ) {
         $this->applyNames($name, $nameLanguage, $alternativeNames);
-        $this->searchCodes = PuzzleSearchKeys::codes($this->ean, $this->identificationNumber);
+        $this->updateProductIdentifiers($eans ?? EanList::fromStored(null), $brandCodes ?? BrandCodeList::fromStored(null));
     }
 
     public function alternativeNames(): PuzzleNames
     {
         return PuzzleNames::fromArray($this->alternativeNames);
+    }
+
+    public function eans(): EanList
+    {
+        return EanList::fromStored($this->ean);
+    }
+
+    public function brandCodes(): BrandCodeList
+    {
+        return BrandCodeList::fromStored($this->identificationNumber);
     }
 
     /**
@@ -166,8 +184,8 @@ class Puzzle
         Manufacturer $manufacturer,
         string $image,
         null|float $imageRatio,
-        null|string $ean,
-        null|string $identificationNumber,
+        EanList $eans,
+        BrandCodeList $brandCodes,
         DateTimeImmutable $now,
     ): void {
         $this->changeNames($name, $this->nameLanguage, $alternativeNames, $now);
@@ -175,14 +193,43 @@ class Puzzle
         $this->manufacturer = $manufacturer;
         $this->image = $image;
         $this->imageRatio = $imageRatio;
-        $this->updateProductIdentifiers($ean, $identificationNumber);
+        $this->updateProductIdentifiers($eans, $brandCodes);
     }
 
-    public function updateProductIdentifiers(null|string $ean, null|string $identificationNumber): void
+    /**
+     * How codes change: a list that differs from the stored one is stored in its canonical form (EanList::toStored(),
+     * BrandCodeList::toStored()), and the code search key is built again. A list with the same codes in the same order
+     * keeps its stored value as it is - a writer passing the codes on unchanged (a name suggestion, a field not
+     * approved) never rewrites them, nor leaves a change in the puzzle's history.
+     */
+    public function updateProductIdentifiers(EanList $eans, BrandCodeList $brandCodes): void
     {
-        $this->ean = $ean;
-        $this->identificationNumber = $identificationNumber;
-        $this->searchCodes = PuzzleSearchKeys::codes($ean, $identificationNumber);
+        if ($this->eans()->equals($eans) === false) {
+            $this->ean = $eans->toStored();
+        }
+
+        if ($this->brandCodes()->equals($brandCodes) === false) {
+            $this->identificationNumber = $brandCodes->toStored();
+        }
+
+        $this->searchCodes = PuzzleSearchKeys::codes($this->ean, $this->identificationNumber);
+    }
+
+    /**
+     * myspeedpuzzling:canonicalize-puzzle-codes: the stored lists written in their canonical form - only when that is
+     * a format-only change (PuzzleCodesCleanup decides), which keeps the code search key as it is.
+     */
+    public function canonicalizeProductIdentifiers(bool $eans, bool $brandCodes): void
+    {
+        if ($eans) {
+            $this->ean = $this->eans()->toStored();
+        }
+
+        if ($brandCodes) {
+            $this->identificationNumber = $this->brandCodes()->toStored();
+        }
+
+        $this->searchCodes = PuzzleSearchKeys::codes($this->ean, $this->identificationNumber);
     }
 
     /**

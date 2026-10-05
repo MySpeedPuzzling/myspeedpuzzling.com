@@ -126,15 +126,13 @@ final class PuzzleAddFormType extends AbstractType
             ],
         ]);
 
-        $builder->add('puzzleEan', TextType::class, [
-            'label' => 'forms.ean',
-            'required' => false,
+        // One input per code, more behind a quiet "+ another" on the label line (templates/puzzle/_code_inputs.html.twig)
+        $builder->add('puzzleEans', CodeListType::class, [
+            'numeric' => true,
         ]);
 
-        $builder->add('puzzleIdentificationNumber', TextType::class, [
-            'label' => 'forms.puzzle_identification_number',
-            'required' => false,
-        ]);
+        $builder->add('puzzleBrandCodes', CodeListType::class);
+        CodeListType::acceptLegacyFields($builder, ['puzzleEan' => 'puzzleEans', 'puzzleIdentificationNumber' => 'puzzleBrandCodes']);
 
         // Names of other boxes of a new puzzle, behind "+ name in another language" on the puzzle's label line
         $builder->add('alternativeNames', CollectionType::class, [

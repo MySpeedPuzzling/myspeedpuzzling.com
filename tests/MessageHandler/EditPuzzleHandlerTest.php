@@ -15,6 +15,8 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
@@ -48,8 +50,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
                 alternativeNames: new PuzzleNames([new PuzzleName('Alternative Title', null)]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
-                ean: '4005556123452',
-                identificationNumber: '  ',
+                eans: EanList::fromStored('4005556123452'),
+                brandCodes: BrandCodeList::fromStored('  '),
             ),
             note: ' Checked on the box photo ',
         ));
@@ -104,8 +106,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
                 alternativeNames: $puzzle->alternativeNames(),
                 manufacturerId: $puzzle->manufacturer?->id->toString(),
                 piecesCount: $puzzle->piecesCount,
-                ean: $puzzle->ean,
-                identificationNumber: $puzzle->identificationNumber,
+                eans: EanList::fromStored($puzzle->ean),
+                brandCodes: BrandCodeList::fromStored($puzzle->identificationNumber),
             ),
             note: 'Nothing to see',
         ));
@@ -130,8 +132,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
                 ]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
-                ean: null,
-                identificationNumber: null,
+                eans: EanList::fromStored(null),
+                brandCodes: BrandCodeList::fromStored(null),
             ),
         ));
 
@@ -202,8 +204,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
                 alternativeNames: new PuzzleNames(array_slice($puzzle->alternativeNames()->all(), 1)),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
-                ean: PuzzleFixture::EAN_PUZZLE_500_03,
-                identificationNumber: null,
+                eans: EanList::fromStored(PuzzleFixture::EAN_PUZZLE_500_03),
+                brandCodes: BrandCodeList::fromStored(null),
             ),
         ));
 
@@ -225,8 +227,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
                 alternativeNames: new PuzzleNames([new PuzzleName(str_repeat('ř', PuzzleNames::MAX_NAME_LENGTH + 1), 'cs')]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
-                ean: null,
-                identificationNumber: 'RB-500-001',
+                eans: EanList::fromStored(null),
+                brandCodes: BrandCodeList::fromStored('RB-500-001'),
             ),
         ));
     }
@@ -243,8 +245,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
                     alternativeNames: new PuzzleNames([new PuzzleName('Should not be saved', null)]),
                     manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                     piecesCount: 1000,
-                    ean: '4005556123452',
-                    identificationNumber: null,
+                    eans: EanList::fromStored('4005556123452'),
+                    brandCodes: BrandCodeList::fromStored(null),
                 ),
             ));
             self::fail('A name over 255 characters must be refused.');
@@ -271,8 +273,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
                     alternativeNames: new PuzzleNames([new PuzzleName('Should not be saved', null)]),
                     manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                     piecesCount: 1000,
-                    ean: null,
-                    identificationNumber: null,
+                    eans: EanList::fromStored(null),
+                    brandCodes: BrandCodeList::fromStored(null),
                 ),
             ));
             self::fail('A blank name must be refused.');
@@ -295,8 +297,8 @@ final class EditPuzzleHandlerTest extends KernelTestCase
             alternativeNames: new PuzzleNames(),
             manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
             piecesCount: $piecesCount,
-            ean: null,
-            identificationNumber: 'RB-500-001',
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored('RB-500-001'),
             recordVersion: $recordVersion,
         );
     }

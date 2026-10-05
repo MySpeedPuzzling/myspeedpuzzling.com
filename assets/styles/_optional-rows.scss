@@ -84,3 +84,18 @@
     }
   }
 }
+
+// A puzzle's EANs or brand codes, one input per code (templates/puzzle/_code_inputs.html.twig): the first input, then a
+// row with × for every further code
+.code-inputs__rows {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.code-inputs__remove {
+  width: 2.5rem;
+  padding: 0;
+  line-height: 1;
+  font-size: 1.15rem;
+}

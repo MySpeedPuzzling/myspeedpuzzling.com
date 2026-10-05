@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Services;
 use SpeedPuzzling\Web\Results\AutocompletePuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -67,9 +69,12 @@ readonly final class PuzzleChoicesBuilder
                 $name .= ' <small lang="' . self::escape((string) $localName->language) . '">(' . self::escape($localName->name) . ')</small>';
             }
 
-            $identificationNumber = self::escape($puzzle->puzzleIdentificationNumber ?? '');
-            $ean = $puzzle->puzzleEan !== null
-                ? '<small class="text-muted ms-2">EAN: ' . self::escape($puzzle->puzzleEan) . '</small>'
+            // Each code as printed on the box - a UPC with its 12th digit (EanList::display())
+            $eans = implode(', ', EanList::fromStored($puzzle->puzzleEan)->display());
+            $brandCodes = implode(', ', BrandCodeList::fromStored($puzzle->puzzleIdentificationNumber)->display());
+            $identificationNumber = self::escape($brandCodes);
+            $ean = $eans !== ''
+                ? '<small class="text-muted ms-2">EAN: ' . self::escape($eans) . '</small>'
                 : '';
 
             // "no-highlight" keeps Tom Select from marking a typed "pieces" in the label
@@ -95,8 +100,8 @@ HTML;
                     $puzzle->puzzleAlternativeNames->all(),
                 )),
                 'codes' => implode("\n", array_filter(
-                    [$puzzle->puzzleEan, $puzzle->puzzleIdentificationNumber],
-                    static fn (null|string $code): bool => $code !== null && $code !== '',
+                    [$eans, $brandCodes],
+                    static fn (string $codes): bool => $codes !== '',
                 )),
                 'piecesCount' => $puzzle->piecesCount,
             ];

@@ -5,18 +5,38 @@
     (_puzzle_record_image, _puzzle_record_note) so a page can put a card of its own in between.
 
     Required variables: fields (label, widget, help, proposed, current, currentValue, proposedShown,
-    proposedValue, original, originalDiffers)
+    proposedValue, original, originalDiffers). A code list (codes: true - the EANs, the brand codes) has one input
+    per code (puzzle/_code_input_rows.html.twig, "+ another" on the label line); its current, proposed and original
+    values are lists, shown one code per line.
 #}
 {% import 'admin/_puzzle_macros.html.twig' as macros %}
 
 {% for field in fields %}
+    {% set codes = field.codes|default(false) %}
     <div class="border rounded-3 p-3 mb-3 shadow-sm {{ field.proposed ? 'border-2 border-warning' : '' }}"
          data-puzzle-record-target="field"
          data-label="{{ field.label }}"
-         data-current="{{ field.currentValue }}"
-         {% if field.proposed %}data-proposed="{{ field.proposedValue }}"{% endif %}>
+         {% if codes %}
+             data-codes
+             data-current="{{ field.currentValue|json_encode }}"
+             {% if field.proposed %}data-proposed="{{ field.proposedValue|json_encode }}"{% endif %}
+             data-controller="optional-rows"
+             data-optional-rows-index-value="{{ field.widget|length > 0 ? max(field.widget|keys) + 1 : 1 }}"
+             data-optional-rows-max-value="{{ field.max|default(constant('SpeedPuzzling\\Web\\Value\\EanList::FORM_MAX_CODES')) }}"
+         {% else %}
+             data-current="{{ field.currentValue }}"
+             {% if field.proposed %}data-proposed="{{ field.proposedValue }}"{% endif %}
+         {% endif %}>
         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-            <label class="form-label fw-semibold mb-0" for="{{ field.widget.vars.id }}">{{ field.label }}</label>
+            {% if codes %}
+                {% set first_code = field.widget.children|first %}
+                <div class="d-flex flex-wrap align-items-baseline gap-3">
+                    <label class="form-label fw-semibold mb-0" {% if first_code %}for="{{ first_code.vars.id }}"{% endif %}>{{ field.label }}</label>
+                    <button type="button" class="btn btn-link label-row__link mb-0" data-optional-rows-target="add" data-action="optional-rows#add">+ another</button>
+                </div>
+            {% else %}
+                <label class="form-label fw-semibold mb-0" for="{{ field.widget.vars.id }}">{{ field.label }}</label>
+            {% endif %}
             <span class="badge {{ field.proposed ? 'bg-warning text-dark' : 'd-none' }}" data-role="badge">{{ field.proposed ? 'Proposed' }}</span>
         </div>
 
@@ -24,27 +44,33 @@
             <div class="row g-2 small mb-2">
                 <div class="col-12 col-sm-6">
                     <div class="text-muted">Current</div>
-                    <div class="text-break">{{ macros.shown(field.current) }}</div>
+                    <div class="text-break">{{ codes ? macros.shown_list(field.current) : macros.shown(field.current) }}</div>
                     {% if field.originalDiffers %}
-                        <div class="text-muted fst-italic text-break">When proposed: {{ macros.shown(field.original) }}</div>
+                        <div class="text-muted fst-italic text-break">When proposed: {{ macros.shown(codes ? field.original|join(', ') : field.original) }}</div>
                     {% endif %}
                 </div>
                 <div class="col-12 col-sm-6">
                     <div class="text-muted">Proposed by the player</div>
-                    <div class="text-break fw-semibold bg-warning bg-opacity-25 rounded px-2 py-1" data-role="proposed-value">{{ macros.shown(field.proposedShown) }}</div>
+                    <div class="text-break fw-semibold bg-warning bg-opacity-25 rounded px-2 py-1" data-role="proposed-value">{{ codes ? macros.shown_list(field.proposedShown) : macros.shown(field.proposedShown) }}</div>
                 </div>
             </div>
         {% else %}
             <div class="small text-muted mb-2 text-break d-none" data-role="current-hint">
-                Current: {{ macros.shown(field.current) }}
+                Current: {{ macros.shown(codes ? field.current|join(', ') : field.current) }}
             </div>
         {% endif %}
 
-        {{ form_widget(field.widget) }}
+        {% if codes %}
+            {{ include('puzzle/_code_input_rows.html.twig', {field: field.widget, remove_label: 'Remove this code'}, with_context = false) }}
+        {% else %}
+            {{ form_widget(field.widget) }}
+        {% endif %}
         {% if field.help %}
             <div class="form-text">{{ field.help }}</div>
         {% endif %}
-        {{ form_errors(field.widget) }}
+        {% if not codes %}
+            {{ form_errors(field.widget) }}
+        {% endif %}
 
         <div class="d-flex flex-wrap gap-3 mt-1">
             {% if field.proposed %}

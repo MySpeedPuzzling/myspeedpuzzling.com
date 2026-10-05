@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
-use SpeedPuzzling\Web\Value\EanList;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Image;
-use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\Range;
@@ -18,6 +16,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[Callback('validateEan')]
 final class ProposePuzzleChangesFormData
 {
+    use PuzzleCodesFields;
+
     // Every name - the main title, its language and the other names (the names editor)
     #[Valid]
     public PuzzleNamesFormData $names;
@@ -31,17 +31,6 @@ final class ProposePuzzleChangesFormData
     #[Positive]
     #[Range(min: 10, max: 25000)]
     public int $piecesCount = 0;
-
-    #[Length(max: 100)]
-    public null|string $ean = null;
-
-    /**
-     * The puzzle's EAN list as it is now (not a form field) - its codes pass even when invalid
-     */
-    public null|string $currentEan = null;
-
-    #[Length(max: 100)]
-    public null|string $identificationNumber = null;
 
     #[Image(
         maxSize: '20M',
@@ -57,6 +46,14 @@ final class ProposePuzzleChangesFormData
 
     public function validateEan(ExecutionContextInterface $context): void
     {
-        EanList::addViolations($context, 'ean', $this->ean, $this->currentEan);
+        $this->validateCodes($context);
+    }
+
+    /**
+     * The puzzle's codes as it has them now, in the inputs.
+     */
+    public function loadPuzzleCodes(null|string $ean, null|string $identificationNumber): void
+    {
+        $this->loadCodes($ean, $identificationNumber, currentEan: $ean);
     }
 }

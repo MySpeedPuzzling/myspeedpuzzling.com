@@ -20,8 +20,8 @@ readonly final class PuzzleRecordValues
         public PuzzleNames $alternativeNames,
         public null|string $manufacturerId,
         public int $piecesCount,
-        public null|string $ean,
-        public null|string $identificationNumber,
+        public EanList $eans,
+        public BrandCodeList $brandCodes,
         public PuzzleImageChoice $image = PuzzleImageChoice::Keep,
         // Required for PuzzleImageChoice::Upload
         public null|UploadedFile $uploadedImage = null,

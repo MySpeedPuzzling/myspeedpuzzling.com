@@ -15,7 +15,6 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -102,15 +101,10 @@ final class PuzzleRecordFormType extends AbstractType
                     'inputmode' => 'numeric',
                 ],
             ])
-            ->add('ean', TextType::class, [
-                'required' => false,
-                'attr' => [
-                    'inputmode' => 'numeric',
-                ],
+            ->add('eans', CodeListType::class, [
+                'numeric' => true,
             ])
-            ->add('identificationNumber', TextType::class, [
-                'required' => false,
-            ])
+            ->add('brandCodes', CodeListType::class)
             ->add('puzzlePhoto', FileType::class, [
                 'required' => false,
                 'constraints' => [PuzzleBoxPhoto::constraint()],
@@ -121,6 +115,8 @@ final class PuzzleRecordFormType extends AbstractType
                     'rows' => 2,
                 ],
             ]);
+
+        CodeListType::acceptLegacyFields($builder, ['ean' => 'eans', 'identificationNumber' => 'brandCodes']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

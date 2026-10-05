@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
+use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Positive;
@@ -25,11 +26,20 @@ final class PuzzleMergeReviewFormData
     // Null = the survivor's own brand
     public null|string $manufacturerId = null;
 
-    #[Length(max: 100)]
-    public null|string $ean = null;
+    /**
+     * One input per code (CodeListType), prefilled with the codes of all the puzzles - not capped, the union may hold
+     * more than a form adds; the codes of every merged puzzle are added on approval either way
+     *
+     * @var array<int, null|string>
+     */
+    #[All([new Length(max: 30)])]
+    public array $eans = [];
 
-    #[Length(max: 100)]
-    public null|string $identificationNumber = null;
+    /**
+     * @var array<int, null|string>
+     */
+    #[All([new Length(max: 50)])]
+    public array $brandCodes = [];
 
     // Asked for only when more of the puzzles have an image
     public null|string $selectedImagePuzzleId = null;

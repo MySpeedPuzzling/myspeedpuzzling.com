@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Codes in the forms (`docs/features/puzzle-names/README.md`, phase 5)
+
+- [ ] After the deploy: `myspeedpuzzling:canonicalize-puzzle-codes --report=…` on production (dry run first, then
+      `--write --undo=…` - keep the undo file), then file the report rows as change proposals in waves
+      (`puzzle-change-proposal` skill; re-read each puzzle first; all rows of a puzzle carry one proposal of both
+      fields). Never file a removal of a part with a digit: catalogue numbers move into the brand codes, only words and
+      placeholders go. `ean_not_a_barcode` rows marked "(check digit)" and `brand_code_prose` rows propose no fix - a
+      person with the box rewrites them. On a production copy: 458 rows on 446 puzzles.
+- [ ] One release after phase 5: remove `CodeListType::acceptLegacyFields()` and its five calls (forms of the release
+      before posted one text field per code list).
+
 ## Puzzle names on pages and in search (`docs/features/puzzle-names/README.md`, phase 2)
 
 - [ ] 6-8 weeks after phase 2 ships: Search Console index coverage per language (`/puzzle/…` cs, `/de/puzzle/…`,

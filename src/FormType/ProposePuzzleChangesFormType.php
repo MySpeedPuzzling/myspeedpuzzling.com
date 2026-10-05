@@ -11,7 +11,6 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -57,21 +56,13 @@ final class ProposePuzzleChangesFormType extends AbstractType
                     'max' => 25000,
                 ],
             ])
-            ->add('ean', TextType::class, [
-                'label' => 'puzzle_report.form.ean',
-                'required' => false,
-                'help' => 'puzzle_report.form.ean_help',
-                'attr' => [
-                    'placeholder' => 'puzzle_report.form.ean_placeholder',
-                ],
+            // Labels and help in templates/puzzle-report/_propose_changes_form.html.twig (puzzle/_code_inputs.html.twig)
+            ->add('eans', CodeListType::class, [
+                'numeric' => true,
+                'entry_options' => ['attr' => ['placeholder' => 'puzzle_report.form.ean_placeholder']],
             ])
-            ->add('identificationNumber', TextType::class, [
-                'label' => 'puzzle_report.form.identification_number',
-                'required' => false,
-                'help' => 'puzzle_report.form.identification_number_help',
-                'attr' => [
-                    'placeholder' => 'puzzle_report.form.identification_number_placeholder',
-                ],
+            ->add('brandCodes', CodeListType::class, [
+                'entry_options' => ['attr' => ['placeholder' => 'puzzle_report.form.identification_number_placeholder']],
             ])
             ->add('photo', FileType::class, [
                 'label' => 'puzzle_report.form.photo',
@@ -80,6 +71,8 @@ final class ProposePuzzleChangesFormType extends AbstractType
                     'accept' => 'image/jpeg,image/png,image/webp',
                 ],
             ]);
+
+        CodeListType::acceptLegacyFields($builder, ['ean' => 'eans', 'identificationNumber' => 'brandCodes']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

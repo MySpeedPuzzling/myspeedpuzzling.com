@@ -5193,6 +5193,10 @@ marketplace_events:
         buyer_text: "Puzzler, die dabei sind, bringen %count% Puzzle mit. Werfen Sie vorab einen Blick darauf.|Puzzler, die dabei sind, bringen %count% Puzzles mit. Werfen Sie vorab einen Blick darauf."
         buyer_button: "Ansehen, was mitkommt"
 
+# A puzzle's EANs and brand codes in a form - one input per code (templates/puzzle/_code_inputs.html.twig)
+puzzle_codes:
+    add_another: "+ weiterer"
+    remove: "Diesen Code entfernen"
 puzzle_names:
     main_title: "Haupttitel"
     main_title_hint: "Der englische Titel auf der Schachtel. Wird auf jeder Seite und in jeder Sprache zuerst angezeigt."

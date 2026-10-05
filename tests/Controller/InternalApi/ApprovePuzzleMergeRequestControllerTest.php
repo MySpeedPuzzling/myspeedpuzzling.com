@@ -58,12 +58,37 @@ final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
         self::assertSame(self::MERGE_REQUEST_ID, $dispatched->mergeRequestId);
         self::assertSame(self::REVIEWER_ID, $dispatched->reviewerId, 'Reviewer comes from config, never from the request body');
         self::assertSame(self::SURVIVOR_ID, $dispatched->survivorPuzzleId);
-        self::assertSame('850006234257', $dispatched->mergedEan);
+        self::assertSame(['850006234257'], $dispatched->mergedEans?->codes());
+        self::assertSame(['03.20B'], $dispatched->mergedBrandCodes?->codes());
         self::assertSame(500, $dispatched->mergedPiecesCount);
         self::assertNull($dispatched->mergedManufacturerId);
         self::assertSame(MergeDecisionSource::InternalApi, $dispatched->decisionSource);
         self::assertSame(MergeDecisionConfidence::High, $dispatched->decisionConfidence);
         self::assertSame('Identical artwork and piece count.', $dispatched->decisionNote);
+    }
+
+    public function testCodesComeAsAListAndAListOfBlankEntriesIsRefused(): void
+    {
+        $dispatched = null;
+
+        $this->controller($this->messageBusCapturing($dispatched))(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedEan' => ['850006234257', '0850006234264'],
+            'mergedPiecesCount' => 500,
+        ]));
+
+        self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
+        self::assertSame(['850006234257', '850006234264'], $dispatched->mergedEans?->codes());
+
+        $this->expectException(BadRequestHttpException::class);
+
+        $this->controller($this->messageBusCapturing($dispatched))(self::MERGE_REQUEST_ID, $this->jsonRequest([
+            'survivorPuzzleId' => self::SURVIVOR_ID,
+            'mergedName' => 'Some Puzzle',
+            'mergedEan' => [' '],
+            'mergedPiecesCount' => 500,
+        ]));
     }
 
     public function testBlankOptionalStringsBecomeNull(): void
@@ -81,7 +106,7 @@ final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
 
         self::assertInstanceOf(ApprovePuzzleMergeRequest::class, $dispatched);
         // A blank EAN must not overwrite what the survivor already has
-        self::assertNull($dispatched->mergedEan);
+        self::assertNull($dispatched->mergedEans);
         self::assertNull($dispatched->decisionConfidence);
         self::assertNull($dispatched->decisionNote);
     }

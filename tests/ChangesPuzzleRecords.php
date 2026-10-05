@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Tests;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 
 /**
@@ -28,14 +30,14 @@ trait ChangesPuzzleRecords
     protected static function changePuzzleEan(string $puzzleId, null|string $ean): void
     {
         self::changePuzzle($puzzleId, static function (Puzzle $puzzle) use ($ean): void {
-            $puzzle->updateProductIdentifiers($ean, $puzzle->identificationNumber);
+            $puzzle->updateProductIdentifiers(EanList::fromStored($ean), $puzzle->brandCodes());
         });
     }
 
     protected static function changePuzzleBrandCode(string $puzzleId, null|string $identificationNumber): void
     {
         self::changePuzzle($puzzleId, static function (Puzzle $puzzle) use ($identificationNumber): void {
-            $puzzle->updateProductIdentifiers($puzzle->ean, $identificationNumber);
+            $puzzle->updateProductIdentifiers($puzzle->eans(), BrandCodeList::fromStored($identificationNumber));
         });
     }
 

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleNames;
@@ -28,8 +30,9 @@ readonly final class ApprovePuzzleMergeRequest implements SerializedByLock
         public string $reviewerId,
         public string $survivorPuzzleId,
         public string $mergedName,
-        public null|string $mergedEan,
-        public null|string $mergedIdentificationNumber,
+        // Null = the survivor's own - the codes of every merged puzzle are added either way (a merge never drops one)
+        public null|EanList $mergedEans,
+        public null|BrandCodeList $mergedBrandCodes,
         public int $mergedPiecesCount,
         public null|string $mergedManufacturerId,
         public null|string $selectedImagePuzzleId,

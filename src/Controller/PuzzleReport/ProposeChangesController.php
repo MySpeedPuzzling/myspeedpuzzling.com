@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -78,9 +80,7 @@ final class ProposeChangesController extends AbstractController
         $proposeFormData->recordVersion = $record->recordVersion();
         $proposeFormData->manufacturerId = $puzzle->manufacturerId;
         $proposeFormData->piecesCount = $puzzle->piecesCount;
-        $proposeFormData->ean = $puzzle->puzzleEan;
-        $proposeFormData->currentEan = $puzzle->puzzleEan;
-        $proposeFormData->identificationNumber = $puzzle->puzzleIdentificationNumber;
+        $proposeFormData->loadPuzzleCodes($puzzle->puzzleEan, $puzzle->puzzleIdentificationNumber);
 
         $proposeForm = $this->createForm(ProposePuzzleChangesFormType::class, $proposeFormData);
 
@@ -108,10 +108,11 @@ final class ProposeChangesController extends AbstractController
             $namesChanged = $formData->names->nameLanguage !== $record->nameLanguage
                 || $formData->names->toPuzzleNames()->cleanedFor($proposedName)->diff($record->alternativeNames)->isEmpty() === false;
 
+            // The codes compared in their canonical form - the inputs show them as displayed (a UPC with its 12th digit)
             $otherChanges = $formData->manufacturerId !== $puzzle->manufacturerId
                 || $formData->piecesCount !== $puzzle->piecesCount
-                || $formData->ean !== $puzzle->puzzleEan
-                || $formData->identificationNumber !== $puzzle->puzzleIdentificationNumber
+                || $formData->eanList()->toStored() !== EanList::fromStored($puzzle->puzzleEan)->toStored()
+                || $formData->brandCodeList()->toStored() !== BrandCodeList::fromStored($puzzle->puzzleIdentificationNumber)->toStored()
                 || $formData->photo !== null;
 
             // Check if any values actually changed
@@ -149,8 +150,8 @@ final class ProposeChangesController extends AbstractController
                 proposedName: $proposedName,
                 proposedManufacturerId: $formData->manufacturerId,
                 proposedPiecesCount: $formData->piecesCount,
-                proposedEan: $formData->ean,
-                proposedIdentificationNumber: $formData->identificationNumber,
+                proposedEans: $formData->eanList(),
+                proposedBrandCodes: $formData->brandCodeList(),
                 proposedPhoto: $formData->photo,
                 // What the player saw - the record version above equals it
                 originalAlternativeNames: $record->alternativeNames,

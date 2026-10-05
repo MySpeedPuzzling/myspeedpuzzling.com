@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -16,8 +18,9 @@ readonly final class SubmitPuzzleChangeRequest
         public string $proposedName,
         public null|string $proposedManufacturerId,
         public int $proposedPiecesCount,
-        public null|string $proposedEan,
-        public null|string $proposedIdentificationNumber,
+        // Every code as it should end up - stored as proposed only when it differs from the puzzle's
+        public EanList $proposedEans,
+        public BrandCodeList $proposedBrandCodes,
         public null|UploadedFile $proposedPhoto,
         // The other names and the main title's language the proposal was made against (what the player saw) - the
         // names part is applied as a diff against them, so they are never read from the puzzle as it is by then

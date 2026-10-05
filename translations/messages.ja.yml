@@ -5184,6 +5184,10 @@ marketplace_events:
         buyer_text: "参加するパズラーが%count%個のパズルを持ってきます。行く前にチェックしましょう。"
         buyer_button: "持参予定のパズルを見る"
 
+# A puzzle's EANs and brand codes in a form - one input per code (templates/puzzle/_code_inputs.html.twig)
+puzzle_codes:
+    add_another: "+ 追加"
+    remove: "このコードを削除"
 puzzle_names:
     main_title: "メインタイトル"
     main_title_hint: "箱に記載された英語のタイトルです。すべてのページ・すべての言語で最初に表示されます。"

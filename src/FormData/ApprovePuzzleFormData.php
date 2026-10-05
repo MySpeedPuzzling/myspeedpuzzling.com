@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormData;
 
 use SpeedPuzzling\Web\Results\PendingPuzzleApproval;
-use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Callback;
@@ -22,6 +21,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[Callback('validate')]
 final class ApprovePuzzleFormData
 {
+    use PuzzleCodesFields;
+
     // Every name, in the names editor
     #[Valid]
     public PuzzleNamesFormData $names;
@@ -32,17 +33,6 @@ final class ApprovePuzzleFormData
     #[NotBlank]
     #[Positive]
     public null|int $piecesCount = null;
-
-    #[Length(max: 100)]
-    public null|string $ean = null;
-
-    /**
-     * The puzzle's EAN list as added (not a form field) - its codes pass even when invalid
-     */
-    public null|string $currentEan = null;
-
-    #[Length(max: 100)]
-    public null|string $identificationNumber = null;
 
     // A photo of the box instead of the player's (the name FormPhotoStash knows)
     public null|UploadedFile $puzzlePhoto = null;
@@ -72,9 +62,7 @@ final class ApprovePuzzleFormData
         $data->names = PuzzleNamesFormData::fromNames($puzzle->puzzleName, $puzzle->nameLanguage, $puzzle->alternativeNames);
         $data->recordVersion = $puzzle->recordVersion();
         $data->piecesCount = $puzzle->piecesCount;
-        $data->ean = $puzzle->ean;
-        $data->currentEan = $puzzle->ean;
-        $data->identificationNumber = $puzzle->identificationNumber;
+        $data->loadCodes($puzzle->ean, $puzzle->identificationNumber, currentEan: $puzzle->ean);
         $data->currentManufacturerId = $puzzle->manufacturerId;
         $data->newBrand = $puzzle->manufacturerId !== null && $puzzle->manufacturerApproved === false;
         // A new brand: the likeliest existing one is ready for a merge or move; otherwise the puzzle's own brand
@@ -99,7 +87,7 @@ final class ApprovePuzzleFormData
 
     public function validate(ExecutionContextInterface $context): void
     {
-        EanList::addViolations($context, 'ean', $this->ean, $this->currentEan);
+        $this->validateCodes($context);
 
         if ($this->newBrand && $this->brandChoice === null) {
             $context->buildViolation('Decide what happens to the new brand.')

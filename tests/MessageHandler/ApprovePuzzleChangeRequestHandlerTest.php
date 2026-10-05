@@ -20,6 +20,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
@@ -134,8 +136,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
                 alternativeNames: new PuzzleNames([new PuzzleName('Alternative Title', null)]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
-                ean: '4005556123452',
-                identificationNumber: ' ',
+                eans: EanList::fromStored('4005556123452'),
+                brandCodes: BrandCodeList::fromStored(' '),
             ),
         ));
 
@@ -185,8 +187,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
                 alternativeNames: new PuzzleNames(),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
-                ean: null,
-                identificationNumber: 'RB-500-001',
+                eans: EanList::fromStored(null),
+                brandCodes: BrandCodeList::fromStored('RB-500-001'),
                 image: PuzzleImageChoice::Upload,
                 uploadedImage: new UploadedFile($imagePath, 'box.jpg', 'image/jpeg', null, true),
             ),
@@ -215,8 +217,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
                 alternativeNames: new PuzzleNames(),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 piecesCount: 500,
-                ean: '4005556123456',
-                identificationNumber: null,
+                eans: EanList::fromStored('4005556123456'),
+                brandCodes: BrandCodeList::fromStored(null),
                 image: PuzzleImageChoice::Keep,
             ),
         ));
@@ -249,8 +251,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
                     alternativeNames: new PuzzleNames(),
                     manufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                     piecesCount: 500,
-                    ean: null,
-                    identificationNumber: null,
+                    eans: EanList::fromStored(null),
+                    brandCodes: BrandCodeList::fromStored(null),
                     image: $image,
                 ),
             ));
@@ -476,8 +478,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
                 ]),
                 manufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 piecesCount: 1000,
-                ean: null,
-                identificationNumber: null,
+                eans: EanList::fromStored(null),
+                brandCodes: BrandCodeList::fromStored(null),
             ),
             reviewedFrom: $loadedWith,
         ));
@@ -505,8 +507,8 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
             proposedName: $puzzle->name,
             proposedManufacturerId: $puzzle->manufacturer?->id->toString(),
             proposedPiecesCount: $puzzle->piecesCount,
-            proposedEan: $puzzle->ean,
-            proposedIdentificationNumber: $puzzle->identificationNumber,
+            proposedEans: $puzzle->eans(),
+            proposedBrandCodes: $puzzle->brandCodes(),
             proposedPhoto: null,
             originalAlternativeNames: $puzzle->alternativeNames(),
             originalNameLanguage: $puzzle->nameLanguage,

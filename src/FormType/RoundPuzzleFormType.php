@@ -101,15 +101,13 @@ final class RoundPuzzleFormType extends AbstractType
             ],
         ]);
 
-        $builder->add('puzzleEan', TextType::class, [
-            'label' => 'forms.ean',
-            'required' => false,
+        // Labels in templates/add_puzzle_to_round.html.twig (puzzle/_code_inputs.html.twig)
+        $builder->add('puzzleEans', CodeListType::class, [
+            'numeric' => true,
         ]);
 
-        $builder->add('puzzleIdentificationNumber', TextType::class, [
-            'label' => 'forms.identification_number',
-            'required' => false,
-        ]);
+        $builder->add('puzzleBrandCodes', CodeListType::class);
+        CodeListType::acceptLegacyFields($builder, ['puzzleEan' => 'puzzleEans', 'puzzleIdentificationNumber' => 'puzzleBrandCodes']);
 
         $builder->add('hideUntilRoundStarts', CheckboxType::class, [
             'label' => 'competition.round_puzzle.form.hide_until_round_starts',

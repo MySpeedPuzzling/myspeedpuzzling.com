@@ -1,0 +1,13 @@
+{#
+    One more code of a code list (puzzle/_code_input_rows.html.twig): its input and ×.
+    Required: row - one input of a CodeListType (a row, or the collection's prototype), input_attr, remove_label
+#}
+<div class="code-inputs__row" data-optional-rows-target="row">
+    <div class="input-group">
+        {{ form_widget(row, {attr: input_attr}) }}
+        <button type="button" class="btn btn-outline-secondary code-inputs__remove" data-action="optional-rows#remove" aria-label="{{ remove_label }}" title="{{ remove_label }}">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {{ form_errors(row) }}
+</div>

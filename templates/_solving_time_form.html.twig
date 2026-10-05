@@ -78,7 +78,7 @@
                             <div class="pe-1">
                                 <div class="mb-1">
                                     <span class="h6">{{ active_puzzle.puzzleName }}</span>
-                                    <small class="text-muted">{{ active_puzzle.puzzleIdentificationNumber }}</small><br>
+                                    <small class="text-muted">{{ puzzle_brand_codes(active_puzzle.puzzleIdentificationNumber)|join(', ') }}</small><br>
                                     {{ active_puzzle.manufacturerName|upper }}<br>
                                 </div>
                                 <div class="description"><small>{{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}</small></div>
@@ -165,28 +165,40 @@
 
                             {{ form_row(solving_time_form.puzzlePiecesCount, {'attr': {'data-ppm-validator-target': 'puzzlePiecesCount'}}) }}
 
-                            {{ form_label(solving_time_form.puzzleEan) }}
-                            <div class="input-group mb-3">
-                                {{ form_widget(solving_time_form.puzzleEan, {'attr': {'data-time-form-autocomplete-target': 'eanInput'}}) }}
-                                {% if active_puzzle is null %}
-                                    <button type="button" class="btn btn-outline-secondary"
-                                            data-action="click->time-form-autocomplete#openScanner"
-                                            title="{{ 'scan.title'|trans }}">
-                                        <i class="bi-upc-scan"></i>
-                                    </button>
-                                {% endif %}
-                                {# A refused code: one tap empties the field, everything else (photo included) stays #}
-                                {% if solving_time_form.puzzleEan.vars.errors|length > 0 %}
-                                    <button type="button" class="btn btn-outline-danger"
-                                            data-time-form-autocomplete-target="eanClear"
-                                            data-action="click->time-form-autocomplete#clearEan">
-                                        <i class="bi-x-lg me-1"></i>{{ 'forms.clear_ean'|trans }}
-                                    </button>
-                                {% endif %}
-                            </div>
-                            <div data-time-form-autocomplete-target="eanErrors">{{ form_errors(solving_time_form.puzzleEan) }}</div>
-                            {{ form_help(solving_time_form.puzzleEan) }}
-                            {{ form_row(solving_time_form.puzzleIdentificationNumber) }}
+                            {# One input per code - more behind a quiet "+ another" on the label line. The scanner fills the first
+                               EAN input; a refused code there gets "Clear", one in another row has its × #}
+                            {% set first_ean = solving_time_form.puzzleEans.children|first %}
+                            {% set first_ean_input %}
+                                <div class="input-group">
+                                    {{ form_widget(first_ean, {'attr': {'data-time-form-autocomplete-target': 'eanInput'}}) }}
+                                    {% if active_puzzle is null %}
+                                        <button type="button" class="btn btn-outline-secondary"
+                                                data-action="click->time-form-autocomplete#openScanner"
+                                                title="{{ 'scan.title'|trans }}">
+                                            <i class="bi-upc-scan"></i>
+                                        </button>
+                                    {% endif %}
+                                    {# A refused code: one tap empties the field, everything else (photo included) stays #}
+                                    {% if first_ean.vars.errors|length > 0 %}
+                                        <button type="button" class="btn btn-outline-danger"
+                                                data-time-form-autocomplete-target="eanClear"
+                                                data-action="click->time-form-autocomplete#clearEan">
+                                            <i class="bi-x-lg me-1"></i>{{ 'forms.clear_ean'|trans }}
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            {% endset %}
+                            {% set first_ean_errors %}<div data-time-form-autocomplete-target="eanErrors">{{ form_errors(first_ean) }}</div>{% endset %}
+                            {{ include('puzzle/_code_inputs.html.twig', {
+                                field: solving_time_form.puzzleEans,
+                                label: 'forms.ean'|trans,
+                                first_input: first_ean_input,
+                                first_errors: first_ean_errors,
+                            }, with_context = false) }}
+                            {{ include('puzzle/_code_inputs.html.twig', {
+                                field: solving_time_form.puzzleBrandCodes,
+                                label: 'forms.puzzle_identification_number'|trans,
+                            }, with_context = false) }}
 
                             {{ form_label(solving_time_form.puzzlePhoto) }}
                             {{ form_errors(solving_time_form.puzzlePhoto) }}

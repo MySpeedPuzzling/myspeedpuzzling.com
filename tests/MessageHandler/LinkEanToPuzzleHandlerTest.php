@@ -53,6 +53,23 @@ final class LinkEanToPuzzleHandlerTest extends KernelTestCase
         self::assertSame('1', $count);
     }
 
+    public function testAPlaceholderIsReplacedAndKeptInTheAuditTheBrandCodesUntouched(): void
+    {
+        $this->database->executeStatement(
+            "UPDATE puzzle SET ean = '-', identification_number = 'Clementoni' WHERE id = :id",
+            ['id' => PuzzleFixture::PUZZLE_9000],
+        );
+
+        $this->messageBus->dispatch(new LinkEanToPuzzle(PuzzleFixture::PUZZLE_9000, PlayerFixture::PLAYER_WITH_STRIPE, PuzzleFixture::EAN_UNKNOWN));
+
+        $puzzle = $this->database->fetchAssociative('SELECT ean, identification_number FROM puzzle WHERE id = :id', ['id' => PuzzleFixture::PUZZLE_9000]);
+        self::assertSame(['ean' => PuzzleFixture::EAN_UNKNOWN, 'identification_number' => 'Clementoni'], $puzzle);
+        self::assertSame('-', $this->database->fetchOne(
+            'SELECT original_ean FROM puzzle_change_request WHERE puzzle_id = :id AND proposed_ean = :ean',
+            ['id' => PuzzleFixture::PUZZLE_9000, 'ean' => PuzzleFixture::EAN_UNKNOWN],
+        ));
+    }
+
     public function testPuzzleWithADifferentCodeOnlyGetsAPendingProposalOfTheUnion(): void
     {
         // PUZZLE_300 carries EAN_PUZZLE_300; a second edition code is proposed, not written

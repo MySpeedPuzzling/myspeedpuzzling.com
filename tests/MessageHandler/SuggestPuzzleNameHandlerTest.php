@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -122,6 +123,35 @@ final class SuggestPuzzleNameHandlerTest extends KernelTestCase
         $after = $decision->details['after'] ?? null;
         self::assertIsArray($after);
         self::assertSame($puzzle->alternativeNames, $after['alternativeNames'] ?? null);
+    }
+
+    public function testAModeratorsNameLeavesTheCodesAsStored(): void
+    {
+        $this->messageBus->dispatch(new GrantModeratorRole(PlayerFixture::PLAYER_REGULAR));
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            "UPDATE puzzle SET ean = '0091683108909, 6000-5468', identification_number = 'Clementoni, rb 14709' WHERE id = :id",
+            ['id' => PuzzleFixture::PUZZLE_1000_02],
+        );
+
+        $this->suggest(PuzzleFixture::PUZZLE_1000_02, PlayerFixture::PLAYER_REGULAR, 'Jardín mágico', 'es');
+
+        self::assertSame(
+            ['ean' => '0091683108909, 6000-5468', 'identification_number' => 'Clementoni, rb 14709'],
+            $database->fetchAssociative('SELECT ean, identification_number FROM puzzle WHERE id = :id', ['id' => PuzzleFixture::PUZZLE_1000_02]),
+        );
+
+        $decision = self::getContainer()->get(EntityManagerInterface::class)->getRepository(PuzzleModerationDecision::class)->findOneBy([
+            'action' => PuzzleModerationAction::PuzzleEdited,
+            'puzzleId' => Uuid::fromString(PuzzleFixture::PUZZLE_1000_02),
+        ]);
+        self::assertNotNull($decision);
+        $before = $decision->details['before'] ?? null;
+        $after = $decision->details['after'] ?? null;
+        self::assertIsArray($before);
+        self::assertIsArray($after);
+        // No phantom change of the codes in the puzzle's history
+        self::assertSame([$before['ean'] ?? null, $before['identificationNumber'] ?? null], [$after['ean'] ?? null, $after['identificationNumber'] ?? null]);
     }
 
     public function testAnAdminMakesTheNameTheMainTitle(): void

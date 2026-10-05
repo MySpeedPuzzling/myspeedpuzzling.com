@@ -217,19 +217,19 @@ final class ProposeChangesControllerTest extends WebTestCase
             proposedName: $puzzle->name,
             proposedManufacturerId: $puzzle->manufacturer?->id->toString(),
             proposedPiecesCount: 1500,
-            proposedEan: $puzzle->ean,
-            proposedIdentificationNumber: $puzzle->identificationNumber,
+            proposedEans: $puzzle->eans(),
+            proposedBrandCodes: $puzzle->brandCodes(),
             proposedPhoto: null,
             originalAlternativeNames: $puzzle->alternativeNames(),
             originalNameLanguage: $puzzle->nameLanguage,
         ));
 
-        $form['propose_puzzle_changes_form[identificationNumber]'] = 'RB-8';
+        $form['propose_puzzle_changes_form[brandCodes][0]'] = 'RB-8';
         $browser->submit($form);
         self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
         self::assertSame(1, $this->changeRequestCount(), 'Waits for the pending proposal');
 
-        $form['propose_puzzle_changes_form[identificationNumber]'] = $puzzle->identificationNumber ?? '';
+        $form['propose_puzzle_changes_form[brandCodes][0]'] = $puzzle->identificationNumber ?? '';
         $form['propose_puzzle_changes_form[names][name]'] = 'Puzzle 8 - corrected name';
         $browser->submit($form);
         self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
@@ -246,7 +246,7 @@ final class ProposeChangesControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         $form = $crawler->filter('form[name="propose_puzzle_changes_form"]')->form();
-        $form['propose_puzzle_changes_form[ean]'] = $ean;
+        $form['propose_puzzle_changes_form[eans][0]'] = $ean;
 
         if ($name !== null) {
             $form['propose_puzzle_changes_form[names][name]'] = $name;

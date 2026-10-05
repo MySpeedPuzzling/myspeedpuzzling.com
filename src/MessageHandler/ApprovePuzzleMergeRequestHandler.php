@@ -152,8 +152,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
         $survivorPuzzle->piecesCount = $message->mergedPiecesCount;
 
         $survivorPuzzle->updateProductIdentifiers(
-            ean: ($message->mergedEan !== null && $message->mergedEan !== '') ? $message->mergedEan : $survivorPuzzle->ean,
-            identificationNumber: ($message->mergedIdentificationNumber !== null && $message->mergedIdentificationNumber !== '') ? $message->mergedIdentificationNumber : $survivorPuzzle->identificationNumber,
+            ($message->mergedEans !== null && $message->mergedEans->isEmpty() === false) ? $message->mergedEans : $survivorPuzzle->eans(),
+            ($message->mergedBrandCodes !== null && $message->mergedBrandCodes->isEmpty() === false) ? $message->mergedBrandCodes : $survivorPuzzle->brandCodes(),
         );
 
         if ($message->mergedManufacturerId !== null) {
@@ -297,12 +297,12 @@ readonly final class ApprovePuzzleMergeRequestHandler
     private function preserveDetailsFromMergedPuzzles(array $puzzlesToMerge, Puzzle $survivorPuzzle): void
     {
         foreach ($puzzlesToMerge as $puzzleToMerge) {
+            // A puzzle legitimately carries several codes - one per edition or region. Merging two records takes the
+            // union: the merged puzzle is about to be deleted, and a code dropped here identified a real product.
+            // The survivor's codes stay first
             $survivorPuzzle->updateProductIdentifiers(
-                ean: self::unionIdentifiers($survivorPuzzle->ean, $puzzleToMerge->ean),
-                identificationNumber: self::unionIdentifiers(
-                    $survivorPuzzle->identificationNumber,
-                    $puzzleToMerge->identificationNumber,
-                ),
+                $survivorPuzzle->eans()->union($puzzleToMerge->eans()),
+                $survivorPuzzle->brandCodes()->union($puzzleToMerge->brandCodes()),
             );
 
             if ($survivorPuzzle->image === null && $puzzleToMerge->image !== null) {
@@ -314,33 +314,6 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 $survivorPuzzle->manufacturer = $puzzleToMerge->manufacturer;
             }
         }
-    }
-
-    /**
-     * Combines two product-code fields into one list.
-     *
-     * A single puzzle legitimately carries more than one EAN or catalogue number -
-     * the same product gets its own code per edition or region - and those are held
-     * as a comma-separated list. Merging two records therefore has to take the union:
-     * picking one and discarding the other throws away a code that identifies a real
-     * product, and the puzzle it belonged to is about to be deleted. Existing entries
-     * keep their order, so the survivor's own codes stay first.
-     */
-    private static function unionIdentifiers(null|string $survivorValue, null|string $mergedValue): null|string
-    {
-        $codes = [];
-
-        foreach ([$survivorValue, $mergedValue] as $list) {
-            foreach (explode(',', $list ?? '') as $code) {
-                $code = trim($code);
-
-                if ($code !== '' && in_array($code, $codes, true) === false) {
-                    $codes[] = $code;
-                }
-            }
-        }
-
-        return $codes === [] ? null : implode(', ', $codes);
     }
 
     /**

@@ -5,6 +5,8 @@ competition_date_to_before_date_from: "Datum konce nemůže být před datem za�
 competition_duration_too_long: "Událost nemůže trvat déle než %limit% dní. Zadejte prosím skutečné datum konání."
 finished_at_required_for_speed: "Datum doskládání je povinné pro speed puzzling."
 duplicate_puzzle_or_url_required: "Vyberte prosím duplicitní puzzle nebo zadejte odkaz na puzzle."
+ean_invalid: "„%code%“ není platný kód EAN ani UPC. Opište číslice pod čárovým kódem na krabici - jeden kód do každého pole."
+ean_missing_zeros: "„%code%“ vypadá jako %suggestion% bez dvou nul. Použijte prosím celý kód zpod čárového kódu."
 puzzle_names:
     main_title_required: "Puzzle musí mít hlavní název."
     name_too_long: "Název může mít nejvýše {{ limit }} znaků."

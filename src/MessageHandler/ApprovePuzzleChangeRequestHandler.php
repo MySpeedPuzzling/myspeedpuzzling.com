@@ -22,6 +22,8 @@ use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleRecordUpdater;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
@@ -146,8 +148,8 @@ readonly final class ApprovePuzzleChangeRequestHandler
             alternativeNames: $reviewed->alternativeNames->diff($reviewedFrom)->applyTo($puzzle->alternativeNames()),
             manufacturerId: $reviewed->manufacturerId,
             piecesCount: $reviewed->piecesCount,
-            ean: $reviewed->ean,
-            identificationNumber: $reviewed->identificationNumber,
+            eans: $reviewed->eans,
+            brandCodes: $reviewed->brandCodes,
             image: $reviewed->image,
             uploadedImage: $reviewed->uploadedImage,
             recordVersion: $reviewed->recordVersion,
@@ -193,10 +195,11 @@ readonly final class ApprovePuzzleChangeRequestHandler
             alternativeNames: $alternativeNames,
             manufacturerId: $manufacturer?->id->toString(),
             piecesCount: $selected('piecesCount') ? ($changeRequest->proposedPiecesCount ?? $puzzle->piecesCount) : $puzzle->piecesCount,
-            ean: $selected('ean') ? ($changeRequest->proposedEan ?? $puzzle->ean) : $puzzle->ean,
-            identificationNumber: $selected('identificationNumber')
-                ? ($changeRequest->proposedIdentificationNumber ?? $puzzle->identificationNumber)
-                : $puzzle->identificationNumber,
+            // A proposed '' removes every code (PuzzleChangeRequest::$proposedEan)
+            eans: $selected('ean') ? EanList::fromStored($changeRequest->proposedEan ?? $puzzle->ean) : $puzzle->eans(),
+            brandCodes: $selected('identificationNumber')
+                ? BrandCodeList::fromStored($changeRequest->proposedIdentificationNumber ?? $puzzle->identificationNumber)
+                : $puzzle->brandCodes(),
             image: $selected('image') && $changeRequest->proposedImage !== null
                 ? PuzzleImageChoice::Proposed
                 : PuzzleImageChoice::Keep,

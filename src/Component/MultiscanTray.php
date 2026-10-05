@@ -43,8 +43,10 @@ use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\LendBorrowParticipantParser;
 use SpeedPuzzling\Web\Services\MultiscanEligibility;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\Ean;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\MultiscanAction;
 use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
@@ -768,8 +770,8 @@ final class MultiscanTray
                 brand: $brand,
                 piecesCount: $pieces,
                 puzzlePhoto: $photo,
-                puzzleEan: $ean->digits,
-                puzzleIdentificationNumber: null,
+                eans: EanList::fromStored($ean->digits),
+                brandCodes: BrandCodeList::fromStored(null),
             ));
         } catch (ManufacturerNotFound) {
             // The picked brand is gone (merged or deleted since the sheet opened). Not wrapped:

@@ -24,9 +24,17 @@
 
     {{ form_row(propose_form.piecesCount) }}
 
-    {{ form_row(propose_form.ean) }}
+    {{ include('puzzle/_code_inputs.html.twig', {
+        field: propose_form.eans,
+        label: 'puzzle_report.form.ean'|trans,
+        help: 'puzzle_report.form.ean_help'|trans,
+    }, with_context = false) }}
 
-    {{ form_row(propose_form.identificationNumber) }}
+    {{ include('puzzle/_code_inputs.html.twig', {
+        field: propose_form.brandCodes,
+        label: 'puzzle_report.form.identification_number'|trans,
+        help: 'puzzle_report.form.identification_number_help'|trans,
+    }, with_context = false) }}
 
     {# Photo upload with collapsible help #}
     <div class="mb-3">

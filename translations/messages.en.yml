@@ -5517,6 +5517,10 @@ marketplace_events:
         buyer_text: "%count% is coming with puzzlers who are going. Have a look before you go.|%count% are coming with puzzlers who are going. Have a look before you go."
         buyer_button: "See what's coming"
 # Puzzle names (docs/features/puzzle-names/README.md) - the names editor and the stale-form message
+# A puzzle's EANs and brand codes in a form - one input per code (templates/puzzle/_code_inputs.html.twig)
+puzzle_codes:
+    add_another: "+ another"
+    remove: "Remove this code"
 puzzle_names:
     main_title: "Main title"
     main_title_hint: "The English title of the box. Shown first on every page, in every language."

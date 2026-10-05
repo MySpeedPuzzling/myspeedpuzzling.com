@@ -12,7 +12,6 @@ use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -62,13 +61,10 @@ final class PuzzleMergeReviewFormType extends AbstractType
             ->add('piecesCount', IntegerType::class, [
                 'attr' => ['min' => 1, 'inputmode' => 'numeric'],
             ])
-            ->add('ean', TextType::class, [
-                'required' => false,
-                'attr' => ['inputmode' => 'numeric'],
+            ->add('eans', CodeListType::class, [
+                'numeric' => true,
             ])
-            ->add('identificationNumber', TextType::class, [
-                'required' => false,
-            ])
+            ->add('brandCodes', CodeListType::class)
             ->add('decisionNote', TextareaType::class, [
                 'required' => false,
                 'attr' => ['rows' => 2, 'placeholder' => 'Why - e.g. "same EAN, same box photo"'],
@@ -85,6 +81,8 @@ final class PuzzleMergeReviewFormType extends AbstractType
                 'placeholder' => false,
             ]);
         }
+
+        CodeListType::acceptLegacyFields($builder, ['ean' => 'eans', 'identificationNumber' => 'brandCodes']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

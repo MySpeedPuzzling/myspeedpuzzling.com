@@ -38,7 +38,9 @@ use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\FirstTryAssessment;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
@@ -157,8 +159,8 @@ final class PuzzleAddController extends AbstractController
         // Multiscan's "open the full form" link carries the scanned code (docs/features/multiscan/README.md §6)
         $queryEan = $request->query->getString('ean');
 
-        if ($queryEan !== '' && $data->puzzleEan === null && preg_match('/^\\d{8,14}$/', $queryEan) === 1) {
-            $data->puzzleEan = $queryEan;
+        if ($queryEan !== '' && $data->puzzleEans === [] && preg_match('/^\\d{8,14}$/', $queryEan) === 1) {
+            $data->puzzleEans = [$queryEan];
         }
 
         // Handle query parameters for mode and collection pre-selection
@@ -353,8 +355,8 @@ final class PuzzleAddController extends AbstractController
                             brand: $data->brand ?? '',
                             piecesCount: $data->puzzlePiecesCount,
                             puzzlePhoto: $data->puzzlePhoto,
-                            puzzleEan: $data->puzzleEan,
-                            puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
+                            eans: EanList::fromInputs($data->puzzleEans),
+                            brandCodes: BrandCodeList::fromInputs($data->puzzleBrandCodes),
                             alternativeNames: $data->toPuzzleNames(),
                         ),
                     );

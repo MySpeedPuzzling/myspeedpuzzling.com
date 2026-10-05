@@ -38,8 +38,8 @@
                                 <div class="text-break">
                                     <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="fw-semibold">{{ puzzle.name }}</a>
                                     <div>{{ puzzle.manufacturerName }} · {{ puzzle.piecesCount }} pcs</div>
-                                    {% if puzzle.ean %}<div class="text-muted">EAN {{ puzzle.ean }}</div>{% endif %}
-                                    {% if puzzle.identificationNumber %}<div class="text-muted">{{ puzzle.identificationNumber }}</div>{% endif %}
+                                    {% for ean in puzzle_eans(puzzle.ean) %}<div class="text-muted">EAN {{ ean }}</div>{% endfor %}
+                                    {% for brand_code in puzzle_brand_codes(puzzle.identificationNumber) %}<div class="text-muted">{{ brand_code }}</div>{% endfor %}
                                     <div>
                                         {% if puzzle.approved %}
                                             <span class="badge bg-success">approved</span>

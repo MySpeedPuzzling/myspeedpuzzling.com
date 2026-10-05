@@ -21,24 +21,24 @@
         original: request.originalPiecesCount, originalDiffers: request.originalPiecesCount != request.puzzlePiecesCount,
     },
     {
-        label: 'EAN', widget: form.ean, help: 'Comma-separated - one code per edition or region. Never reduce the list.',
+        label: 'EAN', widget: form.eans, codes: true, help: 'One per edition or region - never reduce the list.',
         proposed: request.hasEanChange(),
-        current: request.puzzleEan, currentValue: request.puzzleEan,
-        proposedShown: request.proposedEan, proposedValue: request.proposedEan,
-        original: request.originalEan, originalDiffers: request.originalEan != request.puzzleEan,
+        current: puzzle_eans(request.puzzleEan), currentValue: puzzle_eans(request.puzzleEan),
+        proposedShown: puzzle_eans(request.proposedEan), proposedValue: puzzle_eans(request.proposedEan),
+        original: puzzle_eans(request.originalEan), originalDiffers: puzzle_eans(request.originalEan) != puzzle_eans(request.puzzleEan),
     },
     {
-        label: 'Brand code', widget: form.identificationNumber, help: 'Comma-separated',
+        label: 'Brand code', widget: form.brandCodes, codes: true, help: null,
         proposed: request.hasIdentificationNumberChange(),
-        current: request.puzzleIdentificationNumber, currentValue: request.puzzleIdentificationNumber,
-        proposedShown: request.proposedIdentificationNumber, proposedValue: request.proposedIdentificationNumber,
-        original: request.originalIdentificationNumber, originalDiffers: request.originalIdentificationNumber != request.puzzleIdentificationNumber,
+        current: puzzle_brand_codes(request.puzzleIdentificationNumber), currentValue: puzzle_brand_codes(request.puzzleIdentificationNumber),
+        proposedShown: puzzle_brand_codes(request.proposedIdentificationNumber), proposedValue: puzzle_brand_codes(request.proposedIdentificationNumber),
+        original: puzzle_brand_codes(request.originalIdentificationNumber), originalDiffers: puzzle_brand_codes(request.originalIdentificationNumber) != puzzle_brand_codes(request.puzzleIdentificationNumber),
     },
 ] %}
 
 {{ form_start(form, {attr: {
     'data-controller': 'puzzle-record',
-    'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update names-editor:change->puzzle-record#update',
+    'data-action': 'change->puzzle-record#update input->puzzle-record#update kept-photo:removed->puzzle-record#update names-editor:change->puzzle-record#update optional-rows:change->puzzle-record#update',
     'data-puzzle-record-proposed-label-value': 'Proposed',
     'data-puzzle-record-edit-label-value': 'Your edit',
     'data-puzzle-record-kept-label-value': 'Keeping current',

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
+use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -62,8 +63,11 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
 
         $name = InternalApiJsonBody::optionalString($body, 'name') ?? $puzzle->name;
         $manufacturerId = InternalApiJsonBody::optionalString($body, 'manufacturerId') ?? $puzzle->manufacturerId;
-        $ean = InternalApiJsonBody::optionalString($body, 'ean') ?? $puzzle->ean;
-        $identificationNumber = InternalApiJsonBody::optionalString($body, 'identificationNumber') ?? $puzzle->identificationNumber;
+        // A list of codes or one comma-separated string; `[]` removes every code
+        $eanInputs = InternalApiJsonBody::optionalCodeList($body, 'ean');
+        $brandCodeInputs = InternalApiJsonBody::optionalCodeList($body, 'identificationNumber');
+        $eans = $eanInputs !== null ? EanList::fromInputs($eanInputs) : EanList::fromStored($puzzle->ean);
+        $brandCodes = $brandCodeInputs !== null ? BrandCodeList::fromInputs($brandCodeInputs) : BrandCodeList::fromStored($puzzle->identificationNumber);
         $piecesCount = $body['piecesCount'] ?? $puzzle->piecesCount;
         $alternativeNames = InternalApiJsonBody::optionalPuzzleNames($body, 'alternativeNames') ?? $puzzle->alternativeNames;
         $nameLanguage = InternalApiJsonBody::optionalLanguageTag($body, 'nameLanguage');
@@ -77,7 +81,15 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             throw new BadRequestHttpException('"manufacturerId" must be an id.');
         }
 
-        $invalidCodes = EanList::invalidCodes($ean ?? '', $puzzle->ean);
+        if ($eans->fitsColumn() === false || $brandCodes->fitsColumn() === false) {
+            throw new BadRequestHttpException('"ean" and "identificationNumber" can hold at most 255 characters each, written as a list.');
+        }
+
+        $invalidCodes = [];
+        foreach ($eanInputs ?? [] as $eanInput) {
+            $invalidCodes = [...$invalidCodes, ...EanList::invalidCodes($eanInput, $puzzle->ean)];
+        }
+
         if ($invalidCodes !== []) {
             throw new BadRequestHttpException(sprintf(
                 '"ean" holds codes that are not EAN/UPC codes: %s.',
@@ -96,8 +108,8 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
 
         $otherChanges = $manufacturerId !== $puzzle->manufacturerId
             || $piecesCount !== $puzzle->piecesCount
-            || $ean !== $puzzle->ean
-            || $identificationNumber !== $puzzle->identificationNumber;
+            || $eans->toStored() !== EanList::fromStored($puzzle->ean)->toStored()
+            || $brandCodes->toStored() !== BrandCodeList::fromStored($puzzle->identificationNumber)->toStored();
 
         if ($name === $puzzle->name && $namesChanged === false && $otherChanges === false) {
             throw new BadRequestHttpException('Nothing to change - every given field equals the puzzle as it is.');
@@ -122,8 +134,8 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             proposedName: $name,
             proposedManufacturerId: $manufacturerId,
             proposedPiecesCount: $piecesCount,
-            proposedEan: $ean,
-            proposedIdentificationNumber: $identificationNumber,
+            proposedEans: $eans,
+            proposedBrandCodes: $brandCodes,
             proposedPhoto: null,
             originalAlternativeNames: $puzzle->alternativeNames,
             originalNameLanguage: $puzzle->nameLanguage,

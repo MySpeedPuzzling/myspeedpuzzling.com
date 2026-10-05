@@ -9,6 +9,8 @@ use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -56,6 +58,15 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
         $survivorPuzzleId = strtolower(InternalApiJsonBody::requiredString($body, 'survivorPuzzleId'));
         $selectedImagePuzzleId = InternalApiJsonBody::optionalString($body, 'selectedImagePuzzleId');
         $mergedName = InternalApiJsonBody::requiredString($body, 'mergedName');
+        $mergedEans = InternalApiJsonBody::optionalCodeList($body, 'mergedEan');
+        $mergedBrandCodes = InternalApiJsonBody::optionalCodeList($body, 'mergedIdentificationNumber');
+
+        if (
+            ($mergedEans !== null && EanList::fromInputs($mergedEans)->fitsColumn() === false)
+            || ($mergedBrandCodes !== null && BrandCodeList::fromInputs($mergedBrandCodes)->fitsColumn() === false)
+        ) {
+            throw new BadRequestHttpException('"mergedEan" and "mergedIdentificationNumber" can hold at most 255 characters each, written as a list.');
+        }
         $mergedPiecesCount = $body['mergedPiecesCount'] ?? null;
 
         if (is_int($mergedPiecesCount) === false || $mergedPiecesCount <= 0) {
@@ -84,8 +95,9 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
                 reviewerId: $this->reviewerPlayerId,
                 survivorPuzzleId: $survivorPuzzleId,
                 mergedName: $mergedName,
-                mergedEan: InternalApiJsonBody::optionalString($body, 'mergedEan'),
-                mergedIdentificationNumber: InternalApiJsonBody::optionalString($body, 'mergedIdentificationNumber'),
+                // Optional, a list or a comma-separated string: the codes of every merged puzzle are added either way
+                mergedEans: $mergedEans !== null ? EanList::fromInputs($mergedEans) : null,
+                mergedBrandCodes: $mergedBrandCodes !== null ? BrandCodeList::fromInputs($mergedBrandCodes) : null,
                 mergedPiecesCount: $mergedPiecesCount,
                 mergedManufacturerId: InternalApiJsonBody::optionalString($body, 'mergedManufacturerId'),
                 selectedImagePuzzleId: $selectedImagePuzzleId !== null ? strtolower($selectedImagePuzzleId) : null,

@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Value\Ean;
+use SpeedPuzzling\Web\Value\EanList;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -64,29 +65,29 @@ readonly final class LinkEanToPuzzleHandler
         }
 
         $now = $this->clock->now();
-        $currentEan = $puzzle->ean !== null ? trim($puzzle->ean) : '';
+        $currentEans = $puzzle->eans();
+        $scanned = EanList::fromStored($ean->normalized());
 
-        if ($currentEan === '') {
-            $puzzle->updateProductIdentifiers(
-                ean: $ean->normalized(),
-                identificationNumber: $puzzle->identificationNumber,
-            );
+        if ($currentEans->isEmpty()) {
+            // The audit keeps what was stored - a placeholder like "-" too
+            $storedEan = $puzzle->ean;
+            $puzzle->updateProductIdentifiers($scanned, $puzzle->brandCodes());
 
-            $audit = $this->changeRequest($puzzle, $player, $now, $ean->normalized(), originalEan: null);
+            $audit = $this->changeRequest($puzzle, $player, $now, $ean->normalized(), originalEan: $storedEan);
             $audit->approve($player, $now);
             $this->puzzleChangeRequestRepository->save($audit);
 
             return;
         }
 
-        $proposedEan = $currentEan . ', ' . $ean->normalized();
+        $proposedEan = (string) $currentEans->union($scanned)->toStored();
 
         if ($this->puzzleChangeRequestRepository->findPendingEanProposal($puzzle, $proposedEan) !== null) {
             return;
         }
 
         $this->puzzleChangeRequestRepository->save(
-            $this->changeRequest($puzzle, $player, $now, $proposedEan, originalEan: $currentEan),
+            $this->changeRequest($puzzle, $player, $now, $proposedEan, originalEan: $puzzle->ean),
         );
     }
 

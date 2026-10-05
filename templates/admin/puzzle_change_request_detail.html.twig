@@ -15,10 +15,10 @@
         {% set fields = fields|merge([{key: 'piecesCount', label: 'Pieces', original: request.originalPiecesCount, proposed: request.proposedPiecesCount}]) %}
     {% endif %}
     {% if request.hasEanChange() %}
-        {% set fields = fields|merge([{key: 'ean', label: 'EAN', original: request.originalEan, proposed: request.proposedEan}]) %}
+        {% set fields = fields|merge([{key: 'ean', label: 'EAN', original: puzzle_eans(request.originalEan)|join(', '), proposed: puzzle_eans(request.proposedEan)|join(', ')}]) %}
     {% endif %}
     {% if request.hasIdentificationNumberChange() %}
-        {% set fields = fields|merge([{key: 'identificationNumber', label: 'Brand Code', original: request.originalIdentificationNumber, proposed: request.proposedIdentificationNumber}]) %}
+        {% set fields = fields|merge([{key: 'identificationNumber', label: 'Brand Code', original: puzzle_brand_codes(request.originalIdentificationNumber)|join(', '), proposed: puzzle_brand_codes(request.proposedIdentificationNumber)|join(', ')}]) %}
     {% endif %}
 
     <div class="row">
@@ -99,7 +99,13 @@
                             </div>
                             <div class="col-12 col-md-6">
                                 <div class="small text-muted mb-1">Proposed</div>
-                                <div class="text-break bg-warning bg-opacity-10 rounded px-2 py-1 fw-semibold">{{ field.proposed }}</div>
+                                <div class="text-break bg-warning bg-opacity-10 rounded px-2 py-1 fw-semibold">
+                                    {%- if field.proposed is same as('') -%}
+                                        <span class="fst-italic">None - every code removed</span>
+                                    {%- else -%}
+                                        {{ field.proposed }}
+                                    {%- endif -%}
+                                </div>
                             </div>
                         </div>
                     </div>

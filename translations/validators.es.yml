@@ -5,6 +5,8 @@ competition_date_to_before_date_from: "La fecha de fin no puede ser anterior a l
 competition_duration_too_long: "El evento no puede durar más de %limit% días. Por favor ingresa las fechas reales del evento."
 finished_at_required_for_speed: "La fecha completada es obligatoria para speed puzzling."
 duplicate_puzzle_or_url_required: "Por favor selecciona un puzzle duplicado o ingresa la URL de un puzzle."
+ean_invalid: "«%code%» no es un código EAN o UPC válido. Copia los dígitos que hay bajo el código de barras de la caja: un código por campo."
+ean_missing_zeros: "«%code%» parece %suggestion% sin dos ceros. Usa el código completo que aparece bajo el código de barras."
 puzzle_names:
     main_title_required: "El puzzle necesita un título principal."
     name_too_long: "Un nombre puede tener como máximo {{ limit }} caracteres."

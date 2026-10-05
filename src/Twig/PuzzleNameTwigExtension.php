@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Twig;
 
 use SpeedPuzzling\Web\Services\PuzzleNameLanguage;
-use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\LanguageTag;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
@@ -20,8 +19,7 @@ use Twig\TwigFunction;
  * - `puzzle_page_local_name(names, main_title)` - the same in the page language only, for what crawlers read,
  * - `puzzle_matched_name(names, main_title, query, shown)` - the name a search found the puzzle by, when the lines
  *   shown do not say it,
- * - `puzzle_other_names(names)` - "Also known as": every name with its language named in the page language,
- * - `puzzle_gtins(ean)` - the valid barcodes for structured data.
+ * - `puzzle_other_names(names)` - "Also known as": every name with its language named in the page language.
  */
 final class PuzzleNameTwigExtension extends AbstractExtension
 {
@@ -41,7 +39,6 @@ final class PuzzleNameTwigExtension extends AbstractExtension
             new TwigFunction('puzzle_page_local_name', $this->pageLocalName(...)),
             new TwigFunction('puzzle_matched_name', $this->matchedName(...)),
             new TwigFunction('puzzle_other_names', $this->otherNames(...)),
-            new TwigFunction('puzzle_gtins', EanList::gtins(...)),
         ];
     }
 

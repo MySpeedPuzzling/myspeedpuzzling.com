@@ -8,9 +8,12 @@ use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
@@ -22,6 +25,7 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
 {
     private MessageBusInterface $messageBus;
     private PuzzleChangeRequestRepository $changeRequestRepository;
+    private PuzzleRepository $puzzleRepository;
     private Filesystem $filesystem;
     /** @var list<string> */
     private array $filesToCleanup = [];
@@ -32,6 +36,7 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
         $container = self::getContainer();
         $this->messageBus = $container->get(MessageBusInterface::class);
         $this->changeRequestRepository = $container->get(PuzzleChangeRequestRepository::class);
+        $this->puzzleRepository = $container->get(PuzzleRepository::class);
         $this->filesystem = $container->get(Filesystem::class);
     }
 
@@ -58,8 +63,8 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
                 proposedName: 'New Puzzle Name',
                 proposedManufacturerId: ManufacturerFixture::MANUFACTURER_TREFL,
                 proposedPiecesCount: 600,
-                proposedEan: '1234567890123',
-                proposedIdentificationNumber: 'NEW-001',
+                proposedEans: EanList::fromInputs([' 1234567890123 ']),
+                proposedBrandCodes: BrandCodeList::fromInputs(['new-001']),
                 proposedPhoto: null,
                 originalAlternativeNames: new PuzzleNames(),
                 originalNameLanguage: null,
@@ -104,8 +109,8 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
                 proposedName: 'Puzzle With Image',
                 proposedManufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
                 proposedPiecesCount: 500,
-                proposedEan: null,
-                proposedIdentificationNumber: null,
+                proposedEans: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01)->eans(),
+                proposedBrandCodes: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01)->brandCodes(),
                 proposedPhoto: $uploadedFile,
                 originalAlternativeNames: new PuzzleNames(),
                 originalNameLanguage: null,
@@ -133,8 +138,8 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
                 proposedName: 'Updated Name Only',
                 proposedManufacturerId: null,
                 proposedPiecesCount: 500,
-                proposedEan: null,
-                proposedIdentificationNumber: null,
+                proposedEans: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_02)->eans(),
+                proposedBrandCodes: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_02)->brandCodes(),
                 proposedPhoto: null,
                 originalAlternativeNames: new PuzzleNames(),
                 originalNameLanguage: null,
@@ -161,8 +166,8 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
             proposedName: 'Magic Garden',
             proposedManufacturerId: null,
             proposedPiecesCount: 1000,
-            proposedEan: null,
-            proposedIdentificationNumber: null,
+            proposedEans: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->eans(),
+            proposedBrandCodes: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->brandCodes(),
             proposedPhoto: null,
             originalAlternativeNames: new PuzzleNames([
                 new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
@@ -203,8 +208,8 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
             proposedName: 'Puzzle 7',
             proposedManufacturerId: null,
             proposedPiecesCount: 1500,
-            proposedEan: null,
-            proposedIdentificationNumber: null,
+            proposedEans: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->eans(),
+            proposedBrandCodes: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->brandCodes(),
             proposedPhoto: null,
             originalAlternativeNames: new PuzzleNames([
                 new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs'),
@@ -234,8 +239,8 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
             proposedName: 'Puzzle 7',
             proposedManufacturerId: null,
             proposedPiecesCount: 1000,
-            proposedEan: null,
-            proposedIdentificationNumber: null,
+            proposedEans: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->eans(),
+            proposedBrandCodes: $this->puzzleRepository->get(PuzzleFixture::PUZZLE_1000_02)->brandCodes(),
             proposedPhoto: null,
             originalAlternativeNames: new PuzzleNames([new PuzzleName(PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'cs')]),
             originalNameLanguage: 'it',

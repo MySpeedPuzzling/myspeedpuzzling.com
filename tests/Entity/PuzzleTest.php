@@ -10,6 +10,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 
@@ -28,8 +30,8 @@ final class PuzzleTest extends TestCase
                 new PuzzleName(' Kruh barev: Mušle', 'CS'),
                 new PuzzleName('Kruh barev: Musle', null),
             ]),
-            identificationNumber: '14709',
-            ean: '04005556147090',
+            brandCodes: BrandCodeList::fromStored('14709'),
+            eans: EanList::fromStored('04005556147090'),
             nameLanguage: 'PT-br',
         );
 
@@ -40,6 +42,7 @@ final class PuzzleTest extends TestCase
             ['name' => 'Kruh barev: Mušle', 'language' => 'cs'],
         ], $puzzle->alternativeNames);
         self::assertSame("\ncircle of colors: seashells\nmuscheln\nkruh barev: musle\n", $puzzle->searchNames);
+        self::assertSame('4005556147090', $puzzle->ean, 'stored in the canonical form');
         self::assertSame("\ne:4005556147090\nc:14709\n", $puzzle->searchCodes);
         self::assertNull($puzzle->namesChangedAt);
     }
@@ -155,16 +158,54 @@ final class PuzzleTest extends TestCase
 
     public function testUpdateProductIdentifiersRebuildsTheCodesKey(): void
     {
-        $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashells', approved: true, ean: '4005556147090');
+        $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashells', approved: true, eans: EanList::fromStored('4005556147090'));
 
-        $puzzle->updateProductIdentifiers('4005556147090, 4005555001997', 'RB-147');
+        $puzzle->updateProductIdentifiers(
+            EanList::fromInputs(['4005556147090', ' 0 4005555 001997 ', '']),
+            BrandCodeList::fromInputs(['rb-147', 'RB-147']),
+        );
 
         self::assertSame('4005556147090, 4005555001997', $puzzle->ean);
         self::assertSame('RB-147', $puzzle->identificationNumber);
         self::assertSame("\ne:4005556147090\ne:4005555001997\nc:rb147\n", $puzzle->searchCodes);
 
-        $puzzle->updateProductIdentifiers(null, null);
+        $puzzle->updateProductIdentifiers(EanList::fromInputs([]), BrandCodeList::fromInputs(['']));
+        self::assertNull($puzzle->ean);
+        self::assertNull($puzzle->identificationNumber);
         self::assertNull($puzzle->searchCodes);
+    }
+
+    public function testCodesPassedOnUnchangedKeepTheirStoredForm(): void
+    {
+        $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashells', approved: true);
+        // As typed before the lists (a row of an older release)
+        $puzzle->ean = '0091683108909, 6000-5468';
+        $puzzle->identificationNumber = 'Clementoni, rb 14709';
+
+        // A name suggestion, a field not approved: the same codes, read and passed on
+        $puzzle->updateProductIdentifiers($puzzle->eans(), BrandCodeList::fromInputs(['CLEMENTONI', 'RB  14709']));
+
+        self::assertSame('0091683108909, 6000-5468', $puzzle->ean);
+        self::assertSame('Clementoni, rb 14709', $puzzle->identificationNumber);
+
+        // A list that changes is stored in its canonical form - a number that is no barcode as typed
+        $puzzle->updateProductIdentifiers(EanList::fromInputs(['091683108909', '6000-5468', '4005556147090']), $puzzle->brandCodes());
+
+        self::assertSame('91683108909, 6000-5468, 4005556147090', $puzzle->ean);
+        self::assertSame('Clementoni, rb 14709', $puzzle->identificationNumber);
+    }
+
+    public function testCanonicalizingWritesTheCanonicalFormOfTheChosenLists(): void
+    {
+        $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashells', approved: true);
+        $puzzle->ean = '0091683108909';
+        $puzzle->identificationNumber = 'rb 14709';
+
+        $puzzle->canonicalizeProductIdentifiers(eans: true, brandCodes: false);
+
+        self::assertSame('91683108909', $puzzle->ean);
+        self::assertSame('rb 14709', $puzzle->identificationNumber);
+        self::assertSame("\ne:91683108909\nc:rb14709\n", $puzzle->searchCodes);
     }
 
     public function testCorrectNewlyAddedGoesThroughTheNamesAndCodes(): void
@@ -180,8 +221,8 @@ final class PuzzleTest extends TestCase
             manufacturer: $manufacturer,
             image: 'puzzles/seashells.jpg',
             imageRatio: 1.4,
-            ean: '4005556147090',
-            identificationNumber: '14709',
+            eans: EanList::fromStored('4005556147090'),
+            brandCodes: BrandCodeList::fromStored('14709'),
             now: $now,
         );
 
@@ -201,7 +242,7 @@ final class PuzzleTest extends TestCase
             name: 'Seashells',
             approved: true,
             alternativeNames: new PuzzleNames([new PuzzleName('Mušle', 'cs')]),
-            ean: '4005556147090',
+            eans: EanList::fromStored('4005556147090'),
         );
         $names = $puzzle->searchNames;
         $codes = $puzzle->searchCodes;

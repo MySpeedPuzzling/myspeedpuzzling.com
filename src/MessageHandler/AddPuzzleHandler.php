@@ -83,8 +83,8 @@ readonly final class AddPuzzleHandler
             alternativeNames: $message->alternativeNames,
             addedByUser: $player,
             addedAt: $now,
-            identificationNumber: $message->puzzleIdentificationNumber,
-            ean: $this->normalizedEan($message->puzzleEan),
+            brandCodes: $message->brandCodes,
+            eans: $message->eans,
         );
 
         $this->entityManager->persist($puzzle);
@@ -109,8 +109,8 @@ readonly final class AddPuzzleHandler
             manufacturer: $manufacturer,
             image: $puzzlePhotoPath,
             imageRatio: $puzzleImageRatio,
-            ean: $this->normalizedEan($message->puzzleEan),
-            identificationNumber: $message->puzzleIdentificationNumber,
+            eans: $message->eans,
+            brandCodes: $message->brandCodes,
             now: $now,
         );
     }
@@ -141,10 +141,5 @@ readonly final class AddPuzzleHandler
         }
 
         return [$puzzlePhotoPath, $puzzleImageRatio];
-    }
-
-    private function normalizedEan(null|string $ean): null|string
-    {
-        return $ean !== null ? (ltrim($ean, '0') ?: null) : null;
     }
 }

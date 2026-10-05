@@ -19,6 +19,8 @@ use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\PuzzleRecord;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\NamedPuzzle;
 use SpeedPuzzling\Web\Value\PuzzleMergeNames;
@@ -36,8 +38,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @phpstan-type MergedData array{
- *     ean: string,
- *     identification_number: string,
+ *     eans: EanList,
+ *     brand_codes: BrandCodeList,
  *     pieces_counts: list<int>,
  *     images: array<string, string>,
  *     manufacturers: array<string, string>,
@@ -126,8 +128,8 @@ final class PuzzleMergeRequestDetailController extends AbstractController
                     reviewerId: $player->playerId,
                     survivorPuzzleId: $data->survivorPuzzleId,
                     mergedName: $data->names->mainTitle(),
-                    mergedEan: $data->ean,
-                    mergedIdentificationNumber: $data->identificationNumber,
+                    mergedEans: EanList::fromInputs($data->eans),
+                    mergedBrandCodes: BrandCodeList::fromInputs($data->brandCodes),
                     mergedPiecesCount: $data->piecesCount,
                     mergedManufacturerId: $data->manufacturerId,
                     selectedImagePuzzleId: $data->selectedImagePuzzleId,
@@ -192,8 +194,8 @@ final class PuzzleMergeRequestDetailController extends AbstractController
         $data->piecesCount = $survivor->piecesCount;
         $data->manufacturerId = $survivor->manufacturerId;
 
-        $data->ean = $mergedData['ean'] !== '' ? $mergedData['ean'] : null;
-        $data->identificationNumber = $mergedData['identification_number'] !== '' ? $mergedData['identification_number'] : null;
+        $data->eans = $mergedData['eans']->display();
+        $data->brandCodes = $mergedData['brand_codes']->display();
         $data->selectedImagePuzzleId = array_key_exists($survivorId, $mergedData['images']) ? $survivorId : array_key_first($mergedData['images']);
 
         $data->recordVersions = array_map(static fn (PuzzleRecord $record): string => $record->recordVersion(), $records);
@@ -224,8 +226,8 @@ final class PuzzleMergeRequestDetailController extends AbstractController
      */
     private function collectMergedData(array $puzzles): array
     {
-        $eans = [];
-        $identificationNumbers = [];
+        $eans = EanList::fromStored(null);
+        $brandCodes = BrandCodeList::fromStored(null);
         $pieceCounts = [];
         $images = [];
         $manufacturers = [];
@@ -241,14 +243,18 @@ final class PuzzleMergeRequestDetailController extends AbstractController
             }
         }
 
-        // Second pass: collect all values for merging
+        // Second pass: collect all values for merging - the codes of all of them, the survivor's first (as the merge
+        // keeps them)
+        $survivorFirst = $survivorPuzzle !== null
+            ? [$survivorPuzzle, ...array_filter($puzzles, static fn (PuzzleOverview $puzzle): bool => $puzzle !== $survivorPuzzle)]
+            : $puzzles;
+
+        foreach ($survivorFirst as $puzzle) {
+            $eans = $eans->union(EanList::fromStored($puzzle->puzzleEan));
+            $brandCodes = $brandCodes->union(BrandCodeList::fromStored($puzzle->puzzleIdentificationNumber));
+        }
+
         foreach ($puzzles as $puzzle) {
-            if ($puzzle->puzzleEan !== null && $puzzle->puzzleEan !== '') {
-                $eans[] = $puzzle->puzzleEan;
-            }
-            if ($puzzle->puzzleIdentificationNumber !== null && $puzzle->puzzleIdentificationNumber !== '') {
-                $identificationNumbers[] = $puzzle->puzzleIdentificationNumber;
-            }
             $pieceCounts[$puzzle->piecesCount] = $puzzle->piecesCount;
             if ($puzzle->puzzleImage !== null) {
                 $images[$puzzle->puzzleId] = $puzzle->puzzleImage;
@@ -257,8 +263,8 @@ final class PuzzleMergeRequestDetailController extends AbstractController
         }
 
         return [
-            'ean' => implode(', ', array_unique($eans)),
-            'identification_number' => implode(', ', array_unique($identificationNumbers)),
+            'eans' => $eans,
+            'brand_codes' => $brandCodes,
             'pieces_counts' => array_values($pieceCounts),
             'images' => $images,
             'manufacturers' => $manufacturers,
@@ -269,8 +275,8 @@ final class PuzzleMergeRequestDetailController extends AbstractController
                 'name' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleName),
                 'brand' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): string => $puzzle->manufacturerId),
                 'pieces' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): int => $puzzle->piecesCount),
-                'ean' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): null|string => $puzzle->puzzleEan),
-                'code' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): null|string => $puzzle->puzzleIdentificationNumber),
+                'ean' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): null|string => EanList::fromStored($puzzle->puzzleEan)->toStored()),
+                'code' => self::differs($puzzles, static fn (PuzzleOverview $puzzle): null|string => BrandCodeList::fromStored($puzzle->puzzleIdentificationNumber)->toStored()),
             ],
         ];
     }

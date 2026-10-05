@@ -8,6 +8,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Stopwatch;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -332,7 +334,8 @@ final class ResultSavedOnceTest extends KernelTestCase
             PlayerFixture::PLAYER_REGULAR_USER_ID,
             name: 'Sent twice, corrected',
             piecesCount: 500,
-            ean: '04005556123456',
+            // A barcode typed with its GTIN-14 zero - stored without it
+            ean: '04005556123452',
             alternativeNames: new PuzzleNames([new PuzzleName('Poslané dvakrát', 'cs')]),
         );
 
@@ -340,11 +343,11 @@ final class ResultSavedOnceTest extends KernelTestCase
         $puzzle = $this->database->fetchAssociative('SELECT name, pieces_count, ean, image, alternative_names, search_names, search_codes FROM puzzle WHERE id = :id', ['id' => $puzzleId->toString()]);
         self::assertSame('Sent twice, corrected', $puzzle['name']);
         self::assertSame(500, $puzzle['pieces_count']);
-        self::assertSame('4005556123456', $puzzle['ean']);
+        self::assertSame('4005556123452', $puzzle['ean']);
         self::assertStringContainsString('sent-twice-corrected-500', $puzzle['image']);
         self::assertSame([['name' => 'Poslané dvakrát', 'language' => 'cs']], PuzzleNames::fromJson($puzzle['alternative_names'])->toArray());
         self::assertSame("\nsent twice, corrected\nposlane dvakrat\n", $puzzle['search_names']);
-        self::assertSame("\ne:4005556123456\n", $puzzle['search_codes']);
+        self::assertSame("\ne:4005556123452\n", $puzzle['search_codes']);
 
         // Once a result uses it, the puzzle stays as it is
         $this->addTime(Uuid::uuid7(), puzzleId: $puzzleId->toString(), time: '00:41:00');
@@ -453,8 +456,8 @@ final class ResultSavedOnceTest extends KernelTestCase
             brand: $brand,
             piecesCount: $piecesCount,
             puzzlePhoto: new UploadedFile($imagePath, 'box.jpg', 'image/jpeg', null, true),
-            puzzleEan: $ean,
-            puzzleIdentificationNumber: null,
+            eans: EanList::fromInputs([$ean]),
+            brandCodes: BrandCodeList::fromStored(null),
             alternativeNames: $alternativeNames,
         ));
     }

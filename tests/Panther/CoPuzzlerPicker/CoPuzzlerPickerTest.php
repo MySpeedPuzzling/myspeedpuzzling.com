@@ -179,16 +179,39 @@ final class CoPuzzlerPickerTest extends CoPuzzlerPickerTestCase
     public function testWhoeverYouPuzzledWithLatelyComesFirstThenTheMostFrequent(): void
     {
         $client = self::openAddForm();
-        self::seedTeam(null, [self::ADMIN, self::JOHN], times: 6, daysAgo: 20);
-        self::seedTeam(null, [self::ADMIN, self::MICHAEL], times: 3, daysAgo: 90);
+        self::seedTeam(null, [self::ADMIN, self::JOHN], times: 2, daysAgo: 20);
+        self::seedTeam(null, [self::ADMIN, self::MICHAEL], times: 6, daysAgo: 90);
         self::seedTeam(null, [self::ADMIN, 'Grandma'], times: 1, daysAgo: 1);
         self::seedTeam(null, [self::ADMIN, self::SARAH], times: 2, daysAgo: 0);
 
         self::switchTo($client, 'pair');
         self::waitForSuggestions($client);
 
-        // Today, yesterday - and only then by how often
+        // The last 30 days latest first - and only then by how often
         self::assertSame([self::SARAH, 'g:grandma', self::JOHN, self::MICHAEL], array_slice(self::offeredPeople($client), 0, 4));
+    }
+
+    public function testThePlayersOwnCoPuzzlersAreFoundByTyping(): void
+    {
+        $client = self::openAddForm();
+        self::seedHistory();
+
+        self::switchTo($client, 'team');
+        self::waitForSuggestions($client);
+
+        // A guest is in no remote search: found among the player's own co-puzzlers, picked with a quick Enter
+        self::search($client, 'gran');
+        $client->waitFor('.copuzzler-search .ts-dropdown .option[data-value="g:grandma"]');
+        self::searchInput($client)->sendKeys(WebDriverKeys::ENTER);
+        $client->waitFor('.copuzzler-chip[data-key="g:grandma"]');
+
+        // The code the way a profile shows it
+        self::search($client, '#player3');
+        $client->waitFor('.copuzzler-search .ts-dropdown .option[data-value="' . self::MICHAEL . '"]');
+        self::searchInput($client)->sendKeys(WebDriverKeys::ENTER);
+        $client->waitFor('.copuzzler-chip[data-key="' . self::MICHAEL . '"]');
+
+        self::assertSame(['Grandma', '#PLAYER3'], self::submittedGroup($client));
     }
 
     public function testNoMorePeopleThanTheMaximum(): void

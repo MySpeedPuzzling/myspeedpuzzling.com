@@ -77,6 +77,7 @@ final class MyCoPuzzlersController extends AbstractController
                 'count' => $person->timesCount,
                 'pairCount' => $person->pairTimesCount,
                 'last' => $person->lastTogetherAt?->format('Y-m-d'),
+                'pairLast' => $person->pairLastTogetherAt?->format('Y-m-d'),
                 'score' => round($person->score, 4),
                 'pairScore' => round($person->pairScore, 4),
                 'favorite' => $person->isFavorite,

@@ -82,7 +82,7 @@ notification           + target_puzzling_team_id NULL (CASCADE) - PuzzlingTeamRe
 └──────────┴──────────┴──────────┘
 ```
 
-**Pair** — one list (for a pair, the team *is* the person), ordered by pair score, counts are pair counts.
+**Pair** — one list (for a pair, the team *is* the person), ordered by the times as a pair (see **Ordering**), counts are pair counts.
 One tap → card collapses to `◉◉ Pair with Anna · 15 times together — Change`.
 
 **Team** — top teams (3+ people, one-offs never shown, "All ▾" expands in place), then people, then search.
@@ -100,10 +100,20 @@ After the first pick the team row narrows to teams containing *everyone selected
 
 - **Search** is the one TomSelect control, single "add one" mode: answers typing only (the people worth offering
   unasked are the chips above it), local data first, remote all-player search from 2 characters, last option always `Add "…" as guest (no account)`. Chips are own markup
-  (locked chip, avatar, guest icon).
+  (locked chip, avatar, guest icon). Local data = everybody the suggestions know (co-puzzlers incl. guests, favorites),
+  added the moment they arrive - a guest is in no remote search, so this is the only way to type one beyond the
+  visible row. They are listed before anybody from the remote search, in the order offered above; name, code and
+  `#CODE` all match. `refreshThrottle: 0`: with TomSelect's default 300 ms a quick "Sarah⏎" met a closed dropdown and
+  Enter added the typed text as a guest.
 - **Identity line**: `Pair with Anna · 15 times together` → `Team "Family" · 42 times` → `New team — first time
   together`. Makes exact-set self-explanatory and tells which leaderboard the time lands in.
-- **Ordering** everywhere: recency-weighted count — each shared time contributes `1 / (1 + age_days / 60)`.
+- **Ordering** everywhere (picker people + teams, Pairs & teams page): whoever the player puzzled with in the last
+  `GetCoPuzzlers::RECENT_DAYS` (30) days first, latest first; everybody else by how often; the recency-weighted score
+  (each shared time `1 / (1 + age_days / 60)`) only breaks ties. In Pair mode all three are the pair's own (last pair
+  together, pair count, pair score) - a team last week does not make somebody your pair partner. The picker re-sorts
+  in JS with the same window, handed over as `data-copuzzler-picker-recent-days-value`. Measured on production
+  2026-10-05: the suggestions statement takes ~5 ms for the player with the most pairs/teams (161 teams, 428 rows),
+  favorites ~1 ms for 97 of them; followers play no part.
 
 ### Never disturb the form (D9)
 

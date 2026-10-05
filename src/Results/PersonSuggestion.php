@@ -23,6 +23,7 @@ readonly final class PersonSuggestion
         public int $timesCount,
         public int $pairTimesCount,
         public null|DateTimeImmutable $lastTogetherAt,
+        public null|DateTimeImmutable $pairLastTogetherAt,
         public float $score,
         public float $pairScore,
         public bool $isFavorite,

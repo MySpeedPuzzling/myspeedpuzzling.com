@@ -24,10 +24,11 @@ readonly final class GetCoPuzzlers
     private const int SCORE_HALF_LIFE_DAYS = 60;
 
     /**
-     * Whoever the player puzzled with this recently comes first, latest first - most likely the people
-     * they are with right now. Everybody else is ordered by how often, the score only breaks ties.
+     * Whoever the player puzzled with this recently comes first, latest first - the partners of these weeks.
+     * Everybody else is ordered by how often, the score only breaks ties. The picker re-sorts by the same rule
+     * (copuzzler_picker_controller.js byRecentThenCount(), handed this value), in Pair mode by pairs only.
      */
-    private const int RECENT_DAYS = 2;
+    public const int RECENT_DAYS = 30;
 
     public function __construct(
         private Connection $database,
@@ -118,7 +119,7 @@ SQL;
 
         /** @var array<string, array{name: null|string, size: int, count: int, last: null|string, score: float, archived: bool, members: list<string>}> $teams */
         $teams = [];
-        /** @var array<string, array{value: string, label: string, playerId: null|string, code: null|string, country: null|string, avatar: null|string, count: int, pairCount: int, last: null|string, score: float, pairScore: float}> $people */
+        /** @var array<string, array{value: string, label: string, playerId: null|string, code: null|string, country: null|string, avatar: null|string, count: int, pairCount: int, last: null|string, pairLast: null|string, score: float, pairScore: float}> $people */
         $people = [];
 
         foreach ($rows as $row) {
@@ -147,6 +148,7 @@ SQL;
                 'count' => 0,
                 'pairCount' => 0,
                 'last' => null,
+                'pairLast' => null,
                 'score' => 0.0,
                 'pairScore' => 0.0,
             ];
@@ -158,6 +160,7 @@ SQL;
             if ($row['team_size'] === 2) {
                 $people[$key]['pairCount'] += $row['times_count'];
                 $people[$key]['pairScore'] += $score;
+                $people[$key]['pairLast'] = max($people[$key]['pairLast'], $row['last_together_at']);
             }
         }
 
@@ -177,6 +180,7 @@ SQL;
                 'count' => 0,
                 'pairCount' => 0,
                 'last' => null,
+                'pairLast' => null,
                 'score' => 0.0,
                 'pairScore' => 0.0,
             ];
@@ -219,6 +223,7 @@ SQL;
                 timesCount: $person['count'],
                 pairTimesCount: $person['pairCount'],
                 lastTogetherAt: $person['last'] !== null ? new DateTimeImmutable($person['last']) : null,
+                pairLastTogetherAt: $person['pairLast'] !== null ? new DateTimeImmutable($person['pairLast']) : null,
                 score: $person['score'],
                 pairScore: $person['pairScore'],
                 isFavorite: $person['playerId'] !== null && isset($favoriteIds[$person['playerId']]),

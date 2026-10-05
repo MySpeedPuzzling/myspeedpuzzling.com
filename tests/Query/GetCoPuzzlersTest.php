@@ -56,7 +56,7 @@ final class GetCoPuzzlersTest extends KernelTestCase
         $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Old Friend'], $longAgo);
         $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Old Friend'], $longAgo);
         $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Old Friend'], $longAgo);
-        $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['#admin'], $this->now->modify('-1 day'));
+        $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['#admin'], $this->now->modify('-20 days'));
 
         $people = $this->peopleByLabel(PlayerFixture::PLAYER_WITH_STRIPE);
         $labels = array_keys($people);
@@ -64,18 +64,19 @@ final class GetCoPuzzlersTest extends KernelTestCase
         self::assertLessThan(
             array_search('Old Friend', $labels, true),
             array_search($this->adminLabel($people), $labels, true),
-            'Whoever you puzzled with in the last two days comes first, however often you puzzled with others',
+            'Whoever you puzzled with in the last 30 days comes first, however often you puzzled with others',
         );
         self::assertSame(3, $people['Old Friend']->timesCount);
         self::assertTrue($people['Old Friend']->isGuest());
         self::assertSame('Old Friend', $people['Old Friend']->value);
     }
 
-    public function testOutsideTheLastTwoDaysItIsTheCountThatDecides(): void
+    public function testRecentPartnersComeLatestFirstThenItIsTheCountThatDecides(): void
     {
         $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Old Friend'], $this->now->modify('-3 years'));
         $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Old Friend'], $this->now->modify('-3 years'));
         $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Old Friend'], $this->now->modify('-3 years'));
+        $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Two Months Ago'], $this->now->modify('-60 days'));
         $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Last Week'], $this->now->modify('-7 days'));
         $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Today', 'Somebody'], $this->now);
         $this->addTime(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['Yesterday'], $this->now->modify('-1 day'));
@@ -84,13 +85,13 @@ final class GetCoPuzzlersTest extends KernelTestCase
 
         $labels = array_values(array_filter(
             array_map(static fn(PersonSuggestion $person): string => $person->label, $suggestions->people),
-            static fn(string $label): bool => in_array($label, ['Old Friend', 'Last Week', 'Today', 'Yesterday'], true),
+            static fn(string $label): bool => in_array($label, ['Old Friend', 'Two Months Ago', 'Last Week', 'Today', 'Yesterday'], true),
         ));
-        self::assertSame(['Today', 'Yesterday', 'Old Friend', 'Last Week'], $labels);
+        self::assertSame(['Today', 'Yesterday', 'Last Week', 'Old Friend', 'Two Months Ago'], $labels);
 
         // Teams follow the same rule
         $teamFirstMembers = array_map(static fn(TeamSuggestion $team): string => $team->memberKeys[0], $suggestions->teams);
-        self::assertSame(['g:today', 'g:yesterday', 'g:old friend', 'g:last week'], $teamFirstMembers);
+        self::assertSame(['g:today', 'g:yesterday', 'g:last week', 'g:old friend', 'g:two months ago'], $teamFirstMembers);
     }
 
     public function testCountsSplitPairFromTeamAndIncludeTimesTrackedByOthers(): void
@@ -125,6 +126,10 @@ final class GetCoPuzzlersTest extends KernelTestCase
         self::assertSame('#ADMIN', $people[PlayerFixture::PLAYER_ADMIN]->value);
         self::assertSame(2, $people['g:eva']->timesCount);
         self::assertSame(0, $people['g:eva']->pairTimesCount);
+        // Pair mode ranks by the times as a pair: Eva was never one
+        self::assertSame($yesterday->format('Y-m-d'), $people['g:eva']->lastTogetherAt?->format('Y-m-d'));
+        self::assertNull($people['g:eva']->pairLastTogetherAt);
+        self::assertSame($yesterday->format('Y-m-d'), $people[PlayerFixture::PLAYER_ADMIN]->pairLastTogetherAt?->format('Y-m-d'));
         self::assertSame('Eva', $people['g:eva']->value, 'A guest keeps the spelling of their first time');
 
         self::assertArrayNotHasKey(PlayerFixture::PLAYER_WITH_STRIPE, $people, 'Nobody is their own co-puzzler');

@@ -18,6 +18,7 @@
      data-copuzzler-picker-search-url-value="{{ path('player_search_autocomplete', {format: 'co-puzzler'}) }}"
      data-copuzzler-picker-locale-value="{{ app.request.locale }}"
      data-copuzzler-picker-max-value="15"
+     data-copuzzler-picker-recent-days-value="{{ constant('SpeedPuzzling\\Web\\Query\\GetCoPuzzlers::RECENT_DAYS') }}"
      data-copuzzler-picker-default-mode-value="{{ picker_without_solo ? 'pair' : 'solo' }}"
      data-copuzzler-picker-texts-value="{{ {
          pickSomeone: 'copuzzler_picker.pick_someone'|trans,

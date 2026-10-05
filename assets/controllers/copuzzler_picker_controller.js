@@ -23,6 +23,7 @@ export default class extends Controller {
         searchUrl: String,
         locale: String,
         max: { type: Number, default: 15 },
+        recentDays: { type: Number, default: 30 },
         defaultMode: { type: String, default: 'solo' },
         texts: Object,
     };
@@ -208,6 +209,8 @@ export default class extends Controller {
                 data.people.forEach(person => this.known.set(person.key, { ...this.known.get(person.key), ...person }));
                 this.adoptSuggestionKeys();
                 this.render();
+                // The search may have been ready first: the people above must be findable by typing too
+                this.refreshSearchOptions(false);
             })
             .catch(() => {
                 // The picker works without suggestions: search, guests and typed #codes still do
@@ -585,7 +588,7 @@ export default class extends Controller {
             .filter(team => selectedKeys.every(key => team.members.includes(key)))
             .filter(team => team.members.length > selectedKeys.length);
 
-        candidates.sort((a, b) => this.byRecentThenCount(a, b, team => team.count));
+        candidates.sort((a, b) => this.byRecentThenCount(a, b, { last: team => team.last, count: team => team.count, score: team => team.score }));
 
         const regulars = candidates.filter(team => team.count >= 2 || team.name);
         const shown = this.showAllTeams ? candidates : regulars.slice(0, 4);
@@ -654,12 +657,15 @@ export default class extends Controller {
 
             return this.recentlyRemoved.includes(person.key) ? 2 : 1;
         };
-        const count = person => (pairMode ? (person.pairCount || 0) : (person.count || 0));
+        // A pair is the two of you: in Pair mode only the times as a pair count, a team last week does not make a partner
+        const ranking = pairMode
+            ? { last: person => person.pairLast, count: person => person.pairCount, score: person => person.pairScore }
+            : { last: person => person.last, count: person => person.count, score: person => person.score };
 
         const candidates = Array.from(this.known.values())
             .filter(person => !this.isSelected(person.key))
             .filter(person => this.tracker === null || person.key !== this.tracker.key)
-            .sort((a, b) => rank(b) - rank(a) || this.byRecentThenCount(a, b, count) || a.label.localeCompare(b.label));
+            .sort((a, b) => rank(b) - rank(a) || this.byRecentThenCount(a, b, ranking) || a.label.localeCompare(b.label));
 
         // Favorites the player never puzzled with are a convenience, not a list to scroll through: they only
         // fill the row up, the rest stays behind "Show all" (and in the search)
@@ -714,14 +720,14 @@ export default class extends Controller {
     }
 
     /**
-     * Whoever the player puzzled with in the last two days comes first, latest first - that is most
-     * likely who they are with right now. Everybody else by how often, then by the recency-weighted score.
+     * Whoever the player puzzled with in the last recentDays (GetCoPuzzlers::RECENT_DAYS) comes first, latest
+     * first - the partners of these weeks. Everybody else by how often, then by the recency-weighted score.
      */
-    byRecentThenCount(a, b, count) {
+    byRecentThenCount(a, b, { last, count, score }) {
         const recent = item => {
-            const days = this.daysSince(item.last);
+            const days = this.daysSince(last(item));
 
-            return days !== null && days <= 2 ? days : null;
+            return days !== null && days <= this.recentDaysValue ? days : null;
         };
         const recentA = recent(a);
         const recentB = recent(b);
@@ -740,7 +746,7 @@ export default class extends Controller {
             }
         }
 
-        return count(b) - count(a) || (b.score || 0) - (a.score || 0);
+        return (count(b) || 0) - (count(a) || 0) || (score(b) || 0) - (score(a) || 0);
     }
 
     daysSince(date) {
@@ -827,13 +833,19 @@ export default class extends Controller {
             this.tomSelect = new TomSelect(this.searchTarget, {
                 valueField: 'key',
                 labelField: 'label',
-                searchField: ['label', 'code'],
+                // value = "#CODE": typing the code the way it is written on a profile finds the person too
+                searchField: ['label', 'code', 'value'],
+                // The player's own co-puzzlers and favorites before everybody else, in the order offered above
+                sortField: [{ field: 'suggested', direction: 'desc' }, { field: '$score', direction: 'desc' }, { field: '$order', direction: 'asc' }],
                 maxItems: 1,
                 maxOptions: 20,
                 placeholder: texts.searchPlaceholder,
                 closeAfterSelect: true,
                 // The people worth offering unasked are the chips above - the dropdown answers typing
                 openOnFocus: false,
+                // Filter on every keystroke (a few hundred local people at most): with TomSelect's default 300 ms a quick
+                // "Sarah⏎" met a closed dropdown, and Enter turned the typed text into a guest instead of picking Sarah
+                refreshThrottle: 0,
                 loadThrottle: 250,
                 shouldLoad: query => query.trim().length >= 2,
                 create: input => {
@@ -848,7 +860,9 @@ export default class extends Controller {
 
                     fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
                         .then(response => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
-                        .then(people => callback(people.filter(person => !this.isSelected(person.key))))
+                        .then(people => callback(people
+                            .filter(person => !this.isSelected(person.key))
+                            .map(person => ({ ...person, suggested: 0 }))))
                         .catch(() => callback());
                 },
                 render: {
@@ -861,7 +875,7 @@ export default class extends Controller {
                     const person = this.tomSelect.options[key];
 
                     if (person) {
-                        const { created, $order, $score, ...clean } = person;
+                        const { created, suggested, $order, $score, ...clean } = person;
                         this.addPerson(clean);
                     }
 
@@ -893,14 +907,21 @@ export default class extends Controller {
         });
     }
 
-    refreshSearchOptions() {
+    /**
+     * render = false: only when something is typed - an unfiltered list in the closed dropdown would answer
+     * the next keystrokes until TomSelect's refresh throttle runs.
+     */
+    refreshSearchOptions(render = true) {
         if (!this.tomSelect) {
             return;
         }
 
         Array.from(this.known.values())
             .filter(person => !this.isSelected(person.key))
-            .forEach(person => this.tomSelect.addOption(person));
-        this.tomSelect.refreshOptions(false);
+            .forEach(person => this.tomSelect.addOption({ ...person, suggested: 1 }));
+
+        if (render || this.tomSelect.inputValue().trim() !== '') {
+            this.tomSelect.refreshOptions(false);
+        }
     }
 }

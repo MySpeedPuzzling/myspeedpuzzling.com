@@ -114,8 +114,8 @@ readonly final class PuzzleNames implements Countable
     }
 
     /**
-     * What the single alternative name of old carries (the `alternative_name` column until it is dropped, API v1
-     * `alternative_name`): the first Czech name, else the first name.
+     * What the single alternative name of old carries (API v1's one-name field, the moderator forms' single field
+     * until the names editor): the first Czech name, else the first name.
      */
     public function legacyAlternativeName(): null|string
     {

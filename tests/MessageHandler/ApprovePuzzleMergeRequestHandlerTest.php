@@ -503,7 +503,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertSame('5900511374414', $survivorPuzzle->ean, 'EAN known only to the deleted puzzle must be kept');
         self::assertSame('37441', $survivorPuzzle->identificationNumber);
         self::assertSame("\ne:5900511374414\nc:37441\n", $survivorPuzzle->searchCodes);
-        self::assertSame('Americké koblihy', $survivorPuzzle->alternativeName);
+        self::assertSame('Americké koblihy', $survivorPuzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame('puzzles/duplicate-cover.jpg', $survivorPuzzle->image);
         self::assertSame(1.4, $survivorPuzzle->imageRatio);
     }
@@ -556,7 +556,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             ['name' => 'Puzzle 5', 'language' => null],
             ['name' => 'Puzzle 4', 'language' => null],
         ], $survivorPuzzle->alternativeNames);
-        self::assertSame('Survivor Alternativé', $survivorPuzzle->alternativeName);
+        self::assertSame('Survivor Alternativé', $survivorPuzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame(
             "\nsurvivor name\nsurvivor alternative\nduplicate alternative\npuzzle 5\npuzzle 4\n",
             $survivorPuzzle->searchNames,
@@ -580,7 +580,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             ['name' => 'Kouzelné ráno', 'language' => null],
             ['name' => 'Magic Morning 1000', 'language' => null],
         ], $survivorPuzzle->alternativeNames);
-        self::assertSame('Kouzelné ráno', $survivorPuzzle->alternativeName);
+        self::assertSame('Kouzelné ráno', $survivorPuzzle->alternativeNames()->legacyAlternativeName());
     }
 
     public function testAMainTitlePickedFromTheOtherNamesKeepsItsLanguage(): void
@@ -622,7 +622,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
         self::assertSame('Puzzle 5', $survivorPuzzle->name);
         self::assertSame([['name' => 'Puzzle 4', 'language' => null]], $survivorPuzzle->alternativeNames);
-        self::assertSame('Puzzle 4', $survivorPuzzle->alternativeName);
+        self::assertSame('Puzzle 4', $survivorPuzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame("\npuzzle 5\npuzzle 4\n", $survivorPuzzle->searchNames);
     }
 

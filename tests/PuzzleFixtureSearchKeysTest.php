@@ -20,9 +20,9 @@ final class PuzzleFixtureSearchKeysTest extends KernelTestCase
     {
         self::bootKernel();
 
-        /** @var list<array{id: string, name: string, alternative_name: null|string, alternative_names: string, ean: null|string, identification_number: null|string, search_names: null|string, search_codes: null|string}> $rows */
+        /** @var list<array{id: string, name: string, alternative_names: string, ean: null|string, identification_number: null|string, search_names: null|string, search_codes: null|string}> $rows */
         $rows = self::getContainer()->get(Connection::class)->fetchAllAssociative(
-            'SELECT id, name, alternative_name, alternative_names, ean, identification_number, search_names, search_codes FROM puzzle',
+            'SELECT id, name, alternative_names, ean, identification_number, search_names, search_codes FROM puzzle',
         );
 
         self::assertNotEmpty($rows);
@@ -32,7 +32,6 @@ final class PuzzleFixtureSearchKeysTest extends KernelTestCase
 
             self::assertSame(PuzzleSearchKeys::names($row['name'], $alternativeNames), $row['search_names'], $row['id']);
             self::assertSame(PuzzleSearchKeys::codes($row['ean'], $row['identification_number']), $row['search_codes'], $row['id']);
-            self::assertSame($alternativeNames->legacyAlternativeName(), $row['alternative_name'], $row['id']);
         }
     }
 

@@ -336,14 +336,13 @@ final class ResultSavedOnceTest extends KernelTestCase
             alternativeNames: new PuzzleNames([new PuzzleName('Poslané dvakrát', 'cs')]),
         );
 
-        /** @var array{name: string, pieces_count: int, ean: string, image: string, alternative_name: string, alternative_names: string, search_names: string, search_codes: string} $puzzle */
-        $puzzle = $this->database->fetchAssociative('SELECT name, pieces_count, ean, image, alternative_name, alternative_names, search_names, search_codes FROM puzzle WHERE id = :id', ['id' => $puzzleId->toString()]);
+        /** @var array{name: string, pieces_count: int, ean: string, image: string, alternative_names: string, search_names: string, search_codes: string} $puzzle */
+        $puzzle = $this->database->fetchAssociative('SELECT name, pieces_count, ean, image, alternative_names, search_names, search_codes FROM puzzle WHERE id = :id', ['id' => $puzzleId->toString()]);
         self::assertSame('Sent twice, corrected', $puzzle['name']);
         self::assertSame(500, $puzzle['pieces_count']);
         self::assertSame('4005556123456', $puzzle['ean']);
         self::assertStringContainsString('sent-twice-corrected-500', $puzzle['image']);
         self::assertSame([['name' => 'Poslané dvakrát', 'language' => 'cs']], PuzzleNames::fromJson($puzzle['alternative_names'])->toArray());
-        self::assertSame('Poslané dvakrát', $puzzle['alternative_name']);
         self::assertSame("\nsent twice, corrected\nposlane dvakrat\n", $puzzle['search_names']);
         self::assertSame("\ne:4005556123456\n", $puzzle['search_codes']);
 

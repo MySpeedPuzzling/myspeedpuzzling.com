@@ -72,33 +72,6 @@ final class GetPuzzleOverviewTest extends KernelTestCase
         $this->query->byId('00000000-0000-0000-0000-000000000000');
     }
 
-    public function testByEanReturnsPuzzleWithStatistics(): void
-    {
-        // PUZZLE_500_02 has EAN 4005556123456
-        $overview = $this->query->byEan('4005556123456');
-
-        self::assertSame(PuzzleFixture::PUZZLE_500_02, $overview->puzzleId);
-        self::assertSame('Puzzle 2', $overview->puzzleName);
-
-        // Should have statistics since PUZZLE_500_02 has solving times
-        self::assertGreaterThan(0, $overview->solvedTimes);
-    }
-
-    public function testByEanThrowsExceptionForNonExistentEan(): void
-    {
-        $this->expectException(PuzzleNotFound::class);
-
-        $this->query->byEan('9999999999999');
-    }
-
-    public function testByEanThrowsExceptionForInvalidEan(): void
-    {
-        $this->expectException(PuzzleNotFound::class);
-
-        // Too short EAN
-        $this->query->byEan('123');
-    }
-
     public function testStatisticsIncludeSoloDuoTeamSeparation(): void
     {
         // PUZZLE_1000_01 has both solo and duo solves

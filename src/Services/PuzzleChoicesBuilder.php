@@ -43,7 +43,7 @@ readonly final class PuzzleChoicesBuilder
     /**
      * @param iterable<AutocompletePuzzle|PuzzleOverview> $puzzles
      *
-     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int, search: string}>
+     * @return list<array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}>
      */
     public function build(iterable $puzzles, string $locale): array
     {
@@ -53,7 +53,7 @@ readonly final class PuzzleChoicesBuilder
         $options = [];
 
         foreach ($puzzles as $puzzle) {
-            $alternativeName = $puzzle->puzzleAlternativeNames->legacyAlternativeName();
+            $legacyName = $puzzle->puzzleAlternativeNames->legacyAlternativeName();
 
             $image = self::escape($puzzle->puzzleImage !== null
                 ? $this->imageThumbnail->thumbnailUrl($puzzle->puzzleImage, 'puzzle_small')
@@ -61,8 +61,8 @@ readonly final class PuzzleChoicesBuilder
             $name = self::escape($puzzle->puzzleName);
 
             // Czech pages lead with the alternative name
-            if ($locale === 'cs' && $alternativeName !== null) {
-                $name = self::escape($alternativeName) . ' <small>(' . $name . ')</small>';
+            if ($locale === 'cs' && $legacyName !== null) {
+                $name = self::escape($legacyName) . ' <small>(' . $name . ')</small>';
             }
 
             $identificationNumber = self::escape($puzzle->puzzleIdentificationNumber ?? '');
@@ -97,16 +97,6 @@ HTML;
                     static fn (null|string $code): bool => $code !== null && $code !== '',
                 )),
                 'piecesCount' => $puzzle->piecesCount,
-                // Blue-green: a page of the previous release searches (and trusts) `search`, the old one field of
-                // the main name, one other name, the codes and the piece count - never in SEARCH_FIELDS, dropped in
-                // phase 1c
-                'search' => implode(' ', array_filter([
-                    $puzzle->puzzleName,
-                    $alternativeName,
-                    $puzzle->puzzleIdentificationNumber,
-                    $puzzle->puzzleEan,
-                    (string) $puzzle->piecesCount,
-                ], static fn (null|string $value): bool => $value !== null && $value !== '')),
             ];
         }
 

@@ -63,7 +63,7 @@ final class PuzzleApprovalControllerTest extends WebTestCase
 
         $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_UNAPPROVED);
         self::assertTrue($puzzle->approved);
-        self::assertSame('Twenty', $puzzle->alternativeName);
+        self::assertSame('Twenty', $puzzle->alternativeNames()->legacyAlternativeName());
         self::assertNotNull($puzzle->image);
         self::assertStringContainsString('puzzle-20-1000', $puzzle->image);
         self::assertSame(2.0, $puzzle->imageRatio);

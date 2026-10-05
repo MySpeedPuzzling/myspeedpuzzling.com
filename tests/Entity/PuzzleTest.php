@@ -39,7 +39,6 @@ final class PuzzleTest extends TestCase
             ['name' => 'Muscheln', 'language' => 'de'],
             ['name' => 'Kruh barev: Mušle', 'language' => 'cs'],
         ], $puzzle->alternativeNames);
-        self::assertSame('Kruh barev: Mušle', $puzzle->alternativeName);
         self::assertSame("\ncircle of colors: seashells\nmuscheln\nkruh barev: musle\n", $puzzle->searchNames);
         self::assertSame("\ne:4005556147090\nc:14709\n", $puzzle->searchCodes);
         self::assertNull($puzzle->namesChangedAt);
@@ -51,13 +50,12 @@ final class PuzzleTest extends TestCase
 
         self::assertSame([], $puzzle->alternativeNames);
         self::assertTrue($puzzle->alternativeNames()->isEmpty());
-        self::assertNull($puzzle->alternativeName);
         self::assertNull($puzzle->nameLanguage);
         self::assertSame("\nseashells\n", $puzzle->searchNames);
         self::assertNull($puzzle->searchCodes);
     }
 
-    public function testChangeNamesRebuildsTheKeyAndTheOldColumn(): void
+    public function testChangeNamesRebuildsTheKey(): void
     {
         $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashells', approved: true);
         $now = new DateTimeImmutable('2026-10-04 12:00:00');
@@ -74,7 +72,6 @@ final class PuzzleTest extends TestCase
             ['name' => '貝殻', 'language' => 'ja'],
             ['name' => 'Mušle', 'language' => 'cs'],
         ], $puzzle->alternativeNames);
-        self::assertSame('Mušle', $puzzle->alternativeName);
         self::assertSame("\ncircle of colors: seashells\nseashells\n貝殻\nmusle\n", $puzzle->searchNames);
         self::assertEquals($now, $puzzle->namesChangedAt);
     }
@@ -167,7 +164,7 @@ final class PuzzleTest extends TestCase
         );
 
         self::assertSame('Seashells', $puzzle->name);
-        self::assertSame('Mušle', $puzzle->alternativeName);
+        self::assertSame([['name' => 'Mušle', 'language' => 'cs']], $puzzle->alternativeNames);
         self::assertSame("\nseashells\nmusle\n", $puzzle->searchNames);
         self::assertSame("\ne:4005556147090\nc:14709\n", $puzzle->searchCodes);
         self::assertSame(1000, $puzzle->piecesCount);
@@ -196,6 +193,6 @@ final class PuzzleTest extends TestCase
         self::assertSame($names, $puzzle->searchNames);
         self::assertSame($codes, $puzzle->searchCodes);
         self::assertNull($puzzle->namesChangedAt);
-        self::assertSame('Mušle', $puzzle->alternativeName);
+        self::assertSame([['name' => 'Mušle', 'language' => 'cs']], $puzzle->alternativeNames);
     }
 }

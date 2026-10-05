@@ -225,15 +225,9 @@ function createCustomIndexes(): void
 
     // Custom indexes from migrations that Doctrine cannot manage
 
-    // Puzzle search optimization (Version20260102200000)
+    // Similar puzzle titles in the approval queue (Version20260102200000; its other three and the EAN / catalogue
+    // number ones of Version20260918131133 dropped in Version20261004235009)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_name_trgm ON puzzle USING GIN (name gin_trgm_ops)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_alt_name_trgm ON puzzle USING GIN (alternative_name gin_trgm_ops)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_name_unaccent_trgm ON puzzle USING GIN (immutable_unaccent(name) gin_trgm_ops)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_alt_name_unaccent_trgm ON puzzle USING GIN (immutable_unaccent(alternative_name) gin_trgm_ops)');
-
-    // Puzzle search by catalogue number and EAN (Version20260918131133)
-    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_identification_number_trgm ON puzzle USING GIN (identification_number gin_trgm_ops)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_ean_trgm ON puzzle USING GIN (ean gin_trgm_ops)');
 
     // Puzzle search keys of every name and code (Version20261004203522)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_search_names_trgm ON puzzle USING GIN (search_names gin_trgm_ops)');

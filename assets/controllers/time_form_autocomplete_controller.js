@@ -7,10 +7,9 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => 
 }[char]));
 
 // Options built by the server (BrandChoicesBuilder, PuzzleChoicesBuilder) or from server data carry a plain `name`
-// and an HTML `text` escaped where it was built - or `search`, the puzzle options of the previous release while a
-// blue-green deploy runs both (dropped in phase 1c). Any other option is text a player typed - a new brand or
-// puzzle, also when a refused form comes back with it - and is escaped here.
-const isFromServer = (item) => typeof item.name === 'string' || typeof item.search === 'string';
+// and an HTML `text` escaped where it was built. Any other option is text a player typed - a new brand or puzzle,
+// also when a refused form comes back with it - and is escaped here.
+const isFromServer = (item) => typeof item.name === 'string';
 const renderOption = (item, escape) => `<div>${isFromServer(item) ? item.text : escape(item.text ?? item.value ?? '')}</div>`;
 
 export default class extends Controller {

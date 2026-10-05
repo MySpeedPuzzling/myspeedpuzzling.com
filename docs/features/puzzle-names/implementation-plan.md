@@ -95,6 +95,12 @@ the list does not hold, then drop `alternative_name`, `custom_puzzle_alt_name_tr
 `custom_puzzle_identification_number_trgm`. **Keep `custom_puzzle_name_trgm`** (approval-queue similarity). Guard
 test (in the style of `BlocklistQueryCoverageTest`) fails on `alternative_name` anywhere in `src/` and `templates/`.
 
+Shipped as two releases (blue-green: containers of the release before still map the column while the next one rolls
+out): **1c-1** (`Version20261004235009`) unmaps and stops writing `alternative_name`, copies the overlap, drops the five
+indexes and adds `LegacyAlternativeNameCoverageTest`; **1c-2** is only `ALTER TABLE puzzle DROP alternative_name`
+(hand-written, with `lock_timeout`) plus removing the column from
+`CustomIndexFilteringPostgreSQLSchemaManager::UNMAPPED_COLUMNS_AWAITING_DROP` and its guard-test entry.
+
 ## Phase 2 - showing names and SEO
 
 1. `PuzzleNameLanguage` (page language; on English pages a signed-in player's country language) + Twig function and

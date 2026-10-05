@@ -34,9 +34,9 @@
 {% if summary_product_number %}
     {% set facts = facts|merge([{label: 'puzzle_detail.summary.facts.product_number'|trans, html: summary_product_number|e}]) %}
 {% endif %}
-{% set alternative_name = puzzle.puzzleAlternativeNames.legacyAlternativeName() %}
-{% if alternative_name and alternative_name != puzzle.puzzleName %}
-    {% set facts = facts|merge([{label: 'puzzle_detail.summary.facts.also_known_as'|trans, html: alternative_name|e}]) %}
+{% set legacy_name = puzzle.puzzleAlternativeNames.legacyAlternativeName() %}
+{% if legacy_name and legacy_name != puzzle.puzzleName %}
+    {% set facts = facts|merge([{label: 'puzzle_detail.summary.facts.also_known_as'|trans, html: legacy_name|e}]) %}
 {% endif %}
 {% if summary.usedAt is not empty %}
     {# The same badges as the competition tags in the header's Details #}

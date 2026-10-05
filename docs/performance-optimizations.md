@@ -16,12 +16,18 @@ Both font files are `<link rel="preload">`-ed so the browser starts downloading 
 
 The service worker precaches both font files on install, so repeat visits serve fonts instantly from cache.
 
-## Early Hints (`EarlyHintsSubscriber` + `EarlyHintsLinkHeader`)
+## No Early Hints (removed 2026-10-06)
 
-Every page request (not `/api/`, `/oauth2/`, `/webhook/`) gets a `103 Early Hints` with a `Link` header preloading the `app` entry's CSS and JS from `public/build/entrypoints.json`; FrankenPHP copies that header into the final 200 as well.
+The app used to send `103 Early Hints` preloading the `app` CSS/JS. Measured 2026-10-05 in Chromium 152 with the real
+guest puzzle page and assets (cold cache, shaped networks) and removed, so do not bring them back without new data:
 
-- **Each `Link` entry must mirror its tag's attributes.** Production builds have SRI (`enableIntegrityHashes()`), so the tags carry `integrity="sha384-…"` and every entry gets `; integrity="…"` from the `integrity` map of entrypoints.json (dev builds have none). Without it Chrome discards the preload ("integrity mismatch", "preloaded but not used") and fetches the file again - under our service worker every new asset after a deploy was downloaded twice. If the Encore `crossorigin` option is ever set, the entries need it too. `EarlyHintsLinkHeaderTest` checks the header against the tags Encore renders.
-- **Production fact:** the 103 itself never reaches browsers - Traefik v3.7.13's retry middleware (`myspeedpuzzling-retry` on the `myspeedpuzzling-web` router, lily.srv `apps/myspeedpuzzling/compose.yaml`) swallows 1xx responses. Only the copy of the `Link` header on the 200 arrives. Open decision in `docs/TODO.md`.
+- A working 103 changed LCP by -20 to -180 ms at our server think time (p50 ~67 ms, p95 ~170 ms) and made it 250-1050 ms
+  *worse* on mobile at 250 ms think time (the preloads fill the slow link before the HTML arrives).
+- Only ~1 % of page views could use it: a cold first visit after an asset change, Chrome 152+ (older Chrome drops a
+  `Link` entry with `integrity`), no service worker yet (a page the service worker serves starts no early preloads).
+  No measurable effect on CrUX p75, no SEO effect (Googlebot crawls over HTTP/1.1, where 103 is ignored).
+- In production the 103 never reached browsers anyway - Traefik v3.7's retry middleware swallows 1xx - and the copy of
+  the `Link` header PHP leaves on the 200 measured worse than no hints (the JS competed with the render-blocking CSS).
 
 ## Dynamic Imports
 

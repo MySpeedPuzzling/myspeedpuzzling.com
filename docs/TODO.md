@@ -4,16 +4,6 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
-## Early Hints (`docs/performance-optimizations.md` §Early Hints)
-
-- [x] The `Link` preloads carry the tags' SRI `integrity` (2026-10-05) - no more "integrity mismatch" in Chrome and no
-      double download of new assets under the service worker.
-- [ ] Decide: make the 103 reach browsers (the `myspeedpuzzling-web` router on lily.srv without the `myspeedpuzzling-retry` middleware,
-      which swallows 1xx in Traefik v3.7.13) or remove `EarlyHintsSubscriber`. Today only the copy of the `Link`
-      header on the 200 arrives, which gains little over the HTML's own tags in `<head>`.
-- [ ] The hints go on every response outside `/api|/oauth2|/webhook` - redirects, `/internal-api`, the `/-/…` beacons -
-      where nothing uses them ("preloaded but not used"). Limit them to GET requests that accept `text/html`.
-
 ## Codes in the forms (`docs/features/puzzle-names/README.md`, phase 5)
 
 - [x] `myspeedpuzzling:canonicalize-puzzle-codes` on production (2026-10-05): 1,175 EAN + 157 brand-code fields

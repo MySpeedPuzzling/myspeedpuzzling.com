@@ -173,8 +173,8 @@ readonly final class PuzzleNames implements Countable
     }
 
     /**
-     * What the single alternative name of old carries (API v1's one-name field, the moderator forms' single field
-     * until the names editor): the first Czech name, else the first name.
+     * What the single other name of old carries - read only, by API v1's one-name field and the internal API merge
+     * queue's: the first Czech name, else the first name.
      */
     public function legacyAlternativeName(): null|string
     {

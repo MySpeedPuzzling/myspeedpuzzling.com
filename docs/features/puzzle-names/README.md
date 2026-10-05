@@ -334,8 +334,10 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   players only and every valid submit (also a refused known name). Allowed while other proposals are pending - names
   apply as diffs. The modal lists the names the puzzle has, so nobody suggests one again.
 - **Phase 3B - the legacy single name fields of the record form are gone** (`PuzzleRecordFormType` always has the names
-  editor; option `names_editor` removed). `PuzzleNames::withLegacyAlternativeName()` stays while the approval queue's
-  `ApprovePuzzleHandler` uses it.
+  editor; option `names_editor` removed). `PuzzleNames::withLegacyAlternativeName()` went with the approval queue's single
+  field (release R3) - every moderator form, the approval detail included, saves the whole list from the names editor.
+  `PuzzleNames::legacyAlternativeName()` stays only for the reads of the one name of old: API v1 `alternative_name` and
+  the internal API merge queue's `alternativeName`.
 - **Phase 3C - the merge review is a Symfony form** (`PuzzleMergeReviewFormType`) posting back to the detail page, so a
   refused one (record version, invalid names) comes back with what was typed; the raw-field admin `/approve` route is
   gone. Its names start from `PuzzleMergeNames::forReview()`, the same rules as the automatic union. The editor's list

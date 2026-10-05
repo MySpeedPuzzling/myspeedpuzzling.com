@@ -109,7 +109,8 @@ image choice, + `selectedFields` from the internal API). Every message changing 
 Admins and moderators change any puzzle without the change request round: "Edit puzzle" on the puzzle page (a button
 row under the actions + the ⋯ menu, `is_granted('PUZZLE_MODERATION_ACCESS')`; labels in all 6 locales) opens
 `/admin/puzzles/{id}/edit` (`EditPuzzleController`). The same record form as the review, without a proposal, with every
-name in the names editor (`PuzzleRecordFormType` option `names_editor`) - every changed field is marked *Your edit*,
+name in the names editor (`PuzzleRecordFormType::addNamesEditor()`, `templates/puzzle/_names_editor.html.twig`) - every
+changed field is marked *Your edit*,
 the summary lists what saving changes, an optional note explains why. Pending
 proposals for the puzzle are listed above the form (a fix someone proposed is better approved - it tells them).
 `EditPuzzle` → `EditPuzzleHandler` → `PuzzleRecordUpdater`, logged as `puzzle_edited` with before/after; an edit that

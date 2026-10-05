@@ -83,7 +83,8 @@ removed + a combining mark with no letter before it removed (NFKC makes `˘ ¨ �
 collapsed. NFKC turns full-width `％＿＼４` into ASCII *before* escaping, Latin-ASCII handles
 `Łódź → lodz`, `Straße → strasse`, `Ørsted → orsted`, non-Latin scripts stay as they are (half-width katakana are
 normalised by NFKC). Postgres never folds puzzle text for search, so stored keys and queries cannot disagree.
-`SearchText::VERSION` is bumped whenever the fold changes; then `myspeedpuzzling:rebuild-puzzle-search-keys` runs.
+`SearchText::VERSION` is bumped whenever the fold or the key format changes (it is informational - printed, never
+stored; it also rebuilds the cached test database); then `myspeedpuzzling:rebuild-puzzle-search-keys` runs.
 The command writes only the keys that changed (batches of 500, rows locked, safe to interrupt and re-run);
 `--dry-run [--report=<csv>]` counts and lists what a run would change without writing (`GetPuzzleSearchKeyDrift`),
 and lily runs it nightly with `--alert-on-drift` - a changed key logs a warning: a write went around the entity, or a
@@ -93,12 +94,20 @@ release that changes the keys was not followed by a run (`codes-help-and-check-d
 
 ```
 search_names = "\n" + fold(name) + "\n" + fold(alt1) + "\n" + … + "\n"
-search_codes = "\ne:4005556147090\ne:4005555001997\nc:14709\nc:12000199\n"
+search_codes = "\ne:4005556147090\ne:4005555001997\nc:14709\nc:12000199\nc:147090\nc:120001997\n"
 ```
 
 EAN lines (`e:`) hold digits without leading zeros; brand-code lines (`c:`) hold letters and digits only. The tags
 matter: 167 brand codes equal some stored EAN. A code that is not an EAN ("X002ROECA7") is a `c:` line, never folded
 to digits.
+
+**Check digit aliases** (since `SearchText::VERSION` 3, `codes-help-and-check-digit.md`): brands build their EAN from
+their code and some print the EAN's check digit right after the code (Ravensburger "12 002 028 8" ↔ `4005555020288`),
+so the code gets typed and stored both ways. `BrandCodeCheckDigit::aliases()` adds the other form of each 5-10-digit
+numeric code as one more `c:` line - only when a valid barcode of the puzzle ends with the code's last 5 digits
+(and, for a code stored with the digit, that digit is its check digit). The last two lines of the example above are
+such aliases. Typed with or without the digit, the code is an exact (rank 6) match; the picker
+(`PuzzleChoicesBuilder`) searches the same aliases. 8,734 of 41,282 keys gained one on the production copy.
 
 **Query.** `PuzzleSearchQuery::fromUserInput()` folds, then escapes `\ % _`, then builds the patterns. An empty query after
 folding means no text filter at all (browsing). Indexes: `custom_puzzle_search_names_trgm` and

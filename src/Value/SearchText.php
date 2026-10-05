@@ -21,9 +21,11 @@ use Transliterator;
 readonly final class SearchText
 {
     /**
-     * Bump whenever fold() changes, then run myspeedpuzzling:rebuild-puzzle-search-keys
+     * Bump whenever fold() or the format of the stored keys (PuzzleSearchKeys) changes, then run
+     * myspeedpuzzling:rebuild-puzzle-search-keys. Informational - printed by the command, never stored or compared.
+     * 3: brand codes with and without the EAN's check digit (BrandCodeCheckDigit).
      */
-    public const int VERSION = 2;
+    public const int VERSION = 3;
 
     private const string RULES = 'NFKC; [:Latin:] Latin-ASCII; Lower(); NFC';
 
@@ -51,6 +53,15 @@ readonly final class SearchText
         $folded = preg_replace('/ {2,}/', ' ', $folded) ?? '';
 
         return trim($folded, ' ');
+    }
+
+    /**
+     * A code as the `c:` lines of the code key hold it and a typed code is compared: folded, letters and digits only
+     * ("12 002 028", "RB-500" → "12002028", "rb500").
+     */
+    public static function code(string $code): string
+    {
+        return preg_replace('/[^\p{L}\p{N}]+/u', '', self::fold($code)) ?? '';
     }
 
     private static function transliterator(): Transliterator

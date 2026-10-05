@@ -49,7 +49,7 @@ final class PuzzleFixtureSearchKeysTest extends KernelTestCase
         self::assertSame("\npuzzle 11\nkouzelna zahrada\n", $keys(PuzzleFixture::PUZZLE_300)['search_names'] ?? null);
         self::assertSame("\npuzzle hidden image\n魔法の庭\n", $keys(PuzzleFixture::PUZZLE_HIDDEN_IMAGE)['search_names'] ?? null);
         self::assertSame(
-            "\ne:4005556174812\ne:4005556197484\nc:17481\nc:197482\n",
+            "\ne:4005556174812\ne:4005556197484\nc:17481\nc:197482\nc:174812\n",
             $keys(PuzzleFixture::PUZZLE_1000_05)['search_codes'] ?? null,
         );
         self::assertSame("\ne:5900511101010\n", $keys(PuzzleFixture::PUZZLE_1500_02)['search_codes'] ?? null);

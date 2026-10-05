@@ -510,7 +510,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
         self::assertSame('5900511374414', $survivorPuzzle->ean, 'EAN known only to the deleted puzzle must be kept');
         self::assertSame('37441', $survivorPuzzle->identificationNumber);
-        self::assertSame("\ne:5900511374414\nc:37441\n", $survivorPuzzle->searchCodes);
+        self::assertSame("\ne:5900511374414\nc:37441\nc:374414\n", $survivorPuzzle->searchCodes);
         self::assertSame('Americké koblihy', $survivorPuzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame('puzzles/duplicate-cover.jpg', $survivorPuzzle->image);
         self::assertSame(1.4, $survivorPuzzle->imageRatio);

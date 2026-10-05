@@ -1,6 +1,8 @@
 # Codes on the add form: "What is it?" help, "Brand code", the check digit
 
-Status: plan (2026-10-05), reviewed against the code, decisions taken, not started. Part of the puzzle-names work (codes = phase 5,
+Status: shipped 2026-10-05 in four commits (rename, help modal, rebuild `--dry-run`/`--alert-on-drift`, aliases);
+the production rebuild runbook (4a) is the last step. Rehearsed on the dev copy of production: 8,734 of 41,282 code
+keys gain an alias (only added lines, no name key changed), the run takes ~80 s, a second dry run reports 0. Part of the puzzle-names work (codes = phase 5,
 see `README.md`).
 
 ## Why
@@ -222,8 +224,10 @@ code and run the rebuild again, and the aliases are gone - no undo CSV, no migra
    exact as before; the add form's picker finds it by `120020288`.
 4. Next morning: the cron run reports 0 changed keys.
 
-**Performance:** no query changes; each affected key grows by one short line. Record `pg_relation_size` of
-`custom_puzzle_search_codes_trgm` before/after in `docs/database-indexes.md` (expected: a few percent at most).
+**Performance:** no query changes; each affected key grows by one short line. On the dev copy the code index is
+1.8 MB after `REINDEX` with the aliases, an exact alias lookup 0.2 ms. A GIN index does not give back the pages of the
+8.7k updated rows on `VACUUM` - harmless at this size; `REINDEX INDEX CONCURRENTLY custom_puzzle_search_codes_trgm`
+reclaims them if ever wanted.
 
 ### Why not the extra `OR` at query time (the first idea)
 

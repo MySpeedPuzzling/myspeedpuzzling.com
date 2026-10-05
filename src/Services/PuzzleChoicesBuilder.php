@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use SpeedPuzzling\Web\Results\AutocompletePuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
+use SpeedPuzzling\Web\Value\BrandCodeCheckDigit;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleName;
@@ -99,8 +100,9 @@ HTML;
                     static fn (PuzzleName $name): string => $name->name,
                     $puzzle->puzzleAlternativeNames->all(),
                 )),
+                // Searched, never shown: a brand code also matches typed with or without the EAN's check digit
                 'codes' => implode("\n", array_filter(
-                    [$eans, $brandCodes],
+                    [$eans, $brandCodes, implode(', ', BrandCodeCheckDigit::aliases($puzzle->puzzleEan, $puzzle->puzzleIdentificationNumber))],
                     static fn (string $codes): bool => $codes !== '',
                 )),
                 'piecesCount' => $puzzle->piecesCount,

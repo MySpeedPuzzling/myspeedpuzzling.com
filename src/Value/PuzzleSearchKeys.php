@@ -27,8 +27,9 @@ readonly final class PuzzleSearchKeys
 
     /**
      * Every code, each once: `e:` lines are barcode numbers without leading zeros, `c:` lines brand codes (and
-     * whatever in the EAN field is no number) as letters and digits only. A brand code equal to an EAN is a `c:` line.
-     * Null when the puzzle has no code.
+     * whatever in the EAN field is no number) as letters and digits only (SearchText::code()), then each brand code
+     * with or without the EAN's check digit printed after it (BrandCodeCheckDigit) - so the code is found typed either
+     * way. A brand code equal to an EAN is a `c:` line. Null when the puzzle has no code.
      */
     public static function codes(null|string $ean, null|string $identificationNumber): null|string
     {
@@ -40,7 +41,11 @@ readonly final class PuzzleSearchKeys
         }
 
         foreach ([...$eanTokens['other'], ...BrandCodeList::tokens($identificationNumber)] as $code) {
-            $lines[] = 'c:' . (preg_replace('/[^\p{L}\p{N}]+/u', '', SearchText::fold($code)) ?? '');
+            $lines[] = 'c:' . SearchText::code($code);
+        }
+
+        foreach (BrandCodeCheckDigit::aliases($ean, $identificationNumber) as $alias) {
+            $lines[] = 'c:' . $alias;
         }
 
         return self::key(array_filter($lines, static fn (string $line): bool => strlen($line) > 2));

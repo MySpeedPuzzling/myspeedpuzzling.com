@@ -43,7 +43,7 @@ final class PuzzleTest extends TestCase
         ], $puzzle->alternativeNames);
         self::assertSame("\ncircle of colors: seashells\nmuscheln\nkruh barev: musle\n", $puzzle->searchNames);
         self::assertSame('4005556147090', $puzzle->ean, 'stored in the canonical form');
-        self::assertSame("\ne:4005556147090\nc:14709\n", $puzzle->searchCodes);
+        self::assertSame("\ne:4005556147090\nc:14709\nc:147090\n", $puzzle->searchCodes);
         self::assertNull($puzzle->namesChangedAt);
     }
 
@@ -229,7 +229,7 @@ final class PuzzleTest extends TestCase
         self::assertSame('Seashells', $puzzle->name);
         self::assertSame([['name' => 'Mušle', 'language' => 'cs']], $puzzle->alternativeNames);
         self::assertSame("\nseashells\nmusle\n", $puzzle->searchNames);
-        self::assertSame("\ne:4005556147090\nc:14709\n", $puzzle->searchCodes);
+        self::assertSame("\ne:4005556147090\nc:14709\nc:147090\n", $puzzle->searchCodes);
         self::assertSame(1000, $puzzle->piecesCount);
         self::assertEquals($now, $puzzle->namesChangedAt);
     }

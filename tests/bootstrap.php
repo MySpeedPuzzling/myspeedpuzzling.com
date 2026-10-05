@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use SpeedPuzzling\Web\SymfonyApplicationKernel;
 use SpeedPuzzling\Web\Tests\TestingDatabaseCaching;
+use SpeedPuzzling\Web\Value\SearchText;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Dotenv\Dotenv;
@@ -22,7 +23,9 @@ $currentDatabaseHash = TestingDatabaseCaching::calculateDirectoriesHash(
     __DIR__ . '/DataFixtures',
     // The extensions and custom indexes it creates
     __FILE__,
-);
+)
+    // The fixtures' search keys are built by the code: a new key format (SearchText::VERSION) needs them built again
+    . '-search-keys-' . SearchText::VERSION;
 
 // ParaTest (vendor/bin/paratest) runs the suite in several processes at once, each
 // with its own TEST_TOKEN (1..N). They take turns here: the first one builds the

@@ -90,6 +90,30 @@ final class SearchPuzzleCodesTest extends KernelTestCase
         self::assertSame([PuzzleFixture::PUZZLE_300], $this->exactEanIds(PuzzleFixture::EAN_PUZZLE_300));
     }
 
+    public function testBrandCodeIsFoundWithOrWithoutTheCheckDigitPrintedAfterIt(): void
+    {
+        // Ravensburger prints "12 002 028 8" next to the barcode 4005555020288 - the last digit is the EAN's
+        self::changePuzzleEan(PuzzleFixture::PUZZLE_9000, '4005555020288');
+        self::changePuzzleBrandCode(PuzzleFixture::PUZZLE_9000, '12002028');
+
+        foreach (['12002028', '120020288', '12 002 028 8', '12 002 028'] as $typed) {
+            self::assertSame([PuzzleFixture::PUZZLE_9000], $this->search($typed), $typed);
+        }
+
+        self::assertSame([], $this->search('120020281'), 'another last digit is another code');
+
+        // Stored as printed, found by the code
+        self::changePuzzleBrandCode(PuzzleFixture::PUZZLE_9000, '120020288');
+        self::assertSame([PuzzleFixture::PUZZLE_9000], $this->search('12002028'));
+
+        // The scanner stays exact: the barcode only
+        self::assertSame([PuzzleFixture::PUZZLE_9000], $this->exactEanIds('4005555020288'));
+        self::assertSame([], self::ids($this->searchPuzzle->allByEan('120020288')));
+
+        // Old format: 17481 + 4005556174812 - "174812" was a part of the EAN only, now it is the whole code
+        self::assertSame([PuzzleFixture::PUZZLE_1000_05], $this->search('174812'));
+    }
+
     public function testBarcodeLookupIsExactWithLeadingZerosTolerated(): void
     {
         self::changePuzzleEan(PuzzleFixture::PUZZLE_1000_05, '4005556999990');

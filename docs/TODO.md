@@ -19,6 +19,16 @@ that would otherwise be forgotten. Newest section on top.
       to it): 65 barcode lengths with a wrong check digit, 60 brand codes with words in them, 1 comma between digits.
 - [x] One release after phase 5: `CodeListType::acceptLegacyFields()` and its five calls removed (2026-10-05).
 
+## Codes help and check-digit aliases (`docs/features/puzzle-names/codes-help-and-check-digit.md`)
+
+- [ ] Release runbook of the aliases on production (dry run with a report, then the run, again after the old
+      container is gone) - the nightly `rebuild-puzzle-search-keys --alert-on-drift` cron on lily is the safety net.
+- [ ] The "What is it?" help also on "add puzzle to a round" and "Suggest a change" (`puzzle/_code_inputs.html.twig`).
+- [ ] A puzzle without a valid EAN gets no alias: `120020288` does not find a stored `12002028` there (an unchecked
+      fallback would hit near-miss codes).
+- [ ] Global search highlights nothing when an alias matched (`components/GlobalSearch.html.twig`, the shown code
+      differs by a digit).
+
 ## Puzzle names - catalogue cleanup (`docs/features/puzzle-names/README.md`, phase 4)
 
 - [x] All filed on 2026-10-05 (Jan: everything at once, approve right away what is certain): wave 1 (45 merges,

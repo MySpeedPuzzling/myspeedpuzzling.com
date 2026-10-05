@@ -69,7 +69,17 @@ final class PuzzleSearchKeysTest extends TestCase
         yield 'the README example' => [
             '4005556147090, 4005555001997',
             '14709, 12000-199',
-            "\ne:4005556147090\ne:4005555001997\nc:14709\nc:12000199\n",
+            "\ne:4005556147090\ne:4005555001997\nc:14709\nc:12000199\nc:147090\nc:120001997\n",
+        ];
+        yield 'a brand code with and without the check digit printed after it' => [
+            '4005555020288',
+            '12 002 028',
+            "\ne:4005555020288\nc:12002028\nc:120020288\n",
+        ];
+        yield 'a brand code stored with the check digit gets its form without it' => [
+            '4005555020288',
+            '120020288',
+            "\ne:4005555020288\nc:120020288\nc:12002028\n",
         ];
         yield 'an EAN ending in 0 keeps its zero' => ['4005556555550', null, "\ne:4005556555550\n"];
         yield 'leading zeros stripped (UPC-A)' => ['036000291452', null, "\ne:36000291452\n"];

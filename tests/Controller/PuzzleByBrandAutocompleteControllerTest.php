@@ -55,10 +55,10 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
         self::assertSame('Puzzle 7', $option['name']);
         self::assertSame(PuzzleFixture::NAME_CS_MAGIC_GARDEN . "\n" . PuzzleFixture::NAME_DE_MAGIC_GARDEN, $option['names']);
 
-        // Both editions' barcodes and brand codes
+        // Both editions' barcodes and brand codes, and 17481 as the box prints it - with the EAN's check digit
         $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
         $option = self::option($browser, PuzzleFixture::PUZZLE_1000_05);
-        self::assertSame(PuzzleFixture::EANS_PUZZLE_1000_05 . "\n" . PuzzleFixture::BRAND_CODES_PUZZLE_1000_05, $option['codes']);
+        self::assertSame(PuzzleFixture::EANS_PUZZLE_1000_05 . "\n" . PuzzleFixture::BRAND_CODES_PUZZLE_1000_05 . "\n174812", $option['codes']);
         self::assertSame('', $option['names']);
         self::assertSame(1000, $option['piecesCount']);
     }

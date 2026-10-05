@@ -351,3 +351,8 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   (`newPuzzleExtra` targets of `time_form_autocomplete_controller.js`); rows left under an existing puzzle are ignored
   and never block a save. The stopwatch's save page is the same form, so it has the link too; the competition-round form
   and multiscan keep one name.
+- **Phase 3 review - one proposal at a time, names aside:** a pending merge request or change request of more than the
+  names holds up another such proposal ("Suggest a change", "Report duplicate", the internal API's 409); a change request
+  of the names only (main title, its language, other names - nothing else differs) counts in neither direction, so
+  several may wait at once next to a full one (`GetPendingPuzzleProposals::blocksNewProposal()`; the puzzle page's
+  "pending" badge still shows every one). A "Suggest a change" opened before a full proposal was filed still files names.

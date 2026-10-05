@@ -77,6 +77,30 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
         self::assertSame(Response::HTTP_CONFLICT, $response->getStatusCode());
     }
 
+    public function testNamesOnlyAreFiledWhileAnotherProposalWaits(): void
+    {
+        // PuzzleReportFixture holds a pending change request of the EAN for this one
+        $response = $this->controller()($this->jsonRequest([
+            'puzzleId' => PuzzleFixture::PUZZLE_500_02,
+            'alternativeNames' => [['name' => 'Puzzle zwei', 'language' => 'de']],
+        ]));
+
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+
+        // ... and a proposal of more than the names is not held up by the names-only one
+        $response = $this->controller()($this->jsonRequest([
+            'puzzleId' => PuzzleFixture::PUZZLE_1000_05,
+            'nameLanguage' => 'cs',
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+
+        $response = $this->controller()($this->jsonRequest([
+            'puzzleId' => PuzzleFixture::PUZZLE_1000_05,
+            'piecesCount' => 1500,
+        ]));
+        self::assertSame(Response::HTTP_CREATED, $response->getStatusCode());
+    }
+
     public function testFilesTheOtherNamesAsTheWholeListWithTheMainTitlesLanguage(): void
     {
         $response = $this->controller()($this->jsonRequest([

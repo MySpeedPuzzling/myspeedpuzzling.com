@@ -53,8 +53,8 @@ final class ReportDuplicatePuzzleController extends AbstractController
 
         $puzzle = $this->getPuzzleOverview->byId($puzzleId);
 
-        // Check for existing pending proposals
-        if ($this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId)) {
+        // One proposal at a time - a pending names-only change request does not count (GetPendingPuzzleProposals)
+        if ($this->getPendingPuzzleProposals->blocksNewProposal($puzzleId)) {
             $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.pending_proposal_exists'));
 
             return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);

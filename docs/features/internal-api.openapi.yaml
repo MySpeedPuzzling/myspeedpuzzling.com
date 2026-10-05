@@ -284,7 +284,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
-          description: The puzzle already has a pending change or merge request
+          description: The puzzle already has a pending merge request or a pending change request of more than its names. A proposal of the names only (name, nameLanguage, alternativeNames) is never refused for this.
           content:
             application/json:
               schema:

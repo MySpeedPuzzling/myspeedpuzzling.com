@@ -71,7 +71,7 @@ echo "HTTP $STATUS"; cat /tmp/change-proposal.json
 | `201` | Filed - review URL: `https://myspeedpuzzling.com/admin/puzzle-change-requests/<changeRequestId>` |
 | `400` | Invalid field, an invalid new EAN code, or nothing differs from the puzzle as it is |
 | `404` | Unknown puzzle |
-| `409` | The puzzle already has a pending change or merge request - report it, do not retry |
+| `409` | The puzzle already has a pending merge request or a pending proposal of more than its names - report it, do not retry. A names-only proposal (`name`, `nameLanguage`, `alternativeNames`) is never refused for this, and several may wait at once |
 
 ## Reject a proposal
 

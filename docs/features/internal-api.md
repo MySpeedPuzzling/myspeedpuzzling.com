@@ -105,8 +105,10 @@ File body: `puzzleId` (required) and any of `name`, `nameLanguage`, `alternative
 `ean`, `identificationNumber`. **A field left out keeps the puzzle's current value**, so the review shows only what the
 proposal changes; `ean` is the whole comma-separated list as it should end up, and every code not already on the puzzle
 must be a valid EAN/UPC. The reviewer player is the reporter. Answers `400` for an invalid field or when nothing differs,
-`404` for an unknown puzzle and `409` when the puzzle already has a pending change or merge request (the web form allows
-one at a time too). No photo. Use it for catalogue corrections found by an analysis, so they go through moderator review
+`404` for an unknown puzzle and `409` when the puzzle already has a pending merge request or a pending change request of
+more than its names (the web form allows one at a time too). A proposal of the names only (`name`, `nameLanguage`,
+`alternativeNames` - nothing else differs) is filed regardless and holds up nothing: names apply as a diff, so several
+may wait at once. No photo. Use it for catalogue corrections found by an analysis, so they go through moderator review
 instead of a database write - the `puzzle-change-proposal` skill wraps it.
 
 The `201` answer also carries `recordVersion`: the puzzle's record the proposal was filed against (a fingerprint of

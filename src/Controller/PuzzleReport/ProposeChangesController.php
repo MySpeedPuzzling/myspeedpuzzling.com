@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -60,21 +61,12 @@ final class ProposeChangesController extends AbstractController
 
         $puzzle = $this->getPuzzleOverview->byId($puzzleId);
 
-        // Check for existing pending proposals - show them instead of the form
-        if ($this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId)) {
-            $proposals = $this->getPendingPuzzleProposals->forPuzzle($puzzleId);
+        // One proposal at a time (GetPendingPuzzleProposals) - the pending ones are shown instead of the form. Names only
+        // are proposed meanwhile too: they apply as a diff, so a submitted one is filed even when a proposal is waiting
+        $blocked = $this->getPendingPuzzleProposals->blocksNewProposal($puzzleId);
 
-            // Handle Turbo Frame request - show pending proposals modal
-            if ($request->headers->get('Turbo-Frame') === 'modal-frame') {
-                return $this->render('puzzle-report/pending_proposals_modal.html.twig', [
-                    'puzzle' => $puzzle,
-                    'proposals' => $proposals,
-                ]);
-            }
-
-            $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.pending_proposal_exists'));
-
-            return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+        if ($blocked && $request->isMethod('POST') === false) {
+            return $this->pendingProposals($request, $puzzle);
         }
 
         // Every name with its language - the overview has the names, not the main title's language
@@ -116,14 +108,19 @@ final class ProposeChangesController extends AbstractController
             $namesChanged = $formData->names->nameLanguage !== $record->nameLanguage
                 || $formData->names->toPuzzleNames()->cleanedFor($proposedName)->diff($record->alternativeNames)->isEmpty() === false;
 
-            // Check if any values actually changed
-            $hasChanges = $proposedName !== $record->name
-                || $namesChanged
-                || $formData->manufacturerId !== $puzzle->manufacturerId
+            $otherChanges = $formData->manufacturerId !== $puzzle->manufacturerId
                 || $formData->piecesCount !== $puzzle->piecesCount
                 || $formData->ean !== $puzzle->puzzleEan
                 || $formData->identificationNumber !== $puzzle->puzzleIdentificationNumber
                 || $formData->photo !== null;
+
+            // Check if any values actually changed
+            $hasChanges = $proposedName !== $record->name || $namesChanged || $otherChanges;
+
+            // A proposal filed since the form was opened waits for a moderator - names only may still be proposed
+            if ($blocked && $otherChanges) {
+                return $this->pendingProposals($request, $puzzle);
+            }
 
             if (!$hasChanges) {
                 $warningMessage = $this->translator->trans('puzzle_report.flash.no_changes');
@@ -196,5 +193,23 @@ final class ProposeChangesController extends AbstractController
 
         // Non-Turbo request: return full page for progressive enhancement
         return $this->render('puzzle-report/propose_changes.html.twig', $templateParams, new Response('', $statusCode));
+    }
+
+    /**
+     * The proposals waiting for a moderator, instead of the form
+     */
+    private function pendingProposals(Request $request, PuzzleOverview $puzzle): Response
+    {
+        // Handle Turbo Frame request - show pending proposals modal
+        if ($request->headers->get('Turbo-Frame') === 'modal-frame') {
+            return $this->render('puzzle-report/pending_proposals_modal.html.twig', [
+                'puzzle' => $puzzle,
+                'proposals' => $this->getPendingPuzzleProposals->forPuzzle($puzzle->puzzleId),
+            ]);
+        }
+
+        $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.pending_proposal_exists'));
+
+        return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzle->puzzleId]);
     }
 }

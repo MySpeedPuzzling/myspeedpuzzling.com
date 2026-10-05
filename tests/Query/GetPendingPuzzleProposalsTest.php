@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\SuggestPuzzleName;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -74,5 +76,48 @@ final class GetPendingPuzzleProposalsTest extends KernelTestCase
     {
         // PUZZLE_1000_05 has no pending proposals
         self::assertFalse($this->query->hasPendingForPuzzle(PuzzleFixture::PUZZLE_1000_05));
+    }
+
+    public function testAPendingChangeOfMoreThanTheNamesOrAMergeBlocksANewProposal(): void
+    {
+        // A change request proposing an EAN (PuzzleReportFixture), a merge request
+        self::assertTrue($this->query->blocksNewProposal(PuzzleFixture::PUZZLE_500_01));
+        self::assertTrue($this->query->blocksNewProposal(PuzzleFixture::PUZZLE_500_02));
+        self::assertFalse($this->query->blocksNewProposal(PuzzleFixture::PUZZLE_1000_05));
+    }
+
+    public function testPendingChangesOfTheNamesOnlyBlockNothing(): void
+    {
+        $messageBus = self::getContainer()->get(MessageBusInterface::class);
+
+        // Two names suggested, and a "Suggest a change" of the main title only - all waiting at once
+        foreach ([['Jardín mágico', 'es'], ['Giardino magico', 'it']] as [$name, $language]) {
+            $messageBus->dispatch(new SuggestPuzzleName(
+                suggestionId: Uuid::uuid7()->toString(),
+                puzzleId: PuzzleFixture::PUZZLE_1000_02,
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                name: $name,
+                language: $language,
+            ));
+        }
+
+        $puzzle = self::getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_02);
+        $messageBus->dispatch(new SubmitPuzzleChangeRequest(
+            changeRequestId: Uuid::uuid7()->toString(),
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            proposedName: 'Magic Garden',
+            proposedManufacturerId: $puzzle->manufacturer?->id->toString(),
+            proposedPiecesCount: $puzzle->piecesCount,
+            proposedEan: $puzzle->ean,
+            proposedIdentificationNumber: $puzzle->identificationNumber,
+            proposedPhoto: null,
+            originalAlternativeNames: $puzzle->alternativeNames(),
+            originalNameLanguage: $puzzle->nameLanguage,
+        ));
+
+        self::assertCount(3, $this->query->forPuzzle(PuzzleFixture::PUZZLE_1000_02));
+        self::assertTrue($this->query->hasPendingForPuzzle(PuzzleFixture::PUZZLE_1000_02), 'The puzzle page still says a proposal waits');
+        self::assertFalse($this->query->blocksNewProposal(PuzzleFixture::PUZZLE_1000_02));
     }
 }

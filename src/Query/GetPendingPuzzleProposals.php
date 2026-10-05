@@ -9,6 +9,13 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\MergePuzzleInfo;
 use SpeedPuzzling\Web\Results\PendingPuzzleProposal;
 
+/**
+ * The proposals waiting for a moderator on a puzzle. One at a time (blocksNewProposal()): a pending merge request or a
+ * pending change request that changes more than the names keeps another such proposal - a "Suggest a change" that
+ * does, a duplicate report, the internal API's - from being filed. A change request of the names only (main title,
+ * its language, other names - "Suggest another name", or "Suggest a change" touching nothing else) counts in neither
+ * direction: it applies as a diff, so several may wait at once, next to a full proposal or a merge request.
+ */
 readonly final class GetPendingPuzzleProposals
 {
     public function __construct(
@@ -17,6 +24,10 @@ readonly final class GetPendingPuzzleProposals
     ) {
     }
 
+    /**
+     * Whether a pending change request (also of the names only) or merge request is about the puzzle - the puzzle page's
+     * "pending proposal" badge.
+     */
     public function hasPendingForPuzzle(string $puzzleId): bool
     {
         $query = <<<SQL
@@ -28,6 +39,39 @@ SELECT EXISTS (
     WHERE status = 'pending'
       AND (source_puzzle_id = :puzzleId OR reported_duplicate_puzzle_ids::jsonb @> :puzzleIdJson::jsonb)
 ) as has_pending
+SQL;
+
+        $result = $this->database->fetchOne($query, [
+            'puzzleId' => $puzzleId,
+            'puzzleIdJson' => json_encode([$puzzleId]),
+        ]);
+
+        return $result === true;
+    }
+
+    /**
+     * Whether a new proposal changing more than the names has to wait: a pending merge request about the puzzle, or a
+     * pending change request of it changing anything else than the names (the rule above). Not asked for a proposal
+     * of the names only.
+     */
+    public function blocksNewProposal(string $puzzleId): bool
+    {
+        $query = <<<SQL
+SELECT EXISTS (
+    SELECT 1 FROM puzzle_change_request
+    WHERE puzzle_id = :puzzleId AND status = 'pending'
+      AND (
+        (proposed_manufacturer_id IS NOT NULL AND proposed_manufacturer_id IS DISTINCT FROM original_manufacturer_id)
+        OR (proposed_pieces_count IS NOT NULL AND proposed_pieces_count IS DISTINCT FROM original_pieces_count)
+        OR (proposed_ean IS NOT NULL AND proposed_ean IS DISTINCT FROM original_ean)
+        OR (proposed_identification_number IS NOT NULL AND proposed_identification_number IS DISTINCT FROM original_identification_number)
+        OR proposed_image IS NOT NULL
+      )
+    UNION ALL
+    SELECT 1 FROM puzzle_merge_request
+    WHERE status = 'pending'
+      AND (source_puzzle_id = :puzzleId OR reported_duplicate_puzzle_ids::jsonb @> :puzzleIdJson::jsonb)
+) as blocks
 SQL;
 
         $result = $this->database->fetchOne($query, [

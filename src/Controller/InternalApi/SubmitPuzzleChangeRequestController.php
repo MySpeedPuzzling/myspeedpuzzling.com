@@ -94,22 +94,21 @@ final class SubmitPuzzleChangeRequestController extends AbstractController
             throw new BadRequestHttpException(sprintf('"alternativeNames" can hold at most %d names.', PuzzleNames::FORM_MAX_NAMES));
         }
 
-        $changes = $name !== $puzzle->name
-            || $manufacturerId !== $puzzle->manufacturerId
+        $otherChanges = $manufacturerId !== $puzzle->manufacturerId
             || $piecesCount !== $puzzle->piecesCount
             || $ean !== $puzzle->ean
-            || $identificationNumber !== $puzzle->identificationNumber
-            || $namesChanged;
+            || $identificationNumber !== $puzzle->identificationNumber;
 
-        if ($changes === false) {
+        if ($name === $puzzle->name && $namesChanged === false && $otherChanges === false) {
             throw new BadRequestHttpException('Nothing to change - every given field equals the puzzle as it is.');
         }
 
-        // Like the web form: one open proposal per puzzle. Answered without an exception, so a
-        // caller filing in bulk does not turn a known conflict into a logged error.
-        if ($this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId)) {
+        // Like the web form: one open proposal per puzzle - names only are filed regardless, they apply as a diff
+        // (GetPendingPuzzleProposals). Answered without an exception, so a caller filing in bulk does not turn a known
+        // conflict into a logged error.
+        if ($otherChanges && $this->getPendingPuzzleProposals->blocksNewProposal($puzzleId)) {
             return new JsonResponse(
-                ['error' => 'The puzzle already has a pending change or merge request.'],
+                ['error' => 'The puzzle already has a pending change request (of more than its names) or merge request.'],
                 Response::HTTP_CONFLICT,
             );
         }

@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
+use SpeedPuzzling\Web\Message\SuggestPuzzleName;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ProposeChangesControllerTest extends WebTestCase
 {
@@ -173,6 +178,66 @@ final class ProposeChangesControllerTest extends WebTestCase
             ['name' => PuzzleFixture::NAME_CS_MAGIC_GARDEN, 'language' => 'cs'],
             ['name' => PuzzleFixture::NAME_DE_MAGIC_GARDEN, 'language' => 'de'],
         ], json_decode($row['original_alternative_names'], true));
+    }
+
+    public function testAWaitingNameSuggestionDoesNotHoldUpAProposal(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new SuggestPuzzleName(
+            suggestionId: Uuid::uuid7()->toString(),
+            puzzleId: PuzzleFixture::PUZZLE_1000_03,
+            playerId: PlayerFixture::PLAYER_PRIVATE,
+            name: 'Puzzle osm',
+            language: 'cs',
+        ));
+
+        $this->submit($browser, ean: '4005556789012', name: 'Puzzle 8 - corrected name');
+
+        self::assertResponseRedirects();
+        self::assertSame(2, $this->changeRequestCount());
+    }
+
+    public function testAWaitingProposalOfMoreThanTheNamesHoldsUpAnotherOneButNotNames(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $url = '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03 . '/suggest-change';
+
+        $crawler = $browser->request('GET', $url);
+        $form = $crawler->filter('form[name="propose_puzzle_changes_form"]')->form();
+
+        // Somebody proposes the pieces while the player edits
+        $puzzle = self::getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_03);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new SubmitPuzzleChangeRequest(
+            changeRequestId: Uuid::uuid7()->toString(),
+            puzzleId: PuzzleFixture::PUZZLE_1000_03,
+            reporterId: PlayerFixture::PLAYER_PRIVATE,
+            proposedName: $puzzle->name,
+            proposedManufacturerId: $puzzle->manufacturer?->id->toString(),
+            proposedPiecesCount: 1500,
+            proposedEan: $puzzle->ean,
+            proposedIdentificationNumber: $puzzle->identificationNumber,
+            proposedPhoto: null,
+            originalAlternativeNames: $puzzle->alternativeNames(),
+            originalNameLanguage: $puzzle->nameLanguage,
+        ));
+
+        $form['propose_puzzle_changes_form[identificationNumber]'] = 'RB-8';
+        $browser->submit($form);
+        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
+        self::assertSame(1, $this->changeRequestCount(), 'Waits for the pending proposal');
+
+        $form['propose_puzzle_changes_form[identificationNumber]'] = $puzzle->identificationNumber ?? '';
+        $form['propose_puzzle_changes_form[names][name]'] = 'Puzzle 8 - corrected name';
+        $browser->submit($form);
+        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
+        self::assertSame(2, $this->changeRequestCount(), 'Names only are filed regardless');
+
+        // The form itself waits for the pending proposal
+        $browser->request('GET', $url);
+        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
     }
 
     private function submit(KernelBrowser $browser, string $ean, null|string $name = null): Crawler

@@ -31,7 +31,8 @@ return App::config([
                 'handler' => 'nested',
                 'excluded_http_codes' => [404, 405],
                 'buffer_size' => 50,
-                'channels' => ['!sentry_sdk'],
+                // internal_api_audit has its own handler below
+                'channels' => ['!sentry_sdk', '!internal_api_audit'],
             ],
             'nested' => [
                 'type' => 'stream',
@@ -63,6 +64,16 @@ return App::config([
                 'id' => BreadcrumbHandler::class,
                 'level' => 'info',
                 'channels' => ['!sentry_sdk'],
+            ],
+            // The audit trail of the internal admin API (InternalApiAuditSubscriber): info records,
+            // which fingers_crossed above would drop for a request without a warning - written
+            // as they come. Info never becomes a Sentry issue, so it needs no exclusion there.
+            'internal_api_audit' => [
+                'type' => 'stream',
+                'path' => 'php://stderr',
+                'level' => 'info',
+                'channels' => ['internal_api_audit'],
+                'formatter' => 'monolog.formatter.json',
             ],
             // SDK send failures land in stderr logs only
             'sentry_sdk' => [

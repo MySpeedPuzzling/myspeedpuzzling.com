@@ -9,7 +9,9 @@ that would otherwise be forgotten. Newest section on top.
 - [x] `myspeedpuzzling:canonicalize-puzzle-codes` on production (2026-10-05): 1,175 EAN + 157 brand-code fields
       written, search keys unchanged, undo file `/root/codes-20261005T084536Z/codes-undo-20261005T084536Z.csv` on the
       box (`\N` = NULL); 304 of the report's 316 puzzles with a fix filed as change proposals (one per puzzle, both
-      lists).
+      lists). Jan's call: the technical, certain ones approved by Claude right away (94, + 4 a moderator approved
+      first); the other 165 (plain numbers, Amazon codes - Jan: moderators decide -, unknown formats) wait in the
+      queue.
 - [ ] File the other 12 once their pending merge / change request is decided (the API answered 409):
       `.claude/worktrees/pn-delivery-state/codes-cleanup/file/refile-409.json` (local to Jan's Mac) - re-read each
       puzzle first, the proposal replaces both whole lists.
@@ -19,13 +21,10 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Puzzle names - catalogue cleanup (`docs/features/puzzle-names/README.md`, phase 4)
 
-- [ ] File the 407 high-confidence language tags in waves of about 100 once moderators have worked through wave 1
-      (filed 2026-10-05: 45 merges, 54 splits, 3 swaps - check how many are still pending first). Tool and research
-      are local to Jan's Mac, `.claude/worktrees/pn-delivery-state/phase4/tool/` (`file_wave.py`, README in its
-      docstring): `./file_wave.py ids --wave waves/wave2-tags.json > w.ids`, `./fetch_current.sh w.ids
-      snapshots/w2.csv`, dry run, then `--live`; next `wave3-tags`, `wave4-tags`, `wave5-tags` (the rest). It re-reads
-      every puzzle and skips what changed since the research. File only, never approve.
-- [ ] Medium/low-confidence names (125 + 22: Czech vs Slovak spellings, no clear language) - decide by hand or leave.
+- [x] All filed on 2026-10-05 (Jan: everything at once, approve right away what is certain): wave 1 (45 merges,
+      54 splits, 3 swaps - in the queue), 401 high-confidence language tags (397 read by hand and approved, 4 spelled
+      alike in another language left to moderators), 128 medium/low-confidence ones for moderators (19 had no
+      language to propose). Tool, research and logs local to Jan's Mac: `.claude/worktrees/pn-delivery-state/phase4/`.
 
 ## Puzzle names on pages and in search (`docs/features/puzzle-names/README.md`, phase 2)
 

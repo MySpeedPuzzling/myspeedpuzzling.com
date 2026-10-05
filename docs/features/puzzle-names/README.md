@@ -10,9 +10,10 @@ Status: **shipped** - phase 0, 1a and 1b on 2026-10-04; 1c-1 (old column unmappe
 1c-2 + phase 2 (column dropped; names on pages, in search and SEO), phase 3 (names editor, change and merge requests
 with names) and phase 5 (one input per code, canonical lists) on 2026-10-05, each checked on production before the
 next. Data: the format-only codes cleanup ran on 2026-10-05 (1,175 EAN + 157 brand-code fields, undo file kept) and its
-report went to moderators as 304 change proposals (12 more wait for a pending request); phase 4 wave 1 (45 merges,
-54 splits, 3 main-title swaps) is filed, the 407 language tags follow in waves (`docs/TODO.md`). Decisions taken
-during delivery are listed at the end under "Delivery decisions".
+report went to moderators as 304 change proposals (12 more wait for a pending request); phase 4 is filed (45 merges,
+54 splits, 3 main-title swaps, 529 language tags). The technical, certain proposals were approved at once (98 codes,
+397 tags), the rest waits for moderators (`docs/TODO.md`). Decisions taken during delivery are listed at the end under
+"Delivery decisions".
 
 ## Decisions (Jan, 2026-10-04)
 
@@ -456,5 +457,16 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   (60, upper case is no fix) and the comma between digits (1) - they wait for a person with the box. 304 filed; 12
   puzzles had a pending merge or change request (the API's 409) and are filed again once it is decided.
 - **Phase 4 - wave 1 filed right after phase 3 shipped** (the API takes names only from that release): 102 requests,
-  each re-checked against a production snapshot taken minutes before; the 407 language tags follow in waves of about
-  100 once moderators have worked through wave 1, so the queue is not flooded.
+  each re-checked against a production snapshot taken minutes before. Jan then chose to file everything at once:
+  401 high-confidence tags and 128 medium/low ones for moderators.
+- **Approving our own proposals (Jan, 2026-10-05): only what is technical and certain**, the rest waits for
+  moderators. Approved through the internal API with the record version read at filing (a puzzle changed since is
+  refused) and a decision note saying why, credited to Jan's player. Codes: a duplicate of an existing brand code, a
+  placeholder or the brand's own name in a code field, words that are part of the puzzle's name, a catalogue number
+  moved out of the EAN field when at least 3 other puzzles of the brand carry codes of that exact format, and
+  Ravensburger barcodes typed without "40" whose check digit is right and whose article number is the brand code
+  (98; Amazon codes, plain numbers and unknown formats stay with moderators). Tags: every name read by hand - a form
+  that differs in the other candidate language ("Duha" / "dúha", "Zámek" / "Zámok") is certain, a name spelled alike
+  in two languages ("Tramvaj v San Franciscu", "Impossible: Marvel") is not (397 of 401). Merges and main-title
+  changes are never approved this way. A moderator approving the same request a second earlier answers 409 and is
+  logged at info.

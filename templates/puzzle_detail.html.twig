@@ -1,7 +1,8 @@
 {% extends 'base.html.twig' %}
 
 {# The same public facts as the summary paragraph (puzzle/_summary.html.twig), EAN only while the image is not
-   embargoed. One EAN is enough here - a puzzle may list several (one per edition or region). #}
+   embargoed, at the very end of the description. One EAN is enough here - a puzzle may list several (one per edition
+   or region). #}
 {% set puzzle_meta_ean = (puzzle.puzzleEan and not is_image_hidden)
     ? 'puzzle_detail.meta.ean'|trans({'%ean%': puzzle_eans(puzzle.puzzleEan)|first})
     : ''
@@ -18,20 +19,41 @@
     '%pieces%': puzzle.piecesCount,
     '%ean%': puzzle_meta_ean,
 } %}
+{# The facts in the order a searcher reads them on a phone, before the snippet is cut (~120 characters): solo times,
+   then pair and team solves (a puzzle solved only in pairs says so), the call to action, the EAN last. Solve counts
+   go with the fastest time - the median is per solver, never "from N solves". #}
+{% set puzzle_meta_facts = [] %}
 {% if puzzle_summary.hasSingleSoloTime %}
-    {% set puzzle_meta_description = 'puzzle_detail.meta.description_with_single_time'|trans(puzzle_meta_parameters|merge({
+    {% set puzzle_meta_facts = puzzle_meta_facts|merge(['puzzle_detail.meta.facts.solo_single'|trans({
         '%fastest%': puzzle_summary.fastestTimeSolo|compactTime,
-    })) %}
+    })]) %}
 {% elseif puzzle_summary.hasSoloTimes %}
-    {% set puzzle_meta_description = 'puzzle_detail.meta.description_with_times'|trans(puzzle_meta_parameters|merge({
-        '%median%': puzzle_summary.medianTimeSolo|compactTime,
+    {% set puzzle_meta_facts = puzzle_meta_facts|merge(['puzzle_detail.meta.facts.solo_times'|trans({
         '%fastest%': puzzle_summary.fastestTimeSolo|compactTime,
+        '%median%': puzzle_summary.medianTimeSolo|compactTime,
         '%count%': puzzle_summary.soloSolvesCount,
-    })) %}
+    })]) %}
 {% elseif puzzle_summary.hasGroupTimes %}
-    {% set puzzle_meta_description = 'puzzle_detail.meta.description_no_solo_times'|trans(puzzle_meta_parameters) %}
-{% else %}
+    {% set puzzle_meta_facts = puzzle_meta_facts|merge(['puzzle_detail.meta.facts.solo_none'|trans]) %}
+{% endif %}
+{% if puzzle_summary.hasDuoTimes %}
+    {% set puzzle_meta_facts = puzzle_meta_facts|merge(['puzzle_detail.meta.facts.pairs'|trans({
+        '%fastest%': puzzle_summary.fastestTimeDuo|compactTime,
+        '%count%': puzzle_summary.duoSolvesCount,
+    })]) %}
+{% endif %}
+{% if puzzle_summary.hasTeamTimes %}
+    {% set puzzle_meta_facts = puzzle_meta_facts|merge(['puzzle_detail.meta.facts.teams'|trans({
+        '%fastest%': puzzle_summary.fastestTimeTeam|compactTime,
+        '%count%': puzzle_summary.teamSolvesCount,
+    })]) %}
+{% endif %}
+{% if puzzle_meta_facts is empty %}
     {% set puzzle_meta_description = 'puzzle_detail.meta.description'|trans(puzzle_meta_parameters) %}
+{% else %}
+    {% set puzzle_meta_description = 'puzzle_detail.meta.description_with_facts'|trans(puzzle_meta_parameters|merge({
+        '%facts%': puzzle_meta_facts|join('puzzle_detail.meta.facts_separator'|trans),
+    })) %}
 {% endif %}
 
 {# The catalogue pages above this puzzle (PuzzleCatalogueLinks): the breadcrumb, the piece count in the header and

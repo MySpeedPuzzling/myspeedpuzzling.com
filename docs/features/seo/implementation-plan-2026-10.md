@@ -84,8 +84,9 @@ Content is built from public data only. **No difficulty/percentile wording**: in
   - cs "… – puzzle {pieces} dílků"
   - ja "… – {pieces}ピース パズル"
   - H1 stays as it is.
-- **Meta description with solo times:** "{brand} {name} ({pieces} pieces[, EAN {ean}]): median solo time {median}, fastest {fastest} from {count} solves. Compare your time on MySpeedPuzzling."
-- **Meta description without solo times:** "{brand} {name} – {pieces}-piece jigsaw puzzle[, EAN {ean}]. No solve times yet – log yours and be the first on MySpeedPuzzling."
+- **Meta description** (rewritten 2026-10-05, see "Puzzle meta description — facts first" below): "{brand} {name}
+  ({pieces} pieces): {facts}. Compare your time.[ EAN {ean}.]"; without any time "{brand} {name} ({pieces} pieces): no
+  solve times yet – log yours and be the first.[ EAN {ean}.]"
 - Product JSON-LD keeps using the meta description.
 
 ### A5 — Tag badges link to events
@@ -344,8 +345,41 @@ country, so one URL is one HTML for every guest. Design of record: `docs/feature
   every stored code with a right check digit (`EanList::gtins()`, UPC-A padded to 13). Every JSON-LD value on the
   site goes through the `json_ld` filter (`<` `>` `&` `'` `"` as `\u` escapes - a name with `<!--<script>` broke the page).
 - **Sitemap** `lastmod` = latest of added, approved, `names_changed_at`, last solve (`GetPuzzleIdsForSitemap`, both
-  sitemaps; same plan, measured).
+  sitemaps; same plan, measured), never earlier than `PAGE_LAST_REBUILT_AT` ("Sitemap lastmod floor" below).
 - Hreflang and canonical untouched. Follow-up: index coverage per language in Search Console (`docs/TODO.md`).
+
+## Puzzle meta description — facts first (2026-10-05)
+
+The A4 sentences put the EAN inside the parentheses, so on a phone (~120 visible characters) the times and the call
+to action were cut for most puzzles; pair and team solves were never mentioned (1 solo + 1 pair said only "fastest
+solo time … so far"); "median … from N solves" mixed a per-solver median with a solve count.
+
+- `puzzle_detail.html.twig` builds a list of clauses from `PuzzleSummary` (no extra query) and joins them with
+  `puzzle_detail.meta.facts_separator`:
+  1. solo - several times `facts.solo_times` (fastest, median, solo solve count), one time (median = fastest)
+     `facts.solo_single`, none but pair/team times `facts.solo_none`;
+  2. `facts.pairs` when there are pair solves, 3. `facts.teams` when there are team solves (count + fastest).
+- Clauses → `puzzle_detail.meta.description_with_facts`; none → `puzzle_detail.meta.description`.
+- EAN **last** (`puzzle_detail.meta.ean`, " EAN {ean}."), first EAN only, never while the image is embargoed.
+- "Main / Local" name as before (`name_with_local_name_description`); the Product JSON-LD reuses the description.
+- Example: "Ravensburger The World of Trolls (150 pieces): fastest solo time 9min 33s so far; 1 pair solve in 21min
+  53s. Compare your time. EAN 045570100330."
+- Register follows each locale's puzzle page (cs "ty", de "Sie", es "tú", fr "vous"). "on MySpeedPuzzling" was dropped
+  to leave the characters to the facts (the result shows the site name anyway).
+
+## Sitemap lastmod floor (2026-10-05)
+
+Between 2026-09-30 and 2026-10-05 **every** puzzle page changed its title, meta description, main content
+("About this puzzle"), catalogue links and structured data - but the puzzle sitemaps' `lastmod` (latest of added,
+approved, `names_changed_at`, last solve) never moved, so Google kept the 2026-09-28 copies.
+
+- `GetPuzzleIdsForSitemap::PAGE_LAST_REBUILT_AT` is the floor of every puzzle `lastmod` (one more `GREATEST`
+  argument in both the puzzle and the image sitemap; a later solve, approval or names change still wins).
+- **Bump it only when every puzzle page changes its main content, title/meta, structured data or links** - to the
+  deploy date of that change. Never for styling or chrome, never "today", never automatically: Google uses `lastmod`
+  only while it stays accurate (a significant change = main content, structured data or links), and a sitemap that
+  claims changes that did not happen teaches it to ignore the field.
+- Other sitemaps (players, events, brands, static, …) keep their own rules - their pages did not change that way.
 
 ---
 

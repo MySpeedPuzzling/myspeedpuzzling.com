@@ -296,8 +296,9 @@ final class PuzzleDetailControllerTest extends WebTestCase
             'Used at' => 'WJPC 2024 Czech National Championship 2024',
         ], self::summaryFacts($crawler->filter('section.puzzle-summary')));
 
-        // One EAN is enough for the meta description
-        self::assertStringStartsWith('Ravensburger Puzzle 1 (500 pieces, EAN 4005556175895): ', $this->metaDescription($crawler));
+        // One EAN is enough for the meta description - at its end, after the times and the call to action
+        self::assertStringStartsWith('Ravensburger Puzzle 1 (500 pieces): fastest solo ', $this->metaDescription($crawler));
+        self::assertStringEndsWith('. Compare your time. EAN 4005556175895.', $this->metaDescription($crawler));
     }
 
     public function testPuzzleWithoutTimesInvitesToLogTheFirstOne(): void
@@ -319,7 +320,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertSame('/en/puzzle-add/' . PuzzleFixture::PUZZLE_4000, $addLink->attr('href'));
 
         self::assertSame(
-            'Ravensburger Puzzle 16 – 4000-piece jigsaw puzzle, EAN 4005556999996. No solve times yet – log yours and be the first on MySpeedPuzzling.',
+            'Ravensburger Puzzle 16 (4000 pieces): no solve times yet – log yours and be the first. EAN 4005556999996.',
             $this->metaDescription($crawler),
         );
     }
@@ -339,7 +340,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         ], self::summaryTimes($summary));
         self::assertStringEndsWith('No solo times yet – log yours and be the first on the solo leaderboard.', $summary->text());
         self::assertSame(
-            'Ravensburger Puzzle 8 – 1000-piece jigsaw puzzle, EAN 4005556789012. No solo times yet – log yours and be the first on MySpeedPuzzling.',
+            'Ravensburger Puzzle 8 (1000 pieces): no solo times yet; 1 pair solve in 1h 6min. Compare your time. EAN 4005556789012.',
             $this->metaDescription($crawler),
         );
     }
@@ -357,7 +358,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
             ['Solo', '1', '–', '01:56:40'],
         ], self::summaryTimes($crawler->filter('section.puzzle-summary')));
         self::assertSame(
-            'Trefl Puzzle 13 (1500 pieces, EAN 5900511101010): fastest solo time 1h 56min so far. Compare your time on MySpeedPuzzling.',
+            'Trefl Puzzle 13 (1500 pieces): fastest solo time 1h 56min so far. Compare your time. EAN 5900511101010.',
             $this->metaDescription($crawler),
         );
     }
@@ -381,6 +382,67 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertArrayNotHasKey('Product number', self::summaryFacts($summary));
         self::assertStringNotContainsString('EMBARGO-1', $summary->text());
         self::assertStringNotContainsString('EMBARGO-1', $this->metaDescription($crawler));
+        self::assertStringNotContainsString('EAN', $this->metaDescription($crawler));
+    }
+
+    /**
+     * One solo time and one pair solve: both named, the call to action, the EAN last (a UPC with its leading zero)
+     */
+    #[DataProvider('soloAndPairDescriptions')]
+    public function testMetaDescriptionNamesTheSoloTimeAndThePairSolve(string $url, string $description): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE puzzle SET name = 'The World of Trolls', pieces_count = 150, ean = '45570100330' WHERE id = :puzzleId",
+            ['puzzleId' => PuzzleFixture::PUZZLE_1000_01],
+        );
+        $this->setSoloStatistics(PuzzleFixture::PUZZLE_1000_01, count: 1, medianSeconds: 573, fastestSeconds: 573);
+        $this->setGroupStatistics(PuzzleFixture::PUZZLE_1000_01, pairCount: 1, pairFastestSeconds: 1313, teamCount: 0, teamFastestSeconds: null);
+
+        $crawler = $browser->request('GET', $url . PuzzleFixture::PUZZLE_1000_01);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame($description, $this->metaDescription($crawler));
+    }
+
+    /**
+     * @return Generator<string, array{string, string}>
+     */
+    public static function soloAndPairDescriptions(): Generator
+    {
+        yield 'en' => [
+            '/en/puzzle/',
+            'Ravensburger The World of Trolls (150 pieces): fastest solo time 9min 33s so far; 1 pair solve in 21min 53s. Compare your time. EAN 045570100330.',
+        ];
+        yield 'cs' => [
+            '/puzzle/',
+            'Ravensburger The World of Trolls (150 dílků): zatím nejrychlejší sólo čas 9min 33s; 1 složení ve dvojici za 21min 53s. Porovnej svůj čas. EAN 045570100330.',
+        ];
+    }
+
+    public function testMetaDescriptionCountsPairAndTeamSolves(): void
+    {
+        $browser = self::createClient();
+
+        // PUZZLE_1000_03: no solo time, three pair and two team solves
+        $this->setGroupStatistics(PuzzleFixture::PUZZLE_1000_03, pairCount: 3, pairFastestSeconds: 2735, teamCount: 2, teamFastestSeconds: 1500);
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame(
+            'Ravensburger Puzzle 8 (1000 pieces): no solo times yet; 3 pair solves, fastest 45min 35s; 2 team solves, fastest 25min. Compare your time. EAN 4005556789012.',
+            $this->metaDescription($crawler),
+        );
+
+        // Team solves only
+        $this->setGroupStatistics(PuzzleFixture::PUZZLE_1000_03, pairCount: 0, pairFastestSeconds: null, teamCount: 1, teamFastestSeconds: 3600);
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame(
+            'Ravensburger Puzzle 8 (1000 pieces): no solo times yet; 1 team solve in 1h. Compare your time. EAN 4005556789012.',
+            $this->metaDescription($crawler),
+        );
     }
 
     public function testTitleAndMetaDescriptionOfASolvedPuzzle(): void
@@ -393,7 +455,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         self::assertSame('Ravensburger Puzzle 1 – 500 Piece Puzzle', $crawler->filter('title')->text());
 
-        $description = 'Ravensburger Puzzle 1 (500 pieces): median solo time 1h 2min, fastest 27min 46s from 12 solves. Compare your time on MySpeedPuzzling.';
+        $description = 'Ravensburger Puzzle 1 (500 pieces): fastest solo 27min 46s, median 1h 2min, 12 solves. Compare your time.';
         self::assertSame($description, $this->metaDescription($crawler));
 
         // The H1 carries no brand (breadcrumb + brand link already show it), "500&nbsp;pieces" stays
@@ -884,6 +946,23 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::getContainer()->get(Connection::class)->executeStatement(
             'UPDATE puzzle_statistics SET solved_times_solo_count = :count, median_time_solo = :median, fastest_time_solo = :fastest WHERE puzzle_id = :puzzleId',
             ['count' => $count, 'median' => $medianSeconds, 'fastest' => $fastestSeconds, 'puzzleId' => $puzzleId],
+        );
+    }
+
+    private function setGroupStatistics(string $puzzleId, int $pairCount, null|int $pairFastestSeconds, int $teamCount, null|int $teamFastestSeconds): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle_statistics
+             SET solved_times_duo_count = :pairCount, fastest_time_duo = :pairFastest, median_time_duo = :pairFastest,
+                 solved_times_team_count = :teamCount, fastest_time_team = :teamFastest, median_time_team = :teamFastest
+             WHERE puzzle_id = :puzzleId',
+            [
+                'pairCount' => $pairCount,
+                'pairFastest' => $pairFastestSeconds,
+                'teamCount' => $teamCount,
+                'teamFastest' => $teamFastestSeconds,
+                'puzzleId' => $puzzleId,
+            ],
         );
     }
 

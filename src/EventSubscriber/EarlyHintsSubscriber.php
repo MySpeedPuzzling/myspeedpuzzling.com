@@ -4,17 +4,25 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
+use SpeedPuzzling\Web\Services\EarlyHintsLinkHeader;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
-final class EarlyHintsSubscriber implements EventSubscriberInterface
+/**
+ * Sends 103 Early Hints preloading the `app` entry's CSS and JS (FrankenPHP copies the header into the final
+ * response too). The preloads must carry the same `integrity` as the tags: Chrome discards a preload without the
+ * tag's SRI hash and fetches the file again - a double download of every new asset under the service worker.
+ * `EarlyHintsLinkHeader` builds the header with the hashes.
+ *
+ * In production the 103 itself does not reach browsers (Traefik's retry middleware swallows 1xx responses), only
+ * the copy of the header on the 200 does - see docs/performance-optimizations.md and docs/TODO.md.
+ */
+final readonly class EarlyHintsSubscriber implements EventSubscriberInterface
 {
-    private null|string $linkHeader = null;
-
     public function __construct(
-        private readonly string $entrypointsPath,
+        private EarlyHintsLinkHeader $earlyHintsLinkHeader,
     ) {
     }
 
@@ -40,7 +48,7 @@ final class EarlyHintsSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $linkHeader = $this->buildLinkHeader();
+        $linkHeader = $this->earlyHintsLinkHeader->get();
 
         if ($linkHeader === null) {
             return;
@@ -50,40 +58,5 @@ final class EarlyHintsSubscriber implements EventSubscriberInterface
         $response->headers->remove('Cache-Control');
         $response->headers->set('Link', $linkHeader);
         $response->sendHeaders(103);
-    }
-
-    private function buildLinkHeader(): null|string
-    {
-        if ($this->linkHeader !== null) {
-            return $this->linkHeader;
-        }
-
-        $content = @file_get_contents($this->entrypointsPath);
-
-        if ($content === false) {
-            return null;
-        }
-
-        /** @var array{entrypoints: array{app?: array{css?: list<string>, js?: list<string>}}} $data */
-        $data = json_decode($content, true);
-        $entrypoints = $data['entrypoints']['app'] ?? [];
-
-        $links = [];
-
-        foreach ($entrypoints['css'] ?? [] as $file) {
-            $links[] = "<{$file}>; rel=preload; as=style";
-        }
-
-        foreach ($entrypoints['js'] ?? [] as $file) {
-            $links[] = "<{$file}>; rel=preload; as=script";
-        }
-
-        if ($links === []) {
-            return null;
-        }
-
-        $this->linkHeader = implode(', ', $links);
-
-        return $this->linkHeader;
     }
 }

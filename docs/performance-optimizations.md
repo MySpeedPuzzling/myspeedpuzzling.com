@@ -16,6 +16,13 @@ Both font files are `<link rel="preload">`-ed so the browser starts downloading 
 
 The service worker precaches both font files on install, so repeat visits serve fonts instantly from cache.
 
+## Early Hints (`EarlyHintsSubscriber` + `EarlyHintsLinkHeader`)
+
+Every page request (not `/api/`, `/oauth2/`, `/webhook/`) gets a `103 Early Hints` with a `Link` header preloading the `app` entry's CSS and JS from `public/build/entrypoints.json`; FrankenPHP copies that header into the final 200 as well.
+
+- **Each `Link` entry must mirror its tag's attributes.** Production builds have SRI (`enableIntegrityHashes()`), so the tags carry `integrity="sha384-…"` and every entry gets `; integrity="…"` from the `integrity` map of entrypoints.json (dev builds have none). Without it Chrome discards the preload ("integrity mismatch", "preloaded but not used") and fetches the file again - under our service worker every new asset after a deploy was downloaded twice. If the Encore `crossorigin` option is ever set, the entries need it too. `EarlyHintsLinkHeaderTest` checks the header against the tags Encore renders.
+- **Production fact:** the 103 itself never reaches browsers - Traefik v3.7.13's retry middleware (`myspeedpuzzling-retry` on the pages router, lily.srv) swallows 1xx responses. Only the copy of the `Link` header on the 200 arrives. Open decision in `docs/TODO.md`.
+
 ## Dynamic Imports
 
 ### Flatpickr (`datepicker_controller.js`)

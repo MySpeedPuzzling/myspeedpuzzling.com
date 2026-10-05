@@ -42,6 +42,14 @@ final class BrandCodeListTest extends TestCase
         yield 'other separators' => ['482;239|17', ['482', '239', '17'], ['482', '239', '17'], '482, 239, 17'];
         yield 'full-width letters and digits' => ['ＲＢ１４７０９', ['RB14709'], ['RB14709'], 'RB14709'];
         yield 'a lone dash is nothing' => ['-', [], [], null];
+        yield 'a stray left-to-right mark goes' => ["\u{200E}3723-2", ['3723-2'], ['3723-2'], '3723-2'];
+    }
+
+    public function testACommaBetweenDigitsIsNoFormatChange(): void
+    {
+        self::assertTrue(BrandCodeList::hasAmbiguousComma('482,239'));
+        self::assertFalse(BrandCodeList::fromStored('482,239')->isFormatOnlyChangeOf('482,239'));
+        self::assertFalse(BrandCodeList::hasAmbiguousComma('482, 239'));
     }
 
     public function testInputsAreOneCodeEachAndBlankOnesAreDropped(): void

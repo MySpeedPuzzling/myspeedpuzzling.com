@@ -40,6 +40,10 @@ enum PuzzleCodesCleanupReason: string
     // person rewrites it
     case BrandCodeProse = 'brand_code_prose';
 
+    // A comma right between two digits ("15,427", "482,239") - one number with a thousands separator, or two codes;
+    // the field stays as it is for a person
+    case CommaBetweenDigits = 'comma_between_digits';
+
     // The canonical form would change the code search key - never expected, so a person looks
     case SearchKeyWouldChange = 'search_key_would_change';
 }

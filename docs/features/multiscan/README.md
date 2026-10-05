@@ -29,8 +29,8 @@ Consequences:
   piece counts). Every scan needs a disambiguation step, ideally silent.
 - Members already fix EANs through change requests. Multiscan makes that instant and in context.
 
-Existing pieces reused as-is: `barcode_scanner_controller.js` (zbar decoder on every platform - see "Decoder" at the end,
-checksum + 10-frame confirmation), `SearchPuzzle::allByEan()` (substring match, zeros
+Existing pieces reused as-is: `barcode_scanner_controller.js` (the browser's detector where it reads EAN-13, zbar
+elsewhere - see "Decoder" at the end, checksum + 10-frame confirmation), `SearchPuzzle::allByEan()` (substring match, zeros
 tolerated, hidden puzzles excluded), `GetUserPuzzleStatuses` (one query → solved / in library /
 wishlist / lent / borrowed / listed, with `lentPuzzleIds`), the single-puzzle handlers
 (`AddPuzzleToCollection`, `AddPuzzleToWishList`, `LendPuzzleToPlayer`, `BorrowPuzzleFromPlayer`,
@@ -217,7 +217,18 @@ Requiring a camera step inside a scanning session must never cost the scanned pi
   camera can make the browser drop the page; this brings everything back ("N scanned puzzles are back").
 
 
-## Decoder: zbar on every platform (2026-10-04)
+## Decoder: zbar on every platform (2026-10-04, reverted on Android 2026-10-06)
+
+**2026-10-06:** the browser's own `BarcodeDetector` is back wherever it reads EAN-13 (Android Chrome, Samsung Internet,
+Chrome on macOS); zbar decodes everywhere else.
+- Why: zbar on Android cost about half of the Android scans. Add-form lookups from Android fell from 169 to 92 a day,
+  while iOS stayed flat.
+- Cause: Chrome opens 640×480, often from the wrong back lens, and zbar cannot read that at a distance the camera focuses
+  on.
+- The misread described below is still real. It is contained by `Value\EanList` for now.
+- Research and the staged plan out of both problems: [`docs/features/barcode-scanner/README.md`](../barcode-scanner/README.md).
+
+What follows is the 2026-10-04 reasoning, kept for the record.
 
 `barcode_scanner_controller.js` (multiscan, the add-time form, the global search) decodes with our own zbar
 (`@undecaf/zbar-wasm` + `@undecaf/barcode-detector-polyfill`) on every platform. The browser's own
@@ -244,8 +255,8 @@ Evidence:
   default camera stream is 640×480.
 
 Reading rules (`barcode_scanner_controller.js`):
-- A code is accepted after 10 identical reads, and zbar's `quality > 8` (more than 8 scan lines agree within the frame)
-  now applies on Android too. The native detector reports no quality.
+- A code is accepted after 10 identical reads, and zbar's `quality > 8` (more than 8 scan lines agree within the frame).
+  The native detector reports no quality, so on Android (native again since 2026-10-06) only the 10 reads apply.
 - A frame that reads two different codes counts for nothing (two boxes in view, or a misread).
 - One decode per camera frame (`requestVideoFrameCallback`, falling back to `requestAnimationFrame`, plus a 250 ms
   safety tick), so the 10 reads are 10 different frames.

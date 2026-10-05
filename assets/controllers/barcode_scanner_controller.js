@@ -169,12 +169,18 @@ export default class extends Controller {
     async _detectorClass() {
         if (this._Detector !== undefined) return this._Detector;
 
-        // Our own decoder (zbar) on every platform, even where the browser has a BarcodeDetector:
-        // Android's (Google's engine in Chrome and Samsung Internet) reads some EAN-13 left halves with
-        // the wrong parity and returns another code that still passes the check digit - Ravensburger
-        // 4005555011897 as 0045555011897, stored as 45555011897
-        // (docs/features/multiscan/README.md "Decoder: zbar on every platform").
-        // The browser's own detector is only the fallback when zbar cannot be loaded.
+        // The browser's own detector where it reads EAN-13 (Google's engine in Android Chrome and Samsung
+        // Internet, Apple's in Chrome on macOS), our zbar everywhere else (iOS, Firefox, Chrome on Windows/Linux).
+        // zbar on Android too (2026-10-04 to 10-06) cost about half of the Android scans: Chrome opens the
+        // camera at 640x480, often from the wrong lens, and zbar cannot read that at a distance the camera
+        // focuses on. Google's engine can, but it now and then returns another valid code (Ravensburger
+        // 4005555011897 as 0045555011897), which `EanList` refuses when a code is stored.
+        // The plan out of both: docs/features/barcode-scanner/README.md.
+        if (await this._nativeReadsEan()) {
+            this._Detector = window.BarcodeDetector;
+            return this._Detector;
+        }
+
         try {
             // Load zbar-wasm first, then the polyfill that depends on it
             await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js');
@@ -185,13 +191,26 @@ export default class extends Controller {
 
         if (typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
             this._Detector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-        } else if (window.BarcodeDetector) {
-            this._Detector = window.BarcodeDetector;
         } else {
             this._Detector = null;
         }
 
         return this._Detector;
+    }
+
+    async _nativeReadsEan() {
+        if (!window.BarcodeDetector || typeof window.BarcodeDetector.getSupportedFormats !== 'function') {
+            return false;
+        }
+
+        try {
+            // An empty list where the browser has the API but no engine behind it
+            const formats = await window.BarcodeDetector.getSupportedFormats();
+
+            return formats.indexOf('ean_13') !== -1;
+        } catch (e) {
+            return false;
+        }
     }
 
     _loadScript(src) {

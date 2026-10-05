@@ -4,6 +4,16 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Barcode scanner (`docs/features/barcode-scanner/README.md`)
+
+- [x] Step 0 (2026-10-06): the browser's own detector is back on Android. zbar alone had cost about half of the Android
+      scans (add-form lookups 169 → 92 a day, iOS flat). The plan with Steps 1-4 is in the README.
+- [ ] Ask Vanja to scan her Ravensburger box again after the 2026-10-06 deploy.
+- [ ] A few days after the deploy, re-run the Tempo count of `/puzzle-by-ean-search/` per platform (README §1). Android
+      should be back near 169 a day.
+- [ ] *The World of Trolls* (`01947b9c-24c6-7359-972a-54f6a6d86402`) stores `045570100330`, most likely a misread of
+      Ravensburger `4005556100330`. Check a box or a shop listing, then file a change proposal.
+
 ## Codes in the forms (`docs/features/puzzle-names/README.md`, phase 5)
 
 - [x] `myspeedpuzzling:canonicalize-puzzle-codes` on production (2026-10-05): 1,175 EAN + 157 brand-code fields
@@ -65,9 +75,11 @@ that would otherwise be forgotten. Newest section on top.
       `019ea2a3-e359-724c-9327-76f86c03c125`).
 - [x] Where the `45555…` form comes from: Android's built-in barcode detector misreads `4005555…` as `0045555…`
       (a valid code, stored without leading zeros). Vanja reproduced it on her box, 8 of the 9 players scan on Android.
-      The scanner now uses our zbar on every platform (2026-10-04, `docs/features/multiscan/README.md` "Decoder").
+      The scanner used our zbar on every platform from 2026-10-04 (`docs/features/multiscan/README.md` "Decoder"). It
+      went back to the browser's detector on Android on 2026-10-06, see the Barcode scanner section.
       Matilda's Aurore `778649925052` is the same misread of `3770039925052` - not a real code.
-- [ ] Ask Vanja or Matilda to scan one of those boxes again after the deploy (Android) to confirm the fix.
+- [x] Ask Vanja or Matilda to scan one of those boxes again after the deploy (Android) to confirm the fix. Vanja
+      (2026-10-05): with zbar her phone read nothing ("the camera couldn't focus properly").
 
 ## Players page (`docs/features/players-page/README.md`)
 

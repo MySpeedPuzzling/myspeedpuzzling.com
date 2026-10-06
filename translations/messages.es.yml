@@ -917,6 +917,21 @@
     "puzzle_average_time": "Tiempo promedio del puzzle"
     "player_rank": "Tu posición en el puzzle"
     "puzzle_total_solved": "Total de veces que se resolvió el puzzle"
+  "results":
+    "heading": "Resultados"
+  "library":
+    "heading": "Biblioteca de puzzles"
+    "description": "Descarga tus colecciones, tu lista de deseos, los puzzles que prestaste o te prestaron y tu lista de venta/intercambio, con los detalles de cada puzzle y si ya lo has resuelto. Tus datos te pertenecen."
+    "format_csv_zip": "Descargar CSV (ZIP)"
+    "data":
+      "collections": "Tus colecciones y todos sus puzzles, con tus notas"
+      "wishlist": "Tu lista de deseos"
+      "lending": "Los puzzles que prestaste o te prestaron, y todo el historial de préstamos"
+      "sell_swap": "Tu lista de venta/intercambio, los eventos a los que llevas puzzles y lo que vendiste o intercambiaste"
+      "settings": "La configuración de tus listas"
+      "puzzle_details": "Detalles del puzzle: nombres, marca, piezas, EAN, código de marca, imagen y enlace"
+      "solved": "Cuántas veces y cuándo resolviste cada puzzle, y tu mejor tiempo individual"
+      "difficulty": "Dificultad del puzzle (solo miembros)"
 "events":
   "title": "Eventos"
   "heading": "Campeonatos y concursos de puzzles"
@@ -2029,6 +2044,7 @@
   "remove_puzzle": "Eliminar de la colección"
   "select_collection_help": "Elige una colección o deja vacío para añadir a tu Colección de Puzzles predeterminada"
   "system_name": "Colección de Puzzles"
+  "export_button": "Exportar"
   "in_your_collection": "En tu colección"
   "title": "Biblioteca de puzzles"
   "title_other": "Biblioteca de puzzles de %name%"

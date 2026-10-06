@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services;
 
 use DateTimeImmutable;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx as XlsxReader;
 use SpeedPuzzling\Web\Results\ExportableSolvingTime;
 use SpeedPuzzling\Web\Services\PuzzlerDataExporter;
 use SpeedPuzzling\Web\Value\ExportFormat;
@@ -109,5 +111,67 @@ final class PuzzlerDataExporterTest extends TestCase
         $decoded = json_decode($result, true);
         $this->assertIsArray($decoded);
         $this->assertCount(0, $decoded);
+    }
+
+    /**
+     * Team member names are typed by other players - they must never become a formula in the downloading
+     * player's spreadsheet (docs/features/data-export.md, Q4).
+     */
+    public function testXlsxWritesTextAsTextAndNumbersAsNumbers(): void
+    {
+        $content = (new PuzzlerDataExporter())->export([$this->timeWithFormulaTeamMembers()], ExportFormat::Xlsx);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'xlsx_test_');
+        self::assertIsString($tempFile);
+
+        try {
+            file_put_contents($tempFile, $content);
+            $sheet = (new XlsxReader())->load($tempFile)->getActiveSheet();
+        } finally {
+            unlink($tempFile);
+        }
+
+        // team_members is column N, seconds_to_solve column F
+        self::assertSame('team_members', $sheet->getCell('N1')->getValue());
+        self::assertSame('=HYPERLINK("http://evil.example","x")', $sheet->getCell('N2')->getValue());
+        self::assertSame(DataType::TYPE_STRING, $sheet->getCell('N2')->getDataType());
+        self::assertSame(1500, $sheet->getCell('F2')->getValue());
+        self::assertSame('true', $sheet->getCell('K2')->getValue());
+    }
+
+    public function testCsvPrefixesFormulaLookingText(): void
+    {
+        $content = (new PuzzlerDataExporter())->export([$this->timeWithFormulaTeamMembers()], ExportFormat::Csv);
+
+        self::assertStringContainsString('"\'=HYPERLINK(""http://evil.example"",""x"")"', $content);
+        self::assertStringContainsString('"1500"', $content);
+    }
+
+    private function timeWithFormulaTeamMembers(): ExportableSolvingTime
+    {
+        return new ExportableSolvingTime(
+            timeId: 'time-1',
+            puzzleId: 'puzzle-1',
+            puzzleName: 'Puzzle',
+            brandName: 'Brand',
+            piecesCount: 500,
+            secondsToSolve: 1500,
+            timeFormatted: '00:25:00',
+            finishedAt: new DateTimeImmutable('2026-10-01 10:00:00'),
+            trackedAt: new DateTimeImmutable('2026-10-01 10:05:00'),
+            type: 'duo',
+            firstAttempt: true,
+            unboxed: false,
+            playersCount: 2,
+            teamMembers: '=HYPERLINK("http://evil.example","x")',
+            finishedPuzzlePhotoUrl: null,
+            comment: null,
+            puzzleFastestTime: null,
+            puzzleFastestTimeFormatted: '',
+            puzzleAverageTime: null,
+            puzzleAverageTimeFormatted: '',
+            playerRank: null,
+            puzzleTotalSolved: 1,
+        );
     }
 }

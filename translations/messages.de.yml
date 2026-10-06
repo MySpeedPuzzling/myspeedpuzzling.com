@@ -734,6 +734,21 @@
     "puzzle_average_time": "Durchschnittszeit des Puzzles"
     "player_rank": "Deine Platzierung beim Puzzle"
     "puzzle_total_solved": "Gesamtzahl der Puzzle-Lösungen"
+  "results":
+    "heading": "Ergebnisse"
+  "library":
+    "heading": "Puzzlebibliothek"
+    "description": "Lade deine Sammlungen, deine Wunschliste, verliehene und geliehene Puzzles und deine Verkauf/Tausch-Liste herunter – mit den Details jedes Puzzles und ob du es schon gelöst hast. Deine Daten gehören dir."
+    "format_csv_zip": "CSV herunterladen (ZIP)"
+    "data":
+      "collections": "Deine Sammlungen und alle Puzzles darin, mit deinen Notizen"
+      "wishlist": "Deine Wunschliste"
+      "lending": "Puzzles, die du verliehen oder geliehen hast, und der gesamte Verleihverlauf"
+      "sell_swap": "Deine Verkauf/Tausch-Liste, die Events, zu denen du Puzzles mitbringst, und was du verkauft oder getauscht hast"
+      "settings": "Die Einstellungen deiner Listen"
+      "puzzle_details": "Puzzle-Details: Namen, Marke, Teilezahl, EAN, Markencode, Bild und Link"
+      "solved": "Wie oft und wann du jedes Puzzle gelöst hast und deine beste Solo-Zeit"
+      "difficulty": "Puzzle-Schwierigkeit (nur für Mitglieder)"
 "events":
   "title": "Veranstaltungen"
   "heading": "Speed Puzzle Wettbewerbe & Events"
@@ -1984,6 +1999,7 @@
     "title": "Private Sammlung"
     "message": "Die Sammlung von %name% ist privat und kann nicht angezeigt werden."
   "system_name": "Puzzle-Sammlung"
+  "export_button": "Exportieren"
   "in_your_collection": "In Ihrer Sammlung"
   "already_in_system": "Puzzle bereits in Ihrer Sammlung"
   "already_in_system_message": "Dieses Puzzle ist bereits in Ihrer Puzzle-Sammlung. Möchten Sie Ihre Puzzles in mehrere Sammlungen organisieren? Schalten Sie diese Funktion mit einer Mitgliedschaft frei!"

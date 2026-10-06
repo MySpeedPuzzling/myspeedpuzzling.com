@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use DOMDocument;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Csv;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use SimpleXMLElement;
 use SpeedPuzzling\Web\Results\ExportableSolvingTime;
+use SpeedPuzzling\Web\Services\Export\SpreadsheetSafeValue;
 use SpeedPuzzling\Web\Value\ExportFormat;
 
 readonly final class PuzzlerDataExporter
@@ -67,7 +69,7 @@ readonly final class PuzzlerDataExporter
      */
     private function toXlsx(array $data): string
     {
-        $spreadsheet = $this->createSpreadsheet($data);
+        $spreadsheet = $this->createSpreadsheet($data, forCsv: false);
 
         $writer = new Xlsx($spreadsheet);
         $tempFile = tempnam(sys_get_temp_dir(), 'export_');
@@ -87,7 +89,7 @@ readonly final class PuzzlerDataExporter
      */
     private function toCsv(array $data): string
     {
-        $spreadsheet = $this->createSpreadsheet($data);
+        $spreadsheet = $this->createSpreadsheet($data, forCsv: true);
 
         $writer = new Csv($spreadsheet);
         $writer->setDelimiter(',');
@@ -145,9 +147,12 @@ readonly final class PuzzlerDataExporter
     }
 
     /**
+     * Cells go through SpreadsheetSafeValue: team member names are typed by other players, and a value starting
+     * with "=" must never become a formula in the downloading player's spreadsheet.
+     *
      * @param array<ExportableSolvingTime> $data
      */
-    private function createSpreadsheet(array $data): Spreadsheet
+    private function createSpreadsheet(array $data, bool $forCsv): Spreadsheet
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -165,13 +170,15 @@ readonly final class PuzzlerDataExporter
             $values = $item->toArray();
             $col = 1;
             foreach (self::HEADERS as $header) {
-                $value = $values[$header] ?? '';
+                $value = $values[$header] ?? null;
+                assert($value === null || is_scalar($value));
 
-                if (is_bool($value)) {
-                    $value = $value ? 'true' : 'false';
+                if ($forCsv) {
+                    $sheet->setCellValueExplicit([$col, $row], SpreadsheetSafeValue::forCsv($value), DataType::TYPE_STRING);
+                } else {
+                    SpreadsheetSafeValue::writeXlsxCell($sheet, $col, $row, $value);
                 }
 
-                $sheet->setCellValue([$col, $row], $value);
                 $col++;
             }
             $row++;

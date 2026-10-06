@@ -820,6 +820,21 @@ export:
         puzzle_average_time: "Puzzle average time"
         player_rank: "Your rank for the puzzle"
         puzzle_total_solved: "Total times puzzle was solved"
+    results:
+        heading: "Results"
+    library:
+        heading: "Puzzle library"
+        description: "Download your collections, wishlist, lent and borrowed puzzles and your sell/swap list, with each puzzle's details and whether you've solved it. Your data belongs to you."
+        format_csv_zip: "Download CSV (ZIP)"
+        data:
+            collections: "Your collections and every puzzle in them, with your notes"
+            wishlist: "Your wishlist"
+            lending: "Puzzles you lent out or borrowed, and the full lending history"
+            sell_swap: "Your sell/swap list, the events you bring puzzles to, and what you sold or swapped"
+            settings: "Your list settings"
+            puzzle_details: "Puzzle details: names, brand, pieces, EAN, brand code, image and link"
+            solved: "How many times and when you solved each puzzle, and your best solo time"
+            difficulty: "Puzzle difficulty (members only)"
 
 events:
     title: "Events"
@@ -2309,6 +2324,7 @@ collections:
     private: "Private"
     change_to_public_hint: "Change to public for sharing"
     system_name: "Puzzle Collection"
+    export_button: "Export"
     in_your_collection: "In your collection"
     already_in_system: "Puzzle Already in Your Collection"
     already_in_system_message: "This puzzle is already in your Puzzle Collection. Want to organize your puzzles into multiple collections? Unlock this feature with membership!"

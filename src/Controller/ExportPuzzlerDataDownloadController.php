@@ -65,6 +65,7 @@ final class ExportPuzzlerDataDownloadController extends AbstractController
         return new Response($content, Response::HTTP_OK, [
             'Content-Type' => $exportFormat->contentType(),
             'Content-Disposition' => sprintf('attachment; filename="%s"', $filename),
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 }

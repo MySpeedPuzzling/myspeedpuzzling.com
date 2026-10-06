@@ -25,6 +25,7 @@ final class ExportPuzzlerDataDownloadControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertResponseHeaderSame('Content-Type', 'application/json');
         $this->assertStringContainsString('attachment', $browser->getResponse()->headers->get('Content-Disposition') ?? '');
+        $this->assertStringContainsString('no-store', $browser->getResponse()->headers->get('Cache-Control') ?? '');
     }
 
     public function testDownloadXlsxReturnsCorrectContentType(): void

@@ -748,6 +748,21 @@ comparison:
     "puzzle_average_time": "Průměrný čas puzzle"
     "player_rank": "Tvé pořadí u puzzle"
     "puzzle_total_solved": "Celkový počet složení puzzle"
+  "results":
+    "heading": "Výsledky"
+  "library":
+    "heading": "Puzzle knihovna"
+    "description": "Stáhni si své kolekce, seznam přání, půjčené a vypůjčené puzzle a seznam k prodeji/výměně – u každého puzzle jeho detaily a jestli už ho máš složené. Tvá data patří tobě."
+    "format_csv_zip": "Stáhnout CSV (ZIP)"
+    "data":
+      "collections": "Tvé kolekce a všechna puzzle v nich, i s tvými poznámkami"
+      "wishlist": "Tvůj seznam přání"
+      "lending": "Puzzle, která jsi půjčil(a) nebo si vypůjčil(a), a celá historie půjčování"
+      "sell_swap": "Tvůj seznam k prodeji/výměně, akce, na které puzzle přineseš, a co jsi prodal(a) nebo vyměnil(a)"
+      "settings": "Nastavení tvých seznamů"
+      "puzzle_details": "Detaily puzzle: názvy, značka, počet dílků, EAN, kód značky, obrázek a odkaz"
+      "solved": "Kolikrát a kdy jsi které puzzle složil(a) a tvůj nejlepší sólo čas"
+      "difficulty": "Obtížnost puzzle (pro členy)"
 "events":
   "title": "Události"
   "heading": "Speed puzzling závody a události"
@@ -1979,6 +1994,7 @@ comparison:
   "public": "Veřejná"
   "change_to_public_hint": "Změňte na veřejnou pro sdílení"
   "system_name": "Puzzle kolekce"
+  "export_button": "Export"
   "in_your_collection": "Ve vaší kolekci"
   "already_in_system": "Puzzle je již ve vaší kolekci"
   "already_in_system_message": "Toto puzzle již máte v Puzzle kolekci. Chcete organizovat puzzle do více kolekcí? Odemkněte tuto funkci s členstvím!"

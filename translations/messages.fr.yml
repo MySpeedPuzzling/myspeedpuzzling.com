@@ -737,6 +737,21 @@
     "puzzle_average_time": "Temps moyen du puzzle"
     "player_rank": "Votre classement pour le puzzle"
     "puzzle_total_solved": "Nombre total de résolutions du puzzle"
+  "results":
+    "heading": "Résultats"
+  "library":
+    "heading": "Bibliothèque de puzzles"
+    "description": "Téléchargez vos collections, votre liste de souhaits, les puzzles prêtés et empruntés et votre liste vente/échange, avec les détails de chaque puzzle et si vous l'avez déjà résolu. Vos données vous appartiennent."
+    "format_csv_zip": "Télécharger CSV (ZIP)"
+    "data":
+      "collections": "Vos collections et tous leurs puzzles, avec vos notes"
+      "wishlist": "Votre liste de souhaits"
+      "lending": "Les puzzles que vous avez prêtés ou empruntés, et tout l'historique des prêts"
+      "sell_swap": "Votre liste vente/échange, les événements où vous apportez des puzzles et ce que vous avez vendu ou échangé"
+      "settings": "Les réglages de vos listes"
+      "puzzle_details": "Détails du puzzle : noms, marque, nombre de pièces, EAN, code de marque, image et lien"
+      "solved": "Combien de fois et quand vous avez résolu chaque puzzle, et votre meilleur temps en solo"
+      "difficulty": "Difficulté du puzzle (membres uniquement)"
 "events":
   "title": "Événements"
   "heading": "Concours de Speed Puzzle & Événements"
@@ -2029,6 +2044,7 @@
   "remove_puzzle": "Retirer de la collection"
   "select_collection_help": "Choisissez une collection ou laissez vide pour ajouter à votre Collection de Puzzles par défaut"
   "system_name": "Collection de Puzzles"
+  "export_button": "Exporter"
   "in_your_collection": "Dans votre collection"
   "title": "Bibliothèque de puzzles"
   "title_other": "Bibliothèque de puzzles de %name%"

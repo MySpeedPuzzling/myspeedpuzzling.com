@@ -650,6 +650,21 @@
     "puzzle_average_time": "パズルの平均タイム"
     "player_rank": "パズルでのあなたの順位"
     "puzzle_total_solved": "パズルの総完成回数"
+  "results":
+    "heading": "記録"
+  "library":
+    "heading": "パズルライブラリ"
+    "description": "コレクション、ウィッシュリスト、貸し借りしたパズル、売買・交換リストをダウンロードできます。各パズルの詳細と完成済みかどうかも含まれます。あなたのデータはあなたのものです。"
+    "format_csv_zip": "CSVをダウンロード（ZIP）"
+    "data":
+      "collections": "コレクションとその中のすべてのパズル（メモ付き）"
+      "wishlist": "ウィッシュリスト"
+      "lending": "貸した・借りたパズルと貸し借りの全履歴"
+      "sell_swap": "売買・交換リスト、パズルを持っていくイベント、売った・交換したパズル"
+      "settings": "リストの設定"
+      "puzzle_details": "パズルの詳細：名前、ブランド、ピース数、EAN、ブランドコード、画像、リンク"
+      "solved": "各パズルを完成させた回数と日時、ソロのベストタイム"
+      "difficulty": "パズルの難易度（メンバー限定）"
 "events":
   "title": "イベント"
   "heading": "スピードパズル大会・イベント"
@@ -2019,6 +2034,7 @@
   "remove_puzzle": "コレクションから削除"
   "select_collection_help": "コレクションを選択するか、空のままでデフォルトのパズルコレクションに追加します"
   "system_name": "パズルコレクション"
+  "export_button": "エクスポート"
   "in_your_collection": "コレクションに追加済み"
   "title": "パズルライブラリ"
   "title_other": "%name%のパズルライブラリ"

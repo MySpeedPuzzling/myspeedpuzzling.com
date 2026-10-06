@@ -18,6 +18,9 @@
                     <i class="bi bi-puzzle me-1"></i>{{ 'collections.add_puzzle_form.button'|trans }}
                 </a>
                 {{ include('multiscan/_entry_button.html.twig', {label: 'multiscan.entry.library', title: 'multiscan.entry.library_title'}) }}
+                <a href="{{ path('export_puzzler_data', {playerId: player.playerId}) }}#puzzle-library" class="btn btn-sm btn-outline-secondary" title="{{ 'export.library.heading'|trans }}">
+                    <i class="bi bi-download me-1"></i>{{ 'collections.export_button'|trans }}
+                </a>
                 {% if logged_user.profile.activeMembership %}
                     <a href="{{ path('create_collection') }}" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-lg me-1"></i>{{ 'collections.create.button'|trans }}

@@ -243,6 +243,7 @@ homepage:
 
 ladder:
     title: "Speed Puzzling Leaderboard"
+    country: "Country"
     meta:
         title: "Speed Puzzling Leaderboard – Fastest Times"
         description: "Global speed puzzling leaderboard: the fastest jigsaw puzzle solve times ranked by pieces, solo, pairs and groups. Where do you rank?"

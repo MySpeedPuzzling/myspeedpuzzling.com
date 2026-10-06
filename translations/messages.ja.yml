@@ -204,6 +204,7 @@
       "text": "コミュニティが記録した実際の完成タイム付きで、数千のジグソーパズルを探索できます。<a href=\"%ravensburger_link%\">Ravensburger</a>、<a href=\"%schmidt_link%\">Schmidt</a>、<a href=\"%trefl_link%\">Trefl</a>などのパズルのタイム中央値や最速タイムを比較し、購入前に本当の難易度をチェックして、<a href=\"%puzzles_link%\">パズルデータベース</a>で次の挑戦を見つけましょう。"
 "ladder":
   "title": "スピードパズルランキング"
+  "country": "国"
   "meta":
     "title": "スピードパズルランキング – 最速タイム"
     "description": "世界のスピードパズルランキング：ピース数別・ソロ・ペア・グループのジグソーパズル最速タイム。あなたは何位？"

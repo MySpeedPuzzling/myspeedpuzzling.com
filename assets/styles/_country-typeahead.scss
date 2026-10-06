@@ -1,0 +1,98 @@
+// The country typeahead (country_typeahead_controller.js): a flag before every name, the count after it - a native
+// select until TomSelect takes over. Used by the Players page (templates/players/_country_select.html.twig) and the
+// ladders (templates/_ladder_dropdown_countries.html.twig)
+.country-typeahead {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.5rem;
+    // 16 px: iOS zooms into a smaller control on focus
+    font-size: 1rem;
+}
+
+.ts-wrapper.country-typeahead {
+    // TomSelect's Bootstrap theme: the wrapper keeps .form-select's box and caret, the control inside is transparent
+    min-height: 2.5rem;
+    border-radius: .5rem;
+    background-color: $white;
+    font-size: 1rem;
+
+    .ts-control {
+        flex-wrap: nowrap;
+        align-items: center;
+        min-height: 0;
+        padding-top: .375rem;
+        padding-bottom: .375rem;
+        padding-left: .75rem;
+        // Room for the caret - the theme's own !important padding loses to a global rule in app.scss
+        padding-right: 2.25rem !important;
+        font-size: 1rem;
+
+        > .item {
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: 100%;
+            margin: 0;
+            padding: 0 !important;
+            overflow: hidden;
+            border: 0;
+            background: none !important;
+        }
+
+        > input {
+            position: absolute;
+            top: 0;
+            left: .75rem;
+            width: calc(100% - 3rem) !important;
+            height: 100%;
+            font-size: 1rem;
+        }
+    }
+
+    &.input-active .ts-control > .item {
+        opacity: .2;
+    }
+
+    .ts-dropdown {
+        font-size: .9375rem;
+    }
+
+    .ts-dropdown-content {
+        max-height: 18rem;
+    }
+}
+
+.country-option {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    overflow: hidden;
+
+    > .fi,
+    > .bi {
+        flex: none;
+    }
+}
+
+.country-option-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.country-option-count {
+    flex: none;
+    margin-left: auto;
+    font-size: .8125rem;
+    color: $gray-600;
+    font-variant-numeric: tabular-nums;
+}
+
+// The ladders' country filter (templates/_ladder_dropdown_countries.html.twig)
+.ladder-country-select {
+    width: 100%;
+    max-width: 20rem;
+}

@@ -1,25 +1,19 @@
 {% set currentLadder = app.request.attributes.get('_route') %}
 
 {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-    <div class="dropdown d-inline-block mt-n2">
-        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            {% if active_country %}
-                <small class="shadow-custom fi fi-{{ active_country.name }}"></small>
-                {{ active_country.value }}
-            {% else %}
-                {{ 'forms.country_all'|trans }}
-            {% endif %}
-        </button>
-        <ul class="dropdown-menu player-country-dropdown-menu">
-            {% for player_country in countries %}
-                <li>
-                    <a href="{{ path(currentLadder|replace({'_country': ''}) ~ '_country', {'countryCode': player_country.countryCode.name}) }}" class="dropdown-item {{ active_country and active_country == player_country.countryCode ? 'active'}}">
-                        <small class="shadow-custom fi fi-{{ player_country.countryCode.name }}"></small>
-                        {{ player_country.countryCode.value }} ({{ player_country.playersCount }})
-                    </a>
-                </li>
+    {# Most players first, typing filters (country_typeahead_controller.js); every option's value is the page it opens #}
+    {% set all_countries_route = currentLadder|replace({'_country': ''}) %}
+    <div class="ladder-country-select">
+        <select class="form-select form-select-sm country-typeahead"
+                aria-label="{{ 'ladder.country'|trans }}"
+                data-controller="country-typeahead select-navigate"
+                data-country-typeahead-no-results-value="{{ 'players.scope.no_country'|trans }}"
+                data-action="select-navigate#go">
+            <option value="{{ path(all_countries_route) }}" data-icon="bi bi-globe2"{% if active_country is null %} selected{% endif %}>{{ 'forms.country_all'|trans }}</option>
+            {% for player_country in countries|filter(player_country => player_country.countryCode is not null) %}
+                <option value="{{ path(all_countries_route ~ '_country', {countryCode: player_country.countryCode.name}) }}" data-icon="fi fi-{{ player_country.countryCode.name }}" data-count="{{ player_country.playersCount|format_number }}"{% if active_country == player_country.countryCode %} selected{% endif %}>{{ player_country.countryCode.value }}</option>
             {% endfor %}
-        </ul>
+        </select>
     </div>
 {% else %}
     <button

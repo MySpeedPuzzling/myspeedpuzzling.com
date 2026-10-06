@@ -81,6 +81,7 @@
 @import 'native';
 
 @import "tom-select";
+@import "country-typeahead";
 @import "copuzzler-picker";
 @import "moderation";
 @import "names-editor";
@@ -1583,16 +1584,6 @@ canvas {
 .search-highlight {
     background: rgba(254, 64, 66, .1);
     border-radius: 2px;
-}
-
-.player-country-dropdown-menu {
-    max-height: 350px;
-    width: 280px;
-    overflow-y: scroll;
-
-    a {
-        text-wrap: auto;
-    }
 }
 
 .puzzle-category-types {

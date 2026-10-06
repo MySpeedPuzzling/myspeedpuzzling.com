@@ -205,6 +205,7 @@
       "text": "Explorez des milliers de puzzles avec de vrais temps d'assemblage enregistrés par la communauté. Comparez les temps médians et records des puzzles <a href=\"%ravensburger_link%\">Ravensburger</a>, <a href=\"%schmidt_link%\">Schmidt</a> ou <a href=\"%trefl_link%\">Trefl</a>, vérifiez la difficulté réelle d'un puzzle avant de l'acheter et choisissez votre prochain défi dans la <a href=\"%puzzles_link%\">base de données de puzzles</a> complète."
 "ladder":
   "title": "Classement Speed Puzzling"
+  "country": "Pays"
   "meta":
     "title": "Classement Speed Puzzling – Temps les plus rapides"
     "description": "Le classement mondial du speed puzzling : les temps de puzzle les plus rapides par nombre de pièces, en solo, en duo et en équipe. Où vous situez-vous ?"

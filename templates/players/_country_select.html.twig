@@ -10,7 +10,7 @@
       - world_value (string): what World submits - 'world' on the Players page, '' in the directory
       - action (string, optional): data-action of the select
 #}
-<select id="{{ id }}" name="{{ name }}" class="form-select form-select-sm players-country-select"
+<select id="{{ id }}" name="{{ name }}" class="form-select form-select-sm country-typeahead"
         data-controller="country-typeahead"
         data-country-typeahead-no-results-value="{{ 'players.scope.no_country'|trans }}"
         {%- if action is defined %} data-action="{{ action }}"{% endif %}>

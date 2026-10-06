@@ -48,4 +48,29 @@ final class LadderControllerTest extends WebTestCase
         self::assertCount(1, $menuButton);
         self::assertSame('Overview', trim($menuButton->text()));
     }
+
+    public function testMemberPicksTheCountryFromATypeaheadWhoseOptionsOpenTheLadderOfThatCountry(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/ladder/country/cz');
+
+        $this->assertResponseIsSuccessful();
+
+        $select = $crawler->filter('select[data-controller~="country-typeahead"][data-controller~="select-navigate"]');
+        self::assertCount(1, $select);
+
+        // All countries first, then the countries with the most players
+        $options = $select->filter('option');
+        self::assertSame('/en/ladder', $options->eq(0)->attr('value'));
+        self::assertSame('All countries', trim($options->eq(0)->text()));
+        self::assertSame('/en/ladder/country/cz', $options->eq(1)->attr('value'));
+        self::assertSame('fi fi-cz', $options->eq(1)->attr('data-icon'));
+
+        $selected = $select->filter('option[selected]');
+        self::assertCount(1, $selected);
+        self::assertSame('/en/ladder/country/cz', $selected->attr('value'));
+    }
 }

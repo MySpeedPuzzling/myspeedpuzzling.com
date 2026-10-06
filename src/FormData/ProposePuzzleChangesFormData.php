@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
+use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Results\PuzzleRecord;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Image;
@@ -45,6 +47,21 @@ final class ProposePuzzleChangesFormData
     public function __construct()
     {
         $this->names = new PuzzleNamesFormData();
+    }
+
+    /**
+     * The form as it opens: the puzzle as it is - every name with its language (the record), brand, pieces, codes.
+     */
+    public static function forPuzzle(PuzzleRecord $record, PuzzleOverview $puzzle): self
+    {
+        $data = new self();
+        $data->names = PuzzleNamesFormData::fromNames($record->name, $record->nameLanguage, $record->alternativeNames);
+        $data->recordVersion = $record->recordVersion();
+        $data->brand = $puzzle->manufacturerId;
+        $data->piecesCount = $puzzle->piecesCount;
+        $data->loadPuzzleCodes($puzzle->puzzleEan, $puzzle->puzzleIdentificationNumber);
+
+        return $data;
     }
 
     public function validateEan(ExecutionContextInterface $context): void

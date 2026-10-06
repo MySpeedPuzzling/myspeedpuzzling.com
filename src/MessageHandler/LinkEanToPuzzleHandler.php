@@ -53,6 +53,11 @@ readonly final class LinkEanToPuzzleHandler
     public function __invoke(LinkEanToPuzzle $message): void
     {
         $ean = Ean::from($message->ean);
+
+        // The rule of every form (EanList::invalidCodes()): the Ravensburger misread keeps a valid check digit
+        if (EanList::isAcceptedNewCode($message->ean) === false) {
+            throw new InvalidEan();
+        }
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
         // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess) - also while
         // only its picture is hidden: its codes would give the box away

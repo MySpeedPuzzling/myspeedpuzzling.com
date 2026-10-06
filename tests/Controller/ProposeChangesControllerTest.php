@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\DomCrawler\Field\FileFormField;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ProposeChangesControllerTest extends WebTestCase
@@ -240,9 +241,12 @@ final class ProposeChangesControllerTest extends WebTestCase
         ));
 
         $form['propose_puzzle_changes_form[brandCodes][0]'] = 'RB-8';
-        $browser->submit($form);
-        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
+        $crawler = $browser->submit($form);
+        // The form comes back with what was typed and the reason - nothing lost
+        self::assertResponseStatusCodeSame(422);
         self::assertSame(1, $this->changeRequestCount(), 'Waits for the pending proposal');
+        self::assertSelectorTextContains('form[name="propose_puzzle_changes_form"]', 'only names can be suggested');
+        self::assertSame('RB-8', $crawler->filter('input[name="propose_puzzle_changes_form[brandCodes][0]"]')->attr('value'));
 
         $form['propose_puzzle_changes_form[brandCodes][0]'] = $puzzle->identificationNumber ?? '';
         $form['propose_puzzle_changes_form[names][name]'] = 'Puzzle 8 - corrected name';
@@ -253,6 +257,48 @@ final class ProposeChangesControllerTest extends WebTestCase
         // The form itself waits for the pending proposal
         $browser->request('GET', $url);
         self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
+    }
+
+    public function testARefusedProposalKeepsItsPhotoForTheNextSubmit(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        // The kept photo lives in the kernel's storage - one kernel for both submits
+        $browser->disableReboot();
+
+        $crawler = $browser->request('GET', self::URL);
+        $form = $crawler->filter('form[name="propose_puzzle_changes_form"]')->form();
+        $form['propose_puzzle_changes_form[eans][0]'] = '6000-5533';
+        $photoField = $form['propose_puzzle_changes_form[photo]'];
+        self::assertInstanceOf(FileFormField::class, $photoField);
+        $photoField->upload($this->boxPhoto());
+        $crawler = $browser->submit($form);
+
+        // Refused for the code - the photo is kept, not chosen again
+        self::assertResponseStatusCodeSame(422);
+        $token = $crawler->filter('input[name="photo_stash[photo]"]')->attr('value');
+        self::assertNotEmpty($token);
+
+        // The next submit sends only the token: the proposal is filed with the photo
+        $form = $crawler->filter('form[name="propose_puzzle_changes_form"]')->form();
+        $form['propose_puzzle_changes_form[eans][0]'] = '';
+        $browser->submit($form);
+
+        self::assertResponseRedirects('/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03);
+        self::assertNotNull(self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT proposed_image FROM puzzle_change_request WHERE puzzle_id = :puzzleId',
+            ['puzzleId' => PuzzleFixture::PUZZLE_1000_03],
+        ));
+    }
+
+    private function boxPhoto(): string
+    {
+        $path = sys_get_temp_dir() . '/' . uniqid('box-', true) . '.jpg';
+        $image = imagecreatetruecolor(400, 300);
+        assert($image !== false);
+        imagejpeg($image, $path);
+
+        return $path;
     }
 
     private function submit(KernelBrowser $browser, string $ean, null|string $name = null): Crawler

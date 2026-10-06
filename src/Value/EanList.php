@@ -287,6 +287,12 @@ readonly final class EanList
     }
 
     /**
+     * The codes of a typed value a form refuses - the one rule of every place a code comes in (forms, internal API,
+     * multiscan): a new code is accepted only when this list would store it as a barcode (isBarcodeAsTyped() - so
+     * "6000-5533" is refused, a catalogue number whatever its check digit) and Ean takes it. The value is split like
+     * a stored one (`,` `;` `|`, then `/`), so pasting several codes into one input is fine. The Ravensburger misread
+     * comes back with the full code as its suggestion.
+     *
      * @return list<array{code: string, suggestion: null|string}>
      */
     public static function invalidCodes(string $input, null|string $alreadyListed): array
@@ -297,37 +303,56 @@ readonly final class EanList
 
         $invalid = [];
 
-        foreach (explode(',', $input) as $part) {
-            $code = trim($part);
-
-            if ($code === '' || self::isListed($code, $listed)) {
+        foreach (self::parts($input) as $part) {
+            if (self::isListed($part, $listed)) {
                 continue;
             }
 
-            if (preg_match('/^[\d\s-]+$/', $code) !== 1) {
-                $invalid[] = ['code' => $code, 'suggestion' => null];
+            $pieces = array_values(array_filter(self::piecesOf($part), static fn (string $piece): bool => ltrim(self::digitsOf($piece), '0') !== ''));
+
+            if (self::hasLetter($part) || $pieces === []) {
+                $invalid[] = ['code' => $part, 'suggestion' => null];
                 continue;
             }
 
-            $digits = preg_replace('/\D+/', '', $code) ?? '';
-            $suggestion = self::ravensburgerMisreadSuggestion(ltrim($digits, '0'));
+            foreach ($pieces as $piece) {
+                if (self::isListed($piece, $listed)) {
+                    continue;
+                }
 
-            if ($suggestion !== null) {
-                $invalid[] = ['code' => $code, 'suggestion' => $suggestion];
-                continue;
-            }
+                $suggestion = self::ravensburgerMisreadSuggestion(ltrim(self::digitsOf($piece), '0'));
 
-            // UPC-A without its leading zero - the form the catalogue stores
-            if (strlen($digits) === 11) {
-                $digits = '0' . $digits;
-            }
-
-            if (Ean::tryFrom($digits) === null) {
-                $invalid[] = ['code' => $code, 'suggestion' => null];
+                if ($suggestion !== null || self::acceptsAsNewCode($piece) === false) {
+                    $invalid[] = ['code' => $piece, 'suggestion' => $suggestion];
+                }
             }
         }
 
         return $invalid;
+    }
+
+    /**
+     * A single code as typed that a form takes as a new one (invalidCodes() finds nothing in it) - the scanners' check.
+     */
+    public static function isAcceptedNewCode(string $code): bool
+    {
+        return trim($code) !== '' && self::invalidCodes($code, null) === [];
+    }
+
+    /**
+     * One number as typed that may be added: stored as a barcode (isBarcodeAsTyped()) and an EAN-8, UPC-A, EAN-13 or a
+     * GTIN-14 of one (Ean) - a GTIN-14 with another indicator digit is a carton's code, never a box's.
+     */
+    private static function acceptsAsNewCode(string $piece): bool
+    {
+        if (self::isBarcodeAsTyped($piece) === false) {
+            return false;
+        }
+
+        $digits = self::digitsOf($piece);
+
+        // UPC-A without its leading zero - the form the catalogue stores
+        return Ean::tryFrom(strlen($digits) === 11 ? '0' . $digits : $digits) !== null;
     }
 
     /**

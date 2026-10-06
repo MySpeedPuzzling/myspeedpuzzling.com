@@ -2462,6 +2462,7 @@
     "no_changes": "No se realizaron cambios. Por favor modifica al menos un campo antes de enviar."
     "no_valid_duplicates": "No puedes reportar un puzzle como duplicado de sí mismo. Por favor selecciona un puzzle diferente."
     "pending_proposal_exists": "Ya existe una propuesta pendiente de revisión para este puzzle."
+    "pending_proposal_exists_names_only": "Ya hay otra propuesta para este puzzle esperando revisión. Hasta que se decida, solo se pueden sugerir nombres: deshaz los demás cambios o vuelve más tarde."
     "validation_error": "Por favor corrige los errores e intenta de nuevo."
   "form":
     "brand": "Marca"
@@ -2492,7 +2493,6 @@
     "pieces_count_help": "Introduce el número correcto de piezas."
     "search_manufacturer": "Buscar por marca"
     "search_manufacturer_placeholder": "Selecciona una marca para explorar puzzles..."
-    "select_duplicate_error": "Por favor selecciona un puzzle duplicado o introduce una URL de puzzle."
     "select_manufacturer_first": "Primero selecciona una marca"
     "select_puzzle": "Seleccionar Puzzle"
     "select_puzzle_placeholder": "Buscar puzzle..."
@@ -5010,6 +5010,7 @@ multiscan:
         skip: "Omitir por ahora"
         error:
             fill_all: "Se necesitan nombre, piezas y marca."
+            invalid_ean: "Este código de barras no se leyó bien. Quita la fila y escanea la caja de nuevo, con más calma y un poco más lejos."
             already_assigned: "Este código no se puede vincular aquí. Quita la fila y escanea el otro código de barras de la caja."
             link_failed: "No se pudo vincular. Inténtalo de nuevo."
             brand_not_found: "Esa marca no existe. Elige una de la lista o escribe su nombre."

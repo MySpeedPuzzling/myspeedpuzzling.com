@@ -200,6 +200,8 @@ final class PuzzleMergeRequestDetailController extends AbstractController
 
         $data->eans = $mergedData['eans']->display();
         $data->brandCodes = $mergedData['brand_codes']->display();
+        $data->knownEans = $mergedData['eans']->toStored();
+        $data->knownBrandCodes = $mergedData['brand_codes']->toStored();
         $data->selectedImagePuzzleId = array_key_exists($survivorId, $mergedData['images']) ? $survivorId : array_key_first($mergedData['images']);
 
         $data->recordVersions = array_map(static fn (PuzzleRecord $record): string => $record->recordVersion(), $records);

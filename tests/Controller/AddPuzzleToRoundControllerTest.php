@@ -77,4 +77,28 @@ final class AddPuzzleToRoundControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(422);
         $this->assertSelectorTextContains('main', 'already in round "Qualification Round"');
     }
+
+    public function testANewPuzzlesCodeFollowsTheRuleOfEveryForm(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/add-puzzle-to-round/' . CompetitionRoundFixture::ROUND_WJPC_FINAL);
+        $form = $crawler->filter('form')->last()->form();
+        $prefix = (string) $crawler->filter('input[name$="[puzzle]"]')->attr('name');
+        $prefix = substr($prefix, 0, (int) strpos($prefix, '['));
+
+        // A typed name = a new puzzle; a catalogue number in the EAN field is no barcode
+        $browser->submit($form, [
+            $prefix . '[brand]' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            $prefix . '[puzzle]' => 'A brand new round puzzle',
+            $prefix . '[piecesCount]' => '500',
+            $prefix . '[puzzleEans][0]' => '6000-5533',
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('main', '6000-5533');
+        // What was typed stays
+        $this->assertSelectorExists(sprintf('input[name="%s[puzzleEans][0]"][value="6000-5533"]', $prefix));
+    }
 }

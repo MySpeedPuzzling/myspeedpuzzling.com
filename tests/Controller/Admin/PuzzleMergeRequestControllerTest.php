@@ -171,6 +171,25 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
         self::assertSame(PuzzleReportStatus::Pending, $mergeRequest->status);
     }
 
+    public function testACodeTheReviewerAddsFollowsTheRuleOfEveryForm(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/admin/puzzle-merge-requests/' . PuzzleReportFixture::MERGE_REQUEST_PENDING);
+        $form = $crawler->filter('form[data-controller~="merge-review"]')->form();
+
+        // A catalogue number is no barcode - the codes the puzzles carry pass as they are
+        $browser->submit($form, [self::FORM . '[eans][0]' => '6000-5533']);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('form[data-controller~="merge-review"]', '6000-5533');
+        self::assertInputValueSame(self::FORM . '[eans][0]', '6000-5533');
+
+        $mergeRequest = $browser->getContainer()->get(PuzzleMergeRequestRepository::class)->get(PuzzleReportFixture::MERGE_REQUEST_PENDING);
+        self::assertSame(PuzzleReportStatus::Pending, $mergeRequest->status);
+    }
+
     public function testApprovingKeepsTheNoteInTheHistory(): void
     {
         $browser = self::createClient();

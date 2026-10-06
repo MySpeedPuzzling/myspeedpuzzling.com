@@ -2461,6 +2461,7 @@
     "no_changes": "Es wurden keine Änderungen vorgenommen. Bitte ändere mindestens ein Feld vor dem Absenden."
     "no_valid_duplicates": "Du kannst ein Puzzle nicht als Duplikat von sich selbst melden. Bitte wähle ein anderes Puzzle."
     "pending_proposal_exists": "Ein Vorschlag für dieses Puzzle wartet bereits auf Überprüfung."
+    "pending_proposal_exists_names_only": "Für dieses Puzzle wartet bereits ein anderer Vorschlag auf Überprüfung. Bis darüber entschieden ist, können nur Namen vorgeschlagen werden - nimm die anderen Änderungen zurück oder versuche es später."
     "validation_error": "Bitte behebe die Fehler und versuche es erneut."
   "form":
     "brand": "Marke"
@@ -2491,7 +2492,6 @@
     "pieces_count_help": "Gib die korrekte Teileanzahl ein."
     "search_manufacturer": "Nach Marke suchen"
     "search_manufacturer_placeholder": "Marke auswählen, um Puzzles zu durchsuchen..."
-    "select_duplicate_error": "Bitte wähle ein Duplikat-Puzzle oder gib eine Puzzle-URL ein."
     "select_manufacturer_first": "Zuerst eine Marke auswählen"
     "select_puzzle": "Puzzle auswählen"
     "select_puzzle_placeholder": "Puzzle suchen..."
@@ -5009,6 +5009,7 @@ multiscan:
         skip: "Vorerst überspringen"
         error:
             fill_all: "Name, Teilezahl und Marke werden benötigt."
+            invalid_ean: "Dieser Barcode wurde nicht richtig gelesen. Entferne die Zeile und scanne die Schachtel noch einmal, ruhiger und etwas weiter weg."
             already_assigned: "Dieser Code kann hier nicht verknüpft werden. Bitte entferne die Zeile und scanne den anderen Barcode auf der Schachtel."
             link_failed: "Verknüpfen fehlgeschlagen. Bitte versuche es erneut."
             brand_not_found: "Diese Marke gibt es nicht. Wähle eine aus der Liste oder tippe ihren Namen ein."

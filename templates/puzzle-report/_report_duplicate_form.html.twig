@@ -20,13 +20,13 @@
         {{ 'puzzle_report.report_duplicate.description'|trans }}
     </p>
 
-    {# Display validation errors #}
-    {% if not report_form.vars.valid and report_form.vars.submitted %}
+    {# Why the report was refused - the form keeps everything chosen; field errors stand at their fields #}
+    {% for error in report_form.vars.errors %}
         <div class="alert alert-danger small">
             <i class="bi bi-exclamation-triangle me-1"></i>
-            {{ 'puzzle_report.form.select_duplicate_error'|trans }}
+            {{ error.message }}
         </div>
-    {% endif %}
+    {% endfor %}
 
     {# Current puzzle info #}
     <div class="card mb-3">
@@ -62,7 +62,10 @@
 
     {{ form_row(report_form.selectedManufacturerId) }}
 
-    {{ form_row(report_form.selectedPuzzleId) }}
+    {# The puzzle chosen before a refused submit: its option comes along, the picker's list is loaded by script #}
+    {{ form_row(report_form.selectedPuzzleId, {attr: report_form.selectedPuzzleId.vars.attr|merge(
+        selected_duplicate_option|default(null) is not null ? {'data-selected-option': selected_duplicate_option|json_encode} : {}
+    )}) }}
 
     {# Visual OR separator #}
     <div class="d-flex align-items-center my-4">

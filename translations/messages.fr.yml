@@ -2462,6 +2462,7 @@
     "no_changes": "Aucune modification n'a été effectuée. Veuillez modifier au moins un champ avant de soumettre."
     "no_valid_duplicates": "Vous ne pouvez pas signaler un puzzle comme doublon de lui-même. Veuillez sélectionner un puzzle différent."
     "pending_proposal_exists": "Une proposition pour ce puzzle est déjà en attente d'examen."
+    "pending_proposal_exists_names_only": "Une autre proposition pour ce puzzle attend déjà d'être examinée. Tant qu'elle n'est pas traitée, seuls des noms peuvent être suggérés - annulez les autres modifications ou revenez plus tard."
     "validation_error": "Veuillez corriger les erreurs et réessayer."
   "form":
     "brand": "Marque"
@@ -2492,7 +2493,6 @@
     "pieces_count_help": "Entrez le nombre correct de pièces."
     "search_manufacturer": "Rechercher par marque"
     "search_manufacturer_placeholder": "Sélectionnez une marque pour parcourir les puzzles..."
-    "select_duplicate_error": "Veuillez sélectionner un puzzle en doublon ou entrer une URL de puzzle."
     "select_manufacturer_first": "Sélectionnez d'abord une marque"
     "select_puzzle": "Sélectionner un puzzle"
     "select_puzzle_placeholder": "Rechercher un puzzle..."
@@ -5011,6 +5011,7 @@ multiscan:
         skip: "Passer pour l'instant"
         error:
             fill_all: "Le nom, le nombre de pièces et la marque sont requis."
+            invalid_ean: "Ce code-barres n'a pas été lu correctement. Retirez la ligne et scannez à nouveau la boîte, plus stable et un peu plus loin."
             already_assigned: "Ce code ne peut pas être associé ici. Retirez la ligne et scannez l'autre code-barres de la boîte."
             link_failed: "L'association a échoué. Veuillez réessayer."
             brand_not_found: "Cette marque n'existe pas. Choisissez-en une dans la liste ou saisissez son nom."

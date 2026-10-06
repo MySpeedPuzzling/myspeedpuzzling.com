@@ -2459,6 +2459,7 @@ comparison:
     "no_changes": "Nebyly provedeny žádné změny. Před odesláním prosím upravte alespoň jedno pole."
     "no_valid_duplicates": "Nemůžete nahlásit puzzle jako duplikát samo sebe. Vyberte prosím jiné puzzle."
     "pending_proposal_exists": "Návrh pro toto puzzle již čeká na kontrolu."
+    "pending_proposal_exists_names_only": "Pro toto puzzle už čeká jiný návrh na kontrolu. Dokud o něm nebude rozhodnuto, lze navrhovat jen názvy - vraťte ostatní změny, nebo to zkuste později."
     "validation_error": "Opravte prosím chyby a zkuste to znovu."
   "form":
     "brand": "Značka"
@@ -2489,7 +2490,6 @@ comparison:
     "pieces_count_help": "Zadejte správný počet dílků."
     "search_manufacturer": "Hledat podle značky"
     "search_manufacturer_placeholder": "Vyberte značku pro procházení puzzle..."
-    "select_duplicate_error": "Vyberte prosím duplikované puzzle nebo zadejte URL puzzle."
     "select_manufacturer_first": "Nejprve vyberte značku"
     "select_puzzle": "Vybrat puzzle"
     "select_puzzle_placeholder": "Hledat puzzle..."
@@ -5007,6 +5007,7 @@ multiscan:
         skip: "Zatím přeskočit"
         error:
             fill_all: "Název, počet dílků a značka jsou povinné."
+            invalid_ean: "Tento čárový kód se nenačetl správně. Odeberte řádek a naskenujte krabici znovu, klidněji a z trochu větší vzdálenosti."
             already_assigned: "Tento kód sem nejde propojit. Odeber prosím řádek a naskenuj druhý čárový kód na krabici."
             link_failed: "Propojení se nepovedlo. Zkus to prosím znovu."
             brand_not_found: "Taková značka neexistuje. Vyber ji ze seznamu, nebo napiš její název."

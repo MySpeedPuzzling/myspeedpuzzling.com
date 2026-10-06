@@ -12,7 +12,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * PhotoStash for the add/edit time forms: a refused submit keeps the photos, the next submit gets them back.
+ * PhotoStash for the forms with a photo upload (add/edit time, moderators' puzzle forms, "Suggest a change", a round's
+ * new puzzle): a refused submit keeps the photos, the next submit gets them back.
  *
  * 1. restore() before handleRequest(): an empty file input with a kept-photo token gets the photo back, so
  *    the form validates it like a fresh upload. A newly chosen file always wins over the token.
@@ -22,7 +23,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 readonly final class FormPhotoStash
 {
     public const string REQUEST_KEY = 'photo_stash';
-    public const array FIELDS = ['puzzlePhoto', 'finishedPuzzlesPhoto'];
+    // The file fields of every form using it - "photo" is the one of "Suggest a change"
+    public const array FIELDS = ['puzzlePhoto', 'finishedPuzzlesPhoto', 'photo'];
 
     public function __construct(
         private PhotoStash $photoStash,

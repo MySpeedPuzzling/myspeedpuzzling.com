@@ -432,6 +432,14 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
 - **Phase 5 - caps:** at most 10 inputs per list (`FORM_MAX_CODES`, the most any puzzle has is 3), each list within the
   column's 255 characters. The merge review is not capped - its inputs start from the union of every reported puzzle's
   codes, and the merge adds every code of the merged puzzles either way.
+- **One rule for a new code (2026-10-06):** `EanList::invalidCodes()` is the only check, used by every place a code
+  comes in - the add form (new puzzle), "Suggest a change", the moderators' edit, approval and change-request forms, a
+  round's new puzzle, the merge review (codes the reviewer adds; the reported puzzles' own pass), the internal API and
+  multiscan's link / quick add (`isAcceptedNewCode()`). A new code is accepted only when the storage parser would store
+  it as a barcode (`isBarcodeAsTyped()` - "6000-5533" is a catalogue number, refused) and `Ean` takes it (no GTIN-14
+  with another indicator), never the Ravensburger misread (its full code suggested). The value is split like a stored
+  one (`,` `;` `|`, then `/`), so several codes pasted into one input are fine. Codes a puzzle already carries pass.
+  The merge review also refuses a merged list longer than the column (the approval would fail in the database).
 - **Phase 5 - internal API:** `ean` / `identificationNumber` (change requests) and `mergedEan` /
   `mergedIdentificationNumber` (merge approve) take a list of codes as well as the comma-separated string - same keys,
   additive. A list of blank entries only is a `400` (only an explicit `[]` removes every code), so is a value or a list

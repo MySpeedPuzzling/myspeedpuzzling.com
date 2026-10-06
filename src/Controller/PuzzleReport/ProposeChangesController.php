@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\PuzzleReport;
 
+use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\FormData\ProposePuzzleChangesFormData;
-use SpeedPuzzling\Web\FormData\PuzzleNamesFormData;
 use SpeedPuzzling\Web\FormData\ReportDuplicatePuzzleFormData;
 use SpeedPuzzling\Web\FormType\ProposePuzzleChangesFormType;
 use SpeedPuzzling\Web\FormType\ReportDuplicatePuzzleFormType;
@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Results\PuzzleRecord;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
@@ -40,6 +41,7 @@ final class ProposeChangesController extends AbstractController
         private readonly GetPendingPuzzleProposals $getPendingPuzzleProposals,
         private readonly GetPuzzleRecord $getPuzzleRecord,
         private readonly SecretPuzzleAccess $secretPuzzleAccess,
+        private readonly FormPhotoStash $formPhotoStash,
     ) {
     }
 
@@ -79,13 +81,7 @@ final class ProposeChangesController extends AbstractController
         // Every name with its language - the overview has the names, not the main title's language
         $record = $this->getPuzzleRecord->byId($puzzleId) ?? throw new PuzzleNotFound();
 
-        // Pre-populate propose changes form with existing values
-        $proposeFormData = new ProposePuzzleChangesFormData();
-        $proposeFormData->names = PuzzleNamesFormData::fromNames($record->name, $record->nameLanguage, $record->alternativeNames);
-        $proposeFormData->recordVersion = $record->recordVersion();
-        $proposeFormData->brand = $puzzle->manufacturerId;
-        $proposeFormData->piecesCount = $puzzle->piecesCount;
-        $proposeFormData->loadPuzzleCodes($puzzle->puzzleEan, $puzzle->puzzleIdentificationNumber);
+        $proposeFormData = ProposePuzzleChangesFormData::forPuzzle($record, $puzzle);
 
         $proposeForm = $this->createForm(ProposePuzzleChangesFormType::class, $proposeFormData);
 
@@ -94,7 +90,10 @@ final class ProposeChangesController extends AbstractController
 
         $activeTab = $request->query->getString('tab', 'propose');
 
+        // A photo kept from a refused submit comes back as an upload (FormPhotoStash)
+        $restoredPhotos = $this->formPhotoStash->restore($request, $proposeForm, $loggedPlayer->playerId);
         $proposeForm->handleRequest($request);
+        $this->formPhotoStash->reportLost($proposeForm, $restoredPhotos);
 
         // The proposal is compared with - and its names applied as a diff against - the puzzle the player saw. When it
         // changed since (a form without a version comes from the release before), the player looks at it again
@@ -123,60 +122,13 @@ final class ProposeChangesController extends AbstractController
             // Check if any values actually changed
             $hasChanges = $proposedName !== $record->name || $namesChanged || $otherChanges;
 
-            // A proposal filed since the form was opened waits for a moderator - names only may still be proposed
+            // A proposal filed since the form was opened waits for a moderator - names only may still be proposed. The
+            // form comes back with everything typed (the photo kept), so nothing is lost
             if ($blocked && $otherChanges) {
-                return $this->pendingProposals($request, $puzzle);
+                $proposeForm->addError(new FormError($this->translator->trans('puzzle_report.flash.pending_proposal_exists_names_only')));
+            } else {
+                return $this->submit($request, $formData, $puzzleId, $loggedPlayer->playerId, $record, $hasChanges, $namesChanged, $restoredPhotos);
             }
-
-            if (!$hasChanges) {
-                $warningMessage = $this->translator->trans('puzzle_report.flash.no_changes');
-
-                if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
-                    $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
-
-                    return $this->render('puzzle-report/_stream.html.twig', [
-                        'puzzle_id' => $puzzleId,
-                        'message' => $warningMessage,
-                        'type' => 'warning',
-                    ]);
-                }
-
-                $this->addFlash('warning', $warningMessage);
-
-                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
-            }
-
-            $changeRequestId = Uuid::uuid7()->toString();
-
-            $this->messageBus->dispatch(new SubmitPuzzleChangeRequest(
-                changeRequestId: $changeRequestId,
-                puzzleId: $puzzleId,
-                reporterId: $loggedPlayer->playerId,
-                proposedName: $proposedName,
-                proposedBrand: $formData->brand,
-                proposedPiecesCount: $formData->piecesCount,
-                proposedEans: $formData->eanList(),
-                proposedBrandCodes: $formData->brandCodeList(),
-                proposedPhoto: $formData->photo,
-                // What the player saw - the record version above equals it
-                originalAlternativeNames: $record->alternativeNames,
-                originalNameLanguage: $record->nameLanguage,
-                proposedAlternativeNames: $namesChanged ? $formData->names->toPuzzleNames() : null,
-                proposedNameLanguage: $formData->names->nameLanguage,
-            ));
-
-            if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
-                $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
-
-                return $this->render('puzzle-report/_stream.html.twig', [
-                    'puzzle_id' => $puzzleId,
-                    'message' => $this->translator->trans('puzzle_report.flash.changes_submitted'),
-                ]);
-            }
-
-            $this->addFlash('success', $this->translator->trans('puzzle_report.flash.changes_submitted'));
-
-            return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
         }
 
         $templateParams = [
@@ -185,6 +137,7 @@ final class ProposeChangesController extends AbstractController
             'report_form' => $reportForm,
             'puzzle_id' => $puzzleId,
             'active_tab' => $activeTab,
+            'kept_photos' => $this->formPhotoStash->keep($proposeForm, $restoredPhotos, $loggedPlayer->playerId),
         ];
 
         // Determine if form has validation errors (for proper Turbo handling)
@@ -199,6 +152,72 @@ final class ProposeChangesController extends AbstractController
 
         // Non-Turbo request: return full page for progressive enhancement
         return $this->render('puzzle-report/propose_changes.html.twig', $templateParams, new Response('', $statusCode));
+    }
+
+    /**
+     * A valid proposal: filed - or "nothing changed" when it changes nothing.
+     *
+     * @param array<string, null|string> $restoredPhotos
+     */
+    private function submit(
+        Request $request,
+        ProposePuzzleChangesFormData $formData,
+        string $puzzleId,
+        string $playerId,
+        PuzzleRecord $record,
+        bool $hasChanges,
+        bool $namesChanged,
+        array $restoredPhotos,
+    ): Response {
+        if (!$hasChanges) {
+            $warningMessage = $this->translator->trans('puzzle_report.flash.no_changes');
+
+            if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+                $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+                return $this->render('puzzle-report/_stream.html.twig', [
+                    'puzzle_id' => $puzzleId,
+                    'message' => $warningMessage,
+                    'type' => 'warning',
+                ]);
+            }
+
+            $this->addFlash('warning', $warningMessage);
+
+            return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+        }
+
+        $this->messageBus->dispatch(new SubmitPuzzleChangeRequest(
+            changeRequestId: Uuid::uuid7()->toString(),
+            puzzleId: $puzzleId,
+            reporterId: $playerId,
+            proposedName: $formData->names->mainTitle(),
+            proposedBrand: $formData->brand,
+            proposedPiecesCount: $formData->piecesCount,
+            proposedEans: $formData->eanList(),
+            proposedBrandCodes: $formData->brandCodeList(),
+            proposedPhoto: $formData->photo,
+            // What the player saw - the record version checked before equals it
+            originalAlternativeNames: $record->alternativeNames,
+            originalNameLanguage: $record->nameLanguage,
+            proposedAlternativeNames: $namesChanged ? $formData->names->toPuzzleNames() : null,
+            proposedNameLanguage: $formData->names->nameLanguage,
+        ));
+
+        $this->formPhotoStash->forget($restoredPhotos, $playerId);
+
+        if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('puzzle-report/_stream.html.twig', [
+                'puzzle_id' => $puzzleId,
+                'message' => $this->translator->trans('puzzle_report.flash.changes_submitted'),
+            ]);
+        }
+
+        $this->addFlash('success', $this->translator->trans('puzzle_report.flash.changes_submitted'));
+
+        return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
     }
 
     /**

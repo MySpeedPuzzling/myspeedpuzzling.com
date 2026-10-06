@@ -29,6 +29,11 @@ final class EanListTest extends TestCase
         yield 'UPC-A without its leading zero, as the catalogue stores it' => ['36000291452'];
         yield 'GTIN-14 with a zero indicator' => ['04005555011897'];
         yield 'digits grouped as printed under the barcode' => ['4 005555 011897'];
+        // Split like a stored value (the one parser), so they are stored as two barcodes
+        yield 'two codes joined by a semicolon' => ['4005556147090;4005555001997'];
+        yield 'two codes joined by another mark' => ['4005556133710 & 4005555010432'];
+        yield 'the mark printed after the digits' => ['4005555011897 >'];
+        yield 'full-width digits' => ['４００５５５５０１１８９７'];
     }
 
     #[DataProvider('invalidCodes')]
@@ -47,8 +52,27 @@ final class EanListTest extends TestCase
         yield 'ten digits' => ['7934603125', '7934603125'];
         yield 'fourteen digits without a zero indicator' => ['40055555013631', '40055555013631'];
         yield 'letters' => ['X001FPLBM3', 'X001FPLBM3'];
-        yield 'another separator than a comma' => ['4005556133710 & 4005555010432', '4005556133710 & 4005555010432'];
+        // A dash inside fewer than 12 digits: stored as a catalogue number typed as is, whatever its check digit
+        yield 'catalogue number with a dash' => ['6000-5533', '6000-5533'];
+        yield 'only digits nowhere' => ['---', '---'];
         yield 'only the bad one of a list' => ['4005555011897, 4005555011898', '4005555011898'];
+    }
+
+    public function testANewCodeIsAcceptedOnlyWhenStoredAsABarcode(): void
+    {
+        self::assertTrue(EanList::isAcceptedNewCode('4005555011897'));
+        self::assertTrue(EanList::isAcceptedNewCode('036000291452'));
+        self::assertFalse(EanList::isAcceptedNewCode('6000-5533'));
+        self::assertFalse(EanList::isAcceptedNewCode('045555017417'), 'the Ravensburger misread');
+        self::assertFalse(EanList::isAcceptedNewCode(''));
+
+        // Whatever is accepted is stored as barcodes only
+        foreach (['4005556147090;4005555001997', '4 005555 011897', '4005555011897 >'] as $input) {
+            self::assertSame([], EanList::fromInputs([$input])->junk());
+            foreach (EanList::fromInputs([$input])->codes() as $code) {
+                self::assertTrue(EanList::isBarcode($code) || EanList::isBarcode('0' . $code), $code);
+            }
+        }
     }
 
     public function testRavensburgerCodeWithoutItsTwoZerosGetsTheFullCodeSuggested(): void

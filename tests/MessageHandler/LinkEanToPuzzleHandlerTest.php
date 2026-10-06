@@ -122,4 +122,17 @@ final class LinkEanToPuzzleHandlerTest extends KernelTestCase
             self::assertInstanceOf(InvalidEan::class, $e->getPrevious());
         }
     }
+
+    public function testTheRavensburgerMisreadIsRefusedLikeInEveryForm(): void
+    {
+        // 045555011897: Ravensburger's 4005555011897 read without two zeros - its check digit stays valid
+        try {
+            $this->messageBus->dispatch(new LinkEanToPuzzle(PuzzleFixture::PUZZLE_9000, PlayerFixture::PLAYER_WITH_STRIPE, '045555011897'));
+            self::fail('Expected InvalidEan');
+        } catch (HandlerFailedException $e) {
+            self::assertInstanceOf(InvalidEan::class, $e->getPrevious());
+        }
+
+        self::assertNull($this->puzzles->get(PuzzleFixture::PUZZLE_9000)->ean);
+    }
 }

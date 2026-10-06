@@ -2452,6 +2452,7 @@
     "no_changes": "変更がありません。送信する前に少なくとも1つのフィールドを変更してください。"
     "no_valid_duplicates": "パズルを自身の重複として報告することはできません。別のパズルを選択してください。"
     "pending_proposal_exists": "このパズルに対する提案はすでにレビュー待ちです。"
+    "pending_proposal_exists_names_only": "このパズルには審査待ちの別の提案があります。決定されるまでは名前の提案のみ可能です。他の変更を元に戻すか、後でもう一度お試しください。"
     "validation_error": "エラーを修正して再試行してください。"
   "form":
     "brand": "ブランド"
@@ -2482,7 +2483,6 @@
     "pieces_count_help": "正しいピース数を入力してください。"
     "search_manufacturer": "ブランドで検索"
     "search_manufacturer_placeholder": "ブランドを選択してパズルを閲覧..."
-    "select_duplicate_error": "重複パズルを選択するか、パズルのURLを入力してください。"
     "select_manufacturer_first": "最初にブランドを選択"
     "select_puzzle": "パズルを選択"
     "select_puzzle_placeholder": "パズルを検索..."
@@ -5000,6 +5000,7 @@ multiscan:
         skip: "今はスキップ"
         error:
             fill_all: "名前、ピース数、ブランドが必要です。"
+            invalid_ean: "このバーコードは正しく読み取れませんでした。行を削除し、少し離して手を安定させて箱をもう一度スキャンしてください。"
             already_assigned: "このコードはここでは紐付けられません。行を削除して、箱のもう1つのバーコードをスキャンしてください。"
             link_failed: "紐付けに失敗しました。もう一度お試しください。"
             brand_not_found: "そのブランドは存在しません。リストから選ぶか、名前を入力してください。"

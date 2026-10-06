@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Controller;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Ramsey\Uuid\Uuid;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
@@ -40,6 +42,8 @@ final class AddPuzzleToRoundController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly SecretPuzzleAccess $secretPuzzleAccess,
+        private readonly FormPhotoStash $formPhotoStash,
+        private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -66,7 +70,11 @@ final class AddPuzzleToRoundController extends AbstractController
         $form = $this->createForm(RoundPuzzleFormType::class, $formData, [
             'competition_id' => $competitionId,
         ]);
+        // The box photo of a refused submit comes back (FormPhotoStash) - organisers have a player profile
+        $playerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
+        $restoredPhotos = $playerId !== null ? $this->formPhotoStash->restore($request, $form, $playerId) : [];
         $form->handleRequest($request);
+        $this->formPhotoStash->reportLost($form, $restoredPhotos);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -106,6 +114,7 @@ final class AddPuzzleToRoundController extends AbstractController
                     'competition' => $competition,
                     'round' => $round,
                     'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
+                    'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
                 ]);
             } catch (HandlerFailedException $e) {
                 $nested = $e->getPrevious() ?? $e;
@@ -127,7 +136,12 @@ final class AddPuzzleToRoundController extends AbstractController
                     'competition' => $competition,
                     'round' => $round,
                     'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
+                    'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
                 ]);
+            }
+
+            if ($playerId !== null) {
+                $this->formPhotoStash->forget($restoredPhotos, $playerId);
             }
 
             $this->addFlash('success', $this->translator->trans('competition.flash.puzzle_added'));
@@ -141,6 +155,7 @@ final class AddPuzzleToRoundController extends AbstractController
             'round' => $round,
             // The round already started: a secret puzzle added now is revealed at once - the form says so
             'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
+            'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
         ]);
     }
 }

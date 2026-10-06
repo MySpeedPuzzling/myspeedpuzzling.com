@@ -168,7 +168,8 @@ export default class extends Controller {
         this.scanMessageTarget.classList.add('d-none');
     }
 
-    fetchPuzzleOptions(manufacturerId) {
+    // keepSelected: the option of a puzzle chosen before (a refused submit) - kept, and the list stays closed
+    fetchPuzzleOptions(manufacturerId, keepSelected = null) {
         const fetchUrl = this.manufacturerTarget.getAttribute('data-fetch-url');
         const currentPuzzleId = this.currentPuzzleIdValue;
 
@@ -186,7 +187,11 @@ export default class extends Controller {
                     const filteredResults = data.results.filter(
                         puzzle => puzzle.value !== currentPuzzleId
                     );
-                    this.updatePuzzleSelectValues(filteredResults);
+                    this.updatePuzzleSelectValues(filteredResults, keepSelected === null);
+
+                    if (keepSelected !== null) {
+                        this.selectPuzzleOption(keepSelected);
+                    }
                 }
             })
             .catch(error => {
@@ -194,23 +199,55 @@ export default class extends Controller {
             });
     }
 
-    updatePuzzleSelectValues(data) {
+    updatePuzzleSelectValues(data, openList = true) {
         const puzzleTomSelect = this.puzzleTarget.tomselect;
         if (!puzzleTomSelect) return;
 
         puzzleTomSelect.clearOptions();
         puzzleTomSelect.addOptions(data);
-        puzzleTomSelect.refreshOptions(true);
+        puzzleTomSelect.refreshOptions(openList);
     }
 
     handleInitialState() {
-        // Check if manufacturer already has a value (shouldn't normally happen on fresh form)
+        // A refused submit comes back with the brand and the puzzle chosen - the puzzle's option rides along
+        // (data-selected-option), the brand's list is loaded again
+        const selected = this.selectedOptionFromServer();
         const manufacturerValue = this.manufacturerTarget.value;
+
         if (manufacturerValue && this.uuidRegex.test(manufacturerValue)) {
-            this.fetchPuzzleOptions(manufacturerValue);
+            this.fetchPuzzleOptions(manufacturerValue, selected);
+        } else if (selected !== null) {
+            // Chosen by a scan across brands: no brand, only that puzzle
+            this.selectPuzzleOption(selected);
         } else {
             this.disablePuzzleField();
         }
+    }
+
+    selectedOptionFromServer() {
+        try {
+            return this.puzzleTarget.dataset.selectedOption ? JSON.parse(this.puzzleTarget.dataset.selectedOption) : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    selectPuzzleOption(option) {
+        const puzzleTomSelect = this.puzzleTarget.tomselect;
+        if (!puzzleTomSelect) return;
+
+        puzzleTomSelect.enable();
+        puzzleTomSelect.settings.placeholder = this.puzzleTarget.dataset.choosePuzzlePlaceholder;
+
+        // Tom Select made a bare option of the input's value (the id as its text) - the real one replaces it
+        if (puzzleTomSelect.options[option.value]) {
+            puzzleTomSelect.updateOption(option.value, option);
+        } else {
+            puzzleTomSelect.addOption(option);
+        }
+
+        puzzleTomSelect.setValue(option.value, true);
+        puzzleTomSelect.inputState();
     }
 
     disablePuzzleField() {

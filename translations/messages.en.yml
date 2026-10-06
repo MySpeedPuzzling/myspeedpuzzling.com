@@ -2776,7 +2776,6 @@ puzzle_report:
         select_puzzle: "Select Puzzle"
         select_puzzle_placeholder: "Search for puzzle..."
         select_manufacturer_first: "Select a brand first"
-        select_duplicate_error: "Please select a duplicate puzzle or enter a puzzle URL."
     flash:
         changes_submitted: "Your suggested changes have been submitted for review. Thank you!"
         duplicate_reported: "Your duplicate report has been submitted for review. Thank you!"
@@ -2784,6 +2783,7 @@ puzzle_report:
         validation_error: "Please fix the errors and try again."
         login_required: "Please log in to suggest changes."
         pending_proposal_exists: "A proposal for this puzzle is already pending review."
+        pending_proposal_exists_names_only: "Another proposal for this puzzle is waiting for review. Until it is decided, only names can be suggested - undo the other changes, or come back later."
         no_changes: "No changes were made. Please modify at least one field before submitting."
         no_valid_duplicates: "You cannot report a puzzle as a duplicate of itself. Please select a different puzzle."
 
@@ -5333,6 +5333,7 @@ multiscan:
         skip: "Skip for now"
         error:
             fill_all: "Name, pieces and brand are needed."
+            invalid_ean: "This barcode was not read right. Remove the row and scan the box again, steadier and a little further away."
             already_assigned: "This code cannot be linked here. Please remove the row and scan the other barcode on the box."
             link_failed: "Linking failed. Please try again."
             brand_not_found: "That brand does not exist. Pick one from the list or type its name."

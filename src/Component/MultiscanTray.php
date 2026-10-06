@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\CannotLendToSelf;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\EanAlreadyAssigned;
+use SpeedPuzzling\Web\Exceptions\InvalidEan;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\MultiscanBatchRejected;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -681,9 +682,11 @@ final class MultiscanTray
         try {
             $this->messageBus->dispatch(new LinkEanToPuzzle($puzzleId, $profile->playerId, $ean));
         } catch (HandlerFailedException $e) {
-            $this->resolveError = $e->getPrevious() instanceof EanAlreadyAssigned
-                ? 'multiscan.resolve.error.already_assigned'
-                : 'multiscan.resolve.error.link_failed';
+            $this->resolveError = match (true) {
+                $e->getPrevious() instanceof EanAlreadyAssigned => 'multiscan.resolve.error.already_assigned',
+                $e->getPrevious() instanceof InvalidEan => 'multiscan.resolve.error.invalid_ean',
+                default => 'multiscan.resolve.error.link_failed',
+            };
             return;
         } catch (PuzzleNotFound) {
             // An HTTP exception of the handler arrives unwrapped (UnwrapHttpExceptionMiddleware) - a puzzle kept secret
@@ -710,6 +713,13 @@ final class MultiscanTray
         $name = trim($this->newName);
         $pieces = (int) trim($this->newPiecesCount);
         $brand = $this->resolveBrandInput();
+
+        // The rule of every form (EanList::invalidCodes()) - a code no form would store is not stored from here either
+        if ($ean !== null && EanList::isAcceptedNewCode($this->resolvingEan) === false) {
+            $this->resolveError = 'multiscan.resolve.error.invalid_ean';
+            $this->quickAddOpen = true;
+            return;
+        }
 
         if ($ean === null || $name === '' || $pieces < 2 || $brand === '') {
             $this->resolveError = 'multiscan.resolve.error.fill_all';

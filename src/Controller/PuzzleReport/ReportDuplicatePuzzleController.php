@@ -13,6 +13,12 @@ use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Query\GetPuzzleRecord;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\FormData\ProposePuzzleChangesFormData;
+use SpeedPuzzling\Web\FormType\ProposePuzzleChangesFormType;
+use Symfony\Component\Form\FormError;
+use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,6 +37,8 @@ final class ReportDuplicatePuzzleController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly GetPendingPuzzleProposals $getPendingPuzzleProposals,
         private readonly SecretPuzzleAccess $secretPuzzleAccess,
+        private readonly GetPuzzleRecord $getPuzzleRecord,
+        private readonly PuzzleChoicesBuilder $puzzleChoicesBuilder,
     ) {
     }
 
@@ -59,15 +67,13 @@ final class ReportDuplicatePuzzleController extends AbstractController
 
         $puzzle = $this->getPuzzleOverview->byId($puzzleId);
 
-        // One proposal at a time - a pending names-only change request does not count (GetPendingPuzzleProposals)
-        if ($this->getPendingPuzzleProposals->blocksNewProposal($puzzleId)) {
-            $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.pending_proposal_exists'));
-
-            return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
-        }
-
         $reportForm = $this->createForm(ReportDuplicatePuzzleFormType::class, new ReportDuplicatePuzzleFormData());
         $reportForm->handleRequest($request);
+
+        // One proposal at a time - a pending names-only change request does not count (GetPendingPuzzleProposals)
+        if ($this->getPendingPuzzleProposals->blocksNewProposal($puzzleId)) {
+            $reportForm->addError(new FormError($this->translator->trans('puzzle_report.flash.pending_proposal_exists')));
+        }
 
         if ($reportForm->isSubmitted() && $reportForm->isValid()) {
             /** @var ReportDuplicatePuzzleFormData $formData */
@@ -76,48 +82,81 @@ final class ReportDuplicatePuzzleController extends AbstractController
             // Parse URLs to extract puzzle IDs and filter out self-duplicates
             $duplicateIds = $this->parseDuplicatePuzzleIds($formData, $puzzleId);
 
-            if (count($duplicateIds) > 0) {
-                $mergeRequestId = Uuid::uuid7()->toString();
-
+            if ($duplicateIds === []) {
+                $reportForm->addError(new FormError($this->translator->trans('puzzle_report.flash.no_valid_duplicates')));
+            } else {
                 try {
                     // A secret competition puzzle on either side is refused (404 for whoever may not see it)
                     $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
-                        mergeRequestId: $mergeRequestId,
+                        mergeRequestId: Uuid::uuid7()->toString(),
                         sourcePuzzleId: $puzzleId,
                         reporterId: $loggedPlayer->playerId,
                         duplicatePuzzleIds: $duplicateIds,
                         reportedNameLanguages: self::reportedNameLanguages($formData, $puzzleId, $duplicateIds),
                     ));
+
+                    return $this->reported($request, $puzzleId);
                 } catch (PuzzleIsStillSecret) {
                     // Either side - "this puzzle" would point at the page's own puzzle
-                    $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.secret_puzzle_involved'));
-
-                    return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+                    $reportForm->addError(new FormError($this->translator->trans('puzzle_report.flash.secret_puzzle_involved')));
                 }
-
-                if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
-                    $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
-
-                    return $this->render('puzzle-report/_stream.html.twig', [
-                        'puzzle_id' => $puzzleId,
-                        'message' => $this->translator->trans('puzzle_report.flash.duplicate_reported'),
-                    ]);
-                }
-
-                $this->addFlash('success', $this->translator->trans('puzzle_report.flash.duplicate_reported'));
-
-                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
             }
-
-            // No valid duplicates after filtering - show error
-            $this->addFlash('error', $this->translator->trans('puzzle_report.flash.no_valid_duplicates'));
         }
 
-        // On validation error, redirect back to the suggest change page with report tab active
-        return $this->redirectToRoute('puzzle_suggest_change', [
-            'puzzleId' => $puzzleId,
-            'tab' => 'report',
-        ]);
+        // Refused: the form comes back with everything chosen and the reason - never a redirect, which would lose it
+        $record = $this->getPuzzleRecord->byId($puzzleId) ?? throw new PuzzleNotFound();
+        $templateParams = [
+            'puzzle' => $puzzle,
+            'propose_form' => $this->createForm(ProposePuzzleChangesFormType::class, ProposePuzzleChangesFormData::forPuzzle($record, $puzzle)),
+            'report_form' => $reportForm,
+            'puzzle_id' => $puzzleId,
+            'active_tab' => 'report',
+            'selected_duplicate_option' => $this->selectedDuplicateOption($reportForm->getData(), $request->getLocale()),
+        ];
+        $response = new Response('', Response::HTTP_UNPROCESSABLE_ENTITY);
+
+        if ($request->headers->get('Turbo-Frame') === 'modal-frame') {
+            return $this->render('puzzle-report/modal.html.twig', $templateParams, $response);
+        }
+
+        return $this->render('puzzle-report/propose_changes.html.twig', $templateParams, $response);
+    }
+
+    /**
+     * The picked duplicate as an option of the puzzle picker - its list is loaded by script, so the choice comes back
+     * only with its own option.
+     *
+     * @return null|array{value: string, text: string, name: string, names: string, codes: string, piecesCount: int}
+     */
+    private function selectedDuplicateOption(ReportDuplicatePuzzleFormData $formData, string $locale): null|array
+    {
+        if ($formData->selectedPuzzleId === null || Uuid::isValid($formData->selectedPuzzleId) === false) {
+            return null;
+        }
+
+        try {
+            $puzzle = $this->getPuzzleOverview->byId($formData->selectedPuzzleId);
+        } catch (PuzzleNotFound) {
+            return null;
+        }
+
+        return $this->puzzleChoicesBuilder->build([$puzzle], $locale)[0] ?? null;
+    }
+
+    private function reported(Request $request, string $puzzleId): Response
+    {
+        if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('puzzle-report/_stream.html.twig', [
+                'puzzle_id' => $puzzleId,
+                'message' => $this->translator->trans('puzzle_report.flash.duplicate_reported'),
+            ]);
+        }
+
+        $this->addFlash('success', $this->translator->trans('puzzle_report.flash.duplicate_reported'));
+
+        return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
     }
 
     /**

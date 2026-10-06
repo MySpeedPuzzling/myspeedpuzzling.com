@@ -32,7 +32,18 @@
 
                             <div data-time-form-autocomplete-target="newPuzzle" class="d-none">
                                 {{ form_row(form.piecesCount) }}
-                                {{ form_row(form.puzzlePhoto) }}
+                                {# A photo kept from a refused submit (FormPhotoStash) travels as a token #}
+                                {% set kept_photo = (kept_photos|default({})).puzzlePhoto ?? null %}
+                                <div class="mb-3" {{ include('photo_stash/_kept_photo_attributes.html.twig', {photo: kept_photo}) }}>
+                                    {{ form_label(form.puzzlePhoto) }}
+                                    {% if kept_photo is not null %}
+                                        <div class="mb-2">{{ include('photo_stash/_kept_photo_preview.html.twig', {photo: kept_photo}) }}</div>
+                                    {% endif %}
+                                    {{ form_widget(form.puzzlePhoto, {attr: form.puzzlePhoto.vars.attr|merge({class: ((form.puzzlePhoto.vars.attr.class ?? '') ~ ' file-drop-input')|trim})}) }}
+                                    {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: 'puzzlePhoto'}) }}
+                                    {{ form_help(form.puzzlePhoto) }}
+                                    {{ form_errors(form.puzzlePhoto) }}
+                                </div>
                                 {{ include('puzzle/_code_inputs.html.twig', {field: form.puzzleEans, label: 'forms.ean'|trans}, with_context = false) }}
                                 {{ include('puzzle/_code_inputs.html.twig', {field: form.puzzleBrandCodes, label: 'forms.identification_number'|trans}, with_context = false) }}
                             </div>

@@ -560,6 +560,57 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         self::assertSame($assignmentsBefore, $this->allRoundAssignments(CompetitionSeriesFixture::EDITION_OFFLINE_1));
     }
 
+    public function testLaterRowNamingTheSameTeamForOneRoundFillsIt(): void
+    {
+        $this->setUpPairInOneRoundOnlyTeamless();
+
+        $file = $this->createXlsx([
+            ['name', 'round_names', 'team_name'],
+            ['Anna Pairing', 'Pair Round, Team Round', 'Speedy'],
+            ['Anna Pairing', 'Team Round', 'Speedy'],
+        ]);
+        $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $file);
+        unlink($file);
+
+        self::assertSame([], $this->texts($result->warnings));
+        self::assertSame('Speedy', $this->database->fetchOne(
+            'SELECT ct.name FROM competition_participant_round cpr
+             INNER JOIN competition_participant cp ON cp.id = cpr.participant_id
+             INNER JOIN competition_team ct ON ct.id = cpr.team_id
+             WHERE cp.name = :name AND cpr.round_id = :roundId',
+            ['name' => 'Anna Pairing', 'roundId' => CompetitionSeriesFixture::ROUND_OFFLINE_TEAM],
+        ));
+    }
+
+    public function testMistypedPlayerIdNeverDuplicatesTheLinkedParticipant(): void
+    {
+        // 'John Regular' is linked to PLAYER_REGULAR, 'Secret Player' to PLAYER_PRIVATE
+        $file = $this->createXlsx([
+            ['name', 'msp_player_id'],
+            ['John Regular', '00000000-0000-0000-0000-000000000099'],
+            ['Secret Player', 'not-a-uuid'],
+        ]);
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(0, $result->added);
+        self::assertSame([
+            'Row 2: msp_player_id "00000000-0000-0000-0000-000000000099" does not exist.',
+            'Row 3: msp_player_id "not-a-uuid" is not a valid UUID.',
+        ], $this->texts($result->errors));
+
+        /** @var list<array{name: string, player_id: null|string}> $rows */
+        $rows = $this->database->fetchAllAssociative(
+            'SELECT name, player_id FROM competition_participant
+             WHERE competition_id = :id AND name IN (:a, :b) ORDER BY name',
+            ['id' => CompetitionFixture::COMPETITION_WJPC_2024, 'a' => 'John Regular', 'b' => 'Secret Player'],
+        );
+        self::assertSame([
+            ['name' => 'John Regular', 'player_id' => PlayerFixture::PLAYER_REGULAR],
+            ['name' => 'Secret Player', 'player_id' => PlayerFixture::PLAYER_PRIVATE],
+        ], $rows);
+    }
+
     public function testExportedTeamCellEmptiedKeepsTheExistingTeam(): void
     {
         $this->setUpPairInOneRoundOnlyTeamless();

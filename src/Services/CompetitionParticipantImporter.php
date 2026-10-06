@@ -205,7 +205,7 @@ readonly final class CompetitionParticipantImporter
             }
 
             if ($matchedId === null) {
-                $match = self::findMatch($existing, $validPlayerId, $externalId !== '' ? $externalId : null, $playerId !== '' ? $playerId : null, $name, $countryCode?->name);
+                $match = self::findMatch($existing, $validPlayerId, $externalId !== '' ? $externalId : null, $name, $countryCode?->name);
 
                 if (is_int($match)) {
                     $warnings[] = self::message('ambiguous_name', ['%row%' => $rowNum, '%name%' => $name, '%count%' => $match]);
@@ -348,7 +348,12 @@ readonly final class CompetitionParticipantImporter
 
                 $current = $roundAssignments[$participantId][$roundId] ?? null;
 
-                if ($current === null || ($current['team'] === null && $assignment['team'] !== null)) {
+                if (
+                    $current === null
+                    || ($current['team'] === null && $assignment['team'] !== null)
+                    // The same team, named for this one round by a later row, may fill what an ambiguous row could not
+                    || ($assignment['canFill'] && !$current['canFill'] && $assignment['team'] !== null && self::sameTeamName($assignment['team'], $current['team']))
+                ) {
                     $roundAssignments[$participantId][$roundId] = $assignment;
                 } elseif ($assignment['team'] !== null && !self::sameTeamName($assignment['team'], $current['team'])) {
                     $warnings[] = self::message('team_conflict_in_file', [
@@ -471,10 +476,10 @@ SQL;
 
     /**
      * @param array<string, array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted: bool}> $existing
-     * @param null|string $rowPlayerId the row's msp_player_id as written (also when it is no valid player)
+     * @param null|string $playerId the row's msp_player_id when it is an existing player - a typo is reported, never a reason to treat the row as another person
      * @return null|string|int the participant id, null for nobody, or how many participants share the name (never guessed)
      */
-    private static function findMatch(array $existing, null|string $playerId, null|string $externalId, null|string $rowPlayerId, string $name, null|string $country): null|string|int
+    private static function findMatch(array $existing, null|string $playerId, null|string $externalId, string $name, null|string $country): null|string|int
     {
         // Priority 1: match by msp_player_id
         if ($playerId !== null) {
@@ -500,7 +505,7 @@ SQL;
             $existing,
             static fn (array $row): bool => $row['name'] === $name
                 && ($externalId === null || $row['external_id'] === null || $row['external_id'] === $externalId)
-                && ($rowPlayerId === null || $row['player_id'] === null || strtolower($rowPlayerId) === $row['player_id']),
+                && ($playerId === null || $row['player_id'] === null || strtolower($playerId) === $row['player_id']),
         );
 
         if ($country !== null) {

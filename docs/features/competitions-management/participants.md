@@ -233,7 +233,7 @@ Client-side filtering by participant name. Filters the visible table rows.
 | `round_name` | No | One round, never split - the old column, still read; together with `round_names` both add up |
 | `team_name` | No | Pair/team name for every duo/team round listed on the **same row** (ignored for solo rounds) |
 | `team_name: <round>` | No | Team in that one round (e.g. `team_name: Pair`). The export writes one per duo/team round of the event. A filled cell wins over `team_name` for its round; an empty cell falls back to `team_name`; with both empty no team is assigned and an existing team stays. A column naming no round of the event is reported, and so is a filled cell whose round the row does not list |
-| `participant_id` | No | Written by the export. Matches that exact participant first; an id of no participant of this event is reported and the row is matched by name instead |
+| `participant_id` | No | Written by the export. Matches that exact participant first; an id of no participant of this event is reported and the row is matched like a row without it |
 
 Only `.xlsx` is accepted; a `.csv` upload is answered with "Please upload an .xlsx file – CSV is not supported yet" (`competition.participants.import_csv_not_supported`), a file PhpSpreadsheet cannot read with "The file could not be read" (never a 500). Every message of the import is a `TranslatableMessage` under `competition.participants.import.*` (6 locales); the controller translates them into flashes, the console command into English.
 

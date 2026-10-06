@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\CannotLendToSelf;
 use SpeedPuzzling\Web\Exceptions\MultiscanBatchRejected;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -23,6 +24,7 @@ readonly final class LendPuzzlesToPlayerHandler
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private LendPuzzleToPlayerHandler $lendPuzzleToPlayer,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -34,6 +36,11 @@ readonly final class LendPuzzlesToPlayerHandler
      */
     public function __invoke(LendPuzzlesToPlayer $message): void
     {
+        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
+        foreach ($message->puzzleIds as $puzzleId) {
+            $this->secretPuzzleAccess->assertUsableBy($puzzleId, $message->ownerPlayerId);
+        }
+
         if ($message->borrowerPlayerId === null && ($message->borrowerName === null || trim($message->borrowerName) === '')) {
             throw new MultiscanBatchRejected(null, 'missing_person');
         }

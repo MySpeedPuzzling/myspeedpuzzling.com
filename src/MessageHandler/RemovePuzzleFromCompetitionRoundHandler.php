@@ -20,11 +20,14 @@ readonly final class RemovePuzzleFromCompetitionRoundHandler
 
     public function __invoke(RemovePuzzleFromCompetitionRound $message): void
     {
+        $this->secretPuzzleHides->lockPuzzleOfRoundPuzzle($message->roundPuzzleId);
+
         $roundPuzzle = $this->competitionRoundPuzzleRepository->get($message->roundPuzzleId);
         $roundPuzzle->recordRemoval();
         $this->competitionRoundPuzzleRepository->delete($roundPuzzle);
 
-        // The other rounds that keep it secret decide now; with none left its dates stay - never revealed by accident
+        // The other rounds that keep it secret decide now; with none left its dates stay - never revealed by accident.
+        // Whether this reveals it is asked before (RemovePuzzleFromRoundController - the organiser confirms)
         $this->secretPuzzleHides->resync($roundPuzzle->puzzle);
     }
 }

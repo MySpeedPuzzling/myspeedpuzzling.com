@@ -15,8 +15,12 @@ use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
  * on the round form; the zone is kept on the round (`competition_round.timezone`) so the edit form shows the same zone
  * and the same local time, and every page shows the start as the organiser typed it.
  *
- * Rounds saved before the zone was kept have none: they were typed in the zone the form pre-selected, the default of
- * the event's country (or its series' country) - so that is the zone they are read in.
+ * Rounds saved before the zone was kept (2026-10) have none. The form then pre-selected the default of the event's own
+ * country, else Europe/Prague, and organisers outside that zone picked theirs - the zone is not known. They are read
+ * in the default of the event's country, else of its series' country (an edition often has no country of its own -
+ * the Canadian Speed Puzzlers editions were typed in Toronto, not in the Prague the form offered), else Prague. For
+ * an event outside its country's default zone (US Central, Mountain, Pacific) the time reads in the default zone -
+ * the instant is right, the organiser can set the zone (docs/TODO.md).
  */
 final class RoundTimezone
 {

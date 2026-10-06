@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\SellSwap;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\FormData\AddToSellSwapListFormData;
 use SpeedPuzzling\Web\FormType\AddToSellSwapListFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToSellSwapList;
@@ -37,6 +38,7 @@ final class AddPuzzleToSellSwapListController extends AbstractController
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private GetMarketplaceEvents $getMarketplaceEvents,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -57,6 +59,9 @@ final class AddPuzzleToSellSwapListController extends AbstractController
         Request $request,
         string $puzzleId,
     ): Response {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId);
+
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 

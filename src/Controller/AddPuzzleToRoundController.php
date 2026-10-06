@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\FormType\RoundPuzzleFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
@@ -90,12 +91,26 @@ final class AddPuzzleToRoundController extends AbstractController
                     hideUntilRoundStarts: $data->hideUntilRoundStarts,
                     hideMode: $data->hideMode,
                 ));
+            } catch (PuzzleHiddenByHand) {
+                // The handler cleared the entity manager (SecretPuzzleHides::lock()) - read the round again
+                $round = $this->competitionRoundRepository->get($roundId);
+                // A placeholder hidden by MySpeedPuzzling itself is no round's to hide or reveal
+                $form->get('puzzle')->addError(new FormError($this->translator->trans('competition.reveal.flash.puzzle_hidden_by_hand')));
+
+                return $this->render('add_puzzle_to_round.html.twig', [
+                    'form' => $form,
+                    'competition' => $competition,
+                    'round' => $round,
+                    'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
+                ]);
             } catch (HandlerFailedException $e) {
                 $nested = $e->getPrevious() ?? $e;
 
                 if (!$nested instanceof PuzzleAlreadyInCompetitionRoundCategory) {
                     throw $e;
                 }
+
+                $round = $this->competitionRoundRepository->get($roundId);
 
                 // A form error makes the form invalid, so render() answers 422 - Turbo Drive drops a 200
                 $form->get('puzzle')->addError(new FormError($this->translator->trans(

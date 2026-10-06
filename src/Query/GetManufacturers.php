@@ -25,13 +25,16 @@ readonly final class GetManufacturers
      *
      * Secret competition puzzles (PuzzleSecrecy) are not counted, and a brand whose every puzzle is secret (typed for
      * a secret puzzle) is left out - except, in the add-to-round form, the brands of $secretPuzzlesOfCompetitionId's
-     * round puzzles for its organisers.
+     * round puzzles for its organisers, and the brands of the organiser's own secret puzzles that are in no round any more
+     * (the round picker offers those puzzles too).
      *
      * @return array<ManufacturerOverview>
      */
-    public function allIncludingUnapproved(null|string $secretPuzzlesOfCompetitionId = null): array
-    {
-        return $this->overviews('true', [], $secretPuzzlesOfCompetitionId);
+    public function allIncludingUnapproved(
+        null|string $secretPuzzlesOfCompetitionId = null,
+        null|string $secretPuzzlesAddedByPlayerId = null,
+    ): array {
+        return $this->overviews('true', [], $secretPuzzlesOfCompetitionId, $secretPuzzlesAddedByPlayerId);
     }
 
     /**
@@ -56,8 +59,12 @@ readonly final class GetManufacturers
      *
      * @return array<ManufacturerOverview>
      */
-    private function overviews(string $condition, array $parameters, null|string $secretPuzzlesOfCompetitionId = null): array
-    {
+    private function overviews(
+        string $condition,
+        array $parameters,
+        null|string $secretPuzzlesOfCompetitionId = null,
+        null|string $secretPuzzlesAddedByPlayerId = null,
+    ): array {
         $notSecret = PuzzleSecrecy::sqlNotSecret('puzzle');
         $parameters['now'] = $this->clock->now()->format('Y-m-d H:i:s');
         $secretOfCompetition = '';
@@ -71,6 +78,16 @@ readonly final class GetManufacturers
         WHERE cr.competition_id = :secretCompetitionId
     )';
             $parameters['secretCompetitionId'] = $secretPuzzlesOfCompetitionId;
+        }
+
+        if ($secretPuzzlesAddedByPlayerId !== null) {
+            $secretOfCompetition .= ' OR manufacturer.id IN (
+        SELECT orphan_puzzle.manufacturer_id
+        FROM puzzle orphan_puzzle
+        WHERE orphan_puzzle.added_by_user_id = :secretAddedBy
+            AND NOT EXISTS (SELECT 1 FROM competition_round_puzzle orphan_crp WHERE orphan_crp.puzzle_id = orphan_puzzle.id)
+    )';
+            $parameters['secretAddedBy'] = $secretPuzzlesAddedByPlayerId;
         }
 
         $query = <<<SQL

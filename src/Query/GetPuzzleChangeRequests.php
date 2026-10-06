@@ -21,10 +21,11 @@ readonly final class GetPuzzleChangeRequests
     /**
      * @return array{pending: int, approved: int, rejected: int}
      */
-    public function countByStatus(): array
+    public function countByStatus(bool $includeSecret = false): array
     {
         // A secret competition puzzle is out of the queue until it is revealed (PuzzleSecrecy)
-        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
+        // Admins correct a secret competition puzzle before its reveal; moderators never see it (PuzzleSecrecy)
+        $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
     COUNT(*) FILTER (WHERE pcr.status = 'pending') as pending,
@@ -58,25 +59,25 @@ SQL;
     /**
      * @return array<PuzzleChangeRequestOverview>
      */
-    public function allPending(): array
+    public function allPending(bool $includeSecret = false): array
     {
-        return $this->byStatus(PuzzleReportStatus::Pending, 'pcr.submitted_at DESC');
+        return $this->byStatus(PuzzleReportStatus::Pending, 'pcr.submitted_at DESC', $includeSecret);
     }
 
     /**
      * @return array<PuzzleChangeRequestOverview>
      */
-    public function allApproved(): array
+    public function allApproved(bool $includeSecret = false): array
     {
-        return $this->byStatus(PuzzleReportStatus::Approved, 'pcr.reviewed_at DESC');
+        return $this->byStatus(PuzzleReportStatus::Approved, 'pcr.reviewed_at DESC', $includeSecret);
     }
 
     /**
      * @return array<PuzzleChangeRequestOverview>
      */
-    public function allRejected(): array
+    public function allRejected(bool $includeSecret = false): array
     {
-        return $this->byStatus(PuzzleReportStatus::Rejected, 'pcr.reviewed_at DESC');
+        return $this->byStatus(PuzzleReportStatus::Rejected, 'pcr.reviewed_at DESC', $includeSecret);
     }
 
     /**
@@ -95,7 +96,8 @@ SQL;
 
     /**
      * The approval of a change request as the decision log recorded it - its details (PuzzleChangeRequestOutcome) and
-     * the reviewer's note. Null when it has no line there.
+     * the reviewer's note. Null when it has no line there. Only for a request read through byId(), which already keeps
+     * a secret competition puzzle from whoever may not see it.
      *
      * @return null|array{details: null|array<mixed>, note: null|string}
      */
@@ -125,9 +127,10 @@ SQL,
         ];
     }
 
-    public function byId(string $id): null|PuzzleChangeRequestOverview
+    public function byId(string $id, bool $includeSecret = false): null|PuzzleChangeRequestOverview
     {
-        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
+        // Admins correct a secret competition puzzle before its reveal; moderators never see it (PuzzleSecrecy)
+        $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
     pcr.id,
@@ -202,9 +205,10 @@ SQL;
     /**
      * @return array<PuzzleChangeRequestOverview>
      */
-    private function byStatus(PuzzleReportStatus $status, string $orderBy): array
+    private function byStatus(PuzzleReportStatus $status, string $orderBy, bool $includeSecret = false): array
     {
-        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
+        // Admins correct a secret competition puzzle before its reveal; moderators never see it (PuzzleSecrecy)
+        $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
     pcr.id,

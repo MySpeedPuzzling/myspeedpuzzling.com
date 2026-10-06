@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
@@ -30,6 +31,7 @@ readonly final class BorrowPuzzleFromPlayerHandler
         private LentPuzzleRepository $lentPuzzleRepository,
         private LentPuzzleTransferRepository $lentPuzzleTransferRepository,
         private MessageBusInterface $messageBus,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -41,6 +43,8 @@ readonly final class BorrowPuzzleFromPlayerHandler
     {
         $borrower = $this->playerRepository->get($message->borrowerPlayerId);
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
+        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $message->borrowerPlayerId);
 
         // Resolve owner - either registered player or plain text name
         $owner = null;

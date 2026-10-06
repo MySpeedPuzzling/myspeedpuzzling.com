@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\MultiscanBatchRejected;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -25,6 +26,7 @@ readonly final class AddPuzzlesToCollectionHandler
         private PuzzleRepository $puzzleRepository,
         private CollectionRepository $collectionRepository,
         private AddPuzzleToCollectionHandler $addPuzzleToCollection,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -36,6 +38,11 @@ readonly final class AddPuzzlesToCollectionHandler
      */
     public function __invoke(AddPuzzlesToCollection $message): void
     {
+        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
+        foreach ($message->puzzleIds as $puzzleId) {
+            $this->secretPuzzleAccess->assertUsableBy($puzzleId, $message->playerId);
+        }
+
         $player = $this->playerRepository->get($message->playerId);
 
         if ($message->collectionId !== null) {

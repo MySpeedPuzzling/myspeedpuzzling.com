@@ -69,7 +69,7 @@ SQL;
 
         $params = [
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-            ...$textSearch->parameters(),
+            ...$textSearch->parameters($this->clock->now()),
             'brandId' => $brandId,
             'minPieces' => $pieces->minPieces,
             'maxPieces' => $pieces->maxPieces,
@@ -204,7 +204,7 @@ SQL;
 
         $params = [
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-            ...$textSearch->parameters(),
+            ...$textSearch->parameters($this->clock->now()),
             'brandId' => $brandId,
             'limit' => $limit,
             'minPieces' => $pieces->minPieces,
@@ -418,7 +418,7 @@ SQL;
         $rows = $this->database
             ->executeQuery($query, [
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-                ...$textSearch->parameters(),
+                ...$textSearch->parameters($this->clock->now()),
             ])
             ->fetchAllAssociative();
 

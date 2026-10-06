@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyKnown;
 use SpeedPuzzling\Web\FormData\SuggestPuzzleNameFormData;
 use SpeedPuzzling\Web\FormType\SuggestPuzzleNameFormType;
@@ -103,6 +104,9 @@ final class SuggestPuzzleNameController extends AbstractController
                     ));
 
                     return $this->succeeded($request, $puzzle->puzzleId, $moderator, $inModal);
+                } catch (PuzzleIsStillSecret) {
+                    // A secret competition puzzle gets no name suggestions before its reveal
+                    $form->addError(new FormError($this->translator->trans('competition.reveal.puzzle_still_secret')));
                 } catch (PuzzleNameAlreadyKnown) {
                     $form->get('name')->addError(new FormError($this->translator->trans('puzzle_names.suggest_name.already_known')));
                 } catch (InvalidPuzzleValues) {

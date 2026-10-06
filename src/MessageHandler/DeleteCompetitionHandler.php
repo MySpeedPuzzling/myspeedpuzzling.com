@@ -29,6 +29,8 @@ readonly final class DeleteCompetitionHandler
         /** @var array<string> $roundIds */
         $roundIds = $this->database->fetchFirstColumn('SELECT id FROM competition_round WHERE competition_id = :id', $params);
         $secretPuzzleIds = $this->secretPuzzleHides->puzzleIdsOfRounds($roundIds);
+        // Waits for every other change of these puzzles' secret rows (SecretPuzzleHides::lock())
+        $this->secretPuzzleHides->lock($secretPuzzleIds);
 
         $this->database->executeStatement(
             'UPDATE puzzle_solving_time SET competition_round_id = NULL

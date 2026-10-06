@@ -7,8 +7,11 @@ namespace SpeedPuzzling\Web\Services;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 
 /**
@@ -29,6 +32,8 @@ readonly final class SecretPuzzleHides
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private PuzzleRepository $puzzleRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -129,16 +134,44 @@ readonly final class SecretPuzzleHides
 
     private function resyncOne(Puzzle $puzzle): void
     {
+        $hide = $this->hideOf($puzzle);
+
+        // No row keeps it hidden any more: the dates stay as they are, never revealed by accident
+        if ($hide === null) {
+            return;
+        }
+
+        $puzzle->keepSecretUntil($hide['hiddenUntil'], $hide['imageHiddenUntil']);
+    }
+
+    /**
+     * The site-wide hide the puzzle's rows ask for - null when no row keeps it hidden everywhere (the dates then stay).
+     * The hypotheticals answer "what would this change reveal?" before it is made: rows left out (a removal, a deleted
+     * round) and rounds at another start (a round edit).
+     *
+     * @param array<string> $withoutRoundPuzzleIds
+     * @param array<string, DateTimeImmutable> $roundStartsAt round id => the start to assume
+     * @return null|array{hiddenUntil: null|DateTimeImmutable, imageHiddenUntil: DateTimeImmutable}
+     */
+    public function hideOf(Puzzle $puzzle, array $withoutRoundPuzzleIds = [], array $roundStartsAt = []): null|array
+    {
         $hiddenUntil = null;
         $imageHiddenUntil = null;
         $neverRevealed = new DateTimeImmutable(CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED);
+        $now = $this->clock->now();
 
         foreach ($this->rowsOf($puzzle) as $row) {
-            if ($row->hidesEverywhere === false || $row->hideUntilRoundStarts === false) {
+            if (
+                $row->hidesEverywhere === false
+                || $row->hideUntilRoundStarts === false
+                || in_array($row->id->toString(), $withoutRoundPuzzleIds, true)
+            ) {
                 continue;
             }
 
-            $revealsAt = $row->revealsAt() ?? $neverRevealed;
+            // A round edit pins reveals that already happened (EditCompetitionRoundHandler) - only the others move
+            $startsAt = $row->isHiddenAt($now) ? ($roundStartsAt[$row->round->id->toString()] ?? $row->round->startsAt) : $row->round->startsAt;
+            $revealsAt = $row->revealMode->revealAt($startsAt, $row->revealAt) ?? $neverRevealed;
 
             if ($imageHiddenUntil === null || $revealsAt > $imageHiddenUntil) {
                 $imageHiddenUntil = $revealsAt;
@@ -149,12 +182,51 @@ readonly final class SecretPuzzleHides
             }
         }
 
-        // No row keeps it hidden any more: the dates stay as they are, never revealed by accident
         if ($imageHiddenUntil === null) {
+            return null;
+        }
+
+        return ['hiddenUntil' => $hiddenUntil, 'imageHiddenUntil' => $imageHiddenUntil];
+    }
+
+    /**
+     * Concurrency: every handler changing a secret row or a round's start first locks the rows of the puzzles it may
+     * re-sync (SELECT ... FOR UPDATE, ordered by id - no deadlock between two of them) and only then reads the rows -
+     * so the read-compute-write of resync() never works on a state another transaction is changing. The locks are held
+     * to the commit (doctrine_transaction). Call it FIRST in the handler, before anything is loaded or changed: it
+     * clears the entity manager after locking, so every row read afterwards is the committed one, never a copy loaded
+     * before the lock (the caller's own entities are detached - read them again after the dispatch).
+     *
+     * @param array<string> $puzzleIds
+     */
+    public function lock(array $puzzleIds): void
+    {
+        $this->puzzleRepository->findByIdsForUpdate(array_values($puzzleIds));
+        $this->entityManager->clear();
+    }
+
+    /**
+     * @param array<string> $roundIds
+     */
+    public function lockPuzzlesOfRounds(array $roundIds): void
+    {
+        $this->lock($this->puzzleIdsOfRounds($roundIds));
+    }
+
+    public function lockPuzzleOfRoundPuzzle(string $roundPuzzleId): void
+    {
+        if (Uuid::isValid($roundPuzzleId) === false) {
             return;
         }
 
-        $puzzle->keepSecretUntil($hiddenUntil, $imageHiddenUntil);
+        $puzzleId = $this->entityManager->getConnection()->fetchOne(
+            'SELECT puzzle_id FROM competition_round_puzzle WHERE id = :id',
+            ['id' => $roundPuzzleId],
+        );
+
+        if (is_string($puzzleId)) {
+            $this->lock([$puzzleId]);
+        }
     }
 
     private function isStoredFor(CompetitionRoundPuzzle $row, Puzzle $puzzle): bool

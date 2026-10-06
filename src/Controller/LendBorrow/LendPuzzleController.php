@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\LendBorrow;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\CannotLendToSelf;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\LendPuzzleFormData;
@@ -39,6 +40,7 @@ final class LendPuzzleController extends AbstractController
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -59,6 +61,9 @@ final class LendPuzzleController extends AbstractController
         Request $request,
         string $puzzleId,
     ): Response {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId);
+
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 

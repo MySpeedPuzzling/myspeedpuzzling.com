@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
@@ -25,6 +26,7 @@ readonly final class AddPuzzleToSellSwapListHandler
         private PuzzleRepository $puzzleRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private ListingEventLinks $listingEventLinks,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -42,6 +44,10 @@ readonly final class AddPuzzleToSellSwapListHandler
         }
 
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
+
+        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
+
+        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $message->playerId);
 
         $existingItem = $this->sellSwapListItemRepository->findByPlayerAndPuzzle($player, $puzzle);
 

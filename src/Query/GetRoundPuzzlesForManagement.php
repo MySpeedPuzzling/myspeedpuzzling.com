@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\RoundPuzzleForManagement;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\RoundPuzzleOwnership;
 use SpeedPuzzling\Web\Value\RoundPuzzleStatus;
 
 readonly final class GetRoundPuzzlesForManagement
@@ -25,9 +26,18 @@ readonly final class GetRoundPuzzlesForManagement
      */
     public function ofRound(string $roundId): array
     {
+        $mayKeepHiddenEverywhere = RoundPuzzleOwnership::sqlMayKeepHiddenEverywhere('crp', 'p', 'cr');
         $query = <<<SQL
 SELECT
     crp.id AS round_puzzle_id,
+    {$mayKeepHiddenEverywhere} AS may_keep_hidden_everywhere,
+    EXISTS (
+        SELECT 1 FROM competition_round_puzzle other_crp
+        WHERE other_crp.puzzle_id = crp.puzzle_id
+            AND other_crp.id <> crp.id
+            AND other_crp.hides_everywhere
+            AND other_crp.hide_until_round_starts
+    ) AS another_round_holds,
     crp.hide_until_round_starts,
     crp.hide_mode,
     crp.reveal_mode,
@@ -73,6 +83,8 @@ SQL;
              *     puzzle_image: null|string,
              *     manufacturer_name: null|string,
              *     puzzle_hide_until: null|string,
+             *     may_keep_hidden_everywhere: bool|string,
+             *     another_round_holds: bool|string,
              *     puzzle_hide_image_until: null|string,
              * } $row
              */
@@ -107,7 +119,9 @@ SQL;
                     puzzleHiddenUntil: $row['puzzle_hide_until'] !== null ? new DateTimeImmutable($row['puzzle_hide_until']) : null,
                     puzzleImageHiddenUntil: $row['puzzle_hide_image_until'] !== null ? new DateTimeImmutable($row['puzzle_hide_image_until']) : null,
                     now: $now,
+                    anotherRoundHolds: self::bool($row['another_round_holds']),
                 ),
+                mayKeepHiddenEverywhere: self::bool($row['may_keep_hidden_everywhere']) && $hideUntilRoundStarts && ($revealsAt === null || $revealsAt > $now),
             );
         }, $data);
     }

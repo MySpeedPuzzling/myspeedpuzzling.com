@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -59,7 +60,7 @@ final class PuzzleChangeRequestDetailController extends AbstractController
             throw new PuzzleChangeRequestNotFound();
         }
 
-        $changeRequest = $this->getPuzzleChangeRequests->byId($id) ?? throw new PuzzleChangeRequestNotFound();
+        $changeRequest = $this->getPuzzleChangeRequests->byId($id, includeSecret: $this->isGranted(AdminAccessVoter::ADMIN_ACCESS)) ?? throw new PuzzleChangeRequestNotFound();
 
         if ($changeRequest->status !== PuzzleReportStatus::Pending) {
             $decision = $changeRequest->status === PuzzleReportStatus::Approved

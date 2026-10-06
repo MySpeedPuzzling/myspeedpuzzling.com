@@ -176,8 +176,8 @@ final class CompetitionRoundTimezoneTest extends WebTestCase
         $this->moveEventToUnitedStates(singleDay: false);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        // 2:30 on 8 March 2026 does not exist in Chicago, 1:30 on 1 November 2026 happens twice
-        foreach (['08.03.2026 02:30', '01.11.2026 01:30'] as $impossible) {
+        // 2:30 on 8 March 2026 does not exist in Chicago, 1:30 on 1 November 2026 happens twice, 31 February never
+        foreach (['08.03.2026 02:30', '01.11.2026 01:30', '31.02.2026 25:70'] as $impossible) {
             $browser->request('GET', '/en/add-event-round/' . CompetitionFixture::COMPETITION_UNAPPROVED);
             $browser->submitForm('Add Round', [
                 'competition_round_form[name]' => 'Impossible ' . $impossible,
@@ -228,6 +228,15 @@ final class CompetitionRoundTimezoneTest extends WebTestCase
         $browser->submitForm('Save Changes', ['competition_round_form[startsAt]' => $yesterday]);
         $this->assertResponseStatusCodeSame(422);
         self::assertStringContainsString('Tropical Vibes Secret', (string) $browser->getResponse()->getContent());
+        self::assertSame('2030-10-24T15:05:00+00:00', $this->utc($this->roundNamed('Secret Round')->startsAt));
+
+        // A yes for another list than the one shown does not count
+        $browser->submitForm('Save Changes', [
+            'competition_round_form[startsAt]' => $yesterday,
+            'competition_round_form[confirmReveal]' => '1',
+            'confirm_reveal_hash' => 'tampered',
+        ]);
+        $this->assertResponseStatusCodeSame(422);
         self::assertSame('2030-10-24T15:05:00+00:00', $this->utc($this->roundNamed('Secret Round')->startsAt));
 
         $browser->submitForm('Save Changes', [

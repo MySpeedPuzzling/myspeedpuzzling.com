@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleMergeReviewCandidate;
 use SpeedPuzzling\Web\Results\PuzzleMergeReviewItem;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
@@ -18,6 +19,7 @@ readonly final class GetPuzzleMergeReviewQueue
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -26,6 +28,8 @@ readonly final class GetPuzzleMergeReviewQueue
      */
     public function pending(int $limit, int $offset = 0): array
     {
+        // A request with a secret competition puzzle waits for the reveal (GetPuzzleMergeRequests::sqlNoSecretPuzzle())
+        $noSecretPuzzle = GetPuzzleMergeRequests::sqlNoSecretPuzzle();
         $requestsQuery = <<<SQL
 SELECT
     pmr.id,
@@ -41,6 +45,7 @@ FROM puzzle_merge_request pmr
 LEFT JOIN puzzle source_p ON source_p.id = pmr.source_puzzle_id
 LEFT JOIN player reporter ON reporter.id = pmr.reporter_id
 WHERE pmr.status = :status
+    AND {$noSecretPuzzle}
 ORDER BY pmr.submitted_at ASC
 LIMIT :limit OFFSET :offset
 SQL;
@@ -49,6 +54,7 @@ SQL;
             'status' => PuzzleReportStatus::Pending->value,
             'limit' => $limit,
             'offset' => $offset,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         if ($requestRows === []) {
@@ -135,8 +141,8 @@ SQL;
     public function countPending(): int
     {
         $count = $this->database->fetchOne(
-            'SELECT COUNT(*) FROM puzzle_merge_request WHERE status = :status',
-            ['status' => PuzzleReportStatus::Pending->value],
+            'SELECT COUNT(*) FROM puzzle_merge_request pmr WHERE pmr.status = :status AND ' . GetPuzzleMergeRequests::sqlNoSecretPuzzle(),
+            ['status' => PuzzleReportStatus::Pending->value, 'now' => $this->clock->now()->format('Y-m-d H:i:s')],
         );
 
         assert(is_numeric($count));

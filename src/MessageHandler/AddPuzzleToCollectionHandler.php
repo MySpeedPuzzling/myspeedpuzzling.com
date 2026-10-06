@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
@@ -25,6 +26,7 @@ readonly final class AddPuzzleToCollectionHandler
         private CollectionRepository $collectionRepository,
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -37,6 +39,8 @@ readonly final class AddPuzzleToCollectionHandler
     {
         $player = $this->playerRepository->get($message->playerId);
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
+        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $message->playerId);
 
         $collection = null;
         if ($message->collectionId !== null) {

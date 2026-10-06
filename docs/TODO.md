@@ -11,6 +11,20 @@ that would otherwise be forgotten. Newest section on top.
       rounds' `timezone` to `America/Chicago`, re-sync the 2 Team Relay secret puzzles (SQL in the PR description).
 - [ ] Rounds saved before 2026-10 have no `timezone` and are read in their country's default zone - organisers of
       events outside it (US Central/Mountain/Pacific, ...) may want to re-save their rounds once.
+- [ ] US events default to New York (`CountryCode::defaultTimezone()`) - a known limitation for Central/Mountain/Pacific
+      events without a stored zone (e.g. past `assemble-puzzlery-…` reads 21:30 New York); ask organisers to set theirs.
+- [ ] Rename the random (hex) image names of secret puzzles to SEO names once revealed or approved.
+- [ ] Existence signals of secret puzzles still open: multiscan "already assigned", `MergeUnapprovedPuzzleController`
+      `puzzleExists`, and the add-time EAN lookup no longer finding an image-only secret puzzle (a player may add a
+      duplicate); results counts, the edition's `puzzle_count`, the image aspect ratio, `/me` predicted time.
+- [ ] Prague-formatted dates still in `events.html.twig:68` and the edition/event detail meta descriptions.
+- [ ] Deleting a whole event or series does not ask before revealing secret puzzles other events hold (round deletion
+      and puzzle removal do - `SecretRevealPreview`).
+- [ ] `GetCompetitionEditions` is dead code - remove.
+- [ ] `SecretPuzzleHides::isStoredFor()` runs one query per row - fine at today's sizes.
+- [ ] The images cache (nginx in front of imgproxy, 365 days) still serves thumbnails requested under a secret
+      puzzle's old guessable image name after the backfill moved it - there is no purge endpoint; delete the cache
+      files of those keys on the box if they were requested.
 - [ ] A puzzle removed from its round while on a manual reveal stays hidden with no end - its adder finds it in the round
       picker again, otherwise an admin clears `puzzle.hide_until` / `hide_image_until` on request.
 - [ ] Times and collections on a secret puzzle (only reachable with its id) can show its name in feeds - hide the competition

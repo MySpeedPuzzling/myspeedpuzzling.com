@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Wishlist;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Message\AddPuzzleToWishList;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
@@ -33,6 +34,7 @@ final class AddPuzzleToWishListController extends AbstractController
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -53,6 +55,9 @@ final class AddPuzzleToWishListController extends AbstractController
         Request $request,
         string $puzzleId,
     ): Response {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId);
+
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 

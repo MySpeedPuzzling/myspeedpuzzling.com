@@ -49,6 +49,8 @@ readonly final class PuzzleRecordUpdater
      * @throws PuzzleChangedMeanwhile The record changed after the form was loaded
      * @throws InvalidPuzzleValues
      * @throws ManufacturerNotFound
+     * @param bool $allowSecret an admin's direct edit or change-request approval may correct a secret puzzle
+     *
      * @throws PuzzleIsStillSecret A competition keeps the puzzle secret - approved, edited and changed only once revealed
      */
     public function update(
@@ -56,8 +58,11 @@ readonly final class PuzzleRecordUpdater
         PuzzleRecordValues $values,
         null|string $proposedImage = null,
         null|float $proposedImageRatio = null,
+        bool $allowSecret = false,
     ): array {
-        if ($this->isPuzzleKeptSecret->byId($puzzle->id->toString())) {
+        // A secret competition puzzle is corrected only by an admin before its reveal ($allowSecret) - never approved,
+        // never changed through a player's suggestion
+        if ($allowSecret === false && $this->isPuzzleKeptSecret->byId($puzzle->id->toString())) {
             throw new PuzzleIsStillSecret($puzzle->id->toString());
         }
 
@@ -162,6 +167,11 @@ readonly final class PuzzleRecordUpdater
 
     private function newImagePath(Puzzle $puzzle, string $extension): string
     {
+        // A secret puzzle's picture must not be found by guessing its file name from the public name and id
+        if ($this->isPuzzleKeptSecret->byId($puzzle->id->toString())) {
+            return $this->puzzleImageNamer->secretFilename($extension);
+        }
+
         $newImagePath = $this->puzzleImageNamer->generateFilename(
             $puzzle->manufacturer !== null ? $puzzle->manufacturer->name : 'puzzle',
             $puzzle->name,

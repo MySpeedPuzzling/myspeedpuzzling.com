@@ -9,7 +9,9 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,9 +27,11 @@ final class RemovePuzzleFromRoundController extends AbstractController
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly CompetitionRoundPuzzleRepository $competitionRoundPuzzleRepository,
+        private readonly PuzzleRepository $puzzleRepository,
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
+        private readonly SecretRevealPreview $secretRevealPreview,
     ) {
     }
 
@@ -47,10 +51,12 @@ final class RemovePuzzleFromRoundController extends AbstractController
     {
         $roundPuzzle = $this->competitionRoundPuzzleRepository->get($roundPuzzleId);
         $round = $roundPuzzle->round;
+        $roundId = $round->id->toString();
+        $timezone = $round->displayTimezone();
         $competitionId = $round->competition->id->toString();
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
-        $backToPuzzles = $this->redirectToRoute('manage_round_puzzles', ['roundId' => $round->id->toString()], Response::HTTP_SEE_OTHER);
+        $backToPuzzles = $this->redirectToRoute('manage_round_puzzles', ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
 
         if (!$this->isCsrfTokenValid('remove_puzzle_' . $roundPuzzleId, (string) $request->request->get('_token'))) {
             $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.invalid'));
@@ -58,12 +64,42 @@ final class RemovePuzzleFromRoundController extends AbstractController
             return $backToPuzzles;
         }
 
-        $puzzle = $roundPuzzle->puzzle;
+        // Removing may let a secret puzzle out at once (the rounds left reveal it already) - only on an explicit yes
+        // for exactly the puzzles shown
+        $revealed = $this->secretRevealPreview->byRemoving([$roundPuzzle]);
+        $confirmed = $request->request->get('confirm_reveal') === '1'
+            && $request->request->get('confirm_reveal_hash') === SecretRevealPreview::hash($revealed);
+
+        if ($revealed !== [] && $confirmed === false) {
+            return $this->render('competition/confirm_reveal.html.twig', [
+                'round' => $round,
+                'revealed' => $revealed,
+                'intro' => 'competition.reveal.confirm.removal_intro',
+                'submit' => 'competition.reveal.confirm.submit_remove',
+                'action' => $this->generateUrl('remove_puzzle_from_round', ['roundPuzzleId' => $roundPuzzleId]),
+                'token' => (string) $request->request->get('_token'),
+                'hash' => SecretRevealPreview::hash($revealed),
+                'cancel_url' => $this->generateUrl('manage_round_puzzles', ['roundId' => $roundId]),
+                'timezone' => $timezone,
+            ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+
+        $puzzleId = $roundPuzzle->puzzle->id->toString();
+        $puzzleName = $roundPuzzle->puzzle->name;
 
         $this->messageBus->dispatch(new RemovePuzzleFromCompetitionRound(roundPuzzleId: $roundPuzzleId));
 
-        // Removing never reveals: the puzzle's site-wide hide now follows the rounds left, and with none left it stays
-        // as it was (SecretPuzzleHides) - say until when, as it is now
+        if ($revealed !== []) {
+            $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.removed_revealed', [
+                '%puzzles%' => implode(', ', array_column($revealed, 'name')),
+            ]));
+
+            return $backToPuzzles;
+        }
+
+        // Never revealed by accident: the puzzle's site-wide hide follows the rounds left, and with none left it stays
+        // as it was (SecretPuzzleHides) - say until when, as it is now (read again - the handler worked on fresh rows)
+        $puzzle = $this->puzzleRepository->get($puzzleId);
         $now = $this->clock->now();
         $hiddenUntil = $puzzle->isHiddenAt($now) ? $puzzle->hideUntil : ($puzzle->isImageHiddenAt($now) ? $puzzle->hideImageUntil : null);
 
@@ -71,12 +107,12 @@ final class RemovePuzzleFromRoundController extends AbstractController
             $this->addFlash('success', $this->translator->trans('competition.flash.puzzle_removed'));
         } elseif ($hiddenUntil >= new DateTimeImmutable(CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED)) {
             $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.removed_stays_hidden_manual', [
-                '%puzzle%' => $puzzle->name,
+                '%puzzle%' => $puzzleName,
             ]));
         } else {
             $this->addFlash('success', $this->translator->trans('competition.reveal.flash.removed_stays_hidden', [
-                '%puzzle%' => $puzzle->name,
-                '%time%' => $this->zonedDateTimeFormatter->format($hiddenUntil, $round->displayTimezone()),
+                '%puzzle%' => $puzzleName,
+                '%time%' => $this->zonedDateTimeFormatter->format($hiddenUntil, $timezone),
             ]));
         }
 

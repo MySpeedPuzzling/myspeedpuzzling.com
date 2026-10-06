@@ -32,7 +32,7 @@ final class RoundPuzzleFormData
         #[Assert\All([new Assert\Length(max: 50)])]
         public array $puzzleBrandCodes = [],
         public bool $hideUntilRoundStarts = false,
-        public PuzzleHideMode $hideMode = PuzzleHideMode::ImageOnly,
+        public PuzzleHideMode $hideMode = PuzzleHideMode::Entirely,
     ) {
     }
 }

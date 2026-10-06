@@ -213,7 +213,7 @@ SQL;
      * A merge request is out of the queue while any puzzle in it is a secret competition puzzle (PuzzleSecrecy) - it
      * cannot be merged before the reveal anyway.
      */
-    private static function sqlNoSecretPuzzle(): string
+    public static function sqlNoSecretPuzzle(): string
     {
         $notSecret = PuzzleSecrecy::sqlNotSecret('secret_p');
 

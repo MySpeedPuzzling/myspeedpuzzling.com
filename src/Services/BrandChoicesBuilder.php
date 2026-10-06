@@ -25,11 +25,11 @@ readonly final class BrandChoicesBuilder
      *
      * @return array<array{value: string, text: string, name: string, eanPrefix: string}>
      */
-    public function build(null|string $secretPuzzlesOfCompetitionId = null): array
+    public function build(null|string $secretPuzzlesOfCompetitionId = null, null|string $secretPuzzlesAddedByPlayerId = null): array
     {
         $brandChoices = [];
 
-        foreach ($this->getManufacturers->allIncludingUnapproved($secretPuzzlesOfCompetitionId) as $manufacturer) {
+        foreach ($this->getManufacturers->allIncludingUnapproved($secretPuzzlesOfCompetitionId, $secretPuzzlesAddedByPlayerId) as $manufacturer) {
             $img = '';
             if ($manufacturer->manufacturerLogo !== null) {
                 $img = <<<HTML

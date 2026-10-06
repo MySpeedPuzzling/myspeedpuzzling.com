@@ -80,7 +80,19 @@
                             {% if form.confirmReveal is defined %}
                                 {% if revealed_right_away is not empty %}
                                     <div class="alert alert-warning" data-confirm-reveal>
-                                        <p class="mb-2">{{ 'competition.reveal.form.confirm_reveal_intro'|trans({'%puzzles%': revealed_right_away|join(', ')}) }}</p>
+                                        <p class="mb-2">{{ 'competition.reveal.form.confirm_reveal_list'|trans }}</p>
+                                        <ul class="mb-2">
+                                            {% for item in revealed_right_away %}
+                                                <li>
+                                                    <strong>{{ item.name }}</strong>
+                                                    {% if not item.everywhere %}
+                                                        <span class="text-muted">– {{ 'competition.reveal.confirm.only_this_event'|trans({'%time%': zoned_datetime(item.hiddenElsewhereUntil, timezone)}) }}</span>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {# The yes counts only for exactly this list (SecretRevealPreview::hash()) #}
+                                        <input type="hidden" name="confirm_reveal_hash" value="{{ reveal_confirmation_hash }}">
                                         {{ form_row(form.confirmReveal) }}
                                     </div>
                                 {% else %}

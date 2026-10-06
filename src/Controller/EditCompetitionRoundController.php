@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
@@ -39,6 +40,7 @@ final class EditCompetitionRoundController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly ClockInterface $clock,
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
+        private readonly SecretRevealPreview $secretRevealPreview,
     ) {
     }
 
@@ -105,13 +107,24 @@ final class EditCompetitionRoundController extends AbstractController
 
             // Saving a start that reveals secret puzzles right away (moved into the past) needs an explicit yes
             if ($startsAt !== null) {
-                $revealedRightAway = $this->revealedRightAway($round, $startsAt, $now);
+                $revealedRightAway = $this->secretRevealPreview->byMovingRound($round, $startsAt);
+                // The yes counts only for exactly the list it was given (shown with the form, re-computed now)
+                $confirmed = $form->has('confirmReveal')
+                    && $form->get('confirmReveal')->getData() === true
+                    && $request->request->get('confirm_reveal_hash') === SecretRevealPreview::hash($revealedRightAway);
 
-                if ($revealedRightAway !== [] && $form->has('confirmReveal') && $form->get('confirmReveal')->getData() !== true) {
-                    $form->get('confirmReveal')->addError(new FormError($this->translator->trans(
-                        'competition.reveal.form.confirm_reveal_required',
-                        ['%puzzles%' => implode(', ', $revealedRightAway)],
-                    )));
+                if ($revealedRightAway !== [] && $confirmed === false) {
+                    if ($form->has('confirmReveal')) {
+                        $form->get('confirmReveal')->addError(new FormError($this->translator->trans(
+                            'competition.reveal.form.confirm_reveal_required',
+                            ['%puzzles%' => implode(', ', array_column($revealedRightAway, 'name'))],
+                        )));
+                    } else {
+                        $form->addError(new FormError($this->translator->trans(
+                            'competition.reveal.form.confirm_reveal_required',
+                            ['%puzzles%' => implode(', ', array_column($revealedRightAway, 'name'))],
+                        )));
+                    }
                 }
             }
 
@@ -130,7 +143,13 @@ final class EditCompetitionRoundController extends AbstractController
                         resultsLink: $data->resultsLink,
                     ));
 
-                    $this->flashRoundUpdated($round, $previousStartsAt->getTimestamp() !== $startsAt->getTimestamp(), $data->timezone);
+                    // The handler worked on freshly read rows - read the round again for the flash
+                    $this->flashRoundUpdated(
+                        $this->competitionRoundRepository->get($roundId),
+                        $previousStartsAt->getTimestamp() !== $startsAt->getTimestamp(),
+                        $data->timezone,
+                        $revealedRightAway,
+                    );
 
                     return $this->redirectToRoute('manage_competition_rounds', ['competitionId' => $competitionId]);
                 } catch (HandlerFailedException $e) {
@@ -139,6 +158,9 @@ final class EditCompetitionRoundController extends AbstractController
                     if (!$nested instanceof PuzzleAlreadyInCompetitionRoundCategory) {
                         throw $e;
                     }
+
+                    // The handler cleared the entity manager (SecretPuzzleHides::lock()) - read the round again
+                    $round = $this->competitionRoundRepository->get($roundId);
 
                     // A form error makes the form invalid, so render() answers 422 - Turbo Drive drops a 200
                     $form->get('category')->addError(new FormError($this->translator->trans(
@@ -155,40 +177,26 @@ final class EditCompetitionRoundController extends AbstractController
             'round' => $round,
             'single_day' => $singleDay,
             'revealed_right_away' => $revealedRightAway,
+            'reveal_confirmation_hash' => SecretRevealPreview::hash($revealedRightAway),
+            'timezone' => $timezone,
         ]);
-    }
-
-    /**
-     * Names of the secret puzzles a new start reveals at once: hidden now, and their automatic reveal (start + 10 min)
-     * would already be over.
-     *
-     * @return list<string>
-     */
-    private function revealedRightAway(CompetitionRound $round, DateTimeImmutable $newStartsAt, DateTimeImmutable $now): array
-    {
-        $names = [];
-        $newAutomaticReveal = RoundPuzzleReveal::Automatic->revealAt($newStartsAt, null);
-
-        foreach ($round->roundPuzzles as $roundPuzzle) {
-            if (
-                $roundPuzzle->isHiddenAt($now)
-                && $roundPuzzle->revealMode === RoundPuzzleReveal::Automatic
-                && $newAutomaticReveal !== null
-                && $newAutomaticReveal <= $now
-            ) {
-                $names[] = $roundPuzzle->puzzle->name;
-            }
-        }
-
-        return $names;
     }
 
     /**
      * A moved round moves the automatic reveals of its secret puzzles - say when they are revealed now, and that the
      * organiser's own reveal times did not move.
      */
-    private function flashRoundUpdated(CompetitionRound $round, bool $startMoved, string $timezone): void
+    /**
+     * @param list<array{id: string, name: string, everywhere: bool, hiddenElsewhereUntil: null|DateTimeImmutable}> $revealed
+     */
+    private function flashRoundUpdated(CompetitionRound $round, bool $startMoved, string $timezone, array $revealed): void
     {
+        if ($revealed !== []) {
+            $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.round_updated_revealed', [
+                '%puzzles%' => implode(', ', array_column($revealed, 'name')),
+            ]));
+        }
+
         $now = $this->clock->now();
         $automaticRevealsAt = null;
         $ownRevealStaysPut = false;

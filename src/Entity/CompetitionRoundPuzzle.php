@@ -111,6 +111,16 @@ class CompetitionRoundPuzzle implements EntityWithEvents
     }
 
     /**
+     * The round's start moves after this automatic reveal already happened: the reveal stays where it was (the puzzle is
+     * public), it does not follow the round into the future.
+     */
+    public function pinRevealAt(DateTimeImmutable $revealedAt): void
+    {
+        $this->revealMode = RoundPuzzleReveal::Scheduled;
+        $this->revealAt = $revealedAt->setTimezone(new DateTimeZone('UTC'));
+    }
+
+    /**
      * The puzzle was not public when this row made it secret - see $hidesEverywhere.
      */
     public function keepHiddenEverywhere(): void
@@ -119,12 +129,13 @@ class CompetitionRoundPuzzle implements EntityWithEvents
     }
 
     /**
-     * A puzzle merge moved this round's puzzle onto another record. The row keeps what it promised the organiser;
-     * merges of hidden puzzles are refused, so this only moves rows of public puzzles.
+     * A puzzle merge moved this round's puzzle onto another record. Merges of secret puzzles are refused, so only rows
+     * of public puzzles move - and on the survivor (a public catalogue puzzle) the row never hides anything again.
      */
     public function moveToPuzzle(Puzzle $puzzle): void
     {
         $this->puzzle = $puzzle;
+        $this->hidesEverywhere = false;
     }
 
     /**

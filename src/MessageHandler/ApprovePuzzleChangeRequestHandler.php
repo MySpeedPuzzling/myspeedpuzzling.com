@@ -94,6 +94,8 @@ readonly final class ApprovePuzzleChangeRequestHandler
             $values,
             $changeRequest->proposedImage,
             $changeRequest->proposedImageRatio,
+            // Only an admin corrects a secret competition puzzle before its reveal
+            allowSecret: $reviewer->isAdmin,
         );
 
         $changeRequest->approve($reviewer, $this->clock->now());

@@ -21,6 +21,8 @@ final class RoundTimezoneTest extends TestCase
         self::assertSame('America/New_York', RoundTimezone::resolve(null, 'us'));
         self::assertSame('Europe/Vienna', RoundTimezone::resolve(null, 'at'));
         self::assertSame(RoundTimezone::FALLBACK, RoundTimezone::resolve(null, null));
+        // An edition without a country of its own: its series' country
+        self::assertSame('America/Toronto', RoundTimezone::resolve(null, null, 'ca'));
         self::assertSame(RoundTimezone::FALLBACK, RoundTimezone::resolve('Not/AZone', null));
     }
 

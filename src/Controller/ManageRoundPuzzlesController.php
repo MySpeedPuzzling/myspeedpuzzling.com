@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetRoundPuzzlesForManagement;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -20,9 +21,15 @@ final class ManageRoundPuzzlesController extends AbstractController
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly GetRoundPuzzlesForManagement $getRoundPuzzlesForManagement,
+        private readonly ClockInterface $clock,
     ) {
     }
 
+    /**
+     * @param null|array{roundPuzzleId: string, message: string, hideMode: string, revealMode: string, revealAt: string} $revealError
+     *        a refused "Change reveal" (ChangeRoundPuzzleRevealController forwards here) - its card opens again with
+     *        the error and what was typed
+     */
     #[Route(
         path: [
             'cs' => '/sprava-puzzli-kola/{roundId}',
@@ -34,7 +41,7 @@ final class ManageRoundPuzzlesController extends AbstractController
         ],
         name: 'manage_round_puzzles',
     )]
-    public function __invoke(string $roundId): Response
+    public function __invoke(string $roundId, null|array $revealError = null): Response
     {
         $round = $this->competitionRoundRepository->get($roundId);
         $competitionId = $round->competition->id->toString();
@@ -47,6 +54,8 @@ final class ManageRoundPuzzlesController extends AbstractController
             'competition' => $competition,
             'round' => $round,
             'puzzles' => $puzzles,
+            'reveal_error' => $revealError,
+            'now' => $this->clock->now(),
         ]);
     }
 }

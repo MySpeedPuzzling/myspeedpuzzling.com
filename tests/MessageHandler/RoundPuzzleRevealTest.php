@@ -206,7 +206,7 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         self::assertSame($laterReveal->getTimestamp(), $this->puzzle($puzzleId)->hideUntil?->getTimestamp());
     }
 
-    public function testBackfillMarksOnlyTheRoundThatCreatedThePuzzle(): void
+    public function testBackfillMarksTheCreatingRoundAndTheLaterRoundsOfThatPuzzle(): void
     {
         $puzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleHideMode::Entirely);
         $creating = $this->roundPuzzleOf(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, $puzzleId);
@@ -232,19 +232,25 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         $this->entityManager->clear();
 
         $dryRun = $this->backfill(dryRun: true);
-        self::assertCount(1, $dryRun['changes']);
-        self::assertStringContainsString($creating, $dryRun['changes'][0]);
+        // The creating row, and the same puzzle's later round (listed as "also")
+        self::assertCount(2, $dryRun['changes']);
+        self::assertTrue($this->containsLineFor($dryRun['changes'], $creating));
+        self::assertTrue($this->containsLineFor($dryRun['changes'], $second->id->toString()));
         self::assertFalse($this->roundPuzzle($creating)->hidesEverywhere);
         self::assertTrue($this->containsLineFor($dryRun['unmatched'], PuzzleFixture::PUZZLE_500_04));
 
         $changes = $this->backfill(dryRun: false);
-        self::assertCount(1, $changes['changes']);
+        self::assertCount(2, $changes['changes']);
         self::assertTrue($this->roundPuzzle($creating)->hidesEverywhere);
-        self::assertFalse($this->roundPuzzle($second->id->toString())->hidesEverywhere);
+        self::assertTrue($this->roundPuzzle($second->id->toString())->hidesEverywhere);
 
+        // "Entirely" from the creating round, the picture until the later (image only) round's reveal
         $creatingReveal = $this->roundPuzzle($creating)->revealsAt();
+        $secondReveal = $this->roundPuzzle($second->id->toString())->revealsAt();
         self::assertNotNull($creatingReveal);
+        self::assertNotNull($secondReveal);
         self::assertSame($creatingReveal->getTimestamp(), $this->puzzle($puzzleId)->hideUntil?->getTimestamp());
+        self::assertSame($secondReveal->getTimestamp(), $this->puzzle($puzzleId)->hideImageUntil?->getTimestamp());
         self::assertEquals(new DateTimeImmutable('2099-01-01 00:00:00'), $this->puzzle(PuzzleFixture::PUZZLE_500_04)->hideUntil);
 
         // Idempotent

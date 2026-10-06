@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
+use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
@@ -61,13 +62,12 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
             return $backToPuzzles;
         }
 
+        $puzzleName = $roundPuzzle->puzzle->name;
         $hideMode = PuzzleHideMode::tryFrom((string) $request->request->get('hide_mode'));
         $revealMode = RoundPuzzleReveal::tryFrom((string) $request->request->get('reveal_mode'));
 
         if ($hideMode === null || $revealMode === null) {
-            $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.invalid'));
-
-            return $backToPuzzles;
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.invalid');
         }
 
         $scheduledAt = null;
@@ -81,9 +81,7 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
                     $round->displayTimezone(),
                 );
             } catch (InvalidLocalTime) {
-                $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.invalid_time'));
-
-                return $backToPuzzles;
+                return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.invalid_time');
             }
         }
 
@@ -95,19 +93,38 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
                 scheduledAt: $scheduledAt,
             ));
         } catch (RevealMomentAlreadyPassed) {
-            $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.time_passed'));
-
-            return $backToPuzzles;
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.time_passed');
         } catch (RoundPuzzleAlreadyRevealed) {
-            $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.already_revealed'));
-
-            return $backToPuzzles;
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.already_revealed');
+        } catch (PuzzleHiddenByHand) {
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.puzzle_hidden_by_hand');
         }
 
         $this->addFlash('success', $this->translator->trans('competition.reveal.flash.saved', [
-            '%puzzle%' => $roundPuzzle->puzzle->name,
+            '%puzzle%' => $puzzleName,
         ]));
 
         return $backToPuzzles;
+    }
+
+    /**
+     * The round's puzzles page again (422), the refused card open with the error and with what was typed - nothing is
+     * lost and nothing was saved.
+     */
+    private function refused(Request $request, string $roundPuzzleId, string $roundId, string $messageKey): Response
+    {
+        $response = $this->forward(ManageRoundPuzzlesController::class, [
+            'roundId' => $roundId,
+            'revealError' => [
+                'roundPuzzleId' => $roundPuzzleId,
+                'message' => $this->translator->trans($messageKey),
+                'hideMode' => (string) $request->request->get('hide_mode'),
+                'revealMode' => (string) $request->request->get('reveal_mode'),
+                'revealAt' => (string) $request->request->get('reveal_at'),
+            ],
+        ]);
+        $response->setStatusCode(Response::HTTP_UNPROCESSABLE_ENTITY);
+
+        return $response;
     }
 }

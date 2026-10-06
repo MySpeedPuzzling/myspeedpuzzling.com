@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
@@ -75,6 +76,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private GetRecentIdenticalSolvingTime $getRecentIdenticalSolvingTime,
         private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
         private IdLock $idLock,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -133,6 +135,10 @@ readonly final class AddPuzzleSolvingTimeHandler
         }
 
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
+
+        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
+
+        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $player->id->toString());
         $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
         $solvingTimeId = $message->timeId;
         $finishedPuzzlePhotoPath = null;

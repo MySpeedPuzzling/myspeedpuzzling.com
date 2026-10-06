@@ -29,6 +29,8 @@ readonly final class RoundPuzzleForManagement
         public bool $hidden = false,
         // What is effectively true right now - the line the organiser reads
         public null|RoundPuzzleStatus $status = null,
+        // The organiser may let this round keep the puzzle hidden everywhere (RoundPuzzleOwnership)
+        public bool $mayKeepHiddenEverywhere = false,
     ) {
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
 use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
@@ -20,11 +21,22 @@ readonly final class RevealRoundPuzzleNowHandler
     ) {
     }
 
+    /**
+     * @throws RoundPuzzleAlreadyRevealed
+     */
     public function __invoke(RevealRoundPuzzleNow $message): void
     {
-        $roundPuzzle = $this->competitionRoundPuzzleRepository->get($message->roundPuzzleId);
+        $this->secretPuzzleHides->lockPuzzleOfRoundPuzzle($message->roundPuzzleId);
 
-        $roundPuzzle->revealNow($this->clock->now());
+        $roundPuzzle = $this->competitionRoundPuzzleRepository->get($message->roundPuzzleId);
+        $now = $this->clock->now();
+
+        // Nothing to reveal - and its reveal moment, shown as "Revealed …", must not move to now
+        if ($roundPuzzle->isHiddenAt($now) === false) {
+            throw new RoundPuzzleAlreadyRevealed();
+        }
+
+        $roundPuzzle->revealNow($now);
 
         // Another round may still keep the puzzle secret on the whole site - the latest reveal wins
         $this->secretPuzzleHides->resync($roundPuzzle->puzzle);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEligibleForMarketplace;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -151,6 +152,7 @@ final class MarketplaceListing
         readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
         readonly private GetEventsWithSellersGoing $getEventsWithSellersGoing,
         readonly private GetMarketplaceEvents $getMarketplaceEvents,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -221,7 +223,7 @@ final class MarketplaceListing
             shipsToCountry: $this->getShipsToCountry(),
             sellerCountry: $this->getSellerCountry(),
             sellerId: $this->getMyOffersSellerId(),
-            puzzleId: $this->puzzleId !== '' && Uuid::isValid($this->puzzleId) ? $this->puzzleId : null,
+            puzzleId: $this->visiblePuzzleId(),
             sort: $this->sort,
             limit: $this->page * self::PER_PAGE,
             offset: 0,
@@ -260,7 +262,7 @@ final class MarketplaceListing
             shipsToCountry: $this->getShipsToCountry(),
             sellerCountry: $this->getSellerCountry(),
             sellerId: $this->getMyOffersSellerId(),
-            puzzleId: $this->puzzleId !== '' && Uuid::isValid($this->puzzleId) ? $this->puzzleId : null,
+            puzzleId: $this->visiblePuzzleId(),
             difficultyTiers: $this->getDifficultyFilter(),
             event: $this->getChosenEvent()?->competitionId,
             onlyBringing: $this->onlyBringing,
@@ -439,9 +441,22 @@ final class MarketplaceListing
         return $this->filteredPuzzleOverview;
     }
 
-    private function loadFilteredPuzzleOverview(): null|PuzzleOverview
+    /**
+     * The puzzle filter - a writable prop, so a secret competition puzzle's id is no filter for anybody but its
+     * organisers (SecretPuzzleAccess): neither its name nor its listings come out before the reveal.
+     */
+    private function visiblePuzzleId(): null|string
     {
         if ($this->puzzleId === '' || !Uuid::isValid($this->puzzleId)) {
+            return null;
+        }
+
+        return $this->secretPuzzleAccess->isHiddenFromViewer($this->puzzleId) ? null : $this->puzzleId;
+    }
+
+    private function loadFilteredPuzzleOverview(): null|PuzzleOverview
+    {
+        if ($this->visiblePuzzleId() === null) {
             return null;
         }
 

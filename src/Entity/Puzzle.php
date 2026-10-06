@@ -177,6 +177,15 @@ class Puzzle
         $this->hideImageUntil = $imageHiddenUntil;
     }
 
+    /**
+     * The image object moved to another name (a secret puzzle's guessable name replaced by a random one) - the picture
+     * itself is the same.
+     */
+    public function moveImageTo(string $newPath): void
+    {
+        $this->image = $newPath;
+    }
+
     public function isHiddenAt(DateTimeImmutable $now): bool
     {
         return $this->hideUntil !== null && $this->hideUntil > $now;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Marketplace;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetMarketplaceEventsHintState;
@@ -24,6 +25,7 @@ final class MarketplaceController extends AbstractController
         readonly private IsHintDismissed $isHintDismissed,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetMarketplaceEventsHintState $getMarketplaceEventsHintState,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -86,6 +88,9 @@ final class MarketplaceController extends AbstractController
 
         $puzzleOverview = null;
         if ($puzzleId !== '' && Uuid::isValid($puzzleId)) {
+            // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+            $this->secretPuzzleAccess->assertVisible($puzzleId);
+
             try {
                 $puzzleOverview = $this->getPuzzleOverview->byId($puzzleId);
             } catch (PuzzleNotFound) {

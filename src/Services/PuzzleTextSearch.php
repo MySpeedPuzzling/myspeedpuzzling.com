@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\PuzzleSearchQuery;
 
 /**
@@ -104,9 +105,15 @@ readonly final class PuzzleTextSearch
     /**
      * @return array<string, string>
      */
-    public function parameters(): array
+    public function parameters(null|DateTimeImmutable $now = null): array
     {
+        // The code tests compare with :ptsNow - pass the clock's now whenever condition() or score() is used
+        $codesNow = $now !== null && $this->query->isEmpty() === false
+            ? $now->format('Y-m-d H:i:s')
+            : null;
+
         return array_filter([
+            'ptsNow' => $codesNow,
             'ptsNamesContains' => $this->query->namesContains,
             'ptsNamesWhole' => $this->query->namesWhole,
             'ptsNamesStart' => $this->query->namesStart,
@@ -139,11 +146,11 @@ readonly final class PuzzleTextSearch
 
     /**
      * A puzzle whose picture a competition keeps secret is never found by its codes - an EAN or brand code gives the
-     * box away (PuzzleSecrecy). The database's own clock in UTC, like every stored instant: no caller binds a time.
+     * box away (PuzzleSecrecy). :ptsNow is the clock's now, bound by parameters($now) like every other surface.
      */
     private static function codesPublic(string $alias): string
     {
-        $now = "(now() AT TIME ZONE 'UTC')";
+        $now = ':ptsNow::timestamp';
 
         return "(({$alias}.hide_image_until IS NULL OR {$alias}.hide_image_until <= {$now})"
             . " AND ({$alias}.hide_until IS NULL OR {$alias}.hide_until <= {$now}))";

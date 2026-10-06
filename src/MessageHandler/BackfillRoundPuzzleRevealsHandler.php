@@ -6,12 +6,15 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
+use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
+use SpeedPuzzling\Web\Value\RoundPuzzleOwnership;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -25,12 +28,12 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 readonly final class BackfillRoundPuzzleRevealsHandler
 {
-    private const int CREATED_TOGETHER_SECONDS = 120;
-
     public function __construct(
         private EntityManagerInterface $entityManager,
         private SecretPuzzleHides $secretPuzzleHides,
         private ClockInterface $clock,
+        private Filesystem $filesystem,
+        private PuzzleImageNamer $puzzleImageNamer,
     ) {
     }
 
@@ -78,8 +81,42 @@ readonly final class BackfillRoundPuzzleRevealsHandler
             }
         }
 
+        // The same secret puzzle used later in another round (added as an existing puzzle): that round keeps it secret
+        // too - its reveal counts for the puzzle's site-wide hide like the creating one's
+        foreach ($roundPuzzles as $roundPuzzle) {
+            $revealsAt = $roundPuzzle->revealsAt();
+
+            if (
+                isset($changes[$roundPuzzle->id->toString()])
+                || isset($matchedPuzzles[$roundPuzzle->puzzle->id->toString()]) === false
+                || ($revealsAt !== null && $revealsAt <= $now)
+            ) {
+                continue;
+            }
+
+            $puzzle = $roundPuzzle->puzzle;
+            $before = sprintf('also: hide_until %s, hide_image_until %s', self::format($puzzle->hideUntil), self::format($puzzle->hideImageUntil));
+            $changes[$roundPuzzle->id->toString()] = [$roundPuzzle, $before];
+
+            if ($message->dryRun === false) {
+                $roundPuzzle->keepHiddenEverywhere();
+            }
+        }
+
+        $movedImages = [];
+
         if ($message->dryRun === false) {
             $this->secretPuzzleHides->resync(...array_values($matchedPuzzles));
+
+            // A secret puzzle created before random image names has a guessable one (brand-name-pieces-idprefix) - with
+            // "hide image only" its name and id are public. Move the image to a random name while it is still hidden.
+            foreach ($matchedPuzzles as $puzzle) {
+                $moved = $this->moveGuessableImage($puzzle, $now);
+
+                if ($moved !== null) {
+                    $movedImages[] = $moved;
+                }
+            }
         }
 
         $lines = [];
@@ -103,7 +140,36 @@ readonly final class BackfillRoundPuzzleRevealsHandler
             );
         }
 
-        return ['changes' => $lines, 'unmatched' => $this->unmatchedHiddenPuzzles($now, array_keys($matchedPuzzles))];
+        return [
+            'changes' => [...$lines, ...$movedImages],
+            'unmatched' => $this->unmatchedHiddenPuzzles($now, array_keys($matchedPuzzles)),
+        ];
+    }
+
+    /**
+     * Copies the object to a random name, points the puzzle at it and deletes the old one. The images cache (nginx in
+     * front of imgproxy) may still hold thumbnails requested under the old name - see docs (no purge endpoint).
+     */
+    private function moveGuessableImage(Puzzle $puzzle, DateTimeImmutable $now): null|string
+    {
+        $oldPath = $puzzle->image;
+
+        if ($oldPath === null || $puzzle->isImageHiddenAt($now) === false) {
+            return null;
+        }
+
+        $extension = pathinfo($oldPath, PATHINFO_EXTENSION);
+        $newPath = $this->puzzleImageNamer->secretFilename($extension !== '' ? $extension : 'jpg');
+
+        if ($this->filesystem->fileExists($oldPath) === false) {
+            return sprintf('image of puzzle %s: %s is missing in storage - left as it is', $puzzle->id->toString(), $oldPath);
+        }
+
+        $this->filesystem->copy($oldPath, $newPath);
+        $puzzle->moveImageTo($newPath);
+        $this->filesystem->delete($oldPath);
+
+        return sprintf('image of puzzle %s moved: %s -> %s', $puzzle->id->toString(), $oldPath, $newPath);
     }
 
     /**
@@ -157,7 +223,7 @@ readonly final class BackfillRoundPuzzleRevealsHandler
             return false;
         }
 
-        return abs($puzzleCreatedAt - $roundPuzzleCreatedAt) <= self::CREATED_TOGETHER_SECONDS * 1000;
+        return abs($puzzleCreatedAt - $roundPuzzleCreatedAt) <= RoundPuzzleOwnership::CREATED_TOGETHER_SECONDS * 1000;
     }
 
     /**

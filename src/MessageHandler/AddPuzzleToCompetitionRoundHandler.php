@@ -11,6 +11,9 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
+use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
@@ -39,22 +42,43 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         private ImageOptimizer $imageOptimizer,
         private PuzzleImageNamer $puzzleImageNamer,
         private GetCompetitionRounds $getCompetitionRounds,
+        private IsPuzzleKeptSecret $isPuzzleKeptSecret,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
     /**
      * @throws PuzzleAlreadyInCompetitionRoundCategory
+     * @throws PuzzleHiddenByHand
      */
     public function __invoke(AddPuzzleToCompetitionRound $message): void
     {
-        $round = $this->competitionRoundRepository->get($message->roundId);
-
         $isNewPuzzle = !Uuid::isValid($message->puzzle);
+
+        if ($isNewPuzzle === false) {
+            // Waits for every other change of this puzzle's secret rows, then reads fresh (SecretPuzzleHides::lock())
+            $this->secretPuzzleHides->lock([$message->puzzle]);
+        }
+
+        $round = $this->competitionRoundRepository->get($message->roundId);
+        $puzzleKeptSecret = false;
 
         if ($isNewPuzzle) {
             $puzzle = $this->createNewPuzzle($message);
         } else {
             $puzzle = $this->puzzleRepository->get($message->puzzle);
+
+            // Another organiser's secret puzzle is not theirs to use
+            $this->secretPuzzleAccess->assertPuzzleUsableBy(
+                $puzzle,
+                $this->playerRepository->getByUserIdCreateIfNotExists($message->userId)->id->toString(),
+            );
+
+            // A puzzle hidden by hand (a placeholder) is no round's to hide or reveal
+            $puzzleKeptSecret = $this->isPuzzleKeptSecret->byId($puzzle->id->toString());
+            if ($puzzle->isImageHiddenAt($this->clock->now()) && $puzzleKeptSecret === false) {
+                throw new PuzzleHiddenByHand();
+            }
 
             $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
                 competitionId: $round->competition->id->toString(),
@@ -76,7 +100,7 @@ readonly final class AddPuzzleToCompetitionRoundHandler
             hideUntilRoundStarts: $message->hideUntilRoundStarts,
             hideMode: $message->hideUntilRoundStarts ? $message->hideMode : null,
             hidesEverywhere: $message->hideUntilRoundStarts
-                && ($isNewPuzzle || $puzzle->isImageHiddenAt($this->clock->now())),
+                && ($isNewPuzzle || $puzzleKeptSecret),
         );
 
         $this->competitionRoundPuzzleRepository->save($roundPuzzle);

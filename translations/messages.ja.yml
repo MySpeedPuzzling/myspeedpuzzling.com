@@ -3592,6 +3592,7 @@ qr_code:
     "msp_player": "MSPプレイヤー"
     "rounds": "ラウンド"
     "no_participants": "まだ参加者がいません。手動で参加者を追加するか、ファイルからインポートしてください。"
+    "name_required": "参加者の名前を入力してください。"
     "restore": "復元"
     "edit": "編集"
     "delete": "削除"

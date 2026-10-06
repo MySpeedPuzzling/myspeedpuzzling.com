@@ -40,14 +40,14 @@
     </div>
 
     {% if this.showAddForm %}
-        <div class="card mb-3 border-primary">
+        <div class="card mb-3 border-primary" id="participant-add-form">
             <div class="card-body">
                 <h6 class="card-title mb-3">{{ 'competition.participants.add'|trans }}</h6>
                 <div class="row g-2 mb-2">
                     <div class="col-md-4">
                         <input type="text" class="form-control form-control-sm" placeholder="{{ 'competition.participants.name'|trans }}" data-model="addName" autofocus>
                     </div>
-                    <div class="col-md-3 country-select-wrapper" data-live-ignore>
+                    <div class="col-md-3 country-select-wrapper" id="participant-add-form-country" data-live-ignore>
                         <select
                             data-model="on(change)|addCountry"
                             data-controller="country-select"
@@ -131,16 +131,30 @@
                 {% for participant in this.participants %}
                     {% if this.searchQuery == '' or participant.participantName|lower is same as(this.searchQuery|lower) or (participant.participantName|lower starts with this.searchQuery|lower) or (this.searchQuery|lower in participant.participantName|lower) %}
                     {% if this.editingParticipantId == participant.participantId %}
-                        {# EDIT MODE #}
-                        <tr class="table-warning">
+                        {# EDIT MODE - an id of its own per participant: the row is built anew, nothing of another participant's form is morphed into it #}
+                        <tr class="table-warning" id="participant-{{ participant.participantId }}-edit">
                             <td>
-                                <input type="text" class="form-control form-control-sm" data-model="editName" autofocus>
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm{{ this.editNameMissing ? ' is-invalid' }}"
+                                    data-model="editName"
+                                    value="{{ this.editName }}"
+                                    aria-label="{{ 'competition.participants.name'|trans }}"
+                                    {% if this.editNameMissing %}aria-describedby="participant-{{ participant.participantId }}-name-error"{% endif %}
+                                    autofocus
+                                >
+                                {% if this.editNameMissing %}
+                                    <div class="invalid-feedback" id="participant-{{ participant.participantId }}-name-error">{{ 'competition.participants.name_required'|trans }}</div>
+                                {% endif %}
                             </td>
-                            <td class="country-select-wrapper" data-live-ignore>
+                            <td class="country-select-wrapper">
+                                {# data-live-ignore keeps TomSelect alive while editing; the id ties it to this participant's form only #}
+                                <div id="participant-{{ participant.participantId }}-edit-country" data-live-ignore>
                                 <select
                                     data-model="on(change)|editCountry"
                                     data-controller="country-select"
                                     class="form-select form-select-sm"
+                                    aria-label="{{ 'competition.participants.country'|trans }}"
                                 >
                                     <option value="">—</option>
                                     {% for regionName, countries in this.countryChoicesGroupedByRegion %}
@@ -151,9 +165,10 @@
                                         </optgroup>
                                     {% endfor %}
                                 </select>
+                                </div>
                             </td>
                             <td>
-                                <input type="text" class="form-control form-control-sm" data-model="editExternalId">
+                                <input type="text" class="form-control form-control-sm" data-model="editExternalId" value="{{ this.editExternalId }}" aria-label="{{ 'competition.participants.external_id'|trans }}">
                             </td>
                             <td>
                                 {% if this.editPlayerId %}
@@ -189,6 +204,8 @@
                                 {% for roundId, round in this.competitionRounds %}
                                     {% set isAssigned = roundId in this.editRoundIds %}
                                     <button
+                                        type="button"
+                                        aria-pressed="{{ isAssigned ? 'true' : 'false' }}"
                                         class="btn btn-sm px-2 py-0 mb-1 border-0"
                                         style="opacity: {{ isAssigned ? '1' : '0.3' }}; background: {{ round.color }} !important; color: {{ round.textColor }} !important; font-size: 0.75rem;"
                                         data-action="live#action"
@@ -210,7 +227,7 @@
                         </tr>
                     {% else %}
                         {# DISPLAY MODE #}
-                        <tr class="{{ participant.isDeleted ? 'text-decoration-line-through text-muted' }}">
+                        <tr id="participant-{{ participant.participantId }}" class="{{ participant.isDeleted ? 'text-decoration-line-through text-muted' }}">
                             <td>{{ participant.participantName }}</td>
                             <td>
                                 {% if participant.participantCountry %}

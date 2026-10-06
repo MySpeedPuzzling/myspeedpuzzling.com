@@ -186,6 +186,13 @@ Each participant row can be edited inline (click ✏️ or click on the cell):
 
 Save/Cancel buttons appear inline when editing. Uses `#[LiveAction]` methods on the component.
 
+**A save writes every field of the form**, so the form must always hold exactly the participant being edited (fixed 2026-10-06 after the Wisconsin 2026 organiser's ~250 saves cleared countries, unlinked a player and renamed participants after the previous one):
+- `startEdit` loads the participant from the database (`GetCompetitionParticipantsForManagement::byId()`, scoped to the competition) - never from the page's list, which an action request has not loaded (`#[PostMount]`/`#[PreReRender]` only).
+- Save, cancel and deleting the edited row reset every edit field; a blank name is refused with a message, nothing is written.
+- Rows carry ids (`participant-{id}`, edit row `participant-{id}-edit`, its live-ignored country select `participant-{id}-edit-country`), so idiomorph never morphs one participant's form into another row. `live_controller.js` never removes a `data-live-ignore` node by itself - without the ids every closed form left its TomSelect behind in a display row, and Live reads every `select[data-model]` back into the model after a render.
+- Every Live request re-checks `CompetitionEditVoter` (`#[PostHydrate]`), and every participant id an action receives must belong to the component's competition; the handler ignores rounds of other competitions.
+- Guard: `tests/Component/ManageCompetitionParticipantsEditTest.php` (real Live requests, so hydration is the browser's).
+
 **Organizer can link any MSP player** to any participant without the player's consent. This is intentional — organizers need full control over participant pairing for competition management. The player can later disconnect themselves via the public event page if they disagree.
 
 ### Add Participant
@@ -224,6 +231,8 @@ Client-side filtering by participant name. Filters the visible table rows.
 | `status` | No | `active` (default) or `deleted` for soft-delete |
 
 **No `round_id` in import.** Round assignment is purely a management UI concern (inline Tom Select multiselect).
+
+> **Known gap (2026-10-06, see `docs/TODO.md`):** the importer reads one `round_name` (+ `team_name`) per row, but the template and the export write `round_names` (comma-separated) - so rounds in a downloaded template or an export are silently ignored on upload. The page's column help does not mention rounds at all, and only `.xlsx` is accepted (no CSV).
 
 ### Upsert Logic
 

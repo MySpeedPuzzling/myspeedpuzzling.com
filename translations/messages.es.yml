@@ -3602,6 +3602,7 @@ fair_use_policy:
     "msp_player": "Jugador MSP"
     "rounds": "Rondas"
     "no_participants": "Aún no hay participantes. Añade participantes manualmente o impórtalos desde un archivo."
+    "name_required": "Escribe el nombre del participante."
     "restore": "Restaurar"
     "edit": "Editar"
     "delete": "Eliminar"

@@ -59,9 +59,15 @@ class PersonalAccessToken
         $this->revokedAt = new DateTimeImmutable();
     }
 
-    public function updateLastUsedAt(): void
+    /**
+     * Stamped from the API usage counters (FlushApiUsageHandler), never moved back -
+     * the counters of several days are copied in no particular order.
+     */
+    public function markUsedAt(DateTimeImmutable $usedAt): void
     {
-        $this->lastUsedAt = new DateTimeImmutable();
+        if ($this->lastUsedAt === null || $this->lastUsedAt < $usedAt) {
+            $this->lastUsedAt = $usedAt;
+        }
     }
 
     public function isRevoked(): bool

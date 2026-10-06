@@ -295,6 +295,11 @@
                 <h3 class="h5">{{ 'edit_profile.personal_access_tokens'|trans }}</h3>
                 <p class="text-muted fs-sm mb-2">{{ 'edit_profile.personal_access_tokens_description'|trans }}</p>
                 <p class="fs-sm mb-3"><code>Authorization: Token msp_pat_...</code></p>
+                <p class="mb-3">
+                    <a class="btn btn-outline-primary btn-sm text-wrap" href="{{ path('api_usage') }}">
+                        <i class="bi bi-bar-chart me-1"></i>{{ 'api_usage.open'|trans }}
+                    </a>
+                </p>
 
                 {% if player.fairUsePolicyAccepted %}
                     {% for token in personal_access_tokens %}
@@ -312,6 +317,8 @@
                                         {% else %}
                                             {{ 'edit_profile.pat_never_used'|trans }}
                                         {% endif %}
+                                        <span class="mx-1">&middot;</span>
+                                        <a href="{{ path('api_usage', {show: 'pat-' ~ token.id}) }}">{{ 'api_usage.requests_last_30_days'|trans({'%count%': api_usage.personalAccessToken(token.id)}) }}</a>
                                     </div>
                                 </div>
                                 <form method="post" action="{{ path('revoke_personal_access_token', {tokenId: token.id}) }}" onsubmit="return confirm('{{ 'edit_profile.pat_revoke_confirm'|trans }}')">
@@ -352,6 +359,7 @@
                                     {% if consent.lastUsedAt is not null %}
                                         <br>{{ 'edit_profile.last_used_at'|trans }}: {{ consent.lastUsedAt|date('j. n. Y') }}
                                     {% endif %}
+                                    <br><a href="{{ path('api_usage', {show: 'app-' ~ consent.clientIdentifier}) }}">{{ 'api_usage.requests_last_30_days'|trans({'%count%': api_usage.connectedApp(consent.clientIdentifier)}) }}</a>
                                 </div>
                                 <div class="mt-1">
                                     {% for scope in consent.scopes %}
@@ -388,6 +396,7 @@
                                     {{ 'edit_profile.pat_created_at'|trans }}: {{ app.createdAt|date('j. n. Y') }}
                                     {% if app.clientIdentifier is not null %}
                                         <br>Client ID: <code>{{ app.clientIdentifier }}</code>
+                                        <br><a href="{{ path('api_usage', {show: 'own-' ~ app.clientIdentifier}) }}">{{ 'api_usage.app_requests_last_30_days'|trans({'%count%': api_usage.ownApp(app.clientIdentifier)}) }}</a>
                                     {% endif %}
                                     {% if app.rejectionReason is not null %}
                                         <br>Reason: {{ app.rejectionReason }}

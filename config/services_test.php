@@ -48,6 +48,11 @@ return static function (ContainerConfigurator $configurator): void {
         ->decorate('property_info')
         ->args([service('property_info.cache.inner'), service('cache.property_info')]);
 
+    // API usage counters without Redis - CI's functional tests run no Redis service
+    // (RedisApiUsageCounterTest covers the Lua script against a real one)
+    $services->set(\SpeedPuzzling\Web\Tests\TestDouble\InMemoryApiUsageCounter::class);
+    $services->alias(\SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter::class, \SpeedPuzzling\Web\Tests\TestDouble\InMemoryApiUsageCounter::class);
+
     // Mercure test double
     $services->set(NullMercureHub::class);
     $services->alias(HubInterface::class, NullMercureHub::class);

@@ -32,6 +32,12 @@ jobs:
           options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
           ports:
               - 5432:5432
+      # RedisApiUsageCounterTest runs the API usage Lua script against a real Redis
+      # (REDIS_STATE_DSN in .env = redis://redis-state:6379); functional tests use
+      # an in-memory counter and need no Redis
+      redis-state:
+          image: redis:7.2
+          options: --health-cmd "redis-cli ping" --health-interval 2s --health-timeout 5s --health-retries 15
     steps:
       -   uses: actions/checkout@v7
       -   uses: actions/cache@v6

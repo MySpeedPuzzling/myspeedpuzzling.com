@@ -16,6 +16,8 @@ use Sentry\Monolog\LogToSentryIssueHandler;
 use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
 use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
+use SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter;
+use SpeedPuzzling\Web\Services\ApiUsage\RedisApiUsageCounter;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
@@ -26,6 +28,7 @@ use SpeedPuzzling\Web\Services\Storage\UploadSpoolProcessor;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
 use Symfony\Bridge\Doctrine\SchemaListener\PdoSessionHandlerSchemaListener;
+use Symfony\Component\Cache\Adapter\RedisAdapter;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 
@@ -354,6 +357,22 @@ return static function (ContainerConfigurator $configurator): void {
             service(HubInterface::class),
             Level::Info,
         ]);
+
+    // API usage counters (docs/features/api/usage-statistics.md) live in their own
+    // Redis (`redis-state`: noeviction + AOF). Lazy: the subscriber is built on every
+    // request, the connection only on an API request. Short timeouts - the counting
+    // runs after the response, but it still holds a FrankenPHP thread while it waits.
+    $services->set('api_usage.redis', \Redis::class)
+        ->factory([RedisAdapter::class, 'createConnection'])
+        ->args([
+            env('REDIS_STATE_DSN'),
+            ['lazy' => true, 'timeout' => 0.5, 'read_timeout' => 0.5],
+        ]);
+
+    $services->set(RedisApiUsageCounter::class)
+        ->arg('$redis', service('api_usage.redis'));
+
+    $services->alias(ApiUsageCounter::class, RedisApiUsageCounter::class);
 
     // Sentry Traces Sampler with profiling trigger support
     $services->set(SentryTracesSampler::class)

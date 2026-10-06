@@ -560,6 +560,11 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_api_usage' %}active{% endif %}" href="{{ path('admin_api_usage') }}">
+                                            API usage
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_duplicate_results' %}active{% endif %}" href="{{ path('admin_duplicate_results') }}">
                                             Duplicate results
                                         </a>

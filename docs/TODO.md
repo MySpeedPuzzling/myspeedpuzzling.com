@@ -4,6 +4,11 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## API usage statistics (`docs/features/api/usage-statistics.md`)
+
+- [ ] API-wide rate limiting: one Redis Lua script (GCRA / sliding window) on `kernel.request` in `redis-state`, keyed by `ApiCaller`, limits chosen from `api_caller_day.peak_requests_per_minute` once there are a few weeks of data; fold `api_puzzle_search` into it (design in the doc, "Later: rate limiting").
+- [ ] Look at the busiest-minute numbers on `/admin/api-usage` around mid-November 2026 and decide the limits.
+
 ## Participant management after the edit-form bug (`docs/features/competitions-management/participants.md`)
 
 - [ ] Wisconsin 2026 participant data repair: pending organiser's answer, script kept privately by Jan.

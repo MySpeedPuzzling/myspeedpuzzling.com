@@ -30,6 +30,31 @@ final readonly class PersonalAccessTokenRepository
         return $result;
     }
 
+    /**
+     * Revoked tokens included - their usage before the revocation still counts.
+     *
+     * @param list<string> $ids
+     * @return list<PersonalAccessToken>
+     */
+    public function findByIds(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        /** @var list<PersonalAccessToken> $result */
+        $result = $this->entityManager
+            ->createQueryBuilder()
+            ->select('t')
+            ->from(PersonalAccessToken::class, 't')
+            ->where('t.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->getQuery()
+            ->getResult();
+
+        return $result;
+    }
+
     public function save(PersonalAccessToken $token): void
     {
         $this->entityManager->persist($token);

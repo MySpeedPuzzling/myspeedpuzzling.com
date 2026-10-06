@@ -12,6 +12,8 @@ final readonly class PatUser implements ApiUser
 
     public function __construct(
         private Player $player,
+        // Which of the player's tokens made the request - the API usage statistics count per token
+        public string $personalAccessTokenId,
     ) {
     }
 

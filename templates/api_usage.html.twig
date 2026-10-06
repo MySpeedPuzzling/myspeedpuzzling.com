@@ -1,0 +1,127 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'api_usage.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <p class="mb-2">
+            <a href="{{ path('edit_profile') }}" class="fs-sm"><i class="bi bi-arrow-left me-1"></i>{{ 'api_usage.back_to_profile'|trans }}</a>
+        </p>
+        <h1 class="h2">{{ 'api_usage.title'|trans }}</h1>
+        <p class="text-muted fs-sm">{{ 'api_usage.description'|trans }}</p>
+
+        {% set query = selected is not null ? {show: selected.key} : {} %}
+
+        <div class="d-flex align-items-center gap-2 my-3">
+            {% if month.previous is not null %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ path('api_usage', query|merge({month: month.previous.value})) }}" aria-label="{{ 'api_usage.previous_month'|trans }}"><i class="bi bi-chevron-left"></i></a>
+            {% endif %}
+            <h2 class="h5 mb-0 text-capitalize">{{ month.start|format_date(pattern: 'LLLL y') }}</h2>
+            {% if month.next is not null %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ path('api_usage', query|merge({month: month.next.value})) }}" aria-label="{{ 'api_usage.next_month'|trans }}"><i class="bi bi-chevron-right"></i></a>
+            {% endif %}
+        </div>
+
+        {% if options is empty %}
+            <div class="card card-body shadow my-3">
+                <p class="text-muted mb-0">{{ 'api_usage.nothing_to_show'|trans }}</p>
+            </div>
+        {% else %}
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <a href="{{ path('api_usage', {month: month.value}) }}" class="btn btn-sm d-inline-flex align-items-center {{ selected is null ? 'btn-primary' : 'btn-outline-primary' }}"{% if selected is null %} aria-current="true"{% endif %}>
+                    {{ 'api_usage.all_my_usage'|trans }}
+                </a>
+                {% for option in options %}
+                    <a href="{{ path('api_usage', {month: month.value, show: option.key}) }}"
+                       class="btn btn-sm text-wrap text-start {{ selected is not null and selected.key == option.key ? 'btn-primary' : 'btn-outline-primary' }}"
+                       {% if selected is not null and selected.key == option.key %}aria-current="true"{% endif %}>
+                        <span class="opacity-75 fs-xs d-block text-start">{{ ('api_usage.group.' ~ option.group)|trans }}</span>
+                        {{ option.label }}
+                        <span class="badge rounded-pill bg-light text-dark ms-1">{{ option.requests|number_format(0, '.', ' ') }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+
+            {% if selected is not null and selected.group == 'own' %}
+                <p class="text-muted fs-sm">{{ 'api_usage.own_app_note'|trans }}</p>
+            {% endif %}
+
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-md-3">
+                    <div class="card card-body shadow-sm h-100">
+                        <div class="h4 mb-1">{{ totals.requests|number_format(0, '.', ' ') }}</div>
+                        <div class="fs-sm text-muted">{{ 'api_usage.requests'|trans }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card card-body shadow-sm h-100">
+                        <div class="h4 mb-1">
+                            {{ totals.failed|number_format(0, '.', ' ') }}
+                            {% if totals.failedPercent is not null %}<small class="text-muted fs-sm">({{ totals.failedPercent }} %)</small>{% endif %}
+                        </div>
+                        <div class="fs-sm text-muted">{{ 'api_usage.failed'|trans }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card card-body shadow-sm h-100">
+                        <div class="h4 mb-1">{{ totals.peakRequestsPerMinute ?? '-' }}</div>
+                        <div class="fs-sm text-muted">{{ 'api_usage.peak_per_minute'|trans }}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card card-body shadow-sm h-100">
+                        <div class="h4 mb-1">{{ totals.lastRequestAt is not null ? totals.lastRequestAt|format_datetime('short', 'short') : '-' }}</div>
+                        <div class="fs-sm text-muted">{{ 'api_usage.last_request'|trans }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if totals.requests == 0 %}
+                <div class="card card-body shadow-sm my-3">
+                    <p class="text-muted mb-0">{{ 'api_usage.no_requests'|trans }}</p>
+                </div>
+            {% else %}
+                <div class="card card-body shadow-sm mb-3">
+                    <h3 class="h6">{{ 'api_usage.per_day'|trans }}</h3>
+                    <div style="height: 260px">
+                        {{ render_chart(chart) }}
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body pb-0">
+                        <h3 class="h6">{{ 'api_usage.per_request_type'|trans }}</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>{{ 'api_usage.request_type'|trans }}</th>
+                                    <th class="text-end">{{ 'api_usage.requests'|trans }}</th>
+                                    <th class="text-end">{{ 'api_usage.failed'|trans }}</th>
+                                    <th class="text-end">{{ 'api_usage.average_time'|trans }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for operation in operations %}
+                                    <tr>
+                                        <td><code class="text-break">{{ operation.operation }}</code></td>
+                                        <td class="text-end fw-medium">{{ operation.requests|number_format(0, '.', ' ') }}</td>
+                                        <td class="text-end text-nowrap">
+                                            {{ operation.failed|number_format(0, '.', ' ') }}
+                                            {% if operation.failed > 0 %}<small class="text-muted">({{ operation.failedPercent }} %)</small>{% endif %}
+                                        </td>
+                                        <td class="text-end text-nowrap">{{ operation.averageMs is not null ? operation.averageMs ~ ' ms' : '-' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
+            <p class="text-muted fs-xs mt-3 mb-0">{{ 'api_usage.footnote'|trans }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'api_usage.admin.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-2">{{ 'api_usage.admin.title'|trans }}</h1>
+    <p class="text-muted mb-3">{{ 'api_usage.admin.intro'|trans }}</p>
+
+    {% set query = {caller: filter.callerKey, kind: filter.callerKind ? filter.callerKind.value : null, operation: filter.operation}|filter(v => v is not null) %}
+
+    <div class="d-flex align-items-center gap-2 mb-3">
+        {% if month.previous is not null %}
+            <a class="btn btn-outline-secondary btn-sm" href="{{ path('admin_api_usage', query|merge({month: month.previous.value})) }}" aria-label="{{ 'api_usage.previous_month'|trans }}"><i class="bi bi-chevron-left"></i></a>
+        {% endif %}
+        <h2 class="h5 mb-0 text-capitalize">{{ month.start|format_date(pattern: 'LLLL y') }}</h2>
+        {% if month.next is not null %}
+            <a class="btn btn-outline-secondary btn-sm" href="{{ path('admin_api_usage', query|merge({month: month.next.value})) }}" aria-label="{{ 'api_usage.next_month'|trans }}"><i class="bi bi-chevron-right"></i></a>
+        {% endif %}
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <a href="{{ path('admin_api_usage', {month: month.value}) }}" class="btn btn-sm {{ query is empty ? 'btn-primary' : 'btn-outline-primary' }}">{{ 'api_usage.admin.everything'|trans }}</a>
+        {% for kind in kinds %}
+            <a href="{{ path('admin_api_usage', {month: month.value, kind: kind.value}) }}" class="btn btn-sm {{ filter.callerKind == kind ? 'btn-primary' : 'btn-outline-primary' }}">{{ ('api_usage.admin.kind.' ~ kind.value)|trans }}</a>
+        {% endfor %}
+    </div>
+
+    {% if selected_caller is not null or filter.operation is not null %}
+        <p class="mb-3">
+            {% if selected_caller is not null %}
+                <span class="badge bg-primary fs-sm me-1">{{ selected_caller }}</span>
+            {% endif %}
+            {% if filter.operation is not null %}
+                <span class="badge bg-secondary fs-sm me-1"><code class="text-white">{{ filter.operation }}</code></span>
+            {% endif %}
+            <a href="{{ path('admin_api_usage', {month: month.value}) }}" class="fs-sm">{{ 'api_usage.admin.clear_filter'|trans }}</a>
+        </p>
+    {% endif %}
+
+    <div class="row g-3 mb-3">
+        {% for label, value in {
+            'api_usage.requests': totals.requests|number_format(0, '.', ' '),
+            'api_usage.failed': totals.failed|number_format(0, '.', ' ') ~ (totals.failedPercent is not null ? ' (' ~ totals.failedPercent ~ ' %)' : ''),
+            'api_usage.admin.too_many_requests': totals.tooManyRequests|number_format(0, '.', ' '),
+            'api_usage.average_time': totals.averageMs is not null ? totals.averageMs ~ ' ms' : '-',
+            'api_usage.peak_per_minute': totals.peakRequestsPerMinute ?? '-',
+            'api_usage.admin.callers': callers|length,
+        } %}
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="card card-body shadow-sm h-100 text-center">
+                    <div class="h4 mb-1">{{ value }}</div>
+                    <div class="fs-sm text-muted">{{ label|trans }}</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if totals.requests == 0 %}
+        <p class="text-muted">{{ 'api_usage.no_requests'|trans }}</p>
+    {% else %}
+        <div class="card card-body shadow-sm mb-4">
+            <h3 class="h6">{{ 'api_usage.per_day'|trans }}</h3>
+            <div style="height: 300px">
+                {{ render_chart(chart) }}
+            </div>
+        </div>
+
+        <h3 class="h5">{{ 'api_usage.admin.per_caller'|trans }}</h3>
+        <div class="table-responsive mb-4">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>{{ 'api_usage.admin.caller'|trans }}</th>
+                        <th>{{ 'api_usage.admin.kind_column'|trans }}</th>
+                        <th class="text-end">{{ 'api_usage.requests'|trans }}</th>
+                        <th class="text-end">{{ 'api_usage.failed'|trans }}</th>
+                        <th class="text-end">429</th>
+                        <th class="text-end">{{ 'api_usage.average_time'|trans }}</th>
+                        <th class="text-end">{{ 'api_usage.peak_per_minute'|trans }}</th>
+                        <th>{{ 'api_usage.last_request'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in callers %}
+                        <tr>
+                            <td>
+                                <a href="{{ path('admin_api_usage', query|merge({month: month.value, caller: row.caller.key})) }}">{{ labels[row.caller.key] }}</a>
+                                {% if row.caller.playerId is not null %}
+                                    <a href="{{ path('player_profile', {playerId: row.caller.playerId}) }}" class="ms-1 text-muted" aria-label="{{ 'api_usage.admin.player_profile'|trans }}"><i class="bi bi-person"></i></a>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge bg-light text-dark">{{ ('api_usage.admin.kind.' ~ row.caller.kind.value)|trans }}</span></td>
+                            <td class="text-end fw-medium">{{ row.requests|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end text-nowrap">
+                                {{ row.failed|number_format(0, '.', ' ') }}
+                                {% if row.failed > 0 %}<small class="text-muted">({{ row.failedPercent }} %)</small>{% endif %}
+                            </td>
+                            <td class="text-end">{{ row.tooManyRequests|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end text-nowrap">{{ row.averageMs is not null ? row.averageMs ~ ' ms' : '-' }}</td>
+                            <td class="text-end">{{ row.peakRequestsPerMinute ?? '-' }}</td>
+                            <td class="text-nowrap">{{ row.lastRequestAt is not null ? row.lastRequestAt|format_datetime('short', 'short') : '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <h3 class="h5">{{ 'api_usage.per_request_type'|trans }}</h3>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>{{ 'api_usage.request_type'|trans }}</th>
+                                <th class="text-end">{{ 'api_usage.requests'|trans }}</th>
+                                <th class="text-end">{{ 'api_usage.failed'|trans }}</th>
+                                <th class="text-end">{{ 'api_usage.average_time'|trans }}</th>
+                                <th class="text-end">{{ 'api_usage.admin.callers'|trans }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for operation in operations %}
+                                <tr{% if filter.operation == operation.operation %} class="table-active"{% endif %}>
+                                    <td><a href="{{ path('admin_api_usage', query|merge({month: month.value, operation: operation.operation})) }}"><code class="text-break">{{ operation.operation }}</code></a></td>
+                                    <td class="text-end fw-medium">{{ operation.requests|number_format(0, '.', ' ') }}</td>
+                                    <td class="text-end text-nowrap">
+                                        {{ operation.failed|number_format(0, '.', ' ') }}
+                                        {% if operation.failed > 0 %}<small class="text-muted">({{ operation.failedPercent }} %)</small>{% endif %}
+                                    </td>
+                                    <td class="text-end text-nowrap">{{ operation.averageMs is not null ? operation.averageMs ~ ' ms' : '-' }}</td>
+                                    <td class="text-end">{{ operation.callers }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <h3 class="h5">{{ 'api_usage.admin.per_status'|trans }}</h3>
+                <table class="table align-middle">
+                    <tbody>
+                        {% for statusClass, requests in statuses %}
+                            <tr>
+                                <td><code>{{ statusClass }}</code></td>
+                                <td class="text-end fw-medium">{{ requests|number_format(0, '.', ' ') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+    <p class="text-muted fs-xs mt-3 mb-0">{{ 'api_usage.footnote'|trans }}</p>
+{% endblock %}

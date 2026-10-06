@@ -31,6 +31,29 @@ readonly final class OAuth2UserConsentRepository
         return $result;
     }
 
+    /**
+     * @param list<string> $playerIds
+     * @return list<OAuth2UserConsent>
+     */
+    public function findByPlayers(array $playerIds): array
+    {
+        if ($playerIds === []) {
+            return [];
+        }
+
+        /** @var list<OAuth2UserConsent> $result */
+        $result = $this->entityManager
+            ->createQueryBuilder()
+            ->select('c')
+            ->from(OAuth2UserConsent::class, 'c')
+            ->where('c.player IN (:playerIds)')
+            ->setParameter('playerIds', $playerIds)
+            ->getQuery()
+            ->getResult();
+
+        return $result;
+    }
+
     public function save(OAuth2UserConsent $consent): void
     {
         $this->entityManager->persist($consent);

@@ -1,6 +1,7 @@
 volumes:
     postgres-data:
     redis-data:
+    redis-state-data:
     mailpit-data:
 
 services:
@@ -64,6 +65,15 @@ services:
         restart: unless-stopped
         volumes:
             - redis-data:/data
+
+    # API usage counters (docs/features/api/usage-statistics.md) - configured like
+    # production's: never evicts, persists every second; the cache redis above does neither
+    redis-state:
+        image: redis:7.2
+        restart: unless-stopped
+        command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--save", "", "--maxmemory", "64mb", "--maxmemory-policy", "noeviction"]
+        volumes:
+            - redis-state-data:/data
 
     mercure:
         image: dunglas/mercure

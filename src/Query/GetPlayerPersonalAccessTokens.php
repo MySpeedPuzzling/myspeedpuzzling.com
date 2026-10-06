@@ -47,4 +47,37 @@ SQL;
             $rows,
         );
     }
+
+    /**
+     * Revoked tokens - the API usage page still shows what they did before
+     *
+     * @return array<PlayerPersonalAccessToken>
+     */
+    public function revokedByPlayerId(string $playerId): array
+    {
+        $query = <<<SQL
+SELECT
+    id,
+    name,
+    token_prefix,
+    created_at,
+    last_used_at
+FROM personal_access_token
+WHERE player_id = :playerId
+AND revoked_at IS NOT NULL
+ORDER BY created_at DESC
+SQL;
+
+        /** @var array<PlayerPersonalAccessTokenRow> $rows */
+        $rows = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(
+            static fn(array $row): PlayerPersonalAccessToken => PlayerPersonalAccessToken::fromDatabaseRow($row),
+            $rows,
+        );
+    }
 }

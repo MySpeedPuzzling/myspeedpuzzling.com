@@ -400,11 +400,16 @@ Add `--public` for public clients (PKCE required, no secret).
 php bin/console myspeedpuzzling:oauth2:list-clients
 ```
 
-## Audit Trail
+## Audit Trail and usage statistics
 
-- **PAT:** `last_used_at` updated on every authenticated API request (in `PatAuthenticator`)
-- **OAuth2:** `last_used_at` on `oauth2_user_consent` updated on API requests (throttled to every 5 minutes, in `ApiTokenUsageSubscriber`)
-- Visible in profile settings for both PATs and connected applications
+- Every authenticated `/api/v1` request is counted per caller (PAT, OAuth2 app for a player, OAuth2
+  `client_credentials`), request type and UTC day - `docs/features/api/usage-statistics.md`. Redis
+  counters on `kernel.terminate`, copied into `api_usage_day` / `api_caller_day` every 5 minutes.
+- **`last_used_at`** of PATs and of `oauth2_user_consent` is stamped by that copy (up to 5 minutes
+  late). Before 2026-10-07 the PAT one was set in `PatAuthenticator` but never saved on a read, so
+  no PAT had one.
+- Players see their usage at `/en/account/api-usage` (linked from every token and app on edit
+  profile), admins at `/admin/api-usage`.
 
 ## Security Architecture
 
@@ -497,6 +502,8 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `oauth2_authorization_code` | Short-lived auth codes (10 min) |
 | `oauth2_refresh_token` | Refresh tokens (1 month) |
 | `oauth2_user_consent` | User consent per client/scope with `last_used_at` tracking |
+| `api_usage_day` | Requests per caller, request type, status class and UTC day (usage statistics, 24 months) |
+| `api_caller_day` | Busiest minute and last request per caller and UTC day (usage statistics, 24 months) |
 
 ## Key Files
 
@@ -533,7 +540,7 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Controller/Admin/OAuth2ClientRequests*.php` | Admin review pages |
 | `src/FormType/RequestApiAccessFormType.php` | OAuth2 request Symfony form type |
 | `src/FormData/RequestApiAccessFormData.php` | OAuth2 request form data with validation |
-| `src/EventSubscriber/ApiTokenUsageSubscriber.php` | OAuth2 usage tracking |
+| `src/EventSubscriber/ApiUsageSubscriber.php` | Counts every authenticated request (usage statistics) |
 | `src/EventSubscriber/OAuth2ClientCredentialsScopeSubscriber.php` | Strips write scopes from `client_credentials` tokens |
 | `src/Security/OAuth2/ScopeAwareBearerTokenResponse.php` | Adds granted `scope` to the token response |
 | `src/Value/OAuth2Scope.php` | Scope enum: available list, auth-code-only flag, role name derivation |

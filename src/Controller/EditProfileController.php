@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\NonUniquePlayerCode;
@@ -24,6 +25,7 @@ use SpeedPuzzling\Web\Message\EditPlayerVisibility;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Query\GetOauthIdentities;
 use SpeedPuzzling\Web\Query\GetUserBlocks;
+use SpeedPuzzling\Web\Query\GetApiUsage;
 use SpeedPuzzling\Web\Query\GetOAuth2ClientRequests;
 use SpeedPuzzling\Web\Query\GetPlayerOAuth2Consents;
 use SpeedPuzzling\Web\Query\GetPlayerPersonalAccessTokens;
@@ -54,6 +56,8 @@ final class EditProfileController extends AbstractController
         readonly private GetOAuth2ClientRequests $getOAuth2ClientRequests,
         readonly private GetOauthIdentities $getOauthIdentities,
         readonly private GetUserBlocks $getUserBlocks,
+        readonly private GetApiUsage $getApiUsage,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -202,6 +206,10 @@ final class EditProfileController extends AbstractController
         $oauth2Consents = $this->getPlayerOAuth2Consents->byPlayerId($player->playerId);
         $personalAccessTokens = $this->getPlayerPersonalAccessTokens->byPlayerId($player->playerId);
         $myApplications = $this->getOAuth2ClientRequests->byPlayerId($player->playerId);
+        $ownClientIdentifiers = array_values(array_filter(array_map(
+            static fn ($application): null|string => $application->clientIdentifier,
+            $myApplications,
+        )));
 
         return $this->render('edit-profile.html.twig', [
             'player' => $player,
@@ -213,6 +221,7 @@ final class EditProfileController extends AbstractController
             'oauth2_consents' => $oauth2Consents,
             'personal_access_tokens' => $personalAccessTokens,
             'my_applications' => $myApplications,
+            'api_usage' => $this->getApiUsage->recentForPlayer($player->playerId, $ownClientIdentifiers, $this->clock->now()),
             'account_email' => $user->email,
             'account_email_verified' => $user->emailVerifiedAt !== null,
             // Connected sign-in methods (auth hardening PR 2): social-only

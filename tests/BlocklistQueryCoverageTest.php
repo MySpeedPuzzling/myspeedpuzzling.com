@@ -27,6 +27,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetAdminReferralDetail' => self::ADMIN,
         'GetAdminReferralsOverview' => self::ADMIN,
         'GetAllVouchers' => self::ADMIN,
+        'GetApiUsageCallers' => self::ADMIN,
         'GetBorrowedPuzzles' => self::BILATERAL,
         'GetCollectionDisplayMode' => self::OWN_DATA,
         'GetCoPuzzlerChips' => 'Renders the co-puzzlers of a form the viewer is filling in: codes they typed themselves, or the members of a time they may edit.',

@@ -58,8 +58,14 @@ class OAuth2UserConsent
         $this->scopes = $scopes;
     }
 
-    public function updateLastUsedAt(): void
+    /**
+     * Stamped from the API usage counters (FlushApiUsageHandler), never moved back -
+     * the counters of several days are copied in no particular order.
+     */
+    public function markUsedAt(DateTimeImmutable $usedAt): void
     {
-        $this->lastUsedAt = new DateTimeImmutable();
+        if ($this->lastUsedAt === null || $this->lastUsedAt < $usedAt) {
+            $this->lastUsedAt = $usedAt;
+        }
     }
 }

@@ -44,11 +44,9 @@ final class PatAuthenticator extends AbstractAuthenticator
             throw new CustomUserMessageAuthenticationException('Invalid personal access token.');
         }
 
-        $pat->updateLastUsedAt();
-
         return new SelfValidatingPassport(
             new UserBadge($pat->player->id->toString(), function () use ($pat): PatUser {
-                return new PatUser($pat->player);
+                return new PatUser($pat->player, $pat->id->toString());
             }),
         );
     }

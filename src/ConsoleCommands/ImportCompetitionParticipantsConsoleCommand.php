@@ -30,7 +30,7 @@ final class ImportCompetitionParticipantsConsoleCommand extends Command
     protected function configure(): void
     {
         $this->addArgument('competitionId', InputArgument::REQUIRED);
-        $this->addArgument('file', InputArgument::REQUIRED, 'Path to the .xlsx file (columns: name, country, external_id, msp_player_id, status, round_name, team_name)');
+        $this->addArgument('file', InputArgument::REQUIRED, 'Path to the .xlsx file (columns: name, country, external_id, msp_player_id, status, round_names, team_name; round_name still read)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

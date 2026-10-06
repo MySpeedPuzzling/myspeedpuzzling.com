@@ -229,10 +229,17 @@ Client-side filtering by participant name. Filters the visible table rows.
 | `external_id` | No | Organizer's external system reference |
 | `msp_player_id` | No | UUID of MSP player to link |
 | `status` | No | `active` (default) or `deleted` for soft-delete |
+| `round_names` | No | Rounds, comma- (or semicolon-) separated, e.g. `Solo, Pair` - what the template and the export write. Matched to the event's rounds ignoring case and repeated whitespace; a cell that is exactly one round's name counts as that round even if the name contains a comma |
+| `round_name` | No | One round - the old column, still read (files made before 2026-10-06) |
+| `team_name` | No | Pair/team name for every duo/team round listed on the **same row** (ignored for solo rounds). Different teams per round = one row per round |
 
-**No `round_id` in import.** Round assignment is purely a management UI concern (inline Tom Select multiselect).
+Only `.xlsx` is accepted; a `.csv` upload is answered with "Please upload an .xlsx file – CSV is not supported yet" (`competition.participants.import_csv_not_supported`).
 
-> **Known gap (2026-10-06, see `docs/TODO.md`):** the importer reads one `round_name` (+ `team_name`) per row, but the template and the export write `round_names` (comma-separated) - so rounds in a downloaded template or an export are silently ignored on upload. The page's column help does not mention rounds at all, and only `.xlsx` is accepted (no CSV).
+**Rounds (`CompetitionParticipantImporter`, fixed 2026-10-06 after the Wisconsin 2026 import assigned nobody):**
+- Rows of the same participant add up: every round from every row is assigned (before, the last row won).
+- Import only **adds** round assignments: nobody is removed from a round, nobody is moved to another team. A missing team on an existing assignment is filled in; a different team in the file is reported and ignored. An export imported back changes nothing.
+- A round name that matches no round is reported once per distinct value, with its row numbers and the event's round names. Unknown columns are reported too (`CompetitionParticipantImporter::KNOWN_COLUMNS`).
+- The page help lists `round_names` and `team_name` in all 6 locales.
 
 ### Upsert Logic
 

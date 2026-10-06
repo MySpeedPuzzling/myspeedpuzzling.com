@@ -52,9 +52,10 @@ export default class extends Controller {
         window.addEventListener('barcode-scan:pause', this._boundPause);
         window.addEventListener('barcode-scan:resume', this._boundResume);
 
-        // Set up native scanner callbacks for iOS/Android apps
-        window.onNativeScanResult = (code) => this.handleNativeScanResult(code);
-        window.onNativeScanCancelled = () => this.handleNativeScanCancelled();
+        // Native scanner callbacks for iOS/Android apps - claimed when this scanner opens the native one, so another
+        // scanner (re)connecting meanwhile, e.g. the global search re-rendering, cannot take the result
+        this._nativeScanResult = (code) => this.handleNativeScanResult(code);
+        this._nativeScanCancelled = () => this.handleNativeScanCancelled();
 
         if (this.autostartValue) {
             requestAnimationFrame(() => this.initCamera());
@@ -67,9 +68,19 @@ export default class extends Controller {
         window.removeEventListener('barcode-scan:pause', this._boundPause);
         window.removeEventListener('barcode-scan:resume', this._boundResume);
 
-        // Clean up native scanner callbacks
-        delete window.onNativeScanResult;
-        delete window.onNativeScanCancelled;
+        // Clean up native scanner callbacks - only our own, another scanner on the page may hold them
+        if (window.onNativeScanResult === this._nativeScanResult) {
+            delete window.onNativeScanResult;
+        }
+        if (window.onNativeScanCancelled === this._nativeScanCancelled) {
+            delete window.onNativeScanCancelled;
+        }
+    }
+
+    // A page can hold several scanners (global search, a form in a modal): the native result goes to the one opened last
+    _claimNativeCallbacks() {
+        window.onNativeScanResult = this._nativeScanResult;
+        window.onNativeScanCancelled = this._nativeScanCancelled;
     }
 
     toggle(event) {
@@ -595,6 +606,7 @@ export default class extends Controller {
      * The native app will call onNativeScanResult() or onNativeScanCancelled() callbacks.
      */
     openNativeScanner() {
+        this._claimNativeCallbacks();
         this.toggleButtonTarget.classList.add('active');
 
         if (this.inputTarget.value !== '') {

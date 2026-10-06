@@ -1,0 +1,31 @@
+{#
+    The camera of barcode_scanner_controller.js shown in place (hidden until its toggle button starts it) - for forms
+    already inside a modal, where the add form's scanner modal cannot open. Goes inside the element holding the
+    controller, next to the button with data-barcode-scanner-target="toggleButton"; the host listens to
+    `barcode-scanner:scanned`. The hidden input is the scanner's own, never a form field: starting the camera empties it.
+    Switching the modal's tabs stops the camera.
+#}
+<div data-barcode-scanner-target="wrapper" class="modal-barcode-scan position-relative d-none mb-3">
+    <div class="spinner spinner-border text-primary" role="status">
+        <span class="visually-hidden">{{ 'loading'|trans }}</span>
+    </div>
+    <video class="w-100 d-block" data-barcode-scanner-target="video" muted autoplay playsinline></video>
+    <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;"></canvas>
+
+    <div data-barcode-scanner-target="zoomContainer" class="d-none position-absolute bottom-0 start-50 translate-middle-x mb-3 bg-white rounded-pill px-3 py-2 shadow-sm">
+        <span data-barcode-scanner-target="zoomValue" class="me-2 small">Zoom 1x</span>
+        <button type="button"
+                data-action="click->barcode-scanner#zoomOut"
+                data-barcode-scanner-target="zoomOut"
+                class="btn btn-sm btn-outline-secondary rounded-circle p-1 me-1">
+            <i class="bi-dash" aria-hidden="true"></i>
+        </button>
+        <button type="button"
+                data-action="click->barcode-scanner#zoomIn"
+                data-barcode-scanner-target="zoomIn"
+                class="btn btn-sm btn-outline-secondary rounded-circle p-1">
+            <i class="bi-plus" aria-hidden="true"></i>
+        </button>
+    </div>
+</div>
+<input type="hidden" data-barcode-scanner-target="input">

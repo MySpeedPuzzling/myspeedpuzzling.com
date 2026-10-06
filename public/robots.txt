@@ -64,7 +64,6 @@ Disallow: /en/membership
 Disallow: /en/buy-membership
 Disallow: /en/feedback
 Disallow: /en/puzzle/*/suggest-change
-Disallow: /en/puzzle/*/suggest-name
 Disallow: /en/puzzle/*/pending-proposals
 Disallow: /en/collections/
 Disallow: /en/create-collection
@@ -149,7 +148,6 @@ Disallow: /ja/メンバーシップ
 Disallow: /ja/メンバーシップ購入
 Disallow: /ja/フィードバック
 Disallow: /ja/puzzle/*/suggest-change
-Disallow: /ja/puzzle/*/suggest-name
 Disallow: /ja/puzzle/*/pending-proposals
 Disallow: /ja/collections/
 Disallow: /ja/コレクションを作成

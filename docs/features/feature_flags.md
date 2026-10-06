@@ -27,17 +27,6 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   - `templates/_solving_time_form.html.twig` — picker vs. old rows (`_group_puzzler_input.html.twig` + `add_copuzzler_controller.js`)
 - **Remove when:** the picker has been live without trouble for a couple of weeks — then delete `templates/_group_puzzler_input.html.twig`, `assets/controllers/add_copuzzler_controller.js`, the `favorite_players` template variable of both controllers, `forms.choose_from_favorites` / `puzzle_add.teamplayer` / `puzzle_add.add_puzzler` / `puzzle_add.group_puzzling` / `puzzle_add.player_code_info` translations, and the flag itself
 
-## "Suggest another name" kill switch (`PUZZLE_NAME_SUGGESTIONS_PUBLIC`)
-
-- **Feature:** "Suggest another name" in the puzzle page's ⋯ menu (`docs/features/puzzle-names/README.md`, "Writing names and codes"): a player's name becomes a names-only change request (at most 10 a day per player, limiter `puzzle_name_suggestion`), a moderator's or an admin's is saved at once and recorded in the puzzle's history
-- **Flag:** env var `PUZZLE_NAME_SUGGESTIONS_PUBLIC` → parameter `puzzleNameSuggestionsPublic` (`config/services.php`), read through `PuzzleNameSuggestions::isOpen()` and exposed as Twig global `puzzle_name_suggestions` (a service - keep the env var resolvable in `.env`, see the operational note at the top)
-- **Default:** **ON** (`1`) from launch. It is the kill switch: `0` hides the entry from players and answers their requests with 404; moderators and admins keep it (their names skip the queue). Only "Suggest another name" is gated - "Suggest a change" with the names editor stays open
-- **Gated files:**
-  - `src/Services/PuzzleNameSuggestions.php` — `isOpen()`, the single decision point
-  - `src/Controller/SuggestPuzzleNameController.php` — 404 while closed
-  - `templates/puzzle/_detail_actions_menu.html.twig` — the menu entry
-- **Remove when:** suggestions have run for a few weeks without spam in the change-request queue - then delete the flag, the parameter and the env var, and let `isOpen()` answer "signed in"
-
 ## Retired: Google/Apple social login flags + admin-only stage (removed 2026-09-29)
 
 `SOCIAL_LOGIN_ADMIN_ONLY`, `SOCIAL_LOGIN_GOOGLE_ENABLED` and `SOCIAL_LOGIN_APPLE_ENABLED` were deleted at the public launch of Google + Apple sign-in (both verified end to end in production, Jan's call). There is no admin-only stage any more: the buttons render on `/login` + `/register` for everyone, rule-4 registration via the `/register/social` interstitial is on, and every signed-in player gets the "Connected sign-in methods" card. Google and Apple are now available **iff their credentials are configured** (`SocialLoginSettings::isAvailable()` — Google: `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`; Apple: `APPLE_CLIENT_ID` + `APPLE_TEAM_ID` + `APPLE_KEY_ID` + `APPLE_PRIVATE_KEY`), so local dev and tests without credentials show no button and 404 the provider's routes. Emptying a provider's credentials is the kill switch. A box `.env` / Infisical that still sets the old flags is harmless - nothing reads them. Microsoft (shipped 2026-09-30) follows the same rule from day one - available iff `MICROSOFT_CLIENT_ID` + `MICROSOFT_CLIENT_SECRET` are set, no flag.

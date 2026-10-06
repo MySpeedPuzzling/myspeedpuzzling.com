@@ -96,7 +96,7 @@ answers `404` and files nothing.
 ### Puzzle change requests
 
 Players propose corrections to a puzzle ("Suggest a change": every name with its language, brand, pieces, EAN, catalogue
-number, photo; "Suggest another name": one more name).
+number, photo).
 
 | Method | Path | Purpose |
 |---|---|---|

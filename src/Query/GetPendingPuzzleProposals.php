@@ -15,7 +15,7 @@ use SpeedPuzzling\Web\Value\PuzzleSecrecy;
  * The proposals waiting for a moderator on a puzzle. One at a time (blocksNewProposal()): a pending merge request or a
  * pending change request that changes more than the names keeps another such proposal - a "Suggest a change" that
  * does, a duplicate report, the internal API's - from being filed. A change request of the names only (main title,
- * its language, other names - "Suggest another name", or "Suggest a change" touching nothing else) counts in neither
+ * its language, other names - a "Suggest a change" touching nothing else) counts in neither
  * direction: it applies as a diff, so several may wait at once, next to a full proposal or a merge request.
  */
 readonly final class GetPendingPuzzleProposals

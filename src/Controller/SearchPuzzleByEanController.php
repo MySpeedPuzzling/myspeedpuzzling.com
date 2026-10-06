@@ -6,8 +6,10 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
+use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class SearchPuzzleByEanController extends AbstractController
@@ -15,6 +17,7 @@ final class SearchPuzzleByEanController extends AbstractController
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,
         readonly private GetManufacturers $getManufacturers,
+        readonly private PuzzleChoicesBuilder $puzzleChoicesBuilder,
     ) {
     }
 
@@ -22,7 +25,7 @@ final class SearchPuzzleByEanController extends AbstractController
         path: '/{_locale}/puzzle-by-ean-search/{ean}',
         name: 'puzzle_by_ean_search',
     )]
-    public function __invoke(string $ean): JsonResponse
+    public function __invoke(Request $request, string $ean): JsonResponse
     {
         $puzzleResults = $this->searchPuzzle->allByEan($ean);
 
@@ -50,14 +53,18 @@ final class SearchPuzzleByEanController extends AbstractController
         $puzzles = [];
         $brands = [];
         $seenBrandIds = [];
+        // Each puzzle as an option of the puzzle pickers (Tom Select) - "Report duplicate" offers the scanned ones
+        $options = $this->puzzleChoicesBuilder->build($puzzleResults, $request->getLocale());
 
-        foreach ($puzzleResults as $result) {
+        foreach ($puzzleResults as $index => $result) {
             $puzzles[] = [
                 'id' => $result->puzzleId,
                 'name' => $result->puzzleName,
                 'piecesCount' => $result->piecesCount,
                 'image' => $result->puzzleImage,
                 'ean' => $result->puzzleEan,
+                'brandId' => $result->manufacturerId,
+                'option' => $options[$index],
             ];
 
             // Add unique brands

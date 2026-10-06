@@ -100,14 +100,6 @@ return App::config([
                 'limit' => 20,
                 'interval' => '1 hour',
             ],
-            // "Suggest another name" on the puzzle page - every suggestion is a change request a
-            // moderator reviews, so one player cannot fill the queue. Keyed by player; moderators
-            // and admins apply names at once and are not limited (SuggestPuzzleNameController).
-            'puzzle_name_suggestion' => [
-                'policy' => 'sliding_window',
-                'limit' => 10,
-                'interval' => '1 day',
-            ],
             // Public API catalog search (GET /api/v1/puzzles) - the only unbounded
             // read in V1, so scraping is kept to a walk. Keyed by the token owner
             // (player behind a PAT / auth-code token, client id for client_credentials);

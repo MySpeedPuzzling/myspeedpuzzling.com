@@ -7,7 +7,12 @@
         'data-turbo': 'true',
         'data-turbo-frame': in_modal ? 'modal-frame' : '_top',
         'data-controller': 'report-duplicate-form',
-        'data-report-duplicate-form-current-puzzle-id-value': puzzle_id
+        'data-report-duplicate-form-current-puzzle-id-value': puzzle_id,
+        'data-report-duplicate-form-ean-search-url-value': path('puzzle_by_ean_search', {ean: '__EAN__'}),
+        'data-report-duplicate-form-not-found-message-value': 'puzzle_report.scan.not_found'|trans,
+        'data-report-duplicate-form-same-puzzle-message-value': 'puzzle_report.scan.same_puzzle'|trans,
+        'data-report-duplicate-form-multiple-puzzles-message-value': 'scan.puzzle_form.multiple_puzzles'|trans,
+        'data-report-duplicate-form-search-failed-message-value': 'puzzle_report.scan.search_failed'|trans,
     }
 }) }}
 
@@ -40,6 +45,20 @@
             </div>
         </div>
     </div>
+
+    {# Scanning the other box's barcode picks its brand and puzzle below #}
+    <div data-controller="barcode-scanner"
+         data-action="barcode-scanner:scanned->report-duplicate-form#scanned hide.bs.tab@document->barcode-scanner#stopScanning">
+        <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-3"
+                data-barcode-scanner-target="toggleButton"
+                data-action="click->barcode-scanner#toggle">
+            <i class="bi-upc-scan me-2" aria-hidden="true"></i>{{ 'puzzle_report.scan.button'|trans }}
+        </button>
+
+        {{ include('_barcode_scanner_panel.html.twig') }}
+    </div>
+
+    <div data-report-duplicate-form-target="scanMessage" class="alert alert-warning d-none small mb-3" role="status"></div>
 
     {{ form_row(report_form.selectedManufacturerId) }}
 

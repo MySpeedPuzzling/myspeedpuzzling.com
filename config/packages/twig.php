@@ -7,7 +7,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Services\Email\EmailHtmlToTextConverter;
-use SpeedPuzzling\Web\Services\PuzzleNameSuggestions;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 
@@ -32,8 +31,6 @@ return App::config([
             'facebook_app_id' => '%env(trim:string:FACEBOOK_APP_ID)%',
             // Pairs & teams picker rollout - see docs/features/feature_flags.md
             'pairs_teams_picker_public' => '%pairsTeamsPickerPublic%',
-            // "Suggest another name" in the puzzle page's menu - see docs/features/feature_flags.md
-            'puzzle_name_suggestions' => '@' . PuzzleNameSuggestions::class,
         ],
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',

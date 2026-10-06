@@ -146,7 +146,7 @@ Barcode exact 0.3 ms, brand code 0.16 ms, partial EAN 3.8 ms.
   shows the main title, which is correct under decision 1.
 - Search results add "Matched: …" when the match came from a name that is not shown (`PuzzleNames::matching()`).
 - Puzzle page: "Also known as" (every name, language named by Symfony Intl in the page language) in the **Details block
-  that signed-in players see** and in the guests' "About this puzzle"; "Suggest another name" in the actions menu.
+  that signed-in players see** and in the guests' "About this puzzle". Players add names through the names editor of "Suggest a change".
 - E-mails, share images, data export: main title only (e-mails render async without a page language; the share image
   font has no CJK glyphs).
 
@@ -194,8 +194,9 @@ keys empty on purpose - a hidden placeholder must not be searchable; the reveal 
   a puzzle implement `SerializedByLock` keyed by puzzle id.
 - **History and audit logs** (`puzzle_moderation_decision`, `puzzle_merge_audit`) keep old `alternativeName` strings
   forever; readers handle both shapes.
-- **"Suggest another name"**: names-only change request; rate limited per player; kill switch
-  `PUZZLE_NAME_SUGGESTIONS_PUBLIC` (`docs/features/feature_flags.md`); moderators and admins apply their name at once.
+- **Adding a name** goes through "Suggest a change" (its names editor; touching nothing else = a names-only change
+  request). The separate "Suggest another name" entry, its rate limit and kill switch `PUZZLE_NAME_SUGGESTIONS_PUBLIC`
+  were removed 2026-10-06 (Jan: one place for changes); moderators add names through "Edit puzzle".
 
 ## Considered and rejected
 
@@ -348,7 +349,7 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   changed since the page was rendered, so the base equals the rendered list whenever a save goes through - no extra
   hidden field. The internal API approve corrects a proposal with `alternativeNames` / `nameLanguage` (selected fields
   only), applied as a diff against the list when filed, like the proposal itself.
-- **Phase 3B - "Suggest another name":** a fold-equal name the puzzle has without a language is tagged instead of added;
+- **Phase 3B - "Suggest another name"** (removed 2026-10-06, merged into "Suggest a change"): a fold-equal name the puzzle has without a language is tagged instead of added;
   a fold-equal main title or tagged name is refused ("already has this name"). A moderator's or an admin's name is their
   direct edit (`puzzle_edited` decision, history shows it) and the page refreshes; the rate limit (10 a day) counts
   players only and every valid submit (also a refused known name). Allowed while other proposals are pending - names

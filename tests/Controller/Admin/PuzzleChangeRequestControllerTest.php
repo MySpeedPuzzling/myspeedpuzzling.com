@@ -6,11 +6,10 @@ namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
-use SpeedPuzzling\Web\Message\SuggestPuzzleName;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Tests\ProposesPuzzleNames;
 use SpeedPuzzling\Web\Tests\ChangesPuzzleRecords;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -23,10 +22,10 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 final class PuzzleChangeRequestControllerTest extends WebTestCase
 {
+    use ProposesPuzzleNames;
     use ChangesPuzzleRecords;
 
     public function testListIsNotAccessibleByAnonymous(): void
@@ -336,17 +335,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
 
     private function suggestName(string $name, string $language): string
     {
-        $changeRequestId = Uuid::uuid7()->toString();
-
-        self::getContainer()->get(MessageBusInterface::class)->dispatch(new SuggestPuzzleName(
-            suggestionId: $changeRequestId,
-            puzzleId: PuzzleFixture::PUZZLE_1000_02,
-            playerId: PlayerFixture::PLAYER_REGULAR,
-            name: $name,
-            language: $language,
-        ));
-
-        return $changeRequestId;
+        return self::proposeOtherName(PuzzleFixture::PUZZLE_1000_02, PlayerFixture::PLAYER_REGULAR, $name, $language);
     }
 
     private function puzzle(string $puzzleId): Puzzle

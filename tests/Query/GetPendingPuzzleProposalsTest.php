@@ -6,9 +6,9 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
-use SpeedPuzzling\Web\Message\SuggestPuzzleName;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Tests\ProposesPuzzleNames;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -16,6 +16,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 final class GetPendingPuzzleProposalsTest extends KernelTestCase
 {
+    use ProposesPuzzleNames;
+
     private GetPendingPuzzleProposals $query;
 
     protected function setUp(): void
@@ -35,13 +37,7 @@ final class GetPendingPuzzleProposalsTest extends KernelTestCase
 
     public function testANamesSuggestionIsSummedUpAsOtherNames(): void
     {
-        self::getContainer()->get(MessageBusInterface::class)->dispatch(new SuggestPuzzleName(
-            suggestionId: Uuid::uuid7()->toString(),
-            puzzleId: PuzzleFixture::PUZZLE_1000_02,
-            playerId: PlayerFixture::PLAYER_REGULAR,
-            name: 'Jardín mágico',
-            language: 'es',
-        ));
+        self::proposeOtherName(PuzzleFixture::PUZZLE_1000_02, PlayerFixture::PLAYER_REGULAR, 'Jardín mágico', 'es');
 
         $proposals = $this->query->forPuzzle(PuzzleFixture::PUZZLE_1000_02);
 
@@ -92,13 +88,7 @@ final class GetPendingPuzzleProposalsTest extends KernelTestCase
 
         // Two names suggested, and a "Suggest a change" of the main title only - all waiting at once
         foreach ([['Jardín mágico', 'es'], ['Giardino magico', 'it']] as [$name, $language]) {
-            $messageBus->dispatch(new SuggestPuzzleName(
-                suggestionId: Uuid::uuid7()->toString(),
-                puzzleId: PuzzleFixture::PUZZLE_1000_02,
-                playerId: PlayerFixture::PLAYER_REGULAR,
-                name: $name,
-                language: $language,
-            ));
+            self::proposeOtherName(PuzzleFixture::PUZZLE_1000_02, PlayerFixture::PLAYER_REGULAR, $name, $language);
         }
 
         $puzzle = self::getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_02);

@@ -7,8 +7,8 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
-use SpeedPuzzling\Web\Message\SuggestPuzzleName;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Tests\ProposesPuzzleNames;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -19,6 +19,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ProposeChangesControllerTest extends WebTestCase
 {
+    use ProposesPuzzleNames;
+
     private const string URL = '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_03 . '/suggest-change';
 
     public function testInvalidNewCodeIsRefusedWithAMessageOnTheField(): void
@@ -204,13 +206,7 @@ final class ProposeChangesControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        self::getContainer()->get(MessageBusInterface::class)->dispatch(new SuggestPuzzleName(
-            suggestionId: Uuid::uuid7()->toString(),
-            puzzleId: PuzzleFixture::PUZZLE_1000_03,
-            playerId: PlayerFixture::PLAYER_PRIVATE,
-            name: 'Puzzle osm',
-            language: 'cs',
-        ));
+        self::proposeOtherName(PuzzleFixture::PUZZLE_1000_03, PlayerFixture::PLAYER_PRIVATE, 'Puzzle osm', 'cs');
 
         $this->submit($browser, ean: '4005556789012', name: 'Puzzle 8 - corrected name');
 

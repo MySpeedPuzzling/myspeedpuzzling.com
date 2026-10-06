@@ -2737,6 +2737,11 @@ puzzle_report:
     report_duplicate:
         description: "Report that this puzzle is a duplicate of another puzzle. An admin will review and merge the records if confirmed."
         max_puzzles_info: "You can report up to %max% puzzles as duplicates at once."
+    scan:
+        button: "Scan the other puzzle's barcode"
+        not_found: "No other puzzle with EAN %ean% found. Try finding it by brand and name."
+        same_puzzle: "EAN %ean% belongs to this puzzle. Scan the other one's box."
+        search_failed: "The search did not work. Scan again, or find the puzzle by brand and name."
     form:
         brand: "Brand"
         brand_help: "Not in the list, or misspelled? Type the brand's correct name to add it."
@@ -5649,24 +5654,6 @@ puzzle_names:
     not_english_warning: "This does not look like an English title. If the box has an English title, add it and make it the main title."
     move_to_other_names: "Move to other names"
     record_changed_meanwhile: "This puzzle was changed while you were editing it. Reload to see the current state."
-    # "Suggest another name" - the puzzle page's menu entry and its modal (SuggestPuzzleNameController)
-    suggest_name:
-        menu: "Suggest another name"
-        menu_description: "The title of a box in another language"
-        title: "Suggest another name"
-        intro: "Is this puzzle sold under another name - on a box in another language? Type it exactly as printed on the box. A moderator checks it before it is added."
-        intro_moderator: "Type the name exactly as printed on the box. As a moderator, you add it at once."
-        known_names: "Known as:"
-        name: "Name"
-        name_help: "One name - suggest another one afterwards."
-        language: "Language of the name"
-        make_main_title: "Make it the main title (the current main title becomes another name)"
-        submit: "Suggest the name"
-        submit_moderator: "Add the name"
-        already_known: "This puzzle already has this name."
-        too_many: "You have suggested many names today. Please try again tomorrow."
-        submitted: "Thank you! A moderator will check the name."
-        added: "The name was added."
     # The add form: quiet link on the puzzle's label line, then one row per name (name + language)
     add_name_in_another_language: "+ name in another language"
     name_on_the_box: "Name on the box"

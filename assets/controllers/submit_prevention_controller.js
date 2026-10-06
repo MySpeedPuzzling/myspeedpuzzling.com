@@ -8,6 +8,11 @@ export default class extends Controller {
         compressImages: { type: Boolean, default: false },
         compressingText: { type: String, default: 'Compressing images...' },
         savingText: { type: String, default: 'Saving...' },
+        // PhotoUploadLimits: above them PHP drops the whole request and everything typed into the form is lost
+        maxPhotoBytes: { type: Number, default: 0 },
+        maxRequestBytes: { type: Number, default: 0 },
+        photoTooLargeText: { type: String, default: 'This photo is too large to upload (%size% MB).' },
+        dropFileText: { type: String, default: '' },
     };
 
     connect() {
@@ -73,9 +78,92 @@ export default class extends Controller {
             }
         }
 
+        if (this.removeOversizedPhotos()) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.reset();
+
+            return;
+        }
+
         this.isSubmittingValue = true;
         this.disableSubmitButton();
         this.showSavingState();
+    }
+
+    /**
+     * A photo the browser could not shrink (a 200 MP shot it cannot decode, a HEIC outside Safari) and that is
+     * still above the server's limit is taken out of its field, with a note next to it, and the form is not sent:
+     * the player keeps everything typed and can pick a smaller photo or save without one.
+     * Largest first, until what is left fits into one request.
+     */
+    removeOversizedPhotos() {
+        if (this.maxPhotoBytesValue <= 0) {
+            return false;
+        }
+
+        const photos = [...this.element.querySelectorAll('.file-drop-input')]
+            .filter(input => input.files && input.files[0])
+            .map(input => ({ input, size: input.files[0].size }))
+            .sort((a, b) => b.size - a.size);
+
+        let total = photos.reduce((sum, photo) => sum + photo.size, 0);
+        let removed = null;
+
+        for (const photo of photos) {
+            const tooLarge = photo.size > this.maxPhotoBytesValue;
+            const requestTooLarge = this.maxRequestBytesValue > 0 && total > this.maxRequestBytesValue;
+
+            if (!tooLarge && !requestTooLarge) {
+                continue;
+            }
+
+            this.removePhoto(photo.input, photo.size);
+            total -= photo.size;
+            removed ??= photo.input;
+        }
+
+        if (removed === null) {
+            return false;
+        }
+
+        removed.closest('.file-drop-area')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        return true;
+    }
+
+    removePhoto(input, size) {
+        const area = input.closest('.file-drop-area');
+
+        input.value = '';
+
+        if (area) {
+            const icon = area.querySelector('.file-drop-preview, .file-drop-icon');
+            if (icon) {
+                icon.className = 'file-drop-icon';
+                icon.innerHTML = '<i class="ci-cloud-upload"></i>';
+            }
+
+            const message = area.querySelector('.file-drop-message');
+            if (message && this.dropFileTextValue !== '') {
+                message.textContent = this.dropFileTextValue;
+            }
+
+            area.querySelector('.file-drop-edit-btn')?.remove();
+        }
+
+        const anchor = area ?? input;
+        anchor.parentElement.querySelectorAll('[data-photo-too-large]').forEach(note => note.remove());
+
+        const note = document.createElement('div');
+        note.className = 'invalid-feedback d-block mb-2';
+        note.setAttribute('data-photo-too-large', '');
+        note.setAttribute('role', 'alert');
+        note.textContent = this.photoTooLargeTextValue.replace('%size%', String(Math.round(size / 1000000)));
+        anchor.before(note);
+
+        // Picking another photo takes the note away
+        input.addEventListener('change', () => note.remove(), { once: true });
     }
 
     reset() {

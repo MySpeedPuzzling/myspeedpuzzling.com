@@ -7,11 +7,9 @@ namespace SpeedPuzzling\Web\Value;
 use Symfony\Component\Validator\Constraints\Image;
 
 /**
- * What a photo of a puzzle box must be - the one rule for every place a new
- * puzzle is created (the add form, multiscan quick-add). A new puzzle always
- * comes with one: AddPuzzle requires it.
+ * What the photo of a finished puzzle on a result must be - the add and the edit form.
  */
-final class PuzzleBoxPhoto
+final class FinishedPuzzlePhoto
 {
     public static function constraint(): Image
     {

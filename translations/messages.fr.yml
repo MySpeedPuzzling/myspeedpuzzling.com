@@ -406,6 +406,7 @@
   "reset": "Réinitialiser"
   "saving": "Sauvegarde en cours..."
   "compressing_images": "Compression des images..."
+  "photo_too_large": "Cette photo est trop lourde pour être envoyée (%size% Mo) et a été retirée. Choisissez une photo plus petite ou enregistrez sans elle - tout ce que vous avez saisi est conservé."
   "search": "Rechercher"
   "submit": "Envoyer"
   "update": "Mettre à jour"
@@ -4921,7 +4922,7 @@ multiscan:
             brand_not_found: "Cette marque n'existe pas. Choisissez-en une dans la liste ou saisissez son nom."
             create_failed: "Le puzzle n'a pas pu être ajouté. Veuillez réessayer."
             photo_required: "Photographiez d'abord la boîte – chaque nouveau puzzle a besoin d'une photo."
-            photo_invalid: "Ce fichier n'est pas une photo utilisable. Reprenez une photo de la boîte (JPG, PNG, HEIC ou WebP, 10 Mo maximum)."
+            photo_invalid: "Ce fichier n'est pas une photo utilisable. Reprenez une photo de la boîte (JPG, PNG, HEIC ou WebP, 60 Mo maximum)."
 
 puzzle_search:
     list:

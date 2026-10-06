@@ -378,6 +378,7 @@
   "choose_from_favorites": "- Vybrat z oblíbených -"
   "saving": "Ukládání..."
   "compressing_images": "Komprimace fotek..."
+  "photo_too_large": "Tahle fotka je na nahrání příliš velká (%size% MB), a proto jsme ji odebrali. Vyber menší fotku, nebo ulož bez ní - ostatní vyplněné údaje zůstávají."
   "removing": "Odebírání..."
   "drop_file": "Přetáhněte sem soubor pro nahrání"
   "choose_file": "Nebo vyberte soubor"
@@ -4917,7 +4918,7 @@ multiscan:
             brand_not_found: "Taková značka neexistuje. Vyber ji ze seznamu, nebo napiš její název."
             create_failed: "Puzzle se nepodařilo přidat. Zkus to prosím znovu."
             photo_required: "Nejdřív vyfoť krabici – každé nové puzzle potřebuje fotku."
-            photo_invalid: "Tenhle soubor jako fotka nejde použít. Vyfoť krabici znovu (JPG, PNG, HEIC nebo WebP, max. 10 MB)."
+            photo_invalid: "Tenhle soubor jako fotka nejde použít. Vyfoť krabici znovu (JPG, PNG, HEIC nebo WebP, max. 60 MB)."
 
 puzzle_search:
     list:

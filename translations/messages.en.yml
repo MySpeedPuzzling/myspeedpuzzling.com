@@ -468,6 +468,7 @@ forms:
     reset: "Reset"
     saving: "Saving..."
     compressing_images: "Compressing images..."
+    photo_too_large: "This photo is too large to upload (%size% MB) and was removed. Choose a smaller photo or save without it - everything else you filled in stays."
     search: "Search"
     submit: "Submit"
     update: "Update"
@@ -5243,7 +5244,7 @@ multiscan:
             brand_not_found: "That brand does not exist. Pick one from the list or type its name."
             create_failed: "The puzzle could not be added. Please try again."
             photo_required: "Take a photo of the box first - every new puzzle needs one."
-            photo_invalid: "This file is not a usable photo. Take a new photo of the box (JPG, PNG, HEIC or WebP, up to 10 MB)."
+            photo_invalid: "This file is not a usable photo. Take a new photo of the box (JPG, PNG, HEIC or WebP, up to 60 MB)."
 
 puzzle_search:
     list:

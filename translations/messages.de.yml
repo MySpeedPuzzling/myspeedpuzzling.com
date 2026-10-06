@@ -386,6 +386,7 @@
   "max_characters": "Maximal 500 Zeichen"
   "saving": "Speichern..."
   "compressing_images": "Bilder werden komprimiert..."
+  "photo_too_large": "Dieses Foto ist zum Hochladen zu groß (%size% MB) und wurde entfernt. Wähle ein kleineres Foto oder speichere ohne - alles andere, was du ausgefüllt hast, bleibt erhalten."
   "removing": "Entfernen..."
   "add": "Hinzufügen"
   "back": "Zurück"
@@ -4919,7 +4920,7 @@ multiscan:
             brand_not_found: "Diese Marke gibt es nicht. Wähle eine aus der Liste oder tippe ihren Namen ein."
             create_failed: "Das Puzzle konnte nicht angelegt werden. Bitte versuche es erneut."
             photo_required: "Fotografiere zuerst die Schachtel – jedes neue Puzzle braucht ein Foto."
-            photo_invalid: "Diese Datei ist kein brauchbares Foto. Fotografiere die Schachtel neu (JPG, PNG, HEIC oder WebP, bis 10 MB)."
+            photo_invalid: "Diese Datei ist kein brauchbares Foto. Fotografiere die Schachtel neu (JPG, PNG, HEIC oder WebP, bis 60 MB)."
 
 puzzle_search:
     list:

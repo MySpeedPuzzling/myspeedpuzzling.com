@@ -4,6 +4,23 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Large photo uploads (Sentry WEB-D4, 2026-10-06)
+
+A 54 MB phone photo on the add form went over PHP's `post_max_size` (50M): the whole request was dropped and the
+player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up to 60 MB accepted and shrunk by
+`ImageOptimizer` (`PhotoUploadLimits`), and `submit_prevention_controller` takes out a photo still above the limit
+(with a note) instead of sending a request PHP would drop.
+
+- [ ] Find out why the browser did not shrink the photo (Samsung Internet, Chrome 143 base): `compressImage()` decodes
+      the full image into an `<img>` first - a 200 MP shot may be too big to decode on a phone, a HEIC cannot be
+      decoded outside Safari. Try `createImageBitmap(file, {resizeWidth, resizeHeight})`, and a beacon when
+      compression fails, to see how often it happens.
+- [ ] Traefik's default `readTimeout` is 60 s for the whole request, body included (lily's `traefik.yml` sets none):
+      a 60 MB photo that the browser could not shrink needs ~8 Mbit/s upload to make it. Raise it on `websecure`
+      (shared edge, all apps) or accept that the fallback only works on a fast connection.
+- [ ] The other photo forms (Suggest a change, puzzle record, avatar, competition logo) have no submit-time
+      compression or guard yet - they only take small files, but the same body-limit loss applies above 128M.
+
 ## Events through the internal API (`docs/features/internal-api.md` §Competitions and events)
 
 - [ ] Shared tags: a competition whose tag other competitions/series carry too answers `PUT …/puzzles` with 409. If

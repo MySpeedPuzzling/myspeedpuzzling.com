@@ -405,6 +405,7 @@
   "reset": "Restablecer"
   "saving": "Guardando..."
   "compressing_images": "Comprimiendo imágenes..."
+  "photo_too_large": "Esta foto es demasiado grande para subirla (%size% MB) y se ha quitado. Elige una foto más pequeña o guarda sin ella: todo lo demás que has rellenado se mantiene."
   "search": "Buscar"
   "submit": "Enviar"
   "update": "Actualizar"
@@ -4920,7 +4921,7 @@ multiscan:
             brand_not_found: "Esa marca no existe. Elige una de la lista o escribe su nombre."
             create_failed: "No se pudo añadir el puzzle. Inténtalo de nuevo."
             photo_required: "Primero haz una foto de la caja: cada puzzle nuevo necesita una."
-            photo_invalid: "Este archivo no es una foto válida. Haz una nueva foto de la caja (JPG, PNG, HEIC o WebP, hasta 10 MB)."
+            photo_invalid: "Este archivo no es una foto válida. Haz una nueva foto de la caja (JPG, PNG, HEIC o WebP, hasta 60 MB)."
 
 puzzle_search:
     list:

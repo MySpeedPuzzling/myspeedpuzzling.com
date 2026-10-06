@@ -408,6 +408,7 @@
   "max_characters": "最大500文字"
   "saving": "保存中..."
   "compressing_images": "画像を圧縮中..."
+  "photo_too_large": "この写真はアップロードするには大きすぎるため（%size% MB）、取り除きました。小さい写真を選ぶか、写真なしで保存してください。入力したほかの内容はそのまま残っています。"
   "removing": "削除中..."
   "add_puzzle_to_collection":
     "choose_collection": "- コレクションを選択 -"
@@ -4910,7 +4911,7 @@ multiscan:
             brand_not_found: "そのブランドは存在しません。リストから選ぶか、名前を入力してください。"
             create_failed: "パズルを追加できませんでした。もう一度お試しください。"
             photo_required: "まず箱の写真を撮ってください – 新しいパズルには写真が必要です。"
-            photo_invalid: "このファイルは写真として使用できません。箱の写真を撮り直してください（JPG・PNG・HEIC・WebP、10MBまで）。"
+            photo_invalid: "このファイルは写真として使用できません。箱の写真を撮り直してください（JPG・PNG・HEIC・WebP、60MBまで）。"
 
 puzzle_search:
     list:

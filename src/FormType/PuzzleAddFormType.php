@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
+use SpeedPuzzling\Web\Value\FinishedPuzzlePhoto;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
 use SpeedPuzzling\Web\Value\PuzzleNameLanguageChoices;
@@ -31,7 +32,6 @@ use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -239,19 +239,7 @@ final class PuzzleAddFormType extends AbstractType
             'label' => 'forms.finished_puzzle_photo',
             'required' => false,
             'constraints' => [
-                new Image(
-                    maxSize: '10m',
-                    mimeTypes: [
-                        'image/jpeg',
-                        'image/png',
-                        'image/gif',
-                        'image/webp',
-                        'image/heic',
-                        'image/heif',
-                        'image/avif',
-                    ],
-                    mimeTypesMessage: 'image_invalid_mime_type'
-                ),
+                FinishedPuzzlePhoto::constraint(),
             ],
         ]);
 

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Exceptions\MarketplaceBanned;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzleToSellSwapList;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -33,6 +34,7 @@ readonly final class AddPuzzleToSellSwapListHandler
     /**
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      * @throws MarketplaceBanned
      */
     public function __invoke(AddPuzzleToSellSwapList $message): void
@@ -45,9 +47,8 @@ readonly final class AddPuzzleToSellSwapListHandler
 
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
 
-        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
-
-        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $message->playerId);
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $message->playerId);
 
         $existingItem = $this->sellSwapListItemRepository->findByPlayerAndPuzzle($player, $puzzle);
 

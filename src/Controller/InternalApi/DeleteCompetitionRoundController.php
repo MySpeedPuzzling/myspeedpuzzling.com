@@ -8,13 +8,15 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Deletes a round with its puzzle assignments, teams and seating - only while nobody has a result in it (409
- * otherwise, CompetitionRoundHasResults).
+ * otherwise, CompetitionRoundHasResults), and only with `{"confirmReveal": true}` when that reveals secret puzzles
+ * no other round keeps hidden (409, `revealedPuzzles`).
  */
 final class DeleteCompetitionRoundController extends AbstractController
 {
@@ -29,14 +31,20 @@ final class DeleteCompetitionRoundController extends AbstractController
         requirements: ['roundId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['DELETE'],
     )]
-    public function __invoke(string $roundId): Response
+    public function __invoke(string $roundId, Request $request): Response
     {
         // 404 for an unknown round before anything runs
         $round = $this->competitionRoundRepository->get($roundId);
 
+        // The body is optional - only for the yes to revealing secret puzzles
+        $input = InternalApiInput::fromRequest($request, ['confirmReveal']);
+        $confirmReveal = $input->bool('confirmReveal') ?? false;
+        $input->throwIfInvalid();
+
         $this->messageBus->dispatch(new DeleteCompetitionRound(
             roundId: $round->id->toString(),
             refuseWhenItHasResults: true,
+            refuseToReveal: $confirmReveal === false,
         ));
 
         return new Response(null, Response::HTTP_NO_CONTENT);

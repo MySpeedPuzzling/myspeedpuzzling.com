@@ -136,9 +136,9 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
 
-        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $player->id->toString());
 
-        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $player->id->toString());
         $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
         $solvingTimeId = $message->timeId;
         $finishedPuzzlePhotoPath = null;

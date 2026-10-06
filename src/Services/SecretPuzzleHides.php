@@ -11,7 +11,6 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
-use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 
 /**
@@ -32,26 +31,28 @@ readonly final class SecretPuzzleHides
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
-        private PuzzleRepository $puzzleRepository,
         private ClockInterface $clock,
     ) {
     }
 
     /**
-     * For handlers deleting rounds with plain SQL: the puzzles of the rows about to go, by id. Re-sync them afterwards.
+     * The puzzles with a secret row (hide until the round starts) in these rounds - the only ones a change of the
+     * rounds can re-sync. Read them after locking the rounds (lockRoundsForChange() does).
      *
      * @param array<string> $roundIds
      * @return list<string>
      */
-    public function puzzleIdsOfRounds(array $roundIds): array
+    public function secretPuzzleIdsOfRounds(array $roundIds): array
     {
+        $roundIds = array_values(array_filter($roundIds, Uuid::isValid(...)));
+
         if ($roundIds === []) {
             return [];
         }
 
         /** @var list<string> $puzzleIds */
         $puzzleIds = $this->entityManager->getConnection()->fetchFirstColumn(
-            'SELECT DISTINCT puzzle_id FROM competition_round_puzzle WHERE round_id IN (:roundIds)',
+            'SELECT DISTINCT puzzle_id FROM competition_round_puzzle WHERE round_id IN (:roundIds) AND hide_until_round_starts = true ORDER BY puzzle_id',
             ['roundIds' => $roundIds],
             ['roundIds' => ArrayParameterType::STRING],
         );
@@ -190,43 +191,114 @@ readonly final class SecretPuzzleHides
     }
 
     /**
-     * Concurrency: every handler changing a secret row or a round's start first locks the rows of the puzzles it may
-     * re-sync (SELECT ... FOR UPDATE, ordered by id - no deadlock between two of them) and only then reads the rows -
-     * so the read-compute-write of resync() never works on a state another transaction is changing. The locks are held
-     * to the commit (doctrine_transaction). Call it FIRST in the handler, before anything is loaded or changed: it
-     * clears the entity manager after locking, so every row read afterwards is the committed one, never a copy loaded
-     * before the lock (the caller's own entities are detached - read them again after the dispatch).
+     * Concurrency: every handler changing a secret row or a round's start first locks what its re-sync depends on, and
+     * only then reads anything - so the read-compute-write of resync() never works on a state another transaction is
+     * changing. Always in the same order, so two handlers never deadlock: the rounds first (ordered by id), then the
+     * puzzles (ordered by id). The locks are held to the commit (doctrine_transaction).
+     *
+     * - A round's start or its list of puzzles changes (edit, delete, set puzzles): its row FOR NO KEY UPDATE.
+     * - A row is added to a round or changed (add, reveal change, reveal now, keep hidden everywhere, remove): the
+     *   round FOR SHARE - its start must not move meanwhile; several of them may run side by side.
+     * - The puzzles: FOR NO KEY UPDATE, never FOR UPDATE - that one would also wait for every insert referencing the
+     *   puzzle (a time, a collection item - FOR KEY SHARE). Only puzzles with a secret row, or getting one.
+     *
+     * Call it FIRST in the handler, before anything is loaded or changed: it clears the entity manager after locking,
+     * so every row read afterwards is the committed one, never a copy loaded before the lock (the caller's own
+     * entities are detached - read them again after the dispatch).
+     *
+     * Edit or delete of rounds: the rounds, then their secret puzzles (read after the rounds are locked, so no secret
+     * row can be added to them meanwhile). Returns those puzzles - re-sync them after a delete by plain SQL.
+     *
+     * @param array<string> $roundIds
+     * @return list<string>
+     */
+    public function lockRoundsForChange(array $roundIds): array
+    {
+        $this->lockRows('competition_round', $roundIds, 'FOR NO KEY UPDATE');
+        $puzzleIds = $this->secretPuzzleIdsOfRounds($roundIds);
+        $this->lockRows('puzzle', $puzzleIds, 'FOR NO KEY UPDATE');
+        $this->entityManager->clear();
+
+        return $puzzleIds;
+    }
+
+    /**
+     * A row added to a round (see lockRoundsForChange()): the round (shared), then the puzzles - those getting a
+     * secret row, or already having one.
      *
      * @param array<string> $puzzleIds
      */
-    public function lock(array $puzzleIds): void
+    public function lockForAddingTo(string $roundId, array $puzzleIds, bool $addsSecretRow): void
     {
-        $this->puzzleRepository->findByIdsForUpdate(array_values($puzzleIds));
+        $this->lockRows('competition_round', [$roundId], 'FOR SHARE');
+        $this->lockRows('puzzle', $addsSecretRow ? $puzzleIds : $this->withSecretRows($puzzleIds), 'FOR NO KEY UPDATE');
         $this->entityManager->clear();
     }
 
     /**
-     * @param array<string> $roundIds
+     * One row changed or removed (see lockRoundsForChange()): its round (shared), then its puzzle.
      */
-    public function lockPuzzlesOfRounds(array $roundIds): void
-    {
-        $this->lock($this->puzzleIdsOfRounds($roundIds));
-    }
-
-    public function lockPuzzleOfRoundPuzzle(string $roundPuzzleId): void
+    public function lockRoundPuzzle(string $roundPuzzleId): void
     {
         if (Uuid::isValid($roundPuzzleId) === false) {
             return;
         }
 
-        $puzzleId = $this->entityManager->getConnection()->fetchOne(
-            'SELECT puzzle_id FROM competition_round_puzzle WHERE id = :id',
+        /** @var false|array{round_id: string, puzzle_id: string} $row */
+        $row = $this->entityManager->getConnection()->fetchAssociative(
+            'SELECT round_id, puzzle_id FROM competition_round_puzzle WHERE id = :id',
             ['id' => $roundPuzzleId],
         );
 
-        if (is_string($puzzleId)) {
-            $this->lock([$puzzleId]);
+        if ($row === false) {
+            return;
         }
+
+        $this->lockRows('competition_round', [$row['round_id']], 'FOR SHARE');
+        $this->lockRows('puzzle', [$row['puzzle_id']], 'FOR NO KEY UPDATE');
+        $this->entityManager->clear();
+    }
+
+    /**
+     * @param array<string> $puzzleIds
+     * @return list<string>
+     */
+    private function withSecretRows(array $puzzleIds): array
+    {
+        $puzzleIds = array_values(array_filter($puzzleIds, Uuid::isValid(...)));
+
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        /** @var list<string> $withSecretRows */
+        $withSecretRows = $this->entityManager->getConnection()->fetchFirstColumn(
+            'SELECT DISTINCT puzzle_id FROM competition_round_puzzle WHERE puzzle_id IN (:ids) AND hide_until_round_starts = true',
+            ['ids' => $puzzleIds],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        return $withSecretRows;
+    }
+
+    /**
+     * @param 'competition_round'|'puzzle' $table
+     * @param 'FOR NO KEY UPDATE'|'FOR SHARE' $mode
+     * @param array<string> $ids
+     */
+    private function lockRows(string $table, array $ids, string $mode): void
+    {
+        $ids = array_values(array_unique(array_map(strtolower(...), array_filter($ids, Uuid::isValid(...)))));
+
+        if ($ids === []) {
+            return;
+        }
+
+        $this->entityManager->getConnection()->fetchFirstColumn(
+            "SELECT id FROM {$table} WHERE id IN (:ids) ORDER BY id {$mode}",
+            ['ids' => $ids],
+            ['ids' => ArrayParameterType::STRING],
+        );
     }
 
     private function isStoredFor(CompetitionRoundPuzzle $row, Puzzle $puzzle): bool

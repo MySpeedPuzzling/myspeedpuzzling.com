@@ -12,7 +12,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
+use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
 
 #[AsMessageHandler]
 readonly final class EditCompetitionRoundHandler
@@ -22,20 +24,30 @@ readonly final class EditCompetitionRoundHandler
         private GetCompetitionRounds $getCompetitionRounds,
         private SecretPuzzleHides $secretPuzzleHides,
         private ClockInterface $clock,
+        private SecretRevealPreview $secretRevealPreview,
     ) {
     }
 
     /**
      * @throws PuzzleAlreadyInCompetitionRoundCategory
+     * @throws SecretPuzzlesWouldBeRevealed
      */
-
     public function __invoke(EditCompetitionRound $message): void
     {
-        // Waits for every other change of the round's puzzles' secret rows, then reads fresh (SecretPuzzleHides::lock())
-        $this->secretPuzzleHides->lockPuzzlesOfRounds([$message->roundId]);
+        // Locks the round, then its secret puzzles - waits for every other change of them, then reads fresh
+        // (SecretPuzzleHides)
+        $this->secretPuzzleHides->lockRoundsForChange([$message->roundId]);
 
         $round = $this->competitionRoundRepository->get($message->roundId);
         $now = $this->clock->now();
+
+        if ($message->refuseToReveal) {
+            $revealed = $this->secretRevealPreview->byMovingRound($round, $message->startsAt);
+
+            if ($revealed !== []) {
+                throw new SecretPuzzlesWouldBeRevealed($revealed);
+            }
+        }
 
         // A puzzle already revealed by this round's automatic reveal is public - a start moved later must not hide it
         // again: its reveal stays at the moment it came out

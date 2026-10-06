@@ -28,9 +28,8 @@ readonly final class DeleteCompetitionSeriesHandler
         // Secret puzzles of the rounds going away - re-synced afterwards from the rounds left, never revealed by accident
         /** @var array<string> $roundIds */
         $roundIds = $this->database->fetchFirstColumn('SELECT cr.id FROM competition_round cr INNER JOIN competition c ON c.id = cr.competition_id WHERE c.series_id = :id', $params);
-        $secretPuzzleIds = $this->secretPuzzleHides->puzzleIdsOfRounds($roundIds);
-        // Waits for every other change of these puzzles' secret rows (SecretPuzzleHides::lock())
-        $this->secretPuzzleHides->lock($secretPuzzleIds);
+        // Locks the rounds, then their secret puzzles - waits for every other change of them (SecretPuzzleHides)
+        $secretPuzzleIds = $this->secretPuzzleHides->lockRoundsForChange($roundIds);
 
         $this->database->executeStatement(
             'UPDATE puzzle_solving_time SET competition_round_id = NULL

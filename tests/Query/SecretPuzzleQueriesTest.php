@@ -13,10 +13,12 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
+use SpeedPuzzling\Web\Query\GetCompetitionPuzzles;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeReviewQueue;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetPuzzleSummary;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\ManufacturerOverview;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -111,6 +113,72 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         self::assertContains($puzzleId, $ids($revealAt));
     }
 
+    public function testAPuzzleHiddenByTheRoundOnlyStaysOffTheEventsTagListAndItsUsedAt(): void
+    {
+        // A public catalogue puzzle, tagged with the event's tag, kept secret on the event page by its round only
+        $puzzleId = PuzzleFixture::PUZZLE_2000;
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'INSERT INTO tag_puzzle (tag_id, puzzle_id) VALUES (:tagId, :puzzleId) ON CONFLICT DO NOTHING',
+            ['tagId' => TagFixture::TAG_WJPC, 'puzzleId' => $puzzleId],
+        );
+        $roundPuzzleId = Uuid::uuid7();
+        $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
+            roundPuzzleId: $roundPuzzleId,
+            roundId: CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            puzzle: $puzzleId,
+            piecesCount: null,
+            puzzlePhoto: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
+            hideUntilRoundStarts: true,
+        ));
+        $this->entityManager->clear();
+        $roundPuzzle = $this->roundPuzzle($roundPuzzleId->toString());
+        self::assertFalse($roundPuzzle->hidesEverywhere);
+        self::assertFalse($roundPuzzle->puzzle->isImageHiddenAt(new DateTimeImmutable()));
+        $revealAt = $roundPuzzle->revealsAt();
+        self::assertNotNull($revealAt);
+
+        $connection = self::getContainer()->get(Connection::class);
+        $tagList = static fn (DateTimeImmutable $at): array => array_map(
+            static fn ($overview): string => $overview->puzzleId,
+            new GetPuzzleOverview($connection, new MockClock($at))->byTagId(TagFixture::TAG_WJPC),
+        );
+        $usedAt = static fn (DateTimeImmutable $at): array => array_map(
+            static fn ($reference): null|string => $reference->slug,
+            new GetPuzzleSummary($connection, new MockClock($at))->forPuzzle($puzzleId)->usedAt,
+        );
+
+        self::assertNotContains($puzzleId, $tagList($revealAt->modify('-1 second')));
+        self::assertNotContains('wjpc-2024', $usedAt($revealAt->modify('-1 second')));
+        self::assertContains($puzzleId, $tagList($revealAt));
+        self::assertContains('wjpc-2024', $usedAt($revealAt));
+    }
+
+    public function testTheEventPagesRoundAndSolvedPuzzlesObeyTheRoundsReveal(): void
+    {
+        // The Qualification round's own puzzle (with three linked results) turned secret on the event page
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE competition_round_puzzle SET hide_until_round_starts = true, hide_mode = 'entirely', reveal_mode = 'automatic'
+             WHERE round_id = :roundId AND puzzle_id = :puzzleId",
+            ['roundId' => CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, 'puzzleId' => PuzzleFixture::PUZZLE_500_01],
+        );
+        $round = $this->entityManager->find(\SpeedPuzzling\Web\Entity\CompetitionRound::class, CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
+        self::assertNotNull($round);
+        $revealAt = $round->automaticRevealAt();
+
+        $before = new GetCompetitionPuzzles($connection, new MockClock($revealAt->modify('-1 second')));
+        $after = new GetCompetitionPuzzles($connection, new MockClock($revealAt));
+
+        self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($before->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024)));
+        self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($before->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
+        self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024)));
+        self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
+    }
+
     public function testCodeSearchFindsAPicturelessSecretOnlyFromItsRevealOn(): void
     {
         $roundPuzzleId = $this->addSecretPuzzle('Coded Secret', ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PuzzleHideMode::ImageOnly);
@@ -166,6 +234,15 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         foreach ($queue->pending(100) as $item) {
             self::assertNotSame($mergeRequestId, $item->mergeRequestId);
         }
+    }
+
+    /**
+     * @param array<\SpeedPuzzling\Web\Results\PuzzleOverview> $overviews
+     * @return list<string>
+     */
+    private static function overviewIds(array $overviews): array
+    {
+        return array_values(array_map(static fn (\SpeedPuzzling\Web\Results\PuzzleOverview $overview): string => $overview->puzzleId, $overviews));
     }
 
     /**

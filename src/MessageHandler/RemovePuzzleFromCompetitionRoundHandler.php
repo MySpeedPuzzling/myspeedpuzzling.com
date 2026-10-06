@@ -20,7 +20,7 @@ readonly final class RemovePuzzleFromCompetitionRoundHandler
 
     public function __invoke(RemovePuzzleFromCompetitionRound $message): void
     {
-        $this->secretPuzzleHides->lockPuzzleOfRoundPuzzle($message->roundPuzzleId);
+        $this->secretPuzzleHides->lockRoundPuzzle($message->roundPuzzleId);
 
         $roundPuzzle = $this->competitionRoundPuzzleRepository->get($message->roundPuzzleId);
         $roundPuzzle->recordRemoval();

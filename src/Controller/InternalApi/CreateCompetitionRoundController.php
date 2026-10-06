@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
@@ -14,7 +15,11 @@ use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
 use SpeedPuzzling\Web\Query\GetAdminPuzzles;
+use SpeedPuzzling\Web\Results\AdminPuzzle;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
+use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -39,6 +44,9 @@ final class CreateCompetitionRoundController extends AbstractController
         private readonly GetAdminCompetitions $getAdminCompetitions,
         private readonly GetAdminPuzzles $getAdminPuzzles,
         private readonly GetCompetitionRounds $getCompetitionRounds,
+        private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
+        private readonly CompetitionRepository $competitionRepository,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -52,8 +60,16 @@ final class CreateCompetitionRoundController extends AbstractController
         $competition = $this->getAdminCompetitions->detail($competitionId)->competition;
         $input = InternalApiInput::fromRequest($request, [...RoundInput::FIELDS, 'puzzleIds']);
 
-        $data = new CompetitionRoundFormData();
-        RoundInput::applyTo($input, $data, $competition->locationCountryCode);
+        // Like the organiser's form: a new round starts in the zone of the event's other rounds, else its country's
+        $otherRounds = $this->getCompetitionRoundsForManagement->ofCompetition($competition->competitionId);
+        $data = CompetitionRoundFormData::forNewRound($otherRounds !== []
+            ? $otherRounds[array_key_last($otherRounds)]->timezone
+            : RoundTimezone::resolve(
+                null,
+                $competition->locationCountryCode,
+                $this->competitionRepository->get($competition->competitionId)->series?->locationCountryCode,
+            ));
+        $startsAt = RoundInput::applyTo($input, $data);
         $puzzleIds = $input->idList('puzzleIds');
 
         if ($input->has('startsAt') === false) {
@@ -67,13 +83,26 @@ final class CreateCompetitionRoundController extends AbstractController
         $input->addViolations($this->validator->validate($data));
         $input->throwIfInvalid();
 
-        assert($data->name !== null && $data->minutesLimit !== null && $data->startsAt !== null);
+        assert($data->name !== null && $data->minutesLimit !== null && $startsAt !== null && $data->timezone !== null);
 
         if ($puzzleIds !== null && $puzzleIds !== []) {
-            $unknownPuzzleIds = array_values(array_diff($puzzleIds, array_keys($this->getAdminPuzzles->byIds($puzzleIds))));
+            $puzzles = $this->getAdminPuzzles->byIds($puzzleIds);
+            $unknownPuzzleIds = array_values(array_diff($puzzleIds, array_keys($puzzles)));
 
             if ($unknownPuzzleIds !== []) {
                 throw new NotFoundHttpException(sprintf('Unknown puzzle ids: %s.', implode(', ', $unknownPuzzleIds)));
+            }
+
+            // Attached unhidden, a hidden puzzle would show on the event page (SetCompetitionRoundPuzzlesHandler
+            // refuses it too - asked here, so a refused list leaves no round behind)
+            $now = $this->clock->now();
+            $hiddenPuzzleIds = array_keys(array_filter($puzzles, static fn (AdminPuzzle $puzzle): bool => $puzzle->isImageHiddenAt($now)));
+
+            if ($hiddenPuzzleIds !== []) {
+                throw new ConflictHttpException(sprintf(
+                    'Hidden puzzles cannot be attached by the API - they would show on the event page: %s. Attach a secret puzzle on the round\'s page, where its reveal is chosen. Nothing was created.',
+                    implode(', ', $hiddenPuzzleIds),
+                ));
             }
 
             $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
@@ -94,7 +123,8 @@ final class CreateCompetitionRoundController extends AbstractController
             competitionId: $competition->competitionId,
             name: $data->name,
             minutesLimit: $data->minutesLimit,
-            startsAt: $data->startsAt,
+            startsAt: $startsAt,
+            timezone: $data->timezone,
             badgeBackgroundColor: $data->badgeBackgroundColor,
             badgeTextColor: $data->badgeTextColor,
             category: $data->category,

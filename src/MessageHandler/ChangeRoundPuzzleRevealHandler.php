@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyShown;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
@@ -29,11 +32,12 @@ readonly final class ChangeRoundPuzzleRevealHandler
     /**
      * @throws RevealMomentAlreadyPassed
      * @throws RoundPuzzleAlreadyRevealed
+     * @throws RoundPuzzleAlreadyShown
      * @throws PuzzleHiddenByHand
      */
     public function __invoke(ChangeRoundPuzzleReveal $message): void
     {
-        $this->secretPuzzleHides->lockPuzzleOfRoundPuzzle($message->roundPuzzleId);
+        $this->secretPuzzleHides->lockRoundPuzzle($message->roundPuzzleId);
 
         $roundPuzzle = $this->competitionRoundPuzzleRepository->get($message->roundPuzzleId);
         $now = $this->clock->now();
@@ -41,6 +45,12 @@ readonly final class ChangeRoundPuzzleRevealHandler
         // A revealed puzzle is public - it is never hidden again by a reveal change
         if ($roundPuzzle->hideUntilRoundStarts && $roundPuzzle->isHiddenAt($now) === false) {
             throw new RoundPuzzleAlreadyRevealed();
+        }
+
+        // A row that was not secret has shown the puzzle on the event page: it becomes secret only before the round
+        // starts and while no other round shows the puzzle - never hidden again once it is out
+        if ($roundPuzzle->hideUntilRoundStarts === false && $this->isShown($roundPuzzle, $now)) {
+            throw new RoundPuzzleAlreadyShown();
         }
 
         // A reveal that is over already would reveal the puzzle the moment it is saved - that is "Reveal now"
@@ -66,5 +76,23 @@ readonly final class ChangeRoundPuzzleRevealHandler
         $roundPuzzle->changeReveal($message->hideMode, $message->revealMode, $message->scheduledAt);
 
         $this->secretPuzzleHides->resync($puzzle);
+    }
+
+    /**
+     * The same rule as GetRoundPuzzlesForManagement's `may_become_secret` (RoundPuzzleOwnership::sqlShownByAnotherRound()).
+     */
+    private function isShown(CompetitionRoundPuzzle $roundPuzzle, DateTimeImmutable $now): bool
+    {
+        if ($roundPuzzle->round->startsAt <= $now) {
+            return true;
+        }
+
+        foreach ($this->secretPuzzleHides->rowsOf($roundPuzzle->puzzle) as $other) {
+            if ($other !== $roundPuzzle && $other->isHiddenAt($now) === false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

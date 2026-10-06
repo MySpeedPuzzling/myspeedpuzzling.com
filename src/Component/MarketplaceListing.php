@@ -126,6 +126,12 @@ final class MarketplaceListing
 
     private null|MarketplaceListingsCount $cachedCounts = null;
 
+    // visiblePuzzleId() asks the database - once per render (the component is created anew for every render; a
+    // re-render resets it in preReRender(), as the puzzle filter may have changed)
+    private bool $visiblePuzzleIdResolved = false;
+
+    private null|string $visiblePuzzleId = null;
+
     /** @var null|list<EventWithSellersGoing> */
     private null|array $cachedEventChoices = null;
 
@@ -186,6 +192,8 @@ final class MarketplaceListing
         $this->normalizePieces();
         $this->cachedItems = null;
         $this->cachedCounts = null;
+        $this->visiblePuzzleIdResolved = false;
+        $this->visiblePuzzleId = null;
         $this->chosenEventResolved = false;
         $this->chosenEvent = null;
         $this->filteredPuzzleOverviewLoaded = false;
@@ -447,11 +455,18 @@ final class MarketplaceListing
      */
     private function visiblePuzzleId(): null|string
     {
-        if ($this->puzzleId === '' || !Uuid::isValid($this->puzzleId)) {
-            return null;
+        if ($this->visiblePuzzleIdResolved) {
+            return $this->visiblePuzzleId;
         }
 
-        return $this->secretPuzzleAccess->isHiddenFromViewer($this->puzzleId) ? null : $this->puzzleId;
+        $this->visiblePuzzleIdResolved = true;
+        $this->visiblePuzzleId = $this->puzzleId !== ''
+            && Uuid::isValid($this->puzzleId)
+            && $this->secretPuzzleAccess->isHiddenFromViewer($this->puzzleId) === false
+                ? $this->puzzleId
+                : null;
+
+        return $this->visiblePuzzleId;
     }
 
     private function loadFilteredPuzzleOverview(): null|PuzzleOverview

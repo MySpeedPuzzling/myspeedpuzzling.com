@@ -55,10 +55,13 @@ readonly final class AddPuzzleToCompetitionRoundHandler
     {
         $isNewPuzzle = !Uuid::isValid($message->puzzle);
 
-        if ($isNewPuzzle === false) {
-            // Waits for every other change of this puzzle's secret rows, then reads fresh (SecretPuzzleHides::lock())
-            $this->secretPuzzleHides->lock([$message->puzzle]);
-        }
+        // Locks the round (its start must not move meanwhile), then the puzzle when it gets or has a secret row - waits
+        // for every other change of them, then reads fresh (SecretPuzzleHides)
+        $this->secretPuzzleHides->lockForAddingTo(
+            $message->roundId,
+            $isNewPuzzle ? [] : [$message->puzzle],
+            $message->hideUntilRoundStarts,
+        );
 
         $round = $this->competitionRoundRepository->get($message->roundId);
         $puzzleKeptSecret = false;
@@ -68,10 +71,11 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         } else {
             $puzzle = $this->puzzleRepository->get($message->puzzle);
 
-            // Another organiser's secret puzzle is not theirs to use
+            // Another organiser's secret puzzle is not theirs to use - also while only its picture is hidden
             $this->secretPuzzleAccess->assertPuzzleUsableBy(
                 $puzzle,
                 $this->playerRepository->getByUserIdCreateIfNotExists($message->userId)->id->toString(),
+                alsoWhileImageHidden: true,
             );
 
             // A puzzle hidden by hand (a placeholder) is no round's to hide or reveal

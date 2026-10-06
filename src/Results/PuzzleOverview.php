@@ -65,15 +65,13 @@ readonly final class PuzzleOverview
      *     name_language?: null|string,
      * } $row
      */
-    public static function fromDatabaseRow(array $row, null|DateTimeImmutable $now = null): self
+    public static function fromDatabaseRow(array $row, DateTimeImmutable $now): self
     {
         $hideUntil = $row['hide_until'] ?? null;
         $hideImageUntil = $row['hide_image_until'] !== null ? new DateTimeImmutable($row['hide_image_until']) : null;
         // While a competition keeps the picture secret, its EAN and brand code give the box away just the same
-        $codesHidden = $now !== null && (
-            ($hideImageUntil !== null && $hideImageUntil > $now)
-            || ($hideUntil !== null && new DateTimeImmutable($hideUntil) > $now)
-        );
+        $codesHidden = ($hideImageUntil !== null && $hideImageUntil > $now)
+            || ($hideUntil !== null && new DateTimeImmutable($hideUntil) > $now);
 
         return new self(
             puzzleId: $row['puzzle_id'],

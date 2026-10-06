@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
@@ -30,6 +31,7 @@ use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
@@ -56,6 +58,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private FirstTryAssessor $firstTryAssessor,
         private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
         private PuzzleRepository $puzzleRepository,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -67,6 +70,7 @@ readonly final class EditPuzzleSolvingTimeHandler
      * @throws SuspiciousPpm
      * @throws FirstTryAlreadyTaken
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      */
     public function __invoke(EditPuzzleSolvingTime $message): void
     {
@@ -89,6 +93,9 @@ readonly final class EditPuzzleSolvingTimeHandler
             }
 
             $puzzle = $this->puzzleRepository->get($message->puzzleId);
+
+            // Onto a secret competition puzzle: nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+            $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $currentPlayer->id->toString());
         }
 
         $puzzleChanges = $puzzle->id->equals($solvingTime->puzzle->id) === false;

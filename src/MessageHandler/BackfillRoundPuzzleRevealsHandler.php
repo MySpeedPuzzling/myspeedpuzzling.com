@@ -38,7 +38,7 @@ readonly final class BackfillRoundPuzzleRevealsHandler
     }
 
     /**
-     * @return array{changes: list<string>, unmatched: list<string>}
+     * @return array{changes: list<string>, unmatched: list<string>, obsoleteImages: list<string>}
      */
     public function __invoke(BackfillRoundPuzzleReveals $message): array
     {
@@ -104,6 +104,7 @@ readonly final class BackfillRoundPuzzleRevealsHandler
         }
 
         $movedImages = [];
+        $obsoleteImages = [];
 
         if ($message->dryRun === false) {
             $this->secretPuzzleHides->resync(...array_values($matchedPuzzles));
@@ -114,7 +115,11 @@ readonly final class BackfillRoundPuzzleRevealsHandler
                 $moved = $this->moveGuessableImage($puzzle, $now);
 
                 if ($moved !== null) {
-                    $movedImages[] = $moved;
+                    $movedImages[] = $moved['line'];
+
+                    if ($moved['obsolete'] !== null) {
+                        $obsoleteImages[] = $moved['obsolete'];
+                    }
                 }
             }
         }
@@ -143,14 +148,20 @@ readonly final class BackfillRoundPuzzleRevealsHandler
         return [
             'changes' => [...$lines, ...$movedImages],
             'unmatched' => $this->unmatchedHiddenPuzzles($now, array_keys($matchedPuzzles)),
+            'obsoleteImages' => $obsoleteImages,
         ];
     }
 
     /**
-     * Copies the object to a random name, points the puzzle at it and deletes the old one. The images cache (nginx in
-     * front of imgproxy) may still hold thumbnails requested under the old name - see docs (no purge endpoint).
+     * Copies the object to a random name and points the puzzle at it. The old object is NOT deleted here: the handler
+     * runs in a transaction, and a rollback would leave the puzzle pointing at a deleted file - the caller deletes the
+     * returned path once the transaction is committed (BackfillRoundPuzzleRevealsConsoleCommand). The images cache
+     * (nginx in front of imgproxy) may still hold thumbnails requested under the old name - see docs (no purge
+     * endpoint).
+     *
+     * @return null|array{line: string, obsolete: null|string}
      */
-    private function moveGuessableImage(Puzzle $puzzle, DateTimeImmutable $now): null|string
+    private function moveGuessableImage(Puzzle $puzzle, DateTimeImmutable $now): null|array
     {
         $oldPath = $puzzle->image;
 
@@ -162,14 +173,19 @@ readonly final class BackfillRoundPuzzleRevealsHandler
         $newPath = $this->puzzleImageNamer->secretFilename($extension !== '' ? $extension : 'jpg');
 
         if ($this->filesystem->fileExists($oldPath) === false) {
-            return sprintf('image of puzzle %s: %s is missing in storage - left as it is', $puzzle->id->toString(), $oldPath);
+            return [
+                'line' => sprintf('image of puzzle %s: %s is missing in storage - left as it is', $puzzle->id->toString(), $oldPath),
+                'obsolete' => null,
+            ];
         }
 
         $this->filesystem->copy($oldPath, $newPath);
         $puzzle->moveImageTo($newPath);
-        $this->filesystem->delete($oldPath);
 
-        return sprintf('image of puzzle %s moved: %s -> %s', $puzzle->id->toString(), $oldPath, $newPath);
+        return [
+            'line' => sprintf('image of puzzle %s moved: %s -> %s', $puzzle->id->toString(), $oldPath, $newPath),
+            'obsolete' => $oldPath,
+        ];
     }
 
     /**

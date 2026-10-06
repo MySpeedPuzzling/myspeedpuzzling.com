@@ -42,6 +42,8 @@ readonly final class GetAdminPuzzles
          *     puzzle_ean: null|string,
          *     puzzle_identification_number: null|string,
          *     puzzle_approved: bool,
+         *     puzzle_hide_until: null|string,
+         *     puzzle_hide_image_until: null|string,
          * }> $rows
          */
         $rows = $this->database->fetchAllAssociative(<<<SQL
@@ -53,7 +55,9 @@ SELECT
     m.name AS manufacturer_name,
     p.ean AS puzzle_ean,
     p.identification_number AS puzzle_identification_number,
-    p.approved AS puzzle_approved
+    p.approved AS puzzle_approved,
+    p.hide_until AS puzzle_hide_until,
+    p.hide_image_until AS puzzle_hide_image_until
 FROM puzzle p
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 WHERE p.id IN (:puzzleIds)

@@ -74,6 +74,11 @@ final class StopwatchController extends AbstractController
             try {
                 $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
                 $puzzleId = $activeStopwatch->puzzleId;
+
+                // A stopwatch on a puzzle a competition keeps secret from this player shows no puzzle
+                if ($puzzleId !== null && $this->secretPuzzleAccess->isHiddenFromViewer($puzzleId)) {
+                    $puzzleId = null;
+                }
             } catch (StopwatchNotFound) {
                 return $this->redirectToRoute('stopwatch');
             }

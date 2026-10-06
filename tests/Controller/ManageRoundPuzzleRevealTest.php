@@ -192,6 +192,83 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
         self::assertFalse($puzzle->isImageHiddenAt(new \DateTimeImmutable()));
     }
 
+    public function testDeletingTheRoundThatHoldsASecretAsksFirstForExactlyThatList(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+
+        // One secret puzzle in two rounds: revealed already on Team Relay, still secret on the Czech final
+        $teamRelay = Uuid::uuid7();
+        $bus->dispatch(new AddPuzzleToCompetitionRound(
+            roundPuzzleId: $teamRelay,
+            roundId: CompetitionApiFixture::ROUND_FUTURE,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            puzzle: 'Held By The Final',
+            piecesCount: 500,
+            puzzlePhoto: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
+            hideUntilRoundStarts: true,
+        ));
+        $puzzleId = $this->roundPuzzle($teamRelay->toString())->puzzle->id->toString();
+        $bus->dispatch(new AddPuzzleToCompetitionRound(
+            roundPuzzleId: Uuid::uuid7(),
+            roundId: CompetitionRoundFixture::ROUND_CZECH_FINAL,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            puzzle: $puzzleId,
+            piecesCount: null,
+            puzzlePhoto: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
+            hideUntilRoundStarts: true,
+        ));
+        $bus->dispatch(new \SpeedPuzzling\Web\Message\RevealRoundPuzzleNow($teamRelay->toString()));
+
+        $deletion = '/en/delete-event-round/' . CompetitionRoundFixture::ROUND_CZECH_FINAL;
+
+        // Asked first, the puzzle listed
+        $confirmation = $browser->request('POST', $deletion);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Held By The Final', $confirmation->filter('[data-confirm-reveal]')->text());
+        self::assertNotNull(self::getContainer()->get(EntityManagerInterface::class)->find(CompetitionRound::class, CompetitionRoundFixture::ROUND_CZECH_FINAL));
+
+        // A yes without the list's hash, or for another list, does not count
+        $browser->request('POST', $deletion, ['confirm_reveal' => '1']);
+        self::assertResponseStatusCodeSame(422);
+        $browser->request('POST', $deletion, ['confirm_reveal' => '1', 'confirm_reveal_hash' => 'tampered']);
+        self::assertResponseStatusCodeSame(422);
+
+        // The hash shown with the list
+        $hash = $confirmation->filter('input[name="confirm_reveal_hash"]')->attr('value');
+        self::assertIsString($hash);
+        $browser->request('POST', $deletion, ['confirm_reveal' => '1', 'confirm_reveal_hash' => $hash]);
+        $crawler = $browser->followRedirect();
+        self::assertStringContainsString('Round deleted. Revealed now: Held By The Final', $crawler->text());
+
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->clear();
+        self::assertNull($entityManager->find(CompetitionRound::class, CompetitionRoundFixture::ROUND_CZECH_FINAL));
+        $puzzle = $entityManager->find(\SpeedPuzzling\Web\Entity\Puzzle::class, $puzzleId);
+        self::assertNotNull($puzzle);
+        self::assertFalse($puzzle->isImageHiddenAt(new \DateTimeImmutable()));
+    }
+
+    public function testAConfirmationCountsOnlyForHowFarEachPuzzleComesOut(): void
+    {
+        $everywhere = [['id' => 'a', 'name' => 'A', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
+        $onThisEvent = [['id' => 'a', 'name' => 'A', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-01 10:00:00')]];
+        $onThisEventLonger = [['id' => 'a', 'name' => 'A', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-02 10:00:00')]];
+
+        self::assertNotSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($everywhere), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEvent));
+        self::assertNotSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEvent), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEventLonger));
+        // The order of the list does not matter
+        $two = [...$everywhere, ['id' => 'b', 'name' => 'B', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
+        self::assertSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($two), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash(array_reverse($two)));
+    }
+
     private function roundPuzzleOrNull(string $roundPuzzleId): null|CompetitionRoundPuzzle
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);

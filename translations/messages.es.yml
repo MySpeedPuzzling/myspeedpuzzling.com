@@ -3380,8 +3380,8 @@ fair_use_policy:
     "form":
       "hide_until_round_starts": "Mantener este puzzle en secreto hasta que se revele"
       "hide_help": "Se revela automáticamente el %date%, 10 minutos después de que empiece la ronda. Puedes cambiar la hora de revelación o revelarlo tú mismo en la página de puzzles de la ronda."
-      "hide_new_puzzle": "Un puzzle nuevo permanece en secreto en todo MySpeedPuzzling hasta entonces: también en la búsqueda, en las páginas de marcas y en su propia página."
-      "hide_existing_puzzle": "Un puzzle que ya está en nuestra base de datos es público en el resto de MySpeedPuzzling: solo se oculta en las páginas de tu evento."
+      "hide_new_puzzle": "Para un puzzle nuevo esto vale en todo MySpeedPuzzling (búsqueda, páginas de marcas y su propia página incluidas) y, hasta la revelación, nadie, ni siquiera tú, puede añadir un tiempo, ponerlo en una colección o lista de deseos, ofrecerlo ni prestarlo."
+      "hide_existing_puzzle": "Un puzzle que ya está en nuestra base de datos y es público sigue siéndolo en el resto de MySpeedPuzzling: solo se oculta en las páginas de tu evento. Uno que aún es secreto (en otra ronda, o que añadiste antes) sigue en secreto en todas partes hasta su última revelación."
       "hide_mode_image_only": "Ocultar solo la imagen"
       "hide_mode_image_only_help": "Solo se oculta la imagen. El nombre y la marca son públicos: en las páginas de tu evento y, si el puzzle es nuevo, en todo MySpeedPuzzling."
       "hide_mode_entirely": "Ocultar el puzzle completamente"
@@ -3391,6 +3391,7 @@ fair_use_policy:
     "round_start": "La ronda empieza %time%"
     "reveal_now": "Revelar ahora"
     "confirm_reveal_now": "¿Revelar este puzzle ahora? Todos lo verán de inmediato."
+    "confirm_reveal_now_held": "¿Revelar este puzzle en esta ronda ahora? Otra ronda lo mantiene oculto en el resto de MySpeedPuzzling hasta que lo revele."
     "status":
       "hidden_everywhere": "Oculto en todas partes hasta %time%"
       "image_hidden_everywhere": "Imagen oculta en todas partes hasta %time%; el nombre es público"
@@ -3442,6 +3443,7 @@ fair_use_policy:
       "invalid_time": "Esta hora no existe exactamente una vez en la zona horaria del evento (ese día cambia la hora); elige otra, por favor."
       "time_passed": "Esa hora ya ha pasado: usa «Revelar ahora» para revelar el puzzle de inmediato."
       "already_revealed": "Este puzzle ya está revelado; su revelación ya no se puede cambiar."
+      "already_shown": "Este puzzle ya se muestra en la página de tu evento: una vez empezada la ronda, o mientras otra ronda lo muestre, ya no se puede hacer secreto."
       "removed_revealed": "Puzzle eliminado de la ronda. Revelado ahora: %puzzles%."
       "round_deleted_revealed": "Ronda eliminada. Revelado ahora: %puzzles%."
       "round_updated_revealed": "Revelado ahora: %puzzles%."
@@ -3450,7 +3452,7 @@ fair_use_policy:
       "kept_everywhere": "«%puzzle%» permanece ahora oculto en todas partes hasta que esta ronda lo revele."
       "keep_everywhere_refused": "Esta ronda no puede mantener este puzzle oculto en todas partes."
       "puzzle_hidden_by_hand": "MySpeedPuzzling mantiene oculto este puzzle: no se puede usar en una ronda hasta que se publique."
-    "puzzle_still_secret": "Una competición mantiene este puzzle en secreto hasta que se revele. Hasta entonces no se puede aprobar, fusionar ni editar."
+    "puzzle_still_secret": "Una competición mantiene este puzzle en secreto hasta que se revele. Hasta entonces no se puede aprobar ni fusionar, y solo un administrador puede editarlo."
     "keep_everywhere": "Mantenerlo oculto en todas partes hasta %time%"
     "keep_everywhere_manual": "Mantenerlo oculto en todas partes hasta que lo revele"
     "confirm":
@@ -5336,3 +5338,7 @@ puzzle_names:
     report_languages_link: "¿Son cajas en idiomas distintos?"
     source_name_language: "El nombre de este puzzle está en"
     duplicate_name_language: "El nombre del duplicado está en"
+"secret_puzzle":
+  "not_revealed_yet": "Este puzzle sigue en secreto hasta su revelación (%time%): podrás añadirlo después."
+  "not_revealed_yet_manual": "Este puzzle sigue en secreto hasta que el organizador lo revele: podrás añadirlo después."
+  "not_revealed_yet_title": "Aún no revelado"

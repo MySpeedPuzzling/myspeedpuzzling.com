@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyShown;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleCannotHideEverywhere;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
@@ -26,6 +28,7 @@ use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Message\KeepRoundPuzzleHiddenEverywhere;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
+use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
@@ -171,6 +174,74 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         self::assertSame($revealsAt->getTimestamp(), $this->puzzle($puzzleId)->hideUntil?->getTimestamp());
     }
 
+    public function testARowShownOnTheEventPageTurnsSecretOnlyBeforeTheRoundAndWhileNoOtherRoundShowsIt(): void
+    {
+        $final = $this->round(CompetitionRoundFixture::ROUND_WJPC_FINAL);
+        $final->startsAt = new DateTimeImmutable('+20 days');
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        // Before the round starts, shown nowhere else: the organiser may still make it secret (a box ticked late)
+        $this->addToRound(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_1500_01, hide: false);
+        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($this->rowOf(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_1500_01), PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null));
+        $this->entityManager->clear();
+        self::assertTrue($this->roundPuzzle($this->rowOf(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_1500_01))->hideUntilRoundStarts);
+
+        // Another round shows the puzzle (PUZZLE_500_01 is in the Czech final, not secret)
+        try {
+            $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($this->rowOf(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleFixture::PUZZLE_500_01), PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null));
+            self::fail('A puzzle another round shows is never hidden again');
+        } catch (RoundPuzzleAlreadyShown) {
+        }
+
+        // The round has started
+        $this->addToRound(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_1500_02, hide: false);
+        $final = $this->round(CompetitionRoundFixture::ROUND_WJPC_FINAL);
+        $final->startsAt = new DateTimeImmutable('-1 hour');
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $this->expectException(RoundPuzzleAlreadyShown::class);
+        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($this->rowOf(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_1500_02), PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null));
+    }
+
+    public function testKeepHiddenEverywhereNeverStartsAHideItOnlyExtendsOne(): void
+    {
+        $roundPuzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
+        $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
+        $puzzleId = $roundPuzzle->puzzle->id->toString();
+        $revealsAt = $roundPuzzle->revealsAt();
+        self::assertNotNull($revealsAt);
+
+        // The site no longer hides the puzzle: its name and picture are out - nothing to extend
+        $roundPuzzle->hidesEverywhere = false;
+        $roundPuzzle->puzzle->keepSecretUntil(new DateTimeImmutable('-1 hour'), new DateTimeImmutable('-1 hour'));
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        try {
+            $this->messageBus->dispatch(new KeepRoundPuzzleHiddenEverywhere($roundPuzzleId));
+            self::fail('A puzzle out in public is never hidden again');
+        } catch (RoundPuzzleCannotHideEverywhere) {
+        }
+
+        // The site hides it longer than this round would - nothing to take over either
+        $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
+        $roundPuzzle->puzzle->keepSecretUntil($revealsAt->modify('+1 day'), $revealsAt->modify('+1 day'));
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        try {
+            $this->messageBus->dispatch(new KeepRoundPuzzleHiddenEverywhere($roundPuzzleId));
+            self::fail('Nothing ends before this round\'s reveal');
+        } catch (RoundPuzzleCannotHideEverywhere) {
+        }
+
+        $this->entityManager->clear();
+        self::assertFalse($this->roundPuzzle($roundPuzzleId)->hidesEverywhere);
+        self::assertSame($revealsAt->modify('+1 day')->getTimestamp(), $this->puzzle($puzzleId)->hideUntil?->getTimestamp());
+    }
+
     public function testAnAdminCorrectsASecretPuzzleAModeratorCannot(): void
     {
         $roundPuzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, photo: true);
@@ -199,8 +270,10 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
     }
 
     /**
-     * Every handler that changes a secret row or a round's start locks the puzzle rows first (SELECT ... FOR UPDATE)
-     * - a change already holding the row makes it wait (here: fail fast), never compute on a state being changed.
+     * Every handler that changes a secret row or a round's start locks first: the round (FOR SHARE when it adds or
+     * changes one row, FOR NO KEY UPDATE when the round itself changes), then the puzzles with secret rows (FOR NO
+     * KEY UPDATE) - a change already holding one makes it wait (here: fail fast), never compute on a state being
+     * changed.
      *
      * @return iterable<string, array{string}>
      */
@@ -212,13 +285,55 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         yield 'keep hidden everywhere' => ['keep'];
         yield 'edit the round' => ['edit'];
         yield 'delete the round' => ['delete'];
+        yield 'set the round puzzles' => ['set'];
         yield 'add the puzzle to another round' => ['add'];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('lockingMessages')]
     public function testHandlersLockThePuzzleBeforeReadingIt(string $action): void
     {
-        // A fixture puzzle - committed, so the other connection can lock its row (the test's own rows are not)
+        $message = $this->lockingMessage($action);
+
+        // FOR SHARE: blocks the handler's FOR NO KEY UPDATE, but not the key-share lock the test's own new row holds
+        $failedStatement = $this->failedStatementWhileLocked(
+            sprintf("SELECT id FROM puzzle WHERE id = '%s' FOR SHARE", PuzzleFixture::PUZZLE_500_03),
+            $message,
+        );
+
+        self::assertIsString($failedStatement, 'The handler must wait for the puzzle\'s row');
+        self::assertStringStartsWith('SELECT id FROM puzzle', $failedStatement);
+        // Never FOR UPDATE - that one would also wait for every time or collection item inserted for the puzzle
+        self::assertStringContainsString('FOR NO KEY UPDATE', $failedStatement);
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('lockingMessages')]
+    public function testHandlersLockTheRoundBeforeItsPuzzles(string $action): void
+    {
+        $message = $this->lockingMessage($action);
+        $roundId = $action === 'add' ? CompetitionRoundFixture::ROUND_CZECH_FINAL : CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION;
+
+        // FOR NO KEY UPDATE: blocks the handler's FOR SHARE and FOR NO KEY UPDATE, but not the key-share lock the
+        // test's own new row holds
+        $failedStatement = $this->failedStatementWhileLocked(
+            sprintf("SELECT id FROM competition_round WHERE id = '%s' FOR NO KEY UPDATE", $roundId),
+            $message,
+        );
+
+        self::assertIsString($failedStatement, 'The handler must wait for the round\'s row');
+        self::assertStringStartsWith('SELECT id FROM competition_round', $failedStatement);
+        // A row added or changed shares the round; a change of the round (its start, its puzzles) takes it
+        self::assertStringContainsString(
+            in_array($action, ['edit', 'delete', 'set'], true) ? 'FOR NO KEY UPDATE' : 'FOR SHARE',
+            $failedStatement,
+        );
+    }
+
+    /**
+     * A secret row of a fixture puzzle in the Qualification round - committed fixtures, so the other connection can
+     * lock their rows (the test's own rows are not).
+     */
+    private function lockingMessage(string $action): object
+    {
         $puzzleId = PuzzleFixture::PUZZLE_500_03;
         $row = new CompetitionRoundPuzzle(
             id: Uuid::uuid7(),
@@ -233,13 +348,21 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         $roundPuzzleId = $row->id->toString();
         $this->entityManager->clear();
 
-        $message = match ($action) {
+        return match ($action) {
             'change' => new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null),
             'reveal' => new RevealRoundPuzzleNow($roundPuzzleId),
             'remove' => new RemovePuzzleFromCompetitionRound($roundPuzzleId),
             'keep' => new KeepRoundPuzzleHiddenEverywhere($roundPuzzleId),
-            'edit' => $this->editRoundMessage(new DateTimeImmutable('+40 days')),
+            // The same values - the handler changes nothing, so only its own lock holds the round
+            'edit' => $this->editRoundMessage($this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION)->startsAt),
             'delete' => new DeleteCompetitionRound(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION),
+            'set' => new SetCompetitionRoundPuzzles(
+                CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
+                array_values(array_map(
+                    static fn (CompetitionRoundPuzzle $roundPuzzle): string => $roundPuzzle->puzzle->id->toString(),
+                    $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION)->roundPuzzles->toArray(),
+                )),
+            ),
             default => new AddPuzzleToCompetitionRound(
                 roundPuzzleId: Uuid::uuid7(),
                 roundId: CompetitionRoundFixture::ROUND_CZECH_FINAL,
@@ -253,12 +376,17 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
                 hideUntilRoundStarts: true,
             ),
         };
+    }
 
-        // FOR NO KEY UPDATE: blocks the handler's FOR UPDATE, but not the key-share lock the test's own new row holds
+    /**
+     * Dispatches the message while another connection holds a lock - the statement that waited too long, or null.
+     */
+    private function failedStatementWhileLocked(string $lockingStatement, object $message): null|string
+    {
         $otherRequest = $this->otherDatabaseConnection();
         $otherRequest->exec("SET lock_timeout = '2s'");
         $otherRequest->beginTransaction();
-        $otherRequest->query(sprintf("SELECT id FROM puzzle WHERE id = '%s' FOR NO KEY UPDATE", $puzzleId));
+        $otherRequest->query($lockingStatement);
         $this->entityManager->getConnection()->executeStatement("SET LOCAL lock_timeout = '200ms'");
 
         $failedStatement = null;
@@ -275,9 +403,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
             $otherRequest->rollBack();
         }
 
-        self::assertIsString($failedStatement, 'The handler must wait for the puzzle\'s row');
-        self::assertStringStartsWith('SELECT', $failedStatement);
-        self::assertStringContainsString('FOR UPDATE', $failedStatement);
+        return $failedStatement;
     }
 
     public function testBackfillMovesAGuessableImageOfASecretPuzzle(): void
@@ -297,7 +423,26 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         $this->entityManager->flush();
         $this->entityManager->clear();
 
+        // The handler runs in the transaction: it copies, but never deletes - a rollback must not lose the picture
         $this->messageBus->dispatch(new BackfillRoundPuzzleReveals(dryRun: false));
+        $this->entityManager->clear();
+
+        $image = $this->puzzle($puzzleId)->image;
+        self::assertNotNull($image);
+        self::assertMatchesRegularExpression('/^[0-9a-f]{32}\.jpg$/', $image);
+        self::assertTrue($filesystem->fileExists($image));
+        self::assertTrue($filesystem->fileExists($guessable));
+
+        // The command deletes the old object once the change is committed
+        $this->puzzle($puzzleId)->moveImageTo($guessable);
+        $this->roundPuzzle($roundPuzzleId)->hidesEverywhere = false;
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $application = new \Symfony\Bundle\FrameworkBundle\Console\Application(self::$kernel ?? self::bootKernel());
+        $command = new \Symfony\Component\Console\Tester\CommandTester($application->find('myspeedpuzzling:backfill-round-puzzle-reveals'));
+        $command->execute(['--write' => true]);
+        $command->assertCommandIsSuccessful();
         $this->entityManager->clear();
 
         $image = $this->puzzle($puzzleId)->image;
@@ -429,6 +574,17 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
             $url['pass'] ?? null,
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
         );
+    }
+
+    private function rowOf(string $roundId, string $puzzleId): string
+    {
+        $roundPuzzleId = $this->entityManager->getConnection()->fetchOne(
+            'SELECT id FROM competition_round_puzzle WHERE round_id = :roundId AND puzzle_id = :puzzleId',
+            ['roundId' => $roundId, 'puzzleId' => $puzzleId],
+        );
+        self::assertIsString($roundPuzzleId);
+
+        return $roundPuzzleId;
     }
 
     private function round(string $roundId): CompetitionRound

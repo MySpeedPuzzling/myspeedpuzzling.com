@@ -3377,8 +3377,8 @@ qr_code:
     "form":
       "hide_until_round_starts": "Držet puzzle v tajnosti až do odhalení"
       "hide_help": "Odhalí se automaticky %date% – 10 minut po začátku kola. Čas odhalení můžete změnit nebo puzzle odhalit sami na stránce puzzlí kola."
-      "hide_new_puzzle": "Nové puzzle zůstane do té doby skryté na celém MySpeedPuzzling – ve vyhledávání, na stránkách značek i na své vlastní stránce."
-      "hide_existing_puzzle": "Puzzle, které už v naší databázi je, je jinde na MySpeedPuzzling veřejné – skryje se jen na stránkách vaší události."
+      "hide_new_puzzle": "U nového puzzle to platí na celém MySpeedPuzzling – ve vyhledávání, na stránkách značek i na jeho vlastní stránce – a až do odhalení k němu nikdo, ani vy, nemůže přidat čas, dát ho do sbírky nebo seznamu přání, nabídnout ho ani půjčit."
+      "hide_existing_puzzle": "Puzzle, které už v naší databázi je a je veřejné, zůstane jinde na MySpeedPuzzling veřejné – skryje se jen na stránkách vaší události. Puzzle, které je ještě tajné – v jiném kole, nebo ho dříve přidali vy – zůstane tajné všude až do svého posledního odhalení."
       "hide_mode_image_only": "Skrýt pouze obrázek"
       "hide_mode_image_only_help": "Skryje se jen obrázek. Název a značka jsou veřejné – na stránkách vaší události a u nového puzzle i všude na MySpeedPuzzling."
       "hide_mode_entirely": "Skrýt puzzle úplně"
@@ -3388,6 +3388,7 @@ qr_code:
     "round_start": "Kolo začíná %time%"
     "reveal_now": "Odhalit teď"
     "confirm_reveal_now": "Odhalit toto puzzle teď? Všichni ho hned uvidí."
+    "confirm_reveal_now_held": "Odhalit toto puzzle v tomto kole teď? Jiné kolo ho jinde na MySpeedPuzzling drží skryté, dokud ho neodhalí."
     "status":
       "hidden_everywhere": "Skryté všude do %time%"
       "image_hidden_everywhere": "Obrázek skrytý všude do %time% – název je veřejný"
@@ -3439,6 +3440,7 @@ qr_code:
       "invalid_time": "Tento čas v časovém pásmu události neexistuje právě jednou (mění se tehdy čas) – zvolte prosím jiný."
       "time_passed": "Tento čas už uplynul – puzzle hned odhalíte tlačítkem „Odhalit teď“."
       "already_revealed": "Toto puzzle je už odhalené – jeho odhalení už nelze změnit."
+      "already_shown": "Toto puzzle se už na stránce vaší události zobrazuje – jakmile kolo začalo nebo dokud ho ukazuje jiné kolo, nelze ho už udělat tajným."
       "removed_revealed": "Puzzle odebráno z kola. Odhaleno: %puzzles%."
       "round_deleted_revealed": "Kolo smazáno. Odhaleno: %puzzles%."
       "round_updated_revealed": "Odhaleno: %puzzles%."
@@ -3447,7 +3449,7 @@ qr_code:
       "kept_everywhere": "„%puzzle%“ teď zůstane skryté všude, dokud ho toto kolo neodhalí."
       "keep_everywhere_refused": "Toto kolo nemůže držet toto puzzle skryté všude."
       "puzzle_hidden_by_hand": "Toto puzzle drží skryté samo MySpeedPuzzling – do jeho zveřejnění ho nelze použít v kole."
-    "puzzle_still_secret": "Soutěž drží toto puzzle v tajnosti až do jeho odhalení. Do té doby ho nelze schválit, sloučit ani upravit."
+    "puzzle_still_secret": "Soutěž drží toto puzzle v tajnosti až do jeho odhalení. Do té doby ho nelze schválit ani sloučit a upravit ho může jen administrátor."
     "keep_everywhere": "Držet ho skryté všude do %time%"
     "keep_everywhere_manual": "Držet ho skryté všude, dokud ho neodhalím"
     "confirm":
@@ -5333,3 +5335,7 @@ puzzle_names:
     report_languages_link: "Jde o krabice v různých jazycích?"
     source_name_language: "Název tohoto puzzle je v jazyce"
     duplicate_name_language: "Název duplikátu je v jazyce"
+"secret_puzzle":
+  "not_revealed_yet": "Toto puzzle je ještě tajné až do odhalení (%time%) – přidat ho můžete potom."
+  "not_revealed_yet_manual": "Toto puzzle je ještě tajné, dokud ho pořadatel neodhalí – přidat ho můžete potom."
+  "not_revealed_yet_title": "Zatím neodhaleno"

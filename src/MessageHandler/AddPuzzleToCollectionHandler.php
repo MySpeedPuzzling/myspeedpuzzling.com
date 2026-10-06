@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
@@ -34,13 +35,14 @@ readonly final class AddPuzzleToCollectionHandler
      * @throws CollectionNotFound
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      */
     public function __invoke(AddPuzzleToCollection $message): void
     {
         $player = $this->playerRepository->get($message->playerId);
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
-        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
-        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $message->playerId);
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $message->playerId);
 
         $collection = null;
         if ($message->collectionId !== null) {

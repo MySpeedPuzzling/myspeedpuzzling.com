@@ -6,7 +6,8 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Round time zones and secret-puzzle reveal (`docs/features/competitions-management/README.md`)
 
-- [ ] After the deploy: `myspeedpuzzling:backfill-round-puzzle-reveals` (dry run), read the list, then `--write`.
+- [ ] With the deploy, right after it: `myspeedpuzzling:backfill-round-puzzle-reveals` (dry run), read the list, then
+      `--write` - until then old rows have `hides_everywhere = false` and a round move moves only the event page.
 - [ ] Wisconsin State Jigsaw Puzzle Championship 2026: confirm the 4 round times with the organiser (Dakota), set the
       rounds' `timezone` to `America/Chicago`, re-sync the 2 Team Relay secret puzzles (SQL in the PR description).
 - [ ] Rounds saved before 2026-10 have no `timezone` and are read in their country's default zone - organisers of
@@ -14,9 +15,11 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] US events default to New York (`CountryCode::defaultTimezone()`) - a known limitation for Central/Mountain/Pacific
       events without a stored zone (e.g. past `assemble-puzzlery-…` reads 21:30 New York); ask organisers to set theirs.
 - [ ] Rename the random (hex) image names of secret puzzles to SEO names once revealed or approved.
-- [ ] Existence signals of secret puzzles still open: multiscan "already assigned", `MergeUnapprovedPuzzleController`
-      `puzzleExists`, and the add-time EAN lookup no longer finding an image-only secret puzzle (a player may add a
-      duplicate); results counts, the edition's `puzzle_count`, the image aspect ratio, `/me` predicted time.
+- [ ] Existence signals of secret puzzles still open (nothing of the puzzle itself, but they tell that something is
+      there): multiscan "already assigned" for a code only a secret puzzle carries, `MergeUnapprovedPuzzleController`
+      `puzzleExists`, results counts and the edition's `puzzle_count`, the image aspect ratio while hidden, `/me`
+      predicted time answering 200, the add-time EAN lookup no longer finding an image-only secret puzzle (a player may
+      add a duplicate).
 - [ ] Prague-formatted dates still in `events.html.twig:68` and the edition/event detail meta descriptions.
 - [ ] Deleting a whole event or series does not ask before revealing secret puzzles other events hold (round deletion
       and puzzle removal do - `SecretRevealPreview`).
@@ -27,10 +30,17 @@ that would otherwise be forgotten. Newest section on top.
       files of those keys on the box if they were requested.
 - [ ] A puzzle removed from its round while on a manual reveal stays hidden with no end - its adder finds it in the round
       picker again, otherwise an admin clears `puzzle.hide_until` / `hide_image_until` on request.
-- [ ] Times and collections on a secret puzzle (only reachable with its id) can show its name in feeds - hide the competition
-      badge and the puzzle in feeds while the round puzzle is hidden.
-- [ ] Small existence signals of secret puzzles: multiscan "already assigned", results counts, the edition's `puzzle_count`,
-      the image aspect ratio while hidden, `/me` predicted time answering 200.
+- [ ] Nothing new is recorded on a secret puzzle before its reveal (`SecretPuzzleAccess::assertWritableBy()`), but
+      records made before it became secret stay - a puzzle taken over by "Keep it hidden everywhere" or by the backfill
+      may already have times, collection items or listings, and feeds, profiles and the marketplace show its name with
+      them. Hide those records (or the puzzle in them) while it is secret, if one ever turns up.
+- [ ] An organiser learns that a secret puzzle takes no time / collection / listing only when submitting (flash or
+      message in the modal) - the add-time form and the collection/wishlist/sell-swap buttons could say it up front.
+- [ ] "Shown by another surface" for turning a non-secret round puzzle secret is read as "another round shows it now"
+      (`RoundPuzzleOwnership::sqlShownByAnotherRound()`) - a public catalogue puzzle may still be hidden on the event
+      page before its round starts, as when adding it. Revisit if that should be refused too.
+- [ ] Not in the internal API: changing a reveal, Reveal now, "Keep it hidden everywhere", attaching a secret puzzle
+      (refused - its reveal is chosen on the round's page).
 - [ ] Repair historic rounds moved by untouched saves before the zone fix (e.g. Ou La La SPC No. 16) - compare with the
       organisers' published schedules.
 - [ ] The coordinator saw America/Chicago twice at the end of the zone select; the server renders it once and TomSelect

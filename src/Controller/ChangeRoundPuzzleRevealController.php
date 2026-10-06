@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyShown;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
@@ -96,6 +97,8 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.time_passed');
         } catch (RoundPuzzleAlreadyRevealed) {
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.already_revealed');
+        } catch (RoundPuzzleAlreadyShown) {
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.already_shown');
         } catch (PuzzleHiddenByHand) {
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.puzzle_hidden_by_hand');
         }

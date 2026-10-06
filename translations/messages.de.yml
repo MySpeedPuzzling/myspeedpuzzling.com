@@ -3379,8 +3379,8 @@ qr_code:
     "form":
       "hide_until_round_starts": "Dieses Puzzle bis zur Enthüllung geheim halten"
       "hide_help": "Es wird automatisch am %date% enthüllt – 10 Minuten nach Rundenbeginn. Den Zeitpunkt können Sie auf der Puzzle-Seite der Runde ändern oder das Puzzle selbst enthüllen."
-      "hide_new_puzzle": "Ein neues Puzzle bleibt bis dahin überall auf MySpeedPuzzling geheim – auch in der Suche, auf Markenseiten und auf seiner eigenen Seite."
-      "hide_existing_puzzle": "Ein Puzzle, das schon in unserer Datenbank ist, ist anderswo auf MySpeedPuzzling öffentlich – es wird nur auf den Seiten Ihrer Veranstaltung verborgen."
+      "hide_new_puzzle": "Bei einem neuen Puzzle gilt das auf ganz MySpeedPuzzling – Suche, Markenseiten und seine eigene Seite eingeschlossen – und bis zur Enthüllung kann niemand, auch Sie nicht, eine Zeit eintragen, es in eine Sammlung oder Wunschliste aufnehmen, anbieten oder verleihen."
+      "hide_existing_puzzle": "Ein Puzzle, das schon in unserer Datenbank und öffentlich ist, bleibt anderswo auf MySpeedPuzzling öffentlich – es wird nur auf den Seiten Ihrer Veranstaltung verborgen. Eines, das noch geheim ist – in einer anderen Runde oder von Ihnen früher hinzugefügt –, bleibt überall bis zu seiner letzten Enthüllung geheim."
       "hide_mode_image_only": "Nur Bild verbergen"
       "hide_mode_image_only_help": "Nur das Bild wird verborgen. Name und Marke sind öffentlich – auf den Seiten Ihrer Veranstaltung und bei einem neuen Puzzle überall auf MySpeedPuzzling."
       "hide_mode_entirely": "Puzzle vollständig verbergen"
@@ -3390,6 +3390,7 @@ qr_code:
     "round_start": "Runde beginnt %time%"
     "reveal_now": "Jetzt enthüllen"
     "confirm_reveal_now": "Dieses Puzzle jetzt enthüllen? Alle sehen es sofort."
+    "confirm_reveal_now_held": "Dieses Puzzle in dieser Runde jetzt enthüllen? Eine andere Runde hält es anderswo auf MySpeedPuzzling verborgen, bis sie es enthüllt."
     "status":
       "hidden_everywhere": "Überall verborgen bis %time%"
       "image_hidden_everywhere": "Bild überall verborgen bis %time% – der Name ist öffentlich"
@@ -3441,6 +3442,7 @@ qr_code:
       "invalid_time": "Diese Uhrzeit gibt es in der Zeitzone der Veranstaltung nicht genau einmal (dann wird die Uhr umgestellt) – bitte wählen Sie eine andere."
       "time_passed": "Dieser Zeitpunkt ist schon vorbei – mit „Jetzt enthüllen“ enthüllen Sie das Puzzle sofort."
       "already_revealed": "Dieses Puzzle ist bereits enthüllt – seine Enthüllung lässt sich nicht mehr ändern."
+      "already_shown": "Dieses Puzzle wird auf der Seite Ihrer Veranstaltung bereits gezeigt – sobald die Runde begonnen hat oder solange eine andere Runde es zeigt, kann es nicht mehr geheim gemacht werden."
       "removed_revealed": "Puzzle aus der Runde entfernt. Jetzt enthüllt: %puzzles%."
       "round_deleted_revealed": "Runde gelöscht. Jetzt enthüllt: %puzzles%."
       "round_updated_revealed": "Jetzt enthüllt: %puzzles%."
@@ -3449,7 +3451,7 @@ qr_code:
       "kept_everywhere": "„%puzzle%“ bleibt jetzt überall verborgen, bis diese Runde es enthüllt."
       "keep_everywhere_refused": "Diese Runde kann dieses Puzzle nicht überall verborgen halten."
       "puzzle_hidden_by_hand": "MySpeedPuzzling selbst hält dieses Puzzle verborgen – bis zur Veröffentlichung kann es in keiner Runde verwendet werden."
-    "puzzle_still_secret": "Ein Wettbewerb hält dieses Puzzle bis zu seiner Enthüllung geheim. Bis dahin kann es nicht genehmigt, zusammengeführt oder bearbeitet werden."
+    "puzzle_still_secret": "Ein Wettbewerb hält dieses Puzzle bis zu seiner Enthüllung geheim. Bis dahin kann es nicht genehmigt oder zusammengeführt werden, und nur ein Admin kann es bearbeiten."
     "keep_everywhere": "Überall verborgen halten bis %time%"
     "keep_everywhere_manual": "Überall verborgen halten, bis ich es enthülle"
     "confirm":
@@ -5335,3 +5337,7 @@ puzzle_names:
     report_languages_link: "Sind es Schachteln in verschiedenen Sprachen?"
     source_name_language: "Der Name dieses Puzzles ist auf"
     duplicate_name_language: "Der Name des Duplikats ist auf"
+"secret_puzzle":
+  "not_revealed_yet": "Dieses Puzzle ist bis zur Enthüllung (%time%) noch geheim – Sie können es danach hinzufügen."
+  "not_revealed_yet_manual": "Dieses Puzzle ist noch geheim, bis der Veranstalter es enthüllt – Sie können es danach hinzufügen."
+  "not_revealed_yet_title": "Noch nicht enthüllt"

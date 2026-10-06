@@ -26,7 +26,7 @@ readonly final class RevealRoundPuzzleNowHandler
      */
     public function __invoke(RevealRoundPuzzleNow $message): void
     {
-        $this->secretPuzzleHides->lockPuzzleOfRoundPuzzle($message->roundPuzzleId);
+        $this->secretPuzzleHides->lockRoundPuzzle($message->roundPuzzleId);
 
         $roundPuzzle = $this->competitionRoundPuzzleRepository->get($message->roundPuzzleId);
         $now = $this->clock->now();

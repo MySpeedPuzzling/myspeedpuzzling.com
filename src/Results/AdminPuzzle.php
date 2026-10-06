@@ -18,7 +18,15 @@ readonly final class AdminPuzzle
         public null|string $ean,
         public null|string $identificationNumber,
         public bool $approved,
+        // The site-wide hide (a secret competition puzzle, a placeholder) - UTC, ISO 8601
+        public null|string $hiddenUntil = null,
+        public null|string $imageHiddenUntil = null,
     ) {
+    }
+
+    public function isImageHiddenAt(\DateTimeImmutable $now): bool
+    {
+        return $this->imageHiddenUntil !== null && new \DateTimeImmutable($this->imageHiddenUntil) > $now;
     }
 
     /**
@@ -31,6 +39,8 @@ readonly final class AdminPuzzle
      *     puzzle_ean: null|string,
      *     puzzle_identification_number: null|string,
      *     puzzle_approved: bool,
+     *     puzzle_hide_until: null|string,
+     *     puzzle_hide_image_until: null|string,
      *     ...
      * } $row
      */
@@ -45,6 +55,8 @@ readonly final class AdminPuzzle
             ean: $row['puzzle_ean'],
             identificationNumber: $row['puzzle_identification_number'],
             approved: $row['puzzle_approved'],
+            hiddenUntil: AdminCompetition::isoDateTime($row['puzzle_hide_until']),
+            imageHiddenUntil: AdminCompetition::isoDateTime($row['puzzle_hide_image_until']),
         );
     }
 
@@ -62,6 +74,8 @@ readonly final class AdminPuzzle
             'ean' => $this->ean,
             'identificationNumber' => $this->identificationNumber,
             'approved' => $this->approved,
+            'hiddenUntil' => $this->hiddenUntil,
+            'imageHiddenUntil' => $this->imageHiddenUntil,
         ];
     }
 }

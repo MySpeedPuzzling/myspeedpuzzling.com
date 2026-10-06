@@ -20,6 +20,9 @@ readonly final class EditCompetitionRound
         public null|string $badgeTextColor,
         public RoundCategory $category = RoundCategory::Solo,
         public null|string $resultsLink = null,
+        // Refuse (SecretPuzzlesWouldBeRevealed) when the new start reveals secret puzzles - the internal API without
+        // "confirmReveal"; the organiser's form asks before it dispatches (SecretRevealPreview)
+        public bool $refuseToReveal = false,
     ) {
     }
 }

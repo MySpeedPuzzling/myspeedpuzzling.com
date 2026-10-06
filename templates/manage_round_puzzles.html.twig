@@ -49,7 +49,11 @@
 
                                 <div class="d-flex flex-wrap gap-2">
                                     {% if puzzle.hidden %}
-                                        <form method="post" action="{{ path('reveal_round_puzzle_now', {roundPuzzleId: puzzle.roundPuzzleId}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.reveal.confirm_reveal_now'|trans|e('js') }}')">
+                                        {# Another round holding it longer: "Reveal now" lets it out on this round only #}
+                                        {% set reveal_now_question = puzzle.status.heldByAnotherRound and puzzle.status.heldLonger
+                                            ? 'competition.reveal.confirm_reveal_now_held'
+                                            : 'competition.reveal.confirm_reveal_now' %}
+                                        <form method="post" action="{{ path('reveal_round_puzzle_now', {roundPuzzleId: puzzle.roundPuzzleId}) }}" class="d-inline" onsubmit="return confirm('{{ reveal_now_question|trans|e('js') }}')">
                                             <input type="hidden" name="_token" value="{{ csrf_token('reveal_round_puzzle_' ~ puzzle.roundPuzzleId) }}">
                                             <button type="submit" class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye me-1"></i>{{ 'competition.reveal.reveal_now'|trans }}
@@ -118,8 +122,9 @@
                                 </form>
                             {% endif %}
 
-                            {# A revealed puzzle is public - its reveal is not changed any more, so nothing public is hidden again #}
-                            {% if not (puzzle.hideUntilRoundStarts and not puzzle.hidden) %}
+                            {# A revealed puzzle is public - its reveal is not changed any more, and a puzzle shown on the event page
+                               becomes secret only before the round starts while no other round shows it: nothing public is hidden again #}
+                            {% if puzzle.hidden or puzzle.mayBecomeSecret %}
                             {% set refused = reveal_error is not null and reveal_error.roundPuzzleId == puzzle.roundPuzzleId ? reveal_error : null %}
                             {% set automatic_over = round.automaticRevealAt <= now %}
                             <details class="mt-2" {{ refused is not null ? 'open' }}>

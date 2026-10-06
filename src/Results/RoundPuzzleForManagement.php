@@ -31,6 +31,9 @@ readonly final class RoundPuzzleForManagement
         public null|RoundPuzzleStatus $status = null,
         // The organiser may let this round keep the puzzle hidden everywhere (RoundPuzzleOwnership)
         public bool $mayKeepHiddenEverywhere = false,
+        // Not secret yet, and may still become secret (ChangeRoundPuzzleRevealHandler: the round has not started and no
+        // other round shows the puzzle)
+        public bool $mayBecomeSecret = false,
     ) {
     }
 }

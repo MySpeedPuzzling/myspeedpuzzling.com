@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzleToWishList;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -30,13 +31,14 @@ readonly final class AddPuzzleToWishListHandler
     /**
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      */
     public function __invoke(AddPuzzleToWishList $message): void
     {
         $player = $this->playerRepository->get($message->playerId);
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
-        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
-        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $message->playerId);
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $message->playerId);
 
         $existingItem = $this->wishListItemRepository->findByPlayerAndPuzzle($player, $puzzle);
 

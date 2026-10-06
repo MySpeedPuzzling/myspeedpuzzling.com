@@ -11,6 +11,8 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeIdReused;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeIdTaken;
@@ -22,6 +24,7 @@ use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -38,6 +41,7 @@ readonly final class AddPuzzleTrackingHandler
         private PuzzlingTeamResolver $puzzlingTeamResolver,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private IdLock $idLock,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -47,6 +51,8 @@ readonly final class AddPuzzleTrackingHandler
      * @throws SolvingTimeAlreadySaved
      * @throws SolvingTimeIdTaken
      * @throws SolvingTimeIdReused
+     * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      */
     public function __invoke(AddPuzzleTracking $message): void
     {
@@ -73,6 +79,10 @@ readonly final class AddPuzzleTrackingHandler
         }
 
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
+
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $player->id->toString());
+
         $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
         $trackingId = $message->trackingId;
         $finishedPuzzlePhotoPath = null;

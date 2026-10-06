@@ -8,7 +8,9 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -18,11 +20,13 @@ readonly final class DeleteCompetitionRoundHandler
         private CompetitionRoundRepository $competitionRoundRepository,
         private Connection $database,
         private SecretPuzzleHides $secretPuzzleHides,
+        private SecretRevealPreview $secretRevealPreview,
     ) {
     }
 
     /**
      * @throws CompetitionRoundHasResults
+     * @throws SecretPuzzlesWouldBeRevealed
      */
     public function __invoke(DeleteCompetitionRound $message): void
     {
@@ -41,9 +45,18 @@ readonly final class DeleteCompetitionRoundHandler
         // Secret puzzles of the rounds going away - re-synced afterwards from the rounds left, never revealed by accident
         /** @var array<string> $roundIds */
         $roundIds = [$message->roundId];
-        $secretPuzzleIds = $this->secretPuzzleHides->puzzleIdsOfRounds($roundIds);
-        // Waits for every other change of these puzzles' secret rows (SecretPuzzleHides::lock())
-        $this->secretPuzzleHides->lock($secretPuzzleIds);
+        // Locks the rounds, then their secret puzzles - waits for every other change of them (SecretPuzzleHides)
+        $secretPuzzleIds = $this->secretPuzzleHides->lockRoundsForChange($roundIds);
+
+        if ($message->refuseToReveal) {
+            $revealed = $this->secretRevealPreview->byRemoving(array_values(
+                $this->competitionRoundRepository->get($message->roundId)->roundPuzzles->toArray(),
+            ));
+
+            if ($revealed !== []) {
+                throw new SecretPuzzlesWouldBeRevealed($revealed);
+            }
+        }
 
         $this->database->executeStatement(
             'UPDATE puzzle_solving_time SET competition_round_id = NULL WHERE competition_round_id = :id',

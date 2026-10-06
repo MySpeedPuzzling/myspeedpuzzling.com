@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Events\LendingTransferCompleted;
 use SpeedPuzzling\Web\Events\PuzzleBorrowed;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\BorrowPuzzleFromPlayer;
 use SpeedPuzzling\Web\Repository\LentPuzzleRepository;
 use SpeedPuzzling\Web\Repository\LentPuzzleTransferRepository;
@@ -38,13 +39,14 @@ readonly final class BorrowPuzzleFromPlayerHandler
     /**
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      */
     public function __invoke(BorrowPuzzleFromPlayer $message): void
     {
         $borrower = $this->playerRepository->get($message->borrowerPlayerId);
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
-        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
-        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $message->borrowerPlayerId);
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $message->borrowerPlayerId);
 
         // Resolve owner - either registered player or plain text name
         $owner = null;

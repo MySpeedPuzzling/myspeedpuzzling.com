@@ -3370,8 +3370,8 @@ qr_code:
     "form":
       "hide_until_round_starts": "公開までこのパズルを非公開にする"
       "hide_help": "%date%（ラウンド開始の10分後）に自動で公開されます。公開日時の変更や手動での公開は、ラウンドのパズルページで行えます。"
-      "hide_new_puzzle": "新しいパズルは、それまでMySpeedPuzzlingのすべての場所で非公開になります（検索、ブランドページ、パズル自体のページを含む）。"
-      "hide_existing_puzzle": "すでにデータベースにあるパズルはMySpeedPuzzlingの他の場所で公開済みのため、イベントページでのみ非表示になります。"
+      "hide_new_puzzle": "新しいパズルの場合はMySpeedPuzzling全体（検索、ブランドページ、パズル自体のページを含む）で非公開になり、公開されるまではあなたを含め誰もタイムの追加、コレクションやウィッシュリストへの追加、出品、貸し出しができません。"
+      "hide_existing_puzzle": "データベースにすでにある公開済みのパズルは、MySpeedPuzzlingの他の場所では公開のままで、イベントページでのみ非表示になります。まだ非公開のパズル（別のラウンドで使われているもの、または以前にあなたが追加したもの）は、最後の公開時刻まですべての場所で非公開のままです。"
       "hide_mode_image_only": "画像のみ非表示"
       "hide_mode_image_only_help": "画像だけが非表示になります。名前とブランドは公開されます（イベントページ、新しいパズルの場合はMySpeedPuzzling全体）。"
       "hide_mode_entirely": "パズルを完全に非表示"
@@ -3381,6 +3381,7 @@ qr_code:
     "round_start": "ラウンド開始：%time%"
     "reveal_now": "今すぐ公開"
     "confirm_reveal_now": "このパズルを今すぐ公開しますか？すぐに全員に表示されます。"
+    "confirm_reveal_now_held": "このラウンドでこのパズルを今すぐ公開しますか？別のラウンドが公開するまで、MySpeedPuzzlingの他の場所では非公開のままです。"
     "status":
       "hidden_everywhere": "%time%まですべての場所で非公開"
       "image_hidden_everywhere": "%time%まですべての場所で画像を非公開（名前は公開）"
@@ -3432,6 +3433,7 @@ qr_code:
       "invalid_time": "この時刻はイベントのタイムゾーンでちょうど1回だけ存在する時刻ではありません（時刻の切り替えがあります）。別の時刻を選んでください。"
       "time_passed": "その時刻はすでに過ぎています。すぐに公開するには「今すぐ公開」を使ってください。"
       "already_revealed": "このパズルはすでに公開されています。公開設定は変更できません。"
+      "already_shown": "このパズルはすでにイベントページに表示されています。ラウンドが始まった後や、別のラウンドが表示している間は、非公開にできません。"
       "removed_revealed": "パズルをラウンドから削除しました。公開されたパズル：%puzzles%。"
       "round_deleted_revealed": "ラウンドを削除しました。公開されたパズル：%puzzles%。"
       "round_updated_revealed": "公開されたパズル：%puzzles%。"
@@ -3440,7 +3442,7 @@ qr_code:
       "kept_everywhere": "「%puzzle%」は、このラウンドが公開するまですべての場所で非公開になりました。"
       "keep_everywhere_refused": "このラウンドではこのパズルをすべての場所で非公開にできません。"
       "puzzle_hidden_by_hand": "このパズルはMySpeedPuzzling自体が非公開にしています。公開されるまでラウンドでは使えません。"
-    "puzzle_still_secret": "大会がこのパズルを公開まで非公開にしています。それまでは承認、統合、編集はできません。"
+    "puzzle_still_secret": "大会がこのパズルを公開まで非公開にしています。それまでは承認や統合はできず、編集できるのは管理者のみです。"
     "keep_everywhere": "%time%まですべての場所で非公開にする"
     "keep_everywhere_manual": "公開するまですべての場所で非公開にする"
     "confirm":
@@ -5326,3 +5328,7 @@ puzzle_names:
     report_languages_link: "異なる言語の箱ですか？"
     source_name_language: "このパズルの名前の言語"
     duplicate_name_language: "重複パズルの名前の言語"
+"secret_puzzle":
+  "not_revealed_yet": "このパズルは公開（%time%）まで非公開です。公開後に追加できます。"
+  "not_revealed_yet_manual": "このパズルは主催者が公開するまで非公開です。公開後に追加できます。"
+  "not_revealed_yet_title": "未公開"

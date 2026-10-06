@@ -103,15 +103,21 @@ readonly final class SecretRevealPreview
     }
 
     /**
-     * What the organiser confirmed - a confirmation counts only for exactly the list it was shown.
+     * What the organiser confirmed - a confirmation counts only for exactly the list it was shown: the same puzzles,
+     * each revealed as far as it said (everywhere, or on this event while another round hides it elsewhere until the
+     * same moment).
      *
      * @param list<array{id: string, name: string, everywhere: bool, hiddenElsewhereUntil: null|DateTimeImmutable}> $revealed
      */
     public static function hash(array $revealed): string
     {
-        $ids = array_map(static fn (array $item): string => $item['id'], $revealed);
-        sort($ids);
+        $items = array_map(static fn (array $item): string => implode('|', [
+            $item['id'],
+            $item['everywhere'] ? 'everywhere' : 'event',
+            $item['hiddenElsewhereUntil']?->format('Y-m-d H:i:s') ?? '',
+        ]), $revealed);
+        sort($items);
 
-        return hash('sha256', implode(',', $ids));
+        return hash('sha256', implode(',', $items));
     }
 }

@@ -20,7 +20,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * The round's puzzles become exactly `puzzleIds` (SetCompetitionRoundPuzzles): one round per category per puzzle per
- * competition, else 409 and nothing changes.
+ * competition, else 409 and nothing changes. New puzzles are attached unhidden, so a hidden puzzle is refused (409);
+ * removing a secret puzzle that no other round keeps hidden needs `"confirmReveal": true` (409, `revealedPuzzles`).
  */
 final class SetRoundPuzzlesController extends AbstractController
 {
@@ -40,8 +41,9 @@ final class SetRoundPuzzlesController extends AbstractController
     {
         $round = $this->getAdminCompetitions->round($roundId);
 
-        $input = InternalApiInput::fromRequest($request, ['puzzleIds']);
+        $input = InternalApiInput::fromRequest($request, ['puzzleIds', 'confirmReveal']);
         $puzzleIds = $input->requiredIdList('puzzleIds', 'a list of puzzle ids, [] removes every puzzle.');
+        $confirmReveal = $input->bool('confirmReveal') ?? false;
 
         $input->throwIfInvalid();
         assert($puzzleIds !== null);
@@ -56,6 +58,7 @@ final class SetRoundPuzzlesController extends AbstractController
             $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
                 roundId: $round->roundId,
                 puzzleIds: $puzzleIds,
+                refuseToReveal: $confirmReveal === false,
             ));
         } catch (HandlerFailedException $exception) {
             $previous = $exception->getPrevious();

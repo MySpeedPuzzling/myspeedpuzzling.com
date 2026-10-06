@@ -153,7 +153,8 @@ final class PuzzleAddController extends AbstractController
                 return $this->redirectToRoute('my_profile');
             }
 
-            if ($activeStopwatch->puzzleId !== null) {
+            // A stopwatch on a puzzle a competition keeps secret from this player saves without that puzzle
+            if ($activeStopwatch->puzzleId !== null && $this->secretPuzzleAccess->isHiddenFromViewer($activeStopwatch->puzzleId) === false) {
                 $activePuzzle = $this->getPuzzleOverview->byId($activeStopwatch->puzzleId);
             }
         }

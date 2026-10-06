@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\KeepRoundPuzzleHiddenEverywhere;
 use SpeedPuzzling\Web\Query\MayKeepRoundPuzzleHiddenEverywhere;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
+use SpeedPuzzling\Web\Value\RoundPuzzleStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -35,15 +36,33 @@ readonly final class KeepRoundPuzzleHiddenEverywhereHandler
      */
     public function __invoke(KeepRoundPuzzleHiddenEverywhere $message): void
     {
-        $this->secretPuzzleHides->lockPuzzleOfRoundPuzzle($message->roundPuzzleId);
+        $this->secretPuzzleHides->lockRoundPuzzle($message->roundPuzzleId);
 
         $roundPuzzle = $this->competitionRoundPuzzleRepository->get($message->roundPuzzleId);
 
-        if ($roundPuzzle->isHiddenAt($this->clock->now()) === false) {
+        $now = $this->clock->now();
+
+        if ($roundPuzzle->isHiddenAt($now) === false) {
             throw new RoundPuzzleAlreadyRevealed();
         }
 
         if ($this->mayKeepRoundPuzzleHiddenEverywhere->byId($message->roundPuzzleId) === false) {
+            throw new RoundPuzzleCannotHideEverywhere();
+        }
+
+        // Its own condition, the one the button is shown for: the site hides the puzzle now, but only until before this
+        // round reveals it. Nothing to take over otherwise - and a puzzle out in public is never hidden again.
+        $puzzle = $roundPuzzle->puzzle;
+        $status = RoundPuzzleStatus::of(
+            secretInRound: $roundPuzzle->hideUntilRoundStarts,
+            hideMode: $roundPuzzle->hideMode,
+            roundRevealsAt: $roundPuzzle->revealsAt(),
+            puzzleHiddenUntil: $puzzle->hideUntil,
+            puzzleImageHiddenUntil: $puzzle->hideImageUntil,
+            now: $now,
+        );
+
+        if ($puzzle->isImageHiddenAt($now) === false || $status->elsewhereUntil === null) {
             throw new RoundPuzzleCannotHideEverywhere();
         }
 

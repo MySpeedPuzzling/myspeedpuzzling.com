@@ -54,8 +54,9 @@ readonly final class LinkEanToPuzzleHandler
     {
         $ean = Ean::from($message->ean);
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
-        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess)
-        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $message->playerId);
+        // A puzzle a competition keeps secret is nobody's to use but its organisers' (SecretPuzzleAccess) - also while
+        // only its picture is hidden: its codes would give the box away
+        $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $message->playerId, alsoWhileImageHidden: true);
         $player = $this->playerRepository->get($message->playerId);
 
         $owners = $this->findPuzzlesByExactEan->ids($ean);

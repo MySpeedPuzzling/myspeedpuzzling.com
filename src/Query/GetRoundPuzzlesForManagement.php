@@ -27,10 +27,12 @@ readonly final class GetRoundPuzzlesForManagement
     public function ofRound(string $roundId): array
     {
         $mayKeepHiddenEverywhere = RoundPuzzleOwnership::sqlMayKeepHiddenEverywhere('crp', 'p', 'cr');
+        $shownByAnotherRound = RoundPuzzleOwnership::sqlShownByAnotherRound('crp');
         $query = <<<SQL
 SELECT
     crp.id AS round_puzzle_id,
     {$mayKeepHiddenEverywhere} AS may_keep_hidden_everywhere,
+    {$shownByAnotherRound} AS shown_by_another_round,
     EXISTS (
         SELECT 1 FROM competition_round_puzzle other_crp
         WHERE other_crp.puzzle_id = crp.puzzle_id
@@ -62,6 +64,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'roundId' => $roundId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -85,6 +88,7 @@ SQL;
              *     puzzle_hide_until: null|string,
              *     may_keep_hidden_everywhere: bool|string,
              *     another_round_holds: bool|string,
+             *     shown_by_another_round: bool|string,
              *     puzzle_hide_image_until: null|string,
              * } $row
              */
@@ -122,6 +126,10 @@ SQL;
                     anotherRoundHolds: self::bool($row['another_round_holds']),
                 ),
                 mayKeepHiddenEverywhere: self::bool($row['may_keep_hidden_everywhere']) && $hideUntilRoundStarts && ($revealsAt === null || $revealsAt > $now),
+                // Shown on the event page so far: secret only before the round starts and while no other round shows it
+                mayBecomeSecret: $hideUntilRoundStarts === false
+                    && new DateTimeImmutable($row['round_starts_at']) > $now
+                    && self::bool($row['shown_by_another_round']) === false,
             );
         }, $data);
     }

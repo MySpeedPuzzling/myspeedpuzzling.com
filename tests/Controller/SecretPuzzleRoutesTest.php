@@ -11,17 +11,22 @@ use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\AddPuzzleToWishList;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 /**
  * Every page and every write of one puzzle: a secret competition puzzle does not exist for a guest, another player
@@ -29,6 +34,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class SecretPuzzleRoutesTest extends WebTestCase
 {
+    use InteractsWithLiveComponents;
+
     private const string SECRET_NAME = 'Heart of Wisconsin Secret';
     private const string SECRET_EAN = '4005556175512';
 
@@ -113,11 +120,119 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         } catch (PuzzleNotFound) {
         }
 
-        // Its adder can
-        $bus->dispatch(new AddPuzzleToWishList(PlayerFixture::PLAYER_REGULAR, $puzzleId));
-        self::assertNotFalse(self::getContainer()->get(\Doctrine\DBAL\Connection::class)->fetchOne(
+        // Its adder neither - nothing personal before the reveal (SecretPuzzleWritesTest has every write)
+        try {
+            $bus->dispatch(new AddPuzzleToWishList(PlayerFixture::PLAYER_REGULAR, $puzzleId));
+            self::fail('Nobody records anything on a secret puzzle before its reveal');
+        } catch (PuzzleNotRevealedYet) {
+        }
+
+        self::assertFalse(self::getContainer()->get(\Doctrine\DBAL\Connection::class)->fetchOne(
             'SELECT 1 FROM wish_list_item WHERE puzzle_id = :puzzleId',
             ['puzzleId' => $puzzleId],
+        ));
+    }
+
+    public function testAnOrganiserIsToldWhenTheSecretOpens(): void
+    {
+        $browser = self::createClient();
+        $puzzleId = $this->secretPuzzle();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        // A modal (Turbo Frame): the message takes the frame's place
+        $browser->request('POST', '/en/wishlist/' . $puzzleId . '/add', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+        self::assertResponseStatusCodeSame(422);
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('<turbo-frame id="modal-frame">', $content);
+        self::assertStringContainsString('This puzzle is still secret until', $content);
+        self::assertStringContainsString('you can add it after the reveal', $content);
+
+        // A full page: back where it came from, with the message
+        $browser->request('POST', '/en/wishlist/' . $puzzleId . '/add', server: ['HTTP_ACCEPT' => 'text/vnd.turbo-stream.html, text/html']);
+        self::assertResponseStatusCodeSame(303);
+        $crawler = $browser->followRedirect();
+        self::assertStringContainsString('This puzzle is still secret until', $crawler->text());
+    }
+
+    public function testReportingADuplicateOfASecretPuzzleIsRefusedUnseen(): void
+    {
+        $browser = self::createClient();
+        $puzzleId = $this->secretPuzzle(PuzzleHideMode::ImageOnly);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        // Image only - the name is public, but a report shows and proposes codes
+        $browser->request('POST', '/en/puzzle/' . $puzzleId . '/report-duplicate', ['duplicate_puzzle_ids' => [PuzzleFixture::PUZZLE_500_05]]);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testTheMarketplaceFilterIsNoWayToASecretPuzzle(): void
+    {
+        $browser = self::createClient();
+        $puzzleId = $this->secretPuzzle();
+
+        // The puzzle filter is a writable prop - anybody can send any id in a Live request
+        $render = function (string $playerId) use ($browser, $puzzleId): string {
+            TestingLogin::asPlayer($browser, $playerId);
+            $component = $this->createLiveComponent('MarketplaceListing', ['puzzleId' => $puzzleId], $browser);
+            $component->setRouteLocale('en');
+
+            return $component->render()->toString();
+        };
+
+        self::assertStringNotContainsString(self::SECRET_NAME, $render(PlayerFixture::PLAYER_PRIVATE));
+        // Its organisers do get the filter
+        self::assertStringContainsString(self::SECRET_NAME, $render(PlayerFixture::PLAYER_REGULAR));
+    }
+
+    public function testThePuzzlePickerListsACompetitionsSecretsOnlyForItsOrganisers(): void
+    {
+        $browser = self::createClient();
+        $this->secretPuzzle();
+        $picker = '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER . '&competition=' . CompetitionApiFixture::COMPETITION_API;
+
+        // Naming the competition opens nothing for somebody who does not organise it
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+        $browser->request('GET', $picker);
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString(self::SECRET_NAME, (string) $browser->getResponse()->getContent());
+
+        // A maintainer of it gets its secret puzzles
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $browser->request('GET', $picker);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::SECRET_NAME, (string) $browser->getResponse()->getContent());
+    }
+
+    public function testAnotherEventsOrganiserCannotPutAPictureSecretIntoTheirRound(): void
+    {
+        $browser = self::createClient();
+        $puzzleId = $this->secretPuzzle(PuzzleHideMode::ImageOnly);
+
+        // PLAYER_PRIVATE organises WJPC 2024, nothing of the competition keeping the picture secret
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $wjpc = $entityManager->find(Competition::class, CompetitionFixture::COMPETITION_WJPC_2024);
+        $organiser = $entityManager->find(Player::class, PlayerFixture::PLAYER_PRIVATE);
+        self::assertNotNull($wjpc);
+        self::assertNotNull($organiser);
+        $wjpc->maintainers->add($organiser);
+        $entityManager->flush();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+        $crawler = $browser->request('GET', '/en/add-puzzle-to-round/' . CompetitionRoundFixture::ROUND_WJPC_FINAL);
+        self::assertResponseIsSuccessful();
+        $form = $crawler->filter('form')->last()->form();
+        $prefix = (string) $crawler->filter('input[name$="[puzzle]"]')->attr('name');
+        $prefix = substr($prefix, 0, (int) strpos($prefix, '['));
+
+        $browser->submit($form, [
+            $prefix . '[brand]' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            $prefix . '[puzzle]' => $puzzleId,
+        ]);
+        self::assertResponseStatusCodeSame(404);
+
+        self::assertFalse(self::getContainer()->get(\Doctrine\DBAL\Connection::class)->fetchOne(
+            'SELECT 1 FROM competition_round_puzzle WHERE puzzle_id = :puzzleId AND round_id = :roundId',
+            ['puzzleId' => $puzzleId, 'roundId' => CompetitionRoundFixture::ROUND_WJPC_FINAL],
         ));
     }
 

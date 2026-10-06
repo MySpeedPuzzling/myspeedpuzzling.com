@@ -47,4 +47,19 @@ SQL;
         return "({$isV7($firstIdColumn)} AND {$isV7($secondIdColumn)}"
             . " AND abs({$milliseconds($firstIdColumn)} - {$milliseconds($secondIdColumn)}) <= {$window})";
     }
+
+    /**
+     * Another round puzzle of the same puzzle shows it on its event page right now (not secret, or revealed) - a row
+     * that is not secret may then no longer become secret (ChangeRoundPuzzleRevealHandler::isShown()).
+     */
+    public static function sqlShownByAnotherRound(string $roundPuzzleAlias, string $nowParameter = ':now'): string
+    {
+        $hidden = RoundPuzzleReveal::sqlHidden('shown_crp', 'shown_cr', $nowParameter);
+
+        return "EXISTS (SELECT 1 FROM competition_round_puzzle shown_crp"
+            . " INNER JOIN competition_round shown_cr ON shown_cr.id = shown_crp.round_id"
+            . " WHERE shown_crp.puzzle_id = {$roundPuzzleAlias}.puzzle_id"
+            . " AND shown_crp.id <> {$roundPuzzleAlias}.id"
+            . " AND NOT {$hidden})";
+    }
 }

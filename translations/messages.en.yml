@@ -3646,8 +3646,8 @@ competition:
         form:
             hide_until_round_starts: "Keep this puzzle secret until it is revealed"
             hide_help: "It is revealed automatically on %date% – 10 minutes after the round starts. You can change the reveal time or reveal it yourself on the round's puzzles page."
-            hide_new_puzzle: "A new puzzle stays secret everywhere on MySpeedPuzzling until then – search, brand pages and the puzzle's own page included."
-            hide_existing_puzzle: "A puzzle that is already in our database is public elsewhere on MySpeedPuzzling – it is hidden only on your event pages."
+            hide_new_puzzle: "For a new puzzle this holds on the whole of MySpeedPuzzling – search, brand pages and its own page included – and until the reveal nobody, you included, can add a time, put it in a collection or wishlist, offer or lend it."
+            hide_existing_puzzle: "A puzzle already in our database that is public stays public elsewhere on MySpeedPuzzling – it is hidden only on your event pages. One that is still secret – in another round, or one you added earlier – stays secret everywhere until its latest reveal."
             hide_mode_image_only: "Hide image only"
             hide_mode_image_only_help: "Only the picture is hidden. The name and brand are public – on your event pages and, for a new puzzle, everywhere on MySpeedPuzzling."
             hide_mode_entirely: "Hide the puzzle entirely"
@@ -3657,6 +3657,7 @@ competition:
         round_start: "Round starts %time%"
         reveal_now: "Reveal now"
         confirm_reveal_now: "Reveal this puzzle now? Everyone will see it right away."
+        confirm_reveal_now_held: "Reveal this puzzle on this round now? Another round keeps it hidden everywhere else on MySpeedPuzzling until that round reveals it."
         status:
             hidden_everywhere: "Hidden everywhere until %time%"
             image_hidden_everywhere: "Picture hidden everywhere until %time% – the name is public"
@@ -3708,6 +3709,7 @@ competition:
             invalid_time: "This time does not exist exactly once in the event’s time zone (the clocks change then) – please choose another time."
             time_passed: "That time has already passed – use “Reveal now” to reveal the puzzle right away."
             already_revealed: "This puzzle is already revealed – its reveal can no longer be changed."
+            already_shown: "This puzzle is already shown on your event page – once the round has started, or while another round shows it, it can no longer be made secret."
             removed_revealed: "Puzzle removed from the round. Revealed now: %puzzles%."
             round_deleted_revealed: "Round deleted. Revealed now: %puzzles%."
             round_updated_revealed: "Revealed now: %puzzles%."
@@ -3716,7 +3718,7 @@ competition:
             kept_everywhere: "“%puzzle%” now stays hidden everywhere until this round reveals it."
             keep_everywhere_refused: "This round cannot keep this puzzle hidden everywhere."
             puzzle_hidden_by_hand: "MySpeedPuzzling itself keeps this puzzle hidden – it cannot be used in a round until it is published."
-        puzzle_still_secret: "A competition keeps this puzzle secret until it is revealed. It cannot be approved, merged or edited before then."
+        puzzle_still_secret: "A competition keeps this puzzle secret until it is revealed. Until then it cannot be approved or merged, and only an admin can edit it."
         keep_everywhere: "Keep it hidden everywhere until %time%"
         keep_everywhere_manual: "Keep it hidden everywhere until I reveal it"
         confirm:
@@ -5665,3 +5667,7 @@ puzzle_names:
     report_languages_link: "Are they boxes in different languages?"
     source_name_language: "This puzzle's name is in"
     duplicate_name_language: "The duplicate's name is in"
+secret_puzzle:
+    not_revealed_yet: "This puzzle is still secret until %time% – you can add it after the reveal."
+    not_revealed_yet_manual: "This puzzle is still secret until the organiser reveals it – you can add it after the reveal."
+    not_revealed_yet_title: "Not revealed yet"

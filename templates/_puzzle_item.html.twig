@@ -84,7 +84,7 @@
                             {% set round_results_url = round_results_urls[round.id] ?? null %}
                             <div class="d-flex flex-wrap align-items-center justify-content-md-center gap-1 mt-1">
                                 <span class="badge rounded-pill text-wrap" style="background-color: {{ round.color }}; color: {{ round.textColor }};">{{ round.name }}</span>
-                                <small class="text-muted text-nowrap">{{ round.startsAt|date('d.m. H:i') }}</small>
+                                <small class="text-muted text-nowrap">{{ round.startsAt|date('d.m. H:i', round.timezone) }}</small>
                                 {% if round_results_url %}
                                     <a href="{{ round_results_url }}" data-turbo-frame="_top" class="btn btn-outline-primary btn-xs text-nowrap">
                                         <i class="bi bi-trophy me-1"></i>{{ 'round_results.link'|trans }}

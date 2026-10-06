@@ -453,7 +453,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
                     $this->entityManager->remove($roundPuzzle);
                     $inventory['competitionRoundPuzzles']['droppedAsDuplicate'][] = $roundPuzzle->id->toString();
                 } else {
-                    $roundPuzzle->puzzle = $survivorPuzzle;
+                    $roundPuzzle->moveToPuzzle($survivorPuzzle);
                     $inventory['competitionRoundPuzzles']['moved'][] = $roundPuzzle->id->toString();
                 }
             }

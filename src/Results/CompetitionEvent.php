@@ -125,6 +125,18 @@ readonly final class CompetitionEvent
         return $start->format('Y-m-d') > $day->format('Y-m-d');
     }
 
+    /**
+     * The day of a one-day event - its round form asks only for the time. Null when the event spans days or is undated.
+     */
+    public function singleDay(): null|DateTimeImmutable
+    {
+        if ($this->dateFrom === null || $this->dateTo === null) {
+            return null;
+        }
+
+        return $this->dateFrom->format('Y-m-d') === $this->dateTo->format('Y-m-d') ? $this->dateFrom : null;
+    }
+
     private function appendUtm(null|string $link): null|string
     {
         if ($link === null) {

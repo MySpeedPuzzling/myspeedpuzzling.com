@@ -11,6 +11,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\CompetitionPuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
  * The puzzles used at competitions - the ones carrying the competition's tag, the ones attached to its
@@ -19,33 +20,35 @@ use SpeedPuzzling\Web\Results\PuzzleOverview;
  *
  * - puzzle.hide_until drops the puzzle, puzzle.hide_image_until drops its image;
  * - a round puzzle flagged hide-until-round-starts stays hidden (mode "entirely") or imageless
- *   (mode "image only") until 10 minutes after its round starts - even when the tag lists it too.
+ *   (mode "image only") until its reveal moment (RoundPuzzleReveal) - even when the tag lists it too.
  */
 readonly final class GetCompetitionPuzzles
 {
     /**
      * Per puzzle of one competition's (:competitionId) rounds: its first round's start and whether a
-     * round still hides it entirely or just its image (hide-until-round-starts, revealed 10 minutes after
-     * the round starts, the same rule as GetEditionRounds).
+     * round still hides it entirely or just its image (hide-until-round-starts, until its reveal moment -
+     * RoundPuzzleReveal, the same rule as GetEditionRounds).
      */
-    private const string ROUND_PUZZLE_RULES = <<<SQL
+
+    private static function roundPuzzleRules(): string
+    {
+        $hidden = RoundPuzzleReveal::sqlHidden('crp', 'cr');
+
+        return <<<SQL
     SELECT
         crp.puzzle_id,
         MIN(cr.starts_at) AS first_round_starts_at,
         BOOL_OR(
-            crp.hide_until_round_starts
-            AND cr.starts_at + INTERVAL '10 minutes' > :now::timestamp
+            {$hidden}
             AND COALESCE(crp.hide_mode, 'entirely') = 'entirely'
         ) AS hidden_entirely,
-        BOOL_OR(
-            crp.hide_until_round_starts
-            AND cr.starts_at + INTERVAL '10 minutes' > :now::timestamp
-        ) AS image_hidden
+        BOOL_OR({$hidden}) AS image_hidden
     FROM competition_round cr
     INNER JOIN competition_round_puzzle crp ON crp.round_id = cr.id
     WHERE cr.competition_id = :competitionId
     GROUP BY crp.puzzle_id
 SQL;
+    }
 
     public function __construct(
         private Connection $database,
@@ -73,6 +76,7 @@ SQL;
         }
 
         $visibility = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $roundPuzzleHidden = RoundPuzzleReveal::sqlHidden('crp', 'cr');
 
         $query = <<<SQL
 WITH competition_puzzle AS (
@@ -94,11 +98,9 @@ WITH competition_puzzle AS (
         c.id AS competition_id,
         crp.puzzle_id,
         cr.starts_at AS round_starts_at,
-        crp.hide_until_round_starts
-            AND cr.starts_at + INTERVAL '10 minutes' > :now::timestamp
+        {$roundPuzzleHidden}
             AND COALESCE(crp.hide_mode, 'entirely') = 'entirely' AS hidden_entirely,
-        crp.hide_until_round_starts
-            AND cr.starts_at + INTERVAL '10 minutes' > :now::timestamp AS image_hidden
+        {$roundPuzzleHidden} AS image_hidden
     FROM competition c
     LEFT JOIN competition_series cs ON cs.id = c.series_id
     INNER JOIN competition_round cr ON cr.competition_id = c.id
@@ -207,7 +209,7 @@ SQL;
         }
 
         $columns = self::puzzleOverviewColumns('round_puzzle.image_hidden');
-        $roundPuzzleRules = self::ROUND_PUZZLE_RULES;
+        $roundPuzzleRules = self::roundPuzzleRules();
 
         $query = <<<SQL
 WITH round_puzzle AS (
@@ -242,7 +244,7 @@ SQL;
         }
 
         $columns = self::puzzleOverviewColumns('COALESCE(round_puzzle.image_hidden, false)');
-        $roundPuzzleRules = self::ROUND_PUZZLE_RULES;
+        $roundPuzzleRules = self::roundPuzzleRules();
 
         $query = <<<SQL
 WITH solved_puzzle AS (

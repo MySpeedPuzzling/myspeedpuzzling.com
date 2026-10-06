@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Results\CompetitionSeriesOverview;
 use SpeedPuzzling\Web\Results\SeriesEdition;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetCompetitionSeries
@@ -235,6 +236,9 @@ SELECT
     c.registration_link,
     c.results_link,
     MIN(cr.starts_at) AS starts_at,
+    -- An edition's rounds share one zone in practice; any of them shows its first start right
+    MIN(cr.timezone) AS timezone,
+    c.location_country_code,
     MIN(cr.minutes_limit) AS minutes_limit,
     COUNT(DISTINCT cr.id) AS round_count,
     COUNT(DISTINCT crp.id) AS puzzle_count,
@@ -268,6 +272,8 @@ SQL;
              *     name: string,
              *     slug: string,
              *     starts_at: null|string,
+             *     timezone: null|string,
+             *     location_country_code: null|string,
              *     minutes_limit: null|int|string,
              *     round_count: int|string,
              *     puzzle_count: int|string,
@@ -287,6 +293,7 @@ SQL;
                 participantCount: (int) $row['participant_count'],
                 registrationLink: $row['registration_link'],
                 resultsLink: $row['results_link'],
+                timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code']),
             );
         }, $rows);
     }

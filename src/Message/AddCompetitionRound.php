@@ -15,7 +15,9 @@ readonly final class AddCompetitionRound
         public string $competitionId,
         public string $name,
         public int $minutesLimit,
+        // The instant (UTC); the organiser typed it as local time in $timezone
         public DateTimeImmutable $startsAt,
+        public string $timezone,
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
         public RoundCategory $category = RoundCategory::Solo,

@@ -48,10 +48,17 @@ readonly final class EditCompetitionRoundHandler
             name: $message->name,
             minutesLimit: $message->minutesLimit,
             startsAt: $message->startsAt,
+            timezone: $message->timezone,
             badgeBackgroundColor: $message->badgeBackgroundColor,
             badgeTextColor: $message->badgeTextColor,
             category: $message->category,
             resultsLink: $message->resultsLink,
         );
+
+        // An automatic reveal follows the round's start - the puzzles it keeps secret on the whole site follow too.
+        // Scheduled and manual reveals are the organiser's own and stay where they are.
+        foreach ($round->roundPuzzles as $roundPuzzle) {
+            $roundPuzzle->syncPuzzleHide();
+        }
     }
 }

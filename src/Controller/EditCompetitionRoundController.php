@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use DateTimeImmutable;
-use DateTimeZone;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,6 +33,8 @@ final class EditCompetitionRoundController extends AbstractController
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly TranslatorInterface $translator,
+        private readonly ClockInterface $clock,
+        private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
     ) {
     }
 
@@ -53,48 +57,23 @@ final class EditCompetitionRoundController extends AbstractController
 
         $competition = $this->getCompetitionEvents->byId($competitionId);
 
-        $isSingleDay = $competition->dateFrom !== null
-            && $competition->dateTo !== null
-            && $competition->dateFrom->format('Y-m-d') === $competition->dateTo->format('Y-m-d');
+        $singleDay = $competition->singleDay();
 
+        // Shows the round in the zone it was typed in, as the organiser typed it
         $formData = CompetitionRoundFormData::fromCompetitionRound($round);
         $form = $this->createForm(CompetitionRoundFormType::class, $formData, [
-            'date_from' => $competition->dateFrom,
-            'date_to' => $competition->dateTo,
-            'country_code' => $competition->locationCountryCode?->name,
+            'single_day' => $singleDay !== null,
         ]);
-
-        if ($isSingleDay) {
-            $form->get('startsAtTime')->setData($round->startsAt->format('H:i'));
-        }
-
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             assert($data->name !== null);
             assert($data->minutesLimit !== null);
+            assert($data->timezone !== null);
 
-            /** @var string $timezone */
-            $timezone = $form->get('timezone')->getData();
-            $tz = new DateTimeZone($timezone);
-
-            if ($isSingleDay) {
-                /** @var string $time */
-                $time = $form->get('startsAtTime')->getData();
-                $localDateTime = new DateTimeImmutable(
-                    $competition->dateFrom->format('Y-m-d') . ' ' . $time,
-                    $tz,
-                );
-                $startsAt = $localDateTime->setTimezone(new DateTimeZone('UTC'));
-            } else {
-                assert($data->startsAt !== null);
-                $localDateTime = new DateTimeImmutable(
-                    $data->startsAt->format('Y-m-d H:i:s'),
-                    $tz,
-                );
-                $startsAt = $localDateTime->setTimezone(new DateTimeZone('UTC'));
-            }
+            $previousStartsAt = $round->startsAt;
+            $startsAt = $data->startsAtInstant($singleDay);
 
             try {
                 $this->messageBus->dispatch(new EditCompetitionRound(
@@ -102,6 +81,7 @@ final class EditCompetitionRoundController extends AbstractController
                     name: $data->name,
                     minutesLimit: $data->minutesLimit,
                     startsAt: $startsAt,
+                    timezone: $data->timezone,
                     badgeBackgroundColor: $data->badgeBackgroundColor,
                     badgeTextColor: $data->badgeTextColor,
                     category: $data->category,
@@ -124,10 +104,11 @@ final class EditCompetitionRoundController extends AbstractController
                     'form' => $form,
                     'competition' => $competition,
                     'round' => $round,
+                    'single_day' => $singleDay,
                 ]);
             }
 
-            $this->addFlash('success', $this->translator->trans('competition.flash.round_updated'));
+            $this->flashRoundUpdated($round, $previousStartsAt->getTimestamp() !== $startsAt->getTimestamp(), $data->timezone);
 
             return $this->redirectToRoute('manage_competition_rounds', ['competitionId' => $competitionId]);
         }
@@ -136,6 +117,44 @@ final class EditCompetitionRoundController extends AbstractController
             'form' => $form,
             'competition' => $competition,
             'round' => $round,
+            'single_day' => $singleDay,
         ]);
+    }
+
+    /**
+     * A moved round moves the automatic reveals of its secret puzzles - say when they are revealed now, and that the
+     * organiser's own reveal times did not move.
+     */
+    private function flashRoundUpdated(CompetitionRound $round, bool $startMoved, string $timezone): void
+    {
+        $now = $this->clock->now();
+        $automaticRevealsAt = null;
+        $ownRevealStaysPut = false;
+
+        if ($startMoved) {
+            foreach ($round->roundPuzzles as $roundPuzzle) {
+                if ($roundPuzzle->isHiddenAt($now) === false) {
+                    continue;
+                }
+
+                if ($roundPuzzle->revealMode === RoundPuzzleReveal::Automatic) {
+                    $automaticRevealsAt = $roundPuzzle->revealsAt();
+                } else {
+                    $ownRevealStaysPut = true;
+                }
+            }
+        }
+
+        if ($automaticRevealsAt !== null) {
+            $this->addFlash('success', $this->translator->trans('competition.reveal.flash.round_updated_reveal_moved', [
+                '%time%' => $this->zonedDateTimeFormatter->format($automaticRevealsAt, $timezone),
+            ]));
+        } else {
+            $this->addFlash('success', $this->translator->trans('competition.flash.round_updated'));
+        }
+
+        if ($ownRevealStaysPut) {
+            $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.round_updated_own_reveals_kept'));
+        }
     }
 }

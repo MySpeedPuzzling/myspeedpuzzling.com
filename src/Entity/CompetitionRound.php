@@ -20,6 +20,8 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 #[Entity]
 #[UniqueConstraint(name: 'competition_round_slug_unique', columns: ['competition_id', 'slug'])]
@@ -64,7 +66,26 @@ class CompetitionRound implements EntityWithEvents
         // The organiser's own results page for this round, when they publish results per round
         #[Column(type: Types::TEXT, nullable: true)]
         public null|string $resultsLink = null,
+        // The zone the organiser typed the start in, so it is edited and shown in that zone - see RoundTimezone
+        #[Column(length: 64, nullable: true)]
+        public null|string $timezone = null,
     ) {
+    }
+
+    /**
+     * When a secret puzzle of this round with an automatic reveal is revealed - see RoundPuzzleReveal.
+     */
+    public function automaticRevealAt(): DateTimeImmutable
+    {
+        $revealAt = RoundPuzzleReveal::Automatic->revealAt($this->startsAt, null);
+        assert($revealAt !== null);
+
+        return $revealAt;
+    }
+
+    public function displayTimezone(): string
+    {
+        return RoundTimezone::resolve($this->timezone, $this->competition->locationCountryCode);
     }
 
     public function assignSlug(string $slug): void
@@ -76,6 +97,7 @@ class CompetitionRound implements EntityWithEvents
         string $name,
         int $minutesLimit,
         DateTimeImmutable $startsAt,
+        string $timezone,
         null|string $badgeBackgroundColor,
         null|string $badgeTextColor,
         RoundCategory $category = RoundCategory::Solo,
@@ -88,6 +110,7 @@ class CompetitionRound implements EntityWithEvents
         $this->name = $name;
         $this->minutesLimit = $minutesLimit;
         $this->startsAt = $startsAt;
+        $this->timezone = $timezone;
         $this->badgeBackgroundColor = $badgeBackgroundColor;
         $this->badgeTextColor = $badgeTextColor;
         $this->category = $category;

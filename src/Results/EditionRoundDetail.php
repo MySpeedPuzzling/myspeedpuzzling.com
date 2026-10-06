@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class EditionRoundDetail
 {
@@ -26,6 +27,8 @@ readonly final class EditionRoundDetail
         public string $textColor,
         public null|string $slug = null,
         public null|string $resultsLink = null,
+        // The zone startsAt is shown in - see RoundTimezone
+        public string $timezone = RoundTimezone::FALLBACK,
     ) {
     }
 }

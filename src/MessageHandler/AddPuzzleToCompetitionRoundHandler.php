@@ -13,7 +13,6 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
-use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -66,20 +65,15 @@ readonly final class AddPuzzleToCompetitionRoundHandler
             }
         }
 
-        // For new puzzles, also hide platform-wide since they don't exist anywhere else yet
-        if ($isNewPuzzle && $message->hideUntilRoundStarts) {
-            match ($message->hideMode) {
-                PuzzleHideMode::ImageOnly => $puzzle->hideImageUntil = $round->startsAt,
-                PuzzleHideMode::Entirely => $puzzle->hideUntil = $round->startsAt,
-            };
-        }
-
+        // A new puzzle exists nowhere else yet: the round keeps it secret on the whole site, not only on its event
+        // pages - until its one reveal moment (CompetitionRoundPuzzle::syncPuzzleHide())
         $roundPuzzle = new CompetitionRoundPuzzle(
             id: $message->roundPuzzleId,
             round: $round,
             puzzle: $puzzle,
             hideUntilRoundStarts: $message->hideUntilRoundStarts,
             hideMode: $message->hideUntilRoundStarts ? $message->hideMode : null,
+            hidesEverywhere: $isNewPuzzle && $message->hideUntilRoundStarts,
         );
 
         $this->competitionRoundPuzzleRepository->save($roundPuzzle);

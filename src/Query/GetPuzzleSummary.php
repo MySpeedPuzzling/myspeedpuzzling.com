@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
-use DateInterval;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\PuzzleSummary;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
  * The public facts of a puzzle page's "About this puzzle" section and meta description, in one query: the precomputed
@@ -18,13 +18,11 @@ use SpeedPuzzling\Web\Results\PuzzleSummary;
  *
  * "Used at" is the union of the competitions (or whole series) the puzzle's tags belong to and the competitions
  * whose rounds it is in, publicly visible ones only. A round puzzle hidden until its round starts stays out until
- * GetEditionRounds reveals it too (10 minutes after the start), as does a puzzle under a platform-wide embargo -
+ * GetEditionRounds reveals it too (its reveal moment, RoundPuzzleReveal), as does a puzzle under a platform-wide embargo -
  * otherwise this paragraph would leak what the event page keeps secret.
  */
 readonly final class GetPuzzleSummary
 {
-    private const string ROUND_REVEAL_BUFFER = 'PT10M';
-
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
@@ -41,6 +39,7 @@ readonly final class GetPuzzleSummary
         }
 
         $visibleCompetition = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $roundPuzzleHidden = RoundPuzzleReveal::sqlHidden('crp', 'cr');
 
         $query = <<<SQL
 SELECT
@@ -75,7 +74,7 @@ SELECT
                             FROM competition_round_puzzle crp
                             INNER JOIN competition_round cr ON cr.id = crp.round_id
                             WHERE crp.puzzle_id = p.id
-                                AND (crp.hide_until_round_starts = false OR cr.starts_at <= :revealedRoundsStartedBefore::timestamp)
+                                AND NOT {$roundPuzzleHidden}
                         )
                     )
                 )
@@ -118,7 +117,6 @@ SQL;
             ->executeQuery($query, [
                 'puzzleId' => $puzzleId,
                 'now' => $now->format('Y-m-d H:i:s'),
-                'revealedRoundsStartedBefore' => $now->sub(new DateInterval(self::ROUND_REVEAL_BUFFER))->format('Y-m-d H:i:s'),
             ])
             ->fetchAssociative();
 

@@ -4,6 +4,16 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Round time zones and secret-puzzle reveal (`docs/features/competitions-management/README.md`)
+
+- [ ] After the deploy: `myspeedpuzzling:backfill-round-puzzle-reveals` (dry run), read the list, then `--write`.
+- [ ] Wisconsin State Jigsaw Puzzle Championship 2026: confirm the 4 round times with the organiser (Dakota), set the
+      rounds' `timezone` to `America/Chicago`, re-sync the 2 Team Relay secret puzzles (SQL in the PR description).
+- [ ] Rounds saved before 2026-10 have no `timezone` and are read in their country's default zone - organisers of
+      events outside it (US Central/Mountain/Pacific, ...) may want to re-save their rounds once.
+- [ ] A puzzle removed from its round while on a manual reveal stays hidden with no end and the organiser can no longer
+      find it in the round picker - an admin clears `puzzle.hide_until` / `hide_image_until` on request.
+
 ## Large photo uploads (Sentry WEB-D4, 2026-10-06)
 
 A 54 MB phone photo on the add form went over PHP's `post_max_size` (50M): the whole request was dropped and the

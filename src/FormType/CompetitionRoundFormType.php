@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
-use DateTimeImmutable;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
-use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
@@ -26,16 +24,8 @@ final class CompetitionRoundFormType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        /** @var null|DateTimeImmutable $dateFrom */
-        $dateFrom = $options['date_from'];
-        /** @var null|DateTimeImmutable $dateTo */
-        $dateTo = $options['date_to'];
-        /** @var null|string $countryCode */
-        $countryCode = $options['country_code'];
-
-        $isSingleDay = $dateFrom !== null
-            && $dateTo !== null
-            && $dateFrom->format('Y-m-d') === $dateTo->format('Y-m-d');
+        // A one-day event asks only for the time (CompetitionEvent::singleDay())
+        $isSingleDay = $options['single_day'] === true;
 
         $builder->add('name', TextType::class, [
             'label' => 'competition.round.form.name',
@@ -48,7 +38,10 @@ final class CompetitionRoundFormType extends AbstractType
         if ($isSingleDay) {
             $builder->add('startsAtTime', TextType::class, [
                 'label' => 'competition.round.form.starts_at_time',
-                'mapped' => false,
+                'constraints' => [
+                    new Assert\NotBlank(),
+                    new Assert\Regex(pattern: '/^([01]?\d|2[0-3]):[0-5]\d$/'),
+                ],
             ]);
         } else {
             $builder->add('startsAt', DateTimeType::class, [
@@ -65,9 +58,13 @@ final class CompetitionRoundFormType extends AbstractType
         $builder->add('timezone', TimezoneType::class, [
             'label' => 'competition.round.form.timezone',
             'help' => 'competition.round.form.timezone_help',
-            'mapped' => false,
-            'data' => CountryCode::fromCode($countryCode)?->defaultTimezone() ?? 'Europe/Prague',
+            // Pre-selected from the form data: the round's own zone on edit (never a default - that would
+            // override it), on add the zone of the event's other rounds or its country's
             'autocomplete' => true,
+            'constraints' => [
+                new Assert\NotBlank(),
+                new Assert\Timezone(),
+            ],
             'choice_label' => static function (string $timezone): string {
                 $tz = new \DateTimeZone($timezone);
                 $offset = $tz->getOffset(new \DateTimeImmutable('now', $tz));
@@ -118,13 +115,9 @@ final class CompetitionRoundFormType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => CompetitionRoundFormData::class,
-            'date_from' => null,
-            'date_to' => null,
-            'country_code' => null,
+            'single_day' => false,
         ]);
 
-        $resolver->setAllowedTypes('date_from', ['null', DateTimeImmutable::class]);
-        $resolver->setAllowedTypes('date_to', ['null', DateTimeImmutable::class]);
-        $resolver->setAllowedTypes('country_code', ['null', 'string']);
+        $resolver->setAllowedTypes('single_day', 'bool');
     }
 }

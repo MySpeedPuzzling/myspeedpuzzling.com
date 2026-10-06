@@ -155,12 +155,20 @@ Every round with a slug has a public results page — `/en/events/{slug}/results
 ## Round Management
 
 A competition has multiple **rounds**, each with:
-- **Name** and **start time**
+- **Name** and **start time** with its **time zone** — see "Start time and time zone" below
 - **Minutes limit** — the time limit for solving (drives the stopwatch countdown)
 - **Category** — `solo`, `duo`, or `team` (`RoundCategory` enum, default `solo`)
 - **Badge colors** — optional background/text hex colors for visual distinction in round lists
 
 Rounds are displayed sorted by start time. Each round can be edited or deleted. The round list shows action buttons for: Puzzles, Teams (for duo/team rounds only), Tables (only for in-person events), Stopwatch, Edit, Delete.
+
+### Start time and time zone
+
+The organiser types the **local** start (a one-day event asks only for the time, `CompetitionEvent::singleDay()`) and picks the time zone. `competition_round.starts_at` stores the **instant in UTC**; `competition_round.timezone` keeps the zone it was typed in (`RoundTimezone` is the one place for both conversions, `CompetitionRoundFormData::fromCompetitionRound()` / `startsAtInstant()`):
+- The edit form pre-selects the round's own zone and shows the same local time - saving an untouched form never moves a round. A new round pre-selects the zone of the event's other rounds, else the default of the event's country (`CountryCode::defaultTimezone()`).
+- Every page shows a round's start in its zone (`|date(format, round.timezone)` - read models carry the resolved zone), so a Wisconsin event shows Chicago time to everybody.
+- Rounds saved before 2026-10 have no zone (`NULL`): they are read in the country's default zone, the zone the form pre-selected then.
+- Until 2026-10 the zone was not kept: the edit form showed the UTC time with the country's zone, so every save of an untouched form moved a round by the zone's offset (reported by the Wisconsin State Jigsaw Puzzle Championship).
 
 ### Round Categories
 
@@ -201,22 +209,22 @@ Puzzles are assigned to rounds via a `CompetitionRoundPuzzle` join. When adding 
 - **Existing puzzle:** select by UUID
 - **New puzzle on the fly:** provide name, piece count, manufacturer (existing or new), optional photo, EAN, identification number. The new puzzle is created with `approved = false`
 
-### Hide Until Round Starts
+### Hide Until Round Starts (secret puzzles and their reveal)
 
-Each puzzle assignment has a `hideUntilRoundStarts` flag and a `hideMode` enum (`PuzzleHideMode`). This controls puzzle visibility **only on competition pages** — the puzzle remains fully visible everywhere else on the platform (search, collections, etc.). Available for both new and existing puzzles.
+Each puzzle assignment has a `hideUntilRoundStarts` flag and a `hideMode` enum (`PuzzleHideMode`):
 
-Two hide modes:
+| Mode | Enum value | While secret |
+|------|-----------|--------------|
+| **Hide image only** | `image_only` | Name and brand are public, the picture is replaced with a placeholder |
+| **Hide entirely** | `entirely` | Name, brand and picture are secret |
 
-| Mode | Enum value | Behavior on competition pages |
-|------|-----------|-------------------------------|
-| **Hide image only** | `image_only` | Puzzle name and brand visible, image replaced with placeholder |
-| **Hide entirely** | `entirely` | Puzzle completely hidden from competition pages |
-
-**Scoping rules:**
-- **Existing puzzles:** Hiding is scoped to `CompetitionRoundPuzzle` only — the `Puzzle` entity is **never modified**. Display logic on competition pages checks `CompetitionRoundPuzzle.hideUntilRoundStarts` + `hideMode` against `CompetitionRound.startsAt`.
-- **New puzzles** (created on the fly): The `Puzzle` entity's `hideUntil` or `hideImageUntil` is also set to the round's start time, hiding the puzzle platform-wide. This is correct because the puzzle was created specifically for this competition and shouldn't be discoverable before the round starts.
-
-The puzzle is revealed automatically 10 minutes after the round starts.
+**One reveal moment per secret puzzle, every surface obeys it** (since 2026-10, `RoundPuzzleReveal`):
+- `competition_round_puzzle.reveal_mode` = `automatic` (default: 10 minutes after the round starts, follows the round when its start moves), `scheduled` (the organiser's own moment in `reveal_at`, never moved by the round; "Reveal now" leaves `scheduled` + now), `manual` (no moment - hidden until the organiser clicks "Reveal now").
+- PHP `RoundPuzzleReveal::revealAt()` / `CompetitionRoundPuzzle::revealsAt()` and SQL `RoundPuzzleReveal::sqlRevealAt()` / `sqlHidden()` compute the same moment - event pages (`GetEditionRounds`, so the API and round results too), `GetCompetitionPuzzles`, `GetPuzzleSummary` ("used at") and the organiser's status line all use them. Never add another `starts_at + 10 minutes`.
+- **Where the secret holds:** a puzzle created on the fly for the round (`hides_everywhere = true`) is secret on the **whole site** - `CompetitionRoundPuzzle::syncPuzzleHide()` keeps `puzzle.hide_until` + `hide_image_until` (entirely) or `hide_image_until` only (image only) equal to the reveal moment; a manual reveal writes `CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED` (9999-12-31). Every site-wide surface (search, brand picker, barcode lookup, brand/pieces hubs, sitemap, API v1, puzzle page `noindex`) already honours those columns. A catalogue puzzle that already existed is public elsewhere: the round hides it on its event pages only and never touches its columns.
+- **The columns never drift:** everything that moves the moment re-syncs - `ChangeRoundPuzzleReveal`, `RevealRoundPuzzleNow`, `EditCompetitionRound` (automatic reveals follow the new start; scheduled/manual stay, the flash says the new automatic reveal time and warns that own times did not move). **Removing** a puzzle from its round (or deleting the round/event) leaves the columns as they are: it stays hidden until the moment the organiser was last shown (manual: indefinitely - an admin clears it), never revealed by accident; the flash says so. A puzzle merge moving the round puzzle onto another record stops hiding everywhere (`moveToPuzzle()` - the survivor is a puzzle of its own).
+- **Organiser control** on the round's puzzles page (`manage_round_puzzles`): per puzzle the exact moment in the round's zone with the zone named (`zoned_datetime()`, e.g. "Hidden everywhere until Saturday, October 24, 2026 at 8:15 AM (Chicago Time)"), where the secret holds, "Change reveal" (what stays secret + automatic / own time typed in the round's zone / manual) and "Reveal now".
+- Rows from before 2026-10: `reveal_mode` defaulted to `automatic` (= the old rule on the event pages, while the site-wide columns ended at the start itself). `myspeedpuzzling:backfill-round-puzzle-reveals` (dry run unless `--write`) marks the secret round puzzles whose puzzle carries a hide date within 2 days of the round's start as `hides_everywhere` and re-syncs the columns to the reveal moment (this also repairs dates a moved round left behind).
 
 ## Table Layout System
 

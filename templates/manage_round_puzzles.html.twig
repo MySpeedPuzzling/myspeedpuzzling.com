@@ -11,9 +11,14 @@
     ]}) }}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
 
+    {% set timezone = round.displayTimezone %}
+
     <div class="pb-4">
         <h1 class="h2">{{ round.name }}</h1>
-        <p class="text-muted">{{ competition.name }}</p>
+        <p class="text-muted mb-1">{{ competition.name }}</p>
+        <p class="small text-muted" data-round-start>
+            <i class="bi bi-calendar-event me-1"></i>{{ 'competition.reveal.round_start'|trans({'%time%': zoned_datetime(round.startsAt, timezone)}) }}
+        </p>
 
         <div class="mb-3">
             <a href="{{ path('add_puzzle_to_round', {'roundId': round.id, return: path('manage_round_puzzles', {roundId: round.id}), return_title: 'competition.manage_puzzles'|trans}) }}" class="btn btn-outline-primary">
@@ -31,41 +36,103 @@
         <h2 class="h4 mt-4">{{ 'competition.puzzles'|trans }}</h2>
 
         {% if puzzles|length > 0 %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>{{ 'competition.puzzle.name'|trans }}</th>
-                            <th>{{ 'competition.puzzle.brand'|trans }}</th>
-                            <th>{{ 'competition.puzzle.pieces'|trans }}</th>
-                            <th>{{ 'competition.puzzle.hidden'|trans }}</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for puzzle in puzzles %}
-                            <tr>
-                                <td>{{ puzzle.puzzleName }}</td>
-                                <td>{{ puzzle.manufacturerName ?? '-' }}</td>
-                                <td>{{ puzzle.piecesCount }}</td>
-                                <td>
-                                    {% if puzzle.hideUntilRoundStarts %}
-                                        <span class="badge bg-warning text-dark">{{ 'competition.hidden_until_start'|trans }}</span>
+            <ul class="list-unstyled col-xl-9 px-0">
+                {% for puzzle in puzzles %}
+                    {% set image_only = puzzle.hideMode is not null and puzzle.hideMode.value == 'image_only' %}
+                    {% set scope = puzzle.hidesEverywhere ? 'everywhere' : 'on_event' %}
+                    <li class="card mb-3" id="round-puzzle-{{ puzzle.roundPuzzleId }}">
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div class="fw-semibold">{{ puzzle.puzzleName }}</div>
+                                    <div class="small text-muted">{{ puzzle.manufacturerName ?? '-' }} · {{ puzzle.piecesCount }} {{ 'competition.puzzle.pieces'|trans|lower }}</div>
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% if puzzle.hidden %}
+                                        <form method="post" action="{{ path('reveal_round_puzzle_now', {roundPuzzleId: puzzle.roundPuzzleId}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.reveal.confirm_reveal_now'|trans|e('js') }}')">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('reveal_round_puzzle_' ~ puzzle.roundPuzzleId) }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye me-1"></i>{{ 'competition.reveal.reveal_now'|trans }}
+                                            </button>
+                                        </form>
                                     {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    <form method="post" action="{{ path('remove_puzzle_from_round', {'roundPuzzleId': puzzle.roundPuzzleId}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_remove_puzzle'|trans }}')">
+                                    <form method="post" action="{{ path('remove_puzzle_from_round', {'roundPuzzleId': puzzle.roundPuzzleId}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_remove_puzzle'|trans|e('js') }}')">
                                         <input type="hidden" name="_token" value="{{ csrf_token('remove_puzzle_' ~ puzzle.roundPuzzleId) }}">
                                         <button type="submit" class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-trash me-1"></i>{{ 'competition.remove'|trans }}
                                         </button>
                                     </form>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                                </div>
+                            </div>
+
+                            <p class="mt-3 mb-1 fw-medium" data-reveal-status>
+                                {% if not puzzle.hideUntilRoundStarts %}
+                                    <i class="bi bi-eye me-1"></i>{{ 'competition.reveal.status.not_secret'|trans }}
+                                {% elseif not puzzle.hidden %}
+                                    <i class="bi bi-eye me-1 text-success"></i>{{ 'competition.reveal.status.revealed'|trans({'%time%': zoned_datetime(puzzle.revealsAt, timezone)}) }}
+                                {% elseif puzzle.revealsAt is null %}
+                                    <i class="bi bi-eye-slash me-1 text-warning"></i>{{ ('competition.reveal.status.manual_' ~ (image_only ? 'image_' : '') ~ 'hidden_' ~ scope)|trans }}
+                                {% else %}
+                                    <i class="bi bi-eye-slash me-1 text-warning"></i>{{ ((image_only ? 'competition.reveal.status.image_' : 'competition.reveal.status.') ~ 'hidden_' ~ scope)|trans({'%time%': zoned_datetime(puzzle.revealsAt, timezone)}) }}
+                                {% endif %}
+                            </p>
+
+                            {% if puzzle.hideUntilRoundStarts and puzzle.hidden %}
+                                <p class="small text-muted mb-0">
+                                    {{ ('competition.reveal.source.' ~ puzzle.revealMode.value)|trans }}
+                                    {% if puzzle.revealsAt is not null and puzzle.revealsAt < round.startsAt %}
+                                        <span class="text-danger">{{ 'competition.reveal.source.before_round_start'|trans({'%time%': zoned_datetime(round.startsAt, timezone)}) }}</span>
+                                    {% endif %}
+                                </p>
+                            {% endif %}
+
+                            <details class="mt-2">
+                                <summary class="small text-primary">{{ 'competition.reveal.form.toggle'|trans }}</summary>
+
+                                <form method="post" action="{{ path('change_round_puzzle_reveal', {roundPuzzleId: puzzle.roundPuzzleId}) }}" class="mt-2 border-start ps-3">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('round_puzzle_reveal_' ~ puzzle.roundPuzzleId) }}">
+
+                                    <fieldset class="mb-3">
+                                        <legend class="form-label fs-sm fw-medium">{{ 'competition.reveal.form.hide_mode'|trans }}</legend>
+                                        {% for mode in ['entirely', 'image_only'] %}
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="hide_mode" value="{{ mode }}" id="hide-mode-{{ mode }}-{{ puzzle.roundPuzzleId }}" {{ (image_only ? 'image_only' : 'entirely') == mode ? 'checked' }}>
+                                                <label class="form-check-label" for="hide-mode-{{ mode }}-{{ puzzle.roundPuzzleId }}">{{ ('competition.round_puzzle.form.hide_mode_' ~ mode)|trans }}</label>
+                                                <div class="form-text mt-0">{{ ('competition.round_puzzle.form.hide_mode_' ~ mode ~ '_help')|trans }}</div>
+                                            </div>
+                                        {% endfor %}
+                                    </fieldset>
+
+                                    {% set current_mode = puzzle.hideUntilRoundStarts and puzzle.hidden ? puzzle.revealMode.value : 'automatic' %}
+                                    {% set scheduled_value = (current_mode == 'scheduled' ? puzzle.revealsAt : round.automaticRevealAt)|date('Y-m-d\\TH:i', timezone) %}
+                                    <fieldset class="mb-3">
+                                        <legend class="form-label fs-sm fw-medium">{{ 'competition.reveal.form.when'|trans }}</legend>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="reveal_mode" value="automatic" id="reveal-automatic-{{ puzzle.roundPuzzleId }}" {{ current_mode == 'automatic' ? 'checked' }}>
+                                            <label class="form-check-label" for="reveal-automatic-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.automatic'|trans({'%time%': zoned_datetime(round.automaticRevealAt, timezone)}) }}</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="reveal_mode" value="scheduled" id="reveal-scheduled-{{ puzzle.roundPuzzleId }}" {{ current_mode == 'scheduled' ? 'checked' }}>
+                                            <label class="form-check-label" for="reveal-scheduled-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.scheduled'|trans }}</label>
+                                            <div class="mt-1">
+                                                <label class="form-label small mb-1" for="reveal-at-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.scheduled_at'|trans({'%zone%': timezone_name(timezone)}) }}</label>
+                                                <input class="form-control form-control-sm" style="max-width: 16rem;" type="datetime-local" name="reveal_at" id="reveal-at-{{ puzzle.roundPuzzleId }}" value="{{ scheduled_value }}">
+                                            </div>
+                                        </div>
+                                        <div class="form-check mt-1">
+                                            <input class="form-check-input" type="radio" name="reveal_mode" value="manual" id="reveal-manual-{{ puzzle.roundPuzzleId }}" {{ current_mode == 'manual' ? 'checked' }}>
+                                            <label class="form-check-label" for="reveal-manual-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.manual'|trans }}</label>
+                                        </div>
+                                    </fieldset>
+
+                                    <button type="submit" class="btn btn-sm btn-primary">{{ 'competition.reveal.form.save'|trans }}</button>
+                                </form>
+                            </details>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
         {% else %}
             <p class="text-muted">{{ 'competition.no_puzzles'|trans }}</p>
         {% endif %}

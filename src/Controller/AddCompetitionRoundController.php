@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use DateTimeImmutable;
-use DateTimeZone;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +26,7 @@ final class AddCompetitionRoundController extends AbstractController
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly GetCompetitionEvents $getCompetitionEvents,
+        private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -47,15 +48,17 @@ final class AddCompetitionRoundController extends AbstractController
 
         $competition = $this->getCompetitionEvents->byId($competitionId);
 
-        $isSingleDay = $competition->dateFrom !== null
-            && $competition->dateTo !== null
-            && $competition->dateFrom->format('Y-m-d') === $competition->dateTo->format('Y-m-d');
+        $singleDay = $competition->singleDay();
 
-        $formData = new CompetitionRoundFormData();
+        // An organiser picks the zone once: a new round starts in the zone of the event's other rounds
+        $otherRounds = $this->getCompetitionRoundsForManagement->ofCompetition($competitionId);
+        $timezone = $otherRounds !== []
+            ? $otherRounds[array_key_last($otherRounds)]->timezone
+            : RoundTimezone::resolve(null, $competition->locationCountryCode?->name);
+
+        $formData = CompetitionRoundFormData::forNewRound($timezone);
         $form = $this->createForm(CompetitionRoundFormType::class, $formData, [
-            'date_from' => $competition->dateFrom,
-            'date_to' => $competition->dateTo,
-            'country_code' => $competition->locationCountryCode?->name,
+            'single_day' => $singleDay !== null,
         ]);
         $form->handleRequest($request);
 
@@ -63,34 +66,15 @@ final class AddCompetitionRoundController extends AbstractController
             $data = $form->getData();
             assert($data->name !== null);
             assert($data->minutesLimit !== null);
-
-            /** @var string $timezone */
-            $timezone = $form->get('timezone')->getData();
-            $tz = new DateTimeZone($timezone);
-
-            if ($isSingleDay) {
-                /** @var string $time */
-                $time = $form->get('startsAtTime')->getData();
-                $localDateTime = new DateTimeImmutable(
-                    $competition->dateFrom->format('Y-m-d') . ' ' . $time,
-                    $tz,
-                );
-                $startsAt = $localDateTime->setTimezone(new DateTimeZone('UTC'));
-            } else {
-                assert($data->startsAt !== null);
-                $localDateTime = new DateTimeImmutable(
-                    $data->startsAt->format('Y-m-d H:i:s'),
-                    $tz,
-                );
-                $startsAt = $localDateTime->setTimezone(new DateTimeZone('UTC'));
-            }
+            assert($data->timezone !== null);
 
             $this->messageBus->dispatch(new AddCompetitionRound(
                 roundId: Uuid::uuid7(),
                 competitionId: $competitionId,
                 name: $data->name,
                 minutesLimit: $data->minutesLimit,
-                startsAt: $startsAt,
+                startsAt: $data->startsAtInstant($singleDay),
+                timezone: $data->timezone,
                 badgeBackgroundColor: $data->badgeBackgroundColor,
                 badgeTextColor: $data->badgeTextColor,
                 category: $data->category,
@@ -105,6 +89,7 @@ final class AddCompetitionRoundController extends AbstractController
         return $this->render('add_competition_round.html.twig', [
             'form' => $form,
             'competition' => $competition,
+            'single_day' => $singleDay,
         ]);
     }
 }

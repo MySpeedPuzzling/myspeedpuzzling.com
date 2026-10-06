@@ -146,11 +146,12 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
         self::assertTrue($roundPuzzle->hideUntilRoundStarts);
         self::assertSame(PuzzleHideMode::Entirely, $roundPuzzle->hideMode);
 
-        // New puzzle should have hideUntil set platform-wide
+        // New puzzle is hidden platform-wide (and its picture) until the one reveal moment - 10 minutes after the start
         $puzzle = $roundPuzzle->puzzle;
-        self::assertNotNull($puzzle->hideUntil);
-        self::assertNull($puzzle->hideImageUntil);
-        self::assertSame($roundPuzzle->round->startsAt, $puzzle->hideUntil);
+        self::assertTrue($roundPuzzle->hidesEverywhere);
+        self::assertEquals($roundPuzzle->round->startsAt->modify('+10 minutes'), $roundPuzzle->revealsAt());
+        self::assertEquals($roundPuzzle->revealsAt(), $puzzle->hideUntil);
+        self::assertEquals($roundPuzzle->revealsAt(), $puzzle->hideImageUntil);
     }
 
     public function testNewPuzzleWithHideImageOnlySetsPuzzleHideImageUntil(): void
@@ -176,11 +177,11 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
         self::assertTrue($roundPuzzle->hideUntilRoundStarts);
         self::assertSame(PuzzleHideMode::ImageOnly, $roundPuzzle->hideMode);
 
-        // New puzzle should have hideImageUntil set platform-wide
+        // New puzzle has its picture hidden platform-wide until the one reveal moment, its name is public
         $puzzle = $roundPuzzle->puzzle;
-        self::assertNotNull($puzzle->hideImageUntil);
+        self::assertTrue($roundPuzzle->hidesEverywhere);
         self::assertNull($puzzle->hideUntil);
-        self::assertSame($roundPuzzle->round->startsAt, $puzzle->hideImageUntil);
+        self::assertEquals($roundPuzzle->revealsAt(), $puzzle->hideImageUntil);
     }
 
     public function testNewPuzzleWithoutHideDoesNotSetPuzzleHideFields(): void

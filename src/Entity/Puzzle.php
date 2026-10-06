@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\LanguageTag;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleSearchKeys;
 
@@ -163,6 +164,18 @@ class Puzzle
     {
         $this->searchNames = PuzzleSearchKeys::names($this->name, $this->alternativeNames());
         $this->searchCodes = PuzzleSearchKeys::codes($this->ean, $this->identificationNumber);
+    }
+
+    /**
+     * A puzzle created for a competition round stays secret on the whole site until the round reveals it - the
+     * round keeps these dates equal to its reveal moment (CompetitionRoundPuzzle::syncPuzzleHide()). "Entirely" hides
+     * the puzzle and its picture (the picture date also keeps the detail page out of search engines), "image only"
+     * just the picture - the name is public.
+     */
+    public function hideUntilRevealed(PuzzleHideMode $hideMode, DateTimeImmutable $revealAt): void
+    {
+        $this->hideImageUntil = $revealAt;
+        $this->hideUntil = $hideMode === PuzzleHideMode::Entirely ? $revealAt : null;
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void

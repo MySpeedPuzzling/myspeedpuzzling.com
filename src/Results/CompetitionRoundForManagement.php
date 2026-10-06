@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class CompetitionRoundForManagement
 {
@@ -18,6 +19,8 @@ readonly final class CompetitionRoundForManagement
         public null|string $badgeTextColor,
         public int $puzzleCount,
         public RoundCategory $category = RoundCategory::Solo,
+        // The zone startsAt is shown in - see RoundTimezone
+        public string $timezone = RoundTimezone::FALLBACK,
     ) {
     }
 }

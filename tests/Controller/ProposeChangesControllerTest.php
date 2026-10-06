@@ -62,7 +62,7 @@ final class ProposeChangesControllerTest extends WebTestCase
         self::assertSame('Puzzle 7', $form->getValues()['propose_puzzle_changes_form[names][name]']);
         self::assertSame('de', $form->getValues()['propose_puzzle_changes_form[names][alternativeNames][1][language]']);
 
-        // What the editor sends after "+ Add a name" and the German name removed
+        // What the editor sends after "+ Add another name" and the German name removed
         $values = $form->getPhpValues();
         self::assertIsArray($values['propose_puzzle_changes_form']);
         $values['propose_puzzle_changes_form']['names'] = [

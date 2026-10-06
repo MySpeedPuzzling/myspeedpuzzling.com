@@ -62,17 +62,13 @@
     }, with_context = false) }}
 
     {# Photo upload with collapsible help #}
-    {# A photo kept from a refused submit (FormPhotoStash) travels as a token - a plain input, not a drop area: those are
-       wired once per page, never inside the modal #}
-    {% set kept_photo = (kept_photos|default({})).photo ?? null %}
-    <div class="mb-3" {{ include('photo_stash/_kept_photo_attributes.html.twig', {photo: kept_photo}) }}>
+    <div class="mb-3">
         {{ form_label(propose_form.photo) }}
-        {% if kept_photo is not null %}
-            <div class="mb-2">{{ include('photo_stash/_kept_photo_preview.html.twig', {photo: kept_photo}) }}</div>
-        {% endif %}
-        {{ form_widget(propose_form.photo, {'attr': {'class': 'form-control file-drop-input'}}) }}
-        {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: 'photo'}) }}
-        {{ form_errors(propose_form.photo) }}
+        {{ include('photo_stash/_photo_drop_area.html.twig', {
+            field: propose_form.photo,
+            stash_field: 'photo',
+            kept_photo: (kept_photos|default({})).photo ?? null,
+        }, with_context = false) }}
 
         <button type="button" class="btn btn-link btn-sm p-0 mt-1" data-bs-toggle="collapse" data-bs-target="#photoHelp">
             <i class="bi bi-question-circle me-1"></i>{{ 'puzzle_report.form.photo_help_toggle'|trans }}

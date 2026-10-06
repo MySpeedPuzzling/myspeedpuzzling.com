@@ -1,11 +1,11 @@
 {#
     The names editor (docs/features/puzzle-names/README.md, "Writing names and codes"): the main title in a neutral panel
     of its own (no accent colour - it read as an error), its language behind a quiet link under it, the other names as rows (name, language, "Make main title", remove) and
-    "+ Add a name". names_editor_controller.js adds, removes and swaps rows and shows the warnings; it never blocks a
+    "+ Add another name" (the "Other names" heading only once there is one). names_editor_controller.js adds, removes and swaps rows and shows the warnings; it never blocks a
     save. A 422 re-render brings the rows back from what was sent.
 
     Required: names - the PuzzleNamesType child of the form (e.g. form.names)
-    Optional: max_names - how many other names "+ Add a name" allows (default PuzzleNames::FORM_MAX_NAMES; a puzzle that
+    Optional: max_names - how many other names "+ Add another name" allows (default PuzzleNames::FORM_MAX_NAMES; a puzzle that
               has more after a merge keeps them, the button is just hidden and the cap is said instead)
 #}
 {% import _self as names_editor %}
@@ -89,7 +89,8 @@
     </div>
 
     <div class="names-editor__others">
-        <span class="form-label fw-semibold d-block mb-2">{{ 'puzzle_names.other_names'|trans }}</span>
+        {# Only once there is another name - a puzzle with the main title only shows just "+ Add another name" #}
+        <div class="form-label fw-semibold mb-2" data-names-editor-target="othersLabel" {% if names.alternativeNames|length == 0 %}hidden{% endif %}>{{ 'puzzle_names.other_names'|trans }}</div>
         {{ form_errors(names.alternativeNames) }}
 
         <div class="names-editor__rows" data-names-editor-target="rows">
@@ -98,15 +99,11 @@
             {%- endfor -%}
         </div>
 
-        <p class="names-editor__empty" data-names-editor-target="empty" {% if names.alternativeNames|length > 0 %}hidden{% endif %}>
-            {{- 'puzzle_names.no_other_names'|trans -}}
-        </p>
-
         <button type="button" class="btn btn-outline-primary btn-sm names-editor__add" data-names-editor-target="add" data-action="names-editor#add">
             {{- 'puzzle_names.add_name'|trans -}}
         </button>
 
-        {# Instead of "+ Add a name" at the cap, and when a split or a move would go past it (nothing moves then) #}
+        {# Instead of "+ Add another name" at the cap, and when a split or a move would go past it (nothing moves then) #}
         <p class="names-editor__cap" data-names-editor-target="cap" role="status" {% if names.alternativeNames|length < max_names %}hidden{% endif %}>
             {{- 'puzzle_names.too_many_names'|trans({'%limit%': max_names}, 'validators') -}}
         </p>

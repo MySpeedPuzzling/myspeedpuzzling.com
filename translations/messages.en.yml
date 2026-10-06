@@ -5642,8 +5642,7 @@ puzzle_names:
     # Empty choice of an other name's language
     language_not_known: "Language not known"
     other_names: "Other names"
-    no_other_names: "No other names yet."
-    add_name: "+ Add a name"
+    add_name: "+ Add another name"
     name: "Name"
     language: "Language"
     make_main_title: "Make main title"

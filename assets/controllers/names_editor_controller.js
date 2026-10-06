@@ -14,7 +14,7 @@ import { foldSearchText } from '../search_fold.js';
 export default class extends Controller {
     static targets = [
         'main', 'mainLanguage', 'mainLanguageSelect', 'mainLanguageToggle',
-        'splitWarning', 'englishWarning', 'rows', 'row', 'empty', 'add', 'cap', 'template',
+        'splitWarning', 'englishWarning', 'rows', 'row', 'othersLabel', 'add', 'cap', 'template',
     ];
 
     static values = {
@@ -162,7 +162,7 @@ export default class extends Controller {
             this.note(row, 'was-main').hidden = !('wasMain' in row.dataset) || this.languageSelect(row).value !== '';
         });
 
-        this.emptyTarget.hidden = this.rowTargets.length > 0;
+        this.othersLabelTarget.hidden = this.rowTargets.length === 0;
         this.addTarget.hidden = this.rowTargets.length >= this.maxNamesValue;
         this.capTarget.hidden = !this.addTarget.hidden;
     }

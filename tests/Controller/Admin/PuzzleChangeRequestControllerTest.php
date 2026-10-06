@@ -93,7 +93,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         $values = $form->getPhpValues();
         self::assertIsArray($values['puzzle_record_form']);
         self::assertIsArray($values['puzzle_record_form']['names']);
-        // The proposed EAN is no valid code - the reviewer fixes it, and adds a name ("+ Add a name")
+        // The proposed EAN is no valid code - the reviewer fixes it, and adds a name ("+ Add another name")
         $values['puzzle_record_form']['names']['alternativeNames'] = [['name' => 'Alternative Title', 'language' => '']];
         $browser->request('POST', '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_PENDING, $values);
 

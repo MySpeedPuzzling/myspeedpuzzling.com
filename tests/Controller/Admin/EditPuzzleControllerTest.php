@@ -171,7 +171,7 @@ final class EditPuzzleControllerTest extends WebTestCase
         self::assertSame('cs', $values['puzzle_record_form[names][alternativeNames][0][language]']);
         self::assertSame('de', $values['puzzle_record_form[names][alternativeNames][1][language]']);
 
-        // What the editor sends after "Make main title" on the Czech name and "+ Add a name" (rows renumbered in order)
+        // What the editor sends after "Make main title" on the Czech name and "+ Add another name" (rows renumbered in order)
         $phpValues = $form->getPhpValues();
         self::assertIsArray($phpValues['puzzle_record_form']);
         $phpValues['puzzle_record_form']['names'] = [

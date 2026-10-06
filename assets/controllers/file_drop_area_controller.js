@@ -1,10 +1,18 @@
 import { Controller } from '@hotwired/stimulus';
 
+/**
+ * The photo drop areas (.file-drop-area): "Choose file" opens the picker, a chosen image shows as the preview.
+ * On <body> it wires every area of the page at load; content loaded later (a form in the modal) puts the controller
+ * on a wrapper of its own areas. Each area is wired once.
+ */
 export default class extends Controller {
     connect() {
-        const fileArea = document.querySelectorAll('.file-drop-area');
+        const fileArea = Array.from(this.element.querySelectorAll('.file-drop-area'))
+            .filter(area => area.dataset.fileDropWired === undefined);
 
         for (let i = 0; i < fileArea.length; i++) {
+            fileArea[i].dataset.fileDropWired = '';
+
             let input = fileArea[i].querySelector('.file-drop-input'),
                 message = fileArea[i].querySelector('.file-drop-message'),
                 icon = fileArea[i].querySelector('.file-drop-icon'),
@@ -33,7 +41,8 @@ export default class extends Controller {
 
                                 // Add edit button if not exists
                                 let editBtn = fileArea[i].querySelector('.file-drop-edit-btn');
-                                if (!editBtn) {
+                                // Only where the image editor is around to open it (not in the modal's forms)
+                                if (!editBtn && fileArea[i].closest('[data-controller~="image-editor"]')) {
                                     // Get translation from image-editor controller if available
                                     const imageEditorEl = fileArea[i].closest('[data-image-editor-edit-value]');
                                     const editLabel = imageEditorEl ? imageEditorEl.dataset.imageEditorEditValue : 'Edit';

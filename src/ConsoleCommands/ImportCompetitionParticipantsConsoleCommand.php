@@ -14,6 +14,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Same Excel import as the organizer's "Import participants" upload, for files prepared outside the UI.
@@ -23,6 +24,7 @@ final class ImportCompetitionParticipantsConsoleCommand extends Command
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
+        readonly private TranslatorInterface $translator,
     ) {
         parent::__construct();
     }
@@ -54,19 +56,18 @@ final class ImportCompetitionParticipantsConsoleCommand extends Command
         assert($result instanceof ParticipantImportResult);
 
         foreach ($result->warnings as $warning) {
-            $io->warning($warning);
+            $io->warning($warning->trans($this->translator, 'en'));
         }
 
         foreach ($result->errors as $error) {
-            $io->error($error);
+            $io->error($error->trans($this->translator, 'en'));
         }
 
-        $io->success(sprintf(
-            'Import complete: %d added, %d updated, %d soft-deleted.',
-            $result->added,
-            $result->updated,
-            $result->softDeleted,
-        ));
+        $io->success($this->translator->trans('competition.participants.import.summary', [
+            '%added%' => $result->added,
+            '%updated%' => $result->updated,
+            '%deleted%' => $result->softDeleted,
+        ], locale: 'en'));
 
         return self::SUCCESS;
     }

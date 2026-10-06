@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use Symfony\Component\Translation\TranslatableMessage;
+
 readonly final class ParticipantImportResult
 {
     /**
-     * @param array<string> $warnings
-     * @param array<string> $errors
+     * Messages for the organiser - translate them (`competition.participants.import.*`).
+     *
+     * @param array<TranslatableMessage> $warnings
+     * @param array<TranslatableMessage> $errors
      */
     public function __construct(
         public int $added = 0,

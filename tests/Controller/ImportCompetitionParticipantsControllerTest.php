@@ -44,6 +44,8 @@ final class ImportCompetitionParticipantsControllerTest extends WebTestCase
         $columns = $crawler->filter('details table code')->each(static fn ($node): string => $node->text());
         self::assertContains('round_names', $columns);
         self::assertContains('team_name', $columns);
+        self::assertContains('team_name: <round>', $columns);
+        self::assertContains('participant_id', $columns);
     }
 
     private function upload(KernelBrowser $browser, UploadedFile $file): void

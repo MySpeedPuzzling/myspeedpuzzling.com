@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use PhpOffice\PhpSpreadsheet\Exception as SpreadsheetException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -13,19 +14,34 @@ use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Results\ParticipantImportResult;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use Symfony\Component\Translation\TranslatableMessage;
 
+/**
+ * Rules (documented in docs/features/competitions-management/participants.md §Excel Import):
+ * - a row is matched to an existing participant by participant_id, msp_player_id, external_id, then name
+ *   (+ country); a name shared by several participants of the event is never guessed - the row is reported
+ * - rows of the same person add up: every round of every row is assigned, the person counts once
+ * - round assignments are only added: nobody leaves a round or changes team through an import
+ * - an export imported back unchanged changes nothing
+ */
 readonly final class CompetitionParticipantImporter
 {
     /**
-     * Every column the importer reads. `round_names` (a comma-separated list) is what the template
-     * and the export write; `round_name` (one round) is kept for files made before.
+     * Every column the importer reads. `round_names` (a list) is what the template and the export write;
+     * `round_name` (one round, never split) is kept for files made before.
      */
-    public const array KNOWN_COLUMNS = ['name', 'country', 'external_id', 'msp_player_id', 'status', 'round_names', 'round_name', 'team_name'];
+    public const array KNOWN_COLUMNS = ['name', 'country', 'external_id', 'msp_player_id', 'status', 'round_names', 'round_name', 'team_name', 'participant_id'];
+
+    /** A column "team_name: <round>" holds the team in that one round (the export writes one per pair/team round). */
+    public const string TEAM_COLUMN_PREFIX = 'team_name:';
+
+    private const string MESSAGE_PREFIX = 'competition.participants.import.';
 
     public function __construct(
         private EntityManagerInterface $entityManager,
@@ -39,112 +55,163 @@ readonly final class CompetitionParticipantImporter
     {
         $competition = $this->competitionRepository->get($competitionId);
 
-        $spreadsheet = IOFactory::load($filePath);
-        $worksheet = $spreadsheet->getActiveSheet();
-        $rows = $worksheet->toArray();
-
-        if (empty($rows)) {
-            return new ParticipantImportResult(errors: ['Excel file is empty.']);
+        try {
+            $rows = IOFactory::load($filePath)->getActiveSheet()->toArray();
+        } catch (SpreadsheetException | \ValueError) {
+            return new ParticipantImportResult(errors: [self::message('unreadable_file')]);
         }
 
-        /** @var array<string|null> $headerRow */
-        $headerRow = array_shift($rows);
-        /** @var array<string> $headers */
-        $headers = array_map(static fn (null|string $h): string => strtolower(trim((string) $h)), $headerRow);
+        if ($rows === []) {
+            return new ParticipantImportResult(errors: [self::message('empty_file')]);
+        }
 
-        $nameIdx = $this->findColumnIndex($headers, 'name');
-        $countryIdx = $this->findColumnIndex($headers, 'country');
-        $externalIdIdx = $this->findColumnIndex($headers, 'external_id');
-        $playerIdIdx = $this->findColumnIndex($headers, 'msp_player_id');
-        $statusIdx = $this->findColumnIndex($headers, 'status');
-        $roundNameIdx = $this->findColumnIndex($headers, 'round_name');
-        $roundNamesIdx = $this->findColumnIndex($headers, 'round_names');
-        $teamNameIdx = $this->findColumnIndex($headers, 'team_name');
+        /** @var array<null|scalar> $headerRow */
+        $headerRow = array_shift($rows);
+        /** @var array<int, string> $rawHeaders */
+        $rawHeaders = array_map(static fn (mixed $header): string => trim((string) $header), $headerRow);
+        $headers = array_map(strtolower(...), $rawHeaders);
+
+        $nameIdx = self::findColumnIndex($headers, 'name');
+        $countryIdx = self::findColumnIndex($headers, 'country');
+        $externalIdIdx = self::findColumnIndex($headers, 'external_id');
+        $playerIdIdx = self::findColumnIndex($headers, 'msp_player_id');
+        $statusIdx = self::findColumnIndex($headers, 'status');
+        $roundNameIdx = self::findColumnIndex($headers, 'round_name');
+        $roundNamesIdx = self::findColumnIndex($headers, 'round_names');
+        $teamNameIdx = self::findColumnIndex($headers, 'team_name');
+        $participantIdIdx = self::findColumnIndex($headers, 'participant_id');
 
         if ($nameIdx === null) {
-            return new ParticipantImportResult(errors: ['Required column "name" not found.']);
+            return new ParticipantImportResult(errors: [self::message('name_column_missing')]);
         }
 
-        $unknownColumns = array_values(array_unique(array_filter(
-            $headers,
-            static fn (string $header): bool => $header !== '' && !in_array($header, self::KNOWN_COLUMNS, true),
-        )));
+        $warnings = [];
+        $errors = [];
+
+        [$rounds, $roundCollisions] = $this->loadRounds($competitionId);
+        foreach ($roundCollisions as $collision) {
+            $warnings[] = self::message('round_case_collision', [
+                '%rounds%' => self::quotedList($collision),
+                '%used%' => $collision[0],
+            ]);
+        }
+
+        // "team_name: <round>" columns, and columns nobody reads
+        /** @var array<string, int> $teamColumns roundId => column index */
+        $teamColumns = [];
+        $unknownColumns = [];
+        foreach ($headers as $idx => $header) {
+            if (str_starts_with($header, self::TEAM_COLUMN_PREFIX)) {
+                $roundLabel = trim(substr($rawHeaders[$idx], strlen(self::TEAM_COLUMN_PREFIX)));
+                $round = $rounds[self::roundKey($roundLabel)] ?? null;
+
+                if ($round === null) {
+                    $warnings[] = self::message('unknown_team_round_column', [
+                        '%column%' => $rawHeaders[$idx],
+                        '%round%' => $roundLabel,
+                    ]);
+                } elseif ($round->category !== RoundCategory::Solo) {
+                    $teamColumns[$round->id->toString()] = $idx;
+                }
+
+                continue;
+            }
+
+            if ($header !== '' && !in_array($header, self::KNOWN_COLUMNS, true)) {
+                $unknownColumns[] = $rawHeaders[$idx];
+            }
+        }
+
+        if ($unknownColumns !== []) {
+            $warnings[] = self::message('unknown_columns', [
+                '%columns%' => self::quotedList(array_values(array_unique($unknownColumns))),
+                '%known%' => implode(', ', [...self::KNOWN_COLUMNS, self::TEAM_COLUMN_PREFIX . ' <round>']),
+            ]);
+        }
 
         $existing = $this->loadExistingParticipants($competitionId);
 
-        $added = 0;
-        $updated = 0;
-        $softDeleted = 0;
-        $warnings = [];
-        $errors = [];
-        $seenNames = [];
-
-        if ($unknownColumns !== []) {
-            $warnings[] = sprintf(
-                'Unknown column(s) ignored: "%s". Columns the import reads: %s.',
-                implode('", "', $unknownColumns),
-                implode(', ', self::KNOWN_COLUMNS),
-            );
-        }
+        /** @var array<string, 'added'|'updated'> $outcomes participantId => what the import did to them */
+        $outcomes = [];
+        /** @var array<string, bool> $deleted participantId => soft-deleted by the file */
+        $deleted = [];
 
         /**
          * Rows of the same participant add up: every round from every row is assigned.
          *
-         * @var array<string, array<string, null|string>> participantId => [roundId => team name]
+         * @var array<string, array<string, null|string>> $roundAssignments participantId => [roundId => team name]
          */
         $roundAssignments = [];
 
-        /** @var array<string, list<int>> round name as written in the file => row numbers */
+        /** @var array<string, list<int>> $unknownRoundNames round name as written in the file => row numbers */
         $unknownRoundNames = [];
-
-        $rounds = $this->loadRounds($competitionId);
 
         foreach ($rows as $rowIndex => $row) {
             /** @var array<int, null|scalar> $row */
             $rowNum = $rowIndex + 2;
 
-            $name = trim((string) ($row[$nameIdx] ?? ''));
+            $cell = static fn (null|int $idx): string => $idx !== null ? trim((string) ($row[$idx] ?? '')) : '';
+
+            $name = $cell($nameIdx);
             if ($name === '') {
-                $errors[] = "Row {$rowNum}: missing name, skipped.";
+                if (implode('', array_map(static fn (mixed $value): string => trim((string) $value), $row)) !== '') {
+                    $errors[] = self::message('missing_name', ['%row%' => $rowNum]);
+                }
+
                 continue;
             }
 
-            // Duplicate detection within file
-            if (in_array($name, $seenNames, true)) {
-                $warnings[] = "Row {$rowNum}: duplicate name \"{$name}\" in file.";
-            }
-            $seenNames[] = $name;
-
-            $country = $countryIdx !== null ? trim((string) ($row[$countryIdx] ?? '')) : '';
-            $externalId = $externalIdIdx !== null ? trim((string) ($row[$externalIdIdx] ?? '')) : '';
-            $playerId = $playerIdIdx !== null ? trim((string) ($row[$playerIdIdx] ?? '')) : '';
-            $status = $statusIdx !== null ? strtolower(trim((string) ($row[$statusIdx] ?? ''))) : '';
+            $country = $cell($countryIdx);
+            $externalId = $cell($externalIdIdx);
+            $playerId = $cell($playerIdIdx);
+            $status = strtolower($cell($statusIdx));
+            $participantIdCell = $cell($participantIdIdx);
 
             $countryCode = null;
             if ($country !== '') {
                 $countryCode = CountryCode::fromCode($country);
                 if ($countryCode === null) {
-                    $warnings[] = "Row {$rowNum}: invalid country code \"{$country}\".";
+                    $warnings[] = self::message('invalid_country', ['%row%' => $rowNum, '%country%' => $country]);
                 }
             }
 
-            // Validate player ID
             $validPlayerId = null;
             if ($playerId !== '') {
                 if (!Uuid::isValid($playerId)) {
-                    $errors[] = "Row {$rowNum}: msp_player_id \"{$playerId}\" is not a valid UUID.";
+                    $errors[] = self::message('invalid_player_id', ['%row%' => $rowNum, '%id%' => $playerId]);
                 } elseif (!$this->playerExists($playerId)) {
-                    $errors[] = "Row {$rowNum}: msp_player_id \"{$playerId}\" does not exist.";
+                    $errors[] = self::message('unknown_player_id', ['%row%' => $rowNum, '%id%' => $playerId]);
                 } else {
                     $validPlayerId = $playerId;
                 }
             }
 
-            // Match existing participant
-            $match = $this->findMatch($existing, $validPlayerId, $externalId !== '' ? $externalId : null, $name, $countryCode?->name);
+            // Priority 0: the participant's own id (the export writes it)
+            $matchedId = null;
+            if ($participantIdCell !== '') {
+                $normalisedId = strtolower($participantIdCell);
 
-            if ($match !== null) {
-                $participant = $this->entityManager->find(CompetitionParticipant::class, $match['id']);
+                if (isset($existing[$normalisedId])) {
+                    $matchedId = $normalisedId;
+                } else {
+                    $warnings[] = self::message('foreign_participant_id', ['%row%' => $rowNum, '%id%' => $participantIdCell]);
+                }
+            }
+
+            if ($matchedId === null) {
+                $match = self::findMatch($existing, $validPlayerId, $externalId !== '' ? $externalId : null, $name, $countryCode?->name);
+
+                if (is_int($match)) {
+                    $warnings[] = self::message('ambiguous_name', ['%row%' => $rowNum, '%name%' => $name, '%count%' => $match]);
+
+                    continue;
+                }
+
+                $matchedId = $match;
+            }
+
+            if ($matchedId !== null) {
+                $participant = $this->entityManager->find(CompetitionParticipant::class, $matchedId);
                 assert($participant instanceof CompetitionParticipant);
 
                 $participant->updateName($name);
@@ -158,7 +225,7 @@ readonly final class CompetitionParticipantImporter
                     $participant->updateExternalId($externalId);
                 }
                 if ($validPlayerId !== null && ($participant->player === null || $participant->player->id->toString() !== $validPlayerId)) {
-                    $player = $this->entityManager->find(\SpeedPuzzling\Web\Entity\Player::class, $validPlayerId);
+                    $player = $this->entityManager->find(Player::class, $validPlayerId);
                     if ($player !== null) {
                         $participant->connect($player, $this->clock->now());
                     }
@@ -168,12 +235,7 @@ readonly final class CompetitionParticipantImporter
                     $participant->restore();
                 }
 
-                if ($status === 'deleted') {
-                    $participant->softDelete($this->clock->now());
-                    $softDeleted++;
-                } else {
-                    $updated++;
-                }
+                $outcomes[$matchedId] ??= 'updated';
             } else {
                 $participant = new CompetitionParticipant(
                     id: Uuid::uuid7(),
@@ -188,56 +250,47 @@ readonly final class CompetitionParticipantImporter
                 }
 
                 if ($validPlayerId !== null) {
-                    $player = $this->entityManager->find(\SpeedPuzzling\Web\Entity\Player::class, $validPlayerId);
+                    $player = $this->entityManager->find(Player::class, $validPlayerId);
                     if ($player !== null) {
                         $participant->connect($player, $this->clock->now());
                     }
                 }
 
-                if ($status === 'deleted') {
-                    $participant->softDelete($this->clock->now());
-                    $softDeleted++;
-                } else {
-                    $added++;
-                }
-
                 $this->entityManager->persist($participant);
-
-                // Add to existing lookup for subsequent row matching
-                $existing[] = [
-                    'id' => $participant->id->toString(),
-                    'name' => $name,
-                    'country' => $countryCode?->name,
-                    'external_id' => $externalId !== '' ? $externalId : null,
-                    'player_id' => $validPlayerId,
-                ];
-            }
-
-            // Track round/team assignments for post-flush processing
-            $teamName = $teamNameIdx !== null ? CompetitionTeam::cleanName((string) ($row[$teamNameIdx] ?? '')) : null;
-
-            if ($teamName !== null && mb_strlen($teamName) > CompetitionTeam::NAME_MAX_LENGTH) {
-                $warnings[] = sprintf('Row %d: team name is longer than %d characters, team assignment skipped.', $rowNum, CompetitionTeam::NAME_MAX_LENGTH);
-                $teamName = null;
-            }
-
-            $requestedRoundNames = [];
-
-            if ($roundNamesIdx !== null) {
-                $requestedRoundNames = $this->splitRoundNames((string) ($row[$roundNamesIdx] ?? ''), $rounds);
-            }
-
-            if ($roundNameIdx !== null) {
-                $requestedRoundNames[] = trim((string) ($row[$roundNameIdx] ?? ''));
+                $outcomes[$participant->id->toString()] = 'added';
             }
 
             $participantId = $participant->id->toString();
 
-            foreach ($requestedRoundNames as $requestedRoundName) {
-                if ($requestedRoundName === '') {
-                    continue;
-                }
+            if ($status === 'deleted') {
+                $participant->softDelete($this->clock->now());
+            }
+            $deleted[$participantId] = $participant->isDeleted();
 
+            // Later rows match what this row made of the participant (a rename, a new external id, ...)
+            $existing[$participantId] = [
+                'id' => $participantId,
+                'name' => $participant->name,
+                'country' => $participant->country,
+                'external_id' => $participant->externalId,
+                'player_id' => $participant->player?->id->toString(),
+                'deleted' => $participant->isDeleted(),
+            ];
+
+            // A participant removed by the file gets no rounds
+            if ($status === 'deleted') {
+                continue;
+            }
+
+            // Rounds and teams, applied after the participants are flushed
+            $teamName = $this->cleanTeamName($cell($teamNameIdx), $rowNum, $warnings);
+
+            $requestedRoundNames = $roundNamesIdx !== null ? self::splitRoundNames($cell($roundNamesIdx), $rounds) : [];
+            if ($roundNameIdx !== null && $cell($roundNameIdx) !== '') {
+                $requestedRoundNames[] = $cell($roundNameIdx);
+            }
+
+            foreach ($requestedRoundNames as $requestedRoundName) {
                 $round = $rounds[self::roundKey($requestedRoundName)] ?? null;
 
                 if ($round === null) {
@@ -247,36 +300,41 @@ readonly final class CompetitionParticipantImporter
                 }
 
                 $roundId = $round->id->toString();
-                $roundTeamName = $round->category !== RoundCategory::Solo ? $teamName : null;
+
+                if ($round->category === RoundCategory::Solo) {
+                    $roundTeamName = null;
+                } elseif (isset($teamColumns[$roundId])) {
+                    // A team column of this round decides, even when empty
+                    $roundTeamName = $this->cleanTeamName($cell($teamColumns[$roundId]), $rowNum, $warnings);
+                } else {
+                    $roundTeamName = $teamName;
+                }
 
                 if (!isset($roundAssignments[$participantId]) || !array_key_exists($roundId, $roundAssignments[$participantId])) {
                     $roundAssignments[$participantId][$roundId] = $roundTeamName;
                 } elseif ($roundAssignments[$participantId][$roundId] === null) {
                     $roundAssignments[$participantId][$roundId] = $roundTeamName;
-                } elseif ($roundTeamName !== null && $roundTeamName !== $roundAssignments[$participantId][$roundId]) {
-                    $warnings[] = sprintf(
-                        'Row %d: "%s" already has team "%s" in round "%s" from an earlier row, team "%s" ignored.',
-                        $rowNum,
-                        $name,
-                        $roundAssignments[$participantId][$roundId],
-                        $round->name,
-                        $roundTeamName,
-                    );
+                } elseif ($roundTeamName !== null && !self::sameTeamName($roundTeamName, $roundAssignments[$participantId][$roundId])) {
+                    $warnings[] = self::message('team_conflict_in_file', [
+                        '%row%' => $rowNum,
+                        '%name%' => $name,
+                        '%team%' => $roundAssignments[$participantId][$roundId],
+                        '%round%' => $round->name,
+                        '%ignored%' => $roundTeamName,
+                    ]);
                 }
             }
         }
 
         foreach ($unknownRoundNames as $unknownRoundName => $rowNumbers) {
-            $warnings[] = sprintf(
-                'Round "%s" does not exist in this event (%s %s), those participants were not assigned to it. Rounds of this event: %s.',
-                $unknownRoundName,
-                count($rowNumbers) === 1 ? 'row' : 'rows',
-                self::listRowNumbers($rowNumbers),
-                $rounds === [] ? 'none yet - add the rounds first' : '"' . implode('", "', array_map(
-                    static fn (CompetitionRound $round): string => $round->name,
-                    array_values($rounds),
-                )) . '"',
-            );
+            $warnings[] = self::message('unknown_round', [
+                '%round%' => (string) $unknownRoundName,
+                '%rows%' => self::listRowNumbers($rowNumbers),
+                '%count%' => count($rowNumbers),
+                '%rounds%' => $rounds === []
+                    ? self::message('no_rounds_yet')
+                    : self::quotedList(array_map(static fn (CompetitionRound $round): string => $round->name, array_values($rounds))),
+            ]);
         }
 
         $this->entityManager->flush();
@@ -285,6 +343,19 @@ readonly final class CompetitionParticipantImporter
         if ($roundAssignments !== []) {
             $warnings = [...$warnings, ...$this->processRoundAndTeamAssignments($competitionId, $roundAssignments, $rounds)];
             $this->entityManager->flush();
+        }
+
+        $added = 0;
+        $updated = 0;
+        $softDeleted = 0;
+        foreach ($outcomes as $participantId => $outcome) {
+            if ($deleted[$participantId] ?? false) {
+                $softDeleted++;
+            } elseif ($outcome === 'added') {
+                $added++;
+            } else {
+                $updated++;
+            }
         }
 
         return new ParticipantImportResult(
@@ -297,12 +368,28 @@ readonly final class CompetitionParticipantImporter
     }
 
     /**
-     * @return array<array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string}>
+     * @param list<TranslatableMessage> $warnings
+     */
+    private function cleanTeamName(string $value, int $rowNum, array &$warnings): null|string
+    {
+        $teamName = CompetitionTeam::cleanName($value);
+
+        if ($teamName !== null && mb_strlen($teamName) > CompetitionTeam::NAME_MAX_LENGTH) {
+            $warnings[] = self::message('team_name_too_long', ['%row%' => $rowNum, '%max%' => CompetitionTeam::NAME_MAX_LENGTH]);
+
+            return null;
+        }
+
+        return $teamName;
+    }
+
+    /**
+     * @return array<string, array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted: bool}>
      */
     private function loadExistingParticipants(string $competitionId): array
     {
         $query = <<<SQL
-SELECT id, name, country, external_id, player_id
+SELECT id, name, country, external_id, player_id, deleted_at IS NOT NULL AS deleted
 FROM competition_participant
 WHERE competition_id = :competitionId
 -- A player's own "I left" record is not the organizer's data: restoring it would sign them up again
@@ -311,23 +398,26 @@ AND NOT (source = 'self_joined' AND deleted_at IS NOT NULL)
 ORDER BY deleted_at IS NOT NULL, id
 SQL;
 
-        /** @var array<array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string}> $rows */
-        $rows = $this->database->executeQuery($query, ['competitionId' => $competitionId])->fetchAllAssociative();
+        $existing = [];
+        foreach ($this->database->executeQuery($query, ['competitionId' => $competitionId])->fetchAllAssociative() as $row) {
+            /** @var array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted: bool} $row */
+            $existing[$row['id']] = $row;
+        }
 
-        return $rows;
+        return $existing;
     }
 
     /**
-     * @param array<array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string}> $existing
-     * @return null|array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string}
+     * @param array<string, array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted: bool}> $existing
+     * @return null|string|int the participant id, null for nobody, or how many participants share the name (never guessed)
      */
-    private function findMatch(array $existing, null|string $playerId, null|string $externalId, string $name, null|string $country): null|array
+    private static function findMatch(array $existing, null|string $playerId, null|string $externalId, string $name, null|string $country): null|string|int
     {
         // Priority 1: match by msp_player_id
         if ($playerId !== null) {
             foreach ($existing as $row) {
                 if ($row['player_id'] === $playerId) {
-                    return $row;
+                    return $row['id'];
                 }
             }
         }
@@ -336,36 +426,44 @@ SQL;
         if ($externalId !== null) {
             foreach ($existing as $row) {
                 if ($row['external_id'] !== null && $row['external_id'] === $externalId) {
-                    return $row;
+                    return $row['id'];
                 }
             }
         }
 
-        // Priority 3: match by name + country
+        // Priority 3: name + country, then the name alone
+        $sameName = array_filter($existing, static fn (array $row): bool => $row['name'] === $name);
+
         if ($country !== null) {
-            foreach ($existing as $row) {
-                if ($row['name'] === $name && $row['country'] === $country) {
-                    return $row;
-                }
+            $sameNameAndCountry = array_filter($sameName, static fn (array $row): bool => $row['country'] === $country);
+
+            if ($sameNameAndCountry !== []) {
+                return self::single($sameNameAndCountry);
             }
         }
 
-        // Priority 4: unique name match
-        $nameMatches = array_filter($existing, fn (array $row): bool => $row['name'] === $name);
+        return $sameName === [] ? null : self::single($sameName);
+    }
 
-        if (count($nameMatches) === 1) {
-            return reset($nameMatches);
-        }
+    /**
+     * One candidate, or the only active one among them - otherwise how many there are.
+     *
+     * @param non-empty-array<array{id: string, deleted: bool, ...}> $candidates
+     */
+    private static function single(array $candidates): string|int
+    {
+        $active = array_filter($candidates, static fn (array $row): bool => $row['deleted'] === false);
+        $pool = $active !== [] ? $active : $candidates;
 
-        return null;
+        return count($pool) === 1 ? reset($pool)['id'] : count($pool);
     }
 
     /**
      * @param array<string> $headers
      */
-    private function findColumnIndex(array $headers, string $columnName): null|int
+    private static function findColumnIndex(array $headers, string $columnName): null|int
     {
-        $key = array_search(strtolower($columnName), $headers, true);
+        $key = array_search($columnName, $headers, true);
 
         return $key !== false ? (int) $key : null;
     }
@@ -382,7 +480,8 @@ SQL;
     }
 
     /**
-     * @return array<string, CompetitionRound> normalised name (see roundKey()) => round entity
+     * @return array{array<string, CompetitionRound>, list<non-empty-list<string>>} normalised name (see roundKey()) => round,
+     *         and the round names the import cannot tell apart (the first of each is used)
      */
     private function loadRounds(string $competitionId): array
     {
@@ -395,14 +494,20 @@ SQL;
             ->fetchFirstColumn();
 
         $rounds = [];
+        /** @var array<string, non-empty-list<string>> $namesByKey */
+        $namesByKey = [];
         foreach ($roundIds as $roundId) {
             $round = $this->entityManager->find(CompetitionRound::class, $roundId);
             if ($round !== null) {
-                $rounds[self::roundKey($round->name)] = $round;
+                $key = self::roundKey($round->name);
+                $rounds[$key] ??= $round;
+                $namesByKey[$key][] = $round->name;
             }
         }
 
-        return $rounds;
+        $collisions = array_values(array_filter($namesByKey, static fn (array $names): bool => count($names) > 1));
+
+        return [$rounds, $collisions];
     }
 
     /**
@@ -411,7 +516,7 @@ SQL;
      *
      * @param array<string, array<string, null|string>> $assignments participantId => [roundId => team name]
      * @param array<string, CompetitionRound> $rounds
-     * @return array<string> warnings
+     * @return list<TranslatableMessage> warnings
      */
     private function processRoundAndTeamAssignments(string $competitionId, array $assignments, array $rounds): array
     {
@@ -420,7 +525,6 @@ SQL;
             $roundsById[$round->id->toString()] = $round;
         }
 
-        // Load existing participant-round records
         $existingPr = $this->database->executeQuery(
             'SELECT cpr.id, cpr.participant_id, cp.name AS participant_name, cpr.round_id, ct.name AS team_name, cpr.team_id
              FROM competition_participant_round cpr
@@ -430,14 +534,14 @@ SQL;
             ['competitionId' => $competitionId],
         )->fetchAllAssociative();
 
-        /** @var array<string, array<string, array{id: string, participant_name: string, team_id: null|string, team_name: null|string}>> participantId => roundId => record */
+        /** @var array<string, array<string, array{id: string, participant_name: string, team_id: null|string, team_name: null|string}>> $existingByParticipant */
         $existingByParticipant = [];
         foreach ($existingPr as $row) {
             /** @var array{id: string, participant_id: string, participant_name: string, round_id: string, team_id: null|string, team_name: null|string} $row */
             $existingByParticipant[$row['participant_id']][$row['round_id']] = $row;
         }
 
-        /** @var array<string, CompetitionTeam> roundId:teamName => team */
+        /** @var array<string, CompetitionTeam> $teamCache roundId:lowercased team name => team */
         $teamCache = [];
         $warnings = [];
 
@@ -451,14 +555,13 @@ SQL;
                 $existing = $existingByParticipant[$participantId][$roundId] ?? null;
 
                 if ($existing !== null && ($teamName === null || $existing['team_id'] !== null)) {
-                    if ($teamName !== null && $existing['team_name'] !== $teamName) {
-                        $warnings[] = sprintf(
-                            '"%s" stays in team "%s" in round "%s", team "%s" from the file ignored (an import never moves anybody to another team).',
-                            $existing['participant_name'],
-                            $existing['team_name'] ?? '',
-                            $round->name,
-                            $teamName,
-                        );
+                    if ($teamName !== null && !self::sameTeamName($teamName, $existing['team_name'])) {
+                        $warnings[] = self::message('team_kept', [
+                            '%name%' => $existing['participant_name'],
+                            '%team%' => $existing['team_name'] ?? '',
+                            '%round%' => $round->name,
+                            '%ignored%' => $teamName,
+                        ]);
                     }
 
                     continue;
@@ -466,7 +569,7 @@ SQL;
 
                 $team = null;
                 if ($teamName !== null) {
-                    $cacheKey = $roundId . ':' . $teamName;
+                    $cacheKey = $roundId . ':' . mb_strtolower($teamName);
                     $team = $teamCache[$cacheKey] ??= $this->findOrCreateTeam($round, $teamName);
                 }
 
@@ -496,36 +599,62 @@ SQL;
     }
 
     /**
-     * A cell of `round_names`: a round's own name when it is one (a round may contain a comma),
-     * otherwise a list separated by commas or semicolons.
+     * A `round_names` cell: round names separated by commas or semicolons. A round whose own name
+     * contains a comma or semicolon is recognised too - the longest run of pieces that is a round's
+     * name wins. Pieces matching no round are returned as written, to be reported.
      *
      * @param array<string, CompetitionRound> $rounds
      * @return list<string>
      */
-    private function splitRoundNames(string $cell, array $rounds): array
+    private static function splitRoundNames(string $cell, array $rounds): array
     {
-        $cell = trim($cell);
-
-        if ($cell === '') {
+        if (trim($cell) === '') {
             return [];
         }
 
-        if (isset($rounds[self::roundKey($cell)])) {
-            return [$cell];
+        /** @var list<string> $parts pieces and the separators between them: piece, separator, piece, ... */
+        $parts = preg_split('/([,;])/', $cell, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [$cell];
+        $pieceCount = intdiv(count($parts) + 1, 2);
+
+        $names = [];
+        $i = 0;
+        while ($i < $pieceCount) {
+            $taken = 1;
+            $name = trim($parts[$i * 2]);
+
+            for ($j = $pieceCount - 1; $j > $i; $j--) {
+                $candidate = trim(implode('', array_slice($parts, $i * 2, ($j - $i) * 2 + 1)));
+
+                if (isset($rounds[self::roundKey($candidate)])) {
+                    $taken = $j - $i + 1;
+                    $name = $candidate;
+                    break;
+                }
+            }
+
+            if ($name !== '') {
+                $names[] = $name;
+            }
+
+            $i += $taken;
         }
 
-        return array_values(array_filter(
-            array_map(trim(...), preg_split('/[,;]/', $cell) ?: []),
-            static fn (string $name): bool => $name !== '',
-        ));
+        return $names;
     }
 
     /**
-     * Round names match ignoring case and repeated whitespace - "team relay" is "Team Relay".
+     * Round names match ignoring case and repeated whitespace (also around separators) - "team relay" is "Team Relay".
      */
     private static function roundKey(string $name): string
     {
+        $name = (string) preg_replace('/\s*([,;])\s*/u', '$1 ', $name);
+
         return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $name)));
+    }
+
+    private static function sameTeamName(string $a, null|string $b): bool
+    {
+        return $b !== null && mb_strtolower($a) === mb_strtolower($b);
     }
 
     /**
@@ -537,17 +666,33 @@ SQL;
         $list = implode(', ', $shown);
 
         if (count($rowNumbers) > count($shown)) {
-            $list .= sprintf(' and %d more', count($rowNumbers) - count($shown));
+            $list .= ', …';
         }
 
         return $list;
+    }
+
+    /**
+     * @param array<string> $values
+     */
+    private static function quotedList(array $values): string
+    {
+        return '"' . implode('", "', $values) . '"';
+    }
+
+    /**
+     * @param array<string, string|int|TranslatableMessage> $parameters
+     */
+    private static function message(string $key, array $parameters = []): TranslatableMessage
+    {
+        return new TranslatableMessage(self::MESSAGE_PREFIX . $key, $parameters);
     }
 
     private function findOrCreateTeam(CompetitionRound $round, string $teamName): CompetitionTeam
     {
         /** @var false|string $existingTeamId */
         $existingTeamId = $this->database->executeQuery(
-            'SELECT id FROM competition_team WHERE round_id = :roundId AND name = :name LIMIT 1',
+            'SELECT id FROM competition_team WHERE round_id = :roundId AND lower(name) = lower(:name) ORDER BY id LIMIT 1',
             ['roundId' => $round->id->toString(), 'name' => $teamName],
         )->fetchOne();
 

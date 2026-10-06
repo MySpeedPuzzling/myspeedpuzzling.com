@@ -1,0 +1,158 @@
+{#
+    A decided change request: every proposed change with what the review did with it (applied, saved differently,
+    not applied - PuzzleChangeRequestOutcome), then what the reviewer changed beyond the proposal.
+#}
+{% import 'admin/_puzzle_macros.html.twig' as macros %}
+
+{% macro result_badge(result) %}
+    {% if result is not null %}
+        {% if result.value == 'applied' %}
+            <span class="badge bg-success text-nowrap"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Applied</span>
+        {% elseif result.value == 'altered' %}
+            <span class="badge bg-warning text-dark text-nowrap"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Saved differently</span>
+        {% else %}
+            <span class="badge bg-danger text-nowrap"><i class="bi bi-x-lg me-1" aria-hidden="true"></i>Not applied</span>
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+{# The proposed value: kept in green, struck through when it was not applied #}
+{% macro proposed_class(result) -%}
+    {%- if result is null -%}bg-warning bg-opacity-10 fw-semibold
+    {%- elseif result.value == 'applied' -%}bg-success bg-opacity-10 fw-semibold
+    {%- else -%}text-muted text-decoration-line-through
+    {%- endif -%}
+{%- endmacro %}
+
+{% set applied = outcome.appliedCount() %}
+{% set altered = outcome.alteredCount() %}
+{% set not_applied = outcome.notAppliedCount() %}
+{% set proposed = outcome.proposedCount() %}
+
+{% if outcome.recorded and request.status.value == 'approved' %}
+    <div class="p-2 p-md-3 mb-3 bg-light rounded small text-break" data-role="outcome-summary">
+        {% if proposed > 0 %}
+            <strong>{{ applied }} of {{ proposed }}</strong> proposed {{ proposed == 1 ? 'change' : 'changes' }} applied{% if altered > 0 %}, <strong>{{ altered }}</strong> saved differently{% endif %}{% if not_applied > 0 %}, <strong>{{ not_applied }}</strong> not applied{% endif %}.
+        {% endif %}
+        {% if outcome.reviewerChanges is not empty %}
+            The reviewer also changed: {{ outcome.reviewerChanges|map(change => change.label)|join(', ') }}.
+        {% endif %}
+    </div>
+{% elseif not outcome.recorded %}
+    <p class="small text-muted mb-3">
+        This approval did not record what it applied - the puzzle's
+        <a href="{{ path('admin_puzzle_history', {puzzleId: request.puzzleId}) }}">History</a> shows the puzzle's changes.
+    </p>
+{% endif %}
+
+<h2 class="h5 mb-3">Proposed changes</h2>
+
+{% if outcome.names is not empty %}
+    <div class="border rounded-3 p-3 mb-3 shadow-sm">
+        <div class="fw-semibold mb-2">Names</div>
+        <ul class="list-unstyled mb-0 d-grid gap-2">
+            {% for change in outcome.names %}
+                <li class="d-flex flex-wrap align-items-baseline gap-1 text-break" data-result="{{ change.result ? change.result.value }}">
+                    {{ _self.result_badge(change.result) }}
+                    <span class="badge bg-secondary">{{ change.label }}</span>
+                    {% if change.nameKind != 'added' %}
+                        <span class="{{ change.nameKind == 'removed' ? 'text-decoration-line-through' : 'text-muted' }}">{{ change.before ?? 'English, or not known' }}</span>
+                    {% endif %}
+                    {% if change.nameKind != 'added' and change.nameKind != 'removed' %}<span class="text-muted" aria-hidden="true">&rarr;</span>{% endif %}
+                    {% if change.nameKind != 'removed' %}
+                        <span class="rounded px-2 {{ _self.proposed_class(change.result) }}">{{ change.proposed ?? 'English, or not known' }}</span>
+                    {% endif %}
+                    {% if change.saved is not null %}
+                        <span class="text-muted">- saved as</span>
+                        <span class="bg-warning bg-opacity-10 rounded px-2 fw-semibold">{{ change.saved }}</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+{% for field in outcome.fields %}
+    {% set altered_field = field.result is not null and field.result.value == 'altered' %}
+    <div class="border rounded-3 p-3 mb-3 shadow-sm" data-label="{{ field.label }}" data-result="{{ field.result ? field.result.value }}">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <span class="fw-semibold">{{ field.label }}</span>
+            {{ _self.result_badge(field.result) }}
+        </div>
+
+        {# Side by side even on phones for images - the point is to compare them #}
+        <div class="row g-2 {{ field.image ? 'gallery' }}">
+            <div class="{{ field.image ? (altered_field ? 'col-4' : 'col-6') : (altered_field ? 'col-12 col-md-4' : 'col-12 col-md-6') }}">
+                <div class="small text-muted mb-1">When proposed</div>
+                {% if field.image %}
+                    {{ macros.thumbnail(field.before, 'Image when proposed', 140) }}
+                {% else %}
+                    <div class="text-break">{{ macros.shown(field.before) }}</div>
+                {% endif %}
+            </div>
+            <div class="{{ field.image ? (altered_field ? 'col-4' : 'col-6') : (altered_field ? 'col-12 col-md-4' : 'col-12 col-md-6') }}">
+                <div class="small text-muted mb-1">Proposed</div>
+                {% if field.image %}
+                    <div class="{{ field.result is not null and field.result.value != 'applied' ? 'opacity-50' }}">
+                        {{ macros.thumbnail(field.proposed, 'Proposed image', 140) }}
+                    </div>
+                {% else %}
+                    <div class="text-break rounded px-2 py-1 {{ _self.proposed_class(field.result) }}">
+                        {%- if field.proposed is same as('') -%}
+                            <span class="fst-italic">None - every code removed</span>
+                        {%- else -%}
+                            {{ field.proposed }}
+                        {%- endif -%}
+                    </div>
+                {% endif %}
+            </div>
+            {% if altered_field %}
+                <div class="{{ field.image ? 'col-4' : 'col-12 col-md-4' }}">
+                    <div class="small text-muted mb-1">Saved instead</div>
+                    {% if field.image %}
+                        {{ macros.thumbnail(field.saved, 'Saved image', 140) }}
+                    {% else %}
+                        <div class="text-break bg-warning bg-opacity-10 rounded px-2 py-1 fw-semibold">{{ macros.shown(field.saved) }}</div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endfor %}
+
+{% if outcome.names is empty and outcome.fields is empty %}
+    <div class="alert alert-info">
+        No changes were proposed. The user may have submitted the form without modifications.
+    </div>
+{% endif %}
+
+{% if outcome.reviewerChanges is not empty %}
+    <h2 class="h5 mt-4 mb-1">Also changed by the reviewer</h2>
+    <p class="small text-muted mb-3">Not part of the proposal - changed on the puzzle with this approval.</p>
+
+    <div class="border rounded-3 shadow-sm mb-3 gallery" data-role="reviewer-changes">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr class="small text-muted">
+                    <th scope="col" class="fw-normal"><span class="visually-hidden">Field</span></th>
+                    <th scope="col" class="fw-normal">Before</th>
+                    <th scope="col" class="fw-normal">After</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for change in outcome.reviewerChanges %}
+                    <tr>
+                        <th scope="row" class="fw-semibold text-nowrap ps-3">{{ change.label }}</th>
+                        {% if change.image %}
+                            <td style="width: 40%;">{{ macros.thumbnail(change.before, 'Before', 100) }}</td>
+                            <td style="width: 40%;" class="pe-3">{{ macros.thumbnail(change.after, 'After', 100) }}</td>
+                        {% else %}
+                            <td class="text-break text-muted">{{ macros.shown(change.before) }}</td>
+                            <td class="text-break fw-semibold pe-3">{{ macros.shown(change.after) }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

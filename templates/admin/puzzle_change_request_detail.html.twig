@@ -1,26 +1,13 @@
 {% extends 'base.html.twig' %}
 
+{% import 'admin/_puzzle_macros.html.twig' as macros %}
+
 {% block title %}Change Request - {{ request.puzzleName }}{% endblock %}
 
 {% block content %}
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('admin_puzzle_change_requests'), fallbackTitle: 'Change requests'} %}
 
     {% set pending = form is not null %}
-
-    {% set fields = [] %}
-    {# A brand the proposal created and the review deleted unused shows by its name #}
-    {% if request.hasManufacturerChange() or (request.createdManufacturerName is not null and request.proposedManufacturerId is null) %}
-        {% set fields = fields|merge([{key: 'manufacturer', label: 'Brand', original: request.originalManufacturerName, proposed: request.proposedManufacturerShownName() ~ (request.createdManufacturerName is not null ? ' (new brand)' : '')}]) %}
-    {% endif %}
-    {% if request.hasPiecesCountChange() %}
-        {% set fields = fields|merge([{key: 'piecesCount', label: 'Pieces', original: request.originalPiecesCount, proposed: request.proposedPiecesCount}]) %}
-    {% endif %}
-    {% if request.hasEanChange() %}
-        {% set fields = fields|merge([{key: 'ean', label: 'EAN', original: puzzle_eans(request.originalEan)|join(', '), proposed: puzzle_eans(request.proposedEan)|join(', ')}]) %}
-    {% endif %}
-    {% if request.hasIdentificationNumberChange() %}
-        {% set fields = fields|merge([{key: 'identificationNumber', label: 'Brand Code', original: puzzle_brand_codes(request.originalIdentificationNumber)|join(', '), proposed: puzzle_brand_codes(request.proposedIdentificationNumber)|join(', ')}]) %}
-    {% endif %}
 
     <div class="row">
         {# No card around the form - on a phone the field cards are enough #}
@@ -30,7 +17,15 @@
                 {% if pending %}
                     <span class="badge bg-warning text-dark">Pending</span>
                 {% elseif request.status.value == 'approved' %}
-                    <span class="badge bg-success">Approved</span>
+                    {# Approved can still mean only part of the proposal, or none of it, was taken #}
+                    {% set proposed_count = outcome.proposedCount() %}
+                    {% if not outcome.recorded or proposed_count == 0 or outcome.appliedCount() == proposed_count %}
+                        <span class="badge bg-success">Approved</span>
+                    {% elseif outcome.appliedCount() + outcome.alteredCount() > 0 %}
+                        <span class="badge bg-info text-dark">Approved in part</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Approved - proposal not applied</span>
+                    {% endif %}
                 {% else %}
                     <span class="badge bg-danger">Rejected</span>
                 {% endif %}
@@ -54,101 +49,20 @@
                         {{ request.puzzleManufacturerName }} &bull; {{ request.puzzlePiecesCount }} pieces
                         &bull; <a href="{{ path('admin_puzzle_history', {puzzleId: request.puzzleId}) }}">History</a>
                     </p>
+                    {% if request.puzzleAddedById is not null or request.puzzleAddedAt is not null %}
+                        <p class="mb-0 text-muted small text-break" data-role="puzzle-added-by">
+                            Added
+                            {%- if request.puzzleAddedById is not null %} by {{ macros.player(request.puzzleAddedById, request.puzzleAddedByName, request.puzzleAddedByCode) }}{% endif %}
+                            {%- if request.puzzleAddedAt is not null %} <time datetime="{{ request.puzzleAddedAt|date('c') }}" title="{{ request.puzzleAddedAt|date('Y-m-d H:i:s') }} UTC">{{ request.puzzleAddedAt|ago }}</time>{% endif %}
+                        </p>
+                    {% endif %}
                 </div>
             </div>
 
             {% if pending %}
                 {{ include('admin/_puzzle_change_request_review.html.twig') }}
             {% else %}
-                <h2 class="h5 mb-3">Proposed Changes</h2>
-
-                {% set name_changes = request.proposedNameChanges() %}
-                {% if name_changes is not empty %}
-                    {% set name_change_labels = {main_title: 'Main title', main_title_language: 'Main title language', added: 'Added', changed: 'Changed', removed: 'Removed'} %}
-                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
-                        <div class="fw-semibold mb-2">Names</div>
-                        <ul class="list-unstyled mb-0 d-grid gap-2">
-                            {% for change in name_changes %}
-                                <li class="d-flex flex-wrap align-items-baseline gap-1 text-break">
-                                    <span class="badge bg-secondary">{{ name_change_labels[change.kind] }}</span>
-                                    {% if change.kind != 'added' %}
-                                        <span class="{{ change.kind == 'removed' ? 'text-decoration-line-through' : 'text-muted' }}">{{ change.before ?? 'English, or not known' }}</span>
-                                    {% endif %}
-                                    {% if change.kind != 'added' and change.kind != 'removed' %}<span class="text-muted" aria-hidden="true">&rarr;</span>{% endif %}
-                                    {% if change.kind != 'removed' %}
-                                        <span class="bg-warning bg-opacity-10 rounded px-2 fw-semibold">{{ change.after ?? 'English, or not known' }}</span>
-                                    {% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-
-                {% for field in fields %}
-                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
-                        <div class="fw-semibold mb-2">{{ field.label }}</div>
-                        <div class="row g-2">
-                            <div class="col-12 col-md-6">
-                                <div class="small text-muted mb-1">When proposed</div>
-                                <div class="text-break">
-                                    {% if field.original is null or field.original == '' %}
-                                        <span class="text-muted fst-italic">Not set</span>
-                                    {% else %}
-                                        {{ field.original }}
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <div class="small text-muted mb-1">Proposed</div>
-                                <div class="text-break bg-warning bg-opacity-10 rounded px-2 py-1 fw-semibold">
-                                    {%- if field.proposed is same as('') -%}
-                                        <span class="fst-italic">None - every code removed</span>
-                                    {%- else -%}
-                                        {{ field.proposed }}
-                                    {%- endif -%}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
-
-                {% if request.hasImageChange() %}
-                    <div class="border rounded-3 p-3 mb-3 shadow-sm">
-                        <div class="fw-semibold mb-2">Image</div>
-
-                        {# Side by side even on phones - the point is to compare the two #}
-                        <div class="row g-2 gallery">
-                            <div class="col-6">
-                                <div class="small text-muted mb-1">When proposed</div>
-                                {% if request.originalImage %}
-                                    <a class="gallery-item d-block" href="{{ uploaded_asset(request.originalImage) }}">
-                                        <img src="{{ request.originalImage|puzzle_image('puzzle_small') }}"
-                                             alt="Image when proposed"
-                                             class="img-thumbnail w-100"
-                                             style="max-height: 180px; object-fit: contain;">
-                                    </a>
-                                {% else %}
-                                    <span class="text-muted fst-italic">No image</span>
-                                {% endif %}
-                            </div>
-                            <div class="col-6">
-                                <div class="small text-muted mb-1">Proposed</div>
-                                <a class="gallery-item d-block" href="{{ uploaded_asset(request.proposedImage) }}">
-                                    <img src="{{ request.proposedImage|puzzle_image('puzzle_small') }}"
-                                         alt="Proposed image"
-                                         class="img-thumbnail w-100 border-warning"
-                                         style="max-height: 180px; object-fit: contain;">
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                {% if not request.hasAnyChange() %}
-                    <div class="alert alert-info">
-                        No changes were proposed. The user may have submitted the form without modifications.
-                    </div>
-                {% endif %}
+                {{ include('admin/_puzzle_change_request_outcome.html.twig') }}
             {% endif %}
 
             {# Rejection reason if rejected #}
@@ -190,6 +104,11 @@
                         {% endif %}
                         <br>
                         <small class="text-muted">{{ request.reviewedAt|ago }}</small>
+                        {% if decision_note is defined and decision_note is not null %}
+                            <div class="mt-2 small text-break" data-role="decision-note">
+                                <span class="text-muted">Note:</span> {{ decision_note }}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}

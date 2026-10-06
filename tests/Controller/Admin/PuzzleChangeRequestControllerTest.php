@@ -74,6 +74,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         // No image was proposed - nothing to choose, only a drop area for a new one
         self::assertArrayNotHasKey('puzzle_record_form[image]', $values);
         self::assertSelectorExists('.file-drop-area input[name="puzzle_record_form[puzzlePhoto]"]');
+        self::assertSelectorTextContains('[data-role="puzzle-added-by"]', 'Admin User');
 
         // The proposal is shown apart from the inputs, marked per field
         self::assertSelectorCount(2, '[data-puzzle-record-target="field"][data-proposed]');
@@ -108,6 +109,56 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
 
         $changeRequest = $browser->getContainer()->get(PuzzleChangeRequestRepository::class)->get(PuzzleReportFixture::CHANGE_REQUEST_PENDING);
         self::assertSame(PuzzleReportStatus::Approved, $changeRequest->status);
+    }
+
+    public function testADecidedRequestShowsWhatBecameOfEveryProposedChange(): void
+    {
+        $browser = $this->signedInAdmin();
+        $url = '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_PENDING;
+
+        // Proposed: the name and an EAN. The reviewer keeps the name, saves another EAN and changes the pieces
+        $form = $browser->request('GET', $url)->filter('form[data-controller~="puzzle-record"]')->form();
+        $form['puzzle_record_form[names][name]'] = 'Puzzle 1';
+        $form['puzzle_record_form[eans][0]'] = '4005556123452';
+        $form['puzzle_record_form[piecesCount]'] = '1000';
+        $form['puzzle_record_form[note]'] = 'The box says 1000 pieces';
+        $browser->submit($form);
+        self::assertResponseRedirects('/admin/puzzle-change-requests');
+
+        $browser->request('GET', $url);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1 + .badge', 'Approved in part');
+        self::assertSelectorTextContains('[data-role="outcome-summary"]', '0 of 2 proposed changes applied, 1 saved differently, 1 not applied.');
+        self::assertSelectorTextContains('[data-role="outcome-summary"]', 'The reviewer also changed: Pieces.');
+        self::assertSelectorTextContains('li[data-result="not_applied"]', 'Updated Puzzle Name');
+        self::assertSelectorTextContains('[data-label="EAN"][data-result="altered"]', '4005556123452');
+        self::assertSelectorTextContains('[data-role="reviewer-changes"]', 'Pieces');
+        self::assertSelectorTextContains('[data-role="decision-note"]', 'The box says 1000 pieces');
+        self::assertSelectorTextContains('[data-role="puzzle-added-by"]', 'Admin User');
+    }
+
+    public function testARejectedRequestShowsEveryProposedChangeAsNotApplied(): void
+    {
+        $browser = $this->signedInAdmin();
+
+        $browser->request('GET', '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_REJECTED);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[data-result="applied"]');
+        self::assertSelectorExists('[data-result="not_applied"]');
+    }
+
+    public function testAnApprovalWithoutARecordShowsTheProposalWithoutResults(): void
+    {
+        $browser = $this->signedInAdmin();
+
+        $browser->request('GET', '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_APPROVED);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1 + .badge', 'Approved');
+        self::assertSelectorTextContains('main', 'This approval did not record what it applied');
+        self::assertSelectorNotExists('[data-result="applied"], [data-result="not_applied"], [data-result="altered"]');
     }
 
     public function testAnInvalidEanIsRefusedWithTheFormKept(): void

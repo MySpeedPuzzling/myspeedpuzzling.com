@@ -88,6 +88,38 @@ SQL;
         return is_string($puzzleId) ? $puzzleId : null;
     }
 
+    /**
+     * The approval of a change request as the decision log recorded it - its details (PuzzleChangeRequestOutcome) and
+     * the reviewer's note. Null when it has no line there.
+     *
+     * @return null|array{details: null|array<mixed>, note: null|string}
+     */
+    public function approvalDecision(PuzzleChangeRequestOverview $changeRequest): null|array
+    {
+        $row = $this->database->fetchAssociative(
+            <<<SQL
+SELECT details, note
+FROM puzzle_moderation_decision
+-- By the puzzle too: its column is indexed, the change request's is not
+WHERE puzzle_id = :puzzleId AND change_request_id = :id AND action = 'change_request_approved'
+ORDER BY decided_at DESC
+LIMIT 1
+SQL,
+            ['puzzleId' => $changeRequest->puzzleId, 'id' => $changeRequest->id],
+        );
+
+        if ($row === false) {
+            return null;
+        }
+
+        $details = is_string($row['details']) ? json_decode($row['details'], true) : null;
+
+        return [
+            'details' => is_array($details) ? $details : null,
+            'note' => is_string($row['note']) && trim($row['note']) !== '' ? $row['note'] : null,
+        ];
+    }
+
     public function byId(string $id): null|PuzzleChangeRequestOverview
     {
         $query = <<<SQL
@@ -132,7 +164,11 @@ SELECT
     proposed_m.id as proposed_manufacturer_id,
     proposed_m.name as proposed_manufacturer_name,
     original_m.id as original_manufacturer_id,
-    original_m.name as original_manufacturer_name
+    original_m.name as original_manufacturer_name,
+    p.added_at as puzzle_added_at,
+    added_by.id as puzzle_added_by_id,
+    added_by.name as puzzle_added_by_name,
+    added_by.code as puzzle_added_by_code
 FROM puzzle_change_request pcr
 JOIN puzzle p ON p.id = pcr.puzzle_id
 LEFT JOIN manufacturer pm ON pm.id = p.manufacturer_id
@@ -140,6 +176,7 @@ JOIN player reporter ON reporter.id = pcr.reporter_id
 LEFT JOIN player reviewer ON reviewer.id = pcr.reviewed_by_id
 LEFT JOIN manufacturer proposed_m ON proposed_m.id = pcr.proposed_manufacturer_id
 LEFT JOIN manufacturer original_m ON original_m.id = pcr.original_manufacturer_id
+LEFT JOIN player added_by ON added_by.id = p.added_by_user_id
 WHERE pcr.id = :id
 SQL;
 

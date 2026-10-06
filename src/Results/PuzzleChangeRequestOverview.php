@@ -62,6 +62,11 @@ readonly final class PuzzleChangeRequestOverview
         public null|string $originalNameLanguage,
         // The brand the proposal created (PuzzleChangeRequest::$createdManufacturerName) - kept when it was deleted unused
         public null|string $createdManufacturerName = null,
+        // Who added the puzzle and when - filled on the detail page only (GetPuzzleChangeRequests::byId())
+        public null|DateTimeImmutable $puzzleAddedAt = null,
+        public null|string $puzzleAddedById = null,
+        public null|string $puzzleAddedByName = null,
+        public null|string $puzzleAddedByCode = null,
     ) {
     }
 
@@ -144,6 +149,10 @@ readonly final class PuzzleChangeRequestOverview
             originalAlternativeNames: is_string($row['original_alternative_names'] ?? null) ? PuzzleNames::fromJson($row['original_alternative_names']) : null,
             originalNameLanguage: is_string($row['original_name_language'] ?? null) ? $row['original_name_language'] : null,
             createdManufacturerName: is_string($row['created_manufacturer_name'] ?? null) ? $row['created_manufacturer_name'] : null,
+            puzzleAddedAt: is_string($row['puzzle_added_at'] ?? null) ? new DateTimeImmutable($row['puzzle_added_at']) : null,
+            puzzleAddedById: is_string($row['puzzle_added_by_id'] ?? null) ? $row['puzzle_added_by_id'] : null,
+            puzzleAddedByName: is_string($row['puzzle_added_by_name'] ?? null) ? $row['puzzle_added_by_name'] : null,
+            puzzleAddedByCode: is_string($row['puzzle_added_by_code'] ?? null) ? $row['puzzle_added_by_code'] : null,
         );
     }
 

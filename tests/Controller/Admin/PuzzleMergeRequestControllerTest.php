@@ -69,6 +69,9 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
         self::assertSame('Puzzle 1', $values[self::FORM . '[names][name]']);
         self::assertSame('Puzzle 2', $values[self::FORM . '[names][alternativeNames][0][name]']);
         self::assertSelectorExists('.names-editor [data-action="names-editor#makeMain"]');
+        // Every reported puzzle says who added it
+        self::assertSelectorCount(2, '[data-role="puzzle-added-by"]');
+        self::assertSelectorTextContains('[data-role="puzzle-added-by"]', 'Admin User');
     }
 
     public function testTheReviewReadsThePuzzlesInOneStatementEachNotOnePerPuzzle(): void

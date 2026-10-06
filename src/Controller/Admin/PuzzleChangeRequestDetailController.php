@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\FormData\PuzzleRecordFormData;
 use SpeedPuzzling\Web\FormType\PuzzleRecordFormType;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
+use SpeedPuzzling\Web\Results\PuzzleChangeRequestOutcome;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -27,7 +28,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The review of a change request. A pending one is approved through a form holding the whole puzzle
+ * The review of a change request. A decided one shows what became of every proposed change (PuzzleChangeRequestOutcome). A pending one is approved through a form holding the whole puzzle
  * (every field editable, the player's proposal prefilled and marked, every name in the names editor), posted back
  * here so a refused form comes back with what the reviewer typed - an uploaded photo included (FormPhotoStash).
  *
@@ -60,8 +61,14 @@ final class PuzzleChangeRequestDetailController extends AbstractController
         $changeRequest = $this->getPuzzleChangeRequests->byId($id) ?? throw new PuzzleChangeRequestNotFound();
 
         if ($changeRequest->status !== PuzzleReportStatus::Pending) {
+            $decision = $changeRequest->status === PuzzleReportStatus::Approved
+                ? $this->getPuzzleChangeRequests->approvalDecision($changeRequest)
+                : null;
+
             return $this->render('admin/puzzle_change_request_detail.html.twig', [
                 'request' => $changeRequest,
+                'outcome' => PuzzleChangeRequestOutcome::of($changeRequest, $decision['details'] ?? null),
+                'decision_note' => $decision['note'] ?? null,
                 'form' => null,
             ]);
         }

@@ -140,7 +140,16 @@
                                     <dt class="col-5 fw-normal text-muted">Brand code</dt>
                                     <dd class="col-7 text-break mb-1"><span class="d-block {{ differs.code ? differs_class }}">{{ macros.shown_list(puzzle_brand_codes(puzzle.puzzleIdentificationNumber)) }}</span></dd>
                                     <dt class="col-5 fw-normal text-muted">Solving times</dt>
-                                    <dd class="col-7 mb-0">{{ puzzle.solvedTimes }}</dd>
+                                    <dd class="col-7 mb-1">{{ puzzle.solvedTimes }}</dd>
+                                    <dt class="col-5 fw-normal text-muted">Added by</dt>
+                                    <dd class="col-7 text-break mb-0" data-role="puzzle-added-by">
+                                        {% if record.addedById is not null %}
+                                            {{ macros.player(record.addedById, record.addedByName, record.addedByCode) }}
+                                        {% else %}
+                                            <span class="text-muted fst-italic">Not known</span>
+                                        {% endif %}
+                                        {% if record.addedAt is not null %}<span class="text-muted d-block"><time datetime="{{ record.addedAt|date('c') }}" title="{{ record.addedAt|date('Y-m-d H:i:s') }} UTC">{{ record.addedAt|ago }}</time></span>{% endif %}
+                                    </dd>
                                 </dl>
 
                                 <a class="small" href="{{ path('admin_puzzle_history', {puzzleId: puzzle.puzzleId}) }}">

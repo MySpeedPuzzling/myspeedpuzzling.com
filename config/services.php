@@ -114,7 +114,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$nginxProxyInternalUrl', '%nginxProxyInternalUrl%')
         ->bind('$puzzlePuzzleUsername', '%puzzlePuzzleUsername%')
         ->bind('$puzzlePuzzlePassword', '%puzzlePuzzlePassword%')
-        // lily.srv's drain-first rollout creates it in an old container (HealthCheckReadinessController)
+        // lily.srv's drain-first rollout creates it in an old container (HealthCheckLivenessController)
         ->bind('$drainMarkerPath', '/tmp/drain')
         ->bind('$bounceEmailDomain', '%bounceEmailDomain%')
         ->bind('$signInLinkLifetimeSeconds', '%signInLinkLifetimeSeconds%')

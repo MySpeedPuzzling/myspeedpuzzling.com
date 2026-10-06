@@ -214,6 +214,8 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 ### CI / deploy pipeline
 `docs/ci-pipeline.md` — one workflow (`test.yml`) from push to production: ParaTest in 3 shards, the image builds while the gates run (`sha-<commit>` only), `deploy` re-tags it `main` + fires the lily webhook once the gates pass (`deploy-fast` right after the image when a same-repo PR already verified the exact tree), out-of-order guard, carried `/build` assets via the `website:build-assets` image
 
+Health checks: `/-/health-check/liveness` is Traefik's load balancer check and answers 503 while `/tmp/drain` exists - lily.srv's drain-first blue-green rollout drains an old container that way before stopping it. Docker's health check is `/-/health-check/container`, which ignores the drain. Never change the Traefik health check path label casually: a `traefik.*` label differing between old and new containers makes Traefik drop the service for ~11 s
+
 ### TODO list
 `docs/TODO.md` is the one place for open follow-ups that are too small for their own plan. **When work ships with loose ends, add them there** (a section per topic, checkboxes, link to the feature doc); tick items when they ship and delete empty sections.
 

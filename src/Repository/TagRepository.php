@@ -21,6 +21,19 @@ readonly final class TagRepository
         $this->entityManager->persist($tag);
     }
 
+    public function nameExists(string $name): bool
+    {
+        $count = $this->entityManager->createQueryBuilder()
+            ->select('COUNT(t.id)')
+            ->from(Tag::class, 't')
+            ->where('LOWER(t.name) = LOWER(:name)')
+            ->setParameter('name', $name)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $count > 0;
+    }
+
     /**
      * How many competitions and series other than this competition carry the tag - their "competition puzzles"
      * change with it.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\Tag;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
@@ -50,8 +51,7 @@ readonly final class SetCompetitionPuzzlesHandler
                 return;
             }
 
-            // Named like the competition's badge on solving times - the tag shows as a badge on its puzzles
-            $tag = new Tag(Uuid::uuid7(), $competition->shortcut ?? $competition->name);
+            $tag = new Tag(Uuid::uuid7(), $this->newTagName($competition));
             $this->tagRepository->save($tag);
             $competition->tag = $tag;
         } else {
@@ -73,5 +73,33 @@ readonly final class SetCompetitionPuzzlesHandler
                 $tag->puzzles->add($puzzle);
             }
         }
+    }
+
+    /**
+     * The tag shows as a badge on its puzzles, so it is named like the competition's badge on solving times - its
+     * shortcut, else its name. Never the name of a tag that exists already: a tag is never shared by accident, and two
+     * same-named badges with different puzzles would be indistinguishable. Taken, the competition's name follows, then
+     * the name with a number.
+     */
+    private function newTagName(Competition $competition): string
+    {
+        $candidates = array_values(array_unique(array_filter(
+            [$competition->shortcut, $competition->name],
+            static fn (null|string $name): bool => $name !== null && trim($name) !== '',
+        )));
+
+        foreach ($candidates as $candidate) {
+            if ($this->tagRepository->nameExists($candidate) === false) {
+                return $candidate;
+            }
+        }
+
+        $number = 2;
+
+        while ($this->tagRepository->nameExists(sprintf('%s (%d)', $competition->name, $number))) {
+            $number++;
+        }
+
+        return sprintf('%s (%d)', $competition->name, $number);
     }
 }

@@ -50,15 +50,38 @@ final class ApproveCompetitionHandlerTest extends KernelTestCase
         self::assertEmailAddressContains(self::getMailerMessage() ?? self::fail('No e-mail'), 'To', PlayerFixture::PLAYER_REGULAR_EMAIL);
     }
 
-    public function testNobodyIsToldAboutTheirOwnApproval(): void
+    public function testTheApproverWhoCreatedItIsToldTooUnlessLeftOut(): void
+    {
+        // The approval queue tells every creator, also an admin approving his own competition
+        $ownCompetition = $this->addCompetitionAsAdmin();
+        $this->messageBus->dispatch(new ApproveCompetition(
+            competitionId: $ownCompetition,
+            approvedByPlayerId: PlayerFixture::PLAYER_ADMIN,
+        ));
+
+        self::assertQueuedEmailCount(1);
+        self::assertEmailAddressContains(self::getMailerMessage() ?? self::fail('No e-mail'), 'To', PlayerFixture::PLAYER_ADMIN_EMAIL);
+
+        // The internal API leaves it out when its reviewer player created the competition
+        $apiCompetition = $this->addCompetitionAsAdmin();
+        $this->messageBus->dispatch(new ApproveCompetition(
+            competitionId: $apiCompetition,
+            approvedByPlayerId: PlayerFixture::PLAYER_ADMIN,
+            notifyCreator: false,
+        ));
+
+        self::assertQueuedEmailCount(1);
+        self::assertTrue($this->competitionRepository->get($apiCompetition)->isApproved());
+    }
+
+    private function addCompetitionAsAdmin(): string
     {
         $competitionId = Uuid::uuid7();
 
-        // An admin creating a competition does not ask himself to review it either
         $this->messageBus->dispatch(new AddCompetition(
             competitionId: $competitionId,
             playerId: PlayerFixture::PLAYER_ADMIN,
-            name: 'Admin Event',
+            name: 'Admin Event ' . $competitionId->toString(),
             shortcut: null,
             description: null,
             link: null,
@@ -74,12 +97,6 @@ final class ApproveCompetitionHandlerTest extends KernelTestCase
             notifyAdmin: false,
         ));
 
-        $this->messageBus->dispatch(new ApproveCompetition(
-            competitionId: $competitionId->toString(),
-            approvedByPlayerId: PlayerFixture::PLAYER_ADMIN,
-        ));
-
-        self::assertQueuedEmailCount(0);
-        self::assertTrue($this->competitionRepository->get($competitionId->toString())->isApproved());
+        return $competitionId->toString();
     }
 }

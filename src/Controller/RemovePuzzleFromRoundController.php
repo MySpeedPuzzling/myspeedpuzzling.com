@@ -6,11 +6,13 @@ namespace SpeedPuzzling\Web\Controller;
 
 use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -71,23 +73,21 @@ final class RemovePuzzleFromRoundController extends AbstractController
             && $request->request->get('confirm_reveal_hash') === SecretRevealPreview::hash($revealed);
 
         if ($revealed !== [] && $confirmed === false) {
-            return $this->render('competition/confirm_reveal.html.twig', [
-                'round' => $round,
-                'revealed' => $revealed,
-                'intro' => 'competition.reveal.confirm.removal_intro',
-                'submit' => 'competition.reveal.confirm.submit_remove',
-                'action' => $this->generateUrl('remove_puzzle_from_round', ['roundPuzzleId' => $roundPuzzleId]),
-                'token' => (string) $request->request->get('_token'),
-                'hash' => SecretRevealPreview::hash($revealed),
-                'cancel_url' => $this->generateUrl('manage_round_puzzles', ['roundId' => $roundId]),
-                'timezone' => $timezone,
-            ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->askFirst($request, $round, $roundPuzzleId, $revealed);
         }
 
         $puzzleId = $roundPuzzle->puzzle->id->toString();
         $puzzleName = $roundPuzzle->puzzle->name;
 
-        $this->messageBus->dispatch(new RemovePuzzleFromCompetitionRound(roundPuzzleId: $roundPuzzleId));
+        try {
+            $this->messageBus->dispatch(new RemovePuzzleFromCompetitionRound(
+                roundPuzzleId: $roundPuzzleId,
+                // Re-checked after the handler's locks - another change in between asks again
+                confirmedRevealHash: SecretRevealPreview::hash($revealed),
+            ));
+        } catch (SecretPuzzlesWouldBeRevealed $changed) {
+            return $this->askFirst($request, $this->competitionRoundPuzzleRepository->get($roundPuzzleId)->round, $roundPuzzleId, $changed->puzzles);
+        }
 
         if ($revealed !== []) {
             $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.removed_revealed', [
@@ -117,5 +117,23 @@ final class RemovePuzzleFromRoundController extends AbstractController
         }
 
         return $backToPuzzles;
+    }
+
+    /**
+     * @param list<array{id: string, name: string, everywhere: bool, hiddenElsewhereUntil: null|\DateTimeImmutable}> $revealed
+     */
+    private function askFirst(Request $request, CompetitionRound $round, string $roundPuzzleId, array $revealed): Response
+    {
+        return $this->render('competition/confirm_reveal.html.twig', [
+            'round' => $round,
+            'revealed' => $revealed,
+            'intro' => 'competition.reveal.confirm.removal_intro',
+            'submit' => 'competition.reveal.confirm.submit_remove',
+            'action' => $this->generateUrl('remove_puzzle_from_round', ['roundPuzzleId' => $roundPuzzleId]),
+            'token' => (string) $request->request->get('_token'),
+            'hash' => SecretRevealPreview::hash($revealed),
+            'cancel_url' => $this->generateUrl('manage_round_puzzles', ['roundId' => $round->id->toString()]),
+            'timezone' => $round->displayTimezone(),
+        ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 }

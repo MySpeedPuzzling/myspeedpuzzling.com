@@ -15,12 +15,12 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
+use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyShown;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleCannotHideEverywhere;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
-use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
@@ -203,6 +203,48 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
 
         $this->expectException(RoundPuzzleAlreadyShown::class);
         $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($this->rowOf(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_1500_02), PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null));
+    }
+
+    public function testANameAlreadyPublicIsNeverHiddenAgain(): void
+    {
+        // Kept secret on the whole site with its picture only - its name is out
+        $roundPuzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, hideMode: PuzzleHideMode::ImageOnly);
+        $puzzleId = $this->roundPuzzle($roundPuzzleId)->puzzle->id->toString();
+        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(new DateTimeImmutable()));
+        $this->entityManager->clear();
+
+        // Switching its round to "entirely"
+        try {
+            $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null));
+            self::fail('A public name is never hidden again by a reveal change');
+        } catch (PuzzleNameAlreadyPublic) {
+        }
+
+        // Adding it "entirely" to another round
+        try {
+            $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
+                roundPuzzleId: Uuid::uuid7(),
+                roundId: CompetitionRoundFixture::ROUND_CZECH_FINAL,
+                userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+                brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                puzzle: $puzzleId,
+                piecesCount: null,
+                puzzlePhoto: null,
+                eans: EanList::fromStored(null),
+                brandCodes: BrandCodeList::fromStored(null),
+                hideUntilRoundStarts: true,
+                hideMode: PuzzleHideMode::Entirely,
+            ));
+            self::fail('A public name is never hidden again by another round');
+        } catch (PuzzleNameAlreadyPublic) {
+        }
+
+        $this->entityManager->clear();
+        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(new DateTimeImmutable()));
+
+        // Its picture may stay secret in another round
+        $this->addToRound(CompetitionRoundFixture::ROUND_CZECH_FINAL, $puzzleId, hide: true, hideMode: PuzzleHideMode::ImageOnly);
+        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(new DateTimeImmutable()));
     }
 
     public function testKeepHiddenEverywhereNeverStartsAHideItOnlyExtendsOne(): void
@@ -423,33 +465,71 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         $this->entityManager->flush();
         $this->entityManager->clear();
 
-        // The handler runs in the transaction: it copies, but never deletes - a rollback must not lose the picture
-        $this->messageBus->dispatch(new BackfillRoundPuzzleReveals(dryRun: false));
-        $this->entityManager->clear();
-
-        $image = $this->puzzle($puzzleId)->image;
-        self::assertNotNull($image);
-        self::assertMatchesRegularExpression('/^[0-9a-f]{32}\.jpg$/', $image);
-        self::assertTrue($filesystem->fileExists($image));
-        self::assertTrue($filesystem->fileExists($guessable));
-
-        // The command deletes the old object once the change is committed
-        $this->puzzle($puzzleId)->moveImageTo($guessable);
-        $this->roundPuzzle($roundPuzzleId)->hidesEverywhere = false;
-        $this->entityManager->flush();
-        $this->entityManager->clear();
-
+        // The dry run says what it would move and what to purge
         $application = new \Symfony\Bundle\FrameworkBundle\Console\Application(self::$kernel ?? self::bootKernel());
         $command = new \Symfony\Component\Console\Tester\CommandTester($application->find('myspeedpuzzling:backfill-round-puzzle-reveals'));
+        $command->execute([]);
+        $command->assertCommandIsSuccessful();
+        $display = $command->getDisplay();
+        self::assertStringContainsString('would move to a random name: ' . $guessable, $display);
+        self::assertStringContainsString('/preset:puzzle_small/plain/' . $guessable, $display);
+        self::assertStringContainsString('/original/' . $guessable, $display);
+        self::assertStringContainsString('docker compose exec images-cache rm -f /var/cache/nginx/imgproxy/', $display);
+        self::assertStringContainsString('0 times, 0 collection items', $display);
+        $this->entityManager->clear();
+        self::assertSame($guessable, $this->puzzle($puzzleId)->image);
+
+        // The write copies inside the transaction and never deletes there - a rollback must not lose the picture
         $command->execute(['--write' => true]);
         $command->assertCommandIsSuccessful();
         $this->entityManager->clear();
 
+        $image = (string) $this->puzzle($puzzleId)->image;
+        self::assertMatchesRegularExpression('/^[0-9a-f]{32}\.jpg$/', $image);
+        self::assertTrue($filesystem->fileExists($image));
+        self::assertTrue($filesystem->fileExists($guessable));
+
+        // The old object goes once the change is committed: an async message, sent only after the bus finished
+        /** @var \Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport $async */
+        $async = self::getContainer()->get('messenger.transport.async');
+        $deletes = array_values(array_filter(
+            array_map(static fn (\Symfony\Component\Messenger\Envelope $envelope): object => $envelope->getMessage(), $async->getSent()),
+            static fn (object $message): bool => $message instanceof \SpeedPuzzling\Web\Message\DeleteObsoletePuzzleImage,
+        ));
+        self::assertCount(1, $deletes);
+        self::assertSame($guessable, $deletes[0]->path);
+
+        self::getContainer()->get(\SpeedPuzzling\Web\MessageHandler\DeleteObsoletePuzzleImageHandler::class)($deletes[0]);
+        self::assertFalse($filesystem->fileExists($guessable));
+        self::assertTrue($filesystem->fileExists($image));
+    }
+
+    public function testAPuzzleThatBecomesSecretEverywhereLosesItsGuessableImageName(): void
+    {
+        // Created secret "image only" - a random name - then its picture name made guessable, as before random names
+        $roundPuzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, photo: true);
+        $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
+        $puzzleId = $roundPuzzle->puzzle->id->toString();
+        $filesystem = self::getContainer()->get(\League\Flysystem\Filesystem::class);
+        $guessable = 'ravensburger-keep-500-' . substr($puzzleId, 0, 8) . '.jpg';
+        self::assertNotNull($roundPuzzle->puzzle->image);
+        $filesystem->copy($roundPuzzle->puzzle->image, $guessable);
+        $roundPuzzle->puzzle->moveImageTo($guessable);
+        // The site-wide hide ends before this round's reveal - "Keep it hidden everywhere" applies
+        $revealsAt = $roundPuzzle->revealsAt();
+        self::assertNotNull($revealsAt);
+        $roundPuzzle->hidesEverywhere = false;
+        $roundPuzzle->puzzle->keepSecretUntil($revealsAt->modify('-8 hours'), $revealsAt->modify('-8 hours'));
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $this->messageBus->dispatch(new KeepRoundPuzzleHiddenEverywhere($roundPuzzleId));
+        $this->entityManager->clear();
+
         $image = $this->puzzle($puzzleId)->image;
         self::assertNotNull($image);
         self::assertMatchesRegularExpression('/^[0-9a-f]{32}\.jpg$/', $image);
         self::assertTrue($filesystem->fileExists($image));
-        self::assertFalse($filesystem->fileExists($guessable));
     }
 
     private function editPuzzle(string $puzzleId, string $editorId, string $name): void
@@ -492,7 +572,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         self::assertEquals(new DateTimeImmutable('2099-01-01 00:00:00'), $puzzle->hideImageUntil);
     }
 
-    private function newSecretPuzzle(string $roundId, bool $photo = false): string
+    private function newSecretPuzzle(string $roundId, bool $photo = false, PuzzleHideMode $hideMode = PuzzleHideMode::Entirely): string
     {
         $roundPuzzleId = Uuid::uuid7();
         $photoFile = null;
@@ -516,13 +596,14 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            hideMode: $hideMode,
         ));
         $this->entityManager->clear();
 
         return $roundPuzzleId->toString();
     }
 
-    private function addToRound(string $roundId, string $puzzleId, bool $hide): void
+    private function addToRound(string $roundId, string $puzzleId, bool $hide, PuzzleHideMode $hideMode = PuzzleHideMode::Entirely): void
     {
         $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
             roundPuzzleId: Uuid::uuid7(),
@@ -535,6 +616,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: $hide,
+            hideMode: $hideMode,
         ));
         $this->entityManager->clear();
     }

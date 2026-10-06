@@ -27,17 +27,37 @@ readonly final class SecretPuzzleRefusalMessage
     }
 
     /**
+     * Up front, where the organiser would time or save a result: "you can save times after the reveal".
+     */
+    public function timesAfterReveal(PuzzleNotRevealedYet $refusal): string
+    {
+        [$key, $parameters] = $this->translation($refusal, 'secret_puzzle.times_after_reveal');
+
+        return $this->translator->trans($key, $parameters);
+    }
+
+    /**
+     * A round's page that leaves the puzzle out until then: "one puzzle of this round is still secret until …".
+     */
+    public function heldElsewhere(PuzzleNotRevealedYet $refusal): string
+    {
+        [$key, $parameters] = $this->translation($refusal, 'secret_puzzle.held_elsewhere');
+
+        return $this->translator->trans($key, $parameters);
+    }
+
+    /**
      * For a template that translates itself (a Live component keeps the key and its parameters).
      *
      * @return array{string, array<string, string>}
      */
-    public function translation(PuzzleNotRevealedYet $refusal): array
+    public function translation(PuzzleNotRevealedYet $refusal, string $key = 'secret_puzzle.not_revealed_yet'): array
     {
         if ($refusal->revealsAt === null) {
-            return ['secret_puzzle.not_revealed_yet_manual', []];
+            return [$key . '_manual', []];
         }
 
-        return ['secret_puzzle.not_revealed_yet', [
+        return [$key, [
             '%time%' => $this->zonedDateTimeFormatter->format($refusal->revealsAt, $refusal->timezone),
         ]];
     }

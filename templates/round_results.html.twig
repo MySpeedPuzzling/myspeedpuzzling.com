@@ -86,9 +86,14 @@
         </p>
     {% endif %}
 
-    {% if round.puzzles is empty %}
+    {% if round.puzzles is empty and page.stillSecret is empty %}
         <p class="text-muted">{{ 'round_results.no_puzzle_yet'|trans }}</p>
     {% endif %}
+
+    {# Revealed by this round, but another round keeps the puzzle secret on the whole site longer - left out until then #}
+    {% for still_secret in page.stillSecret %}
+        <p class="alert alert-info small" data-still-secret>{{ still_secret }}</p>
+    {% endfor %}
 
     {% for puzzle in round.puzzles %}
         {% set puzzle_results = page.results[puzzle.puzzleId] ?? [] %}

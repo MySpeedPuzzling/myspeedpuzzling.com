@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
+use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
@@ -27,6 +29,7 @@ final class StopwatchController extends AbstractController
         readonly private GetStopwatchMilestones $getStopwatchMilestones,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
+        readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
     ) {
     }
 
@@ -84,13 +87,31 @@ final class StopwatchController extends AbstractController
             }
         }
 
+        $secretPuzzleNotice = null;
+
         if ($puzzleId !== null) {
+            // Its organisers may time a secret puzzle, but save the time only after the reveal - told before they start
+            try {
+                $this->secretPuzzleAccess->assertWritableByViewer($puzzleId);
+            } catch (PuzzleNotRevealedYet $refusal) {
+                $secretPuzzleNotice = $this->secretPuzzleRefusalMessage->timesAfterReveal($refusal);
+            }
+
             $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
             $milestones = $this->getStopwatchMilestones->forPuzzleAndPlayer($puzzleId, $player->playerId);
             $soloTimes = $this->getStopwatchMilestones->allSoloTimesForPuzzle($puzzleId);
         }
 
         $stopwatches = $this->getStopwatch->allForPlayer($player->playerId);
+
+        // The list names each stopwatch's puzzle - never one a competition keeps secret from this player
+        $hiddenPuzzleIds = [];
+
+        foreach ($stopwatches as $stopwatch) {
+            if ($stopwatch->puzzleId !== null && $this->secretPuzzleAccess->isHiddenFromViewer($stopwatch->puzzleId)) {
+                $hiddenPuzzleIds[$stopwatch->puzzleId] = true;
+            }
+        }
 
         // If user has any running stopwatch, redirect to them
         foreach ($stopwatches as $stopwatch) {
@@ -107,6 +128,8 @@ final class StopwatchController extends AbstractController
             'active_puzzle' => $activePuzzle,
             'milestones' => $milestones,
             'solo_times' => $soloTimes,
+            'secret_puzzle_notice' => $secretPuzzleNotice,
+            'hidden_puzzle_ids' => $hiddenPuzzleIds,
         ]);
     }
 }

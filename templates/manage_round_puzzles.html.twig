@@ -91,7 +91,7 @@
                                     {%- elseif status.heldByAnotherRound -%}
                                         {{ ('competition.reveal.status.held_' ~ image_prefix ~ 'hidden_everywhere')|trans }}
                                     {%- else -%}
-                                        {{ ('competition.reveal.status.kept_' ~ image_prefix ~ 'hidden_everywhere')|trans }}
+                                        {{ ('competition.reveal.status.kept_' ~ image_prefix ~ 'hidden_everywhere')|trans }} – <a href="{{ path('feedback', {url: app.request.uri}) }}" class="fw-normal">{{ 'competition.reveal.contact_link'|trans }}</a>
                                     {%- endif -%}
                                 {% endif %}
                             </p>
@@ -107,6 +107,15 @@
                             {% if status.kind in ['hidden', 'image_hidden'] and status.heldLonger and status.until is not null %}
                                 <p class="small text-muted mb-0" data-reveal-held>
                                     {{ (status.heldByAnotherRound ? 'competition.reveal.source.held_by_other_round' : 'competition.reveal.source.held_by_site')|trans }}
+                                    {% if not status.heldByAnotherRound %}
+                                        <a href="{{ path('feedback', {url: app.request.uri}) }}">{{ 'competition.reveal.contact_link'|trans }}</a>
+                                    {% endif %}
+                                </p>
+                            {% endif %}
+                            {# The round is on (or over) while the puzzle is still hidden: nobody can log a time on it yet #}
+                            {% if status.kind == 'hidden' and round.startsAt <= now %}
+                                <p class="small text-warning-emphasis mb-0" data-participants-wait>
+                                    <i class="bi bi-hourglass-split me-1"></i>{{ 'competition.reveal.source.participants_wait'|trans }}
                                 </p>
                             {% endif %}
 
@@ -172,10 +181,12 @@
                                                 <label class="form-label small mb-1" for="reveal-at-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.scheduled_at'|trans({'%zone%': timezone_name(timezone)}) }}</label>
                                                 <input class="form-control form-control-sm" style="max-width: 16rem;" type="datetime-local" name="reveal_at" id="reveal-at-{{ puzzle.roundPuzzleId }}" value="{{ scheduled_value }}">
                                             </div>
+                                            <div class="form-text mt-1">{{ 'competition.reveal.form.participants_after_reveal'|trans }}</div>
                                         </div>
                                         <div class="form-check mt-1">
                                             <input class="form-check-input" type="radio" name="reveal_mode" value="manual" id="reveal-manual-{{ puzzle.roundPuzzleId }}" {{ current_mode == 'manual' ? 'checked' }}>
                                             <label class="form-check-label" for="reveal-manual-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.manual'|trans }}</label>
+                                            <div class="form-text mt-0">{{ 'competition.reveal.form.participants_after_reveal'|trans }}</div>
                                         </div>
                                     </fieldset>
 

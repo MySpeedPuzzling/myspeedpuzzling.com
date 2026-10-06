@@ -149,15 +149,18 @@ final class RoundPuzzleRevealTest extends KernelTestCase
 
     public function testPuzzleInTwoRoundsStaysHiddenUntilTheLatestReveal(): void
     {
-        $puzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleHideMode::ImageOnly);
-        // The same secret puzzle, hidden entirely, in a round a day later
-        $later = $this->addToRound(CompetitionRoundFixture::ROUND_CZECH_FINAL, $puzzleId, PuzzleHideMode::Entirely);
+        $puzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleHideMode::Entirely);
+        $firstReveal = $this->roundPuzzle($this->rowOf(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, $puzzleId))->revealsAt();
+        // The same secret puzzle, its picture hidden, in a round a day later
+        $later = $this->addToRound(CompetitionRoundFixture::ROUND_CZECH_FINAL, $puzzleId, PuzzleHideMode::ImageOnly);
         $laterReveal = $this->roundPuzzle($later)->revealsAt();
+        self::assertNotNull($firstReveal);
         self::assertNotNull($laterReveal);
 
         $puzzle = $this->puzzle($puzzleId);
-        // "Entirely" wins, the latest reveal wins - never the round saved last
-        self::assertSame($laterReveal->getTimestamp(), $puzzle->hideUntil?->getTimestamp());
+        // The name until the round hiding it entirely reveals it, the picture until the latest reveal - never the
+        // round saved last
+        self::assertSame($firstReveal->getTimestamp(), $puzzle->hideUntil?->getTimestamp());
         self::assertSame($laterReveal->getTimestamp(), $puzzle->hideImageUntil?->getTimestamp());
     }
 
@@ -330,6 +333,17 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         $this->entityManager->clear();
 
         return $this->roundPuzzle($roundPuzzleId->toString())->puzzle->id->toString();
+    }
+
+    private function rowOf(string $roundId, string $puzzleId): string
+    {
+        $roundPuzzleId = $this->entityManager->getConnection()->fetchOne(
+            'SELECT id FROM competition_round_puzzle WHERE round_id = :roundId AND puzzle_id = :puzzleId',
+            ['roundId' => $roundId, 'puzzleId' => $puzzleId],
+        );
+        self::assertIsString($roundPuzzleId);
+
+        return $roundPuzzleId;
     }
 
     private function addToRound(string $roundId, string $puzzleId, PuzzleHideMode $hideMode): string

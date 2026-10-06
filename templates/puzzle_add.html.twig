@@ -7,6 +7,10 @@
 {% block content %}
     <h1>{{ 'puzzle_add.title'|trans }}</h1>
 
+    {% if secret_puzzle_notice|default(null) is not null %}
+        <div class="alert alert-warning" role="status" data-secret-puzzle-notice>{{ secret_puzzle_notice }}</div>
+    {% endif %}
+
     <div data-controller="puzzle-add-form" data-puzzle-add-form-mode-value="{{ initial_mode|default('speed_puzzling') }}" data-puzzle-add-form-system-id-value="{{ system_collection_id }}">
         <div class="mb-4">
             <div class="btn-group w-100" role="group" aria-label="Form mode selection">

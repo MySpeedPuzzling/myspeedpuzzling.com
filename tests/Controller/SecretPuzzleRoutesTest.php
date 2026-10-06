@@ -58,6 +58,7 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         yield 'stopwatch' => ['/en/puzzle-stopwatch/{id}', true];
         yield 'start a stopwatch' => ['/en/start-stopwatch/{id}', true];
         yield 'add a time' => ['/en/puzzle-add/{id}', true];
+        yield 'move in the collections' => ['/en/collections/{id}/move', true];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('guardedRoutes')]
@@ -161,7 +162,7 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
 
         // Image only - the name is public, but a report shows and proposes codes
-        $browser->request('POST', '/en/puzzle/' . $puzzleId . '/report-duplicate', ['duplicate_puzzle_ids' => [PuzzleFixture::PUZZLE_500_05]]);
+        $browser->request('POST', str_replace('{id}', $puzzleId, '/en/puzzle/{id}/report-duplicate'), ['duplicate_puzzle_ids' => [PuzzleFixture::PUZZLE_500_05]]);
         self::assertResponseStatusCodeSame(404);
     }
 

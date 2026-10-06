@@ -34,8 +34,11 @@ that would otherwise be forgotten. Newest section on top.
       records made before it became secret stay - a puzzle taken over by "Keep it hidden everywhere" or by the backfill
       may already have times, collection items or listings, and feeds, profiles and the marketplace show its name with
       them. Hide those records (or the puzzle in them) while it is secret, if one ever turns up.
-- [ ] An organiser learns that a secret puzzle takes no time / collection / listing only when submitting (flash or
-      message in the modal) - the add-time form and the collection/wishlist/sell-swap buttons could say it up front.
+- [ ] The add-time form and the stopwatch tell an organiser up front that a secret puzzle takes no time yet; the
+      collection / wishlist / sell-swap / lend buttons on its page still say it only on submit (flash or modal).
+- [ ] With the deploy: purge the old guessable image names the backfill prints from the images-cache and Cloudflare
+      (commands in the PR's production plan). Later renames (a puzzle becoming secret) are rare - same commands by hand.
+- [ ] "Something went wrong" in multiscan for a row whose puzzle became secret meanwhile - say "no longer available".
 - [ ] "Shown by another surface" for turning a non-secret round puzzle secret is read as "another round shows it now"
       (`RoundPuzzleOwnership::sqlShownByAnotherRound()`) - a public catalogue puzzle may still be hidden on the event
       page before its round starts, as when adding it. Revisit if that should be refused too.

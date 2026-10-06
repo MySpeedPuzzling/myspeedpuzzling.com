@@ -105,6 +105,10 @@ final class AddPuzzleToCollectionController extends AbstractController
 
         // Handle POST - add to collection
         if ($form->isSubmitted() && $form->isValid()) {
+            // Refused before anything is created - a new collection typed into the form must not stay behind empty
+            // (a secret competition puzzle takes nothing personal before its reveal, SecretPuzzleAccess)
+            $this->secretPuzzleAccess->assertWritableByViewer($puzzleId);
+
             /** @var CollectionPuzzleActionFormData $formData */
             $formData = $form->getData();
 

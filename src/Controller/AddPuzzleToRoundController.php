@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
+use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\FormType\RoundPuzzleFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
@@ -91,11 +92,14 @@ final class AddPuzzleToRoundController extends AbstractController
                     hideUntilRoundStarts: $data->hideUntilRoundStarts,
                     hideMode: $data->hideMode,
                 ));
-            } catch (PuzzleHiddenByHand) {
+            } catch (PuzzleHiddenByHand | PuzzleNameAlreadyPublic $refusal) {
                 // The handler cleared the entity manager (SecretPuzzleHides::lock()) - read the round again
                 $round = $this->competitionRoundRepository->get($roundId);
-                // A placeholder hidden by MySpeedPuzzling itself is no round's to hide or reveal
-                $form->get('puzzle')->addError(new FormError($this->translator->trans('competition.reveal.flash.puzzle_hidden_by_hand')));
+                // A placeholder hidden by MySpeedPuzzling itself is no round's to hide or reveal; a name already out
+                // stays out
+                $form->get($refusal instanceof PuzzleNameAlreadyPublic ? 'hideMode' : 'puzzle')->addError(new FormError($this->translator->trans(
+                    $refusal instanceof PuzzleNameAlreadyPublic ? 'competition.reveal.flash.name_already_public' : 'competition.reveal.flash.puzzle_hidden_by_hand',
+                )));
 
                 return $this->render('add_puzzle_to_round.html.twig', [
                     'form' => $form,

@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
@@ -141,6 +142,8 @@ final class EditCompetitionRoundController extends AbstractController
                         badgeTextColor: $data->badgeTextColor,
                         category: $data->category,
                         resultsLink: $data->resultsLink,
+                        // Re-checked after the handler's locks - another change in between asks again
+                        confirmedRevealHash: SecretRevealPreview::hash($revealedRightAway),
                     ));
 
                     // The handler worked on freshly read rows - read the round again for the flash
@@ -152,6 +155,14 @@ final class EditCompetitionRoundController extends AbstractController
                     );
 
                     return $this->redirectToRoute('manage_competition_rounds', ['competitionId' => $competitionId]);
+                } catch (SecretPuzzlesWouldBeRevealed $changed) {
+                    // Something changed between the form and the save: the new list, confirmed anew
+                    $round = $this->competitionRoundRepository->get($roundId);
+                    $revealedRightAway = $changed->puzzles;
+                    $form->addError(new FormError($this->translator->trans(
+                        'competition.reveal.form.confirm_reveal_required',
+                        ['%puzzles%' => implode(', ', array_column($revealedRightAway, 'name'))],
+                    )));
                 } catch (HandlerFailedException $e) {
                     $nested = $e->getPrevious() ?? $e;
 

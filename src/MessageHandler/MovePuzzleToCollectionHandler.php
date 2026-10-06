@@ -10,11 +10,13 @@ use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\MovePuzzleToCollection;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -25,6 +27,7 @@ readonly final class MovePuzzleToCollectionHandler
         private CollectionRepository $collectionRepository,
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -32,6 +35,7 @@ readonly final class MovePuzzleToCollectionHandler
      * @throws CollectionNotFound
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      */
     public function __invoke(MovePuzzleToCollection $message): void
     {
@@ -53,6 +57,10 @@ readonly final class MovePuzzleToCollectionHandler
 
         if ($sourceItem !== null) {
             $this->collectionItemRepository->delete($sourceItem);
+        } else {
+            // Nothing to move: this adds the puzzle - a secret competition puzzle takes nothing personal before its
+            // reveal, from anybody (SecretPuzzleAccess)
+            $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $message->playerId);
         }
 
         // Check if item already exists in target collection

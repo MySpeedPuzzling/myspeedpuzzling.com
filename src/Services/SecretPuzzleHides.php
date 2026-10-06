@@ -7,10 +7,16 @@ namespace SpeedPuzzling\Web\Services;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\Filesystem;
+use League\Flysystem\FilesystemException;
+use Psr\Log\LoggerInterface;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Message\DeleteObsoletePuzzleImage;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 
 /**
@@ -32,6 +38,10 @@ readonly final class SecretPuzzleHides
     public function __construct(
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private Filesystem $filesystem,
+        private PuzzleImageNamer $puzzleImageNamer,
+        private MessageBusInterface $messageBus,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -143,6 +153,56 @@ readonly final class SecretPuzzleHides
         }
 
         $puzzle->keepSecretUntil($hide['hiddenUntil'], $hide['imageHiddenUntil']);
+        $this->hideGuessableImage($puzzle);
+    }
+
+    /**
+     * A puzzle that became secret on the whole site keeps no guessable picture name (brand-name-pieces-id): with "hide
+     * image only" its name and id are public, so the old name would show the box. The object is copied to a random
+     * name now; the old one is deleted only after the commit (DeleteObsoletePuzzleImage) - a rollback never leaves the
+     * puzzle pointing at a deleted file. Old thumbnails may live on in the image caches (docs: purge them).
+     *
+     * @return null|array{from: string, to: string}
+     */
+    public function hideGuessableImage(Puzzle $puzzle): null|array
+    {
+        $oldPath = $puzzle->image;
+
+        if ($oldPath === null || PuzzleImageNamer::isSecretFilename($oldPath) || $puzzle->isImageHiddenAt($this->clock->now()) === false) {
+            return null;
+        }
+
+        try {
+            if ($this->filesystem->fileExists($oldPath) === false) {
+                $this->logger->warning('Picture of a secret puzzle is missing in storage - its name stays', [
+                    'puzzle_id' => $puzzle->id->toString(),
+                    'path' => $oldPath,
+                ]);
+
+                return null;
+            }
+
+            $extension = pathinfo($oldPath, PATHINFO_EXTENSION);
+            $newPath = $this->puzzleImageNamer->secretFilename($extension !== '' ? $extension : 'jpg');
+            $this->filesystem->copy($oldPath, $newPath);
+        } catch (FilesystemException $exception) {
+            // Never in the way of the change itself - the picture keeps its name, a person looks at it
+            $this->logger->warning('Picture of a secret puzzle could not be renamed', [
+                'puzzle_id' => $puzzle->id->toString(),
+                'path' => $oldPath,
+                'exception' => $exception,
+            ]);
+
+            return null;
+        }
+
+        $puzzle->moveImageTo($newPath);
+        $this->messageBus->dispatch(
+            new DeleteObsoletePuzzleImage($puzzle->id->toString(), $oldPath),
+            [new DispatchAfterCurrentBusStamp()],
+        );
+
+        return ['from' => $oldPath, 'to' => $newPath];
     }
 
     /**
@@ -200,7 +260,9 @@ readonly final class SecretPuzzleHides
      * - A row is added to a round or changed (add, reveal change, reveal now, keep hidden everywhere, remove): the
      *   round FOR SHARE - its start must not move meanwhile; several of them may run side by side.
      * - The puzzles: FOR NO KEY UPDATE, never FOR UPDATE - that one would also wait for every insert referencing the
-     *   puzzle (a time, a collection item - FOR KEY SHARE). Only puzzles with a secret row, or getting one.
+     *   puzzle (a time, a collection item - FOR KEY SHARE). The puzzles with a secret row in the changed rounds, and
+     *   every puzzle being attached (secret or not - a non-secret attach decides whether another row may still turn
+     *   secret, ChangeRoundPuzzleRevealHandler::isShown()).
      *
      * Call it FIRST in the handler, before anything is loaded or changed: it clears the entity manager after locking,
      * so every row read afterwards is the committed one, never a copy loaded before the lock (the caller's own
@@ -210,28 +272,29 @@ readonly final class SecretPuzzleHides
      * row can be added to them meanwhile). Returns those puzzles - re-sync them after a delete by plain SQL.
      *
      * @param array<string> $roundIds
-     * @return list<string>
+     * @param array<string> $attachedPuzzleIds puzzles the change attaches to the rounds (set puzzles)
+     * @return list<string> the secret puzzles of the rounds
      */
-    public function lockRoundsForChange(array $roundIds): array
+    public function lockRoundsForChange(array $roundIds, array $attachedPuzzleIds = []): array
     {
         $this->lockRows('competition_round', $roundIds, 'FOR NO KEY UPDATE');
         $puzzleIds = $this->secretPuzzleIdsOfRounds($roundIds);
-        $this->lockRows('puzzle', $puzzleIds, 'FOR NO KEY UPDATE');
+        $this->lockRows('puzzle', [...$puzzleIds, ...$attachedPuzzleIds], 'FOR NO KEY UPDATE');
         $this->entityManager->clear();
 
         return $puzzleIds;
     }
 
     /**
-     * A row added to a round (see lockRoundsForChange()): the round (shared), then the puzzles - those getting a
-     * secret row, or already having one.
+     * A row added to a round (see lockRoundsForChange()): the round (shared), then the puzzles - always, secret row or
+     * not.
      *
      * @param array<string> $puzzleIds
      */
-    public function lockForAddingTo(string $roundId, array $puzzleIds, bool $addsSecretRow): void
+    public function lockForAddingTo(string $roundId, array $puzzleIds): void
     {
         $this->lockRows('competition_round', [$roundId], 'FOR SHARE');
-        $this->lockRows('puzzle', $addsSecretRow ? $puzzleIds : $this->withSecretRows($puzzleIds), 'FOR NO KEY UPDATE');
+        $this->lockRows('puzzle', $puzzleIds, 'FOR NO KEY UPDATE');
         $this->entityManager->clear();
     }
 
@@ -257,28 +320,6 @@ readonly final class SecretPuzzleHides
         $this->lockRows('competition_round', [$row['round_id']], 'FOR SHARE');
         $this->lockRows('puzzle', [$row['puzzle_id']], 'FOR NO KEY UPDATE');
         $this->entityManager->clear();
-    }
-
-    /**
-     * @param array<string> $puzzleIds
-     * @return list<string>
-     */
-    private function withSecretRows(array $puzzleIds): array
-    {
-        $puzzleIds = array_values(array_filter($puzzleIds, Uuid::isValid(...)));
-
-        if ($puzzleIds === []) {
-            return [];
-        }
-
-        /** @var list<string> $withSecretRows */
-        $withSecretRows = $this->entityManager->getConnection()->fetchFirstColumn(
-            'SELECT DISTINCT puzzle_id FROM competition_round_puzzle WHERE puzzle_id IN (:ids) AND hide_until_round_starts = true',
-            ['ids' => $puzzleIds],
-            ['ids' => ArrayParameterType::STRING],
-        );
-
-        return $withSecretRows;
     }
 
     /**

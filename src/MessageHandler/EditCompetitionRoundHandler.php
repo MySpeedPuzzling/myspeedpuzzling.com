@@ -41,10 +41,10 @@ readonly final class EditCompetitionRoundHandler
         $round = $this->competitionRoundRepository->get($message->roundId);
         $now = $this->clock->now();
 
-        if ($message->refuseToReveal) {
+        if ($message->refuseToReveal || $message->confirmedRevealHash !== null) {
             $revealed = $this->secretRevealPreview->byMovingRound($round, $message->startsAt);
 
-            if ($revealed !== []) {
+            if (SecretRevealPreview::refuses($revealed, $message->refuseToReveal, $message->confirmedRevealHash)) {
                 throw new SecretPuzzlesWouldBeRevealed($revealed);
             }
         }

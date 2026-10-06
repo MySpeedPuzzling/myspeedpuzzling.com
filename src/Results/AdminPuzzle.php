@@ -24,9 +24,18 @@ readonly final class AdminPuzzle
     ) {
     }
 
+    /**
+     * Anything of it hidden right now - a hidden name hides the picture too (Puzzle::isImageHiddenAt())
+     */
     public function isImageHiddenAt(\DateTimeImmutable $now): bool
     {
-        return $this->imageHiddenUntil !== null && new \DateTimeImmutable($this->imageHiddenUntil) > $now;
+        foreach ([$this->imageHiddenUntil, $this->hiddenUntil] as $until) {
+            if ($until !== null && new \DateTimeImmutable($until) > $now) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

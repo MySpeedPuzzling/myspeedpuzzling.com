@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\EventSubscriber;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
+use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
@@ -55,9 +56,8 @@ final readonly class SecretPuzzleWriteRefusedSubscriber implements EventSubscrib
         }
 
         $request = $event->getRequest();
-        $path = $request->getPathInfo();
 
-        if (str_starts_with($path, '/api/') || str_starts_with($path, '/internal-api/') || $request->getPreferredFormat() === 'json') {
+        if (self::isApiRequest($request)) {
             return;
         }
 
@@ -88,6 +88,25 @@ final readonly class SecretPuzzleWriteRefusedSubscriber implements EventSubscrib
 
         $session->getFlashBag()->add('warning', $message);
         $event->setResponse(new RedirectResponse($this->backUrl($request, $refusal), Response::HTTP_SEE_OTHER));
+    }
+
+    /**
+     * The APIs answer the 409 themselves: matched by the route (API Platform's `_api_*`), or by the decoded path like
+     * the firewalls match it (an encoded `/%61pi/` is still the API), or a JSON request.
+     */
+    public static function isApiRequest(Request $request): bool
+    {
+        $route = $request->attributes->get('_route');
+
+        if (is_string($route) && str_starts_with($route, '_api_')) {
+            return true;
+        }
+
+        $path = rawurldecode($request->getPathInfo());
+
+        return str_starts_with($path, '/api/')
+            || InternalApiAuthenticator::isInternalApiRequest($request)
+            || $request->getPreferredFormat() === 'json';
     }
 
     private function backUrl(Request $request, PuzzleNotRevealedYet $refusal): string

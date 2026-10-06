@@ -12,6 +12,7 @@ readonly final class RoundResultsPage
     /**
      * @param list<EditionRoundDetail> $rounds rounds of the competition that have a result page, by start
      * @param array<string, list<RoundResult>> $results keyed by puzzle id
+     * @param list<string> $stillSecret
      * @param null|array<string, DifficultyTier> $difficultyTiers of the round's revealed puzzles, members only (null
      *                                                         for everyone else)
      */
@@ -27,6 +28,9 @@ readonly final class RoundResultsPage
         public bool $hasStarted,
         public bool $canAddTime,
         public null|string $officialResultsLink,
+        // Puzzles of the round the site still keeps secret (another round holds them longer): left out, no times yet -
+        // one line each saying when they open
+        public array $stillSecret = [],
         public null|array $difficultyTiers = null,
     ) {
     }

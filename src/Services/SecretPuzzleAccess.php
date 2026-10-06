@@ -100,14 +100,18 @@ readonly final class SecretPuzzleAccess
             throw new PuzzleNotFound();
         }
 
-        $revealsAt = $row['hide_until'] !== null ? new DateTimeImmutable($row['hide_until']) : null;
+        throw self::refusal($puzzleId, $row);
+    }
 
-        throw new PuzzleNotRevealedYet(
-            puzzleId: $puzzleId,
-            // A manual reveal not made yet is stored as the far future (CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED)
-            revealsAt: $revealsAt !== null && $revealsAt < new DateTimeImmutable(CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED) ? $revealsAt : null,
-            timezone: RoundTimezone::resolve($row['round_timezone'], $row['competition_country'], $row['series_country']),
-        );
+    /**
+     * When a puzzle a competition keeps secret opens for personal records - null when nothing keeps it. Says nothing
+     * about who may see it (isHiddenFromViewer()); for pages that already show the puzzle and want to say when.
+     */
+    public function pendingReveal(string $puzzleId): null|PuzzleNotRevealedYet
+    {
+        $row = $this->secretRow($puzzleId, false);
+
+        return $row === null ? null : self::refusal($puzzleId, $row);
     }
 
     /**
@@ -200,13 +204,15 @@ SELECT
     reveal_round.series_country
 FROM puzzle p
 LEFT JOIN LATERAL (
-    -- The round whose reveal the puzzle waits for: the latest of those keeping it secret on the whole site
+    -- The round whose reveal the name waits for: the latest of those hiding it entirely on the whole site (hide_until
+    -- is theirs - an "image only" round may reveal later, but not the name)
     SELECT cr.timezone, c.location_country_code AS competition_country, cs.location_country_code AS series_country
     FROM competition_round_puzzle crp
     INNER JOIN competition_round cr ON cr.id = crp.round_id
     INNER JOIN competition c ON c.id = cr.competition_id
     LEFT JOIN competition_series cs ON cs.id = c.series_id
     WHERE crp.puzzle_id = p.id AND crp.hide_until_round_starts AND crp.hides_everywhere
+        AND COALESCE(crp.hide_mode, 'entirely') = 'entirely'
     ORDER BY {$revealAt} DESC NULLS FIRST
     LIMIT 1
 ) reveal_round ON true
@@ -221,6 +227,21 @@ SQL,
         );
 
         return $row === false ? null : $row;
+    }
+
+    /**
+     * @param array{hide_until: null|string, round_timezone: null|string, competition_country: null|string, series_country: null|string, ...} $row
+     */
+    private static function refusal(string $puzzleId, array $row): PuzzleNotRevealedYet
+    {
+        $revealsAt = $row['hide_until'] !== null ? new DateTimeImmutable($row['hide_until']) : null;
+
+        return new PuzzleNotRevealedYet(
+            puzzleId: $puzzleId,
+            // A manual reveal not made yet is stored as the far future (CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED)
+            revealsAt: $revealsAt !== null && $revealsAt < new DateTimeImmutable(CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED) ? $revealsAt : null,
+            timezone: RoundTimezone::resolve($row['round_timezone'], $row['competition_country'], $row['series_country']),
+        );
     }
 
     /**

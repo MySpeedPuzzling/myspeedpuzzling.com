@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
+use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyShown;
@@ -15,6 +16,7 @@ use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -34,6 +36,7 @@ readonly final class ChangeRoundPuzzleRevealHandler
      * @throws RoundPuzzleAlreadyRevealed
      * @throws RoundPuzzleAlreadyShown
      * @throws PuzzleHiddenByHand
+     * @throws PuzzleNameAlreadyPublic
      */
     public function __invoke(ChangeRoundPuzzleReveal $message): void
     {
@@ -65,6 +68,12 @@ readonly final class ChangeRoundPuzzleRevealHandler
         // A puzzle hidden by hand (a placeholder) is no round's to hide or reveal
         if ($puzzle->isImageHiddenAt($now) && $puzzleKeptSecret === false) {
             throw new PuzzleHiddenByHand();
+        }
+
+        // Kept secret on the whole site with its name already public ("image only"): hiding the name again would take it
+        // from the times, collections and listings that show it - it can only keep its picture secret
+        if ($puzzleKeptSecret && $message->hideMode === PuzzleHideMode::Entirely && $puzzle->isHiddenAt($now) === false) {
+            throw new PuzzleNameAlreadyPublic();
         }
 
         // Kept secret by a competition (created hidden, or another round keeps it so): this row keeps it secret on

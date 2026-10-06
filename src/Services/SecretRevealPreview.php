@@ -103,6 +103,21 @@ readonly final class SecretRevealPreview
     }
 
     /**
+     * After the handler's locks: a change that reveals something nobody said yes to - the internal API's refusal
+     * without "confirmReveal", or a web confirmation for another list than the one now (hash).
+     *
+     * @param list<array{id: string, name: string, everywhere: bool, hiddenElsewhereUntil: null|DateTimeImmutable}> $revealed
+     */
+    public static function refuses(array $revealed, bool $refuseAny, null|string $confirmedHash): bool
+    {
+        if ($refuseAny && $revealed !== []) {
+            return true;
+        }
+
+        return $confirmedHash !== null && self::hash($revealed) !== $confirmedHash;
+    }
+
+    /**
      * What the organiser confirmed - a confirmation counts only for exactly the list it was shown: the same puzzles,
      * each revealed as far as it said (everywhere, or on this event while another round hides it elsewhere until the
      * same moment).

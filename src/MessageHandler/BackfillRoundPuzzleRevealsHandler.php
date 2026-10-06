@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
-use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleOwnership;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -32,13 +33,11 @@ readonly final class BackfillRoundPuzzleRevealsHandler
         private EntityManagerInterface $entityManager,
         private SecretPuzzleHides $secretPuzzleHides,
         private ClockInterface $clock,
-        private Filesystem $filesystem,
-        private PuzzleImageNamer $puzzleImageNamer,
     ) {
     }
 
     /**
-     * @return array{changes: list<string>, unmatched: list<string>, obsoleteImages: list<string>}
+     * @return array{changes: list<string>, unmatched: list<string>, eventPageOnly: list<string>, records: list<string>, obsoleteImages: list<string>}
      */
     public function __invoke(BackfillRoundPuzzleReveals $message): array
     {
@@ -105,22 +104,29 @@ readonly final class BackfillRoundPuzzleRevealsHandler
 
         $movedImages = [];
         $obsoleteImages = [];
+        $imagesBefore = array_map(static fn (Puzzle $puzzle): null|string => $puzzle->image, $matchedPuzzles);
 
         if ($message->dryRun === false) {
+            // Re-syncing also moves a guessable picture name (brand-name-pieces-idprefix - with "hide image only" its
+            // name and id are public) to a random one; the old object goes after the commit (SecretPuzzleHides)
             $this->secretPuzzleHides->resync(...array_values($matchedPuzzles));
+        }
 
-            // A secret puzzle created before random image names has a guessable one (brand-name-pieces-idprefix) - with
-            // "hide image only" its name and id are public. Move the image to a random name while it is still hidden.
-            foreach ($matchedPuzzles as $puzzle) {
-                $moved = $this->moveGuessableImage($puzzle, $now);
+        foreach ($matchedPuzzles as $puzzleId => $puzzle) {
+            $oldPath = $imagesBefore[$puzzleId];
 
-                if ($moved !== null) {
-                    $movedImages[] = $moved['line'];
+            if ($oldPath === null || PuzzleImageNamer::isSecretFilename($oldPath)) {
+                continue;
+            }
 
-                    if ($moved['obsolete'] !== null) {
-                        $obsoleteImages[] = $moved['obsolete'];
-                    }
-                }
+            if ($message->dryRun) {
+                $movedImages[] = sprintf('image of puzzle %s would move to a random name: %s', $puzzleId, $oldPath);
+                $obsoleteImages[] = $oldPath;
+            } elseif ($puzzle->image !== $oldPath && $puzzle->image !== null) {
+                $movedImages[] = sprintf('image of puzzle %s moved: %s -> %s (the old object is deleted after the commit)', $puzzleId, $oldPath, $puzzle->image);
+                $obsoleteImages[] = $oldPath;
+            } else {
+                $movedImages[] = sprintf('image of puzzle %s: %s could not be moved (missing in storage?) - left as it is', $puzzleId, $oldPath);
             }
         }
 
@@ -148,44 +154,87 @@ readonly final class BackfillRoundPuzzleRevealsHandler
         return [
             'changes' => [...$lines, ...$movedImages],
             'unmatched' => $this->unmatchedHiddenPuzzles($now, array_keys($matchedPuzzles)),
+            'eventPageOnly' => $this->eventPageOnlySecrets($roundPuzzles, $changes, $now),
+            'records' => $this->existingRecords(array_keys($matchedPuzzles)),
             'obsoleteImages' => $obsoleteImages,
         ];
     }
 
     /**
-     * Copies the object to a random name and points the puzzle at it. The old object is NOT deleted here: the handler
-     * runs in a transaction, and a rollback would leave the puzzle pointing at a deleted file - the caller deletes the
-     * returned path once the transaction is committed (BackfillRoundPuzzleRevealsConsoleCommand). The images cache
-     * (nginx in front of imgproxy) may still hold thumbnails requested under the old name - see docs (no purge
-     * endpoint).
+     * Round puzzles still secret on their event page only that this backfill leaves so - the picture of an "image only"
+     * one is public everywhere else (and its file name may be guessable), so a person checks they are catalogue puzzles.
      *
-     * @return null|array{line: string, obsolete: null|string}
+     * @param array<CompetitionRoundPuzzle> $roundPuzzles
+     * @param array<string, array{CompetitionRoundPuzzle, string}> $changes
+     * @return list<string>
      */
-    private function moveGuessableImage(Puzzle $puzzle, DateTimeImmutable $now): null|array
+    private function eventPageOnlySecrets(array $roundPuzzles, array $changes, DateTimeImmutable $now): array
     {
-        $oldPath = $puzzle->image;
+        $lines = [];
 
-        if ($oldPath === null || $puzzle->isImageHiddenAt($now) === false) {
-            return null;
+        foreach ($roundPuzzles as $roundPuzzle) {
+            if (isset($changes[$roundPuzzle->id->toString()]) || $roundPuzzle->isHiddenAt($now) === false) {
+                continue;
+            }
+
+            $puzzle = $roundPuzzle->puzzle;
+            $lines[] = sprintf(
+                'round puzzle %s (puzzle %s "%s", %s, round "%s"): %s on the event page only, image %s',
+                $roundPuzzle->id->toString(),
+                $puzzle->id->toString(),
+                $puzzle->name,
+                $puzzle->approved ? 'approved' : 'unapproved',
+                $roundPuzzle->round->name,
+                ($roundPuzzle->hideMode ?? PuzzleHideMode::Entirely) === PuzzleHideMode::ImageOnly ? 'IMAGE ONLY' : 'entirely',
+                $puzzle->image ?? 'none',
+            );
         }
 
-        $extension = pathinfo($oldPath, PATHINFO_EXTENSION);
-        $newPath = $this->puzzleImageNamer->secretFilename($extension !== '' ? $extension : 'jpg');
+        return $lines;
+    }
 
-        if ($this->filesystem->fileExists($oldPath) === false) {
-            return [
-                'line' => sprintf('image of puzzle %s: %s is missing in storage - left as it is', $puzzle->id->toString(), $oldPath),
-                'obsolete' => null,
-            ];
+    /**
+     * What already exists on the puzzles this backfill hides on the whole site - their owners would no longer see the
+     * puzzle until the reveal; look before --write.
+     *
+     * @param array<string> $puzzleIds
+     * @return list<string>
+     */
+    private function existingRecords(array $puzzleIds): array
+    {
+        if ($puzzleIds === []) {
+            return [];
         }
 
-        $this->filesystem->copy($oldPath, $newPath);
-        $puzzle->moveImageTo($newPath);
+        /** @var list<array{id: string, name: string, times: int|string, collections: int|string, wishlists: int|string, listings: int|string, loans: int|string}> $rows */
+        $rows = $this->entityManager->getConnection()->fetchAllAssociative(
+            <<<SQL
+SELECT
+    p.id,
+    p.name,
+    (SELECT COUNT(*) FROM puzzle_solving_time t WHERE t.puzzle_id = p.id) AS times,
+    (SELECT COUNT(*) FROM collection_item ci WHERE ci.puzzle_id = p.id) AS collections,
+    (SELECT COUNT(*) FROM wish_list_item wli WHERE wli.puzzle_id = p.id) AS wishlists,
+    (SELECT COUNT(*) FROM sell_swap_list_item ssli WHERE ssli.puzzle_id = p.id) AS listings,
+    (SELECT COUNT(*) FROM lent_puzzle lp WHERE lp.puzzle_id = p.id) AS loans
+FROM puzzle p
+WHERE p.id IN (:ids)
+ORDER BY p.name
+SQL,
+            ['ids' => array_values($puzzleIds)],
+            ['ids' => ArrayParameterType::STRING],
+        );
 
-        return [
-            'line' => sprintf('image of puzzle %s moved: %s -> %s', $puzzle->id->toString(), $oldPath, $newPath),
-            'obsolete' => $oldPath,
-        ];
+        return array_map(static fn (array $row): string => sprintf(
+            'puzzle %s "%s": %d times, %d collection items, %d wishlist items, %d sell/swap listings, %d loans',
+            $row['id'],
+            $row['name'],
+            (int) $row['times'],
+            (int) $row['collections'],
+            (int) $row['wishlists'],
+            (int) $row['listings'],
+            (int) $row['loans'],
+        ), $rows);
     }
 
     /**

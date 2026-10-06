@@ -49,6 +49,10 @@
         </div>
 
         {# Puzzle banner #}
+        {% if secret_puzzle_notice|default(null) is not null %}
+            <div class="alert alert-warning mb-2" role="status" data-secret-puzzle-notice>{{ secret_puzzle_notice }}</div>
+        {% endif %}
+
         {% if active_puzzle is not null %}
             <a href="{{ path('puzzle_detail', {puzzleId: active_puzzle.puzzleId, return: app.request.uri, return_title: 'stopwatch.meta.title'|trans}) }}" class="stopwatch-puzzle-banner d-flex align-items-center gap-3 px-3 py-2 text-decoration-none text-body">
                 {% if active_puzzle.puzzleImage is not null %}
@@ -164,7 +168,7 @@
                                             <div class="text-muted small">{{ stopwatch.lastStart|ago }}</div>
                                         </div>
                                         <span class="flex-grow-1 text-truncate">
-                                            {% if stopwatch.name is not null %}{{ stopwatch.name }}{% elseif stopwatch.puzzleId is not null %}{{ stopwatch.puzzleName }}{% endif %}
+                                            {% if stopwatch.name is not null %}{{ stopwatch.name }}{% elseif stopwatch.puzzleId is not null and hidden_puzzle_ids[stopwatch.puzzleId] is not defined %}{{ stopwatch.puzzleName }}{% endif %}
                                         </span>
                                         <span class="badge bg-{{ stopwatch.status.value == 'running' ? 'success' : 'secondary' }}">{{ ('stopwatch.status.' ~ stopwatch.status.value)|trans }}</span>
                                     </a>

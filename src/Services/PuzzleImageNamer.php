@@ -50,4 +50,9 @@ readonly final class PuzzleImageNamer
     {
         return bin2hex(random_bytes(16)) . '.' . $extension;
     }
+
+    public static function isSecretFilename(string $path): bool
+    {
+        return preg_match('/^[0-9a-f]{32}\.\w+$/', $path) === 1;
+    }
 }

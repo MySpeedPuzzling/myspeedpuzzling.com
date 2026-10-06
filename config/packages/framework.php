@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleEanAlreadyInCatalogue;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
@@ -99,6 +100,7 @@ return App::config([
             SecretPuzzlesWouldBeRevealed::class => ['log_level' => 'info'],
             PuzzleIsStillSecret::class => ['log_level' => 'info'],
             PuzzleHiddenByHand::class => ['log_level' => 'info'],
+            PuzzleNameAlreadyPublic::class => ['log_level' => 'info'],
             PuzzleNotRevealedYet::class => ['log_level' => 'info'],
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],

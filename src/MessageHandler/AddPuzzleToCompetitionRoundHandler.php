@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
+use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
@@ -24,6 +25,7 @@ use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\ManufacturerResolver;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -50,18 +52,15 @@ readonly final class AddPuzzleToCompetitionRoundHandler
     /**
      * @throws PuzzleAlreadyInCompetitionRoundCategory
      * @throws PuzzleHiddenByHand
+     * @throws PuzzleNameAlreadyPublic
      */
     public function __invoke(AddPuzzleToCompetitionRound $message): void
     {
         $isNewPuzzle = !Uuid::isValid($message->puzzle);
 
-        // Locks the round (its start must not move meanwhile), then the puzzle when it gets or has a secret row - waits
-        // for every other change of them, then reads fresh (SecretPuzzleHides)
-        $this->secretPuzzleHides->lockForAddingTo(
-            $message->roundId,
-            $isNewPuzzle ? [] : [$message->puzzle],
-            $message->hideUntilRoundStarts,
-        );
+        // Locks the round (its start must not move meanwhile), then the puzzle - waits for every other change of them,
+        // then reads fresh (SecretPuzzleHides)
+        $this->secretPuzzleHides->lockForAddingTo($message->roundId, $isNewPuzzle ? [] : [$message->puzzle]);
 
         $round = $this->competitionRoundRepository->get($message->roundId);
         $puzzleKeptSecret = false;
@@ -82,6 +81,17 @@ readonly final class AddPuzzleToCompetitionRoundHandler
             $puzzleKeptSecret = $this->isPuzzleKeptSecret->byId($puzzle->id->toString());
             if ($puzzle->isImageHiddenAt($this->clock->now()) && $puzzleKeptSecret === false) {
                 throw new PuzzleHiddenByHand();
+            }
+
+            // Kept secret on the whole site with its name already public ("image only" in another round): this round
+            // would hide the name again - it can only keep the picture secret
+            if (
+                $puzzleKeptSecret
+                && $message->hideUntilRoundStarts
+                && $message->hideMode === PuzzleHideMode::Entirely
+                && $puzzle->isHiddenAt($this->clock->now()) === false
+            ) {
+                throw new PuzzleNameAlreadyPublic();
             }
 
             $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(

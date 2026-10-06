@@ -48,12 +48,12 @@ readonly final class DeleteCompetitionRoundHandler
         // Locks the rounds, then their secret puzzles - waits for every other change of them (SecretPuzzleHides)
         $secretPuzzleIds = $this->secretPuzzleHides->lockRoundsForChange($roundIds);
 
-        if ($message->refuseToReveal) {
+        if ($message->refuseToReveal || $message->confirmedRevealHash !== null) {
             $revealed = $this->secretRevealPreview->byRemoving(array_values(
                 $this->competitionRoundRepository->get($message->roundId)->roundPuzzles->toArray(),
             ));
 
-            if ($revealed !== []) {
+            if (SecretRevealPreview::refuses($revealed, $message->refuseToReveal, $message->confirmedRevealHash)) {
                 throw new SecretPuzzlesWouldBeRevealed($revealed);
             }
         }

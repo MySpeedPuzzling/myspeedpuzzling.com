@@ -10,6 +10,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
@@ -139,6 +141,15 @@ final class CreateCompetitionRoundController extends AbstractController
                     roundId: $roundId->toString(),
                     puzzleIds: $puzzleIds,
                 ));
+            } catch (PuzzleIsStillSecret | PuzzleHiddenByHand $exception) {
+                // Checked above - only a puzzle hidden in the meantime gets here (an HTTP exception, so it arrives
+                // unwrapped), and the round exists by now
+                throw new ConflictHttpException(sprintf(
+                    'The round %s was created, but its puzzles were not attached: %s Set them with PUT /internal-api/rounds/%s/puzzles.',
+                    $roundId->toString(),
+                    $exception->getMessage(),
+                    $roundId->toString(),
+                ), $exception);
             } catch (HandlerFailedException $exception) {
                 // Checked above - only a puzzle attached elsewhere in the meantime gets here, and the round exists by now
                 if ($exception->getPrevious() instanceof PuzzleAlreadyInCompetitionRoundCategory) {

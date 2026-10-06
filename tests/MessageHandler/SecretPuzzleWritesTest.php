@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\LendPuzzlesToPlayer;
 use SpeedPuzzling\Web\Message\LendPuzzleToPlayer;
 use SpeedPuzzling\Web\Message\LinkEanToPuzzle;
+use SpeedPuzzling\Web\Message\MovePuzzleToCollection;
 use SpeedPuzzling\Web\Message\StartStopwatch;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
@@ -67,6 +68,7 @@ final class SecretPuzzleWritesTest extends KernelTestCase
         yield 'wishlist (multiscan)' => ['wishlist_bulk'];
         yield 'collection' => ['collection'];
         yield 'collection (multiscan)' => ['collection_bulk'];
+        yield 'collection move without a source item' => ['collection_move'];
         yield 'sell / swap' => ['sell_swap'];
         yield 'lend' => ['lend'];
         yield 'lend (multiscan)' => ['lend_bulk'];
@@ -211,6 +213,7 @@ final class SecretPuzzleWritesTest extends KernelTestCase
             'wishlist_bulk' => new AddPuzzlesToWishList($playerId, [$puzzleId]),
             'collection' => new AddPuzzleToCollection($playerId, $puzzleId, null, null),
             'collection_bulk' => new AddPuzzlesToCollection($playerId, [$puzzleId], null),
+            'collection_move' => new MovePuzzleToCollection($playerId, $puzzleId, null, null, null),
             'sell_swap' => new AddPuzzleToSellSwapList($playerId, $puzzleId, ListingType::Sell, 10.0, PuzzleCondition::New, null),
             'lend' => new LendPuzzleToPlayer($playerId, $puzzleId, $otherPlayerId),
             'lend_bulk' => new LendPuzzlesToPlayer($playerId, [$puzzleId], $otherPlayerId),

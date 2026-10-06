@@ -49,9 +49,9 @@ readonly final class SetCompetitionRoundPuzzlesHandler
      */
     public function __invoke(SetCompetitionRoundPuzzles $message): void
     {
-        // Locks the round (its list of puzzles changes), then its secret puzzles - waits for every other change of
-        // them, then reads fresh (SecretPuzzleHides)
-        $this->secretPuzzleHides->lockRoundsForChange([$message->roundId]);
+        // Locks the round (its list of puzzles changes), then its secret puzzles and every listed one - waits for every
+        // other change of them, then reads fresh (SecretPuzzleHides)
+        $this->secretPuzzleHides->lockRoundsForChange([$message->roundId], $message->puzzleIds);
 
         $round = $this->competitionRoundRepository->get($message->roundId);
         $now = $this->clock->now();
@@ -104,7 +104,7 @@ readonly final class SetCompetitionRoundPuzzlesHandler
         if ($message->refuseToReveal) {
             $revealed = $this->secretRevealPreview->byRemoving($rowsToRemove);
 
-            if ($revealed !== []) {
+            if (SecretRevealPreview::refuses($revealed, true, null)) {
                 throw new SecretPuzzlesWouldBeRevealed($revealed);
             }
         }

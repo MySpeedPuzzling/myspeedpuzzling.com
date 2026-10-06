@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,7 +26,7 @@ final class DeleteCompetitionRoundController extends AbstractController
 
     #[Route(
         path: '/internal-api/rounds/{roundId}',
-        requirements: ['roundId' => InternalApiInput::ID_REQUIREMENT],
+        requirements: ['roundId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['DELETE'],
     )]
     public function __invoke(string $roundId): Response

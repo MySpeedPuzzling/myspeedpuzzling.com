@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
@@ -34,7 +35,7 @@ final class UpdateCompetitionRoundController extends AbstractController
 
     #[Route(
         path: '/internal-api/rounds/{roundId}',
-        requirements: ['roundId' => InternalApiInput::ID_REQUIREMENT],
+        requirements: ['roundId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['PATCH'],
     )]
     public function __invoke(string $roundId, Request $request): JsonResponse

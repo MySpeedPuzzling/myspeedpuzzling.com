@@ -22,12 +22,6 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  */
 final class InternalApiInput
 {
-    /**
-     * Route requirement of an id: any UUID-shaped value, like Uuid::isValid() accepts - Requirement::UUID would refuse
-     * ids outside the RFC versions/variants (the test fixtures' ids), answering a confusing 404/405 for them.
-     */
-    public const string ID_REQUIREMENT = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
-
     private const string DATE_PATTERN = '/^\d{4}-\d{2}-\d{2}$/';
 
     private const string DATE_TIME_PATTERN = '/^(\d{4}-\d{2}-\d{2})[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/';

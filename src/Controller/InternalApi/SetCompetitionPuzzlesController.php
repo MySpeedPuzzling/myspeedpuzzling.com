@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\SetCompetitionPuzzles;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
 use SpeedPuzzling\Web\Query\GetAdminPuzzles;
@@ -30,7 +31,7 @@ final class SetCompetitionPuzzlesController extends AbstractController
 
     #[Route(
         path: '/internal-api/competitions/{competitionId}/puzzles',
-        requirements: ['competitionId' => InternalApiInput::ID_REQUIREMENT],
+        requirements: ['competitionId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['PUT'],
     )]
     public function __invoke(string $competitionId, Request $request): JsonResponse

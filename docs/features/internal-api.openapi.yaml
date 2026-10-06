@@ -534,7 +534,7 @@ paths:
                       default: false
       responses:
         "201":
-          description: Created - the competition as `GET /internal-api/competitions/{idOrSlug}` shows it
+          description: Created - the competition as `GET /internal-api/competitions/{competitionId}` shows it
           content:
             application/json:
               schema:
@@ -548,12 +548,13 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
-  /internal-api/competitions/{idOrSlug}:
+  # One path item for both: GET also takes a slug in place of the id, PATCH only the id
+  /internal-api/competitions/{competitionId}:
     get:
       summary: One competition with its rounds, puzzles and maintainers
       operationId: getCompetition
       parameters:
-        - name: idOrSlug
+        - name: competitionId
           in: path
           required: true
           description: The competition's id, or its slug (a standalone competition's first; an edition's slug is unique only within its series - several editions sharing it answer 409).
@@ -572,8 +573,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
-
-  /internal-api/competitions/{competitionId}:
     patch:
       summary: Update the fields sent
       operationId: updateCompetition

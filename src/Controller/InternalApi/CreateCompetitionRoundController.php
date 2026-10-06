@@ -4,23 +4,29 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
+use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
+use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
-use SpeedPuzzling\Web\Services\InternalApi\RoundPuzzlesSync;
+use SpeedPuzzling\Web\Query\GetAdminPuzzles;
+use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Adds a round to a competition (its slug is generated from the name and never changes afterwards), optionally with
- * its puzzles (`puzzleIds`, the same as PUT /internal-api/rounds/{roundId}/puzzles right after).
+ * its puzzles (`puzzleIds`, the same as PUT /internal-api/rounds/{roundId}/puzzles right after). The puzzles are
+ * checked before the round is created - a refused list must not leave a round without its puzzles behind.
  */
 final class CreateCompetitionRoundController extends AbstractController
 {
@@ -28,13 +34,14 @@ final class CreateCompetitionRoundController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly ValidatorInterface $validator,
         private readonly GetAdminCompetitions $getAdminCompetitions,
-        private readonly RoundPuzzlesSync $roundPuzzlesSync,
+        private readonly GetAdminPuzzles $getAdminPuzzles,
+        private readonly GetCompetitionRounds $getCompetitionRounds,
     ) {
     }
 
     #[Route(
         path: '/internal-api/competitions/{competitionId}/rounds',
-        requirements: ['competitionId' => InternalApiInput::ID_REQUIREMENT],
+        requirements: ['competitionId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['POST'],
     )]
     public function __invoke(string $competitionId, Request $request): JsonResponse
@@ -59,9 +66,22 @@ final class CreateCompetitionRoundController extends AbstractController
 
         assert($data->name !== null && $data->minutesLimit !== null && $data->startsAt !== null);
 
-        // Before the round exists - a refused puzzle list must not leave a round without its puzzles behind
         if ($puzzleIds !== null && $puzzleIds !== []) {
-            $this->roundPuzzlesSync->assertCanAttach($competition->competitionId, $data->category, null, $puzzleIds, $puzzleIds);
+            $unknownPuzzleIds = array_values(array_diff($puzzleIds, array_keys($this->getAdminPuzzles->byIds($puzzleIds))));
+
+            if ($unknownPuzzleIds !== []) {
+                throw new NotFoundHttpException(sprintf('Unknown puzzle ids: %s.', implode(', ', $unknownPuzzleIds)));
+            }
+
+            $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
+                competitionId: $competition->competitionId,
+                puzzleIds: $puzzleIds,
+                category: $data->category,
+            );
+
+            if ($conflictingRound !== null) {
+                throw new PuzzleInTwoRoundsOfCategory($data->category->value, $conflictingRound);
+            }
         }
 
         $roundId = Uuid::uuid7();
@@ -81,7 +101,10 @@ final class CreateCompetitionRoundController extends AbstractController
         $request->attributes->set(InternalApiAuditSubscriber::CREATED_ID_ATTRIBUTE, $roundId->toString());
 
         if ($puzzleIds !== null && $puzzleIds !== []) {
-            $this->roundPuzzlesSync->sync($roundId->toString(), $puzzleIds);
+            $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
+                roundId: $roundId->toString(),
+                puzzleIds: $puzzleIds,
+            ));
         }
 
         return new JsonResponse($this->getAdminCompetitions->round($roundId->toString())->toArray(), Response::HTTP_CREATED);

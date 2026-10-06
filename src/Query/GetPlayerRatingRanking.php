@@ -44,7 +44,7 @@ readonly final class GetPlayerRatingRanking
             $params['favoriteOfPlayerId'] = $favoriteOfPlayerId;
         }
 
-        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+        $onLadder = $this->sqlOnLadder('p');
 
         $query = <<<SQL
 SELECT * FROM (
@@ -61,9 +61,7 @@ SELECT * FROM (
     INNER JOIN player p ON p.id = pe.player_id
     LEFT JOIN player_skill ps ON ps.player_id = pe.player_id AND ps.pieces_count = pe.pieces_count
     WHERE pe.pieces_count = :piecesCount
-        AND p.is_private = false
-        AND p.ranking_opted_out = false
-        {$notHidden}
+        AND {$onLadder}
 ) ranked
 WHERE 1=1{$filterClauses}
 ORDER BY ranked.elo_rating DESC
@@ -77,38 +75,6 @@ SQL;
             static fn (array $row): PlayerRatingEntry => PlayerRatingEntry::fromDatabaseRow($row),
             $rows,
         );
-    }
-
-    public function playerPosition(string $playerId, int $piecesCount): null|int
-    {
-        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
-
-        $query = <<<SQL
-SELECT rank FROM (
-    SELECT
-        pe.player_id,
-        RANK() OVER (ORDER BY pe.elo_rating DESC) AS rank
-    FROM player_elo pe
-    INNER JOIN player p ON p.id = pe.player_id
-    WHERE pe.pieces_count = :piecesCount
-        AND (p.is_private = false OR p.id = :playerId)
-        AND p.ranking_opted_out = false
-        {$notHidden}
-) ranked
-WHERE ranked.player_id = :playerId
-SQL;
-
-        /** @var false|array{rank: int|string} $row */
-        $row = $this->database->executeQuery($query, [
-            'playerId' => $playerId,
-            'piecesCount' => $piecesCount,
-        ])->fetchAssociative();
-
-        if ($row === false) {
-            return null;
-        }
-
-        return (int) $row['rank'];
     }
 
     public function totalCount(int $piecesCount, null|string $country = null, null|string $searchTerm = null, null|string $favoriteOfPlayerId = null): int
@@ -131,7 +97,7 @@ SQL;
             $params['favoriteOfPlayerId'] = $favoriteOfPlayerId;
         }
 
-        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+        $onLadder = $this->sqlOnLadder('p');
 
         /** @var int|string $count */
         $count = $this->database->executeQuery("
@@ -139,9 +105,7 @@ SQL;
             FROM player_elo pe
             INNER JOIN player p ON p.id = pe.player_id
             WHERE pe.pieces_count = :piecesCount
-                AND p.is_private = false
-                AND p.ranking_opted_out = false
-                {$notHidden}
+                AND {$onLadder}
                 {$filterClauses}
         ", $params)->fetchOne();
 
@@ -153,7 +117,7 @@ SQL;
      */
     public function distinctCountries(int $piecesCount): array
     {
-        $notHidden = $this->hiddenPlayers->sqlExclude('p.id');
+        $onLadder = $this->sqlOnLadder('p');
 
         /** @var list<string> $codes */
         $codes = $this->database->executeQuery("
@@ -161,10 +125,8 @@ SQL;
             FROM player_elo pe
             INNER JOIN player p ON p.id = pe.player_id
             WHERE pe.pieces_count = :piecesCount
-                AND p.is_private = false
-                AND p.ranking_opted_out = false
+                AND {$onLadder}
                 AND p.country IS NOT NULL
-                {$notHidden}
             ORDER BY p.country
         ", [
             'piecesCount' => $piecesCount,
@@ -174,21 +136,23 @@ SQL;
     }
 
     /**
-     * Get all ratings for a specific player across piece counts.
+     * The player's rating, "#rank" and "ranked among total" per piece count - what the profile card, the ladder's
+     * own card, the recap and the API show. The pool is the ladder's (sqlOnLadder()) plus the player themselves (a
+     * private player still sees their own place), and the rank is RANK()'s: one more than the players rated higher.
      *
      * @return array<int, array{elo_rating: float, rank: int, total: int}>
      */
     public function allForPlayer(string $playerId): array
     {
-        $rankNotHidden = $this->hiddenPlayers->sqlExclude('p2.id');
-        $totalNotHidden = $this->hiddenPlayers->sqlExclude('p3.id');
+        $rankPool = $this->sqlOnLadder('p2');
+        $totalPool = $this->sqlOnLadder('p3');
 
         $query = <<<SQL
 SELECT
     pe.pieces_count,
     pe.elo_rating,
-    (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pe.pieces_count AND (p2.is_private = false OR p2.id = :playerId) AND pe2.elo_rating >= pe.elo_rating{$rankNotHidden}) AS rank,
-    (SELECT COUNT(*) FROM player_elo pe3 INNER JOIN player p3 ON p3.id = pe3.player_id WHERE pe3.pieces_count = pe.pieces_count AND (p3.is_private = false OR p3.id = :playerId){$totalNotHidden}) AS total
+    1 + (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pe.pieces_count AND pe2.elo_rating > pe.elo_rating AND {$rankPool}) AS rank,
+    (SELECT COUNT(*) FROM player_elo pe3 INNER JOIN player p3 ON p3.id = pe3.player_id WHERE pe3.pieces_count = pe.pieces_count AND (({$totalPool}) OR p3.id = :playerId)) AS total
 FROM player_elo pe
 WHERE pe.player_id = :playerId
 ORDER BY pe.pieces_count ASC
@@ -210,5 +174,17 @@ SQL;
         }
 
         return $result;
+    }
+
+    /**
+     * Who is on the ladder - the one definition for the ladder rows, their count, the country facet and every
+     * "#rank of total" (allForPlayer()). Each place used to spell it out on its own, and the profile card forgot the
+     * players who opted out of rankings: the same player was #303 of 1136 there and #300 of 1126 on the ladder.
+     * Global rankings stay closed to private players for everybody; players hidden from the viewer close up.
+     */
+    private function sqlOnLadder(string $playerAlias): string
+    {
+        return "{$playerAlias}.is_private = false AND {$playerAlias}.ranking_opted_out = false"
+            . $this->hiddenPlayers->sqlExclude("{$playerAlias}.id");
     }
 }

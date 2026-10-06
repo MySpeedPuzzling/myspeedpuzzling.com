@@ -56,25 +56,6 @@ final class GetPlayerRatingRankingOptOutTest extends KernelTestCase
         self::assertNotContains($rankedPlayerId, $playerIds);
     }
 
-    public function testOptedOutPlayerPositionReturnsNull(): void
-    {
-        $entriesBefore = $this->query->ranking(500);
-
-        if (count($entriesBefore) === 0) {
-            self::markTestSkipped('No rating entries in fixtures');
-        }
-
-        $rankedPlayerId = $entriesBefore[0]->playerId;
-
-        $player = $this->playerRepository->get($rankedPlayerId);
-        $player->changeRankingOptedOut(true);
-        self::getContainer()->get('doctrine.orm.entity_manager')->flush();
-
-        $position = $this->query->playerPosition($rankedPlayerId, 500);
-
-        self::assertNull($position);
-    }
-
     public function testOptedOutPlayerRanksAreContiguous(): void
     {
         $entries = $this->query->ranking(500);

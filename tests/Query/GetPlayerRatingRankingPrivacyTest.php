@@ -70,39 +70,65 @@ final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
         self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $playerIds);
     }
 
-    public function testPlayerPositionVisibleToPrivateSubject(): void
+    public function testPrivatePlayerLeavesOthersRanks(): void
     {
         $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
         $player->changeProfileVisibility(isPrivate: true);
         $this->em->flush();
 
-        // Subject exception: a private player querying their own position must
-        // still get a rank (against the pool of public players + themselves).
-        $position = $this->query->playerPosition(PlayerFixture::PLAYER_REGULAR, self::PIECES_COUNT);
-
-        // Pool with subject = PLAYER_ADMIN (1500), PLAYER_REGULAR (1400),
-        // PLAYER_WITH_FAVORITES (1300), PLAYER_WITH_STRIPE (1200) → rank 2.
-        self::assertSame(2, $position);
+        self::assertSame(1, $this->query->allForPlayer(PlayerFixture::PLAYER_ADMIN)[self::PIECES_COUNT]['rank']);
+        // Without the private filter PLAYER_WITH_FAVORITES would be rank 3 (admin, private, favorites)
+        self::assertSame(
+            ['elo_rating' => 1300.0, 'rank' => 2, 'total' => 3],
+            $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES)[self::PIECES_COUNT],
+        );
     }
 
-    public function testPlayerPositionHiddenFromOthersForPrivatePlayer(): void
+    public function testOptedOutPeerIsLeftOutOfOthersRankAndTotal(): void
     {
-        $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
-        $player->changeProfileVisibility(isPrivate: true);
+        // Reported 2026-10-06: the profile card said #303 of 1136, the ladder #300 of 1126 - the card still
+        // counted the 10 players who opted out of rankings
+        $peer = $this->playerRepository->get(PlayerFixture::PLAYER_ADMIN);
+        $peer->changeRankingOptedOut(true);
         $this->em->flush();
 
-        // A different player querying the private player's position must not see them.
-        // (playerPosition only takes the subject's id, so the subject IS who is
-        // queried — but for sanity, the private player's neighbors should keep
-        // contiguous ranks because the private one is excluded from their pool.)
-        $adminPosition = $this->query->playerPosition(PlayerFixture::PLAYER_ADMIN, self::PIECES_COUNT);
-        $favoritesPosition = $this->query->playerPosition(PlayerFixture::PLAYER_WITH_FAVORITES, self::PIECES_COUNT);
+        self::assertSame(
+            ['elo_rating' => 1400.0, 'rank' => 1, 'total' => 3],
+            $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR)[self::PIECES_COUNT],
+        );
+        self::assertSame(
+            ['elo_rating' => 1200.0, 'rank' => 3, 'total' => 3],
+            $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_STRIPE)[self::PIECES_COUNT],
+        );
+    }
 
-        self::assertSame(1, $adminPosition);
-        // Without the private filter PLAYER_WITH_FAVORITES would be rank 3 (admin,
-        // private, favorites). With the filter PLAYER_REGULAR is dropped from
-        // PLAYER_WITH_FAVORITES's pool → rank 2.
-        self::assertSame(2, $favoritesPosition);
+    public function testEveryRankedPlayerSeesTheLaddersRankAndTotal(): void
+    {
+        // Above everybody one player of each kind the ladder leaves out (private, opted out), below them a tie:
+        // the profile card (allForPlayer) must show each player exactly their ladder row's rank and the ladder's total
+        $this->seedRatings([PlayerFixture::PLAYER_PRIVATE => 1600.0]);
+        $optedOut = $this->playerRepository->get(PlayerFixture::PLAYER_ADMIN);
+        $optedOut->changeRankingOptedOut(true);
+        $this->em->flush();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE player_elo SET elo_rating = 1300.0 WHERE player_id = :playerId',
+            ['playerId' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $ladder = $this->query->ranking(self::PIECES_COUNT);
+        $total = $this->query->totalCount(self::PIECES_COUNT);
+
+        self::assertCount(3, $ladder);
+        self::assertSame(3, $total);
+        // The tie shares a place, the next one skips it - RANK()
+        self::assertSame([1, 1, 3], array_map(static fn ($entry) => $entry->rank, $ladder));
+
+        foreach ($ladder as $entry) {
+            $card = $this->query->allForPlayer($entry->playerId)[self::PIECES_COUNT];
+
+            self::assertSame($entry->rank, $card['rank'], $entry->playerId);
+            self::assertSame($total, $card['total'], $entry->playerId);
+        }
     }
 
     public function testAllForPlayerIncludesPrivateSubjectInOwnRank(): void
@@ -168,7 +194,6 @@ final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
         self::assertSame([1, 2, 3], array_map(static fn ($entry) => $entry->rank, $entries));
         self::assertSame(3, $this->query->totalCount(self::PIECES_COUNT));
         self::assertSame(0, $this->query->totalCount(self::PIECES_COUNT, searchTerm: 'Admin'));
-        self::assertSame(3, $this->query->playerPosition(PlayerFixture::PLAYER_WITH_STRIPE, self::PIECES_COUNT));
         self::assertSame(
             ['elo_rating' => 1200.0, 'rank' => 3, 'total' => 3],
             $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_STRIPE)[self::PIECES_COUNT],
@@ -177,7 +202,7 @@ final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
 
         self::assertSame(4, $this->query->totalCount(self::PIECES_COUNT));
-        self::assertSame(4, $this->query->playerPosition(PlayerFixture::PLAYER_WITH_STRIPE, self::PIECES_COUNT));
+        self::assertSame(4, $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_STRIPE)[self::PIECES_COUNT]['rank']);
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $this->query->ranking(self::PIECES_COUNT)[0]->playerId);
     }
 

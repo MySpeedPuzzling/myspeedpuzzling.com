@@ -47,13 +47,6 @@ final class GetPlayerRatingRankingTest extends KernelTestCase
         self::assertGreaterThanOrEqual(0, $count);
     }
 
-    public function testPlayerPositionReturnsNullForNonRankedPlayer(): void
-    {
-        $position = $this->query->playerPosition('00000000-0000-0000-0000-000000000099', 500);
-
-        self::assertNull($position);
-    }
-
     public function testAllForPlayerReturnsEmptyForNonExistentPlayer(): void
     {
         $ratings = $this->query->allForPlayer('00000000-0000-0000-0000-000000000099');

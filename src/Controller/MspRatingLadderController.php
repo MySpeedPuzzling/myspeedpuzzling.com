@@ -42,9 +42,9 @@ final class MspRatingLadderController extends AbstractController
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         $playerPosition = null;
         $playerRating = null;
+        $playerTotal = null;
         $ratingProgress = null;
         $myPage = null;
-        $totalCount = $this->getPlayerRatingRanking->totalCount($piecesCount);
 
         $rankingOptedOut = false;
 
@@ -52,20 +52,22 @@ final class MspRatingLadderController extends AbstractController
             $rankingOptedOut = $loggedPlayer->rankingOptedOut;
 
             if (!$rankingOptedOut) {
-                $playerPosition = $this->getPlayerRatingRanking->playerPosition($loggedPlayer->playerId, $piecesCount);
                 $ratingProgress = $this->mspRatingCalculator->getProgress($loggedPlayer->playerId, $piecesCount);
 
-                $playerRatingData = $this->getPlayerRatingRanking->allForPlayer($loggedPlayer->playerId);
-                $playerRating = $playerRatingData[$piecesCount]['elo_rating'] ?? null;
+                // The same "#rank of total" the profile card shows - never a number of its own
+                $playerRatingData = $this->getPlayerRatingRanking->allForPlayer($loggedPlayer->playerId)[$piecesCount] ?? null;
 
-                if ($playerPosition !== null) {
+                if ($playerRatingData !== null) {
+                    $playerRating = $playerRatingData['elo_rating'];
+                    $playerPosition = $playerRatingData['rank'];
+                    $playerTotal = $playerRatingData['total'];
                     $myPage = (int) ceil($playerPosition / self::PER_PAGE);
                 }
             }
         }
 
         return $this->render('msp_rating_ladder/index.html.twig', [
-            'total_count' => $totalCount,
+            'player_total' => $playerTotal,
             'pieces_count' => $piecesCount,
             'player_position' => $playerPosition,
             'player_rating' => $playerRating,

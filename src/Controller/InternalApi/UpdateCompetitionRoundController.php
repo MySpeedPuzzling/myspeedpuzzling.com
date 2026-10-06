@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
@@ -12,7 +13,6 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -62,12 +62,10 @@ final class UpdateCompetitionRoundController extends AbstractController
                 resultsLink: $data->resultsLink,
             ));
         } catch (HandlerFailedException $exception) {
-            if ($exception->getPrevious() instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                throw new ConflictHttpException(sprintf(
-                    'A puzzle can be in only one %s round of a competition - one of this round\'s puzzles is already in round "%s". Nothing was changed.',
-                    $data->category->value,
-                    $exception->getPrevious()->conflictingRoundName,
-                ), $exception);
+            $previous = $exception->getPrevious();
+
+            if ($previous instanceof PuzzleAlreadyInCompetitionRoundCategory) {
+                throw new PuzzleInTwoRoundsOfCategory($data->category->value, $previous->conflictingRoundName, $exception);
             }
 
             throw $exception;

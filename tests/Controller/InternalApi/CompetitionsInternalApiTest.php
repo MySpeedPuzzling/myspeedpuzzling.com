@@ -355,12 +355,109 @@ final class CompetitionsInternalApiTest extends WebTestCase
         self::assertSame(CompetitionSeriesFixture::SERIES_OFFLINE, $answer['series']['seriesId']);
     }
 
+    public function testAnOnlineEventHasNoPlaceAndNoDatesLikeInTheWebForm(): void
+    {
+        $browser = self::createClient();
+
+        $created = self::callInternalApi($browser, 'POST', '/internal-api/competitions', [
+            'name' => 'Online Autumn Cup',
+            'isOnline' => true,
+            'location' => 'Ostrava',
+            'locationCountryCode' => 'cz',
+            'dateFrom' => '2026-11-14',
+            'dateTo' => '2026-11-15',
+        ]);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertNull($created['location']);
+        self::assertNull($created['dateFrom']);
+        self::assertNull($created['dateTo']);
+        self::assertSame('cz', $created['locationCountryCode']);
+
+        $patched = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, [
+            'isOnline' => true,
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertTrue($patched['isOnline']);
+        self::assertNull($patched['location']);
+        self::assertNull($patched['dateFrom']);
+        self::assertNull($patched['dateTo']);
+    }
+
+    public function testTheSlugCannotBeCleared(): void
+    {
+        $browser = self::createClient();
+
+        foreach ([null, '', '  '] as $slug) {
+            $answer = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024, [
+                'slug' => $slug,
+            ]);
+
+            self::assertResponseStatusCodeSame(400);
+            self::assertIsArray($answer['errors']);
+            self::assertStringContainsString('cannot be cleared', self::string($answer['errors']['slug'] ?? null));
+        }
+    }
+
+    public function testMaintainersStayWhenNotSentOrNull(): void
+    {
+        $browser = self::createClient();
+        $uri = '/internal-api/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED;
+
+        $kept = self::callInternalApi($browser, 'PATCH', $uri, ['maintainerIds' => null, 'shortcut' => 'UPE']);
+        self::assertSame([PlayerFixture::PLAYER_REGULAR], array_column(self::list($kept['maintainers']), 'playerId'));
+
+        $replaced = self::callInternalApi($browser, 'PATCH', $uri, ['maintainerIds' => [PlayerFixture::PLAYER_WITH_FAVORITES]]);
+        self::assertSame([PlayerFixture::PLAYER_WITH_FAVORITES], array_column(self::list($replaced['maintainers']), 'playerId'));
+
+        $emptied = self::callInternalApi($browser, 'PATCH', $uri, ['maintainerIds' => []]);
+        self::assertSame([], $emptied['maintainers']);
+    }
+
+    public function testAJsonListIsNoBody(): void
+    {
+        $browser = self::createClient();
+
+        $answer = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024, ['WJPC', 'x']);
+
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame('The body must be a JSON object.', $answer['error']);
+    }
+
+    public function testAnEncodedPathIsAuditedAndAnsweredInJsonToo(): void
+    {
+        $browser = self::createClient();
+        $auditLog = self::recordAuditLog();
+
+        // The firewall and the router decode the path - so must everything else that guards /internal-api/
+        self::callInternalApi($browser, 'PATCH', '/internal%2Dapi/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024, [
+            'resultsLink' => 'https://example.com/results',
+        ]);
+        self::assertResponseIsSuccessful();
+
+        $records = $auditLog->getRecords();
+        self::assertCount(1, $records);
+        self::assertSame('/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024, $records[0]->context['path']);
+
+        $answer = self::callInternalApi($browser, 'GET', '/internal%2Dapi/competitions/no-such-event');
+        self::assertResponseStatusCodeSame(404);
+        self::assertResponseHeaderSame('Content-Type', 'application/json');
+        self::assertArrayHasKey('error', $answer);
+
+        self::callInternalApi($browser, 'GET', '/internal%2Dapi/competitions', token: null);
+        self::assertResponseStatusCodeSame(401);
+    }
+
     public function testApprovesAPendingCompetitionOnce(): void
     {
         $browser = self::createClient();
 
         self::callInternalApi($browser, 'POST', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED . '/approve');
         self::assertResponseStatusCodeSame(204);
+        // A player submitted it - they are told, like from the approval queue
+        self::assertQueuedEmailCount(1);
+        self::assertEmailAddressContains(self::getMailerMessage() ?? self::fail('No e-mail'), 'To', PlayerFixture::PLAYER_REGULAR_EMAIL);
 
         $answer = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED);
         self::assertSame('approved', $answer['status']);
@@ -400,6 +497,66 @@ final class CompetitionsInternalApiTest extends WebTestCase
         );
     }
 
+    public function testANewTagNeverTakesTheNameOfAnExistingOne(): void
+    {
+        $browser = self::createClient();
+
+        // "WJPC" is the tag of WJPC 2024 already - two "WJPC" badges with different puzzles could not be told apart
+        $competition = self::callInternalApi($browser, 'POST', '/internal-api/competitions', [
+            'name' => 'WJPC 2026',
+            'shortcut' => 'WJPC',
+            'isOnline' => true,
+        ]);
+
+        $answer = self::callInternalApi($browser, 'PUT', '/internal-api/competitions/' . self::string($competition['competitionId']) . '/puzzles', [
+            'puzzleIds' => [PuzzleFixture::PUZZLE_300],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('WJPC 2026', $answer['tagName']);
+        self::assertNotSame(TagFixture::TAG_WJPC, $answer['tagId']);
+    }
+
+    public function testATagASeriesCarriesIsNotChanged(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement('UPDATE competition_series SET tag_id = :tagId WHERE id = :id', [
+            'tagId' => TagFixture::TAG_WJPC,
+            'id' => CompetitionSeriesFixture::SERIES_EJJ,
+        ]);
+
+        $answer = self::callInternalApi($browser, 'PUT', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024 . '/puzzles', [
+            'puzzleIds' => [PuzzleFixture::PUZZLE_500_01],
+        ]);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertStringContainsString('WJPC', self::string($answer['error']));
+        self::assertSame(0, $database->fetchOne('SELECT COUNT(*) FROM tag_puzzle WHERE tag_id = :tagId', ['tagId' => TagFixture::TAG_WJPC]));
+    }
+
+    public function testAnEditionGetsATagOfItsOwnBesideItsSeriesTag(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement('UPDATE competition_series SET tag_id = :tagId WHERE id = :id', [
+            'tagId' => TagFixture::TAG_ONLINE,
+            'id' => CompetitionSeriesFixture::SERIES_EJJ,
+        ]);
+
+        $answer = self::callInternalApi($browser, 'PUT', '/internal-api/competitions/' . CompetitionSeriesFixture::EDITION_EJJ_68 . '/puzzles', [
+            'puzzleIds' => [PuzzleFixture::PUZZLE_500_02],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertNotNull($answer['tagId']);
+        self::assertNotSame(TagFixture::TAG_ONLINE, $answer['tagId']);
+        self::assertSame([PuzzleFixture::PUZZLE_500_02], array_column(self::list($answer['puzzles']), 'puzzleId'));
+        // The series' tag and its puzzles stay as they were
+        self::assertSame(TagFixture::TAG_ONLINE, $database->fetchOne('SELECT tag_id FROM competition_series WHERE id = :id', ['id' => CompetitionSeriesFixture::SERIES_EJJ]));
+        self::assertSame(0, $database->fetchOne('SELECT COUNT(*) FROM tag_puzzle WHERE tag_id = :tagId', ['tagId' => TagFixture::TAG_ONLINE]));
+    }
+
     public function testCompetitionPuzzlesRefuseUnknownPuzzlesAndSharedTags(): void
     {
         $browser = self::createClient();
@@ -412,6 +569,13 @@ final class CompetitionsInternalApiTest extends WebTestCase
 
         self::callInternalApi($browser, 'PUT', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024 . '/puzzles', []);
         self::assertResponseStatusCodeSame(400);
+
+        $malformed = self::callInternalApi($browser, 'PUT', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024 . '/puzzles', [
+            'puzzleIds' => ['abc'],
+        ]);
+        self::assertResponseStatusCodeSame(400);
+        self::assertIsArray($malformed['errors']);
+        self::assertStringContainsString('"abc" is not one', self::string($malformed['errors']['puzzleIds'] ?? null));
 
         // Another competition carrying the same tag would change with it
         $database = self::getContainer()->get(Connection::class);

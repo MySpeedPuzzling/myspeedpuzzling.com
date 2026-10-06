@@ -38,11 +38,7 @@ final class SetCompetitionPuzzlesController extends AbstractController
         $competition = $this->getAdminCompetitions->detail($competitionId)->competition;
 
         $input = InternalApiInput::fromRequest($request, ['puzzleIds']);
-        $puzzleIds = $input->idList('puzzleIds');
-
-        if ($puzzleIds === null) {
-            $input->addError('puzzleIds', 'is required - a list of puzzle ids, [] removes every puzzle.');
-        }
+        $puzzleIds = $input->requiredIdList('puzzleIds', 'a list of puzzle ids, [] removes every puzzle.');
 
         $input->throwIfInvalid();
         assert($puzzleIds !== null);

@@ -85,6 +85,8 @@ final class CreateCompetitionController extends AbstractController
             $this->messageBus->dispatch(new ApproveCompetition(
                 competitionId: $competitionId->toString(),
                 approvedByPlayerId: $this->reviewerPlayerId,
+                // The reviewer player created it - nobody to tell
+                notifyCreator: false,
             ));
         }
 

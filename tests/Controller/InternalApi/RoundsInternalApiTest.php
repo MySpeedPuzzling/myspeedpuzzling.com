@@ -105,6 +105,19 @@ final class RoundsInternalApiTest extends WebTestCase
         self::assertSame($roundsBefore, $roundsAfter);
     }
 
+    public function testATimeZoneWithoutStartsAtIsRefused(): void
+    {
+        $browser = self::createClient();
+
+        $answer = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . CompetitionRoundFixture::ROUND_WJPC_FINAL, [
+            'timezone' => 'America/New_York',
+        ]);
+
+        self::assertResponseStatusCodeSame(400);
+        self::assertIsArray($answer['errors']);
+        self::assertArrayHasKey('timezone', $answer['errors']);
+    }
+
     public function testUpdatesOnlyTheFieldsSentAndKeepsTheSlug(): void
     {
         $browser = self::createClient();

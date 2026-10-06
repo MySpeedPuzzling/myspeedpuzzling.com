@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\InternalApi;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
@@ -16,7 +17,6 @@ use SpeedPuzzling\Web\Results\AdminRoundPuzzle;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\RoundCategory;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -48,7 +48,7 @@ readonly final class RoundPuzzlesSync
      * @param list<string> $puzzleIdsToAttach
      *
      * @throws NotFoundHttpException
-     * @throws ConflictHttpException
+     * @throws PuzzleInTwoRoundsOfCategory
      */
     public function assertCanAttach(
         string $competitionId,
@@ -71,11 +71,7 @@ readonly final class RoundPuzzlesSync
         );
 
         if ($conflictingRound !== null) {
-            throw new ConflictHttpException(sprintf(
-                'A puzzle can be in only one %s round of a competition - one of them is already in round "%s". Nothing was changed.',
-                $category->value,
-                $conflictingRound,
-            ));
+            throw new PuzzleInTwoRoundsOfCategory($category->value, $conflictingRound);
         }
     }
 
@@ -84,7 +80,7 @@ readonly final class RoundPuzzlesSync
      *
      * @throws CompetitionRoundNotFound
      * @throws NotFoundHttpException
-     * @throws ConflictHttpException
+     * @throws PuzzleInTwoRoundsOfCategory
      */
     public function sync(string $roundId, array $puzzleIds): void
     {
@@ -118,8 +114,10 @@ readonly final class RoundPuzzlesSync
                 ));
             } catch (HandlerFailedException $exception) {
                 // Checked above - only a concurrent change gets here
-                if ($exception->getPrevious() instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                    throw new ConflictHttpException($exception->getPrevious()->getMessage(), $exception);
+                $previous = $exception->getPrevious();
+
+                if ($previous instanceof PuzzleAlreadyInCompetitionRoundCategory) {
+                    throw new PuzzleInTwoRoundsOfCategory($round->category, $previous->conflictingRoundName, $exception);
                 }
 
                 throw $exception;

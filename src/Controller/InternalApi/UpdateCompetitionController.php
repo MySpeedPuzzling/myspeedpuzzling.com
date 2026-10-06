@@ -47,6 +47,10 @@ final class UpdateCompetitionController extends AbstractController
 
         ['slug' => $slug, 'maintainerIds' => $maintainerIds] = CompetitionInput::applyTo($input, $data);
 
+        if ($input->has('slug') && $slug === null && $input->hasError('slug') === false) {
+            $input->addError('slug', 'cannot be cleared - leave it out to keep the slug, or send a new one.');
+        }
+
         // An edition's place is its series' - the form's "an in-person event needs a location" is the series' rule
         $input->addViolations($this->validator->validate($data), $competition->series !== null ? ['location'] : []);
         $input->throwIfInvalid();

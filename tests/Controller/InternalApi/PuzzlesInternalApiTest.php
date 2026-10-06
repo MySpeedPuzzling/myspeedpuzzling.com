@@ -145,13 +145,17 @@ final class PuzzlesInternalApiTest extends WebTestCase
             self::assertArrayHasKey($field, $answer['errors'], $field);
         }
 
-        self::callInternalApi($browser, 'POST', '/internal-api/puzzles', [
+        $badBarcode = self::callInternalApi($browser, 'POST', '/internal-api/puzzles', [
             'name' => 'Bad Barcode',
             'brand' => 'Ravensburger',
             'piecesCount' => 500,
             'ean' => '4005556123456',
+            'nameLanguage' => 'not a language',
         ]);
         self::assertResponseStatusCodeSame(400);
+        self::assertIsArray($badBarcode['errors']);
+        self::assertStringContainsString('4005556123456', self::string($badBarcode['errors']['ean'] ?? null));
+        self::assertArrayHasKey('nameLanguage', $badBarcode['errors']);
 
         self::callInternalApi($browser, 'POST', '/internal-api/puzzles', [
             'name' => 'Unknown Brand Id',

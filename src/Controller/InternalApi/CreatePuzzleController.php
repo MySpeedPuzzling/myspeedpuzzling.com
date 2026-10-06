@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
+use SpeedPuzzling\Web\Exceptions\PuzzleEanAlreadyInCatalogue;
 use SpeedPuzzling\Web\Message\AddApprovedPuzzle;
 use SpeedPuzzling\Web\Query\FindPuzzlesByExactEan;
 use SpeedPuzzling\Web\Query\GetAdminPuzzles;
@@ -20,7 +21,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -84,23 +84,25 @@ final class CreatePuzzleController extends AbstractController
             $input->addError('manufacturerId', 'must be an id.');
         }
 
-        $input->throwIfInvalid();
-        assert($name !== null && $piecesCount !== null);
-
-        // The parsers the other catalogue endpoints use (400 on a bad value)
-        $nameLanguage = InternalApiJsonBody::optionalLanguageTag($body, 'nameLanguage');
-        $alternativeNames = (InternalApiJsonBody::optionalPuzzleNames($body, 'alternativeNames') ?? new PuzzleNames())->cleanedFor($name);
-        $eanInputs = InternalApiJsonBody::optionalCodeList($body, 'ean') ?? [];
-        $brandCodeInputs = InternalApiJsonBody::optionalCodeList($body, 'identificationNumber') ?? [];
+        // The parsers the other catalogue endpoints use - a bad value is that field's error
+        $nameLanguage = $input->parsed('nameLanguage', static fn (): null|false|string => InternalApiJsonBody::optionalLanguageTag($body, 'nameLanguage'));
+        $alternativeNames = $input->parsed('alternativeNames', static fn (): null|PuzzleNames => InternalApiJsonBody::optionalPuzzleNames($body, 'alternativeNames'));
+        $alternativeNames = ($alternativeNames ?? new PuzzleNames())->cleanedFor($name ?? '');
+        $eanInputs = $input->parsed('ean', static fn (): null|array => InternalApiJsonBody::optionalCodeList($body, 'ean')) ?? [];
+        $brandCodeInputs = $input->parsed('identificationNumber', static fn (): null|array => InternalApiJsonBody::optionalCodeList($body, 'identificationNumber')) ?? [];
         $eans = EanList::fromInputs($eanInputs);
         $brandCodes = BrandCodeList::fromInputs($brandCodeInputs);
 
         if (count($alternativeNames) > PuzzleNames::FORM_MAX_NAMES) {
-            throw new BadRequestHttpException(sprintf('"alternativeNames" can hold at most %d names.', PuzzleNames::FORM_MAX_NAMES));
+            $input->addError('alternativeNames', sprintf('can hold at most %d names.', PuzzleNames::FORM_MAX_NAMES));
         }
 
-        if ($eans->fitsColumn() === false || $brandCodes->fitsColumn() === false) {
-            throw new BadRequestHttpException('"ean" and "identificationNumber" can hold at most 255 characters each, written as a list.');
+        if ($eans->fitsColumn() === false) {
+            $input->addError('ean', 'can hold at most 255 characters, written as a list.');
+        }
+
+        if ($brandCodes->fitsColumn() === false) {
+            $input->addError('identificationNumber', 'can hold at most 255 characters, written as a list.');
         }
 
         $invalidCodes = [];
@@ -109,11 +111,14 @@ final class CreatePuzzleController extends AbstractController
         }
 
         if ($invalidCodes !== []) {
-            throw new BadRequestHttpException(sprintf(
-                '"ean" holds codes that are not EAN/UPC codes: %s.',
+            $input->addError('ean', sprintf(
+                'holds codes that are not EAN/UPC codes (wrong length or check digit): %s.',
                 implode(', ', array_column($invalidCodes, 'code')),
             ));
         }
+
+        $input->throwIfInvalid();
+        assert($name !== null && $piecesCount !== null);
 
         if ($allowDuplicateEan === false) {
             $this->refuseKnownBarcodes($eans);
@@ -159,10 +164,7 @@ final class CreatePuzzleController extends AbstractController
         }
 
         if ($knownPuzzleIds !== []) {
-            throw new ConflictHttpException(sprintf(
-                'A puzzle with this EAN exists already: %s. Use it, or send "allowDuplicateEan": true if it really is another puzzle.',
-                implode(', ', array_values(array_unique($knownPuzzleIds))),
-            ));
+            throw new PuzzleEanAlreadyInCatalogue(array_values(array_unique($knownPuzzleIds)));
         }
     }
 }

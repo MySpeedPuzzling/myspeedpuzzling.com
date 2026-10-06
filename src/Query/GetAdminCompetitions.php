@@ -8,13 +8,13 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
+use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
 use SpeedPuzzling\Web\Results\AdminCompetition;
 use SpeedPuzzling\Web\Results\AdminCompetitionDetail;
 use SpeedPuzzling\Web\Results\AdminCompetitionMaintainer;
 use SpeedPuzzling\Web\Results\AdminCompetitionRound;
 use SpeedPuzzling\Web\Results\AdminPuzzle;
 use SpeedPuzzling\Web\Results\AdminRoundPuzzle;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * Competitions as the internal API shows them to an admin: every competition - approved, pending, rejected,
@@ -111,7 +111,7 @@ SQL, $params);
      * (it is unique only within a series) are a 409 naming their ids.
      *
      * @throws CompetitionNotFound
-     * @throws ConflictHttpException
+     * @throws CompetitionSlugAmbiguous
      */
     public function detail(string $idOrSlug): AdminCompetitionDetail
     {
@@ -164,7 +164,7 @@ SQL, ['competitionId' => $competitionId]);
 
     /**
      * @throws CompetitionNotFound
-     * @throws ConflictHttpException
+     * @throws CompetitionSlugAmbiguous
      */
     private function idBySlug(string $slug): string
     {
@@ -182,11 +182,7 @@ SQL, ['competitionId' => $competitionId]);
             return $rows[0]['id'];
         }
 
-        throw new ConflictHttpException(sprintf(
-            'Several editions use the slug "%s" - ask by id: %s.',
-            $slug,
-            implode(', ', array_column($rows, 'id')),
-        ));
+        throw new CompetitionSlugAmbiguous($slug, array_column($rows, 'id'));
     }
 
     /**

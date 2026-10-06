@@ -9,6 +9,7 @@ use DateTimeZone;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
 /**
@@ -60,6 +61,27 @@ final class InternalApiInput
     public function has(string $field): bool
     {
         return array_key_exists($field, $this->body);
+    }
+
+    public function hasError(string $field): bool
+    {
+        return array_key_exists($field, $this->errors);
+    }
+
+    /**
+     * A list of ids that must be sent: absent or null is an error (`[]` is a list).
+     *
+     * @return null|list<string>
+     */
+    public function requiredIdList(string $field, string $hint): null|array
+    {
+        $ids = $this->idList($field);
+
+        if ($ids === null && $this->hasError($field) === false) {
+            $this->addError($field, 'is required - ' . $hint);
+        }
+
+        return $ids;
     }
 
     /**
@@ -191,13 +213,36 @@ final class InternalApiInput
 
         foreach ($values as $value) {
             if (is_string($value) === false || Uuid::isValid($value) === false) {
-                return $this->invalid($field, 'must contain only ids.');
+                $shown = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+                return $this->invalid($field, sprintf(
+                    'must contain only ids - %s is not one.',
+                    is_string($shown) ? $shown : 'a value',
+                ));
             }
 
             $ids[] = strtolower($value);
         }
 
         return array_values(array_unique($ids));
+    }
+
+    /**
+     * A field read by one of InternalApiJsonBody's parsers - its 400 becomes this field's error.
+     *
+     * @template T
+     *
+     * @param callable(): T $parse
+     *
+     * @return null|T
+     */
+    public function parsed(string $field, callable $parse): mixed
+    {
+        try {
+            return $parse();
+        } catch (BadRequestHttpException $exception) {
+            return $this->invalid($field, $exception->getMessage());
+        }
     }
 
     public function addError(string $field, string $error): void

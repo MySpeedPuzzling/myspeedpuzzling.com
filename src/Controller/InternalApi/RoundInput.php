@@ -49,6 +49,10 @@ final class RoundInput
             $data->category = $roundCategory ?? $data->category;
         }
 
+        if ($input->has('timezone') && $input->has('startsAt') === false) {
+            $input->addError('timezone', 'only says how to read "startsAt" - send it together with "startsAt".');
+        }
+
         if ($input->has('startsAt')) {
             $data->startsAt = $input->dateTime('startsAt', self::timeZone($input, $competitionCountryCode), required: true);
         }

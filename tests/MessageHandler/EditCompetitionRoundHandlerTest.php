@@ -43,6 +43,41 @@ final class EditCompetitionRoundHandlerTest extends KernelTestCase
         self::assertSame($startsAt->getTimestamp(), $round->startsAt->getTimestamp());
     }
 
+    public function testAPartialUpdateKeepsWhatItLeavesOutAsTheRoundHasItUnderTheLock(): void
+    {
+        $round = $this->round();
+        $readBefore = $round->startsAt;
+        $categoryBefore = $round->category;
+
+        // Another change committed between the read and the save: the round moved
+        $movedTo = new DateTimeImmutable('+45 days')->setTime(9, 30);
+        $round->startsAt = $movedTo;
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        // A rename only (the internal API's PATCH) still carrying the start it read before
+        $this->messageBus->dispatch(new EditCompetitionRound(
+            roundId: CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
+            name: 'Renamed Qualification',
+            minutesLimit: 1,
+            startsAt: $readBefore,
+            timezone: 'America/Chicago',
+            badgeBackgroundColor: null,
+            badgeTextColor: null,
+            category: $categoryBefore,
+            resultsLink: null,
+            keepFields: ['minutesLimit', 'startsAt', 'timezone', 'badgeBackgroundColor', 'badgeTextColor', 'category', 'resultsLink'],
+        ));
+        $this->entityManager->clear();
+
+        $round = $this->round();
+        self::assertSame('Renamed Qualification', $round->name);
+        self::assertSame($movedTo->getTimestamp(), $round->startsAt->getTimestamp());
+        self::assertSame(60, $round->minutesLimit);
+        self::assertSame('Europe/Prague', $round->displayTimezone());
+        self::assertSame('#007bff', $round->badgeBackgroundColor);
+    }
+
     public function testRoundWithoutStoredTimezoneIsReadInItsCountrysZone(): void
     {
         // Rounds saved before the zone was kept: the form pre-selected the country's zone (WJPC 2024 is in Czechia)

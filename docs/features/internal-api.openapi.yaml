@@ -752,7 +752,9 @@ paths:
       description: |
         With its puzzle assignments, teams and seating. Refused (409) while any
         solving time belongs to it, and (409, `revealedPuzzles`) when that reveals
-        secret puzzles no other round keeps hidden - unless `confirmReveal` is true.
+        a secret puzzle right away (another round revealed it already) - unless
+        `confirmReveal` is true. A secret puzzle no other round holds stays hidden
+        (its hide dates are kept) - not refused.
       parameters:
         - $ref: "#/components/parameters/RoundId"
       requestBody:
@@ -782,8 +784,9 @@ paths:
         kept keep their secret reveal, new ones are not hidden - so a hidden puzzle
         (a competition's secret one, a placeholder) is refused (409). A puzzle is in
         only one round per category of a competition - a list breaking that is
-        refused (409). Removing a secret puzzle that no other round keeps hidden is
-        refused (409, `revealedPuzzles`) unless `confirmReveal` is true. A refusal
+        refused (409). Removing a secret puzzle that comes out right away by it
+        (another round revealed it already) is refused (409, `revealedPuzzles`)
+        unless `confirmReveal` is true; one no other round holds stays hidden. A refusal
         changes nothing. Solving times are re-linked to rounds right after (round
         results).
       parameters:
@@ -1122,7 +1125,8 @@ components:
           description: |
             The round's own IANA time zone - its times are typed and shown in it. A
             new round gets the zone of the event's other rounds, else of its (or its
-            series') country, else Europe/Prague. Only together with `startsAt`.
+            series') country, else Europe/Prague. Only together with `startsAt`;
+            `null` is a 400.
           example: America/Chicago
         minutesLimit:
           type: integer

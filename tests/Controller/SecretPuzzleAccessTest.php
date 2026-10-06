@@ -134,13 +134,30 @@ final class SecretPuzzleAccessTest extends WebTestCase
         $bus = self::getContainer()->get(MessageBusInterface::class);
 
         foreach ([[$secretId, PuzzleFixture::PUZZLE_500_05], [PuzzleFixture::PUZZLE_500_05, $secretId]] as [$survivor, $merged]) {
+            // Reporting it is refused - for its organiser too, either side
+            try {
+                $bus->dispatch(new SubmitPuzzleMergeRequest(
+                    mergeRequestId: Uuid::uuid7()->toString(),
+                    sourcePuzzleId: $survivor,
+                    reporterId: PlayerFixture::PLAYER_REGULAR,
+                    duplicatePuzzleIds: [$merged],
+                ));
+                self::fail('A duplicate report with a secret puzzle in it must be refused');
+            } catch (PuzzleIsStillSecret) {
+            }
+
+            // A request filed before the puzzle became secret
             $mergeRequestId = Uuid::uuid7()->toString();
-            $bus->dispatch(new SubmitPuzzleMergeRequest(
-                mergeRequestId: $mergeRequestId,
-                sourcePuzzleId: $survivor,
-                reporterId: PlayerFixture::PLAYER_REGULAR,
-                duplicatePuzzleIds: [$merged],
+            $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+            $entityManager->persist(new \SpeedPuzzling\Web\Entity\PuzzleMergeRequest(
+                id: Uuid::fromString($mergeRequestId),
+                sourcePuzzle: $entityManager->find(\SpeedPuzzling\Web\Entity\Puzzle::class, $survivor),
+                reporter: $entityManager->find(Player::class, PlayerFixture::PLAYER_REGULAR),
+                submittedAt: new DateTimeImmutable('-1 day'),
+                reportedDuplicatePuzzleIds: [$survivor, $merged],
             ));
+            $entityManager->flush();
+            $entityManager->clear();
 
             // Out of the merge queue too
             self::assertNull(self::getContainer()->get(GetPuzzleMergeRequests::class)->byId($mergeRequestId));

@@ -154,6 +154,13 @@
                                                 <input class="form-check-input" type="radio" name="hide_mode" value="{{ mode }}" id="hide-mode-{{ mode }}-{{ puzzle.roundPuzzleId }}" {{ current_hide_mode == mode ? 'checked' }}>
                                                 <label class="form-check-label" for="hide-mode-{{ mode }}-{{ puzzle.roundPuzzleId }}">{{ ('competition.round_puzzle.form.hide_mode_' ~ mode)|trans }}</label>
                                                 <div class="form-text mt-0">{{ ('competition.round_puzzle.form.hide_mode_' ~ mode ~ '_help')|trans }}</div>
+                                                {# Its name still hidden: "image only" publishes it now, for good - only with a tick #}
+                                                {% if mode == 'image_only' and puzzle.hidden and not image_only %}
+                                                    <div class="form-check mt-1">
+                                                        <input class="form-check-input" type="checkbox" name="confirm_name_public" value="1" id="confirm-name-public-{{ puzzle.roundPuzzleId }}" data-confirm-name-public>
+                                                        <label class="form-check-label small" for="confirm-name-public-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.confirm_name_public'|trans }}</label>
+                                                    </div>
+                                                {% endif %}
                                             </div>
                                         {% endfor %}
                                     </fieldset>

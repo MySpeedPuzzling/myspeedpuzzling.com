@@ -41,8 +41,13 @@ readonly final class EditCompetitionRoundHandler
         $round = $this->competitionRoundRepository->get($message->roundId);
         $now = $this->clock->now();
 
+        // Kept fields come from the round as it is now, under the lock - never from a read before it
+        $keep = static fn (string $field): bool => in_array($field, $message->keepFields, true);
+        $startsAt = $keep('startsAt') ? $round->startsAt : $message->startsAt;
+        $category = $keep('category') ? $round->category : $message->category;
+
         if ($message->refuseToReveal || $message->confirmedRevealHash !== null) {
-            $revealed = $this->secretRevealPreview->byMovingRound($round, $message->startsAt);
+            $revealed = $this->secretRevealPreview->byMovingRound($round, $startsAt);
 
             if (SecretRevealPreview::refuses($revealed, $message->refuseToReveal, $message->confirmedRevealHash)) {
                 throw new SecretPuzzlesWouldBeRevealed($revealed);
@@ -59,14 +64,14 @@ readonly final class EditCompetitionRoundHandler
             }
         }
 
-        if ($message->category !== $round->category) {
+        if ($category !== $round->category) {
             $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
                 competitionId: $round->competition->id->toString(),
                 puzzleIds: array_values(array_map(
                     static fn (CompetitionRoundPuzzle $roundPuzzle): string => $roundPuzzle->puzzle->id->toString(),
                     $round->roundPuzzles->toArray(),
                 )),
-                category: $message->category,
+                category: $category,
                 exceptRoundId: $round->id->toString(),
             );
 
@@ -76,14 +81,14 @@ readonly final class EditCompetitionRoundHandler
         }
 
         $round->edit(
-            name: $message->name,
-            minutesLimit: $message->minutesLimit,
-            startsAt: $message->startsAt,
-            timezone: $message->timezone,
-            badgeBackgroundColor: $message->badgeBackgroundColor,
-            badgeTextColor: $message->badgeTextColor,
-            category: $message->category,
-            resultsLink: $message->resultsLink,
+            name: $keep('name') ? $round->name : $message->name,
+            minutesLimit: $keep('minutesLimit') ? $round->minutesLimit : $message->minutesLimit,
+            startsAt: $startsAt,
+            timezone: $keep('timezone') ? $round->displayTimezone() : $message->timezone,
+            badgeBackgroundColor: $keep('badgeBackgroundColor') ? $round->badgeBackgroundColor : $message->badgeBackgroundColor,
+            badgeTextColor: $keep('badgeTextColor') ? $round->badgeTextColor : $message->badgeTextColor,
+            category: $category,
+            resultsLink: $keep('resultsLink') ? $round->resultsLink : $message->resultsLink,
         );
 
         // An automatic reveal follows the round's start - the puzzles it keeps secret on the whole site follow too.

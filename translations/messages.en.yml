@@ -3700,6 +3700,7 @@ competition:
             automatic_over: "Automatically – not possible any more, the round has already started"
             participants_after_reveal: "Participants can log their times once it is revealed."
             confirm_reveal_list: "With this start, these secret puzzles are revealed right away:"
+            confirm_name_public: "Yes, publish its name now – everyone sees it right away, and it can never be hidden again"
         flash:
             saved: "Reveal settings of “%puzzle%” saved."
             revealed: "“%puzzle%” is revealed."
@@ -3721,6 +3722,7 @@ competition:
             keep_everywhere_refused: "This round cannot keep this puzzle hidden everywhere: that works only for the competition's own puzzle while MySpeedPuzzling still hides it, and only when that hide ends before this round reveals it."
             puzzle_hidden_by_hand: "MySpeedPuzzling itself keeps this puzzle hidden – it cannot be used in a round until it is published."
             name_already_public: "Its name is already public – it can only keep its picture secret."
+            name_public_needs_yes: "\"Image only\" publishes the puzzle's name now – on your event page right away and, unless another round hides it, everywhere – and it can never be hidden again. Tick the box to confirm."
         puzzle_still_secret: "A competition keeps this puzzle secret until it is revealed. Until then it cannot be approved or merged, and only an admin can edit it."
         keep_everywhere: "Keep it hidden everywhere until %time%"
         keep_everywhere_manual: "Keep it hidden everywhere until I reveal it"

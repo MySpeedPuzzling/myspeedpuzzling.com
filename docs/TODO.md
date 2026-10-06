@@ -16,7 +16,7 @@ that would otherwise be forgotten. Newest section on top.
       events without a stored zone (e.g. past `assemble-puzzlery-…` reads 21:30 New York); ask organisers to set theirs.
 - [ ] Rename the random (hex) image names of secret puzzles to SEO names once revealed or approved.
 - [ ] Existence signals of secret puzzles still open (nothing of the puzzle itself, but they tell that something is
-      there): multiscan "already assigned" for a code only a secret puzzle carries, `MergeUnapprovedPuzzleController`
+      there): `MergeUnapprovedPuzzleController`
       `puzzleExists`, results counts and the edition's `puzzle_count`, the image aspect ratio while hidden, `/me`
       predicted time answering 200, the add-time EAN lookup no longer finding an image-only secret puzzle (a player may
       add a duplicate).
@@ -39,6 +39,13 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] With the deploy: purge the old guessable image names the backfill prints from the images-cache and Cloudflare
       (commands in the PR's production plan). Later renames (a puzzle becoming secret) are rare - same commands by hand.
 - [ ] "Something went wrong" in multiscan for a row whose puzzle became secret meanwhile - say "no longer available".
+- [ ] Multiscan answers a code only a hidden puzzle carries with its generic "could not be added / linking failed" (since
+      2026-10, no more "already assigned" - that told a secret box has the code). A player may retry in vain; once the
+      puzzle is revealed it resolves normally.
+- [ ] A guessable picture name a change request's snapshot (`puzzle_change_request.original_image` / `proposed_image`)
+      still references is kept when its puzzle becomes secret (warning "Old guessable picture of a secret puzzle kept").
+      Resolve by hand: point the snapshot at the puzzle's new image (`UPDATE puzzle_change_request SET original_image =
+      <new> WHERE original_image = <old>`), then delete the old object and purge it from the caches (PR #240 step 3b).
 - [ ] "Shown by another surface" for turning a non-secret round puzzle secret is read as "another round shows it now"
       (`RoundPuzzleOwnership::sqlShownByAnotherRound()`) - a public catalogue puzzle may still be hidden on the event
       page before its round starts, as when adding it. Revisit if that should be refused too.

@@ -3434,6 +3434,7 @@ fair_use_policy:
       "automatic_over": "Automáticamente: ya no es posible, la ronda ya ha empezado"
       "participants_after_reveal": "Los participantes podrán registrar sus tiempos cuando se revele."
       "confirm_reveal_list": "Con este inicio, estos puzzles secretos se revelan de inmediato:"
+      "confirm_name_public": "Sí, publicar su nombre ahora: todos lo verán de inmediato y nunca se podrá volver a ocultar"
     "flash":
       "saved": "Se ha guardado la revelación de «%puzzle%»."
       "revealed": "«%puzzle%» está revelado."
@@ -3455,6 +3456,7 @@ fair_use_policy:
       "keep_everywhere_refused": "Esta ronda no puede mantener este puzzle oculto en todas partes: solo es posible con el puzzle propio de la competición mientras MySpeedPuzzling aún lo oculta, y solo si esa ocultación termina antes de que esta ronda lo revele."
       "puzzle_hidden_by_hand": "MySpeedPuzzling mantiene oculto este puzzle: no se puede usar en una ronda hasta que se publique."
       "name_already_public": "Su nombre ya es público: solo puede mantener en secreto la imagen."
+      "name_public_needs_yes": "«Solo imagen» publica ahora el nombre del puzzle: de inmediato en la página de tu evento y, si ninguna otra ronda lo oculta, en todas partes, y nunca se podrá volver a ocultar. Marca la casilla para confirmarlo."
     "puzzle_still_secret": "Una competición mantiene este puzzle en secreto hasta que se revele. Hasta entonces no se puede aprobar ni fusionar, y solo un administrador puede editarlo."
     "keep_everywhere": "Mantenerlo oculto en todas partes hasta %time%"
     "keep_everywhere_manual": "Mantenerlo oculto en todas partes hasta que lo revele"

@@ -3434,6 +3434,7 @@ competition:
       "automatic_over": "Automatiquement – plus possible, la manche a déjà commencé"
       "participants_after_reveal": "Les participants pourront enregistrer leurs temps une fois qu’il sera révélé."
       "confirm_reveal_list": "Avec ce début, ces puzzles secrets sont révélés immédiatement :"
+      "confirm_name_public": "Oui, publier son nom maintenant – tout le monde le voit aussitôt, et il ne pourra plus jamais être masqué"
     "flash":
       "saved": "Révélation de « %puzzle% » enregistrée."
       "revealed": "« %puzzle% » est révélé."
@@ -3455,6 +3456,7 @@ competition:
       "keep_everywhere_refused": "Cette manche ne peut pas garder ce puzzle masqué partout : c’est possible seulement pour le puzzle propre à la compétition tant que MySpeedPuzzling le masque encore, et seulement si ce masquage se termine avant que cette manche le révèle."
       "puzzle_hidden_by_hand": "MySpeedPuzzling garde lui-même ce puzzle masqué – il ne peut pas être utilisé dans une manche avant sa publication."
       "name_already_public": "Son nom est déjà public – seule son image peut rester secrète."
+      "name_public_needs_yes": "« Image seulement » publie maintenant le nom du puzzle – aussitôt sur la page de votre événement et, si aucune autre manche ne le masque, partout – et il ne pourra plus jamais être masqué. Cochez la case pour confirmer."
     "puzzle_still_secret": "Une compétition garde ce puzzle secret jusqu’à sa révélation. D’ici là, il ne peut être ni approuvé ni fusionné, et seul un administrateur peut le modifier."
     "keep_everywhere": "Le garder masqué partout jusqu’au %time%"
     "keep_everywhere_manual": "Le garder masqué partout jusqu’à ce que je le révèle"

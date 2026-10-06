@@ -68,6 +68,9 @@ final class UpdateCompetitionRoundController extends AbstractController
                 resultsLink: $data->resultsLink,
                 // A start moved so that secret puzzles come out right away needs an explicit yes (409 otherwise)
                 refuseToReveal: $confirmReveal === false,
+                // What the body leaves out is kept as the round has it under the handler's lock - the values above
+                // for those fields were read before it and are ignored
+                keepFields: self::keptFields($input),
             ));
         } catch (HandlerFailedException $exception) {
             $previous = $exception->getPrevious();
@@ -80,5 +83,20 @@ final class UpdateCompetitionRoundController extends AbstractController
         }
 
         return new JsonResponse($this->getAdminCompetitions->round($round->id->toString())->toArray());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function keptFields(InternalApiInput $input): array
+    {
+        $kept = array_values(array_filter(EditCompetitionRound::FIELDS, static fn (string $field): bool => $input->has($field) === false));
+
+        // The zone is sent only together with the start; a start without it keeps the round's zone
+        if ($input->has('startsAt') && $input->has('timezone') === false) {
+            $kept = array_values(array_diff($kept, ['timezone']));
+        }
+
+        return $kept;
     }
 }

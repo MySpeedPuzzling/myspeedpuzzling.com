@@ -104,14 +104,10 @@ final class StopwatchController extends AbstractController
 
         $stopwatches = $this->getStopwatch->allForPlayer($player->playerId);
 
-        // The list names each stopwatch's puzzle - never one a competition keeps secret from this player
-        $hiddenPuzzleIds = [];
-
-        foreach ($stopwatches as $stopwatch) {
-            if ($stopwatch->puzzleId !== null && $this->secretPuzzleAccess->isHiddenFromViewer($stopwatch->puzzleId)) {
-                $hiddenPuzzleIds[$stopwatch->puzzleId] = true;
-            }
-        }
+        // The list names each stopwatch's puzzle - never one a competition keeps secret from this player (one query)
+        $hiddenPuzzleIds = $this->secretPuzzleAccess->hiddenFromViewerAmong(array_values(array_filter(
+            array_map(static fn ($stopwatch): null|string => $stopwatch->puzzleId, $stopwatches),
+        )));
 
         // If user has any running stopwatch, redirect to them
         foreach ($stopwatches as $stopwatch) {

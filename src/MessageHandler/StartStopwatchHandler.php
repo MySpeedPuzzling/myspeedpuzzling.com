@@ -33,7 +33,7 @@ readonly final class StartStopwatchHandler
         $puzzle = $message->puzzleId !== null ? $this->puzzleRepository->get($message->puzzleId) : null;
 
         // A puzzle a competition keeps secret is nobody's to time but its organisers' (SecretPuzzleAccess) - a stopwatch
-        // shows its name
+        // shows its name. Its organisers may: a running stopwatch is no stored record, the time is saved after the reveal
         if ($puzzle !== null) {
             $this->secretPuzzleAccess->assertPuzzleUsableBy($puzzle, $player->id->toString());
         }

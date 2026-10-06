@@ -12,6 +12,10 @@ use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Value\LanguageTag;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -22,18 +26,31 @@ readonly final class SubmitPuzzleMergeRequestHandler
         private PuzzleRepository $puzzleRepository,
         private PlayerRepository $playerRepository,
         private ClockInterface $clock,
+        private SecretPuzzleAccess $secretPuzzleAccess,
+        private IsPuzzleKeptSecret $isPuzzleKeptSecret,
     ) {
     }
 
+    /**
+     * @throws PuzzleNotFound
+     * @throws PuzzleIsStillSecret
+     */
     public function __invoke(SubmitPuzzleMergeRequest $message): void
     {
         $sourcePuzzle = $this->puzzleRepository->get($message->sourcePuzzleId);
         $reporter = $this->playerRepository->get($message->reporterId);
         $now = $this->clock->now();
 
-        // Validate all duplicate puzzle IDs exist
-        foreach ($message->duplicatePuzzleIds as $puzzleId) {
+        // Validate all duplicate puzzle IDs exist - and none is a secret competition puzzle: a report would show its
+        // name next to the public one on that puzzle's pages, and could not be merged before the reveal anyway. Whoever
+        // may not see it does not learn it exists (404), its organisers are refused too (409). A hidden picture counts.
+        foreach ([$message->sourcePuzzleId, ...$message->duplicatePuzzleIds] as $puzzleId) {
             $this->puzzleRepository->get($puzzleId);
+            $this->secretPuzzleAccess->assertUsableBy($puzzleId, $message->reporterId, alsoWhileImageHidden: true);
+
+            if ($this->isPuzzleKeptSecret->byId($puzzleId)) {
+                throw new PuzzleIsStillSecret($puzzleId);
+            }
         }
 
         // Ensure source puzzle is included in the list

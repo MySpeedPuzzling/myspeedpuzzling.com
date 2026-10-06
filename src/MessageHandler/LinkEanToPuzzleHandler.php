@@ -66,7 +66,15 @@ readonly final class LinkEanToPuzzleHandler
         }
 
         if ($owners !== []) {
-            throw new EanAlreadyAssigned();
+            foreach ($owners as $ownerId) {
+                if ($this->secretPuzzleAccess->isHiddenFromPlayer($ownerId, $message->playerId, alsoWhileImageHidden: true) === false) {
+                    throw new EanAlreadyAssigned();
+                }
+            }
+
+            // Only puzzles a competition keeps secret from this player carry the code: "already assigned" would tell
+            // that a secret box has it - answered like any other failure
+            throw new PuzzleNotFound();
         }
 
         $now = $this->clock->now();

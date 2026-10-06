@@ -9,6 +9,11 @@ use SpeedPuzzling\Web\Value\RoundCategory;
 
 readonly final class EditCompetitionRound
 {
+    public const array FIELDS = ['name', 'minutesLimit', 'startsAt', 'timezone', 'badgeBackgroundColor', 'badgeTextColor', 'category', 'resultsLink'];
+
+    /**
+     * @param list<string> $keepFields
+     */
     public function __construct(
         public string $roundId,
         public string $name,
@@ -27,6 +32,10 @@ readonly final class EditCompetitionRound
         // list): re-checked after the locks, a different list now is refused (SecretPuzzlesWouldBeRevealed). Null = no
         // check (the caller asked differently)
         public null|string $confirmedRevealHash = null,
+        // Fields to keep as the round has them when the handler holds its lock (EditCompetitionRound::FIELDS) - the
+        // values given for them are ignored. A partial update (the internal API's PATCH) never writes back a value it
+        // read before another change of the round committed.
+        public array $keepFields = [],
     ) {
     }
 }

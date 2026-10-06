@@ -3424,6 +3424,7 @@ qr_code:
       "automatic_over": "自動：ラウンドがすでに始まっているため、選べません"
       "participants_after_reveal": "参加者は公開後にタイムを記録できます。"
       "confirm_reveal_list": "この開始時刻では、次の非公開パズルがすぐに公開されます："
+      "confirm_name_public": "はい、今すぐ名前を公開します。すぐに全員に表示され、二度と非公開に戻せません"
     "flash":
       "saved": "「%puzzle%」の公開設定を保存しました。"
       "revealed": "「%puzzle%」を公開しました。"
@@ -3445,6 +3446,7 @@ qr_code:
       "keep_everywhere_refused": "このラウンドではこのパズルをすべての場所で非公開にできません。これができるのは、MySpeedPuzzlingがまだ非公開にしている大会独自のパズルで、その非公開がこのラウンドの公開より前に終わる場合だけです。"
       "puzzle_hidden_by_hand": "このパズルはMySpeedPuzzling自体が非公開にしています。公開されるまでラウンドでは使えません。"
       "name_already_public": "名前はすでに公開されています。非公開にできるのは画像だけです。"
+      "name_public_needs_yes": "「画像のみ」にするとパズルの名前が今すぐ公開されます（イベントページですぐに、別のラウンドが非公開にしていなければすべての場所で）。二度と非公開に戻せません。チェックを入れて確認してください。"
     "puzzle_still_secret": "大会がこのパズルを公開まで非公開にしています。それまでは承認や統合はできず、編集できるのは管理者のみです。"
     "keep_everywhere": "%time%まですべての場所で非公開にする"
     "keep_everywhere_manual": "公開するまですべての場所で非公開にする"

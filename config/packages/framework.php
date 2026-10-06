@@ -12,11 +12,13 @@ use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleEanAlreadyInCatalogue;
+use SpeedPuzzling\Web\Exceptions\NamePublicationNotConfirmed;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzlesNotAttachable;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -101,7 +103,9 @@ return App::config([
             PuzzleIsStillSecret::class => ['log_level' => 'info'],
             PuzzleHiddenByHand::class => ['log_level' => 'info'],
             PuzzleNameAlreadyPublic::class => ['log_level' => 'info'],
+            NamePublicationNotConfirmed::class => ['log_level' => 'info'],
             PuzzleNotRevealedYet::class => ['log_level' => 'info'],
+            RoundPuzzlesNotAttachable::class => ['log_level' => 'info'],
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],
         'trusted_proxies' => '%env(TRUSTED_PROXIES)%',

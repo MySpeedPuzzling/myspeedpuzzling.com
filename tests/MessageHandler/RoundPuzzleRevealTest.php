@@ -121,6 +121,22 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         self::assertEquals($roundPuzzle->round->automaticRevealAt(), $roundPuzzle->puzzle->hideImageUntil);
     }
 
+    public function testPublishingTheNameByImageOnlyNeedsAYes(): void
+    {
+        $roundPuzzleId = $this->secretRoundPuzzle(PuzzleFixture::PUZZLE_500_03, hidesEverywhere: true);
+
+        try {
+            $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::ImageOnly, RoundPuzzleReveal::Automatic, null));
+            self::fail('"Image only" publishes the name for good - never without a yes');
+        } catch (\SpeedPuzzling\Web\Exceptions\NamePublicationNotConfirmed) {
+        }
+
+        $this->entityManager->clear();
+        $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
+        self::assertNotSame(PuzzleHideMode::ImageOnly, $roundPuzzle->hideMode);
+        self::assertTrue($roundPuzzle->puzzle->isHiddenAt(new DateTimeImmutable()));
+    }
+
     public function testCataloguePuzzleIsNeverHiddenBeyondTheEventPages(): void
     {
         $roundPuzzleId = $this->secretRoundPuzzle(PuzzleFixture::PUZZLE_500_03, hidesEverywhere: false);
@@ -306,7 +322,7 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         RoundPuzzleReveal $revealMode,
         null|DateTimeImmutable $scheduledAt,
     ): void {
-        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, $hideMode, $revealMode, $scheduledAt));
+        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, $hideMode, $revealMode, $scheduledAt, namePublicationConfirmed: true));
         $this->entityManager->clear();
     }
 

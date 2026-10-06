@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Exceptions\NamePublicationNotConfirmed;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
@@ -37,6 +38,7 @@ readonly final class ChangeRoundPuzzleRevealHandler
      * @throws RoundPuzzleAlreadyShown
      * @throws PuzzleHiddenByHand
      * @throws PuzzleNameAlreadyPublic
+     * @throws NamePublicationNotConfirmed
      */
     public function __invoke(ChangeRoundPuzzleReveal $message): void
     {
@@ -68,6 +70,17 @@ readonly final class ChangeRoundPuzzleRevealHandler
         // A puzzle hidden by hand (a placeholder) is no round's to hide or reveal
         if ($puzzle->isImageHiddenAt($now) && $puzzleKeptSecret === false) {
             throw new PuzzleHiddenByHand();
+        }
+
+        // "Entirely" -> "image only" while the row still hides the name: the name comes out at once, on the event page and
+        // (with no other round hiding it entirely) everywhere - and for good. Only on an explicit yes.
+        if (
+            $roundPuzzle->hideUntilRoundStarts
+            && ($roundPuzzle->hideMode ?? PuzzleHideMode::Entirely) === PuzzleHideMode::Entirely
+            && $message->hideMode === PuzzleHideMode::ImageOnly
+            && $message->namePublicationConfirmed === false
+        ) {
+            throw new NamePublicationNotConfirmed();
         }
 
         // Kept secret on the whole site with its name already public ("image only"): hiding the name again would take it

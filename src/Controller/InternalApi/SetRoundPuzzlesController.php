@@ -21,7 +21,8 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * The round's puzzles become exactly `puzzleIds` (SetCompetitionRoundPuzzles): one round per category per puzzle per
  * competition, else 409 and nothing changes. New puzzles are attached unhidden, so a hidden puzzle is refused (409);
- * removing a secret puzzle that no other round keeps hidden needs `"confirmReveal": true` (409, `revealedPuzzles`).
+ * removing a secret puzzle needs `"confirmReveal": true` (409, `revealedPuzzles`) only when that reveals it right away
+ * - another round has revealed it already; one no other round holds stays hidden (its hide dates are kept).
  */
 final class SetRoundPuzzlesController extends AbstractController
 {

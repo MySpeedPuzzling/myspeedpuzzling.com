@@ -762,8 +762,9 @@ final class MultiscanTray
                 $this->notify('ambiguous', $ean->digits, null, $key);
                 $this->closeResolveSheet();
             } else {
-                // Only a hidden puzzle carries it
-                $this->resolveError = 'multiscan.resolve.error.already_assigned';
+                // Only a hidden puzzle carries it - answered like any other failure: "already assigned" would tell
+                // that a secret box has this code
+                $this->resolveError = 'multiscan.resolve.error.create_failed';
             }
 
             return;

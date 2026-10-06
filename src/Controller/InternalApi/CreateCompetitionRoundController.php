@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
@@ -12,6 +13,8 @@ use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzlesNotAttachable;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
@@ -26,7 +29,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -49,6 +51,7 @@ final class CreateCompetitionRoundController extends AbstractController
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly CompetitionRepository $competitionRepository,
         private readonly ClockInterface $clock,
+        private readonly Connection $database,
     ) {
     }
 
@@ -101,7 +104,7 @@ final class CreateCompetitionRoundController extends AbstractController
             $hiddenPuzzleIds = array_keys(array_filter($puzzles, static fn (AdminPuzzle $puzzle): bool => $puzzle->isImageHiddenAt($now)));
 
             if ($hiddenPuzzleIds !== []) {
-                throw new ConflictHttpException(sprintf(
+                throw new RoundPuzzlesNotAttachable(sprintf(
                     'Hidden puzzles cannot be attached by the API - they would show on the event page: %s. Attach a secret puzzle on the round\'s page, where its reveal is chosen. Nothing was created.',
                     implode(', ', $hiddenPuzzleIds),
                 ));
@@ -119,8 +122,7 @@ final class CreateCompetitionRoundController extends AbstractController
         }
 
         $roundId = Uuid::uuid7();
-
-        $this->messageBus->dispatch(new AddCompetitionRound(
+        $addRound = new AddCompetitionRound(
             roundId: $roundId,
             competitionId: $competition->competitionId,
             name: $data->name,
@@ -131,39 +133,36 @@ final class CreateCompetitionRoundController extends AbstractController
             badgeTextColor: $data->badgeTextColor,
             category: $data->category,
             resultsLink: $data->resultsLink,
-        ));
+        );
+
+        // The round and its puzzles in one transaction: each message runs in its own savepoint of this one
+        // (doctrine_transaction), so a refused list - checked above, but a puzzle may change meanwhile - rolls the round
+        // back too. Never a round without its puzzles, never a 500 for it.
+        try {
+            $this->database->transactional(function () use ($addRound, $roundId, $puzzleIds): void {
+                $this->messageBus->dispatch($addRound);
+
+                if ($puzzleIds !== null && $puzzleIds !== []) {
+                    $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
+                        roundId: $roundId->toString(),
+                        puzzleIds: $puzzleIds,
+                    ));
+                }
+            });
+        } catch (PuzzleIsStillSecret | PuzzleHiddenByHand $exception) {
+            // An HTTP exception of the handler arrives unwrapped (UnwrapHttpExceptionMiddleware)
+            throw new RoundPuzzlesNotAttachable(sprintf('The round was not created - %s', $exception->getMessage()), $exception);
+        } catch (PuzzleNotFound $exception) {
+            throw new NotFoundHttpException('A puzzle of the list no longer exists. Nothing was created.', $exception);
+        } catch (HandlerFailedException $exception) {
+            if ($exception->getPrevious() instanceof PuzzleAlreadyInCompetitionRoundCategory) {
+                throw new PuzzleInTwoRoundsOfCategory($data->category->value, $exception->getPrevious()->conflictingRoundName, $exception);
+            }
+
+            throw $exception;
+        }
 
         $request->attributes->set(InternalApiAuditSubscriber::CREATED_ID_ATTRIBUTE, $roundId->toString());
-
-        if ($puzzleIds !== null && $puzzleIds !== []) {
-            try {
-                $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
-                    roundId: $roundId->toString(),
-                    puzzleIds: $puzzleIds,
-                ));
-            } catch (PuzzleIsStillSecret | PuzzleHiddenByHand $exception) {
-                // Checked above - only a puzzle hidden in the meantime gets here (an HTTP exception, so it arrives
-                // unwrapped), and the round exists by now
-                throw new ConflictHttpException(sprintf(
-                    'The round %s was created, but its puzzles were not attached: %s Set them with PUT /internal-api/rounds/%s/puzzles.',
-                    $roundId->toString(),
-                    $exception->getMessage(),
-                    $roundId->toString(),
-                ), $exception);
-            } catch (HandlerFailedException $exception) {
-                // Checked above - only a puzzle attached elsewhere in the meantime gets here, and the round exists by now
-                if ($exception->getPrevious() instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                    throw new ConflictHttpException(sprintf(
-                        'The round %s was created, but its puzzles were not attached: %s. Set them with PUT /internal-api/rounds/%s/puzzles.',
-                        $roundId->toString(),
-                        $exception->getPrevious()->getMessage(),
-                        $roundId->toString(),
-                    ), $exception);
-                }
-
-                throw $exception;
-            }
-        }
 
         return new JsonResponse($this->getAdminCompetitions->round($roundId->toString())->toArray(), Response::HTTP_CREATED);
     }

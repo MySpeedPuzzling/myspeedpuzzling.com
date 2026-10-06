@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
+use SpeedPuzzling\Web\Exceptions\NamePublicationNotConfirmed;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
@@ -93,7 +94,10 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
                 hideMode: $hideMode,
                 revealMode: $revealMode,
                 scheduledAt: $scheduledAt,
+                namePublicationConfirmed: $request->request->get('confirm_name_public') === '1',
             ));
+        } catch (NamePublicationNotConfirmed) {
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.name_public_needs_yes');
         } catch (RevealMomentAlreadyPassed) {
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.time_passed');
         } catch (RoundPuzzleAlreadyRevealed) {

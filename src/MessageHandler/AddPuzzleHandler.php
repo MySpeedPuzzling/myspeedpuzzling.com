@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleIdTaken;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Query\IsPuzzleInUse;
+use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
@@ -36,6 +37,7 @@ readonly final class AddPuzzleHandler
         private IsPuzzleInUse $isPuzzleInUse,
         private IdLock $idLock,
         private ClockInterface $clock,
+        private IsPuzzleKeptSecret $isPuzzleKeptSecret,
     ) {
     }
 
@@ -55,7 +57,12 @@ readonly final class AddPuzzleHandler
         $existingPuzzle = $this->puzzleRepository->findById($message->puzzleId);
 
         if ($existingPuzzle !== null) {
-            if ($existingPuzzle->addedByUser?->id->equals($player->id) !== true) {
+            // Somebody else's puzzle - or a secret competition puzzle, even the player's own: its record changes only
+            // through PuzzleRecordUpdater (admins), and a corrected photo would get a guessable name
+            if (
+                $existingPuzzle->addedByUser?->id->equals($player->id) !== true
+                || $this->isPuzzleKeptSecret->byId($existingPuzzle->id->toString())
+            ) {
                 throw new PuzzleIdTaken();
             }
 

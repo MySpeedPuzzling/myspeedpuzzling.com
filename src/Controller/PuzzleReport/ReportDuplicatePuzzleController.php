@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\ReportDuplicatePuzzleFormData;
 use SpeedPuzzling\Web\FormType\ReportDuplicatePuzzleFormType;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -78,13 +79,20 @@ final class ReportDuplicatePuzzleController extends AbstractController
             if (count($duplicateIds) > 0) {
                 $mergeRequestId = Uuid::uuid7()->toString();
 
-                $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
-                    mergeRequestId: $mergeRequestId,
-                    sourcePuzzleId: $puzzleId,
-                    reporterId: $loggedPlayer->playerId,
-                    duplicatePuzzleIds: $duplicateIds,
-                    reportedNameLanguages: self::reportedNameLanguages($formData, $puzzleId, $duplicateIds),
-                ));
+                try {
+                    // A secret competition puzzle on either side is refused (404 for whoever may not see it)
+                    $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
+                        mergeRequestId: $mergeRequestId,
+                        sourcePuzzleId: $puzzleId,
+                        reporterId: $loggedPlayer->playerId,
+                        duplicatePuzzleIds: $duplicateIds,
+                        reportedNameLanguages: self::reportedNameLanguages($formData, $puzzleId, $duplicateIds),
+                    ));
+                } catch (PuzzleIsStillSecret) {
+                    $this->addFlash('warning', $this->translator->trans('competition.reveal.puzzle_still_secret'));
+
+                    return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+                }
 
                 if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
                     $request->setRequestFormat(TurboBundle::STREAM_FORMAT);

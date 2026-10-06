@@ -114,7 +114,10 @@ puzzle must be a valid EAN/UPC. The proposal is stored in the canonical form (ba
 any other value as typed, brand codes in upper case, each once); a list equal to the puzzle's in that form proposes
 nothing for the field. The reviewer player is the reporter. Answers `400` for an invalid field or when nothing differs,
 `404` for an unknown puzzle and `409` when the puzzle already has a pending merge request or a pending change request of
-more than its names (the web form allows one at a time too). A proposal of the names only (`name`, `nameLanguage`,
+more than its names (the web form allows one at a time too). A secret competition puzzle (hidden until a round reveals
+it) is in no queue, and approving a change request of it answers `409` - unless the reviewer player
+(`INTERNAL_API_REVIEWER_PLAYER_ID`) is an admin: then the API approves it like the admin UI does (a correction the
+organiser asked for). Approving the puzzle itself and merges wait for the reveal for everybody. A proposal of the names only (`name`, `nameLanguage`,
 `alternativeNames` - nothing else differs) is filed regardless and holds up nothing: names apply as a diff, so several
 may wait at once. No photo. Use it for catalogue corrections found by an analysis, so they go through moderator review
 instead of a database write - the `puzzle-change-proposal` skill wraps it.
@@ -255,7 +258,7 @@ Not settable here: the logo (upload it in the UI), the series of an edition (rec
 | `name` | Required on create |
 | `category` | `solo` (default), `duo`, `team` |
 | `startsAt` | Required on create. ISO 8601 date-time, **stored and answered in UTC** like the round form stores it: with an offset (`"2026-11-14T10:00:00+01:00"`, `"…Z"`) it is that moment; without one (`"2026-11-14T10:00"`) a wall-clock time in the round's zone (the `timezone` sent along, else the round's own) - a `400` when a daylight-saving change skips or repeats that time there (send it with an offset). Left out of a `PATCH`, the start stays exactly as stored |
-| `timezone` | The round's own IANA zone (`"America/Chicago"`) - its times are typed and shown in it, on the organiser's form and the event pages, and the answer carries it. A new round gets the zone of the event's other rounds, else of its country (`CountryCode::defaultTimezone()`, the series' country for an edition), else `Europe/Prague` - like the form. Only together with `startsAt` (a `400` alone: it would leave open whether the round keeps its moment or its wall-clock time) |
+| `timezone` | The round's own IANA zone (`"America/Chicago"`) - its times are typed and shown in it, on the organiser's form and the event pages, and the answer carries it. A new round gets the zone of the event's other rounds, else of its country (`CountryCode::defaultTimezone()`, the series' country for an edition), else `Europe/Prague` - like the form. Only together with `startsAt` (a `400` alone: it would leave open whether the round keeps its moment or its wall-clock time); `null` is a `400` too |
 | `minutesLimit` | Required on create, ≥ 1 |
 | `badgeBackgroundColor`, `badgeTextColor` | e.g. `"#fe696a"` / `"#ffffff"` (the form's defaults) |
 | `resultsLink` | The organiser's results page of this round |
@@ -279,8 +282,8 @@ own delete button in the UI does not have this guard.
 (`hideUntilRoundStarts`, `revealMode` `automatic` = 10 minutes after the round starts / `scheduled` / `manual`,
 `revealsAt` in UTC, `hidesEverywhere` = the whole site, not only the event pages -
 [competitions docs](./competitions-management/README.md) "Hide Until Round Starts"). A change that would reveal such
-a puzzle **right away** - deleting the round, removing the puzzle (`PUT …/puzzles`), or a `PATCH` moving the start
-so that its automatic reveal is over - is refused with a `409` that lists them (`revealedPuzzles`: `puzzleId`, `name`,
+a puzzle **right away** - deleting the round or removing the puzzle (`PUT …/puzzles`) while another round has revealed
+it already, or a `PATCH` moving the start so that its automatic reveal is over - is refused with a `409` that lists them (`revealedPuzzles`: `puzzleId`, `name`,
 `revealedEverywhere`, `stillHiddenElsewhereUntil`), and nothing changes. Send the same request again with
 `"confirmReveal": true` (in the `DELETE` body too) to go ahead - the organiser's form asks the same question. Changing
 a reveal, revealing now and making a round keep its puzzle secret on the whole site stay in the UI.
@@ -420,7 +423,7 @@ curl -X POST "$API/competitions" -H "$AUTH" -H "Content-Type: application/json" 
   "link": "https://example.com/czjpc", "resultsLink": "https://example.com/czjpc/results", "approve": true
 }'
 
-# Its rounds - local times of the event, the time zone of the country is assumed (or send "timezone")
+# Its rounds - local times of the event, in the zone of the event's other rounds, else of its country (or send "timezone")
 curl -X POST "$API/competitions/019a0000-0000-7000-8000-000000000002/rounds" -H "$AUTH" -H "Content-Type: application/json" \
   -d '{"name": "Individual Final", "category": "solo", "startsAt": "2025-10-05T10:00", "minutesLimit": 120,
        "puzzleIds": ["0199a000-0000-7000-8000-000000000010"]}'

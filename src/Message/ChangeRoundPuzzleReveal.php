@@ -16,6 +16,8 @@ readonly final class ChangeRoundPuzzleReveal
         public RoundPuzzleReveal $revealMode,
         // The instant of a scheduled reveal, null otherwise
         public null|DateTimeImmutable $scheduledAt = null,
+        // Yes to publishing the name now: "entirely" -> "image only" of a row still hiding it (it is never hidden again)
+        public bool $namePublicationConfirmed = false,
     ) {
     }
 }

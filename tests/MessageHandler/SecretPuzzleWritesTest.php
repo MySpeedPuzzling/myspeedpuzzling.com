@@ -170,6 +170,66 @@ final class SecretPuzzleWritesTest extends KernelTestCase
         ));
     }
 
+    public function testTheAddFormsResendNeverRewritesASecretPuzzle(): void
+    {
+        // The organiser's own secret puzzle, its id sent as the add form's new puzzle id
+        $puzzleId = $this->secretPuzzle(PuzzleHideMode::Entirely);
+        $imagePath = tempnam(sys_get_temp_dir(), 'resend_box_') . '.jpg';
+        $image = imagecreatetruecolor(10, 10);
+        assert($image !== false);
+        imagejpeg($image, $imagePath);
+
+        try {
+            $this->messageBus->dispatch(new \SpeedPuzzling\Web\Message\AddPuzzle(
+                puzzleId: Uuid::fromString($puzzleId),
+                userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+                puzzleName: 'Renamed Through The Add Form',
+                brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                piecesCount: 1000,
+                puzzlePhoto: new UploadedFile($imagePath, 'box.jpg', 'image/jpeg', null, true),
+                eans: EanList::fromStored(null),
+                brandCodes: BrandCodeList::fromStored(null),
+            ));
+            self::fail('A secret puzzle is never corrected through the add form');
+        } catch (\Symfony\Component\Messenger\Exception\HandlerFailedException $exception) {
+            self::assertInstanceOf(\SpeedPuzzling\Web\Exceptions\PuzzleIdTaken::class, $exception->getPrevious());
+        }
+
+        $this->entityManager->clear();
+        $puzzle = $this->entityManager->find(\SpeedPuzzling\Web\Entity\Puzzle::class, $puzzleId);
+        self::assertNotNull($puzzle);
+        self::assertStringStartsWith('Writes Secret', $puzzle->name);
+    }
+
+    public function testACodeOnlyASecretPuzzleCarriesIsNotSaidToBeTaken(): void
+    {
+        $roundPuzzleId = Uuid::uuid7();
+        $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
+            roundPuzzleId: $roundPuzzleId,
+            roundId: CompetitionApiFixture::ROUND_FUTURE,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            puzzle: 'Coded Secret Box',
+            piecesCount: 1000,
+            puzzlePhoto: null,
+            eans: EanList::fromStored('4005556175512'),
+            brandCodes: BrandCodeList::fromStored(null),
+            hideUntilRoundStarts: true,
+            hideMode: PuzzleHideMode::Entirely,
+        ));
+        $this->entityManager->clear();
+
+        // Linking that code to a public puzzle: "already assigned" would tell a secret box has it
+        try {
+            $this->messageBus->dispatch(new LinkEanToPuzzle(\SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture::PUZZLE_9000, PlayerFixture::PLAYER_PRIVATE, '4005556175512'));
+            self::fail('The link must be refused');
+        } catch (PuzzleNotFound) {
+        }
+
+        $this->entityManager->clear();
+        self::assertNull($this->entityManager->find(\SpeedPuzzling\Web\Entity\Puzzle::class, \SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture::PUZZLE_9000)?->ean);
+    }
+
     public function testANewSecretPuzzleGetsARandomImageName(): void
     {
         $imagePath = tempnam(sys_get_temp_dir(), 'secret_box_') . '.jpg';

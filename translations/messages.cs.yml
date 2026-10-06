@@ -3431,6 +3431,7 @@ qr_code:
       "automatic_over": "Automaticky – už nejde, kolo už začalo"
       "participants_after_reveal": "Účastníci si mohou zapsat časy, až bude odhalené."
       "confirm_reveal_list": "S tímto začátkem se tato tajná puzzle odhalí hned:"
+      "confirm_name_public": "Ano, zveřejnit název teď – všichni ho hned uvidí a už nikdy nepůjde znovu skrýt"
     "flash":
       "saved": "Nastavení odhalení puzzle „%puzzle%“ je uložené."
       "revealed": "Puzzle „%puzzle%“ je odhalené."
@@ -3452,6 +3453,7 @@ qr_code:
       "keep_everywhere_refused": "Toto kolo nemůže držet toto puzzle skryté všude: jde to jen u vlastního puzzle soutěže, dokud ho MySpeedPuzzling ještě skrývá, a jen když to skrytí skončí dřív, než ho toto kolo odhalí."
       "puzzle_hidden_by_hand": "Toto puzzle drží skryté samo MySpeedPuzzling – do jeho zveřejnění ho nelze použít v kole."
       "name_already_public": "Jeho název už je veřejný – v tajnosti může zůstat jen obrázek."
+      "name_public_needs_yes": "„Jen obrázek“ zveřejní název puzzle hned – na stránce vaší události okamžitě a, pokud ho neskrývá jiné kolo, všude – a už nikdy nepůjde znovu skrýt. Potvrďte to zaškrtnutím."
     "puzzle_still_secret": "Soutěž drží toto puzzle v tajnosti až do jeho odhalení. Do té doby ho nelze schválit ani sloučit a upravit ho může jen administrátor."
     "keep_everywhere": "Držet ho skryté všude do %time%"
     "keep_everywhere_manual": "Držet ho skryté všude, dokud ho neodhalím"

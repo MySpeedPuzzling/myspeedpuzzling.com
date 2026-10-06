@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzlesNotAttachable;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use Stringable;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -91,6 +92,7 @@ final class ClientErrorLogLevelTest extends KernelTestCase
         yield '409 secret puzzles a change would reveal' => [new SecretPuzzlesWouldBeRevealed([['id' => 'x', 'name' => 'Secret', 'everywhere' => true, 'hiddenElsewhereUntil' => null]]), LogLevel::INFO];
         yield '409 secret puzzle attached unhidden' => [new PuzzleIsStillSecret('x'), LogLevel::INFO];
         yield '409 placeholder hidden by hand' => [new PuzzleHiddenByHand(), LogLevel::INFO];
+        yield '409 internal API round puzzles not attachable' => [new RoundPuzzlesNotAttachable('Hidden puzzles cannot be attached.'), LogLevel::INFO];
         yield '409 personal record before the reveal' => [new PuzzleNotRevealedYet('x', null, 'Europe/Prague'), LogLevel::INFO];
         yield '400 invalid internal API input' => [new InternalApiInvalidInput(['name' => 'is required.']), LogLevel::INFO];
         yield '409 conflict stays visible' => [new ConflictHttpException('A team with results cannot be deleted.'), LogLevel::ERROR];

@@ -222,18 +222,70 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         $queue = self::getContainer()->get(GetPuzzleMergeReviewQueue::class);
         $countBefore = $queue->countPending();
 
-        $mergeRequestId = Uuid::uuid7()->toString();
-        $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
-            mergeRequestId: $mergeRequestId,
-            sourcePuzzleId: PuzzleFixture::PUZZLE_500_05,
-            reporterId: PlayerFixture::PLAYER_REGULAR,
-            duplicatePuzzleIds: [$secretId],
-        ));
+        // Filed before the puzzle became secret (a report naming a secret puzzle is refused now)
+        $mergeRequestId = $this->mergeRequestFiledEarlier(PuzzleFixture::PUZZLE_500_05, $secretId);
 
         self::assertSame($countBefore, $queue->countPending());
         foreach ($queue->pending(100) as $item) {
             self::assertNotSame($mergeRequestId, $item->mergeRequestId);
         }
+    }
+
+    public function testAReportWithASecretDuplicateNeitherShowsNorBlocksThePublicPuzzle(): void
+    {
+        $roundPuzzleId = $this->addSecretPuzzle('Reported Secret', ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
+        $secretId = $this->roundPuzzle($roundPuzzleId)->puzzle->id->toString();
+        $proposals = self::getContainer()->get(\SpeedPuzzling\Web\Query\GetPendingPuzzleProposals::class);
+        self::assertFalse($proposals->blocksNewProposal(PuzzleFixture::PUZZLE_500_05));
+
+        // A player with the secret id reports it as a DUPLICATE of a public puzzle: refused, unseen
+        try {
+            $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
+                mergeRequestId: Uuid::uuid7()->toString(),
+                sourcePuzzleId: PuzzleFixture::PUZZLE_500_05,
+                reporterId: PlayerFixture::PLAYER_PRIVATE,
+                duplicatePuzzleIds: [$secretId],
+            ));
+            self::fail('A secret puzzle must not be reportable as a duplicate');
+        } catch (\SpeedPuzzling\Web\Exceptions\PuzzleNotFound) {
+        }
+
+        // ... its organiser too
+        try {
+            $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
+                mergeRequestId: Uuid::uuid7()->toString(),
+                sourcePuzzleId: PuzzleFixture::PUZZLE_500_05,
+                reporterId: PlayerFixture::PLAYER_REGULAR,
+                duplicatePuzzleIds: [$secretId],
+            ));
+            self::fail('Not even its organiser reports a secret puzzle');
+        } catch (\SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret) {
+        }
+
+        // One filed before it became secret: not on the public puzzle's pages, no badge, no block
+        $this->mergeRequestFiledEarlier(PuzzleFixture::PUZZLE_500_05, $secretId);
+        self::assertSame([], $proposals->forPuzzle(PuzzleFixture::PUZZLE_500_05));
+        self::assertFalse($proposals->hasPendingForPuzzle(PuzzleFixture::PUZZLE_500_05));
+        self::assertFalse($proposals->blocksNewProposal(PuzzleFixture::PUZZLE_500_05));
+    }
+
+    private function mergeRequestFiledEarlier(string $sourcePuzzleId, string $duplicateId): string
+    {
+        $mergeRequestId = Uuid::uuid7();
+        $source = $this->entityManager->find(Puzzle::class, $sourcePuzzleId);
+        $reporter = $this->entityManager->find(\SpeedPuzzling\Web\Entity\Player::class, PlayerFixture::PLAYER_PRIVATE);
+        self::assertNotNull($source);
+        $this->entityManager->persist(new \SpeedPuzzling\Web\Entity\PuzzleMergeRequest(
+            id: $mergeRequestId,
+            sourcePuzzle: $source,
+            reporter: $reporter,
+            submittedAt: new DateTimeImmutable('-1 day'),
+            reportedDuplicatePuzzleIds: [$sourcePuzzleId, $duplicateId],
+        ));
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        return $mergeRequestId->toString();
     }
 
     /**

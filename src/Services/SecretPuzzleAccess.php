@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -20,9 +21,11 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
 /**
  * A puzzle a competition keeps secret does not exist for anybody but its organisers - its pages (detail, suggest a
  * change, report a duplicate, QR codes, marketplace, ...) answer 404 and nothing can be done with it (a time, a
- * collection, a listing, a loan, an EAN, a stopwatch) - also by someone who has its id. Its organisers (admins,
- * whoever added it, maintainers of a competition with the puzzle in a round) still see it and prepare the event with
- * it, but until its reveal nobody - organisers included - records anything personal on it (assertWritableBy()).
+ * collection, a listing, a loan, an EAN, a stopwatch, a duplicate report) - also by someone who has its id. Its
+ * organisers (admins, whoever added it, maintainers of a competition with the puzzle in a round) still see it and
+ * prepare the event with it - a stopwatch on it too: a running stopwatch is the organiser's own, no stored record
+ * anybody else sees, and its time is saved only after the reveal. Until the reveal nobody - organisers included -
+ * records anything personal on it (assertWritableBy()): a time, a collection or wishlist item, a listing, a loan.
  *
  * "Kept secret by a competition" = PuzzleSecrecy (a competition's puzzle, hidden) - by default only while the puzzle
  * itself is hidden (hide_until); the strict checks (codes, EANs, rounds) also while only its picture is. An approved
@@ -149,6 +152,26 @@ readonly final class SecretPuzzleAccess
         );
     }
 
+    /**
+     * isHiddenFromViewer() for a list (a stopwatch list) - one statement, more only for the secret ones found.
+     *
+     * @param array<string> $puzzleIds
+     * @return array<string, true> the hidden ones, keyed by the (lower-case) id
+     */
+    public function hiddenFromViewerAmong(array $puzzleIds): array
+    {
+        $playerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
+        $hidden = [];
+
+        foreach ($this->secretRows($puzzleIds, false) as $puzzleId => $row) {
+            if ($this->isHiddenFor($row, $playerId)) {
+                $hidden[$puzzleId] = true;
+            }
+        }
+
+        return $hidden;
+    }
+
     public function isHiddenFromPlayer(string $puzzleId, null|string $playerId, bool $alsoWhileImageHidden = false): bool
     {
         $row = $this->secretRow($puzzleId, $alsoWhileImageHidden);
@@ -160,6 +183,7 @@ readonly final class SecretPuzzleAccess
      * The puzzle when a competition keeps it secret now - with who may see it and the round its reveal waits for.
      *
      * @return null|array{
+     *     id: string,
      *     added_by: null|string,
      *     competition_ids: null|string,
      *     hide_until: null|string,
@@ -170,8 +194,29 @@ readonly final class SecretPuzzleAccess
      */
     private function secretRow(string $puzzleId, bool $alsoWhileImageHidden): null|array
     {
-        if (Uuid::isValid($puzzleId) === false) {
-            return null;
+        return $this->secretRows([$puzzleId], $alsoWhileImageHidden)[strtolower($puzzleId)] ?? null;
+    }
+
+    /**
+     * secretRow() for several puzzles in one statement - keyed by the (lower-case) puzzle id, the others left out.
+     *
+     * @param array<string> $puzzleIds
+     * @return array<string, array{
+     *     id: string,
+     *     added_by: null|string,
+     *     competition_ids: null|string,
+     *     hide_until: null|string,
+     *     round_timezone: null|string,
+     *     competition_country: null|string,
+     *     series_country: null|string,
+     * }>
+     */
+    private function secretRows(array $puzzleIds, bool $alsoWhileImageHidden): array
+    {
+        $puzzleIds = array_values(array_unique(array_map(strtolower(...), array_filter($puzzleIds, Uuid::isValid(...)))));
+
+        if ($puzzleIds === []) {
+            return [];
         }
 
         $secret = PuzzleSecrecy::sqlSecret('p');
@@ -179,18 +224,20 @@ readonly final class SecretPuzzleAccess
         $revealAt = RoundPuzzleReveal::sqlRevealAt('crp', 'cr');
 
         /**
-         * @var false|array{
+         * @var list<array{
+         *     id: string,
          *     added_by: null|string,
          *     competition_ids: null|string,
          *     hide_until: null|string,
          *     round_timezone: null|string,
          *     competition_country: null|string,
          *     series_country: null|string,
-         * } $row
+         * }> $rows
          */
-        $row = $this->database->fetchAssociative(
+        $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
+    p.id::text AS id,
     p.added_by_user_id::text AS added_by,
     p.hide_until,
     (
@@ -216,17 +263,24 @@ LEFT JOIN LATERAL (
     ORDER BY {$revealAt} DESC NULLS FIRST
     LIMIT 1
 ) reveal_round ON true
-WHERE p.id = :puzzleId
+WHERE p.id IN (:puzzleIds)
     AND {$secret}
     AND {$nameHidden}
 SQL,
             [
-                'puzzleId' => $puzzleId,
+                'puzzleIds' => $puzzleIds,
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ],
+            ['puzzleIds' => ArrayParameterType::STRING],
         );
 
-        return $row === false ? null : $row;
+        $byId = [];
+
+        foreach ($rows as $row) {
+            $byId[$row['id']] = $row;
+        }
+
+        return $byId;
     }
 
     /**

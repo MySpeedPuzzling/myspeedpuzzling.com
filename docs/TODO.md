@@ -10,19 +10,252 @@ that would otherwise be forgotten. Newest section on top.
       (20:25-21:42 UTC, 255 saves): 80 of the 84 rows that existed at the 16:30 UTC backup lost country `us`
       (the other 148 rows came with the 20:22 import - no baseline, very likely the same); `Eliza Barter` (linked to
       player `019b2332-…`) became `Eliana Garrison` and was unlinked; `Kristin Zahn` became `Kristina Chiu` and
-      `Jessica Chandler` became `Jess Chandler` (both look like the previous form's name carried over - the 20:22
-      import created separate `Kristin Zahn` / `Eliza Barter` rows). Decide with Dakota: restore countries from the
-      backup, fix the three rows, re-link the player. Rounds were all assigned by hand in that session (the import
-      had assigned none) - ask her to double-check them.
-- [ ] Import reads `round_name` (one round per row) but the template/export write `round_names` (comma list) - rounds
-      in a downloaded template or export are silently ignored. Accept `round_names` (+ keep `round_name`), warn on
-      unknown columns, document round/team columns in the page help.
-- [ ] Import accepts `.xlsx` only - accept `.csv` too (PhpSpreadsheet reads it; detect delimiter/encoding).
+      `Jessica Chandler` became `Jess Chandler`. Rounds were all assigned by hand in that session (the import had
+      assigned none) - ask her to double-check them. Repair script below: part A (80 countries) is safe to run;
+      B' and C only after Dakota confirms. Ends with `ROLLBACK` - switch to `COMMIT` after reading the output.
+      Dry-run on a local copy of the 2026-10-06 production rows: A = 80, B lists 148, all optional blocks pass
+      their guards. Run it with `psql -v ON_ERROR_STOP=1` (see the header).
+- [x] Import reads `round_names` (comma list, what the template/export write) and still `round_name`; rows of the
+      same person add up; unknown rounds and columns are reported; page help documents `round_names`/`team_name`.
+- [ ] Import accepts `.xlsx` only (a CSV now gets "Please upload an .xlsx file - CSV is not supported yet") - CSV
+      support waits for Jan's question to Dakota.
 - [ ] Bulk editor (spreadsheet-like grid of all participants: name, country, external id, player, one checkbox per
-      round, team name) - proposal in the PR of this fix.
-- [ ] `RoundTableManager` (table layout) has no authorization on its Live actions either (only the page controller
-      checks `CompetitionEditVoter`; row/table/spot ids are not checked against the round) - guard it the way
-      `ManageCompetitionParticipants` does now (`#[PostHydrate]` voter check + ids scoped to the competition).
+      round, team name) - proposal in PR #241.
+- [x] `RoundTableManager` Live actions check `CompetitionEditVoter` on every request and only touch rows, tables
+      and spots of their own round.
+
+```sql
+-- Wisconsin State Jigsaw Puzzle Championship 2026 - repair of the participant damage done by the
+-- empty/stale inline edit form (2026-10-05 20:25-21:42 UTC, fixed in PR #241).
+-- Baseline: backup s3:thedevs-backup/speedpuzzling/speedpuzzling-2026-10-05-163001.dump (16:30 UTC).
+-- Prepared read-only 2026-10-06; production state checked unchanged at preparation time.
+-- Run: docker compose -f /srv/myspeedpuzzling/compose.yaml exec -T db psql -v ON_ERROR_STOP=1 -U speedpuzzling -d speedpuzzling < repair.sql
+-- Ends with ROLLBACK - change the last line to COMMIT once the output looks right.
+
+BEGIN;
+
+-- ---------------------------------------------------------------------------------------------
+-- A) Restore country 'us' on the 80 participants that had it at 16:30 and lost it to the form.
+--    Guard: only rows of this event whose country is still empty; must be exactly 80.
+-- ---------------------------------------------------------------------------------------------
+DO $$
+DECLARE n int;
+BEGIN
+    UPDATE competition_participant
+    SET country = 'us'
+    WHERE competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2'
+      AND country IS NULL
+      AND id IN (
+        '019e2bff-697f-72b5-8a27-47846e2c918c',
+        '019e2bff-871b-719e-853b-70f54202a14f',
+        '019e2c0c-a0eb-73db-a906-1f4e144dba2c',
+        '019e2c15-436f-73d5-80d2-98c739d2eb7c',
+        '019e2c1b-0bb2-7048-b996-a76b0827fb58',
+        '019e2d2d-9ce0-73ee-9de9-023e3e3b84c9',
+        '019e2ec3-c807-73d2-b570-f8a3de919f99',
+        '019e4249-a870-736d-b5e2-d557b693924a',
+        '019e8b6b-0a60-7022-97ad-db37c154f1bb',
+        '01a10cad-0b4e-7134-a616-f92bc8b3b648',
+        '01a10cb0-0b03-724b-88a4-a1238476cc47',
+        '01a10cc0-d4fa-72fc-94da-ccbf87abbe94',
+        '01a10cc0-d4fa-72fc-94da-ccbf889e5be1',
+        '01a10cc0-d4fa-72fc-94da-ccbf88f08983',
+        '01a10cc0-d4fa-72fc-94da-ccbf89a1e837',
+        '01a10cc0-d4fa-72fc-94da-ccbf8a4899cc',
+        '01a10cc0-d4fa-72fc-94da-ccbf8af7c628',
+        '01a10cc0-d4fa-72fc-94da-ccbf8bde5f52',
+        '01a10cc0-d4fa-72fc-94da-ccbf8beedbd7',
+        '01a10cc0-d4fc-734c-9cc2-1c5818f7c28f',
+        '01a10cc0-d4fc-734c-9cc2-1c5819c730be',
+        '01a10cc0-d4fc-734c-9cc2-1c581a67e7df',
+        '01a10cc0-d4fc-734c-9cc2-1c581a9d6b19',
+        '01a10cc0-d4fc-734c-9cc2-1c581b48ecf5',
+        '01a10cc0-d4fc-734c-9cc2-1c581ba67f46',
+        '01a10cc0-d4fc-734c-9cc2-1c581c114158',
+        '01a10cc0-d4fc-734c-9cc2-1c581c4b32c6',
+        '01a10cc0-d4fd-73c3-9c59-bedc53842669',
+        '01a10cc0-d4fd-73c3-9c59-bedc54492ed9',
+        '01a10cc0-d4fd-73c3-9c59-bedc54e33a5a',
+        '01a10cc0-d4fd-73c3-9c59-bedc557d966f',
+        '01a10cc0-d4fd-73c3-9c59-bedc5641f8de',
+        '01a10cc0-d4fd-73c3-9c59-bedc567050f4',
+        '01a10cc0-d4fd-73c3-9c59-bedc575efd3d',
+        '01a10cc0-d4fd-73c3-9c59-bedc58370fd0',
+        '01a10cc0-d4fd-73c3-9c59-bedc58817625',
+        '01a10cc0-d4fd-73c3-9c59-bedc592f9c7b',
+        '01a10cc0-d4fe-718e-b23d-2cb9b01bee15',
+        '01a10cc0-d4fe-718e-b23d-2cb9b0fd5a65',
+        '01a10cc0-d4fe-718e-b23d-2cb9b12ded92',
+        '01a10cc0-d4ff-7233-b51f-d462a7a28041',
+        '01a10cc0-d4ff-7233-b51f-d462a7ec22c4',
+        '01a10cc0-d4ff-7233-b51f-d462a8e9907c',
+        '01a10cc0-d4ff-7233-b51f-d462a975395f',
+        '01a10cc0-d4ff-7233-b51f-d462a9b93a80',
+        '01a10cc0-d4ff-7233-b51f-d462aa39dcbe',
+        '01a10cc0-d4ff-7233-b51f-d462aa6162ff',
+        '01a10cc0-d4ff-7233-b51f-d462ab5e8266',
+        '01a10cc0-d4ff-7233-b51f-d462ab9c1815',
+        '01a10cc0-d4ff-7233-b51f-d462ac588e48',
+        '01a10cc0-d4ff-7233-b51f-d462ac91eaf7',
+        '01a10cc0-d4ff-7233-b51f-d462ad4a1bd8',
+        '01a10cc0-d4ff-7233-b51f-d462adbde400',
+        '01a10cc0-d4ff-7233-b51f-d462ae147008',
+        '01a10cc0-d4ff-7233-b51f-d462ae9ec902',
+        '01a10cc0-d4ff-7233-b51f-d462aea6ed00',
+        '01a10cc0-d4ff-7233-b51f-d462aec20698',
+        '01a10cc0-d4ff-7233-b51f-d462aeccd38a',
+        '01a10cc0-d4ff-7233-b51f-d462af2f7f0f',
+        '01a10cc0-d500-7027-a004-93094debc18c',
+        '01a10cc0-d500-7027-a004-93094df68980',
+        '01a10cc0-d500-7027-a004-93094ef03c6d',
+        '01a10cc0-d500-7027-a004-93094fd07519',
+        '01a10cc0-d500-7027-a004-93094fdc6023',
+        '01a10cc0-d500-7027-a004-930950691471',
+        '01a10cc0-d500-7027-a004-93095094ec13',
+        '01a10cc0-d500-7027-a004-93095095d321',
+        '01a10cc0-d500-7027-a004-930950c2404f',
+        '01a10cc0-d500-7027-a004-9309512e2185',
+        '01a10cc0-d500-7027-a004-930951d4005b',
+        '01a10cc0-d501-73ff-8eb3-12dc9f5559ed',
+        '01a10cc0-d501-73ff-8eb3-12dc9fa7d13a',
+        '01a10cc0-d501-73ff-8eb3-12dca032de32',
+        '01a10cc0-d501-73ff-8eb3-12dca12c2654',
+        '01a10cc0-d501-73ff-8eb3-12dca12d48ff',
+        '01a10cc0-d501-73ff-8eb3-12dca1e94d7f',
+        '01a10cc0-d501-73ff-8eb3-12dca2286b65',
+        '01a10cc0-d501-73ff-8eb3-12dca291541e',
+        '01a10cc0-d501-73ff-8eb3-12dca2d18e2e',
+        '01a10cc0-d502-737b-a4d3-b1796e81fb19'
+      );
+    GET DIAGNOSTICS n = ROW_COUNT;
+    IF n <> 80 THEN
+        RAISE EXCEPTION 'A) expected 80 rows, updated % - data changed since 2026-10-06, re-check before running', n;
+    END IF;
+    RAISE NOTICE 'A) country restored on % participants', n;
+END $$;
+
+-- ---------------------------------------------------------------------------------------------
+-- B) The 148 participants of the second import (2026-10-05 20:22:43 UTC - their UUIDv7 ids all
+--    start with 01a10dbb) have no baseline. Listed only - decide with Dakota.
+--    Hint: the only one of them deleted before any edit ("Shannon O'Hara", deleted 21:37) still
+--    has 'us', so the file most likely set 'us' for all of them.
+-- ---------------------------------------------------------------------------------------------
+SELECT cp.id, cp.name, cp.country, cp.deleted_at,
+       (SELECT string_agg(r.name, ', ' ORDER BY r.name)
+          FROM competition_participant_round cpr
+          JOIN competition_round r ON r.id = cpr.round_id
+         WHERE cpr.participant_id = cp.id) AS rounds
+FROM competition_participant cp
+WHERE cp.competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2'
+  AND cp.source = 'imported'
+  AND cp.id::text LIKE '01a10dbb-%'
+ORDER BY cp.deleted_at IS NOT NULL, cp.name;
+-- expected: 148 rows (146 active without country, 1 deleted without country, 1 deleted with 'us')
+
+-- B') ONLY IF DAKOTA CONFIRMS that everybody of the second import is from the US:
+-- DO $$
+-- DECLARE n int;
+-- BEGIN
+--     UPDATE competition_participant
+--     SET country = 'us'
+--     WHERE competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2'
+--       AND source = 'imported'
+--       AND id::text LIKE '01a10dbb-%'
+--       AND country IS NULL
+--       AND deleted_at IS NULL;
+--     GET DIAGNOSTICS n = ROW_COUNT;
+--     IF n <> 146 THEN RAISE EXCEPTION 'B'') expected 146 rows, updated %', n; END IF;
+-- END $$;
+-- (Not covered by A or B: "Danielle Lienau" 01a111e0-ca4d-7144-adbf-0fa04cc0c246, added by hand
+--  2026-10-06 01:41 UTC without a country - nothing was lost there.)
+
+-- ---------------------------------------------------------------------------------------------
+-- C) Renamed / unlinked rows - ONLY AFTER DAKOTA CONFIRMS. Left commented out on purpose.
+--    The second import created separate rows for "Eliza Barter" and "Kristin Zahn" (with rounds),
+--    so restoring the old names gives two rows each; Dakota must say which row is which person.
+-- ---------------------------------------------------------------------------------------------
+-- C1) 019e2c15-436f-73d5-80d2-98c739d2eb7c (originally self-joined "Eliza B.", renamed by the 15:48 import)
+--     16:30: name 'Eliza Barter', country 'us', player 019b2332-7f4f-7167-861f-d46701f9ad32,
+--            connected_at 2026-05-15 14:40:51, no rounds
+--     now:   name 'Eliana Garrison', country NULL, player NULL, connected_at NULL, rounds Pair, Team
+--     other: 01a10dbb-a24f-72ba-9ff7-da5562bb1def 'Eliza Barter' (second import, no player,
+--            rounds Pair, Solo, Team, Team Relay); "Brenda Garrison" also has Pair, Team.
+--   Option C1a - the row is Eliza again (then Dakota deletes or empties the 01a10dbb "Eliza Barter" row):
+-- DO $$
+-- DECLARE n int;
+-- BEGIN
+--     UPDATE competition_participant
+--     SET name = 'Eliza Barter', country = 'us',
+--         player_id = '019b2332-7f4f-7167-861f-d46701f9ad32', connected_at = '2026-05-15 14:40:51'
+--     WHERE id = '019e2c15-436f-73d5-80d2-98c739d2eb7c'
+--       AND competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2'
+--       AND name = 'Eliana Garrison' AND player_id IS NULL
+--       AND NOT EXISTS (SELECT 1 FROM competition_participant o
+--                        WHERE o.competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2'
+--                          AND o.player_id = '019b2332-7f4f-7167-861f-d46701f9ad32');
+--     GET DIAGNOSTICS n = ROW_COUNT;
+--     IF n <> 1 THEN RAISE EXCEPTION 'C1a) expected 1 row, updated %', n; END IF;
+-- END $$;
+--   Option C1b - "Eliana Garrison" is a real participant: keep her, link Eliza's MSP account to the
+--   second-import "Eliza Barter" row instead:
+-- DO $$
+-- DECLARE n int;
+-- BEGIN
+--     UPDATE competition_participant
+--     SET player_id = '019b2332-7f4f-7167-861f-d46701f9ad32', connected_at = '2026-05-15 14:40:51'
+--     WHERE id = '01a10dbb-a24f-72ba-9ff7-da5562bb1def'
+--       AND competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2'
+--       AND name = 'Eliza Barter' AND player_id IS NULL
+--       AND NOT EXISTS (SELECT 1 FROM competition_participant o
+--                        WHERE o.competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2'
+--                          AND o.player_id = '019b2332-7f4f-7167-861f-d46701f9ad32');
+--     GET DIAGNOSTICS n = ROW_COUNT;
+--     IF n <> 1 THEN RAISE EXCEPTION 'C1b) expected 1 row, updated %', n; END IF;
+-- END $$;
+
+-- C2) 01a10cc0-d4ff-7233-b51f-d462adbde400
+--     16:30: name 'Kristin Zahn', country 'us', no rounds
+--     now:   name 'Kristina Chiu', country NULL (A restores 'us'), rounds Pair, Team, Team Relay
+--     other: 01a10dbb-a24f-72ba-9ff7-da555dbc63af 'Kristin Zahn' (second import, Pair, Solo, Team, Team Relay)
+--     If "Kristina Chiu" is not a real participant:
+-- DO $$
+-- DECLARE n int;
+-- BEGIN
+--     UPDATE competition_participant SET name = 'Kristin Zahn'
+--     WHERE id = '01a10cc0-d4ff-7233-b51f-d462adbde400'
+--       AND competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2'
+--       AND name = 'Kristina Chiu';
+--     GET DIAGNOSTICS n = ROW_COUNT;
+--     IF n <> 1 THEN RAISE EXCEPTION 'C2) expected 1 row, updated %', n; END IF;
+-- END $$;
+
+-- C3) 01a10cc0-d4ff-7233-b51f-d462a7a28041
+--     16:30: name 'Jessica Chandler', country 'us', no rounds
+--     now:   name 'Jess Chandler', country NULL (A restores 'us'), rounds Pair, Solo
+--     other: 01a10dbb-a250-7108-a9e8-69d02bf15ea9 'Jess Chandler' (second import), soft-deleted by Dakota
+--            at 21:07:29 with the same rounds - this looks like a deliberate merge of a duplicate;
+--            restore only if Dakota says the name should be "Jessica Chandler":
+-- DO $$
+-- DECLARE n int;
+-- BEGIN
+--     UPDATE competition_participant SET name = 'Jessica Chandler'
+--     WHERE id = '01a10cc0-d4ff-7233-b51f-d462a7a28041'
+--       AND competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2'
+--       AND name = 'Jess Chandler';
+--     GET DIAGNOSTICS n = ROW_COUNT;
+--     IF n <> 1 THEN RAISE EXCEPTION 'C3) expected 1 row, updated %', n; END IF;
+-- END $$;
+
+-- Check after A (and whatever of B/C was enabled):
+SELECT count(*) FILTER (WHERE country = 'us') AS with_us,
+       count(*) FILTER (WHERE country IS NULL AND deleted_at IS NULL) AS active_without_country,
+       count(*) FILTER (WHERE player_id IS NOT NULL) AS linked
+FROM competition_participant
+WHERE competition_id = '019e27ce-3752-73a3-a964-8be8e2896ea2';
+-- expected after A only: with_us = 84 (80 + 4 that kept it), active_without_country = 147, linked = 15
+
+ROLLBACK;
+```
 
 ## Round time zones and secret-puzzle reveal (`docs/features/competitions-management/README.md`)
 

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\FormType\ExcelImportFormType;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionParticipantImporter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -63,6 +64,8 @@ final class ImportCompetitionParticipantsController extends AbstractController
             foreach ($result->errors as $error) {
                 $this->addFlash('danger', $error);
             }
+        } elseif ($formData->file !== null && self::isCsv($formData->file)) {
+            $this->addFlash('danger', $this->translator->trans('competition.participants.import_csv_not_supported'));
         } else {
             $this->addFlash('danger', $this->translator->trans('forms.invalid_file_upload'));
         }
@@ -70,5 +73,11 @@ final class ImportCompetitionParticipantsController extends AbstractController
         return $this->redirectToRoute('manage_competition_participants', [
             'competitionId' => $competitionId,
         ]);
+    }
+
+    private static function isCsv(UploadedFile $file): bool
+    {
+        return strtolower($file->getClientOriginalExtension()) === 'csv'
+            || in_array($file->getClientMimeType(), ['text/csv', 'application/csv', 'text/comma-separated-values'], true);
     }
 }

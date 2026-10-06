@@ -4,6 +4,19 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Events through the internal API (`docs/features/internal-api.md` §Competitions and events)
+
+- [ ] Shared tags: a competition whose tag other competitions/series carry too answers `PUT …/puzzles` with 409. If
+      that happens on production (e.g. one "WJPC" tag for several editions), decide: give each competition its own tag
+      (and keep the old one for the badge), or let the endpoint fork the tag.
+- [ ] Not in the API yet: the competition logo (upload), series and editions (`AddCompetitionSeries`, `AddEdition`),
+      rejecting a competition, a round puzzle's "hide until the round starts" setting (new ones are attached
+      unhidden), maintainers by player code instead of id.
+- [ ] Puzzle search leaves out secret competition puzzles (`hide_until` in the future), like the site - an admin
+      entering a future round with a secret puzzle has to know its id.
+- [ ] `AddCompetitionHandler` still calls `flush()` itself (older than the flush rule) - drop it once nothing depends
+      on the competition being flushed before the e-mail.
+
 ## Barcode scanner (`docs/features/barcode-scanner/README.md`)
 
 - [x] Step 0 (2026-10-06): the browser's own detector is back on Android. zbar alone had cost about half of the Android

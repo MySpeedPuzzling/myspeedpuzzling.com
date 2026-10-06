@@ -23,6 +23,7 @@ final class BlocklistQueryCoverageTest extends TestCase
     private const array NOT_FILTERED = [
         'FindPlayerByNameAndCountry' => self::BACKGROUND,
         'FindSimilarSpeedPuzzler' => 'Filters on user_block itself, in both directions, for the viewer id it is given - a random suggestion must not depend on a security token.',
+        'GetAdminCompetitions' => self::ADMIN,
         'GetAdminReferralDetail' => self::ADMIN,
         'GetAdminReferralsOverview' => self::ADMIN,
         'GetAllVouchers' => self::ADMIN,

@@ -8,14 +8,16 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
+use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
 use SpeedPuzzling\Web\Message\AddCompetition;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\String\Slugger\SluggerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsMessageHandler]
@@ -27,19 +29,33 @@ readonly final class AddCompetitionHandler
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
-        private SluggerInterface $slugger,
+        private CompetitionSlugGenerator $slugGenerator,
         private MailerInterface $mailer,
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
     ) {
     }
 
+    /**
+     * @throws CompetitionSlugTaken
+     * @throws InvalidCompetitionSlug
+     */
     public function __invoke(AddCompetition $message): void
     {
         $player = $this->playerRepository->get($message->playerId);
         $now = $this->clock->now();
 
-        $slug = $this->generateUniqueSlug($message->name);
+        if ($message->slug !== null) {
+            if (CompetitionSlugGenerator::isValid($message->slug) === false) {
+                throw new InvalidCompetitionSlug($message->slug);
+            }
+
+            if ($this->slugGenerator->isTaken($message->slug, null)) {
+                throw new CompetitionSlugTaken($message->slug);
+            }
+        }
+
+        $slug = $message->slug ?? $this->slugGenerator->generate($message->name);
 
         $logoPath = null;
         if ($message->logo !== null) {
@@ -85,6 +101,10 @@ readonly final class AddCompetitionHandler
         $this->entityManager->persist($competition);
         $this->entityManager->flush();
 
+        if ($message->notifyAdmin === false) {
+            return;
+        }
+
         $adminUrl = $this->urlGenerator->generate('admin_competition_approvals', [], UrlGeneratorInterface::ABSOLUTE_URL);
 
         $subject = $this->translator->trans(
@@ -106,25 +126,5 @@ readonly final class AddCompetitionHandler
         $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
         $this->mailer->send($email);
-    }
-
-    private function generateUniqueSlug(string $name): string
-    {
-        $slug = (string) $this->slugger->slug(strtolower($name));
-
-        /** @var int|string $existingCount */
-        $existingCount = $this->entityManager->getConnection()
-            ->executeQuery(
-                'SELECT COUNT(*) FROM competition WHERE slug = :slug',
-                ['slug' => $slug],
-            )
-            ->fetchOne();
-        $existingCount = (int) $existingCount;
-
-        if ($existingCount > 0) {
-            $slug .= '-' . substr(md5(uniqid()), 0, 6);
-        }
-
-        return $slug;
     }
 }

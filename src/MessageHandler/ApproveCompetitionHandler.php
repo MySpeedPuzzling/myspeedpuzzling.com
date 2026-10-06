@@ -38,6 +38,10 @@ readonly final class ApproveCompetitionHandler
 
         $creator = $competition->addedByPlayer;
 
+        if ($message->notifyCreator === false) {
+            return;
+        }
+
         $creatorEmail = $creator === null ? null : $this->playerAccountEmail->ofPlayer($creator);
 
         if ($creatorEmail !== null) {

@@ -461,6 +461,425 @@ paths:
         "409":
           description: Still in use (puzzles, change requests proposing it, merged slugs redirecting to it) - merge instead.
 
+  /internal-api/competitions:
+    get:
+      summary: List or search competitions
+      operationId: listCompetitions
+      description: |
+        Every competition - approved, pending or rejected, standalone or an edition
+        of a series - newest first (by the event's date, undated ones by when they
+        were added).
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Part of the name, slug or shortcut of the competition or of its series (accents and letter case ignored).
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, approved, pending, rejected]
+            default: all
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: One page of competitions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionList"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Create a competition
+      operationId: createCompetition
+      description: |
+        A standalone competition (past or upcoming), added by the reviewer player,
+        validated by the rules of the web form (`CompetitionFormData`). With
+        `"approve": true` it is approved right away. Rounds and puzzles follow
+        through their own endpoints. No e-mail is sent.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/CompetitionFields"
+                - type: object
+                  required: [name]
+                  properties:
+                    approve:
+                      type: boolean
+                      default: false
+      responses:
+        "201":
+          description: Created - the competition as `GET /internal-api/competitions/{competitionId}` shows it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  # One path item for both: GET also takes a slug in place of the id, PATCH only the id
+  /internal-api/competitions/{competitionId}:
+    get:
+      summary: One competition with its rounds, puzzles and maintainers
+      operationId: getCompetition
+      parameters:
+        - name: competitionId
+          in: path
+          required: true
+          description: The competition's id, or its slug (a standalone competition's first; an edition's slug is unique only within its series - several editions sharing it answer 409).
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The competition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    patch:
+      summary: Update the fields sent
+      operationId: updateCompetition
+      description: |
+        Only the fields sent change; `null` or `""` clears a field. **The slug is
+        kept when the name changes** (unlike the web form) - only an explicit `slug`
+        changes it, and it must be free (409 otherwise); old URLs of the event get no
+        redirect. The slug cannot be cleared (400). `maintainerIds` replaces the whole
+        list (`null` keeps it). `"isOnline": true` clears location and dates.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/CompetitionFields"
+      responses:
+        "200":
+          description: The competition after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/competitions/{competitionId}/approve:
+    post:
+      summary: Approve a pending competition
+      operationId: approveCompetition
+      description: |
+        Like the admin approval queue: the competition becomes public, its creator
+        is e-mailed (unless the creator is the reviewer player). Refused (409) for an
+        approved or rejected competition and for an edition (its series is approved).
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      responses:
+        "204":
+          description: Approved
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/competitions/{competitionId}/puzzles:
+    put:
+      summary: Set the competition's own puzzles
+      operationId: setCompetitionPuzzles
+      description: |
+        "Competition puzzles" on the standalone event page are the puzzles of the
+        competition's tag. They become exactly `puzzleIds`; a competition without a
+        tag gets a new one named like its badge (shortcut, else name, else
+        "name (2)" … - never the name of an existing tag). Refused (409) when other
+        competitions or series carry the same tag - changing it would change theirs.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleIdList"
+      responses:
+        "200":
+          description: The competition after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/competitions/{competitionId}/rounds:
+    post:
+      summary: Add a round
+      operationId: createCompetitionRound
+      description: |
+        Its slug is generated from the name and never changes. With `puzzleIds` the
+        puzzles are attached right away, like `PUT /internal-api/rounds/{roundId}/puzzles`.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/RoundFields"
+                - type: object
+                  required: [name, startsAt, minutesLimit]
+                  properties:
+                    puzzleIds:
+                      type: array
+                      items:
+                        type: string
+                        format: uuid
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/rounds/{roundId}:
+    patch:
+      summary: Update the fields of a round sent
+      operationId: updateCompetitionRound
+      description: |
+        The slug never changes. A category change that would put one of the round's
+        puzzles into two rounds of one category of the competition is refused (409).
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/RoundFields"
+      responses:
+        "200":
+          description: The round after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      summary: Delete a round without results
+      operationId: deleteCompetitionRound
+      description: With its puzzle assignments, teams and seating. Refused (409) while any solving time belongs to it.
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/rounds/{roundId}/puzzles:
+    put:
+      summary: Set the round's puzzles
+      operationId: setRoundPuzzles
+      description: |
+        The round's puzzles become exactly `puzzleIds` (`[]` removes all); puzzles
+        kept keep their "hide until the round starts" setting, new ones are not
+        hidden. A puzzle is in only one round per category of a competition - a
+        list breaking that is refused (409) and nothing changes. Solving times are
+        re-linked to rounds right after (round results).
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleIdList"
+      responses:
+        "200":
+          description: The round after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/puzzles:
+    get:
+      summary: Search puzzles
+      operationId: searchPuzzles
+      description: |
+        The site's own search (names in every language, EANs with or without
+        leading zeros, brand codes), approved or not. Secret competition puzzles
+        (`hide_until` in the future) are not found, like on the site.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Name, EAN or brand code. Send `q` or `ean`, not both.
+          schema:
+            type: string
+        - name: ean
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: brand
+          in: query
+          required: false
+          description: Brand id, or a brand's exact name (any letter case). An unknown name finds nothing.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: One page of puzzles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PuzzleSearchResult"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Create an approved puzzle without a photo
+      operationId: createPuzzle
+      description: |
+        For a competition puzzle the site does not know yet. Approved at once,
+        recorded as a `puzzle_approved` decision (`source = internal_api`). The brand
+        is `manufacturerId` or `brand` (a name: an existing brand of that name, any
+        letter case, else a new unapproved brand - see `brandCreated`). An EAN another
+        puzzle carries is refused (409) unless `allowDuplicateEan` is true.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleCreation"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AdminPuzzle"
+                  - type: object
+                    properties:
+                      brandCreated:
+                        type: boolean
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
 components:
   securitySchemes:
     InternalApiBearer:
@@ -470,6 +889,24 @@ components:
       description: Static token from the `INTERNAL_API_TOKEN` env var.
 
   parameters:
+    CompetitionId:
+      name: competitionId
+      in: path
+      required: true
+      description: UUID of the competition (an edition of a series is a competition too).
+      schema:
+        type: string
+        format: uuid
+
+    RoundId:
+      name: roundId
+      in: path
+      required: true
+      description: UUID of the competition round.
+      schema:
+        type: string
+        format: uuid
+
     FeatureRequestId:
       name: featureRequestId
       in: path
@@ -507,6 +944,281 @@ components:
         format: uuid
 
   schemas:
+    CompetitionFields:
+      type: object
+      # No additionalProperties here - it would not see the create bodies' own fields (allOf); the request
+      # bodies close themselves with unevaluatedProperties: false (an unknown field is a 400)
+      description: |
+        Validated by the web form's rules: name required; an in-person event
+        (`isOnline` false) needs `location`, `dateFrom` and `dateTo` (an edition of
+        a series needs neither); `dateTo` not before `dateFrom`, at most 30 days apart;
+        links must be URLs. `null` or `""` clears a field. An unknown field is a 400.
+      properties:
+        name:
+          type: string
+          maxLength: 250
+        shortcut:
+          type: [string, "null"]
+          maxLength: 250
+        description:
+          type: [string, "null"]
+        location:
+          type: [string, "null"]
+          maxLength: 250
+        locationCountryCode:
+          type: [string, "null"]
+          description: ISO 3166-1 alpha-2, any letter case (stored lower case).
+          example: cz
+        dateFrom:
+          type: [string, "null"]
+          description: ISO 8601 day (`2026-11-14`); a date-time counts by its day.
+        dateTo:
+          type: [string, "null"]
+        link:
+          type: [string, "null"]
+          format: uri
+          description: The event's website.
+        registrationLink:
+          type: [string, "null"]
+          format: uri
+        resultsLink:
+          type: [string, "null"]
+          format: uri
+        isOnline:
+          type: boolean
+          description: An online event has no place and no dates - true clears `location`, `dateFrom` and `dateTo`, like the web form.
+        slug:
+          type: string
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          description: Explicit URL slug - unique (409 otherwise). Left out, create generates it from the name and update keeps it. A change breaks the old URLs (no redirect); it cannot be cleared.
+        maintainerIds:
+          type: array
+          description: Player ids who may manage the event - replaces the list, `[]` empties it, `null` or left out keeps it.
+          items:
+            type: string
+            format: uuid
+
+    Competition:
+      type: object
+      properties:
+        competitionId: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: [string, "null"] }
+        shortcut: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        location: { type: [string, "null"] }
+        locationCountryCode: { type: [string, "null"] }
+        dateFrom: { type: [string, "null"], example: "2026-11-14" }
+        dateTo: { type: [string, "null"] }
+        link: { type: [string, "null"] }
+        registrationLink: { type: [string, "null"] }
+        resultsLink: { type: [string, "null"] }
+        isOnline: { type: boolean }
+        isRecurring:
+          type: boolean
+          description: True for an edition of a series (`series`) - recurring events are series of editions.
+        series:
+          type: [object, "null"]
+          properties:
+            seriesId: { type: string, format: uuid }
+            name: { type: string }
+            slug: { type: [string, "null"] }
+        logo: { type: [string, "null"] }
+        tagId: { type: [string, "null"] }
+        tagName: { type: [string, "null"] }
+        status:
+          type: string
+          enum: [approved, pending, rejected]
+        approvedAt: { type: [string, "null"], format: date-time }
+        approvedByPlayerId: { type: [string, "null"] }
+        rejectedAt: { type: [string, "null"], format: date-time }
+        rejectionReason: { type: [string, "null"] }
+        publiclyVisible: { type: boolean }
+        createdAt: { type: [string, "null"], format: date-time }
+        addedByPlayerId: { type: [string, "null"] }
+        addedByPlayerName: { type: [string, "null"] }
+        roundsCount: { type: integer }
+
+    CompetitionList:
+      type: object
+      required: [total, limit, offset, competitions]
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        competitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Competition"
+
+    CompetitionDetail:
+      allOf:
+        - $ref: "#/components/schemas/Competition"
+        - type: object
+          properties:
+            maintainers:
+              type: array
+              items:
+                type: object
+                properties:
+                  playerId: { type: string, format: uuid }
+                  name: { type: [string, "null"] }
+                  code: { type: string }
+            rounds:
+              type: array
+              items:
+                $ref: "#/components/schemas/Round"
+            puzzles:
+              type: array
+              description: The competition's own (tagged) puzzles.
+              items:
+                $ref: "#/components/schemas/AdminPuzzle"
+
+    RoundFields:
+      type: object
+      # No additionalProperties here - it would not see the create bodies' own fields (allOf); the request
+      # bodies close themselves with unevaluatedProperties: false (an unknown field is a 400)
+      properties:
+        name:
+          type: string
+          maxLength: 250
+        category:
+          type: string
+          enum: [solo, duo, team]
+          default: solo
+        startsAt:
+          type: string
+          description: |
+            ISO 8601 date-time. With an offset it is that moment; without one a
+            wall-clock time in `timezone`. Stored and answered in UTC.
+          example: "2026-11-14T10:00:00+01:00"
+        timezone:
+          type: string
+          description: IANA time zone for a `startsAt` without an offset - by default the time zone of the competition's country (else Europe/Prague). Only together with `startsAt`.
+          example: Europe/Prague
+        minutesLimit:
+          type: integer
+          minimum: 1
+        badgeBackgroundColor:
+          type: [string, "null"]
+          example: "#fe696a"
+        badgeTextColor:
+          type: [string, "null"]
+          example: "#ffffff"
+        resultsLink:
+          type: [string, "null"]
+          format: uri
+
+    Round:
+      type: object
+      properties:
+        roundId: { type: string, format: uuid }
+        competitionId: { type: string, format: uuid }
+        slug: { type: [string, "null"] }
+        name: { type: string }
+        category: { type: string, enum: [solo, duo, team] }
+        startsAt: { type: string, format: date-time, example: "2026-11-14T09:00:00+00:00" }
+        minutesLimit: { type: integer }
+        badgeBackgroundColor: { type: [string, "null"] }
+        badgeTextColor: { type: [string, "null"] }
+        resultsLink: { type: [string, "null"] }
+        resultsCount:
+          type: integer
+          description: Solving times that belong to the round.
+        puzzles:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/AdminPuzzle"
+              - type: object
+                properties:
+                  roundPuzzleId: { type: string, format: uuid }
+                  hideUntilRoundStarts: { type: boolean }
+                  hideMode: { type: [string, "null"], enum: [image_only, entirely, null] }
+
+    PuzzleIdList:
+      type: object
+      additionalProperties: false
+      required: [puzzleIds]
+      properties:
+        puzzleIds:
+          type: array
+          description: The whole list as it should end up - `[]` removes every puzzle.
+          items:
+            type: string
+            format: uuid
+
+    AdminPuzzle:
+      type: object
+      properties:
+        puzzleId: { type: string, format: uuid }
+        name: { type: string }
+        piecesCount: { type: integer }
+        manufacturerId: { type: [string, "null"] }
+        manufacturerName: { type: [string, "null"] }
+        ean: { type: [string, "null"], description: "Comma-separated when the puzzle has several" }
+        identificationNumber: { type: [string, "null"], description: Brand code(s) }
+        approved: { type: boolean }
+
+    PuzzleSearchResult:
+      type: object
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        puzzles:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/AdminPuzzle"
+              - type: object
+                properties:
+                  alternativeNames:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PuzzleName"
+                  solvedTimes: { type: integer }
+
+    PuzzleCreation:
+      type: object
+      additionalProperties: false
+      required: [name, piecesCount]
+      properties:
+        name:
+          type: string
+          description: Main title - the English title of the box when it has one.
+        nameLanguage:
+          type: [string, "null"]
+          description: BCP 47 tag of the main title when it is not English.
+        alternativeNames:
+          type: array
+          items:
+            $ref: "#/components/schemas/PuzzleName"
+        brand:
+          type: string
+          description: Brand name - send this or `manufacturerId`.
+        manufacturerId:
+          type: string
+          format: uuid
+        piecesCount:
+          type: integer
+          minimum: 10
+          maximum: 25000
+        ean:
+          oneOf:
+            - type: string
+            - type: array
+              items: { type: string }
+          description: One code, a comma-separated string or a list - every one a valid EAN/UPC.
+        identificationNumber:
+          oneOf:
+            - type: string
+            - type: array
+              items: { type: string }
+        allowDuplicateEan:
+          type: boolean
+          default: false
+
     FeatureRequestStatusUpdate:
       type: object
       additionalProperties: false
@@ -849,6 +1561,11 @@ components:
       properties:
         error:
           type: string
+        errors:
+          type: object
+          description: Invalid fields (field => what is wrong) - only for a request with invalid fields.
+          additionalProperties:
+            type: string
 
   responses:
     InvalidJson:
@@ -869,5 +1586,15 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    Conflict:
+      description: The request conflicts with the current state (taken slug, round invariant, results in a round, shared tag, already approved, known EAN)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     NotFound:
-      description: Unknown feature request, merge request, brand or puzzle ID
+      description: Unknown feature request, merge request, brand, puzzle, competition or round ID
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

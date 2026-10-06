@@ -29,6 +29,10 @@ readonly final class AddCompetition
         public bool $isOnline,
         public null|UploadedFile $logo,
         public array $maintainerIds,
+        // An explicitly chosen slug (validated unique) - null generates it from the name
+        public null|string $slug = null,
+        // The e-mail asking an admin to review the new competition - pointless when an admin creates it
+        public bool $notifyAdmin = true,
     ) {
     }
 }

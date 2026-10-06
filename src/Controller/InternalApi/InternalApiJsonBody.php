@@ -34,8 +34,9 @@ final class InternalApiJsonBody
             throw new BadRequestHttpException('Invalid JSON payload.', $e);
         }
 
-        if (is_array($data) === false) {
-            throw new BadRequestHttpException('JSON payload must be an object.');
+        // A JSON list decodes to a PHP array too - its items would read as fields "0", "1", …
+        if (is_array($data) === false || ($data !== [] && array_is_list($data)) || ($data === [] && str_starts_with(ltrim($content), '['))) {
+            throw new BadRequestHttpException('The body must be a JSON object.');
         }
 
         /** @var array<string, mixed> $data */

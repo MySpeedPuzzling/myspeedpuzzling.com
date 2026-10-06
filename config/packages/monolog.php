@@ -10,6 +10,8 @@ return App::config([
         // never loop back into Sentry as events — see prod/monolog.php handlers.
         // object_storage: AsyncAws' per-request log of the S3 client and its
         // retries (config/services.php)
-        'channels' => ['sentry_sdk', 'object_storage'],
+        // internal_api_audit: one line per write through the internal admin API
+        // (InternalApiAuditSubscriber) - kept apart so production writes it on its own
+        'channels' => ['sentry_sdk', 'object_storage', 'internal_api_audit'],
     ],
 ]);

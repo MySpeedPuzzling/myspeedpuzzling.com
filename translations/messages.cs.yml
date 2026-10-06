@@ -2454,6 +2454,7 @@ comparison:
   "flash":
     "changes_submitted": "Vaše navrhované změny byly odeslány ke kontrole. Děkujeme!"
     "duplicate_reported": "Váš report duplikátu byl odeslán ke kontrole. Děkujeme!"
+    "secret_puzzle_involved": "Jedno z těchto puzzlí drží soutěž v tajnosti až do jeho odhalení – do té doby ho nelze nahlásit ani sloučit."
     "login_required": "Pro návrh změn se prosím přihlaste."
     "no_changes": "Nebyly provedeny žádné změny. Před odesláním prosím upravte alespoň jedno pole."
     "no_valid_duplicates": "Nemůžete nahlásit puzzle jako duplikát samo sebe. Vyberte prosím jiné puzzle."
@@ -3432,6 +3433,7 @@ qr_code:
       "participants_after_reveal": "Účastníci si mohou zapsat časy, až bude odhalené."
       "confirm_reveal_list": "S tímto začátkem se tato tajná puzzle odhalí hned:"
       "confirm_name_public": "Ano, zveřejnit název teď – všichni ho hned uvidí a už nikdy nepůjde znovu skrýt"
+      "confirm_name_public_event": "Ano, zveřejnit název na této události teď – tady už nikdy nepůjde znovu skrýt (jinde ho drží v tajnosti jiné kolo, dokud ho neodhalí)"
     "flash":
       "saved": "Nastavení odhalení puzzle „%puzzle%“ je uložené."
       "revealed": "Puzzle „%puzzle%“ je odhalené."

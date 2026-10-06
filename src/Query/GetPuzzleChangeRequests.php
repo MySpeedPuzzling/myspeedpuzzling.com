@@ -23,8 +23,8 @@ readonly final class GetPuzzleChangeRequests
      */
     public function countByStatus(bool $includeSecret = false): array
     {
-        // A secret competition puzzle is out of the queue until it is revealed (PuzzleSecrecy)
-        // Admins correct a secret competition puzzle before its reveal; moderators never see it (PuzzleSecrecy)
+        // A secret competition puzzle is in the moderators' counts only after its reveal; admins, who may correct it,
+        // count it (PuzzleSecrecy)
         $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT

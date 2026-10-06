@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Admin;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
@@ -32,6 +34,7 @@ final class MergeUnapprovedPuzzleController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly PuzzleRepository $puzzleRepository,
         private readonly TranslatorInterface $translator,
+        private readonly IsPuzzleKeptSecret $isPuzzleKeptSecret,
     ) {
     }
 
@@ -60,7 +63,13 @@ final class MergeUnapprovedPuzzleController extends AbstractController
             $targetPuzzleId = strtolower($matches[0]);
         }
 
-        if ($targetPuzzleId === null || $targetPuzzleId === $puzzleId || $this->puzzleExists($targetPuzzleId) === false) {
+        // A target a competition keeps secret answers exactly like an unknown one - its existence is not signalled
+        if (
+            $targetPuzzleId === null
+            || $targetPuzzleId === $puzzleId
+            || $this->puzzleExists($targetPuzzleId) === false
+            || $this->isPuzzleKeptSecret->byId($targetPuzzleId)
+        ) {
             $this->addFlash('error', $this->translator->trans('admin.puzzle_approval.merge_target_invalid'));
 
             return $this->redirectToRoute('admin_puzzle_approval_detail', ['puzzleId' => $puzzleId]);
@@ -71,13 +80,20 @@ final class MergeUnapprovedPuzzleController extends AbstractController
         // Optional: what the new puzzle's name is in - the merge review's names editor starts from it
         $nameLanguage = LanguageTag::normalize($request->request->getString('name_language'));
 
-        $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
-            mergeRequestId: $mergeRequestId,
-            sourcePuzzleId: $puzzleId,
-            reporterId: $player->playerId,
-            duplicatePuzzleIds: [$targetPuzzleId],
-            reportedNameLanguages: $nameLanguage !== null ? [$puzzleId => $nameLanguage] : [],
-        ));
+        try {
+            $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                sourcePuzzleId: $puzzleId,
+                reporterId: $player->playerId,
+                duplicatePuzzleIds: [$targetPuzzleId],
+                reportedNameLanguages: $nameLanguage !== null ? [$puzzleId => $nameLanguage] : [],
+            ));
+        } catch (PuzzleIsStillSecret | PuzzleNotFound) {
+            // Became secret meanwhile (either side) - answered like an unknown target
+            $this->addFlash('error', $this->translator->trans('admin.puzzle_approval.merge_target_invalid'));
+
+            return $this->redirectToRoute('admin_puzzle_approval_detail', ['puzzleId' => $puzzleId]);
+        }
 
         return $this->redirectToRoute('admin_puzzle_merge_request_detail', [
             'id' => $mergeRequestId,

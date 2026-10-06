@@ -2456,6 +2456,7 @@
   "flash":
     "changes_submitted": "Deine vorgeschlagene Änderung wurde zur Überprüfung eingereicht. Danke!"
     "duplicate_reported": "Deine Duplikat-Meldung wurde zur Überprüfung eingereicht. Danke!"
+    "secret_puzzle_involved": "Eines dieser Puzzles hält ein Wettbewerb bis zu seiner Enthüllung geheim – bis dahin kann es weder gemeldet noch zusammengeführt werden."
     "login_required": "Bitte melde dich an, um eine Änderung vorzuschlagen."
     "no_changes": "Es wurden keine Änderungen vorgenommen. Bitte ändere mindestens ein Feld vor dem Absenden."
     "no_valid_duplicates": "Du kannst ein Puzzle nicht als Duplikat von sich selbst melden. Bitte wähle ein anderes Puzzle."
@@ -3434,6 +3435,7 @@ qr_code:
       "participants_after_reveal": "Die Teilnehmer können ihre Zeiten eintragen, sobald es enthüllt ist."
       "confirm_reveal_list": "Mit diesem Beginn werden diese geheimen Puzzles sofort enthüllt:"
       "confirm_name_public": "Ja, den Namen jetzt veröffentlichen – alle sehen ihn sofort, und er kann nie wieder verborgen werden"
+      "confirm_name_public_event": "Ja, den Namen jetzt bei dieser Veranstaltung veröffentlichen – hier kann er nie wieder verborgen werden (anderswo hält ihn eine andere Runde geheim, bis sie ihn enthüllt)"
     "flash":
       "saved": "Enthüllung von „%puzzle%“ gespeichert."
       "revealed": "„%puzzle%“ ist enthüllt."

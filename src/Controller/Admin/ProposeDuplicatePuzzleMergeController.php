@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DuplicatePuzzleSignalAlreadyResolved;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ProposeDuplicatePuzzleMerge;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -15,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
@@ -26,6 +29,7 @@ final class ProposeDuplicatePuzzleMergeController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
+        private readonly TranslatorInterface $translator,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
@@ -55,6 +59,11 @@ final class ProposeDuplicatePuzzleMergeController extends AbstractController
                 playerId: $player->playerId,
                 mergeRequestId: $mergeRequestId,
             ));
+        } catch (PuzzleIsStillSecret | PuzzleNotFound) {
+            // A puzzle of the signal is kept secret by a competition until it is revealed - no merge before then
+            $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.secret_puzzle_involved'));
+
+            return $this->redirectToRoute('admin_duplicate_results', ['_fragment' => 'puzzle-signals']);
         } catch (HandlerFailedException $exception) {
             if ($exception->getPrevious() instanceof DuplicatePuzzleSignalAlreadyResolved) {
                 $this->addFlash('warning', 'This signal was already handled in the meantime.');

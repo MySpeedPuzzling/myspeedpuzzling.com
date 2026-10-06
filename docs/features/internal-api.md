@@ -271,7 +271,7 @@ puzzle - a competition's secret one, or a placeholder hidden by hand - is never 
 would show it (`409`, nothing changes; on create, no round is created). A puzzle may be in only **one round
 per category per competition** (that is what lets a solving time's round follow from its competition + puzzle,
 [round-results.md](./competitions-management/round-results.md)): a list breaking it is a `409` naming the other
-round, and **nothing** changes (`SetCompetitionRoundPuzzles` is one transaction). Creating a round with `puzzleIds` checks them before the round is created; only a puzzle attached elsewhere in the very same moment can still refuse them afterwards - then the `409` says the round exists without its puzzles. A round `PATCH` changing the category is refused the same way. Unknown puzzle ids are a
+round, and **nothing** changes (`SetCompetitionRoundPuzzles` is one transaction). Creating a round with `puzzleIds` checks them before the round is created, and creates the round and attaches them in one transaction (`AddCompetitionRoundWithPuzzles`): a puzzle that changes in the very same moment still refuses the list (`409`, or `404` for one deleted meanwhile) - and then no round is created either. A round `PATCH` changing the category is refused the same way. Unknown puzzle ids are a
 `404` listing them. Solving times follow automatically: every attach/removal reconciles the competition's round results
 (`CompetitionRoundsChanged` → `RoundResultsReconciler`), so `resultsCount` is current in the answer.
 

@@ -2457,6 +2457,7 @@
   "flash":
     "changes_submitted": "Tus cambios sugeridos han sido enviados para revisión. ¡Gracias!"
     "duplicate_reported": "Tu reporte de duplicado ha sido enviado para revisión. ¡Gracias!"
+    "secret_puzzle_involved": "Una competición mantiene en secreto uno de estos puzzles hasta que se revele: hasta entonces no se puede reportar ni fusionar."
     "login_required": "Por favor inicia sesión para sugerir cambios."
     "no_changes": "No se realizaron cambios. Por favor modifica al menos un campo antes de enviar."
     "no_valid_duplicates": "No puedes reportar un puzzle como duplicado de sí mismo. Por favor selecciona un puzzle diferente."
@@ -3435,6 +3436,7 @@ fair_use_policy:
       "participants_after_reveal": "Los participantes podrán registrar sus tiempos cuando se revele."
       "confirm_reveal_list": "Con este inicio, estos puzzles secretos se revelan de inmediato:"
       "confirm_name_public": "Sí, publicar su nombre ahora: todos lo verán de inmediato y nunca se podrá volver a ocultar"
+      "confirm_name_public_event": "Sí, publicar su nombre en este evento ahora: aquí nunca se podrá volver a ocultar (en el resto lo mantiene en secreto otra ronda hasta que lo revele)"
     "flash":
       "saved": "Se ha guardado la revelación de «%puzzle%»."
       "revealed": "«%puzzle%» está revelado."

@@ -93,6 +93,29 @@ final class RoundsInternalApiTest extends WebTestCase
         self::assertSame('Europe/Prague', $rezoned['timezone']);
     }
 
+    public function testAPatchOfOneFieldKeepsEveryOther(): void
+    {
+        $browser = self::createClient();
+        $round = $this->createRound($browser, [
+            'name' => 'Team Relay',
+            'category' => 'team',
+            'startsAt' => '2026-10-10T08:05',
+            'timezone' => 'America/Chicago',
+            'minutesLimit' => 75,
+            'badgeBackgroundColor' => '#123456',
+            'badgeTextColor' => '#abcdef',
+            'resultsLink' => 'https://example.com/relay',
+        ]);
+
+        $patched = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . self::string($round['roundId']), ['name' => 'Team Relay Final']);
+        self::assertResponseIsSuccessful();
+
+        self::assertSame('Team Relay Final', $patched['name']);
+        foreach (['category', 'startsAt', 'timezone', 'minutesLimit', 'badgeBackgroundColor', 'badgeTextColor', 'resultsLink', 'slug'] as $field) {
+            self::assertSame($round[$field], $patched[$field], $field);
+        }
+    }
+
     public function testAWallClockTimeSkippedByADaylightSavingChangeIsRefused(): void
     {
         $browser = self::createClient();

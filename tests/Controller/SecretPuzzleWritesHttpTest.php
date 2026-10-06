@@ -185,6 +185,73 @@ final class SecretPuzzleWritesHttpTest extends WebTestCase
         self::assertFalse($this->database()->fetchOne('SELECT 1 FROM collection_item WHERE puzzle_id IN (:a, :b)', ['a' => $hidden, 'b' => $own]));
     }
 
+    public function testTheFirstTryCheckSaysNothingAboutAHiddenPuzzle(): void
+    {
+        $browser = self::createClient();
+        $today = new DateTimeImmutable()->format('d.m.Y');
+        // TIME_02: PLAYER_PRIVATE, 25:00 on PUZZLE_500_01 - made today
+        $this->database()->executeStatement(
+            'UPDATE puzzle_solving_time SET finished_at = :today, tracked_at = :today WHERE id = :id',
+            ['today' => new DateTimeImmutable()->format('Y-m-d 10:00:00'), 'id' => PuzzleSolvingTimeFixture::TIME_02],
+        );
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+        $check = function (string $puzzleId) use ($browser, $today): string {
+            $browser->request('GET', '/en/first-try-check?' . http_build_query([
+                'puzzle' => $puzzleId,
+                'date' => $today,
+                'first_attempt' => '0',
+                'seconds' => 1500,
+            ]));
+            self::assertResponseIsSuccessful();
+
+            return (string) $browser->getResponse()->getContent();
+        };
+
+        // A public puzzle: the same time today is pointed out
+        self::assertStringContainsString('This exact time is already saved', $check(\SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture::PUZZLE_500_01));
+
+        // The same result on a puzzle a competition keeps secret from this player: nothing at all
+        $puzzleId = $this->secretPuzzle(PlayerFixture::PLAYER_REGULAR_USER_ID);
+        $this->database()->executeStatement('UPDATE puzzle_solving_time SET puzzle_id = :puzzleId WHERE id = :id', ['puzzleId' => $puzzleId, 'id' => PuzzleSolvingTimeFixture::TIME_02]);
+        self::assertSame('', $check($puzzleId));
+    }
+
+    public function testMultiscanSaysNothingSpecialAboutACodeOnlyAHiddenPuzzleCarries(): void
+    {
+        $browser = self::createClient();
+        $roundPuzzleId = Uuid::uuid7();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new AddPuzzleToCompetitionRound(
+            roundPuzzleId: $roundPuzzleId,
+            roundId: CompetitionApiFixture::ROUND_FUTURE,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            puzzle: 'Coded Lighthouse',
+            piecesCount: 1000,
+            puzzlePhoto: null,
+            eans: EanList::fromStored('4005556175512'),
+            brandCodes: BrandCodeList::fromStored(null),
+            hideUntilRoundStarts: true,
+            hideMode: PuzzleHideMode::Entirely,
+        ));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $tray = $this->createLiveComponent('MultiscanTray', [
+            'resolvingEan' => '4005556175512',
+            'quickAddOpen' => true,
+            'newName' => 'My Lighthouse',
+            'newPiecesCount' => '1000',
+            'newBrand' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            'rows' => [['key' => 'r1', 'ean' => '4005556175512', 'puzzleId' => null, 'state' => 'unknown', 'candidateIds' => []]],
+        ], $browser);
+        $tray->setRouteLocale('en');
+        $tray->call('createPuzzle');
+
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('The puzzle could not be added. Please try again.', $html);
+        self::assertStringNotContainsString('This code cannot be linked here', $html);
+        self::assertFalse($this->database()->fetchOne("SELECT 1 FROM puzzle WHERE name = 'My Lighthouse'"));
+    }
+
     private function tray(KernelBrowser $browser, string $puzzleId): \Symfony\UX\LiveComponent\Test\TestLiveComponent
     {
         $tray = $this->createLiveComponent('MultiscanTray', [

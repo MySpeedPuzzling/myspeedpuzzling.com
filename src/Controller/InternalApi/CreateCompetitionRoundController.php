@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
-use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
@@ -17,7 +16,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzlesNotAttachable;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
-use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
+use SpeedPuzzling\Web\Message\AddCompetitionRoundWithPuzzles;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
 use SpeedPuzzling\Web\Query\GetAdminPuzzles;
 use SpeedPuzzling\Web\Results\AdminPuzzle;
@@ -51,7 +50,6 @@ final class CreateCompetitionRoundController extends AbstractController
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly CompetitionRepository $competitionRepository,
         private readonly ClockInterface $clock,
-        private readonly Connection $database,
     ) {
     }
 
@@ -135,28 +133,22 @@ final class CreateCompetitionRoundController extends AbstractController
             resultsLink: $data->resultsLink,
         );
 
-        // The round and its puzzles in one transaction: each message runs in its own savepoint of this one
-        // (doctrine_transaction), so a refused list - checked above, but a puzzle may change meanwhile - rolls the round
-        // back too. Never a round without its puzzles, never a 500 for it.
+        // The round and its puzzles in one transaction (AddCompetitionRoundWithPuzzlesHandler dispatches both inside its
+        // own): a refused list - checked above, but a puzzle may change meanwhile - rolls the round back too. Never a
+        // round without its puzzles, never a 500 for it.
         try {
-            $this->database->transactional(function () use ($addRound, $roundId, $puzzleIds): void {
-                $this->messageBus->dispatch($addRound);
-
-                if ($puzzleIds !== null && $puzzleIds !== []) {
-                    $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
-                        roundId: $roundId->toString(),
-                        puzzleIds: $puzzleIds,
-                    ));
-                }
-            });
+            $this->messageBus->dispatch(new AddCompetitionRoundWithPuzzles($addRound, $puzzleIds ?? []));
         } catch (PuzzleIsStillSecret | PuzzleHiddenByHand $exception) {
             // An HTTP exception of the handler arrives unwrapped (UnwrapHttpExceptionMiddleware)
             throw new RoundPuzzlesNotAttachable(sprintf('The round was not created - %s', $exception->getMessage()), $exception);
         } catch (PuzzleNotFound $exception) {
             throw new NotFoundHttpException('A puzzle of the list no longer exists. Nothing was created.', $exception);
         } catch (HandlerFailedException $exception) {
-            if ($exception->getPrevious() instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                throw new PuzzleInTwoRoundsOfCategory($data->category->value, $exception->getPrevious()->conflictingRoundName, $exception);
+            // Nested twice (this message, then SetCompetitionRoundPuzzles inside it)
+            for ($cause = $exception; $cause !== null; $cause = $cause->getPrevious()) {
+                if ($cause instanceof PuzzleAlreadyInCompetitionRoundCategory) {
+                    throw new PuzzleInTwoRoundsOfCategory($data->category->value, $cause->conflictingRoundName, $exception);
+                }
             }
 
             throw $exception;

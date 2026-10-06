@@ -2457,6 +2457,7 @@
   "flash":
     "changes_submitted": "Vos modifications suggérées ont été soumises pour examen. Merci !"
     "duplicate_reported": "Votre signalement de doublon a été soumis pour examen. Merci !"
+    "secret_puzzle_involved": "Une compétition garde l’un de ces puzzles secret jusqu’à sa révélation – d’ici là, il ne peut être ni signalé ni fusionné."
     "login_required": "Veuillez vous connecter pour suggérer des modifications."
     "no_changes": "Aucune modification n'a été effectuée. Veuillez modifier au moins un champ avant de soumettre."
     "no_valid_duplicates": "Vous ne pouvez pas signaler un puzzle comme doublon de lui-même. Veuillez sélectionner un puzzle différent."
@@ -3435,6 +3436,7 @@ competition:
       "participants_after_reveal": "Les participants pourront enregistrer leurs temps une fois qu’il sera révélé."
       "confirm_reveal_list": "Avec ce début, ces puzzles secrets sont révélés immédiatement :"
       "confirm_name_public": "Oui, publier son nom maintenant – tout le monde le voit aussitôt, et il ne pourra plus jamais être masqué"
+      "confirm_name_public_event": "Oui, publier son nom sur cet événement maintenant – il ne pourra plus jamais y être masqué (ailleurs, une autre manche le garde secret jusqu’à ce qu’elle le révèle)"
     "flash":
       "saved": "Révélation de « %puzzle% » enregistrée."
       "revealed": "« %puzzle% » est révélé."

@@ -28,11 +28,21 @@ readonly final class GetRoundPuzzlesForManagement
     {
         $mayKeepHiddenEverywhere = RoundPuzzleOwnership::sqlMayKeepHiddenEverywhere('crp', 'p', 'cr');
         $shownByAnotherRound = RoundPuzzleOwnership::sqlShownByAnotherRound('crp');
+        $otherHidden = RoundPuzzleReveal::sqlHidden('name_crp', 'name_cr');
         $query = <<<SQL
 SELECT
     crp.id AS round_puzzle_id,
     {$mayKeepHiddenEverywhere} AS may_keep_hidden_everywhere,
     {$shownByAnotherRound} AS shown_by_another_round,
+    EXISTS (
+        SELECT 1 FROM competition_round_puzzle name_crp
+        INNER JOIN competition_round name_cr ON name_cr.id = name_crp.round_id
+        WHERE name_crp.puzzle_id = crp.puzzle_id
+            AND name_crp.id <> crp.id
+            AND name_crp.hides_everywhere
+            AND COALESCE(name_crp.hide_mode, 'entirely') = 'entirely'
+            AND {$otherHidden}
+    ) AS name_held_by_another_round,
     EXISTS (
         SELECT 1 FROM competition_round_puzzle other_crp
         WHERE other_crp.puzzle_id = crp.puzzle_id
@@ -89,6 +99,7 @@ SQL;
              *     may_keep_hidden_everywhere: bool|string,
              *     another_round_holds: bool|string,
              *     shown_by_another_round: bool|string,
+             *     name_held_by_another_round: bool|string,
              *     puzzle_hide_image_until: null|string,
              * } $row
              */
@@ -127,6 +138,7 @@ SQL;
                 ),
                 mayKeepHiddenEverywhere: self::bool($row['may_keep_hidden_everywhere']) && $hideUntilRoundStarts && ($revealsAt === null || $revealsAt > $now),
                 // Shown on the event page so far: secret only before the round starts and while no other round shows it
+                nameHeldByAnotherRound: self::bool($row['name_held_by_another_round']),
                 mayBecomeSecret: $hideUntilRoundStarts === false
                     && new DateTimeImmutable($row['round_starts_at']) > $now
                     && self::bool($row['shown_by_another_round']) === false,

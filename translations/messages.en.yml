@@ -2775,6 +2775,7 @@ puzzle_report:
     flash:
         changes_submitted: "Your suggested changes have been submitted for review. Thank you!"
         duplicate_reported: "Your duplicate report has been submitted for review. Thank you!"
+        secret_puzzle_involved: "One of these puzzles is kept secret by a competition until it is revealed – it cannot be reported or merged before then."
         validation_error: "Please fix the errors and try again."
         login_required: "Please log in to suggest changes."
         pending_proposal_exists: "A proposal for this puzzle is already pending review."
@@ -3701,6 +3702,7 @@ competition:
             participants_after_reveal: "Participants can log their times once it is revealed."
             confirm_reveal_list: "With this start, these secret puzzles are revealed right away:"
             confirm_name_public: "Yes, publish its name now – everyone sees it right away, and it can never be hidden again"
+            confirm_name_public_event: "Yes, publish its name on this event now – it can never be hidden here again (another round keeps it secret elsewhere until it reveals it)"
         flash:
             saved: "Reveal settings of “%puzzle%” saved."
             revealed: "“%puzzle%” is revealed."

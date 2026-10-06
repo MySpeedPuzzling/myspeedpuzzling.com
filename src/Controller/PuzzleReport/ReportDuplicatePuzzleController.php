@@ -89,7 +89,8 @@ final class ReportDuplicatePuzzleController extends AbstractController
                         reportedNameLanguages: self::reportedNameLanguages($formData, $puzzleId, $duplicateIds),
                     ));
                 } catch (PuzzleIsStillSecret) {
-                    $this->addFlash('warning', $this->translator->trans('competition.reveal.puzzle_still_secret'));
+                    // Either side - "this puzzle" would point at the page's own puzzle
+                    $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.secret_puzzle_involved'));
 
                     return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
                 }

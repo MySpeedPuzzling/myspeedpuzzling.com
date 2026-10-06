@@ -31,8 +31,8 @@ return App::config([
                 'handler' => 'nested',
                 'excluded_http_codes' => [404, 405],
                 'buffer_size' => 50,
-                // internal_api_audit has its own handler below
-                'channels' => ['!sentry_sdk', '!internal_api_audit'],
+                // internal_api_audit and service_worker have their own handlers below
+                'channels' => ['!sentry_sdk', '!internal_api_audit', '!service_worker'],
             ],
             'nested' => [
                 'type' => 'stream',
@@ -73,6 +73,17 @@ return App::config([
                 'path' => 'php://stderr',
                 'level' => 'info',
                 'channels' => ['internal_api_audit'],
+                'formatter' => 'monolog.formatter.json',
+            ],
+            // Navigations the service worker had to ask for twice
+            // (NavigationFetchFailureController): info lines to count in Loki, written
+            // as they come. Its warnings (an offline page shown to somebody online)
+            // still reach Sentry through the handlers above.
+            'service_worker' => [
+                'type' => 'stream',
+                'path' => 'php://stderr',
+                'level' => 'info',
+                'channels' => ['service_worker'],
                 'formatter' => 'monolog.formatter.json',
             ],
             // SDK send failures land in stderr logs only

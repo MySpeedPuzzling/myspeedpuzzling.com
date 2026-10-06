@@ -12,6 +12,8 @@ return App::config([
         // retries (config/services.php)
         // internal_api_audit: one line per write through the internal admin API
         // (InternalApiAuditSubscriber) - kept apart so production writes it on its own
-        'channels' => ['sentry_sdk', 'object_storage', 'internal_api_audit'],
+        // service_worker: navigations the service worker had to ask for twice
+        // (NavigationFetchFailureController) - info lines meant to be counted
+        'channels' => ['sentry_sdk', 'object_storage', 'internal_api_audit', 'service_worker'],
     ],
 ]);

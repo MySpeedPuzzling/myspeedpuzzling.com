@@ -6,6 +6,11 @@
 // entry, and the network always answers "FRESH". A request that comes back
 // STALE was served from a cache; nothing about the source text is assumed.
 //
+// A scenario can make the network reject: `offline` rejects every fetch,
+// `failingFetches: N` only the first N (a connection that died once). POSTs to
+// the worker's failure report are recorded in `reports` and never fail or
+// count as fetches. Timers fire at once and their delays are recorded.
+//
 // Requests are plain objects on purpose: `new Request(url, { mode: 'navigate' })`
 // throws by specification, so a real navigation request cannot be constructed.
 
@@ -24,7 +29,7 @@ function urlOf(request) {
 }
 
 async function run(scenario) {
-    const log = { cacheReads: [], cacheWrites: [], networkFetches: [] };
+    const log = { cacheReads: [], cacheWrites: [], networkFetches: [], reports: [], delays: [] };
     const handlers = {};
 
     function lookup(request) {
@@ -54,11 +59,20 @@ async function run(scenario) {
             keys: () => Promise.resolve([]),
             delete: () => Promise.resolve(true),
         },
-        fetch: (request) => {
+        setTimeout: (callback, delay) => {
+            log.delays.push(delay);
+            return setTimeout(callback, 0);
+        },
+        fetch: (request, init) => {
+            if (init && init.method === 'POST') {
+                log.reports.push({ url: urlOf(request), credentials: init.credentials, body: JSON.parse(init.body) });
+                return Promise.resolve(new Response(null, { status: 204 }));
+            }
+
             log.networkFetches.push(urlOf(request));
 
-            if (scenario.offline) {
-                return Promise.reject(new TypeError('Failed to fetch'));
+            if (scenario.offline || log.networkFetches.length <= (scenario.failingFetches || 0)) {
+                return Promise.reject(new TypeError('Load failed'));
             }
 
             return Promise.resolve(new Response('FRESH', {
@@ -68,6 +82,7 @@ async function run(scenario) {
     };
     sandbox.self = {
         location: { origin: ORIGIN },
+        navigator: { onLine: scenario.onLine !== false },
         addEventListener: (type, handler) => { handlers[type] = handler; },
         skipWaiting: () => Promise.resolve(),
         clients: { claim: () => Promise.resolve() },
@@ -81,6 +96,7 @@ async function run(scenario) {
         mode: scenario.mode,
         destination: scenario.destination,
         headers: new Headers({ Accept: scenario.accept }),
+        signal: { aborted: scenario.aborted === true },
     };
 
     let answer = null;
@@ -99,6 +115,8 @@ async function run(scenario) {
         cacheReads: log.cacheReads,
         cacheWrites: log.cacheWrites,
         networkFetches: log.networkFetches,
+        reports: log.reports,
+        delays: log.delays,
     };
 
     if (answer !== null) {

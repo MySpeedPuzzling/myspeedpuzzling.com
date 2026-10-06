@@ -12,6 +12,11 @@ const ENTRYPOINTS_URL = '/build/entrypoints.json';
 const MANIFEST_URL = '/build/manifest.json';
 const IMAGES_CACHE_LIMIT = 200;
 
+// A navigation whose fetch rejects is tried once more after this pause before
+// the offline page is shown - see networkFirstNavigation()
+const NAVIGATION_RETRY_DELAY_MS = 500;
+const NAVIGATION_FAILURE_REPORT_URL = '/-/navigation-fetch-failure';
+
 // Self-hosted fonts to precache on install (instant on repeat visits)
 const FONT_URLS = [
     '/fonts/rubik/rubik-latin.woff2',
@@ -133,8 +138,17 @@ self.addEventListener('fetch', (event) => {
     // and personalized HTML was stored in a shared cache and replayed to whoever
     // opened the app next. Safari never matched, which is why only Chromium
     // users saw it.
-    if (request.mode === 'navigate' || request.destination === 'document' || accept.includes('text/html')) {
-        event.respondWith(networkFirstNavigation(request));
+    //
+    // Real navigations only - never "anything that accepts text/html". That also
+    // caught Turbo Drive visits, Turbo Frame loads and fetch() calls asking for
+    // HTML, and answered their network errors with the offline page as a 200:
+    // Turbo rendered it as the visited page instead of falling back to a full
+    // page load (its own retry), a frame showed "Content missing", and the
+    // first-try check pasted the whole offline page into the form. Left alone,
+    // they see the error themselves; when the device really is offline, Turbo's
+    // full page load comes back here as a navigation and gets the offline page.
+    if (request.mode === 'navigate') {
+        event.respondWith(networkFirstNavigation(event, request));
         return;
     }
 
@@ -185,15 +199,94 @@ async function cacheFirst(event, request, cacheName) {
     return new Response(body, init);
 }
 
-async function networkFirstNavigation(request) {
+// A rejected fetch() does not mean the device is offline. Safari rejects with
+// "Load failed" when it reuses a connection that was torn down without it
+// noticing - typically on the first request after a tab sat in the background -
+// and a navigation the worker answers never falls back to the browser's own
+// handling: whatever is returned here is what the visitor sees. Without the
+// retry, a person browsing other sites just fine got "You are offline", and a
+// reload worked at once (2026-10-06). A navigation through the worker is a GET
+// without a body, so asking again is safe, and the failed connection is gone
+// from the pool by then.
+//
+// Deliberately no timeout: with no cached copy to fall back to, a timeout can
+// only turn a slow page on a slow network into a false offline page.
+async function networkFirstNavigation(event, request) {
+    let firstError;
+
+    try {
+        return await fetch(request);
+    } catch (e) {
+        firstError = e;
+    }
+
+    // A device that knows it is offline gets the offline page without waiting,
+    // and a navigation the visitor abandoned has nobody waiting for it
+    if ((self.navigator && self.navigator.onLine === false) || isAborted(request, firstError)) {
+        return offlinePage();
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, NAVIGATION_RETRY_DELAY_MS));
+
+    if (isAborted(request, null)) {
+        return offlinePage();
+    }
+
     try {
         const response = await fetch(request);
+        reportNavigationFailure(event, request, 'recovered', firstError, null);
         return response;
-    } catch (e) {
-        // Offline — show offline page
-        const offline = await caches.match(OFFLINE_URL);
-        return offline || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+    } catch (retryError) {
+        reportNavigationFailure(event, request, 'offline-page', firstError, retryError);
+        return offlinePage();
     }
+}
+
+async function offlinePage() {
+    const offline = await caches.match(OFFLINE_URL);
+    return offline || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+}
+
+function isAborted(request, error) {
+    return (request.signal && request.signal.aborted === true)
+        || (error !== null && typeof error === 'object' && error.name === 'AbortError');
+}
+
+// Counts how often a navigation needed the retry, and - when the report gets
+// through - proves an offline page went to somebody who was online
+// (NavigationFetchFailureController). Only the path: query strings can carry
+// sign-in tokens. Must be called while respondWith() is still pending -
+// waitUntil() throws once the event has settled - and must never affect the
+// answer, so every failure is swallowed.
+function reportNavigationFailure(event, request, outcome, firstError, retryError) {
+    try {
+        const report = fetch(NAVIGATION_FAILURE_REPORT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                outcome,
+                page: new URL(request.url).pathname,
+                error: describeError(firstError),
+                retryError: retryError === null ? null : describeError(retryError),
+                retryDelayMs: NAVIGATION_RETRY_DELAY_MS,
+            }),
+            credentials: 'omit',
+            cache: 'no-store',
+            keepalive: true,
+        }).catch(() => {});
+
+        event.waitUntil(report);
+    } catch (e) {
+        // Reporting is best-effort
+    }
+}
+
+function describeError(error) {
+    if (error === null || typeof error !== 'object') {
+        return String(error).slice(0, 200);
+    }
+
+    return (String(error.name || 'Error') + ': ' + String(error.message || '')).slice(0, 200);
 }
 
 async function staleWhileRevalidate(request, cacheName) {

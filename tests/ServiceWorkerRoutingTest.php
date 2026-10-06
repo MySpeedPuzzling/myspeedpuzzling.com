@@ -34,7 +34,7 @@ final class ServiceWorkerRoutingTest extends TestCase
     {
         $source = $this->serviceWorkerSource();
 
-        $navigation = strpos($source, 'networkFirstNavigation(request)');
+        $navigation = strpos($source, 'networkFirstNavigation(event, request)');
         $image = strpos($source, 'staleWhileRevalidate(request, IMAGES_CACHE)');
 
         self::assertIsInt($navigation, 'The navigation strategy must still be dispatched in the fetch router');

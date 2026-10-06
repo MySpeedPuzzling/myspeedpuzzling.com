@@ -51,6 +51,7 @@ final class ImportCompetitionParticipantsController extends AbstractController
             $this->addFlash('success', $this->translator->trans('competition.participants.import.summary', [
                 '%added%' => $result->added,
                 '%updated%' => $result->updated,
+                '%unchanged%' => $result->unchanged,
                 '%deleted%' => $result->softDeleted,
             ]));
 

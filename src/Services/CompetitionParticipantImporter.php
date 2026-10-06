@@ -96,6 +96,12 @@ readonly final class CompetitionParticipantImporter
             ]);
         }
 
+        /** @var array<string, CompetitionRound> $roundsById */
+        $roundsById = [];
+        foreach ($rounds as $round) {
+            $roundsById[$round->id->toString()] = $round;
+        }
+
         // "team_name: <round>" columns, and columns nobody reads
         /** @var array<string, int> $teamColumns roundId => column index */
         $teamColumns = [];
@@ -131,15 +137,15 @@ readonly final class CompetitionParticipantImporter
 
         $existing = $this->loadExistingParticipants($competitionId);
 
-        /** @var array<string, 'added'|'updated'> $outcomes participantId => what the import did to them */
-        $outcomes = [];
-        /** @var array<string, bool> $deleted participantId => soft-deleted by the file */
-        $deleted = [];
+        /** @var array<string, CompetitionParticipant> $touched participantId => participant a row matched or created */
+        $touched = [];
+        /** @var array<string, null|array<string, mixed>> $before participantId => its state before the import, null = created by it */
+        $before = [];
 
         /**
          * Rows of the same participant add up: every round from every row is assigned.
          *
-         * @var array<string, array<string, null|string>> $roundAssignments participantId => [roundId => team name]
+         * @var array<string, array<string, array{team: null|string, canFill: bool, row: int}>> $roundAssignments participantId => [roundId => assignment]
          */
         $roundAssignments = [];
 
@@ -199,7 +205,7 @@ readonly final class CompetitionParticipantImporter
             }
 
             if ($matchedId === null) {
-                $match = self::findMatch($existing, $validPlayerId, $externalId !== '' ? $externalId : null, $name, $countryCode?->name);
+                $match = self::findMatch($existing, $validPlayerId, $externalId !== '' ? $externalId : null, $playerId !== '' ? $playerId : null, $name, $countryCode?->name);
 
                 if (is_int($match)) {
                     $warnings[] = self::message('ambiguous_name', ['%row%' => $rowNum, '%name%' => $name, '%count%' => $match]);
@@ -213,6 +219,10 @@ readonly final class CompetitionParticipantImporter
             if ($matchedId !== null) {
                 $participant = $this->entityManager->find(CompetitionParticipant::class, $matchedId);
                 assert($participant instanceof CompetitionParticipant);
+
+                if (!array_key_exists($matchedId, $before)) {
+                    $before[$matchedId] = self::state($participant);
+                }
 
                 $participant->updateName($name);
                 if ($participant->source === ParticipantSource::SelfJoined) {
@@ -234,8 +244,6 @@ readonly final class CompetitionParticipantImporter
                 if ($participant->isDeleted()) {
                     $participant->restore();
                 }
-
-                $outcomes[$matchedId] ??= 'updated';
             } else {
                 $participant = new CompetitionParticipant(
                     id: Uuid::uuid7(),
@@ -257,15 +265,15 @@ readonly final class CompetitionParticipantImporter
                 }
 
                 $this->entityManager->persist($participant);
-                $outcomes[$participant->id->toString()] = 'added';
+                $before[$participant->id->toString()] = null;
             }
 
             $participantId = $participant->id->toString();
+            $touched[$participantId] = $participant;
 
             if ($status === 'deleted') {
                 $participant->softDelete($this->clock->now());
             }
-            $deleted[$participantId] = $participant->isDeleted();
 
             // Later rows match what this row made of the participant (a rename, a new external id, ...)
             $existing[$participantId] = [
@@ -285,11 +293,19 @@ readonly final class CompetitionParticipantImporter
             // Rounds and teams, applied after the participants are flushed
             $teamName = $this->cleanTeamName($cell($teamNameIdx), $rowNum, $warnings);
 
+            /** @var array<string, null|string> $rowTeams roundId => the row's "team_name: <round>" cell */
+            $rowTeams = [];
+            foreach ($teamColumns as $roundId => $columnIdx) {
+                $rowTeams[$roundId] = $this->cleanTeamName($cell($columnIdx), $rowNum, $warnings);
+            }
+
             $requestedRoundNames = $roundNamesIdx !== null ? self::splitRoundNames($cell($roundNamesIdx), $rounds) : [];
             if ($roundNameIdx !== null && $cell($roundNameIdx) !== '') {
                 $requestedRoundNames[] = $cell($roundNameIdx);
             }
 
+            /** @var array<string, CompetitionRound> $rowRounds */
+            $rowRounds = [];
             foreach ($requestedRoundNames as $requestedRoundName) {
                 $round = $rounds[self::roundKey($requestedRoundName)] ?? null;
 
@@ -299,28 +315,48 @@ readonly final class CompetitionParticipantImporter
                     continue;
                 }
 
-                $roundId = $round->id->toString();
+                $rowRounds[$round->id->toString()] = $round;
+            }
 
+            foreach ($rowTeams as $roundId => $roundTeam) {
+                if ($roundTeam !== null && !isset($rowRounds[$roundId])) {
+                    $warnings[] = self::message('team_round_not_listed', [
+                        '%row%' => $rowNum,
+                        '%team%' => $roundTeam,
+                        '%round%' => $roundsById[$roundId]->name,
+                    ]);
+                }
+            }
+
+            // A filled "team_name: <round>" cell wins; otherwise team_name applies. A team_name covering several
+            // pair/team rounds (an export made before the per-round columns) never joins a team somebody already
+            // in the round has not got - it may belong to another round.
+            $genericTeamRounds = array_filter(
+                $rowRounds,
+                static fn (CompetitionRound $round): bool => $round->category !== RoundCategory::Solo && ($rowTeams[$round->id->toString()] ?? null) === null,
+            );
+            $genericTeamIsAmbiguous = $teamName !== null && count($genericTeamRounds) > 1;
+
+            foreach ($rowRounds as $roundId => $round) {
                 if ($round->category === RoundCategory::Solo) {
-                    $roundTeamName = null;
-                } elseif (isset($teamColumns[$roundId])) {
-                    // A team column of this round decides, even when empty
-                    $roundTeamName = $this->cleanTeamName($cell($teamColumns[$roundId]), $rowNum, $warnings);
+                    $assignment = ['team' => null, 'canFill' => true, 'row' => $rowNum];
+                } elseif (($rowTeams[$roundId] ?? null) !== null) {
+                    $assignment = ['team' => $rowTeams[$roundId], 'canFill' => true, 'row' => $rowNum];
                 } else {
-                    $roundTeamName = $teamName;
+                    $assignment = ['team' => $teamName, 'canFill' => !$genericTeamIsAmbiguous, 'row' => $rowNum];
                 }
 
-                if (!isset($roundAssignments[$participantId]) || !array_key_exists($roundId, $roundAssignments[$participantId])) {
-                    $roundAssignments[$participantId][$roundId] = $roundTeamName;
-                } elseif ($roundAssignments[$participantId][$roundId] === null) {
-                    $roundAssignments[$participantId][$roundId] = $roundTeamName;
-                } elseif ($roundTeamName !== null && !self::sameTeamName($roundTeamName, $roundAssignments[$participantId][$roundId])) {
+                $current = $roundAssignments[$participantId][$roundId] ?? null;
+
+                if ($current === null || ($current['team'] === null && $assignment['team'] !== null)) {
+                    $roundAssignments[$participantId][$roundId] = $assignment;
+                } elseif ($assignment['team'] !== null && !self::sameTeamName($assignment['team'], $current['team'])) {
                     $warnings[] = self::message('team_conflict_in_file', [
                         '%row%' => $rowNum,
                         '%name%' => $name,
-                        '%team%' => $roundAssignments[$participantId][$roundId],
+                        '%team%' => (string) $current['team'],
                         '%round%' => $round->name,
-                        '%ignored%' => $roundTeamName,
+                        '%ignored%' => $assignment['team'],
                     ]);
                 }
             }
@@ -340,21 +376,29 @@ readonly final class CompetitionParticipantImporter
         $this->entityManager->flush();
 
         // Post-flush: assign participants to rounds and teams
+        $roundsChangedFor = [];
         if ($roundAssignments !== []) {
-            $warnings = [...$warnings, ...$this->processRoundAndTeamAssignments($competitionId, $roundAssignments, $rounds)];
+            [$assignmentWarnings, $roundsChangedFor] = $this->processRoundAndTeamAssignments($competitionId, $roundAssignments, $roundsById);
+            $warnings = [...$warnings, ...$assignmentWarnings];
             $this->entityManager->flush();
         }
 
+        // Counted per person, and "updated" only when something about them changed
         $added = 0;
         $updated = 0;
+        $unchanged = 0;
         $softDeleted = 0;
-        foreach ($outcomes as $participantId => $outcome) {
-            if ($deleted[$participantId] ?? false) {
+        foreach ($touched as $participantId => $participant) {
+            $previous = $before[$participantId] ?? null;
+
+            if ($participant->isDeleted() && ($previous === null || $previous['deleted'] === false)) {
                 $softDeleted++;
-            } elseif ($outcome === 'added') {
+            } elseif ($previous === null) {
                 $added++;
-            } else {
+            } elseif ($previous !== self::state($participant) || isset($roundsChangedFor[$participantId])) {
                 $updated++;
+            } else {
+                $unchanged++;
             }
         }
 
@@ -364,7 +408,25 @@ readonly final class CompetitionParticipantImporter
             softDeleted: $softDeleted,
             warnings: $warnings,
             errors: $errors,
+            unchanged: $unchanged,
         );
+    }
+
+    /**
+     * What the organiser sees of a participant - `source` (self-joined becoming the organiser's, markAsImported())
+     * is bookkeeping, not a change they made.
+     *
+     * @return array<string, mixed>
+     */
+    private static function state(CompetitionParticipant $participant): array
+    {
+        return [
+            'name' => $participant->name,
+            'country' => $participant->country,
+            'external_id' => $participant->externalId,
+            'player_id' => $participant->player?->id->toString(),
+            'deleted' => $participant->isDeleted(),
+        ];
     }
 
     /**
@@ -409,9 +471,10 @@ SQL;
 
     /**
      * @param array<string, array{id: string, name: string, country: null|string, external_id: null|string, player_id: null|string, deleted: bool}> $existing
+     * @param null|string $rowPlayerId the row's msp_player_id as written (also when it is no valid player)
      * @return null|string|int the participant id, null for nobody, or how many participants share the name (never guessed)
      */
-    private static function findMatch(array $existing, null|string $playerId, null|string $externalId, string $name, null|string $country): null|string|int
+    private static function findMatch(array $existing, null|string $playerId, null|string $externalId, null|string $rowPlayerId, string $name, null|string $country): null|string|int
     {
         // Priority 1: match by msp_player_id
         if ($playerId !== null) {
@@ -431,8 +494,14 @@ SQL;
             }
         }
 
-        // Priority 3: name + country, then the name alone
-        $sameName = array_filter($existing, static fn (array $row): bool => $row['name'] === $name);
+        // Priority 3: name + country, then the name alone. Somebody with another external id or another linked
+        // player is another person of the same name, never this row.
+        $sameName = array_filter(
+            $existing,
+            static fn (array $row): bool => $row['name'] === $name
+                && ($externalId === null || $row['external_id'] === null || $row['external_id'] === $externalId)
+                && ($rowPlayerId === null || $row['player_id'] === null || strtolower($rowPlayerId) === $row['player_id']),
+        );
 
         if ($country !== null) {
             $sameNameAndCountry = array_filter($sameName, static fn (array $row): bool => $row['country'] === $country);
@@ -514,17 +583,12 @@ SQL;
      * Import only adds: a participant already in a round stays there with their team. A missing
      * team is filled in; a different team in the file is reported, never switched.
      *
-     * @param array<string, array<string, null|string>> $assignments participantId => [roundId => team name]
-     * @param array<string, CompetitionRound> $rounds
-     * @return list<TranslatableMessage> warnings
+     * @param array<string, array<string, array{team: null|string, canFill: bool, row: int}>> $assignments participantId => [roundId => assignment]
+     * @param array<string, CompetitionRound> $roundsById
+     * @return array{list<TranslatableMessage>, array<string, true>} warnings, and the participants whose rounds or teams changed
      */
-    private function processRoundAndTeamAssignments(string $competitionId, array $assignments, array $rounds): array
+    private function processRoundAndTeamAssignments(string $competitionId, array $assignments, array $roundsById): array
     {
-        $roundsById = [];
-        foreach ($rounds as $round) {
-            $roundsById[$round->id->toString()] = $round;
-        }
-
         $existingPr = $this->database->executeQuery(
             'SELECT cpr.id, cpr.participant_id, cp.name AS participant_name, cpr.round_id, ct.name AS team_name, cpr.team_id
              FROM competition_participant_round cpr
@@ -544,9 +608,11 @@ SQL;
         /** @var array<string, CompetitionTeam> $teamCache roundId:lowercased team name => team */
         $teamCache = [];
         $warnings = [];
+        $changed = [];
 
         foreach ($assignments as $participantId => $participantRounds) {
-            foreach ($participantRounds as $roundId => $teamName) {
+            foreach ($participantRounds as $roundId => $assignment) {
+                $teamName = $assignment['team'];
                 $round = $roundsById[$roundId] ?? null;
                 if ($round === null) {
                     continue;
@@ -567,6 +633,17 @@ SQL;
                     continue;
                 }
 
+                if ($existing !== null && !$assignment['canFill']) {
+                    $warnings[] = self::message('team_not_filled', [
+                        '%row%' => $assignment['row'],
+                        '%team%' => (string) $teamName,
+                        '%round%' => $round->name,
+                        '%name%' => $existing['participant_name'],
+                    ]);
+
+                    continue;
+                }
+
                 $team = null;
                 if ($teamName !== null) {
                     $cacheKey = $roundId . ':' . mb_strtolower($teamName);
@@ -577,6 +654,7 @@ SQL;
                 if ($existing !== null) {
                     $participantRound = $this->entityManager->find(CompetitionParticipantRound::class, $existing['id']);
                     $participantRound?->assignToTeam($team);
+                    $changed[$participantId] = true;
 
                     continue;
                 }
@@ -592,10 +670,11 @@ SQL;
                     round: $round,
                     team: $team,
                 ));
+                $changed[$participantId] = true;
             }
         }
 
-        return $warnings;
+        return [$warnings, $changed];
     }
 
     /**

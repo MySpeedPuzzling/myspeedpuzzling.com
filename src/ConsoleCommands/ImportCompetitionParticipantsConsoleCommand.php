@@ -66,6 +66,7 @@ final class ImportCompetitionParticipantsConsoleCommand extends Command
         $io->success($this->translator->trans('competition.participants.import.summary', [
             '%added%' => $result->added,
             '%updated%' => $result->updated,
+            '%unchanged%' => $result->unchanged,
             '%deleted%' => $result->softDeleted,
         ], locale: 'en'));
 

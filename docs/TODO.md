@@ -28,7 +28,7 @@ that would otherwise be forgotten. Newest section on top.
 
 - [ ] With the deploy, right after it: `myspeedpuzzling:backfill-round-puzzle-reveals` (dry run), read the list, then
       `--write` - until then old rows have `hides_everywhere = false` and a round move moves only the event page.
-- [ ] Wisconsin State Jigsaw Puzzle Championship 2026: confirm the 4 round times with the organiser (Dakota), set the
+- [ ] Wisconsin State Jigsaw Puzzle Championship 2026: confirm the 4 round times with the organiser, set the
       rounds' `timezone` to `America/Chicago`, re-sync the 2 Team Relay secret puzzles (SQL in the PR description).
 - [ ] Rounds saved before 2026-10 have no `timezone` and are read in their country's default zone - organisers of
       events outside it (US Central/Mountain/Pacific, ...) may want to re-save their rounds once.

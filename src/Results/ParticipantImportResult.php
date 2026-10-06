@@ -20,6 +20,8 @@ readonly final class ParticipantImportResult
         public int $softDeleted = 0,
         public array $warnings = [],
         public array $errors = [],
+        /** Participants on the file the import did not change */
+        public int $unchanged = 0,
     ) {
     }
 

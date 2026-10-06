@@ -232,17 +232,18 @@ Client-side filtering by participant name. Filters the visible table rows.
 | `round_names` | No | Rounds, separated by commas or semicolons, e.g. `Solo, Pair` - what the template and the export write. Matched ignoring upper/lower case and repeated whitespace. A round whose own name contains a comma or semicolon is recognised in the list too: the longest run of pieces that is a round's name wins |
 | `round_name` | No | One round, never split - the old column, still read; together with `round_names` both add up |
 | `team_name` | No | Pair/team name for every duo/team round listed on the **same row** (ignored for solo rounds) |
-| `team_name: <round>` | No | Team in that one round (e.g. `team_name: Pair`). The export writes one per duo/team round of the event; for its round it wins over `team_name`, an empty cell = no team there. A column naming no round of the event is reported |
+| `team_name: <round>` | No | Team in that one round (e.g. `team_name: Pair`). The export writes one per duo/team round of the event. A filled cell wins over `team_name` for its round; an empty cell falls back to `team_name`; with both empty no team is assigned and an existing team stays. A column naming no round of the event is reported, and so is a filled cell whose round the row does not list |
 | `participant_id` | No | Written by the export. Matches that exact participant first; an id of no participant of this event is reported and the row is matched by name instead |
 
 Only `.xlsx` is accepted; a `.csv` upload is answered with "Please upload an .xlsx file – CSV is not supported yet" (`competition.participants.import_csv_not_supported`), a file PhpSpreadsheet cannot read with "The file could not be read" (never a 500). Every message of the import is a `TranslatableMessage` under `competition.participants.import.*` (6 locales); the controller translates them into flashes, the console command into English.
 
 **Rounds and teams (`CompetitionParticipantImporter`, reworked 2026-10-06 after an organiser's import assigned nobody):**
-- Rows of the same participant add up: every round from every row is assigned, and the person counts once in "added / updated / removed".
+- Rows of the same participant add up: every round from every row is assigned, and the person counts once in "added / updated / unchanged / removed" ("updated" only when their data, rounds or teams changed).
 - Import only **adds** round assignments: nobody is removed from a round, nobody is moved to another team. A missing team on an existing assignment is filled in; a different team in the file is reported and ignored. Team names match ignoring upper/lower case.
 - A row with `status = deleted` gets no rounds.
+- One `team_name` covering **several** pair/team rounds of a row (an export made before the per-round columns) is ambiguous: it joins new assignments, but never fills the missing team of an assignment the person already has - that is reported ("use the `team_name: <round>` columns of a new export").
 - A round name that matches no round is reported once per distinct value, with its row numbers and the event's round names. Unknown columns are reported. Rounds of one event whose names differ only in upper/lower case are reported (the import cannot tell them apart and uses the first).
-- **An export imported back unchanged changes no participant data, no round and no team** (`participant_id` + per-round team columns; guarded by tests). The one thing it does: self-joined participants on the list become the organiser's (`markAsImported()`, see below).
+- **An export imported back unchanged changes no participant data, no round and no team** (`participant_id` + per-round team columns; guarded by tests). The one thing it does: self-joined participants on the list become the organiser's (`markAsImported()`, see below) - bookkeeping, still counted as "unchanged".
 
 ### Upsert Logic
 
@@ -251,7 +252,7 @@ Import is **always additive** — it never deletes participants not present in t
 1. **`participant_id`** — a participant of this event with that id → update it
 2. **`msp_player_id`** — if provided and a participant with that player already exists in this competition → update that participant
 3. **`external_id`** — if provided and matches an existing participant's `externalId` in this competition → update
-4. **Name + country**, then **the name alone** — exactly one candidate (or exactly one *active* candidate among soft-deleted ones) → update. **Several candidates are never guessed:** the row is skipped and reported ("N participants of this event are called …"), so two same-named people never merge into one
+4. **Name + country**, then **the name alone** — a participant whose own `external_id` / linked player differs from the row's is another person of that name and never a candidate. Exactly one candidate (or exactly one *active* candidate among soft-deleted ones) → update. **Several candidates are never guessed:** the row is skipped and reported ("N participants of this event are called …"), so two same-named people never merge into one
 5. **No match** → create new participant with `source=imported`
 
 Rows with the same name (and country) and no id are **one person** - that is how several rounds can be listed on several rows; two different people with the same name need `participant_id` or `external_id`. Later rows see what earlier rows changed (a rename, a new external id).

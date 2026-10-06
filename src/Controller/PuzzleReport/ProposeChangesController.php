@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\PuzzleReport;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\FormData\ProposePuzzleChangesFormData;
@@ -38,6 +39,7 @@ final class ProposeChangesController extends AbstractController
         private readonly TranslatorInterface $translator,
         private readonly GetPendingPuzzleProposals $getPendingPuzzleProposals,
         private readonly GetPuzzleRecord $getPuzzleRecord,
+        private readonly SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -58,6 +60,9 @@ final class ProposeChangesController extends AbstractController
         Request $request,
         string $puzzleId,
     ): Response {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId, alsoWhileImageHidden: true);
+
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 

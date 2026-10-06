@@ -10,7 +10,7 @@ use DateTimeImmutable;
 /**
  * When a secret competition puzzle (CompetitionRoundPuzzle::$hideUntilRoundStarts) is revealed - the one moment
  * every surface obeys: the event pages, the API and, for a puzzle created for the round, the whole site
- * (puzzle.hide_until / hide_image_until, kept equal to it by CompetitionRoundPuzzle::syncPuzzleHide()).
+ * (puzzle.hide_until / hide_image_until - the latest reveal of the rounds keeping it secret, SecretPuzzleHides).
  *
  * - Automatic: 10 minutes after the round starts, follows the round when its start moves.
  * - Scheduled: at the organiser's own moment (also what "Reveal now" leaves behind), never moved by the round.

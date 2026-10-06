@@ -11,6 +11,8 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
+use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
@@ -35,6 +37,7 @@ readonly final class PuzzleRecordUpdater
         private PuzzleImageNamer $puzzleImageNamer,
         private ImageOptimizer $imageOptimizer,
         private ClockInterface $clock,
+        private IsPuzzleKeptSecret $isPuzzleKeptSecret,
     ) {
     }
 
@@ -46,6 +49,7 @@ readonly final class PuzzleRecordUpdater
      * @throws PuzzleChangedMeanwhile The record changed after the form was loaded
      * @throws InvalidPuzzleValues
      * @throws ManufacturerNotFound
+     * @throws PuzzleIsStillSecret A competition keeps the puzzle secret - approved, edited and changed only once revealed
      */
     public function update(
         Puzzle $puzzle,
@@ -53,6 +57,10 @@ readonly final class PuzzleRecordUpdater
         null|string $proposedImage = null,
         null|float $proposedImageRatio = null,
     ): array {
+        if ($this->isPuzzleKeptSecret->byId($puzzle->id->toString())) {
+            throw new PuzzleIsStillSecret($puzzle->id->toString());
+        }
+
         PuzzleRecordVersion::assertUnchanged($puzzle, $values->recordVersion);
 
         $name = trim($values->name);

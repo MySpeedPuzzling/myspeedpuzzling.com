@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\RoundPuzzleForManagement;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\RoundPuzzleStatus;
 
 readonly final class GetRoundPuzzlesForManagement
 {
@@ -37,6 +38,8 @@ SELECT
     p.name AS puzzle_name,
     p.pieces_count,
     p.image AS puzzle_image,
+    p.hide_until AS puzzle_hide_until,
+    p.hide_image_until AS puzzle_hide_image_until,
     m.name AS manufacturer_name
 FROM competition_round_puzzle crp
 INNER JOIN competition_round cr ON cr.id = crp.round_id
@@ -69,11 +72,14 @@ SQL;
              *     pieces_count: int|string,
              *     puzzle_image: null|string,
              *     manufacturer_name: null|string,
+             *     puzzle_hide_until: null|string,
+             *     puzzle_hide_image_until: null|string,
              * } $row
              */
 
             $hideUntilRoundStarts = self::bool($row['hide_until_round_starts']);
             $revealMode = RoundPuzzleReveal::from($row['reveal_mode']);
+            $hideMode = $row['hide_mode'] !== null ? PuzzleHideMode::from($row['hide_mode']) : null;
             $revealsAt = $hideUntilRoundStarts
                 ? $revealMode->revealAt(
                     new DateTimeImmutable($row['round_starts_at']),
@@ -89,11 +95,19 @@ SQL;
                 puzzleImage: $row['puzzle_image'],
                 manufacturerName: $row['manufacturer_name'],
                 hideUntilRoundStarts: $hideUntilRoundStarts,
-                hideMode: $row['hide_mode'] !== null ? PuzzleHideMode::from($row['hide_mode']) : null,
+                hideMode: $hideMode,
                 revealMode: $revealMode,
                 revealsAt: $revealsAt,
                 hidesEverywhere: self::bool($row['hides_everywhere']),
                 hidden: $hideUntilRoundStarts && ($revealsAt === null || $revealsAt > $now),
+                status: RoundPuzzleStatus::of(
+                    secretInRound: $hideUntilRoundStarts,
+                    hideMode: $hideMode,
+                    roundRevealsAt: $revealsAt,
+                    puzzleHiddenUntil: $row['puzzle_hide_until'] !== null ? new DateTimeImmutable($row['puzzle_hide_until']) : null,
+                    puzzleImageHiddenUntil: $row['puzzle_hide_image_until'] !== null ? new DateTimeImmutable($row['puzzle_hide_image_until']) : null,
+                    now: $now,
+                ),
             );
         }, $data);
     }

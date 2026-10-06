@@ -540,9 +540,10 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->setImage($browser, PuzzleFixture::PUZZLE_1000_03, 'puzzles/test/other.jpg', hideUntil: null);
         $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);
 
+        // While its picture is secret, its codes give the box away just the same - the barcode does not find it
         $browser->request('GET', self::ENDPOINT, ['ean' => '4005556123456']);
         $this->assertResponseIsSuccessful();
-        $this->assertNull($this->decode($browser)['puzzles'][0]['image']);
+        $this->assertSame([], $this->ids($this->decode($browser)));
 
         $browser->request('GET', self::ENDPOINT, ['query' => 'Puzzle 2', 'limit' => 100]);
         $this->assertResponseIsSuccessful();

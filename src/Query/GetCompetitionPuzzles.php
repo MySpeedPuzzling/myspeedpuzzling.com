@@ -322,7 +322,9 @@ SQL;
             ->executeQuery($query, $parameters + ['now' => $this->clock->now()->format('Y-m-d H:i:s')], $types)
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): PuzzleOverview {
+        $now = $this->clock->now();
+
+        return array_map(static function (array $row) use ($now): PuzzleOverview {
             /**
              * @var array{
              *     puzzle_id: string,
@@ -349,7 +351,7 @@ SQL;
              *     hide_until: null|string,
              * } $row
              */
-            return PuzzleOverview::fromDatabaseRow($row);
+            return PuzzleOverview::fromDatabaseRow($row, $now);
         }, $rows);
     }
 }

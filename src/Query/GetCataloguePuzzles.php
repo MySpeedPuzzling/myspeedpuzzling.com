@@ -94,7 +94,9 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): PuzzleOverview {
+        $now = $this->clock->now();
+
+        return array_map(static function (array $row) use ($now): PuzzleOverview {
             /**
              * @var array{
              *     puzzle_id: string,
@@ -121,7 +123,7 @@ SQL;
              * } $row
              */
 
-            return PuzzleOverview::fromDatabaseRow($row);
+            return PuzzleOverview::fromDatabaseRow($row, $now);
         }, $data);
     }
 

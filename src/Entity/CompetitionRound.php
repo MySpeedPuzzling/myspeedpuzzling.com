@@ -85,7 +85,7 @@ class CompetitionRound implements EntityWithEvents
 
     public function displayTimezone(): string
     {
-        return RoundTimezone::resolve($this->timezone, $this->competition->locationCountryCode);
+        return RoundTimezone::resolve($this->timezone, $this->competition->locationCountryCode, $this->competition->series?->locationCountryCode);
     }
 
     public function assignSlug(string $slug): void

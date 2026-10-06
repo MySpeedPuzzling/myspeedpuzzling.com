@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\FormData\PuzzleRecordFormData;
 use SpeedPuzzling\Web\FormType\PuzzleRecordFormType;
@@ -40,6 +42,7 @@ final class EditPuzzleController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
         private readonly FormPhotoStash $formPhotoStash,
+        private readonly SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -51,6 +54,9 @@ final class EditPuzzleController extends AbstractController
     #[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]
     public function __invoke(Request $request, string $puzzleId): Response
     {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId, alsoWhileImageHidden: true);
+
         $puzzle = $this->getPuzzleRecord->byId($puzzleId) ?? throw new PuzzleNotFound();
         $player = $this->retrieveLoggedUserProfile->getProfile() ?? throw $this->createAccessDeniedException();
 
@@ -79,6 +85,9 @@ final class EditPuzzleController extends AbstractController
                 return $returnUrl !== null
                     ? $this->redirect($returnUrl->path)
                     : $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzle->puzzleId]);
+            } catch (PuzzleIsStillSecret) {
+                // A secret competition puzzle is approved, merged and edited only once revealed
+                $form->addError(new FormError($this->translator->trans('competition.reveal.puzzle_still_secret')));
             } catch (PuzzleChangedMeanwhile) {
                 // The form keeps what was typed - and the version it was loaded with, so it stays refused until reloaded
                 $form->addError(new FormError($this->translator->trans('puzzle_names.record_changed_meanwhile')));

@@ -20,13 +20,16 @@ readonly final class BrandChoicesBuilder
      * duplicate (docs/features/brand-duplicates.md). `text` is the option's HTML; `name` is the
      * plain brand name the picker compares typed text against.
      *
+     * @param null|string $secretPuzzlesOfCompetitionId the add-to-round form: also the brands of this competition's
+     *                                                 secret round puzzles (GetManufacturers::allIncludingUnapproved())
+     *
      * @return array<array{value: string, text: string, name: string, eanPrefix: string}>
      */
-    public function build(): array
+    public function build(null|string $secretPuzzlesOfCompetitionId = null): array
     {
         $brandChoices = [];
 
-        foreach ($this->getManufacturers->allIncludingUnapproved() as $manufacturer) {
+        foreach ($this->getManufacturers->allIncludingUnapproved($secretPuzzlesOfCompetitionId) as $manufacturer) {
             $img = '';
             if ($manufacturer->manufacturerLogo !== null) {
                 $img = <<<HTML

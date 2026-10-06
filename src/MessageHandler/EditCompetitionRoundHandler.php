@@ -10,6 +10,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
+use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 
 #[AsMessageHandler]
 readonly final class EditCompetitionRoundHandler
@@ -17,6 +18,7 @@ readonly final class EditCompetitionRoundHandler
     public function __construct(
         private CompetitionRoundRepository $competitionRoundRepository,
         private GetCompetitionRounds $getCompetitionRounds,
+        private SecretPuzzleHides $secretPuzzleHides,
     ) {
     }
 
@@ -58,7 +60,7 @@ readonly final class EditCompetitionRoundHandler
         // An automatic reveal follows the round's start - the puzzles it keeps secret on the whole site follow too.
         // Scheduled and manual reveals are the organiser's own and stay where they are.
         foreach ($round->roundPuzzles as $roundPuzzle) {
-            $roundPuzzle->syncPuzzleHide();
+            $this->secretPuzzleHides->resync($roundPuzzle->puzzle);
         }
     }
 }

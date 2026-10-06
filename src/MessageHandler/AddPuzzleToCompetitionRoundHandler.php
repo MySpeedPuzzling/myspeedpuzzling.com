@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\ManufacturerResolver;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
+use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -34,6 +35,7 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         private ManufacturerResolver $manufacturerResolver,
         private Filesystem $filesystem,
         private ClockInterface $clock,
+        private SecretPuzzleHides $secretPuzzleHides,
         private ImageOptimizer $imageOptimizer,
         private PuzzleImageNamer $puzzleImageNamer,
         private GetCompetitionRounds $getCompetitionRounds,
@@ -65,18 +67,20 @@ readonly final class AddPuzzleToCompetitionRoundHandler
             }
         }
 
-        // A new puzzle exists nowhere else yet: the round keeps it secret on the whole site, not only on its event
-        // pages - until its one reveal moment (CompetitionRoundPuzzle::syncPuzzleHide())
+        // A new puzzle exists nowhere else yet, and a puzzle still secret from another round is not public either:
+        // the round keeps it secret on the whole site, not only on its event pages (SecretPuzzleHides)
         $roundPuzzle = new CompetitionRoundPuzzle(
             id: $message->roundPuzzleId,
             round: $round,
             puzzle: $puzzle,
             hideUntilRoundStarts: $message->hideUntilRoundStarts,
             hideMode: $message->hideUntilRoundStarts ? $message->hideMode : null,
-            hidesEverywhere: $isNewPuzzle && $message->hideUntilRoundStarts,
+            hidesEverywhere: $message->hideUntilRoundStarts
+                && ($isNewPuzzle || $puzzle->isImageHiddenAt($this->clock->now())),
         );
 
         $this->competitionRoundPuzzleRepository->save($roundPuzzle);
+        $this->secretPuzzleHides->resync($puzzle);
     }
 
     private function createNewPuzzle(AddPuzzleToCompetitionRound $message): Puzzle
@@ -91,13 +95,16 @@ readonly final class AddPuzzleToCompetitionRoundHandler
 
         if ($message->puzzlePhoto !== null) {
             $extension = $message->puzzlePhoto->guessExtension() ?? 'jpg';
-            $puzzlePhotoPath = $this->puzzleImageNamer->generateFilename(
-                $manufacturer->name,
-                $message->puzzle,
-                $message->piecesCount ?? 0,
-                $puzzleId->toString(),
-                $extension,
-            );
+            // A secret puzzle's picture must not be found by guessing its file name from the public name and id
+            $puzzlePhotoPath = $message->hideUntilRoundStarts
+                ? $this->puzzleImageNamer->secretFilename($extension)
+                : $this->puzzleImageNamer->generateFilename(
+                    $manufacturer->name,
+                    $message->puzzle,
+                    $message->piecesCount ?? 0,
+                    $puzzleId->toString(),
+                    $extension,
+                );
 
             $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
 

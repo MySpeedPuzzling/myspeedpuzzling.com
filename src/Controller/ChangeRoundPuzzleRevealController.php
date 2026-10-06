@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use DateTimeImmutable;
-use DateTimeZone;
+use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
+use SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyRevealed;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -61,29 +63,46 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
 
         $hideMode = PuzzleHideMode::tryFrom((string) $request->request->get('hide_mode'));
         $revealMode = RoundPuzzleReveal::tryFrom((string) $request->request->get('reveal_mode'));
-        $scheduledAt = null;
 
-        if ($revealMode === RoundPuzzleReveal::Scheduled) {
-            // Typed as the round's local time, like the round's own start
-            $scheduledAt = DateTimeImmutable::createFromFormat(
-                '!Y-m-d\TH:i',
-                (string) $request->request->get('reveal_at'),
-                new DateTimeZone($round->displayTimezone()),
-            );
-        }
-
-        if ($hideMode === null || $revealMode === null || $scheduledAt === false) {
+        if ($hideMode === null || $revealMode === null) {
             $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.invalid'));
 
             return $backToPuzzles;
         }
 
-        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal(
-            roundPuzzleId: $roundPuzzleId,
-            hideMode: $hideMode,
-            revealMode: $revealMode,
-            scheduledAt: $scheduledAt?->setTimezone(new DateTimeZone('UTC')),
-        ));
+        $scheduledAt = null;
+
+        if ($revealMode === RoundPuzzleReveal::Scheduled) {
+            try {
+                // Typed as the round's local time, like the round's own start - only a time that exists exactly once
+                $scheduledAt = RoundTimezone::parseLocal(
+                    (string) $request->request->get('reveal_at'),
+                    'Y-m-d\\TH:i',
+                    $round->displayTimezone(),
+                );
+            } catch (InvalidLocalTime) {
+                $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.invalid_time'));
+
+                return $backToPuzzles;
+            }
+        }
+
+        try {
+            $this->messageBus->dispatch(new ChangeRoundPuzzleReveal(
+                roundPuzzleId: $roundPuzzleId,
+                hideMode: $hideMode,
+                revealMode: $revealMode,
+                scheduledAt: $scheduledAt,
+            ));
+        } catch (RevealMomentAlreadyPassed) {
+            $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.time_passed'));
+
+            return $backToPuzzles;
+        } catch (RoundPuzzleAlreadyRevealed) {
+            $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.already_revealed'));
+
+            return $backToPuzzles;
+        }
 
         $this->addFlash('success', $this->translator->trans('competition.reveal.flash.saved', [
             '%puzzle%' => $roundPuzzle->puzzle->name,

@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -27,6 +30,7 @@ final class AddCompetitionRoundController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
+        private readonly CompetitionRepository $competitionRepository,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -54,11 +58,16 @@ final class AddCompetitionRoundController extends AbstractController
         $otherRounds = $this->getCompetitionRoundsForManagement->ofCompetition($competitionId);
         $timezone = $otherRounds !== []
             ? $otherRounds[array_key_last($otherRounds)]->timezone
-            : RoundTimezone::resolve(null, $competition->locationCountryCode?->name);
+            : RoundTimezone::resolve(
+                null,
+                $competition->locationCountryCode?->name,
+                $this->competitionRepository->get($competitionId)->series?->locationCountryCode,
+            );
 
         $formData = CompetitionRoundFormData::forNewRound($timezone);
         $form = $this->createForm(CompetitionRoundFormType::class, $formData, [
             'single_day' => $singleDay !== null,
+            'timezone_offset_at' => $competition->dateFrom,
         ]);
         $form->handleRequest($request);
 
@@ -68,12 +77,27 @@ final class AddCompetitionRoundController extends AbstractController
             assert($data->minutesLimit !== null);
             assert($data->timezone !== null);
 
+            try {
+                $startsAt = $data->startsAtInstant($singleDay);
+            } catch (InvalidLocalTime) {
+                // A time skipped or repeated by a daylight-saving change - say so instead of guessing
+                $form->get($singleDay !== null ? 'startsAtTime' : 'startsAt')->addError(new FormError(
+                    $this->translator->trans('competition.round.form.invalid_local_time'),
+                ));
+
+                return $this->render('add_competition_round.html.twig', [
+                    'form' => $form,
+                    'competition' => $competition,
+                    'single_day' => $singleDay,
+                ]);
+            }
+
             $this->messageBus->dispatch(new AddCompetitionRound(
                 roundId: Uuid::uuid7(),
                 competitionId: $competitionId,
                 name: $data->name,
                 minutesLimit: $data->minutesLimit,
-                startsAt: $data->startsAtInstant($singleDay),
+                startsAt: $startsAt,
                 timezone: $data->timezone,
                 badgeBackgroundColor: $data->badgeBackgroundColor,
                 badgeTextColor: $data->badgeTextColor,

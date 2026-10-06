@@ -76,6 +76,18 @@
                                 <div class="col-6">{{ form_row(form.badgeTextColor) }}</div>
                             </div>
 
+                            {# Only asked when the new start would reveal secret puzzles right away (EditCompetitionRoundController) #}
+                            {% if form.confirmReveal is defined %}
+                                {% if revealed_right_away is not empty %}
+                                    <div class="alert alert-warning" data-confirm-reveal>
+                                        <p class="mb-2">{{ 'competition.reveal.form.confirm_reveal_intro'|trans({'%puzzles%': revealed_right_away|join(', ')}) }}</p>
+                                        {{ form_row(form.confirmReveal) }}
+                                    </div>
+                                {% else %}
+                                    {% do form.confirmReveal.setRendered %}
+                                {% endif %}
+                            {% endif %}
+
                             <button type="submit" class="btn btn-primary mt-3">
                                 {{ 'competition.save_changes'|trans }}
                             </button>

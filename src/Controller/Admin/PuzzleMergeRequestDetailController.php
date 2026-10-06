@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\FormData\PuzzleMergeReviewFormData;
 use SpeedPuzzling\Web\FormData\PuzzleNamesFormData;
@@ -150,6 +151,9 @@ final class PuzzleMergeRequestDetailController extends AbstractController
                 }
 
                 return $this->redirectToRoute('admin_puzzle_merge_requests');
+            } catch (PuzzleIsStillSecret) {
+                // A secret competition puzzle is approved, merged and edited only once revealed
+                $form->addError(new FormError($this->translator->trans('competition.reveal.puzzle_still_secret')));
             } catch (PuzzleChangedMeanwhile) {
                 $form->addError(new FormError($this->translator->trans('puzzle_names.record_changed_meanwhile')));
             } catch (InvalidPuzzleValues $exception) {

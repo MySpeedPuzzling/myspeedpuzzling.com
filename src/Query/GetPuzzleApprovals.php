@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\BrandSuggestion;
 use SpeedPuzzling\Web\Results\PendingPuzzleApproval;
 use SpeedPuzzling\Web\Results\PuzzleDuplicateCandidate;
+use SpeedPuzzling\Web\Value\PuzzleSecrecy;
 
 /**
  * Read side of the puzzle approval queue (docs/features/puzzle-approvals.md).
  * Admin/moderator only, so no blocklist or private-profile filtering: the
- * adding player is shown to the people who review their puzzle.
+ * adding player is shown to the people who review their puzzle. A secret competition puzzle (PuzzleSecrecy) is
+ * left out everywhere until it is revealed - it cannot be approved before then anyway.
  */
 readonly final class GetPuzzleApprovals
 {
@@ -21,12 +24,17 @@ readonly final class GetPuzzleApprovals
 
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
     public function countPending(): int
     {
-        $count = $this->database->fetchOne('SELECT COUNT(*) FROM puzzle WHERE approved = false');
+        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
+        $count = $this->database->fetchOne(
+            "SELECT COUNT(*) FROM puzzle p WHERE p.approved = false AND {$notSecret}",
+            ['now' => $this->now()],
+        );
         assert(is_int($count));
 
         return $count;
@@ -39,15 +47,18 @@ readonly final class GetPuzzleApprovals
      */
     public function pending(int $page = 1): array
     {
+        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
         $rows = $this->database->fetchAllAssociative(
             self::pendingSelect() . <<<SQL
 WHERE p.approved = false
+    AND {$notSecret}
 ORDER BY p.added_at DESC NULLS LAST, p.id DESC
 LIMIT :limit OFFSET :offset
 SQL,
             [
                 'limit' => self::PAGE_SIZE,
                 'offset' => (max(1, $page) - 1) * self::PAGE_SIZE,
+                'now' => $this->now(),
             ],
         );
 
@@ -61,8 +72,8 @@ SQL,
     public function byPuzzleId(string $puzzleId): null|PendingPuzzleApproval
     {
         $row = $this->database->fetchAssociative(
-            self::pendingSelect() . 'WHERE p.id = :puzzleId',
-            ['puzzleId' => $puzzleId],
+            self::pendingSelect() . 'WHERE p.id = :puzzleId AND ' . PuzzleSecrecy::sqlNotSecret('p'),
+            ['puzzleId' => $puzzleId, 'now' => $this->now()],
         );
 
         return $row === false ? null : PendingPuzzleApproval::fromDatabaseRow($row);
@@ -84,6 +95,7 @@ SQL,
      */
     public function possibleDuplicates(string $puzzleId, array $suggestedBrandIds = [], int $limit = 6): array
     {
+        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 WITH src AS MATERIALIZED (
@@ -145,6 +157,7 @@ CROSS JOIN src
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id
 WHERE p.id <> src.id
+    AND {$notSecret}
 ORDER BY
     same_ean DESC,
     COALESCE(p.manufacturer_id IS NOT DISTINCT FROM src.manufacturer_id OR p.manufacturer_id = ANY(:suggestedBrandIds::uuid[]), false) DESC,
@@ -156,6 +169,7 @@ SQL,
                 'puzzleId' => $puzzleId,
                 'limit' => $limit,
                 'suggestedBrandIds' => '{' . implode(',', array_filter($suggestedBrandIds, Uuid::isValid(...))) . '}',
+                'now' => $this->now(),
             ],
         );
 
@@ -238,5 +252,10 @@ LEFT JOIN player adder ON adder.id = p.added_by_user_id
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id
 
 SQL;
+    }
+
+    private function now(): string
+    {
+        return $this->clock->now()->format('Y-m-d H:i:s');
     }
 }

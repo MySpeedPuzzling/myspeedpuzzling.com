@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 use Ramsey\Uuid\Uuid;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\FormType\RoundPuzzleFormType;
@@ -34,6 +36,8 @@ final class AddPuzzleToRoundController extends AbstractController
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly TranslatorInterface $translator,
+        private readonly ClockInterface $clock,
+        private readonly SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -67,6 +71,11 @@ final class AddPuzzleToRoundController extends AbstractController
             assert($data->puzzle !== null);
             assert($data->brand !== null);
 
+            // Another organiser's secret puzzle is not theirs to use (the picker never offers it)
+            if (Uuid::isValid($data->puzzle)) {
+                $this->secretPuzzleAccess->assertVisible($data->puzzle, alsoWhileImageHidden: true);
+            }
+
             try {
                 $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
                     roundPuzzleId: Uuid::uuid7(),
@@ -98,6 +107,7 @@ final class AddPuzzleToRoundController extends AbstractController
                     'form' => $form,
                     'competition' => $competition,
                     'round' => $round,
+                    'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
                 ]);
             }
 
@@ -110,6 +120,8 @@ final class AddPuzzleToRoundController extends AbstractController
             'form' => $form,
             'competition' => $competition,
             'round' => $round,
+            // The round already started: a secret puzzle added now is revealed at once - the form says so
+            'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
         ]);
     }
 }

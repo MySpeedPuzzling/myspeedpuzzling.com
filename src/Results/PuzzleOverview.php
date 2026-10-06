@@ -65,9 +65,15 @@ readonly final class PuzzleOverview
      *     name_language?: null|string,
      * } $row
      */
-    public static function fromDatabaseRow(array $row): self
+    public static function fromDatabaseRow(array $row, null|DateTimeImmutable $now = null): self
     {
         $hideUntil = $row['hide_until'] ?? null;
+        $hideImageUntil = $row['hide_image_until'] !== null ? new DateTimeImmutable($row['hide_image_until']) : null;
+        // While a competition keeps the picture secret, its EAN and brand code give the box away just the same
+        $codesHidden = $now !== null && (
+            ($hideImageUntil !== null && $hideImageUntil > $now)
+            || ($hideUntil !== null && new DateTimeImmutable($hideUntil) > $now)
+        );
 
         return new self(
             puzzleId: $row['puzzle_id'],
@@ -87,9 +93,9 @@ readonly final class PuzzleOverview
             puzzleImage: $row['puzzle_image'],
             puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
             isAvailable: $row['is_available'],
-            puzzleEan: $row['puzzle_ean'],
-            puzzleIdentificationNumber: $row['puzzle_identification_number'],
-            hideImageUntil: $row['hide_image_until'] !== null ? new DateTimeImmutable($row['hide_image_until']) : null,
+            puzzleEan: $codesHidden ? null : $row['puzzle_ean'],
+            puzzleIdentificationNumber: $codesHidden ? null : $row['puzzle_identification_number'],
+            hideImageUntil: $hideImageUntil,
             manufacturerSlug: $row['manufacturer_slug'] ?? null,
             hideUntil: $hideUntil !== null ? new DateTimeImmutable($hideUntil) : null,
             nameLanguage: $row['name_language'] ?? null,

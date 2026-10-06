@@ -64,7 +64,7 @@
                                 </div>
 
                                 <div class="small text-body-secondary mb-3">
-                                    <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i', round.timezone) }}
+                                    <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i', round.timezone) }} <span class="text-muted" data-round-zone>({{ timezone_name(round.timezone) }})</span>
                                     <span class="mx-1">&middot;</span>
                                     <i class="bi bi-stopwatch me-1"></i>{{ round.minutesLimit }} min
                                     <span class="mx-1">&middot;</span>

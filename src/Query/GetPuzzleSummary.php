@@ -66,7 +66,20 @@ SELECT
             LEFT JOIN competition_series cs ON cs.id = c.series_id
             WHERE {$visibleCompetition}
                 AND (
-                    c.tag_id IN (SELECT tp.tag_id FROM tag_puzzle tp WHERE tp.puzzle_id = p.id)
+                    (
+                        c.tag_id IN (SELECT tp.tag_id FROM tag_puzzle tp WHERE tp.puzzle_id = p.id)
+                        -- Listed by the event's tag, the puzzle still obeys the reveal: no secret puzzle, no round of
+                        -- this event still keeping it secret
+                        AND (p.hide_until IS NULL OR p.hide_until <= :now::timestamp)
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM competition_round_puzzle crp
+                            INNER JOIN competition_round cr ON cr.id = crp.round_id
+                            WHERE crp.puzzle_id = p.id
+                                AND cr.competition_id = c.id
+                                AND {$roundPuzzleHidden}
+                        )
+                    )
                     OR (
                         (p.hide_until IS NULL OR p.hide_until <= :now::timestamp)
                         AND c.id IN (

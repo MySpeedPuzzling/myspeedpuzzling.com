@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Results;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\RoundPuzzleStatus;
 
 readonly final class RoundPuzzleForManagement
 {
@@ -24,8 +25,10 @@ readonly final class RoundPuzzleForManagement
         public null|DateTimeImmutable $revealsAt = null,
         // The round keeps the puzzle secret on the whole site (it was created for the round)
         public bool $hidesEverywhere = false,
-        // Still secret right now
+        // This round still keeps it secret right now (its own setting - the organiser may change it)
         public bool $hidden = false,
+        // What is effectively true right now - the line the organiser reads
+        public null|RoundPuzzleStatus $status = null,
     ) {
     }
 }

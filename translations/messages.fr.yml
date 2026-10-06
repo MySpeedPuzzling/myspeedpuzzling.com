@@ -3348,6 +3348,7 @@ competition:
       "results_link": "URL des résultats officiels"
       "results_link_help": "Lien vers les résultats de cette manche sur le site de l'organisateur, s'il publie les résultats par manche."
       "puzzle_already_in_category": "Ce puzzle est déjà dans la manche \"%round%\" de la même catégorie. Un puzzle ne peut figurer que dans une seule manche par catégorie d'un événement."
+      "invalid_local_time": "Cette heure n’existe pas exactement une fois dans le fuseau horaire choisi (changement d’heure) – veuillez en choisir une autre."
   "puzzle":
     "name": "Nom"
     "brand": "Marque"
@@ -3385,6 +3386,7 @@ competition:
       "hide_mode_image_only_help": "Seule l’image est masquée. Le nom et la marque sont publics : sur les pages de votre événement et, pour un nouveau puzzle, partout sur MySpeedPuzzling."
       "hide_mode_entirely": "Masquer le puzzle entièrement"
       "hide_mode_entirely_help": "Le nom, la marque et l’image restent secrets jusqu’à la révélation."
+      "hide_help_round_started": "Cette manche a déjà commencé : un puzzle secret ajouté maintenant est révélé immédiatement."
   "reveal":
     "round_start": "La manche commence %time%"
     "reveal_now": "Révéler maintenant"
@@ -3400,11 +3402,14 @@ competition:
       "manual_image_hidden_on_event": "Image masquée sur la page de votre événement jusqu’à ce que vous la révéliez – ce puzzle est déjà public ailleurs sur MySpeedPuzzling"
       "revealed": "Révélé le %time%"
       "not_secret": "Pas secret – affiché sur la page de votre événement"
+      "held_hidden_everywhere": "Masqué partout jusqu’à ce qu’une autre manche qui l’utilise le révèle"
+      "held_image_hidden_everywhere": "Image masquée partout jusqu’à ce qu’une autre manche qui l’utilise la révèle – le nom est public"
     "source":
       "automatic": "Automatique : 10 minutes après le début de la manche. Suit la manche si son début change."
       "scheduled": "Votre propre heure de révélation – elle ne bouge pas avec la manche."
       "manual": "Manuel : il reste masqué jusqu’à ce que vous cliquiez sur « Révéler maintenant »."
       "before_round_start": "C’est avant le début de la manche (%time%)."
+      "held_by_other_round": "Une autre manche qui utilise ce puzzle le garde masqué jusque-là."
     "form":
       "toggle": "Modifier la révélation"
       "hide_mode": "Ce qui reste secret"
@@ -3414,6 +3419,9 @@ competition:
       "scheduled_at": "Révéler à (%zone%)"
       "manual": "Manuellement – il reste masqué jusqu’à ce que je clique sur « Révéler maintenant »"
       "save": "Enregistrer"
+      "confirm_reveal": "Oui, les révéler maintenant"
+      "confirm_reveal_intro": "Avec ce début, ces puzzles secrets sont révélés immédiatement : %puzzles%."
+      "confirm_reveal_required": "Ce début révèle immédiatement des puzzles secrets (%puzzles%). Cochez la case pour confirmer ou choisissez un autre début."
     "flash":
       "saved": "Révélation de « %puzzle% » enregistrée."
       "revealed": "« %puzzle% » est révélé."
@@ -3422,6 +3430,10 @@ competition:
       "removed_stays_hidden_manual": "Puzzle retiré de la manche. « %puzzle% » reste masqué sur MySpeedPuzzling – écrivez-nous quand il pourra être publié."
       "round_updated_reveal_moved": "Manche mise à jour. Ses puzzles secrets à révélation automatique seront désormais révélés le %time%."
       "round_updated_own_reveals_kept": "Certains puzzles secrets de cette manche ont leur propre heure de révélation ou sont révélés manuellement – ils n’ont pas bougé. Vérifiez-les sur la page des puzzles de la manche."
+      "invalid_time": "Cette heure n’existe pas exactement une fois dans le fuseau horaire de l’événement (changement d’heure) – veuillez en choisir une autre."
+      "time_passed": "Cette heure est déjà passée – utilisez « Révéler maintenant » pour révéler le puzzle tout de suite."
+      "already_revealed": "Ce puzzle est déjà révélé – sa révélation ne peut plus être modifiée."
+    "puzzle_still_secret": "Une compétition garde ce puzzle secret jusqu’à sa révélation. D’ici là, il ne peut être ni approuvé, ni fusionné, ni modifié."
   "tables":
     "tables": "Tables"
     "manage_tables": "Gérer les tables"

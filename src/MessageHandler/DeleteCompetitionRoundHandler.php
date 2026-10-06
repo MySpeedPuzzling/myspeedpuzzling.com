@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -16,6 +17,7 @@ readonly final class DeleteCompetitionRoundHandler
     public function __construct(
         private CompetitionRoundRepository $competitionRoundRepository,
         private Connection $database,
+        private SecretPuzzleHides $secretPuzzleHides,
     ) {
     }
 
@@ -36,6 +38,11 @@ readonly final class DeleteCompetitionRoundHandler
             }
         }
 
+        // Secret puzzles of the rounds going away - re-synced afterwards from the rounds left, never revealed by accident
+        /** @var array<string> $roundIds */
+        $roundIds = [$message->roundId];
+        $secretPuzzleIds = $this->secretPuzzleHides->puzzleIdsOfRounds($roundIds);
+
         $this->database->executeStatement(
             'UPDATE puzzle_solving_time SET competition_round_id = NULL WHERE competition_round_id = :id',
             $params,
@@ -55,5 +62,7 @@ readonly final class DeleteCompetitionRoundHandler
 
         $round = $this->competitionRoundRepository->get($message->roundId);
         $this->competitionRoundRepository->delete($round);
+
+        $this->secretPuzzleHides->resyncByIds($secretPuzzleIds);
     }
 }

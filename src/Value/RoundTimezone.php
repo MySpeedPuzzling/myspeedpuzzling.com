@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Value;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 
 /**
  * The time zone a competition round's start is typed in and shown in.
@@ -15,19 +16,27 @@ use DateTimeZone;
  * and the same local time, and every page shows the start as the organiser typed it.
  *
  * Rounds saved before the zone was kept have none: they were typed in the zone the form pre-selected, the default of
- * the event's country - so that is the zone they are read in.
+ * the event's country (or its series' country) - so that is the zone they are read in.
  */
 final class RoundTimezone
 {
     public const string FALLBACK = 'Europe/Prague';
 
-    public static function resolve(null|string $storedTimezone, null|string $countryCode): string
+    public static function resolve(null|string $storedTimezone, null|string ...$countryCodes): string
     {
         if ($storedTimezone !== null && self::isValid($storedTimezone)) {
             return $storedTimezone;
         }
 
-        return CountryCode::fromCode($countryCode)?->defaultTimezone() ?? self::FALLBACK;
+        foreach ($countryCodes as $countryCode) {
+            $country = CountryCode::fromCode($countryCode);
+
+            if ($country !== null) {
+                return $country->defaultTimezone();
+            }
+        }
+
+        return self::FALLBACK;
     }
 
     public static function isValid(string $timezone): bool
@@ -36,12 +45,46 @@ final class RoundTimezone
     }
 
     /**
-     * @param string $localDateTime "Y-m-d H:i" (or with seconds) - the wall clock in $timezone
+     * The instant a typed local time means - refused when it does not exist exactly as typed: overflowing input
+     * ("2026-02-31 25:70"), a wall time skipped by a daylight-saving change, or one that happens twice.
+     *
+     * @param string $localDateTime "Y-m-d H:i"
+     *
+     * @throws InvalidLocalTime
      */
     public static function toInstant(string $localDateTime, string $timezone): DateTimeImmutable
     {
-        return new DateTimeImmutable($localDateTime, new DateTimeZone($timezone))
-            ->setTimezone(new DateTimeZone('UTC'));
+        return self::parseLocal($localDateTime, 'Y-m-d H:i', $timezone);
+    }
+
+    /**
+     * @throws InvalidLocalTime
+     */
+    public static function parseLocal(string $value, string $format, string $timezone): DateTimeImmutable
+    {
+        $zone = new DateTimeZone($timezone);
+        $local = DateTimeImmutable::createFromFormat('!' . $format, $value, $zone);
+        $errors = DateTimeImmutable::getLastErrors();
+
+        if ($local === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            throw new InvalidLocalTime();
+        }
+
+        // Skipped by a daylight-saving change (PHP moves it) or overflowing: it does not read back as typed
+        if ($local->format($format) !== $value) {
+            throw new InvalidLocalTime();
+        }
+
+        // Happens twice (the hour repeated when the clocks go back) - which one is meant cannot be told
+        foreach (['-1 hour', '+1 hour'] as $shift) {
+            $other = $local->setTimezone(new DateTimeZone('UTC'))->modify($shift)->setTimezone($zone);
+
+            if ($other->format($format) === $value) {
+                throw new InvalidLocalTime();
+            }
+        }
+
+        return $local->setTimezone(new DateTimeZone('UTC'));
     }
 
     public static function toLocal(DateTimeImmutable $instant, string $timezone): DateTimeImmutable

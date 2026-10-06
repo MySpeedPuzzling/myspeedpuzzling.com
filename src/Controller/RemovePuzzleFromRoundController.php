@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
@@ -56,24 +58,25 @@ final class RemovePuzzleFromRoundController extends AbstractController
             return $backToPuzzles;
         }
 
-        // Removing never reveals: a puzzle the round kept secret on the whole site stays hidden until the moment the
-        // organiser was last shown (CompetitionRoundPuzzle::syncPuzzleHide()) - the flash says until when
-        $stillHiddenEverywhere = $roundPuzzle->hidesEverywhere && $roundPuzzle->isHiddenAt($this->clock->now());
-        $revealsAt = $roundPuzzle->revealsAt();
-        $puzzleName = $roundPuzzle->puzzle->name;
+        $puzzle = $roundPuzzle->puzzle;
 
         $this->messageBus->dispatch(new RemovePuzzleFromCompetitionRound(roundPuzzleId: $roundPuzzleId));
 
-        if ($stillHiddenEverywhere === false) {
+        // Removing never reveals: the puzzle's site-wide hide now follows the rounds left, and with none left it stays
+        // as it was (SecretPuzzleHides) - say until when, as it is now
+        $now = $this->clock->now();
+        $hiddenUntil = $puzzle->isHiddenAt($now) ? $puzzle->hideUntil : ($puzzle->isImageHiddenAt($now) ? $puzzle->hideImageUntil : null);
+
+        if ($hiddenUntil === null) {
             $this->addFlash('success', $this->translator->trans('competition.flash.puzzle_removed'));
-        } elseif ($revealsAt === null) {
+        } elseif ($hiddenUntil >= new DateTimeImmutable(CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED)) {
             $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.removed_stays_hidden_manual', [
-                '%puzzle%' => $puzzleName,
+                '%puzzle%' => $puzzle->name,
             ]));
         } else {
             $this->addFlash('success', $this->translator->trans('competition.reveal.flash.removed_stays_hidden', [
-                '%puzzle%' => $puzzleName,
-                '%time%' => $this->zonedDateTimeFormatter->format($revealsAt, $round->displayTimezone()),
+                '%puzzle%' => $puzzle->name,
+                '%time%' => $this->zonedDateTimeFormatter->format($hiddenUntil, $round->displayTimezone()),
             ]));
         }
 

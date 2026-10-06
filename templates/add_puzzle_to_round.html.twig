@@ -40,7 +40,9 @@
                             <div class="mb-3">
                                 {{ form_row(form.hideUntilRoundStarts, {
                                     'attr': {'data-action': 'change->time-form-autocomplete#toggleHideOptions'},
-                                    'help': 'competition.round_puzzle.form.hide_help'|trans({'%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone)}),
+                                    'help': revealed_right_away
+                                        ? 'competition.round_puzzle.form.hide_help_round_started'|trans({'%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone)})
+                                        : 'competition.round_puzzle.form.hide_help'|trans({'%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone)}),
                                 }) }}
 
                                 <div data-time-form-autocomplete-target="hideOptions" class="d-none ms-4 mt-2">

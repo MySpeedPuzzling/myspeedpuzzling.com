@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidPuzzleApproval;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyApproved;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\FormData\ApprovePuzzleFormData;
 use SpeedPuzzling\Web\FormType\ApprovePuzzleFormType;
@@ -119,6 +120,9 @@ final class PuzzleApprovalDetailController extends AbstractController
                 $this->addFlash('success', $this->translator->trans('admin.puzzle_approval.approved'));
 
                 return $this->redirectToRoute('admin_puzzle_approvals');
+            } catch (PuzzleIsStillSecret) {
+                // A secret competition puzzle is approved, merged and edited only once revealed
+                $form->addError(new FormError($this->translator->trans('competition.reveal.puzzle_still_secret')));
             } catch (PuzzleChangedMeanwhile) {
                 // The form keeps what was typed - and the version it was loaded with, so it stays refused until reloaded
                 $form->addError(new FormError($this->translator->trans('puzzle_names.record_changed_meanwhile')));

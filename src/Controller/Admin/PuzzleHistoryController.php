@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleHistory;
@@ -23,6 +24,7 @@ final class PuzzleHistoryController extends AbstractController
     public function __construct(
         private readonly GetPuzzleRecord $getPuzzleRecord,
         private readonly GetPuzzleHistory $getPuzzleHistory,
+        private readonly SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -34,6 +36,9 @@ final class PuzzleHistoryController extends AbstractController
     #[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]
     public function __invoke(string $puzzleId): Response
     {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId, alsoWhileImageHidden: true);
+
         if (Uuid::isValid($puzzleId) === false) {
             throw new PuzzleNotFound();
         }

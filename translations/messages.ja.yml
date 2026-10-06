@@ -3338,6 +3338,7 @@ qr_code:
       "results_link": "公式結果のURL"
       "results_link_help": "主催者がラウンドごとの結果を公開している場合は、主催者のウェブサイト上のこのラウンドの結果へのリンクを入力してください。"
       "puzzle_already_in_category": "このパズルは、同じカテゴリのラウンド「%round%」にすでに含まれています。1つのイベントでは、パズルはカテゴリごとに1つのラウンドにしか入れられません。"
+      "invalid_local_time": "この時刻は選択したタイムゾーンでちょうど1回だけ存在する時刻ではありません（時刻の切り替えがあります）。別の時刻を選んでください。"
   "puzzle":
     "name": "名前"
     "brand": "ブランド"
@@ -3375,6 +3376,7 @@ qr_code:
       "hide_mode_image_only_help": "画像だけが非表示になります。名前とブランドは公開されます（イベントページ、新しいパズルの場合はMySpeedPuzzling全体）。"
       "hide_mode_entirely": "パズルを完全に非表示"
       "hide_mode_entirely_help": "名前、ブランド、画像は公開まで非公開のままです。"
+      "hide_help_round_started": "このラウンドはすでに始まっているため、今追加した非公開パズルはすぐに公開されます。"
   "reveal":
     "round_start": "ラウンド開始：%time%"
     "reveal_now": "今すぐ公開"
@@ -3390,11 +3392,14 @@ qr_code:
       "manual_image_hidden_on_event": "公開するまでイベントページで画像を非公開（このパズルはMySpeedPuzzlingの他の場所で公開済み）"
       "revealed": "公開済み：%time%"
       "not_secret": "非公開ではありません（イベントページに表示）"
+      "held_hidden_everywhere": "このパズルを使う別のラウンドが公開するまで、すべての場所で非公開"
+      "held_image_hidden_everywhere": "このパズルを使う別のラウンドが公開するまで、すべての場所で画像を非公開（名前は公開）"
     "source":
       "automatic": "自動：ラウンド開始の10分後。ラウンドの開始時刻が変わると一緒に移動します。"
       "scheduled": "独自の公開日時：ラウンドと一緒には移動しません。"
       "manual": "手動：「今すぐ公開」をクリックするまで非公開のままです。"
       "before_round_start": "これはラウンド開始（%time%）より前です。"
+      "held_by_other_round": "このパズルを使う別のラウンドが、それまで非公開にしています。"
     "form":
       "toggle": "公開設定を変更"
       "hide_mode": "非公開にする内容"
@@ -3404,6 +3409,9 @@ qr_code:
       "scheduled_at": "公開日時（%zone%）"
       "manual": "手動（「今すぐ公開」をクリックするまで非公開）"
       "save": "保存"
+      "confirm_reveal": "はい、今すぐ公開します"
+      "confirm_reveal_intro": "この開始時刻では、次の非公開パズルがすぐに公開されます：%puzzles%。"
+      "confirm_reveal_required": "この開始時刻では非公開パズル（%puzzles%）がすぐに公開されます。チェックを入れて確認するか、別の開始時刻を選んでください。"
     "flash":
       "saved": "「%puzzle%」の公開設定を保存しました。"
       "revealed": "「%puzzle%」を公開しました。"
@@ -3412,6 +3420,10 @@ qr_code:
       "removed_stays_hidden_manual": "パズルをラウンドから削除しました。「%puzzle%」はMySpeedPuzzlingで非公開のままです。公開してよくなったらご連絡ください。"
       "round_updated_reveal_moved": "ラウンドを更新しました。自動公開の非公開パズルは%time%に公開されます。"
       "round_updated_own_reveals_kept": "このラウンドの一部の非公開パズルには独自の公開日時があるか、手動で公開されるため、移動していません。ラウンドのパズルページで確認してください。"
+      "invalid_time": "この時刻はイベントのタイムゾーンでちょうど1回だけ存在する時刻ではありません（時刻の切り替えがあります）。別の時刻を選んでください。"
+      "time_passed": "その時刻はすでに過ぎています。すぐに公開するには「今すぐ公開」を使ってください。"
+      "already_revealed": "このパズルはすでに公開されています。公開設定は変更できません。"
+    "puzzle_still_secret": "大会がこのパズルを公開まで非公開にしています。それまでは承認、統合、編集はできません。"
   "tables":
     "tables": "テーブル"
     "manage_tables": "テーブル管理"

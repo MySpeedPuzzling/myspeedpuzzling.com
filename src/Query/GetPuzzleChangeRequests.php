@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleChangeRequestOverview;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Value\PuzzleSecrecy;
 
 readonly final class GetPuzzleChangeRequests
 {
@@ -22,15 +23,19 @@ readonly final class GetPuzzleChangeRequests
      */
     public function countByStatus(): array
     {
+        // A secret competition puzzle is out of the queue until it is revealed (PuzzleSecrecy)
+        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
-    COUNT(*) FILTER (WHERE status = 'pending') as pending,
-    COUNT(*) FILTER (WHERE status = 'approved') as approved,
-    COUNT(*) FILTER (WHERE status = 'rejected') as rejected
-FROM puzzle_change_request
+    COUNT(*) FILTER (WHERE pcr.status = 'pending') as pending,
+    COUNT(*) FILTER (WHERE pcr.status = 'approved') as approved,
+    COUNT(*) FILTER (WHERE pcr.status = 'rejected') as rejected
+FROM puzzle_change_request pcr
+JOIN puzzle p ON p.id = pcr.puzzle_id
+WHERE {$notSecret}
 SQL;
 
-        $row = $this->database->fetchAssociative($query);
+        $row = $this->database->fetchAssociative($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s')]);
 
         if ($row === false) {
             return ['pending' => 0, 'approved' => 0, 'rejected' => 0];
@@ -122,6 +127,7 @@ SQL,
 
     public function byId(string $id): null|PuzzleChangeRequestOverview
     {
+        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
     pcr.id,
@@ -178,6 +184,7 @@ LEFT JOIN manufacturer proposed_m ON proposed_m.id = pcr.proposed_manufacturer_i
 LEFT JOIN manufacturer original_m ON original_m.id = pcr.original_manufacturer_id
 LEFT JOIN player added_by ON added_by.id = p.added_by_user_id
 WHERE pcr.id = :id
+    AND {$notSecret}
 SQL;
 
         $row = $this->database->fetchAssociative($query, [
@@ -197,6 +204,7 @@ SQL;
      */
     private function byStatus(PuzzleReportStatus $status, string $orderBy): array
     {
+        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
     pcr.id,
@@ -248,6 +256,7 @@ LEFT JOIN player reviewer ON reviewer.id = pcr.reviewed_by_id
 LEFT JOIN manufacturer proposed_m ON proposed_m.id = pcr.proposed_manufacturer_id
 LEFT JOIN manufacturer original_m ON original_m.id = pcr.original_manufacturer_id
 WHERE pcr.status = :status
+    AND {$notSecret}
 ORDER BY {$orderBy}
 SQL;
 

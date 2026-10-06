@@ -90,11 +90,68 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
         $crawler = $browser->request('GET', $page);
         self::assertStringContainsString('October 26, 2030 at 8:15', $crawler->filter($card . ' [data-reveal-status]')->text());
 
+        // A time already over is no reveal time - that is "Reveal now"
+        $form = $crawler->filter($card . ' form[action*="round-puzzle-reveal"]')->form([
+            'hide_mode' => 'entirely',
+            'reveal_mode' => 'scheduled',
+            'reveal_at' => '2020-01-01T08:15',
+        ]);
+        $browser->submit($form);
+        self::assertSame('2030-10-26T13:15:00+00:00', $this->revealsAt($roundPuzzleId->toString()));
+
+        // A time that does not exist
+        $form = $crawler->filter($card . ' form[action*="round-puzzle-reveal"]')->form([
+            'hide_mode' => 'entirely',
+            'reveal_mode' => 'scheduled',
+            'reveal_at' => '2030-02-31T25:70',
+        ]);
+        $browser->submit($form);
+        self::assertSame('2030-10-26T13:15:00+00:00', $this->revealsAt($roundPuzzleId->toString()));
+
         // Reveal now
         $browser->submit($crawler->filter($card . ' form[action*="reveal-round-puzzle"]')->form());
         $crawler = $browser->request('GET', $page);
         self::assertStringStartsWith('Revealed', $crawler->filter($card . ' [data-reveal-status]')->text());
         self::assertCount(0, $crawler->filter($card . ' form[action*="reveal-round-puzzle"]'));
+        // A revealed puzzle is public - nothing offers to hide it again
+        self::assertCount(0, $crawler->filter($card . ' form[action*="round-puzzle-reveal"]'));
+    }
+
+    public function testAnotherEventsMaintainerCannotTouchTheReveal(): void
+    {
+        $browser = self::createClient();
+        $roundPuzzleId = Uuid::uuid7();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new AddPuzzleToCompetitionRound(
+            roundPuzzleId: $roundPuzzleId,
+            roundId: CompetitionApiFixture::ROUND_FUTURE,
+            userId: PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID,
+            brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            puzzle: 'Not Yours',
+            piecesCount: 500,
+            puzzlePhoto: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
+            hideUntilRoundStarts: true,
+            hideMode: PuzzleHideMode::Entirely,
+        ));
+
+        // Maintains another event only
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        foreach (['/en/round-puzzle-reveal/', '/en/reveal-round-puzzle/', '/en/remove-puzzle-from-round/'] as $endpoint) {
+            $browser->request('POST', $endpoint . $roundPuzzleId->toString(), ['reveal_mode' => 'automatic', 'hide_mode' => 'entirely']);
+            self::assertResponseStatusCodeSame(403, $endpoint);
+        }
+
+        $browser->request('POST', '/en/reveal-round-puzzle/' . Uuid::uuid7()->toString());
+        self::assertResponseStatusCodeSame(404);
+
+        self::assertTrue($this->roundPuzzle($roundPuzzleId->toString())->isHiddenAt(new \DateTimeImmutable()));
+    }
+
+    private function revealsAt(string $roundPuzzleId): null|string
+    {
+        return $this->roundPuzzle($roundPuzzleId)->revealsAt()?->format('c');
     }
 
     private function roundPuzzle(string $roundPuzzleId): CompetitionRoundPuzzle

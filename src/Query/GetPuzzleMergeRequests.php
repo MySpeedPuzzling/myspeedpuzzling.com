@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleMergeRequestOverview;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Value\PuzzleSecrecy;
 
 readonly final class GetPuzzleMergeRequests
 {
@@ -22,15 +23,17 @@ readonly final class GetPuzzleMergeRequests
      */
     public function countByStatus(): array
     {
+        $noSecretPuzzle = self::sqlNoSecretPuzzle();
         $query = <<<SQL
 SELECT
-    COUNT(*) FILTER (WHERE status = 'pending') as pending,
-    COUNT(*) FILTER (WHERE status = 'approved') as approved,
-    COUNT(*) FILTER (WHERE status = 'rejected') as rejected
-FROM puzzle_merge_request
+    COUNT(*) FILTER (WHERE pmr.status = 'pending') as pending,
+    COUNT(*) FILTER (WHERE pmr.status = 'approved') as approved,
+    COUNT(*) FILTER (WHERE pmr.status = 'rejected') as rejected
+FROM puzzle_merge_request pmr
+WHERE {$noSecretPuzzle}
 SQL;
 
-        $row = $this->database->fetchAssociative($query);
+        $row = $this->database->fetchAssociative($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s')]);
 
         if ($row === false) {
             return ['pending' => 0, 'approved' => 0, 'rejected' => 0];
@@ -98,6 +101,7 @@ SQL;
 
     public function byId(string $id): null|PuzzleMergeRequestOverview
     {
+        $noSecretPuzzle = self::sqlNoSecretPuzzle();
         $query = <<<SQL
 SELECT
     pmr.id,
@@ -134,6 +138,7 @@ LEFT JOIN manufacturer survivor_m ON survivor_m.id = survivor_p.manufacturer_id
 LEFT JOIN player reporter ON reporter.id = pmr.reporter_id
 LEFT JOIN player reviewer ON reviewer.id = pmr.reviewed_by_id
 WHERE pmr.id = :id
+    AND {$noSecretPuzzle}
 SQL;
 
         $row = $this->database->fetchAssociative($query, [
@@ -153,6 +158,7 @@ SQL;
      */
     private function byStatus(PuzzleReportStatus $status, string $orderBy): array
     {
+        $noSecretPuzzle = self::sqlNoSecretPuzzle();
         $query = <<<SQL
 SELECT
     pmr.id,
@@ -188,6 +194,7 @@ LEFT JOIN manufacturer survivor_m ON survivor_m.id = survivor_p.manufacturer_id
 LEFT JOIN player reporter ON reporter.id = pmr.reporter_id
 LEFT JOIN player reviewer ON reviewer.id = pmr.reviewed_by_id
 WHERE pmr.status = :status
+    AND {$noSecretPuzzle}
 ORDER BY {$orderBy}
 SQL;
 
@@ -200,5 +207,25 @@ SQL;
             static fn(array $row): PuzzleMergeRequestOverview => PuzzleMergeRequestOverview::fromDatabaseRow($row),
             $rows,
         );
+    }
+
+    /**
+     * A merge request is out of the queue while any puzzle in it is a secret competition puzzle (PuzzleSecrecy) - it
+     * cannot be merged before the reveal anyway.
+     */
+    private static function sqlNoSecretPuzzle(): string
+    {
+        $notSecret = PuzzleSecrecy::sqlNotSecret('secret_p');
+
+        return <<<SQL
+NOT EXISTS (
+    SELECT 1 FROM puzzle secret_p
+    WHERE (
+        secret_p.id = pmr.source_puzzle_id
+        OR secret_p.id::text IN (SELECT jsonb_array_elements_text(pmr.reported_duplicate_puzzle_ids::jsonb))
+    )
+        AND NOT {$notSecret}
+)
+SQL;
     }
 }

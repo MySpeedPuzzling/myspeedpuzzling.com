@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
@@ -25,6 +26,7 @@ final class StopwatchController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetStopwatchMilestones $getStopwatchMilestones,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -52,6 +54,11 @@ final class StopwatchController extends AbstractController
     )]
     public function __invoke(#[CurrentUser] UserInterface $user, null|string $stopwatchId = null, null|string $puzzleId = null): Response
     {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        if ($puzzleId !== null) {
+            $this->secretPuzzleAccess->assertVisible($puzzleId);
+        }
+
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($player === null) {

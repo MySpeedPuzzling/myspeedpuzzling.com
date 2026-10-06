@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Entity;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
@@ -49,13 +50,13 @@ class CompetitionRoundPuzzle implements EntityWithEvents
         // The organiser's own moment (RoundPuzzleReveal::Scheduled), null otherwise
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $revealAt = null,
-        // The puzzle was created for this round, so the round keeps it secret on the whole site (puzzle.hide_until /
-        // hide_image_until), not only on the event pages. A catalogue puzzle is public already - never hidden elsewhere.
+        // The puzzle was not public when this row made it secret (created for the round, or still secret from another
+        // round), so this row keeps it secret on the whole site (puzzle.hide_until / hide_image_until - SecretPuzzleHides
+        // combines every such row of the puzzle), not only on the event pages. A public catalogue puzzle never is.
         #[Column(options: ['default' => false])]
         public bool $hidesEverywhere = false,
     ) {
         $this->recordThat(new CompetitionRoundsChanged($this->round->competition->id));
-        $this->syncPuzzleHide();
     }
 
     /**
@@ -82,7 +83,8 @@ class CompetitionRoundPuzzle implements EntityWithEvents
     }
 
     /**
-     * The organiser's choice on the round's puzzles page. A scheduled reveal needs its moment.
+     * The organiser's choice on the round's puzzles page. A scheduled reveal needs its moment. Re-sync the puzzle's
+     * site-wide hide dates afterwards (SecretPuzzleHides).
      */
     public function changeReveal(
         PuzzleHideMode $hideMode,
@@ -96,52 +98,33 @@ class CompetitionRoundPuzzle implements EntityWithEvents
         $this->hideUntilRoundStarts = true;
         $this->hideMode = $hideMode;
         $this->revealMode = $revealMode;
-        $this->revealAt = $revealMode === RoundPuzzleReveal::Scheduled ? $scheduledAt : null;
-        $this->syncPuzzleHide();
+        // Stored as UTC like every instant - never a wall clock of some zone
+        $this->revealAt = $revealMode === RoundPuzzleReveal::Scheduled
+            ? $scheduledAt->setTimezone(new DateTimeZone('UTC'))
+            : null;
     }
 
     public function revealNow(DateTimeImmutable $now): void
     {
         $this->revealMode = RoundPuzzleReveal::Scheduled;
-        $this->revealAt = $now;
-        $this->syncPuzzleHide();
+        $this->revealAt = $now->setTimezone(new DateTimeZone('UTC'));
     }
 
     /**
-     * Keeps the puzzle's site-wide hide dates equal to the reveal moment, so no page shows the puzzle before the
-     * event pages do. Called by everything that moves the moment - also by a change of the round's start (an
-     * automatic reveal follows it). Removing the puzzle from the round leaves the dates as they are: it stays hidden
-     * until the moment the organiser was last shown, never revealed by accident.
+     * The puzzle was not public when this row made it secret - see $hidesEverywhere.
      */
-    public function syncPuzzleHide(): void
+    public function keepHiddenEverywhere(): void
     {
-        if ($this->hidesEverywhere === false || $this->hideUntilRoundStarts === false) {
-            return;
-        }
-
-        $this->puzzle->hideUntilRevealed(
-            $this->hideMode ?? PuzzleHideMode::Entirely,
-            $this->revealsAt() ?? new DateTimeImmutable(self::HIDDEN_UNTIL_REVEALED),
-        );
+        $this->hidesEverywhere = true;
     }
 
     /**
-     * A puzzle merge moved this round's puzzle onto another record. That record is a puzzle of its own (a catalogue
-     * puzzle is public already), so the round keeps it secret on its event pages only.
+     * A puzzle merge moved this round's puzzle onto another record. The row keeps what it promised the organiser;
+     * merges of hidden puzzles are refused, so this only moves rows of public puzzles.
      */
     public function moveToPuzzle(Puzzle $puzzle): void
     {
         $this->puzzle = $puzzle;
-        $this->hidesEverywhere = false;
-    }
-
-    /**
-     * The backfill (myspeedpuzzling:backfill-round-puzzle-reveals) found the round created this puzzle.
-     */
-    public function markHidesEverywhere(): void
-    {
-        $this->hidesEverywhere = true;
-        $this->syncPuzzleHide();
     }
 
     /**

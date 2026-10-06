@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundPuzzleNotFound;
 
 readonly final class CompetitionRoundPuzzleRepository
 {
@@ -18,13 +19,13 @@ readonly final class CompetitionRoundPuzzleRepository
     public function get(string $id): CompetitionRoundPuzzle
     {
         if (!Uuid::isValid($id)) {
-            throw new \InvalidArgumentException('Invalid competition round puzzle ID');
+            throw new CompetitionRoundPuzzleNotFound();
         }
 
         $roundPuzzle = $this->entityManager->find(CompetitionRoundPuzzle::class, $id);
 
         if ($roundPuzzle === null) {
-            throw new \InvalidArgumentException('Competition round puzzle not found');
+            throw new CompetitionRoundPuzzleNotFound();
         }
 
         return $roundPuzzle;

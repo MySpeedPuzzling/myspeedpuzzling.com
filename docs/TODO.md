@@ -11,8 +11,16 @@ that would otherwise be forgotten. Newest section on top.
       rounds' `timezone` to `America/Chicago`, re-sync the 2 Team Relay secret puzzles (SQL in the PR description).
 - [ ] Rounds saved before 2026-10 have no `timezone` and are read in their country's default zone - organisers of
       events outside it (US Central/Mountain/Pacific, ...) may want to re-save their rounds once.
-- [ ] A puzzle removed from its round while on a manual reveal stays hidden with no end and the organiser can no longer
-      find it in the round picker - an admin clears `puzzle.hide_until` / `hide_image_until` on request.
+- [ ] A puzzle removed from its round while on a manual reveal stays hidden with no end - its adder finds it in the round
+      picker again, otherwise an admin clears `puzzle.hide_until` / `hide_image_until` on request.
+- [ ] Times and collections on a secret puzzle (only reachable with its id) can show its name in feeds - hide the competition
+      badge and the puzzle in feeds while the round puzzle is hidden.
+- [ ] Small existence signals of secret puzzles: multiscan "already assigned", results counts, the edition's `puzzle_count`,
+      the image aspect ratio while hidden, `/me` predicted time answering 200.
+- [ ] Repair historic rounds moved by untouched saves before the zone fix (e.g. Ou La La SPC No. 16) - compare with the
+      organisers' published schedules.
+- [ ] The coordinator saw America/Chicago twice at the end of the zone select; the server renders it once and TomSelect
+      moves the selected option to the end of the native select - not reproduced in Chrome 2026-10-06, re-check on a phone.
 
 ## Large photo uploads (Sentry WEB-D4, 2026-10-06)
 

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -26,6 +27,8 @@ final class CompetitionRoundFormType extends AbstractType
     {
         // A one-day event asks only for the time (CompetitionEvent::singleDay())
         $isSingleDay = $options['single_day'] === true;
+        /** @var null|\DateTimeImmutable $offsetAt */
+        $offsetAt = $options['timezone_offset_at'];
 
         $builder->add('name', TextType::class, [
             'label' => 'competition.round.form.name',
@@ -65,9 +68,10 @@ final class CompetitionRoundFormType extends AbstractType
                 new Assert\NotBlank(),
                 new Assert\Timezone(),
             ],
-            'choice_label' => static function (string $timezone): string {
+            // The offset on the round's own date - in October, Chicago is UTC-5, not the UTC-6 of a January form
+            'choice_label' => static function (string $timezone) use ($offsetAt): string {
                 $tz = new \DateTimeZone($timezone);
-                $offset = $tz->getOffset(new \DateTimeImmutable('now', $tz));
+                $offset = $tz->getOffset($offsetAt ?? new \DateTimeImmutable('now', $tz));
                 $hours = intdiv($offset, 3600);
                 $minutes = abs(intdiv($offset % 3600, 60));
                 $utcOffset = sprintf('UTC%+d', $hours) . ($minutes > 0 ? sprintf(':%02d', $minutes) : '');
@@ -75,6 +79,15 @@ final class CompetitionRoundFormType extends AbstractType
                 return $timezone . ' (' . $utcOffset . ')';
             },
         ]);
+
+        // Editing a round with secret puzzles: saving a start that reveals them right away needs an explicit yes
+        if ($options['reveal_confirmation'] === true) {
+            $builder->add('confirmReveal', CheckboxType::class, [
+                'label' => 'competition.reveal.form.confirm_reveal',
+                'mapped' => false,
+                'required' => false,
+            ]);
+        }
 
         $builder->add('category', EnumType::class, [
             'class' => RoundCategory::class,
@@ -116,8 +129,12 @@ final class CompetitionRoundFormType extends AbstractType
         $resolver->setDefaults([
             'data_class' => CompetitionRoundFormData::class,
             'single_day' => false,
+            'timezone_offset_at' => null,
+            'reveal_confirmation' => false,
         ]);
 
         $resolver->setAllowedTypes('single_day', 'bool');
+        $resolver->setAllowedTypes('timezone_offset_at', ['null', \DateTimeImmutable::class]);
+        $resolver->setAllowedTypes('reveal_confirmation', 'bool');
     }
 }

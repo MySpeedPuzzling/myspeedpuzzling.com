@@ -41,4 +41,13 @@ readonly final class PuzzleImageNamer
 
         return $baseName;
     }
+
+    /**
+     * A puzzle created secret (a competition round keeps it hidden): nothing in the file name can be guessed from its
+     * name, brand or id - with "hide image only" those are public while the picture is not.
+     */
+    public function secretFilename(string $extension): string
+    {
+        return bin2hex(random_bytes(16)) . '.' . $extension;
+    }
 }

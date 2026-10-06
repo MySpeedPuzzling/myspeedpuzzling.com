@@ -47,7 +47,7 @@ readonly final class PuzzleTextSearch
         $tests = ["{$alias}.search_names LIKE :ptsNamesContains"];
 
         if ($this->query->codePart !== null) {
-            $tests[] = "{$alias}.search_codes LIKE :ptsCodePart";
+            $tests[] = "({$alias}.search_codes LIKE :ptsCodePart AND " . self::codesPublic($alias) . ')';
         } else {
             $tests = [...$tests, ...$this->wholeCodeTests($alias)];
         }
@@ -79,7 +79,7 @@ readonly final class PuzzleTextSearch
         $tiers[] = "WHEN {$alias}.search_names LIKE :ptsNamesContains THEN 2";
 
         if ($this->query->codePart !== null) {
-            $tiers[] = "WHEN {$alias}.search_codes LIKE :ptsCodePart THEN 1";
+            $tiers[] = "WHEN {$alias}.search_codes LIKE :ptsCodePart AND " . self::codesPublic($alias) . ' THEN 1';
         }
 
         return 'CASE ' . implode(' ', $tiers) . ' ELSE 0 END';
@@ -127,13 +127,25 @@ readonly final class PuzzleTextSearch
         $tests = [];
 
         if ($this->query->eanExact !== null) {
-            $tests[] = "{$alias}.search_codes LIKE :ptsEanExact";
+            $tests[] = "({$alias}.search_codes LIKE :ptsEanExact AND " . self::codesPublic($alias) . ')';
         }
 
         if ($this->query->codeExact !== null) {
-            $tests[] = "{$alias}.search_codes LIKE :ptsCodeExact";
+            $tests[] = "({$alias}.search_codes LIKE :ptsCodeExact AND " . self::codesPublic($alias) . ')';
         }
 
         return $tests;
+    }
+
+    /**
+     * A puzzle whose picture a competition keeps secret is never found by its codes - an EAN or brand code gives the
+     * box away (PuzzleSecrecy). The database's own clock in UTC, like every stored instant: no caller binds a time.
+     */
+    private static function codesPublic(string $alias): string
+    {
+        $now = "(now() AT TIME ZONE 'UTC')";
+
+        return "(({$alias}.hide_image_until IS NULL OR {$alias}.hide_image_until <= {$now})"
+            . " AND ({$alias}.hide_until IS NULL OR {$alias}.hide_until <= {$now}))";
     }
 }

@@ -3614,6 +3614,7 @@ competition:
             results_link: "Official results URL"
             results_link_help: "Link to this round's results on the organiser's website, if they publish results per round."
             puzzle_already_in_category: "This puzzle is already in round \"%round%\" of the same category. A puzzle can be in only one round per category of an event."
+            invalid_local_time: "This time does not exist exactly once in the chosen time zone (the clocks change then) – please choose another time."
     puzzle:
         name: "Name"
         brand: "Brand"
@@ -3651,6 +3652,7 @@ competition:
             hide_mode_image_only_help: "Only the picture is hidden. The name and brand are public – on your event pages and, for a new puzzle, everywhere on MySpeedPuzzling."
             hide_mode_entirely: "Hide the puzzle entirely"
             hide_mode_entirely_help: "Name, brand and picture stay secret until the reveal."
+            hide_help_round_started: "This round has already started, so a secret puzzle added now is revealed immediately."
     reveal:
         round_start: "Round starts %time%"
         reveal_now: "Reveal now"
@@ -3666,11 +3668,14 @@ competition:
             manual_image_hidden_on_event: "Picture hidden on your event page until you reveal it – this puzzle is already public elsewhere on MySpeedPuzzling"
             revealed: "Revealed %time%"
             not_secret: "Not secret – shown on your event page"
+            held_hidden_everywhere: "Hidden everywhere until another round that uses it reveals it"
+            held_image_hidden_everywhere: "Picture hidden everywhere until another round that uses it reveals it – the name is public"
         source:
             automatic: "Automatic: 10 minutes after the round starts. It follows the round when the start changes."
             scheduled: "Your own reveal time – it does not move with the round."
             manual: "Manual: it stays hidden until you click “Reveal now”."
             before_round_start: "This is before the round starts (%time%)."
+            held_by_other_round: "Another round that uses this puzzle keeps it hidden until then."
         form:
             toggle: "Change reveal"
             hide_mode: "What stays secret"
@@ -3680,6 +3685,9 @@ competition:
             scheduled_at: "Reveal at (%zone%)"
             manual: "Manually – it stays hidden until I click “Reveal now”"
             save: "Save"
+            confirm_reveal: "Yes, reveal them now"
+            confirm_reveal_intro: "With this start, these secret puzzles are revealed right away: %puzzles%."
+            confirm_reveal_required: "This start reveals secret puzzles right away (%puzzles%). Tick the box to confirm, or choose another start."
         flash:
             saved: "Reveal settings of “%puzzle%” saved."
             revealed: "“%puzzle%” is revealed."
@@ -3688,6 +3696,10 @@ competition:
             removed_stays_hidden_manual: "Puzzle removed from the round. “%puzzle%” stays hidden on MySpeedPuzzling – write to us when it may be published."
             round_updated_reveal_moved: "Round updated. Its secret puzzles with automatic reveal are now revealed on %time%."
             round_updated_own_reveals_kept: "Some secret puzzles of this round have their own reveal time or are revealed manually – they did not move. Check them on the round's puzzles page."
+            invalid_time: "This time does not exist exactly once in the event’s time zone (the clocks change then) – please choose another time."
+            time_passed: "That time has already passed – use “Reveal now” to reveal the puzzle right away."
+            already_revealed: "This puzzle is already revealed – its reveal can no longer be changed."
+        puzzle_still_secret: "A competition keeps this puzzle secret until it is revealed. It cannot be approved, merged or edited before then."
     tables:
         tables: "Tables"
         manage_tables: "Manage Tables"

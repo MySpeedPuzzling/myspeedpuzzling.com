@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\StartStopwatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,6 +20,7 @@ final class StartStopwatchController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
+        private readonly SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -35,6 +37,11 @@ final class StartStopwatchController extends AbstractController
     )]
     public function __invoke(#[CurrentUser] UserInterface $user, null|string $puzzleId = null): Response
     {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        if ($puzzleId !== null) {
+            $this->secretPuzzleAccess->assertVisible($puzzleId);
+        }
+
         $stopwatchId = Uuid::uuid7();
 
         $this->messageBus->dispatch(

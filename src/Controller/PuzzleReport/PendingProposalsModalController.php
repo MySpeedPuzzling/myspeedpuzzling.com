@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\PuzzleReport;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,6 +17,7 @@ final class PendingProposalsModalController extends AbstractController
     public function __construct(
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPendingPuzzleProposals $getPendingPuzzleProposals,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -35,6 +37,9 @@ final class PendingProposalsModalController extends AbstractController
         Request $request,
         string $puzzleId,
     ): Response {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId, alsoWhileImageHidden: true);
+
         $puzzle = $this->getPuzzleOverview->byId($puzzleId);
         $proposals = $this->getPendingPuzzleProposals->forPuzzle($puzzleId);
 

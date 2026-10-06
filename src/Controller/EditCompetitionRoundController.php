@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
@@ -15,6 +18,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,15 +60,31 @@ final class EditCompetitionRoundController extends AbstractController
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         $competition = $this->getCompetitionEvents->byId($competitionId);
+        $timezone = $round->displayTimezone();
 
+        // The time-only field puts the time on the event's day - only right when the round is on that day in its zone.
+        // A round on another local day (an evening round in another zone, an old save) gets the full date and time,
+        // or an untouched save would move it by a day.
         $singleDay = $competition->singleDay();
+        if ($singleDay !== null && RoundTimezone::toLocal($round->startsAt, $timezone)->format('Y-m-d') !== $singleDay->format('Y-m-d')) {
+            $singleDay = null;
+        }
+
+        $now = $this->clock->now();
+        $hasSecretPuzzles = array_filter(
+            $round->roundPuzzles->toArray(),
+            static fn (CompetitionRoundPuzzle $roundPuzzle): bool => $roundPuzzle->isHiddenAt($now),
+        ) !== [];
 
         // Shows the round in the zone it was typed in, as the organiser typed it
         $formData = CompetitionRoundFormData::fromCompetitionRound($round);
         $form = $this->createForm(CompetitionRoundFormType::class, $formData, [
             'single_day' => $singleDay !== null,
+            'timezone_offset_at' => $round->startsAt,
+            'reveal_confirmation' => $hasSecretPuzzles,
         ]);
         $form->handleRequest($request);
+        $revealedRightAway = [];
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -73,44 +93,60 @@ final class EditCompetitionRoundController extends AbstractController
             assert($data->timezone !== null);
 
             $previousStartsAt = $round->startsAt;
-            $startsAt = $data->startsAtInstant($singleDay);
+            $startsAt = null;
 
             try {
-                $this->messageBus->dispatch(new EditCompetitionRound(
-                    roundId: $roundId,
-                    name: $data->name,
-                    minutesLimit: $data->minutesLimit,
-                    startsAt: $startsAt,
-                    timezone: $data->timezone,
-                    badgeBackgroundColor: $data->badgeBackgroundColor,
-                    badgeTextColor: $data->badgeTextColor,
-                    category: $data->category,
-                    resultsLink: $data->resultsLink,
+                $startsAt = $data->startsAtInstant($singleDay);
+            } catch (InvalidLocalTime) {
+                $form->get($singleDay !== null ? 'startsAtTime' : 'startsAt')->addError(new FormError(
+                    $this->translator->trans('competition.round.form.invalid_local_time'),
                 ));
-            } catch (HandlerFailedException $e) {
-                $nested = $e->getPrevious() ?? $e;
-
-                if (!$nested instanceof PuzzleAlreadyInCompetitionRoundCategory) {
-                    throw $e;
-                }
-
-                // A form error makes the form invalid, so render() answers 422 - Turbo Drive drops a 200
-                $form->get('category')->addError(new FormError($this->translator->trans(
-                    'competition.round.form.puzzle_already_in_category',
-                    ['%round%' => $nested->conflictingRoundName],
-                )));
-
-                return $this->render('edit_competition_round.html.twig', [
-                    'form' => $form,
-                    'competition' => $competition,
-                    'round' => $round,
-                    'single_day' => $singleDay,
-                ]);
             }
 
-            $this->flashRoundUpdated($round, $previousStartsAt->getTimestamp() !== $startsAt->getTimestamp(), $data->timezone);
+            // Saving a start that reveals secret puzzles right away (moved into the past) needs an explicit yes
+            if ($startsAt !== null) {
+                $revealedRightAway = $this->revealedRightAway($round, $startsAt, $now);
 
-            return $this->redirectToRoute('manage_competition_rounds', ['competitionId' => $competitionId]);
+                if ($revealedRightAway !== [] && $form->has('confirmReveal') && $form->get('confirmReveal')->getData() !== true) {
+                    $form->get('confirmReveal')->addError(new FormError($this->translator->trans(
+                        'competition.reveal.form.confirm_reveal_required',
+                        ['%puzzles%' => implode(', ', $revealedRightAway)],
+                    )));
+                }
+            }
+
+            // Errors added above (an impossible time, a missing yes) keep the form from saving
+            if ($startsAt !== null && count($form->getErrors(true)) === 0) {
+                try {
+                    $this->messageBus->dispatch(new EditCompetitionRound(
+                        roundId: $roundId,
+                        name: $data->name,
+                        minutesLimit: $data->minutesLimit,
+                        startsAt: $startsAt,
+                        timezone: $data->timezone,
+                        badgeBackgroundColor: $data->badgeBackgroundColor,
+                        badgeTextColor: $data->badgeTextColor,
+                        category: $data->category,
+                        resultsLink: $data->resultsLink,
+                    ));
+
+                    $this->flashRoundUpdated($round, $previousStartsAt->getTimestamp() !== $startsAt->getTimestamp(), $data->timezone);
+
+                    return $this->redirectToRoute('manage_competition_rounds', ['competitionId' => $competitionId]);
+                } catch (HandlerFailedException $e) {
+                    $nested = $e->getPrevious() ?? $e;
+
+                    if (!$nested instanceof PuzzleAlreadyInCompetitionRoundCategory) {
+                        throw $e;
+                    }
+
+                    // A form error makes the form invalid, so render() answers 422 - Turbo Drive drops a 200
+                    $form->get('category')->addError(new FormError($this->translator->trans(
+                        'competition.round.form.puzzle_already_in_category',
+                        ['%round%' => $nested->conflictingRoundName],
+                    )));
+                }
+            }
         }
 
         return $this->render('edit_competition_round.html.twig', [
@@ -118,7 +154,33 @@ final class EditCompetitionRoundController extends AbstractController
             'competition' => $competition,
             'round' => $round,
             'single_day' => $singleDay,
+            'revealed_right_away' => $revealedRightAway,
         ]);
+    }
+
+    /**
+     * Names of the secret puzzles a new start reveals at once: hidden now, and their automatic reveal (start + 10 min)
+     * would already be over.
+     *
+     * @return list<string>
+     */
+    private function revealedRightAway(CompetitionRound $round, DateTimeImmutable $newStartsAt, DateTimeImmutable $now): array
+    {
+        $names = [];
+        $newAutomaticReveal = RoundPuzzleReveal::Automatic->revealAt($newStartsAt, null);
+
+        foreach ($round->roundPuzzles as $roundPuzzle) {
+            if (
+                $roundPuzzle->isHiddenAt($now)
+                && $roundPuzzle->revealMode === RoundPuzzleReveal::Automatic
+                && $newAutomaticReveal !== null
+                && $newAutomaticReveal <= $now
+            ) {
+                $names[] = $roundPuzzle->puzzle->name;
+            }
+        }
+
+        return $names;
     }
 
     /**

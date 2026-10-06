@@ -30,7 +30,7 @@
     </h1>
 
     <div class="text-muted small mb-3">
-        <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i', round.timezone) }}
+        <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i', round.timezone) }} <span class="text-muted" data-round-zone>({{ timezone_name(round.timezone) }})</span>
         <span class="mx-1">&middot;</span>
         <i class="bi bi-stopwatch me-1"></i>{{ 'round_results.time_limit'|trans({'%minutes%': round.minutesLimit}) }}
         {% if round.category.value != 'solo' %}

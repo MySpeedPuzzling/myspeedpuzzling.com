@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\FormData\PuzzleRecordFormData;
@@ -107,6 +108,9 @@ final class PuzzleChangeRequestDetailController extends AbstractController
                 $this->addFlash('warning', $this->translator->trans('admin.puzzle_change_request.already_reviewed'));
 
                 return $this->redirectToRoute('admin_puzzle_change_request_detail', ['id' => $id]);
+            } catch (PuzzleIsStillSecret) {
+                // A secret competition puzzle is approved, merged and edited only once revealed
+                $form->addError(new FormError($this->translator->trans('competition.reveal.puzzle_still_secret')));
             } catch (PuzzleChangedMeanwhile) {
                 // The form keeps what was typed - and the version it was loaded with, so it stays refused until reloaded
                 $form->addError(new FormError($this->translator->trans('puzzle_names.record_changed_meanwhile')));

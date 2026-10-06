@@ -19,7 +19,6 @@ use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\LanguageTag;
-use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleSearchKeys;
 
@@ -167,15 +166,25 @@ class Puzzle
     }
 
     /**
-     * A puzzle created for a competition round stays secret on the whole site until the round reveals it - the
-     * round keeps these dates equal to its reveal moment (CompetitionRoundPuzzle::syncPuzzleHide()). "Entirely" hides
-     * the puzzle and its picture (the picture date also keeps the detail page out of search engines), "image only"
-     * just the picture - the name is public.
+     * A puzzle a competition keeps secret stays hidden on the whole site until its rounds reveal it - SecretPuzzleHides
+     * keeps these dates equal to the latest reveal of those rounds. $hiddenUntil hides the puzzle itself (null = its
+     * name may be public, "image only"), $imageHiddenUntil its picture and codes (the picture date also keeps the
+     * detail page out of search engines).
      */
-    public function hideUntilRevealed(PuzzleHideMode $hideMode, DateTimeImmutable $revealAt): void
+    public function keepSecretUntil(null|DateTimeImmutable $hiddenUntil, DateTimeImmutable $imageHiddenUntil): void
     {
-        $this->hideImageUntil = $revealAt;
-        $this->hideUntil = $hideMode === PuzzleHideMode::Entirely ? $revealAt : null;
+        $this->hideUntil = $hiddenUntil;
+        $this->hideImageUntil = $imageHiddenUntil;
+    }
+
+    public function isHiddenAt(DateTimeImmutable $now): bool
+    {
+        return $this->hideUntil !== null && $this->hideUntil > $now;
+    }
+
+    public function isImageHiddenAt(DateTimeImmutable $now): bool
+    {
+        return ($this->hideImageUntil !== null && $this->hideImageUntil > $now) || $this->isHiddenAt($now);
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void

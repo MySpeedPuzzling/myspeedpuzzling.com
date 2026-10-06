@@ -229,7 +229,9 @@ SQL;
             ->executeQuery($query, $params, $types)
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): PuzzleOverview {
+        $now = $this->clock->now();
+
+        return array_map(static function (array $row) use ($now): PuzzleOverview {
             /**
              * @var array{
              *     puzzle_id: string,
@@ -256,7 +258,7 @@ SQL;
              * } $row
              */
 
-            return PuzzleOverview::fromDatabaseRow($row);
+            return PuzzleOverview::fromDatabaseRow($row, $now);
         }, $data);
     }
 
@@ -379,6 +381,7 @@ SQL;
             return [];
         }
 
+
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -407,6 +410,8 @@ LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = puzzle.id
 WHERE
     {$barcodeCondition}
     AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+    -- A puzzle whose picture is still secret is not found by its codes either - they give the box away
+    AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now::timestamp)
 ORDER BY solved_times DESC, puzzle.name, manufacturer.name, puzzle.id
 SQL;
 
@@ -417,7 +422,9 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): PuzzleOverview {
+        $now = $this->clock->now();
+
+        return array_map(static function (array $row) use ($now): PuzzleOverview {
             /**
              * @var array{
              *     puzzle_id: string,
@@ -443,18 +450,22 @@ SQL;
              * } $row
              */
 
-            return PuzzleOverview::fromDatabaseRow($row);
+            return PuzzleOverview::fromDatabaseRow($row, $now);
         }, $rows);
     }
 
     /**
      * The puzzle picker of one brand. Unapproved puzzles are listed, secret ones (hide_until in the future) never -
-     * apart from the ones in rounds of $secretPuzzlesOfCompetitionId, for its organiser adding puzzles to a round.
+     * apart from the ones in rounds of $secretPuzzlesOfCompetitionId and the ones $secretPuzzlesAddedByPlayerId added that are in no round any more,
+     * for an organiser adding puzzles to a round.
      *
      * @return array<AutocompletePuzzle>
      */
-    public function byBrandId(string $brandId, null|string $secretPuzzlesOfCompetitionId = null): array
-    {
+    public function byBrandId(
+        string $brandId,
+        null|string $secretPuzzlesOfCompetitionId = null,
+        null|string $secretPuzzlesAddedByPlayerId = null,
+    ): array {
         $params = [
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             'manufacturerId' => $brandId,
@@ -471,6 +482,15 @@ SQL;
             $params['competitionId'] = $secretPuzzlesOfCompetitionId;
         }
 
+        // The organiser's own secret puzzles that are in no round any more (removed from theirs) - re-added, not created
+        // again as a duplicate
+        if ($secretPuzzlesAddedByPlayerId !== null) {
+            $secretPuzzlesOfCompetition .= ' OR (puzzle.added_by_user_id = :secretAddedBy AND NOT EXISTS (
+            SELECT 1 FROM competition_round_puzzle orphan_crp WHERE orphan_crp.puzzle_id = puzzle.id
+        ))';
+            $params['secretAddedBy'] = $secretPuzzlesAddedByPlayerId;
+        }
+
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -482,7 +502,8 @@ SELECT
     puzzle.approved AS puzzle_approved,
     manufacturer.name AS manufacturer_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE ean END AS puzzle_ean,
-    puzzle.identification_number AS puzzle_identification_number
+    -- A secret picture's brand code gives the box away just like its EAN
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.identification_number END AS puzzle_identification_number
 FROM puzzle
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE

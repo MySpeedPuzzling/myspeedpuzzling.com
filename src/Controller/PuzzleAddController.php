@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -79,6 +80,7 @@ final class PuzzleAddController extends AbstractController
         readonly private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         readonly private MistypedYearNormalizer $mistypedYearNormalizer,
         readonly private ClockInterface $clock,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -110,6 +112,11 @@ final class PuzzleAddController extends AbstractController
         null|string $puzzleId = null,
         null|string $stopwatchId = null,
     ): Response {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        if ($puzzleId !== null) {
+            $this->secretPuzzleAccess->assertVisible($puzzleId);
+        }
+
         $userProfile = $this->retrieveLoggedUserProfile->getProfile();
         assert($userProfile !== null);
 

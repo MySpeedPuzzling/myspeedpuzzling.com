@@ -6,12 +6,15 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ManufacturerOverview;
+use SpeedPuzzling\Web\Value\PuzzleSecrecy;
 
 readonly final class GetManufacturers
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -20,11 +23,15 @@ readonly final class GetManufacturers
      * brand of a puzzle. A brand left out there gets typed again and becomes a duplicate
      * (docs/features/brand-duplicates.md).
      *
+     * Secret competition puzzles (PuzzleSecrecy) are not counted, and a brand whose every puzzle is secret (typed for
+     * a secret puzzle) is left out - except, in the add-to-round form, the brands of $secretPuzzlesOfCompetitionId's
+     * round puzzles for its organisers.
+     *
      * @return array<ManufacturerOverview>
      */
-    public function allIncludingUnapproved(): array
+    public function allIncludingUnapproved(null|string $secretPuzzlesOfCompetitionId = null): array
     {
-        return $this->overviews('true', []);
+        return $this->overviews('true', [], $secretPuzzlesOfCompetitionId);
     }
 
     /**
@@ -49,8 +56,23 @@ readonly final class GetManufacturers
      *
      * @return array<ManufacturerOverview>
      */
-    private function overviews(string $condition, array $parameters): array
+    private function overviews(string $condition, array $parameters, null|string $secretPuzzlesOfCompetitionId = null): array
     {
+        $notSecret = PuzzleSecrecy::sqlNotSecret('puzzle');
+        $parameters['now'] = $this->clock->now()->format('Y-m-d H:i:s');
+        $secretOfCompetition = '';
+
+        if ($secretPuzzlesOfCompetitionId !== null) {
+            $secretOfCompetition = 'OR manufacturer.id IN (
+        SELECT competition_puzzle.manufacturer_id
+        FROM competition_round_puzzle crp
+        INNER JOIN competition_round cr ON cr.id = crp.round_id
+        INNER JOIN puzzle competition_puzzle ON competition_puzzle.id = crp.puzzle_id
+        WHERE cr.competition_id = :secretCompetitionId
+    )';
+            $parameters['secretCompetitionId'] = $secretPuzzlesOfCompetitionId;
+        }
+
         $query = <<<SQL
 SELECT
     manufacturer.id AS manufacturer_id,
@@ -58,12 +80,15 @@ SELECT
     manufacturer.approved AS manufacturer_approved,
     manufacturer.logo AS manufacturer_logo,
     manufacturer.ean_prefix AS manufacturer_ean_prefix,
-    COUNT(puzzle.id) AS puzzles_count
+    COUNT(puzzle.id) FILTER (WHERE {$notSecret}) AS puzzles_count
 FROM manufacturer
 LEFT JOIN puzzle ON puzzle.manufacturer_id = manufacturer.id
 WHERE {$condition}
 GROUP BY manufacturer.id
-ORDER BY COUNT(puzzle.id) DESC, manufacturer.name ASC
+HAVING COUNT(puzzle.id) = 0
+    OR COUNT(puzzle.id) FILTER (WHERE {$notSecret}) > 0
+    {$secretOfCompetition}
+ORDER BY COUNT(puzzle.id) FILTER (WHERE {$notSecret}) DESC, manufacturer.name ASC
 SQL;
 
         $data = $this->database

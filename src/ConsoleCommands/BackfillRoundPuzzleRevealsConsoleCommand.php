@@ -38,12 +38,16 @@ final class BackfillRoundPuzzleRevealsConsoleCommand extends Command
         $write = $input->getOption('write') === true;
         $envelope = $this->messageBus->dispatch(new BackfillRoundPuzzleReveals(dryRun: !$write));
 
-        /** @var null|list<string> $changes */
-        $changes = $envelope->last(HandledStamp::class)?->getResult();
-        $changes ??= [];
+        /** @var null|array{changes: list<string>, unmatched: list<string>} $result */
+        $result = $envelope->last(HandledStamp::class)?->getResult();
+        $changes = $result['changes'] ?? [];
+        $unmatched = $result['unmatched'] ?? [];
 
         $io = new SymfonyStyle($input, $output);
+        $io->section('Round puzzles that created their puzzle and reveal later');
         $io->listing($changes === [] ? ['nothing to change'] : $changes);
+        $io->section('Other puzzles hidden in the future - not touched, review by hand');
+        $io->listing($unmatched === [] ? ['none'] : $unmatched);
         $io->success(sprintf('%d round puzzles %s.', count($changes), $write ? 'changed' : 'would change (dry run, add --write)'));
 
         return self::SUCCESS;

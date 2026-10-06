@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormData;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -66,6 +67,8 @@ final class CompetitionRoundFormData
      * The instant the organiser means: the typed local time in the chosen zone.
      *
      * @param null|DateTimeImmutable $eventDay the day of a single-day event (only the time is typed), null otherwise
+     *
+     * @throws InvalidLocalTime the typed time does not exist exactly once in the zone (a daylight-saving change)
      */
     public function startsAtInstant(null|DateTimeImmutable $eventDay): DateTimeImmutable
     {
@@ -73,12 +76,16 @@ final class CompetitionRoundFormData
 
         if ($eventDay !== null) {
             assert($this->startsAtTime !== null);
+            [$hours, $minutes] = array_map(intval(...), explode(':', $this->startsAtTime) + [1 => '0']);
 
-            return RoundTimezone::toInstant($eventDay->format('Y-m-d') . ' ' . $this->startsAtTime, $this->timezone);
+            return RoundTimezone::toInstant(
+                sprintf('%s %02d:%02d', $eventDay->format('Y-m-d'), $hours, $minutes),
+                $this->timezone,
+            );
         }
 
         assert($this->startsAt !== null);
 
-        return RoundTimezone::toInstant($this->startsAt->format('Y-m-d H:i:s'), $this->timezone);
+        return RoundTimezone::toInstant($this->startsAt->format('Y-m-d H:i'), $this->timezone);
     }
 }

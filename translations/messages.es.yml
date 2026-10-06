@@ -3348,6 +3348,7 @@ fair_use_policy:
       "results_link": "URL de resultados oficiales"
       "results_link_help": "Enlace a los resultados de esta ronda en el sitio web del organizador, si publica resultados por ronda."
       "puzzle_already_in_category": "Este puzzle ya está en la ronda \"%round%\" de la misma categoría. Un puzzle solo puede estar en una ronda por categoría de un evento."
+      "invalid_local_time": "Esta hora no existe exactamente una vez en la zona horaria elegida (ese día cambia la hora); elige otra, por favor."
   "puzzle":
     "name": "Nombre"
     "brand": "Marca"
@@ -3385,6 +3386,7 @@ fair_use_policy:
       "hide_mode_image_only_help": "Solo se oculta la imagen. El nombre y la marca son públicos: en las páginas de tu evento y, si el puzzle es nuevo, en todo MySpeedPuzzling."
       "hide_mode_entirely": "Ocultar el puzzle completamente"
       "hide_mode_entirely_help": "El nombre, la marca y la imagen permanecen en secreto hasta la revelación."
+      "hide_help_round_started": "Esta ronda ya ha empezado, así que un puzzle secreto añadido ahora se revela de inmediato."
   "reveal":
     "round_start": "La ronda empieza %time%"
     "reveal_now": "Revelar ahora"
@@ -3400,11 +3402,14 @@ fair_use_policy:
       "manual_image_hidden_on_event": "Imagen oculta en la página de tu evento hasta que la reveles; este puzzle ya es público en el resto de MySpeedPuzzling"
       "revealed": "Revelado %time%"
       "not_secret": "No es secreto: se muestra en la página de tu evento"
+      "held_hidden_everywhere": "Oculto en todas partes hasta que otra ronda que lo usa lo revele"
+      "held_image_hidden_everywhere": "Imagen oculta en todas partes hasta que otra ronda que lo usa la revele; el nombre es público"
     "source":
       "automatic": "Automático: 10 minutos después de que empiece la ronda. Se mueve con la ronda si cambia su inicio."
       "scheduled": "Tu propia hora de revelación: no se mueve con la ronda."
       "manual": "Manual: permanece oculto hasta que pulses «Revelar ahora»."
       "before_round_start": "Esto es antes de que empiece la ronda (%time%)."
+      "held_by_other_round": "Otra ronda que usa este puzzle lo mantiene oculto hasta entonces."
     "form":
       "toggle": "Cambiar la revelación"
       "hide_mode": "Qué permanece en secreto"
@@ -3414,6 +3419,9 @@ fair_use_policy:
       "scheduled_at": "Revelar a las (%zone%)"
       "manual": "Manualmente: permanece oculto hasta que pulse «Revelar ahora»"
       "save": "Guardar"
+      "confirm_reveal": "Sí, revelarlos ahora"
+      "confirm_reveal_intro": "Con este inicio, estos puzzles secretos se revelan de inmediato: %puzzles%."
+      "confirm_reveal_required": "Este inicio revela puzzles secretos de inmediato (%puzzles%). Marca la casilla para confirmarlo o elige otro inicio."
     "flash":
       "saved": "Se ha guardado la revelación de «%puzzle%»."
       "revealed": "«%puzzle%» está revelado."
@@ -3422,6 +3430,10 @@ fair_use_policy:
       "removed_stays_hidden_manual": "Puzzle eliminado de la ronda. «%puzzle%» permanece oculto en MySpeedPuzzling: escríbenos cuando se pueda publicar."
       "round_updated_reveal_moved": "Ronda actualizada. Sus puzzles secretos con revelación automática se revelarán ahora el %time%."
       "round_updated_own_reveals_kept": "Algunos puzzles secretos de esta ronda tienen su propia hora de revelación o se revelan manualmente: no se han movido. Revísalos en la página de puzzles de la ronda."
+      "invalid_time": "Esta hora no existe exactamente una vez en la zona horaria del evento (ese día cambia la hora); elige otra, por favor."
+      "time_passed": "Esa hora ya ha pasado: usa «Revelar ahora» para revelar el puzzle de inmediato."
+      "already_revealed": "Este puzzle ya está revelado; su revelación ya no se puede cambiar."
+    "puzzle_still_secret": "Una competición mantiene este puzzle en secreto hasta que se revele. Hasta entonces no se puede aprobar, fusionar ni editar."
   "tables":
     "tables": "Mesas"
     "manage_tables": "Gestionar mesas"

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\RoundTimezone;
+
 readonly final class AdminCompetitionRound
 {
     /**
@@ -17,6 +19,8 @@ readonly final class AdminCompetitionRound
         public string $category,
         // In UTC, like it is stored (`2026-10-06T08:00:00+00:00`)
         public string $startsAt,
+        // The zone its times are typed and shown in (IANA)
+        public string $timezone,
         public int $minutesLimit,
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
@@ -39,6 +43,9 @@ readonly final class AdminCompetitionRound
      *     badge_background_color: null|string,
      *     badge_text_color: null|string,
      *     results_link: null|string,
+     *     timezone: null|string,
+     *     location_country_code: null|string,
+     *     series_country_code: null|string,
      *     results_count: int,
      *     ...
      * } $row
@@ -53,6 +60,7 @@ readonly final class AdminCompetitionRound
             name: $row['name'],
             category: $row['category'],
             startsAt: AdminCompetition::isoDateTime($row['starts_at']) ?? $row['starts_at'],
+            timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code'], $row['series_country_code']),
             minutesLimit: $row['minutes_limit'],
             badgeBackgroundColor: $row['badge_background_color'],
             badgeTextColor: $row['badge_text_color'],
@@ -74,6 +82,7 @@ readonly final class AdminCompetitionRound
             'name' => $this->name,
             'category' => $this->category,
             'startsAt' => $this->startsAt,
+            'timezone' => $this->timezone,
             'minutesLimit' => $this->minutesLimit,
             'badgeBackgroundColor' => $this->badgeBackgroundColor,
             'badgeTextColor' => $this->badgeTextColor,

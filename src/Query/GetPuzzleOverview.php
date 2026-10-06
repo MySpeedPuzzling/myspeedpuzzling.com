@@ -11,6 +11,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\TagNotFound;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 readonly final class GetPuzzleOverview
 {
@@ -98,7 +99,7 @@ SQL;
             throw new PuzzleNotFound();
         }
 
-        return PuzzleOverview::fromDatabaseRow($row);
+        return PuzzleOverview::fromDatabaseRow($row, $this->clock->now());
     }
 
     /**
@@ -157,6 +158,8 @@ SQL;
 
         $result = [];
 
+        $now = $this->clock->now();
+
         foreach ($rows as $row) {
             /**
              * @var array{
@@ -184,7 +187,7 @@ SQL;
              *     hide_until: null|string,
              * } $row
              */
-            $result[$row['puzzle_id']] = PuzzleOverview::fromDatabaseRow($row);
+            $result[$row['puzzle_id']] = PuzzleOverview::fromDatabaseRow($row, $now);
         }
 
         return $result;
@@ -200,6 +203,12 @@ SQL;
             throw new TagNotFound();
         }
 
+        // The event's tag lists the puzzle - its rounds' reveal rules still apply (RoundPuzzleReveal), like on the
+        // event's round list: hidden entirely until the reveal, or without its picture
+        $roundHidden = RoundPuzzleReveal::sqlHidden('crp', 'cr');
+        $roundHidesPicture = "EXISTS (SELECT 1 FROM competition_round_puzzle crp INNER JOIN competition_round cr ON cr.id = crp.round_id WHERE crp.puzzle_id = puzzle.id AND {$roundHidden})";
+        $roundHidesPuzzle = "EXISTS (SELECT 1 FROM competition_round_puzzle crp INNER JOIN competition_round cr ON cr.id = crp.round_id WHERE crp.puzzle_id = puzzle.id AND {$roundHidden} AND COALESCE(crp.hide_mode, 'entirely') = 'entirely')";
+
         $query = <<<SQL
 WITH tagged_puzzles AS (
     SELECT puzzle_id
@@ -209,8 +218,8 @@ WITH tagged_puzzles AS (
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
+    CASE WHEN (puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp) OR {$roundHidesPicture} THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN (puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp) OR {$roundHidesPicture} THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle.hide_image_until,
     puzzle.alternative_names AS puzzle_alternative_names,
     puzzle.pieces_count,
@@ -232,6 +241,8 @@ FROM puzzle
 LEFT JOIN puzzle_statistics ON puzzle_statistics.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 INNER JOIN tagged_puzzles ON tagged_puzzles.puzzle_id = puzzle.id
+WHERE (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+    AND NOT {$roundHidesPuzzle}
 ORDER BY solved_times DESC
 SQL;
 
@@ -242,7 +253,9 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): PuzzleOverview {
+        $now = $this->clock->now();
+
+        return array_map(static function (array $row) use ($now): PuzzleOverview {
             /**
              * @var array{
              *     puzzle_id: string,
@@ -269,7 +282,7 @@ SQL;
              * } $row
              */
 
-            return PuzzleOverview::fromDatabaseRow($row);
+            return PuzzleOverview::fromDatabaseRow($row, $now);
         }, $data);
     }
 }

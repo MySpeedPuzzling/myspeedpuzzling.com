@@ -12,7 +12,14 @@ use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleEanAlreadyInCatalogue;
+use SpeedPuzzling\Web\Exceptions\NamePublicationNotConfirmed;
+use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
+use SpeedPuzzling\Web\Exceptions\RoundPuzzlesNotAttachable;
+use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
@@ -89,6 +96,16 @@ return App::config([
             CompetitionTagShared::class => ['log_level' => 'info'],
             PuzzleInTwoRoundsOfCategory::class => ['log_level' => 'info'],
             PuzzleEanAlreadyInCatalogue::class => ['log_level' => 'info'],
+            // A secret competition puzzle guarding itself - answered 409 with the reason, nothing applied: a change
+            // that would reveal it unconfirmed, a hidden puzzle attached unhidden, a placeholder hidden by hand, a
+            // personal record before the reveal (docs/features/competitions-management/README.md)
+            SecretPuzzlesWouldBeRevealed::class => ['log_level' => 'info'],
+            PuzzleIsStillSecret::class => ['log_level' => 'info'],
+            PuzzleHiddenByHand::class => ['log_level' => 'info'],
+            PuzzleNameAlreadyPublic::class => ['log_level' => 'info'],
+            NamePublicationNotConfirmed::class => ['log_level' => 'info'],
+            PuzzleNotRevealedYet::class => ['log_level' => 'info'],
+            RoundPuzzlesNotAttachable::class => ['log_level' => 'info'],
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],
         'trusted_proxies' => '%env(TRUSTED_PROXIES)%',

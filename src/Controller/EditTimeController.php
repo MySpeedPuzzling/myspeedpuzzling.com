@@ -9,6 +9,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
@@ -23,6 +24,8 @@ use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
+use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
@@ -56,6 +59,8 @@ final class EditTimeController extends AbstractController
         readonly private FirstTryFormCheck $firstTryFormCheck,
         readonly private FormPhotoStash $formPhotoStash,
         readonly private PuzzleChoicesBuilder $puzzleChoicesBuilder,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
+        readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
     ) {
     }
 
@@ -146,9 +151,14 @@ final class EditTimeController extends AbstractController
 
         if ($editTimeForm->isSubmitted() && is_string($pickedPuzzleId) && Uuid::isValid($pickedPuzzleId) && strtolower($pickedPuzzleId) !== $solvedPuzzle->puzzleId) {
             try {
+                // A puzzle a competition keeps secret: not found for anybody else (its name must not show on the
+                // re-rendered form), and nothing personal before its reveal for its organisers (SecretPuzzleAccess)
+                $this->secretPuzzleAccess->assertWritableByViewer($pickedPuzzleId);
                 $activePuzzle = $this->getPuzzleOverview->byId($pickedPuzzleId);
             } catch (PuzzleNotFound) {
                 $editTimeForm->get('puzzle')->addError(new FormError($this->translator->trans('edit_time_puzzle.choose_from_list')));
+            } catch (PuzzleNotRevealedYet $refusal) {
+                $editTimeForm->get('puzzle')->addError(new FormError($this->secretPuzzleRefusalMessage->notRevealedYet($refusal)));
             }
         }
 

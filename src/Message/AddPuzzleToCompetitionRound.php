@@ -23,7 +23,7 @@ readonly final class AddPuzzleToCompetitionRound
         public EanList $eans,
         public BrandCodeList $brandCodes,
         public bool $hideUntilRoundStarts,
-        public PuzzleHideMode $hideMode = PuzzleHideMode::ImageOnly,
+        public PuzzleHideMode $hideMode = PuzzleHideMode::Entirely,
     ) {
     }
 }

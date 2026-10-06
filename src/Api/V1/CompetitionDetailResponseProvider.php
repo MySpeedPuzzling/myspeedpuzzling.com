@@ -60,7 +60,7 @@ final readonly class CompetitionDetailResponseProvider implements ProviderInterf
 
         // Rounds (and their puzzles) come from GetEditionRounds, the single source of truth for
         // the puzzle-reveal rule: puzzles flagged hide-until-round-starts are omitted (Entirely)
-        // or stripped of their image (ImageOnly) until round.startsAt + 10 minutes. Participants
+        // or stripped of their image (ImageOnly) until their reveal moment (RoundPuzzleReveal). Participants
         // are never loaded here.
         $rounds = array_map(
             $this->mapRound(...),

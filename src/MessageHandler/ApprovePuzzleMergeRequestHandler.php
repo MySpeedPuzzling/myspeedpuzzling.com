@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
+use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\CollectionItem;
@@ -25,6 +27,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
@@ -55,6 +58,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private LoggerInterface $logger,
         private PuzzleMergeSnapshotBuilder $snapshotBuilder,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
+        private SecretPuzzleHides $secretPuzzleHides,
+        private IsPuzzleKeptSecret $isPuzzleKeptSecret,
     ) {
     }
 
@@ -65,6 +70,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
      * @throws ManufacturerNotFound
      * @throws PuzzleChangedMeanwhile
      * @throws InvalidPuzzleValues
+     * @throws PuzzleIsStillSecret
      */
     public function __invoke(ApprovePuzzleMergeRequest $message): void
     {
@@ -115,6 +121,12 @@ readonly final class ApprovePuzzleMergeRequestHandler
 
         foreach ([$survivorPuzzle, ...$puzzlesToMerge] as $puzzle) {
             PuzzleRecordVersion::assertUnchanged($puzzle, $recordVersions[$puzzle->id->toString()] ?? null);
+
+            // A secret competition puzzle is merged neither way until it is revealed: its names, codes and picture
+            // would land on a public puzzle, and its page would redirect to it
+            if ($this->isPuzzleKeptSecret->byId($puzzle->id->toString())) {
+                throw new PuzzleIsStillSecret($puzzle->id->toString());
+            }
         }
 
         // Snapshot everything the merge is about to rewrite or destroy, before it happens
@@ -197,6 +209,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
 
         // Migrate all puzzle-related records from merged puzzles to survivor
         $migrationInventory = $this->migrateRecordsToSurvivor($puzzlesToMerge, $survivorPuzzle);
+        // Round puzzles moved onto the survivor keep what they promised - the survivor's hide follows them
+        $this->secretPuzzleHides->resync($survivorPuzzle);
 
         // Mark merge request as approved (this records PuzzleMergeApproved event for puzzle deletion)
         $mergeRequest->approve(
@@ -453,7 +467,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
                     $this->entityManager->remove($roundPuzzle);
                     $inventory['competitionRoundPuzzles']['droppedAsDuplicate'][] = $roundPuzzle->id->toString();
                 } else {
-                    $roundPuzzle->puzzle = $survivorPuzzle;
+                    $roundPuzzle->moveToPuzzle($survivorPuzzle);
                     $inventory['competitionRoundPuzzles']['moved'][] = $roundPuzzle->id->toString();
                 }
             }

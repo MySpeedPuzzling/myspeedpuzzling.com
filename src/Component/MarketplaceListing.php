@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEligibleForMarketplace;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -125,6 +126,12 @@ final class MarketplaceListing
 
     private null|MarketplaceListingsCount $cachedCounts = null;
 
+    // visiblePuzzleId() asks the database - once per render (the component is created anew for every render; a
+    // re-render resets it in preReRender(), as the puzzle filter may have changed)
+    private bool $visiblePuzzleIdResolved = false;
+
+    private null|string $visiblePuzzleId = null;
+
     /** @var null|list<EventWithSellersGoing> */
     private null|array $cachedEventChoices = null;
 
@@ -151,6 +158,7 @@ final class MarketplaceListing
         readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
         readonly private GetEventsWithSellersGoing $getEventsWithSellersGoing,
         readonly private GetMarketplaceEvents $getMarketplaceEvents,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -184,6 +192,8 @@ final class MarketplaceListing
         $this->normalizePieces();
         $this->cachedItems = null;
         $this->cachedCounts = null;
+        $this->visiblePuzzleIdResolved = false;
+        $this->visiblePuzzleId = null;
         $this->chosenEventResolved = false;
         $this->chosenEvent = null;
         $this->filteredPuzzleOverviewLoaded = false;
@@ -221,7 +231,7 @@ final class MarketplaceListing
             shipsToCountry: $this->getShipsToCountry(),
             sellerCountry: $this->getSellerCountry(),
             sellerId: $this->getMyOffersSellerId(),
-            puzzleId: $this->puzzleId !== '' && Uuid::isValid($this->puzzleId) ? $this->puzzleId : null,
+            puzzleId: $this->visiblePuzzleId(),
             sort: $this->sort,
             limit: $this->page * self::PER_PAGE,
             offset: 0,
@@ -260,7 +270,7 @@ final class MarketplaceListing
             shipsToCountry: $this->getShipsToCountry(),
             sellerCountry: $this->getSellerCountry(),
             sellerId: $this->getMyOffersSellerId(),
-            puzzleId: $this->puzzleId !== '' && Uuid::isValid($this->puzzleId) ? $this->puzzleId : null,
+            puzzleId: $this->visiblePuzzleId(),
             difficultyTiers: $this->getDifficultyFilter(),
             event: $this->getChosenEvent()?->competitionId,
             onlyBringing: $this->onlyBringing,
@@ -439,9 +449,29 @@ final class MarketplaceListing
         return $this->filteredPuzzleOverview;
     }
 
+    /**
+     * The puzzle filter - a writable prop, so a secret competition puzzle's id is no filter for anybody but its
+     * organisers (SecretPuzzleAccess): neither its name nor its listings come out before the reveal.
+     */
+    private function visiblePuzzleId(): null|string
+    {
+        if ($this->visiblePuzzleIdResolved) {
+            return $this->visiblePuzzleId;
+        }
+
+        $this->visiblePuzzleIdResolved = true;
+        $this->visiblePuzzleId = $this->puzzleId !== ''
+            && Uuid::isValid($this->puzzleId)
+            && $this->secretPuzzleAccess->isHiddenFromViewer($this->puzzleId) === false
+                ? $this->puzzleId
+                : null;
+
+        return $this->visiblePuzzleId;
+    }
+
     private function loadFilteredPuzzleOverview(): null|PuzzleOverview
     {
-        if ($this->puzzleId === '' || !Uuid::isValid($this->puzzleId)) {
+        if ($this->visiblePuzzleId() === null) {
             return null;
         }
 

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzleToWishList;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -22,17 +24,21 @@ readonly final class AddPuzzleToWishListHandler
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private WishListItemRepository $wishListItemRepository,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
     /**
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      */
     public function __invoke(AddPuzzleToWishList $message): void
     {
         $player = $this->playerRepository->get($message->playerId);
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $message->playerId);
 
         $existingItem = $this->wishListItemRepository->findByPlayerAndPuzzle($player, $puzzle);
 

@@ -41,6 +41,7 @@ readonly final class AddCompetitionRoundHandler
                 $this->getCompetitionRounds->slugsOfCompetition($message->competitionId),
             ),
             resultsLink: $message->resultsLink,
+            timezone: $message->timezone,
         );
 
         $this->competitionRoundRepository->save($round);

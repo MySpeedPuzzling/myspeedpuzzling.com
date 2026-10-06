@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
+use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
@@ -25,6 +28,8 @@ final class StopwatchController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetStopwatchMilestones $getStopwatchMilestones,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
+        readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
     ) {
     }
 
@@ -52,6 +57,11 @@ final class StopwatchController extends AbstractController
     )]
     public function __invoke(#[CurrentUser] UserInterface $user, null|string $stopwatchId = null, null|string $puzzleId = null): Response
     {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        if ($puzzleId !== null) {
+            $this->secretPuzzleAccess->assertVisible($puzzleId);
+        }
+
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($player === null) {
@@ -67,18 +77,37 @@ final class StopwatchController extends AbstractController
             try {
                 $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
                 $puzzleId = $activeStopwatch->puzzleId;
+
+                // A stopwatch on a puzzle a competition keeps secret from this player shows no puzzle
+                if ($puzzleId !== null && $this->secretPuzzleAccess->isHiddenFromViewer($puzzleId)) {
+                    $puzzleId = null;
+                }
             } catch (StopwatchNotFound) {
                 return $this->redirectToRoute('stopwatch');
             }
         }
 
+        $secretPuzzleNotice = null;
+
         if ($puzzleId !== null) {
+            // Its organisers may time a secret puzzle, but save the time only after the reveal - told before they start
+            try {
+                $this->secretPuzzleAccess->assertWritableByViewer($puzzleId);
+            } catch (PuzzleNotRevealedYet $refusal) {
+                $secretPuzzleNotice = $this->secretPuzzleRefusalMessage->timesAfterReveal($refusal);
+            }
+
             $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
             $milestones = $this->getStopwatchMilestones->forPuzzleAndPlayer($puzzleId, $player->playerId);
             $soloTimes = $this->getStopwatchMilestones->allSoloTimesForPuzzle($puzzleId);
         }
 
         $stopwatches = $this->getStopwatch->allForPlayer($player->playerId);
+
+        // The list names each stopwatch's puzzle - never one a competition keeps secret from this player (one query)
+        $hiddenPuzzleIds = $this->secretPuzzleAccess->hiddenFromViewerAmong(array_values(array_filter(
+            array_map(static fn ($stopwatch): null|string => $stopwatch->puzzleId, $stopwatches),
+        )));
 
         // If user has any running stopwatch, redirect to them
         foreach ($stopwatches as $stopwatch) {
@@ -95,6 +124,8 @@ final class StopwatchController extends AbstractController
             'active_puzzle' => $activePuzzle,
             'milestones' => $milestones,
             'solo_times' => $soloTimes,
+            'secret_puzzle_notice' => $secretPuzzleNotice,
+            'hidden_puzzle_ids' => $hiddenPuzzleIds,
         ]);
     }
 }

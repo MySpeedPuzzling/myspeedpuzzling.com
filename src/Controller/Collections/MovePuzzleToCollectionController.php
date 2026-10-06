@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,6 +40,7 @@ final class MovePuzzleToCollectionController extends AbstractController
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private CollectionItemRepository $collectionItemRepository,
         readonly private GetCollectionItems $getCollectionItems,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -59,6 +61,10 @@ final class MovePuzzleToCollectionController extends AbstractController
         Request $request,
         string $puzzleId,
     ): Response {
+        // A secret competition puzzle: 404 for whoever may not see it, "not before the reveal" for its organisers
+        // (SecretPuzzleAccess) - the modal prints its name, and a move without a source item adds one
+        $this->secretPuzzleAccess->assertWritableByViewer($puzzleId);
+
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 

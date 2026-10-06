@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\MultiscanBatchRejected;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzlesToCollection;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
@@ -25,6 +27,7 @@ readonly final class AddPuzzlesToCollectionHandler
         private PuzzleRepository $puzzleRepository,
         private CollectionRepository $collectionRepository,
         private AddPuzzleToCollectionHandler $addPuzzleToCollection,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -32,10 +35,16 @@ readonly final class AddPuzzlesToCollectionHandler
      * @throws MultiscanBatchRejected
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      * @throws CollectionNotFound
      */
     public function __invoke(AddPuzzlesToCollection $message): void
     {
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        foreach ($message->puzzleIds as $puzzleId) {
+            $this->secretPuzzleAccess->assertWritableBy($puzzleId, $message->playerId);
+        }
+
         $player = $this->playerRepository->get($message->playerId);
 
         if ($message->collectionId !== null) {

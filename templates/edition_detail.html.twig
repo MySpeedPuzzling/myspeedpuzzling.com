@@ -172,7 +172,7 @@
                 </h2>
 
                 <div class="text-muted small mb-3">
-                    <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i') }}
+                    <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i', round.timezone) }} <span class="text-muted" data-round-zone>({{ timezone_name(round.timezone) }})</span>
                     <span class="mx-1">&middot;</span>
                     <i class="bi bi-stopwatch me-1"></i>{{ round.minutesLimit }} min
                     {% if round.slug is not null and series.slug is not null and event.slug is not null %}

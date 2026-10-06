@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
@@ -45,6 +46,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetRelatedPuzzles $getRelatedPuzzles,
         readonly private GetPuzzleSummary $getPuzzleSummary,
         readonly private CatalogueStatsProvider $catalogueStatsProvider,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -61,6 +63,9 @@ final class PuzzleDetailController extends AbstractController
     )]
     public function __invoke(string $puzzleId, #[CurrentUser] null|UserInterface $user, Request $request): Response
     {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId);
+
         try {
             $puzzle = $this->getPuzzleOverview->byId($puzzleId);
         } catch (PuzzleNotFound $exception) {

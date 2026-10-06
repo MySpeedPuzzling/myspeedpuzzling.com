@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\CannotLendToSelf;
 use SpeedPuzzling\Web\Exceptions\MultiscanBatchRejected;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\BorrowPuzzleFromPlayer;
 use SpeedPuzzling\Web\Message\BorrowPuzzlesFromPlayer;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -23,6 +25,7 @@ readonly final class BorrowPuzzlesFromPlayerHandler
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private BorrowPuzzleFromPlayerHandler $borrowPuzzleFromPlayer,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -31,9 +34,15 @@ readonly final class BorrowPuzzlesFromPlayerHandler
      * @throws CannotLendToSelf
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      */
     public function __invoke(BorrowPuzzlesFromPlayer $message): void
     {
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        foreach ($message->puzzleIds as $puzzleId) {
+            $this->secretPuzzleAccess->assertWritableBy($puzzleId, $message->borrowerPlayerId);
+        }
+
         if ($message->ownerPlayerId === null && ($message->ownerName === null || trim($message->ownerName) === '')) {
             throw new MultiscanBatchRejected(null, 'missing_person');
         }

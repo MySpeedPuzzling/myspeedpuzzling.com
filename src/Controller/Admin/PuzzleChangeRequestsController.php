@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
+use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,17 +32,19 @@ final class PuzzleChangeRequestsController extends AbstractController
         Request $request,
     ): Response {
         $tab = $request->query->getString('tab', 'pending');
+        // Admins also see requests for secret competition puzzles - moderators never do (PuzzleSecrecy)
+        $isAdmin = $this->isGranted(AdminAccessVoter::ADMIN_ACCESS);
 
         $requests = match ($tab) {
-            'approved' => $this->getPuzzleChangeRequests->allApproved(),
-            'rejected' => $this->getPuzzleChangeRequests->allRejected(),
-            default => $this->getPuzzleChangeRequests->allPending(),
+            'approved' => $this->getPuzzleChangeRequests->allApproved($isAdmin),
+            'rejected' => $this->getPuzzleChangeRequests->allRejected($isAdmin),
+            default => $this->getPuzzleChangeRequests->allPending($isAdmin),
         };
 
         return $this->render('admin/puzzle_change_requests.html.twig', [
             'requests' => $requests,
             'active_tab' => $tab,
-            'counts' => $this->getPuzzleChangeRequests->countByStatus(),
+            'counts' => $this->getPuzzleChangeRequests->countByStatus($isAdmin),
         ]);
     }
 }

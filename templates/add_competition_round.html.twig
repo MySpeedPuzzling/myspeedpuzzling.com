@@ -26,13 +26,11 @@
                             {{ form_row(form.category) }}
                             {{ form_row(form.minutesLimit) }}
 
-                            {% set isSingleDay = competition.dateFrom is not null and competition.dateTo is not null and competition.dateFrom|date('Y-m-d') == competition.dateTo|date('Y-m-d') %}
-
-                            {% if isSingleDay %}
+                            {% if single_day is not null %}
                                 <div class="mb-3">
                                     <label class="form-label">{{ 'competition.round.form.date'|trans }}</label>
                                     <div class="form-control-plaintext fw-medium">
-                                        <i class="ci-calendar me-1"></i>{{ competition.dateFrom|date('d.m.Y') }}
+                                        <i class="ci-calendar me-1"></i>{{ single_day|date('d.m.Y', false) }}
                                     </div>
                                 </div>
                                 <div class="row mb-3">

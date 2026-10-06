@@ -29,7 +29,8 @@ final class PuzzleRecordVersionTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
 
-        // Names in several languages, a tag outside the list, an image under embargo (hidden from the review's image)
+        // Names in several languages, a tag outside the list (a secret puzzle - hide_image_until ahead - is out of every
+        // review until its reveal: SecretPuzzleAccessTest)
         $this->changePuzzle(PuzzleFixture::PUZZLE_500_01, static function (Puzzle $puzzle): void {
             $puzzle->changeNames('Kruh barev: Mušle', 'cs', new PuzzleNames([
                 new PuzzleName('Seashells', 'en'),
@@ -37,7 +38,6 @@ final class PuzzleRecordVersionTest extends KernelTestCase
                 new PuzzleName('Conchas', 'pt-BR'),
                 new PuzzleName('Untagged', null),
             ]), new DateTimeImmutable());
-            $puzzle->hideImageUntil = new DateTimeImmutable('+1 year');
         });
 
         $puzzle = $container->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01);
@@ -55,7 +55,6 @@ final class PuzzleRecordVersionTest extends KernelTestCase
         $changeRequest = $container->get(GetPuzzleChangeRequests::class)->byId(PuzzleReportFixture::CHANGE_REQUEST_PENDING);
         self::assertNotNull($changeRequest);
         self::assertSame('cs', $changeRequest->puzzleNameLanguage);
-        self::assertNull($changeRequest->puzzleImage, 'The embargoed image stays hidden on the review');
         self::assertSame($version, $changeRequest->puzzleRecordVersion);
 
         PuzzleRecordVersion::assertUnchanged($puzzle, $version);

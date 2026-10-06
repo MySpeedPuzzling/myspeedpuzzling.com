@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\MultiscanBatchRejected;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzlesToWishList;
 use SpeedPuzzling\Web\Message\AddPuzzleToWishList;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -22,6 +24,7 @@ readonly final class AddPuzzlesToWishListHandler
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private AddPuzzleToWishListHandler $addPuzzleToWishList,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -29,9 +32,15 @@ readonly final class AddPuzzlesToWishListHandler
      * @throws MultiscanBatchRejected
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      */
     public function __invoke(AddPuzzlesToWishList $message): void
     {
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        foreach ($message->puzzleIds as $puzzleId) {
+            $this->secretPuzzleAccess->assertWritableBy($puzzleId, $message->playerId);
+        }
+
         $this->playerRepository->get($message->playerId);
 
         foreach ($message->puzzleIds as $puzzleId) {

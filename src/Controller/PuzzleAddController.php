@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
+use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -11,6 +13,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
@@ -79,6 +82,8 @@ final class PuzzleAddController extends AbstractController
         readonly private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         readonly private MistypedYearNormalizer $mistypedYearNormalizer,
         readonly private ClockInterface $clock,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
+        readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
     ) {
     }
 
@@ -110,6 +115,11 @@ final class PuzzleAddController extends AbstractController
         null|string $puzzleId = null,
         null|string $stopwatchId = null,
     ): Response {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        if ($puzzleId !== null) {
+            $this->secretPuzzleAccess->assertVisible($puzzleId);
+        }
+
         $userProfile = $this->retrieveLoggedUserProfile->getProfile();
         assert($userProfile !== null);
 
@@ -146,7 +156,8 @@ final class PuzzleAddController extends AbstractController
                 return $this->redirectToRoute('my_profile');
             }
 
-            if ($activeStopwatch->puzzleId !== null) {
+            // A stopwatch on a puzzle a competition keeps secret from this player saves without that puzzle
+            if ($activeStopwatch->puzzleId !== null && $this->secretPuzzleAccess->isHiddenFromViewer($activeStopwatch->puzzleId) === false) {
                 $activePuzzle = $this->getPuzzleOverview->byId($activeStopwatch->puzzleId);
             }
         }
@@ -277,6 +288,24 @@ final class PuzzleAddController extends AbstractController
                 && (trim($data->puzzle) !== $savedWithFormId->puzzle->name || $data->puzzlePiecesCount !== $savedWithFormId->puzzle->piecesCount)
             ) {
                 $newPuzzleId = Uuid::uuid7();
+            }
+        }
+
+        // A secret competition puzzle takes nothing personal before its reveal - not even from its organisers, who see
+        // it: told up front, and a submit is refused on the form with everything typed and its photos kept
+        // (SecretPuzzleAccess; whoever may not see it got a 404 above, or gets one from the handler)
+        $secretPuzzleNotice = null;
+        $chosenPuzzleId = is_string($data->puzzle) && Uuid::isValid($data->puzzle) ? $data->puzzle : $activePuzzle?->puzzleId;
+
+        if ($chosenPuzzleId !== null) {
+            try {
+                $this->secretPuzzleAccess->assertWritableByViewer($chosenPuzzleId);
+            } catch (PuzzleNotRevealedYet $refusal) {
+                $secretPuzzleNotice = $this->secretPuzzleRefusalMessage->timesAfterReveal($refusal);
+
+                if ($addTimeForm->isSubmitted()) {
+                    $addTimeForm->get('puzzle')->addError(new FormError($this->secretPuzzleRefusalMessage->notRevealedYet($refusal)));
+                }
             }
         }
 
@@ -430,6 +459,7 @@ final class PuzzleAddController extends AbstractController
             'duplicates' => $check->duplicates,
             'duplicate_confirmed' => $duplicateConfirmed,
             'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId),
+            'secret_puzzle_notice' => $secretPuzzleNotice,
             'time_id' => $timeId->toString(),
             'new_puzzle_id' => $newPuzzleId->toString(),
         ]);

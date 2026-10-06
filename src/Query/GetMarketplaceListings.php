@@ -447,7 +447,7 @@ SQL;
         if ($textSearch->isEmpty() === false) {
             $conditions .= '
     AND ' . $textSearch->condition('p');
-            $params = [...$params, ...$textSearch->parameters()];
+            $params = [...$params, ...$textSearch->parameters($this->clock->now())];
         }
 
         if ($manufacturerId !== null && $manufacturerId !== '') {

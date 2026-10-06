@@ -6,7 +6,11 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 use Ramsey\Uuid\Uuid;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
+use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\FormType\RoundPuzzleFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
@@ -34,6 +38,8 @@ final class AddPuzzleToRoundController extends AbstractController
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly TranslatorInterface $translator,
+        private readonly ClockInterface $clock,
+        private readonly SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -67,6 +73,11 @@ final class AddPuzzleToRoundController extends AbstractController
             assert($data->puzzle !== null);
             assert($data->brand !== null);
 
+            // Another organiser's secret puzzle is not theirs to use (the picker never offers it)
+            if (Uuid::isValid($data->puzzle)) {
+                $this->secretPuzzleAccess->assertVisible($data->puzzle, alsoWhileImageHidden: true);
+            }
+
             try {
                 $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
                     roundPuzzleId: Uuid::uuid7(),
@@ -81,12 +92,29 @@ final class AddPuzzleToRoundController extends AbstractController
                     hideUntilRoundStarts: $data->hideUntilRoundStarts,
                     hideMode: $data->hideMode,
                 ));
+            } catch (PuzzleHiddenByHand | PuzzleNameAlreadyPublic $refusal) {
+                // The handler cleared the entity manager (SecretPuzzleHides::lock()) - read the round again
+                $round = $this->competitionRoundRepository->get($roundId);
+                // A placeholder hidden by MySpeedPuzzling itself is no round's to hide or reveal; a name already out
+                // stays out
+                $form->get($refusal instanceof PuzzleNameAlreadyPublic ? 'hideMode' : 'puzzle')->addError(new FormError($this->translator->trans(
+                    $refusal instanceof PuzzleNameAlreadyPublic ? 'competition.reveal.flash.name_already_public' : 'competition.reveal.flash.puzzle_hidden_by_hand',
+                )));
+
+                return $this->render('add_puzzle_to_round.html.twig', [
+                    'form' => $form,
+                    'competition' => $competition,
+                    'round' => $round,
+                    'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
+                ]);
             } catch (HandlerFailedException $e) {
                 $nested = $e->getPrevious() ?? $e;
 
                 if (!$nested instanceof PuzzleAlreadyInCompetitionRoundCategory) {
                     throw $e;
                 }
+
+                $round = $this->competitionRoundRepository->get($roundId);
 
                 // A form error makes the form invalid, so render() answers 422 - Turbo Drive drops a 200
                 $form->get('puzzle')->addError(new FormError($this->translator->trans(
@@ -98,6 +126,7 @@ final class AddPuzzleToRoundController extends AbstractController
                     'form' => $form,
                     'competition' => $competition,
                     'round' => $round,
+                    'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
                 ]);
             }
 
@@ -110,6 +139,8 @@ final class AddPuzzleToRoundController extends AbstractController
             'form' => $form,
             'competition' => $competition,
             'round' => $round,
+            // The round already started: a secret puzzle added now is revealed at once - the form says so
+            'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
         ]);
     }
 }

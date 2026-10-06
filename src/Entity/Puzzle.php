@@ -165,6 +165,37 @@ class Puzzle
         $this->searchCodes = PuzzleSearchKeys::codes($this->ean, $this->identificationNumber);
     }
 
+    /**
+     * A puzzle a competition keeps secret stays hidden on the whole site until its rounds reveal it - SecretPuzzleHides
+     * keeps these dates equal to the latest reveal of those rounds. $hiddenUntil hides the puzzle itself (null = its
+     * name may be public, "image only"), $imageHiddenUntil its picture and codes (the picture date also keeps the
+     * detail page out of search engines).
+     */
+    public function keepSecretUntil(null|DateTimeImmutable $hiddenUntil, DateTimeImmutable $imageHiddenUntil): void
+    {
+        $this->hideUntil = $hiddenUntil;
+        $this->hideImageUntil = $imageHiddenUntil;
+    }
+
+    /**
+     * The image object moved to another name (a secret puzzle's guessable name replaced by a random one) - the picture
+     * itself is the same.
+     */
+    public function moveImageTo(string $newPath): void
+    {
+        $this->image = $newPath;
+    }
+
+    public function isHiddenAt(DateTimeImmutable $now): bool
+    {
+        return $this->hideUntil !== null && $this->hideUntil > $now;
+    }
+
+    public function isImageHiddenAt(DateTimeImmutable $now): bool
+    {
+        return ($this->hideImageUntil !== null && $this->hideImageUntil > $now) || $this->isHiddenAt($now);
+    }
+
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void
     {
         $this->approved = true;

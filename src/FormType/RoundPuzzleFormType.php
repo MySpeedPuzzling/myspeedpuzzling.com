@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Component\Form\AbstractType;
@@ -27,6 +28,7 @@ final class RoundPuzzleFormType extends AbstractType
 {
     public function __construct(
         private readonly BrandChoicesBuilder $brandChoicesBuilder,
+        private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly TranslatorInterface $translator,
         private readonly UrlGeneratorInterface $urlGenerator,
     ) {
@@ -37,10 +39,14 @@ final class RoundPuzzleFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $brandChoices = $this->brandChoicesBuilder->build();
-
         /** @var string $competitionId */
         $competitionId = $options['competition_id'];
+
+        // Only the organisers reach this form - they also see the brands of their own secret puzzles
+        $brandChoices = $this->brandChoicesBuilder->build(
+            $competitionId,
+            $this->retrieveLoggedUserProfile->getProfile()?->playerId,
+        );
 
         $builder->add('brand', TextType::class, [
             'label' => 'forms.brand',

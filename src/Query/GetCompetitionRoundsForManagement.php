@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CompetitionRoundForManagement;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class GetCompetitionRoundsForManagement
 {
@@ -30,11 +31,16 @@ SELECT
     cr.badge_background_color,
     cr.badge_text_color,
     cr.category,
+    cr.timezone,
+    c.location_country_code,
+    tz_cs.location_country_code AS series_country_code,
     COUNT(crp.id) AS puzzle_count
 FROM competition_round cr
+INNER JOIN competition c ON c.id = cr.competition_id
+LEFT JOIN competition_series tz_cs ON tz_cs.id = c.series_id
 LEFT JOIN competition_round_puzzle crp ON crp.round_id = cr.id
 WHERE cr.competition_id = :competitionId
-GROUP BY cr.id, cr.name, cr.minutes_limit, cr.starts_at, cr.badge_background_color, cr.badge_text_color, cr.category
+GROUP BY cr.id, c.id, tz_cs.id
 ORDER BY cr.starts_at
 SQL;
 
@@ -54,6 +60,9 @@ SQL;
              *     badge_background_color: null|string,
              *     badge_text_color: null|string,
              *     category: string,
+             *     timezone: null|string,
+             *     location_country_code: null|string,
+             *     series_country_code: null|string,
              *     puzzle_count: int|string,
              * } $row
              */
@@ -67,6 +76,7 @@ SQL;
                 badgeTextColor: $row['badge_text_color'],
                 puzzleCount: (int) $row['puzzle_count'],
                 category: RoundCategory::from($row['category']),
+                timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code'], $row['series_country_code']),
             );
         }, $data);
     }

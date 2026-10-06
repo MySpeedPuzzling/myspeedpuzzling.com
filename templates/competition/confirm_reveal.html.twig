@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'competition.reveal.confirm.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block content %}
+    {# Asked before a removal or a round deletion that lets secret puzzles out at once - the yes counts only for
+       exactly this list (SecretRevealPreview::hash()) #}
+    <div class="pb-4 col-lg-8 px-0">
+        <h1 class="h3">{{ 'competition.reveal.confirm.title'|trans }}</h1>
+        <p class="text-muted">{{ round.name }}</p>
+
+        <div class="alert alert-warning" data-confirm-reveal>
+            <p class="mb-2">{{ intro|trans }}</p>
+            <ul class="mb-0">
+                {% for item in revealed %}
+                    <li>
+                        <strong>{{ item.name }}</strong>
+                        {% if not item.everywhere %}
+                            <span class="text-muted">– {{ 'competition.reveal.confirm.only_this_event'|trans({'%time%': zoned_datetime(item.hiddenElsewhereUntil, timezone)}) }}</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <form method="post" action="{{ action }}">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <input type="hidden" name="confirm_reveal_hash" value="{{ hash }}">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="confirm_reveal" value="1" id="confirm-reveal" required>
+                <label class="form-check-label" for="confirm-reveal">{{ 'competition.reveal.confirm.checkbox'|trans }}</label>
+            </div>
+            <button type="submit" class="btn btn-danger">{{ submit|trans }}</button>
+            <a href="{{ cancel_url }}" class="btn btn-outline-secondary ms-2">{{ 'competition.reveal.confirm.cancel'|trans }}</a>
+        </form>
+    </div>
+{% endblock %}

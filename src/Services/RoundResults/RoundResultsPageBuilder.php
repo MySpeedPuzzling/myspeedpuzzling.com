@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
+use SpeedPuzzling\Web\Query\GetRoundPuzzlesHeldElsewhere;
 use SpeedPuzzling\Web\Query\GetRoundResults;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
@@ -15,6 +16,8 @@ use SpeedPuzzling\Web\Results\EditionRoundPuzzle;
 use SpeedPuzzling\Web\Results\RoundResultsPage;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
+use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use SpeedPuzzling\Web\Value\EventTitle;
 
 /**
@@ -31,6 +34,9 @@ readonly final class RoundResultsPageBuilder
         private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private ClockInterface $clock,
         private ResolveDifficultyTiers $resolveDifficultyTiers,
+        private SecretPuzzleAccess $secretPuzzleAccess,
+        private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
+        private GetRoundPuzzlesHeldElsewhere $getRoundPuzzlesHeldElsewhere,
     ) {
     }
 
@@ -69,6 +75,18 @@ readonly final class RoundResultsPageBuilder
         $now = $this->clock->now();
         $hasStarted = $round->startsAt <= $now;
 
+        // A puzzle this round revealed may still be secret on the whole site (another round keeps it hidden longer):
+        // the page leaves it out (GetEditionRounds) and nobody can log a time on it yet - say when it opens
+        $stillSecret = [];
+
+        foreach ($this->getRoundPuzzlesHeldElsewhere->forRound($round->id) as $puzzleId) {
+            $pending = $this->secretPuzzleAccess->pendingReveal($puzzleId);
+
+            if ($pending !== null) {
+                $stillSecret[] = $this->secretPuzzleRefusalMessage->heldElsewhere($pending);
+            }
+        }
+
         return new RoundResultsPage(
             event: $event,
             eventTitle: EventTitle::forCompetition($event, $seriesName, $allRounds, $now),
@@ -83,6 +101,7 @@ readonly final class RoundResultsPageBuilder
                 ? $round->resultsLink . (str_contains($round->resultsLink, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'
                 : $event->resultsLink,
             // Only puzzles whose picture is out - a puzzle still under wraps until the round starts shows no tier
+            stillSecret: $stillSecret,
             difficultyTiers: $this->resolveDifficultyTiers->forViewer($viewer, array_map(
                 static fn (EditionRoundPuzzle $puzzle): string => $puzzle->puzzleId,
                 array_filter($round->puzzles, static fn (EditionRoundPuzzle $puzzle): bool => $puzzle->puzzleImage !== null),

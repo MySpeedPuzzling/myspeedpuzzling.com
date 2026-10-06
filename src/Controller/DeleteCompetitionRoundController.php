@@ -7,7 +7,11 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
+use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -21,6 +25,7 @@ final class DeleteCompetitionRoundController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly TranslatorInterface $translator,
+        private readonly SecretRevealPreview $secretRevealPreview,
     ) {
     }
 
@@ -36,16 +41,58 @@ final class DeleteCompetitionRoundController extends AbstractController
         name: 'delete_competition_round',
         methods: ['POST'],
     )]
-    public function __invoke(string $roundId): Response
+    public function __invoke(Request $request, string $roundId): Response
     {
         $round = $this->competitionRoundRepository->get($roundId);
         $competitionId = $round->competition->id->toString();
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
-        $this->messageBus->dispatch(new DeleteCompetitionRound(roundId: $roundId));
+        // Deleting the round may let its secret puzzles out at once (other rounds reveal them already) - only on an
+        // explicit yes for exactly the puzzles shown
+        $revealed = $this->secretRevealPreview->byRemoving(array_values($round->roundPuzzles->toArray()));
+        $confirmed = $request->request->get('confirm_reveal') === '1'
+            && $request->request->get('confirm_reveal_hash') === SecretRevealPreview::hash($revealed);
 
-        $this->addFlash('success', $this->translator->trans('competition.flash.round_deleted'));
+        if ($revealed !== [] && $confirmed === false) {
+            return $this->askFirst($request, $round, $revealed);
+        }
+
+        try {
+            $this->messageBus->dispatch(new DeleteCompetitionRound(
+                roundId: $roundId,
+                // Re-checked after the handler's locks - another change in between asks again
+                confirmedRevealHash: SecretRevealPreview::hash($revealed),
+            ));
+        } catch (SecretPuzzlesWouldBeRevealed $changed) {
+            return $this->askFirst($request, $this->competitionRoundRepository->get($roundId), $changed->puzzles);
+        }
+
+        if ($revealed !== []) {
+            $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.round_deleted_revealed', [
+                '%puzzles%' => implode(', ', array_column($revealed, 'name')),
+            ]));
+        } else {
+            $this->addFlash('success', $this->translator->trans('competition.flash.round_deleted'));
+        }
 
         return $this->redirectToRoute('manage_competition_rounds', ['competitionId' => $competitionId]);
+    }
+
+    /**
+     * @param list<array{id: string, name: string, everywhere: bool, hiddenElsewhereUntil: null|\DateTimeImmutable}> $revealed
+     */
+    private function askFirst(Request $request, CompetitionRound $round, array $revealed): Response
+    {
+        return $this->render('competition/confirm_reveal.html.twig', [
+            'round' => $round,
+            'revealed' => $revealed,
+            'intro' => 'competition.reveal.confirm.delete_round_intro',
+            'submit' => 'competition.reveal.confirm.submit_delete',
+            'action' => $this->generateUrl('delete_competition_round', ['roundId' => $round->id->toString()]),
+            'token' => (string) $request->request->get('_token'),
+            'hash' => SecretRevealPreview::hash($revealed),
+            'cancel_url' => $this->generateUrl('manage_competition_rounds', ['competitionId' => $round->competition->id->toString()]),
+            'timezone' => $round->displayTimezone(),
+        ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 }

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Exceptions\MarketplaceBanned;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzleToSellSwapList;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -25,12 +27,14 @@ readonly final class AddPuzzleToSellSwapListHandler
         private PuzzleRepository $puzzleRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private ListingEventLinks $listingEventLinks,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
     /**
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws PuzzleNotRevealedYet
      * @throws MarketplaceBanned
      */
     public function __invoke(AddPuzzleToSellSwapList $message): void
@@ -42,6 +46,9 @@ readonly final class AddPuzzleToSellSwapListHandler
         }
 
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
+
+        // A secret competition puzzle takes nothing personal before its reveal - from anybody (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $message->playerId);
 
         $existingItem = $this->sellSwapListItemRepository->findByPlayerAndPuzzle($player, $puzzle);
 

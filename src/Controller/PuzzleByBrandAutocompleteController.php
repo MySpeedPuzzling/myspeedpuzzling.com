@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +20,7 @@ final class PuzzleByBrandAutocompleteController extends AbstractController
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,
         readonly private PuzzleChoicesBuilder $puzzleChoicesBuilder,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -42,9 +44,14 @@ final class PuzzleByBrandAutocompleteController extends AbstractController
             ? $competitionId
             : null;
 
+        // ... and their own secret puzzles, also one removed from its round
+        $secretPuzzlesAddedBy = $secretPuzzlesOfCompetition !== null
+            ? $this->retrieveLoggedUserProfile->getProfile()?->playerId
+            : null;
+
         return new JsonResponse([
             'results' => $this->puzzleChoicesBuilder->build(
-                $this->searchPuzzle->byBrandId($brandSearch, $secretPuzzlesOfCompetition),
+                $this->searchPuzzle->byBrandId($brandSearch, $secretPuzzlesOfCompetition, $secretPuzzlesAddedBy),
                 $request->getLocale(),
             ),
         ]);

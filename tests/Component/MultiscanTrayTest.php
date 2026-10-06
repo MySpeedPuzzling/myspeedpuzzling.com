@@ -367,6 +367,12 @@ final class MultiscanTrayTest extends WebTestCase
         $client = self::createClient();
         $tray = $this->tray($client);
 
+        // The first attempt went through: the member created it under that id
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle SET added_by_user_id = :playerId WHERE id = :puzzleId',
+            ['playerId' => PlayerFixture::PLAYER_WITH_STRIPE, 'puzzleId' => PuzzleFixture::PUZZLE_9000],
+        );
+
         // The sheet comes back (after a reload) with the id the first attempt created the puzzle under
         $tray->call('restore', ['state' => (string) json_encode([
             'rows' => [['ean' => PuzzleFixture::EAN_UNKNOWN, 'puzzleId' => null]],
@@ -385,6 +391,31 @@ final class MultiscanTrayTest extends WebTestCase
         self::assertSame('resolved', self::rows($tray)[0]['state']);
         self::assertSame(PuzzleFixture::PUZZLE_9000, self::rows($tray)[0]['puzzleId']);
         self::assertSame(0, $this->puzzlesNamed('Scanned box'), 'no second puzzle');
+    }
+
+    public function testARestoredSheetNeverTakesOverSomebodyElsesPuzzle(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        // The id comes from the browser: one of another player's puzzles (a secret one would show in the tray)
+        $tray->call('restore', ['state' => (string) json_encode([
+            'rows' => [['ean' => PuzzleFixture::EAN_UNKNOWN, 'puzzleId' => null]],
+            'sheet' => [
+                'ean' => PuzzleFixture::EAN_UNKNOWN,
+                'quickAddOpen' => true,
+                'quickAddId' => PuzzleFixture::PUZZLE_9000,
+                'name' => 'Scanned box',
+                'pieces' => '1000',
+            ],
+        ])]);
+        self::assertNotSame(PuzzleFixture::PUZZLE_9000, self::component($tray)->quickAddId);
+
+        $tray->call('createPuzzle', files: ['photo' => self::boxPhoto()]);
+
+        self::assertSame('resolved', self::rows($tray)[0]['state']);
+        self::assertNotSame(PuzzleFixture::PUZZLE_9000, self::rows($tray)[0]['puzzleId']);
+        self::assertSame(1, $this->puzzlesNamed('Scanned box'), 'a puzzle of its own');
     }
 
     public function testRestoreRebuildsTheTrayFromTheCodesAlone(): void

@@ -11,9 +11,12 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
+use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
+use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
+use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
-use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -21,6 +24,8 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\ManufacturerResolver;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
+use SpeedPuzzling\Web\Services\SecretPuzzleHides;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -35,25 +40,59 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         private ManufacturerResolver $manufacturerResolver,
         private Filesystem $filesystem,
         private ClockInterface $clock,
+        private SecretPuzzleHides $secretPuzzleHides,
         private ImageOptimizer $imageOptimizer,
         private PuzzleImageNamer $puzzleImageNamer,
         private GetCompetitionRounds $getCompetitionRounds,
+        private IsPuzzleKeptSecret $isPuzzleKeptSecret,
+        private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
     /**
      * @throws PuzzleAlreadyInCompetitionRoundCategory
+     * @throws PuzzleHiddenByHand
+     * @throws PuzzleNameAlreadyPublic
      */
     public function __invoke(AddPuzzleToCompetitionRound $message): void
     {
-        $round = $this->competitionRoundRepository->get($message->roundId);
-
         $isNewPuzzle = !Uuid::isValid($message->puzzle);
+
+        // Locks the round (its start must not move meanwhile), then the puzzle - waits for every other change of them,
+        // then reads fresh (SecretPuzzleHides)
+        $this->secretPuzzleHides->lockForAddingTo($message->roundId, $isNewPuzzle ? [] : [$message->puzzle]);
+
+        $round = $this->competitionRoundRepository->get($message->roundId);
+        $puzzleKeptSecret = false;
 
         if ($isNewPuzzle) {
             $puzzle = $this->createNewPuzzle($message);
         } else {
             $puzzle = $this->puzzleRepository->get($message->puzzle);
+
+            // Another organiser's secret puzzle is not theirs to use - also while only its picture is hidden
+            $this->secretPuzzleAccess->assertPuzzleUsableBy(
+                $puzzle,
+                $this->playerRepository->getByUserIdCreateIfNotExists($message->userId)->id->toString(),
+                alsoWhileImageHidden: true,
+            );
+
+            // A puzzle hidden by hand (a placeholder) is no round's to hide or reveal
+            $puzzleKeptSecret = $this->isPuzzleKeptSecret->byId($puzzle->id->toString());
+            if ($puzzle->isImageHiddenAt($this->clock->now()) && $puzzleKeptSecret === false) {
+                throw new PuzzleHiddenByHand();
+            }
+
+            // Kept secret on the whole site with its name already public ("image only" in another round): this round
+            // would hide the name again - it can only keep the picture secret
+            if (
+                $puzzleKeptSecret
+                && $message->hideUntilRoundStarts
+                && $message->hideMode === PuzzleHideMode::Entirely
+                && $puzzle->isHiddenAt($this->clock->now()) === false
+            ) {
+                throw new PuzzleNameAlreadyPublic();
+            }
 
             $conflictingRound = $this->getCompetitionRounds->roundWithPuzzleInCategory(
                 competitionId: $round->competition->id->toString(),
@@ -66,23 +105,20 @@ readonly final class AddPuzzleToCompetitionRoundHandler
             }
         }
 
-        // For new puzzles, also hide platform-wide since they don't exist anywhere else yet
-        if ($isNewPuzzle && $message->hideUntilRoundStarts) {
-            match ($message->hideMode) {
-                PuzzleHideMode::ImageOnly => $puzzle->hideImageUntil = $round->startsAt,
-                PuzzleHideMode::Entirely => $puzzle->hideUntil = $round->startsAt,
-            };
-        }
-
+        // A new puzzle exists nowhere else yet, and a puzzle still secret from another round is not public either:
+        // the round keeps it secret on the whole site, not only on its event pages (SecretPuzzleHides)
         $roundPuzzle = new CompetitionRoundPuzzle(
             id: $message->roundPuzzleId,
             round: $round,
             puzzle: $puzzle,
             hideUntilRoundStarts: $message->hideUntilRoundStarts,
             hideMode: $message->hideUntilRoundStarts ? $message->hideMode : null,
+            hidesEverywhere: $message->hideUntilRoundStarts
+                && ($isNewPuzzle || $puzzleKeptSecret),
         );
 
         $this->competitionRoundPuzzleRepository->save($roundPuzzle);
+        $this->secretPuzzleHides->resync($puzzle);
     }
 
     private function createNewPuzzle(AddPuzzleToCompetitionRound $message): Puzzle
@@ -97,13 +133,16 @@ readonly final class AddPuzzleToCompetitionRoundHandler
 
         if ($message->puzzlePhoto !== null) {
             $extension = $message->puzzlePhoto->guessExtension() ?? 'jpg';
-            $puzzlePhotoPath = $this->puzzleImageNamer->generateFilename(
-                $manufacturer->name,
-                $message->puzzle,
-                $message->piecesCount ?? 0,
-                $puzzleId->toString(),
-                $extension,
-            );
+            // A secret puzzle's picture must not be found by guessing its file name from the public name and id
+            $puzzlePhotoPath = $message->hideUntilRoundStarts
+                ? $this->puzzleImageNamer->secretFilename($extension)
+                : $this->puzzleImageNamer->generateFilename(
+                    $manufacturer->name,
+                    $message->puzzle,
+                    $message->piecesCount ?? 0,
+                    $puzzleId->toString(),
+                    $extension,
+                );
 
             $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
 

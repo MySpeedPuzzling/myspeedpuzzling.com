@@ -21,7 +21,9 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Changes only the fields sent. The round's slug never changes (shared result links keep working). A category change
- * that would put one of its puzzles into two rounds of the same category is refused (409).
+ * that would put one of its puzzles into two rounds of the same category is refused (409). A new start that reveals
+ * secret puzzles right away (their automatic reveal would be over) is refused (409, `revealedPuzzles`) unless the body
+ * says `"confirmReveal": true`.
  */
 final class UpdateCompetitionRoundController extends AbstractController
 {
@@ -41,26 +43,34 @@ final class UpdateCompetitionRoundController extends AbstractController
     public function __invoke(string $roundId, Request $request): JsonResponse
     {
         $round = $this->competitionRoundRepository->get($roundId);
-        $input = InternalApiInput::fromRequest($request, RoundInput::FIELDS);
+        $input = InternalApiInput::fromRequest($request, [...RoundInput::FIELDS, 'confirmReveal']);
 
+        // The round as stored - in its own zone; a field left out keeps its value (its start too, to the second)
         $data = CompetitionRoundFormData::fromCompetitionRound($round);
-        RoundInput::applyTo($input, $data, $round->competition->locationCountryCode);
+        $startsAt = RoundInput::applyTo($input, $data) ?? $round->startsAt;
+        $confirmReveal = $input->bool('confirmReveal') ?? false;
 
         $input->addViolations($this->validator->validate($data));
         $input->throwIfInvalid();
 
-        assert($data->name !== null && $data->minutesLimit !== null && $data->startsAt !== null);
+        assert($data->name !== null && $data->minutesLimit !== null && $data->timezone !== null);
 
         try {
             $this->messageBus->dispatch(new EditCompetitionRound(
                 roundId: $round->id->toString(),
                 name: $data->name,
                 minutesLimit: $data->minutesLimit,
-                startsAt: $data->startsAt,
+                startsAt: $startsAt,
+                timezone: $data->timezone,
                 badgeBackgroundColor: $data->badgeBackgroundColor,
                 badgeTextColor: $data->badgeTextColor,
                 category: $data->category,
                 resultsLink: $data->resultsLink,
+                // A start moved so that secret puzzles come out right away needs an explicit yes (409 otherwise)
+                refuseToReveal: $confirmReveal === false,
+                // What the body leaves out is kept as the round has it under the handler's lock - the values above
+                // for those fields were read before it and are ignored
+                keepFields: self::keptFields($input),
             ));
         } catch (HandlerFailedException $exception) {
             $previous = $exception->getPrevious();
@@ -73,5 +83,20 @@ final class UpdateCompetitionRoundController extends AbstractController
         }
 
         return new JsonResponse($this->getAdminCompetitions->round($round->id->toString())->toArray());
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function keptFields(InternalApiInput $input): array
+    {
+        $kept = array_values(array_filter(EditCompetitionRound::FIELDS, static fn (string $field): bool => $input->has($field) === false));
+
+        // The zone is sent only together with the start; a start without it keeps the round's zone
+        if ($input->has('startsAt') && $input->has('timezone') === false) {
+            $kept = array_values(array_diff($kept, ['timezone']));
+        }
+
+        return $kept;
     }
 }

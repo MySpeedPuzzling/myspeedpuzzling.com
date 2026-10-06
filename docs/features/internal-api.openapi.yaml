@@ -650,7 +650,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PuzzleIdList"
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/PuzzleIdList"
       responses:
         "200":
           description: The competition after the change
@@ -715,6 +717,9 @@ paths:
       description: |
         The slug never changes. A category change that would put one of the round's
         puzzles into two rounds of one category of the competition is refused (409).
+        A field left out keeps its value - `startsAt` too, to the second. A new
+        start whose automatic reveal of secret puzzles would be over is refused
+        (409, `revealedPuzzles`) unless `confirmReveal` is true.
       parameters:
         - $ref: "#/components/parameters/RoundId"
       requestBody:
@@ -725,6 +730,7 @@ paths:
               unevaluatedProperties: false
               allOf:
                 - $ref: "#/components/schemas/RoundFields"
+                - $ref: "#/components/schemas/ConfirmReveal"
       responses:
         "200":
           description: The round after the change
@@ -743,12 +749,25 @@ paths:
     delete:
       summary: Delete a round without results
       operationId: deleteCompetitionRound
-      description: With its puzzle assignments, teams and seating. Refused (409) while any solving time belongs to it.
+      description: |
+        With its puzzle assignments, teams and seating. Refused (409) while any
+        solving time belongs to it, and (409, `revealedPuzzles`) when that reveals
+        a secret puzzle right away (another round revealed it already) - unless
+        `confirmReveal` is true. A secret puzzle no other round holds stays hidden
+        (its hide dates are kept) - not refused.
       parameters:
         - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmReveal"
       responses:
         "204":
           description: Deleted
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -762,10 +781,14 @@ paths:
       operationId: setRoundPuzzles
       description: |
         The round's puzzles become exactly `puzzleIds` (`[]` removes all); puzzles
-        kept keep their "hide until the round starts" setting, new ones are not
-        hidden. A puzzle is in only one round per category of a competition - a
-        list breaking that is refused (409) and nothing changes. Solving times are
-        re-linked to rounds right after (round results).
+        kept keep their secret reveal, new ones are not hidden - so a hidden puzzle
+        (a competition's secret one, a placeholder) is refused (409). A puzzle is in
+        only one round per category of a competition - a list breaking that is
+        refused (409). Removing a secret puzzle that comes out right away by it
+        (another round revealed it already) is refused (409, `revealedPuzzles`)
+        unless `confirmReveal` is true; one no other round holds stays hidden. A refusal
+        changes nothing. Solving times are re-linked to rounds right after (round
+        results).
       parameters:
         - $ref: "#/components/parameters/RoundId"
       requestBody:
@@ -773,7 +796,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PuzzleIdList"
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/PuzzleIdList"
+                - $ref: "#/components/schemas/ConfirmReveal"
       responses:
         "200":
           description: The round after the change
@@ -1090,12 +1116,18 @@ components:
           type: string
           description: |
             ISO 8601 date-time. With an offset it is that moment; without one a
-            wall-clock time in `timezone`. Stored and answered in UTC.
+            wall-clock time in the round's zone (the `timezone` sent along, else the
+            round's own) - refused (400) when a daylight-saving change skips or
+            repeats it there. Stored and answered in UTC.
           example: "2026-11-14T10:00:00+01:00"
         timezone:
           type: string
-          description: IANA time zone for a `startsAt` without an offset - by default the time zone of the competition's country (else Europe/Prague). Only together with `startsAt`.
-          example: Europe/Prague
+          description: |
+            The round's own IANA time zone - its times are typed and shown in it. A
+            new round gets the zone of the event's other rounds, else of its (or its
+            series') country, else Europe/Prague. Only together with `startsAt`;
+            `null` is a 400.
+          example: America/Chicago
         minutesLimit:
           type: integer
           minimum: 1
@@ -1118,6 +1150,7 @@ components:
         name: { type: string }
         category: { type: string, enum: [solo, duo, team] }
         startsAt: { type: string, format: date-time, example: "2026-11-14T09:00:00+00:00" }
+        timezone: { type: string, example: Europe/Prague, description: The round's own zone }
         minutesLimit: { type: integer }
         badgeBackgroundColor: { type: [string, "null"] }
         badgeTextColor: { type: [string, "null"] }
@@ -1133,12 +1166,30 @@ components:
               - type: object
                 properties:
                   roundPuzzleId: { type: string, format: uuid }
-                  hideUntilRoundStarts: { type: boolean }
+                  hideUntilRoundStarts: { type: boolean, description: Secret until its reveal }
                   hideMode: { type: [string, "null"], enum: [image_only, entirely, null] }
+                  revealMode:
+                    type: string
+                    enum: [automatic, scheduled, manual]
+                    description: automatic = 10 minutes after the round starts; manual = when the organiser clicks "Reveal now"
+                  revealsAt:
+                    type: [string, "null"]
+                    format: date-time
+                    description: The reveal moment (UTC) of a secret row - null when not secret, or manual and not revealed yet
+                  hidesEverywhere:
+                    type: boolean
+                    description: The round keeps the puzzle secret on the whole site, not only on its event pages
+
+    ConfirmReveal:
+      type: object
+      properties:
+        confirmReveal:
+          type: boolean
+          default: false
+          description: Yes to revealing the secret puzzles a 409 listed (`revealedPuzzles`).
 
     PuzzleIdList:
       type: object
-      additionalProperties: false
       required: [puzzleIds]
       properties:
         puzzleIds:
@@ -1159,6 +1210,8 @@ components:
         ean: { type: [string, "null"], description: "Comma-separated when the puzzle has several" }
         identificationNumber: { type: [string, "null"], description: Brand code(s) }
         approved: { type: boolean }
+        hiddenUntil: { type: [string, "null"], format: date-time, description: The site-wide hide of the name (a secret competition puzzle, a placeholder) }
+        imageHiddenUntil: { type: [string, "null"], format: date-time, description: The site-wide hide of the picture }
 
     PuzzleSearchResult:
       type: object
@@ -1566,6 +1619,20 @@ components:
           description: Invalid fields (field => what is wrong) - only for a request with invalid fields.
           additionalProperties:
             type: string
+        revealedPuzzles:
+          type: array
+          description: |
+            Only for a round change that would reveal secret puzzles right away -
+            what `"confirmReveal": true` would let out.
+          items:
+            type: object
+            properties:
+              puzzleId: { type: string, format: uuid }
+              name: { type: string }
+              revealedEverywhere:
+                type: boolean
+                description: false = out on this event, another round keeps it secret on the site until `stillHiddenElsewhereUntil`
+              stillHiddenElsewhereUntil: { type: [string, "null"], format: date-time }
 
   responses:
     InvalidJson:
@@ -1587,7 +1654,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     Conflict:
-      description: The request conflicts with the current state (taken slug, round invariant, results in a round, shared tag, already approved, known EAN)
+      description: The request conflicts with the current state (taken slug, round invariant, results in a round, secret puzzles a round change would reveal, a hidden puzzle attached unhidden, shared tag, already approved, known EAN)
       content:
         application/json:
           schema:

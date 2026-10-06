@@ -30,7 +30,7 @@
     </h1>
 
     <div class="text-muted small mb-3">
-        <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i') }}
+        <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i', round.timezone) }} <span class="text-muted" data-round-zone>({{ timezone_name(round.timezone) }})</span>
         <span class="mx-1">&middot;</span>
         <i class="bi bi-stopwatch me-1"></i>{{ 'round_results.time_limit'|trans({'%minutes%': round.minutesLimit}) }}
         {% if round.category.value != 'solo' %}
@@ -56,7 +56,7 @@
                         <li>
                             <a class="dropdown-item {{ other_round.id == round.id ? 'active' }}" href="{{ path(round_route, round_route_params|merge({roundSlug: other_round.slug})) }}">
                                 <span class="d-inline-block rounded-circle me-2 align-middle" style="width: .625rem; height: .625rem; background-color: {{ other_round.color }};" aria-hidden="true"></span>{{ other_round.name }}
-                                <small class="{{ other_round.id == round.id ? '' : 'text-muted' }} ms-1">{{ other_round.startsAt|date('d.m. H:i') }}</small>
+                                <small class="{{ other_round.id == round.id ? '' : 'text-muted' }} ms-1">{{ other_round.startsAt|date('d.m. H:i', other_round.timezone) }}</small>
                             </a>
                         </li>
                     {% endfor %}
@@ -86,9 +86,14 @@
         </p>
     {% endif %}
 
-    {% if round.puzzles is empty %}
+    {% if round.puzzles is empty and page.stillSecret is empty %}
         <p class="text-muted">{{ 'round_results.no_puzzle_yet'|trans }}</p>
     {% endif %}
+
+    {# Revealed by this round, but another round keeps the puzzle secret on the whole site longer - left out until then #}
+    {% for still_secret in page.stillSecret %}
+        <p class="alert alert-info small" data-still-secret>{{ still_secret }}</p>
+    {% endfor %}
 
     {% for puzzle in round.puzzles %}
         {% set puzzle_results = page.results[puzzle.puzzleId] ?? [] %}

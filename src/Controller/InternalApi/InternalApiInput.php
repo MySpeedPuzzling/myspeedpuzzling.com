@@ -8,6 +8,8 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
+use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -171,6 +173,25 @@ final class InternalApiInput
 
         if (preg_match(self::DATE_TIME_PATTERN, $value, $matches) !== 1) {
             return $this->invalid($field, 'must be an ISO 8601 date-time, e.g. "2026-10-06T10:00:00+02:00".');
+        }
+
+        // No offset: a wall-clock time in the assumed zone - it must exist there exactly once (not skipped or repeated
+        // by a daylight-saving change), like the organiser's form requires
+        if (($matches[4] ?? '') === '') {
+            $wallClock = str_replace('T', ' ', preg_replace('/\.\d+$/', '', $value) ?? $value);
+
+            try {
+                return RoundTimezone::parseLocal(
+                    $wallClock,
+                    strlen($wallClock) === 16 ? 'Y-m-d H:i' : 'Y-m-d H:i:s',
+                    $assumedTimeZone->getName(),
+                );
+            } catch (InvalidLocalTime) {
+                return $this->invalid($field, sprintf(
+                    'does not exist exactly once in %s (a daylight-saving change, or not a real date-time) - send it with an offset.',
+                    $assumedTimeZone->getName(),
+                ));
+            }
         }
 
         try {

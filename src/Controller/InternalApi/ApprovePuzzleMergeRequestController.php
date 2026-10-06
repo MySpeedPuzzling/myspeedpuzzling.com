@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
@@ -111,6 +112,11 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
                 // Optional: the candidates' recordVersion as read from the queue - a puzzle changed since refuses the merge
                 recordVersions: InternalApiJsonBody::recordVersions($body, 'recordVersions'),
             ));
+        } catch (PuzzleIsStillSecret) {
+            return new JsonResponse(
+                ['error' => 'A competition keeps a puzzle of this request secret until it is revealed - nothing was merged. Decide after the reveal.'],
+                Response::HTTP_CONFLICT,
+            );
         } catch (PuzzleChangedMeanwhile) {
             return new JsonResponse(
                 ['error' => 'A puzzle of the merge changed after its recordVersion was read - nothing was merged. Read the queue again and decide again.'],

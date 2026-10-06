@@ -44,7 +44,8 @@ readonly final class EditPuzzleHandler
         $editor = $this->playerRepository->get($message->editorId);
 
         // Validates every value before it changes anything
-        $change = $this->puzzleRecordUpdater->update($puzzle, $message->values);
+        // Only an admin corrects a secret competition puzzle before its reveal
+        $change = $this->puzzleRecordUpdater->update($puzzle, $message->values, allowSecret: $editor->isAdmin);
 
         if ($change['before'] === $change['after']) {
             return;

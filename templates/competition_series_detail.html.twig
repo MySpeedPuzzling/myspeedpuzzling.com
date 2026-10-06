@@ -60,7 +60,7 @@
             "name": {{ edition.name|json_ld }},
             "url": {{ url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug})|json_ld }}
             {%- if edition.startsAt %},
-            "startDate": {{ edition.startsAt|date('Y-m-d')|json_ld }}
+            "startDate": {{ edition.startsAt|date('Y-m-d', edition.timezone)|json_ld }}
             {%- endif %}
         }{{ loop.last ? '' : ',' }}
         {%- endfor %}
@@ -130,7 +130,7 @@
                             {% if edition.startsAt %}
                                 <div class="mt-1">
                                     <i class="ci-calendar me-2 ps-1"></i>
-                                    {{ edition.startsAt|date('d.m.Y H:i') }}
+                                    {{ edition.startsAt|date('d.m.Y H:i', edition.timezone) }}
                                     <small class="text-muted ps-1">({{ edition.startsAt|ago }})</small>
                                 </div>
                             {% endif %}
@@ -176,7 +176,7 @@
                             {% if edition.startsAt %}
                                 <div class="mt-1">
                                     <i class="ci-calendar me-2 ps-1"></i>
-                                    {{ edition.startsAt|date('d.m.Y H:i') }}
+                                    {{ edition.startsAt|date('d.m.Y H:i', edition.timezone) }}
                                     <small class="text-muted ps-1">({{ edition.startsAt|ago }})</small>
                                 </div>
                             {% endif %}

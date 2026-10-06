@@ -4,6 +4,58 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Round time zones and secret-puzzle reveal (`docs/features/competitions-management/README.md`)
+
+- [ ] With the deploy, right after it: `myspeedpuzzling:backfill-round-puzzle-reveals` (dry run), read the list, then
+      `--write` - until then old rows have `hides_everywhere = false` and a round move moves only the event page.
+- [ ] Wisconsin State Jigsaw Puzzle Championship 2026: confirm the 4 round times with the organiser (Dakota), set the
+      rounds' `timezone` to `America/Chicago`, re-sync the 2 Team Relay secret puzzles (SQL in the PR description).
+- [ ] Rounds saved before 2026-10 have no `timezone` and are read in their country's default zone - organisers of
+      events outside it (US Central/Mountain/Pacific, ...) may want to re-save their rounds once.
+- [ ] US events default to New York (`CountryCode::defaultTimezone()`) - a known limitation for Central/Mountain/Pacific
+      events without a stored zone (e.g. past `assemble-puzzlery-…` reads 21:30 New York); ask organisers to set theirs.
+- [ ] Rename the random (hex) image names of secret puzzles to SEO names once revealed or approved.
+- [ ] Existence signals of secret puzzles still open (nothing of the puzzle itself, but they tell that something is
+      there): `MergeUnapprovedPuzzleController`
+      `puzzleExists`, results counts and the edition's `puzzle_count`, the image aspect ratio while hidden, `/me`
+      predicted time answering 200, the add-time EAN lookup no longer finding an image-only secret puzzle (a player may
+      add a duplicate).
+- [ ] Prague-formatted dates still in `events.html.twig:68` and the edition/event detail meta descriptions.
+- [ ] Deleting a whole event or series does not ask before revealing secret puzzles other events hold (round deletion
+      and puzzle removal do - `SecretRevealPreview`).
+- [ ] `GetCompetitionEditions` is dead code - remove.
+- [ ] `SecretPuzzleHides::isStoredFor()` runs one query per row - fine at today's sizes.
+- [ ] The images cache (nginx in front of imgproxy, 365 days) still serves thumbnails requested under a secret
+      puzzle's old guessable image name after the backfill moved it - there is no purge endpoint; delete the cache
+      files of those keys on the box if they were requested.
+- [ ] A puzzle removed from its round while on a manual reveal stays hidden with no end - its adder finds it in the round
+      picker again, otherwise an admin clears `puzzle.hide_until` / `hide_image_until` on request.
+- [ ] Nothing new is recorded on a secret puzzle before its reveal (`SecretPuzzleAccess::assertWritableBy()`), but
+      records made before it became secret stay - a puzzle taken over by "Keep it hidden everywhere" or by the backfill
+      may already have times, collection items or listings, and feeds, profiles and the marketplace show its name with
+      them. Hide those records (or the puzzle in them) while it is secret, if one ever turns up.
+- [ ] The add-time form and the stopwatch tell an organiser up front that a secret puzzle takes no time yet; the
+      collection / wishlist / sell-swap / lend buttons on its page still say it only on submit (flash or modal).
+- [ ] With the deploy: purge the old guessable image names the backfill prints from the images-cache and Cloudflare
+      (commands in the PR's production plan). Later renames (a puzzle becoming secret) are rare - same commands by hand.
+- [ ] "Something went wrong" in multiscan for a row whose puzzle became secret meanwhile - say "no longer available".
+- [ ] Multiscan answers a code only a hidden puzzle carries with its generic "could not be added / linking failed" (since
+      2026-10, no more "already assigned" - that told a secret box has the code). A player may retry in vain; once the
+      puzzle is revealed it resolves normally.
+- [ ] A guessable picture name a change request's snapshot (`puzzle_change_request.original_image` / `proposed_image`)
+      still references is kept when its puzzle becomes secret (warning "Old guessable picture of a secret puzzle kept").
+      Resolve by hand: point the snapshot at the puzzle's new image (`UPDATE puzzle_change_request SET original_image =
+      <new> WHERE original_image = <old>`), then delete the old object and purge it from the caches (PR #240 step 3b).
+- [ ] "Shown by another surface" for turning a non-secret round puzzle secret is read as "another round shows it now"
+      (`RoundPuzzleOwnership::sqlShownByAnotherRound()`) - a public catalogue puzzle may still be hidden on the event
+      page before its round starts, as when adding it. Revisit if that should be refused too.
+- [ ] Not in the internal API: changing a reveal, Reveal now, "Keep it hidden everywhere", attaching a secret puzzle
+      (refused - its reveal is chosen on the round's page).
+- [ ] Repair historic rounds moved by untouched saves before the zone fix (e.g. Ou La La SPC No. 16) - compare with the
+      organisers' published schedules.
+- [ ] The coordinator saw America/Chicago twice at the end of the zone select; the server renders it once and TomSelect
+      moves the selected option to the end of the native select - not reproduced in Chrome 2026-10-06, re-check on a phone.
+
 ## Large photo uploads (Sentry WEB-D4, 2026-10-06)
 
 A 54 MB phone photo on the add form went over PHP's `post_max_size` (50M): the whole request was dropped and the

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\PuzzleReport;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\ReportDuplicatePuzzleFormData;
 use SpeedPuzzling\Web\FormType\ReportDuplicatePuzzleFormType;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -28,6 +30,7 @@ final class ReportDuplicatePuzzleController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
         private readonly GetPendingPuzzleProposals $getPendingPuzzleProposals,
+        private readonly SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -48,6 +51,9 @@ final class ReportDuplicatePuzzleController extends AbstractController
         Request $request,
         string $puzzleId,
     ): Response {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId, alsoWhileImageHidden: true);
+
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 
@@ -73,13 +79,21 @@ final class ReportDuplicatePuzzleController extends AbstractController
             if (count($duplicateIds) > 0) {
                 $mergeRequestId = Uuid::uuid7()->toString();
 
-                $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
-                    mergeRequestId: $mergeRequestId,
-                    sourcePuzzleId: $puzzleId,
-                    reporterId: $loggedPlayer->playerId,
-                    duplicatePuzzleIds: $duplicateIds,
-                    reportedNameLanguages: self::reportedNameLanguages($formData, $puzzleId, $duplicateIds),
-                ));
+                try {
+                    // A secret competition puzzle on either side is refused (404 for whoever may not see it)
+                    $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
+                        mergeRequestId: $mergeRequestId,
+                        sourcePuzzleId: $puzzleId,
+                        reporterId: $loggedPlayer->playerId,
+                        duplicatePuzzleIds: $duplicateIds,
+                        reportedNameLanguages: self::reportedNameLanguages($formData, $puzzleId, $duplicateIds),
+                    ));
+                } catch (PuzzleIsStillSecret) {
+                    // Either side - "this puzzle" would point at the page's own puzzle
+                    $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.secret_puzzle_involved'));
+
+                    return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+                }
 
                 if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
                     $request->setRequestFormat(TurboBundle::STREAM_FORMAT);

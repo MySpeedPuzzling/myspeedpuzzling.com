@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\MergePuzzleInfo;
 use SpeedPuzzling\Web\Results\PendingPuzzleProposal;
+use SpeedPuzzling\Web\Value\PuzzleSecrecy;
 
 /**
  * The proposals waiting for a moderator on a puzzle. One at a time (blocksNewProposal()): a pending merge request or a
@@ -30,20 +32,23 @@ readonly final class GetPendingPuzzleProposals
      */
     public function hasPendingForPuzzle(string $puzzleId): bool
     {
+        $noSecretPuzzle = GetPuzzleMergeRequests::sqlNoSecretPuzzle();
         $query = <<<SQL
 SELECT EXISTS (
     SELECT 1 FROM puzzle_change_request
     WHERE puzzle_id = :puzzleId AND status = 'pending'
     UNION ALL
-    SELECT 1 FROM puzzle_merge_request
-    WHERE status = 'pending'
-      AND (source_puzzle_id = :puzzleId OR reported_duplicate_puzzle_ids::jsonb @> :puzzleIdJson::jsonb)
+    SELECT 1 FROM puzzle_merge_request pmr
+    WHERE pmr.status = 'pending'
+      AND (pmr.source_puzzle_id = :puzzleId OR pmr.reported_duplicate_puzzle_ids::jsonb @> :puzzleIdJson::jsonb)
+      AND {$noSecretPuzzle}
 ) as has_pending
 SQL;
 
         $result = $this->database->fetchOne($query, [
             'puzzleId' => $puzzleId,
             'puzzleIdJson' => json_encode([$puzzleId]),
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         return $result === true;
@@ -56,6 +61,9 @@ SQL;
      */
     public function blocksNewProposal(string $puzzleId): bool
     {
+        // A merge request involving a secret competition puzzle is in no queue until the reveal - it must not block
+        // proposals on a public puzzle meanwhile (forever, with a manual reveal)
+        $noSecretPuzzle = GetPuzzleMergeRequests::sqlNoSecretPuzzle();
         $query = <<<SQL
 SELECT EXISTS (
     SELECT 1 FROM puzzle_change_request
@@ -68,15 +76,17 @@ SELECT EXISTS (
         OR proposed_image IS NOT NULL
       )
     UNION ALL
-    SELECT 1 FROM puzzle_merge_request
-    WHERE status = 'pending'
-      AND (source_puzzle_id = :puzzleId OR reported_duplicate_puzzle_ids::jsonb @> :puzzleIdJson::jsonb)
+    SELECT 1 FROM puzzle_merge_request pmr
+    WHERE pmr.status = 'pending'
+      AND (pmr.source_puzzle_id = :puzzleId OR pmr.reported_duplicate_puzzle_ids::jsonb @> :puzzleIdJson::jsonb)
+      AND {$noSecretPuzzle}
 ) as blocks
 SQL;
 
         $result = $this->database->fetchOne($query, [
             'puzzleId' => $puzzleId,
             'puzzleIdJson' => json_encode([$puzzleId]),
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         return $result === true;
@@ -87,6 +97,8 @@ SQL;
      */
     public function forPuzzle(string $puzzleId): array
     {
+        // A merge request with a secret competition puzzle in it is nobody's to see before the reveal
+        $noSecretPuzzle = GetPuzzleMergeRequests::sqlNoSecretPuzzle();
         $query = <<<SQL
 SELECT
     pcr.id,
@@ -123,6 +135,7 @@ FROM puzzle_merge_request pmr
 LEFT JOIN player reporter ON reporter.id = pmr.reporter_id
 WHERE pmr.status = 'pending'
   AND (pmr.source_puzzle_id = :puzzleId OR pmr.reported_duplicate_puzzle_ids::jsonb @> :puzzleIdJson::jsonb)
+  AND {$noSecretPuzzle}
 
 ORDER BY submitted_at DESC
 SQL;
@@ -130,6 +143,7 @@ SQL;
         $rows = $this->database->fetchAllAssociative($query, [
             'puzzleId' => $puzzleId,
             'puzzleIdJson' => json_encode([$puzzleId]),
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         // Collect all puzzle IDs from merge requests to fetch in one query
@@ -174,24 +188,28 @@ SQL;
      */
     private function fetchPuzzleDetails(array $puzzleIds): array
     {
-        $placeholders = implode(',', array_fill(0, count($puzzleIds), '?'));
-
+        // Never a secret competition puzzle (its request is filtered above too - this keeps it so for any caller)
+        $notSecret = PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
     p.id,
     p.name,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > ?::timestamp THEN NULL ELSE p.image END AS image,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > ?::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name as manufacturer_name,
     (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.puzzle_id = p.id) as times_count
 FROM puzzle p
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
-WHERE p.id IN ({$placeholders})
+WHERE p.id IN (:puzzleIds)
+    AND {$notSecret}
 SQL;
 
-        $now = $this->clock->now()->format('Y-m-d H:i:s');
-        $rows = $this->database->fetchAllAssociative($query, [$now, $now, ...array_values($puzzleIds)]);
+        $rows = $this->database->fetchAllAssociative(
+            $query,
+            ['puzzleIds' => array_values($puzzleIds), 'now' => $this->clock->now()->format('Y-m-d H:i:s')],
+            ['puzzleIds' => ArrayParameterType::STRING],
+        );
 
         $result = [];
         foreach ($rows as $row) {

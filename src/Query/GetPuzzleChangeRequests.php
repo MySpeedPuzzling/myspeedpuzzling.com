@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleChangeRequestOverview;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Value\PuzzleSecrecy;
 
 readonly final class GetPuzzleChangeRequests
 {
@@ -20,17 +21,22 @@ readonly final class GetPuzzleChangeRequests
     /**
      * @return array{pending: int, approved: int, rejected: int}
      */
-    public function countByStatus(): array
+    public function countByStatus(bool $includeSecret = false): array
     {
+        // A secret competition puzzle is in the moderators' counts only after its reveal; admins, who may correct it,
+        // count it (PuzzleSecrecy)
+        $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
-    COUNT(*) FILTER (WHERE status = 'pending') as pending,
-    COUNT(*) FILTER (WHERE status = 'approved') as approved,
-    COUNT(*) FILTER (WHERE status = 'rejected') as rejected
-FROM puzzle_change_request
+    COUNT(*) FILTER (WHERE pcr.status = 'pending') as pending,
+    COUNT(*) FILTER (WHERE pcr.status = 'approved') as approved,
+    COUNT(*) FILTER (WHERE pcr.status = 'rejected') as rejected
+FROM puzzle_change_request pcr
+JOIN puzzle p ON p.id = pcr.puzzle_id
+WHERE {$notSecret}
 SQL;
 
-        $row = $this->database->fetchAssociative($query);
+        $row = $this->database->fetchAssociative($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s')]);
 
         if ($row === false) {
             return ['pending' => 0, 'approved' => 0, 'rejected' => 0];
@@ -53,25 +59,25 @@ SQL;
     /**
      * @return array<PuzzleChangeRequestOverview>
      */
-    public function allPending(): array
+    public function allPending(bool $includeSecret = false): array
     {
-        return $this->byStatus(PuzzleReportStatus::Pending, 'pcr.submitted_at DESC');
+        return $this->byStatus(PuzzleReportStatus::Pending, 'pcr.submitted_at DESC', $includeSecret);
     }
 
     /**
      * @return array<PuzzleChangeRequestOverview>
      */
-    public function allApproved(): array
+    public function allApproved(bool $includeSecret = false): array
     {
-        return $this->byStatus(PuzzleReportStatus::Approved, 'pcr.reviewed_at DESC');
+        return $this->byStatus(PuzzleReportStatus::Approved, 'pcr.reviewed_at DESC', $includeSecret);
     }
 
     /**
      * @return array<PuzzleChangeRequestOverview>
      */
-    public function allRejected(): array
+    public function allRejected(bool $includeSecret = false): array
     {
-        return $this->byStatus(PuzzleReportStatus::Rejected, 'pcr.reviewed_at DESC');
+        return $this->byStatus(PuzzleReportStatus::Rejected, 'pcr.reviewed_at DESC', $includeSecret);
     }
 
     /**
@@ -90,7 +96,8 @@ SQL;
 
     /**
      * The approval of a change request as the decision log recorded it - its details (PuzzleChangeRequestOutcome) and
-     * the reviewer's note. Null when it has no line there.
+     * the reviewer's note. Null when it has no line there. Only for a request read through byId(), which already keeps
+     * a secret competition puzzle from whoever may not see it.
      *
      * @return null|array{details: null|array<mixed>, note: null|string}
      */
@@ -120,8 +127,10 @@ SQL,
         ];
     }
 
-    public function byId(string $id): null|PuzzleChangeRequestOverview
+    public function byId(string $id, bool $includeSecret = false): null|PuzzleChangeRequestOverview
     {
+        // Admins correct a secret competition puzzle before its reveal; moderators never see it (PuzzleSecrecy)
+        $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
     pcr.id,
@@ -178,6 +187,7 @@ LEFT JOIN manufacturer proposed_m ON proposed_m.id = pcr.proposed_manufacturer_i
 LEFT JOIN manufacturer original_m ON original_m.id = pcr.original_manufacturer_id
 LEFT JOIN player added_by ON added_by.id = p.added_by_user_id
 WHERE pcr.id = :id
+    AND {$notSecret}
 SQL;
 
         $row = $this->database->fetchAssociative($query, [
@@ -195,8 +205,10 @@ SQL;
     /**
      * @return array<PuzzleChangeRequestOverview>
      */
-    private function byStatus(PuzzleReportStatus $status, string $orderBy): array
+    private function byStatus(PuzzleReportStatus $status, string $orderBy, bool $includeSecret = false): array
     {
+        // Admins correct a secret competition puzzle before its reveal; moderators never see it (PuzzleSecrecy)
+        $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
         $query = <<<SQL
 SELECT
     pcr.id,
@@ -248,6 +260,7 @@ LEFT JOIN player reviewer ON reviewer.id = pcr.reviewed_by_id
 LEFT JOIN manufacturer proposed_m ON proposed_m.id = pcr.proposed_manufacturer_id
 LEFT JOIN manufacturer original_m ON original_m.id = pcr.original_manufacturer_id
 WHERE pcr.status = :status
+    AND {$notSecret}
 ORDER BY {$orderBy}
 SQL;
 

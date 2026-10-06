@@ -40,10 +40,15 @@
                             <div class="mb-3">
                                 {{ form_row(form.hideUntilRoundStarts, {
                                     'attr': {'data-action': 'change->time-form-autocomplete#toggleHideOptions'},
-                                    'help': 'competition.round_puzzle.form.hide_help'|trans({'%date%': round.startsAt|date('j. n. Y H:i')}),
+                                    'help': revealed_right_away
+                                        ? 'competition.round_puzzle.form.hide_help_round_started'|trans({'%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone)})
+                                        : 'competition.round_puzzle.form.hide_help'|trans({'%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone)}),
                                 }) }}
 
                                 <div data-time-form-autocomplete-target="hideOptions" class="d-none ms-4 mt-2">
+                                    <div class="mb-3" data-reveal-scope>
+                                        <p class="form-text mt-0 mb-0"><i class="bi bi-info-circle me-1"></i>{{ 'competition.round_puzzle.form.hide_existing_puzzle'|trans }}</p>
+                                    </div>
                                     {% for child in form.hideMode %}
                                         <div class="form-check mb-2">
                                             {{ form_widget(child, {'attr': {'class': 'form-check-input'}}) }}
@@ -52,6 +57,8 @@
                                                 <div class="form-text">{{ 'competition.round_puzzle.form.hide_mode_image_only_help'|trans }}</div>
                                             {% elseif child.vars.value == 'entirely' %}
                                                 <div class="form-text">{{ 'competition.round_puzzle.form.hide_mode_entirely_help'|trans }}</div>
+                                                {# Only "entirely" keeps a new puzzle away from every page and every personal record - "image only" leaves its name public #}
+                                                <div class="form-text"><i class="bi bi-eye-slash me-1"></i>{{ 'competition.round_puzzle.form.hide_new_puzzle'|trans }}</div>
                                             {% endif %}
                                         </div>
                                     {% endfor %}

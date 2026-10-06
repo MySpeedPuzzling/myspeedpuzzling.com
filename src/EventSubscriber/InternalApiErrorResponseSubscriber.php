@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\EventSubscriber;
 
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
+use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,7 +15,8 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Every refusal of the internal API is JSON: `{"error": "…"}` (plus `"errors": {"field": "…"}` for invalid fields),
+ * Every refusal of the internal API is JSON: `{"error": "…"}` (plus `"errors": {"field": "…"}` for invalid fields,
+ * `"revealedPuzzles": […]` for a change that would reveal secret puzzles),
  * with the status of the HTTP exception - a 400, 401, 404 or 409 thrown by a controller, a handler (unwrapped by
  * UnwrapHttpExceptionMiddleware) or the firewall. Without this, Symfony renders its HTML error page for the
  * API's only consumers, scripts and Claude Code, which do not send `Accept: application/json`.
@@ -52,6 +54,11 @@ final readonly class InternalApiErrorResponseSubscriber implements EventSubscrib
         $status = $exception->getStatusCode();
         $message = $exception->getMessage() !== '' ? $exception->getMessage() : (Response::$statusTexts[$status] ?? 'Error');
         $body = ['error' => $message];
+
+        // What a "confirmReveal": true would let out, so the caller can tell whether to send it
+        if ($exception instanceof SecretPuzzlesWouldBeRevealed) {
+            $body['revealedPuzzles'] = $exception->toArray();
+        }
 
         if ($exception instanceof InternalApiInvalidInput) {
             $body['errors'] = $exception->errors;

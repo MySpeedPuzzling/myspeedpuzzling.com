@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,6 +32,7 @@ final class FirstTryCheckController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private FirstTryFormCheck $firstTryFormCheck,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -61,6 +63,11 @@ final class FirstTryCheckController extends AbstractController
         $duplicateConfirmed = $request->query->getString('duplicate_confirmed') === '1';
         $timeId = $request->query->getString('time');
         $puzzleId = $request->query->getString('puzzle');
+
+        // A puzzle a competition keeps secret from this player is no puzzle to check against (SecretPuzzleAccess)
+        if (Uuid::isValid($puzzleId) && $this->secretPuzzleAccess->isHiddenFromViewer($puzzleId)) {
+            return $this->notice(null);
+        }
 
         if ($timeId !== '') {
             if (Uuid::isValid($timeId) === false) {

@@ -39,13 +39,11 @@
                             {{ form_row(form.category) }}
                             {{ form_row(form.minutesLimit) }}
 
-                            {% set isSingleDay = competition.dateFrom is not null and competition.dateTo is not null and competition.dateFrom|date('Y-m-d') == competition.dateTo|date('Y-m-d') %}
-
-                            {% if isSingleDay %}
+                            {% if single_day is not null %}
                                 <div class="mb-3">
                                     <label class="form-label">{{ 'competition.round.form.date'|trans }}</label>
                                     <div class="form-control-plaintext fw-medium">
-                                        <i class="ci-calendar me-1"></i>{{ competition.dateFrom|date('d.m.Y') }}
+                                        <i class="ci-calendar me-1"></i>{{ single_day|date('d.m.Y', false) }}
                                     </div>
                                 </div>
                                 <div class="row mb-3">
@@ -77,6 +75,30 @@
                                 <div class="col-6">{{ form_row(form.badgeBackgroundColor) }}</div>
                                 <div class="col-6">{{ form_row(form.badgeTextColor) }}</div>
                             </div>
+
+                            {# Only asked when the new start would reveal secret puzzles right away (EditCompetitionRoundController) #}
+                            {% if form.confirmReveal is defined %}
+                                {% if revealed_right_away is not empty %}
+                                    <div class="alert alert-warning" data-confirm-reveal>
+                                        <p class="mb-2">{{ 'competition.reveal.form.confirm_reveal_list'|trans }}</p>
+                                        <ul class="mb-2">
+                                            {% for item in revealed_right_away %}
+                                                <li>
+                                                    <strong>{{ item.name }}</strong>
+                                                    {% if not item.everywhere %}
+                                                        <span class="text-muted">– {{ 'competition.reveal.confirm.only_this_event'|trans({'%time%': zoned_datetime(item.hiddenElsewhereUntil, timezone)}) }}</span>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {# The yes counts only for exactly this list (SecretRevealPreview::hash()) #}
+                                        <input type="hidden" name="confirm_reveal_hash" value="{{ reveal_confirmation_hash }}">
+                                        {{ form_row(form.confirmReveal) }}
+                                    </div>
+                                {% else %}
+                                    {% do form.confirmReveal.setRendered %}
+                                {% endif %}
+                            {% endif %}
 
                             <button type="submit" class="btn btn-primary mt-3">
                                 {{ 'competition.save_changes'|trans }}

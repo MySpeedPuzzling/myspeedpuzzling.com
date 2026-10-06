@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
@@ -99,6 +100,11 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
                 // Optional: the puzzle's recordVersion as read before deciding - a puzzle changed since refuses it
                 recordVersion: InternalApiJsonBody::optionalString($body, 'recordVersion'),
             ));
+        } catch (PuzzleIsStillSecret) {
+            return new JsonResponse(
+                ['error' => 'A competition keeps a puzzle of this request secret until it is revealed - nothing was approved. Decide after the reveal.'],
+                Response::HTTP_CONFLICT,
+            );
         } catch (PuzzleChangedMeanwhile) {
             return new JsonResponse(
                 ['error' => 'The puzzle changed after its recordVersion was read - nothing was approved. Read it again and decide again.'],

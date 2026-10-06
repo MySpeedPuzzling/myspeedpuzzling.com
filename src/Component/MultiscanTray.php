@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\MultiscanBatchRejected;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzlesToCollection;
 use SpeedPuzzling\Web\Message\AddPuzzlesToWishList;
@@ -29,6 +30,7 @@ use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetMultiscanCandidates;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\CollectionOverview;
@@ -43,6 +45,7 @@ use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\LendBorrowParticipantParser;
 use SpeedPuzzling\Web\Services\MultiscanEligibility;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\Ean;
@@ -191,6 +194,8 @@ final class MultiscanTray
         readonly private LendBorrowParticipantParser $participantParser,
         readonly private MessageBusInterface $messageBus,
         readonly private ValidatorInterface $validator,
+        readonly private GetPuzzleRecord $getPuzzleRecord,
+        readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
     ) {
     }
 
@@ -400,7 +405,7 @@ final class MultiscanTray
     public function restore(#[LiveArg] string $state): void
     {
         $this->clearTransient();
-        $this->requireMember();
+        $profile = $this->requireMember();
 
         if ($this->rows !== []) {
             return;
@@ -479,8 +484,14 @@ final class MultiscanTray
                 $this->newBrand = $sheet['brand'];
             }
 
-            // Same puzzle id as before the reload: a create that did go through is found, not repeated
-            if (is_string($sheet['quickAddId'] ?? null) && Uuid::isValid($sheet['quickAddId'])) {
+            // Same puzzle id as before the reload: a create that did go through is found, not repeated. The id comes
+            // from the browser - taken only while no puzzle has it or the puzzle is this player's own creation, never
+            // somebody else's (a secret one would show in the tray)
+            if (
+                is_string($sheet['quickAddId'] ?? null)
+                && Uuid::isValid($sheet['quickAddId'])
+                && $this->isFreeOrOwnPuzzleId($sheet['quickAddId'], $profile->playerId)
+            ) {
                 $this->quickAddId = $sheet['quickAddId'];
             }
         }
@@ -604,7 +615,8 @@ final class MultiscanTray
         } catch (HandlerFailedException $e) {
             $this->failWith($e->getPrevious() ?? $e);
             return;
-        } catch (PlayerNotFound | CannotLendToSelf $e) {
+        } catch (PlayerNotFound | CannotLendToSelf | PuzzleNotFound | PuzzleNotRevealedYet $e) {
+            // HTTP exceptions of the handler arrive unwrapped (UnwrapHttpExceptionMiddleware)
             $this->failWith($e);
             return;
         }
@@ -673,6 +685,10 @@ final class MultiscanTray
                 ? 'multiscan.resolve.error.already_assigned'
                 : 'multiscan.resolve.error.link_failed';
             return;
+        } catch (PuzzleNotFound) {
+            // An HTTP exception of the handler arrives unwrapped (UnwrapHttpExceptionMiddleware) - a puzzle kept secret
+            $this->resolveError = 'multiscan.resolve.error.link_failed';
+            return;
         }
 
         $this->resolveRowTo($key, $puzzleId);
@@ -709,13 +725,19 @@ final class MultiscanTray
         $puzzleId = $this->quickAddId !== null && Uuid::isValid($this->quickAddId)
             ? Uuid::fromString($this->quickAddId)
             : Uuid::uuid7();
+        $existingRecord = $this->getPuzzleRecord->byId($puzzleId->toString());
 
-        // A retry after the answer got lost on the way: the puzzle exists already - just use it
-        if ($this->puzzleExists($puzzleId->toString())) {
-            $this->resolveRowTo($key, $puzzleId->toString());
-            $this->notify('created', $ean->digits, $name, $key);
-            $this->closeResolveSheet();
-            return;
+        if ($existingRecord !== null) {
+            // A retry after the answer got lost on the way: this player created it already - just use it
+            if ($existingRecord->addedById === $profile->playerId) {
+                $this->resolveRowTo($key, $puzzleId->toString());
+                $this->notify('created', $ean->digits, $name, $key);
+                $this->closeResolveSheet();
+                return;
+            }
+
+            // Somebody else's puzzle has that id - never take it over, create a new one
+            $puzzleId = Uuid::uuid7();
         }
 
         // Somebody registered the code meanwhile (or it is a hidden puzzle): never create a duplicate
@@ -740,8 +762,9 @@ final class MultiscanTray
                 $this->notify('ambiguous', $ean->digits, null, $key);
                 $this->closeResolveSheet();
             } else {
-                // Only a hidden puzzle carries it
-                $this->resolveError = 'multiscan.resolve.error.already_assigned';
+                // Only a hidden puzzle carries it - answered like any other failure: "already assigned" would tell
+                // that a secret box has this code
+                $this->resolveError = 'multiscan.resolve.error.create_failed';
             }
 
             return;
@@ -1302,6 +1325,7 @@ final class MultiscanTray
             $e instanceof CannotLendToSelf => ['multiscan.error.cannot_lend_to_self', []],
             $e instanceof PlayerNotFound => ['multiscan.error.player_not_found', []],
             $e instanceof CollectionNotFound => ['multiscan.error.collection_not_found', []],
+            $e instanceof PuzzleNotRevealedYet => $this->secretPuzzleRefusalMessage->translation($e),
             default => ['multiscan.error.failed', []],
         };
     }
@@ -1422,15 +1446,11 @@ final class MultiscanTray
         return null;
     }
 
-    private function puzzleExists(string $puzzleId): bool
+    private function isFreeOrOwnPuzzleId(string $puzzleId, string $playerId): bool
     {
-        try {
-            $this->getPuzzleOverview->byId($puzzleId);
+        $record = $this->getPuzzleRecord->byId($puzzleId);
 
-            return true;
-        } catch (PuzzleNotFound) {
-            return false;
-        }
+        return $record === null || $record->addedById === $playerId;
     }
 
     private function hasPuzzle(string $puzzleId, null|string $exceptRow = null): bool

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Collections;
 
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
@@ -40,6 +41,7 @@ final class AddPuzzleToCollectionController extends AbstractController
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private CollectionItemRepository $collectionItemRepository,
         readonly private GetWishListItems $getWishListItems,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
     ) {
     }
 
@@ -60,6 +62,9 @@ final class AddPuzzleToCollectionController extends AbstractController
         Request $request,
         string $puzzleId,
     ): Response {
+        // A puzzle a competition keeps secret answers 404 to everybody but its organisers (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertVisible($puzzleId);
+
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 
@@ -100,6 +105,10 @@ final class AddPuzzleToCollectionController extends AbstractController
 
         // Handle POST - add to collection
         if ($form->isSubmitted() && $form->isValid()) {
+            // Refused before anything is created - a new collection typed into the form must not stay behind empty
+            // (a secret competition puzzle takes nothing personal before its reveal, SecretPuzzleAccess)
+            $this->secretPuzzleAccess->assertWritableByViewer($puzzleId);
+
             /** @var CollectionPuzzleActionFormData $formData */
             $formData = $form->getData();
 

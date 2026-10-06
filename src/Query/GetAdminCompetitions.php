@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\AdminCompetitionMaintainer;
 use SpeedPuzzling\Web\Results\AdminCompetitionRound;
 use SpeedPuzzling\Web\Results\AdminPuzzle;
 use SpeedPuzzling\Web\Results\AdminRoundPuzzle;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
  * Competitions as the internal API shows them to an admin: every competition - approved, pending, rejected,
@@ -202,6 +203,9 @@ SQL, ['competitionId' => $competitionId]);
          *     badge_background_color: null|string,
          *     badge_text_color: null|string,
          *     results_link: null|string,
+         *     timezone: null|string,
+         *     location_country_code: null|string,
+         *     series_country_code: null|string,
          *     results_count: int,
          * }> $roundRows
          */
@@ -217,12 +221,19 @@ SELECT
     cr.badge_background_color,
     cr.badge_text_color,
     cr.results_link,
+    cr.timezone,
+    c.location_country_code,
+    cs.location_country_code AS series_country_code,
     (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr.id) AS results_count
 FROM competition_round cr
+INNER JOIN competition c ON c.id = cr.competition_id
+LEFT JOIN competition_series cs ON cs.id = c.series_id
 WHERE cr.competition_id = :competitionId
     AND (CAST(:roundId AS UUID) IS NULL OR cr.id = CAST(:roundId AS UUID))
 ORDER BY cr.starts_at, cr.name, cr.id
 SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
+
+        $revealAt = RoundPuzzleReveal::sqlRevealAt('crp', 'cr');
 
         /**
          * @var list<array{
@@ -230,6 +241,9 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
          *     round_puzzle_id: string,
          *     hide_until_round_starts: bool,
          *     hide_mode: null|string,
+         *     reveal_mode: string,
+         *     hides_everywhere: bool,
+         *     reveals_at: null|string,
          *     puzzle_id: string,
          *     puzzle_name: string,
          *     pieces_count: int,
@@ -238,6 +252,8 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
          *     puzzle_ean: null|string,
          *     puzzle_identification_number: null|string,
          *     puzzle_approved: bool,
+         *     puzzle_hide_until: null|string,
+         *     puzzle_hide_image_until: null|string,
          * }> $puzzleRows
          */
         $puzzleRows = $this->database->fetchAllAssociative(<<<SQL
@@ -246,6 +262,9 @@ SELECT
     crp.id AS round_puzzle_id,
     crp.hide_until_round_starts,
     crp.hide_mode,
+    crp.reveal_mode,
+    crp.hides_everywhere,
+    {$revealAt} AS reveals_at,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     p.pieces_count,
@@ -253,7 +272,9 @@ SELECT
     m.name AS manufacturer_name,
     p.ean AS puzzle_ean,
     p.identification_number AS puzzle_identification_number,
-    p.approved AS puzzle_approved
+    p.approved AS puzzle_approved,
+    p.hide_until AS puzzle_hide_until,
+    p.hide_image_until AS puzzle_hide_image_until
 FROM competition_round_puzzle crp
 INNER JOIN competition_round cr ON cr.id = crp.round_id
 INNER JOIN puzzle p ON p.id = crp.puzzle_id
@@ -271,6 +292,9 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
                 roundPuzzleId: $puzzleRow['round_puzzle_id'],
                 hideUntilRoundStarts: $puzzleRow['hide_until_round_starts'],
                 hideMode: $puzzleRow['hide_mode'],
+                revealMode: $puzzleRow['reveal_mode'],
+                revealsAt: $puzzleRow['hide_until_round_starts'] ? AdminCompetition::isoDateTime($puzzleRow['reveals_at']) : null,
+                hidesEverywhere: $puzzleRow['hides_everywhere'],
                 puzzle: AdminPuzzle::fromDatabaseRow($puzzleRow),
             );
         }
@@ -296,6 +320,8 @@ SQL, ['competitionId' => $competitionId, 'roundId' => $onlyRoundId]);
          *     puzzle_ean: null|string,
          *     puzzle_identification_number: null|string,
          *     puzzle_approved: bool,
+         *     puzzle_hide_until: null|string,
+         *     puzzle_hide_image_until: null|string,
          * }> $rows
          */
         $rows = $this->database->fetchAllAssociative(<<<SQL
@@ -307,7 +333,9 @@ SELECT
     m.name AS manufacturer_name,
     p.ean AS puzzle_ean,
     p.identification_number AS puzzle_identification_number,
-    p.approved AS puzzle_approved
+    p.approved AS puzzle_approved,
+    p.hide_until AS puzzle_hide_until,
+    p.hide_image_until AS puzzle_hide_image_until
 FROM tag_puzzle tp
 INNER JOIN puzzle p ON p.id = tp.puzzle_id
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id

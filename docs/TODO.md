@@ -4,6 +4,26 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Participant management after the Wisconsin edit-form bug (`docs/features/competitions-management/participants.md`)
+
+- [ ] Wisconsin 2026 (`019e27ce-3752-73a3-a964-8be8e2896ea2`) data damaged by the empty/stale edit form on 2026-10-05
+      (20:25-21:42 UTC, 255 saves): 80 of the 84 rows that existed at the 16:30 UTC backup lost country `us`
+      (the other 148 rows came with the 20:22 import - no baseline, very likely the same); `Eliza Barter` (linked to
+      player `019b2332-…`) became `Eliana Garrison` and was unlinked; `Kristin Zahn` became `Kristina Chiu` and
+      `Jessica Chandler` became `Jess Chandler` (both look like the previous form's name carried over - the 20:22
+      import created separate `Kristin Zahn` / `Eliza Barter` rows). Decide with Dakota: restore countries from the
+      backup, fix the three rows, re-link the player. Rounds were all assigned by hand in that session (the import
+      had assigned none) - ask her to double-check them.
+- [ ] Import reads `round_name` (one round per row) but the template/export write `round_names` (comma list) - rounds
+      in a downloaded template or export are silently ignored. Accept `round_names` (+ keep `round_name`), warn on
+      unknown columns, document round/team columns in the page help.
+- [ ] Import accepts `.xlsx` only - accept `.csv` too (PhpSpreadsheet reads it; detect delimiter/encoding).
+- [ ] Bulk editor (spreadsheet-like grid of all participants: name, country, external id, player, one checkbox per
+      round, team name) - proposal in the PR of this fix.
+- [ ] `RoundTableManager` (table layout) has no authorization on its Live actions either (only the page controller
+      checks `CompetitionEditVoter`; row/table/spot ids are not checked against the round) - guard it the way
+      `ManageCompetitionParticipants` does now (`#[PostHydrate]` voter check + ids scoped to the competition).
+
 ## Round time zones and secret-puzzle reveal (`docs/features/competitions-management/README.md`)
 
 - [ ] With the deploy, right after it: `myspeedpuzzling:backfill-round-puzzle-reveals` (dry run), read the list, then

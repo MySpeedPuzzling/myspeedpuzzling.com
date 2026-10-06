@@ -88,4 +88,31 @@ final class EditCompetitionParticipantHandlerTest extends KernelTestCase
         self::assertCount(1, $rounds);
         self::assertSame(CompetitionRoundFixture::ROUND_WJPC_FINAL, $rounds[0]->round->id->toString());
     }
+
+    public function testIgnoresRoundsOfAnotherCompetitionAndDuplicates(): void
+    {
+        $this->messageBus->dispatch(new EditCompetitionParticipant(
+            participantId: CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED,
+            name: 'Jane Unconnected',
+            country: 'us',
+            externalId: null,
+            playerId: null,
+            roundIds: [
+                CompetitionRoundFixture::ROUND_WJPC_FINAL,
+                CompetitionRoundFixture::ROUND_WJPC_FINAL,
+                CompetitionRoundFixture::ROUND_CZECH_FINAL,
+                'not-a-uuid',
+            ],
+        ));
+
+        $this->entityManager->clear();
+
+        /** @var array<CompetitionParticipantRound> $rounds */
+        $rounds = $this->entityManager
+            ->getRepository(CompetitionParticipantRound::class)
+            ->findBy(['participant' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]);
+
+        self::assertCount(1, $rounds);
+        self::assertSame(CompetitionRoundFixture::ROUND_WJPC_FINAL, $rounds[0]->round->id->toString());
+    }
 }

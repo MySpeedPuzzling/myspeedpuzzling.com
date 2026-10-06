@@ -3599,6 +3599,7 @@ qr_code:
     "msp_player": "MSP hráč"
     "rounds": "Kola"
     "no_participants": "Zatím žádní účastníci. Přidejte účastníky ručně nebo je importujte ze souboru."
+    "name_required": "Zadejte jméno účastníka."
     "restore": "Obnovit"
     "edit": "Upravit"
     "delete": "Smazat"

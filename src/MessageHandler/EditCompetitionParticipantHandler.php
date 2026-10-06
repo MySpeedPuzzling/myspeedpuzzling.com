@@ -71,11 +71,12 @@ readonly final class EditCompetitionParticipantHandler
 
         $participant = $this->participantRepository->get($message->participantId);
 
-        foreach ($message->roundIds as $roundId) {
-            if (!in_array($roundId, $existingRoundIds, true)) {
+        foreach (array_unique($message->roundIds) as $roundId) {
+            if (!in_array($roundId, $existingRoundIds, true) && Uuid::isValid($roundId)) {
                 $round = $this->entityManager->find(CompetitionRound::class, $roundId);
 
-                if ($round === null) {
+                // Only rounds of the participant's own competition
+                if ($round === null || !$round->competition->id->equals($participant->competition->id)) {
                     continue;
                 }
 

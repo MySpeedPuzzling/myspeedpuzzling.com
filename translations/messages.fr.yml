@@ -3602,6 +3602,7 @@ competition:
     "msp_player": "Joueur MSP"
     "rounds": "Manches"
     "no_participants": "Pas encore de participants. Ajoutez des participants manuellement ou importez-les depuis un fichier."
+    "name_required": "Saisissez le nom du participant."
     "restore": "Restaurer"
     "edit": "Modifier"
     "delete": "Supprimer"

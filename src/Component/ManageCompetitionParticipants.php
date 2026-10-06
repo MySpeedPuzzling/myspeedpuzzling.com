@@ -14,13 +14,17 @@ use SpeedPuzzling\Web\Query\SearchPlayers;
 use SpeedPuzzling\Web\Results\CompetitionRoundInfo;
 use SpeedPuzzling\Web\Results\ManageableCompetitionParticipant;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Value\CountryCode;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\Attribute\PostHydrate;
 use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
@@ -58,6 +62,9 @@ final class ManageCompetitionParticipants
     /** @var array<string> */
     #[LiveProp(writable: true)]
     public array $editRoundIds = [];
+
+    #[LiveProp]
+    public bool $editNameMissing = false;
 
     // Add fields
     #[LiveProp(writable: true)]
@@ -104,7 +111,21 @@ final class ManageCompetitionParticipants
         private readonly SearchPlayers $searchPlayers,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly Security $security,
     ) {
+    }
+
+    /**
+     * The page checks the permission once, but every Live request is a request of its own:
+     * a maintainer removed from the event (or anybody replaying the component's props) must not
+     * keep changing its participants.
+     */
+    #[PostHydrate]
+    public function denyAccessUnlessMaintainer(): void
+    {
+        if (!$this->security->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $this->competitionId)) {
+            throw new AccessDeniedHttpException();
+        }
     }
 
     #[PostMount]
@@ -161,50 +182,61 @@ final class ManageCompetitionParticipants
         return $this->searchPlayers->fulltext($query, limit: 10, includeHidden: true);
     }
 
+    /**
+     * The form is filled from the database, never from the list rendered for the page: actions
+     * run on a freshly hydrated component whose list is not loaded yet, and every value left
+     * over from editing another participant must be replaced - a save writes all of them.
+     */
     #[LiveAction]
     public function startEdit(#[LiveArg] string $participantId): void
     {
-        $this->editingParticipantId = $participantId;
-        $this->playerSearchQuery = '';
+        $participant = $this->getParticipants->byId($this->competitionId, $participantId);
 
-        foreach ($this->participants as $p) {
-            if ($p->participantId === $participantId) {
-                $this->editName = $p->participantName;
-                $this->editCountry = $p->participantCountry !== null ? $p->participantCountry->name : '';
-                $this->editExternalId = $p->externalId ?? '';
-                $this->editPlayerId = $p->playerId;
-                $this->editPlayerName = $p->playerName ?? $p->playerCode;
-                $this->editRoundIds = $p->roundIds;
-                break;
-            }
-        }
+        $this->editingParticipantId = $participant->participantId;
+        $this->editName = $participant->participantName;
+        $this->editCountry = $participant->participantCountry !== null ? $participant->participantCountry->name : '';
+        $this->editExternalId = $participant->externalId ?? '';
+        $this->editPlayerId = $participant->playerId;
+        $this->editPlayerName = $participant->playerName ?? $participant->playerCode;
+        $this->editRoundIds = array_values($participant->roundIds);
+        $this->editNameMissing = false;
+        $this->playerSearchQuery = '';
     }
 
     #[LiveAction]
     public function saveEdit(): void
     {
-        if ($this->editingParticipantId === null || $this->editName === '') {
+        if ($this->editingParticipantId === null) {
+            return;
+        }
+
+        // Throws for a participant of another competition
+        $participant = $this->getParticipants->byId($this->competitionId, $this->editingParticipantId);
+
+        $name = trim($this->editName);
+
+        if ($name === '') {
+            $this->editNameMissing = true;
+
             return;
         }
 
         $this->messageBus->dispatch(new EditCompetitionParticipant(
-            participantId: $this->editingParticipantId,
-            name: $this->editName,
-            country: $this->editCountry !== '' ? $this->editCountry : null,
-            externalId: $this->editExternalId !== '' ? $this->editExternalId : null,
+            participantId: $participant->participantId,
+            name: $name,
+            country: CountryCode::fromCode($this->editCountry)?->name,
+            externalId: trim($this->editExternalId) !== '' ? trim($this->editExternalId) : null,
             playerId: $this->editPlayerId,
-            roundIds: $this->editRoundIds,
+            roundIds: array_values(array_unique($this->editRoundIds)),
         ));
 
-        $this->editingParticipantId = null;
-        $this->playerSearchQuery = '';
+        $this->resetEditForm();
     }
 
     #[LiveAction]
     public function cancelEdit(): void
     {
-        $this->editingParticipantId = null;
-        $this->playerSearchQuery = '';
+        $this->resetEditForm();
     }
 
     #[LiveAction]
@@ -250,15 +282,17 @@ final class ManageCompetitionParticipants
     #[LiveAction]
     public function addParticipant(): void
     {
-        if ($this->addName === '') {
+        $name = trim($this->addName);
+
+        if ($name === '') {
             return;
         }
 
         $this->messageBus->dispatch(new AddCompetitionParticipant(
             competitionId: $this->competitionId,
-            name: $this->addName,
-            country: $this->addCountry !== '' ? $this->addCountry : null,
-            externalId: $this->addExternalId !== '' ? $this->addExternalId : null,
+            name: $name,
+            country: CountryCode::fromCode($this->addCountry)?->name,
+            externalId: trim($this->addExternalId) !== '' ? trim($this->addExternalId) : null,
             playerId: $this->addPlayerId,
         ));
 
@@ -289,17 +323,43 @@ final class ManageCompetitionParticipants
     #[LiveAction]
     public function deleteParticipant(#[LiveArg] string $participantId): void
     {
+        // Throws for a participant of another competition
+        $participant = $this->getParticipants->byId($this->competitionId, $participantId);
+
         $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(
-            participantId: $participantId,
+            participantId: $participant->participantId,
         ));
+
+        if ($this->editingParticipantId === $participant->participantId) {
+            $this->resetEditForm();
+        }
     }
 
     #[LiveAction]
     public function restoreParticipant(#[LiveArg] string $participantId): void
     {
+        // Throws for a participant of another competition
+        $participant = $this->getParticipants->byId($this->competitionId, $participantId);
+
         $this->messageBus->dispatch(new RestoreCompetitionParticipant(
-            participantId: $participantId,
+            participantId: $participant->participantId,
         ));
+    }
+
+    /**
+     * Nothing of a closed form may survive into the next one.
+     */
+    private function resetEditForm(): void
+    {
+        $this->editingParticipantId = null;
+        $this->editName = '';
+        $this->editCountry = '';
+        $this->editExternalId = '';
+        $this->editPlayerId = null;
+        $this->editPlayerName = null;
+        $this->editRoundIds = [];
+        $this->editNameMissing = false;
+        $this->playerSearchQuery = '';
     }
 
     /**

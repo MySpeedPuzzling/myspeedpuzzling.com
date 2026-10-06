@@ -25,6 +25,17 @@ final class InternalApiAuthenticator extends AbstractAuthenticator
 
     public const string ROLE = 'ROLE_INTERNAL_API';
 
+    private const string PATH_PREFIX = '/internal-api/';
+
+    /**
+     * Whether the request is one the `internal_api` firewall guards. Decoded like the firewall's and the router's own
+     * matching (rawurldecode), so `/internal%2Dapi/…` - authenticated and routed like `/internal-api/…` - is one too.
+     */
+    public static function isInternalApiRequest(Request $request): bool
+    {
+        return str_starts_with(rawurldecode($request->getPathInfo()), self::PATH_PREFIX);
+    }
+
     public function __construct(
         #[Autowire(env: 'INTERNAL_API_TOKEN')]
         private readonly string $internalApiToken,

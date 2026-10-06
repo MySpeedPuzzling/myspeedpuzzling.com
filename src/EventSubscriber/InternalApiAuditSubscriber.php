@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\EventSubscriber;
 
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,8 +25,6 @@ final readonly class InternalApiAuditSubscriber implements EventSubscriberInterf
 {
     /** Set by a controller that creates something, so the log names it */
     public const string CREATED_ID_ATTRIBUTE = '_internal_api_created_id';
-
-    private const string PATH_PREFIX = '/internal-api/';
 
     public function __construct(
         #[Autowire(service: 'monolog.logger.internal_api_audit')]
@@ -53,7 +52,7 @@ final readonly class InternalApiAuditSubscriber implements EventSubscriberInterf
             return;
         }
 
-        if (str_starts_with($request->getPathInfo(), self::PATH_PREFIX) === false) {
+        if (InternalApiAuthenticator::isInternalApiRequest($request) === false) {
             return;
         }
 
@@ -69,7 +68,7 @@ final readonly class InternalApiAuditSubscriber implements EventSubscriberInterf
 
         $this->logger->info('Internal API write: {method} {path} answered {status}', [
             'method' => $request->getMethod(),
-            'path' => $request->getPathInfo(),
+            'path' => rawurldecode($request->getPathInfo()),
             'route' => $request->attributes->get('_route'),
             'status' => $status,
             'actingPlayerId' => $this->actingPlayerId !== '' ? $this->actingPlayerId : null,

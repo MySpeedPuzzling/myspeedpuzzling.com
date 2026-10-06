@@ -4,8 +4,15 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use SpeedPuzzling\Web\Exceptions\CompetitionNotApprovable;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
+use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
+use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
+use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
+use SpeedPuzzling\Web\Exceptions\PuzzleEanAlreadyInCatalogue;
+use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
@@ -73,6 +80,15 @@ return App::config([
             // puzzle changed after it was read - answered 409 / 422 with "read it again", nothing applied
             PuzzleChangeRequestAlreadyReviewed::class => ['log_level' => 'info'],
             PuzzleChangedMeanwhile::class => ['log_level' => 'info'],
+            // The internal API's refusals of an event change that breaks a rule - answered 409 with the reason,
+            // nothing applied (docs/features/internal-api.md, Competitions and events)
+            CompetitionSlugTaken::class => ['log_level' => 'info'],
+            CompetitionSlugAmbiguous::class => ['log_level' => 'info'],
+            CompetitionNotApprovable::class => ['log_level' => 'info'],
+            CompetitionRoundHasResults::class => ['log_level' => 'info'],
+            CompetitionTagShared::class => ['log_level' => 'info'],
+            PuzzleInTwoRoundsOfCategory::class => ['log_level' => 'info'],
+            PuzzleEanAlreadyInCatalogue::class => ['log_level' => 'info'],
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],
         'trusted_proxies' => '%env(TRUSTED_PROXIES)%',

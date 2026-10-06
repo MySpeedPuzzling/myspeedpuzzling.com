@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\EventSubscriber;
 
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
+use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,13 +20,12 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * API's only consumers, scripts and Claude Code, which do not send `Accept: application/json`.
  *
  * Runs after the listeners that log the exception (priority 0) and after the firewall turned a missing token into a
- * 401 (priority 1), before Symfony renders the error page (-128). Anything else - a bug, a 500 - is left to Symfony, so
- * it reaches Sentry as it always did.
+ * 401 (priority 1), before Symfony renders the error page (-128). Anything else - a bug, any 5xx - is left to Symfony,
+ * so it reaches Sentry as it always did. The path is matched decoded, like the firewall matches it
+ * (InternalApiAuthenticator::isInternalApiRequest()).
  */
 final readonly class InternalApiErrorResponseSubscriber implements EventSubscriberInterface
 {
-    private const string PATH_PREFIX = '/internal-api/';
-
     /**
      * @return array<string, array{0: string, 1: int}>
      */
@@ -38,13 +38,14 @@ final readonly class InternalApiErrorResponseSubscriber implements EventSubscrib
 
     public function onKernelException(ExceptionEvent $event): void
     {
-        if (str_starts_with($event->getRequest()->getPathInfo(), self::PATH_PREFIX) === false) {
+        if (InternalApiAuthenticator::isInternalApiRequest($event->getRequest()) === false) {
             return;
         }
 
         $exception = $event->getThrowable();
 
-        if ($exception instanceof HttpExceptionInterface === false) {
+        // A server error is a bug however it was thrown - Symfony's own handling keeps it visible
+        if ($exception instanceof HttpExceptionInterface === false || $exception->getStatusCode() >= 500) {
             return;
         }
 

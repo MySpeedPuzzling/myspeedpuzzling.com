@@ -580,8 +580,9 @@ paths:
       description: |
         Only the fields sent change; `null` or `""` clears a field. **The slug is
         kept when the name changes** (unlike the web form) - only an explicit `slug`
-        changes it, and it must be free (409 otherwise). `maintainerIds` replaces the
-        whole list.
+        changes it, and it must be free (409 otherwise); old URLs of the event get no
+        redirect. The slug cannot be cleared (400). `maintainerIds` replaces the whole
+        list (`null` keeps it). `"isOnline": true` clears location and dates.
       parameters:
         - $ref: "#/components/parameters/CompetitionId"
       requestBody:
@@ -637,7 +638,8 @@ paths:
       description: |
         "Competition puzzles" on the standalone event page are the puzzles of the
         competition's tag. They become exactly `puzzleIds`; a competition without a
-        tag gets one named after it (shortcut, else name). Refused (409) when other
+        tag gets a new one named like its badge (shortcut, else name, else
+        "name (2)" … - never the name of an existing tag). Refused (409) when other
         competitions or series carry the same tag - changing it would change theirs.
       parameters:
         - $ref: "#/components/parameters/CompetitionId"
@@ -978,13 +980,14 @@ components:
           format: uri
         isOnline:
           type: boolean
+          description: An online event has no place and no dates - true clears `location`, `dateFrom` and `dateTo`, like the web form.
         slug:
           type: string
           pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-          description: Explicit URL slug - unique (409 otherwise). Left out, create generates it from the name and update keeps it.
+          description: Explicit URL slug - unique (409 otherwise). Left out, create generates it from the name and update keeps it. A change breaks the old URLs (no redirect); it cannot be cleared.
         maintainerIds:
           type: array
-          description: Player ids who may manage the event (replaces the list).
+          description: Player ids who may manage the event - replaces the list, `[]` empties it, `null` or left out keeps it.
           items:
             type: string
             format: uuid
@@ -1084,7 +1087,7 @@ components:
           example: "2026-11-14T10:00:00+01:00"
         timezone:
           type: string
-          description: IANA time zone for a `startsAt` without an offset - by default the time zone of the competition's country (else Europe/Prague).
+          description: IANA time zone for a `startsAt` without an offset - by default the time zone of the competition's country (else Europe/Prague). Only together with `startsAt`.
           example: Europe/Prague
         minutesLimit:
           type: integer

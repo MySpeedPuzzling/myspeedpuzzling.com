@@ -224,12 +224,16 @@ the competition's creator / the puzzle's adder, credited with the approval); the
 **Slugs - published URLs depend on them.** The web form gives a renamed competition a new slug; this API **keeps the
 slug when the name changes**. Only an explicit `slug` changes it: lower-case words joined by hyphens
 (`^[a-z0-9]+(?:-[a-z0-9]+)*$`), free (`409` when another competition holds it - for an edition, another edition of
-the same series). `POST` generates the slug from the name unless `slug` is sent. Round slugs are generated once from
-the name and never change.
+the same series). **A slug change breaks every old URL of the event** (`/en/events/{old-slug}`, its round results
+pages, links shared or indexed): there is no redirect from the old slug, so change it only when the old one is wrong.
+A slug cannot be cleared (`null` / `""` is a `400`). `POST` generates the slug from the name unless `slug` is sent.
+Round slugs are generated once from the name and never change.
 
 **Fields.** The bodies use the field names of the answers (camelCase). A `PATCH` changes only the fields it holds;
-`null` or `""` clears a field (`slug` cannot be cleared). A field the endpoint does not know is a `400` - a typo would
-otherwise change nothing silently.
+`null` or `""` clears a field - except `slug` (a `400`) and `maintainerIds` (`null` keeps the list, `[]` empties it).
+A field the endpoint does not know is a `400` - a typo would otherwise change nothing silently - and so is a body that
+is no JSON object (`{"error": "The body must be a JSON object."}`). Every invalid field is listed at once in
+`errors`, e.g. an invalid id in a list names it (`"puzzleIds": "must contain only ids - \"abc\" is not one."`).
 
 | Competition field | Notes |
 |---|---|
@@ -238,10 +242,10 @@ otherwise change nothing silently.
 | `location`, `locationCountryCode` | ISO 3166-1 alpha-2, any letter case (`"cz"`) |
 | `dateFrom`, `dateTo` | ISO 8601 days (`"2026-11-14"`; a date-time counts by its day). An in-person standalone event needs location and both dates (like the form; an edition of a series needs neither - its series holds the place); `dateTo` not before `dateFrom`, at most 30 days later |
 | `link` (website), `registrationLink`, `resultsLink` | URLs |
-| `isOnline` | `false` by default |
+| `isOnline` | `false` by default. **An online event has no place and no dates**, like in the web form: `true` clears `location`, `dateFrom` and `dateTo` (sent or stored - a `PATCH` of just `{"isOnline": true}` clears them too); `locationCountryCode` stays. Its rounds carry the times |
 | `slug` | See above |
-| `maintainerIds` | Player ids who may manage the event - replaces the list |
-| `approve` | Create only: `true` approves right away (no e-mail is sent - the reviewer player is the creator) |
+| `maintainerIds` | Player ids who may manage the event - a list replaces the whole list, `[]` removes everyone, left out or `null` keeps it |
+| `approve` | Create only: `true` approves right away (no "approved" e-mail - the reviewer player is the creator, `ApproveCompetition::$notifyCreator = false`) |
 
 Not settable here: the logo (upload it in the UI), the series of an edition (recurring events are `CompetitionSeries`;
 `isRecurring` + `series` in the answer tell an edition), rejection.
@@ -251,7 +255,7 @@ Not settable here: the logo (upload it in the UI), the series of an edition (rec
 | `name` | Required on create |
 | `category` | `solo` (default), `duo`, `team` |
 | `startsAt` | Required on create. ISO 8601 date-time, **stored and answered in UTC** like the round form stores it: with an offset (`"2026-11-14T10:00:00+01:00"`, `"…Z"`) it is that moment; without one (`"2026-11-14T10:00"`) a wall-clock time in `timezone` |
-| `timezone` | IANA zone for a `startsAt` without offset - default: the zone of the competition's country (`CountryCode::defaultTimezone()`), else `Europe/Prague` - what the form preselects |
+| `timezone` | IANA zone for a `startsAt` without offset - default: the zone of the competition's country (`CountryCode::defaultTimezone()`), else `Europe/Prague` - what the form preselects. Only together with `startsAt` (a `400` alone - it changes nothing by itself) |
 | `minutesLimit` | Required on create, ≥ 1 |
 | `badgeBackgroundColor`, `badgeTextColor` | e.g. `"#fe696a"` / `"#ffffff"` (the form's defaults) |
 | `resultsLink` | The organiser's results page of this round |
@@ -271,9 +275,12 @@ own delete button in the UI does not have this guard.
 
 **The competition's own puzzles** ("Competition puzzles" on the standalone event page) are the puzzles of the
 competition's **tag**. `PUT …/competitions/{competitionId}/puzzles` makes them exactly `puzzleIds`; a competition
-without a tag gets one, named like its badge (shortcut, else name) - tag names show as badges on the puzzles. When
-other competitions or series carry the same tag the request is refused (`409`, nothing changes): changing it would
-change their puzzles too.
+without a tag gets a new one. Tag names show as badges on the puzzles, so the new tag is named like the competition's
+badge - its shortcut, else its name - but never like a tag that exists already (any letter case): a taken shortcut
+gives way to the name, a taken name to `"<name> (2)"`, `(3)`, …. An existing tag is never reused, even an unused one
+of the same name: its puzzles may be a hand-made list somebody filters by, and two competitions would end up sharing
+it. When other competitions or series carry the competition's tag the request is refused (`409`, nothing changes):
+changing it would change their puzzles too. An edition gets a tag of its own; its series' tag is never touched.
 
 **Puzzles.** `GET /internal-api/puzzles` is the site's own search (`SearchPuzzle`): every name in every language, EANs
 with or without leading zeros, brand codes; approved or not; best match first. `q` and `ean` are the same search -
@@ -362,8 +369,9 @@ fields minus `maintainers`, `rounds` and `puzzles`. `GET …/{idOrSlug}` takes a
 first, else an edition's - several editions sharing the slug answer `409` with their ids.
 
 Approving (`POST …/approve`) works like the admin approval queue - the competition becomes public and its creator gets
-the "approved" e-mail, unless the creator is the reviewer player. Refused (`409`) for an approved or rejected
-competition and for an edition.
+the "approved" e-mail, unless the creator is the reviewer player (`ApproveCompetition::$notifyCreator`, which only the
+internal API sets to `false`; the admin approval queue always e-mails the creator). Refused (`409`) for an approved or
+rejected competition and for an edition.
 
 #### Competition examples
 
@@ -538,9 +546,16 @@ the `fingers_crossed` one that drops info records of requests without a warning.
 | `409 Conflict` | A puzzle changed since the `recordVersion(s)` sent with a merge / change-request approve; a change proposal for a puzzle with a pending one | `{"error": "..."}` |
 | `422 Unprocessable Entity` | A brand merge that cannot be done (survivor in its own list) | `{"error": "..."}` |
 
-Every refusal is JSON, whatever the client accepts: `InternalApiErrorResponseSubscriber` renders each HTTP exception
-under `/internal-api/` (from a controller, a handler or the firewall) as `{"error": "…"}` with its status. Anything
-else (a bug) is left to Symfony and stays a reported 500.
+Every refusal is JSON, whatever the client accepts: `InternalApiErrorResponseSubscriber` renders each 4xx HTTP
+exception under `/internal-api/` (from a controller, a handler or the firewall) as `{"error": "…"}` with its status.
+Anything else (a bug, any 5xx) is left to Symfony and stays a reported 500. Both it and the audit log recognise the
+API by the **decoded** path, like the firewall and the router do (`InternalApiAuthenticator::isInternalApiRequest()`),
+so `/internal%2Dapi/…` is answered and logged the same.
+
+The refusals of the competition endpoints are expected answers, not bugs: their exceptions (`CompetitionSlugTaken`,
+`CompetitionSlugAmbiguous`, `CompetitionNotApprovable`, `CompetitionRoundHasResults`, `CompetitionTagShared`,
+`PuzzleInTwoRoundsOfCategory`, `PuzzleEanAlreadyInCatalogue`; 400s anyway) are logged at `info` -
+`config/packages/framework.php` `exceptions`, pinned by `ClientErrorLogLevelTest` - so they never become Sentry issues.
 
 ## Adding a new endpoint
 

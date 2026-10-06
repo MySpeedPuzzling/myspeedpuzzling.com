@@ -5206,7 +5206,7 @@ puzzle_codes:
 puzzle_names:
     main_title: "メインタイトル"
     main_title_hint: "箱に記載された英語のタイトルです。すべてのページ・すべての言語で最初に表示されます。"
-    no_english_title: "箱に英語のタイトルがありません"
+    no_english_title: "箱に英語のタイトルがない場合は言語を設定"
     main_title_language: "箱に英語のタイトルがありません - メインタイトルの言語："
     main_title_language_not_set: "英語、または不明"
     language_not_known: "言語不明"

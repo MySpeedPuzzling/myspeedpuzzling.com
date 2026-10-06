@@ -47,4 +47,27 @@ final class PuzzleNameLanguageChoicesTest extends TestCase
         self::assertSame('Deutsch', PuzzleNameLanguageChoices::label('de', 'de'));
         self::assertSame('チェコ語', PuzzleNameLanguageChoices::label('cs', 'ja'));
     }
+
+    public function testEveryLanguageHasAFlag(): void
+    {
+        foreach (PuzzleNameLanguageChoices::LANGUAGES as $tag) {
+            self::assertNotNull(PuzzleNameLanguageChoices::flag($tag), $tag);
+        }
+    }
+
+    public function testARegionPicksTheFlag(): void
+    {
+        self::assertSame('cz', PuzzleNameLanguageChoices::flag('cs'));
+        self::assertSame('br', PuzzleNameLanguageChoices::flag('pt-BR'));
+        self::assertSame('cn', PuzzleNameLanguageChoices::flag('zh-Hant'));
+        self::assertSame('tw', PuzzleNameLanguageChoices::flag('zh-Hant-TW'));
+        self::assertSame('no', PuzzleNameLanguageChoices::flag('no'));
+        self::assertNull(PuzzleNameLanguageChoices::flag('eo'));
+    }
+
+    public function testOptionsCarryTheFlagAndTheEnglishNameToSearchBy(): void
+    {
+        self::assertSame(['data-flag' => 'de', 'data-alias' => 'German de'], PuzzleNameLanguageChoices::optionAttributes('de'));
+        self::assertSame(['data-alias' => 'Esperanto eo'], PuzzleNameLanguageChoices::optionAttributes('eo'));
+    }
 }

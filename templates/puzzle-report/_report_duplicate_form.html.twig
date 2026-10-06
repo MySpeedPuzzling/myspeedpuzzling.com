@@ -68,10 +68,10 @@
     <div class="collapse {{ languages_given ? 'show' }}" id="{{ languages_id }}">
         <div class="row g-2">
             <div class="col-sm-6">
-                {{ form_row(report_form.sourceNameLanguage, {label_attr: {class: 'small'}, attr: {class: 'form-select-sm'}}) }}
+                {{ form_row(report_form.sourceNameLanguage, {label_attr: {class: 'small'}, attr: {class: 'form-select-sm', 'data-controller': 'language-select'}}) }}
             </div>
             <div class="col-sm-6">
-                {{ form_row(report_form.duplicateNameLanguage, {label_attr: {class: 'small'}, attr: {class: 'form-select-sm'}}) }}
+                {{ form_row(report_form.duplicateNameLanguage, {label_attr: {class: 'small'}, attr: {class: 'form-select-sm', 'data-controller': 'language-select'}}) }}
             </div>
         </div>
     </div>

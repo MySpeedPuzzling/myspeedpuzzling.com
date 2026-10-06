@@ -5216,7 +5216,7 @@ puzzle_codes:
 puzzle_names:
     main_title: "Título principal"
     main_title_hint: "El título en inglés de la caja. Se muestra primero en todas las páginas y en todos los idiomas."
-    no_english_title: "La caja no tiene título en inglés"
+    no_english_title: "¿La caja no tiene título en inglés? Indica su idioma"
     main_title_language: "La caja no tiene título en inglés - el título principal está en:"
     main_title_language_not_set: "Inglés o desconocido"
     language_not_known: "Idioma desconocido"

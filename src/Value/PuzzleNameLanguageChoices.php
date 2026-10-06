@@ -24,6 +24,17 @@ readonly final class PuzzleNameLanguageChoices
     ];
 
     /**
+     * Base language => flag-icons code, where the two differ or the language is spoken in many countries
+     */
+    private const array FLAGS = [
+        'cs' => 'cz', 'sk' => 'sk', 'de' => 'de', 'fr' => 'fr', 'es' => 'es', 'it' => 'it', 'nl' => 'nl', 'pl' => 'pl',
+        'pt' => 'pt', 'hu' => 'hu', 'ro' => 'ro', 'sv' => 'se', 'nb' => 'no', 'nn' => 'no', 'da' => 'dk', 'fi' => 'fi',
+        'et' => 'ee', 'lv' => 'lv', 'lt' => 'lt', 'sl' => 'si', 'hr' => 'hr', 'sr' => 'rs', 'bg' => 'bg', 'el' => 'gr',
+        'tr' => 'tr', 'ru' => 'ru', 'uk' => 'ua', 'ja' => 'jp', 'zh' => 'cn', 'ko' => 'kr', 'he' => 'il', 'ar' => 'arab',
+        'en' => 'gb',
+    ];
+
+    /**
      * Label => tag, sorted by label in the page language - the form's `choices`.
      *
      * @param list<null|string> $extraTags Tags to offer besides the list (what a name already has) - anything that is
@@ -79,6 +90,34 @@ readonly final class PuzzleNameLanguageChoices
         }
 
         return mb_strtoupper(mb_substr($label, 0, 1)) . mb_substr($label, 1);
+    }
+
+    /**
+     * The flag shown next to a language in the pickers - a flag-icons code: the tag's region when it has one
+     * (`pt-BR` → br), else the country the language's boxes come from. Null for a language without one.
+     */
+    public static function flag(string $tag): null|string
+    {
+        foreach (array_slice(explode('-', $tag), 1) as $subtag) {
+            if (preg_match('/^[A-Za-z]{2}$/', $subtag) === 1) {
+                return strtolower($subtag);
+            }
+        }
+
+        return self::FLAGS[LanguageTag::base($tag)] ?? null;
+    }
+
+    /**
+     * The attributes of the language's <option> read by language_select_controller.js: its flag, and its English name
+     * and tag to search by ("German" or "de" finds "Němčina" on a Czech page).
+     *
+     * @return array<string, string>
+     */
+    public static function optionAttributes(string $tag): array
+    {
+        $flag = self::flag($tag);
+
+        return ($flag !== null ? ['data-flag' => $flag] : []) + ['data-alias' => self::label($tag, 'en') . ' ' . $tag];
     }
 
     /**

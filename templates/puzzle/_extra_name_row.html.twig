@@ -11,6 +11,7 @@
     {{ form_widget(row.language, {attr: {
         class: 'extra-name-row__language',
         'aria-label': 'puzzle_names.language'|trans,
+        'data-controller': 'language-select',
     }}) }}
     <button type="button" class="btn btn-outline-secondary btn-sm extra-name-row__remove" data-action="optional-rows#remove" aria-label="{{ 'puzzle_names.remove_name'|trans }}" title="{{ 'puzzle_names.remove_name'|trans }}">
         <span aria-hidden="true">&times;</span>

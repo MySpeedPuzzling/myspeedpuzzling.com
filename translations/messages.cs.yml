@@ -5213,7 +5213,7 @@ puzzle_codes:
 puzzle_names:
     main_title: "Hlavní název"
     main_title_hint: "Anglický název z krabice. Zobrazuje se jako první na každé stránce, ve všech jazycích."
-    no_english_title: "Krabice nemá anglický název"
+    no_english_title: "Krabice nemá anglický název? Nastav jazyk názvu"
     main_title_language: "Krabice nemá anglický název - hlavní název je v jazyce:"
     main_title_language_not_set: "Angličtina, nebo neznámý jazyk"
     language_not_known: "Neznámý jazyk"

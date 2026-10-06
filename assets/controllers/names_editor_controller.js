@@ -114,7 +114,7 @@ export default class extends Controller {
         this.rowsTarget.prepend(row);
 
         this.mainTarget.value = '';
-        this.mainLanguageSelectTarget.value = '';
+        this.setLanguage(this.mainLanguageSelectTarget, '', new Map());
         this.changed();
         this.mainTarget.focus();
     }
@@ -194,24 +194,30 @@ export default class extends Controller {
         return row;
     }
 
-    // Every language the editor's selects offer, value → label - a tag outside the list is offered only where a name has it
+    // Every language the editor's selects offer, value → {text, dataset} - a tag outside the list is offered only where a
+    // name has it
     languageLabels() {
         const labels = new Map();
 
         [this.mainLanguageSelectTarget, ...this.rowTargets.map((row) => this.languageSelect(row))].forEach((select) => {
-            Array.from(select.options).forEach((option) => labels.set(option.value, option.text));
+            Array.from(select.options).forEach((option) => labels.set(option.value, { text: option.text, dataset: { ...option.dataset } }));
         });
 
         return labels;
     }
 
-    // An option the select lacks (a tag outside the list, moved from another name) is added with its label
+    // An option the select lacks (a tag outside the list, moved from another name) is added with its label (and flag).
+    // A select already on the page is a Tom Select (language_select_controller.js), told to read the select again
     setLanguage(select, value, labels) {
         if (value !== '' && !Array.from(select.options).some((option) => option.value === value)) {
-            select.add(new Option(labels.get(value) || value, value));
+            const label = labels.get(value);
+            const option = new Option(label ? label.text : value, value);
+            Object.assign(option.dataset, label ? label.dataset : {});
+            select.add(option);
         }
 
         select.value = value;
+        select.tomselect?.sync();
     }
 
     renumber() {

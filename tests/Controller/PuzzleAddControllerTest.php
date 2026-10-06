@@ -568,7 +568,7 @@ final class PuzzleAddControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $prototype = (string) $crawler->filter('template[data-optional-rows-target="template"]')->html();
-        self::assertMatchesRegularExpression('/<option value="cs" selected/', $prototype);
+        self::assertMatchesRegularExpression('/<option value="cs"[^>]* selected/', $prototype);
     }
 
     public function testBothCodeLabelsExplainWhereTheCodesAreInThePagesLanguage(): void

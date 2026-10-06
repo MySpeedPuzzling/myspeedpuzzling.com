@@ -1,6 +1,6 @@
 {#
-    The names editor (docs/features/puzzle-names/README.md, "Writing names and codes"): the main title in its own slot,
-    its language behind a quiet link, the other names as rows (name, language, "Make main title", remove) and
+    The names editor (docs/features/puzzle-names/README.md, "Writing names and codes"): the main title in a neutral panel
+    of its own (no accent colour - it read as an error), its language behind a quiet link under it, the other names as rows (name, language, "Make main title", remove) and
     "+ Add a name". names_editor_controller.js adds, removes and swaps rows and shows the warnings; it never blocks a
     save. A 422 re-render brings the rows back from what was sent.
 
@@ -21,6 +21,7 @@
             class: 'names-editor__row-language',
             'aria-label': 'puzzle_names.language'|trans,
             'data-role': 'language',
+            'data-controller': 'language-select',
         }}) }}
         <button type="button" class="btn btn-outline-secondary btn-sm names-editor__make-main" data-action="names-editor#makeMain">
             {{- 'puzzle_names.make_main_title'|trans -}}
@@ -46,16 +47,25 @@
      data-names-editor-collection-id-value="{{ names.alternativeNames.vars.id }}">
 
     <div class="names-editor__main">
-        <div class="names-editor__label-row">
-            <label class="form-label fw-semibold mb-0" for="{{ names.name.vars.id }}">{{ 'puzzle_names.main_title'|trans }}</label>
-            <span class="names-editor__hint">{{ 'puzzle_names.main_title_hint'|trans }}</span>
-        </div>
+        <label class="form-label fw-semibold mb-0" for="{{ names.name.vars.id }}">{{ 'puzzle_names.main_title'|trans }}</label>
 
         {{ form_widget(names.name, {attr: {
             class: 'names-editor__main-input',
+            'aria-describedby': names.name.vars.id ~ '_hint',
             'data-names-editor-target': 'main',
         }}) }}
         {{ form_errors(names.name) }}
+
+        <div class="names-editor__main-footer">
+            <span class="names-editor__hint" id="{{ names.name.vars.id }}_hint">{{ 'puzzle_names.main_title_hint'|trans }}</span>
+            <button type="button"
+                    class="btn btn-link names-editor__quiet-link"
+                    data-names-editor-target="mainLanguageToggle"
+                    data-action="names-editor#showMainLanguage"
+                    {% if main_language_set %}hidden{% endif %}>
+                {{- 'puzzle_names.no_english_title'|trans -}}
+            </button>
+        </div>
 
         <div class="names-editor__warning" data-names-editor-target="splitWarning" hidden>
             <span>{{ 'puzzle_names.several_names_warning'|trans }}</span>
@@ -67,19 +77,12 @@
             <button type="button" class="btn btn-sm btn-outline-secondary" data-action="names-editor#moveToOtherNames">{{ 'puzzle_names.move_to_other_names'|trans }}</button>
         </div>
 
-        <button type="button"
-                class="btn btn-link btn-sm p-0 names-editor__quiet-link"
-                data-names-editor-target="mainLanguageToggle"
-                data-action="names-editor#showMainLanguage"
-                {% if main_language_set %}hidden{% endif %}>
-            {{- 'puzzle_names.no_english_title'|trans -}}
-        </button>
-
         <div class="names-editor__main-language" data-names-editor-target="mainLanguage" {% if not main_language_set %}hidden{% endif %}>
             <label class="form-label small mb-0" for="{{ names.nameLanguage.vars.id }}">{{ 'puzzle_names.main_title_language'|trans }}</label>
             {{ form_widget(names.nameLanguage, {attr: {
-                class: 'form-select-sm names-editor__main-language-select',
+                class: 'names-editor__main-language-select',
                 'data-names-editor-target': 'mainLanguageSelect',
+                'data-controller': 'language-select',
             }}) }}
             {{ form_errors(names.nameLanguage) }}
         </div>

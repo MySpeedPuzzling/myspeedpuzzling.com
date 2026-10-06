@@ -5540,7 +5540,7 @@ puzzle_codes:
 puzzle_names:
     main_title: "Main title"
     main_title_hint: "The English title of the box. Shown first on every page, in every language."
-    no_english_title: "The box has no English title"
+    no_english_title: "No English title on the box? Set its language"
     main_title_language: "The box has no English title - the main title is in:"
     # Empty choice of the main title's language
     main_title_language_not_set: "English, or not known"

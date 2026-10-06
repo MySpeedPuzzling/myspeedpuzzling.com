@@ -66,6 +66,9 @@ final class PuzzleNameLanguageType extends AbstractType
                 array_values(array_filter((array) $options['extra_tags'], is_string(...))),
                 $options['english'] === true,
             ),
+            'choice_attr' => static fn (string $tag): array => PuzzleNameLanguageChoices::optionAttributes($tag),
+            // A template passing its own `attr` repeats the controller (language_select_controller.js)
+            'attr' => ['data-controller' => 'language-select'],
         ]);
 
         $resolver->setAllowedTypes('extra_tags', 'array');

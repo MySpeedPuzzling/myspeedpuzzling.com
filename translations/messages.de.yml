@@ -5215,7 +5215,7 @@ puzzle_codes:
 puzzle_names:
     main_title: "Haupttitel"
     main_title_hint: "Der englische Titel auf der Schachtel. Wird auf jeder Seite und in jeder Sprache zuerst angezeigt."
-    no_english_title: "Die Schachtel hat keinen englischen Titel"
+    no_english_title: "Kein englischer Titel auf der Schachtel? Sprache festlegen"
     main_title_language: "Die Schachtel hat keinen englischen Titel - der Haupttitel ist auf:"
     main_title_language_not_set: "Englisch oder unbekannt"
     language_not_known: "Sprache unbekannt"

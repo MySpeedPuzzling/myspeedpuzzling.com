@@ -4,11 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
+use SpeedPuzzling\Web\Results\ParticipantImportResult;
 use SpeedPuzzling\Web\Services\CompetitionParticipantExporter;
 use SpeedPuzzling\Web\Services\CompetitionParticipantImporter;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -16,18 +25,23 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Translation\TranslatableMessage;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class CompetitionParticipantImporterTest extends KernelTestCase
 {
     private CompetitionParticipantImporter $importer;
     private Connection $database;
+    private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $this->importer = self::getContainer()->get(CompetitionParticipantImporter::class);
         $this->database = self::getContainer()->get(Connection::class);
+        $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
     }
 
     public function testImportCreatesNewParticipants(): void
@@ -157,7 +171,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
 
         self::assertSame(1, $result->added);
         self::assertCount(1, $result->errors);
-        self::assertStringContainsString('missing name', $result->errors[0]);
+        self::assertStringContainsString('missing name', $this->texts($result->errors)[0]);
     }
 
     public function testImportWarnsOnInvalidCountryCode(): void
@@ -172,7 +186,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
 
         self::assertSame(1, $result->added);
         self::assertCount(1, $result->warnings);
-        self::assertStringContainsString('invalid country code', $result->warnings[0]);
+        self::assertStringContainsString('invalid country code', $this->texts($result->warnings)[0]);
     }
 
     public function testImportWarnsOnNonexistentPlayerId(): void
@@ -187,7 +201,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
 
         self::assertSame(1, $result->added);
         self::assertCount(1, $result->errors);
-        self::assertStringContainsString('does not exist', $result->errors[0]);
+        self::assertStringContainsString('does not exist', $this->texts($result->errors)[0]);
     }
 
     public function testImportIsIdempotent(): void
@@ -209,7 +223,8 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         unlink($file2);
 
         self::assertSame(0, $result->added);
-        self::assertSame(1, $result->updated);
+        self::assertSame(0, $result->updated);
+        self::assertSame(1, $result->unchanged);
 
         /** @var int $count */
         $count = $this->database->executeQuery(
@@ -231,7 +246,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         unlink($file);
 
         self::assertSame(1, $result->added);
-        self::assertSame([sprintf('Row 2: team name is longer than %d characters, team assignment skipped.', CompetitionTeam::NAME_MAX_LENGTH)], $result->warnings);
+        self::assertSame([sprintf('Row 2: team name is longer than %d characters, team assignment skipped.', CompetitionTeam::NAME_MAX_LENGTH)], $this->texts($result->warnings));
 
         /** @var false|null|string $teamId */
         $teamId = $this->database->executeQuery(
@@ -242,8 +257,9 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         self::assertNull($teamId);
     }
 
-    public function testImportDetectsDuplicateNamesInFile(): void
+    public function testRowsOfTheSamePersonCountAsOnePersonWithoutWarning(): void
     {
+        // The documented way to list several rounds: one row per round
         $file = $this->createXlsx([
             ['name'],
             ['Same Name', ''],
@@ -253,8 +269,9 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         $result = $this->importer->import(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, $file);
         unlink($file);
 
-        self::assertCount(1, $result->warnings);
-        self::assertStringContainsString('duplicate name', $result->warnings[0]);
+        self::assertSame(1, $result->added);
+        self::assertSame(0, $result->updated);
+        self::assertSame([], $this->texts($result->warnings));
     }
 
     public function testImportAdoptsSelfJoinedRowOfListedPlayer(): void
@@ -329,7 +346,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         unlink($template);
 
         self::assertSame(1, $result->added);
-        self::assertSame([], $result->warnings);
+        self::assertSame([], $this->texts($result->warnings));
         self::assertSame(
             [CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, CompetitionRoundFixture::ROUND_WJPC_FINAL],
             $this->roundsOf(CompetitionFixture::COMPETITION_WJPC_2024, 'Template Puzzler'),
@@ -350,7 +367,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
 
         self::assertSame(0, $result->added);
         self::assertSame([], $result->errors);
-        foreach ($result->warnings as $warning) {
+        foreach ($this->texts($result->warnings) as $warning) {
             self::assertStringNotContainsString('does not exist', $warning);
             self::assertStringNotContainsString('Unknown column', $warning);
         }
@@ -369,6 +386,8 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         unlink($file);
 
         self::assertSame(1, $result->added);
+        self::assertSame(0, $result->updated);
+        self::assertSame([], $this->texts($result->warnings));
         self::assertSame(
             [CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, CompetitionRoundFixture::ROUND_WJPC_FINAL],
             $this->roundsOf(CompetitionFixture::COMPETITION_WJPC_2024, 'Multi Round Puzzler'),
@@ -405,16 +424,16 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
 
         self::assertSame(2, $result->added);
         self::assertContains(
-            'Unknown column(s) ignored: "shirt_size". Columns the import reads: ' . implode(', ', CompetitionParticipantImporter::KNOWN_COLUMNS) . '.',
-            $result->warnings,
+            'Unknown column(s) ignored: "shirt_size". Columns the import reads: ' . implode(', ', CompetitionParticipantImporter::KNOWN_COLUMNS) . ', team_name: <round>.',
+            $this->texts($result->warnings),
         );
         self::assertContains(
-            'Round "Semifinal" does not exist in this event (row 2), those participants were not assigned to it. Rounds of this event: "Qualification Round", "Final Round".',
-            $result->warnings,
+            'Round "Semifinal" does not exist in this event (row 2), not assigned. Rounds of this event: "Qualification Round", "Final Round".',
+            $this->texts($result->warnings),
         );
         self::assertContains(
-            'Round "semifinal" does not exist in this event (row 3), those participants were not assigned to it. Rounds of this event: "Qualification Round", "Final Round".',
-            $result->warnings,
+            'Round "semifinal" does not exist in this event (row 3), not assigned. Rounds of this event: "Qualification Round", "Final Round".',
+            $this->texts($result->warnings),
         );
         self::assertSame(
             [CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION],
@@ -434,7 +453,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $file);
         unlink($file);
 
-        self::assertSame([], $result->warnings);
+        self::assertSame([], $this->texts($result->warnings));
 
         /** @var list<array{name: string, round_id: string, team_name: null|string}> $rows */
         $rows = $this->database->executeQuery(
@@ -470,7 +489,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         ]);
         $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $second);
         unlink($second);
-        self::assertSame([], $result->warnings);
+        self::assertSame([], $this->texts($result->warnings));
         self::assertSame('Night Owls', $this->teamOf('Late Teammate'));
 
         $third = $this->createXlsx([
@@ -481,7 +500,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         unlink($third);
         self::assertSame(
             ['"Late Teammate" stays in team "Night Owls" in round "Team Round", team "Early Birds" from the file ignored (an import never moves anybody to another team).'],
-            $result->warnings,
+            $this->texts($result->warnings),
         );
         self::assertSame('Night Owls', $this->teamOf('Late Teammate'));
     }
@@ -499,6 +518,544 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         self::assertNotFalse($team, 'The participant is in the team round');
 
         return $team;
+    }
+
+    public function testExportWithTeamsImportedBackChangesNothing(): void
+    {
+        $this->setUpPairInOneRoundOnlyTeamless();
+
+        $participantsBefore = $this->participantsOf(CompetitionSeriesFixture::EDITION_OFFLINE_1);
+        $assignmentsBefore = $this->allRoundAssignments(CompetitionSeriesFixture::EDITION_OFFLINE_1);
+        $teamsBefore = $this->teamCount(CompetitionSeriesFixture::EDITION_OFFLINE_1);
+
+        $result = $this->importExportOf(CompetitionSeriesFixture::EDITION_OFFLINE_1);
+
+        self::assertSame([], $this->texts($result->warnings));
+        self::assertSame([], $this->texts($result->errors));
+        self::assertSame(0, $result->added);
+        self::assertSame(0, $result->updated);
+        self::assertSame(0, $result->softDeleted);
+        self::assertSame(count($participantsBefore), $result->unchanged);
+        self::assertSame($participantsBefore, $this->participantsOf(CompetitionSeriesFixture::EDITION_OFFLINE_1));
+        self::assertSame($assignmentsBefore, $this->allRoundAssignments(CompetitionSeriesFixture::EDITION_OFFLINE_1));
+        self::assertSame($teamsBefore, $this->teamCount(CompetitionSeriesFixture::EDITION_OFFLINE_1));
+    }
+
+    public function testOldExportWithOneTeamNameNeverPutsAnybodyIntoAnotherRoundsTeam(): void
+    {
+        // An export made before the per-round columns: round_names + one team_name, no participant_id
+        $this->setUpPairInOneRoundOnlyTeamless();
+        $assignmentsBefore = $this->allRoundAssignments(CompetitionSeriesFixture::EDITION_OFFLINE_1);
+
+        $file = $this->createXlsx([
+            ['name', 'country', 'external_id', 'msp_player_id', 'status', 'round_names', 'team_name'],
+            ['Anna Pairing', 'us', '', '', 'active', 'Pair Round, Team Round', 'Speedy'],
+            ['Ben Pairing', 'us', '', '', 'active', 'Pair Round, Team Round', 'Speedy'],
+        ]);
+        $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $file);
+        unlink($file);
+
+        $notFilled = 'Row %d: team "Speedy" was not added in round "Team Round", where "%s" already is without a team - one team_name for several pair/team rounds is ambiguous. Use the "team_name: <round>" columns of a new export.';
+        self::assertSame([sprintf($notFilled, 2, 'Anna Pairing'), sprintf($notFilled, 3, 'Ben Pairing')], $this->texts($result->warnings));
+        self::assertSame($assignmentsBefore, $this->allRoundAssignments(CompetitionSeriesFixture::EDITION_OFFLINE_1));
+    }
+
+    public function testLaterRowNamingTheSameTeamForOneRoundFillsIt(): void
+    {
+        $this->setUpPairInOneRoundOnlyTeamless();
+
+        $file = $this->createXlsx([
+            ['name', 'round_names', 'team_name'],
+            ['Anna Pairing', 'Pair Round, Team Round', 'Speedy'],
+            ['Anna Pairing', 'Team Round', 'Speedy'],
+        ]);
+        $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $file);
+        unlink($file);
+
+        self::assertSame([], $this->texts($result->warnings));
+        self::assertSame('Speedy', $this->database->fetchOne(
+            'SELECT ct.name FROM competition_participant_round cpr
+             INNER JOIN competition_participant cp ON cp.id = cpr.participant_id
+             INNER JOIN competition_team ct ON ct.id = cpr.team_id
+             WHERE cp.name = :name AND cpr.round_id = :roundId',
+            ['name' => 'Anna Pairing', 'roundId' => CompetitionSeriesFixture::ROUND_OFFLINE_TEAM],
+        ));
+    }
+
+    public function testMistypedPlayerIdNeverDuplicatesTheLinkedParticipant(): void
+    {
+        // 'John Regular' is linked to PLAYER_REGULAR, 'Secret Player' to PLAYER_PRIVATE
+        $file = $this->createXlsx([
+            ['name', 'msp_player_id'],
+            ['John Regular', '00000000-0000-0000-0000-000000000099'],
+            ['Secret Player', 'not-a-uuid'],
+        ]);
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(0, $result->added);
+        self::assertSame([
+            'Row 2: msp_player_id "00000000-0000-0000-0000-000000000099" does not exist.',
+            'Row 3: msp_player_id "not-a-uuid" is not a valid UUID.',
+        ], $this->texts($result->errors));
+
+        /** @var list<array{name: string, player_id: null|string}> $rows */
+        $rows = $this->database->fetchAllAssociative(
+            'SELECT name, player_id FROM competition_participant
+             WHERE competition_id = :id AND name IN (:a, :b) ORDER BY name',
+            ['id' => CompetitionFixture::COMPETITION_WJPC_2024, 'a' => 'John Regular', 'b' => 'Secret Player'],
+        );
+        self::assertSame([
+            ['name' => 'John Regular', 'player_id' => PlayerFixture::PLAYER_REGULAR],
+            ['name' => 'Secret Player', 'player_id' => PlayerFixture::PLAYER_PRIVATE],
+        ], $rows);
+    }
+
+    public function testExportedTeamCellEmptiedKeepsTheExistingTeam(): void
+    {
+        $this->setUpPairInOneRoundOnlyTeamless();
+        $assignmentsBefore = $this->allRoundAssignments(CompetitionSeriesFixture::EDITION_OFFLINE_1);
+
+        $result = $this->importExportOf(CompetitionSeriesFixture::EDITION_OFFLINE_1, static function (Worksheet $sheet): void {
+            $column = self::columnOf($sheet, 'team_name: Pair Round');
+            foreach ($sheet->getRowIterator(2) as $row) {
+                $sheet->setCellValue([$column, $row->getRowIndex()], '');
+            }
+        });
+
+        self::assertSame([], $this->texts($result->warnings));
+        self::assertSame($assignmentsBefore, $this->allRoundAssignments(CompetitionSeriesFixture::EDITION_OFFLINE_1));
+    }
+
+    public function testNewRowOfAnExportTakesItsTeamFromTeamName(): void
+    {
+        // The organiser adds somebody to an export and writes the team under team_name
+        $this->setUpPairInOneRoundOnlyTeamless();
+
+        $result = $this->importExportOf(CompetitionSeriesFixture::EDITION_OFFLINE_1, static function (Worksheet $sheet): void {
+            $row = $sheet->getHighestRow() + 1;
+            $sheet->setCellValue([self::columnOf($sheet, 'name'), $row], 'Cara Newcomer');
+            $sheet->setCellValue([self::columnOf($sheet, 'round_names'), $row], 'Pair Round');
+            $sheet->setCellValue([self::columnOf($sheet, 'team_name'), $row], 'Speedy');
+        });
+
+        self::assertSame([], $this->texts($result->warnings));
+        self::assertSame(1, $result->added);
+        self::assertSame('Speedy', $this->database->fetchOne(
+            'SELECT ct.name FROM competition_participant_round cpr
+             INNER JOIN competition_participant cp ON cp.id = cpr.participant_id
+             INNER JOIN competition_team ct ON ct.id = cpr.team_id
+             WHERE cp.name = :name',
+            ['name' => 'Cara Newcomer'],
+        ));
+    }
+
+    public function testTeamOfARoundTheRowDoesNotListIsReported(): void
+    {
+        $file = $this->createXlsx([
+            ['name', 'round_names', 'team_name: Team Round'],
+            ['Unlisted Teammate', 'Solo Round', 'Dream Team'],
+        ]);
+        $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $file);
+        unlink($file);
+
+        self::assertSame(
+            ['Row 2: team "Dream Team" for round "Team Round" ignored - the row does not list that round in round_names.'],
+            $this->texts($result->warnings),
+        );
+    }
+
+    public function testSameNameWithDifferentExternalIdsInOneFileAreTwoPeople(): void
+    {
+        $file = $this->createXlsx([
+            ['name', 'country', 'external_id'],
+            ['Jennifer Smith', 'us', 'W-1'],
+            ['Jennifer Smith', 'us', 'W-2'],
+        ]);
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, $file);
+        unlink($file);
+
+        self::assertSame(2, $result->added);
+        self::assertSame(['W-1', 'W-2'], $this->externalIdsOf(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, 'Jennifer Smith'));
+    }
+
+    public function testSameNameWithAnotherExternalIdThanTheStoredOneIsAnotherPerson(): void
+    {
+        $this->addParticipant(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, 'Jennifer Smith', 'us')->updateExternalId('W-1');
+        $this->entityManager->flush();
+
+        $file = $this->createXlsx([
+            ['name', 'country', 'external_id'],
+            ['Jennifer Smith', 'us', 'W-2'],
+        ]);
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, $file);
+        unlink($file);
+
+        self::assertSame(1, $result->added);
+        self::assertSame(0, $result->updated);
+        self::assertSame(['W-1', 'W-2'], $this->externalIdsOf(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, 'Jennifer Smith'));
+    }
+
+    public function testSameNameWithAnotherPlayerThanTheLinkedOneNeverSwapsThePlayer(): void
+    {
+        // 'John Regular' (PARTICIPANT_CONNECTED) is linked to PLAYER_REGULAR
+        $file = $this->createXlsx([
+            ['name', 'msp_player_id'],
+            ['John Regular', PlayerFixture::PLAYER_ADMIN],
+        ]);
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(1, $result->added);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $this->database->fetchOne(
+            'SELECT player_id FROM competition_participant WHERE id = :id',
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_CONNECTED],
+        ));
+    }
+
+    public function testSameNameWithDifferentPlayersInOneFileAreTwoPeople(): void
+    {
+        $file = $this->createXlsx([
+            ['name', 'msp_player_id'],
+            ['Twin Name', PlayerFixture::PLAYER_ADMIN],
+            ['Twin Name', PlayerFixture::PLAYER_REGULAR],
+        ]);
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, $file);
+        unlink($file);
+
+        self::assertSame(2, $result->added);
+        /** @var list<string> $players */
+        $players = $this->database->fetchFirstColumn(
+            'SELECT player_id FROM competition_participant WHERE competition_id = :id AND name = :name ORDER BY player_id',
+            ['id' => CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, 'name' => 'Twin Name'],
+        );
+        self::assertSame([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN], $players);
+    }
+
+    public function testExportOfSameNamedParticipantsImportedBackKeepsThemApart(): void
+    {
+        $first = $this->addParticipant(CompetitionSeriesFixture::EDITION_OFFLINE_1, 'Jennifer Smith', 'us');
+        $second = $this->addParticipant(CompetitionSeriesFixture::EDITION_OFFLINE_1, 'Jennifer Smith', 'us');
+        $solo = $this->entityManager->find(CompetitionRound::class, CompetitionSeriesFixture::ROUND_OFFLINE_SOLO);
+        $team = $this->entityManager->find(CompetitionRound::class, CompetitionSeriesFixture::ROUND_OFFLINE_TEAM);
+        assert($solo instanceof CompetitionRound && $team instanceof CompetitionRound);
+        $this->entityManager->persist(new CompetitionParticipantRound(Uuid::uuid7(), $first, $solo));
+        $smiths = new CompetitionTeam(Uuid::uuid7(), $team, 'Smiths');
+        $this->entityManager->persist($smiths);
+        $this->entityManager->persist(new CompetitionParticipantRound(Uuid::uuid7(), $second, $team, $smiths));
+        $this->entityManager->flush();
+
+        $before = $this->allRoundAssignments(CompetitionSeriesFixture::EDITION_OFFLINE_1);
+
+        $result = $this->importExportOf(CompetitionSeriesFixture::EDITION_OFFLINE_1);
+
+        self::assertSame([], $this->texts($result->warnings));
+        self::assertSame(0, $result->added);
+        self::assertSame(0, $result->updated);
+        self::assertSame($before, $this->allRoundAssignments(CompetitionSeriesFixture::EDITION_OFFLINE_1));
+    }
+
+    public function testSameNameWithoutIdIsReportedNeverMergedIntoOneOfThem(): void
+    {
+        $this->addParticipant(CompetitionSeriesFixture::EDITION_OFFLINE_1, 'Jennifer Smith', 'us');
+        $this->addParticipant(CompetitionSeriesFixture::EDITION_OFFLINE_1, 'Jennifer Smith', 'us');
+        $this->entityManager->flush();
+
+        $file = $this->createXlsx([
+            ['name', 'country', 'round_name'],
+            ['Jennifer Smith', 'us', 'Solo Round'],
+            ['Jennifer Smith', 'us', 'Team Round'],
+        ]);
+        $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $file);
+        unlink($file);
+
+        $ambiguous = 'Row %d: 2 participants of this event are called "Jennifer Smith", row skipped. Add their participant_id (from an export) or an external_id to tell them apart.';
+        self::assertSame([sprintf($ambiguous, 2), sprintf($ambiguous, 3)], $this->texts($result->warnings));
+        self::assertSame(0, $result->updated);
+
+        /** @var int $assigned */
+        $assigned = $this->database->fetchOne(
+            'SELECT count(*) FROM competition_participant_round cpr
+             INNER JOIN competition_participant cp ON cp.id = cpr.participant_id
+             WHERE cp.competition_id = :id AND cp.name = :name',
+            ['id' => CompetitionSeriesFixture::EDITION_OFFLINE_1, 'name' => 'Jennifer Smith'],
+        );
+        self::assertSame(0, $assigned, 'Neither Jennifer got rounds meant for "a" Jennifer');
+    }
+
+    public function testLaterRowsSeeWhatEarlierRowsChanged(): void
+    {
+        // Row 2 gives Jane an external id, row 3 renames her through it
+        $file = $this->createXlsx([
+            ['name', 'external_id'],
+            ['Jane Unconnected', 'NEW-EXT'],
+            ['Jane Renamed', 'NEW-EXT'],
+        ]);
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(0, $result->added);
+        self::assertSame(1, $result->updated);
+        self::assertSame('Jane Renamed', $this->database->fetchOne(
+            'SELECT name FROM competition_participant WHERE id = :id',
+            ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED],
+        ));
+    }
+
+    public function testSemicolonsSeparateRoundsToo(): void
+    {
+        $file = $this->createXlsx([
+            ['name', 'round_names'],
+            ['Semicolon Puzzler', 'Qualification Round; Final Round'],
+        ]);
+        $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(
+            [CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, CompetitionRoundFixture::ROUND_WJPC_FINAL],
+            $this->roundsOf(CompetitionFixture::COMPETITION_WJPC_2024, 'Semicolon Puzzler'),
+        );
+    }
+
+    public function testRoundWhoseNameContainsACommaIsRecognisedInTheList(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE competition_round SET name = :name WHERE id = :id',
+            ['name' => 'Team, Relay', 'id' => CompetitionSeriesFixture::ROUND_OFFLINE_TEAM],
+        );
+
+        $file = $this->createXlsx([
+            ['name', 'round_names'],
+            ['Comma Puzzler', 'Solo Round, Team, Relay'],
+            ['Comma Alone', 'team,relay'],
+        ]);
+        $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $file);
+        unlink($file);
+
+        self::assertSame([], $this->texts($result->warnings));
+        self::assertSame(
+            [CompetitionSeriesFixture::ROUND_OFFLINE_SOLO, CompetitionSeriesFixture::ROUND_OFFLINE_TEAM],
+            $this->roundsOf(CompetitionSeriesFixture::EDITION_OFFLINE_1, 'Comma Puzzler'),
+        );
+        self::assertSame(
+            [CompetitionSeriesFixture::ROUND_OFFLINE_TEAM],
+            $this->roundsOf(CompetitionSeriesFixture::EDITION_OFFLINE_1, 'Comma Alone'),
+        );
+    }
+
+    public function testRoundNameAndRoundNamesColumnsAddUp(): void
+    {
+        $file = $this->createXlsx([
+            ['name', 'round_names', 'round_name'],
+            ['Both Columns', 'Qualification Round', 'Final Round'],
+        ]);
+        $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(
+            [CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, CompetitionRoundFixture::ROUND_WJPC_FINAL],
+            $this->roundsOf(CompetitionFixture::COMPETITION_WJPC_2024, 'Both Columns'),
+        );
+    }
+
+    public function testDeletedRowGetsNoRounds(): void
+    {
+        $file = $this->createXlsx([
+            ['name', 'status', 'round_names'],
+            ['Gone Puzzler', 'deleted', 'Qualification Round'],
+        ]);
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(1, $result->softDeleted);
+        self::assertSame(0, $result->added);
+        self::assertSame([], $this->roundsOf(CompetitionFixture::COMPETITION_WJPC_2024, 'Gone Puzzler'));
+    }
+
+    public function testTeamNamesMatchIgnoringCase(): void
+    {
+        $file = $this->createXlsx([
+            ['name', 'round_names', 'team_name'],
+            ['Case One', 'Team Round', 'Dream Team'],
+            ['Case Two', 'Team Round', 'dream team'],
+        ]);
+        $result = $this->importer->import(CompetitionSeriesFixture::EDITION_OFFLINE_1, $file);
+        unlink($file);
+
+        self::assertSame([], $this->texts($result->warnings));
+        /** @var int $teams */
+        $teams = $this->database->fetchOne(
+            'SELECT count(DISTINCT cpr.team_id) FROM competition_participant_round cpr
+             INNER JOIN competition_participant cp ON cp.id = cpr.participant_id
+             WHERE cp.competition_id = :id AND cp.name LIKE :name AND cpr.team_id IS NOT NULL',
+            ['id' => CompetitionSeriesFixture::EDITION_OFFLINE_1, 'name' => 'Case %'],
+        );
+        self::assertSame(1, $teams);
+    }
+
+    public function testRoundsDifferingOnlyInCaseAreReported(): void
+    {
+        $this->addRound(CompetitionFixture::COMPETITION_WJPC_2024, 'final round', RoundCategory::Solo);
+
+        $file = $this->createXlsx([
+            ['name', 'round_names'],
+            ['Case Puzzler', 'Final Round'],
+        ]);
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertCount(1, $result->warnings);
+        self::assertStringContainsString('differ only in upper/lower case', $this->texts($result->warnings)[0]);
+    }
+
+    public function testFileThatIsNotASpreadsheetIsReportedNotThrown(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'test_zip_');
+        assert(is_string($file));
+        $zip = new \ZipArchive();
+        $zip->open($file, \ZipArchive::OVERWRITE);
+        $zip->addFromString('readme.txt', 'not a spreadsheet');
+        $zip->close();
+
+        $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
+        unlink($file);
+
+        self::assertSame(
+            ['The file could not be read. Please upload an .xlsx file saved from Excel, Numbers or Google Sheets.'],
+            $this->texts($result->errors),
+        );
+    }
+
+    /**
+     * @param array<TranslatableMessage> $messages
+     * @return list<string>
+     */
+    private function texts(array $messages): array
+    {
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+
+        return array_values(array_map(static fn (TranslatableMessage $message): string => $message->trans($translator, 'en'), $messages));
+    }
+
+    /**
+     * @param null|callable(Worksheet): void $edit what the organiser changes in the exported sheet
+     */
+    private function importExportOf(string $competitionId, null|callable $edit = null): ParticipantImportResult
+    {
+        $export = tempnam(sys_get_temp_dir(), 'test_export_');
+        assert(is_string($export));
+        file_put_contents($export, self::getContainer()->get(CompetitionParticipantExporter::class)->export($competitionId));
+
+        if ($edit !== null) {
+            $spreadsheet = IOFactory::load($export);
+            $edit($spreadsheet->getActiveSheet());
+            (new Xlsx($spreadsheet))->save($export);
+        }
+
+        $result = $this->importer->import($competitionId, $export);
+        unlink($export);
+
+        return $result;
+    }
+
+    private static function columnOf(Worksheet $sheet, string $header): int
+    {
+        /** @var array<int, null|string> $headers */
+        $headers = $sheet->toArray()[0];
+        $index = array_search($header, $headers, true);
+        self::assertIsInt($index, sprintf('The export has a "%s" column', $header));
+
+        return $index + 1;
+    }
+
+    /**
+     * Anna and Ben: pair "Speedy" in a new pair round, and in the team round without a team.
+     */
+    private function setUpPairInOneRoundOnlyTeamless(): void
+    {
+        $pairRoundId = $this->addRound(CompetitionSeriesFixture::EDITION_OFFLINE_1, 'Pair Round', RoundCategory::Duo);
+        $pairRound = $this->entityManager->find(CompetitionRound::class, $pairRoundId);
+        $teamRound = $this->entityManager->find(CompetitionRound::class, CompetitionSeriesFixture::ROUND_OFFLINE_TEAM);
+        assert($pairRound instanceof CompetitionRound && $teamRound instanceof CompetitionRound);
+        $speedy = new CompetitionTeam(Uuid::uuid7(), $pairRound, 'Speedy');
+        $this->entityManager->persist($speedy);
+        foreach (['Anna Pairing', 'Ben Pairing'] as $name) {
+            $participant = $this->addParticipant(CompetitionSeriesFixture::EDITION_OFFLINE_1, $name, 'us');
+            $this->entityManager->persist(new CompetitionParticipantRound(Uuid::uuid7(), $participant, $pairRound, $speedy));
+            $this->entityManager->persist(new CompetitionParticipantRound(Uuid::uuid7(), $participant, $teamRound));
+        }
+        $this->entityManager->flush();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function participantsOf(string $competitionId): array
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->database->fetchAllAssociative(
+            // Not `source`: a self-joined participant on the organiser's file becomes theirs (markAsImported(), documented)
+            'SELECT id, name, country, external_id, player_id, connected_at, deleted_at
+             FROM competition_participant WHERE competition_id = :id ORDER BY id',
+            ['id' => $competitionId],
+        );
+
+        return $rows;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function externalIdsOf(string $competitionId, string $name): array
+    {
+        /** @var list<string> $ids */
+        $ids = $this->database->fetchFirstColumn(
+            'SELECT external_id FROM competition_participant WHERE competition_id = :id AND name = :name ORDER BY external_id',
+            ['id' => $competitionId, 'name' => $name],
+        );
+
+        return $ids;
+    }
+
+    private function addRound(string $competitionId, string $name, RoundCategory $category): string
+    {
+        $competition = $this->entityManager->find(Competition::class, $competitionId);
+        assert($competition instanceof Competition);
+
+        $round = new CompetitionRound(
+            id: Uuid::uuid7(),
+            competition: $competition,
+            name: $name,
+            minutesLimit: 60,
+            startsAt: new DateTimeImmutable('+40 days'),
+            category: $category,
+        );
+        $this->entityManager->persist($round);
+        $this->entityManager->flush();
+
+        return $round->id->toString();
+    }
+
+    private function addParticipant(string $competitionId, string $name, string $country): CompetitionParticipant
+    {
+        $competition = $this->entityManager->find(Competition::class, $competitionId);
+        assert($competition instanceof Competition);
+
+        $participant = new CompetitionParticipant(Uuid::uuid7(), $name, $country, $competition);
+        $this->entityManager->persist($participant);
+
+        return $participant;
+    }
+
+    private function teamCount(string $competitionId): int
+    {
+        /** @var int $count */
+        $count = $this->database->fetchOne(
+            'SELECT count(*) FROM competition_team ct INNER JOIN competition_round cr ON cr.id = ct.round_id WHERE cr.competition_id = :id',
+            ['id' => $competitionId],
+        );
+
+        return $count;
     }
 
     /**

@@ -202,7 +202,7 @@ CompetitionTeam
 - Delete teams
 - View unassigned participants
 
-**Import/Export**: The Excel import reads optional `round_names` (comma-separated, what the template and the export write; the old single `round_name` still works) and `team_name` columns. Participants are added to every listed round (several rows of one person add up, nothing is ever removed), and for duo/team rounds teams are created or matched by name. Unknown rounds and columns are reported after the import - see `participants.md` §Excel Import.
+**Import/Export**: The Excel import reads optional `round_names` (comma-separated, what the template and the export write; the old single `round_name` still works) and `team_name` columns, plus what the export adds: one `team_name: <round>` column per duo/team round and `participant_id`, so an export imported back changes nothing. Participants are added to every listed round (several rows of one person add up, nothing is ever removed), and for duo/team rounds teams are created or matched by name. Unknown rounds and columns and ambiguous names are reported after the import - see `participants.md` §Excel Import.
 
 ## Puzzle Assignment
 

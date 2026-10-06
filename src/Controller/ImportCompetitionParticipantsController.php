@@ -48,21 +48,19 @@ final class ImportCompetitionParticipantsController extends AbstractController
         if ($form->isSubmitted() && $form->isValid() && $formData->file !== null) {
             $result = $this->importer->import($competitionId, $formData->file->getPathname());
 
-            $summary = sprintf(
-                'Import complete: %d added, %d updated, %d soft-deleted.',
-                $result->added,
-                $result->updated,
-                $result->softDeleted,
-            );
-
-            $this->addFlash('success', $summary);
+            $this->addFlash('success', $this->translator->trans('competition.participants.import.summary', [
+                '%added%' => $result->added,
+                '%updated%' => $result->updated,
+                '%unchanged%' => $result->unchanged,
+                '%deleted%' => $result->softDeleted,
+            ]));
 
             foreach ($result->warnings as $warning) {
-                $this->addFlash('warning', $warning);
+                $this->addFlash('warning', $warning->trans($this->translator));
             }
 
             foreach ($result->errors as $error) {
-                $this->addFlash('danger', $error);
+                $this->addFlash('danger', $error->trans($this->translator));
             }
         } elseif ($formData->file !== null && self::isCsv($formData->file)) {
             $this->addFlash('danger', $this->translator->trans('competition.participants.import_csv_not_supported'));

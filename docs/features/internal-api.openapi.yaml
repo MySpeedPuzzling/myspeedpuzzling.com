@@ -524,6 +524,7 @@ paths:
         content:
           application/json:
             schema:
+              unevaluatedProperties: false
               allOf:
                 - $ref: "#/components/schemas/CompetitionFields"
                 - type: object
@@ -589,7 +590,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CompetitionFields"
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/CompetitionFields"
       responses:
         "200":
           description: The competition after the change
@@ -678,6 +681,7 @@ paths:
         content:
           application/json:
             schema:
+              unevaluatedProperties: false
               allOf:
                 - $ref: "#/components/schemas/RoundFields"
                 - type: object
@@ -718,7 +722,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RoundFields"
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/RoundFields"
       responses:
         "200":
           description: The round after the change
@@ -940,7 +946,8 @@ components:
   schemas:
     CompetitionFields:
       type: object
-      additionalProperties: false
+      # No additionalProperties here - it would not see the create bodies' own fields (allOf); the request
+      # bodies close themselves with unevaluatedProperties: false (an unknown field is a 400)
       description: |
         Validated by the web form's rules: name required; an in-person event
         (`isOnline` false) needs `location`, `dateFrom` and `dateTo` (an edition of
@@ -1069,7 +1076,8 @@ components:
 
     RoundFields:
       type: object
-      additionalProperties: false
+      # No additionalProperties here - it would not see the create bodies' own fields (allOf); the request
+      # bodies close themselves with unevaluatedProperties: false (an unknown field is a 400)
       properties:
         name:
           type: string

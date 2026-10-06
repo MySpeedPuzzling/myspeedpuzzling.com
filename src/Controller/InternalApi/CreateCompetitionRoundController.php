@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
+use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
@@ -18,7 +19,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -101,10 +104,24 @@ final class CreateCompetitionRoundController extends AbstractController
         $request->attributes->set(InternalApiAuditSubscriber::CREATED_ID_ATTRIBUTE, $roundId->toString());
 
         if ($puzzleIds !== null && $puzzleIds !== []) {
-            $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
-                roundId: $roundId->toString(),
-                puzzleIds: $puzzleIds,
-            ));
+            try {
+                $this->messageBus->dispatch(new SetCompetitionRoundPuzzles(
+                    roundId: $roundId->toString(),
+                    puzzleIds: $puzzleIds,
+                ));
+            } catch (HandlerFailedException $exception) {
+                // Checked above - only a puzzle attached elsewhere in the meantime gets here, and the round exists by now
+                if ($exception->getPrevious() instanceof PuzzleAlreadyInCompetitionRoundCategory) {
+                    throw new ConflictHttpException(sprintf(
+                        'The round %s was created, but its puzzles were not attached: %s. Set them with PUT /internal-api/rounds/%s/puzzles.',
+                        $roundId->toString(),
+                        $exception->getPrevious()->getMessage(),
+                        $roundId->toString(),
+                    ), $exception);
+                }
+
+                throw $exception;
+            }
         }
 
         return new JsonResponse($this->getAdminCompetitions->round($roundId->toString())->toArray(), Response::HTTP_CREATED);

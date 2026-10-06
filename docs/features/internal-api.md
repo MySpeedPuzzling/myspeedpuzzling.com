@@ -266,7 +266,7 @@ Not settable here: the logo (upload it in the UI), the series of an edition (rec
 until the round starts" setting (new ones are not hidden - set that in the UI). A puzzle may be in only **one round
 per category per competition** (that is what lets a solving time's round follow from its competition + puzzle,
 [round-results.md](./competitions-management/round-results.md)): a list breaking it is a `409` naming the other
-round, and **nothing** changes (`SetCompetitionRoundPuzzles` is one transaction). A round `PATCH` changing the category is refused the same way. Unknown puzzle ids are a
+round, and **nothing** changes (`SetCompetitionRoundPuzzles` is one transaction). Creating a round with `puzzleIds` checks them before the round is created; only a puzzle attached elsewhere in the very same moment can still refuse them afterwards - then the `409` says the round exists without its puzzles. A round `PATCH` changing the category is refused the same way. Unknown puzzle ids are a
 `404` listing them. Solving times follow automatically: every attach/removal reconciles the competition's round results
 (`CompetitionRoundsChanged` → `RoundResultsReconciler`), so `resultsCount` is current in the answer.
 

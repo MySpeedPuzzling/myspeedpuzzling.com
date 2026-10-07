@@ -162,6 +162,8 @@
     organiser_results: "Výsledky organizátora"
     player_times: "Časy přidané puzzlery (%count%)"
     meta_description: "Oficiální výsledky kola %round% na události %event%: pořadí organizátora, %count% soutěžící, s časy a položenými dílky.|Oficiální výsledky kola %round% na události %event%: pořadí organizátora, %count% soutěžící, s časy a položenými dílky.|Oficiální výsledky kola %round% na události %event%: pořadí organizátora, %count% soutěžících, s časy a položenými dílky."
+    connect: "Je tu vaše jméno?"
+    connect_link: "Propojte ho se svým profilem"
 "badge":
   "relax": "Relax"
   "suspicious": "Vyžaduje ověření"
@@ -394,6 +396,9 @@
     "to_collection": "Puzzle do kolekce"
   official_entry:
     notice: "Předvyplněno z oficiálních výsledků kola %round% na události %event%. Zkontrolujte to a uložte do svého profilu."
+    which_one: "Oficiální výsledky uvádějí dvojici/tým pod názvem - kdo z nich jste vy?"
+    its_me: "Jsem %name%"
+    add_people: "{1}Přidejte člověka, se kterým jste skládali - oficiální výsledky neuvádějí, kdo to byl.|[2,4]Přidejte lidi, se kterými jste skládali - oficiální výsledky neuvádějí, kdo všichni byli.|[5,Inf[Přidejte lidi, se kterými jste skládali - oficiální výsledky neuvádějí, kdo všichni byli."
 "forms":
   "choose_from_favorites": "- Vybrat z oblíbených -"
   "saving": "Ukládání..."
@@ -903,6 +908,39 @@ comparison:
   "sign_in": "Přihlásit se"
   "sign_in_to_request": "Přihlaste se pro odeslání žádosti"
   "questions": "Máte otázky? Ozvěte se nám na <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a>."
+competition_referees:
+  title: "Rozhodčí"
+  button: "Rozhodčí"
+  intro: "Rozhodčí zadávají výsledky na svých telefonech v živém zadávání - a nic jiného: nemohou měnit událost, její účastníky, kola, čísla stolů ani postupy a nemohou zveřejňovat výsledky. Každý rozhodčí potřebuje účet na MySpeedPuzzling. Vy a ostatní organizátoři události můžete výsledky zadávat vždy také."
+  link:
+    title: "Odkaz pro rozhodčí"
+    help: "Pošlete ho rozhodčím nebo je nechte naskenovat QR kód. Vždy otevře kolo, které právě probíhá; přihlašují se vlastním účtem."
+    copy: "Kopírovat odkaz"
+    qr_alt: "QR kód odkazu pro rozhodčí"
+    qr_help: "Zobrazte ho na obrazovce pro fotoaparáty telefonů rozhodčích, nebo ho vytiskněte."
+    qr_download: "Stáhnout QR kód"
+  add:
+    title: "Přidat rozhodčí"
+    label: "Hráči"
+    help: "Hledejte podle jména nebo #kódu - potřebují účet na MySpeedPuzzling."
+    submit: "Přidat jako rozhodčí"
+  outcome:
+    added: "Přidán %count% rozhodčí.|Přidáni %count% rozhodčí.|Přidáno %count% rozhodčích."
+    already_referee: "Už je rozhodčí - nic se nezměnilo.|%count% hráči už jsou rozhodčí - nic se nezměnilo.|%count% hráčů už je rozhodčích - nic se nezměnilo."
+    organiser: "Organizuje tuto událost a výsledky může zadávat i tak - nepřidán jako rozhodčí.|%count% hráči organizují tuto událost a výsledky mohou zadávat i tak - nepřidáni jako rozhodčí.|%count% hráčů organizuje tuto událost a výsledky mohou zadávat i tak - nepřidáni jako rozhodčí."
+    unknown_player: "Tento hráč už neexistuje.|%count% hráči už neexistují.|%count% hráčů už neexistuje."
+    limit_reached: "Událost může mít nejvýše %limit% rozhodčích."
+  list:
+    title: "Rozhodčí (%count%)"
+    empty: "Zatím žádní rozhodčí."
+    player: "Hráč"
+    added: "Přidán"
+  remove:
+    button: "Odebrat"
+    confirm: "Odebrat hráče %name% z rozhodčích? Výsledky, které zadal(a), zůstanou."
+    done: "Rozhodčí odebrán. Výsledky, které zadal(a), zůstávají."
+    expired: "Tato stránka byla otevřená příliš dlouho - nic nebylo odebráno, zkuste to znovu."
+
 "for_organizers":
   "meta":
     "title": "Pro organizátory — Uspořádejte svou puzzle soutěž"
@@ -3877,7 +3915,7 @@ competition_registration:
     opens_at: "Registrace se otevírá"
     opens_at_help: "Den a čas v časovém pásmu níže. Nechte prázdné, aby se registrace otevřela hned."
     closes_at: "Registrace se uzavírá"
-    closes_at_help: "Den a čas v časovém pásmu níže. Poté se puzzleři už sami nezaregistrují - lidé z vašeho seznamu stále najdou své jméno a vy můžete dál přidávat účastníky."
+    closes_at_help: "Den a čas v časovém pásmu níže. Nechte prázdné, aby se registrace uzavřela na konci posledního dne události. Poté se puzzleři už sami nezaregistrují - lidé z vašeho seznamu stále najdou své jméno a vy můžete dál přidávat účastníky."
     timezone: "Časové pásmo těchto časů"
     timezone_help: "Předvyplněno podle vašich kol nebo země události. Stránka události zobrazuje časy v tomto pásmu."
     entry_fee: "Startovné"
@@ -3887,7 +3925,7 @@ competition_registration:
     save: "Uložit nastavení registrace"
     not_public: "Puzzleři se mohou registrovat, až bude událost schválena a veřejně viditelná."
     going_count_warning: "{1}Jeden člověk už klikl na „Jdu na to!“. Až zapnete správu registrace, bude mít místo (rezervováno).|[2,4]%count% lidé už klikli na „Jdu na to!“. Až zapnete správu registrace, budou mít místo (rezervováno).|[5,Inf[%count% lidí už kliklo na „Jdu na to!“. Až zapnete správu registrace, budou mít místo (rezervováno)."
-    waitlist_switch_off_warning: "{1}Jeden člověk je na čekací listině. Když správu vypnete, bude mezi těmi, kdo jdou, jako všichni ostatní.|[2,4]%count% lidé jsou na čekací listině. Když správu vypnete, budou mezi těmi, kdo jdou, jako všichni ostatní.|[5,Inf[%count% lidí je na čekací listině. Když správu vypnete, budou mezi těmi, kdo jdou, jako všichni ostatní."
+    waitlist_switch_off_warning: "{1}Jeden člověk je na čekací listině. Pokud správu vypnete, bude se zúčastňovat jako všichni ostatní a pošleme mu e-mail, že se uvolnilo místo.|[2,4]%count% lidé jsou na čekací listině. Pokud správu vypnete, budou se zúčastňovat jako všichni ostatní a pošleme jim e-mail, že se uvolnilo místo.|[5,Inf[%count% lidí je na čekací listině. Pokud správu vypnete, budou se zúčastňovat jako všichni ostatní a pošleme jim e-mail, že se uvolnilo místo."
     external_link_kept: "Váš odkaz na registraci zůstává uložený. Dokud je registrace spravována zde, stránka události zobrazuje tuto registraci místo odkazu; po vypnutí správy se odkaz vrátí."
   flash:
     settings_saved: "Nastavení registrace bylo uloženo."
@@ -3897,6 +3935,8 @@ competition_registration:
       not_yet_open: "Registrace na tuto událost ještě není otevřená."
       closed: "Registrace na tuto událost je uzavřena."
       not_public: "Registrace se otevře, jakmile bude událost schválena."
+    form_expired: "Platnost formuláře vypršela - potvrďte to prosím znovu."
+    release_paid_not_confirmed: "Vaše vlastní registrace je zaplacená. Chcete-li vybrat jméno ze seznamu organizátora, potvrďte, že se vaše zaplacená registrace ruší."
   card:
     title: "Registrace"
     spots_taken: "Obsazeno %taken% / %capacity% míst"
@@ -3919,6 +3959,15 @@ competition_registration:
       not_yet_open: "Registrace ještě není otevřená."
       closed: "Registrace je uzavřena."
       not_public: "Registrace se otevře, jakmile bude událost schválena."
+    leave_confirm:
+      reserved: "Vaše místo se uvolní pro někoho jiného. Pokud se později zaregistrujete znovu, začínáte od začátku - na čekací listině, pokud bude událost do té doby plná."
+      paid: "Toto místo jste zaplatili. Zrušením se uvolní pro někoho jiného. MySpeedPuzzling nezpracovává platby - záznam o vaší platbě vede organizátor, ptejte se ho proto na vrácení peněz. Pokud se později zaregistrujete znovu, začínáte od začátku - na čekací listině, pokud bude událost do té doby plná."
+      waitlisted: "Odejdete z čekací listiny a ztratíte na ní své pořadí."
+      listed: "Váš účet se odpojí od vašeho jména na seznamu organizátora. Organizátor si toto místo ponechá."
+      button_reserved: "Ano, zrušit mou registraci"
+      button_paid: "Ano, zrušit mou zaplacenou registraci"
+      button_waitlisted: "Ano, odejít z čekací listiny"
+      button_listed: "Ano, odejít"
   confirm:
     reserved: "Registrací si místo hned rezervujete."
     full: "Událost je plná - budete na čekací listině (#%position%). Pokud vám organizátor uvolní místo, pošleme vám e-mail."
@@ -3940,6 +3989,7 @@ competition_registration:
     checked_in: "Přítomen"
     organizer_note: "Soukromá poznámka"
     organizer_note_too_long: "Poznámka může mít nejvýše %max% znaků."
+    paid_before: "Zaplaceno %date%, před zrušením registrace"
   check_in:
     title: "Prezence"
     progress: "Přítomno %checkedIn% / %total%"
@@ -3947,6 +3997,11 @@ competition_registration:
     not_paid: "Nezaplaceno"
     check_in: "Potvrdit příchod"
     undo: "Zpět"
+  join:
+    releases_own: "Výběrem jména ze seznamu organizátora se zruší vaše vlastní registrace - její místo se uvolní."
+    releases_waitlist: "Výběrem jména ze seznamu organizátora odejdete z čekací listiny."
+    releases_paid: "Svou vlastní registraci jste zaplatili. Výběrem jména ze seznamu organizátora se zruší a její místo se uvolní. MySpeedPuzzling nezpracovává platby - záznam o vaší platbě vede organizátor, ptejte se ho proto na vše kolem poplatku."
+    releases_paid_confirm: "Zrušit mou zaplacenou registraci a propojit mě s vybraným jménem"
 page_sections:
   manage_button: "Obsah stránky"
   manage_title: "Obsah stránky"
@@ -4010,6 +4065,7 @@ page_sections:
     uploading: "Nahrávání…"
     failed: "Obrázek se nepodařilo nahrát. Zkontrolujte připojení a zkuste to znovu."
     no_file: "Vyberte obrázek k nahrání."
+    rate_limited: "V poslední hodině jste nahráli mnoho obrázků. Zkuste to prosím později."
   error:
     expired: "Stránka byla otevřená příliš dlouho. Zkuste to prosím znovu."
     title_too_long: "Nadpis může mít nejvýše %max% znaků."
@@ -4022,19 +4078,44 @@ page_sections:
     url_missing: "Každý odkaz potřebuje webovou adresu."
     invalid_url: "Webová adresa musí být úplná a začínat https:// (nebo http://)."
     invalid_email: "Tato e-mailová adresa nevypadá správně."
+    too_many_images: "Sekce může mít nejvýše %max% obrázků."
+    too_many_sections: "Stránka může mít nejvýše %max% sekcí. Pro přidání další jednu smažte."
   flash:
     added: "Sekce byla přidána na stránku."
     updated: "Sekce byla uložena."
     deleted: "Sekce byla smazána."
     shown: "Sekce je na stránce zobrazena."
     hidden: "Sekce je skryta. Zůstane zde, dokud ji znovu nezobrazíte nebo nesmažete."
+  not_public_yet: "Návštěvníci uvidí tyto sekce, až bude událost schválena. Do té doby je zde můžete připravit."
+  not_public_yet_series: "Návštěvníci uvidí tyto sekce, až bude série schválena. Do té doby je zde můžete připravit."
+  limit_reached: "Tato stránka má %max% sekcí, což je maximum. Pro přidání další jednu smažte."
+  editor:
+    text_style: "Styl textu"
+    normal: "Normální"
+    heading_2: "Nadpis 2"
+    heading_3: "Nadpis 3"
+    heading_4: "Nadpis 4"
+    bold: "Tučně"
+    italic: "Kurzíva"
+    underline: "Podtržení"
+    strike: "Přeškrtnutí"
+    ordered_list: "Číslovaný seznam"
+    bullet_list: "Odrážkový seznam"
+    blockquote: "Citace"
+    link: "Odkaz"
+    clean: "Odstranit formátování"
+    visit_url: "Otevřít adresu:"
+    enter_link: "Zadejte odkaz:"
+    edit_link: "Upravit"
+    remove_link: "Odebrat"
+    save_link: "Uložit"
 live_results:
   title: "Živé zadávání výsledků"
   round: "Kolo"
   back: "Zpět"
   close: "Zavřít"
   back_to_rounds: "Zpět na kola"
-  results_desk: "Všechny výsledky kola"
+  results_desk: "Výsledkový pult"
   table: "Stůl %number%"
   no_table: "Bez stolu"
   entrant_not_in_round: "%name% není v kole %round%."
@@ -4064,6 +4145,8 @@ live_results:
     open_their_round: "Otevřít jeho kolo"
     camera_error: "Kameru se nepodařilo spustit - povolte ji v nastavení prohlížeče, nebo zadejte stůl či jméno."
     decoder_error: "Tento prohlížeč neumí číst QR kódy - zadejte stůl nebo jméno."
+    unknown_person: "Člověk na této jmenovce (už) není účastníkem této události - najděte ho podle jména, nebo ho přidejte."
+    no_rounds: "Tato událost zatím nemá žádná kola - pro zadávání výsledků přidejte kolo."
   recent:
     title: "Poslední zadání"
     empty: "Zde se objeví výsledky zadané na jakémkoli zařízení."
@@ -4089,6 +4172,7 @@ live_results:
     waiting: "Zatím neodesláno: %result%"
     you: "vy"
     local: "Přidáno v tomto zařízení"
+    finished_now_stopped: "Stopky kola už neběží - zadejte čas."
   confirm:
     save: "Uložit"
     change: "Změnit"
@@ -4118,6 +4202,9 @@ live_results:
     name_missing: "Zadejte jméno."
     team_missing: "Zadejte název dvojice/týmu nebo alespoň jednoho člena."
     table_taken: "Stůl %number% patří: %name%."
+    event_people: "V události, zatím ne v tomto kole"
+    event_people_members: "V události - přidat jako člena"
+    event_person: "V události · ne v tomto kole"
   sync:
     saved: "Vše uloženo"
     sending: "Ukládání…"
@@ -4126,6 +4213,7 @@ live_results:
     attention: "{1}1 vyžaduje pozornost|[2,4]%count% vyžadují pozornost|[5,Inf[%count% vyžaduje pozornost"
     sign_in: "Přihlásit se znovu"
     forbidden: "Bez oprávnění"
+    reload: "Načíst stránku znovu"
   banner:
     auth: "Jste odhlášeni. Nic z toho, co jste zadali, se neztratí - přihlaste se znovu (otevře se na nové kartě) a vraťte se sem."
     forbidden: "Tento účet (už) nemůže zadávat výsledky této události. Nic z toho, co jste zadali, se neztratí - přihlaste se jako organizátor události a zkuste to znovu."
@@ -4133,6 +4221,10 @@ live_results:
     foreign: "{1}1 výsledek zadaný pod jiným účtem čeká v tomto zařízení - přihlaste se jako tento účet a odešlete ho.|[2,4]%count% výsledky zadané pod jiným účtem čekají v tomto zařízení - přihlaste se jako tento účet a odešlete je.|[5,Inf[%count% výsledků zadaných pod jiným účtem čeká v tomto zařízení - přihlaste se jako tento účet a odešlete je."
     sign_in: "Přihlásit se"
     retry: "Zkusit znovu"
+    csrf: "Tato stránka je zastaralá - načtěte ji znovu, aby se odeslalo, co jste zadali. Nic se neztratí."
+    reload: "Načíst znovu"
+    forbidden_rounds: "{1}1 výsledek k události, jejíž výsledky tento účet (už) nesmí zadávat, čeká v tomto zařízení - přihlaste se jako organizátor této události a zkuste to znovu, nebo ho zahoďte.|[2,4]%count% výsledky k událostem, jejichž výsledky tento účet (už) nesmí zadávat, čekají v tomto zařízení - přihlaste se jako organizátor těchto událostí a zkuste to znovu, nebo je zahoďte.|[5,Inf[%count% výsledků k událostem, jejichž výsledky tento účet (už) nesmí zadávat, čeká v tomto zařízení - přihlaste se jako organizátor těchto událostí a zkuste to znovu, nebo je zahoďte."
+    show: "Zobrazit"
   problem:
     field_result: "Výsledek"
     field_table: "Číslo stolu"
@@ -4149,6 +4241,10 @@ live_results:
     stuck: "Server stále selhává - zkoušíme to znovu."
     retry_in: "další pokus za %seconds% s"
     retry_now: "Zkusit hned"
+    discard_confirm: "Zahodit tento výsledek? Nebyl nikdy uložen a zmizí."
+    discard_all: "Zahodit je"
+    discard_all_confirm: "{1}Zahodit tento výsledek? Nebyl nikdy uložen a zmizí.|[2,4]Zahodit tyto %count% výsledky? Nebyly nikdy uloženy a zmizí.|[5,Inf[Zahodit těchto %count% výsledků? Nebyly nikdy uloženy a zmizí."
+    forbidden: "Neodesláno: tento účet (už) nesmí zadávat výsledky této události."
   sheet:
     title: "Neodeslané výsledky"
     empty: "Vše je uloženo."
@@ -4157,10 +4253,16 @@ live_results:
     offline: "Offline - odešle se, jakmile se vrátí připojení"
     other_round: "%round%"
     retry_all: "Zkusit hned"
+    other_event: "Jiná událost"
+    busy: "Server požádal o strpení - odešle se automaticky"
   row:
     saved: "Uloženo"
     waiting: "Zatím neodesláno"
     problem: "Vyžaduje pozornost"
+  take_out:
+    button: "Odebrat z tohoto kola"
+    confirm: "Odebrat soutěžícího %name% z tohoto kola? Zůstává v události a jejích dalších kolech - odebrat lze jen soutěžícího bez výsledku nebo značky postupu."
+    done: "Soutěžící %name% byl(a) odebrán(a) z kola."
 name_tags:
   button: "Jmenovky"
   title: "Jmenovky"
@@ -4176,6 +4278,8 @@ name_tags:
   table: "Stůl"
   empty: "Zatím není koho tisknout - nejdřív přidejte účastníky."
   hint: "Tiskněte na A4 ve 100 % (bez „přizpůsobit stránce“) a stříhejte podle přerušovaných čar. QR kód otevře daného člověka v živém zadávání výsledků na telefonu organizátora; kdokoli jiný, kdo ho naskenuje, skončí na stránce události."
+  waitlist: "{1}Také 1 člověk z čekací listiny|[2,4]Také %count% lidé z čekací listiny|[5,Inf[Také %count% lidí z čekací listiny"
+  first_round_note: "Stůl na jmenovce je stůl prvního kola daného člověka - po novém rozsazení kola vytiskněte jmenovky znovu."
 results_desk:
   title: "Výsledkový pult"
   pieces: "%pieces% dílků"
@@ -4185,7 +4289,7 @@ results_desk:
   leave_unsaved: "Některé změny na této stránce ještě nejsou uloženy. Přesto odejít?"
   tools:
     live_entry: "Živé zadávání"
-    results: "Výsledky"
+    results: "Výsledkový pult"
     seating: "Rozsazení"
     seating_not_used: "nepoužito"
   overview:
@@ -4203,6 +4307,7 @@ results_desk:
       tables: "Stoly"
       published: "Zveřejněno"
       tools: "Nástroje"
+    referees: "Rozhodčí"
   export:
     button: "Export"
     xlsx: "Excel (XLSX)"
@@ -4220,6 +4325,7 @@ results_desk:
       qualified: "Postupující"
       entered_by: "Zadal(a)"
       entered_at: "Zadáno"
+    sheet: "Výsledky"
   publication:
     published: "Zveřejněno"
     not_published: "Nezveřejněno"
@@ -4231,16 +4337,17 @@ results_desk:
     title: "Zveřejnit oficiální výsledky?"
     intro: "Seřazené výsledky tohoto kola se zobrazí na jeho veřejné stránce s výsledky pro všechny."
     team_names: "Názvy dvojic a týmů a jména jejich členů se stanou veřejnými."
-    notification: "Hráči propojení se soutěžícím s dokončeným výsledkem dostanou upozornění - jednou, při tomto prvním zveřejnění."
-    no_new_notification: "Výsledky už byly zveřejněny dříve - nikdo nedostane další upozornění."
+    notification: "Hráči propojení se soutěžícím s dokončeným výsledkem dostanou upozornění - každý jen jednou, i u výsledku přidaného po zveřejnění."
+    no_new_notification: "Hráči, kterým už upozornění přišlo, ho nedostanou znovu - upozornění dostanou jen hráči s dokončeným výsledkem, kterým zatím nepřišlo."
     without_result: "1 soutěžící zatím nemá výsledek - nebude uveden, dokud ho mít nebude.|%count% soutěžící zatím nemají výsledek - nebudou uvedeni, dokud ho mít nebudou.|%count% soutěžících zatím nemá výsledek - nebudou uvedeni, dokud ho mít nebudou."
     unsaved: "1 změna na této stránce ještě není uložena - zveřejnění zobrazí jen uložené výsledky.|%count% změny na této stránce ještě nejsou uloženy - zveřejnění zobrazí jen uložené výsledky.|%count% změn na této stránce ještě není uloženo - zveřejnění zobrazí jen uložené výsledky."
     confirm: "Zveřejnit"
     done: "Výsledky jsou zveřejněny."
+    not_public: "Tato událost zatím není veřejná - stránka s výsledky zůstane skrytá a hráči se to dozvědí, jakmile bude událost schválena."
   unpublish:
     button: "Zrušit zveřejnění"
     title: "Stáhnout výsledky z veřejné stránky?"
-    intro: "Oficiální výsledky zmizí z veřejné stránky kola, dokud je znovu nezveřejníte. Nikdo už později nedostane další upozornění."
+    intro: "Oficiální výsledky zmizí z veřejné stránky kola, dokud je znovu nezveřejníte. Hráči, kterým už upozornění přišlo, ho nedostanou znovu."
     confirm: "Zrušit zveřejnění"
     done: "Výsledky už nejsou veřejné."
   banner:
@@ -4307,6 +4414,8 @@ results_desk:
     entered_by: "%name% · %time%"
     empty_round: "V tomto kole zatím nikdo není."
     empty_filter: "Žádný soutěžící neodpovídá."
+    taken_by: "Stůl %number% patří: %name%."
+    swap: "Prohodit je"
   editor:
     kind: "Druh výsledku"
     value: "Čas nebo položené dílky"
@@ -4405,6 +4514,19 @@ results_desk:
       skip: "Přeskočit"
       done: "Rozsazen 1 soutěžící (stůl %from%).|Rozsazeni %count% soutěžící (stoly %from%–%to%).|Rozsazeno %count% soutěžících (stoly %from%–%to%)."
       nothing: "Není koho rozsadit - každý nový soutěžící už má číslo stolu."
+    country_rule:
+      legend: "Pravidlo zemí"
+      label: "Také nejlepší z každé země"
+      count: "Kolik z každé země"
+      help: "Ze všech výše vybraných kol, podle postupového nasazení - dvojice nebo tým se počítá do zemí všech svých členů a započítávají se i soutěžící označení jako postupující. Plán ukáže, koho to vezme; jejich přidáním se označí jako postupující ve svém kole."
+      badge: "pravidlo zemí"
+      marked: "1 soutěžící bere pravidlo zemí a ve svém kole bude označen jako postupující.|%count% soutěžící bere pravidlo zemí a ve svých kolech budou označeni jako postupující.|%count% soutěžících bere pravidlo zemí a ve svých kolech budou označeni jako postupující."
+      without_country: "1 soutěžící s výsledkem nemá zemi - pravidlo zemí ho nemůže vzít; pokud postupuje, označte ho ve výsledkovém pultu:|%count% soutěžící s výsledkem nemají zemi - pravidlo zemí je nemůže vzít; pokud postupují, označte je ve výsledkovém pultu:|%count% soutěžících s výsledkem nemá zemi - pravidlo zemí je nemůže vzít; pokud postupují, označte je ve výsledkovém pultu:"
+    unsaved_marks: "1 značka postupu ve výsledkovém pultu ještě není uložena - plán používá jen uložené značky. Počkejte, až pult ukáže „Vše uloženo“.|%count% značky postupu ve výsledkovém pultu ještě nejsou uloženy - plán používá jen uložené značky. Počkejte, až pult ukáže „Vše uloženo“.|%count% značek postupu ve výsledkovém pultu ještě není uloženo - plán používá jen uložené značky. Počkejte, až pult ukáže „Vše uloženo“."
+  take_out:
+    button: "Odebrat z tohoto kola"
+    confirm: "Odebrat soutěžícího %name% z tohoto kola? Zůstává v události a jejích dalších kolech - odebrat lze jen soutěžícího bez výsledku nebo značky postupu."
+    done: "Soutěžící %name% byl(a) odebrán(a) z kola."
 seating:
   title: "Rozsazení"
   button: "Rozsazení"
@@ -4479,6 +4601,7 @@ seating:
     undone: "Vráceno zpět."
     close: "Zavřít"
     nothing_saved: "Nic nebylo uloženo - opravte stoly níže a zkuste to znovu."
+    changed_meanwhile: "Někdo jiný mezitím změnil čísla stolů - nic nebylo uloženo. Stránka nyní ukazuje jeho čísla; zkontrolujte je a zkuste to znovu."
   auto:
     title: "Automatické přidělení stolů"
     intro: "Nejdřív dostanete návrh - nic se nezmění, dokud ho nepoužijete."
@@ -4547,14 +4670,22 @@ official_results:
     table_number_taken: "Jiný soutěžící tohoto kola má toto číslo stolu."
     duplicate_entry: "Tento soutěžící je uveden dvakrát."
     changed_meanwhile: "Někdo jiný to mezitím změnil."
+    results_only: "Rozhodčí zadávají jen výsledky - čísla stolů a postupy jsou věcí organizátorů."
+    changes_unreadable: "Tyto změny se nepodařilo přečíst - zadejte je znovu."
+    too_many_changes: "Příliš mnoho změn najednou - odešlou se znovu po jedné."
+    change_sent_twice: "Stejná změna byla odeslána dvakrát - zadejte ji znovu."
+    participant_not_found: "Tento člověk (už) není účastníkem události."
+    participant_already_in_round: "Tento člověk už v tomto kole je - najděte ho v seznamu."
+    round_not_found: "Toto kolo už neexistuje."
   notification:
     published: "Oficiální výsledky kola %round% na události %competition% jsou venku - podívejte se na svůj výsledek."
   guard:
     entry_has_result: "Tento člověk má oficiální výsledek nebo značku postupu v kole, ze kterého jste ho odebrali - nejdřív je smažte ve výsledcích kola. Nic nebylo uloženo."
     team_has_result: "Tato dvojice/tým má oficiální výsledek nebo značku postupu - pokud má opravdu odejít, nejdřív je smažte."
     participant_has_result: "Tento člověk má na této události oficiální výsledek nebo značku postupu, proto zůstává. Pokud má opravdu odejít, nejdřív je smažte."
-    round_category_locked: "Toto kolo má oficiální výsledky - jeho kategorie zůstane, dokud budou existovat."
+    round_category_locked: "Toto kolo má oficiální výsledky nebo značky postupu - jeho kategorie zůstane, dokud budou existovat."
     team_line_up_changed: "Tato dvojice/tým má oficiální výsledek - ten nyní patří novému složení."
+    round_entry_has_result: "Tento soutěžící má v tomto kole oficiální výsledek nebo značku postupu - pokud má kolo opravdu opustit, nejdřív je smažte."
   delete_round:
     title: "Smazat kolo i jeho oficiální výsledky?"
     intro: "{1}Toto kolo má jeden oficiální výsledek - smazáním kola se smaže také:|[2,4]Toto kolo má %count% oficiální výsledky - smazáním kola se smažou také:|[5,Inf[Toto kolo má %count% oficiálních výsledků - smazáním kola se smažou také:"
@@ -4569,10 +4700,12 @@ official_results:
       single_needs_one_target: "Vyberte právě jedno kolo, do kterého postupující vložíte, nebo je rozdělte do více kol."
       by_source_map_incomplete: "Vyberte kolo pro postupující z každého kola, ze kterého pocházejí."
       plan_changed: "Mezitím se něco změnilo - projděte plán znovu. Nikdo nebyl přidán."
+      invalid_country_rule: "Nejlepší z každé země: zvolte 1 až 99 na zemi."
     skip:
       already_in_target: "Už je v kole"
       member_already_in_target: "Někdo z této dvojice/týmu už je v kole"
       qualified_twice: "Postupuje i z jiného kola - posunut jednou"
+      member_already_planned: "Někdo z této dvojice/týmu už postupuje s lépe umístěnou dvojicí/týmem"
 
 "series":
   "meta":

@@ -1,6 +1,8 @@
 image_invalid_mime_type: "Veuillez saisir un fichier dans un format d'image valide. Les formats supportés sont : jpg, jpeg, gif, png, webp, heic, heif, avif"
 puzzling_time_format: "Veuillez saisir le temps au format HH:MM:SS ou MM:SS"
 player_code: "Le code joueur ne peut contenir que des lettres et des chiffres, sans caractères spéciaux ou espaces."
+competition_referees_choose_player: "Choisissez au moins un joueur."
+
 competition_date_to_before_date_from: "La date de fin ne peut pas être antérieure à la date de début."
 competition_registration_closes_before_opens: "Les inscriptions ne peuvent pas se clore avant leur ouverture."
 

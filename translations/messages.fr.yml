@@ -164,6 +164,8 @@
     organiser_results: "Résultats de l'organisateur"
     player_times: "Temps ajoutés par les puzzleurs (%count%)"
     meta_description: "Résultats officiels de %round% à %event% : le classement de l'organisateur de %count% concurrent, avec temps et pièces posées.|Résultats officiels de %round% à %event% : le classement de l'organisateur de %count% concurrents, avec temps et pièces posées."
+    connect: "Votre nom est ici ?"
+    connect_link: "Reliez-le à votre profil"
 "badge":
   "relax": "Relax"
   "suspicious": "Vérification requise"
@@ -396,6 +398,9 @@
   "group_puzzling": "Puzzle en duo/groupe"
   official_entry:
     notice: "Rempli à partir des résultats officiels de %round% à %event%. Vérifiez-le et enregistrez-le sur votre profil."
+    which_one: "Les résultats officiels listent le duo/l'équipe par son nom - lequel d'entre eux êtes-vous ?"
+    its_me: "Je suis %name%"
+    add_people: "{1}Ajoutez la personne avec qui vous avez assemblé le puzzle - les résultats officiels n'indiquent pas qui c'était.|]1,Inf[Ajoutez les personnes avec qui vous avez assemblé le puzzle - les résultats officiels n'indiquent pas qui elles étaient toutes."
 "forms":
   "add_new_brand": "Ajouter une nouvelle marque :"
   "choose_from_favorites": "- Choisir parmi les favoris -"
@@ -892,6 +897,39 @@
   "sign_in": "Se connecter"
   "sign_in_to_request": "Connectez-vous pour faire une demande"
   "questions": "Des questions ? Contactez-nous à <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a>."
+competition_referees:
+  title: "Arbitres"
+  button: "Arbitres"
+  intro: "Les arbitres saisissent les résultats sur leur téléphone dans la saisie en direct - et rien d'autre : ils ne peuvent modifier ni l'événement, ni ses participants, ses manches, ses numéros de table ou les qualifications, et ils ne peuvent pas publier les résultats. Chaque arbitre doit avoir un compte MySpeedPuzzling. Vous et les autres organisateurs de l'événement pouvez toujours saisir des résultats aussi."
+  link:
+    title: "Lien pour les arbitres"
+    help: "Envoyez-le à vos arbitres ou laissez-les scanner le code QR. Il ouvre toujours la manche en cours ; ils se connectent avec leur propre compte."
+    copy: "Copier le lien"
+    qr_alt: "Code QR du lien pour les arbitres"
+    qr_help: "Affichez-le sur votre écran pour les appareils photo des arbitres, ou imprimez-le."
+    qr_download: "Télécharger le code QR"
+  add:
+    title: "Ajouter des arbitres"
+    label: "Joueurs"
+    help: "Recherchez par nom ou #code - ils doivent avoir un compte MySpeedPuzzling."
+    submit: "Ajouter comme arbitres"
+  outcome:
+    added: "%count% arbitre ajouté.|%count% arbitres ajoutés."
+    already_referee: "Déjà arbitre - rien n'a changé.|%count% joueurs sont déjà arbitres - rien n'a changé."
+    organiser: "Organise cet événement et peut de toute façon saisir des résultats - non ajouté comme arbitre.|%count% joueurs organisent cet événement et peuvent de toute façon saisir des résultats - non ajoutés comme arbitres."
+    unknown_player: "Ce joueur n'existe plus.|%count% joueurs n'existent plus."
+    limit_reached: "Un événement peut avoir au maximum %limit% arbitres."
+  list:
+    title: "Arbitres (%count%)"
+    empty: "Pas encore d'arbitres."
+    player: "Joueur"
+    added: "Ajouté"
+  remove:
+    button: "Retirer"
+    confirm: "Retirer %name% des arbitres ? Les résultats qu'il ou elle a saisis sont conservés."
+    done: "Arbitre retiré. Les résultats saisis sont conservés."
+    expired: "Cette page est restée ouverte trop longtemps - rien n'a été retiré, réessayez."
+
 "for_organizers":
   "meta":
     "title": "Pour organisateurs — Organisez votre compétition de puzzles"
@@ -3880,7 +3918,7 @@ competition_registration:
     opens_at: "Ouverture des inscriptions"
     opens_at_help: "Jour et heure dans le fuseau horaire ci-dessous. Laissez vide pour ouvrir les inscriptions immédiatement."
     closes_at: "Clôture des inscriptions"
-    closes_at_help: "Jour et heure dans le fuseau horaire ci-dessous. Ensuite, les puzzleurs ne peuvent plus s'inscrire eux-mêmes - les personnes de votre liste retrouvent toujours leur nom, et vous pouvez encore ajouter des participants."
+    closes_at_help: "Jour et heure dans le fuseau horaire ci-dessous. Laissez vide pour clore les inscriptions à la fin du dernier jour de l'événement. Ensuite, les puzzleurs ne peuvent plus s'inscrire eux-mêmes - les personnes de votre liste retrouvent toujours leur nom, et vous pouvez encore ajouter des participants."
     timezone: "Fuseau horaire de ces heures"
     timezone_help: "Présélectionné d'après vos manches ou le pays de l'événement. La page de l'événement affiche les heures dans ce fuseau."
     entry_fee: "Droit d'inscription"
@@ -3890,7 +3928,7 @@ competition_registration:
     save: "Enregistrer les paramètres d'inscription"
     not_public: "Les puzzleurs ne peuvent s'inscrire qu'une fois l'événement approuvé et visible publiquement."
     going_count_warning: "{1}Une personne a déjà dit « J'y vais ». Quand vous activerez la gestion, elle aura une place (réservée).|]1,Inf[%count% personnes ont déjà dit « J'y vais ». Quand vous activerez la gestion, elles auront chacune une place (réservée)."
-    waitlist_switch_off_warning: "{1}Une personne est en liste d'attente. Si vous désactivez la gestion, elle participera comme tout le monde.|]1,Inf[%count% personnes sont en liste d'attente. Si vous désactivez la gestion, elles participeront comme tout le monde."
+    waitlist_switch_off_warning: "{1}Une personne est en liste d'attente. Si vous désactivez la gestion, elle y ira comme tout le monde, et nous lui enverrons un e-mail pour lui dire qu'une place s'est libérée.|]1,Inf[%count% personnes sont en liste d'attente. Si vous désactivez la gestion, elles y iront comme tout le monde, et nous leur enverrons un e-mail pour leur dire qu'une place s'est libérée."
     external_link_kept: "Votre lien d'inscription reste enregistré. Tant que l'inscription est gérée ici, la page de l'événement affiche cette inscription à la place du lien ; désactivez la gestion et le lien revient."
   flash:
     settings_saved: "Les paramètres d'inscription ont été enregistrés."
@@ -3900,6 +3938,8 @@ competition_registration:
       not_yet_open: "Les inscriptions à cet événement ne sont pas encore ouvertes."
       closed: "Les inscriptions à cet événement sont closes."
       not_public: "Les inscriptions ouvrent une fois l'événement approuvé."
+    form_expired: "Le formulaire a expiré - veuillez confirmer à nouveau."
+    release_paid_not_confirmed: "Votre propre inscription est payée. Pour choisir un nom dans la liste de l'organisateur, confirmez que votre inscription payée est annulée."
   card:
     title: "Inscription"
     spots_taken: "%taken% / %capacity% places prises"
@@ -3922,6 +3962,15 @@ competition_registration:
       not_yet_open: "Les inscriptions ne sont pas encore ouvertes."
       closed: "Les inscriptions sont closes."
       not_public: "Les inscriptions ouvrent une fois l'événement approuvé."
+    leave_confirm:
+      reserved: "Votre place est libérée pour quelqu'un d'autre. Si vous vous réinscrivez plus tard, vous repartez de zéro - en liste d'attente si l'événement est alors complet."
+      paid: "Vous avez payé cette place. L'annuler la libère pour quelqu'un d'autre. MySpeedPuzzling ne traite pas les paiements - l'organisateur conserve la trace de votre paiement, demandez-lui donc un remboursement. Si vous vous réinscrivez plus tard, vous repartez de zéro - en liste d'attente si l'événement est alors complet."
+      waitlisted: "Vous quittez la liste d'attente et perdez votre rang."
+      listed: "Votre compte est dissocié de votre nom sur la liste de l'organisateur. L'organisateur garde cette place."
+      button_reserved: "Oui, annuler mon inscription"
+      button_paid: "Oui, annuler mon inscription payée"
+      button_waitlisted: "Oui, quitter la liste d'attente"
+      button_listed: "Oui, partir"
   confirm:
     reserved: "En vous inscrivant, vous réservez votre place immédiatement."
     full: "L'événement est complet - vous serez en liste d'attente (n° %position%). Si l'organisateur vous accorde une place, nous vous enverrons un e-mail."
@@ -3943,6 +3992,7 @@ competition_registration:
     checked_in: "Arrivée enregistrée"
     organizer_note: "Note privée"
     organizer_note_too_long: "La note peut contenir au maximum %max% caractères."
+    paid_before: "Payé le %date%, avant l'annulation de l'inscription"
   check_in:
     title: "Enregistrement des arrivées"
     progress: "%checkedIn% / %total% arrivés"
@@ -3950,6 +4000,11 @@ competition_registration:
     not_paid: "Non payé"
     check_in: "Enregistrer l'arrivée"
     undo: "Annuler"
+  join:
+    releases_own: "Choisir un nom dans la liste de l'organisateur annule votre propre inscription - sa place est libérée."
+    releases_waitlist: "Choisir un nom dans la liste de l'organisateur vous retire de la liste d'attente."
+    releases_paid: "Vous avez payé votre propre inscription. Choisir un nom dans la liste de l'organisateur l'annule et libère sa place. MySpeedPuzzling ne traite pas les paiements - l'organisateur conserve la trace de votre paiement, adressez-vous donc à lui pour tout ce qui concerne les frais."
+    releases_paid_confirm: "Annuler mon inscription payée et me relier au nom choisi"
 page_sections:
   manage_button: "Contenu de la page"
   manage_title: "Contenu de la page"
@@ -4013,6 +4068,7 @@ page_sections:
     uploading: "Envoi en cours..."
     failed: "L'image n'a pas pu être envoyée. Vérifiez votre connexion et réessayez."
     no_file: "Choisissez une image à envoyer."
+    rate_limited: "Vous avez envoyé beaucoup d'images la dernière heure. Veuillez réessayer plus tard."
   error:
     expired: "La page est restée ouverte trop longtemps. Veuillez réessayer."
     title_too_long: "Le titre peut contenir au maximum %max% caractères."
@@ -4025,19 +4081,44 @@ page_sections:
     url_missing: "Chaque lien a besoin d'une adresse web."
     invalid_url: "Une adresse web doit être complète et commencer par https:// (ou http://)."
     invalid_email: "Cette adresse e-mail ne semble pas correcte."
+    too_many_images: "Une section peut contenir au maximum %max% images."
+    too_many_sections: "Une page peut contenir au maximum %max% sections. Supprimez-en une pour en ajouter une autre."
   flash:
     added: "La section a été ajoutée à la page."
     updated: "La section a été enregistrée."
     deleted: "La section a été supprimée."
     shown: "La section est affichée sur la page."
     hidden: "La section est masquée. Elle reste ici jusqu'à ce que vous l'affichiez à nouveau ou la supprimiez."
+  not_public_yet: "Les visiteurs ne voient ces sections qu'une fois l'événement approuvé. D'ici là, vous pouvez les préparer ici."
+  not_public_yet_series: "Les visiteurs ne voient ces sections qu'une fois la série approuvée. D'ici là, vous pouvez les préparer ici."
+  limit_reached: "Cette page compte %max% sections, le maximum possible. Supprimez-en une pour en ajouter une autre."
+  editor:
+    text_style: "Style du texte"
+    normal: "Normal"
+    heading_2: "Titre 2"
+    heading_3: "Titre 3"
+    heading_4: "Titre 4"
+    bold: "Gras"
+    italic: "Italique"
+    underline: "Souligné"
+    strike: "Barré"
+    ordered_list: "Liste numérotée"
+    bullet_list: "Liste à puces"
+    blockquote: "Citation"
+    link: "Lien"
+    clean: "Supprimer la mise en forme"
+    visit_url: "Ouvrir l'adresse :"
+    enter_link: "Saisissez le lien :"
+    edit_link: "Modifier"
+    remove_link: "Retirer"
+    save_link: "Enregistrer"
 live_results:
   title: "Saisie des résultats en direct"
   round: "Manche"
   back: "Retour"
   close: "Fermer"
   back_to_rounds: "Retour aux manches"
-  results_desk: "Tous les résultats de la manche"
+  results_desk: "Bureau des résultats"
   table: "Table %number%"
   no_table: "Sans table"
   entrant_not_in_round: "%name% n'est pas dans %round%."
@@ -4067,6 +4148,8 @@ live_results:
     open_their_round: "Ouvrir sa manche"
     camera_error: "La caméra n'a pas pu démarrer - autorisez-la dans les réglages du navigateur, ou saisissez la table ou le nom."
     decoder_error: "Ce navigateur ne peut pas lire les codes QR - saisissez la table ou le nom."
+    unknown_person: "La personne de ce badge n'est pas (ou plus) participante de cet événement - retrouvez-la par son nom, ou ajoutez-la."
+    no_rounds: "Cet événement n'a pas encore de manches - ajoutez une manche pour saisir des résultats."
   recent:
     title: "Dernières saisies"
     empty: "Les résultats saisis sur n'importe quel appareil apparaissent ici."
@@ -4092,6 +4175,7 @@ live_results:
     waiting: "Pas encore envoyé : %result%"
     you: "vous"
     local: "Ajouté sur cet appareil"
+    finished_now_stopped: "Le chronomètre de la manche n'est plus en marche - saisissez le temps."
   confirm:
     save: "Enregistrer"
     change: "Modifier"
@@ -4121,6 +4205,9 @@ live_results:
     name_missing: "Saisissez le nom."
     team_missing: "Saisissez le nom du duo/de l'équipe ou au moins un membre."
     table_taken: "La table %number% est celle de %name%."
+    event_people: "Dans l'événement, pas encore dans cette manche"
+    event_people_members: "Dans l'événement - ajouter comme membre"
+    event_person: "Dans l'événement · pas dans cette manche"
   sync:
     saved: "Tout est enregistré"
     sending: "Enregistrement…"
@@ -4129,6 +4216,7 @@ live_results:
     attention: "{1}1 demande votre attention|]1,Inf[%count% demandent votre attention"
     sign_in: "Se reconnecter"
     forbidden: "Accès refusé"
+    reload: "Recharger la page"
   banner:
     auth: "Vous êtes déconnecté(e). Rien de ce que vous avez saisi n'est perdu - reconnectez-vous (dans un nouvel onglet), puis revenez ici."
     forbidden: "Ce compte n'est pas (ou plus) autorisé à saisir les résultats de cet événement. Rien de ce que vous avez saisi n'est perdu - connectez-vous en tant qu'organisateur de l'événement, puis réessayez."
@@ -4136,6 +4224,10 @@ live_results:
     foreign: "{1}1 résultat saisi avec un autre compte attend sur cet appareil - connectez-vous avec ce compte pour l'envoyer.|]1,Inf[%count% résultats saisis avec un autre compte attendent sur cet appareil - connectez-vous avec ce compte pour les envoyer."
     sign_in: "Se connecter"
     retry: "Réessayer"
+    csrf: "Cette page est périmée - rechargez-la pour envoyer ce que vous avez saisi. Rien n'est perdu."
+    reload: "Recharger"
+    forbidden_rounds: "{1}1 résultat d'un événement dont ce compte n'est pas (ou plus) autorisé à saisir les résultats attend sur cet appareil - connectez-vous en tant qu'organisateur de cet événement et réessayez, ou abandonnez-le.|]1,Inf[%count% résultats d'événements dont ce compte n'est pas (ou plus) autorisé à saisir les résultats attendent sur cet appareil - connectez-vous en tant qu'organisateur de ces événements et réessayez, ou abandonnez-les."
+    show: "Afficher"
   problem:
     field_result: "Résultat"
     field_table: "Numéro de table"
@@ -4152,6 +4244,10 @@ live_results:
     stuck: "Le serveur continue d'échouer - nouvelle tentative."
     retry_in: "prochain essai dans %seconds% s"
     retry_now: "Réessayer maintenant"
+    discard_confirm: "Abandonner ce résultat ? Il n'a jamais été enregistré et sera perdu."
+    discard_all: "Les abandonner"
+    discard_all_confirm: "{1}Abandonner ce résultat ? Il n'a jamais été enregistré et sera perdu.|]1,Inf[Abandonner ces %count% résultats ? Ils n'ont jamais été enregistrés et seront perdus."
+    forbidden: "Non envoyé : ce compte n'est pas (ou plus) autorisé à saisir les résultats de cet événement."
   sheet:
     title: "Résultats non envoyés"
     empty: "Tout est enregistré."
@@ -4160,10 +4256,16 @@ live_results:
     offline: "Hors ligne - envoi dès le retour de la connexion"
     other_round: "%round%"
     retry_all: "Réessayer maintenant"
+    other_event: "Un autre événement"
+    busy: "Le serveur a demandé d'attendre - envoi automatique"
   row:
     saved: "Enregistré"
     waiting: "Pas encore envoyé"
     problem: "Action requise"
+  take_out:
+    button: "Retirer de cette manche"
+    confirm: "Retirer %name% de cette manche ? Cette personne reste dans l'événement et ses autres manches - seul un concurrent sans résultat ni marque de qualification peut être retiré."
+    done: "%name% a été retiré(e) de la manche."
 name_tags:
   button: "Badges nominatifs"
   title: "Badges nominatifs"
@@ -4179,6 +4281,8 @@ name_tags:
   table: "Table"
   empty: "Personne à imprimer pour l'instant - ajoutez d'abord des participants."
   hint: "Imprimez en A4 à 100 % (sans « ajuster à la page ») et découpez le long des pointillés. Le code QR ouvre la personne dans la saisie des résultats en direct sur le téléphone d'un organisateur ; toute autre personne qui le scanne arrive sur la page de l'événement."
+  waitlist: "{1}Aussi la personne en liste d'attente|]1,Inf[Aussi les %count% personnes en liste d'attente"
+  first_round_note: "La table sur un badge est celle de la première manche de la personne - réimprimez après avoir refait le plan de table d'une manche."
 results_desk:
   title: "Bureau des résultats"
   pieces: "%pieces% pièces"
@@ -4188,7 +4292,7 @@ results_desk:
   leave_unsaved: "Certaines modifications de cette page ne sont pas encore enregistrées. Quitter quand même ?"
   tools:
     live_entry: "Saisie en direct"
-    results: "Résultats"
+    results: "Bureau des résultats"
     seating: "Plan de table"
     seating_not_used: "non utilisé"
   overview:
@@ -4206,6 +4310,7 @@ results_desk:
       tables: "Tables"
       published: "Publié"
       tools: "Outils"
+    referees: "Arbitres"
   export:
     button: "Exporter"
     xlsx: "Excel (XLSX)"
@@ -4223,6 +4328,7 @@ results_desk:
       qualified: "Qualifié"
       entered_by: "Saisi par"
       entered_at: "Saisi le"
+    sheet: "Résultats"
   publication:
     published: "Publié"
     not_published: "Non publié"
@@ -4234,16 +4340,17 @@ results_desk:
     title: "Publier les résultats officiels ?"
     intro: "Le classement de cette manche apparaît sur sa page de résultats publique, visible de tous."
     team_names: "Les noms des duos et équipes ainsi que ceux de leurs membres deviennent publics."
-    notification: "Les joueurs liés à un concurrent ayant un résultat final reçoivent une notification - une seule fois, lors de cette première publication."
-    no_new_notification: "Les résultats ont déjà été publiés - personne ne recevra de nouvelle notification."
+    notification: "Les joueurs liés à un concurrent ayant un résultat final reçoivent une notification - une seule fois chacun, y compris pour un résultat ajouté après la publication."
+    no_new_notification: "Les joueurs déjà prévenus ne le sont pas à nouveau - seuls les joueurs ayant un résultat final et pas encore prévenus reçoivent une notification."
     without_result: "1 concurrent n'a pas encore de résultat - il ne sera pas listé tant qu'il n'en aura pas.|%count% concurrents n'ont pas encore de résultat - ils ne seront pas listés tant qu'ils n'en auront pas."
     unsaved: "1 modification de cette page n'est pas encore enregistrée - la publication n'affiche que les résultats enregistrés.|%count% modifications de cette page ne sont pas encore enregistrées - la publication n'affiche que les résultats enregistrés."
     confirm: "Publier"
     done: "Les résultats sont publiés."
+    not_public: "Cet événement n'est pas encore public - la page des résultats reste masquée et les joueurs sont prévenus une fois l'événement approuvé."
   unpublish:
     button: "Dépublier"
     title: "Retirer les résultats de la page publique ?"
-    intro: "Les résultats officiels disparaissent de la page publique de la manche jusqu'à ce que vous les publiez à nouveau. Personne ne sera notifié une seconde fois."
+    intro: "Les résultats officiels disparaissent de la page publique de la manche jusqu'à ce que vous les publiez à nouveau. Les joueurs déjà prévenus ne le sont pas à nouveau."
     confirm: "Dépublier"
     done: "Les résultats ne sont plus publics."
   banner:
@@ -4310,6 +4417,8 @@ results_desk:
     entered_by: "%name% · %time%"
     empty_round: "Personne n'est encore dans cette manche."
     empty_filter: "Aucun concurrent ne correspond."
+    taken_by: "La table %number% est celle de %name%."
+    swap: "Les échanger"
   editor:
     kind: "Type de résultat"
     value: "Temps ou pièces posées"
@@ -4408,6 +4517,19 @@ results_desk:
       skip: "Passer"
       done: "1 concurrent placé (table %from%).|%count% concurrents placés (tables %from%–%to%)."
       nothing: "Rien à placer - chaque nouveau concurrent a déjà un numéro de table."
+    country_rule:
+      legend: "Règle par pays"
+      label: "Aussi le meilleur de chaque pays"
+      count: "Combien par pays"
+      help: "Parmi toutes les manches choisies ci-dessus, selon la tête de série d'avancement - un duo ou une équipe compte pour le pays de chacun de ses membres, et les concurrents marqués qualifiés comptent aussi. Le plan montre qui est retenu ; les ajouter les marque qualifiés dans leur propre manche."
+      badge: "règle par pays"
+      marked: "1 concurrent est retenu par la règle par pays et sera marqué qualifié dans sa manche.|%count% concurrents sont retenus par la règle par pays et seront marqués qualifiés dans leurs manches."
+      without_country: "1 concurrent avec un résultat n'a pas de pays - la règle par pays ne peut pas le retenir ; marquez-le dans le bureau des résultats s'il est qualifié :|%count% concurrents avec un résultat n'ont pas de pays - la règle par pays ne peut pas les retenir ; marquez-les dans le bureau des résultats s'ils sont qualifiés :"
+    unsaved_marks: "1 marque de qualification du bureau des résultats n'est pas encore enregistrée - le plan n'utilise que les marques enregistrées. Attendez que le bureau affiche « Tout est enregistré ».|%count% marques de qualification du bureau des résultats ne sont pas encore enregistrées - le plan n'utilise que les marques enregistrées. Attendez que le bureau affiche « Tout est enregistré »."
+  take_out:
+    button: "Retirer de cette manche"
+    confirm: "Retirer %name% de cette manche ? Cette personne reste dans l'événement et ses autres manches - seul un concurrent sans résultat ni marque de qualification peut être retiré."
+    done: "%name% a été retiré(e) de la manche."
 seating:
   title: "Plan de table"
   button: "Plan de table"
@@ -4482,6 +4604,7 @@ seating:
     undone: "Annulé."
     close: "Fermer"
     nothing_saved: "Rien n'a été enregistré - corrigez les tables ci-dessous et réessayez."
+    changed_meanwhile: "Quelqu'un d'autre a modifié les numéros de table entre-temps - rien n'a été enregistré. La page affiche maintenant ses numéros ; vérifiez et réessayez."
   auto:
     title: "Attribuer les tables automatiquement"
     intro: "Vous obtenez d'abord une proposition - rien ne change tant que vous ne l'appliquez pas."
@@ -4550,14 +4673,22 @@ official_results:
     table_number_taken: "Un autre concurrent de cette manche a ce numéro de table."
     duplicate_entry: "Ce concurrent figure deux fois."
     changed_meanwhile: "Quelqu'un d'autre a modifié cela entre-temps."
+    results_only: "Les arbitres ne saisissent que les résultats - les numéros de table et les qualifications relèvent des organisateurs."
+    changes_unreadable: "Ces modifications n'ont pas pu être lues - saisissez-les à nouveau."
+    too_many_changes: "Trop de modifications à la fois - elles sont renvoyées une par une."
+    change_sent_twice: "La même modification a été envoyée deux fois - saisissez-la à nouveau."
+    participant_not_found: "Cette personne n'est pas (ou plus) participante de l'événement."
+    participant_already_in_round: "Cette personne est déjà dans cette manche - retrouvez-la dans la liste."
+    round_not_found: "Cette manche n'existe plus."
   notification:
     published: "Les résultats officiels de %round% à %competition% sont publiés - découvrez votre résultat."
   guard:
     entry_has_result: "Cette personne a un résultat officiel ou une marque de qualification dans une manche dont vous l'avez retirée - effacez-le d'abord dans les résultats de la manche. Rien n'a été enregistré."
     team_has_result: "Ce duo/Cette équipe a un résultat officiel ou une marque de qualification - effacez-le d'abord si le duo/l'équipe doit vraiment être retiré(e)."
     participant_has_result: "Cette personne a un résultat officiel ou une marque de qualification dans cet événement, elle reste donc. Effacez-le d'abord si elle doit vraiment être retirée."
-    round_category_locked: "Cette manche a des résultats officiels - sa catégorie reste inchangée tant qu'ils existent."
+    round_category_locked: "Cette manche a des résultats officiels ou des marques de qualification - sa catégorie reste inchangée tant qu'ils existent."
     team_line_up_changed: "Ce duo/Cette équipe a un résultat officiel - il appartient désormais à la nouvelle composition."
+    round_entry_has_result: "Ce concurrent a un résultat officiel ou une marque de qualification dans cette manche - effacez-le d'abord s'il doit vraiment quitter la manche."
   delete_round:
     title: "Supprimer la manche et ses résultats officiels ?"
     intro: "{1}Cette manche a un résultat officiel - supprimer la manche le supprime aussi :|]1,Inf[Cette manche a %count% résultats officiels - supprimer la manche les supprime aussi :"
@@ -4572,10 +4703,12 @@ official_results:
       single_needs_one_target: "Choisissez exactement une manche où placer les qualifiés, ou répartissez-les sur plusieurs manches."
       by_source_map_incomplete: "Choisissez la manche pour les qualifiés de chaque manche d'origine."
       plan_changed: "Quelque chose a changé entre-temps - examinez à nouveau le plan. Rien n'a été ajouté."
+      invalid_country_rule: "Meilleur de chaque pays : choisissez de 1 à 99 par pays."
     skip:
       already_in_target: "Déjà dans la manche"
       member_already_in_target: "Quelqu'un de ce duo/cette équipe est déjà dans la manche"
       qualified_twice: "Également qualifié dans une autre manche - avancé une seule fois"
+      member_already_planned: "Quelqu'un de ce duo/cette équipe avance déjà avec un duo/une équipe mieux classé(e)"
 
 series:
   "meta":

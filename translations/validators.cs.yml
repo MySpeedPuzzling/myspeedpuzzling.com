@@ -1,6 +1,8 @@
 image_invalid_mime_type: "Prosím vložte soubor s obrázkem ve správném formátu. Podporované jsou: jpg, jpeg, gif, png, webp, heic, heif, avif"
 puzzling_time_format: "Prosím zadejte čas ve formátu HH:MM:SS nebo MM:SS"
 player_code: "Kód hráče musí obsahovat pouze písmena a číslice bez speciálních znaků nebo mezer"
+competition_referees_choose_player: "Vyberte alespoň jednoho hráče."
+
 competition_date_to_before_date_from: "Datum konce nemůže být před datem začátku."
 competition_registration_closes_before_opens: "Registrace se nemůže uzavřít dřív, než se otevře."
 

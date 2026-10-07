@@ -41,4 +41,9 @@ readonly final class CompetitionParticipantRoundRepository
     {
         $this->entityManager->persist($participantRound);
     }
+
+    public function delete(CompetitionParticipantRound $participantRound): void
+    {
+        $this->entityManager->remove($participantRound);
+    }
 }

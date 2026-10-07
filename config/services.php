@@ -186,6 +186,8 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/Api/PuzzleInsightsBatch.php',
             // SQL fragment of one typed search, built by the queries - not a service
             __DIR__ . '/../src/Services/PuzzleTextSearch.php',
+            // one planning run of ParticipantImportPlanner and its values - not services
+            __DIR__ . '/../src/Services/ParticipantImport/Plan/',
         ]);
 
     // framework.session.handler_id. After the Services load, which would otherwise

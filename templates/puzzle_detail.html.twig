@@ -111,9 +111,16 @@
 {# Google shows the site name on its own - the title is all puzzle (and long with a second name) #}
 {% block title_suffix %}{% endblock %}
 {% block meta_description %}{{ puzzle_meta_description }}{% endblock %}
-{# puzzle_large: 1200 px JPEG with metadata stripped - link previews show a large card, and it is never
-   the uploaded original (older uploads may still carry EXIF/GPS) #}
-{% block og_image %}{% if puzzle.puzzleImage is not null %}{{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_large')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+{# The page's one picture for everything outside the page: og:image, twitter:image, the Product image and
+   primaryImageOfPage - the same URL everywhere, so Google's result preview has a single candidate named
+   (docs/features/seo/implementation-plan-2026-10.md "Preview image"). puzzle_large: 1200 px JPEG with metadata
+   stripped - link previews show a large card, and it is never the uploaded original (older uploads may still carry
+   EXIF/GPS). GetPuzzleOverview already hides an embargoed image. #}
+{% set page_image = puzzle.puzzleImage is not null and not is_image_hidden
+    ? absolute_url(puzzle.puzzleImage|thumbnail('puzzle_large'))
+    : null
+%}
+{% block og_image %}{% if page_image is not null %}{{ page_image }}{% else %}{{ parent() }}{% endif %}{% endblock %}
 {% block robots %}
     {% if is_image_hidden %}
         <meta name="robots" content="noindex, nofollow">
@@ -124,6 +131,24 @@
 
 {% block json_ld %}
     {{ parent() }}
+    {# Which picture Google shows next to the result: its pick is automatic, primaryImageOfPage (with og:image) is the
+       documented way to name it. Google once showed another puzzle's box from the related puzzles strip for this
+       page. On every puzzle page with a picture - the Product block below exists only with offers. #}
+    {% if page_image is not null %}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ItemPage",
+        "url": {{ url('puzzle_detail', {puzzleId: puzzle.puzzleId})|json_ld }},
+        "isPartOf": {"@id": "https://myspeedpuzzling.com/#website"},
+        "primaryImageOfPage": {
+            "@type": "ImageObject",
+            "url": {{ page_image|json_ld }},
+            "contentUrl": {{ page_image|json_ld }}
+        }
+    }
+    </script>
+    {% endif %}
     {# Google requires offers, review or aggregateRating on Product — only emit the block when real marketplace offers exist #}
     {% if marketplace_offers is not empty %}
     <script type="application/ld+json">
@@ -138,8 +163,8 @@
             "@type": "Brand",
             "name": {{ puzzle.manufacturerName|json_ld }}
         },
-        {% if puzzle.puzzleImage is not null and not is_image_hidden %}
-        "image": {{ absolute_url(puzzle.puzzleImage|thumbnail('puzzle_large'))|json_ld }},
+        {% if page_image is not null %}
+        "image": {{ page_image|json_ld }},
         {% endif %}
         {# The codes stay out while the image is embargoed, as everywhere else on the page. Only barcodes with a right
            check digit, each one (EanList::gtins()) #}
@@ -458,17 +483,14 @@
                 {% for related_puzzle in related.puzzles %}
                     <li>
                         <a class="puzzle-related-card" href="{{ path('puzzle_detail', {puzzleId: related_puzzle.puzzleId}) }}">
+                            {# Another puzzle's box is a CSS background, never an <img>: Google picks the result's
+                               preview among a page's <img> elements and once showed a box from this strip for the
+                               puzzle above - it does not index CSS images. Decorative, the name below is the link
+                               text. 200 px tiles at most (190 px wide), the 400 px preset for 2x screens. #}
+                            {% set related_small = related_puzzle.puzzleImage|puzzle_image('puzzle_small') %}
+                            {% set related_medium = related_puzzle.puzzleImage is not null ? related_puzzle.puzzleImage|puzzle_image('puzzle_medium') : related_small %}
                             <span class="puzzle-related-image">
-                                <img
-                                    loading="lazy"
-                                    alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ related_puzzle.puzzleName}) }}"
-                                    src="{{ related_puzzle.puzzleImage|puzzle_image('puzzle_small') }}"
-                                    {% if related_puzzle.puzzleImage %}
-                                        srcset="{{ related_puzzle.puzzleImage|puzzle_image('puzzle_small') }} 200w, {{ related_puzzle.puzzleImage|puzzle_image('puzzle_medium') }} 400w"
-                                        sizes="(min-width: 1200px) 190px, (min-width: 768px) 140px, 104px"
-                                    {% endif %}
-                                    {{ puzzle_image_dimensions(related_puzzle.puzzleImageRatio, 200) }}
-                                >
+                                <span class="puzzle-related-picture" style="background-image: url('{{ related_small|e('css') }}'); background-image: image-set(url('{{ related_small|e('css') }}') 1x, url('{{ related_medium|e('css') }}') 2x)"></span>
                             </span>
                             <span class="puzzle-related-name">{{ related_puzzle.puzzleName }}</span>
                             {# Every card shares the heading's piece count - only the brand-wide fallback names it #}

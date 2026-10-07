@@ -717,8 +717,61 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertSame($largeImage, $crawler->filter('meta[property="og:image"]')->attr('content'));
         self::assertSame($largeImage, $crawler->filter('meta[name="twitter:image"]')->attr('content'));
         self::assertSame($largeImage, self::productJsonLd($crawler)['image']);
+        self::assertSame($largeImage, self::primaryImageOfPage($crawler));
         self::assertSame($largeImage, $crawler->filter('.puzzle-head-image a.gallery-item')->attr('href'));
         self::assertStringNotContainsString('/original/box-with-exif.jpg', (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * Google showed another puzzle's box (from the related puzzles strip) next to a puzzle page. The page names its
+     * own picture as primaryImageOfPage - also without offers, when there is no Product block - and no other puzzle's
+     * picture is an <img> Google could pick: the related boxes are CSS backgrounds, which Google does not index.
+     */
+    public function testThePuzzlesOwnPictureIsTheOnlyPreviewCandidate(): void
+    {
+        $browser = self::createClient();
+        self::clearCatalogueStatsCache($browser->getContainer());
+        // Every Trefl puzzle gets a picture, so the related puzzles of PUZZLE_1000_04 have one too
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE puzzle SET image = 'box-' || id || '.jpg'
+             WHERE manufacturer_id = (SELECT manufacturer_id FROM puzzle WHERE id = :puzzleId)",
+            ['puzzleId' => PuzzleFixture::PUZZLE_1000_04],
+        );
+        $ownImage = 'box-' . PuzzleFixture::PUZZLE_1000_04 . '.jpg';
+
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_04);
+
+        $this->assertResponseIsSuccessful();
+        $largeImage = self::getContainer()->get(ImageThumbnailTwigExtension::class)->thumbnailUrl($ownImage, 'puzzle_large');
+        self::assertSame($largeImage, $crawler->filter('meta[property="og:image"]')->attr('content'));
+        self::assertSame($largeImage, self::primaryImageOfPage($crawler));
+        // No offers, no Product block - ItemPage is the only structured data naming the picture
+        self::assertCount(0, $crawler->filter('script[type="application/ld+json"]')->reduce(
+            static fn (Crawler $script): bool => str_contains($script->text(), '"Product"'),
+        ));
+
+        // Every <img> from the image host shows this puzzle (or a player's avatar in the rankings)
+        $imageFiles = [];
+        foreach ($crawler->filter('img')->each(static fn (Crawler $image): string => $image->attr('src') . ' ' . $image->attr('srcset')) as $urls) {
+            preg_match_all('~/plain/(\S+)~', $urls, $matches);
+            $imageFiles = [...$imageFiles, ...$matches[1]];
+        }
+        self::assertContains($ownImage, $imageFiles);
+        foreach ($imageFiles as $imageFile) {
+            if (!str_starts_with($imageFile, 'avatars/')) {
+                self::assertSame($ownImage, $imageFile);
+            }
+        }
+
+        // The related puzzles' boxes are still shown, as backgrounds
+        $related = $crawler->filter('.puzzle-related');
+        self::assertCount(3, $related->filter('a.puzzle-related-card'));
+        self::assertCount(0, $related->filter('img'));
+        $relatedId = basename((string) $related->filter('a.puzzle-related-card')->first()->attr('href'));
+        $style = self::decodedCssEscapes((string) $related->filter('.puzzle-related-picture')->first()->attr('style'));
+        $thumbnails = self::getContainer()->get(ImageThumbnailTwigExtension::class);
+        self::assertStringContainsString("url('" . $thumbnails->thumbnailUrl('box-' . $relatedId . '.jpg', 'puzzle_small') . "') 1x", $style);
+        self::assertStringContainsString("url('" . $thumbnails->thumbnailUrl('box-' . $relatedId . '.jpg', 'puzzle_medium') . "') 2x", $style);
     }
 
     public function testOffersBadgeShowsTheLowestPrice(): void
@@ -913,6 +966,32 @@ final class PuzzleDetailControllerTest extends WebTestCase
         $data = json_decode($product->text(), true, flags: JSON_THROW_ON_ERROR);
 
         return $data;
+    }
+
+    private static function primaryImageOfPage(Crawler $crawler): string
+    {
+        $page = $crawler->filter('script[type="application/ld+json"]')->reduce(
+            static fn (Crawler $script): bool => str_contains($script->text(), '"ItemPage"'),
+        );
+        self::assertCount(1, $page);
+
+        /** @var array{primaryImageOfPage: array{url: string, contentUrl: string}} $data */
+        $data = json_decode($page->text(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame($data['primaryImageOfPage']['url'], $data['primaryImageOfPage']['contentUrl']);
+
+        return $data['primaryImageOfPage']['url'];
+    }
+
+    /**
+     * Twig's css escaper writes every character but letters and digits as "\HEX "
+     */
+    private static function decodedCssEscapes(string $css): string
+    {
+        return (string) preg_replace_callback(
+            '~\\\\([0-9A-Fa-f]{1,6}) ?~',
+            static fn (array $escape): string => mb_chr((int) hexdec($escape[1])),
+            $css,
+        );
     }
 
     private static function normalizedSpaces(string $text): string

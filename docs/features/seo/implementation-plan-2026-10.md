@@ -381,7 +381,38 @@ approved, `names_changed_at`, last solve) never moved, so Google kept the 2026-0
   claims changes that did not happen teaches it to ignore the field.
 - Set to 2026-10-06 for the first rebuild: the deploy came late on 2026-10-05 UTC, and Google had fetched pages
   earlier that day - a `lastmod` of the same day would not tell those copies apart from the rebuilt page.
+- 2026-10-08 for the preview image below (deployed late on 2026-10-07 UTC, the same reasoning).
 - Other sitemaps (players, events, brands, static, …) keep their own rules - their pages did not change that way.
+
+## Preview image (2026-10-07)
+
+Google showed the box of **another** puzzle next to puzzle pages: Clementoni "Lion King" (99 pieces) appeared in en,
+de and es results with Clementoni "Braies Lake" (500 pieces). From 2026-07-11 to 2026-09-30 the related puzzles
+module listed a brand's most-solved puzzles across every piece count, so Braies Lake (the brand's second most solved)
+was on every Clementoni page, as a sharp picture next to a phone photo of the box on a table. Google picks the result
+preview by itself among a page's `<img>` elements. Our pages gave it one hint, `og:image`: the Product JSON-LD with
+`image` exists only with marketplace offers.
+
+Requirement (Jan): a puzzle page's preview is its own picture - the one in `og:image` - never another one.
+
+- **One URL, every signal.** `page_image` in `puzzle_detail.html.twig` (the `puzzle_large` preset, null when there is
+  no picture or it is embargoed) feeds `og:image`/`twitter:image`, the Product `image` and an `ItemPage` JSON-LD with
+  `primaryImageOfPage` on every puzzle page with a picture. Google documents `primaryImageOfPage` and `og:image` as
+  the ways to name the preferred preview image ("Specify a preferred image with metadata",
+  developers.google.com/search/docs/appearance/google-images). `ItemPage` has no rich-result requirements, so it
+  does not repeat the Product-without-offers problem.
+- **No other puzzle as an `<img>`.** The related puzzles' boxes are CSS backgrounds (`.puzzle-related-picture`,
+  `image-set()` with the small/medium presets, URLs through Twig's `css` escaper), because Google does not index CSS
+  images. They look the same. The price: no native lazy loading for those six small pictures at the bottom of a
+  guest's page.
+- Guard: `PuzzleDetailControllerTest::testThePuzzlesOwnPictureIsTheOnlyPreviewCandidate` - every `<img>` from the
+  image host on a puzzle page is the puzzle's own picture, or a player's avatar in the rankings. A new module showing
+  other puzzles must use backgrounds too.
+- Left as they are: the avatars in the rankings (a player's picture, shown at about 30 px). If Google ever shows one,
+  the fix is a `Disallow` for `/*/plain/avatars/` in the image host's robots.txt (lily.srv), not CSS backgrounds,
+  which would load a long leaderboard's avatars all at once.
+- A puzzle without a picture has no `page_image` and no `ItemPage`; `og:image` stays the site logo.
+- Google's copies change only when it fetches the pages again: `PAGE_LAST_REBUILT_AT` moved to 2026-10-08.
 
 ---
 

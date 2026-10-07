@@ -1142,12 +1142,16 @@ canvas {
     border-radius: .5rem;
     background: #f6f6f7;
     transition: border-color .15s;
+}
 
-    img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-    }
+// The box itself, a background (puzzle_detail.html.twig says why it is not an <img>)
+.puzzle-related-picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
 }
 
 .puzzle-related-name {

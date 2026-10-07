@@ -20,8 +20,12 @@ readonly final class GetPuzzleIdsForSitemap
      * 2026-10-06: title, meta description, the "About this puzzle" summary, catalogue links and the Product /
      * BreadcrumbList structured data of every puzzle page (2026-09-30 .. 2026-10-05). Deployed late on 2026-10-05
      * UTC, so the day after: a copy Google fetched earlier on 10-05 must not look as new as the rebuilt page.
+     *
+     * 2026-10-08: ItemPage structured data naming the preview image (primaryImageOfPage) on every puzzle page
+     * with a picture, and the related puzzles' boxes are no longer images Google indexes - Google showed another
+     * puzzle's box next to puzzle pages. Deployed late on 2026-10-07 UTC, the day after for the same reason.
      */
-    public const string PAGE_LAST_REBUILT_AT = '2026-10-06';
+    public const string PAGE_LAST_REBUILT_AT = '2026-10-08';
 
     public function __construct(
         private Connection $database,

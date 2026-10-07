@@ -246,9 +246,10 @@ final class ParticipantImportPlannerTest extends KernelTestCase
             self::row(3, 'Jane Unconnected', playerId: PlayerFixture::PLAYER_PRIVATE, participantId: CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED),
         ]), ParticipantImportMode::Update);
 
-        self::assertSame(ParticipantImportRowAction::Unchanged, $plan->rows[0]->action);
+        // The organiser's own id is theirs to correct; the connected player is never replaced
+        self::assertSame(ParticipantImportRowAction::Update, $plan->rows[0]->action);
+        self::assertSame([['field' => 'external_id', 'before' => 'EXT-001', 'after' => 'EXT-999']], $plan->rows[0]->changes);
         self::assertSame([
-            'Row 2: "John Regular" keeps external_id "EXT-001" - "EXT-999" from the file ignored (an import never replaces an external id a participant has).',
             sprintf('Row 2: "John Regular" stays connected to their MySpeedPuzzling player - msp_player_id "%s" from the file ignored (an import never replaces a connected player).', PlayerFixture::PLAYER_ADMIN),
         ], $this->texts($plan->rows[0]->messages));
 
@@ -258,7 +259,6 @@ final class ParticipantImportPlannerTest extends KernelTestCase
             [sprintf('Row 3: msp_player_id "%s" is already connected to "Secret Player" in this event, so it was not connected to "Jane Unconnected".', PlayerFixture::PLAYER_PRIVATE)],
             $this->texts($plan->rows[1]->messages),
         );
-        self::assertTrue(self::operations($plan)->changesNothingVisible());
 
         // An unconnected participant is connected to a player nobody else of the event has
         $plan = $this->planner->plan(CompetitionFixture::COMPETITION_WJPC_2024, $this->rows([
@@ -266,6 +266,16 @@ final class ParticipantImportPlannerTest extends KernelTestCase
         ]), ParticipantImportMode::Update);
         self::assertSame(ParticipantImportRowAction::Update, $plan->rows[0]->action);
         self::assertSame([['field' => 'msp_player_id', 'before' => null, 'after' => PlayerFixture::PLAYER_ADMIN]], $plan->rows[0]->changes);
+    }
+
+    public function testAnExternalIdAnotherParticipantHasIsNeverTakenOver(): void
+    {
+        $plan = $this->planner->plan(CompetitionFixture::COMPETITION_WJPC_2024, $this->rows([
+            self::row(2, 'Jane Unconnected', externalId: 'EXT-001', participantId: CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED),
+        ]), ParticipantImportMode::Update);
+
+        // Jane has no external id yet - EXT-001 is John Regular's, so the row cannot give it to her
+        self::assertNotContains(['field' => 'external_id', 'before' => null, 'after' => 'EXT-001'], $plan->rows[0]->changes);
     }
 
     public function testStatusDeletedNeverRemovesSomebodyWithResults(): void

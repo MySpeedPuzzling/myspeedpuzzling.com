@@ -3892,7 +3892,7 @@ competition:
             team_round_not_listed: "Row %row%: team \"%team%\" for round \"%round%\" ignored - the row does not list that round in round_names."
             unknown_round: "{1}Round \"%round%\" does not exist in this event (row %rows%), not assigned. Rounds of this event: %rounds%.|]1,Inf[Round \"%round%\" does not exist in this event (rows %rows%), not assigned. Rounds of this event: %rounds%."
             no_rounds_yet: "none yet - add the rounds first"
-            external_id_kept: "Row %row%: \"%name%\" keeps external_id \"%current%\" - \"%id%\" from the file ignored (an import never replaces an external id a participant has)."
+            external_id_kept: "Row %row%: \"%name%\" keeps external_id \"%current%\" - \"%id%\" from the file ignored (another participant of this event has it)."
             player_id_kept: "Row %row%: \"%name%\" stays connected to their MySpeedPuzzling player - msp_player_id \"%id%\" from the file ignored (an import never replaces a connected player)."
             player_linked_elsewhere: "Row %row%: msp_player_id \"%id%\" is already connected to \"%other%\" in this event, so it was not connected to \"%name%\"."
             deleted_kept_with_results: "Row %row%: \"%name%\" has results in this event, so the status \"deleted\" was ignored and they stay."

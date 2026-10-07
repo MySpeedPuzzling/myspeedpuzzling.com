@@ -10,8 +10,9 @@ that would otherwise be forgotten. Newest section on top.
       the mapping per event.
 - [ ] A team renamed in the file (all its members under a new name) is planned as move + delete, not as a rename.
 - [ ] Clearing field values (country, external id) from empty cells in full sync - empty cells never clear today (D14).
-- [ ] An external id or connected player the file wants to change for a participant who has one is refused with a row
-      message (never taken over) - offer a way to change it on purpose (participants page or an explicit mapping).
+- [ ] A connected player the file wants to change for a participant who has one is refused with a row message (never
+      taken over) - offer a way to change it on purpose (participants page or an explicit mapping). External ids are
+      updated unless another participant of the event has the file's one.
 - [ ] Code page guess: names that defeat the neighbour rule (Norwegian "Øystein", French "Anaïs" next to vowels) can tip
       a small Western file to Windows-1250 - the Encoding select fixes it; watch for reports.
 

@@ -3616,7 +3616,7 @@ qr_code:
       "team_round_not_listed": "%row% 行目: ラウンド \"%round%\" のチーム \"%team%\" は無視しました — この行の round_names にそのラウンドがありません。"
       "unknown_round": "ラウンド \"%round%\" はこのイベントにありません（%rows% 行目）。割り当てていません。このイベントのラウンド: %rounds%。"
       "no_rounds_yet": "まだありません — 先にラウンドを追加してください"
-      "external_id_kept": "%row% 行目: \"%name%\" の external_id は \"%current%\" のままです。ファイルの \"%id%\" は無視しました（インポートで既存の external_id を置き換えることはありません）。"
+      "external_id_kept": "%row% 行目: \"%name%\" の external_id は \"%current%\" のままです。ファイルの \"%id%\" はこのイベントの別の参加者が使っているため無視しました。"
       "player_id_kept": "%row% 行目: \"%name%\" は MySpeedPuzzling のプレイヤーとの連携をそのまま保ちます。ファイルの msp_player_id \"%id%\" は無視しました（インポートで連携済みのプレイヤーを置き換えることはありません）。"
       "player_linked_elsewhere": "%row% 行目: msp_player_id \"%id%\" はこのイベントですでに \"%other%\" と連携しているため、\"%name%\" とは連携しませんでした。"
       "deleted_kept_with_results": "%row% 行目: \"%name%\" はこのイベントに結果があるため、ステータス \"deleted\" は無視し、そのまま残します。"

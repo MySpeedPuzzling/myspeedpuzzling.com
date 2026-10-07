@@ -3625,7 +3625,7 @@ qr_code:
       "team_round_not_listed": "Zeile %row%: Team \"%team%\" für die Runde \"%round%\" ignoriert – die Zeile nennt diese Runde nicht in round_names."
       "unknown_round": "{1}Die Runde \"%round%\" gibt es in dieser Veranstaltung nicht (Zeile %rows%), nicht zugeordnet. Runden dieser Veranstaltung: %rounds%.|]1,Inf[Die Runde \"%round%\" gibt es in dieser Veranstaltung nicht (Zeilen %rows%), nicht zugeordnet. Runden dieser Veranstaltung: %rounds%."
       "no_rounds_yet": "noch keine - legen Sie zuerst die Runden an"
-      "external_id_kept": "Zeile %row%: „%name%“ behält die external_id „%current%“ – „%id%“ aus der Datei ignoriert (ein Import ersetzt nie eine vorhandene external_id)."
+      "external_id_kept": "Zeile %row%: „%name%“ behält die external_id „%current%“ – „%id%“ aus der Datei ignoriert (ein anderer Teilnehmer dieser Veranstaltung hat sie)."
       "player_id_kept": "Zeile %row%: „%name%“ bleibt mit dem eigenen MySpeedPuzzling-Spieler verbunden – msp_player_id „%id%“ aus der Datei ignoriert (ein Import ersetzt nie einen verbundenen Spieler)."
       "player_linked_elsewhere": "Zeile %row%: msp_player_id „%id%“ ist in dieser Veranstaltung bereits mit „%other%“ verbunden und wurde daher nicht mit „%name%“ verbunden."
       "deleted_kept_with_results": "Zeile %row%: „%name%“ hat Ergebnisse in dieser Veranstaltung, daher wurde der Status „deleted“ ignoriert und die Person bleibt."

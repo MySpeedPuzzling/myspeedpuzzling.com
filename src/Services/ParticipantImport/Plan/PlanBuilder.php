@@ -319,13 +319,14 @@ final class PlanBuilder
                 $person->country = $countryCode->name;
             }
             // A row never takes over a link the participant has (somebody else's participant_id, a typo): a matched
-            // participant keeps their external id and their player
+            // participant keeps their player, and keeps their external id when another participant of the event
+            // has the file's one - otherwise the organiser's own id is theirs to correct (as before the preview)
             if ($externalId !== '' && $externalId !== $person->externalId) {
-                if ($person->externalId !== null) {
+                if ($this->externalIdTakenByAnother($externalId, $person->key)) {
                     $row->messages[] = self::message('external_id_kept', [
                         '%row%' => $rowNum,
                         '%name%' => $name,
-                        '%current%' => $person->externalId,
+                        '%current%' => $person->externalId ?? '-',
                         '%id%' => $externalId,
                     ]);
                 } else {
@@ -1395,6 +1396,17 @@ final class PlanBuilder
         }
 
         return true;
+    }
+
+    private function externalIdTakenByAnother(string $externalId, string $personKey): bool
+    {
+        foreach ($this->people as $other) {
+            if ($other->key !== $personKey && $other->externalId === $externalId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

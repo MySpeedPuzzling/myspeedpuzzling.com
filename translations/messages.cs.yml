@@ -3623,7 +3623,7 @@ qr_code:
       "team_round_not_listed": "Řádek %row%: tým \"%team%\" pro kolo \"%round%\" přeskočen – řádek toto kolo v round_names neuvádí."
       "unknown_round": "{1}Kolo \"%round%\" v této události neexistuje (řádek %rows%), nepřiřazeno. Kola této události: %rounds%.|]1,Inf[Kolo \"%round%\" v této události neexistuje (řádky %rows%), nepřiřazeno. Kola této události: %rounds%."
       "no_rounds_yet": "zatím žádná - nejdřív přidejte kola"
-      "external_id_kept": "Řádek %row%: „%name%“ si ponechává external_id „%current%“ – „%id%“ ze souboru přeskočeno (import nikdy nenahrazuje external_id, které účastník už má)."
+      "external_id_kept": "Řádek %row%: „%name%“ si ponechává external_id „%current%“ – „%id%“ ze souboru přeskočeno (má ho jiný účastník této události)."
       "player_id_kept": "Řádek %row%: „%name%“ zůstává propojen(a) se svým hráčem MySpeedPuzzling – msp_player_id „%id%“ ze souboru přeskočeno (import nikdy nenahrazuje propojeného hráče)."
       "player_linked_elsewhere": "Řádek %row%: msp_player_id „%id%“ je v této události už propojeno s „%other%“, proto nebylo propojeno s „%name%“."
       "deleted_kept_with_results": "Řádek %row%: „%name%“ má v této události výsledky, proto byl status „deleted“ přeskočen a zůstává."

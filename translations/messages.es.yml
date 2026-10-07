@@ -3626,7 +3626,7 @@ fair_use_policy:
       "team_round_not_listed": "Fila %row%: equipo \"%team%\" para la ronda \"%round%\" ignorado: la fila no incluye esa ronda en round_names."
       "unknown_round": "{1}La ronda \"%round%\" no existe en este evento (fila %rows%), sin asignar. Rondas de este evento: %rounds%.|]1,Inf[La ronda \"%round%\" no existe en este evento (filas %rows%), sin asignar. Rondas de este evento: %rounds%."
       "no_rounds_yet": "ninguna todavía: añade primero las rondas"
-      "external_id_kept": "Fila %row%: \"%name%\" conserva el external_id \"%current%\"; se ignora \"%id%\" del archivo (una importación nunca sustituye un external_id que ya tiene un participante)."
+      "external_id_kept": "Fila %row%: \"%name%\" conserva el external_id \"%current%\"; se ignora \"%id%\" del archivo (lo tiene otro participante de este evento)."
       "player_id_kept": "Fila %row%: \"%name%\" sigue conectado a su jugador de MySpeedPuzzling; se ignora el msp_player_id \"%id%\" del archivo (una importación nunca sustituye a un jugador conectado)."
       "player_linked_elsewhere": "Fila %row%: el msp_player_id \"%id%\" ya está conectado a \"%other%\" en este evento, así que no se ha conectado a \"%name%\"."
       "deleted_kept_with_results": "Fila %row%: \"%name%\" tiene resultados en este evento, así que se ignora el estado \"deleted\" y se queda."

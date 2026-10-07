@@ -112,9 +112,10 @@ Where the code differs from the decisions above, or adds what they left open:
 - **Large removal** (D7): the typed number travels in `ApplyParticipantImport::$confirmedRemovedCount` and the handler
   refuses (`ParticipantImportNotApplicable`) when it is not the number of people removed - not only the form.
 - **Sync blockers** (D7b) as listed there; a row skipped because its player left by themselves (below) is not one.
-- **Links are never taken over** (D13 refined): a row matched by `participant_id` keeps the participant's external id
-  and connected player when the file has another one, and a player connected to another *active* participant of the
-  event is never connected again - each reported on the row.
+- **Links are never taken over** (D13 refined): a row matched by `participant_id` keeps the participant's connected
+  player when the file has another one, never takes an external id another participant of the event has (otherwise
+  the file corrects the external id, as before), and a player connected to another *active* participant of the event
+  is never connected again - each reported on the row.
 - **`status = deleted`** never removes somebody with results in the event (row message; like D11 for full sync).
 - **A removed self-joined participant** (the player's own "I left" record) is still never matched, and a row standing
   for them (their `participant_id`, their `msp_player_id`, or their name key) is now **skipped** with a message instead

@@ -3626,7 +3626,7 @@ competition:
       "team_round_not_listed": "Ligne %row% : équipe \"%team%\" pour la manche \"%round%\" ignorée – la ligne ne cite pas cette manche dans round_names."
       "unknown_round": "{1}La manche \"%round%\" n'existe pas dans cet événement (ligne %rows%), non attribuée. Manches de cet événement : %rounds%.|]1,Inf[La manche \"%round%\" n'existe pas dans cet événement (lignes %rows%), non attribuée. Manches de cet événement : %rounds%."
       "no_rounds_yet": "aucune pour l'instant - ajoutez d'abord les manches"
-      "external_id_kept": "Ligne %row% : \"%name%\" garde l'external_id \"%current%\" – \"%id%\" du fichier est ignoré (un import ne remplace jamais l'external_id d'un participant)."
+      "external_id_kept": "Ligne %row% : \"%name%\" garde l'external_id \"%current%\" – \"%id%\" du fichier est ignoré (un autre participant de cet événement l'a déjà)."
       "player_id_kept": "Ligne %row% : \"%name%\" reste relié à son joueur MySpeedPuzzling – le msp_player_id \"%id%\" du fichier est ignoré (un import ne remplace jamais un joueur relié)."
       "player_linked_elsewhere": "Ligne %row% : le msp_player_id \"%id%\" est déjà relié à \"%other%\" dans cet événement, il n'a donc pas été relié à \"%name%\"."
       "deleted_kept_with_results": "Ligne %row% : \"%name%\" a des résultats dans cet événement, le statut \"deleted\" est donc ignoré et la personne reste."

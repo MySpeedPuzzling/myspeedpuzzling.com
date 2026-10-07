@@ -38,7 +38,7 @@ final class SecretPuzzleRoutesTest extends WebTestCase
     use InteractsWithLiveComponents;
     use ReadsRoundAutomaticReveal;
 
-    private const string SECRET_NAME = 'Heart of Wisconsin Secret';
+    private const string SECRET_NAME = 'Secret Puzzle Alpha';
     private const string SECRET_EAN = '4005556175512';
 
     /**

@@ -216,7 +216,7 @@ final class CompetitionRoundTimezoneTest extends WebTestCase
             roundId: $roundId,
             userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
             brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
-            puzzle: 'Tropical Vibes Secret',
+            puzzle: 'Secret Puzzle Charlie',
             piecesCount: 500,
             puzzlePhoto: null,
             eans: EanList::fromStored(null),
@@ -231,7 +231,7 @@ final class CompetitionRoundTimezoneTest extends WebTestCase
         $browser->request('GET', '/en/edit-event-round/' . $roundId);
         $browser->submitForm('Save Changes', ['competition_round_form[startsAt]' => $yesterday]);
         $this->assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('Tropical Vibes Secret', (string) $browser->getResponse()->getContent());
+        self::assertStringContainsString('Secret Puzzle Charlie', (string) $browser->getResponse()->getContent());
         self::assertSame('2030-10-24T15:05:00+00:00', $this->utc($this->roundNamed('Secret Round')->startsAt));
 
         // A yes for another list than the one shown does not count

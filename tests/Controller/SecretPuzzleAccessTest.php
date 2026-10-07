@@ -193,7 +193,7 @@ final class SecretPuzzleAccessTest extends WebTestCase
             roundId: CompetitionApiFixture::ROUND_FUTURE,
             userId: $userId,
             brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
-            puzzle: 'Rolling Hills Secret',
+            puzzle: 'Secret Puzzle Bravo',
             piecesCount: 1000,
             puzzlePhoto: null,
             eans: EanList::fromStored(null),

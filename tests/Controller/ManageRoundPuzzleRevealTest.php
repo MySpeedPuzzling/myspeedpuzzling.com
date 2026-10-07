@@ -47,7 +47,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             roundId: CompetitionApiFixture::ROUND_FUTURE,
             userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
             brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
-            puzzle: 'Tropical Vibes Test',
+            puzzle: 'Secret Puzzle Delta',
             piecesCount: 500,
             puzzlePhoto: null,
             eans: EanList::fromStored(null),

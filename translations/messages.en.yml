@@ -4148,7 +4148,7 @@ competition_registration:
         opens_at: "Registration opens"
         opens_at_help: "Day and time in the time zone below. Leave empty to open registration right away."
         closes_at: "Registration closes"
-        closes_at_help: "Day and time in the time zone below. After it, puzzlers cannot register themselves - people on your list can still find their name, and you can still add participants."
+        closes_at_help: "Day and time in the time zone below. Leave empty to close registration at the end of the event's last day. After it, puzzlers cannot register themselves - people on your list can still find their name, and you can still add participants."
         timezone: "Time zone of these times"
         timezone_help: "Pre-selected from your rounds or the event's country. The event page shows the times in this zone."
         entry_fee: "Entry fee"
@@ -4158,7 +4158,7 @@ competition_registration:
         save: "Save registration settings"
         not_public: "Puzzlers can register only once the event is approved and publicly visible."
         going_count_warning: "{1}One person already said \"I'm going\". When you switch management on, they hold a spot (reserved).|]1,Inf[%count% people already said \"I'm going\". When you switch management on, they hold a spot (reserved)."
-        waitlist_switch_off_warning: "{1}One person is on the waitlist. If you switch management off, they will be going like everybody else.|]1,Inf[%count% people are on the waitlist. If you switch management off, they will be going like everybody else."
+        waitlist_switch_off_warning: "{1}One person is on the waitlist. If you switch management off, they will be going like everybody else, and we e-mail them that a spot opened up.|]1,Inf[%count% people are on the waitlist. If you switch management off, they will be going like everybody else, and we e-mail them that a spot opened up."
         external_link_kept: "Your registration link stays saved. While registration is managed here, the event page shows this registration instead of the link; switch management off and the link is back."
     flash:
         settings_saved: "Registration settings were saved."
@@ -4168,6 +4168,8 @@ competition_registration:
             not_yet_open: "Registration for this event is not open yet."
             closed: "Registration for this event is closed."
             not_public: "Registration opens once the event is approved."
+        form_expired: "The form expired - please confirm again."
+        release_paid_not_confirmed: "Your own registration is paid. To pick a name from the organiser's list, confirm that your paid registration is cancelled."
     card:
         title: "Registration"
         spots_taken: "%taken% / %capacity% spots taken"
@@ -4181,6 +4183,15 @@ competition_registration:
         you_are_waitlisted: "You're on the waitlist (#%position%). If the organiser gives you a spot, we will e-mail you."
         cancel: "Cancel registration"
         leave_waitlist: "Leave the waitlist"
+        leave_confirm:
+            reserved: "Your spot is released for somebody else. If you register again later, you start over - on the waitlist if the event is full by then."
+            paid: "You paid for this spot. Cancelling releases it for somebody else. MySpeedPuzzling does not process payments - the organiser keeps the record of your payment, so ask them about a refund. If you register again later, you start over - on the waitlist if the event is full by then."
+            waitlisted: "You leave the waitlist and lose your place in it."
+            listed: "Your account is disconnected from your name on the organiser's list. The organiser keeps that spot."
+            button_reserved: "Yes, cancel my registration"
+            button_paid: "Yes, cancel my paid registration"
+            button_waitlisted: "Yes, leave the waitlist"
+            button_listed: "Yes, leave"
         register: "Register"
         join_waitlist: "Join the waitlist"
         opens_at: "Registration opens %date%"
@@ -4195,6 +4206,11 @@ competition_registration:
         full: "The event is full - you will be on the waitlist (#%position%). If the organiser gives you a spot, we will e-mail you."
         register_as: "Register as %name% %country%"
         join_waitlist_as: "Join the waitlist as %name% %country%"
+    join:
+        releases_own: "Picking a name from the organiser's list cancels your own registration - its spot is released."
+        releases_waitlist: "Picking a name from the organiser's list takes you off the waitlist."
+        releases_paid: "You paid for your own registration. Picking a name from the organiser's list cancels it and releases its spot. MySpeedPuzzling does not process payments - the organiser keeps the record of your payment, so ask them about anything to do with the fee."
+        releases_paid_confirm: "Cancel my paid registration and connect me to the name I picked"
     manage:
         status: "Registration"
         filter_all: "All registrations"
@@ -4209,6 +4225,7 @@ competition_registration:
         mark_paid: "Mark paid"
         unmark_paid: "Take back \"paid\""
         checked_in: "Checked in"
+        paid_before: "Paid on %date%, before the registration was cancelled"
         organizer_note: "Private note"
         organizer_note_too_long: "The note can be at most %max% characters long."
     check_in:

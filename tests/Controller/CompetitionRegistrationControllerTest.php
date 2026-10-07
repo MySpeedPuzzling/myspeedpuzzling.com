@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\JoinCompetition;
+use SpeedPuzzling\Web\Message\MarkParticipantPaid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -155,6 +156,96 @@ final class CompetitionRegistrationControllerTest extends WebTestCase
         self::assertSelectorTextContains('[data-registration-payment-instructions]', 'Bank 123/0100');
     }
 
+    public function testAnExpiredConfirmationIsSaidNotIgnored(): void
+    {
+        $browser = self::createClient();
+        $this->manage(capacity: 2);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('POST', self::JOIN, ['self_join' => '1', '_token' => 'expired']);
+
+        self::assertResponseRedirects(self::JOIN);
+        $browser->followRedirect();
+        self::assertSelectorTextContains('.alert-warning', 'The form expired');
+        self::assertSame(0, $this->rowsOf(PlayerFixture::PLAYER_ADMIN, self::NATIONALS));
+    }
+
+    /**
+     * Review 2, A-F4: cancelling a paid registration is a step of its own that says what happens, the form carries the
+     * event's token, and the organiser keeps the record of the payment.
+     */
+    public function testCancellingAPaidRegistrationIsAConfirmedStep(): void
+    {
+        $browser = self::createClient();
+        $this->manage(capacity: 2);
+        $this->messageBus()->dispatch(new JoinCompetition(self::NATIONALS, PlayerFixture::PLAYER_ADMIN));
+        $this->messageBus()->dispatch(new MarkParticipantPaid(self::NATIONALS, $this->rowIdOf(PlayerFixture::PLAYER_ADMIN)));
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', self::NATIONALS_PAGE);
+        self::assertSelectorTextContains('[data-registration-leave="paid"]', 'the organiser keeps the record of your payment');
+
+        // A bare POST (no token) cancels nothing
+        $browser->request('POST', '/en/leave-event/' . self::NATIONALS);
+        self::assertResponseRedirects(self::NATIONALS_PAGE);
+        self::assertSame('paid', $this->statusOf(PlayerFixture::PLAYER_ADMIN));
+        $browser->followRedirect();
+        self::assertSelectorTextContains('.alert-warning', 'The form expired');
+
+        $browser->submit($crawler->filter('[data-registration-leave] form')->form());
+
+        self::assertResponseRedirects(self::NATIONALS_PAGE);
+        self::assertNull($this->statusOf(PlayerFixture::PLAYER_ADMIN), 'The registration is cancelled');
+        self::assertNotNull(self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT paid_at FROM competition_participant WHERE competition_id = :cid AND player_id = :pid',
+            ['cid' => self::NATIONALS, 'pid' => PlayerFixture::PLAYER_ADMIN],
+        ), 'The organiser keeps the record of the payment');
+    }
+
+    /**
+     * Review 2, A-F4: "Change" from a paid self-registration to a name on the organiser's list lets go of the paid row
+     * only on an explicit yes.
+     */
+    public function testChangingAwayFromAPaidRegistrationNeedsAnExplicitYes(): void
+    {
+        $browser = self::createClient();
+        $wjpc = CompetitionFixture::COMPETITION_WJPC_2024;
+        $join = '/en/join-event/' . $wjpc;
+        $this->manage(competitionId: $wjpc);
+        $this->messageBus()->dispatch(new JoinCompetition($wjpc, PlayerFixture::PLAYER_ADMIN));
+        $ownRowId = $this->rowIdOf(PlayerFixture::PLAYER_ADMIN, $wjpc);
+        $this->messageBus()->dispatch(new MarkParticipantPaid($wjpc, $ownRowId));
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', $join);
+        self::assertSelectorExists('[data-registration-release="paid"] input[name="release_paid"][required]');
+        $token = $crawler->filter('input[name="_token"]')->first()->attr('value');
+
+        $browser->request('POST', $join, ['participant_id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, '_token' => $token]);
+        self::assertResponseRedirects($join);
+        self::assertSame($ownRowId, $this->rowIdOf(PlayerFixture::PLAYER_ADMIN, $wjpc), 'Still the own paid registration');
+
+        $browser->request('POST', $join, ['participant_id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, '_token' => $token, 'release_paid' => '1']);
+        self::assertSame(CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, $this->rowIdOf(PlayerFixture::PLAYER_ADMIN, $wjpc));
+        self::assertNotNull(self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT paid_at FROM competition_participant WHERE id = :id AND deleted_at IS NOT NULL',
+            ['id' => $ownRowId],
+        ), 'The released row keeps the record of the payment');
+    }
+
+    public function testPickingANameOnAManagedEventNeedsTheFormsToken(): void
+    {
+        $browser = self::createClient();
+        $wjpc = CompetitionFixture::COMPETITION_WJPC_2024;
+        $this->manage(competitionId: $wjpc);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('POST', '/en/join-event/' . $wjpc, ['participant_id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]);
+
+        self::assertResponseRedirects('/en/join-event/' . $wjpc);
+        self::assertSame(0, $this->rowsOf(PlayerFixture::PLAYER_ADMIN, $wjpc));
+    }
+
     /**
      * An event that does not manage registration renders main's "I'm going" and costs not one statement more;
      * a managed one costs at most its one statement for a visitor and nothing more for a signed-in player.
@@ -221,6 +312,17 @@ final class CompetitionRegistrationControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         return [$this->queryCount($browser), $this->executedSql($browser)];
+    }
+
+    private function rowIdOf(string $playerId, string $competitionId = self::NATIONALS): string
+    {
+        $id = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT id FROM competition_participant WHERE competition_id = :cid AND player_id = :pid AND deleted_at IS NULL',
+            ['cid' => $competitionId, 'pid' => $playerId],
+        );
+        self::assertIsString($id);
+
+        return $id;
     }
 
     private function rowsOf(string $playerId, string $competitionId): int

@@ -7,6 +7,10 @@
 #}
 {% set status = participant.registrationStatus ? participant.registrationStatus.value : 'reserved' %}
 <span class="badge {{ status == 'paid' ? 'bg-success' : (status == 'waitlisted' ? 'bg-warning text-dark' : 'bg-primary') }}">{{ ('competition_registration.status.' ~ status)|trans }}</span>
+{% if status != 'paid' and participant.paidAt %}
+    {# Paid, then cancelled (and maybe registered again) - the organiser's record of the payment stays (review 2, A-F4) #}
+    <span class="badge bg-light text-dark border" data-registration-paid-before title="{{ 'competition_registration.manage.paid_before'|trans({'%date%': participant.paidAt|format_date('medium')}) }}"><i class="bi bi-cash-coin" aria-hidden="true"></i><span class="visually-hidden">{{ 'competition_registration.manage.paid_before'|trans({'%date%': participant.paidAt|format_date('medium')}) }}</span></span>
+{% endif %}
 {% if participant.checkedInAt %}
     <span class="badge bg-info text-dark" title="{{ 'competition_registration.manage.checked_in'|trans }}"><i class="bi bi-person-check" aria-hidden="true"></i><span class="visually-hidden">{{ 'competition_registration.manage.checked_in'|trans }}</span></span>
 {% endif %}

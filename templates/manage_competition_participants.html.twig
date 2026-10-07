@@ -21,9 +21,12 @@
                 <a href="{{ path('manage_competition_registration', {competitionId: competition.id, return: path('manage_competition_participants', {competitionId: competition.id}), return_title: 'competition.manage_participants'|trans}) }}" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-ticket-perforated me-1"></i>{{ 'competition_registration.settings.title'|trans }}
                 </a>
-                <a href="{{ path('competition_check_in', {competitionId: competition.id}) }}" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-person-check me-1"></i>{{ 'competition_registration.check_in.title'|trans }}
-                </a>
+                {% if not competition.isOnline %}
+                    {# Nobody walks in to an online event - no check-in for it #}
+                    <a href="{{ path('competition_check_in', {competitionId: competition.id}) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-person-check me-1"></i>{{ 'competition_registration.check_in.title'|trans }}
+                    </a>
+                {% endif %}
             </div>
         {% endif %}
 

@@ -58,7 +58,7 @@ Both can be displayed in the UI. The connected participants table already shows 
 - `deletedAt = timestamp` → hidden from public views, hidden from chart, hidden from export by default
 - Organizer management UI shows deleted participants (with strikethrough) when "Show deleted" filter is active
 - Deleted participants can be restored (set `deletedAt = NULL`)
-- Self-joined players who "leave" an event → soft delete their participant record. They can re-join later — the existing soft-deleted record is restored (`deletedAt` cleared), not duplicated.
+- Self-joined players who "leave" an event → soft delete their participant record. They can re-join later — the existing soft-deleted record is restored (`deletedAt` cleared), not duplicated. A self-joined row that holds an official result or a qualified mark is only disconnected, never deleted (the organiser's record - [official-results.md](official-results.md)).
 
 ## Unified "I'm Going" + Pairing Flow
 
@@ -127,7 +127,7 @@ The button label and behavior depend on how the participant was created:
 
 Leaving handles **every** active row of the player in the competition, not just one.
 
-- **Self-joined participant** → button says **"Leave"** → soft deletes the participant record (`deletedAt` set). Player can re-join later.
+- **Self-joined participant** → button says **"Leave"** → soft deletes the participant record (`deletedAt` set). Player can re-join later. A row with an official result or a qualified mark is only disconnected (`OfficialResultsGuard`). On a managed event leaving is a confirmed step ([registration.md](registration.md)).
 - **Imported/manual participant** → button says **"Disconnect"** → unlinks player from participant (`player=NULL`, `connectedAt=NULL`), does NOT soft delete. The organizer's imported record stays intact. Player can reconnect later.
 
 Clear wording is important — "Disconnect" communicates that the participant record stays, you're just unlinking your profile.

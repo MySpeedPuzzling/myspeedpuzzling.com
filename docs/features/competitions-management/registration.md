@@ -66,11 +66,11 @@ connections of the join flow (`getPlayerConnections`, `isPlayerSelfJoined`) read
 
 - **Picking your name from the organiser's list** (`participantId`) is not a new spot: always allowed (window,
   capacity and visibility do not apply - the organiser holds that spot), the row keeps its status, no e-mail. So people
-  on the list can connect - and later claim results - long after registration closed.
+  on the list can connect - and later add their official results to their profile - long after registration closed.
   **Trade-off (review 2, A-F10, deliberately unchanged):** this is main's join rule, so on a full or closed managed event
   anybody signed in can pick any unconnected name of the list and is connected to that row - including its reserved or
   paid spot; the real person then gets "this name is connected to another account". It stays because organisers' lists
-  (imports, invitations) must stay claimable after registration closed, and the name auto-match only pre-selects. The
+  (imports, invitations) must stay connectable after registration closed, and the name auto-match only pre-selects. The
   organiser corrects a wrong pick on the participants page: open the row, clear the MSP player (or pick the right one)
   and save - the impostor is disconnected (their own registration, if any, was cancelled by the pick and stays cancelled),
   and the right person can pick the name again. Follow-up ideas (notify maintainers, require the profile name to match on

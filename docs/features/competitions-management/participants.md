@@ -193,6 +193,17 @@ Save/Cancel buttons appear inline when editing. Uses `#[LiveAction]` methods on 
 - Every Live request re-checks `CompetitionEditVoter` (`#[PostHydrate]`), and every participant id an action receives must belong to the component's competition; the handler ignores rounds of other competitions.
 - Guard: `tests/Component/ManageCompetitionParticipantsEditTest.php` (real Live requests, so hydration is the browser's).
 
+**Rounds and the player connection are saved as the change of this edit, never as the row's state** (review 2 of the
+PR #136 port, 2026-10-07): an edit row can be minutes old on an event day, while the results desk advances the person to
+a final and seats them, or the player connects themselves. `startEdit` keeps the round ids and the player the row was
+opened with (`editOriginalRoundIds`, `editOriginalPlayerId` - not writable); the save sends `addRoundIds` /
+`removeRoundIds` (the toggles of this edit) and `changePlayer` only when the edit changed the player.
+`EditCompetitionParticipantHandler` applies them as a diff against the entries the person has under the lock: an entry
+added meanwhile stays (with its table number), a round left meanwhile is nothing to remove, an untick of a round where the
+person holds official results is refused before anything changes. Name, country, external id and the note are the
+organiser's own fields and are written as typed. Every write of the page (edit, remove, restore, the registration
+actions) takes the event's `CompetitionParticipantsLock` - see registration.md, Concurrency.
+
 **Organizer can link any MSP player** to any participant without the player's consent. This is intentional — organizers need full control over participant pairing for competition management. The player can later disconnect themselves via the public event page if they disagree.
 
 ### Add Participant

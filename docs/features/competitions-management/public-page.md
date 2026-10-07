@@ -20,6 +20,12 @@ One slot, right after the description:
 | Edition (`edition_detail`) | its own, then its series' (inherited) |
 | Series (`competition_series_detail`) | its own |
 
+**Only on a publicly visible page** (review 2, A-F7): an event or edition shows its sections only when
+`IsCompetitionPubliclyVisible` says so (an edition also needs its series approved), a series only when it is approved and
+not rejected. Anybody signed in can create an event and write sections - nothing of it (links, a gallery on the CDN, a
+contact e-mail) is published under myspeedpuzzling.com before the event passes review. The editor of a page that is not
+public yet says so ("Visitors see these sections only once the event is approved"); the page itself shows nothing.
+
 Each list in `position` order. Hidden sections are not shown. A **venue** shows only on an in-person page (an online
 event never offers one; a series venue is left out of an online edition's page). Everything else on the page - header,
 "Results by round", puzzles or rounds, "I'm going", marketplace card, participants - stays exactly where main has it.
@@ -74,6 +80,13 @@ CASCADE`.
 - Every POST carries the page's CSRF token (`PageSectionOwner::csrfTokenId()`, session-backed - organisers are signed in).
   Forms: 303 on success, 422 with the reasons when refused (Turbo never gets a 200 to a form), explicit `action`.
 - Editor pages: `noindex, nofollow`, `Cache-Control: private, no-store`.
+- **Quotas** (review 2, A-F9 - a page is no free image hosting): at most `CompetitionPageSection::MAX_PER_PAGE` (30)
+  sections per page, visible and hidden together - `AddPageSection` is `SerializedByLock` per page so the count is exact,
+  the editor offers no "Add section" at the cap and the add page redirects with a message (`PageSectionLimitReached`,
+  409); at most `PageSectionContentSanitizer::MAX_IMAGES` (40) pictures per gallery or sponsors list (the parser explains,
+  the sanitizer keeps no more: gallery rows cut, sponsors after the 40th logo listed without one); uploads stay ≤ 5 MB and
+  are rate limited per player (`page_section_image_upload`, 60 an hour, 429 with a translated message under the
+  picture).
 
 ## The editor
 
@@ -91,12 +104,20 @@ CASCADE`.
   `repeatable_rows_controller.js`), Quill 2 for rich text (`wysiwyg_controller.js`, Quill imported dynamically only there),
   immediate picture upload (`section_image_upload_controller.js`). All four Stimulus controllers are
   `stimulusFetch: 'lazy'`.
+- **The rich text editor is translated through and through** (review 2, A-F8): the toolbar is the template's own markup
+  (Quill takes a container), so every button has a translated `title` / `aria-label` and the header picker's labels are
+  the `<option>` texts (Quill copies them to `data-label`, which its theme shows instead of "Normal"/"Heading 2"). The
+  link tooltip's texts ("Visit URL:", "Edit", "Remove", "Enter link:", "Save") are CSS `content` in Quill's snow theme:
+  `_page-sections.scss` replaces them with `var(--ql-…)` custom properties that the controller sets from translated
+  `data-wysiwyg-*-value` attributes (Quill's example `https://quilljs.com` placeholder becomes `https://`). Verified with
+  Quill 2.0.3 in jsdom: translated picker items and label, the toolbar's titles kept next to the icons. Pinned by
+  `PageSectionEditorTest::testTheRichTextEditorHasNoUntranslatedText`.
 
 ## Messages
 
 | Message | Handler does |
 |---------|--------------|
-| `AddPageSection(sectionId, competitionId\|seriesId, type, title, content)` | owner XOR, venue only in person (`PageSectionTypeNotAvailable`, 422), sanitise, last position |
+| `AddPageSection(sectionId, competitionId\|seriesId, type, title, content)` | owner XOR, venue only in person (`PageSectionTypeNotAvailable`, 422), at most 30 per page (`PageSectionLimitReached`, 409, under a per-page lock), sanitise, last position |
 | `EditPageSection(sectionId, title, content)` | sanitise; pictures no longer shown → `DeletePageSectionImages` |
 | `DeletePageSection(sectionId)` | remove; its pictures → `DeletePageSectionImages` |
 | `ChangePageSectionVisibility(sectionId, visible)` | show / hide |
@@ -106,7 +127,8 @@ CASCADE`.
 ## Not done (docs/TODO.md)
 
 - Uploads of a form that is never saved stay in storage; pictures of a deleted competition/series (cascade) too - a prune
-  of unreferenced `competition-pages/` objects.
+  of unreferenced `competition-pages/` objects (needs a cron row on lily - docs/TODO.md). The upload rate limit and the
+  per-section cap bound what can pile up meanwhile.
 - Translations of `page_sections.*` into cs, de, es, fr, ja (English only for now).
 - Contact e-mail is published in clear text (harvesting) - obfuscation or "message the organiser".
 - Ordering/hiding the page's system parts, if organisers ask for it.

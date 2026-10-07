@@ -8,8 +8,11 @@
  * - The server answers per change (RecordRoundResults): applied / unchanged → gone from the outbox; conflict →
  *   kept with the other device's value until the referee keeps theirs (sent again from that value) or takes the
  *   other; rejected → kept with the reason until fixed or discarded.
- * - Signed out (`auth`) or no rights (`forbidden`) stop sending and keep everything; offline retries with a growing
- *   pause; a server error retries the change alone (isolating a batch first), each change with its own pause.
+ * - Signed out (`auth`) or a stale page (`csrf`) stop sending and keep everything. No rights for a round's event (any
+ *   more) sets that round's changes apart (`forbidden` - kept until retried or discarded); every other round goes on.
+ * - Offline retries with a growing pause; a busy server (429, a ban or proxy page - `busy`) pauses everything, as
+ *   long as its Retry-After asks; a server error retries the change alone (isolating a batch first), each change
+ *   with its own pause. A round that is gone refuses its changes (`round_not_found`).
  * - One tab sends at a time (`lock`); every tab reads the shared store, so a change saved in one tab is sent by another.
  *
  * Storage, the network, the clock and the lock are injected: tests/LiveResultsScriptsTest.php drives the state machine
@@ -24,6 +27,10 @@ export const BATCH_SIZE = 100;
 const OFFLINE_BACKOFF_MS = [1000, 2000, 4000, 8000, 15000, 30000];
 // A change the server keeps failing: 5 s, 15 s, 30 s, 1 min, then every 2 min
 const SERVER_BACKOFF_MS = [5000, 15000, 30000, 60000, 120000];
+// The server is busy or something in between blocks it (no verdict on any change): 5 s, 15 s, 30 s, 1 min, 2 min
+const BUSY_BACKOFF_MS = [5000, 15000, 30000, 60000, 120000];
+// A Retry-After longer than this is not waited for in full - a Retry now still sends at once
+const MAX_RETRY_AFTER_MS = 15 * 60 * 1000;
 // After this many failed attempts a change counts as stuck (shown to the referee, still retried)
 export const STUCK_AFTER_ATTEMPTS = 3;
 
@@ -180,7 +187,7 @@ export function createTabLock(name, { locks = globalThis.navigator?.locks, stora
  * @property {string} field            result | table_number | qualified
  * @property {*} from
  * @property {*} to
- * @property {'pending'|'conflict'|'rejected'} state
+ * @property {'pending'|'conflict'|'rejected'|'forbidden'} state  forbidden: no rights for the round's event (any more)
  * @property {number} attempts         failed attempts (server errors, a refused set sent alone)
  * @property {number} nextAttemptAt
  * @property {object|null} lastError   {kind, status}
@@ -218,10 +225,13 @@ export class Outbox {
         this.inFlight = new Set();
         this.flushing = false;
         this.flushRequested = false;
-        // null | 'auth' | 'forbidden'
+        // null | 'auth' (signed out) | 'csrf' (the page's token is no longer accepted) - nothing is sent until a retry
         this.blocked = null;
         this.offline = false;
         this.offlineAttempts = 0;
+        // The server answered "not now" (429, a ban or proxy page) - everything pauses until retryAt
+        this.busy = false;
+        this.busyAttempts = 0;
         this.retryAt = 0;
         // After a batch failed on the server: send one change at a time until one goes through
         this.isolate = false;
@@ -467,7 +477,17 @@ export class Outbox {
 
         await this.serial(async () => {
             for (const item of this.items) {
-                if ((id === null || item.id === id) && item.state === 'pending' && item.nextAttemptAt > 0) {
+                if (id !== null && item.id !== id) {
+                    continue;
+                }
+
+                // Set apart for missing rights: tried once more (the rights may be back)
+                if (item.state === 'forbidden') {
+                    item.state = 'pending';
+                    item.lastError = null;
+                    item.nextAttemptAt = 0;
+                    await this.write(item).catch(() => {});
+                } else if (item.state === 'pending' && item.nextAttemptAt > 0) {
                     item.nextAttemptAt = 0;
                     await this.write(item).catch(() => {});
                 }
@@ -483,6 +503,21 @@ export class Outbox {
         return this.items.length > 0;
     }
 
+    /**
+     * Drops every change the predicate picks (the referee confirmed it) - e.g. those of an event they lost the rights to.
+     *
+     * @returns {Promise<number>} how many went
+     */
+    async discardWhere(predicate) {
+        const gone = this.items.filter((item) => predicate(item) && !this.inFlight.has(item.id));
+
+        for (const item of gone) {
+            await this.remove(item.id);
+        }
+
+        return gone.length;
+    }
+
     status() {
         const now = this.now();
         const pending = this.items.filter((item) => item.state === 'pending');
@@ -493,8 +528,11 @@ export class Outbox {
             stuck: pending.filter((item) => item.attempts >= STUCK_AFTER_ATTEMPTS).length,
             conflicts: this.items.filter((item) => item.state === 'conflict').length,
             rejected: this.items.filter((item) => item.state === 'rejected').length,
+            forbidden: this.items.filter((item) => item.state === 'forbidden').length,
+            forbiddenRounds: [...new Set(this.items.filter((item) => item.state === 'forbidden').map((item) => item.roundId))],
             blocked: this.blocked,
             offline: this.offline,
+            busy: this.busy,
             sending: this.inFlight.size > 0,
             waitingUntil: Math.max(this.retryAt, 0) > now ? this.retryAt : null,
         };
@@ -589,7 +627,9 @@ export class Outbox {
 
             await this.serial(() => this.settle(roundId, batch.map((item) => item.id), answer));
 
-            if (answer.kind !== 'ok' && answer.kind !== 'server' && answer.kind !== 'client') {
+            // Signed out, a stale page (blocked), offline or a busy server (retryAt) end the round of sending;
+            // a round without rights only sets its own changes apart
+            if (answer.kind === 'offline' || answer.kind === 'auth') {
                 break;
             }
         }
@@ -619,8 +659,29 @@ export class Outbox {
         // The items as they are now - a reload may have replaced the objects while the request was out
         const batch = batchIds.map((id) => this.items.find((item) => item.id === id)).filter((item) => item !== undefined);
 
-        if (answer.kind === 'auth' || answer.kind === 'forbidden') {
-            this.blocked = answer.kind;
+        if (answer.kind === 'auth') {
+            this.blocked = 'auth';
+
+            return;
+        }
+
+        if (answer.kind === 'forbidden') {
+            if (answer.data?.error === 'invalid_csrf_token') {
+                this.blocked = 'csrf';
+
+                return;
+            }
+
+            // No rights for this round's event (any more): its changes wait apart - never the whole device
+            for (const item of this.items) {
+                if (item.roundId === roundId && item.state === 'pending' && !this.inFlight.has(item.id)) {
+                    item.state = 'forbidden';
+                    item.attempts = 0;
+                    item.nextAttemptAt = 0;
+                    item.lastError = { kind: 'forbidden', status: answer.status ?? 403 };
+                    await this.write(item).catch(() => {});
+                }
+            }
 
             return;
         }
@@ -636,6 +697,38 @@ export class Outbox {
         this.offline = false;
         this.offlineAttempts = 0;
         this.retryAt = 0;
+
+        if (answer.kind === 'server' && answer.busy === true) {
+            // No verdict on any change - everything waits, as long as the server asks (Retry-After) or a growing pause
+            this.busy = true;
+            this.busyAttempts += 1;
+            const pause = typeof answer.retryAfter === 'number' && answer.retryAfter > 0
+                ? Math.min(answer.retryAfter, MAX_RETRY_AFTER_MS)
+                : backoff(BUSY_BACKOFF_MS, this.busyAttempts);
+            this.retryAt = now + pause;
+
+            return;
+        }
+
+        this.busy = false;
+        this.busyAttempts = 0;
+
+        if (answer.kind === 'client' && answer.data?.error === 'round_not_found') {
+            // The round is gone: none of its changes can be saved any more - each kept with the reason until discarded
+            for (const item of this.items) {
+                if (item.roundId === roundId && item.state === 'pending' && !this.inFlight.has(item.id)) {
+                    item.state = 'rejected';
+                    item.reason = 'round_not_found';
+                    item.message = answer.data?.message ?? null;
+                    item.lastError = { kind: 'client', status: answer.status ?? null };
+                    await this.write(item).catch(() => {});
+                }
+            }
+
+            this.isolate = false;
+
+            return;
+        }
 
         if (answer.kind === 'server' || answer.kind === 'client') {
             if (batchIds.length > 1) {
@@ -653,7 +746,7 @@ export class Outbox {
 
             if (answer.kind === 'server') {
                 item.attempts += 1;
-                item.nextAttemptAt = now + backoff(SERVER_BACKOFF_MS, item.attempts);
+                item.nextAttemptAt = now + Math.max(backoff(SERVER_BACKOFF_MS, item.attempts), Math.min(answer.retryAfter ?? 0, MAX_RETRY_AFTER_MS));
                 item.lastError = { kind: 'server', status: answer.status ?? null };
             } else {
                 // A single change the server cannot read at all

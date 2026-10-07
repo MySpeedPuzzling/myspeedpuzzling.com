@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\LiveResults;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
@@ -85,16 +86,37 @@ final class LiveResultsLinksTest extends WebTestCase
         self::assertResponseRedirects($eventPage);
     }
 
-    public function testANameTagOfAnotherEventOrAnUnknownPersonLeadsToTheEventPage(): void
+    public function testAnOrganiserScanningAnotherEventsTagOrAnUnknownPersonIsToldSo(): void
     {
-        $eventPage = self::getContainer()->get(CompetitionDetailUrl::class)->of(OfficialResultsFixture::COMPETITION_RESULTS_CUP);
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        // The event's current round - the fixture's rounds are over: the last one
+        $current = '/en/live-results/' . OfficialResultsFixture::ROUND_PAIRS_FINAL . '?notice=tag_unknown';
 
         $this->browser->request('GET', $this->scanUrl(CompetitionParticipantFixture::PARTICIPANT_CONNECTED));
-        self::assertResponseRedirects($eventPage);
+        self::assertResponseRedirects($current);
 
         $this->browser->request('GET', $this->scanUrl('018d0020-0000-0000-0000-00000000ffff'));
-        self::assertResponseRedirects($eventPage);
+        self::assertResponseRedirects($current);
+
+        $crawler = $this->browser->followRedirect();
+        self::assertStringContainsString('not a participant of this event', (string) $crawler->filter('[data-controller="live-results"]')->attr('data-live-results-notice-value'));
+
+        // Removed from the event
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_IVAN]);
+        $this->browser->request('GET', $this->scanUrl(OfficialResultsFixture::PARTICIPANT_IVAN));
+        self::assertResponseRedirects($current);
+    }
+
+    public function testAnOrganiserScanningATagOfAnEventWithoutRoundsGetsTheRoundsPage(): void
+    {
+        // PLAYER_REGULAR's unapproved event has no rounds
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        $this->browser->request('GET', '/en/live/' . CompetitionFixture::COMPETITION_UNAPPROVED . '/p/018d0020-0000-0000-0000-00000000ffff');
+
+        self::assertResponseRedirects('/en/manage-event-rounds/' . CompetitionFixture::COMPETITION_UNAPPROVED);
+        $this->browser->followRedirect();
+        self::assertSelectorTextContains('.alert-warning', 'This event has no rounds yet');
     }
 
     public function testANameTagOfAnUnknownEventLeadsToTheEvents(): void

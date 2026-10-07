@@ -5,12 +5,15 @@
 
 import assert from 'node:assert/strict';
 import { createMemoryStorage, createTabLock, Outbox, STUCK_AFTER_ATTEMPTS } from '../assets/official_results_outbox.js';
+import { officialResultsRequest, retryAfterMs } from '../assets/official_results_api.js';
 import {
     buildSearchIndex,
     describeResult,
     entryForEnter,
     entryOfParticipant,
+    EVENTS_RECONNECT_MS,
     foldText,
+    LiveEvents,
     preferredRound,
     recentEntries,
     sameValue,
@@ -85,6 +88,40 @@ async function save(outbox, entryRef, to, { roundId = ROUND_A, field = 'result',
     await persisted;
 
     return item;
+}
+
+/**
+ * A stand-in EventSource: the test fires 'open' / 'error' / 'message' and sets readyState (0 connecting, 1 open, 2 closed).
+ */
+function fakeEvents() {
+    const opened = [];
+    const timers = [];
+    let refreshes = 0;
+    const messages = [];
+    let events;
+
+    events = new LiveEvents({
+        open: () => {
+            const listeners = {};
+            const source = {
+                readyState: 0,
+                closed: false,
+                addEventListener: (type, listener) => { (listeners[type] ??= []).push(listener); },
+                close() { this.closed = true; this.readyState = 2; },
+                fire(type, data = {}) { (listeners[type] ?? []).forEach((listener) => listener(data)); },
+            };
+            opened.push(source);
+
+            return source;
+        },
+        onMessage: (data) => messages.push(data),
+        // The state fetch answers and opens the stream again - as the live page's refreshState() does
+        refresh: () => { refreshes += 1; events.connect(); },
+        schedule: (task, ms) => { const timer = { task, ms }; timers.push(timer); return timer; },
+        cancel: (timer) => { const index = timers.indexOf(timer); if (index >= 0) timers.splice(index, 1); },
+    });
+
+    return { events, opened, timers, messages, refreshes: () => refreshes };
 }
 
 const scenarios = {
@@ -236,15 +273,156 @@ const scenarios = {
         assert.equal(outbox.status().blocked, null);
     },
 
-    async 'no rights: sending stops too'() {
+    async 'no rights for one event sets its changes apart - the other rounds still go'() {
+        // Yesterday's event (round A) the referee is no maintainer of any more; today's (round B) they are
         const { outbox, server } = setup();
-        server.answers.push({ kind: 'forbidden', status: 403, data: { error: 'forbidden' } });
-        await save(outbox, ANNA, { seconds: 100 });
+        const sent = [];
+        server.send = async (roundId, changes) => {
+            sent.push(roundId);
+
+            if (roundId === ROUND_A) {
+                return { kind: 'forbidden', status: 403, data: { error: 'forbidden' } };
+            }
+
+            return { kind: 'ok', status: 200, data: { outcomes: changes.map((change) => ({ clientChangeId: change.clientChangeId, status: 'applied' })), entries: [] } };
+        };
+        await save(outbox, ANNA, { seconds: 3600 });
+        await save(outbox, BEN, { seconds: 3700 }, { roundId: ROUND_B });
 
         await outbox.flush();
 
-        assert.equal(outbox.status().blocked, 'forbidden');
-        assert.equal(outbox.all().length, 1);
+        assert.deepEqual(sent, [ROUND_A, ROUND_B]);
+        assert.equal(outbox.status().blocked, null, 'never the whole device');
+        assert.deepEqual(outbox.all().map((item) => [item.roundId, item.state]), [[ROUND_A, 'forbidden']]);
+        assert.equal(outbox.status().forbidden, 1);
+        assert.deepEqual(outbox.status().forbiddenRounds, [ROUND_A]);
+
+        // Kept apart: a later save of round B is not held up by it, round A is not asked again on its own
+        await save(outbox, CARA, { seconds: 3800 }, { roundId: ROUND_B });
+        await outbox.flush();
+        assert.deepEqual(sent, [ROUND_A, ROUND_B, ROUND_B]);
+
+        // Retry asks once more (the rights may be back); the referee may also let them go
+        await outbox.retryNow();
+        assert.deepEqual(sent, [ROUND_A, ROUND_B, ROUND_B, ROUND_A]);
+        assert.equal(outbox.all()[0].state, 'forbidden');
+
+        assert.equal(await outbox.discardWhere((item) => item.state === 'forbidden'), 1);
+        assert.equal(outbox.hasUnsent(), false);
+    },
+
+    async 'a page whose security token is refused stops sending, nothing is lost'() {
+        const { outbox, server } = setup();
+        server.answers.push({ kind: 'forbidden', status: 403, data: { error: 'invalid_csrf_token' } });
+        await save(outbox, ANNA, { seconds: 100 });
+        await save(outbox, BEN, { seconds: 200 }, { roundId: ROUND_B });
+
+        await outbox.flush();
+
+        assert.equal(outbox.status().blocked, 'csrf');
+        assert.equal(server.requests.length, 1);
+        assert.ok(outbox.all().every((item) => item.state === 'pending'));
+
+        await outbox.retryNow();
+        assert.equal(outbox.hasUnsent(), false);
+    },
+
+    async 'a busy server (429, a ban page) refuses nothing - everything waits as long as it asks'() {
+        const { outbox, server, clock } = setup();
+        server.answers.push({ kind: 'server', status: 429, busy: true, retryAfter: 30000 });
+        await save(outbox, ANNA, { seconds: 3600 });
+        await save(outbox, BEN, { seconds: 3700 });
+
+        await outbox.flush();
+
+        assert.equal(server.requests.length, 1, 'no batch split, no request per change');
+        assert.ok(outbox.all().every((item) => item.state === 'pending' && item.attempts === 0), 'nothing refused');
+        assert.equal(outbox.status().busy, true);
+
+        clock.now += 29000;
+        await outbox.flush();
+        assert.equal(server.requests.length, 1, 'Retry-After honoured');
+
+        clock.now += 1000;
+        await outbox.flush();
+        assert.equal(server.requests.length, 2);
+        assert.equal(outbox.hasUnsent(), false);
+        assert.equal(outbox.status().busy, false);
+    },
+
+    async 'a busy server without Retry-After: a growing pause'() {
+        const { outbox, server, clock } = setup();
+        server.answers.push({ kind: 'server', status: 403, busy: true, retryAfter: null }, { kind: 'server', status: 429, busy: true, retryAfter: null });
+        await save(outbox, ANNA, { seconds: 3600 });
+
+        await outbox.flush();
+        clock.now += 5000;
+        await outbox.flush();
+        assert.equal(server.requests.length, 2);
+
+        clock.now += 5000;
+        await outbox.flush();
+        assert.equal(server.requests.length, 2, 'the second pause is longer');
+
+        clock.now += 10000;
+        await outbox.flush();
+        assert.equal(server.requests.length, 3);
+        assert.equal(outbox.hasUnsent(), false);
+    },
+
+    async 'a round that is gone refuses its waiting changes, with the server\'s text'() {
+        const { outbox, server } = setup();
+        server.answers.push({ kind: 'client', status: 404, data: { error: 'round_not_found', message: 'This round does not exist any more.' } });
+        await save(outbox, ANNA, { seconds: 100 });
+        await save(outbox, BEN, { seconds: 200 });
+        await save(outbox, CARA, { seconds: 300 }, { roundId: ROUND_B });
+
+        await outbox.flush();
+
+        assert.deepEqual(server.requests.map((request) => [request.roundId, request.changes.length]), [[ROUND_A, 2], [ROUND_B, 1]]);
+        assert.deepEqual(outbox.all().map((item) => [item.entryRef, item.state, item.reason, item.message]), [
+            [ANNA, 'rejected', 'round_not_found', 'This round does not exist any more.'],
+            [BEN, 'rejected', 'round_not_found', 'This round does not exist any more.'],
+        ]);
+    },
+
+    async 'the JSON client: only our endpoint\'s JSON refuses, everything else is retried'() {
+        const realFetch = globalThis.fetch;
+        const respond = (status, body, headers = {}) => {
+            globalThis.fetch = async () => new Response(body, { status, headers });
+        };
+
+        try {
+            respond(429, '<html>Too many</html>', { 'Content-Type': 'text/html', 'Retry-After': '20' });
+            assert.deepEqual(await officialResultsRequest('/x'), { kind: 'server', status: 429, retryAfter: 20000, busy: true });
+
+            respond(429, JSON.stringify({ error: 'rate_limited' }), { 'Content-Type': 'application/json' });
+            assert.equal((await officialResultsRequest('/x')).busy, true, '429 is retried even with JSON');
+
+            respond(408, '', {});
+            assert.equal((await officialResultsRequest('/x')).kind, 'server');
+
+            // A CrowdSec ban page: HTML 403 - no verdict on the rights
+            respond(403, '<html>Banned</html>', { 'Content-Type': 'text/html' });
+            assert.deepEqual(await officialResultsRequest('/x'), { kind: 'server', status: 403, retryAfter: null, busy: true });
+
+            respond(403, JSON.stringify({ error: 'forbidden' }), { 'Content-Type': 'application/json' });
+            assert.equal((await officialResultsRequest('/x')).kind, 'forbidden');
+
+            respond(400, JSON.stringify({ error: 'invalid_changes', message: 'Translated' }), { 'Content-Type': 'application/json' });
+            assert.deepEqual(await officialResultsRequest('/x'), { kind: 'client', status: 400, data: { error: 'invalid_changes', message: 'Translated' } });
+
+            respond(404, JSON.stringify({ title: 'Not Found', status: 404 }), { 'Content-Type': 'application/problem+json' });
+            assert.equal((await officialResultsRequest('/x')).kind, 'server', 'a 404 that is not our answer');
+
+            respond(503, '', { 'Retry-After': '7' });
+            assert.deepEqual(await officialResultsRequest('/x'), { kind: 'server', status: 503, retryAfter: 7000, busy: false });
+
+            assert.equal(retryAfterMs('Wed, 21 Oct 2015 07:28:10 GMT', Date.parse('Wed, 21 Oct 2015 07:28:00 GMT')), 10000);
+            assert.equal(retryAfterMs('soon'), null);
+        } finally {
+            globalThis.fetch = realFetch;
+        }
     },
 
     async 'offline: retried after a growing pause'() {
@@ -597,6 +775,73 @@ const scenarios = {
         assert.equal(entryOfParticipant([anna, team], 'aaa').ref, 'team:9');
         assert.equal(entryOfParticipant([anna, team], 'CCC').ref, ANNA);
         assert.equal(entryOfParticipant([anna, team], 'ddd'), null);
+    },
+
+    async 'live updates the hub closed for good (401, 5xx) are reopened after a pause, with a catch-up'() {
+        const { events, opened, timers, messages, refreshes } = fakeEvents();
+        events.connect();
+        opened[0].readyState = 1;
+        opened[0].fire('open');
+        opened[0].fire('message', { data: JSON.stringify({ type: 'official_results.refresh', roundId: 'r' }) });
+
+        assert.equal(events.isLive(), true);
+        assert.deepEqual(messages, [{ type: 'official_results.refresh', roundId: 'r' }]);
+
+        // The hub answers the browser's reconnect with an error: CLOSED, the browser gives up
+        opened[0].readyState = 2;
+        opened[0].fire('error');
+
+        assert.equal(events.isLive(), false);
+        assert.equal(events.isOpen(), false);
+        assert.deepEqual(timers.map((timer) => timer.ms), [EVENTS_RECONNECT_MS[0]]);
+
+        // Paused, then the state is fetched (catch-up) and the stream opened again
+        timers.shift().task();
+        assert.equal(refreshes(), 1);
+        assert.equal(opened.length, 2);
+
+        // Failing again and again: the pauses grow, then stay at a minute; one try at a time
+        for (let attempt = 1; attempt < 7; attempt++) {
+            opened[opened.length - 1].readyState = 2;
+            opened[opened.length - 1].fire('error');
+            events.reconnectLater();
+            assert.equal(timers.length, 1);
+            assert.equal(timers[0].ms, EVENTS_RECONNECT_MS[Math.min(attempt, EVENTS_RECONNECT_MS.length - 1)]);
+            timers.shift().task();
+        }
+
+        // Open again: the next drop starts from the shortest pause
+        const last = opened[opened.length - 1];
+        last.readyState = 1;
+        last.fire('open');
+        last.readyState = 2;
+        last.fire('error');
+        assert.equal(timers[0].ms, EVENTS_RECONNECT_MS[0]);
+    },
+
+    async 'a dropped stream the browser brings back catches up once, without a second stream'() {
+        const { events, opened, timers, refreshes } = fakeEvents();
+        events.connect();
+        opened[0].readyState = 1;
+        opened[0].fire('open');
+        assert.equal(refreshes(), 0, 'the page fetched its state just before');
+
+        // Wi-Fi drop: the browser reconnects by itself (CONNECTING), nothing is scheduled here
+        opened[0].readyState = 0;
+        opened[0].fire('error');
+        assert.equal(events.isLive(), false, '"Finished now" no longer trusts the stopwatch');
+        assert.equal(timers.length, 0);
+
+        opened[0].readyState = 1;
+        opened[0].fire('open');
+        assert.equal(refreshes(), 1, 'whatever was published meanwhile is fetched');
+        assert.equal(opened.length, 1);
+        assert.equal(events.isLive(), true);
+
+        events.close();
+        assert.equal(opened[0].closed, true);
+        events.reconnectLater();
+        assert.equal(timers.length, 0, 'a closed page never reconnects');
     },
 
     async 'the event link keeps a round this device picked while it still runs'() {

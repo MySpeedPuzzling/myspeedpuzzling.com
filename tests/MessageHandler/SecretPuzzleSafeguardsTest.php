@@ -34,6 +34,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
@@ -51,6 +52,8 @@ use Throwable;
  */
 final class SecretPuzzleSafeguardsTest extends KernelTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     private MessageBusInterface $messageBus;
     private EntityManagerInterface $entityManager;
 
@@ -238,6 +241,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
                 brandCodes: BrandCodeList::fromStored(null),
                 hideUntilRoundStarts: true,
                 hideMode: PuzzleHideMode::Entirely,
+                shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
             ));
             self::fail('A public name is never hidden again by another round');
         } catch (PuzzleNameAlreadyPublic) {
@@ -420,6 +424,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
                 eans: EanList::fromStored(null),
                 brandCodes: BrandCodeList::fromStored(null),
                 hideUntilRoundStarts: true,
+                shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
             ),
         };
     }
@@ -601,6 +606,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: $hideMode,
+            shownAutomaticRevealAt: self::automaticRevealOf($roundId),
         ));
         $this->entityManager->clear();
 
@@ -621,6 +627,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: $hide,
             hideMode: $hideMode,
+            shownAutomaticRevealAt: self::automaticRevealOf($roundId),
         ));
         $this->entityManager->clear();
     }

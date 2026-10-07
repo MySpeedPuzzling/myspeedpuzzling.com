@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
@@ -16,6 +17,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
@@ -23,6 +25,9 @@ use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
+use Symfony\Component\DomCrawler\Field\FileFormField;
+use Symfony\Component\DomCrawler\Form;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -35,6 +40,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class RoundRevealDelayFormTest extends WebTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     private const string COMPETITION = CompetitionFixture::COMPETITION_UNAPPROVED;
     private const string ADD_URL = '/en/add-event-round/' . self::COMPETITION;
     private const string ROUNDS_URL = '/en/manage-event-rounds/' . self::COMPETITION;
@@ -301,6 +308,7 @@ final class RoundRevealDelayFormTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf($roundId),
         ));
         $before = $this->snapshot($roundId, $roundPuzzleId->toString());
         self::assertNull($before['hideUntil']);
@@ -437,6 +445,107 @@ final class RoundRevealDelayFormTest extends WebTestCase
             $crawler->text(),
         );
         self::assertStringContainsString('– 25 minutes after the round starts.', $crawler->text());
+    }
+
+    /**
+     * The round started 30 minutes ago with 60 reveal minutes: the add page says a secret puzzle added now comes out in
+     * 30 minutes. Meanwhile the minutes become 5 - nobody is asked, the round has no secret puzzle yet. Saved from the
+     * open page it would be public at once; instead the page comes back (422) with the moment the round has now and
+     * nothing created - everything typed and the box photo kept. Saved from there (the page now says it is revealed at
+     * once) it goes through.
+     */
+    public function testASecretPuzzleFromAStaleAddPageIsAskedAgain(): void
+    {
+        $browser = $this->organiser();
+        // The kept photo lives in the kernel's storage - one kernel for every request
+        $browser->disableReboot();
+        $roundId = $this->addRound($browser, 'Stale add page', '60');
+        $startsAt = new DateTimeImmutable('@' . (time() - 30 * 60));
+        $this->editRoundBehindThePage($roundId, 60, $startsAt);
+
+        $crawler = $browser->request('GET', $this->addPuzzleUrl($roundId));
+        $this->assertResponseIsSuccessful();
+        $shownMoment = self::automaticRevealOf($roundId);
+        self::assertGreaterThan(time(), $shownMoment->getTimestamp());
+        self::assertSame((string) $shownMoment->getTimestamp(), $crawler->filter('input[name="automatic_reveal_at"]')->attr('value'));
+        self::assertStringContainsString('– 60 minutes after the round starts.', $crawler->text());
+        $form = $this->secretPuzzleForm($crawler->filter('form[name="round_puzzle_form"]')->form(), 'Stale Add Page Secret');
+        $photoField = $form['round_puzzle_form[puzzlePhoto]'];
+        self::assertInstanceOf(FileFormField::class, $photoField);
+        $photoField->upload($this->boxPhoto());
+
+        // Meanwhile: 5 reveal minutes - over already
+        $this->editRoundBehindThePage($roundId, 5);
+        $newMoment = self::automaticRevealOf($roundId);
+        self::assertSame($startsAt->getTimestamp() + 300, $newMoment->getTimestamp());
+
+        $refused = $browser->submit($form);
+        $this->assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The round\'s automatic reveal has changed meanwhile – it is now on ', $refused->filter('form[name="round_puzzle_form"]')->text());
+        self::assertSame(0, $this->roundPuzzleCount($roundId));
+        self::assertSame(0, $this->rowCount('SELECT COUNT(*) FROM puzzle WHERE name = :name', ['name' => 'Stale Add Page Secret']));
+
+        // Everything typed stays, the photo too; the page names and sends the moment the round has now
+        self::assertSame('Stale Add Page Secret', $refused->filter('[name="round_puzzle_form[puzzle]"]')->attr('value'));
+        self::assertSame('500', $refused->filter('input[name="round_puzzle_form[piecesCount]"]')->attr('value'));
+        self::assertNotNull($refused->filter('input[name="round_puzzle_form[hideUntilRoundStarts]"]')->attr('checked'));
+        self::assertNotNull($refused->filter('input[name="round_puzzle_form[hideMode]"][value="entirely"]')->attr('checked'));
+        self::assertNotEmpty($refused->filter('input[name="photo_stash[puzzlePhoto]"]')->attr('value'));
+        self::assertSame((string) $newMoment->getTimestamp(), $refused->filter('input[name="automatic_reveal_at"]')->attr('value'));
+        self::assertStringContainsString('This round has already started, so a secret puzzle added now is revealed immediately.', $refused->text());
+
+        // Saved from the page as it is now: added with the kept photo, revealed at the moment the page named
+        $browser->submit($refused->filter('form[name="round_puzzle_form"]')->form());
+        $this->assertResponseRedirects($this->puzzlesUrl($roundId));
+        $rowId = $this->onlyRoundPuzzleId($roundId);
+        $after = $this->snapshot($roundId, $rowId);
+        self::assertSame(RoundPuzzleReveal::Automatic, $after['mode']);
+        self::assertSame($newMoment->getTimestamp(), $after['hideUntil']);
+        self::assertNotNull(self::getContainer()->get(EntityManagerInterface::class)->find(CompetitionRoundPuzzle::class, $rowId)?->puzzle->image);
+    }
+
+    /**
+     * A fresh add page: the secret puzzle is hidden until exactly the moment it named. A form without that moment (a
+     * page from before it was sent along) never adds a secret puzzle - a puzzle that is not secret needs none.
+     */
+    public function testTheAddPageAddsASecretPuzzleForTheMomentItNames(): void
+    {
+        $browser = $this->organiser();
+        $roundId = $this->addRound($browser, 'Fresh add page', '25');
+
+        $crawler = $browser->request('GET', $this->addPuzzleUrl($roundId));
+        $this->assertResponseIsSuccessful();
+        self::assertSame((string) $this->startPlus(25), $crawler->filter('input[name="automatic_reveal_at"]')->attr('value'));
+        $browser->submit($this->secretPuzzleForm($crawler->filter('form[name="round_puzzle_form"]')->form(), 'Fresh Add Page Secret'));
+        $this->assertResponseRedirects($this->puzzlesUrl($roundId));
+        $after = $this->snapshot($roundId, $this->onlyRoundPuzzleId($roundId));
+        self::assertSame(RoundPuzzleReveal::Automatic, $after['mode']);
+        self::assertSame($this->startPlus(25), $after['hideUntil']);
+        self::assertSame($this->startPlus(25), $after['hideImageUntil']);
+
+        // Without the moment: refused, nothing created
+        $crawler = $browser->request('GET', $this->addPuzzleUrl($roundId));
+        $values = $this->secretPuzzleForm($crawler->filter('form[name="round_puzzle_form"]')->form(), 'Momentless Secret')->getPhpValues();
+        unset($values['automatic_reveal_at']);
+        $refused = $browser->request('POST', $this->addPuzzleUrl($roundId), $values);
+        $this->assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The round\'s automatic reveal has changed meanwhile – it is now on ', $refused->filter('form[name="round_puzzle_form"]')->text());
+        self::assertSame(1, $this->roundPuzzleCount($roundId));
+
+        // Not secret: added without it
+        $form = $this->secretPuzzleForm($crawler->filter('form[name="round_puzzle_form"]')->form(), 'Momentless Public');
+        $hideField = $form['round_puzzle_form[hideUntilRoundStarts]'];
+        self::assertInstanceOf(ChoiceFormField::class, $hideField);
+        $hideField->untick();
+        $values = $form->getPhpValues();
+        unset($values['automatic_reveal_at']);
+        $browser->request('POST', $this->addPuzzleUrl($roundId), $values);
+        $this->assertResponseRedirects($this->puzzlesUrl($roundId));
+        self::assertSame(2, $this->roundPuzzleCount($roundId));
+        self::assertSame(1, $this->rowCount(
+            'SELECT COUNT(*) FROM competition_round_puzzle WHERE round_id = :roundId AND hide_until_round_starts = false',
+            ['roundId' => $roundId],
+        ));
     }
 
     /**
@@ -579,9 +688,83 @@ final class RoundRevealDelayFormTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf($roundId),
         ));
 
         return $roundPuzzleId->toString();
+    }
+
+    /**
+     * A new puzzle typed into the add form, ticked to stay secret entirely
+     */
+    private function secretPuzzleForm(Form $form, string $name): Form
+    {
+        $form['round_puzzle_form[brand]'] = ManufacturerFixture::MANUFACTURER_RAVENSBURGER;
+        $form['round_puzzle_form[puzzle]'] = $name;
+        $form['round_puzzle_form[piecesCount]'] = '500';
+        $hideField = $form['round_puzzle_form[hideUntilRoundStarts]'];
+        self::assertInstanceOf(ChoiceFormField::class, $hideField);
+        $hideField->tick();
+        $form['round_puzzle_form[hideMode]'] = 'entirely';
+
+        return $form;
+    }
+
+    /**
+     * The round changed while the organiser's page is open (another tab, the internal API): its reveal minutes and, when
+     * given, its start - every other field kept
+     */
+    private function editRoundBehindThePage(string $roundId, int $revealDelayMinutes, null|DateTimeImmutable $startsAt = null): void
+    {
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new EditCompetitionRound(
+            roundId: $roundId,
+            name: 'kept',
+            minutesLimit: 1,
+            startsAt: $startsAt ?? new DateTimeImmutable(),
+            timezone: 'UTC',
+            badgeBackgroundColor: null,
+            badgeTextColor: null,
+            keepFields: $startsAt === null ? EditCompetitionRound::FIELDS : array_values(array_diff(EditCompetitionRound::FIELDS, ['startsAt'])),
+            revealDelayMinutes: $revealDelayMinutes,
+        ));
+    }
+
+    private function roundPuzzleCount(string $roundId): int
+    {
+        return $this->rowCount('SELECT COUNT(*) FROM competition_round_puzzle WHERE round_id = :roundId', ['roundId' => $roundId]);
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     */
+    private function rowCount(string $sql, array $parameters = []): int
+    {
+        $count = self::getContainer()->get(Connection::class)->fetchOne($sql, $parameters);
+        assert(is_int($count));
+
+        return $count;
+    }
+
+    private function onlyRoundPuzzleId(string $roundId): string
+    {
+        $ids = self::getContainer()->get(Connection::class)->fetchFirstColumn(
+            'SELECT id FROM competition_round_puzzle WHERE round_id = :roundId',
+            ['roundId' => $roundId],
+        );
+        self::assertCount(1, $ids);
+        assert(is_string($ids[0]));
+
+        return $ids[0];
+    }
+
+    private function boxPhoto(): string
+    {
+        $path = sys_get_temp_dir() . '/' . uniqid('box-', true) . '.jpg';
+        $image = imagecreatetruecolor(400, 300);
+        assert($image !== false);
+        imagejpeg($image, $path);
+
+        return $path;
     }
 
     /**
@@ -675,6 +858,11 @@ final class RoundRevealDelayFormTest extends WebTestCase
     private function editUrl(string $roundId): string
     {
         return '/en/edit-event-round/' . $roundId;
+    }
+
+    private function addPuzzleUrl(string $roundId): string
+    {
+        return '/en/add-puzzle-to-round/' . $roundId;
     }
 
     private function puzzlesUrl(string $roundId): string

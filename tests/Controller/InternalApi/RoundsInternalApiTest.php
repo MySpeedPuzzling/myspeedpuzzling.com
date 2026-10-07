@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
@@ -27,6 +28,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 final class RoundsInternalApiTest extends WebTestCase
 {
     use InternalApiRequests;
+    use ReadsRoundAutomaticReveal;
 
     public function testCreatesARoundWithItsPuzzles(): void
     {
@@ -666,6 +668,7 @@ final class RoundsInternalApiTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf($roundId),
         ));
         $this->entityManager()->clear();
     }

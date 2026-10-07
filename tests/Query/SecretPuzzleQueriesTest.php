@@ -29,6 +29,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PiecesRange;
@@ -43,6 +44,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class SecretPuzzleQueriesTest extends KernelTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     private const string SECRET_EAN = '4005556175512';
 
     private MessageBusInterface $messageBus;
@@ -134,6 +137,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION),
         ));
         $this->entityManager->clear();
         $roundPuzzle = $this->roundPuzzle($roundPuzzleId->toString());
@@ -395,6 +399,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: $hideMode,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION),
         ));
         $this->entityManager->clear();
 

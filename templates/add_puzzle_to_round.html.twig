@@ -27,6 +27,9 @@
                          data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
                          data-time-form-autocomplete-puzzle-required-message-value="{{ 'forms.required_field'|trans }}">
                         {{ form_start(form) }}
+                            {# The automatic reveal named under "Hide until the round starts" - a secret puzzle is added only while
+                               the round still has it (AddPuzzleToCompetitionRound) #}
+                            <input type="hidden" name="automatic_reveal_at" value="{{ round.automaticRevealAt.timestamp }}">
                             {{ form_row(form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
                             {{ form_row(form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
 

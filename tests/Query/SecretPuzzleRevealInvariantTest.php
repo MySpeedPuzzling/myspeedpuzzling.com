@@ -30,6 +30,7 @@ use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PiecesRange;
@@ -47,6 +48,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class SecretPuzzleRevealInvariantTest extends WebTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     private const string SECRET_NAME = 'Midnight Lighthouse Secret';
     private const string SECRET_EAN = '4005556175512';
     private const string SECRET_BRAND_CODE = 'MLS-17551';
@@ -370,6 +373,7 @@ final class SecretPuzzleRevealInvariantTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(self::SECRET_BRAND_CODE),
             hideUntilRoundStarts: true,
             hideMode: $hideMode,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
 
         return $this->roundPuzzle($roundPuzzleId->toString());

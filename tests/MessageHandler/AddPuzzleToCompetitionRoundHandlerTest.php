@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -13,6 +16,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
@@ -22,6 +26,8 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     private MessageBusInterface $messageBus;
     private PuzzleRepository $puzzleRepository;
     private CompetitionRoundPuzzleRepository $roundPuzzleRepository;
@@ -78,6 +84,7 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
         ));
 
         $roundPuzzle = $this->roundPuzzleRepository->get($roundPuzzleId->toString());
@@ -111,6 +118,7 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::ImageOnly,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
         ));
 
         $roundPuzzle = $this->roundPuzzleRepository->get($roundPuzzleId->toString());
@@ -140,6 +148,7 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
         ));
 
         $roundPuzzle = $this->roundPuzzleRepository->get($roundPuzzleId->toString());
@@ -173,6 +182,7 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::ImageOnly,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
         ));
 
         $roundPuzzle = $this->roundPuzzleRepository->get($roundPuzzleId->toString());
@@ -277,6 +287,96 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
 
         self::assertSame(PuzzleFixture::PUZZLE_300, $roundPuzzle->puzzle->id->toString());
         self::assertSame(CompetitionSeriesFixture::ROUND_EJJ_69, $roundPuzzle->round->id->toString());
+    }
+
+    /**
+     * A secret puzzle is a yes to the automatic reveal the organiser's page named: another moment now (the round's start
+     * or reveal delay changed after the page was loaded - 60 -> 5 minutes would reveal it 55 minutes early) or none at
+     * all is refused before anything is created - no puzzle, no row. A puzzle that is not secret needs no moment.
+     */
+    public function testASecretPuzzleIsAddedOnlyForTheAutomaticRevealShown(): void
+    {
+        $roundId = CompetitionRoundFixture::ROUND_CZECH_FINAL;
+        $automaticRevealAt = self::automaticRevealOf($roundId);
+        $rowsBefore = $this->roundPuzzleCount($roundId);
+        $puzzlesBefore = $this->rowCount('SELECT COUNT(*) FROM puzzle');
+
+        foreach ([null, $automaticRevealAt->modify('+55 minutes'), $automaticRevealAt->modify('-1 minute')] as $shown) {
+            foreach (['Stale secret round puzzle', PuzzleFixture::PUZZLE_300] as $puzzle) {
+                try {
+                    $this->addSecret($roundId, $puzzle, $shown);
+                    self::fail('A secret puzzle added for another automatic reveal than the round has');
+                } catch (AutomaticRevealChangedMeanwhile $refused) {
+                    self::assertSame($automaticRevealAt->getTimestamp(), $refused->automaticRevealAt->getTimestamp());
+                    self::assertSame($shown?->getTimestamp(), $refused->shownAutomaticRevealAt?->getTimestamp());
+                }
+
+                self::assertSame($rowsBefore, $this->roundPuzzleCount($roundId));
+                self::assertSame($puzzlesBefore, $this->rowCount('SELECT COUNT(*) FROM puzzle'));
+            }
+        }
+
+        // The moment the round has: added, hidden until exactly then
+        $roundPuzzleId = $this->addSecret($roundId, 'Stale secret round puzzle', $automaticRevealAt);
+        $roundPuzzle = $this->roundPuzzleRepository->get($roundPuzzleId);
+        self::assertTrue($roundPuzzle->hideUntilRoundStarts);
+        self::assertSame($automaticRevealAt->getTimestamp(), $roundPuzzle->puzzle->hideUntil?->getTimestamp());
+        self::assertSame($automaticRevealAt->getTimestamp(), $roundPuzzle->revealsAt()?->getTimestamp());
+
+        // Not secret: no moment needed
+        $publicRowId = Uuid::uuid7();
+        $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
+            roundPuzzleId: $publicRowId,
+            roundId: $roundId,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            puzzle: PuzzleFixture::PUZZLE_300,
+            piecesCount: null,
+            puzzlePhoto: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
+            hideUntilRoundStarts: false,
+        ));
+        self::assertFalse($this->roundPuzzleRepository->get($publicRowId->toString())->hideUntilRoundStarts);
+        self::assertSame($rowsBefore + 2, $this->roundPuzzleCount($roundId));
+    }
+
+    private function addSecret(string $roundId, string $puzzle, null|DateTimeImmutable $shownAutomaticRevealAt): string
+    {
+        $roundPuzzleId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
+            roundPuzzleId: $roundPuzzleId,
+            roundId: $roundId,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            puzzle: $puzzle,
+            piecesCount: Uuid::isValid($puzzle) ? null : 500,
+            puzzlePhoto: null,
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
+            hideUntilRoundStarts: true,
+            hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: $shownAutomaticRevealAt,
+        ));
+
+        return $roundPuzzleId->toString();
+    }
+
+    private function roundPuzzleCount(string $roundId): int
+    {
+        return $this->rowCount('SELECT COUNT(*) FROM competition_round_puzzle WHERE round_id = :roundId', ['roundId' => $roundId]);
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     */
+    private function rowCount(string $sql, array $parameters = []): int
+    {
+        $count = self::getContainer()->get(Connection::class)->fetchOne($sql, $parameters);
+        assert(is_int($count));
+
+        return $count;
     }
 
     private function newPuzzleBrandId(string $brand, string $userId = PlayerFixture::PLAYER_REGULAR_USER_ID): null|string

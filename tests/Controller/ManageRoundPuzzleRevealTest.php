@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
@@ -27,6 +28,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class ManageRoundPuzzleRevealTest extends WebTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     public function testOrganiserSeesAndControlsTheReveal(): void
     {
         $browser = self::createClient();
@@ -51,6 +54,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $entityManager->clear();
 
@@ -143,6 +147,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $entityManager->clear();
@@ -159,6 +164,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
         ));
 
         // Reveal now on Team Relay: the flash says the other round still holds it
@@ -211,6 +217,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $puzzleId = $this->roundPuzzle($teamRelay->toString())->puzzle->id->toString();
         $bus->dispatch(new AddPuzzleToCompetitionRound(
@@ -224,6 +231,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
         ));
         $bus->dispatch(new \SpeedPuzzling\Web\Message\RevealRoundPuzzleNow($teamRelay->toString()));
 
@@ -296,6 +304,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
 
         // Maintains another event only

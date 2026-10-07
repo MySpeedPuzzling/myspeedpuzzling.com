@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
@@ -29,6 +30,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class CompetitionRoundTimezoneTest extends WebTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     public function testMultiDayEventRoundRoundTripsInChosenTimezone(): void
     {
         $browser = self::createClient();
@@ -220,6 +223,7 @@ final class CompetitionRoundTimezoneTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf($roundId),
         ));
 
         $yesterday = new DateTimeImmutable('-1 day', new DateTimeZone('America/Chicago'))->format('d.m.Y H:i');

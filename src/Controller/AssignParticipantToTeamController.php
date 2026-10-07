@@ -61,10 +61,21 @@ final class AssignParticipantToTeamController extends AbstractController
             return $this->redirectToRoute('manage_round_teams', ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
         }
 
+        // A pair/team with an official result keeps it - the organiser is told it now belongs to the new line-up
+        $moves = ($participantRound->team?->id->toString() ?? '') !== strtolower($teamId);
+        $teamsWithResult = $moves && (
+            $participantRound->team?->hasOfficialData() === true
+            || ($teamId !== '' && $this->competitionTeamRepository->get($teamId)->hasOfficialData())
+        );
+
         $this->messageBus->dispatch(new AssignParticipantToTeam(
             participantRoundId: $participantRoundId,
             teamId: $teamId !== '' ? $teamId : null,
         ));
+
+        if ($teamsWithResult) {
+            $this->addFlash('warning', $this->translator->trans('official_results.guard.team_line_up_changed'));
+        }
 
         return $this->redirectToRoute('manage_round_teams', ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
     }

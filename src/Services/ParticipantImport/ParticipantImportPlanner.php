@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetParticipantImportStateVersion;
 use SpeedPuzzling\Web\Results\ParticipantImportPlan;
+use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\PlanBuilder;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\SiteSnapshot;
 use SpeedPuzzling\Web\Value\ParticipantImportMode;
@@ -28,6 +29,7 @@ readonly final class ParticipantImportPlanner
     public function __construct(
         private Connection $database,
         private GetParticipantImportStateVersion $getStateVersion,
+        private OfficialResultsGuard $officialResultsGuard,
     ) {
     }
 
@@ -211,6 +213,8 @@ SQL,
             results: $results,
             existingPlayers: $existingPlayers,
             stateVersion: $stateVersion,
+            officialResults: $this->officialResultsGuard->officialDataByParticipant($competitionId),
+            officialTeams: $this->officialResultsGuard->teamsWithOfficialData($competitionId),
         );
     }
 }

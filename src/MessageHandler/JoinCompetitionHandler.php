@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -48,6 +49,7 @@ readonly final class JoinCompetitionHandler
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
         private PlayerAccountEmail $playerAccountEmail,
+        private OfficialResultsGuard $officialResultsGuard,
     ) {
     }
 
@@ -156,7 +158,8 @@ readonly final class JoinCompetitionHandler
 
             $participant = $this->participantRepository->get($participantId);
 
-            if ($participant->source === ParticipantSource::SelfJoined) {
+            // A row holding official results is the organiser's record - the player only lets go of it
+            if ($participant->source === ParticipantSource::SelfJoined && $this->officialResultsGuard->participantHasOfficialData($participantId) === false) {
                 $participant->softDelete($this->clock->now());
             } else {
                 $participant->disconnect();

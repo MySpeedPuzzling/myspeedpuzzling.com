@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Message\EditCompetitionParticipant;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -25,9 +26,21 @@ readonly final class EditCompetitionParticipantHandler
     ) {
     }
 
+    /**
+     * @throws OfficialResultsProtected taking the person out of a round where they hold official results - nothing changes
+     */
     public function __invoke(EditCompetitionParticipant $message): void
     {
         $participant = $this->participantRepository->get($message->participantId);
+
+        // Validated before anything changes: rounds the person is taken out of must not hold their official results
+        foreach ($this->existingRounds($message->participantId) as $participantRound) {
+            $official = $participantRound->hasOfficialData() || $participantRound->team?->hasOfficialData() === true;
+
+            if ($official && !in_array($participantRound->round->id->toString(), $message->roundIds, true)) {
+                throw new OfficialResultsProtected(OfficialResultsProtected::ENTRY_HAS_RESULT);
+            }
+        }
 
         $participant->updateName($message->name);
         $participant->updateCountry($message->country);

@@ -1,5 +1,8 @@
 {% set managed = this.registration is not null and this.registration.registrationManaged %}
 <div{{ attributes }}>
+    {% if this.protectedMessage is not null %}
+        <div class="alert alert-warning py-2 mb-3" role="alert">{{ this.protectedMessage|trans }}</div>
+    {% endif %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <span class="text-muted">
             {% if managed %}

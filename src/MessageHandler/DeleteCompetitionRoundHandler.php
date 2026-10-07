@@ -6,9 +6,11 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
+use SpeedPuzzling\Web\Exceptions\OfficialResultsChangedMeanwhile;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
+use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -21,12 +23,14 @@ readonly final class DeleteCompetitionRoundHandler
         private Connection $database,
         private SecretPuzzleHides $secretPuzzleHides,
         private SecretRevealPreview $secretRevealPreview,
+        private OfficialResultsGuard $officialResultsGuard,
     ) {
     }
 
     /**
      * @throws CompetitionRoundHasResults
      * @throws SecretPuzzlesWouldBeRevealed
+     * @throws OfficialResultsChangedMeanwhile
      */
     public function __invoke(DeleteCompetitionRound $message): void
     {
@@ -36,9 +40,12 @@ readonly final class DeleteCompetitionRoundHandler
             $resultsCount = $this->database
                 ->executeQuery('SELECT COUNT(*) FROM puzzle_solving_time WHERE competition_round_id = :id', $params)
                 ->fetchOne();
+            // Official results recorded by the organiser count as results too
+            $resultsCount = (is_numeric($resultsCount) ? (int) $resultsCount : 0)
+                + $this->officialResultsGuard->countResultsInRound($message->roundId);
 
-            if (is_numeric($resultsCount) && (int) $resultsCount > 0) {
-                throw new CompetitionRoundHasResults((int) $resultsCount);
+            if ($resultsCount > 0) {
+                throw new CompetitionRoundHasResults($resultsCount);
             }
         }
 
@@ -47,6 +54,15 @@ readonly final class DeleteCompetitionRoundHandler
         $roundIds = [$message->roundId];
         // Locks the rounds, then their secret puzzles - waits for every other change of them (SecretPuzzleHides)
         $secretPuzzleIds = $this->secretPuzzleHides->lockRoundsForChange($roundIds);
+
+        // The official results the organiser agreed to lose are still exactly these - checked under the lock
+        if ($message->confirmedOfficialResultsHash !== null) {
+            $officialResults = $this->officialResultsGuard->entriesWithOfficialData($message->roundId);
+
+            if (hash_equals(OfficialResultsGuard::hashEntries($officialResults), $message->confirmedOfficialResultsHash) === false) {
+                throw new OfficialResultsChangedMeanwhile();
+            }
+        }
 
         if ($message->refuseToReveal || $message->confirmedRevealHash !== null) {
             $revealed = $this->secretRevealPreview->byRemoving(array_values(

@@ -21,6 +21,9 @@ readonly final class SiteSnapshot
      * @param array<string, array<string, true>> $results player id => round ids of this event the player has a result in
      *        (alone or as a member of a pair/team)
      * @param array<string, true> $existingPlayers lower-cased player ids of the file that exist
+     * @param array<string, array<string, true>> $officialResults participant id => round ids of this event the participant
+     *        holds official data in (a result or a qualified mark - their own, or their pair's/team's), see OfficialResultsGuard
+     * @param array<string, true> $officialTeams team ids of this event with official data
      */
     public function __construct(
         public string $competitionId,
@@ -31,7 +34,31 @@ readonly final class SiteSnapshot
         public array $results,
         public array $existingPlayers,
         public string $stateVersion,
+        public array $officialResults = [],
+        public array $officialTeams = [],
     ) {
+    }
+
+    /**
+     * A result in the event (or the round) the import must never take away (D11): one the player added to their profile,
+     * or an official result the organiser recorded for the participant.
+     */
+    public function hasAnyResult(null|string $playerId, null|string $participantId, null|string $roundId = null): bool
+    {
+        if ($this->hasResult($playerId, $roundId)) {
+            return true;
+        }
+
+        if ($participantId === null || !isset($this->officialResults[$participantId])) {
+            return false;
+        }
+
+        return $roundId === null || isset($this->officialResults[$participantId][$roundId]);
+    }
+
+    public function teamHasOfficialResult(string $teamId): bool
+    {
+        return isset($this->officialTeams[$teamId]);
     }
 
     public function hasResult(null|string $playerId, null|string $roundId = null): bool

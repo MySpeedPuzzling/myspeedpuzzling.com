@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CompetitionRoundForManagement;
+use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
@@ -41,7 +42,8 @@ LEFT JOIN competition_series tz_cs ON tz_cs.id = c.series_id
 LEFT JOIN competition_round_puzzle crp ON crp.round_id = cr.id
 WHERE cr.competition_id = :competitionId
 GROUP BY cr.id, c.id, tz_cs.id
-ORDER BY cr.starts_at
+-- The position decides a round's automatic colour (RoundBadgeColor) - the same order as the event pages
+ORDER BY cr.starts_at, cr.id
 SQL;
 
         $data = $this->database
@@ -50,7 +52,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): CompetitionRoundForManagement {
+        return array_map(static function (array $row, int $schedulePosition): CompetitionRoundForManagement {
             /**
              * @var array{
              *     id: string,
@@ -67,6 +69,8 @@ SQL;
              * } $row
              */
 
+            $color = RoundBadgeColor::background($row['badge_background_color'], $schedulePosition);
+
             return new CompetitionRoundForManagement(
                 id: $row['id'],
                 name: $row['name'],
@@ -74,10 +78,14 @@ SQL;
                 startsAt: new DateTimeImmutable($row['starts_at']),
                 badgeBackgroundColor: $row['badge_background_color'],
                 badgeTextColor: $row['badge_text_color'],
+                color: $color,
+                textColor: RoundBadgeColor::text($color),
+                schedulePosition: $schedulePosition,
                 puzzleCount: (int) $row['puzzle_count'],
                 category: RoundCategory::from($row['category']),
                 timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code'], $row['series_country_code']),
+                timezoneAssumed: RoundTimezone::isAssumed($row['timezone'], $row['location_country_code'], $row['series_country_code']),
             );
-        }, $data);
+        }, $data, array_keys($data));
     }
 }

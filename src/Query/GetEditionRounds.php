@@ -47,7 +47,8 @@ FROM competition_round cr
 INNER JOIN competition c ON c.id = cr.competition_id
 LEFT JOIN competition_series tz_cs ON tz_cs.id = c.series_id
 WHERE cr.competition_id = :competitionId
-ORDER BY cr.starts_at
+-- The position decides a round's automatic colour (RoundBadgeColor) - the same order everywhere, ties by id
+ORDER BY cr.starts_at, cr.id
 SQL;
 
         $rounds = $this->database
@@ -161,6 +162,7 @@ SQL;
                 slug: $row['slug'],
                 resultsLink: $row['results_link'],
                 timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code'], $row['series_country_code']),
+                timezoneAssumed: RoundTimezone::isAssumed($row['timezone'], $row['location_country_code'], $row['series_country_code']),
             );
         }, $rounds, array_keys($rounds));
     }

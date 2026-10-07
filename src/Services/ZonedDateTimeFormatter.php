@@ -14,6 +14,9 @@ use Symfony\Component\Translation\LocaleSwitcher;
  * A moment as the people of an event read it: in the event's zone, in the page's language, the zone named
  * ("Saturday, October 24, 2026 at 8:15 AM (Chicago Time)"). For moments an organiser acts on - a round's start,
  * a secret puzzle's reveal - where a time without its zone could mislead. Twig: zoned_datetime(), timezone_name().
+ *
+ * The zone is named by its place ("Chicago Time", "Czechia Time"). A zone that is only assumed (RoundTimezone::isAssumed()
+ * - nobody said where the event is) is named without a place instead ("Central European Time").
  */
 readonly final class ZonedDateTimeFormatter
 {
@@ -22,7 +25,7 @@ readonly final class ZonedDateTimeFormatter
     ) {
     }
 
-    public function format(DateTimeImmutable $moment, string $timezone): string
+    public function format(DateTimeImmutable $moment, string $timezone, bool $assumed = false): string
     {
         $formatter = new IntlDateFormatter(
             $this->localeSwitcher->getLocale(),
@@ -37,12 +40,15 @@ readonly final class ZonedDateTimeFormatter
             $formatted = $moment->setTimezone(new DateTimeZone($timezone))->format('Y-m-d H:i');
         }
 
-        return $formatted . ' (' . $this->timezoneName($timezone) . ')';
+        return $formatted . ' (' . $this->timezoneName($timezone, $assumed) . ')';
     }
 
-    public function timezoneName(string $timezone): string
+    public function timezoneName(string $timezone, bool $assumed = false): string
     {
-        return IntlTimeZone::createTimeZone($timezone)
-            ->getDisplayName(false, IntlTimeZone::DISPLAY_GENERIC_LOCATION, $this->localeSwitcher->getLocale());
+        return IntlTimeZone::createTimeZone($timezone)->getDisplayName(
+            false,
+            $assumed ? IntlTimeZone::DISPLAY_LONG_GENERIC : IntlTimeZone::DISPLAY_GENERIC_LOCATION,
+            $this->localeSwitcher->getLocale(),
+        );
     }
 }

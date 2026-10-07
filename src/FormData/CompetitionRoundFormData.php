@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormData;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
+use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -24,10 +25,12 @@ final class CompetitionRoundFormData
         // Single-day event: the local "H:i" in $timezone on the event's day
         public null|string $startsAtTime = null,
         public null|string $timezone = null,
+        // Null = picked automatically (RoundBadgeColor)
         #[Assert\Length(max: 250)]
-        public null|string $badgeBackgroundColor = '#fe696a',
+        public null|string $badgeBackgroundColor = null,
+        // Not on the web form (the text colour is picked for contrast) - only the internal API sets it
         #[Assert\Length(max: 250)]
-        public null|string $badgeTextColor = '#ffffff',
+        public null|string $badgeTextColor = null,
         public RoundCategory $category = RoundCategory::Solo,
         #[Assert\Url]
         #[Assert\Length(max: 2000)]
@@ -55,7 +58,8 @@ final class CompetitionRoundFormData
         // DateTimeType shows a value in the server's zone - hand it the local wall clock in that zone, untouched
         $data->startsAt = new DateTimeImmutable($localStart->format('Y-m-d H:i:s'));
         $data->startsAtTime = $localStart->format('H:i');
-        $data->badgeBackgroundColor = $round->badgeBackgroundColor;
+        // The old form default and garbage mean "automatic" - the form shows them as no colour (RoundBadgeColor::chosen())
+        $data->badgeBackgroundColor = RoundBadgeColor::chosen($round->badgeBackgroundColor);
         $data->badgeTextColor = $round->badgeTextColor;
         $data->category = $round->category;
         $data->resultsLink = $round->resultsLink;

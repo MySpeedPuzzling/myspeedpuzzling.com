@@ -164,9 +164,16 @@ A competition has multiple **rounds**, each with:
 - **Name** and **start time** with its **time zone** — see "Start time and time zone" below
 - **Minutes limit** — the time limit for solving (drives the stopwatch countdown)
 - **Category** — `solo`, `duo`, or `team` (`RoundCategory` enum, default `solo`)
-- **Badge colors** — optional background/text hex colors for visual distinction in round lists
+- **Badge colour** — see "Round badge" below
 
-Rounds are displayed sorted by start time. Each round can be edited or deleted. The round list shows action buttons for: Puzzles, Teams (for duo/team rounds only), Tables (only for in-person events), Stopwatch, Edit, Delete.
+Rounds are displayed sorted by start time. Each round can be edited or deleted. The round list shows each round's badge and its category pill (Solo too, like Pair and Team) and action buttons for: Puzzles, Teams (for duo/team rounds only), Tables (only for in-person events), Stopwatch, Edit, Delete.
+
+### Round badge
+
+The round's name is shown on a badge in the round's colour wherever the round appears (event / edition page, round results, the participants list's round chips, the organiser's round list) - one rule, `RoundBadgeColor`:
+- **Background** = the organiser's colour (`competition_round.badge_background_color`, any `#rgb`/`#rrggbb`), else a distinct palette colour by the round's position in the schedule (by start, ties by id - `GetEditionRounds`, `GetCompetitionRounds` and `GetCompetitionRoundsForManagement` order alike). `#fe696a`, what the form pre-filled until 2026-10 and most rounds still store, counts as no colour (`RoundBadgeColor::chosen()`).
+- **Text** = black or white, whichever contrasts more (WCAG luminance) - always automatic. The round form asks only for the colour (help text says the text colour is picked for readability; empty = automatic, Coloris "Automatic color" button empties it, no `#fe696a`/white swatch). `competition_round.badge_text_color` stays (blue-green, no migration): the web form stores `RoundBadgeColor::textForChosen()` (null without a colour), the internal API stores what it is sent, nothing reads it for display - the organiser's round list uses the same computed colours as the public pages.
+- **Live preview** on the add/edit round form (`competition/_round_badge_field.html.twig`, `round_badge_preview_controller.js` on the form): the typed name on the chosen colour with the automatic text colour, or on the automatic colour with a "picked automatically" note. The browser half of the rule is `assets/round_badge_color.js`, kept identical to the PHP one by `RoundBadgeColorParityTest` (node); the server hands it the automatic colour (`round_badge()` Twig function, from the round's schedule position - a new round is assumed last).
 
 ### Start time and time zone
 
@@ -176,6 +183,7 @@ The organiser types the **local** start (a one-day event asks only for the time,
 - A typed time that does not exist exactly once in the zone (skipped or repeated by a daylight-saving change, or overflowing like 31.02. 25:70) is refused with a form error (`RoundTimezone::parseLocal()`).
 - A one-day event asks for the time only when the round is on the event's day in its zone; a round on another local day gets the full date and time, so an untouched save never moves it by a day.
 - Rounds saved before 2026-10 have no zone (`NULL`): they are read in the default zone of the event's country, else its series' country - the zone the form pre-selected then.
+- With no country either (an online series - Ou La La Puzzles) the zone is only the fallback `Europe/Prague` (`RoundTimezone::isAssumed()`, carried as `timezoneAssumed` by `EditionRoundDetail` / `CompetitionRoundForManagement`): `timezone_name(zone, assumed)` names it without a place ("Central European Time", ICU long generic name) instead of "Czechia Time", on the round results page, the organiser's round list and the edition page; the round's edit form says no zone was saved yet (`timezone_assumed` form option). Saved once with a zone, the round has its own. The organiser's reveal times (`zoned_datetime()` on the round puzzles page) still use the place name.
 - Until 2026-10 the zone was not kept: the edit form showed the UTC time with the country's zone, so every save of an untouched form moved a round by the zone's offset (reported by the Wisconsin State Jigsaw Puzzle Championship).
 
 ### Round Categories

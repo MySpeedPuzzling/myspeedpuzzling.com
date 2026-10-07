@@ -88,6 +88,14 @@ class CompetitionRound implements EntityWithEvents
         return RoundTimezone::resolve($this->timezone, $this->competition->locationCountryCode, $this->competition->series?->locationCountryCode);
     }
 
+    /**
+     * No zone of its own nor a country to take it from - displayTimezone() is only the fallback (RoundTimezone)
+     */
+    public function isTimezoneAssumed(): bool
+    {
+        return RoundTimezone::isAssumed($this->timezone, $this->competition->locationCountryCode, $this->competition->series?->locationCountryCode);
+    }
+
     public function assignSlug(string $slug): void
     {
         $this->slug = $slug;

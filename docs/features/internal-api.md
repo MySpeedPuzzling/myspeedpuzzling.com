@@ -260,7 +260,8 @@ Not settable here: the logo (upload it in the UI), the series of an edition (rec
 | `startsAt` | Required on create. ISO 8601 date-time, **stored and answered in UTC** like the round form stores it: with an offset (`"2026-11-14T10:00:00+01:00"`, `"…Z"`) it is that moment; without one (`"2026-11-14T10:00"`) a wall-clock time in the round's zone (the `timezone` sent along, else the round's own) - a `400` when a daylight-saving change skips or repeats that time there (send it with an offset). Left out of a `PATCH`, the start stays exactly as stored |
 | `timezone` | The round's own IANA zone (`"America/Chicago"`) - its times are typed and shown in it, on the organiser's form and the event pages, and the answer carries it. A new round gets the zone of the event's other rounds, else of its country (`CountryCode::defaultTimezone()`, the series' country for an edition), else `Europe/Prague` - like the form. Only together with `startsAt` (a `400` alone: it would leave open whether the round keeps its moment or its wall-clock time); `null` is a `400` too |
 | `minutesLimit` | Required on create, ≥ 1 |
-| `badgeBackgroundColor`, `badgeTextColor` | e.g. `"#fe696a"` / `"#ffffff"` (the form's defaults) |
+| `badgeBackgroundColor` | The round's badge colour, `"#rrggbb"`; `null` or left out on create = a distinct colour picked automatically by the round's place in the schedule (`"#fe696a"`, the old form default, counts as none) - `RoundBadgeColor` |
+| `badgeTextColor` | Stored and answered, but never shown: every page picks black or white for contrast with the badge colour. The round form no longer asks for it |
 | `resultsLink` | The organiser's results page of this round |
 | `puzzleIds` | Create only: attach these puzzles right away |
 

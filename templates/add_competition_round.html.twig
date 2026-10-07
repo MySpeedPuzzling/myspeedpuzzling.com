@@ -21,7 +21,15 @@
 
                 <div class="card shadow my-4">
                     <div class="card-body">
-                        {{ form_start(form) }}
+                        {# Live badge preview (round_badge_preview_controller.js, competition/_round_badge_field.html.twig) #}
+                        {% set round_badge_preview = round_badge(form.badgeBackgroundColor.vars.value, schedule_position) %}
+                        {{ form_start(form, {attr: {
+                            'data-controller': 'round-badge-preview',
+                            'data-action': 'input->round-badge-preview#update change->round-badge-preview#update',
+                            'data-round-badge-preview-automatic-color-value': round_badge_preview.automaticBackground,
+                            'data-round-badge-preview-round-form-default-value': constant('SpeedPuzzling\\Web\\Value\\RoundBadgeColor::ROUND_FORM_DEFAULT'),
+                            'data-round-badge-preview-placeholder-value': 'competition.round.form.name'|trans,
+                        }}) }}
                             {{ form_row(form.name) }}
                             {{ form_row(form.category) }}
                             {{ form_row(form.minutesLimit) }}
@@ -59,8 +67,7 @@
                             {% endif %}
                             <div class="row">
                                 <div class="col-12">{{ form_row(form.resultsLink) }}</div>
-                                <div class="col-6">{{ form_row(form.badgeBackgroundColor) }}</div>
-                                <div class="col-6">{{ form_row(form.badgeTextColor) }}</div>
+                                {{ include('competition/_round_badge_field.html.twig') }}
                             </div>
 
                             <button type="submit" class="btn btn-primary mt-3">

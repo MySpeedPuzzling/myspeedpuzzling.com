@@ -32,6 +32,10 @@ final class CompetitionRoundFormType extends AbstractType
 
         $builder->add('name', TextType::class, [
             'label' => 'competition.round.form.name',
+            // The badge preview shows the name (round_badge_preview_controller.js)
+            'attr' => [
+                'data-round-badge-preview-target' => 'name',
+            ],
         ]);
 
         $builder->add('minutesLimit', NumberType::class, [
@@ -60,7 +64,10 @@ final class CompetitionRoundFormType extends AbstractType
 
         $builder->add('timezone', TimezoneType::class, [
             'label' => 'competition.round.form.timezone',
-            'help' => 'competition.round.form.timezone_help',
+            // A round saved without a zone in an event without a country is shown in the fallback zone - say so
+            'help' => $options['timezone_assumed'] === true
+                ? 'competition.round.form.timezone_assumed_help'
+                : 'competition.round.form.timezone_help',
             // Pre-selected from the form data: the round's own zone on edit (never a default - that would
             // override it), on add the zone of the event's other rounds or its country's
             'autocomplete' => true,
@@ -107,19 +114,17 @@ final class CompetitionRoundFormType extends AbstractType
             'required' => false,
         ]);
 
+        // The round's name on a badge in this colour, wherever the round is shown. Empty = a distinct colour picked by
+        // the round's place in the schedule; the text colour is always picked for contrast (RoundBadgeColor) - the
+        // form asks for no text colour (the column stays, see the controllers)
         $builder->add('badgeBackgroundColor', TextType::class, [
             'label' => 'competition.round.form.badge_background_color',
-            'empty_data' => '#fe696a',
+            'help' => 'competition.round.form.badge_background_color_help',
+            'required' => false,
             'attr' => [
                 'data-controller' => 'colorpicker',
-            ],
-        ]);
-
-        $builder->add('badgeTextColor', TextType::class, [
-            'label' => 'competition.round.form.badge_text_color',
-            'empty_data' => '#ffffff',
-            'attr' => [
-                'data-controller' => 'colorpicker',
+                'data-round-badge-preview-target' => 'color',
+                'autocomplete' => 'off',
             ],
         ]);
     }
@@ -131,10 +136,12 @@ final class CompetitionRoundFormType extends AbstractType
             'single_day' => false,
             'timezone_offset_at' => null,
             'reveal_confirmation' => false,
+            'timezone_assumed' => false,
         ]);
 
         $resolver->setAllowedTypes('single_day', 'bool');
         $resolver->setAllowedTypes('timezone_offset_at', ['null', \DateTimeImmutable::class]);
         $resolver->setAllowedTypes('reveal_confirmation', 'bool');
+        $resolver->setAllowedTypes('timezone_assumed', 'bool');
     }
 }

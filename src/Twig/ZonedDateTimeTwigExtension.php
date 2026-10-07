@@ -9,7 +9,8 @@ use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
- * `zoned_datetime(moment, timezone)` and `timezone_name(timezone)` - see ZonedDateTimeFormatter.
+ * `zoned_datetime(moment, timezone, assumed = false)` and `timezone_name(timezone, assumed = false)` - see
+ * ZonedDateTimeFormatter (`assumed`: the read model's `timezoneAssumed`, RoundTimezone::isAssumed()).
  */
 final class ZonedDateTimeTwigExtension extends AbstractExtension
 {

@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -89,6 +90,7 @@ final class AddCompetitionRoundController extends AbstractController
                     'form' => $form,
                     'competition' => $competition,
                     'single_day' => $singleDay,
+                    'schedule_position' => count($otherRounds),
                 ]);
             }
 
@@ -99,8 +101,9 @@ final class AddCompetitionRoundController extends AbstractController
                 minutesLimit: $data->minutesLimit,
                 startsAt: $startsAt,
                 timezone: $data->timezone,
-                badgeBackgroundColor: $data->badgeBackgroundColor,
-                badgeTextColor: $data->badgeTextColor,
+                badgeBackgroundColor: RoundBadgeColor::chosen($data->badgeBackgroundColor),
+                // The form asks for no text colour - it is picked for contrast wherever the round is shown
+                badgeTextColor: RoundBadgeColor::textForChosen($data->badgeBackgroundColor),
                 category: $data->category,
                 resultsLink: $data->resultsLink,
             ));
@@ -114,6 +117,8 @@ final class AddCompetitionRoundController extends AbstractController
             'form' => $form,
             'competition' => $competition,
             'single_day' => $singleDay,
+            // The badge preview's automatic colour: the new round, likely the last of the schedule (RoundBadgeColor)
+            'schedule_position' => count($otherRounds),
         ]);
     }
 }

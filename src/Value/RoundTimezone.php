@@ -21,6 +21,10 @@ use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
  * the Canadian Speed Puzzlers editions were typed in Toronto, not in the Prague the form offered), else Prague. For
  * an event outside its country's default zone (US Central, Mountain, Pacific) the time reads in the default zone -
  * the instant is right, the organiser can set the zone (docs/TODO.md).
+ *
+ * A round with none of them - no zone of its own, no country on the event nor on its series (an online series) - is
+ * read in FALLBACK only because something must be: isAssumed(). Its zone is then named neutrally ("Central European
+ * Time", ZonedDateTimeFormatter::timezoneName()) - "Czechia Time" would say the event is in Czechia.
  */
 final class RoundTimezone
 {
@@ -41,6 +45,24 @@ final class RoundTimezone
         }
 
         return self::FALLBACK;
+    }
+
+    /**
+     * Whether resolve() falls back to FALLBACK for these: no valid stored zone and no country to take one from.
+     */
+    public static function isAssumed(null|string $storedTimezone, null|string ...$countryCodes): bool
+    {
+        if ($storedTimezone !== null && self::isValid($storedTimezone)) {
+            return false;
+        }
+
+        foreach ($countryCodes as $countryCode) {
+            if (CountryCode::fromCode($countryCode) !== null) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static function isValid(string $timezone): bool

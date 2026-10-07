@@ -15,10 +15,12 @@ use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
+use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -42,6 +44,7 @@ final class EditCompetitionRoundController extends AbstractController
         private readonly ClockInterface $clock,
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
         private readonly SecretRevealPreview $secretRevealPreview,
+        private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
     ) {
     }
 
@@ -85,6 +88,7 @@ final class EditCompetitionRoundController extends AbstractController
             'single_day' => $singleDay !== null,
             'timezone_offset_at' => $round->startsAt,
             'reveal_confirmation' => $hasSecretPuzzles,
+            'timezone_assumed' => $round->isTimezoneAssumed(),
         ]);
         $form->handleRequest($request);
         $revealedRightAway = [];
@@ -138,8 +142,9 @@ final class EditCompetitionRoundController extends AbstractController
                         minutesLimit: $data->minutesLimit,
                         startsAt: $startsAt,
                         timezone: $data->timezone,
-                        badgeBackgroundColor: $data->badgeBackgroundColor,
-                        badgeTextColor: $data->badgeTextColor,
+                        badgeBackgroundColor: RoundBadgeColor::chosen($data->badgeBackgroundColor),
+                        // The form asks for no text colour - it is picked for contrast wherever the round is shown
+                        badgeTextColor: RoundBadgeColor::textForChosen($data->badgeBackgroundColor),
                         category: $data->category,
                         resultsLink: $data->resultsLink,
                         // Re-checked after the handler's locks - another change in between asks again
@@ -190,7 +195,22 @@ final class EditCompetitionRoundController extends AbstractController
             'revealed_right_away' => $revealedRightAway,
             'reveal_confirmation_hash' => SecretRevealPreview::hash($revealedRightAway),
             'timezone' => $timezone,
+            'schedule_position' => $this->schedulePosition($competitionId, $roundId),
         ]);
+    }
+
+    /**
+     * The round's place in the event's schedule - decides its automatic badge colour (RoundBadgeColor)
+     */
+    private function schedulePosition(string $competitionId, string $roundId): int
+    {
+        foreach ($this->getCompetitionRoundsForManagement->ofCompetition($competitionId) as $round) {
+            if ($round->id === $roundId) {
+                return $round->schedulePosition;
+            }
+        }
+
+        return 0;
     }
 
     /**

@@ -36,6 +36,31 @@ final class RoundBadgeColorTest extends TestCase
         self::assertSame(RoundBadgeColor::PALETTE[2], RoundBadgeColor::background('red', 2));
     }
 
+    public function testChosenColourIsNormalisedAndTheOldFormDefaultIsNone(): void
+    {
+        self::assertSame('#0d6efd', RoundBadgeColor::chosen('#0D6EFD'));
+        self::assertSame('#aabbcc', RoundBadgeColor::chosen(' abc '));
+        self::assertNull(RoundBadgeColor::chosen(null));
+        self::assertNull(RoundBadgeColor::chosen(''));
+        self::assertNull(RoundBadgeColor::chosen('red'));
+        self::assertNull(RoundBadgeColor::chosen('#FE696A'));
+    }
+
+    public function testAutomaticColourIsThePaletteColourOfTheSchedulePosition(): void
+    {
+        self::assertSame(RoundBadgeColor::PALETTE[3], RoundBadgeColor::automatic(3));
+        self::assertSame(RoundBadgeColor::background(null, 5), RoundBadgeColor::automatic(5));
+    }
+
+    public function testStoredTextColourFollowsTheChosenColourOnly(): void
+    {
+        self::assertSame('#000000', RoundBadgeColor::textForChosen('#ffc107'));
+        self::assertSame('#ffffff', RoundBadgeColor::textForChosen('#000075'));
+        // Without a colour of its own the background depends on the schedule - nothing to store
+        self::assertNull(RoundBadgeColor::textForChosen(null));
+        self::assertNull(RoundBadgeColor::textForChosen('#fe696a'));
+    }
+
     #[DataProvider('provideTextColors')]
     public function testTextColourIsTheOneWithMoreContrast(string $background, string $expectedText): void
     {

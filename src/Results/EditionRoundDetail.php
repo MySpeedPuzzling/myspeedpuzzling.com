@@ -29,6 +29,8 @@ readonly final class EditionRoundDetail
         public null|string $resultsLink = null,
         // The zone startsAt is shown in - see RoundTimezone
         public string $timezone = RoundTimezone::FALLBACK,
+        // Nobody said where the event is - $timezone is only the fallback, named without a place (timezone_name())
+        public bool $timezoneAssumed = false,
     ) {
     }
 }

@@ -26,6 +26,18 @@ final class RoundTimezoneTest extends TestCase
         self::assertSame(RoundTimezone::FALLBACK, RoundTimezone::resolve('Not/AZone', null));
     }
 
+    public function testZoneIsAssumedOnlyWhenNothingDecidesIt(): void
+    {
+        // An online series without a country, a round saved before zones were kept
+        self::assertTrue(RoundTimezone::isAssumed(null, null, null));
+        self::assertTrue(RoundTimezone::isAssumed('Not/AZone', null, 'xx'));
+        self::assertTrue(RoundTimezone::isAssumed(null));
+
+        self::assertFalse(RoundTimezone::isAssumed('Europe/Prague', null, null));
+        self::assertFalse(RoundTimezone::isAssumed(null, 'cz', null));
+        self::assertFalse(RoundTimezone::isAssumed(null, null, 'ca'));
+    }
+
     public function testLocalTimeBecomesTheInstantAcrossDaylightSaving(): void
     {
         // Chicago is UTC-5 in October (CDT), UTC-6 in November (CST)

@@ -20,6 +20,8 @@ readonly final class ParticipantImportRow
      * @param array<string, null|string> $teams round name => team name after the import, for the row's pair/team rounds
      *        (null = no team in that round)
      * @param list<TranslatableMessage> $messages what the organiser should know about this row
+     * @param list<string> $roundsRestored round names a restored participant comes back with (Restore only; in full sync
+     *        after the file's rounds took out what it does not list)
      */
     public function __construct(
         public int $rowNumber,
@@ -34,6 +36,7 @@ readonly final class ParticipantImportRow
         public array $messages = [],
         /** When a removed participant is restored: when they were removed */
         public null|\DateTimeImmutable $removedAt = null,
+        public array $roundsRestored = [],
     ) {
     }
 

@@ -22,6 +22,14 @@ readonly final class ParticipantImportResult
         public array $errors = [],
         /** Participants on the file the import did not change */
         public int $unchanged = 0,
+        /** How many of the `updated` ones were removed participants the file brought back */
+        public int $restored = 0,
+        /** Participants full sync removed (soft-deleted) - not in the file; `softDeleted` counts `status = deleted` rows */
+        public int $removed = 0,
+        /** Round entries full sync removed */
+        public int $roundEntriesRemoved = 0,
+        /** Pairs/teams full sync deleted - the import emptied them */
+        public int $teamsRemoved = 0,
     ) {
     }
 

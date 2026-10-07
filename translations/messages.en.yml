@@ -3891,6 +3891,23 @@ competition:
             team_round_not_listed: "Row %row%: team \"%team%\" for round \"%round%\" ignored - the row does not list that round in round_names."
             unknown_round: "{1}Round \"%round%\" does not exist in this event (row %rows%), not assigned. Rounds of this event: %rounds%.|]1,Inf[Round \"%round%\" does not exist in this event (rows %rows%), not assigned. Rounds of this event: %rounds%."
             no_rounds_yet: "none yet - add the rounds first"
+            warning:
+                team_name_shared: "Row %row%: %count% teams in round \"%round%\" are called \"%team%\", so \"%name%\" was not put into any of them. Give the teams different names on the site or in the file."
+                team_name_shared_kept: "Row %row%: %count% teams in round \"%round%\" are called \"%team%\", so \"%name%\" stays in team \"%current%\". Give the teams different names on the site or in the file."
+                rounds_kept: "Row %row%: the rounds cell of \"%name%\" is empty, so they keep the rounds they have on the site."
+                pair_oversized: "%count% people are in \"%team%\" in %round% – a pair has 2. If these are different pairs, give them different names in the file."
+                team_oversized: "%count% people are in \"%team%\" in %round% – teams in this round usually have %usual%. If these are different teams, give them different names in the file."
+                team_single: "{1}In %round%, %teams% has only one person.|]1,Inf[In %round%, %teams% have only one person each."
+                name_spellings: "One name is written in different ways in rows %rows%: %names%. If it is one person, write it the same way everywhere."
+                similar_name: "%new% (new, row %row%) looks like %existing%, who is on the site but not in the file. If it is the same person, use the spelling from the site or fix it there."
+            plan:
+                blocker:
+                    missing_name: "{1}Row %rows% has no name.|]1,Inf[%count% rows have no name (rows %rows%)."
+                    ambiguous_name: "{1}Row %rows% matches several participants of the same name.|]1,Inf[%count% rows match several participants of the same name (rows %rows%)."
+                    unknown_round: "{1}Round %rounds% does not exist in this event.|]1,Inf[Rounds %rounds% do not exist in this event."
+                    round_case_collision: "Rounds %rounds% differ only in upper/lower case."
+                    foreign_participant_ids: "%count% rows carry a participant_id of another event - is this the export of another event?"
+                    no_match: "No row of the file matches any of the %count% participants on the site - is the right column chosen for the names, and is it the right file?"
         export_title: "Export"
         export_current: "Export current participants"
         download_template: "Download template"

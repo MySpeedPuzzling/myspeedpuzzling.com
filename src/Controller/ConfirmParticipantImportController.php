@@ -55,7 +55,7 @@ final class ConfirmParticipantImportController extends AbstractController
     {
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
-        $toParticipants = $this->redirectToRoute('manage_competition_participants', [
+        $toParticipants = $this->redirectToRoute('participants_sheet', [
             'competitionId' => $competitionId,
         ], Response::HTTP_SEE_OTHER);
 

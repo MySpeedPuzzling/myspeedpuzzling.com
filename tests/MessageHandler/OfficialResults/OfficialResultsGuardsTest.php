@@ -11,7 +11,6 @@ use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
-use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CompetitionHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
@@ -19,11 +18,8 @@ use SpeedPuzzling\Web\Exceptions\OfficialResultsChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Message\DeleteCompetition;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
-use SpeedPuzzling\Web\Message\DeleteCompetitionTeam;
-use SpeedPuzzling\Web\Message\EditCompetitionParticipant;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
-use SpeedPuzzling\Web\Message\SoftDeleteCompetitionParticipant;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportPlanner;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
@@ -41,6 +37,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Official data never disappears as a side effect (docs/features/competitions-management/official-results.md, guards).
+ * The participants spreadsheet's write path has its own tests of the guards for people and pairs/teams.
  */
 final class OfficialResultsGuardsTest extends KernelTestCase
 {
@@ -54,89 +51,6 @@ final class OfficialResultsGuardsTest extends KernelTestCase
         $this->messageBus = self::getContainer()->get(MessageBusInterface::class);
         $this->database = self::getContainer()->get(Connection::class);
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
-    }
-
-    public function testAPairWithAResultIsNotDeletedOneWithoutIs(): void
-    {
-        try {
-            $this->messageBus->dispatch(new DeleteCompetitionTeam(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::TEAM_SHARKS));
-            self::fail('A pair with a result must stay.');
-        } catch (OfficialResultsProtected $protected) {
-            self::assertSame(OfficialResultsProtected::TEAM_HAS_RESULT, $protected->reason);
-        }
-
-        self::assertNotFalse($this->database->fetchOne('SELECT 1 FROM competition_team WHERE id = :id', ['id' => OfficialResultsFixture::TEAM_SHARKS]));
-
-        $this->messageBus->dispatch(new DeleteCompetitionTeam(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::TEAM_UNNAMED));
-        self::assertFalse($this->database->fetchOne('SELECT 1 FROM competition_team WHERE id = :id', ['id' => OfficialResultsFixture::TEAM_UNNAMED]));
-    }
-
-    public function testSomebodyWithAResultStaysInTheEvent(): void
-    {
-        // Ben: his own result in Group A; Dan: did not finish - still a result
-        foreach ([OfficialResultsFixture::PARTICIPANT_BEN, OfficialResultsFixture::PARTICIPANT_DAN] as $participantId) {
-            try {
-                $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(OfficialResultsFixture::COMPETITION_RESULTS_CUP, $participantId));
-                self::fail('A participant with a result must stay.');
-            } catch (OfficialResultsProtected $protected) {
-                self::assertSame(OfficialResultsProtected::PARTICIPANT_HAS_RESULT, $protected->reason);
-            }
-
-            self::assertNull($this->database->fetchOne('SELECT deleted_at FROM competition_participant WHERE id = :id', ['id' => $participantId]));
-        }
-
-        // Filip: no result in Group A, his pair has none either
-        $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::PARTICIPANT_FILIP));
-        self::assertNotNull($this->database->fetchOne('SELECT deleted_at FROM competition_participant WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_FILIP]));
-    }
-
-    public function testAMemberOfAPairWithAResultStaysInTheEvent(): void
-    {
-        $participant = $this->participant('Pair Only', null);
-        $round = $this->entityManager->find(CompetitionRound::class, OfficialResultsFixture::ROUND_PAIRS);
-        assert($round !== null);
-        $team = $this->entityManager->find(CompetitionTeam::class, OfficialResultsFixture::TEAM_EDGES);
-        assert($team !== null);
-        $this->entityManager->persist(new CompetitionParticipantRound(Uuid::uuid7(), $participant, $round, $team));
-        $this->entityManager->flush();
-
-        $this->expectException(OfficialResultsProtected::class);
-
-        $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(OfficialResultsFixture::COMPETITION_RESULTS_CUP, $participant->id->toString()));
-    }
-
-    public function testTakingSomebodyOutOfARoundWithTheirResultIsRefusedWithoutChangingAnything(): void
-    {
-        try {
-            // Anna out of the Pairs round (Puzzle Sharks have a result) - and renamed in the same save
-            $this->messageBus->dispatch(new EditCompetitionParticipant(
-                competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
-                participantId: OfficialResultsFixture::PARTICIPANT_ANNA,
-                name: 'Anna Renamed',
-                country: 'cz',
-                externalId: null,
-                changePlayer: true,
-                playerId: PlayerFixture::PLAYER_ADMIN,
-                addRoundIds: [OfficialResultsFixture::ROUND_FINAL],
-                removeRoundIds: [OfficialResultsFixture::ROUND_PAIRS],
-            ));
-            self::fail('Anna must stay in the Pairs round.');
-        } catch (OfficialResultsProtected $protected) {
-            self::assertSame(OfficialResultsProtected::ENTRY_HAS_RESULT, $protected->reason);
-        }
-
-        self::assertSame('Anna Fast', $this->database->fetchOne('SELECT name FROM competition_participant WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_ANNA]));
-
-        // Filip out of Group A, where he has no result
-        $this->messageBus->dispatch(new EditCompetitionParticipant(
-            competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
-            participantId: OfficialResultsFixture::PARTICIPANT_FILIP,
-            name: 'Filip Pending',
-            country: 'cz',
-            externalId: null,
-            removeRoundIds: [OfficialResultsFixture::ROUND_GROUP_A],
-        ));
-        self::assertFalse($this->database->fetchOne('SELECT 1 FROM competition_participant_round WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_A_FILIP]));
     }
 
     public function testLeavingTheEventKeepsAResultTheOrganiserRecorded(): void

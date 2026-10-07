@@ -97,7 +97,7 @@ final class ImportCompetitionParticipantsController extends AbstractController
     {
         $this->addFlash('danger', $message);
 
-        return $this->redirectToRoute('manage_competition_participants', [
+        return $this->redirectToRoute('participants_sheet', [
             'competitionId' => $competitionId,
         ], Response::HTTP_SEE_OTHER);
     }

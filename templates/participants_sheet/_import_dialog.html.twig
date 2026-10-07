@@ -1,0 +1,85 @@
+{# The sheet's Import dialog: the upload of the participants file (→ import_competition_participants → the preview,
+   participant-import-preview.md) and the "How does import work?" help of the old participants page.
+   Expects: competition (ParticipantsSheetCompetition), import_form #}
+<div class="modal fade" id="participants-sheet-import" tabindex="-1" aria-labelledby="participants-sheet-import-title" aria-hidden="true" data-participants-sheet-import>
+    <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="participants-sheet-import-title">{{ 'competition.participants.import_title'|trans }}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-body-secondary">{{ 'participants_sheet.import.intro'|trans }}</p>
+
+                <form action="{{ import_form.vars.action }}" method="post" enctype="multipart/form-data" class="mb-4" data-participants-sheet-import-form>
+                    <input type="hidden" name="{{ import_form.vars.id ~ '[_token]' }}" value="{{ csrf_token(import_form.vars.id) }}">
+                    <div class="mb-2">
+                        {{ form_label(import_form.file, null, {'label_attr': {'class': 'form-label small mb-1'}}) }}
+                        {{ form_widget(import_form.file, {'attr': {'class': 'form-control'}}) }}
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-upload me-1" aria-hidden="true"></i>{{ 'competition.participants.import_button'|trans }}
+                        </button>
+                        <a href="{{ path('download_competition_participant_template') }}" class="btn btn-outline-secondary btn-sm" data-turbo="false" download>
+                            <i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>{{ 'competition.participants.download_template'|trans }}
+                        </a>
+                    </div>
+                </form>
+
+                <details class="small text-muted">
+                    <summary class="fw-semibold">{{ 'competition.participants.how_it_works'|trans }}</summary>
+                    <p class="mt-2 mb-2">{{ 'competition.participants.how_it_works_intro'|trans }}</p>
+                    <ul class="mb-2">
+                        <li>{{ 'competition.participants.how_it_works_new'|trans }}</li>
+                        <li>{{ 'competition.participants.how_it_works_existing'|trans }}</li>
+                        <li>{{ 'competition.participants.how_it_works_mode_update'|trans }}</li>
+                        <li>{{ 'competition.participants.how_it_works_mode_sync'|trans }}</li>
+                        <li>{{ 'competition.participants.how_it_works_same_name'|trans }}</li>
+                        <li>{{ 'competition.participants.how_it_works_columns'|trans }}</li>
+                    </ul>
+
+                    <strong>{{ 'competition.participants.columns_title'|trans }}</strong>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mt-1 mb-2">
+                            <thead>
+                                <tr>
+                                    <th scope="col">{{ 'competition.participants.col_header'|trans }}</th>
+                                    <th scope="col">{{ 'competition.participants.col_required'|trans }}</th>
+                                    <th scope="col">{{ 'competition.participants.col_description'|trans }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for column, description in {
+                                    'name': 'competition.participants.col_name_desc',
+                                    'country': 'competition.participants.col_country_desc',
+                                    'external_id': 'competition.participants.col_external_id_desc',
+                                    'msp_player_id': 'competition.participants.col_player_id_desc',
+                                    'status': 'competition.participants.col_status_desc',
+                                    'round_names': 'competition.participants.col_round_names_desc',
+                                    'team_name': 'competition.participants.col_team_name_desc',
+                                    'team_name: <round>': 'competition.participants.col_team_round_desc',
+                                    'participant_id': 'competition.participants.col_participant_id_desc',
+                                } %}
+                                    <tr>
+                                        <td><code>{{ column }}</code></td>
+                                        <td>{{ (column == 'name' ? 'competition.participants.col_yes' : 'competition.participants.col_no')|trans }}</td>
+                                        <td>{{ description|trans }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mb-2">{{ 'competition.participants.columns_aliases'|trans }}</p>
+
+                    <strong>{{ 'competition.participants.recommended_workflow'|trans }}</strong>
+                    <ol class="mb-0 mt-1">
+                        <li>{{ 'competition.participants.workflow_step_1'|trans }}</li>
+                        <li>{{ 'competition.participants.workflow_step_2'|trans }}</li>
+                        <li>{{ 'competition.participants.workflow_step_3'|trans }}</li>
+                    </ol>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>

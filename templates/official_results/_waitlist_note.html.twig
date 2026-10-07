@@ -4,6 +4,6 @@
 {% if overview.peopleOnWaitlist > 0 %}
     <p class="small text-body-secondary mb-2" data-round-waitlist-note>
         <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ 'official_results.waitlist_note.text'|trans({'%count%': overview.peopleOnWaitlist}) }}
-        <a href="{{ path('manage_competition_participants', {competitionId: competition_id}) }}" class="text-nowrap">{{ 'official_results.waitlist_note.link'|trans }}</a>
+        <a href="{{ path('participants_sheet', {competitionId: competition_id}) }}" class="text-nowrap">{{ 'official_results.waitlist_note.link'|trans }}</a>
     </p>
 {% endif %}

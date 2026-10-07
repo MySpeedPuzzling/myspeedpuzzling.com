@@ -28,6 +28,7 @@
              record: path('official_results_record', {roundId: round.id}),
              publish: path('official_results_publish', {roundId: round.id}),
              unpublish: path('official_results_unpublish', {roundId: round.id}),
+             takeOut: path('official_results_take_out', {roundId: round.id}),
          }|json_encode|e('html_attr') }}"
          data-results-desk-texts-value="{{ {
              add_result: 'results_desk.table.add_result'|trans,
@@ -118,6 +119,11 @@
              unpublished_toast: 'results_desk.unpublish.done'|trans,
              publish_offline: 'results_desk.error.offline'|trans,
              publish_failed: 'results_desk.error.generic'|trans,
+             take_out: 'results_desk.take_out.button'|trans,
+             take_out_confirm: 'results_desk.take_out.confirm'|trans,
+             take_out_done: 'results_desk.take_out.done'|trans,
+             table_taken_by: 'results_desk.table.taken_by'|trans,
+             swap_tables: 'results_desk.table.swap'|trans,
          }|json_encode|e('html_attr') }}">
 
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">

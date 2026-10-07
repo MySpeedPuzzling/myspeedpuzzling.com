@@ -356,6 +356,44 @@ final class OfficialResultsApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
     }
 
+    public function testAnEntryIsTakenOutOfTheRoundOnlyWithoutOfficialData(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->browser->disableReboot();
+        $final = '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_FINAL . '/take-out';
+
+        $this->post('/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . '/take-out', ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('entry_protected', $this->json()['error']);
+        self::assertSame('This entrant has an official result or a qualified mark in this round - clear it first if they really have to leave the round.', $this->json()['message']);
+
+        $this->post($final, ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA]);
+        self::assertResponseStatusCodeSame(404);
+
+        $this->post($final, ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_FINAL_ANNA]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('participant_round:' . OfficialResultsFixture::ENTRY_FINAL_ANNA, $this->json()['removed']);
+        $round = $this->json()['round'];
+        self::assertIsArray($round);
+        self::assertIsArray($round['entries']);
+        self::assertSame(0, $round['entries']['total']);
+
+        // The other organisers' pages fetch the round again
+        $updates = self::hub()->getPublishedUpdates();
+        self::assertCount(1, $updates);
+        self::assertSame(['/round-results/' . OfficialResultsFixture::ROUND_FINAL], $updates[0]->getTopics());
+        self::assertStringContainsString('official_results.refresh', $updates[0]->getData());
+    }
+
+    public function testTakingOutNeedsTheEventsOrganiser(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        $this->post('/en/official-results/rounds/' . OfficialResultsFixture::ROUND_FINAL . '/take-out', ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_FINAL_ANNA]);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
     /**
      * @param array<string, mixed> $body
      */

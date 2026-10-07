@@ -46,7 +46,17 @@ that would otherwise be forgotten. Newest section on top.
       a short-lived subscriber JWT the page renews).
 - [ ] Generate the migration for the new columns (`competition_participant_round` / `competition_team` official result
       columns, unique `(participant_id, round_id)`, `competition_round.results_first_published_at` + `table_numbers_off`,
-      `notification.target_competition_round_id`) once the official results PR is complete.
+      `notification.target_competition_round_id`, the `official_result_notice` table) once the official results PR is
+      complete.
+- [ ] Advance with the country rule: entries sharing the K-th place of a country across groups are ordered by the
+      advancement seed (relative result, round order, name) - highlight such ties for the organiser like the desk's
+      per-round helper does, if organisers ask.
+- [ ] "Take out of this round" exists on the results desk only - the live entry (a referee quick-added the wrong
+      person) could offer it too.
+- [ ] The live entry's seating recommendation follows the one rule (`tablesReadiness`) but keeps its own wording
+      (`live_results.tables.*`) - switch it to `seating.readiness.*` with the live page's next change.
+- [ ] An event that never numbers tables: "none of this event's rounds use table numbers" in one click (today per round
+      on the seating page; past rounds never show the step any more).
 
 ## Seating (`docs/features/competitions-management/seating.md`)
 

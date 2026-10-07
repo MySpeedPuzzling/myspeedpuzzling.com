@@ -376,7 +376,7 @@ export default class extends Controller {
             </td>`);
         }
 
-        cells.push(`<td>${this.entrantHtml(entry)}</td>`);
+        cells.push(`<td>${this.entrantHtml(entry)}${this.takeOutHtml(entry)}</td>`);
         cells.push(`<td class="text-nowrap">${this.flagsHtml(entry.countries ?? [])}</td>`);
         cells.push(`<td>
             <button type="button" class="btn btn-sm btn-link text-reset text-decoration-none text-nowrap results-desk-cell results-desk-result" data-action="results-desk#editResult" data-ref="${ref}" data-focus-key="result:${ref}" aria-label="${escapeHtml(this.t('edit_result_label', { name }))}">${entry.result === null ? `<span class="text-body-secondary">${escapeHtml(this.t('add_result'))}</span>` : escapeHtml(this.formatResult(entry.result))}</button>
@@ -407,6 +407,22 @@ export default class extends Controller {
         }
 
         return lines.join('');
+    }
+
+    /**
+     * "Take out of this round" - only for an entry without a result or a qualified mark (saved or on its way): a
+     * mistaken advance, the wrong group. Official data is never removed this way (the server refuses it too).
+     */
+    takeOutHtml(entry) {
+        const server = this.entries.get(entry.ref);
+
+        if (!server || server.result !== null || server.qualified === true || [RESULT, QUALIFIED].some((field) => this.pending.get(entry.ref, field) !== null)) {
+            return '';
+        }
+
+        return `<button type="button" class="btn btn-sm btn-link p-0 small text-body-secondary results-desk-take-out" data-action="results-desk#takeOut" data-ref="${escapeHtml(entry.ref)}" data-focus-key="take-out:${escapeHtml(entry.ref)}">
+            <i class="bi bi-box-arrow-left me-1" aria-hidden="true"></i>${escapeHtml(this.t('take_out'))}
+        </button>`;
     }
 
     flagsHtml(countries) {
@@ -449,6 +465,20 @@ export default class extends Controller {
             const key = this.transport === 'auth' ? 'status_sign_in' : (this.transport === 'forbidden' ? 'status_forbidden' : 'status_waiting');
 
             return `<i class="bi bi-cloud-slash text-warning ms-1 align-middle" role="img" aria-label="${escapeHtml(this.t(key))}" title="${escapeHtml(this.t(key))}"></i>`;
+        }
+
+        if (cell.status === 'error' && field === TABLE && cell.reason === 'table_number_taken') {
+            const holder = this.tableHolder(cell.to, entry.ref);
+
+            if (holder !== null) {
+                return `<div class="small text-danger mt-1" role="alert">
+                    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>${escapeHtml(this.t('table_taken_by', { number: cell.to, name: holder.displayName ?? '' }))}
+                    <span class="d-inline-flex gap-1 ms-1">
+                        <button type="button" class="btn btn-sm btn-outline-primary py-0" data-action="results-desk#swapTables" data-ref="${ref}" data-holder="${escapeHtml(holder.ref)}">${escapeHtml(this.t('swap_tables'))}</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-0" data-action="results-desk#discardCell" data-ref="${ref}" data-field="${fieldAttr}">${escapeHtml(this.t('discard'))}</button>
+                    </span>
+                </div>`;
+            }
         }
 
         if (cell.status === 'error') {
@@ -505,6 +535,10 @@ export default class extends Controller {
         return result.didNotStart ? this.t('did_not_start') : '';
     }
 
+    /**
+     * "entered at" / "published since" in the round's zone - the zone the export and the round's pages use, not the
+     * device's (review2-b nit); the date is left out on the round's own today.
+     */
     formatTime(iso) {
         const date = new Date(iso);
 
@@ -512,11 +546,19 @@ export default class extends Controller {
             return '';
         }
 
-        const today = new Date().toDateString() === date.toDateString();
+        const zone = typeof this.round.timezone === 'string' && this.round.timezone !== '' ? this.round.timezone : undefined;
+        const day = (value) => {
+            try {
+                return new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(value);
+            } catch (e) {
+                return value.toDateString();
+            }
+        };
+        const today = day(new Date()) === day(date);
         const options = today ? { hour: '2-digit', minute: '2-digit' } : { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' };
 
         try {
-            return new Intl.DateTimeFormat(this.localeValue || undefined, options).format(date);
+            return new Intl.DateTimeFormat(this.localeValue || undefined, { ...options, timeZone: zone }).format(date);
         } catch (e) {
             return date.toLocaleString();
         }
@@ -889,6 +931,77 @@ export default class extends Controller {
 
     filterChanged() {
         this.renderTable();
+    }
+
+    /**
+     * The entry the desk shows at a table number, other than `exceptRef`.
+     */
+    tableHolder(number, exceptRef) {
+        if (!Number.isInteger(number)) {
+            return null;
+        }
+
+        for (const entry of this.entries.values()) {
+            if (entry.ref !== exceptRef && this.shown(entry, TABLE) === number) {
+                return entry;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * "Swap them": the refused table number goes to this entry and the holder gets this entry's number - both changes
+     * in one request, checked by the server after the whole set (review2-b m6).
+     */
+    swapTables(event) {
+        const ref = event.currentTarget.dataset.ref;
+        const holder = this.entries.get(event.currentTarget.dataset.holder);
+        const entry = this.entries.get(ref);
+        const cell = this.pending.get(ref, TABLE);
+
+        if (!holder || !entry || cell === null || cell.status !== 'error') {
+            return;
+        }
+
+        this.pending.set(holder.ref, TABLE, cell.base ?? null, this.serverValue(holder, TABLE));
+        this.pending.retry(ref, TABLE);
+        this.render();
+        this.flush();
+    }
+
+    async takeOut(event) {
+        const ref = event.currentTarget.dataset.ref;
+        const entry = this.entries.get(ref);
+
+        if (entry === undefined || !window.confirm(this.t('take_out_confirm', { name: entry.displayName ?? '' }))) {
+            return;
+        }
+
+        const answer = await officialResultsRequest(this.urlsValue.takeOut, {
+            method: 'POST',
+            body: { entry: ref },
+            csrfToken: this.csrfTokenValue,
+        });
+
+        if (answer.kind === 'ok') {
+            this.entries.delete(ref);
+            [RESULT, TABLE, QUALIFIED].forEach((field) => this.pending.discard(ref, field));
+            this.generation++;
+            this.updateRound(answer.data.round);
+            this.render();
+            this.toast(this.t('take_out_done', { name: entry.displayName ?? '' }), 'success');
+
+            return;
+        }
+
+        if (answer.kind === 'auth') {
+            this.transport = 'auth';
+            this.renderSync();
+        }
+
+        this.toast(answer.data?.message ?? this.t(answer.kind === 'offline' ? 'publish_offline' : 'error_request'), 'error');
+        this.resync();
     }
 
     // ---------------------------------------------------------------- saving

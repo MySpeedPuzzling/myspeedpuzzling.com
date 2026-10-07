@@ -281,17 +281,23 @@ SQL,
         $sources = [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B];
         $plan = $this->advance($sources, [OfficialResultsFixture::ROUND_FINAL]);
 
+        /** @var DebugDataHolder $debugData */
         $debugData = self::getContainer()->get('doctrine.debug_data_holder');
-        assert($debugData instanceof DebugDataHolder);
         $debugData->reset();
 
         $this->advance($sources, [OfficialResultsFixture::ROUND_FINAL], dryRun: false, planHash: $plan->planHash);
 
         $participantSelects = [];
         foreach ($debugData->getData() as $queries) {
+            if (!is_array($queries)) {
+                continue;
+            }
+
             foreach ($queries as $query) {
-                if (preg_match('/^SELECT .* FROM competition_participant (c|t)\d+_? /', $query['sql']) === 1) {
-                    $participantSelects[] = $query['sql'];
+                $sql = is_array($query) && is_string($query['sql'] ?? null) ? $query['sql'] : '';
+
+                if (preg_match('/^SELECT .* FROM competition_participant (c|t)\d+_? /', $sql) === 1) {
+                    $participantSelects[] = $sql;
                 }
             }
         }

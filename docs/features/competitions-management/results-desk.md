@@ -20,14 +20,18 @@ applies only the plan the organiser reviewed), then the speed of the common path
 
 All three: `IS_AUTHENTICATED_REMEMBERED` + `CompetitionEditVoter` on the round's competition, `noindex, nofollow`,
 `Cache-Control: private, no-store`. Linked from: the round list (`manage_competition_rounds`: per round "Live entry",
-"Results", "Seating" + "Results overview" at the top), the event edit page and the series' editions list (one
-"Results overview" button), the overview's rows, and the desk itself (round switcher, the other tools of the round).
+"Results desk", "Seating" + "Results overview" at the top), the event edit page and the series' editions list (one
+"Results overview" button), the overview's rows, the desk itself (round switcher, the other tools of the round), the
+seating page and the stopwatch control page (the round's tools), the live entry ("Results desk"), and - for the event's
+organisers only - the public round page (`official_results/_organiser_round_links.html.twig`, included by that page).
+One name everywhere: **Results desk**.
 
-`templates/official_results/_round_tool_links.html.twig` is the **one** place a round's three tools are linked
+`templates/official_results/_round_tool_links.html.twig` is the **one** place a round's tools are linked
 (`live_results`, `results_desk`, `round_seating` - Seating only for in-person events, marked "not used" while the
-round goes without table numbers). `_tables_readiness.html.twig` is the "Tables: x / y assigned" line
-(`OfficialResultsRound::showsTablesReadiness()`): in-person rounds that use table numbers and have entries - not a
-past round that was never seated (history, not a to-do). It is a recommendation, never a block.
+round goes without table numbers; `with_stopwatch` adds the stopwatch control page, on the overview). The "Tables: x / y
+assigned" line is `seating/_readiness.html.twig` (`compact` here) and shows by the one rule of
+[seating.md](seating.md#the-seating-step-one-rule) (`SeatingReadiness`, `overview.showsTablesReadiness` / JSON
+`tablesReadiness`): a round under way or over never nags. It is a recommendation, never a block.
 
 `OfficialResultsRounds` (service) joins the round list's rounds (`GetCompetitionRoundsForManagement`: badge colours,
 the zone a start is shown in) with their progress (`GetRoundResultsOverview`) and the public round page
@@ -40,7 +44,16 @@ The page bootstraps exactly what `official_results_round_state` answers (plus th
 authorises the round's private Mercure topic. Columns: rank, table (hidden for online events and rounds without
 table numbers), entrant (team: members with flags and #CODE), country flags, result, entered by · at, Qualified.
 Entries without a result and did-not-start are listed (organisers only). Search by table number (exact), names,
-member names and #CODE (accent-insensitive); filter all / without a result / qualified / not saved yet.
+member names and #CODE (accent-insensitive); filter all / without a result / qualified / not saved yet. "Entered at"
+and "published since" are shown in the round's zone (like the export), not the device's.
+
+- **Swap two tables**: a table number held by another entry comes back refused (`table_number_taken`) with "Table 6 is
+  Ben's · Swap them": the holder gets this entry's old number and both changes go in **one** request - the server
+  checks the numbers after the whole set, so 5 ↔ 6 works (one at a time it never could).
+- **Take out of this round** (an entry without a result or a qualified mark - a mistaken advance, the wrong group):
+  confirmation, then `official_results_take_out` (`TakeEntryOutOfRound`): a person leaves the round (not the event), a
+  pair/team leaves with its members' places in the round. The other pages fetch the round again
+  (`official_results.refresh`). Refused for official data on the server too.
 
 - **Ranking in the browser** (`assets/official_results_ranking.js`) - the same rules and order as
   `OfficialResultsRanking` + `GetRoundResultEntries`, pinned by `OfficialResultsRankingParityTest` (node runs the
@@ -86,8 +99,10 @@ to), so a mark another organiser changed meanwhile surfaces as a conflict.
 ### Publish / unpublish
 
 `official_results_publish` / `unpublish` behind a confirmation that says what becomes public (pair/team names and
-their members), that linked players get a notification once - on the first publication only - and warns about
-entries without a result and about this page's unsaved changes. The card shows the state and links the public
+their members), that linked players with a finished result get a notification - each once, also for a result added
+after publishing (`official-results.md`); a republished round tells only who was not told yet - that the event is not
+public yet when it is not (nobody is told until it is approved), and warns about entries without a result and about
+this page's unsaved changes. The card shows the state and links the public
 round page (when the round has an address).
 
 ### Export
@@ -95,7 +110,8 @@ round page (when the round has an address).
 `RoundResultsExporter`: one row per entry in ranking order - rank, table, entrant, members, country codes, result as
 the pages show it ("1:23:45", "479 / 500 pcs", "Did not start"), time in seconds, pieces placed, qualified, entered
 by, entered at (round's zone). Headers in the organiser's language. CSV = one UTF-8 file with a BOM (Excel), XLSX =
-one sheet `results`, numbers typed. **Every cell through `SpreadsheetSafeValue`** (names are typed by people).
+one sheet named in the organiser's language (`results_desk.export.sheet`, cleaned of the characters a sheet name may
+not have), numbers typed. **Every cell through `SpreadsheetSafeValue`** (names are typed by people).
 Deliberately not the data export's sectioned writer: one table is one file, not a ZIP.
 
 ## Advance the qualified (`advance_qualified_controller.js`)
@@ -104,6 +120,16 @@ From the desk (this round preselected as the source) and from the overview. Choo
 is chosen, rounds of another category are disabled - and the target round(s) (same category, not a source), then the
 distribution: **all into one round** (`single`, exactly one target), **spread evenly by results** (`balanced`,
 serpentine by the advancement seed), **by the round they come from** (`by_source`, a target per source).
+
+**Country rule** - "Also the best of each country" + how many per country: over ALL the chosen source rounds, by the
+advancement seed (official-results.md, `bestOfEachCountry`). The plan marks whom the rule takes ("country rule" badge,
+"N entries are taken by the country rule and will be marked qualified in their rounds") and folds the ranked entries
+without a country away for the organiser to mark by hand; "Add" marks them qualified in their own round and advances
+them in the same write. The per-round helper on the desk stays for one round's own rule.
+
+**Unsaved marks**: the dialog asks the desk on the same page (event `official-results:unsaved-marks`) and warns while
+qualified marks are not saved yet - the plan uses the saved marks only (if they land before "Add", the plan hash no
+longer matches and the new plan is shown).
 
 "Show the plan" = the dry run: who goes where (seed, entrant, from round + rank, result), skipped with the reason,
 entries before → after per target. "Add N entries" applies with the plan's `planHash`; on 409 `plan_changed`
@@ -114,14 +140,17 @@ re-plans, finds everybody in already, and answers 409 with the new (empty) plan.
 **Seat them now** (in-person rounds that use table numbers): per target the round's state is fetched, and everybody
 who qualified into it - the new entries and those skipped as "already in the round" (matched by their people) - get
 the lowest free table numbers in seed order (fastest at table 1, or slowest), in one `official_results_assign_table_numbers`
-write. Whoever has a number already keeps it. "Skip" closes; "Seating" opens the round's seating page for changes by
+write with `from` = no table (if somebody seated them meanwhile, nothing is written and the reason is shown). Whoever has
+a number already keeps it. "Skip" closes; "Seating" opens the round's seating page for changes by
 hand.
 
 ## Results overview (`results_overview_controller.js`)
 
 A row per round: badge + category, start (round's zone) + stopwatch running/stopped, entries, results entered
-(x / y + bar), qualified, tables (x / y or "not used"; no column for online events), published (+ public page),
-Live entry / Results / Seating. The counters follow every round's private topic (each update carries the round's
+(x / y + bar), qualified, tables (x / y or "not used"; no column for online events; warning colour only while the
+seating step is recommended), published (+ public page), Live entry / Results desk / Seating / Stopwatch. At the top:
+Advance the qualified, the round list, **Name tags** (in-person events) and the **Referees** page
+(`official_results/_referees_link.html.twig` - linked once the route `competition_referees` exists, `optional_path()`). The counters follow every round's private topic (each update carries the round's
 progress; a refresh signal fetches it). After a minute in a background tab the page reloads when it comes back
 (never while a dialog is open).
 

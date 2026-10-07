@@ -4399,6 +4399,10 @@ live_results:
         attention: "{1}1 needs you|]1,Inf[%count% need you"
         sign_in: "Sign in again"
         forbidden: "No permission"
+    take_out:
+        button: "Take out of this round"
+        confirm: "Take %name% out of this round? They stay in the event and its other rounds - only an entry without a result or a qualified mark can be taken out."
+        done: "%name% was taken out of the round."
     banner:
         auth: "You are signed out. Nothing you entered is lost - sign in again (it opens in a new tab), then come back here."
         forbidden: "This account may not enter results of this event (any more). Nothing you entered is lost - sign in as an organiser of the event, then retry."
@@ -4507,6 +4511,7 @@ results_desk:
     export:
         button: "Export"
         xlsx: "Excel (XLSX)"
+        sheet: "Results"
         csv: "CSV"
         "yes": "yes"
         column:
@@ -4545,6 +4550,10 @@ results_desk:
         intro: "The official results disappear from the round's public page until you publish them again. Players told before are not told again."
         confirm: "Unpublish"
         done: "The results are no longer public."
+    take_out:
+        button: "Take out of this round"
+        confirm: "Take %name% out of this round? They stay in the event and its other rounds - only an entry without a result or a qualified mark can be taken out."
+        done: "%name% was taken out of the round."
     banner:
         auth: "You are signed out. Sign in again in the new tab, then press Try again - nothing unsaved is lost while this page stays open."
         sign_in: "Sign in"
@@ -4609,6 +4618,8 @@ results_desk:
         entered_by: "%name% · %time%"
         empty_round: "Nobody is in this round yet."
         empty_filter: "No entry matches."
+        taken_by: "Table %number% is %name%'s."
+        swap: "Swap them"
     editor:
         kind: "Kind of result"
         value: "Time or pieces placed"
@@ -6682,6 +6693,7 @@ official_results:
         team_has_result: "This pair/team has an official result or a qualified mark - clear it first if the pair/team really has to go."
         participant_has_result: "This person has an official result or a qualified mark in this event, so they stay. Clear it first if they really have to go."
         round_category_locked: "This round has official results or qualified marks - its category stays as long as they do."
+        round_entry_has_result: "This entrant has an official result or a qualified mark in this round - clear it first if they really have to leave the round."
         team_line_up_changed: "This pair/team has an official result - it now belongs to the new line-up."
     delete_round:
         title: "Delete the round and its official results?"

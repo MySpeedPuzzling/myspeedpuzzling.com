@@ -19,6 +19,10 @@ readonly final class PublishedRoundResults
         public null|int $piecesCount,
         // The puzzle "Add to my profile" logs a time on - null when the round offers none (several puzzles, not revealed)
         public null|string $profilePuzzleId,
+        // Every ranked entry of the round, whoever the viewer is (the rows hidden from them included)
+        public int $rankedCount = 0,
+        // "Is your name here? Connect it": the viewer is linked to no entry of the round, and some names are nobody's
+        public bool $offersConnecting = false,
     ) {
     }
 

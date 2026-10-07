@@ -10,7 +10,9 @@
 {% set picker_tracker = copuzzler_picker.tracker|default(null) %}
 {# The "new pair / team" form of the Pairs & teams page has no solo: it starts on Pair, card open #}
 {% set picker_without_solo = copuzzler_picker_without_solo|default(false) %}
-{% set picker_mode = picker_chips|length == 0 ? (picker_without_solo ? 'pair' : 'solo') : (picker_chips|length == 1 ? 'pair' : 'team') %}
+{# A mode set from outside - "Add to my profile" of an official pair/team result opens in the round's mode #}
+{% set picker_initial_mode = copuzzler_picker_initial_mode|default(null) %}
+{% set picker_mode = picker_initial_mode in ['pair', 'team'] ? picker_initial_mode : (picker_chips|length == 0 ? (picker_without_solo ? 'pair' : 'solo') : (picker_chips|length == 1 ? 'pair' : 'team')) %}
 
 <div class="copuzzler-picker mb-3"
      data-controller="copuzzler-picker"
@@ -20,6 +22,7 @@
      data-copuzzler-picker-max-value="15"
      data-copuzzler-picker-recent-days-value="{{ constant('SpeedPuzzling\\Web\\Query\\GetCoPuzzlers::RECENT_DAYS') }}"
      data-copuzzler-picker-default-mode-value="{{ picker_without_solo ? 'pair' : 'solo' }}"
+     {% if picker_initial_mode in ['pair', 'team'] %}data-copuzzler-picker-initial-mode-value="{{ picker_initial_mode }}"{% endif %}
      data-copuzzler-picker-texts-value="{{ {
          pickSomeone: 'copuzzler_picker.pick_someone'|trans,
          pairWith: 'copuzzler_picker.pair_with'|trans,

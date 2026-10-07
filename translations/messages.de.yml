@@ -393,7 +393,6 @@
   "group_puzzling": "Puzzeln zu zweit/in Gruppe"
   official_entry:
     notice: "Aus den offiziellen Ergebnissen von %round% bei %event% übernommen. Prüfen Sie die Angaben und speichern Sie sie in Ihrem Profil."
-    check_group: "Sie speichern diese Zeit, also gehören Sie bereits zum Paar/Team – steht Ihr Name unter den Mit-Puzzlern, entfernen Sie ihn."
 "forms":
   "choose_from_favorites": "- Aus Favoriten wählen -"
   "drop_file": "Datei hierher ziehen und ablegen zum Hochladen"

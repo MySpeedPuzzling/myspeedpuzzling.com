@@ -394,7 +394,6 @@
     "to_collection": "Puzzle do kolekce"
   official_entry:
     notice: "Předvyplněno z oficiálních výsledků kola %round% na události %event%. Zkontrolujte to a uložte do svého profilu."
-    check_group: "Ukládáte tento čas, takže už jste součástí dvojice/týmu - pokud je vaše jméno mezi spolupuzzlery, odeberte ho."
 "forms":
   "choose_from_favorites": "- Vybrat z oblíbených -"
   "saving": "Ukládání..."

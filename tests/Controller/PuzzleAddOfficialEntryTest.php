@@ -41,10 +41,13 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         self::assertSame(['1', '0', '0'], [$this->value($crawler, 'timeHours'), $this->value($crawler, 'timeMinutes'), $this->value($crawler, 'timeSeconds')]);
         self::assertSame($this->roundDay()->format('d.m.Y'), $this->value($crawler, 'finishedAt'));
         self::assertSame(OfficialResultsFixture::COMPETITION_RESULTS_CUP, $this->value($crawler, 'competition'));
-        // Solo: nobody to puzzle with
+        // Solo: nobody to puzzle with, the picker as always
         self::assertCount(0, $crawler->filter('input[name="group_players[]"]'));
+        self::assertSame('solo', $this->pickerMode($crawler));
+        self::assertTrue($this->pickerOffersSolo($crawler));
         $this->assertSelectorTextContains('[data-official-entry-notice]', 'Filled in from the official results of Group A at Results Cup');
-        $this->assertSelectorNotExists('[data-official-entry-check-group]');
+        $this->assertSelectorNotExists('[data-official-entry-add-people]');
+        $this->assertSelectorNotExists('[data-official-entry-which-one]');
     }
 
     public function testTheRoundsPuzzleIsFilledInWithoutOneInTheUrl(): void
@@ -59,10 +62,14 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         self::assertSame('1', $this->value($crawler, 'timeHours'));
     }
 
-    public function testAnEntryNobodyIsLinkedToFillsTheFormInForAPlayerLinkedToNothing(): void
+    public function testAnEntryNobodyIsLinkedToWithTheirNameFillsTheFormInForAPlayerLinkedToNothing(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition_participant SET name = 'Michael Johnson' WHERE id = :id",
+            ['id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
 
         $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_1000_05, 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN));
 
@@ -79,6 +86,7 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
 
         yield 'somebody else\'s entry' => [PlayerFixture::PLAYER_REGULAR, $anna, null];
         yield 'an entry nobody is linked to, for a player the organiser linked to their own' => [PlayerFixture::PLAYER_ADMIN, 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, null];
+        yield 'an entry nobody is linked to, of somebody else\'s name' => [PlayerFixture::PLAYER_WITH_FAVORITES, 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, null];
         yield 'unfinished' => [PlayerFixture::PLAYER_WITH_FAVORITES, 'participant_round:' . OfficialResultsFixture::ENTRY_A_DAN, null];
         yield 'did not start' => [PlayerFixture::PLAYER_WITH_FAVORITES, 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA, null];
         yield 'no result yet' => [PlayerFixture::PLAYER_WITH_FAVORITES, 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, null];
@@ -183,6 +191,10 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         self::assertSame(['1', '30', '0'], [$this->value($crawler, 'timeHours'), $this->value($crawler, 'timeMinutes'), $this->value($crawler, 'timeSeconds')]);
         self::assertSame(['Ben Steady'], $this->groupPlayers($crawler));
         self::assertSame('Puzzle Sharks', $crawler->filter('input[name="team_name"]')->attr('value'));
+        // A pair result opens as a pair - no Solo to save it as by mistake
+        self::assertSame('pair', $this->pickerMode($crawler));
+        self::assertFalse($this->pickerOffersSolo($crawler));
+        $this->assertSelectorNotExists('[data-official-entry-add-people]');
 
         // Hugo's "Edge Hunters" with Gina - a linked (private) player, by her code
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
@@ -221,7 +233,7 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         $this->assertSelectorNotExists('[data-official-entry-check-group]');
     }
 
-    public function testAPairNobodyIsLinkedToWithoutTheViewersNameAsksThemToCheck(): void
+    public function testAPairNobodyIsLinkedToWithoutTheViewersNameAsksWhichOneTheyAre(): void
     {
         $browser = self::createClient();
         $this->publish(OfficialResultsFixture::ROUND_PAIRS);
@@ -230,9 +242,74 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
         $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . $teamId));
 
-        self::assertSame(['Kim Lee', 'Mike J.'], $this->groupPlayers($crawler));
-        self::assertSame('', (string) $crawler->filter('input[name="team_name"]')->attr('value'));
-        $this->assertSelectorExists('[data-official-entry-check-group]');
+        // One of the two is the viewer: both as guests would be three people - a pair, nobody filled in yet
+        self::assertSame([], $this->groupPlayers($crawler));
+        self::assertSame('pair', $this->pickerMode($crawler));
+        self::assertFalse($this->pickerOffersSolo($crawler));
+        self::assertSame(['I am Kim Lee', 'I am Mike J.'], $crawler->filter('[data-official-entry-which-one] a')->each(static fn (Crawler $link): string => trim($link->text())));
+
+        $crawler = $browser->click($crawler->filter('[data-official-member="1"]')->link());
+
+        self::assertSame(['Kim Lee'], $this->groupPlayers($crawler));
+        self::assertSame('pair', $this->pickerMode($crawler));
+        $this->assertSelectorNotExists('[data-official-entry-which-one]');
+        $this->assertSelectorNotExists('[data-official-entry-add-people]');
+    }
+
+    public function testATeamRecordedByNameOnlyOpensAsATeamAskingForItsPeople(): void
+    {
+        $browser = self::createClient();
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+        // Minnesota: the organiser typed the pair's name, nobody of it
+        $teamId = $this->addUnlinkedPair('Lake Puzzlers', [], 5100);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . $teamId));
+
+        self::assertSame(['1', '25', '0'], [$this->value($crawler, 'timeHours'), $this->value($crawler, 'timeMinutes'), $this->value($crawler, 'timeSeconds')]);
+        self::assertSame([], $this->groupPlayers($crawler));
+        self::assertSame('pair', $this->pickerMode($crawler));
+        self::assertFalse($this->pickerOffersSolo($crawler));
+        self::assertSame('Lake Puzzlers', $crawler->filter('input[name="team_name"]')->attr('value'));
+        $this->assertSelectorTextContains('[data-official-entry-add-people]', 'Add the person you puzzled with');
+    }
+
+    public function testATeamWithFewerPeopleThanTheRoundNeedsOpensAsATeam(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        // A team round: Anna's team where the organiser recorded only her and Ben
+        $database->executeStatement("UPDATE competition_round SET category = 'team' WHERE id = :id", ['id' => OfficialResultsFixture::ROUND_PAIRS]);
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . OfficialResultsFixture::TEAM_SHARKS));
+
+        self::assertSame(['Ben Steady'], $this->groupPlayers($crawler));
+        // One co-puzzler would be a pair - the round says team
+        self::assertSame('team', $this->pickerMode($crawler));
+        self::assertFalse($this->pickerOffersSolo($crawler));
+        $this->assertSelectorTextContains('[data-official-entry-add-people]', 'Add the person you puzzled with');
+    }
+
+    public function testALinkedViewerWhosePartnerWasNotRecordedIsAskedToAddThem(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+        // Ben is not in Puzzle Sharks after all - only Anna's player is
+        $database->executeStatement(
+            'DELETE FROM competition_participant_round WHERE team_id = :team AND participant_id = :ben',
+            ['team' => OfficialResultsFixture::TEAM_SHARKS, 'ben' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . OfficialResultsFixture::TEAM_SHARKS));
+
+        self::assertSame([], $this->groupPlayers($crawler));
+        self::assertSame('pair', $this->pickerMode($crawler));
+        self::assertFalse($this->pickerOffersSolo($crawler));
+        $this->assertSelectorExists('[data-official-entry-add-people]');
     }
 
     public function testThePrefilledFormSavesAnOrdinaryTimeAndTheRoundPageSaysItIsOnTheProfile(): void
@@ -283,6 +360,19 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
     private function groupPlayers(Crawler $crawler): array
     {
         return $crawler->filter('input[name="group_players[]"]')->each(static fn (Crawler $input): string => (string) $input->attr('value'));
+    }
+
+    /**
+     * The Solo / Pair / Team switch's checked option.
+     */
+    private function pickerMode(Crawler $crawler): string
+    {
+        return (string) $crawler->filter('.copuzzler-switch__option[aria-checked="true"]')->attr('data-mode');
+    }
+
+    private function pickerOffersSolo(Crawler $crawler): bool
+    {
+        return $crawler->filter('.copuzzler-switch__option[data-mode="solo"]')->count() > 0;
     }
 
     private function assertNotFilledIn(Crawler $crawler): void

@@ -50,6 +50,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetPlayerPuzzleSolves.php' => self::OWN,
         'Query/GetPlayerReviewCounts.php' => self::DUPLICATES,
         'Query/GetPlayersWithPendingPredictions.php' => 'Background: times still without a stored prediction - suspicious ones are predicted and stored too (prediction-history.md).',
+        'Query/GetPublishedRoundResults.php' => 'Reads only the viewer\'s own times in the round ("On your profile" of the official results) - a suspicious time is still theirs and stays on their profile; the official ranking itself comes from the organiser\'s record, not from times.',
         'Query/GetPuzzleIdsForSitemap.php' => self::BACKGROUND,
         'Query/GetPuzzleMergeReviewQueue.php' => self::ADMIN,
         'Query/GetRecentIdenticalSolvingTime.php' => self::DUPLICATES,

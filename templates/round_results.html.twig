@@ -15,7 +15,7 @@
 
 {# Published official results (docs/features/competitions-management/official-results.md) say so - every expression of this page that
    depends on them sits inside an existing line or tag, so a round page without them renders byte for byte as before #}
-{% block meta_description %}{{ page.officialResults is null ? 'round_results.meta.description'|trans({'%round%': round.name, '%event%': page.eventTitle.label}) : 'round_results.official.meta_description'|trans({'%count%': page.officialResults.entries|length, '%round%': round.name, '%event%': page.eventTitle.label}) }}{% endblock %}
+{% block meta_description %}{{ page.officialResults is null ? 'round_results.meta.description'|trans({'%round%': round.name, '%event%': page.eventTitle.label}) : 'round_results.official.meta_description'|trans({'%count%': page.officialResults.rankedCount, '%round%': round.name, '%event%': page.eventTitle.label}) }}{% endblock %}
 
 {% block content %}
     {{ include('_return_back_button.html.twig', {fallbackUrl: event_url, fallbackTitle: event.name}) }}
@@ -74,6 +74,9 @@
             </a>
         {% endif %}
     </div>
+
+    {# The organiser's way back to their tools of this round (official results: live entry, results desk) #}
+    {% if app.user and is_granted('COMPETITION_EDIT', event.id) %}{% include 'official_results/_organiser_round_links.html.twig' ignore missing %}{% endif %}
 
     {% if page.officialResults is null and page.hasStarted and page.resultsCount > 0 %}
         <p class="small text-muted mb-3">

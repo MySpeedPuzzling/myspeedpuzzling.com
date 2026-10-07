@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleRecordUpdater;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
+use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -29,6 +30,7 @@ readonly final class EditPuzzleHandler
         private PlayerRepository $playerRepository,
         private PuzzleRecordUpdater $puzzleRecordUpdater,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
+        private OutdatedPuzzleRequests $outdatedPuzzleRequests,
     ) {
     }
 
@@ -50,6 +52,9 @@ readonly final class EditPuzzleHandler
         if ($change['before'] === $change['after']) {
             return;
         }
+
+        // The edit may have done what a pending change request proposes
+        $this->outdatedPuzzleRequests->afterRecordChange($puzzle);
 
         $note = $message->note !== null ? trim($message->note) : '';
 

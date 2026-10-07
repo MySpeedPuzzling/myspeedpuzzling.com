@@ -26,6 +26,8 @@
                     {% else %}
                         <span class="badge bg-secondary">Approved - proposal not applied</span>
                     {% endif %}
+                {% elseif request.status.value == 'outdated' %}
+                    <span class="badge bg-secondary">Already done</span>
                 {% else %}
                     <span class="badge bg-danger">Rejected</span>
                 {% endif %}
@@ -58,6 +60,20 @@
                     {% endif %}
                 </div>
             </div>
+
+            {# A merge moved it here from the puzzle it was filed on (PuzzleChangeRequest::puzzleMergedInto()) #}
+            {% if request.mergedFromPuzzleId %}
+                <div class="alert alert-info small text-break" data-role="merged-from">
+                    Filed on <a href="{{ path('admin_puzzle_history', {puzzleId: request.mergedFromPuzzleId}) }}">{{ request.originalName ?? 'another puzzle' }}</a>,
+                    which was merged into this puzzle since - the values it started from are that puzzle's.
+                </div>
+            {% endif %}
+
+            {% if request.status.value == 'outdated' %}
+                <div class="alert alert-secondary small text-break" data-role="outdated">
+                    Closed without a review: the puzzle already had every value it proposes - another proposal, an edit or a merge did it.
+                </div>
+            {% endif %}
 
             {% if pending %}
                 {{ include('admin/_puzzle_change_request_review.html.twig') }}
@@ -99,7 +115,9 @@
                         <h2 class="h5 mb-0">Review</h2>
                     </div>
                     <div class="card-body px-3 px-md-4">
-                        {% if request.reviewerName %}
+                        {% if request.status.value == 'outdated' %}
+                            Closed automatically
+                        {% elseif request.reviewerName %}
                             Reviewed by: {{ request.reviewerName }}
                         {% endif %}
                         <br>

@@ -9,10 +9,12 @@ use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Query\GetCurrentPuzzleIds;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\MergeRequestPuzzles;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -36,6 +38,7 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly GetPuzzleMergeRequests $getPuzzleMergeRequests,
+        private readonly GetCurrentPuzzleIds $getCurrentPuzzleIds,
         #[Autowire(env: 'INTERNAL_API_REVIEWER_PLAYER_ID')]
         private readonly string $reviewerPlayerId,
     ) {
@@ -80,13 +83,15 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
             }
         }
 
-        // The survivor is one of the reported puzzles - any other id would merge (and delete) all of them into it
+        // The survivor is one of the reported puzzles as they are now (one merged since is the puzzle it was merged
+        // into, MergeRequestPuzzles) - any other id would merge (and delete) all of them into it
         $reportedPuzzleIds = $this->getPuzzleMergeRequests->reportedPuzzleIdsOf($mergeRequestId) ?? throw new PuzzleMergeRequestNotFound();
+        $currentPuzzleIds = MergeRequestPuzzles::resolve($reportedPuzzleIds, $this->getCurrentPuzzleIds->of($reportedPuzzleIds))->currentIds();
 
-        if (in_array($survivorPuzzleId, $reportedPuzzleIds, true) === false) {
+        if (in_array($survivorPuzzleId, $currentPuzzleIds, true) === false) {
             throw new BadRequestHttpException(sprintf(
                 '"survivorPuzzleId" must be one of the reported puzzles: %s.',
-                implode(', ', $reportedPuzzleIds),
+                implode(', ', $currentPuzzleIds),
             ));
         }
 

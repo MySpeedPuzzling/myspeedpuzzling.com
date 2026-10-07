@@ -15,6 +15,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\PuzzleMergeApproved;
+use SpeedPuzzling\Web\Value\PuzzleReportOutdatedReason;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 #[Entity]
@@ -56,6 +57,16 @@ class PuzzleMergeRequest implements EntityWithEvents
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: 'string', length: 255, nullable: true)]
     public null|string $sourcePuzzleName = null;
+
+    // Why it was closed as outdated (PuzzleReportStatus::Outdated)
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: 'string', nullable: true, enumType: PuzzleReportOutdatedReason::class)]
+    public null|PuzzleReportOutdatedReason $outdatedReason = null;
+
+    // The merge that left nothing to merge here - null when the daily check found it (OutdatedPuzzleRequests)
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $outdatedByMergeRequestId = null;
 
     public function __construct(
         #[Id]
@@ -123,6 +134,23 @@ class PuzzleMergeRequest implements EntityWithEvents
         $this->reviewedBy = $reviewedBy;
         $this->reviewedAt = $reviewedAt;
         $this->rejectionReason = $reason;
+    }
+
+    /**
+     * Other merges (or deletions) left fewer than two of its puzzles - nothing to merge, nobody reviewed it. The one
+     * puzzle left, if any, is what its puzzles became: shown like an approved merge's survivor.
+     */
+    public function markOutdated(
+        PuzzleReportOutdatedReason $reason,
+        DateTimeImmutable $at,
+        null|UuidInterface $currentPuzzleId,
+        null|UuidInterface $byMergeRequestId,
+    ): void {
+        $this->status = PuzzleReportStatus::Outdated;
+        $this->reviewedAt = $at;
+        $this->outdatedReason = $reason;
+        $this->survivorPuzzleId = $currentPuzzleId;
+        $this->outdatedByMergeRequestId = $byMergeRequestId;
     }
 
     public function clearSourcePuzzleReference(): void

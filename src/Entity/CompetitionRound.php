@@ -30,6 +30,9 @@ class CompetitionRound implements EntityWithEvents
 {
     use HasEvents;
 
+    public const int TEAM_SIZE_MIN = 2;
+    public const int TEAM_SIZE_MAX = 20;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -86,8 +89,44 @@ class CompetitionRound implements EntityWithEvents
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(options: ['default' => RoundPuzzleReveal::DEFAULT_DELAY_MINUTES])]
         public int $revealDelayMinutes = RoundPuzzleReveal::DEFAULT_DELAY_MINUTES,
+        // How many people a team of this round is expected to have (team rounds only - a pair always has 2, see
+        // expectedTeamSize()). Only a hint for the organiser's tools: a team of another size is a warning, never refused
+        // (docs/features/competitions-management/participants-spreadsheet.md D5). Changed only through changeTeamSize().
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::SMALLINT, nullable: true)]
+        public null|int $teamSize = null,
     ) {
         RoundPuzzleReveal::assertValidDelay($revealDelayMinutes);
+        self::assertValidTeamSize($teamSize);
+    }
+
+    /**
+     * The number of people a pair/team of this round is expected to have: 2 for a pair round, the organiser's
+     * setting for a team round (null = not set), null for a solo round.
+     */
+    public function expectedTeamSize(): null|int
+    {
+        return match ($this->category) {
+            RoundCategory::Solo => null,
+            RoundCategory::Duo => 2,
+            RoundCategory::Team => $this->teamSize,
+        };
+    }
+
+    /**
+     * Callers validate first (TEAM_SIZE_MIN..TEAM_SIZE_MAX or null) - this only guards the invariant.
+     */
+    public function changeTeamSize(null|int $teamSize): void
+    {
+        self::assertValidTeamSize($teamSize);
+        $this->teamSize = $teamSize;
+    }
+
+    private static function assertValidTeamSize(null|int $teamSize): void
+    {
+        if ($teamSize !== null && ($teamSize < self::TEAM_SIZE_MIN || $teamSize > self::TEAM_SIZE_MAX)) {
+            throw new \InvalidArgumentException(sprintf('A team size is %d to %d people.', self::TEAM_SIZE_MIN, self::TEAM_SIZE_MAX));
+        }
     }
 
     /**

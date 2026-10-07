@@ -6925,3 +6925,26 @@ suspicious_time:
         replied: "Thank you – a moderator will take a look at it."
         already_replied: "You have already told us this time is correct – a moderator will take a look at it."
         left_as_is: "All right – we won't ask about this result again."
+
+# Participants spreadsheet (docs/features/competitions-management/participants-spreadsheet.md) - one block per
+# delivery stream; add keys above your block's closing comment only
+participants_sheet:
+    title: "Participants"
+# end participants_sheet
+
+participants_sheet_server:
+    reason:
+        invalid_change: "This change could not be applied."
+# end participants_sheet_server
+
+participants_sheet_core:
+    loading: "Loading the participants…"
+# end participants_sheet_core
+
+participants_sheet_round:
+    pair: "Pair"
+# end participants_sheet_round
+
+participants_sheet_people:
+    tab: "People"
+# end participants_sheet_people

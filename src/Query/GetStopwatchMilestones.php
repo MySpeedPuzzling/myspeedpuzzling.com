@@ -9,6 +9,11 @@ use SpeedPuzzling\Web\Results\StopwatchMilestone;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
+/**
+ * The names a running stopwatch counts down to. Like the puzzle leaderboard: suspicious times never count, and
+ * the viewer's blocks hide those players. Private players are never the fastest, a gap filler or part of a rank -
+ * only a favourite who put the viewer on their allow list shows up.
+ */
 readonly final class GetStopwatchMilestones
 {
     public function __construct(
@@ -59,6 +64,7 @@ JOIN player p ON p.id = pst.player_id
 WHERE pst.puzzle_id = :puzzleId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
+    AND pst.suspicious = false
     AND p.is_private = false
     {$notHidden}
 ORDER BY pst.seconds_to_solve ASC
@@ -132,6 +138,7 @@ JOIN puzzle_solving_time pst ON pst.player_id = fav.id AND pst.puzzle_id = :puzz
 WHERE player.id = :playerId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
+    AND pst.suspicious = false
     AND {$this->privateProfileAccess->sqlIsPublic('fav')}
     {$favoriteNotHidden}
 GROUP BY fav.id, fav.name, fav.code, fav.avatar
@@ -214,6 +221,7 @@ WHERE pst.puzzle_id = :puzzleId
     AND pst.player_id != :playerId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
+    AND pst.suspicious = false
     AND p.is_private = false
     {$notHidden}
 GROUP BY p.id, p.name, p.code, p.avatar
@@ -340,6 +348,7 @@ JOIN player p ON p.id = pst.player_id
 WHERE pst.puzzle_id = :puzzleId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
+    AND pst.suspicious = false
     AND p.is_private = false
     {$notHidden}
 GROUP BY pst.player_id

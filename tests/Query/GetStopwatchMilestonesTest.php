@@ -7,13 +7,18 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetStopwatchMilestones;
+use SpeedPuzzling\Web\Results\StopwatchMilestone;
+use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetStopwatchMilestonesTest extends KernelTestCase
 {
+    use ClonesSolvingTimes;
+
     private GetStopwatchMilestones $query;
 
     protected function setUp(): void
@@ -247,6 +252,106 @@ final class GetStopwatchMilestonesTest extends KernelTestCase
         self::assertCount(1, $favorites);
         self::assertSame(1750, $favorites[0]->timeSeconds);
         self::assertNotContains(1200, array_map(static fn ($m) => $m->timeSeconds, $milestones));
+    }
+
+    public function testAllowListRevealsAPrivateFavoriteButNeverTheFastest(): void
+    {
+        // PrivateProfileViewerFixture: PLAYER_PRIVATE (Jane Smith) lets PLAYER_WITH_FAVORITES see her, nobody else
+        $this->layOutPuzzleWithoutFixtureTimes();
+        $this->setFavorites(PlayerFixture::PLAYER_WITH_FAVORITES, [PlayerFixture::PLAYER_PRIVATE]);
+        $this->setFavorites(PlayerFixture::PLAYER_WITH_STRIPE, [PlayerFixture::PLAYER_PRIVATE]);
+
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        $milestones = $this->query->forPuzzleAndPlayer(PuzzleFixture::PUZZLE_500_04, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        self::assertSame(['Jane Smith'], self::labelsOfType($milestones, 'favorite'));
+        self::assertSame([PlayerFixture::PLAYER_WITH_STRIPE_NAME . ' (fastest)'], self::labelsOfType($milestones, 'fastest'));
+        self::assertSame([1200, 1500, 2000], $this->query->allSoloTimesForPuzzle(PuzzleFixture::PUZZLE_500_04));
+
+        // Not on her allow list: the same favourite stays hidden
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+        $milestones = $this->query->forPuzzleAndPlayer(PuzzleFixture::PUZZLE_500_04, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        foreach ($milestones as $milestone) {
+            self::assertStringNotContainsString('Jane Smith', $milestone->label);
+        }
+    }
+
+    public function testSuspiciousTimeIsNeverAMilestone(): void
+    {
+        // PLAYER_ADMIN is a favourite of PLAYER_WITH_FAVORITES and holds the fastest time here, a suspicious one
+        $this->layOutPuzzleWithoutFixtureTimes();
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $milestones = $this->query->forPuzzleAndPlayer(PuzzleFixture::PUZZLE_500_04, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        self::assertNotContains(1100, array_map(static fn (StopwatchMilestone $m): int => $m->timeSeconds, $milestones));
+        self::assertSame([PlayerFixture::PLAYER_WITH_STRIPE_NAME . ' (fastest)'], self::labelsOfType($milestones, 'fastest'));
+        self::assertSame(1, self::firstOfType($milestones, 'fastest')->rank);
+        self::assertSame([1200, 1500, 2000], $this->query->allSoloTimesForPuzzle(PuzzleFixture::PUZZLE_500_04));
+    }
+
+    /**
+     * PUZZLE_500_04 has no fixture times: Jane Smith (private) 1000 s, Admin User 1100 s (suspicious),
+     * Sarah Williams 1200 s, John Doe 1500 s, Michael Johnson 2000 s.
+     */
+    private function layOutPuzzleWithoutFixtureTimes(): void
+    {
+        foreach (
+            [
+            [PlayerFixture::PLAYER_PRIVATE, 1000, false],
+            [PlayerFixture::PLAYER_ADMIN, 1100, true],
+            [PlayerFixture::PLAYER_WITH_STRIPE, 1200, false],
+            [PlayerFixture::PLAYER_REGULAR, 1500, false],
+            [PlayerFixture::PLAYER_WITH_FAVORITES, 2000, false],
+            ] as [$playerId, $seconds, $suspicious]
+        ) {
+            // TIME_01: a solo time of PLAYER_REGULAR
+            $this->cloneSolvingTime(PuzzleSolvingTimeFixture::TIME_01, [
+                'player_id' => $playerId,
+                'puzzle_id' => PuzzleFixture::PUZZLE_500_04,
+                'seconds_to_solve' => $seconds,
+                'suspicious' => $suspicious,
+                'days_ago' => 3,
+            ]);
+        }
+    }
+
+    /**
+     * @param list<string> $favoriteIds
+     */
+    private function setFavorites(string $playerId, array $favoriteIds): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE player SET favorite_players = CAST(:favorites AS json) WHERE id = :id',
+            ['favorites' => json_encode($favoriteIds, JSON_THROW_ON_ERROR), 'id' => $playerId],
+        );
+    }
+
+    /**
+     * @param array<StopwatchMilestone> $milestones
+     * @return list<string>
+     */
+    private static function labelsOfType(array $milestones, string $type): array
+    {
+        return array_values(array_map(
+            static fn (StopwatchMilestone $m): string => $m->label,
+            array_filter($milestones, static fn (StopwatchMilestone $m): bool => $m->type === $type),
+        ));
+    }
+
+    /**
+     * @param array<StopwatchMilestone> $milestones
+     */
+    private static function firstOfType(array $milestones, string $type): StopwatchMilestone
+    {
+        foreach ($milestones as $milestone) {
+            if ($milestone->type === $type) {
+                return $milestone;
+            }
+        }
+
+        self::fail("No {$type} milestone");
     }
 
     private function block(string $blockerId, string $blockedId): void

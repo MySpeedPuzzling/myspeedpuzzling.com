@@ -208,6 +208,14 @@ final class ParticipantImportStash implements ResetInterface
         return preg_match('/^[0-9a-f]{32}$/', $token) === 1;
     }
 
+    /**
+     * A plain UUID only - it becomes a part of the storage path.
+     */
+    private static function isCompetitionId(string $competitionId): bool
+    {
+        return preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $competitionId) === 1;
+    }
+
     public function reset(): void
     {
         foreach ($this->temporaryFiles as $path) {

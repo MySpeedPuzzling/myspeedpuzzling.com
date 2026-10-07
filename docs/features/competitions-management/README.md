@@ -8,7 +8,7 @@ The feature set is **tiered and opt-in**: a competition with everything off is j
 |-----------|------------------|------|
 | Managed registration (capacity, reserved/paid, waitlist, check-in) | "Manage registration on MySpeedPuzzling" on the event's own Registration page (`manage_competition_registration`) | [registration.md](registration.md) |
 | Official round results + player claiming | Enter results in the round results console, publish per round | [results.md](results.md) |
-| Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Edit page content" from the event/series management | [public-page.md](public-page.md) |
+| Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Page content" on the event/edition edit page or the series management page - a page shows nothing new until a section is added | [public-page.md](public-page.md) |
 | Participant management, import/export, pairing | Always available | [participants.md](participants.md) |
 
 One permanent product boundary: **MySpeedPuzzling never processes payments.** Managed registration only records the organizer's payment confirmation ("mark paid") — collecting entry fees is entirely the organizer's responsibility.
@@ -358,7 +358,7 @@ Opt-in per event or edition on its own Registration page (`ChangeCompetitionRegi
 
 ## Public Page Content
 
-Maintainers compose the event/series public page from ordered sections: system sections (header, schedule, puzzles, results, registration, participants — or editions list for series) plus custom content blocks (rich text via Quill, FAQ, gallery, venue, sponsors, links, contact) with drag-to-reorder and show/hide. Series content is inherited by all editions. All content is sanitized server-side. Full design: [public-page.md](public-page.md).
+Maintainers add content sections (rich text via Quill, FAQ, gallery, venue, sponsors, links, contact) to an event, edition or series page. They appear in one place, right after the description, in the order the maintainer sets (drag or move up/down), each one can be hidden; an edition shows its own sections, then its series'. The rest of the page is not reorderable. A page without a visible section renders and queries exactly as before (`CompetitionEvent::$hasPageSections`). All content is sanitised server-side. Full design: [public-page.md](public-page.md).
 
 ## Email Notifications
 

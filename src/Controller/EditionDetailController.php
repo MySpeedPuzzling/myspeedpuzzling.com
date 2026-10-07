@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Query\GetEventOffers;
-use SpeedPuzzling\Web\Query\GetOfficialRoundResults;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -44,7 +43,6 @@ final class EditionDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         readonly private CountCompetitionResults $countCompetitionResults,
-        readonly private GetOfficialRoundResults $getOfficialRoundResults,
         readonly private GetCompetitionPageSections $getCompetitionPageSections,
         readonly private ClockInterface $clock,
     ) {
@@ -117,8 +115,10 @@ final class EditionDetailController extends AbstractController
             'attendance' => $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible),
             'event_offers' => $eventOffers,
             'event_offers_just_joined' => $eventOffers !== null && EventJustJoinedFlash::take($request, $competitionId),
-            'published_results' => $this->getOfficialRoundResults->publishedStandingsForCompetition($competitionId),
-            'page_sections' => $this->getCompetitionPageSections->forCompetition($competitionId),
+            // Organiser-written sections: queried only when one shows - a page without them runs what it ran before
+            'page_sections' => $competitionEvent->hasPageSections
+                ? $this->getCompetitionPageSections->forCompetitionPage($competitionId)
+                : [],
         ]);
     }
 }

@@ -26,6 +26,8 @@ readonly final class CompetitionSeriesOverview
         public null|DateTimeImmutable $approvedAt = null,
         public null|DateTimeImmutable $rejectedAt = null,
         public null|string $addedByPlayerName = null,
+        // An organiser-written section shows on the series page - only byId()/bySlug() read it
+        public bool $hasPageSections = false,
     ) {
         $this->link = $link !== null
             ? $link . (str_contains($link, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'

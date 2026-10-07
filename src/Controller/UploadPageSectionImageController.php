@@ -4,80 +4,105 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use InvalidArgumentException;
 use League\Flysystem\Filesystem;
-use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Security\CompetitionEditVoter;
-use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Value\PageSectionOwner;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Validator\Constraints\Image;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+/**
+ * A gallery photo or sponsor logo of the section form (section_image_upload_controller.js), stored under the page's own
+ * prefix (PageSectionOwner::uploadDirectory()) - the section form keeps only such paths. Answers JSON: the stored path,
+ * or a translated reason the form shows next to the picture.
+ *
+ * An upload whose form is never saved stays in storage (docs/TODO.md: prune unreferenced page pictures).
+ */
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class UploadPageSectionImageController extends AbstractController
 {
-    private const int MAX_FILE_SIZE = 5 * 1024 * 1024;
-    private const array ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    public const string MAX_FILE_SIZE = '5M';
+    public const array ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     public function __construct(
         private readonly Filesystem $filesystem,
         private readonly ImageOptimizer $imageOptimizer,
-        private readonly ClockInterface $clock,
+        private readonly ValidatorInterface $validator,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
     #[Route(
-        path: '/page-section-image-upload',
+        path: [
+            'cs' => '/nahrat-obrazek-sekce-stranky',
+            'en' => '/en/upload-page-section-image',
+            'es' => '/es/upload-page-section-image',
+            'ja' => '/ja/upload-page-section-image',
+            'fr' => '/fr/upload-page-section-image',
+            'de' => '/de/upload-page-section-image',
+        ],
         name: 'upload_page_section_image',
         methods: ['POST'],
     )]
     public function __invoke(Request $request): JsonResponse
     {
-        $competitionId = $request->request->getString('competitionId');
-        $seriesId = $request->request->getString('seriesId');
-
-        if (($competitionId === '') === ($seriesId === '')) {
-            return new JsonResponse(['error' => 'Provide exactly one of competitionId or seriesId'], JsonResponse::HTTP_BAD_REQUEST);
+        try {
+            $owner = PageSectionOwner::fromIds($request->request->getString('competitionId'), $request->request->getString('seriesId'));
+        } catch (InvalidArgumentException) {
+            throw $this->createNotFoundException();
         }
 
-        if ($competitionId !== '') {
-            $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
-        } else {
-            $this->denyAccessUnlessGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $seriesId);
+        $this->denyAccessUnlessGranted($owner->editAttribute(), $owner->id());
+
+        if ($this->isCsrfTokenValid($owner->csrfTokenId(), $request->request->getString('_token')) === false) {
+            return $this->refuse($this->translator->trans('page_sections.error.expired'));
         }
 
         $file = $request->files->get('file');
 
-        if (!$file instanceof UploadedFile || !$file->isValid()) {
-            return new JsonResponse(['error' => 'No valid file uploaded'], JsonResponse::HTTP_BAD_REQUEST);
+        if (!$file instanceof UploadedFile) {
+            return $this->refuse($this->translator->trans('page_sections.upload.no_file'));
         }
 
-        if ($file->getSize() > self::MAX_FILE_SIZE) {
-            return new JsonResponse(['error' => 'File too large (max 5 MB)'], JsonResponse::HTTP_BAD_REQUEST);
+        // The validator's own messages, translated to the page's language (an upload over the server's limit included)
+        $violations = $this->validator->validate($file, new Image(maxSize: self::MAX_FILE_SIZE, mimeTypes: self::ALLOWED_MIME_TYPES));
+
+        if (count($violations) > 0) {
+            return $this->refuse((string) $violations->get(0)->getMessage());
         }
 
-        if (!in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES, true)) {
-            return new JsonResponse(['error' => 'Unsupported image type'], JsonResponse::HTTP_BAD_REQUEST);
-        }
-
-        $ownerId = $competitionId !== '' ? $competitionId : $seriesId;
         $extension = $file->guessExtension() ?? 'jpg';
-        $timestamp = $this->clock->now()->getTimestamp();
-        $path = "competition-pages/{$ownerId}/" . Uuid::uuid7()->toString() . "-{$timestamp}.{$extension}";
+        $path = $owner->uploadDirectory() . Uuid::uuid7()->toString() . '.' . $extension;
 
+        // Also strips EXIF/GPS - a phone photo must not publish where it was taken
         $this->imageOptimizer->optimize($file->getPathname());
 
         $stream = fopen($file->getPathname(), 'rb');
-        $this->filesystem->writeStream($path, $stream);
 
-        if (is_resource($stream)) {
+        if ($stream === false) {
+            return $this->refuse($this->translator->trans('page_sections.upload.failed'));
+        }
+
+        try {
+            $this->filesystem->writeStream($path, $stream);
+        } finally {
             fclose($stream);
         }
 
         return new JsonResponse(['path' => $path]);
+    }
+
+    private function refuse(string $message): JsonResponse
+    {
+        return new JsonResponse(['error' => $message], Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 }

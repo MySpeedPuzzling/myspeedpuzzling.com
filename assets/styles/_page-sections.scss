@@ -1,0 +1,24 @@
+// Organiser-written sections of event, edition and series pages (docs/features/competitions-management/public-page.md).
+// The rich text carries no classes (the sanitizer drops them) - it is styled from here.
+.page-section-rich-text {
+    overflow-wrap: anywhere;
+
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    blockquote {
+        border-left: 3px solid $gray-300;
+        padding-left: 1rem;
+        color: $gray-600;
+    }
+
+    > :last-child {
+        margin-bottom: 0;
+    }
+}
+
+[data-page-section="faq"] summary {
+    cursor: pointer;
+}

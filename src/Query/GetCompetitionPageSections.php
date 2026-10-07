@@ -6,207 +6,165 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use Nette\Utils\Json;
-use SpeedPuzzling\Web\Results\PageEntry;
+use SpeedPuzzling\Web\Results\PageSection;
 use SpeedPuzzling\Web\Value\PageSectionType;
 
+/**
+ * Organiser-written sections of an event, edition or series page (docs/features/competitions-management/public-page.md).
+ *
+ * The public pages call it only when their own row says a section shows (CompetitionEvent::$hasPageSections,
+ * CompetitionSeriesOverview::$hasPageSections - the same SQL rule as here, in the statement the page runs anyway), so a
+ * page without sections never runs it.
+ */
 readonly final class GetCompetitionPageSections
 {
-    /**
-     * Default order of system sections when no custom layout exists.
-     */
-    public const array SYSTEM_SECTIONS = ['schedule', 'puzzles', 'results', 'registration', 'participants'];
-
     public function __construct(
         private Connection $database,
     ) {
     }
 
     /**
-     * Ordered page entries for a competition page (standalone event or edition).
-     *
-     * Order: the competition's own layout (system sections + own custom sections),
-     * then inherited series sections (editions cannot edit or reorder those —
-     * they are managed on the series page).
-     *
-     * @return array<PageEntry>
+     * Section `s` shows on the page of competition `c`: visible, the competition's own or its series', a venue only when
+     * the event is in person.
      */
-    public function forCompetition(string $competitionId, bool $includeHidden = false): array
+    public static function sqlShownOnCompetitionPage(string $sectionAlias, string $competitionAlias): string
     {
-        $row = $this->database->executeQuery(
-            'SELECT page_layout, series_id FROM competition WHERE id = :id',
-            ['id' => $competitionId],
-        )->fetchAssociative();
-
-        if ($row === false) {
-            return [];
-        }
-
-        /** @var array{page_layout: null|string, series_id: null|string} $row */
-        $ownSections = $this->loadSections('competition_id', $competitionId);
-        $entries = $this->mergeLayout($this->decodeLayout($row['page_layout']), $ownSections, inherited: false);
-
-        if ($row['series_id'] !== null) {
-            foreach ($this->loadSections('series_id', $row['series_id']) as $section) {
-                $entries[] = $this->customEntry($section, inherited: true);
-            }
-        }
-
-        if ($includeHidden === false) {
-            $entries = array_values(array_filter($entries, static fn (PageEntry $entry): bool => $entry->visible));
-        }
-
-        return $entries;
+        return "{$sectionAlias}.visible = true"
+            . " AND ({$sectionAlias}.competition_id = {$competitionAlias}.id OR {$sectionAlias}.series_id = {$competitionAlias}.series_id)"
+            . " AND ({$competitionAlias}.is_online = false OR {$sectionAlias}.type <> 'venue')";
     }
 
     /**
-     * Ordered page entries for a series page.
+     * Section `s` shows on the page of series `cs`.
+     */
+    public static function sqlShownOnSeriesPage(string $sectionAlias, string $seriesAlias): string
+    {
+        return "{$sectionAlias}.visible = true"
+            . " AND {$sectionAlias}.series_id = {$seriesAlias}.id"
+            . " AND ({$seriesAlias}.is_online = false OR {$sectionAlias}.type <> 'venue')";
+    }
+
+    /**
+     * What an event or edition page shows: its own sections, then (an edition) its series' sections, each in page order.
      *
-     * @return array<PageEntry>
+     * @return list<PageSection>
      */
-    public function forSeries(string $seriesId, bool $includeHidden = false): array
+    public function forCompetitionPage(string $competitionId): array
     {
-        /** @var false|null|string $layoutJson */
-        $layoutJson = $this->database->executeQuery(
-            'SELECT page_layout FROM competition_series WHERE id = :id',
-            ['id' => $seriesId],
-        )->fetchOne();
+        $shown = self::sqlShownOnCompetitionPage('s', 'c');
 
-        $sections = $this->loadSections('series_id', $seriesId);
-        // Series pages have no per-competition system sections apart from editions list;
-        // layout only orders custom sections around the fixed "editions" system entry
-        $entries = $this->mergeLayout(
-            $this->decodeLayout($layoutJson === false ? null : $layoutJson),
-            $sections,
-            inherited: false,
-            systemSections: ['editions'],
-        );
-
-        if ($includeHidden === false) {
-            $entries = array_values(array_filter($entries, static fn (PageEntry $entry): bool => $entry->visible));
-        }
-
-        return $entries;
+        return $this->fetch(<<<SQL
+SELECT s.id, s.type, s.title, s.content, s.visible, (s.competition_id IS NULL) AS inherited
+FROM competition c
+JOIN competition_page_section s ON {$shown}
+WHERE c.id = :ownerId
+ORDER BY (s.competition_id IS NULL), s.position, s.created_at, s.id
+SQL, $competitionId);
     }
 
     /**
-     * @param array<array{section: string, visible: bool}> $layout
-     * @param array<string, PageEntry> $customEntriesByKey
-     * @param array<string> $systemSections
-     * @return array<PageEntry>
+     * @return list<PageSection>
      */
-    private function mergeLayout(array $layout, array $customEntriesByKey, bool $inherited, array $systemSections = self::SYSTEM_SECTIONS): array
+    public function forSeriesPage(string $seriesId): array
     {
-        $entries = [];
-        $seenKeys = [];
+        $shown = self::sqlShownOnSeriesPage('s', 'cs');
 
-        foreach ($layout as $layoutEntry) {
-            $key = $layoutEntry['section'];
-
-            if (in_array($key, $systemSections, true)) {
-                $entries[] = new PageEntry(key: $key, isSystem: true, visible: $layoutEntry['visible']);
-                $seenKeys[] = $key;
-            } elseif (isset($customEntriesByKey[$key])) {
-                $custom = $customEntriesByKey[$key];
-                $entries[] = new PageEntry(
-                    key: $custom->key,
-                    isSystem: false,
-                    visible: $layoutEntry['visible'] && $custom->visible,
-                    inherited: $inherited,
-                    sectionId: $custom->sectionId,
-                    type: $custom->type,
-                    title: $custom->title,
-                    content: $custom->content,
-                );
-                $seenKeys[] = $key;
-            }
-            // Orphaned layout entries (deleted sections) are silently skipped
-        }
-
-        // System sections missing from the layout fall back to the default order
-        foreach ($systemSections as $key) {
-            if (!in_array($key, $seenKeys, true)) {
-                $entries[] = new PageEntry(key: $key, isSystem: true, visible: true);
-            }
-        }
-
-        // Custom sections not referenced in the layout append in position order
-        foreach ($customEntriesByKey as $key => $custom) {
-            if (!in_array($key, $seenKeys, true)) {
-                $entries[] = $custom;
-            }
-        }
-
-        return $entries;
+        return $this->fetch(<<<SQL
+SELECT s.id, s.type, s.title, s.content, s.visible, false AS inherited
+FROM competition_series cs
+JOIN competition_page_section s ON {$shown}
+WHERE cs.id = :ownerId
+ORDER BY s.position, s.created_at, s.id
+SQL, $seriesId);
     }
 
     /**
-     * @return array<string, PageEntry> keyed by "custom:<uuid>", ordered by position
+     * The page editor of an event or edition: every own section (hidden ones too), then the series' sections that show
+     * on this edition's page - those are changed on the series' page.
+     *
+     * @return list<PageSection>
      */
-    private function loadSections(string $ownerColumn, string $ownerId): array
+    public function forCompetitionEditor(string $competitionId): array
     {
-        $query = <<<SQL
-SELECT id, type, title, content, visible
-FROM competition_page_section
-WHERE {$ownerColumn} = :ownerId
-ORDER BY position ASC, created_at ASC
-SQL;
+        $shown = self::sqlShownOnCompetitionPage('s', 'c');
 
-        /** @var array<array{id: string, type: string, title: null|string, content: string, visible: bool|string}> $rows */
+        return $this->fetch(<<<SQL
+SELECT s.id, s.type, s.title, s.content, s.visible, (s.competition_id IS NULL) AS inherited
+FROM competition c
+JOIN competition_page_section s ON s.competition_id = c.id OR (s.competition_id IS NULL AND {$shown})
+WHERE c.id = :ownerId
+ORDER BY (s.competition_id IS NULL), s.position, s.created_at, s.id
+SQL, $competitionId);
+    }
+
+    /**
+     * @return list<PageSection>
+     */
+    public function forSeriesEditor(string $seriesId): array
+    {
+        return $this->fetch(<<<SQL
+SELECT s.id, s.type, s.title, s.content, s.visible, false AS inherited
+FROM competition_page_section s
+WHERE s.series_id = :ownerId
+ORDER BY s.position, s.created_at, s.id
+SQL, $seriesId);
+    }
+
+    /**
+     * @return list<PageSection>
+     */
+    private function fetch(string $query, string $ownerId): array
+    {
+        /** @var list<array{id: string, type: string, title: null|string, content: string, visible: bool, inherited: bool}> $rows */
         $rows = $this->database->executeQuery($query, ['ownerId' => $ownerId])->fetchAllAssociative();
 
-        $entries = [];
-
-        foreach ($rows as $row) {
-            $visible = $row['visible'];
-            if (is_string($visible)) {
-                $visible = $visible === 't' || $visible === '1' || $visible === 'true';
-            }
+        return array_map(static function (array $row): PageSection {
+            $type = PageSectionType::from($row['type']);
 
             /** @var array<string, mixed> $content */
             $content = Json::decode($row['content'], true);
 
-            $entry = new PageEntry(
-                key: 'custom:' . $row['id'],
-                isSystem: false,
-                visible: $visible,
-                sectionId: $row['id'],
-                type: PageSectionType::from($row['type']),
+            return new PageSection(
+                id: $row['id'],
+                type: $type,
                 title: $row['title'],
-                content: $content,
+                content: $type === PageSectionType::Links ? self::withTrackedLinks($content) : $content,
+                visible: $row['visible'],
+                inherited: $row['inherited'],
             );
-
-            $entries[$entry->key] = $entry;
-        }
-
-        return $entries;
-    }
-
-    private function customEntry(PageEntry $entry, bool $inherited): PageEntry
-    {
-        return new PageEntry(
-            key: $entry->key,
-            isSystem: false,
-            visible: $entry->visible,
-            inherited: $inherited,
-            sectionId: $entry->sectionId,
-            type: $entry->type,
-            title: $entry->title,
-            content: $entry->content,
-        );
+        }, $rows);
     }
 
     /**
-     * @return array<array{section: string, visible: bool}>
+     * Like every external link of an event page, a links section tells the target where the visitor came from.
+     *
+     * @param array<string, mixed> $content
+     * @return array<string, mixed>
      */
-    private function decodeLayout(null|string $layoutJson): array
+    private static function withTrackedLinks(array $content): array
     {
-        if ($layoutJson === null || $layoutJson === '') {
-            return [];
+        $links = $content['links'] ?? null;
+
+        if (!is_array($links)) {
+            return $content;
         }
 
-        /** @var array<array{section: string, visible: bool}> $layout */
-        $layout = Json::decode($layoutJson, true);
+        $tracked = [];
 
-        return $layout;
+        foreach ($links as $link) {
+            if (!is_array($link) || !is_string($link['url'] ?? null)) {
+                continue;
+            }
+
+            $parts = explode('#', $link['url'], 2);
+            $link['href'] = $parts[0]
+                . (str_contains($parts[0], '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'
+                . (isset($parts[1]) ? '#' . $parts[1] : '');
+            $tracked[] = $link;
+        }
+
+        $content['links'] = $tracked;
+
+        return $content;
     }
 }

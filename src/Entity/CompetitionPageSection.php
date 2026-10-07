@@ -18,14 +18,17 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\PageSectionType;
 
 /**
- * Manager-authored content block on a competition or series public page.
+ * Organiser-written content block on an event, edition or series page
+ * (docs/features/competitions-management/public-page.md).
  *
- * Exactly one of competition/series is set. Series sections are inherited by
- * every edition. The type-specific payload lives in $content (sanitized on write).
+ * Exactly one of competition/series is set. A series' sections show on every edition's page after the edition's own.
+ * The type-specific payload lives in $content, sanitised on every write (PageSectionContentSanitizer).
  */
 #[Entity]
 class CompetitionPageSection
 {
+    public const int TITLE_MAX_LENGTH = 255;
+
     /**
      * @param array<string, mixed> $content
      */
@@ -42,16 +45,17 @@ class CompetitionPageSection
         #[ManyToOne]
         #[JoinColumn(onDelete: 'CASCADE')]
         public null|CompetitionSeries $series,
+        #[Immutable]
         #[Column(type: Types::STRING, enumType: PageSectionType::class)]
         public PageSectionType $type,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
         public int $position,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-        #[Column(nullable: true)]
+        #[Column(length: self::TITLE_MAX_LENGTH, nullable: true)]
         public null|string $title,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-        #[Column(type: Types::JSON)]
+        #[Column(type: Types::JSONB)]
         public array $content,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
@@ -69,7 +73,7 @@ class CompetitionPageSection
     }
 
     /**
-     * @param array<string, mixed> $content
+     * @param array<string, mixed> $content already sanitised
      */
     public function edit(null|string $title, array $content, DateTimeImmutable $updatedAt): void
     {
@@ -83,8 +87,13 @@ class CompetitionPageSection
         $this->position = $position;
     }
 
-    public function toggleVisibility(bool $visible): void
+    public function changeVisibility(bool $visible, DateTimeImmutable $updatedAt): void
     {
+        if ($this->visible === $visible) {
+            return;
+        }
+
         $this->visible = $visible;
+        $this->updatedAt = $updatedAt;
     }
 }

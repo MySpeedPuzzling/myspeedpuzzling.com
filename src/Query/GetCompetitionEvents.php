@@ -28,7 +28,14 @@ readonly final class GetCompetitionEvents
             throw new CompetitionNotFound();
         }
 
-        $query = 'SELECT * FROM competition WHERE id = :id';
+        // hasPageSections: one EXISTS in the statement every competition page runs anyway - a page without sections
+        // never queries them (docs/features/competitions-management/public-page.md)
+        $shownOnPage = GetCompetitionPageSections::sqlShownOnCompetitionPage('s', 'c');
+        $query = <<<SQL
+SELECT c.*, EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections
+FROM competition c
+WHERE c.id = :id
+SQL;
 
         /** @var false|CompetitionEventDatabaseRow $data */
         $data = $this->database

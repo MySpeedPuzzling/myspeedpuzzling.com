@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionPageSection;
+use SpeedPuzzling\Web\Exceptions\PageSectionTypeNotAvailable;
 use SpeedPuzzling\Web\Message\AddPageSection;
 use SpeedPuzzling\Web\Repository\CompetitionPageSectionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Services\PageSectionContentSanitizer;
+use SpeedPuzzling\Web\Value\PageSectionOwner;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
+/**
+ * A new section goes last on its page.
+ */
 #[AsMessageHandler]
 readonly final class AddPageSectionHandler
 {
@@ -22,45 +26,46 @@ readonly final class AddPageSectionHandler
         private CompetitionSeriesRepository $seriesRepository,
         private CompetitionPageSectionRepository $sectionRepository,
         private PageSectionContentSanitizer $sanitizer,
-        private Connection $database,
         private ClockInterface $clock,
     ) {
     }
 
+    /**
+     * @throws PageSectionTypeNotAvailable
+     */
     public function __invoke(AddPageSection $message): void
     {
-        $competition = $message->competitionId !== null
-            ? $this->competitionRepository->get($message->competitionId)
-            : null;
-        $series = $message->seriesId !== null
-            ? $this->seriesRepository->get($message->seriesId)
-            : null;
+        $owner = PageSectionOwner::fromIds($message->competitionId, $message->seriesId);
+        $competition = $owner->competitionId !== null ? $this->competitionRepository->get($owner->competitionId) : null;
+        $series = $owner->seriesId !== null ? $this->seriesRepository->get($owner->seriesId) : null;
+        $isOnline = $competition !== null ? $competition->isOnline : ($series !== null && $series->isOnline);
 
-        $section = new CompetitionPageSection(
+        if ($message->type->isAvailableFor($isOnline) === false) {
+            throw new PageSectionTypeNotAvailable();
+        }
+
+        $lastPosition = 0;
+
+        foreach ($this->sectionRepository->allOf($owner) as $existing) {
+            $lastPosition = max($lastPosition, $existing->position);
+        }
+
+        $this->sectionRepository->save(new CompetitionPageSection(
             id: $message->sectionId,
             competition: $competition,
             series: $series,
             type: $message->type,
-            position: $this->nextPosition($message->competitionId, $message->seriesId),
-            title: $message->title !== null && trim($message->title) !== '' ? trim($message->title) : null,
-            content: $this->sanitizer->sanitize($message->type, $message->content),
+            position: $lastPosition + 1,
+            title: self::cleanTitle($message->title),
+            content: $this->sanitizer->sanitize($message->type, $message->content, $owner),
             createdAt: $this->clock->now(),
-        );
-
-        $this->sectionRepository->save($section);
+        ));
     }
 
-    private function nextPosition(null|string $competitionId, null|string $seriesId): int
+    public static function cleanTitle(null|string $title): null|string
     {
-        $query = $competitionId !== null
-            ? 'SELECT COALESCE(MAX(position), 0) + 1 FROM competition_page_section WHERE competition_id = :ownerId'
-            : 'SELECT COALESCE(MAX(position), 0) + 1 FROM competition_page_section WHERE series_id = :ownerId';
+        $title = trim((string) $title);
 
-        /** @var int|string $position */
-        $position = $this->database->executeQuery($query, [
-            'ownerId' => $competitionId ?? $seriesId,
-        ])->fetchOne();
-
-        return (int) $position;
+        return $title === '' ? null : mb_substr($title, 0, CompetitionPageSection::TITLE_MAX_LENGTH);
     }
 }

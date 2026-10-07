@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPageSection;
-use SpeedPuzzling\Web\Security\CompetitionEditVoter;
-use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
+use SpeedPuzzling\Web\Query\GetPageSectionOwner;
+use SpeedPuzzling\Web\Results\PageSectionSubmission;
 use SpeedPuzzling\Web\Services\PageSectionRequestParser;
+use SpeedPuzzling\Web\Value\PageSectionOwner;
 use SpeedPuzzling\Web\Value\PageSectionType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,12 +20,16 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+/**
+ * New content section on an event, edition (?competition=) or series (?series=) page, of the type ?type=.
+ */
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class AddPageSectionController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly PageSectionRequestParser $requestParser,
+        private readonly GetPageSectionOwner $getPageSectionOwner,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -38,48 +44,68 @@ final class AddPageSectionController extends AbstractController
             'de' => '/de/add-page-section',
         ],
         name: 'add_page_section',
+        methods: ['GET', 'POST'],
     )]
     public function __invoke(Request $request): Response
     {
-        $competitionId = $request->query->getString('competition');
-        $seriesId = $request->query->getString('series');
-        $type = PageSectionType::tryFrom($request->query->getString('type'));
+        $type = PageSectionType::tryFrom($request->query->getString('type'))
+            ?? throw $this->createNotFoundException();
 
-        if ($type === null || ($competitionId === '') === ($seriesId === '')) {
+        try {
+            $owner = PageSectionOwner::fromIds($request->query->getString('competition'), $request->query->getString('series'));
+        } catch (InvalidArgumentException) {
             throw $this->createNotFoundException();
         }
 
-        if ($competitionId !== '') {
-            $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
-            $manageUrl = $this->generateUrl('manage_competition_page', ['competitionId' => $competitionId]);
-        } else {
-            $this->denyAccessUnlessGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $seriesId);
-            $manageUrl = $this->generateUrl('manage_series_page', ['seriesId' => $seriesId]);
+        $this->denyAccessUnlessGranted($owner->editAttribute(), $owner->id());
+
+        $ownerOverview = $this->getPageSectionOwner->of($owner);
+
+        // A venue for an online event is not offered - nor accepted
+        if ($type->isAvailableFor($ownerOverview->isOnline) === false) {
+            throw $this->createNotFoundException();
         }
+
+        [$editorRoute, $editorParameters] = $owner->editorRoute();
+        $submission = new PageSectionSubmission(title: '', content: [], errors: []);
 
         if ($request->isMethod('POST')) {
-            $this->messageBus->dispatch(new AddPageSection(
-                sectionId: Uuid::uuid7(),
-                competitionId: $competitionId !== '' ? $competitionId : null,
-                seriesId: $seriesId !== '' ? $seriesId : null,
-                type: $type,
-                title: $request->request->getString('title'),
-                content: $this->requestParser->parseContent($type, $request),
-            ));
+            $submission = $this->requestParser->parse($type, $request, $owner);
 
-            $this->addFlash('success', $this->translator->trans('competition.page.flash.section_added'));
+            if ($this->isCsrfTokenValid($owner->csrfTokenId(), $request->request->getString('_token')) === false) {
+                $submission = new PageSectionSubmission($submission->title, $submission->content, [
+                    ['key' => 'page_sections.error.expired', 'parameters' => []],
+                ]);
+            }
 
-            return $this->redirect($manageUrl);
+            if ($submission->isValid()) {
+                $this->messageBus->dispatch(new AddPageSection(
+                    sectionId: Uuid::uuid7(),
+                    competitionId: $owner->competitionId,
+                    seriesId: $owner->seriesId,
+                    type: $type,
+                    title: $submission->title,
+                    content: $submission->content,
+                ));
+
+                $this->addFlash('success', $this->translator->trans('page_sections.flash.added'));
+
+                return $this->redirectToRoute($editorRoute, $editorParameters, Response::HTTP_SEE_OTHER);
+            }
         }
 
-        return $this->render('page_section_form.html.twig', [
+        $response = $this->render('page_section_form.html.twig', [
             'section_type' => $type,
-            'title_value' => '',
-            'content' => [],
-            'form_action' => $request->getRequestUri(),
-            'manage_url' => $manageUrl,
-            'owner_type' => $competitionId !== '' ? 'competition' : 'series',
-            'owner_id' => $competitionId !== '' ? $competitionId : $seriesId,
-        ]);
+            'owner' => $owner,
+            'owner_name' => $ownerOverview->name,
+            'submission' => $submission,
+            'form_action' => $this->generateUrl('add_page_section', [...$owner->queryParameter(), 'type' => $type->value]),
+            'manage_url' => $this->generateUrl($editorRoute, $editorParameters),
+            'is_new' => true,
+        ], new Response(status: $submission->isValid() ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+
+        $response->headers->set('Cache-Control', 'private, no-store');
+
+        return $response;
     }
 }

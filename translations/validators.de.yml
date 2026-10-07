@@ -19,3 +19,9 @@ puzzle_names:
 competition_teams:
     name_too_long: "„%name%“ ist zu lang für einen Teamnamen (%length% Zeichen, höchstens %max%). Schreiben Sie jedes Team in eine eigene Zeile."
     too_many: "Sie können höchstens %max% Teams auf einmal hinzufügen."
+admin:
+    moderators:
+        choose_player: "Wählen Sie mindestens einen Spieler aus."
+private_profile_viewers:
+    choose_player: "Wählen Sie mindestens einen Spieler."
+

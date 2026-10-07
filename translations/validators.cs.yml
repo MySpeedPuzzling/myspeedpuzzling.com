@@ -19,3 +19,9 @@ puzzle_names:
 competition_teams:
     name_too_long: "„%name%“ je na název jednoho týmu příliš dlouhé (%length% znaků, nejvýše %max%). Každý tým napište na samostatný řádek."
     too_many: "Najednou lze přidat nejvýše %max% týmů."
+admin:
+    moderators:
+        choose_player: "Vyberte alespoň jednoho hráče."
+private_profile_viewers:
+    choose_player: "Vyberte alespoň jednoho hráče."
+

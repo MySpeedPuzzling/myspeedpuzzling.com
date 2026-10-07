@@ -17,3 +17,8 @@ puzzle_names:
 competition_teams:
     name_too_long: "“%name%” is too long for one team name (%length% characters, at most %max%). Put each team on its own line."
     too_many: "You can add at most %max% teams at once."
+admin:
+    moderators:
+        choose_player: "Choose at least one player."
+private_profile_viewers:
+    choose_player: "Choose at least one player."

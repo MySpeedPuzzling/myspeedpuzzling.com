@@ -350,6 +350,7 @@ This eliminates all behavioral branching — the same participant handlers, quer
 ## Official Round Results
 
 The organiser's record of a round: one result per round entry (a person of a solo round, a pair/team of a pair/team round) - a time, pieces placed, or did not start - plus the qualified mark and the table number, written through one change-set write path (`RecordRoundResults`, three-way checked, offline-safe). Qualified entries are advanced into later rounds explicitly (`AdvanceQualified`), and a round's results are published per round on its round results page. Players' own times stay theirs: nothing is copied onto profiles. Full design: [official-results.md](official-results.md).
+Seating - table numbers before each in-person round, auto-assign by earlier rounds or MySpeedPuzzling times, printed lists: [seating.md](seating.md).
 
 ## Managed Registration
 

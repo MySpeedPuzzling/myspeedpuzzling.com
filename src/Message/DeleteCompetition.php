@@ -8,6 +8,8 @@ readonly final class DeleteCompetition
 {
     public function __construct(
         public string $competitionId,
+        // The internal API deletes only what nobody has a result in (CompetitionHasResults); the web form asks its own way
+        public bool $refuseWhenItHasResults = false,
     ) {
     }
 }

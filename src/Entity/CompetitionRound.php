@@ -118,6 +118,20 @@ class CompetitionRound implements EntityWithEvents
             && RoundTimezone::isAssumed($this->timezone, $this->competition->locationCountryCode, $this->competition->series?->locationCountryCode);
     }
 
+    /**
+     * A round saved before rounds kept their zone keeps the zone it has always been read in (RoundTimezone::resolve(),
+     * the zone the round form pre-selected when it was typed) - nothing it shows changes, the zone is only saved now.
+     * An assumed zone stays named without a place (RoundTimezone::isAssumed() treats a saved fallback the same way).
+     */
+    public function saveDisplayedTimezone(): void
+    {
+        if ($this->timezone !== null && RoundTimezone::isValid($this->timezone)) {
+            return;
+        }
+
+        $this->timezone = $this->displayTimezone();
+    }
+
     public function assignSlug(string $slug): void
     {
         $this->slug = $slug;

@@ -95,15 +95,22 @@ final class PuzzlingTeamDetailController extends AbstractController
         $best = [];
         $pieces = 0;
         $timed = 0;
+        $relaxed = 0;
         $puzzles = [];
         $first = null;
 
         foreach ($times as $time) {
+            // Listed on the page, but no statistic counts it (docs/features/suspicious-times.md)
+            if ($time->suspicious) {
+                continue;
+            }
+
             $pieces += $time->piecesCount;
             $puzzles[$time->puzzleId] = true;
             $first = $first === null || $time->solvedAt < $first ? $time->solvedAt : $first;
 
             if ($time->time === null) {
+                $relaxed++;
                 continue;
             }
 
@@ -118,7 +125,7 @@ final class PuzzlingTeamDetailController extends AbstractController
 
         return [
             'timed' => $timed,
-            'relaxed' => count($times) - $timed,
+            'relaxed' => $relaxed,
             'pieces' => $pieces,
             'puzzles' => count($puzzles),
             'first' => $first,

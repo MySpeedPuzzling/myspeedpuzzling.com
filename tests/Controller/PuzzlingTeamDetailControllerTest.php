@@ -80,6 +80,24 @@ final class PuzzlingTeamDetailControllerTest extends WebTestCase
         self::assertCount(1, $crawler->selectLink('Add time'));
     }
 
+    public function testSuspiciousTimeIsListedWithALabelButIsNeverABestTime(): void
+    {
+        $browser = self::createClient();
+        $teamId = $this->teamOf(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, ['#admin', 'Grandma']);
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE puzzling_team_id = :teamId',
+            ['teamId' => $teamId],
+        );
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/teams/' . $teamId);
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-testid="team-times"] tbody tr'));
+        self::assertCount(1, $crawler->filter('[data-testid="team-times"] [data-testid="suspicious-badge"]'));
+        self::assertStringNotContainsString('Best times', $crawler->filter('[data-testid="team-stats"]')->text());
+    }
+
     public function testSignedInVisitorCanAddThePairToTheComparison(): void
     {
         $browser = self::createClient();

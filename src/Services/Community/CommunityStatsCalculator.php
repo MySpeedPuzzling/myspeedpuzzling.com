@@ -37,7 +37,8 @@ readonly final class CommunityStatsCalculator
 
     /**
      * The results of every player: their own tracked times and every pair/team time they are a registered member of,
-     * each once. Unfinished competition results (pieces placed, no time) are not solves and stay out.
+     * each once. Unfinished competition results (pieces placed, no time) are not solves and stay out, nor are
+     * suspicious ones (docs/features/suspicious-times.md).
      */
     public static function resultsSql(string $nowParameter = ':now'): string
     {
@@ -47,11 +48,12 @@ SELECT
     t.player_id,
     t.puzzle_id,
     t.puzzling_type,
-    CASE WHEN t.suspicious THEN NULL ELSE t.seconds_to_solve END AS seconds_to_solve,
+    t.seconds_to_solve,
     LEAST(COALESCE(t.finished_at, t.tracked_at), {$nowParameter}::timestamp) AS solved_at,
     t.tracked_at
 FROM puzzle_solving_time t
-WHERE t.seconds_to_solve IS NOT NULL OR t.pieces_placed IS NULL
+WHERE (t.seconds_to_solve IS NOT NULL OR t.pieces_placed IS NULL)
+    AND t.suspicious = false
 
 UNION ALL
 
@@ -72,6 +74,7 @@ CROSS JOIN LATERAL (
 WHERE t.team IS NOT NULL
     AND member.player_id <> t.player_id
     AND (t.seconds_to_solve IS NOT NULL OR t.pieces_placed IS NULL)
+    AND t.suspicious = false
 SQL;
     }
 

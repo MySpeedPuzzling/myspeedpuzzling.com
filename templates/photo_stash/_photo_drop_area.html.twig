@@ -6,13 +6,15 @@
     Required: field - the file field's view, stash_field - its name in FormPhotoStash::FIELDS, kept_photo - the kept
               photo or null
     Optional: kept_message - the translation key of the "still here" note
+    The icon carries data-role="drop-icon" - file_drop_area_controller rewrites its class for the preview, and
+    assets/photo_drop_area.js finds it again to empty the area.
 #}
 <div data-controller="file-drop-area">
     <div class="file-drop-area" {{ include('photo_stash/_kept_photo_attributes.html.twig', {photo: kept_photo}) }}>
         {% if kept_photo is not null %}
-            <div class="file-drop-icon">{{ include('photo_stash/_kept_photo_preview.html.twig', {photo: kept_photo}) }}</div>
+            <div class="file-drop-icon" data-role="drop-icon">{{ include('photo_stash/_kept_photo_preview.html.twig', {photo: kept_photo}) }}</div>
         {% else %}
-            <div class="file-drop-icon ci-cloud-upload"></div>
+            <div class="file-drop-icon ci-cloud-upload" data-role="drop-icon"></div>
         {% endif %}
         <span class="file-drop-message" data-kept-photo-target="message">{{ kept_photo is not null ? kept_photo.fileName : 'forms.drop_file'|trans }}</span>
         {{ form_widget(field, {attr: field.vars.attr|merge({class: 'file-drop-input'})}) }}

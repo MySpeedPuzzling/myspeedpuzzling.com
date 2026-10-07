@@ -79,7 +79,7 @@ SQL;
 
         // Solves count includes every recorded time (solo/duo/team); the
         // median is computed over solo solves only so group times do not
-        // skew it. One pass over the brand's solves gives the rows per piece
+        // skew it. A suspicious time is neither counted nor timed. One pass over the brand's solves gives the rows per piece
         // count (the "median by piece count" list, the brand × pieces pages)
         // and, through the empty grouping set, the brand's total - a row that
         // comes even without a single solve. For Ravensburger (60 % of all
@@ -96,6 +96,7 @@ FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 WHERE puzzle.manufacturer_id = :brandId
     AND pst.seconds_to_solve IS NOT NULL
+    AND pst.suspicious = false
 GROUP BY GROUPING SETS ((puzzle.pieces_count), ())
 SQL;
 

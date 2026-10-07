@@ -41,7 +41,8 @@ INNER JOIN manufacturer m ON p.manufacturer_id = m.id
 WHERE 
     pst.player_id = :playerId
     AND p.pieces_count = :pieces
-    AND pst.puzzling_type = 'solo' 
+    AND pst.puzzling_type = 'solo'
+    AND pst.suspicious = false
 SQL;
 
         if ($onlyFirstTries === true) {
@@ -101,6 +102,7 @@ WHERE
     pst.player_id = :playerId
     AND p.pieces_count = :pieces
     AND pst.seconds_to_solve IS NOT NULL
+    AND pst.suspicious = false
 SQL;
 
         if ($brandId !== null) {
@@ -152,7 +154,8 @@ FROM puzzle_solving_time pst
 INNER JOIN puzzle p ON pst.puzzle_id = p.id
 WHERE 
     pst.player_id = :playerId
-    AND pst.puzzling_type = 'solo' 
+    AND pst.puzzling_type = 'solo'
+    AND pst.suspicious = false
 SQL;
 
         if ($brandId !== null) {

@@ -54,6 +54,7 @@ INNER JOIN (
     FROM puzzle_solving_time pst
     INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
     WHERE pst.seconds_to_solve IS NOT NULL
+        AND pst.suspicious = false
     GROUP BY puzzle.manufacturer_id
 ) solves ON solves.manufacturer_id = manufacturer.id
 WHERE manufacturer.approved = true
@@ -116,6 +117,7 @@ combination_solves AS (
     FROM puzzle_solving_time pst
     INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
     WHERE pst.seconds_to_solve IS NOT NULL
+        AND pst.suspicious = false
         AND puzzle.pieces_count IN (:allowedPieces)
     GROUP BY puzzle.manufacturer_id, puzzle.pieces_count
 )

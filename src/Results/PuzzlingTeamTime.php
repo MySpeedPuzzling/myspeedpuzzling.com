@@ -20,6 +20,8 @@ readonly final class PuzzlingTeamTime
         public DateTimeImmutable $solvedAt,
         public bool $firstAttempt,
         public bool $unboxed,
+        // Listed with a label on the team's own page, never one of its best times
+        public bool $suspicious = false,
     ) {
     }
 }

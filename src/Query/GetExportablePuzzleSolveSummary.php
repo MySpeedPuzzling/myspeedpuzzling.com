@@ -49,7 +49,7 @@ SELECT
     COUNT(*) AS solved_count,
     MIN(COALESCE(pst.finished_at, pst.tracked_at)) AS first_solved_at,
     MAX(COALESCE(pst.finished_at, pst.tracked_at)) AS last_solved_at,
-    MIN(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'solo') AS best_solo_seconds
+    MIN(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'solo' AND pst.suspicious = false) AS best_solo_seconds
 FROM mine
 INNER JOIN puzzle_solving_time pst ON pst.id = mine.id
 GROUP BY pst.puzzle_id

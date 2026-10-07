@@ -212,6 +212,7 @@ their own messages (`SetCompetitionRoundPuzzles`, `SetCompetitionPuzzles`, `AddA
 | `GET` | `/internal-api/competitions/{idOrSlug}` | One competition: every field, approval state, maintainers, rounds with puzzles, its own puzzles | `200` competition |
 | `POST` | `/internal-api/competitions` | Create a standalone competition (`"approve": true` approves it at once) | `201` competition |
 | `PATCH` | `/internal-api/competitions/{competitionId}` | Change only the fields sent | `200` competition |
+| `DELETE` | `/internal-api/competitions/{competitionId}` | Delete an event or edition nobody has a result in (with its rounds, teams, participants) - `409` otherwise | `204` |
 | `POST` | `/internal-api/competitions/{competitionId}/approve` | Approve a pending competition | `204` |
 | `PUT` | `/internal-api/competitions/{competitionId}/puzzles` | Set the competition's own ("Competition puzzles") puzzles | `200` competition |
 | `POST` | `/internal-api/competitions/{competitionId}/rounds` | Add a round (optionally with its `puzzleIds`) | `201` round |

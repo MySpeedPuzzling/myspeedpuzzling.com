@@ -33,7 +33,7 @@ SELECT
     COALESCE(COUNT(puzzle_solving_time.id), 0) AS solved_puzzles_count,
     COALESCE(SUM(puzzle.pieces_count), 0) AS total_pieces
 FROM player
-LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id AND puzzle_solving_time.puzzling_type = 'solo'
+LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id AND puzzle_solving_time.puzzling_type = 'solo' AND puzzle_solving_time.suspicious = false
 LEFT JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE
     player.id = :playerId
@@ -77,6 +77,7 @@ WITH player_times AS (
     SELECT pst.id, pst.puzzle_id, pst.seconds_to_solve
     FROM puzzle_solving_time pst
     WHERE pst.puzzling_type = 'duo'
+      AND pst.suspicious = false
       AND pst.team IS NOT NULL
       AND (pst.team->'puzzlers')::jsonb @> jsonb_build_array(jsonb_build_object('player_id', :playerId::text))
 )
@@ -131,6 +132,7 @@ WITH player_times AS (
     SELECT pst.id, pst.puzzle_id, pst.seconds_to_solve
     FROM puzzle_solving_time pst
     WHERE pst.puzzling_type = 'team'
+      AND pst.suspicious = false
       AND pst.team IS NOT NULL
       AND (pst.team->'puzzlers')::jsonb @> jsonb_build_array(jsonb_build_object('player_id', :playerId::text))
 )

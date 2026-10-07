@@ -18,10 +18,16 @@ readonly final class PuzzleStatisticsCalculator
     public function calculateForPuzzle(UuidInterface $puzzleId): PuzzleStatisticsData
     {
         $result = $this->connection->executeQuery("
-            WITH player_best_per_type AS (
-                SELECT player_id, puzzling_type, MIN(seconds_to_solve) AS best_time
+            WITH times AS (
+                -- A suspicious time is neither a solve nor a time here (docs/features/suspicious-times.md)
+                SELECT player_id, puzzling_type, first_attempt, seconds_to_solve
                 FROM puzzle_solving_time
-                WHERE puzzle_id = :puzzleId AND seconds_to_solve IS NOT NULL
+                WHERE puzzle_id = :puzzleId AND suspicious = false
+            ),
+            player_best_per_type AS (
+                SELECT player_id, puzzling_type, MIN(seconds_to_solve) AS best_time
+                FROM times
+                WHERE seconds_to_solve IS NOT NULL
                 GROUP BY player_id, puzzling_type
             )
             SELECT
@@ -62,8 +68,7 @@ readonly final class PuzzleStatisticsCalculator
                 MIN(seconds_to_solve) FILTER (WHERE first_attempt = true AND puzzling_type = 'solo') AS fastest_time_first_attempt_solo,
                 MIN(seconds_to_solve) FILTER (WHERE first_attempt = true AND puzzling_type = 'duo') AS fastest_time_first_attempt_duo,
                 MIN(seconds_to_solve) FILTER (WHERE first_attempt = true AND puzzling_type = 'team') AS fastest_time_first_attempt_team
-            FROM puzzle_solving_time
-            WHERE puzzle_id = :puzzleId
+            FROM times
         ", ['puzzleId' => $puzzleId->toString()])->fetchAssociative();
 
         /** @var array{total_count: int|string, fastest_time: int|string|null, average_time: int|string|null, slowest_time: int|string|null, solo_count: int|string, fastest_time_solo: int|string|null, average_time_solo: int|string|null, slowest_time_solo: int|string|null, duo_count: int|string, fastest_time_duo: int|string|null, average_time_duo: int|string|null, slowest_time_duo: int|string|null, team_count: int|string, fastest_time_team: int|string|null, average_time_team: int|string|null, slowest_time_team: int|string|null, average_time_first_attempt: int|string|null, average_time_first_attempt_solo: int|string|null, average_time_first_attempt_duo: int|string|null, average_time_first_attempt_team: int|string|null, fastest_time_first_attempt: int|string|null, fastest_time_first_attempt_solo: int|string|null, fastest_time_first_attempt_duo: int|string|null, fastest_time_first_attempt_team: int|string|null, median_time: int|float|string|null, median_time_solo: int|float|string|null, median_time_duo: int|float|string|null, median_time_team: int|float|string|null}|false $result */

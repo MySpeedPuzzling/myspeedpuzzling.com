@@ -92,6 +92,7 @@ INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE puzzle_solving_time.tracked_at >= :startDate
   AND puzzle_solving_time.tracked_at < :endDate
+  AND puzzle_solving_time.suspicious = false
 GROUP BY puzzle.id, manufacturer.id
 ORDER BY solved_times DESC
 LIMIT :howManyPuzzles

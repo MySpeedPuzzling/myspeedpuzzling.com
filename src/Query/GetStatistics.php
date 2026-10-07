@@ -23,6 +23,7 @@ SELECT
     SUM(puzzle.pieces_count) AS total_pieces
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+WHERE puzzle_solving_time.suspicious = false
 SQL;
 
         /**
@@ -70,6 +71,7 @@ FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE puzzle_solving_time.tracked_at >= :startDate
     AND puzzle_solving_time.tracked_at < :endDate
+    AND puzzle_solving_time.suspicious = false
 SQL;
 
         /**

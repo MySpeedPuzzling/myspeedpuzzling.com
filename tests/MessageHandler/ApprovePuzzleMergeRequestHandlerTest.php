@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\Filesystem;
 use PDO;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
@@ -49,6 +50,7 @@ use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use SpeedPuzzling\Web\Value\TransferType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Throwable;
 
@@ -514,6 +516,53 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertSame('Americké koblihy', $survivorPuzzle->alternativeNames()->legacyAlternativeName());
         self::assertSame('puzzles/duplicate-cover.jpg', $survivorPuzzle->image);
         self::assertSame(1.4, $survivorPuzzle->imageRatio);
+    }
+
+    public function testTheReviewersPhotoIsUsedInsteadOfTheSelectedImage(): void
+    {
+        $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
+        $duplicatePuzzle->image = 'puzzles/duplicate-cover.jpg';
+        $duplicatePuzzle->imageRatio = 1.4;
+        $this->entityManager->flush();
+
+        $mergeRequestId = $this->submitMergeRequest();
+
+        $photoPath = tempnam(sys_get_temp_dir(), 'merge_photo_') . '.jpg';
+        $photo = imagecreatetruecolor(20, 10);
+        assert($photo !== false);
+        imagejpeg($photo, $photoPath);
+
+        $this->messageBus->dispatch(
+            new ApprovePuzzleMergeRequest(
+                mergeRequestId: $mergeRequestId,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+                mergedName: 'Merged With A Photo',
+                mergedEans: null,
+                mergedBrandCodes: null,
+                mergedPiecesCount: 500,
+                mergedManufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                selectedImagePuzzleId: PuzzleFixture::PUZZLE_500_05,
+                uploadedImage: new UploadedFile($photoPath, 'box.jpg', 'image/jpeg', null, true),
+            ),
+        );
+
+        $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
+        self::assertNotNull($survivorPuzzle->image);
+
+        // Named after the merged puzzle's final brand, name and pieces
+        $filesystem = self::getContainer()->get(Filesystem::class);
+        self::assertTrue($filesystem->fileExists($survivorPuzzle->image));
+        $filesystem->delete($survivorPuzzle->image);
+
+        self::assertStringContainsString('ravensburger-merged-with-a-photo-500', $survivorPuzzle->image);
+        self::assertSame(2.0, $survivorPuzzle->imageRatio);
+
+        $audit = $this->entityManager->getRepository(PuzzleMergeAudit::class)->findOneBy(['mergeRequestId' => Uuid::fromString($mergeRequestId)]);
+        self::assertNotNull($audit);
+        $survivorAfter = $audit->snapshotAfter['survivorPuzzle'] ?? null;
+        self::assertIsArray($survivorAfter);
+        self::assertSame($survivorPuzzle->image, $survivorAfter['image'] ?? null);
     }
 
     public function testMergeKeepsEveryNameAndBothProductCodesAndNeverOverwritesOtherSurvivorDetails(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -139,6 +140,29 @@ final class RecalculatePuzzleStatisticsOnSolvingTimeChangeTest extends KernelTes
         self::assertSame(5, $statistics->solvedTimesCount);
         self::assertSame(5000, $statistics->medianTime);
         self::assertSame(5200, $statistics->averageTime);
+    }
+
+    public function testSuspiciousTimeIsNeitherCountedNorTimed(): void
+    {
+        $times = $this->seedSoloSolves(PuzzleFixture::PUZZLE_5000, [
+            PlayerFixture::PLAYER_REGULAR => 3000,
+            PlayerFixture::PLAYER_PRIVATE => 600,
+            PlayerFixture::PLAYER_ADMIN => 2400,
+        ]);
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE id = :id',
+            ['id' => $times[PlayerFixture::PLAYER_PRIVATE]],
+        );
+
+        $statistics = $this->recalculatedStatistics(PuzzleFixture::PUZZLE_5000);
+
+        self::assertSame(2, $statistics->solvedTimesCount);
+        self::assertSame(2, $statistics->solvedTimesSoloCount);
+        self::assertSame(2400, $statistics->fastestTime);
+        self::assertSame(2400, $statistics->fastestTimeSolo);
+        self::assertSame(2700, $statistics->averageTimeSolo);
+        self::assertSame(2700, $statistics->medianTimeSolo);
+        self::assertSame(3000, $statistics->slowestTimeSolo);
     }
 
     public function testDeletingASolveRecomputesTheMedianAndNoSolvesMeansNull(): void

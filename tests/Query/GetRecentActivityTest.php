@@ -167,6 +167,26 @@ SQL,
         self::assertTrue($othersTeamTimeSkipped, 'Fixtures must contain a team time no favorite was part of');
     }
 
+    public function testSuspiciousTimeIsOnlyInThePlayersOwnFeed(): void
+    {
+        // TIME_36 is PLAYER_REGULAR's (public profile), whom PLAYER_WITH_FAVORITES follows
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_36],
+        );
+
+        self::assertNotContains(PuzzleSolvingTimeFixture::TIME_36, $this->ids($this->query->latest(200)));
+        self::assertNotContains(PuzzleSolvingTimeFixture::TIME_36, $this->ids($this->query->ofPlayerFavorites(500, PlayerFixture::PLAYER_WITH_FAVORITES)));
+
+        $suspiciousById = [];
+        foreach ($this->query->forPlayer(PlayerFixture::PLAYER_REGULAR, 200) as $item) {
+            $suspiciousById[$item->id] = $item->suspicious;
+        }
+
+        self::assertTrue($suspiciousById[PuzzleSolvingTimeFixture::TIME_36]);
+        self::assertSame([PuzzleSolvingTimeFixture::TIME_36], array_keys(array_filter($suspiciousById)));
+    }
+
     public function testBlockerDoesNotSeeTheBlockedPlayerInLatest(): void
     {
         $this->block(PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_REGULAR);
@@ -242,6 +262,15 @@ SQL,
         $feed = $this->query->ofPlayerFavorites(500, PlayerFixture::PLAYER_WITH_FAVORITES);
         self::assertFalse($this->showsPlayer($feed, PlayerFixture::PLAYER_REGULAR));
         self::assertTrue($this->showsPlayer($feed, PlayerFixture::PLAYER_ADMIN));
+    }
+
+    /**
+     * @param array<RecentActivityItem> $items
+     * @return list<string>
+     */
+    private function ids(array $items): array
+    {
+        return array_values(array_map(static fn (RecentActivityItem $item): string => $item->id, $items));
     }
 
     /**

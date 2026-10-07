@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Results\PuzzleMergeRequestOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\PuzzleRecord;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
+use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
@@ -51,8 +52,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * The review of a merge request: the reported puzzles side by side, which one keeps its address, and the merged
  * puzzle's record - every name of all of them in the names editor, started from the union with the languages the
- * reporter gave (PuzzleMergeNames). The form posts back here, so a refused one comes back with what was typed; it
- * carries every puzzle's record version, so a puzzle saved in between refuses the merge.
+ * reporter gave (PuzzleMergeNames), one of their images or a new photo. The form posts back here, so a refused one
+ * comes back with what was typed - an uploaded photo included (FormPhotoStash); it carries every puzzle's record
+ * version, so a puzzle saved in between refuses the merge.
  */
 final class PuzzleMergeRequestDetailController extends AbstractController
 {
@@ -63,6 +65,7 @@ final class PuzzleMergeRequestDetailController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly FormPhotoStash $formPhotoStash,
     ) {
     }
 
@@ -117,7 +120,10 @@ final class PuzzleMergeRequestDetailController extends AbstractController
             'puzzle_ids' => array_keys($records),
             'image_puzzle_ids' => array_keys($mergedData['images']),
         ]);
+
+        $restoredPhotos = $this->formPhotoStash->restore($request, $form, $player->playerId);
         $form->handleRequest($request);
+        $this->formPhotoStash->reportLost($form, $restoredPhotos);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -139,8 +145,10 @@ final class PuzzleMergeRequestDetailController extends AbstractController
                     mergedNameLanguage: $data->names->nameLanguage,
                     mergedAlternativeNames: $data->names->toPuzzleNames(),
                     recordVersions: $data->recordVersions,
+                    uploadedImage: $data->puzzlePhoto,
                 ));
 
+                $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
                 $this->addFlash('success', $this->translator->trans('admin.puzzle_merge_request.approved'));
 
                 // Merges started from the approval queue go back there
@@ -163,6 +171,7 @@ final class PuzzleMergeRequestDetailController extends AbstractController
 
         return $this->render('admin/puzzle_merge_request_detail.html.twig', [
             'form' => $form,
+            'kept_photos' => $this->formPhotoStash->keep($form, $restoredPhotos, $player->playerId),
         ] + $parameters);
     }
 

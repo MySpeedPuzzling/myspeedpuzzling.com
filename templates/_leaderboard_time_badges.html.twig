@@ -1,8 +1,9 @@
 {#
-    Badges of a leaderboard time (attempts, 1st try, unboxed, event) - nothing when it has none.
+    Badges of a leaderboard time (attempts, 1st try, unboxed, event, suspicious) - nothing when it has none.
 
     Inputs:
-      - time: PuzzleSolver or PuzzleSolversGroup
+      - time: PuzzleSolver or PuzzleSolversGroup, or a result row with the same fields (SolvedPuzzle, RecentActivityItem,
+        PuzzleResultAttempt); `suspicious` is carried only by the rows of somebody's own results - nowhere else shows one
       - attempts (int, optional): how many times the player/pair/team solved the puzzle - a pill from 2 on
       - team_page_label (string, optional): links a pair/team time to its team page - the team's name when it has one
       - skip_first_try (bool, optional): the caller shows "1st try" elsewhere (recent activity: next to the time)
@@ -10,7 +11,8 @@
 {%- set attempts = attempts|default(1) -%}
 {%- set team_link = team_page_label is defined and time.teamId is defined and time.teamId is not null -%}
 {%- set show_first_try = time.firstAttempt and not (skip_first_try is defined and skip_first_try) -%}
-{%- if show_first_try or time.unboxed or time.competitionName or attempts > 1 or team_link -%}
+{%- set suspicious = time.suspicious is defined and time.suspicious -%}
+{%- if show_first_try or time.unboxed or time.competitionName or attempts > 1 or team_link or suspicious -%}
     <div class="lb-badges">
         {%- if team_link -%}
             <a href="{{ path('puzzling_team_detail', {teamId: time.teamId}) }}" data-testid="team-link">
@@ -27,5 +29,8 @@
             <span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
         {%- endif -%}
         {{- include('_competition_badge.html.twig', {time: time}) -}}
+        {%- if suspicious -%}
+            <span class="badge rounded-pill bg-warning" data-testid="suspicious-badge"><i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}</span>
+        {%- endif -%}
     </div>
 {%- endif -%}

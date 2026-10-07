@@ -126,9 +126,12 @@ started from every name of all the puzzles (`PuzzleMergeNames`: the survivor's m
 the language the reporter gave it); brand / pieces come with one-click choices from the reported puzzles where they
 differ (`merge_review_controller.js`); EAN and brand code are the union (never reduce the list). The summary above the
 button says what approving keeps, deletes and moves. Brand picker = every brand (`allIncludingUnapproved()`,
-autocomplete). Optional note → `ApprovePuzzleMergeRequest::$decisionNote`. The form (`PuzzleMergeReviewFormType`)
-posts back to the page (422 keeps what was typed) and carries every puzzle's record version - a puzzle saved in
-between refuses the merge. The approval queue's "merge" can say which language the new puzzle's name is in.
+autocomplete). Image: one of the reported puzzles' images (a choice when more of them have one), or a **new photo**
+dropped in the same card - used instead of all of them (`ApprovePuzzleMergeRequest::$uploadedImage`, stored by
+`PuzzleImageStorage` like the record form's upload, named after the merged brand/name/pieces; cropped with
+image-editor). Optional note → `ApprovePuzzleMergeRequest::$decisionNote`. The form (`PuzzleMergeReviewFormType`)
+posts back to the page (422 keeps what was typed, the dropped photo too - `FormPhotoStash`) and carries every puzzle's
+record version - a puzzle saved in between refuses the merge. The approval queue's "merge" can say which language the new puzzle's name is in.
 
 ## A puzzle's history
 

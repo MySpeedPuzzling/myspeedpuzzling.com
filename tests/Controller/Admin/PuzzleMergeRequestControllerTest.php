@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
@@ -21,6 +22,7 @@ use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class PuzzleMergeRequestControllerTest extends WebTestCase
@@ -72,6 +74,8 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
         // Every reported puzzle says who added it
         self::assertSelectorCount(2, '[data-role="puzzle-added-by"]');
         self::assertSelectorTextContains('[data-role="puzzle-added-by"]', 'Admin User');
+        // A new photo may replace the puzzles' images
+        self::assertSelectorExists('.file-drop-area input[name="' . self::FORM . '[puzzlePhoto]"]');
     }
 
     public function testTheReviewReadsThePuzzlesInOneStatementEachNotOnePerPuzzle(): void
@@ -218,10 +222,58 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
         self::assertSame([['name' => 'Puzzle 2', 'language' => null]], $survivor->alternativeNames);
     }
 
+    public function testADroppedPhotoIsKeptWhenTheFormIsRefusedAndBecomesTheMergedPuzzlesImage(): void
+    {
+        $browser = self::createClient();
+        // The kept photo lives in the test's in-memory storage - it must survive between the requests
+        $browser->disableReboot();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $url = '/admin/puzzle-merge-requests/' . PuzzleReportFixture::MERGE_REQUEST_PENDING;
+
+        $crawler = $browser->request('GET', $url);
+        $values = $crawler->filter('form[data-controller~="merge-review"]')->form()->getPhpValues();
+        $fields = $values[self::FORM];
+        self::assertIsArray($fields);
+
+        // A catalogue number typed as an EAN - refused, but the photo stays
+        $crawler = $browser->request('POST', $url, [self::FORM => ['eans' => ['6000-5533']] + $fields], [self::FORM => ['puzzlePhoto' => $this->photo()]]);
+
+        self::assertResponseStatusCodeSame(422);
+        $token = (string) $crawler->filter('input[name="photo_stash[puzzlePhoto]"]')->attr('value');
+        self::assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $token);
+
+        // Sent again without the bad code and only the token - the kept photo becomes the merged puzzle's image
+        $browser->request('POST', $url, [
+            self::FORM => $fields,
+            'photo_stash' => ['puzzlePhoto' => $token],
+        ]);
+
+        self::assertResponseRedirects('/admin/puzzle-merge-requests');
+
+        $survivor = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01);
+        self::assertNotNull($survivor->image);
+
+        $filesystem = $browser->getContainer()->get(Filesystem::class);
+        self::assertTrue($filesystem->fileExists($survivor->image));
+        self::assertStringContainsString('puzzle-1-500', $survivor->image);
+        self::assertSame(2.0, $survivor->imageRatio);
+        $filesystem->delete($survivor->image);
+    }
+
     /**
      * Puzzle 4 and the Czech box "Kouzelné ráno" with a German name (the one with solving times), reported as the
      * Czech box
      */
+    private function photo(): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'merge_photo_') . '.jpg';
+        $image = imagecreatetruecolor(40, 20);
+        assert($image !== false);
+        imagejpeg($image, $path);
+
+        return new UploadedFile($path, 'box.jpg', 'image/jpeg', null, true);
+    }
+
     private function mergeRequestOfACzechBox(KernelBrowser $browser): string
     {
         $container = $browser->getContainer();

@@ -20,8 +20,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Seating in one write (AssignTableNumbers): `{"assignments": [{"entry": "team:<id>", "number": 12}, ...]}` → the
- * changed entries; 422 `invalid_table_numbers` with `problems` (nothing written).
+ * Seating in one write (AssignTableNumbers): `{"assignments": [{"entry": "team:<id>", "from": 3, "number": 12}, ...]}`
+ * (`from` = the number the device last saw, required) → the changed entries; 422 `invalid_table_numbers` with
+ * `problems` (nothing written; `changed_meanwhile` problems carry the `current` number).
  */
 final class AssignTableNumbersController extends AbstractController
 {
@@ -65,11 +66,18 @@ final class AssignTableNumbersController extends AbstractController
         }
 
         foreach ($rawAssignments as $assignment) {
-            if (!is_array($assignment) || !is_string($assignment['entry'] ?? null) || !array_key_exists('number', $assignment) || !(is_int($assignment['number']) || $assignment['number'] === null)) {
+            if (
+                !is_array($assignment)
+                || !is_string($assignment['entry'] ?? null)
+                || !array_key_exists('number', $assignment)
+                || !(is_int($assignment['number']) || $assignment['number'] === null)
+                || !array_key_exists('from', $assignment)
+                || !(is_int($assignment['from']) || $assignment['from'] === null)
+            ) {
                 return OfficialResultsApi::error('invalid_assignments', JsonResponse::HTTP_BAD_REQUEST);
             }
 
-            $assignments[] = ['entry' => $assignment['entry'], 'number' => $assignment['number']];
+            $assignments[] = ['entry' => $assignment['entry'], 'from' => $assignment['from'], 'number' => $assignment['number']];
         }
 
         try {

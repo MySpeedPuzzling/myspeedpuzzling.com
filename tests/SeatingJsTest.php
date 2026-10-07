@@ -122,7 +122,7 @@ final class SeatingJsTest extends TestCase
             true,
             false,
             false,
-            [['entry' => 'p:b', 'number' => 2], ['entry' => 'p:a', 'number' => 1], ['entry' => 'p:c', 'number' => null]],
+            [['entry' => 'p:b', 'from' => 1, 'number' => 2], ['entry' => 'p:a', 'from' => 2, 'number' => 1], ['entry' => 'p:c', 'from' => 3, 'number' => null]],
         ], $this->runInNode([
             ['op' => 'proposal', 'rows' => $rows, 'entries' => $entries],
             ['op' => 'covers', 'rows' => $rows, 'entries' => $entries],
@@ -131,6 +131,23 @@ final class SeatingJsTest extends TestCase
             // Somebody left and somebody else joined
             ['op' => 'covers', 'rows' => $rows, 'entries' => [$entries[0], $entries[1], self::entry('d', null)]],
             ['op' => 'undo', 'assignments' => $assignments, 'entries' => $entries],
+        ]));
+    }
+
+    /**
+     * review2-b m3: every write says which number the page saw, so another organiser's change refuses it.
+     */
+    public function testEveryWriteCarriesTheNumberThePageSaw(): void
+    {
+        $entries = [self::entry('a', 1), self::entry('b', 2), self::entry('c', null)];
+
+        self::assertSame([
+            [['entry' => 'p:a', 'from' => 1, 'number' => 2], ['entry' => 'p:b', 'from' => 2, 'number' => 1]],
+            [['entry' => 'p:c', 'from' => 1, 'number' => 3]],
+        ], $this->runInNode([
+            ['op' => 'withFrom', 'assignments' => [['entry' => 'p:a', 'number' => 2], ['entry' => 'p:b', 'number' => 1]], 'entries' => $entries],
+            // Already known (a retry, an undo) - kept as it was
+            ['op' => 'withFrom', 'assignments' => [['entry' => 'p:c', 'from' => 1, 'number' => 3]], 'entries' => $entries],
         ]));
     }
 

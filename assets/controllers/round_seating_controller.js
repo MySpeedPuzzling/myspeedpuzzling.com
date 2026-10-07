@@ -21,7 +21,10 @@ import {
     swapAssignments,
     takeOverAssignments,
     undoAssignments,
+    withFrom,
 } from '../seating.js';
+
+const RESYNC_EVERY_MS = 60000;
 
 /**
  * The seating page of a round (templates/seating/round_seating.html.twig, docs/features/competitions-management/seating.md):
@@ -78,6 +81,9 @@ export default class extends Controller {
         this.hiddenAt = null;
         this.dragging = false;
         this.sortables = [];
+        // Counts merges of newer entries (answers, Mercure) - a state fetched meanwhile may be older than them
+        this.dataGeneration = 0;
+        this.refreshSequence = 0;
 
         this.setEntries(this.entriesValue);
         this.resetOrder();
@@ -87,12 +93,21 @@ export default class extends Controller {
         if (this.proposeValue !== '') {
             this.openAuto(this.proposeValue === 'auto' ? null : this.proposeValue);
         }
+
+        // Mercure may lapse silently (a reconnect without the round's topic) - the page re-reads the round once a minute
+        // while it is shown, like the results desk, so a bulk write is never built from stale numbers for long
+        this.resyncInterval = setInterval(() => {
+            if (document.visibilityState === 'visible' && !this.busy) {
+                this.refresh();
+            }
+        }, RESYNC_EVERY_MS);
     }
 
     disconnect() {
         this.sortables.forEach((sortable) => sortable.destroy());
         this.sortables = [];
         clearTimeout(this.toastTimer);
+        clearInterval(this.resyncInterval);
     }
 
     // ---- texts
@@ -126,6 +141,8 @@ export default class extends Controller {
                 this.byRef.set(entry.ref, entry);
             }
         }
+
+        this.dataGeneration++;
     }
 
     resetOrder() {
@@ -191,10 +208,26 @@ export default class extends Controller {
         }
     }
 
-    async refresh() {
+    /**
+     * The round's state again. An answer overtaken by a newer refresh is dropped, and one that may be older than
+     * entries merged while it was on its way (an answer of our own write, a Mercure update) is asked for again - a slow
+     * GET never undoes newer numbers (review2-b nit).
+     */
+    async refresh(attempt = 0) {
+        const tries = Number.isInteger(attempt) ? attempt : 0;
+        const sequence = ++this.refreshSequence;
+        const generation = this.dataGeneration;
         const result = await officialResultsRequest(this.stateUrlValue);
 
-        if (result.kind !== 'ok' || !Array.isArray(result.data.entries)) {
+        if (sequence !== this.refreshSequence || result.kind !== 'ok' || !Array.isArray(result.data.entries)) {
+            return;
+        }
+
+        if (generation !== this.dataGeneration) {
+            if (tries < 3) {
+                await this.refresh(tries + 1);
+            }
+
             return;
         }
 
@@ -812,10 +845,13 @@ export default class extends Controller {
      * One AssignTableNumbers write - all of it or nothing. A refusal names the entries; anything else keeps the page as
      * it was with "Try again". Success offers Undo (the numbers before, as one more write).
      */
-    async assign(assignments, successText, { undoable = true } = {}) {
-        if (assignments.length === 0) {
+    async assign(unsent, successText, { undoable = true } = {}) {
+        if (unsent.length === 0) {
             return true;
         }
+
+        // The numbers this page shows now - kept for a retry, so a change arriving meanwhile is never written over
+        const assignments = withFrom(unsent, this.byRef);
 
         const before = numbersOf(this.byRef);
         // The buttons are disabled while saving - the focus comes back to the one pressed
@@ -853,14 +889,16 @@ export default class extends Controller {
         }
 
         if (result.kind === 'client' && result.data?.error === 'invalid_table_numbers') {
-            for (const problem of result.data.problems ?? []) {
+            const problems = result.data.problems ?? [];
+
+            for (const problem of problems) {
                 if (typeof problem.entry === 'string') {
-                    this.problems.set(problem.entry, { message: problem.message ?? this.t('statusFailed') });
+                    this.problems.set(problem.entry, { message: problem.reason === 'changed_meanwhile' ? this.t('changedMeanwhile') : (problem.message ?? this.t('statusFailed')) });
                 }
             }
 
             this.setStatus(null);
-            this.showToast(this.t('toastNothingSaved'), null);
+            this.showToast(this.t(problems.some((problem) => problem.reason === 'changed_meanwhile') ? 'toastChangedMeanwhile' : 'toastNothingSaved'), null);
             // Somebody else may have changed the round - the next attempt starts from the server's numbers
             await this.refresh();
             this.render();

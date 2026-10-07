@@ -106,9 +106,9 @@ final class OfficialResultsDeskHelpersTest extends TestCase
         ]);
 
         // x keeps 1, n3 (seated meanwhile) keeps 3, y was there before - not part of the plan
-        self::assertSame([['entry' => 'n1', 'number' => 2], ['entry' => 'n2', 'number' => 4], ['entry' => 'n4', 'number' => 5]], $fastest);
-        self::assertSame([['entry' => 'n4', 'number' => 2], ['entry' => 'n2', 'number' => 4], ['entry' => 'n1', 'number' => 5]], $slowest);
-        self::assertSame([['entry' => 'b', 'number' => 1], ['entry' => 'a', 'number' => 2]], $empty);
+        self::assertSame([['entry' => 'n1', 'from' => null, 'number' => 2], ['entry' => 'n2', 'from' => null, 'number' => 4], ['entry' => 'n4', 'from' => null, 'number' => 5]], $fastest);
+        self::assertSame([['entry' => 'n4', 'from' => null, 'number' => 2], ['entry' => 'n2', 'from' => null, 'number' => 4], ['entry' => 'n1', 'from' => null, 'number' => 5]], $slowest);
+        self::assertSame([['entry' => 'b', 'from' => null, 'number' => 1], ['entry' => 'a', 'from' => null, 'number' => 2]], $empty);
     }
 
     public function testAChangeIsSavedOnlyWhenTheServerSaysSo(): void

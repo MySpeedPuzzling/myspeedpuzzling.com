@@ -5,7 +5,8 @@
  * docs/features/competitions-management/seating.md
  *
  * An entry is the official results JSON of a round entry ({ref, id, displayName, tableNumber, members, ...}); `byRef`
- * is a Map of ref => entry; an assignment is {entry: ref, number: int|null}.
+ * is a Map of ref => entry; an assignment is {entry: ref, number: int|null} - sent with `from` (withFrom()), the number
+ * the page saw, so a number another organiser changed meanwhile refuses the write instead of being overwritten.
  */
 
 export const MAX_TABLE_NUMBER = 9999;
@@ -213,10 +214,20 @@ export function proposalCoversEntrants(rows, byRef) {
 }
 
 /**
- * What undoes a write: every entry it listed back to the table it had before (`before` = Map ref => number).
+ * What undoes a write: every entry it listed back to the table it had before (`before` = Map ref => number) - `from` is
+ * the number the write set, so an entry somebody else renumbered since is not undone over their change.
  */
 export function undoAssignments(assignments, before) {
-    return assignments.map((assignment) => ({ entry: assignment.entry, number: before.get(assignment.entry) ?? null }));
+    return assignments.map((assignment) => ({ entry: assignment.entry, from: assignment.number, number: before.get(assignment.entry) ?? null }));
+}
+
+/**
+ * Every assignment with `from` = the number the page shows for the entry now (an assignment that has one keeps it).
+ */
+export function withFrom(assignments, byRef) {
+    return assignments.map((assignment) => ('from' in assignment
+        ? assignment
+        : { entry: assignment.entry, from: byRef.get(assignment.entry)?.tableNumber ?? null, number: assignment.number }));
 }
 
 export function numbersOf(byRef) {

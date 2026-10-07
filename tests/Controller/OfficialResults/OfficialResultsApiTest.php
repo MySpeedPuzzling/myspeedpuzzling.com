@@ -236,7 +236,7 @@ final class OfficialResultsApiTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $url = '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . '/table-numbers';
 
-        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'number' => 1]]]);
+        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'from' => null, 'number' => 1]]]);
 
         self::assertResponseStatusCodeSame(422);
         $answer = $this->json();
@@ -247,13 +247,43 @@ final class OfficialResultsApiTest extends WebTestCase
             'message' => 'Another entrant of this round has this table number.',
         ]], $answer['problems']);
 
-        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'number' => 6]]]);
+        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'from' => null, 'number' => 6]]]);
 
         self::assertResponseIsSuccessful();
         $answer = $this->json();
         self::assertSame(1, $answer['changed']);
         self::assertIsArray($answer['entries']);
         self::assertSame([6], array_column($answer['entries'], 'tableNumber'));
+    }
+
+    /**
+     * review2-b m3: a bulk write built from a stale page never overwrites what another organiser set meanwhile.
+     */
+    public function testTableNumbersChangedMeanwhileRefuseTheWholeWrite(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $url = '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . '/table-numbers';
+
+        // The page saw Filip without a table and Eva at 5 - somebody gave Eva table 9 meanwhile
+        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA, 'from' => 5, 'number' => 9]]]);
+        self::assertResponseIsSuccessful();
+
+        $this->post($url, ['assignments' => [
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'from' => null, 'number' => 6],
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA, 'from' => 5, 'number' => 7],
+        ]]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([[
+            'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA,
+            'reason' => 'changed_meanwhile',
+            'current' => 9,
+            'message' => 'Somebody else changed this meanwhile.',
+        ]], $this->json()['problems']);
+
+        // Without `from` nothing is written at all
+        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'number' => 6]]]);
+        self::assertResponseStatusCodeSame(400);
     }
 
     public function testTableNumbersCanBeSwitchedOffForARound(): void

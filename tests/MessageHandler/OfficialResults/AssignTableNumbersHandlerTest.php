@@ -29,11 +29,11 @@ final class AssignTableNumbersHandlerTest extends KernelTestCase
     public function testRenumbersInOneWriteAndAnswersWhatChanged(): void
     {
         $changed = $this->assign([
-            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA, 'number' => 2],
-            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, 'number' => 1],
-            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'number' => 6],
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA, 'from' => 1, 'number' => 2],
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, 'from' => 2, 'number' => 1],
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'from' => null, 'number' => 6],
             // Unchanged - not reported
-            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_CARA, 'number' => 3],
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_CARA, 'from' => 3, 'number' => 3],
         ]);
 
         self::assertSame([
@@ -55,11 +55,11 @@ final class AssignTableNumbersHandlerTest extends KernelTestCase
     {
         try {
             $this->assign([
-                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'number' => 9],
+                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'from' => null, 'number' => 9],
                 // Ben keeps 2, so Anna can not have it
-                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA, 'number' => 2],
-                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_B_GINA, 'number' => 7],
-                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_DAN, 'number' => 0],
+                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA, 'from' => 1, 'number' => 2],
+                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_B_GINA, 'from' => null, 'number' => 7],
+                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_DAN, 'from' => 4, 'number' => 0],
             ]);
             self::fail('The table numbers must be refused.');
         } catch (InvalidTableNumbers $invalid) {
@@ -71,6 +71,37 @@ final class AssignTableNumbersHandlerTest extends KernelTestCase
         }
 
         self::assertNull($this->tableNumber(OfficialResultsFixture::ENTRY_A_FILIP));
+    }
+
+    /**
+     * review2-b m3: every assignment says what the device saw - a number somebody else changed meanwhile refuses the
+     * whole write (all or nothing), a replay of numbers already there is fine.
+     */
+    public function testANumberChangedMeanwhileRefusesEverythingAndNamesTheCurrentNumber(): void
+    {
+        try {
+            $this->assign([
+                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'from' => null, 'number' => 6],
+                // The page saw Eva at 4, but she is at 5 - another organiser's work
+                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA, 'from' => 4, 'number' => 7],
+            ]);
+            self::fail('A number changed meanwhile must refuse the write.');
+        } catch (InvalidTableNumbers $invalid) {
+            self::assertSame([
+                ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA, 'reason' => 'changed_meanwhile', 'current' => 5],
+            ], $invalid->problems);
+        }
+
+        self::assertNull($this->tableNumber(OfficialResultsFixture::ENTRY_A_FILIP));
+        self::assertSame(5, $this->tableNumber(OfficialResultsFixture::ENTRY_A_EVA));
+
+        // A swap sent twice (the answer got lost): the second time every entry has its new number already
+        $swap = [
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA, 'from' => 1, 'number' => 2],
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, 'from' => 2, 'number' => 1],
+        ];
+        self::assertCount(2, $this->assign($swap));
+        self::assertSame([], $this->assign($swap));
     }
 
     public function testTheRoundCanDoWithoutTableNumbers(): void
@@ -86,7 +117,7 @@ final class AssignTableNumbersHandlerTest extends KernelTestCase
     }
 
     /**
-     * @param list<array{entry: string, number: null|int}> $assignments
+     * @param list<array{entry: string, from: null|int, number: null|int}> $assignments
      * @return list<string>
      */
     private function assign(array $assignments): array

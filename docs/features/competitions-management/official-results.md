@@ -295,6 +295,9 @@ get their round's; desk, seating, overview and `GET competitions/{id}`: `COMPETI
 one (`/round-results/{id}` + the public `/round-stopwatch/{id}` for a round's page; every round's `/round-results/{id}`
 for the overview - never a URI template), may subscribe only, lasts an hour, and is signed with the hub key through
 MercureBundle's token factory (`null` + a warning when none can be made: the page then lives on its state refreshes).
+A token cannot be taken back: after a referee or a maintainer loses their rights, the page stops its stream at its next
+state fetch (at most 60 s - the 403 suspends it), but a token copied out of the page stays valid until it expires (at
+most 1 h) and receives the round's full entry updates until then.
 
 Why not the `mercureAuthorization` cookie: `MercureSubscribeCookieListener` rewrites it on **every** signed-in response
 with that request's topics only (the chat topics), so any other request - another tab, a JSON call - dropped the round

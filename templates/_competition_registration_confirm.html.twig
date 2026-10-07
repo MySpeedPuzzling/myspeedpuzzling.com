@@ -1,0 +1,49 @@
+{#
+    The confirmation of a new registration on the join page of an event that manages registration
+    (docs/features/competitions-management/registration.md). Says what the registration costs (the organiser's text)
+    and what happens - a reserved spot or the waitlist - before anything is saved: the GET never registers anybody.
+
+    - registration: SpeedPuzzling\Web\Results\EventRegistration
+    - competition, profile, profile_country, register_csrf_id
+#}
+<div data-registration-confirm>
+    {% if registration.entryFeeText %}
+        <p class="mb-2">
+            <strong>{{ 'competition_registration.card.entry_fee'|trans }}</strong> {{ registration.entryFeeText }}
+        </p>
+        <p class="small text-muted mb-3">{{ 'competition_registration.card.no_payment_processing'|trans }}</p>
+    {% endif %}
+
+    {% if registration.isOpen %}
+        {% if registration.isFull %}
+            <div class="alert alert-warning small py-2" role="status">
+                <i class="bi bi-hourglass-split me-1"></i>{{ 'competition_registration.confirm.full'|trans({'%position%': registration.waitlistedCount + 1}) }}
+            </div>
+        {% else %}
+            <p class="small text-muted mb-2">{{ 'competition_registration.confirm.reserved'|trans }}</p>
+        {% endif %}
+
+        {% if registration.closesAt %}
+            <p class="small text-muted mb-3">
+                <i class="bi bi-clock me-1"></i>{{ 'competition_registration.card.closes_at'|trans({'%date%': zoned_datetime(registration.closesAt, registration.timezone)}) }}
+            </p>
+        {% endif %}
+
+        <form method="post" action="{{ path('join_competition', {'competitionId': competition.id}) }}">
+            <input type="hidden" name="self_join" value="1">
+            <input type="hidden" name="_token" value="{{ csrf_token(register_csrf_id) }}">
+            <button type="submit" class="btn {{ registration.isFull ? 'btn-warning' : 'btn-primary' }} w-100" data-registration-submit>
+                <i class="bi {{ registration.isFull ? 'bi-hourglass-split' : 'bi-person-plus' }} me-1"></i>
+                {{- (registration.isFull ? 'competition_registration.confirm.join_waitlist_as' : 'competition_registration.confirm.register_as')|trans({'%name%': profile.playerName ?? profile.code, '%country%': profile_country ? profile_country.value : ''}) -}}
+            </button>
+        </form>
+    {% else %}
+        <div class="alert alert-secondary small py-2 mb-0" role="status" data-registration-unavailable="{{ registration.availability.value }}">
+            {% if registration.availability.value == 'not_yet_open' and registration.opensAt %}
+                {{ 'competition_registration.card.opens_at'|trans({'%date%': zoned_datetime(registration.opensAt, registration.timezone)}) }}
+            {% else %}
+                {{ ('competition_registration.card.unavailable.' ~ registration.availability.value)|trans }}
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

@@ -1,6 +1,8 @@
 {% extends 'base.html.twig' %}
 
 {% set hide_comparison_launcher = true %}
+{# An event that manages registration (docs/features/competitions-management/registration.md) - nothing of it otherwise #}
+{% set managed = registration is defined and registration is not null %}
 
 {% block title %}{{ 'competition.join.title'|trans({'%competitionName%': competition.name}) }}{% endblock %}
 
@@ -16,53 +18,35 @@
         <h1 class="h2">{{ 'competition.join.title'|trans({'%competitionName%': competition.name}) }}</h1>
 
         <div class="p-4 mt-4 shadow mx-auto" style="max-width: 500px;">
-            {% if not_connected_participants|length > 0 %}
-                <p class="mb-3">{{ 'competition.join.picker_description'|trans }}</p>
+            {% if not managed or not_connected_participants is not empty %}
+            <p class="mb-3">{{ 'competition.join.picker_description'|trans }}</p>
 
-                <form method="post" action="{{ path('join_competition', {'competitionId': competition.id}) }}">
-                    <div class="mb-3">
-                        <select name="participant_id" class="form-select" required
-                                data-controller="country-autocomplete symfony--ux-autocomplete--autocomplete">
-                            <option value="">{{ 'competition.join.select_name'|trans }}</option>
-                            {% for participant in not_connected_participants %}
-                                <option value="{{ participant.id }}" data-icon="{{ participant.countryCode ? 'fi fi-' ~ participant.countryCode.name }}">{{ participant.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+            <form method="post" action="{{ path('join_competition', {'competitionId': competition.id}) }}">
+                <div class="mb-3">
+                    <select name="participant_id" class="form-select" required
+                            data-controller="country-autocomplete symfony--ux-autocomplete--autocomplete">
+                        <option value="">{{ 'competition.join.select_name'|trans }}</option>
+                        {% for participant in not_connected_participants %}
+                            <option value="{{ participant.id }}" data-icon="{{ participant.countryCode ? 'fi fi-' ~ participant.countryCode.name }}"{% if managed and participant.id == matching_participant_id %} selected{% endif %}>{{ participant.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-check-lg me-1"></i>{{ 'competition.join.connect_confirm'|trans }}
-                    </button>
-                </form>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-check-lg me-1"></i>{{ 'competition.join.connect_confirm'|trans }}
+                </button>
+            </form>
             {% endif %}
 
-            {# PORT-TODO: PR #136 "I was in team X" picker - shown for every competition with round teams, must become opt-in #}
-            {% if teams|length > 0 %}
-                {% if not_connected_participants|length > 0 %}
-                    <hr class="my-4">
+            {% if managed %}
+                {% if not is_self_joined %}
+                    {% if not_connected_participants is not empty %}
+                        <hr class="my-4">
+                        <p class="text-muted small mb-2">{{ 'competition.join.not_on_list'|trans }}</p>
+                    {% endif %}
+                    {{ include('_competition_registration_confirm.html.twig') }}
                 {% endif %}
-
-                <p class="mb-2">{{ 'competition.join.team_picker_description'|trans }}</p>
-
-                <form method="post" action="{{ path('join_competition', {'competitionId': competition.id}) }}">
-                    <div class="mb-3">
-                        <select name="team_id" class="form-select" required>
-                            <option value="">{{ 'competition.join.select_team'|trans }}</option>
-                            {% for team in teams %}
-                                <option value="{{ team.teamId }}">
-                                    {{ team.teamName ?? 'competition.join.unnamed_team'|trans }} ({{ team.roundName }}){% if team.memberNames %} — {{ team.memberNames }}{% endif %}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-people me-1"></i>{{ 'competition.join.team_confirm'|trans }}
-                    </button>
-                </form>
-            {% endif %}
-
-            {% if not is_self_joined %}
+            {% elseif not is_self_joined %}
                 <hr class="my-4">
 
                 <p class="text-muted small mb-2">{{ 'competition.join.not_on_list'|trans }}</p>

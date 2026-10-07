@@ -1,0 +1,12 @@
+{% trans_default_domain 'emails' %}
+{# The entry fee and payment instructions of a managed registration - both typed by the organiser, escaped, and labelled
+   as the organiser's: MySpeedPuzzling never processes payments (docs/features/competitions-management/registration.md) #}
+{% if entryFeeText or paymentInstructions %}
+    {% if entryFeeText %}
+        <p><strong>{{ 'competition_registration.entry_fee'|trans }}</strong> {{ entryFeeText }}</p>
+    {% endif %}
+    {% if paymentInstructions %}
+        <p><strong>{{ 'competition_registration.payment_instructions'|trans }}</strong><br>{{ paymentInstructions|nl2br }}</p>
+    {% endif %}
+    <p class="small-print">{{ 'competition_registration.no_payment_processing'|trans }}</p>
+{% endif %}

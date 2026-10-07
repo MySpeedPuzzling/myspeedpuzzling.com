@@ -1,32 +1,25 @@
 {% trans_default_domain 'emails' %}
-{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
-            {{ include('emails/_header.html.twig') }}
+            {{ include('emails/_header.html.twig', {preheader: 'competition_registration.reserved.preheader'|trans({'%competitionName%': competitionName})}) }}
 
             <row>
                 <columns>
                     <spacer size-sm="24"></spacer>
-                    <h3>{{ 'competition_registration_reserved.title'|trans }}</h3>
+                    <h3>{{ 'competition_registration.reserved.title'|trans }}</h3>
                     <spacer size-sm="8"></spacer>
                 </columns>
             </row>
 
             <row>
                 <columns>
-                    {{ 'competition_registration_reserved.content'|trans({
-                        '%competitionName%': competitionName,
-                        '%eventUrl%': eventUrl,
-                    })|raw }}
+                    {# The event's name is typed by its organiser - escaped before it goes into the translation's markup #}
+                    {{ 'competition_registration.reserved.content'|trans({'%competitionName%': competitionName|e})|raw }}
+                    {{ include('emails/_competition_registration_payment.html.twig') }}
 
-                    {% if entryFeeText %}
-                        <p><strong>{{ 'competition_registration_reserved.entry_fee'|trans }}:</strong> {{ entryFeeText }}</p>
-                    {% endif %}
-
-                    {% if paymentInstructions %}
-                        <p><strong>{{ 'competition_registration_reserved.payment_instructions'|trans }}:</strong></p>
-                        <p>{{ paymentInstructions|nl2br }}</p>
-                    {% endif %}
+                    <spacer size-sm="8"></spacer>
+                    <button href="{{ eventUrl }}">{{ 'competition_registration.event_page_button'|trans }}</button>
                 </columns>
             </row>
 

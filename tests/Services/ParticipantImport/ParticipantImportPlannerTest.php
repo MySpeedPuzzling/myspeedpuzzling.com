@@ -361,10 +361,10 @@ final class ParticipantImportPlannerTest extends KernelTestCase
         ], roundsMapped: true), ParticipantImportMode::Sync);
 
         self::assertTrue($plan->canBeApplied());
-        self::assertSame(['Gone Member', 'Result Teammate', 'Sarah Williams'], array_values(array_map(
-            static fn (array $participant): string => $participant['name'],
-            [...$plan->removals->participants, ...$plan->removals->selfJoined],
-        )));
+        self::assertSame(
+            ['Gone Member', 'Result Teammate', 'Sarah Williams'],
+            array_column([...$plan->removals->participants, ...$plan->removals->selfJoined], 'name'),
+        );
         self::assertSame(['Result Holder'], array_column($plan->removals->participantsKeptWithResults, 'name'));
 
         // Moved Away (its member moved) and Left Behind (its member removed) are emptied; the team made in advance,

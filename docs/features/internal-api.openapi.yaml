@@ -608,6 +608,24 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+    delete:
+      summary: Delete a competition without results
+      operationId: deleteCompetition
+      description: |
+        An event or a series edition, with its rounds, puzzle assignments, teams
+        and participants. Refused (409) while any solving time belongs to it or to
+        one of its rounds. For empty leftovers, e.g. an edition created twice.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /internal-api/competitions/{competitionId}/approve:
     post:

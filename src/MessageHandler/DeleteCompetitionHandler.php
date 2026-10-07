@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Exceptions\CompetitionHasResults;
 use SpeedPuzzling\Web\Message\DeleteCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
@@ -24,6 +25,19 @@ readonly final class DeleteCompetitionHandler
     {
         $competitionId = $message->competitionId;
         $params = ['id' => $competitionId];
+
+        if ($message->refuseWhenItHasResults) {
+            $resultsCount = $this->database->fetchOne(
+                'SELECT COUNT(*) FROM puzzle_solving_time
+                 WHERE competition_id = :id
+                    OR competition_round_id IN (SELECT id FROM competition_round WHERE competition_id = :id)',
+                $params,
+            );
+
+            if (is_numeric($resultsCount) && (int) $resultsCount > 0) {
+                throw new CompetitionHasResults((int) $resultsCount);
+            }
+        }
 
         // Secret puzzles of the rounds going away - re-synced afterwards from the rounds left, never revealed by accident
         /** @var array<string> $roundIds */

@@ -32,6 +32,9 @@ that would otherwise be forgotten. Newest section on top.
       chat instead.
 - [ ] If organisers ask: order/hide the page's own parts (puzzles, participants, ...) - deliberately not built
       (the PR's `page_layout` was dropped in the port).
+- [ ] The section form's other repeatable rows (photo caption, sponsor name/URL, link label/URL) have an `aria-label`
+      and a placeholder but no visible label - the FAQ rows got real labels after the browser verification; the same
+      pattern there if organisers find the rows unclear once something is typed.
 
 ## Official round results (`docs/features/competitions-management/official-results.md`)
 
@@ -71,6 +74,9 @@ that would otherwise be forgotten. Newest section on top.
       referee opens the link they were given. A "Referee at" list with a Live entry button when referees ask for it.
 - [ ] A newly added referee is not told (no notification/e-mail) - the organiser hands them the link.
 - [ ] Referees on the results desk (read-only ranking) if events want referees to check what others entered.
+- [ ] A referee's live updates withhold every private player (the update has no viewer); a referee on a private
+      player's allow list keeps her code from the page's own state (`keepWithheldPlayers()`), but an entry they first
+      see through an update (a quick add on another device) shows her code only after the next state fetch (≤ 60 s).
 
 ## Seating (`docs/features/competitions-management/seating.md`)
 

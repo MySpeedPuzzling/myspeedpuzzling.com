@@ -12,12 +12,13 @@
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
 
     {% set timezone = round.displayTimezone %}
+    {% set timezone_assumed = round.timezoneAssumed %}
 
     <div class="pb-4">
         <h1 class="h2">{{ round.name }}</h1>
         <p class="text-muted mb-1">{{ competition.name }}</p>
         <p class="small text-muted" data-round-start>
-            <i class="bi bi-calendar-event me-1"></i>{{ 'competition.reveal.round_start'|trans({'%time%': zoned_datetime(round.startsAt, timezone)}) }}
+            <i class="bi bi-calendar-event me-1"></i>{{ 'competition.reveal.round_start'|trans({'%time%': zoned_datetime(round.startsAt, timezone, timezone_assumed)}) }}
         </p>
 
         <div class="mb-3">
@@ -76,16 +77,16 @@
                                 {% if status.kind == 'not_secret' %}
                                     <i class="bi bi-eye me-1"></i>{{ 'competition.reveal.status.not_secret'|trans }}
                                 {% elseif status.kind == 'revealed' %}
-                                    <i class="bi bi-eye me-1 text-success"></i>{{ 'competition.reveal.status.revealed'|trans({'%time%': zoned_datetime(status.until, timezone)}) }}
+                                    <i class="bi bi-eye me-1 text-success"></i>{{ 'competition.reveal.status.revealed'|trans({'%time%': zoned_datetime(status.until, timezone, timezone_assumed)}) }}
                                 {% else %}
                                     {% set image_prefix = status.kind == 'image_hidden' ? 'image_' : '' %}
                                     <i class="bi bi-eye-slash me-1 text-warning"></i>
                                     {%- if status.elsewhereUntil is not null and status.until is not null -%}
-                                        {{ ('competition.reveal.status.' ~ image_prefix ~ 'hidden_split')|trans({'%time%': zoned_datetime(status.until, timezone), '%elsewhere%': zoned_datetime(status.elsewhereUntil, timezone)}) }}
+                                        {{ ('competition.reveal.status.' ~ image_prefix ~ 'hidden_split')|trans({'%time%': zoned_datetime(status.until, timezone, timezone_assumed), '%elsewhere%': zoned_datetime(status.elsewhereUntil, timezone, timezone_assumed)}) }}
                                     {%- elseif status.elsewhereUntil is not null -%}
-                                        {{ ('competition.reveal.status.manual_' ~ image_prefix ~ 'hidden_split')|trans({'%elsewhere%': zoned_datetime(status.elsewhereUntil, timezone)}) }}
+                                        {{ ('competition.reveal.status.manual_' ~ image_prefix ~ 'hidden_split')|trans({'%elsewhere%': zoned_datetime(status.elsewhereUntil, timezone, timezone_assumed)}) }}
                                     {%- elseif status.until is not null -%}
-                                        {{ ('competition.reveal.status.' ~ image_prefix ~ 'hidden_' ~ status_scope)|trans({'%time%': zoned_datetime(status.until, timezone)}) }}
+                                        {{ ('competition.reveal.status.' ~ image_prefix ~ 'hidden_' ~ status_scope)|trans({'%time%': zoned_datetime(status.until, timezone, timezone_assumed)}) }}
                                     {%- elseif status.waitsForThisRound -%}
                                         {{ ('competition.reveal.status.manual_' ~ image_prefix ~ 'hidden_' ~ status_scope)|trans }}
                                     {%- elseif status.heldByAnotherRound -%}
@@ -100,7 +101,7 @@
                                 <p class="small text-muted mb-0">
                                     {{ ('competition.reveal.source.' ~ puzzle.revealMode.value)|trans }}
                                     {% if puzzle.revealsAt is not null and puzzle.revealsAt < round.startsAt %}
-                                        <span class="text-danger">{{ 'competition.reveal.source.before_round_start'|trans({'%time%': zoned_datetime(round.startsAt, timezone)}) }}</span>
+                                        <span class="text-danger">{{ 'competition.reveal.source.before_round_start'|trans({'%time%': zoned_datetime(round.startsAt, timezone, timezone_assumed)}) }}</span>
                                     {% endif %}
                                 </p>
                             {% endif %}
@@ -125,7 +126,7 @@
                                     <input type="hidden" name="_token" value="{{ csrf_token('keep_round_puzzle_hidden_' ~ puzzle.roundPuzzleId) }}">
                                     <button type="submit" class="btn btn-sm btn-warning">
                                         <i class="bi bi-eye-slash me-1"></i>{{ puzzle.revealsAt is not null
-                                            ? 'competition.reveal.keep_everywhere'|trans({'%time%': zoned_datetime(puzzle.revealsAt, timezone)})
+                                            ? 'competition.reveal.keep_everywhere'|trans({'%time%': zoned_datetime(puzzle.revealsAt, timezone, timezone_assumed)})
                                             : 'competition.reveal.keep_everywhere_manual'|trans }}
                                     </button>
                                 </form>
@@ -178,14 +179,14 @@
                                             <label class="form-check-label" for="reveal-automatic-{{ puzzle.roundPuzzleId }}">
                                                 {{ automatic_over
                                                     ? 'competition.reveal.form.automatic_over'|trans
-                                                    : 'competition.reveal.form.automatic'|trans({'%time%': zoned_datetime(round.automaticRevealAt, timezone)}) }}
+                                                    : 'competition.reveal.form.automatic'|trans({'%time%': zoned_datetime(round.automaticRevealAt, timezone, timezone_assumed)}) }}
                                             </label>
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="reveal_mode" value="scheduled" id="reveal-scheduled-{{ puzzle.roundPuzzleId }}" {{ current_mode == 'scheduled' ? 'checked' }}>
                                             <label class="form-check-label" for="reveal-scheduled-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.scheduled'|trans }}</label>
                                             <div class="mt-1">
-                                                <label class="form-label small mb-1" for="reveal-at-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.scheduled_at'|trans({'%zone%': timezone_name(timezone)}) }}</label>
+                                                <label class="form-label small mb-1" for="reveal-at-{{ puzzle.roundPuzzleId }}">{{ 'competition.reveal.form.scheduled_at'|trans({'%zone%': timezone_name(timezone, timezone_assumed)}) }}</label>
                                                 <input class="form-control form-control-sm" style="max-width: 16rem;" type="datetime-local" name="reveal_at" id="reveal-at-{{ puzzle.roundPuzzleId }}" value="{{ scheduled_value }}">
                                             </div>
                                             <div class="form-text mt-1">{{ 'competition.reveal.form.participants_after_reveal'|trans }}</div>

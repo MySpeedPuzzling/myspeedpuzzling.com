@@ -89,6 +89,15 @@ class CompetitionRound implements EntityWithEvents
     }
 
     /**
+     * displayTimezone() names no place the event is known to be in (RoundTimezone::isAssumed()) - shown without a place
+     * ("Central European Time"), ZonedDateTimeFormatter::timezoneName()
+     */
+    public function isTimezoneAssumed(): bool
+    {
+        return RoundTimezone::isAssumed($this->timezone, $this->competition->locationCountryCode, $this->competition->series?->locationCountryCode);
+    }
+
+    /**
      * No zone saved and no country to take one from - displayTimezone() is only the fallback (RoundTimezone), the round
      * form asks the organiser to check the start and pick the zone
      */

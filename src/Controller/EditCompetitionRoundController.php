@@ -248,7 +248,7 @@ final class EditCompetitionRoundController extends AbstractController
 
         if ($automaticRevealsAt !== null) {
             $this->addFlash('success', $this->translator->trans('competition.reveal.flash.round_updated_reveal_moved', [
-                '%time%' => $this->zonedDateTimeFormatter->format($automaticRevealsAt, $timezone),
+                '%time%' => $this->zonedDateTimeFormatter->format($automaticRevealsAt, $timezone, $round->isTimezoneAssumed()),
             ]));
         } else {
             $this->addFlash('success', $this->translator->trans('competition.flash.round_updated'));

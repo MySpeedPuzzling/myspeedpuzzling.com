@@ -93,7 +93,7 @@
                                                 <li>
                                                     <strong>{{ item.name }}</strong>
                                                     {% if not item.everywhere %}
-                                                        <span class="text-muted">– {{ 'competition.reveal.confirm.only_this_event'|trans({'%time%': zoned_datetime(item.hiddenElsewhereUntil, timezone)}) }}</span>
+                                                        <span class="text-muted">– {{ 'competition.reveal.confirm.only_this_event'|trans({'%time%': zoned_datetime(item.hiddenElsewhereUntil, timezone, round.timezoneAssumed)}) }}</span>
                                                     {% endif %}
                                                 </li>
                                             {% endfor %}

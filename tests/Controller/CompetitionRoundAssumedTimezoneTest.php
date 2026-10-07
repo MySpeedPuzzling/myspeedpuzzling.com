@@ -99,4 +99,24 @@ final class CompetitionRoundAssumedTimezoneTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/edit-event-round/' . CompetitionSeriesFixture::ROUND_EJJ_69);
         self::assertStringContainsString('Times will be displayed in this timezone.', $crawler->filter('#competition_round_form_timezone_help')->text());
     }
+
+    public function testRoundPuzzlesPagesNameAnAssumedZoneWithoutACountry(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        // Round start, reveal times and the reveal form's zone label
+        $browser->request('GET', '/en/manage-round-puzzles/' . CompetitionSeriesFixture::ROUND_EJJ_69);
+        $this->assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('Central European Time', $content);
+        self::assertStringNotContainsString('Czechia Time', $content);
+
+        // The secret-puzzle help on the add form
+        $browser->request('GET', '/en/add-puzzle-to-round/' . CompetitionSeriesFixture::ROUND_EJJ_69);
+        $this->assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('Central European Time', $content);
+        self::assertStringNotContainsString('Czechia Time', $content);
+    }
 }

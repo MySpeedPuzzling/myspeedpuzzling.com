@@ -295,6 +295,7 @@ SQL,
             // A manual reveal not made yet is stored as the far future (CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED)
             revealsAt: $revealsAt !== null && $revealsAt < new DateTimeImmutable(CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED) ? $revealsAt : null,
             timezone: RoundTimezone::resolve($row['round_timezone'], $row['competition_country'], $row['series_country']),
+            timezoneAssumed: RoundTimezone::isAssumed($row['round_timezone'], $row['competition_country'], $row['series_country']),
         );
     }
 

@@ -58,7 +58,7 @@ readonly final class SecretPuzzleRefusalMessage
         }
 
         return [$key, [
-            '%time%' => $this->zonedDateTimeFormatter->format($refusal->revealsAt, $refusal->timezone),
+            '%time%' => $this->zonedDateTimeFormatter->format($refusal->revealsAt, $refusal->timezone, $refusal->timezoneAssumed),
         ]];
     }
 }

@@ -61,7 +61,7 @@ final class RevealRoundPuzzleNowController extends AbstractController
         } else {
             try {
                 $this->messageBus->dispatch(new RevealRoundPuzzleNow(roundPuzzleId: $roundPuzzleId));
-                $this->flashRevealed($puzzleId, $puzzleName, $timezone);
+                $this->flashRevealed($puzzleId, $puzzleName, $timezone, $round->isTimezoneAssumed());
             } catch (RoundPuzzleAlreadyRevealed) {
                 $this->addFlash('danger', $this->translator->trans('competition.reveal.flash.already_revealed'));
             }
@@ -74,7 +74,7 @@ final class RevealRoundPuzzleNowController extends AbstractController
      * True to what happened: revealed on this round - and everywhere, unless another round keeps it hidden (read again,
      * the handler worked on fresh rows).
      */
-    private function flashRevealed(string $puzzleId, string $puzzleName, string $timezone): void
+    private function flashRevealed(string $puzzleId, string $puzzleName, string $timezone, bool $timezoneAssumed): void
     {
         $puzzle = $this->puzzleRepository->get($puzzleId);
         $now = $this->clock->now();
@@ -87,7 +87,7 @@ final class RevealRoundPuzzleNowController extends AbstractController
         } else {
             $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.revealed_held', [
                 '%puzzle%' => $puzzleName,
-                '%time%' => $this->zonedDateTimeFormatter->format($hiddenUntil, $timezone),
+                '%time%' => $this->zonedDateTimeFormatter->format($hiddenUntil, $timezone, $timezoneAssumed),
             ]));
         }
     }

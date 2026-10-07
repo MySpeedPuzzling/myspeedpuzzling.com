@@ -112,7 +112,7 @@ final class RemovePuzzleFromRoundController extends AbstractController
         } else {
             $this->addFlash('success', $this->translator->trans('competition.reveal.flash.removed_stays_hidden', [
                 '%puzzle%' => $puzzleName,
-                '%time%' => $this->zonedDateTimeFormatter->format($hiddenUntil, $timezone),
+                '%time%' => $this->zonedDateTimeFormatter->format($hiddenUntil, $timezone, $round->isTimezoneAssumed()),
             ]));
         }
 

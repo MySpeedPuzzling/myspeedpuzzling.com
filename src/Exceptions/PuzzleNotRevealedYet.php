@@ -23,6 +23,8 @@ final class PuzzleNotRevealedYet extends ConflictHttpException
         readonly public null|DateTimeImmutable $revealsAt,
         // The zone of the round whose reveal it waits for
         readonly public string $timezone,
+        // $timezone names no place the event is known to be in (RoundTimezone::isAssumed())
+        readonly public bool $timezoneAssumed = false,
     ) {
         parent::__construct($revealsAt !== null
             ? sprintf('This puzzle is still secret until %s UTC - you can add it after the reveal.', $revealsAt->format('Y-m-d H:i'))

@@ -46,10 +46,6 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Prod: "Ou La La SPC No. 17" exists twice - the duplicate (slug `ou-la-la-spc-no-17`, no date, no rounds) was
       invisible on the series page; it is now listed as "Date not set". Jan asks the organiser which one to keep - no
       data was changed.
-- [ ] An assumed round zone ("Central European Time" instead of "Czechia Time") is named neutrally on the round list,
-      round results and edition page only. Reveal times on the round puzzles page, `add_puzzle_to_round` help, the
-      edit-round flash and the reveal confirmation still say "Czechia Time" - `zoned_datetime()` already takes the
-      `assumed` flag, pass `round.timezoneAssumed` / `CompetitionRound` through those ~15 calls.
 - [ ] Two saves taking the same slug at the same moment: the handler re-check catches a save that finished in between,
       a truly simultaneous one fails at flush with a unique violation (series, editions) = 500. Standalone events have
       no DB constraint at all (`series_id` NULL) - consider a partial unique index `custom_competition_standalone_slug`

@@ -55,6 +55,39 @@ final class RecordRoundResultsHandlerTest extends KernelTestCase
         self::assertSame([], $replayed->changedEntryRefs);
     }
 
+    /**
+     * Review round 3 NIT: one set may change one field twice (an offline device typed a time, then corrected it) - the
+     * second change is checked against what the first one left, in order.
+     */
+    public function testAChainedChangeOfOneFieldInOneSetIsAppliedInOrder(): void
+    {
+        $recorded = $this->record([
+            self::change(self::filip(), 'result', null, ['seconds' => 4000]),
+            self::change(self::filip(), 'result', ['seconds' => 4000], ['seconds' => 3900]),
+            self::change(self::filip(), 'table_number', null, 7),
+            self::change(self::filip(), 'table_number', 7, 8),
+        ]);
+
+        self::assertSame(['applied', 'applied', 'applied', 'applied'], self::statuses($recorded));
+        $row = $this->entryRow(OfficialResultsFixture::ENTRY_A_FILIP);
+        self::assertSame(3900, $row['result_seconds']);
+        self::assertSame(8, $row['table_number']);
+        self::assertSame([self::filip()], $recorded->changedEntryRefs);
+    }
+
+    public function testAChainedChangeFromAValueTheSetNeverLeftIsAConflict(): void
+    {
+        $recorded = $this->record([
+            self::change(self::filip(), 'result', null, ['seconds' => 4000]),
+            // The device thought the first change left 4100
+            self::change(self::filip(), 'result', ['seconds' => 4100], ['seconds' => 3900]),
+        ]);
+
+        self::assertSame(['applied', 'conflict'], self::statuses($recorded));
+        self::assertSame(['seconds' => 4000], $recorded->outcomes[1]->jsonSerialize()['current']);
+        self::assertSame(4000, $this->entryRow(OfficialResultsFixture::ENTRY_A_FILIP)['result_seconds']);
+    }
+
     public function testAChangeFromAnOutdatedValueIsAConflictWithWhatIsThereNow(): void
     {
         $recorded = $this->record([self::change(self::anna(), 'result', null, ['seconds' => 1000])]);

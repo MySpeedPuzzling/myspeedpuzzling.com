@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Message\DeleteCompetitionTeam;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -36,16 +37,23 @@ final class DeleteTeamFromRoundController extends AbstractController
         name: 'delete_team',
         methods: ['POST'],
     )]
-    public function __invoke(string $teamId): Response
+    public function __invoke(Request $request, string $teamId): Response
     {
         $team = $this->competitionTeamRepository->get($teamId);
         $roundId = $team->round->id->toString();
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $team->round->competition->id->toString());
 
+        if (!$this->isCsrfTokenValid(ManageRoundTeamsController::csrfTokenId($roundId), $request->request->getString('_token'))) {
+            $this->addFlash('danger', $this->translator->trans('competition.teams.flash.expired'));
+
+            return $this->redirectToRoute('manage_round_teams', ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
+        }
+
+        // Its members go back to "unassigned" in this round, nothing else about them changes
         $this->messageBus->dispatch(new DeleteCompetitionTeam(teamId: $teamId));
 
         $this->addFlash('success', $this->translator->trans('competition.teams.flash.team_deleted'));
 
-        return $this->redirectToRoute('manage_round_teams', ['roundId' => $roundId]);
+        return $this->redirectToRoute('manage_round_teams', ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
     }
 }

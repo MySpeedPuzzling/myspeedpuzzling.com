@@ -18,12 +18,8 @@
 
         <p class="text-muted">{{ 'competition.teams.intro'|trans }}</p>
 
-        {% for flash_message in app.flashes('success') %}
-            <div class="alert alert-success">
-                <i class="ci-check-circle me-2"></i>
-                {{ flash_message }}
-            </div>
-        {% endfor %}
+        {# Flash messages are shown by base.html.twig #}
+        {% set csrf = csrf_token(csrf_token_id) %}
 
         <div class="card shadow-sm mb-4">
             <div class="card-body">
@@ -43,22 +39,46 @@
             <div class="row g-3">
                 {% for team in teams %}
                     <div class="col-12 col-md-6">
-                        <div class="card shadow-sm">
+                        {# scroll-margin: the rename lands on #team-<id>, below the sticky header #}
+                        <div class="card shadow-sm" id="team-{{ team.id }}" style="scroll-margin-top: 8rem;">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h3 class="h6 mb-0">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <h3 class="h6 mb-0 text-break">
                                         {% if team.name %}
                                             {{ team.name }}
                                         {% else %}
                                             <span class="text-muted fst-italic">{{ 'competition.teams.unnamed_team'|trans }}</span>
                                         {% endif %}
                                     </h3>
-                                    <form method="post" action="{{ path('delete_team', {'teamId': team.id}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.teams.confirm_delete'|trans }}')">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
+                                    <div class="d-flex gap-1 flex-shrink-0">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#rename-team-{{ team.id }}" aria-expanded="false" aria-controls="rename-team-{{ team.id }}" title="{{ 'competition.teams.rename'|trans }}">
+                                            <i class="bi bi-pencil"></i>
+                                            <span class="visually-hidden">{{ 'competition.teams.rename'|trans }}</span>
                                         </button>
-                                    </form>
+                                        <form method="post" action="{{ path('delete_team', {'teamId': team.id}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.teams.confirm_delete'|trans({'%count%': team.members|length})|e('js') }}')">
+                                            <input type="hidden" name="_token" value="{{ csrf }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ 'competition.teams.delete'|trans }}">
+                                                <i class="bi bi-trash"></i>
+                                                <span class="visually-hidden">{{ 'competition.teams.delete'|trans }}</span>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
+
+                                {# Full page load, so the page comes back at this card (Turbo drops the #fragment of a redirect) #}
+                                <form method="post" action="{{ path('rename_team', {'teamId': team.id}) }}" class="collapse mb-2" id="rename-team-{{ team.id }}" data-turbo="false">
+                                    <input type="hidden" name="_token" value="{{ csrf }}">
+                                    <label class="form-label small mb-1" for="rename-team-{{ team.id }}-name">{{ 'competition.teams.team_name'|trans }}</label>
+                                    <div class="d-flex gap-1">
+                                        <input type="text" class="form-control form-control-sm" id="rename-team-{{ team.id }}-name" name="name" value="{{ team.name }}" maxlength="{{ constant('SpeedPuzzling\\Web\\Entity\\CompetitionTeam::NAME_MAX_LENGTH') }}" placeholder="{{ 'competition.teams.unnamed_team'|trans }}">
+                                        <button type="submit" class="btn btn-sm btn-primary">{{ 'competition.teams.save_name'|trans }}</button>
+                                    </div>
+                                    <div class="form-text">{{ 'competition.teams.rename_help'|trans }}</div>
+                                </form>
+
+                                {% if shared_name_team_ids[team.id] is defined %}
+                                    <p class="small text-muted mb-2"><i class="bi bi-info-circle me-1"></i>{{ 'competition.teams.shared_name_hint'|trans }}</p>
+                                {% endif %}
 
                                 {% if team.members|length > 0 %}
                                     <ul class="list-unstyled mb-2">
@@ -72,9 +92,11 @@
                                                     <small class="text-muted ms-1">({{ member.playerName }})</small>
                                                 {% endif %}
                                                 <form method="post" action="{{ path('assign_participant_to_team', {'participantRoundId': member.participantRoundId}) }}" class="ms-auto">
+                                                    <input type="hidden" name="_token" value="{{ csrf }}">
                                                     <input type="hidden" name="team_id" value="">
                                                     <button type="submit" class="btn btn-sm btn-outline-secondary" title="{{ 'competition.teams.remove_from_team'|trans }}">
                                                         <i class="bi bi-x"></i>
+                                                        <span class="visually-hidden">{{ 'competition.teams.remove_from_team'|trans }}</span>
                                                     </button>
                                                 </form>
                                             </li>
@@ -123,9 +145,14 @@
 
                                 {% if teams|length > 0 %}
                                     <form method="post" action="{{ path('assign_participant_to_team', {'participantRoundId': participant.participantRoundId}) }}" class="ms-auto d-flex gap-1">
+                                        <input type="hidden" name="_token" value="{{ csrf }}">
                                         <select name="team_id" class="form-select form-select-sm" style="max-width: 180px;">
                                             {% for team in teams %}
-                                                <option value="{{ team.id }}">{{ team.name ?? 'competition.teams.unnamed_team'|trans }}</option>
+                                                {# Teams sharing a name are told apart by their members #}
+                                                {% set shared_name_members = shared_name_team_ids[team.id] is defined and team.members|length > 0
+                                                    ? ' (' ~ team.members|map(m => m.participantName)|join(', ') ~ ')'
+                                                    : '' %}
+                                                <option value="{{ team.id }}">{{ team.name ?? 'competition.teams.unnamed_team'|trans }}{{ shared_name_members }}</option>
                                             {% endfor %}
                                         </select>
                                         <button type="submit" class="btn btn-sm btn-outline-primary">
@@ -157,6 +184,11 @@
             input.name = 'team_id';
             input.value = teamId;
             hiddenForm.appendChild(input);
+            const token = document.createElement('input');
+            token.type = 'hidden';
+            token.name = '_token';
+            token.value = '{{ csrf|e('js') }}';
+            hiddenForm.appendChild(token);
             document.body.appendChild(hiddenForm);
             hiddenForm.submit();
         }

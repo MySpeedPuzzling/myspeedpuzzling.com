@@ -22,6 +22,15 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ManageRoundTeamsController extends AbstractController
 {
+    /**
+     * One token for every form of the page (delete, rename, assign, remove from team) - the assign form is put
+     * together by the page's script, which copies it.
+     */
+    public static function csrfTokenId(string $roundId): string
+    {
+        return 'manage_round_teams_' . $roundId;
+    }
+
     public function __construct(
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetRoundTeams $getRoundTeams,
@@ -80,8 +89,25 @@ final class ManageRoundTeamsController extends AbstractController
             }
         }
 
+        // Different groups may share a name in one round - each such card says so, so it is never a surprise
+        $nameCounts = [];
+        foreach ($teams as $team) {
+            if ($team->name !== null) {
+                $key = mb_strtolower($team->name);
+                $nameCounts[$key] = ($nameCounts[$key] ?? 0) + 1;
+            }
+        }
+        $sharedNameTeamIds = [];
+        foreach ($teams as $team) {
+            if ($team->name !== null && $nameCounts[mb_strtolower($team->name)] > 1) {
+                $sharedNameTeamIds[$team->id] = true;
+            }
+        }
+
         return $this->render('manage_round_teams.html.twig', [
             'round' => $currentRound,
+            'shared_name_team_ids' => $sharedNameTeamIds,
+            'csrf_token_id' => self::csrfTokenId($roundId),
             'roundEntity' => $round,
             'competitionId' => $competitionId,
             'teams' => $teams,

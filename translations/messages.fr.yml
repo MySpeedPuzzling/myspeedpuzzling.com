@@ -3410,6 +3410,7 @@ competition:
     "logo": "Logo"
     "logo_current": "Logo actuel"
     "logo_keep_help": "Laissez vide pour conserver le logo actuel."
+    "logo_replaces_current": "Votre nouveau logo est toujours là, inutile de le choisir à nouveau. Il remplacera le logo actuel à l'enregistrement."
     "maintainers": "Gestionnaires"
     "maintainers_help": "Commencez à taper un nom de joueur pour chercher. Les utilisateurs sélectionnés pourront gérer cet événement."
   "round_puzzle":
@@ -5344,6 +5345,7 @@ duplicate_check:
         teammate_other_day: "%name% a %time% pour ce puzzle du %date%"
 photo_stash:
     kept: "Votre photo est toujours là, inutile de la choisir à nouveau."
+    kept_logo: "Votre logo est toujours là, inutile de le choisir à nouveau."
     remove: "Retirer"
     lost: "Votre photo n’a pas pu être conservée cette fois – veuillez la choisir à nouveau."
 review_results:

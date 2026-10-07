@@ -3409,6 +3409,7 @@ qr_code:
     "logo": "Logo"
     "logo_current": "Aktuelles Logo"
     "logo_keep_help": "Leer lassen, um das aktuelle Logo zu behalten."
+    "logo_replaces_current": "Ihr neues Logo ist noch da, Sie müssen es nicht erneut auswählen. Beim Speichern ersetzt es das aktuelle Logo."
     "maintainers": "Verwalter"
     "maintainers_help": "Beginnen Sie mit der Eingabe eines Spielernamens zum Suchen. Ausgewählte Benutzer können diese Veranstaltung verwalten."
   "round_puzzle":
@@ -5342,6 +5343,7 @@ duplicate_check:
         teammate_other_day: "%name% hat %time% für dieses Puzzle vom %date%"
 photo_stash:
     kept: "Ihr Foto ist noch da, Sie müssen es nicht erneut auswählen."
+    kept_logo: "Ihr Logo ist noch da, Sie müssen es nicht erneut auswählen."
     remove: "Entfernen"
     lost: "Ihr Foto konnte diesmal nicht behalten werden – bitte wählen Sie es erneut aus."
 review_results:

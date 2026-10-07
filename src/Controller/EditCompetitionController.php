@@ -12,6 +12,8 @@ use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionUrlField;
+use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,6 +31,8 @@ final class EditCompetitionController extends AbstractController
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly TranslatorInterface $translator,
         private readonly CompetitionUrlField $urlField,
+        private readonly FormPhotoStash $formPhotoStash,
+        private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -56,7 +60,11 @@ final class EditCompetitionController extends AbstractController
         $formData = CompetitionFormData::fromCompetition($competition);
         $formData->slug = $competition->slug;
         $form = $this->createForm(CompetitionFormType::class, $formData, ['url_field' => true]);
+        // A logo chosen for a refused submit (e.g. a taken URL) comes back (FormPhotoStash) - editors have a player profile
+        $playerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
+        $restoredPhotos = $playerId !== null ? $this->formPhotoStash->restore($request, $form, $playerId) : [];
         $form->handleRequest($request);
+        $this->formPhotoStash->reportLost($form, $restoredPhotos);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -84,6 +92,10 @@ final class EditCompetitionController extends AbstractController
                         slug: $slug,
                     ));
 
+                    if ($playerId !== null) {
+                        $this->formPhotoStash->forget($restoredPhotos, $playerId);
+                    }
+
                     $this->addFlash('success', $this->translator->trans('competition.flash.updated'));
 
                     return $this->redirectToRoute('edit_competition', ['competitionId' => $competitionId]);
@@ -104,6 +116,7 @@ final class EditCompetitionController extends AbstractController
 
         return $this->render('edit_competition.html.twig', [
             'form' => $form,
+            'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
             'competition' => $competitionEvent,
             'slug_prefix' => $slugPrefix,
         ]);

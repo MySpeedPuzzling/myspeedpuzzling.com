@@ -5,6 +5,7 @@
 
     Required: field - the file field's view, stash_field - its name in FormPhotoStash::FIELDS, kept_photo - the kept
               photo or null
+    Optional: kept_message - the translation key of the "still here" note
 #}
 <div data-controller="file-drop-area">
     <div class="file-drop-area" {{ include('photo_stash/_kept_photo_attributes.html.twig', {photo: kept_photo}) }}>
@@ -16,7 +17,7 @@
         <span class="file-drop-message" data-kept-photo-target="message">{{ kept_photo is not null ? kept_photo.fileName : 'forms.drop_file'|trans }}</span>
         {{ form_widget(field, {attr: field.vars.attr|merge({class: 'file-drop-input'})}) }}
         <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
-        {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: stash_field}) }}
+        {{ include('photo_stash/_kept_photo_input.html.twig', {photo: kept_photo, field: stash_field, kept_message: kept_message|default('photo_stash.kept')}) }}
     </div>
     {{ form_errors(field) }}
 </div>

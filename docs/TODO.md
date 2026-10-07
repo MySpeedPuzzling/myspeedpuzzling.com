@@ -52,7 +52,6 @@ that would otherwise be forgotten. Newest section on top.
       on `competition (slug) WHERE series_id IS NULL` after checking prod for duplicates.
 - [ ] `AddEditionHandler` still generates its own slug unique only within the series (could equal a standalone event's
       - harmless since `/en/events/{slug}` prefers the standalone event, but `CompetitionSlugGenerator` should do it).
-- [ ] A URL (slug) error on the event/series edit form loses a chosen logo file - it has to be picked again.
 - [ ] Missing translation keys seen on the way (not competition pages): `collections.no_move_target_member`
       (`collections/move.html.twig`), `wish_list.remove.title` and `wish_list.already_in_wishlist`
       (`wishlist/add_item.html.twig`).

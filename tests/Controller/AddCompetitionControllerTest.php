@@ -7,10 +7,13 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Tests\UploadsCompetitionLogos;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class AddCompetitionControllerTest extends WebTestCase
 {
+    use UploadsCompetitionLogos;
+
     public function testAnonymousUserIsRedirectedToLogin(): void
     {
         $browser = self::createClient();
@@ -156,6 +159,69 @@ final class AddCompetitionControllerTest extends WebTestCase
             'SELECT id FROM competition_series WHERE name = :name',
             ['name' => 'Hidden Fields Series'],
         ));
+    }
+
+    public function testALogoChosenForARefusedSubmitIsKeptForTheNextOne(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        // The kept logo lives in the kernel's storage - one kernel for both submits
+        $browser->disableReboot();
+
+        $crawler = $browser->request('GET', '/en/add-event');
+        $form = $crawler->selectButton('Submit for Approval')->form();
+        $form['competition_form[isOnline]'] = '0';
+        $form['competition_form[location]'] = 'Prague';
+        $form['competition_form[dateFrom]'] = '15.06.2026';
+        $form['competition_form[dateTo]'] = '17.06.2026';
+        self::attachLogo($form);
+        // No name - refused
+        $crawler = $browser->submit($form);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertLogoKept($crawler);
+
+        $form = $crawler->selectButton('Submit for Approval')->form();
+        $form['competition_form[name]'] = 'Event With A Kept Logo';
+        $browser->submit($form);
+
+        $this->assertResponseRedirects();
+        $logo = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT logo FROM competition WHERE name = :name',
+            ['name' => 'Event With A Kept Logo'],
+        );
+        self::assertIsString($logo);
+        self::assertStringStartsWith('competitions/', $logo);
+    }
+
+    public function testALogoChosenForARefusedSeriesSubmitIsKeptForTheNextOne(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->disableReboot();
+
+        $crawler = $browser->request('GET', '/en/add-event');
+        $form = $crawler->selectButton('Submit for Approval')->form();
+        $form['competition_form[isOnline]'] = '1';
+        $form->setValues(['competition_form[isRecurring]' => true]);
+        self::attachLogo($form);
+        // No name - refused
+        $crawler = $browser->submit($form);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertLogoKept($crawler);
+
+        $form = $crawler->selectButton('Submit for Approval')->form();
+        $form['competition_form[name]'] = 'Series With A Kept Logo';
+        $browser->submit($form);
+
+        $this->assertResponseRedirects();
+        $logo = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT logo FROM competition_series WHERE name = :name',
+            ['name' => 'Series With A Kept Logo'],
+        );
+        self::assertIsString($logo);
+        self::assertStringStartsWith('competitions/', $logo);
     }
 
     /**

@@ -129,3 +129,8 @@ input. Now (`Services\PhotoStash\PhotoStash` + `FormPhotoStash`):
 
 The preview route `GET /{_locale}/photo-stash/{token}` answers only the owner (404 for anyone else), `private,
 no-store`, `nosniff`.
+
+The same applies to the organisers' logo upload (field `logo`) on add event, edit event / edition and edit series
+(`_competition_logo_field.html.twig`) - e.g. a save refused for a taken URL keeps the chosen logo. On the edit forms a
+kept new logo is previewed instead of the stored one ("It replaces the current logo when you save"); "Remove" goes
+back to keeping the stored logo. The add-edition form has no logo.

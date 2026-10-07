@@ -8,10 +8,13 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Tests\UploadsCompetitionLogos;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class EditCompetitionSeriesControllerTest extends WebTestCase
 {
+    use UploadsCompetitionLogos;
+
     public function testTheUrlFieldShowsTheCurrentSlugBehindTheRealAddress(): void
     {
         $browser = self::createClient();
@@ -107,6 +110,41 @@ final class EditCompetitionSeriesControllerTest extends WebTestCase
 
         $this->assertResponseRedirects();
         self::assertSame('competitions/ejj.png', self::seriesRow(CompetitionSeriesFixture::SERIES_EJJ)['logo']);
+    }
+
+    public function testALogoChosenForASaveRefusedForItsUrlIsKeptForTheNextSave(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        // The kept logo lives in the kernel's storage - one kernel for both submits
+        $browser->disableReboot();
+        $browser->getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition_series SET logo = :logo WHERE id = :id',
+            ['logo' => 'competitions/ejj.png', 'id' => CompetitionSeriesFixture::SERIES_EJJ],
+        );
+
+        $crawler = $browser->request('GET', '/en/edit-series/' . CompetitionSeriesFixture::SERIES_EJJ);
+        $form = $crawler->selectButton('Save Changes')->form();
+        $form['competition_form[slug]'] = 'puzzle-meetup-prague';
+        self::attachLogo($form);
+        $crawler = $browser->submit($form);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('body', 'This URL is already taken');
+        self::assertLogoKept($crawler);
+        // The new logo is previewed instead of the stored one
+        self::assertCount(0, $crawler->filter('img[alt="Current logo"]'));
+        self::assertSame('competitions/ejj.png', self::seriesRow(CompetitionSeriesFixture::SERIES_EJJ)['logo']);
+
+        // The next submit has no file - only the kept logo's token
+        $form = $crawler->selectButton('Save Changes')->form();
+        $form['competition_form[slug]'] = 'euro-jigsaw-jam-series';
+        $browser->submit($form);
+
+        $this->assertResponseRedirects();
+        $logo = self::seriesRow(CompetitionSeriesFixture::SERIES_EJJ)['logo'];
+        self::assertIsString($logo);
+        self::assertStringStartsWith('competitions/' . CompetitionSeriesFixture::SERIES_EJJ . '-', $logo);
     }
 
     /**

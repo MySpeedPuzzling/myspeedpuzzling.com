@@ -79,7 +79,11 @@
                                 <i class="bi bi-info-circle me-2 text-primary"></i>
                                 <span>{{ 'competition.form.links_per_edition'|trans }}</span>
                             </div>
-                            {{ form_row(form.logo) }}
+                            {{ include('_competition_logo_field.html.twig', {
+                                field: form.logo,
+                                current_logo: null,
+                                kept_photo: (kept_photos|default({})).logo ?? null,
+                            }, with_context = false) }}
                             <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
                                 {{ form_row(form.maintainers) }}
                             </div>

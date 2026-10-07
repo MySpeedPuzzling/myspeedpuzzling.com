@@ -1,8 +1,9 @@
-{#- The kept photo travels with the form as a token; choosing another file or "Remove" drops it -#}
+{#- The kept photo travels with the form as a token; choosing another file or "Remove" drops it.
+    Optional: kept_message - the translation key of the note (a logo is not a photo) -#}
 {% if photo is not null %}
     <input type="hidden" name="photo_stash[{{ field }}]" value="{{ photo.token }}" data-kept-photo-target="token">
     <div class="small text-success mt-2" data-kept-photo-target="note">
-        <i class="bi bi-check-circle me-1"></i>{{ 'photo_stash.kept'|trans }}
+        <i class="bi bi-check-circle me-1"></i>{{ (kept_message|default('photo_stash.kept'))|trans }}
         <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline" data-action="kept-photo#remove">{{ 'photo_stash.remove'|trans }}</button>
     </div>
 {% endif %}

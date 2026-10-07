@@ -9,11 +9,14 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Tests\UploadsCompetitionLogos;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class EditCompetitionControllerTest extends WebTestCase
 {
+    use UploadsCompetitionLogos;
+
     public function testAnonymousUserIsRedirectedToLogin(): void
     {
         $browser = self::createClient();
@@ -360,6 +363,67 @@ final class EditCompetitionControllerTest extends WebTestCase
 
         $this->assertResponseRedirects();
         self::assertSame('competitions/euro-jigsaw-jam.png', self::competitionRow(CompetitionFixture::COMPETITION_RECURRING_ONLINE)['logo']);
+    }
+
+    public function testALogoChosenForASaveRefusedForItsUrlIsKeptForTheNextSave(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        // The kept logo lives in the kernel's storage - one kernel for both submits
+        $browser->disableReboot();
+
+        $crawler = $browser->request('GET', '/en/edit-event/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE);
+        $form = $crawler->selectButton('Save Changes')->form();
+        $form['competition_form[slug]'] = 'WJPC 2024';
+        self::attachLogo($form);
+        $crawler = $browser->submit($form);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('body', 'This URL is already taken');
+        self::assertLogoKept($crawler);
+        $this->assertSelectorTextContains('body', 'Your logo is still here, no need to choose it again.');
+        self::assertNull(self::competitionRow(CompetitionFixture::COMPETITION_RECURRING_ONLINE)['logo']);
+
+        // The next submit has no file - only the kept logo's token
+        $form = $crawler->selectButton('Save Changes')->form();
+        $form['competition_form[slug]'] = 'euro-jigsaw-jam';
+        $browser->submit($form);
+
+        $this->assertResponseRedirects();
+        $logo = self::competitionRow(CompetitionFixture::COMPETITION_RECURRING_ONLINE)['logo'];
+        self::assertIsString($logo);
+        self::assertStringStartsWith('competitions/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE . '-', $logo);
+    }
+
+    public function testAKeptLogoOfAnEditionTakesThePlaceOfTheCurrentOne(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $browser->disableReboot();
+        self::connection($browser)->executeStatement(
+            'UPDATE competition SET logo = :logo WHERE id = :id',
+            ['logo' => 'competitions/ejj-69.png', 'id' => CompetitionSeriesFixture::EDITION_EJJ_69],
+        );
+
+        $crawler = $browser->request('GET', '/en/edit-event/' . CompetitionSeriesFixture::EDITION_EJJ_69);
+        $form = $crawler->selectButton('Save Changes')->form();
+        $form['competition_form[slug]'] = 'ejj-68-february-2026';
+        self::attachLogo($form);
+        $crawler = $browser->submit($form);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertLogoKept($crawler);
+        self::assertCount(0, $crawler->filter('img[alt="Current logo"]'));
+        $this->assertSelectorTextContains('body', 'It replaces the current logo when you save.');
+
+        $form = $crawler->selectButton('Save Changes')->form();
+        $form['competition_form[slug]'] = 'ejj-69-may-2026';
+        $browser->submit($form);
+
+        $this->assertResponseRedirects();
+        $logo = self::competitionRow(CompetitionSeriesFixture::EDITION_EJJ_69)['logo'];
+        self::assertIsString($logo);
+        self::assertStringStartsWith('competitions/' . CompetitionSeriesFixture::EDITION_EJJ_69 . '-', $logo);
     }
 
     public function testNoLogoNoThumbnail(): void

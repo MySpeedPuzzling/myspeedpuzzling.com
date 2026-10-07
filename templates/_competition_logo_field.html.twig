@@ -1,0 +1,27 @@
+{#
+    The logo upload of the event / series forms: a drop area whose chosen logo survives a refused submit (FormPhotoStash,
+    e.g. a taken URL) - shown again and sent as a token, replaceable by choosing another file. On the edit forms the
+    stored logo is shown above it and kept when nothing new is chosen; a kept new logo takes its place in the preview.
+
+    Required: field - form.logo, current_logo - the stored logo's path or null (the add form), kept_photo - the logo
+              kept from a refused submit or null
+#}
+<div class="mb-3">
+    {{ form_label(field) }}
+    {% if current_logo is not null and kept_photo is null %}
+        <div class="mb-2">
+            <img style="max-height: 84px;" src="{{ current_logo|thumbnail('puzzle_small') }}" alt="{{ 'competition.form.logo_current'|trans }}" class="img-fluid rounded border">
+        </div>
+    {% endif %}
+    {# The "still here" note goes with "Remove" or another file - then the help below holds again #}
+    {{ include('photo_stash/_photo_drop_area.html.twig', {
+        field: field,
+        stash_field: 'logo',
+        kept_photo: kept_photo,
+        kept_message: current_logo is not null ? 'competition.form.logo_replaces_current' : 'photo_stash.kept_logo',
+    }, with_context = false) }}
+    {% if current_logo is not null %}
+        <div class="form-text">{{ 'competition.form.logo_keep_help'|trans }}</div>
+    {% endif %}
+    {{ form_help(field) }}
+</div>

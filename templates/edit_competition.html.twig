@@ -120,19 +120,11 @@
                             {{ form_row(form.link) }}
                             {{ form_row(form.registrationLink) }}
                             {{ form_row(form.resultsLink) }}
-                            <div class="mb-3">
-                                {{ form_label(form.logo) }}
-                                {% if competition.logo is not null %}
-                                    <div class="mb-2">
-                                        <img style="max-height: 84px;" src="{{ competition.logo|thumbnail('puzzle_small') }}" alt="{{ 'competition.form.logo_current'|trans }}" class="img-fluid rounded border">
-                                    </div>
-                                {% endif %}
-                                {{ form_widget(form.logo) }}
-                                {% if competition.logo is not null %}
-                                    <div class="form-text">{{ 'competition.form.logo_keep_help'|trans }}</div>
-                                {% endif %}
-                                {{ form_errors(form.logo) }}
-                            </div>
+                            {{ include('_competition_logo_field.html.twig', {
+                                field: form.logo,
+                                current_logo: competition.logo,
+                                kept_photo: (kept_photos|default({})).logo ?? null,
+                            }, with_context = false) }}
                             <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
                                 {{ form_row(form.maintainers) }}
                             </div>

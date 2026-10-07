@@ -1,6 +1,7 @@
 # Participant import: upload → columns → preview → confirm
 
-Status: **plan, revised after review** (2026-10-07). Extends [participants.md](participants.md) §Excel Import, which
+Status: **built (PR 2)** (2026-10-07) - see "As built" at the end for what differs from the plan below. Extends
+[participants.md](participants.md) §Excel Import, which
 documents the rules the import already follows (matching, round names, teams). Those rules stay; this adds CSV, a sheet
 chooser, a column mapping step, a preview of exactly what will happen, and a second, opt-in mode in which **the file is
 the truth**.
@@ -30,7 +31,7 @@ many other columns (member numbers, addresses…) on several sheets. What went w
 |---|----------|
 | D1 | **Formats:** `.xlsx` (every sheet), `.csv`, `.tsv`, `.txt`. CSV: delimiter detected among `,` `;` TAB by a field count that stays the same over the first 20 records (not by counting characters - `;` files often hold `Solo, Pair` in a cell), an Excel `sep=;` first line honoured and skipped, quoted fields (RFC 4180), lone `\r` line ends. Encoding: BOM first (UTF-8, UTF-16LE/BE - Excel's "Unicode text" is UTF-16 + TAB), then valid UTF-8, then Windows-1250 when the bytes look Central European (0x8A 0x8D 0x8E 0x9A 0x9D 0x9E 0xE8 0xEC 0xF8 …), otherwise Windows-1252. The preview has **Encoding** and **Separator** selects ("Automatic" first) to override. `.xls` / `.ods` are not added (TODO). |
 | D2 | **Nothing is written before the organiser confirms.** The upload is kept in object storage (D9), the page shows columns + preview, and only "Confirm" writes. |
-| D3 | **Sheet chooser** for an `.xlsx` with more than one non-empty sheet. Hidden sheets are listed with "(hidden)" and never preselected. Switching sheets resets the mapping. **Header row** = the first row with at least 2 non-empty cells (title rows above it are skipped). Merged cells take the top-left value in every cell of the range (a team name merged over 4 rows). Formulas give their cached value, never a recalculation. At most 5,000 rows × 100 columns are read. |
+| D3 | **Sheet chooser** for an `.xlsx` with more than one non-empty sheet. Hidden sheets are listed with "(hidden)" and never preselected. Switching sheets resets the mapping. **Header row** = the first row with at least 2 non-empty cells (title rows above it are skipped). Merged cells take the top-left value in every cell of the range (a team name merged over 4 rows). Formulas give their cached value, never a recalculation. At most 5,000 rows × 100 columns are read (as built: 40 columns, plus size limits - see "As built"). |
 | D4 | **Column mapping.** Every column is shown with its header and up to 3 sample values, plus a select: *Ignore* / Name / First name / Last name / Country / Rounds (list) / Round (one) / Team (every pair/team round of the row) / Team in round *X* (one option per pair/team round) / MySpeedPuzzling player id / Participant id / External id / Status. Known headers are detected (D5), anything else defaults to *Ignore*: extra columns are not an error (the preview lists them as "Not imported"). Each field except *Team in round X* (one per round) can be mapped once; a second column for the same field is an error shown next to the select. |
 | D5 | **Header detection** (case-, space-, `_`/`-`-insensitive): everything the importer reads today plus a few aliases (full name, first/last name, surname, country code, rounds, division(s), team, `team: <round>`, `<round> team`, msp id). More aliases (localized headers) → `docs/TODO.md`. |
 | D6 | **First + Last name** mapped → name = `first + ' ' + last`. Name **or** First+Last is required; without it the preview shows only "Choose the column with the participants' names". |
@@ -41,11 +42,11 @@ many other columns (member numbers, addresses…) on several sheets. What went w
 | D10 | **Removal = the existing soft delete**, never a hard delete; a removed person can be restored on the participants page. A **self-joined** participant is first made the organiser's (`markAsImported()`), then soft-deleted: otherwise the row would be the player's own "I left" record, which the import never matches and "I'm going" silently restores. A round entry the file no longer lists is deleted (as the edit form does). A pair/team the import **empties** (at least one active member before, none after) is deleted the PR #244 way (members incl. hidden removed ones unassigned first, same transaction). Teams that were already empty (created in advance) are never removed. |
 | D11 | **Guards on removal.** Never removed, listed under "Kept – has results": a participant whose linked player has a result in a round of this event, and a round entry whose player has a result in that round. Nothing else references `competition_participant` (only `competition_participant_round`; table spots reference players). |
 | D12 | **Self-joined participants** not in the file are listed in their own group: "Joined on MySpeedPuzzling by themselves – you may not have them in your sheet". |
-| D13 | **Removed participants matched by the file are restored** (today's rule, now explicit): action "Restore (removed on <date>)", with the round entries and teams that come back with them. In sync, those entries are compared with the file like everybody else's. A removed *self-joined* row is never matched (today's rule) → "New". Round entries of removed participants are otherwise out of scope (never listed, never removed). |
+| D13 | **Removed participants matched by the file are restored** (today's rule, now explicit): action "Restore (removed on <date>)", with the round entries and teams that come back with them. In sync, those entries are compared with the file like everybody else's. A removed *self-joined* row is never matched (today's rule) → "New" (as built: the row is skipped with a message - see "As built"). Round entries of removed participants are otherwise out of scope (never listed, never removed). |
 | D14 | **Sync scope follows the mapping, never guesses.** Round entries are only removed when a Rounds/Round column is mapped; an **empty** rounds cell keeps the person's rounds (grouped warning). Teams are only synced in a round that has its own *Team in round X* column; the generic Team column only adds teams (today's rule). Field values are never cleared by empty cells, in both modes. |
 | D15 | **Team changes in full sync** (rounds with their own team column): the file names another team → the person moves (to the one team of that name; none → a new team; two or more of that name → not guessed, stays, warning); an empty cell while in a **named** team → unassigned (listed); an empty cell while in an **unnamed** team → stays (a file cannot name an unnamed team, and the export writes an empty cell for it). In *Update only* nobody is moved (today's "team kept" message). |
 | D16 | **Team identity = round + team name** (case-insensitive, whitespace collapsed). (a) A person already in a team whose name equals the file's keeps exactly that team, even when two teams of the round share the name. (b) A new member for a name two or more teams of the round share is not guessed: unassigned + warning. (c) More people under one name than the round's teams usually have (pair: > 2; team: > the most common team size of that round – from the file, falling back to the site's teams, at least 2) → warning "8 people are in "<name>" in Team – teams in this round usually have 4. If these are different teams, give them different names in the file". Applying still puts them into one team: the organiser saw the warning and chose to confirm. Removed participants never count for sizes. |
-| D17 | **Names probably of the same person** (warnings, never merged by themselves): a *name key* folds case, whitespace, diacritics, `’ ‘ ʼ ´ \`` → `'` and `‐ – —` → `-`. (a) Two rows of the file with the same key and a different spelling → warning. (b) A row that matches nobody by its exact name but exactly one active participant by key (same rules as today's name match) is **matched** to them, name updated to the file's spelling, shown as a change. (c) A new row and a participant on the site but not in the file whose keys are 1–2 edits apart (keys ≥ 6 characters) → warning "Daniel Walters (new, row 12) looks like Daniel Waters, who is on the site but not in the file". |
+| D17 | **Names probably of the same person** (warnings, never merged by themselves): a *name key* folds case, whitespace, diacritics, `’ ‘ ʼ ´ \`` → `'` and `‐ – —` → `-`. (a) Two rows of the file with the same key and a different spelling → warning. (b) A row that matches nobody by its exact name but exactly one active participant by key (as built: one who was on the site before the import, never an earlier row of the file) (same rules as today's name match) is **matched** to them, name updated to the file's spelling, shown as a change. (c) A new row and a participant on the site but not in the file whose keys are 1–2 edits apart (keys ≥ 6 characters) → warning "Daniel Walters (new, row 12) looks like Daniel Waters, who is on the site but not in the file". |
 | D18 | **Messages stay per row** in the plan (each with its kind and row number - today's texts, so the console command prints what it printed); the preview groups them per kind (rows listed, first 10 + "…"). Unknown columns are not a warning on the preview (they are visibly "Not imported"); the console command keeps reporting them. |
 | D19 | **Plain controllers, not a Live Component.** Upload = POST → 303 to the preview. Mapping, sheet, encoding, separator and mode = a GET form inside a `<turbo-frame data-turbo-action="advance">` (state in the URL, back button works, scroll kept). Confirm = a separate POST form carrying the previewed state in hidden fields → 303 to the participants page with the summary, or 303 back to the preview when stale. No POST answers 200 (CLAUDE.md Turbo rule). |
 | D20 | **The console command and the round trip keep working.** `myspeedpuzzling:import-competition-participants <id> <file>` plans with the detected mapping in *Update only* and applies – same code path. An export imported back unchanged changes nothing in either mode (tests). The web flow now goes through the message bus (today's controller called the importer directly). |
@@ -95,6 +96,45 @@ command.
 - Existing `CompetitionParticipantImporterTest` stays green (façade). Functional: the whole web flow.
 
 ## Out of scope / TODO
-- `.xls` / `.ods`, localized header aliases, a header row chosen by hand, remembering a mapping per event.
-- A team renamed in the file (all its members under a new name) is planned as move + delete, not as a rename.
-- Clearing field values from empty cells in full sync (D14).
+Moved to [`docs/TODO.md`](../../TODO.md) §"Participant import".
+
+## As built (PR 2, after review round 1)
+
+Where the code differs from the decisions above, or adds what they left open:
+
+- **Fingerprint** (D8) = sha256 of the mapped rows, the mode, the event state version, a hash of everybody the plan
+  keeps because of results (full sync's kept people and round entries, and `status = deleted` rows of people with
+  results - in both modes), and the file's `msp_player_id`s that exist. The state version is read **before** the
+  event's data (a change committed between the reads makes the confirm stale instead of applying a plan nobody saw)
+  and includes the rounds' `starts_at`.
+- **Applier** loads every entity the plan references before the first change; anything gone meanwhile (an edit
+  outside the import's lock) is `ParticipantImportPreviewStale`, never a 500 or half a plan.
+- **Large removal** (D7): the typed number travels in `ApplyParticipantImport::$confirmedRemovedCount` and the handler
+  refuses (`ParticipantImportNotApplicable`) when it is not the number of people removed - not only the form.
+- **Sync blockers** (D7b) as listed there; a row skipped because its player left by themselves (below) is not one.
+- **Links are never taken over** (D13 refined): a row matched by `participant_id` keeps the participant's external id
+  and connected player when the file has another one, and a player connected to another *active* participant of the
+  event is never connected again - each reported on the row.
+- **`status = deleted`** never removes somebody with results in the event (row message; like D11 for full sync).
+- **A removed self-joined participant** (the player's own "I left" record) is still never matched, and a row standing
+  for them (their `participant_id`, their `msp_player_id`, or their name key) is now **skipped** with a message instead
+  of creating a second record of them (D13 said "New").
+- **Name key** (D17 b) matches only participants on the site before the import: two rows of the file written
+  differently stay two people (warned by D17 a), exact-name rows still add up.
+- **Team size rule** (D16 c): a pair is oversized above 2; a team above the most common size of the round's teams in
+  the file (else of the site's teams; on a tie the smaller size; at least 2). Pairs/teams of one person are warned too.
+- **Rows** carry `roundsRestored` (the entries a restored participant comes back with) and `teamsBefore` (the team
+  before the import where the import gives or changes one - shown "Old → New").
+- **Mapping in the URL** carries `headers` (a short hash of the sheet's headers): a mapping is only applied to the
+  columns it was made for; another encoding/separator/sheet detects anew.
+- **Default sheet** (D3): the first visible sheet with a name column (as `ColumnMapping::detect()` finds Name or
+  First + Last name), else the visible sheet with the most rows.
+- **File limits** (D3): at most 40 columns; an `.xlsx` unpacking to more than 50 MB (or one part to more than 20 MB) is
+  refused before it is opened, and a sheet stops at 100,000 cells - "too large", never a 500. At most 5,000 merged
+  ranges are taken into account.
+- **Windows-1250 vs -1252** (D1): a byte counts by its neighbours - č ň ř (è ò ø in 1252) are Central European next to
+  a vowel and Western between consonants, ě inside a word, Š Ť Ł ą … only next to a letter (£15 is a price). 1250
+  needs at least one such letter and more evidence than Western-only letters (À Ñ å ê …).
+- **Summary flash** counts from the handler's `ParticipantImportResult`; after full sync it also names the round
+  entries and pairs/teams removed. Messages counted with `%count%` never start with `Word:` (Symfony's plural selector
+  takes that for a label and drops it).

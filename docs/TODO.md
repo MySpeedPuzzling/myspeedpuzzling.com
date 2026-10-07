@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Participant import (`docs/features/competitions-management/participant-import-preview.md`)
+
+- [ ] `.xls` / `.ods` uploads; localized header aliases ("Jméno", "Nom", …); a header row chosen by hand; remembering
+      the mapping per event.
+- [ ] A team renamed in the file (all its members under a new name) is planned as move + delete, not as a rename.
+- [ ] Clearing field values (country, external id) from empty cells in full sync - empty cells never clear today (D14).
+- [ ] An external id or connected player the file wants to change for a participant who has one is refused with a row
+      message (never taken over) - offer a way to change it on purpose (participants page or an explicit mapping).
+- [ ] Code page guess: names that defeat the neighbour rule (Norwegian "Øystein", French "Anaïs" next to vowels) can tip
+      a small Western file to Windows-1250 - the Encoding select fixes it; watch for reports.
+
 ## API usage statistics (`docs/features/api/usage-statistics.md`)
 
 - [ ] API-wide rate limiting: one Redis Lua script (GCRA / sliding window) on `kernel.request` in `redis-state`, keyed by `ApiCaller`, limits chosen from `api_caller_day.peak_requests_per_minute` once there are a few weeks of data; fold `api_puzzle_search` into it (design in the doc, "Later: rate limiting").
@@ -15,19 +26,19 @@ that would otherwise be forgotten. Newest section on top.
 - [x] Import reads `round_names` (what the template/export write) and still `round_name`; rows of the same person add
       up; unknown rounds and columns are reported; the export carries `participant_id` and one `team_name: <round>`
       column per pair/team round, so an export imported back changes nothing; same-named people are never merged.
-- [ ] Import accepts `.xlsx` only (a CSV gets "Please upload an .xlsx file - CSV is not supported yet") - CSV
-      support waits for Jan's question to the organiser.
+- [x] Import accepts `.xlsx` only - CSV/TSV/TXT, a sheet chooser, column mapping, a preview and full sync shipped
+      (`participant-import-preview.md`).
 - [ ] Bulk editor (spreadsheet-like grid of all participants: name, country, external id, player, one checkbox per
       round, team per round) - proposal in PR #241.
 - [x] `RoundTableManager` Live actions check `CompetitionEditVoter` on every request and only touch rows, tables
       and spots of their own round.
-- [ ] Re-import behaviours that predate the rework (review of PR #242), unchanged on purpose for now:
-      - a matched soft-deleted participant is restored unless its row says `status = deleted` - an old file brings
-        removed people back;
-      - a matched self-joined participant becomes `imported` (`markAsImported()`), so leaving the event later only
+- [ ] Re-import behaviours that predate the rework (review of PR #242):
+      - [x] a matched soft-deleted participant is restored unless its row says `status = deleted` - now shown on the
+        preview as "Restore (removed on …)" before anything is written;
+      - [ ] a matched self-joined participant becomes `imported` (`markAsImported()`), so leaving the event later only
         disconnects them - re-importing an export does this to every self-joined participant on it;
-      - a player who left (their self-joined row is soft-deleted and never matched) is signed up again by an old
-        file: the row with their `msp_player_id` creates a new `imported` participant linked to them.
+      - [x] a player who left (their self-joined row is soft-deleted and never matched) was signed up again by an old
+        file - such a row is now skipped with a message.
 
 ## Round time zones and secret-puzzle reveal (`docs/features/competitions-management/README.md`)
 

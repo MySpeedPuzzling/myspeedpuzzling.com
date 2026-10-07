@@ -220,6 +220,12 @@ Client-side filtering by participant name. Filters the visible table rows.
 
 ## Excel Import
 
+**Since PR 2 (2026-10-07) an upload goes through a preview** - CSV/TSV/TXT next to `.xlsx`, a sheet chooser,
+column mapping, exactly what will change, and two modes: *Update only* (the rules below) and *Full sync – the file is
+the truth* (also removes what the file does not have). Nothing is written before the organiser confirms. Design and
+what was built: [participant-import-preview.md](participant-import-preview.md). The rules below are those of *Update
+only*, which the console command still uses.
+
 ### Import Format
 
 | Column | Required? | Description |
@@ -235,11 +241,11 @@ Client-side filtering by participant name. Filters the visible table rows.
 | `team_name: <round>` | No | Team in that one round (e.g. `team_name: Pair`). The export writes one per duo/team round of the event. A filled cell wins over `team_name` for its round; an empty cell falls back to `team_name`; with both empty no team is assigned and an existing team stays. A column naming no round of the event is reported, and so is a filled cell whose round the row does not list |
 | `participant_id` | No | Written by the export. Matches that exact participant first; an id of no participant of this event is reported and the row is matched like a row without it |
 
-Only `.xlsx` is accepted; a `.csv` upload is answered with "Please upload an .xlsx file – CSV is not supported yet" (`competition.participants.import_csv_not_supported`), a file PhpSpreadsheet cannot read with "The file could not be read" (never a 500). Every message of the import is a `TranslatableMessage` under `competition.participants.import.*` (6 locales); the controller translates them into flashes, the console command into English.
+`.xlsx`, `.csv`, `.tsv` and `.txt` are accepted (encoding and separator detected, overridable on the preview); a file that cannot be read is answered with "The file could not be read" (never a 500). The column names above are detected; any other column can be mapped on the preview. Every message of the import is a `TranslatableMessage` under `competition.participants.import.*` (6 locales); the controller translates them into flashes, the console command into English.
 
 **Rounds and teams (`CompetitionParticipantImporter`, reworked 2026-10-06 after an organiser's import assigned nobody):**
 - Rows of the same participant add up: every round from every row is assigned, and the person counts once in "added / updated / unchanged / removed" ("updated" only when their data, rounds or teams changed).
-- Import only **adds** round assignments: nobody is removed from a round, nobody is moved to another team. A missing team on an existing assignment is filled in; a different team in the file is reported and ignored. Team names match ignoring upper/lower case.
+- *Update only* only **adds** round assignments: nobody is removed from a round, nobody is moved to another team (*Full sync* does both - see the preview doc, D14/D15). A missing team on an existing assignment is filled in; a different team in the file is reported and ignored. Team names match ignoring upper/lower case.
 - A row with `status = deleted` gets no rounds.
 - One `team_name` covering **several** pair/team rounds of a row (an export made before the per-round columns) is ambiguous: it joins new assignments, but never fills the missing team of an assignment the person already has - that is reported ("use the `team_name: <round>` columns of a new export").
 - A round name that matches no round is reported once per distinct value, with its row numbers and the event's round names. Unknown columns are reported. Rounds of one event whose names differ only in upper/lower case are reported (the import cannot tell them apart and uses the first).
@@ -247,7 +253,7 @@ Only `.xlsx` is accepted; a `.csv` upload is answered with "Please upload an .xl
 
 ### Upsert Logic
 
-Import is **always additive** — it never deletes participants not present in the file. Matching priority:
+*Update only* is **additive** — it never deletes participants not present in the file (*Full sync* removes them, softly, never anybody with results). Matching priority:
 
 1. **`participant_id`** — a participant of this event with that id → update it
 2. **`msp_player_id`** — if provided and a participant with that player already exists in this competition → update that participant
@@ -257,7 +263,7 @@ Import is **always additive** — it never deletes participants not present in t
 
 Rows with the same name (and country) and no id are **one person** - that is how several rounds can be listed on several rows; two different people with the same name need `participant_id` or `external_id`. Later rows see what earlier rows changed (a rename, a new external id).
 
-**Soft-deleted participants are included in upsert matching.** If a match hits a soft-deleted participant, it is restored (`deletedAt` cleared) and updated with the imported data. Active rows win over soft-deleted ones. **Exception:** a soft-deleted *self-joined* row is the player's own "I left" record — it is never matched, so an import can't sign a player up again through that row (but see `docs/TODO.md`: a row with their `msp_player_id` creates a new participant).
+**Soft-deleted participants are included in upsert matching.** If a match hits a soft-deleted participant, it is restored (`deletedAt` cleared) and updated with the imported data. Active rows win over soft-deleted ones. **Exception:** a soft-deleted *self-joined* row is the player's own "I left" record — it is never matched, and a row standing for that player (their `participant_id`, `msp_player_id` or name) is skipped with a message, so an import never signs a player up again. A row matched by `participant_id` never takes over another link: the participant keeps their external id and connected player, and a player connected to another active participant is not connected again.
 
 Best practice for organizers: edit an export (it carries `participant_id`), or use `external_id` / `msp_player_id`. Name-based matching is a convenience fallback.
 
@@ -282,12 +288,12 @@ Only put `msp_player_id` in a file for players who opted in themselves. WJPC 202
 
 Part of the management page. Expandable `<details>` section ("Import / Export" button) with two columns:
 
-- **Left:** File upload form (.xlsx) with Import button
+- **Left:** File upload form (.xlsx, .csv, .tsv, .txt) with "Upload and check" → the preview page
 - **Right:** Export buttons (export current participants, download template)
 
 Below the columns, a **"How does import work?"** documentation panel explains:
 
-1. **Merge behavior:** New names are added, existing participants (matched by name) are updated, participants not in the file are left untouched — nothing gets deleted unless `status` is set to `"deleted"`.
+1. **Merge behavior:** New names are added, existing participants (matched by name) are updated; *Update only* leaves participants not in the file untouched (nothing gets deleted unless `status` is `"deleted"`), *Full sync* removes them.
 2. **Column reference table:** Each column (`name`, `country`, `external_id`, `msp_player_id`, `status`) with required/optional flag and description. The `status` column explicitly documents allowed values: `"active"` (default) or `"deleted"`.
 3. **Recommended workflow:** Download template/export → edit → upload.
 

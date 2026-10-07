@@ -583,6 +583,33 @@ final class RoundsInternalApiTest extends WebTestCase
         self::assertSame([$start + 45 * 60, $start + 45 * 60], $this->hideDates($puzzleId));
     }
 
+    /**
+     * The deploy runbook's re-sync (competitions-management README, "Deploying and rolling back"): `PATCH {}` keeps every
+     * field of the round and writes its secret puzzles' site-wide hide again from start + delay - here after an older
+     * container wrote start + 10 for a round with 25 minutes.
+     */
+    public function testAnEmptyPatchKeepsTheRoundAndReSyncsItsSecretPuzzles(): void
+    {
+        $browser = self::createClient();
+        [$roundId, $puzzleId, $start] = $this->roundWithASecretPuzzle($browser);
+        $before = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['revealDelayMinutes' => 25]);
+        self::assertResponseIsSuccessful();
+        $this->connection()->executeStatement(
+            'UPDATE puzzle SET hide_until = :tenMinutes, hide_image_until = :tenMinutes WHERE id = :id',
+            ['tenMinutes' => gmdate('Y-m-d H:i:s', $start + 10 * 60), 'id' => $puzzleId],
+        );
+        self::assertSame([$start + 10 * 60, $start + 10 * 60], $this->hideDates($puzzleId));
+
+        $browser->request('PATCH', '/internal-api/rounds/' . $roundId, server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_AUTHORIZATION' => 'Bearer ' . self::INTERNAL_API_TOKEN,
+        ], content: '{}');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame($before, self::round($browser, $roundId));
+        self::assertSame([$start + 25 * 60, $start + 25 * 60], $this->hideDates($puzzleId));
+    }
+
     public function testAStartMovedEarlierButStillInTheFutureNeedsConfirmReveal(): void
     {
         $browser = self::createClient();

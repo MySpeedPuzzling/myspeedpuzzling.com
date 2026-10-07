@@ -322,7 +322,8 @@ Each item of `revealedPuzzles` has:
 
 To go ahead, send the same request again with `"confirmReveal": true` (in the `DELETE` body too). The organiser's form
 asks the same question. The check runs in the handler after its locks (`refuseToReveal`), so a list that changed in
-the meantime is decided on as it is at that point. Changing a reveal, revealing now and making a round keep its puzzle
+the meantime is decided on as it is at that point - `confirmReveal` is a blanket yes, not bound to the list the 409
+showed: one that grew before the resend is applied unseen. Changing a reveal, revealing now and making a round keep its puzzle
 secret on the whole site stay in the UI.
 
 **The competition's own puzzles** ("Competition puzzles" on the standalone event page) are the puzzles of the

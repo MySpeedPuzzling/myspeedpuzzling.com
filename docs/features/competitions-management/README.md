@@ -271,10 +271,10 @@ Each puzzle assignment has a `hideUntilRoundStarts` flag and a `hideMode` enum (
   - The flash says what came out.
   - The web yes is re-checked after the handler's locks too. The controller passes the hash it confirmed (`confirmedRevealHash` on the removal, round delete and round edit messages - also the hash of an empty list), and the handler recomputes the list and refuses a different one (`SecretPuzzlesWouldBeRevealed`); the page then asks again with the new list ("not the list you confirmed" after a tick, the plain question without one). A list that became **empty** meanwhile is never refused (`SecretRevealPreview::refuses()`): nothing comes out earlier any more, so no yes is needed.
   - **Refusing is the default:** `EditCompetitionRound::$refuseToReveal` is `true`, so any caller that did not ask (tests, future code) is refused whenever the edit would reveal anything earlier. The web form passes `false` together with its hash.
-  - The internal API asks the same: `DELETE`/`PATCH /internal-api/rounds/{id}` and `PUT …/puzzles` answer 409 with `revealedPuzzles` (each with `rightAway`, `revealsAt`, `previousRevealsAt`, `scope`) unless the body says `"confirmReveal": true` - checked in the handler after its locks (`refuseToReveal`).
+  - The internal API asks the same: `DELETE`/`PATCH /internal-api/rounds/{id}` and `PUT …/puzzles` answer 409 with `revealedPuzzles` (each with `rightAway`, `revealsAt`, `previousRevealsAt`, `scope`) unless the body says `"confirmReveal": true` - checked in the handler after its locks (`refuseToReveal`). `confirmReveal` is a blanket yes, not bound to a list (as since PR #240): a list that grew between the 409 and the resend is applied unseen (binding it to a hash: `docs/TODO.md`).
   - A later moment needs no yes; it re-syncs the site-wide hide to the later moment.
 
-  An automatic reveal that is over already, like a past own time, is refused on "Change reveal" ("use Reveal now"). "Automatic" on "Change reveal" is saved only for the automatic reveal the page showed: the form posts it (`automatic_reveal_at`, `ChangeRoundPuzzleReveal::$shownAutomaticRevealAt`), and the handler compares it with the round's under its lock - a round whose start or delay moved after the page was loaded is refused (`AutomaticRevealChangedMeanwhile`, 422 "has changed meanwhile – it is now on T"), and so is a message without the moment (no caller is exempt).
+  An automatic reveal that is over already, like a past own time, is refused on "Change reveal" ("use Reveal now"). "Automatic" on "Change reveal" is saved only for the automatic reveal the page showed: the form posts it (`automatic_reveal_at`, `ChangeRoundPuzzleReveal::$shownAutomaticRevealAt`), and the handler compares it with the round's under its lock - a round whose start or delay moved after the page was loaded is refused (`AutomaticRevealChangedMeanwhile`, 422 "has changed meanwhile – it is now on T"), and so is a message without the moment (no caller is exempt). The add-puzzle form does the same for a new secret puzzle: it posts the automatic reveal its help names (`automatic_reveal_at`, `AddPuzzleToCompetitionRound::$shownAutomaticRevealAt`, required whenever the puzzle is secret), and a round whose moment changed after the page was loaded - say 60 minutes set to 5 while the round runs, which asks nothing while it has no secret puzzle - comes back 422 with the moment it has now, nothing created, everything typed and the box photo kept. A moment the page named as over already stays as it was (revealed at once, the help says so); only a change is refused.
 - **The status line is the truth** (`RoundPuzzleStatus`): "hidden on your event page until X, but elsewhere only until Y" when the site's hide ends sooner (prod right after the deploy, before the backfill) - with a one-click "Keep it hidden everywhere until X" when the puzzle is the competition's own (`RoundPuzzleOwnership`: unapproved, added by its organisers or created by the row); "another round keeps it hidden" only when one does.
 - **Using a secret puzzle:** its organisers see it and prepare the event with it (round pages, a stopwatch, its codes); everybody else gets 404 (`SecretPuzzleAccess::assertPuzzleUsableBy()`, also for EAN linking and the marketplace page and filter). **Nothing personal is recorded on it before its name is revealed - by anybody, organisers and admins included:** times (the add form, relax mode, a saved stopwatch, API v1, moving a time onto it), collections, the wishlist, sell/swap listings, lending and borrowing (also through multiscan) are refused in the handlers (`SecretPuzzleAccess::assertWritableBy()`): `PuzzleNotFound` for whoever may not see it, `PuzzleNotRevealedYet` (409) for its organisers - "This puzzle is still secret until … – you can add it after the reveal.", shown as a flash, in the modal frame (`SecretPuzzleWriteRefusedSubscriber` - never for the APIs, matched by route and decoded path), on the add-time and edit-time forms (422, everything typed and the photos kept) or in the multiscan tray; the APIs answer 409. Organisers are told up front where they would time or save it (the add-time form, the stopwatch: "you can save times after the reveal"); the round's puzzles page tells them that participants log their times only after the reveal (manual and own reveal times, a hidden row of a round that has started), and a round's results page leaves out a puzzle another round still keeps secret and says when it opens (`GetRoundPuzzlesHeldElsewhere`). A stopwatch on a puzzle hidden from its owner shows no puzzle, in the list too. Every route taking a puzzle id is exercised in `SecretPuzzleRoutesTest` or listed with a reason in `SecretPuzzleRouteCanaryTest`. "Image only" keeps the name public, so it does not apply there. Admins may correct a secret puzzle (direct edit, change-request approval); moderators never see it, approval and merges wait for the reveal.
 - Rows from before 2026-10: `reveal_mode` defaulted to `automatic` (= the old rule on the event pages, while the site-wide columns ended at the start itself). `myspeedpuzzling:backfill-round-puzzle-reveals` (dry run unless `--write`) marks the round puzzles that created their puzzle - unapproved, both UUIDv7 ids within 2 minutes - and reveal in the future as `hides_everywhere`, plus that puzzle's other future secret rows, re-syncs those puzzles (which moves their guessable image names to random ones - the old objects go after the commit, async), lists what is already recorded on them (times, collection items, wishlist items, listings, loans), the round puzzles left secret on their event page only (image-only ones marked), the cache purge commands for the old image names, and lists every other puzzle hidden in the future for review. **Run it with the deploy** (dry run, then `--write`): until it has run, old rows have `hides_everywhere = false`, and moving such a round moves its event page only, not the puzzle's site-wide hide.
@@ -336,42 +336,13 @@ lock), the same write path as the start:
 
 #### Deploying and rolling back
 
-**Why a normal blue-green deploy of this release is safe.** Web and api run 2 replicas each and roll out one after the
-other (drain-first), then the messenger consumer restarts, so old and new containers serve side by side for a while.
-The release before this one computes every automatic reveal as **start + 10 minutes** - on its pages and APIs, in the
-site-wide hide its `SecretPuzzleHides::resync()` writes (`puzzle.hide_until` / `hide_image_until`), and in its round
-edit, which pins automatic reveals it believes are over at start + 10. Until this release is live, every round has the
-column default 10, so old and new containers compute the same moments. Only a delay saved on a new container while an
-old one still serves could be computed as start + 10 by the old one (and written into the site-wide hide by one of its
-writes): deploy when no reveal is pending (the rule below), and once every container runs this release, run the
-first query below - a round it lists was given its delay during the rollout: save it once in the round form (every
-round edit re-syncs its puzzles' dates).
+Web and api run 2 replicas each and roll out one after the other (drain-first), then the messenger consumer restarts:
+for a while old and new containers serve side by side. Releases before this one compute every automatic reveal as
+**start + 10 minutes** - on their pages and APIs, in the site-wide hide their `SecretPuzzleHides::resync()` writes
+(`puzzle.hide_until` / `hide_image_until`), and in their round edit, which pins automatic reveals it believes are over
+at start + 10. Until a round's delay is changed it has the column default 10, so both agree on it.
 
-**Before rolling back past this release.** An older release computes every automatic reveal as start + 10 - a longer
-delay would come out early there, on its pages and in the site-wide hide it writes. List the rounds with another delay
-that still have an upcoming automatic secret reveal:
-
-```sql
-SELECT cr.id, cr.name, cr.starts_at, cr.reveal_delay_minutes, count(*)
-FROM competition_round cr
-JOIN competition_round_puzzle crp ON crp.round_id = cr.id
-WHERE cr.reveal_delay_minutes <> 10
-  AND crp.hide_until_round_starts
-  AND crp.reveal_mode = 'automatic'
-  AND cr.starts_at + make_interval(mins => cr.reveal_delay_minutes) > (now() AT TIME ZONE 'UTC')
-GROUP BY 1, 2, 3, 4;
-```
-
-Every round it lists must be dealt with **before** the rollback: give its secret puzzles a scheduled reveal at the
-intended moment (start + delay, "Change reveal" → own time - an older release understands a scheduled reveal and the
-moment stays), or set the round back to 10 minutes (with the organiser: from a longer delay that reveals earlier and
-asks for the yes). A delay shorter than 10 only reveals later under an older release. Do not run the migration's
-`down()`: the column stays, older code ignores it and its inserts get the default 10.
-
-**Any release that changes how reveal moments are computed** (this one included): check production for reveals
-pending in the next 24 hours and deploy only when there are none - old and new containers serve side by side during
-the rollout and may disagree about them. Secret rows whose reveal (automatic: start + delay, scheduled: `reveal_at`)
-falls within the next 24 hours:
+**The pending-reveals query** - secret rows revealed within the next 24 hours:
 
 ```sql
 SELECT cr.id AS round_id, cr.name, crp.id AS round_puzzle_id, crp.reveal_mode,
@@ -385,8 +356,68 @@ WHERE crp.hide_until_round_starts
 ORDER BY reveals_at;
 ```
 
-For this release's own deploy the column does not exist yet: run it with `cr.starts_at + interval '10 minutes'` in
-place of `cr.starts_at + make_interval(mins => cr.reveal_delay_minutes)`.
+**The delay query** - rounds with a delay other than 10 and an upcoming automatic secret reveal, with the own reveal
+time that keeps their moment: start + delay rounded **up** to the whole minute (the own-time field takes whole minutes
+in the round's zone - rounded down, a start with seconds would reveal up to 59 s early):
+
+```sql
+SELECT cr.id, cr.name, cr.timezone, cr.starts_at, cr.reveal_delay_minutes,
+       count(*) AS automatic_secret_puzzles,
+       date_trunc('minute', cr.starts_at + make_interval(mins => cr.reveal_delay_minutes) + interval '59 seconds') AS own_time_utc,
+       to_char(date_trunc('minute', cr.starts_at + make_interval(mins => cr.reveal_delay_minutes) + interval '59 seconds')
+               AT TIME ZONE 'UTC' AT TIME ZONE cr.timezone, 'YYYY-MM-DD HH24:MI') AS own_time_in_round_zone
+FROM competition_round cr
+JOIN competition_round_puzzle crp ON crp.round_id = cr.id
+WHERE cr.reveal_delay_minutes <> 10
+  AND crp.hide_until_round_starts
+  AND crp.reveal_mode = 'automatic'
+  AND cr.starts_at + make_interval(mins => cr.reveal_delay_minutes) > (now() AT TIME ZONE 'UTC')
+GROUP BY cr.id
+ORDER BY cr.starts_at;
+```
+
+(`own_time_in_round_zone` is empty for a round without a saved zone - type `own_time_utc` in the zone its puzzles page
+names.)
+
+**Deploying this release** (and any later one that changes how reveal moments are computed):
+
+1. **Nothing pending.** Run the pending-reveals query on production and deploy only when it lists nothing - old and new
+   containers may disagree about a reveal during the rollout. For this release the column does not exist yet: replace
+   both `cr.starts_at + make_interval(mins => cr.reveal_delay_minutes)` with `cr.starts_at + interval '10 minutes'`.
+2. **Deploy.** During the rollout a round form rendered by a new container but posted to an old one fails the old
+   release's extra-field check with a bare 422 - nothing is saved, the organiser saves again.
+3. **Every container runs the new image.** On lily,
+   `docker inspect --format '{{.Name}} {{.Image}}' $(docker ps -q --filter name=myspeedpuzzling)`: every `web`, every
+   `api` and the `messenger-consumer` container show the id of the deployed image
+   (`docker image inspect --format '{{.Id}}' ghcr.io/myspeedpuzzling/website:main`). If the api rollout failed
+   (`deploy.sh` stops at the error, `set -e`), the old api keeps serving `/api/v*` with start + 10: finish the rollout
+   (queue the deploy again) or roll web back, promptly. Until then, give every round the delay query lists a scheduled
+   reveal at its `own_time` ("Change reveal" → own time).
+4. **After the rollout, re-sync.** Run the delay query. Every round it lists got its delay during the rollout (before
+   it, every round had 10), possibly while an old container wrote start + 10 into its puzzles' site-wide hide. Re-sync
+   each with `PATCH /internal-api/rounds/{id}` and the body `{}`: it keeps every field as the round has it under the
+   handler's lock and always re-syncs its puzzles. Not by saving the round form - that writes the form's badge colour
+   and zone too.
+
+**Rolling back past this release:**
+
+1. **Nothing pending.** Run the pending-reveals query first, like before a deploy - a rollback changes how moments are
+   computed too.
+2. **Keep every moment.** Run the delay query and give the automatic secret puzzles of every round it lists a scheduled
+   reveal at its `own_time` ("Change reveal" → own time). An older release understands a scheduled reveal, so the moment
+   stays; with an automatic one it would reveal a longer delay early (pages, APIs and the site-wide hide it writes).
+3. **Roll back.** Once the older release serves everywhere, run the delay query again and give the rows it lists now
+   (added during the rollback) an own time through the older release's "Change reveal".
+4. **Reset the delays:** `UPDATE competition_round SET reveal_delay_minutes = 10 WHERE reveal_delay_minutes <> 10;`
+   The older code ignores the column, so nothing moves now. Without the reset, a later re-deploy would apply a delay
+   under 10 to puzzles organisers added while the old UI said "10 minutes" - earlier than shown.
+
+Do not run the migration's `down()`: the column stays, older code ignores it and its inserts get the default 10. A
+round with a delay **under** 10 whose puzzles already came out (start + delay passed, start + 10 not yet) is hidden
+again by the older release until start + 10 - not an early reveal, but it breaks "nothing public is hidden again".
+
+**What no check covers:** a round created or moved to start within the rollout minutes, with secret puzzles and a delay
+over 10, is revealed at start + 10 by the old containers. Only watching during the rollout helps.
 
 ## Table Layout System
 

@@ -3860,8 +3860,17 @@ competition:
         import_export: "Import / Export"
         import_title: "Import participants"
         import_button: "Import"
-        import_csv_not_supported: "Please upload an .xlsx file – CSV is not supported yet."
         import:
+            upload:
+                label: "Participant list (.xlsx, .csv, .tsv or .txt)"
+                choose_file: "Please choose a file with your participant list."
+                invalid_type: "Please upload an .xlsx workbook or a .csv, .tsv or .txt file."
+                too_large: "The file is too large – at most %max%."
+                failed: "The file could not be uploaded. Please try again."
+            file:
+                unreadable: "The file could not be read. Please upload an .xlsx workbook (Excel, Numbers, Google Sheets, LibreOffice) or a CSV file."
+                empty: "The file has no values."
+                too_many_rows: "The file has more than %max% rows – that is more than one participant list can hold. Please upload the list only."
             summary: "Import complete: %added% added, %updated% updated, %unchanged% unchanged, %deleted% removed."
             empty_file: "The file is empty."
             unreadable_file: "The file could not be read. Please upload an .xlsx file saved from Excel, Numbers or Google Sheets."

@@ -3594,7 +3594,6 @@ competition:
     "import_export": "Importer / Exporter"
     "import_title": "Importer des participants"
     "import_button": "Importer"
-    "import_csv_not_supported": "Veuillez importer un fichier .xlsx – le CSV n'est pas encore pris en charge."
     "import":
       "summary": "Import terminé : %added% ajoutés, %updated% mis à jour, %unchanged% inchangés, %deleted% retirés."
       "empty_file": "Le fichier est vide."

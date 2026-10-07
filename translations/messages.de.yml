@@ -3593,7 +3593,6 @@ qr_code:
     "import_export": "Import / Export"
     "import_title": "Teilnehmer importieren"
     "import_button": "Importieren"
-    "import_csv_not_supported": "Bitte laden Sie eine .xlsx-Datei hoch – CSV wird noch nicht unterstützt."
     "import":
       "summary": "Import abgeschlossen: %added% hinzugefügt, %updated% aktualisiert, %unchanged% unverändert, %deleted% entfernt."
       "empty_file": "Die Datei ist leer."

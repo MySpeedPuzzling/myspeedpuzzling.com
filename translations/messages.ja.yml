@@ -3584,7 +3584,6 @@ qr_code:
     "import_export": "インポート / エクスポート"
     "import_title": "参加者をインポート"
     "import_button": "インポート"
-    "import_csv_not_supported": ".xlsx ファイルをアップロードしてください — CSV にはまだ対応していません。"
     "import":
       "summary": "インポート完了: 追加 %added% 件、更新 %updated% 件、変更なし %unchanged% 件、削除 %deleted% 件。"
       "empty_file": "ファイルが空です。"

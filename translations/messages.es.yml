@@ -3594,7 +3594,6 @@ fair_use_policy:
     "import_export": "Importar / Exportar"
     "import_title": "Importar participantes"
     "import_button": "Importar"
-    "import_csv_not_supported": "Sube un archivo .xlsx: CSV todavía no es compatible."
     "import":
       "summary": "Importación completada: %added% añadidos, %updated% actualizados, %unchanged% sin cambios, %deleted% eliminados."
       "empty_file": "El archivo está vacío."

@@ -3624,6 +3624,23 @@ qr_code:
       "team_round_not_listed": "Zeile %row%: Team \"%team%\" für die Runde \"%round%\" ignoriert – die Zeile nennt diese Runde nicht in round_names."
       "unknown_round": "{1}Die Runde \"%round%\" gibt es in dieser Veranstaltung nicht (Zeile %rows%), nicht zugeordnet. Runden dieser Veranstaltung: %rounds%.|]1,Inf[Die Runde \"%round%\" gibt es in dieser Veranstaltung nicht (Zeilen %rows%), nicht zugeordnet. Runden dieser Veranstaltung: %rounds%."
       "no_rounds_yet": "noch keine - legen Sie zuerst die Runden an"
+      "warning":
+        "team_name_shared": "Zeile %row%: %count% Teams in der Runde „%round%“ heißen „%team%“, daher wurde „%name%“ keinem davon zugeordnet. Geben Sie den Teams auf der Website oder in der Datei unterschiedliche Namen."
+        "team_name_shared_kept": "Zeile %row%: %count% Teams in der Runde „%round%“ heißen „%team%“, daher bleibt „%name%“ im Team „%current%“. Geben Sie den Teams auf der Website oder in der Datei unterschiedliche Namen."
+        "rounds_kept": "Zeile %row%: Die Rundenzelle von „%name%“ ist leer, daher bleiben die Runden auf der Website erhalten."
+        "pair_oversized": "%count% Personen sind in „%team%“ in %round% – ein Paar hat 2. Wenn es verschiedene Paare sind, geben Sie ihnen in der Datei unterschiedliche Namen."
+        "team_oversized": "%count% Personen sind in „%team%“ in %round% – Teams in dieser Runde haben meist %usual%. Wenn es verschiedene Teams sind, geben Sie ihnen in der Datei unterschiedliche Namen."
+        "team_single": "{1}In %round% hat %teams% nur eine Person.|]1,Inf[In %round% haben %teams% jeweils nur eine Person."
+        "name_spellings": "Ein Name ist in den Zeilen %rows% unterschiedlich geschrieben: %names%. Wenn es eine Person ist, schreiben Sie ihn überall gleich."
+        "similar_name": "%new% (neu, Zeile %row%) ähnelt %existing%, der/die auf der Website, aber nicht in der Datei ist. Wenn es dieselbe Person ist, verwenden Sie die Schreibweise der Website oder korrigieren Sie sie dort."
+      "plan":
+        "blocker":
+          "missing_name": "{1}Zeile %rows% hat keinen Namen.|]1,Inf[%count% Zeilen haben keinen Namen (Zeilen %rows%)."
+          "ambiguous_name": "{1}Zeile %rows% passt zu mehreren Teilnehmern gleichen Namens.|]1,Inf[%count% Zeilen passen zu mehreren Teilnehmern gleichen Namens (Zeilen %rows%)."
+          "unknown_round": "{1}Die Runde %rounds% gibt es bei dieser Veranstaltung nicht.|]1,Inf[Die Runden %rounds% gibt es bei dieser Veranstaltung nicht."
+          "round_case_collision": "Die Runden %rounds% unterscheiden sich nur in Groß-/Kleinschreibung."
+          "foreign_participant_ids": "%count% Zeilen enthalten eine participant_id einer anderen Veranstaltung – ist das der Export einer anderen Veranstaltung?"
+          "no_match": "Keine Zeile der Datei passt zu einem der %count% Teilnehmer auf der Website – ist die richtige Spalte für die Namen gewählt und ist es die richtige Datei?"
       "preview":
         "title": "Teilnehmer importieren"
         "intro": "Noch ist nichts gespeichert. Prüfen Sie, wie die Datei gelesen wird und was der Import tun wird, und bestätigen Sie dann unten auf der Seite."

@@ -3625,6 +3625,23 @@ fair_use_policy:
       "team_round_not_listed": "Fila %row%: equipo \"%team%\" para la ronda \"%round%\" ignorado: la fila no incluye esa ronda en round_names."
       "unknown_round": "{1}La ronda \"%round%\" no existe en este evento (fila %rows%), sin asignar. Rondas de este evento: %rounds%.|]1,Inf[La ronda \"%round%\" no existe en este evento (filas %rows%), sin asignar. Rondas de este evento: %rounds%."
       "no_rounds_yet": "ninguna todavía: añade primero las rondas"
+      "warning":
+        "team_name_shared": "Fila %row%: %count% equipos de la ronda «%round%» se llaman «%team%», así que «%name%» no se ha puesto en ninguno. Pon nombres distintos a los equipos en la web o en el archivo."
+        "team_name_shared_kept": "Fila %row%: %count% equipos de la ronda «%round%» se llaman «%team%», así que «%name%» sigue en el equipo «%current%». Pon nombres distintos a los equipos en la web o en el archivo."
+        "rounds_kept": "Fila %row%: la celda de rondas de «%name%» está vacía, así que conserva las rondas que tiene en la web."
+        "pair_oversized": "Hay %count% personas en «%team%» en %round%; una pareja tiene 2. Si son parejas distintas, ponles nombres distintos en el archivo."
+        "team_oversized": "Hay %count% personas en «%team%» en %round%; los equipos de esta ronda suelen tener %usual%. Si son equipos distintos, ponles nombres distintos en el archivo."
+        "team_single": "{1}En %round%, %teams% tiene solo una persona.|]1,Inf[En %round%, %teams% tienen solo una persona cada uno."
+        "name_spellings": "Un nombre está escrito de formas distintas en las filas %rows%: %names%. Si es una sola persona, escríbelo igual en todas partes."
+        "similar_name": "%new% (nuevo, fila %row%) se parece a %existing%, que está en la web pero no en el archivo. Si es la misma persona, usa cómo está escrito en la web o corrígelo allí."
+      "plan":
+        "blocker":
+          "missing_name": "{1}La fila %rows% no tiene nombre.|]1,Inf[%count% filas no tienen nombre (filas %rows%)."
+          "ambiguous_name": "{1}La fila %rows% coincide con varios participantes con el mismo nombre.|]1,Inf[%count% filas coinciden con varios participantes con el mismo nombre (filas %rows%)."
+          "unknown_round": "{1}La ronda %rounds% no existe en este evento.|]1,Inf[Las rondas %rounds% no existen en este evento."
+          "round_case_collision": "Las rondas %rounds% solo se diferencian en mayúsculas y minúsculas."
+          "foreign_participant_ids": "%count% filas llevan un participant_id de otro evento: ¿es la exportación de otro evento?"
+          "no_match": "Ninguna fila del archivo coincide con ninguno de los %count% participantes de la web: ¿has elegido la columna correcta para los nombres y es el archivo correcto?"
       "preview":
         "title": "Importar participantes"
         "intro": "Todavía no se ha guardado nada. Revisa cómo se lee el archivo y qué hará la importación, y confirma al final de la página."

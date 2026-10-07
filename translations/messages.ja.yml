@@ -3615,6 +3615,23 @@ qr_code:
       "team_round_not_listed": "%row% 行目: ラウンド \"%round%\" のチーム \"%team%\" は無視しました — この行の round_names にそのラウンドがありません。"
       "unknown_round": "ラウンド \"%round%\" はこのイベントにありません（%rows% 行目）。割り当てていません。このイベントのラウンド: %rounds%。"
       "no_rounds_yet": "まだありません — 先にラウンドを追加してください"
+      "warning":
+        "team_name_shared": "%row%行目: ラウンド「%round%」には「%team%」という名前のチームが%count%つあるため、「%name%」はどのチームにも入れていません。サイトまたはファイルでチーム名を別々にしてください。"
+        "team_name_shared_kept": "%row%行目: ラウンド「%round%」には「%team%」という名前のチームが%count%つあるため、「%name%」はチーム「%current%」のままです。サイトまたはファイルでチーム名を別々にしてください。"
+        "rounds_kept": "%row%行目: 「%name%」のラウンド欄が空のため、サイト上のラウンドはそのまま残ります。"
+        "pair_oversized": "%round%の「%team%」に%count%人がいます。ペアは2人です。別々のペアであれば、ファイルで別の名前を付けてください。"
+        "team_oversized": "%round%の「%team%」に%count%人がいます。このラウンドのチームは通常%usual%人です。別々のチームであれば、ファイルで別の名前を付けてください。"
+        "team_single": "{1}%round%では%teams%のメンバーが1人だけです。|]1,Inf[%round%では%teams%のメンバーがそれぞれ1人だけです。"
+        "name_spellings": "%rows%行目で同じ名前が異なる書き方になっています: %names%。同一人物であれば、すべて同じ書き方にしてください。"
+        "similar_name": "%new%（新規、%row%行目）は、サイトにいてファイルにない%existing%と似ています。同一人物であれば、サイトの表記を使うか、サイト側で修正してください。"
+      "plan":
+        "blocker":
+          "missing_name": "{1}%rows%行目に名前がありません。|]1,Inf[%count%行に名前がありません（%rows%行目）。"
+          "ambiguous_name": "{1}%rows%行目は同じ名前の複数の参加者に一致します。|]1,Inf[%count%行が同じ名前の複数の参加者に一致します（%rows%行目）。"
+          "unknown_round": "{1}ラウンド%rounds%はこのイベントにありません。|]1,Inf[ラウンド%rounds%はこのイベントにありません。"
+          "round_case_collision": "ラウンド%rounds%は大文字と小文字だけが異なります。"
+          "foreign_participant_ids": "%count%行に別のイベントのparticipant_idが含まれています。別のイベントのエクスポートではありませんか？"
+          "no_match": "ファイルのどの行もサイト上の%count%人の参加者と一致しません。名前の列の選択とファイルが正しいか確認してください。"
       "preview":
         "title": "参加者のインポート"
         "intro": "まだ何も保存されていません。ファイルの読み込み方とインポートの内容を確認し、ページ下部で確定してください。"

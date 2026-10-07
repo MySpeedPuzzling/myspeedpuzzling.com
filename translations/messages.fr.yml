@@ -3625,6 +3625,23 @@ competition:
       "team_round_not_listed": "Ligne %row% : équipe \"%team%\" pour la manche \"%round%\" ignorée – la ligne ne cite pas cette manche dans round_names."
       "unknown_round": "{1}La manche \"%round%\" n'existe pas dans cet événement (ligne %rows%), non attribuée. Manches de cet événement : %rounds%.|]1,Inf[La manche \"%round%\" n'existe pas dans cet événement (lignes %rows%), non attribuée. Manches de cet événement : %rounds%."
       "no_rounds_yet": "aucune pour l'instant - ajoutez d'abord les manches"
+      "warning":
+        "team_name_shared": "Ligne %row% : %count% équipes de la manche « %round% » s'appellent « %team% », donc « %name% » n'a été placé(e) dans aucune. Donnez des noms différents aux équipes sur le site ou dans le fichier."
+        "team_name_shared_kept": "Ligne %row% : %count% équipes de la manche « %round% » s'appellent « %team% », donc « %name% » reste dans l'équipe « %current% ». Donnez des noms différents aux équipes sur le site ou dans le fichier."
+        "rounds_kept": "Ligne %row% : la cellule des manches de « %name% » est vide, ses manches sur le site sont donc conservées."
+        "pair_oversized": "%count% personnes sont dans « %team% » en %round% – un duo en compte 2. S'il s'agit de duos différents, donnez-leur des noms différents dans le fichier."
+        "team_oversized": "%count% personnes sont dans « %team% » en %round% – les équipes de cette manche en comptent généralement %usual%. S'il s'agit d'équipes différentes, donnez-leur des noms différents dans le fichier."
+        "team_single": "{1}En %round%, %teams% ne compte qu'une personne.|]1,Inf[En %round%, %teams% ne comptent chacune qu'une personne."
+        "name_spellings": "Un même nom est écrit de plusieurs façons aux lignes %rows% : %names%. S'il s'agit d'une seule personne, écrivez-le partout de la même façon."
+        "similar_name": "%new% (nouveau, ligne %row%) ressemble à %existing%, présent(e) sur le site mais pas dans le fichier. S'il s'agit de la même personne, reprenez l'orthographe du site ou corrigez-la sur le site."
+      "plan":
+        "blocker":
+          "missing_name": "{1}La ligne %rows% n'a pas de nom.|]1,Inf[%count% lignes n'ont pas de nom (lignes %rows%)."
+          "ambiguous_name": "{1}La ligne %rows% correspond à plusieurs participants du même nom.|]1,Inf[%count% lignes correspondent à plusieurs participants du même nom (lignes %rows%)."
+          "unknown_round": "{1}La manche %rounds% n'existe pas dans cet événement.|]1,Inf[Les manches %rounds% n'existent pas dans cet événement."
+          "round_case_collision": "Les manches %rounds% ne diffèrent que par les majuscules/minuscules."
+          "foreign_participant_ids": "%count% lignes contiennent un participant_id d'un autre événement – s'agit-il de l'export d'un autre événement ?"
+          "no_match": "Aucune ligne du fichier ne correspond à l'un des %count% participants du site – la bonne colonne est-elle choisie pour les noms, et est-ce le bon fichier ?"
       "preview":
         "title": "Importer des participants"
         "intro": "Rien n'est encore enregistré. Vérifiez comment le fichier est lu et ce que fera l'importation, puis confirmez en bas de la page."

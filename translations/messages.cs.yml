@@ -3622,6 +3622,23 @@ qr_code:
       "team_round_not_listed": "Řádek %row%: tým \"%team%\" pro kolo \"%round%\" přeskočen – řádek toto kolo v round_names neuvádí."
       "unknown_round": "{1}Kolo \"%round%\" v této události neexistuje (řádek %rows%), nepřiřazeno. Kola této události: %rounds%.|]1,Inf[Kolo \"%round%\" v této události neexistuje (řádky %rows%), nepřiřazeno. Kola této události: %rounds%."
       "no_rounds_yet": "zatím žádná - nejdřív přidejte kola"
+      "warning":
+        "team_name_shared": "Řádek %row%: v kole „%round%“ se %count% týmů jmenuje „%team%“, proto „%name%“ nebyl(a) zařazen(a) do žádného z nich. Pojmenujte týmy na webu nebo v souboru různě."
+        "team_name_shared_kept": "Řádek %row%: v kole „%round%“ se %count% týmů jmenuje „%team%“, proto „%name%“ zůstává v týmu „%current%“. Pojmenujte týmy na webu nebo v souboru různě."
+        "rounds_kept": "Řádek %row%: buňka s koly u „%name%“ je prázdná, takže si ponechává kola, která má na webu."
+        "pair_oversized": "V „%team%“ v kole %round% je %count% lidí – dvojice má 2. Pokud jde o různé dvojice, pojmenujte je v souboru různě."
+        "team_oversized": "V „%team%“ v kole %round% je %count% lidí – týmy v tomto kole mají obvykle %usual%. Pokud jde o různé týmy, pojmenujte je v souboru různě."
+        "team_single": "{1}V kole %round% má %teams% jen jednoho člověka.|]1,Inf[V kole %round% mají %teams% každý jen jednoho člověka."
+        "name_spellings": "Jedno jméno je v řádcích %rows% zapsané různě: %names%. Pokud jde o jednoho člověka, napište ho všude stejně."
+        "similar_name": "%new% (nový, řádek %row%) se podobá jménu %existing%, který je na webu, ale ne v souboru. Pokud jde o stejného člověka, použijte zápis z webu nebo ho tam opravte."
+      "plan":
+        "blocker":
+          "missing_name": "{1}Řádek %rows% nemá jméno.|[2,4]%count% řádky nemají jméno (řádky %rows%).|[5,Inf[%count% řádků nemá jméno (řádky %rows%)."
+          "ambiguous_name": "{1}Řádek %rows% odpovídá více účastníkům stejného jména.|[2,4]%count% řádky odpovídají více účastníkům stejného jména (řádky %rows%).|[5,Inf[%count% řádků odpovídá více účastníkům stejného jména (řádky %rows%)."
+          "unknown_round": "{1}Kolo %rounds% v této události neexistuje.|]1,Inf[Kola %rounds% v této události neexistují."
+          "round_case_collision": "Kola %rounds% se liší jen velkými/malými písmeny."
+          "foreign_participant_ids": "%count% řádků obsahuje participant_id jiné události – není to export jiné události?"
+          "no_match": "Žádný řádek souboru neodpovídá žádnému z %count% účastníků na webu – je pro jména zvolený správný sloupec a jde o správný soubor?"
       "preview":
         "title": "Import účastníků"
         "intro": "Zatím se nic neuložilo. Zkontrolujte, jak se soubor načetl a co import udělá, a pak dole na stránce potvrďte."

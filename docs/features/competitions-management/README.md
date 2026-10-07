@@ -6,7 +6,7 @@ The feature set is **tiered and opt-in**: a competition with everything off is j
 
 | Capability | How it's enabled | Docs |
 |-----------|------------------|------|
-| Managed registration (capacity, reserved/paid, waitlist, check-in) | "Manage registrations on MySpeedPuzzling" checkbox on the event form | [registration.md](registration.md) |
+| Managed registration (capacity, reserved/paid, waitlist, check-in) | "Manage registration on MySpeedPuzzling" on the event's own Registration page (`manage_competition_registration`) | [registration.md](registration.md) |
 | Official round results + player claiming | Enter results in the round results console, publish per round | [results.md](results.md) |
 | Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Edit page content" from the event/series management | [public-page.md](public-page.md) |
 | Participant management, import/export, pairing | Always available | [participants.md](participants.md) |
@@ -354,7 +354,7 @@ Official results per round are entered by maintainers in the **results entry con
 
 ## Managed Registration
 
-When "Manage registrations on MySpeedPuzzling" is enabled, the public page shows a registration card (capacity progress, entry fee, deadline) and the join flow becomes a real registration with `reserved → paid` states and a FIFO waitlist. Organizers mark payments manually, promote from the waitlist with one click, and run a mobile check-in view on event day. Full design: [registration.md](registration.md).
+Opt-in per event or edition on its own Registration page (`ChangeCompetitionRegistrationSettings` - `EditCompetition` and the internal API never touch it). While it is on, the "I'm going" block (`_event_attendance.html.twig`) is a registration card (spots, waitlist, entry fee, window in the event's zone) and "I'm going" becomes a confirmed registration: reserved under the capacity, waitlisted when full (first come, first served, under the participants lock), only while the event is publicly visible and its window is open. Organisers mark payments, give waitlisted people a spot and check people in on the day; MySpeedPuzzling never processes payments. A waitlisted row is not "going" anywhere (`CompetitionParticipantGoing`). Full design: [registration.md](registration.md).
 
 ## Public Page Content
 
@@ -394,7 +394,7 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 18. **Teams are scoped to rounds** — `CompetitionTeam` belongs to a `CompetitionRound`, participants are assigned to teams via `CompetitionParticipantRound.team_id`
 19. **A solving time can be linked to any publicly visible competition row** — the add/edit-time picker offers every approved & not-rejected standalone competition (any date) and every edition of an approved & not-rejected series (`IsCompetitionPubliclyVisible::SQL_CONDITION`), never the series umbrella itself; the edit form additionally keeps the currently linked competition selectable; the submitted id is validated against exactly that set
 20. **MSP never processes payments** — managed registration only records the organizer's manual payment confirmation
-21. **Enabling managed registration clears the external registration link** — one source of truth for how to register
+21. **Managed registration keeps the external registration link** — saved as it is, hidden on every page while registration is managed (one way to register), back when management is switched off
 22. **Official results are the organizer's record** — claiming/un-claiming never modifies `OfficialRoundResult`; only the player's materialized `PuzzleSolvingTime` is created/updated/removed
 23. **Claimed times are `verified = true`** — organizer-attested results are stronger evidence than self-reporting
 24. **Draft results are private** — standings appear publicly (and become claimable) only after the round is published

@@ -4,6 +4,22 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Managed registration (`docs/features/competitions-management/registration.md`)
+
+- [ ] Translate the `competition_registration.*` keys (messages, emails, the validators key
+      `competition_registration_closes_before_opens`) into cs, de, es, fr, ja - added in English only with the port.
+- [ ] Registration status / paid / checked-in as optional columns of the participants spreadsheet's People tab
+      (participants-spreadsheet.md D10) - the import reads nothing from the export's registration columns today.
+- [ ] Notify maintainers about a new registration and a cancelled *paid* registration (refund talk); optional daily
+      digest.
+- [ ] Payment deadline / automatic release of unpaid spots; a response deadline for a spot offered from the waitlist.
+- [ ] A verified e-mail before registering (throwaway accounts can fill a capacity).
+- [ ] Check-in tolerant of venue Wi-Fi (client-side search, optimistic taps) - it is a Live component today.
+- [ ] Event JSON-LD `offers` pointing at the event page with availability (sold out / waitlist) while managed.
+- [ ] Series edition cards: an internal "Register" button for a managed edition (the external link is hidden).
+- [ ] `ImportCompetitionParticipants` (the import without preview) under `CompetitionParticipantsLock` like
+      `ApplyParticipantImport`.
+
 ## Participant import (`docs/features/competitions-management/participant-import-preview.md`)
 
 - [ ] `.xls` / `.ods` uploads; localized header aliases ("Jméno", "Nom", …); a header row chosen by hand; remembering

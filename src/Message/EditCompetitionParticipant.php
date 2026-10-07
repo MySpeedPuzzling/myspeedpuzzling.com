@@ -16,6 +16,8 @@ readonly final class EditCompetitionParticipant
         public null|string $externalId,
         public null|string $playerId,
         public array $roundIds = [],
+        // The private note exists only on events that manage registration - any other edit keeps it as it is
+        public bool $changeOrganizerNote = false,
         public null|string $organizerNote = null,
     ) {
     }

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
@@ -23,6 +24,9 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  *
  * `revealDelayMinutes` - when the round's secret puzzles with an automatic reveal come out, whole minutes after its
  * start (0..RoundPuzzleReveal::MAX_DELAY_MINUTES).
+ *
+ * `teamSize` - how many people a team of a team round is expected to have (2..20, null = not set) - a hint for the
+ * participants sheet, never a limit; ignored for solo and pair rounds.
  */
 final class RoundInput
 {
@@ -36,6 +40,7 @@ final class RoundInput
         'badgeTextColor',
         'resultsLink',
         'revealDelayMinutes',
+        'teamSize',
     ];
 
     /**
@@ -100,6 +105,11 @@ final class RoundInput
 
         if ($input->has('resultsLink')) {
             $data->resultsLink = $input->string('resultsLink');
+        }
+
+        // Team rounds only (ignored for solo and pair rounds); null takes the expected size away
+        if ($input->has('teamSize')) {
+            $data->teamSize = $input->int('teamSize', minimum: CompetitionRound::TEAM_SIZE_MIN, maximum: CompetitionRound::TEAM_SIZE_MAX);
         }
 
         if ($input->has('revealDelayMinutes')) {

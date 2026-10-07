@@ -1167,6 +1167,16 @@ components:
             PATCH, the round keeps its value. Moving the automatic reveal earlier needs
             `confirmReveal` (409 otherwise).
           example: 15
+        teamSize:
+          type: [integer, "null"]
+          minimum: 2
+          maximum: 20
+          description: |
+            Team rounds: how many people a team is expected to have - a hint for the
+            participants sheet ("3/4 - incomplete"), never a limit. Ignored for solo and
+            pair rounds (a pair always has 2). `null` takes it away; left out on a PATCH,
+            the round keeps its value. Not a whole number from 2 to 20 is a 400.
+          example: 4
         badgeBackgroundColor:
           type: [string, "null"]
           example: "#1e88e5"
@@ -1194,6 +1204,10 @@ components:
           maximum: 240
           example: 10
           description: Minutes after the start when the round's secret puzzles with an automatic reveal come out
+        teamSize:
+          type: [integer, "null"]
+          example: 4
+          description: Team rounds - how many people a team is expected to have (null = not set)
         badgeBackgroundColor: { type: [string, "null"] }
         badgeTextColor: { type: [string, "null"] }
         resultsLink: { type: [string, "null"] }

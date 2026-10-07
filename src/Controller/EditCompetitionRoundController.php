@@ -17,12 +17,15 @@ use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
+use SpeedPuzzling\Web\Query\GetRoundTeamSizes;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantRules;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -51,6 +54,7 @@ final class EditCompetitionRoundController extends AbstractController
         private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
         private readonly SecretRevealPreview $secretRevealPreview,
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
+        private readonly GetRoundTeamSizes $getRoundTeamSizes,
     ) {
     }
 
@@ -88,8 +92,9 @@ final class EditCompetitionRoundController extends AbstractController
             static fn (CompetitionRoundPuzzle $roundPuzzle): bool => $roundPuzzle->isHiddenAt($now),
         ) !== [];
 
-        // Shows the round in the zone it was typed in, as the organiser typed it
-        $formData = CompetitionRoundFormData::fromCompetitionRound($round);
+        // Shows the round in the zone it was typed in, as the organiser typed it - a team round without an expected team
+        // size pre-filled with the most common size of its teams (D5)
+        $formData = CompetitionRoundFormData::fromCompetitionRound($round, $this->guessedTeamSize($round));
         $form = $this->createForm(CompetitionRoundFormType::class, $formData, [
             'single_day' => $singleDay !== null,
             'timezone_offset_at' => $round->startsAt,
@@ -157,6 +162,9 @@ final class EditCompetitionRoundController extends AbstractController
                         refuseToReveal: false,
                         confirmedRevealHash: SecretRevealPreview::hash($revealedEarlier),
                         revealDelayMinutes: $revealDelayMinutes,
+                        // An emptied field takes the expected size away; ignored for solo and pair rounds
+                        teamSize: $data->teamSize,
+                        clearTeamSize: $data->teamSize === null,
                     ));
 
                     // The handler worked on freshly read rows - read the round again for the flash
@@ -245,6 +253,20 @@ final class EditCompetitionRoundController extends AbstractController
         } else {
             $form->addError($error);
         }
+    }
+
+    /**
+     * The most common size of the round's teams, for a team round without an expected size yet - null otherwise.
+     */
+    private function guessedTeamSize(CompetitionRound $round): null|int
+    {
+        if ($round->category !== RoundCategory::Team || $round->teamSize !== null) {
+            return null;
+        }
+
+        $sizes = $this->getRoundTeamSizes->ofRound($round->id->toString());
+
+        return $sizes !== [] ? ParticipantRules::usualTeamSize($sizes) : null;
     }
 
     /**

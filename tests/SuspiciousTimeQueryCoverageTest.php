@@ -63,7 +63,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/IsPuzzleInUse.php' => self::WRITE,
         'Query/SearchPuzzle.php' => self::OWN,
         'Repository/PuzzlingTeamRepository.php' => self::WRITE,
-        'Services/ParticipantImport/ParticipantImportPlanner.php' => self::WRITE,
+        'Services/ParticipantImport/SiteSnapshotReader.php' => self::WRITE,
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => 'Background: picks the players and puzzles to recompute - the calculators leave suspicious results out.',
         'Services/PuzzlingTeamMemberConversion.php' => self::WRITE,
         'Services/RoundResults/RoundResultsReconciler.php' => self::WRITE,

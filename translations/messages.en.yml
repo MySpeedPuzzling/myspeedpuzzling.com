@@ -6935,6 +6935,47 @@ participants_sheet:
 participants_sheet_server:
     reason:
         invalid_change: "This change could not be applied."
+        changed_meanwhile: "Somebody changed this meanwhile - the sheet shows what is saved now."
+        participant_not_found: "This person is not a participant of the event (any more)."
+        participant_removed: "%name% was removed from the event - restore them first."
+        name_blank: "A name cannot be empty."
+        name_too_long: "A name can have at most %max% characters."
+        external_id_too_long: "An external id can have at most %max% characters."
+        note_too_long: "A note can have at most %max% characters."
+        invalid_country: "\"%country%\" is not a country we know - pick one from the list."
+        team_name_too_long: "A pair/team name can have at most %max% characters."
+        id_taken: "This new row clashes with another one - add it again."
+        round_not_found: "This round is not part of the event (any more)."
+        not_a_team_round: "%round% is not a team round."
+        team_not_found: "This pair/team is not in the event (any more)."
+        team_of_another_round: "%team% is a pair/team of %round%, not of this round."
+        player_not_found: "This MySpeedPuzzling profile does not exist (any more)."
+        player_linked_elsewhere: "This MySpeedPuzzling profile is already linked to %other% in this event."
+        has_result_in_round: "%name% already has a result in %round% - clear it first to take them out of the round."
+        has_result_in_event: "%name% already has a result in this event - clear it first to remove them from the event."
+        team_has_result: "%team% already has a result in %round% - clear it first, or keep at least one person in it."
+        invalid_team_size: "A team has %min% to %max% people."
+    warning:
+        team_result_line_up_changed: "%team% already has a result in %round% - it now belongs to the new line-up."
+        same_name_as_existing: "%other% is on the list already - %name% is probably the same person."
+        team_name_shared: "Another pair/team in %round% is called %team% too."
+        team_size_off: "%team% has 1 person - %round% expects %expected% per pair/team.|%team% has %count% people - %round% expects %expected% per pair/team."
+        waitlisted_member: "%name% is on the waitlist - placed in %round% for when they get a spot."
+    invalid:
+        not_a_list: "These changes could not be read - reload the page and make them again."
+        too_many_groups: "Too many changes at once - make them in smaller steps."
+        too_many_changes: "Too many changes at once - make them in smaller steps."
+        unknown_op: "These changes could not be read - reload the page and make them again."
+        missing_field: "These changes could not be read - reload the page and make them again."
+        invalid_id: "These changes could not be read - reload the page and make them again."
+        changeset_id_missing: "These changes could not be read - reload the page and make them again."
+        duplicate_group_id: "These changes could not be read - reload the page and make them again."
+    skipped: "Not saved - another part of the same change could not be saved."
+    changeset_id_taken: "These changes could not be saved - make them again."
+    no_name: "(no name)"
+    round_form:
+        team_size: "Members per team"
+        team_size_help: "Team rounds only - pairs always have 2. Used to point out teams with too few or too many people; it never blocks anything."
 # end participants_sheet_server
 
 participants_sheet_core:

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
@@ -158,6 +159,21 @@ final class CompetitionRoundFormType extends AbstractType
                 RoundCategory::Team => 'competition.round.category.team',
             },
             'expanded' => true,
+        ]);
+
+        // The expected size of a team round's teams (participants-spreadsheet.md D5) - shown for every category: the form
+        // has no category toggle, and the help says it counts for team rounds only
+        $builder->add('teamSize', IntegerType::class, [
+            'label' => 'participants_sheet_server.round_form.team_size',
+            'help' => 'participants_sheet_server.round_form.team_size_help',
+            'required' => false,
+            'attr' => [
+                'min' => CompetitionRound::TEAM_SIZE_MIN,
+                'max' => CompetitionRound::TEAM_SIZE_MAX,
+                'step' => 1,
+                'inputmode' => 'numeric',
+                'class' => 'w-auto',
+            ],
         ]);
 
         $builder->add('resultsLink', UrlType::class, [

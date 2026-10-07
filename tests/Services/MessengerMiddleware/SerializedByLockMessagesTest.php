@@ -53,6 +53,7 @@ use SpeedPuzzling\Web\Message\AddCompetitionParticipant;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\ApplyParticipantImport;
+use SpeedPuzzling\Web\Message\ApplyParticipantSheetChanges;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
@@ -156,6 +157,7 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new CheckInParticipant($competitionId, $participantId))->lockKey());
         self::assertSame($key, (new UndoParticipantCheckIn($competitionId, $participantId))->lockKey());
         self::assertSame($key, (new ChangeCompetitionRegistrationSettings($competitionId, true, 10, null, null, 'Europe/Prague', null, null))->lockKey());
+        self::assertSame($key, (new ApplyParticipantSheetChanges($competitionId, 'player', null, [], dryRun: true))->lockKey());
     }
 
     /**

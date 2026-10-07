@@ -262,6 +262,7 @@ Not settable here: the logo (upload it in the UI), the series of an edition (rec
 | `timezone` | The round's own IANA zone (`"America/Chicago"`) - its times are typed and shown in it, on the organiser's form and the event pages, and the answer carries it. A new round gets the zone of the event's other rounds, else of its country (`CountryCode::defaultTimezone()`, the series' country for an edition), else `Europe/Prague` - like the form. Only together with `startsAt` (a `400` alone: it would leave open whether the round keeps its moment or its wall-clock time); `null` is a `400` too |
 | `minutesLimit` | Required on create, ≥ 1 |
 | `revealDelayMinutes` | When the round's secret puzzles with an automatic reveal come out: whole minutes after `startsAt`, from `0` (when the round starts) to `240` (the longest round on record - anything later is an own reveal time, set in the UI); `10` when left out on create. Anything else (`-1`, `241`, `2.5`, `"10"`, `null`) is a `400`. Left out of a `PATCH`, the round keeps its delay. Moving the automatic reveal earlier needs `"confirmReveal": true` (see below) |
+| `teamSize` | Team rounds: how many people a team is expected to have, `2` to `20` - a hint for the participants sheet, never a limit. Ignored for `solo` and `duo` rounds (a pair always has 2). `null` takes it away; left out of a `PATCH`, the round keeps it. Anything else is a `400` |
 | `badgeBackgroundColor` | The round's badge colour, `"#rrggbb"` or `"#rgb"` (anything else is a `400`); `null` or left out on create = a distinct colour picked automatically by the round's place in the schedule (`"#fe696a"`, the old form default, counts as none) - `RoundBadgeColor` |
 | `badgeTextColor` | Stored and answered, but never shown: every page picks black or white for contrast with the badge colour. The round form no longer asks for it |
 | `resultsLink` | The organiser's results page of this round |
@@ -398,6 +399,7 @@ Competition answer (`GET`, and the answer of create / update / set puzzles):
     "timezone": "Europe/Prague",
     "minutesLimit": 60,
     "revealDelayMinutes": 10,
+    "teamSize": null,
     "badgeBackgroundColor": "#1e88e5",
     "badgeTextColor": "#000000",
     "resultsLink": null,

@@ -475,6 +475,32 @@ final class ParticipantImportPlannerTest extends KernelTestCase
         self::assertCount(5, self::operations($plan)->newTeams);
     }
 
+    /**
+     * D16 (c) with the organiser's expected team size (participants-spreadsheet.md D5): teams of 4 in a round expecting 3
+     * are warned about, although 4 is the most common size of the file.
+     */
+    public function testTheExpectedTeamSizeOfTheRoundWinsOverTheFilesMostCommonSize(): void
+    {
+        $this->round(self::TEAM)->changeTeamSize(3);
+        $this->entityManager->flush();
+
+        $rows = [];
+        $number = 2;
+        foreach (['Piece Makers' => 4, 'Sky Fillers' => 4, 'Trio Team' => 3] as $team => $size) {
+            for ($i = 1; $i <= $size; $i++) {
+                $rows[] = self::row($number, sprintf('%s Member %d', $team, $i), roundNames: 'Team Round', teamsByRound: [self::TEAM => $team]);
+                $number++;
+            }
+        }
+
+        $plan = $this->planner->plan(self::EVENT, $this->rows($rows, roundsMapped: true), ParticipantImportMode::Update);
+        $warnings = $this->texts($plan->warnings);
+
+        self::assertContains('4 people are in "Piece Makers" in Team Round – teams in this round usually have 3. If these are different teams, give them different names in the file.', $warnings);
+        self::assertContains('4 people are in "Sky Fillers" in Team Round – teams in this round usually have 3. If these are different teams, give them different names in the file.', $warnings);
+        self::assertCount(2, $warnings);
+    }
+
     public function testFullSyncMovesTeamsOnlyInRoundsWithTheirOwnTeamColumn(): void
     {
         $round = $this->round(self::TEAM);

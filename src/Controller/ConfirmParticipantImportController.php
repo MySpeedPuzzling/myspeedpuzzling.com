@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Exceptions\ParticipantImportNotApplicable;
 use SpeedPuzzling\Web\Exceptions\ParticipantImportPreviewStale;
 use SpeedPuzzling\Web\Message\ApplyParticipantImport;
+use SpeedPuzzling\Web\Results\ParticipantImportResult;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportPreviewBuilder;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportStash;
-use SpeedPuzzling\Web\Value\ParticipantImportMode;
-use SpeedPuzzling\Web\Value\ParticipantImportRowAction;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -111,15 +112,22 @@ final class ConfirmParticipantImportController extends AbstractController
             }
         }
 
+        $typedCount = trim($request->request->getString('removed_count'));
+
         try {
-            $this->messageBus->dispatch(new ApplyParticipantImport(
+            $envelope = $this->messageBus->dispatch(new ApplyParticipantImport(
                 $competitionId,
                 $preview->rows,
                 $plan->mode->value,
                 $plan->fingerprint,
+                confirmedRemovedCount: ctype_digit($typedCount) ? (int) $typedCount : null,
             ));
         } catch (ParticipantImportPreviewStale) {
             $this->flash('warning', 'competition.participants.import.confirm.stale');
+
+            return $back;
+        } catch (ParticipantImportNotApplicable) {
+            $this->flash('danger', 'competition.participants.import.confirm.cannot_apply');
 
             return $back;
         }
@@ -127,14 +135,26 @@ final class ConfirmParticipantImportController extends AbstractController
         $this->stash->markApplied($token, $competitionId);
         $this->stash->discard($token, $competitionId);
 
-        $this->addFlash('success', $this->translator->trans('competition.participants.import.confirm.summary', [
-            '%added%' => $plan->count(ParticipantImportRowAction::New),
-            '%updated%' => $plan->count(ParticipantImportRowAction::Update),
-            '%restored%' => $plan->count(ParticipantImportRowAction::Restore),
-            '%unchanged%' => $plan->count(ParticipantImportRowAction::Unchanged),
-            '%removed%' => $plan->count(ParticipantImportRowAction::Remove)
-                + ($plan->mode === ParticipantImportMode::Sync ? $preview->removedPeople() : 0),
-        ]));
+        $result = $envelope->last(HandledStamp::class)?->getResult();
+        assert($result instanceof ParticipantImportResult);
+
+        $summary = $this->translator->trans('competition.participants.import.confirm.summary', [
+            '%added%' => $result->added,
+            '%updated%' => $result->updated - $result->restored,
+            '%restored%' => $result->restored,
+            '%unchanged%' => $result->unchanged,
+            '%removed%' => $result->softDeleted + $result->removed,
+        ]);
+
+        // Full sync also takes people out of rounds and deletes the pairs/teams it empties
+        if ($result->roundEntriesRemoved > 0 || $result->teamsRemoved > 0) {
+            $summary .= ' ' . $this->translator->trans('competition.participants.import.confirm.summary_sync', [
+                '%entries%' => $result->roundEntriesRemoved,
+                '%teams%' => $result->teamsRemoved,
+            ]);
+        }
+
+        $this->addFlash('success', $summary);
 
         return $toParticipants;
     }

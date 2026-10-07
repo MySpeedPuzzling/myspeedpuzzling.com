@@ -44,8 +44,13 @@ final class DiscardParticipantImportController extends AbstractController
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         if ($this->isCsrfTokenValid(ParticipantImportPreviewController::CSRF_TOKEN_ID, $request->request->getString('_token'))) {
+            $known = $this->stash->describe($token, $competitionId) !== null;
             $this->stash->discard($token, $competitionId);
-            $this->addFlash('info', $this->translator->trans('competition.participants.import.confirm.discarded'));
+
+            // An unknown or expired upload had nothing left to throw away - no flash claiming it
+            if ($known) {
+                $this->addFlash('info', $this->translator->trans('competition.participants.import.confirm.discarded'));
+            }
         } else {
             $this->addFlash('danger', $this->translator->trans('competition.participants.import.confirm.expired'));
         }

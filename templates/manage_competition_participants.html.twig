@@ -28,6 +28,7 @@
                         <form action="{{ path('import_competition_participants', {'competitionId': competition.id}) }}" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="{{ import_form.vars.id ~ '[_token]' }}" value="{{ csrf_token(import_form.vars.id) }}">
                             <div class="mb-2">
+                                {{ form_label(import_form.file, null, {'label_attr': {'class': 'form-label small mb-1'}}) }}
                                 {{ form_widget(import_form.file, {'attr': {'class': 'form-control form-control-sm'}}) }}
                             </div>
                             <button type="submit" class="btn btn-primary btn-sm">

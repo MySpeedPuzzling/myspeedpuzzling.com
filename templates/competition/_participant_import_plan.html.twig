@@ -116,9 +116,16 @@
                                     </div>
                                 {% endif %}
                                 {% for round_name, team in row.teams %}
-                                    <div>
+                                    <div data-team-round="{{ round_name }}">
                                         <span class="text-muted">{{ round_name }}:</span>
-                                        {{ team is null ? (prefix ~ 'no_team')|trans : team }}
+                                        {% if row.teamsBefore[round_name] is defined %}
+                                            {# A team the import gives or changes - a change, not a line that stays #}
+                                            {% set team_before = row.teamsBefore[round_name] %}
+                                            {% if team_before is not null %}<del>{{ team_before }}</del>{% endif %}
+                                            → <strong>{{ team is null ? (prefix ~ 'no_team')|trans : team }}</strong>
+                                        {% else %}
+                                            {{ team is null ? (prefix ~ 'no_team')|trans : team }}
+                                        {% endif %}
                                     </div>
                                 {% endfor %}
                                 {% for message in row.messages %}

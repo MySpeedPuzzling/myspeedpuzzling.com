@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Value\ColumnMapping;
 use SpeedPuzzling\Web\Value\ParticipantFileOptions;
 use SpeedPuzzling\Web\Value\ParticipantFileSheetInfo;
 use SpeedPuzzling\Web\Value\ParticipantImportMode;
+use SpeedPuzzling\Web\Value\ParticipantImportRound;
 use SpeedPuzzling\Web\Value\StashedParticipantImport;
 use Symfony\Component\Translation\TranslatableMessage;
 
@@ -41,7 +42,8 @@ readonly final class ParticipantImportPreviewBuilder
             return new ParticipantImportPreview($stashed, [], 0, $options, $mode, fileError: self::errorOf($e));
         }
 
-        $sheetIndex = self::chosenSheet($sheets, $input['sheet'] ?? null);
+        $rounds = $this->planner->rounds($competitionId);
+        $sheetIndex = $this->chosenSheet($stashed, $competitionId, $sheets, $input['sheet'] ?? null, $options, $rounds);
 
         try {
             $sheet = $this->stash->sheet($stashed->token, $competitionId, $sheetIndex, $options);
@@ -49,7 +51,6 @@ readonly final class ParticipantImportPreviewBuilder
             return new ParticipantImportPreview($stashed, $sheets, $sheetIndex, $options, $mode, fileError: self::errorOf($e));
         }
 
-        $rounds = $this->planner->rounds($competitionId);
         $map = $input['map'] ?? null;
         $headersKey = ParticipantImportPreview::keyOfHeaders($sheet->headers);
         $mappingFromInput = is_array($map) && ($input['headers'] ?? null) === $headersKey;
@@ -98,11 +99,15 @@ readonly final class ParticipantImportPreviewBuilder
     }
 
     /**
-     * The asked sheet when the file has it, otherwise the first visible one (a hidden sheet is never preselected).
+     * The asked sheet when the file has it. Otherwise (the first visit) the first visible sheet with a column of
+     * names (Name, or First + Last name, as ColumnMapping::detect() finds them) - a workbook often starts with an
+     * "Info" sheet; then the visible sheet with the most rows; then the first visible one. A hidden sheet is never
+     * preselected. Reading a sheet here caches it, so the chosen one is not parsed twice.
      *
      * @param list<ParticipantFileSheetInfo> $sheets
+     * @param list<ParticipantImportRound> $rounds
      */
-    private static function chosenSheet(array $sheets, mixed $asked): int
+    private function chosenSheet(StashedParticipantImport $stashed, string $competitionId, array $sheets, mixed $asked, ParticipantFileOptions $options, array $rounds): int
     {
         if (is_numeric($asked)) {
             foreach ($sheets as $sheet) {
@@ -112,12 +117,35 @@ readonly final class ParticipantImportPreviewBuilder
             }
         }
 
-        foreach ($sheets as $sheet) {
-            if ($sheet->hidden === false) {
-                return $sheet->index;
+        $visible = array_values(array_filter($sheets, static fn (ParticipantFileSheetInfo $sheet): bool => $sheet->hidden === false));
+
+        if ($visible === []) {
+            return $sheets[0]->index ?? 0;
+        }
+
+        if (count($visible) === 1) {
+            return $visible[0]->index;
+        }
+
+        foreach ($visible as $info) {
+            try {
+                $sheet = $this->stash->sheet($stashed->token, $competitionId, $info->index, $options);
+            } catch (ParticipantFileUnreadable) {
+                continue;
+            }
+
+            if (ColumnMapping::detect($sheet->headers, $rounds)->hasName()) {
+                return $info->index;
             }
         }
 
-        return $sheets[0]->index ?? 0;
+        $longest = $visible[0];
+        foreach ($visible as $info) {
+            if ($info->rows > $longest->rows) {
+                $longest = $info;
+            }
+        }
+
+        return $longest->index;
     }
 }

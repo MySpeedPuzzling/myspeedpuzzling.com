@@ -73,6 +73,23 @@ final class ImportCompetitionParticipantsControllerTest extends WebTestCase
         self::assertSelectorTextContains('.alert-danger', 'Please upload an .xlsx workbook or a .csv, .tsv or .txt file.');
     }
 
+    public function testAWorkbookNamedCsvIsRefusedWithAMessage(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->getActiveSheet()->fromArray([['name', 'country'], ['Alex Example', 'cz']]);
+        $path = $this->path();
+        (new Xlsx($spreadsheet))->save($path);
+
+        $this->upload($browser, new UploadedFile($path, 'participants.csv', 'text/csv', null, true));
+
+        self::assertResponseRedirects(self::MANAGE_URL, 303);
+        $browser->followRedirect();
+        self::assertSelectorTextContains('.alert-danger', 'The file could not be read.');
+    }
+
     public function testNonMaintainerIsForbidden(): void
     {
         $browser = self::createClient();
@@ -93,6 +110,12 @@ final class ImportCompetitionParticipantsControllerTest extends WebTestCase
         $crawler = $browser->request('GET', self::MANAGE_URL);
 
         $this->assertResponseIsSuccessful();
+
+        // The file input has a label
+        $input = $crawler->filter('form[action="' . self::IMPORT_URL . '"] input[type="file"]');
+        self::assertCount(1, $input);
+        self::assertStringContainsString('Participant list', $crawler->filter('label[for="' . $input->attr('id') . '"]')->text());
+
         $columns = $crawler->filter('details table code')->each(static fn ($node): string => $node->text());
         self::assertContains('round_names', $columns);
         self::assertContains('team_name', $columns);

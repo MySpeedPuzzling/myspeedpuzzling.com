@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Services\ClaimedResultReverter;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -18,6 +19,7 @@ readonly final class LeaveCompetitionHandler
         private CompetitionParticipantRepository $participantRepository,
         private GetCompetitionParticipants $getCompetitionParticipants,
         private ClockInterface $clock,
+        private ClaimedResultReverter $claimedResultReverter,
     ) {
     }
 
@@ -25,6 +27,10 @@ readonly final class LeaveCompetitionHandler
     {
         // Every row, not just one — a player who joined twice would otherwise still be going
         $participantIds = $this->getCompetitionParticipants->getPlayerConnections($message->competitionId, $message->playerId);
+
+        if ($participantIds !== []) {
+            $this->claimedResultReverter->revertForPlayerInCompetition($message->playerId, $message->competitionId);
+        }
 
         foreach ($participantIds as $participantId) {
             $participant = $this->participantRepository->get($participantId);

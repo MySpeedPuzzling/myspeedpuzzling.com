@@ -16,6 +16,7 @@ readonly final class EditCompetitionParticipant
         public null|string $externalId,
         public null|string $playerId,
         public array $roundIds = [],
+        public null|string $organizerNote = null,
     ) {
     }
 }

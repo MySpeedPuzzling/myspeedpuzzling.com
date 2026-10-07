@@ -449,6 +449,21 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->forgetPrediction();
     }
 
+    /**
+     * Propagates an organizer's correction of a claimed round result.
+     */
+    public function updateResultValues(null|int $seconds, null|int $missingPieces): void
+    {
+        $this->secondsToSolve = $seconds;
+        // PORT-TODO: main replaced missing_pieces with pieces_placed (+ finishedLaterSeconds) - official results
+        // still speak "missing pieces"; converted here only to compile, decide the model for unfinished results
+        $this->piecesPlaced = $missingPieces !== null ? max(0, $this->puzzle->piecesCount - $missingPieces) : null;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
     public function migrateToPuzzle(Puzzle $newPuzzle): void
     {
         $this->puzzle = $newPuzzle;

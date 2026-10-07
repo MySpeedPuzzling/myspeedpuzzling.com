@@ -90,6 +90,12 @@ final class EditCompetitionController extends AbstractController
                         logo: $data->logo,
                         maintainerIds: $data->maintainers,
                         slug: $slug,
+                        registrationManaged: $data->registrationManaged,
+                        capacity: $data->registrationManaged ? $data->capacity : null,
+                        registrationOpensAt: $data->registrationManaged ? $data->registrationOpensAt : null,
+                        registrationClosesAt: $data->registrationManaged ? $data->registrationClosesAt : null,
+                        entryFeeText: $data->registrationManaged ? $data->entryFeeText : null,
+                        paymentInstructions: $data->registrationManaged ? $data->paymentInstructions : null,
                     ));
 
                     if ($playerId !== null) {

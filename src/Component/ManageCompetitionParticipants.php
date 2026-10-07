@@ -6,16 +6,22 @@ namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Message\AddCompetitionParticipant;
 use SpeedPuzzling\Web\Message\EditCompetitionParticipant;
+use SpeedPuzzling\Web\Message\MarkParticipantPaid;
+use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
 use SpeedPuzzling\Web\Message\RestoreCompetitionParticipant;
 use SpeedPuzzling\Web\Message\SoftDeleteCompetitionParticipant;
+use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipantsForManagement;
+use SpeedPuzzling\Web\Query\GetCompetitionRegistrationOverview;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Query\SearchPlayers;
 use SpeedPuzzling\Web\Results\CompetitionRoundInfo;
 use SpeedPuzzling\Web\Results\ManageableCompetitionParticipant;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
+use SpeedPuzzling\Web\Results\RegistrationOverview;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -49,6 +55,9 @@ final class ManageCompetitionParticipants
     #[LiveProp(writable: true)]
     public bool $showAddForm = false;
 
+    #[LiveProp(writable: true)]
+    public string $statusFilter = '';
+
     // Edit fields
     #[LiveProp(writable: true)]
     public string $editName = '';
@@ -58,6 +67,9 @@ final class ManageCompetitionParticipants
 
     #[LiveProp(writable: true)]
     public string $editExternalId = '';
+
+    #[LiveProp(writable: true)]
+    public string $editOrganizerNote = '';
 
     /** @var array<string> */
     #[LiveProp(writable: true)]
@@ -104,10 +116,16 @@ final class ManageCompetitionParticipants
 
     public int $activeCount = 0;
     public int $deletedCount = 0;
+    public int $reservedCount = 0;
+    public int $paidCount = 0;
+    public int $waitlistedCount = 0;
+
+    public null|RegistrationOverview $registration = null;
 
     public function __construct(
         private readonly GetCompetitionParticipantsForManagement $getParticipants,
         private readonly GetCompetitionRounds $getCompetitionRounds,
+        private readonly GetCompetitionRegistrationOverview $getRegistrationOverview,
         private readonly SearchPlayers $searchPlayers,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
@@ -134,16 +152,29 @@ final class ManageCompetitionParticipants
     {
         $all = $this->getParticipants->all($this->competitionId, includeDeleted: true);
         $this->competitionRounds = $this->getCompetitionRounds->ofCompetition($this->competitionId);
+        $this->registration = $this->getRegistrationOverview->forCompetition($this->competitionId, null);
 
         $this->activeCount = 0;
         $this->deletedCount = 0;
+        $this->reservedCount = 0;
+        $this->paidCount = 0;
+        $this->waitlistedCount = 0;
 
         foreach ($all as $p) {
             if ($p->isDeleted()) {
                 $this->deletedCount++;
-            } else {
-                $this->activeCount++;
+
+                continue;
             }
+
+            $this->activeCount++;
+
+            // Legacy participants without explicit status behave as reserved
+            match ($p->registrationStatus ?? RegistrationStatus::Reserved) {
+                RegistrationStatus::Reserved => $this->reservedCount++,
+                RegistrationStatus::Paid => $this->paidCount++,
+                RegistrationStatus::Waitlisted => $this->waitlistedCount++,
+            };
         }
 
         if ($this->showDeleted) {
@@ -152,6 +183,33 @@ final class ManageCompetitionParticipants
             $this->participants = array_filter($all, static fn (ManageableCompetitionParticipant $p): bool => !$p->isDeleted());
             $this->participants = array_values($this->participants);
         }
+
+        if ($this->statusFilter !== '' && $this->registration->registrationManaged === true) {
+            $filter = RegistrationStatus::tryFrom($this->statusFilter);
+
+            if ($filter !== null) {
+                // Legacy participants without explicit status behave as reserved
+                $this->participants = array_values(array_filter(
+                    $this->participants,
+                    static fn (ManageableCompetitionParticipant $p): bool =>
+                        ($p->registrationStatus ?? RegistrationStatus::Reserved) === $filter,
+                ));
+            }
+        }
+    }
+
+    public function hasPromotableSpot(): bool
+    {
+        if ($this->registration === null || $this->registration->registrationManaged === false) {
+            return false;
+        }
+
+        if ($this->registration->waitlistedCount === 0) {
+            return false;
+        }
+
+        return $this->registration->capacity === null
+            || $this->registration->spotsTaken < $this->registration->capacity;
     }
 
     /**
@@ -196,6 +254,7 @@ final class ManageCompetitionParticipants
         $this->editName = $participant->participantName;
         $this->editCountry = $participant->participantCountry !== null ? $participant->participantCountry->name : '';
         $this->editExternalId = $participant->externalId ?? '';
+        $this->editOrganizerNote = $participant->organizerNote ?? '';
         $this->editPlayerId = $participant->playerId;
         $this->editPlayerName = $participant->playerName ?? $participant->playerCode;
         $this->editRoundIds = array_values($participant->roundIds);
@@ -228,6 +287,7 @@ final class ManageCompetitionParticipants
             externalId: trim($this->editExternalId) !== '' ? trim($this->editExternalId) : null,
             playerId: $this->editPlayerId,
             roundIds: array_values(array_unique($this->editRoundIds)),
+            organizerNote: trim($this->editOrganizerNote) !== '' ? trim($this->editOrganizerNote) : null,
         ));
 
         $this->resetEditForm();
@@ -346,6 +406,39 @@ final class ManageCompetitionParticipants
         ));
     }
 
+    #[LiveAction]
+    public function markPaid(#[LiveArg] string $participantId): void
+    {
+        // Throws for a participant of another competition
+        $participant = $this->getParticipants->byId($this->competitionId, $participantId);
+
+        $this->messageBus->dispatch(new MarkParticipantPaid(
+            participantId: $participant->participantId,
+        ));
+    }
+
+    #[LiveAction]
+    public function unmarkPaid(#[LiveArg] string $participantId): void
+    {
+        // Throws for a participant of another competition
+        $participant = $this->getParticipants->byId($this->competitionId, $participantId);
+
+        $this->messageBus->dispatch(new UnmarkParticipantPaid(
+            participantId: $participant->participantId,
+        ));
+    }
+
+    #[LiveAction]
+    public function promoteFromWaitlist(#[LiveArg] string $participantId): void
+    {
+        // Throws for a participant of another competition
+        $participant = $this->getParticipants->byId($this->competitionId, $participantId);
+
+        $this->messageBus->dispatch(new PromoteParticipantFromWaitlist(
+            participantId: $participant->participantId,
+        ));
+    }
+
     /**
      * Nothing of a closed form may survive into the next one.
      */
@@ -355,6 +448,7 @@ final class ManageCompetitionParticipants
         $this->editName = '';
         $this->editCountry = '';
         $this->editExternalId = '';
+        $this->editOrganizerNote = '';
         $this->editPlayerId = null;
         $this->editPlayerName = null;
         $this->editRoundIds = [];

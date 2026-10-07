@@ -33,6 +33,12 @@ readonly final class AddCompetition
         public null|string $slug = null,
         // The e-mail asking an admin to review the new competition - pointless when an admin creates it
         public bool $notifyAdmin = true,
+        public bool $registrationManaged = false,
+        public null|int $capacity = null,
+        public null|DateTimeImmutable $registrationOpensAt = null,
+        public null|DateTimeImmutable $registrationClosesAt = null,
+        public null|string $entryFeeText = null,
+        public null|string $paymentInstructions = null,
     ) {
     }
 }

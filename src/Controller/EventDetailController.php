@@ -9,10 +9,13 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
 use SpeedPuzzling\Web\Query\GetCompetitionPuzzles;
+use SpeedPuzzling\Web\Query\GetCompetitionRegistrationOverview;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Query\GetEventOffers;
+use SpeedPuzzling\Web\Query\GetOfficialRoundResults;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -49,6 +52,9 @@ final class EventDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         readonly private CountCompetitionResults $countCompetitionResults,
+        readonly private GetCompetitionRegistrationOverview $getCompetitionRegistrationOverview,
+        readonly private GetOfficialRoundResults $getOfficialRoundResults,
+        readonly private GetCompetitionPageSections $getCompetitionPageSections,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -159,6 +165,12 @@ final class EventDetailController extends AbstractController
         // Marketplace card: one query on a marketplace event, none anywhere else (docs/features/marketplace/11-events.md)
         $eventOffers = $this->getEventOffers->forEventPage($competitionEvent, $isPubliclyVisible, $loggedPlayer?->playerId);
 
+        $registration = $this->getCompetitionRegistrationOverview->forCompetition(
+            $competitionId,
+            $loggedPlayer?->playerId,
+        );
+        $now = $this->clock->now();
+
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
             'event_title' => $eventTitle,
@@ -177,6 +189,12 @@ final class EventDetailController extends AbstractController
             'can_add_time' => $canAddTime,
             'event_offers' => $eventOffers,
             'event_offers_just_joined' => $eventOffers !== null && EventJustJoinedFlash::take($request, $competitionId),
+            'registration' => $registration,
+            'registration_is_open' => $registration->isOpen($now),
+            'registration_opens_future' => $registration->opensInFuture($now),
+            'published_results' => $this->getOfficialRoundResults->publishedStandingsForCompetition($competitionId),
+            'page_sections' => $this->getCompetitionPageSections->forCompetition($competitionId),
+            'rounds' => $rounds,
         ]);
     }
 }

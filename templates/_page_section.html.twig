@@ -1,0 +1,90 @@
+{# Renders one manager-authored page section (PageEntry). Expects: section #}
+<div class="my-4">
+    {% if section.title %}
+        <h2 class="h5 mb-3">{{ section.title }}</h2>
+    {% endif %}
+
+    {% if section.type.value == 'rich_text' %}
+        <div class="page-section-rich-text">
+            {# Sanitized server-side on write with a strict allow-list #}
+            {{ section.content.html|default('')|raw }}
+        </div>
+    {% elseif section.type.value == 'faq' %}
+        <div class="accordion" id="faq-{{ section.sectionId }}">
+            {% for item in section.content.items|default([]) %}
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq-item-{{ section.sectionId }}-{{ loop.index }}">
+                            {{ item.question }}
+                        </button>
+                    </h3>
+                    <div id="faq-item-{{ section.sectionId }}-{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#faq-{{ section.sectionId }}">
+                        <div class="accordion-body">{{ item.answer|nl2br }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% elseif section.type.value == 'gallery' %}
+        <div class="row g-2">
+            {% for image in section.content.images|default([]) %}
+                <div class="col-6 col-md-3">
+                    <img src="{{ image.path|thumbnail('puzzle_medium') }}" alt="{{ image.caption ?: section.title ?: 'Photo' }}" class="img-fluid rounded" loading="lazy">
+                    {% if image.caption %}
+                        <div class="small text-muted mt-1">{{ image.caption }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% elseif section.type.value == 'venue' %}
+        <div class="card">
+            <div class="card-body">
+                {% if section.content.address|default('') %}
+                    <p class="mb-2"><i class="bi bi-geo-alt me-2"></i>{{ section.content.address }}</p>
+                {% endif %}
+                {% if section.content.directions|default('') %}
+                    <p class="mb-2 text-muted">{{ section.content.directions|nl2br }}</p>
+                {% endif %}
+                {% if section.content.mapUrl|default(null) %}
+                    <a href="{{ section.content.mapUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-map me-1"></i>{{ 'competition.page.open_map'|trans }}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% elseif section.type.value == 'sponsors' %}
+        <div class="row g-3 align-items-center">
+            {% for sponsor in section.content.sponsors|default([]) %}
+                <div class="col-6 col-md-3 text-center">
+                    {% if sponsor.url %}<a href="{{ sponsor.url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">{% endif %}
+                    {% if sponsor.logoPath %}
+                        <img src="{{ sponsor.logoPath|thumbnail('puzzle_small') }}" alt="{{ sponsor.name }}" class="img-fluid mb-1" style="max-height: 64px;" loading="lazy">
+                    {% endif %}
+                    <div class="small">{{ sponsor.name }}</div>
+                    {% if sponsor.url %}</a>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% elseif section.type.value == 'links' %}
+        <div class="d-flex flex-wrap gap-2">
+            {% for link in section.content.links|default([]) %}
+                <a href="{{ link.url }}{{ ('?' in link.url) ? '&' : '?' }}utm_source=myspeedpuzzling" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-link-45deg me-1"></i>{{ link.label ?: link.url }}
+                </a>
+            {% endfor %}
+        </div>
+    {% elseif section.type.value == 'contact' %}
+        <div class="card">
+            <div class="card-body">
+                {% if section.content.email|default('') %}
+                    <p class="mb-2"><i class="bi bi-envelope me-2"></i><a href="mailto:{{ section.content.email }}">{{ section.content.email }}</a></p>
+                {% endif %}
+                {% if section.content.phone|default('') %}
+                    <p class="mb-2"><i class="bi bi-telephone me-2"></i>{{ section.content.phone }}</p>
+                {% endif %}
+                {% if section.content.note|default('') %}
+                    <p class="mb-0 text-muted">{{ section.content.note|nl2br }}</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>

@@ -72,6 +72,14 @@ final class UpdateCompetitionController extends AbstractController
             logo: null,
             maintainerIds: $maintainerIds ?? $data->maintainers,
             slug: $slug !== $competition->slug ? $slug : null,
+            // Managed registration (PR #136) is not part of the API input - kept as the competition has it
+            // PORT-TODO: decide whether the internal API exposes the registration settings
+            registrationManaged: $data->registrationManaged,
+            capacity: $data->capacity,
+            registrationOpensAt: $data->registrationOpensAt,
+            registrationClosesAt: $data->registrationClosesAt,
+            entryFeeText: $data->entryFeeText,
+            paymentInstructions: $data->paymentInstructions,
         ));
 
         return new JsonResponse($this->getAdminCompetitions->detail($competition->id->toString())->toArray());

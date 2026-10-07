@@ -129,6 +129,47 @@ moderator_role_granted:
         <p><strong>A word of care about merges:</strong> approving a merge deletes the duplicate entries and moves everybody's times and collections onto the one that stays. It cannot be undone, so when in doubt - different piece count, different artwork, a different edition - rather leave it or reject it. One puzzle may hold several EAN codes; that is fine.</p>
         <p>If anything is unclear, write to us through the Feedback link at the top of the website.</p>
 
+competition_registration_reserved:
+    subject: "You're registered for %competitionName%"
+    title: "You're registered!"
+    entry_fee: "Entry fee"
+    payment_instructions: "How to pay"
+    content: |
+        <p>Your registration for <strong>%competitionName%</strong> is confirmed — your spot is reserved.</p>
+        <p><a href="%eventUrl%">View the event page</a></p>
+
+competition_registration_waitlisted:
+    subject: "You're on the waitlist for %competitionName%"
+    title: "You're on the waitlist"
+    position: "Your current position on the waitlist: #%position%"
+    content: |
+        <p>The event <strong>%competitionName%</strong> is currently full, so you've been added to the waitlist.</p>
+        <p>We'll email you right away if a spot opens up for you.</p>
+        <p><a href="%eventUrl%">View the event page</a></p>
+
+competition_registration_paid:
+    subject: "Payment confirmed for %competitionName%"
+    title: "Payment confirmed!"
+    content: |
+        <p>The organizer confirmed your payment for <strong>%competitionName%</strong>. Your spot is fully secured — see you there!</p>
+        <p><a href="%eventUrl%">View the event page</a></p>
+
+competition_registration_promoted:
+    subject: "A spot opened up for you at %competitionName%"
+    title: "A spot opened up!"
+    entry_fee: "Entry fee"
+    payment_instructions: "How to pay"
+    content: |
+        <p>Good news! A spot opened up at <strong>%competitionName%</strong> and you've been moved from the waitlist — your spot is now reserved.</p>
+        <p><a href="%eventUrl%">View the event page</a></p>
+
+competition_results_published:
+    subject: "Results are live: %competitionName%"
+    title: "Results are live!"
+    content: |
+        <p>The results of round <strong>%roundName%</strong> at <strong>%competitionName%</strong> have just been published.</p>
+        <p><a href="%eventUrl%">See the standings</a></p>
+
 competition_rejected:
     subject: "Your event submission was not approved"
     preheader: "%competitionName% was not approved – the reason is inside."

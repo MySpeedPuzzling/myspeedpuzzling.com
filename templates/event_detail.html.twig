@@ -184,36 +184,45 @@
         <p class="mt-3 mb-0" data-event-description>{{ event.description|nl2br }}</p>
     {% endif %}
 
-    <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
+    {# Page sections (docs/features/competitions-management/public-page.md): with the default layout the page renders
+       exactly what it rendered before - puzzles, "I'm going", marketplace card, participants - plus the official
+       results once a round is published and the organiser's custom sections #}
+    {% for entry in page_sections %}
+        {% if entry.isSystem %}
+            {% if entry.key == 'schedule' %}
+                {# PORT-TODO: PR #136 rendered a rounds list here (_competition_rounds_section) and hid the puzzles when the
+                   event has rounds; main shows the puzzles with their round badges instead - decide (opt-in only) #}
+            {% elseif entry.key == 'puzzles' %}
+                <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
 
-    {% if puzzles|length > 0 %}
-        <div class="row g-2 g-md-3">
-            {% for puzzle in puzzles %}
-                {{ include('_puzzle_item.html.twig', {
-                    'search': '',
+                {% if puzzles|length > 0 %}
+                    <div class="row g-2 g-md-3">
+                        {% for puzzle in puzzles %}
+                            {{ include('_puzzle_item.html.twig', {
+                                'search': '',
+                            }) }}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
+                {% endif %}
+            {% elseif entry.key == 'results' %}
+                {{ include('_competition_results_section.html.twig') }}
+            {% elseif entry.key == 'registration' %}
+                {{ include('_competition_registration_block.html.twig') }}
+
+                {{ include('_event_offers.html.twig', {
+                    offers: event_offers,
+                    competition_id: event.id,
+                    attendance: attendance,
+                    just_joined: event_offers_just_joined,
                 }) }}
-            {% endfor %}
-        </div>
-    {% else %}
-        <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
-    {% endif %}
-
-    <div class="mt-4 mb-3">
-        {{ include('_event_attendance.html.twig', {competition_id: event.id, attendance: attendance}) }}
-        {% if can_add_time %}
-            <a href="{{ path('puzzle_add', {competition: event.id}) }}" class="btn btn-sm btn-outline-primary ms-1 text-wrap">
-                <i class="bi bi-stopwatch me-1"></i>{{ 'events.add_my_time'|trans }}
-            </a>
+            {% elseif entry.key == 'participants' %}
+                <twig:CompetitionParticipants competitionId="{{ event.id }}" />
+            {% endif %}
+        {% else %}
+            {{ include('_page_section.html.twig', {section: entry}) }}
         {% endif %}
-    </div>
-
-    {{ include('_event_offers.html.twig', {
-        offers: event_offers,
-        competition_id: event.id,
-        attendance: attendance,
-        just_joined: event_offers_just_joined,
-    }) }}
-
-    <twig:CompetitionParticipants competitionId="{{ event.id }}" />
+    {% endfor %}
 
 {% endblock %}

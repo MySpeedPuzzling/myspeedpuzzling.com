@@ -30,6 +30,12 @@ readonly final class EditCompetition
         // An explicitly chosen slug (validated unique) - null keeps the slug, also on a rename: published links and
         // search engines know the competition by it
         public null|string $slug = null,
+        public bool $registrationManaged = false,
+        public null|int $capacity = null,
+        public null|DateTimeImmutable $registrationOpensAt = null,
+        public null|DateTimeImmutable $registrationClosesAt = null,
+        public null|string $entryFeeText = null,
+        public null|string $paymentInstructions = null,
     ) {
     }
 }

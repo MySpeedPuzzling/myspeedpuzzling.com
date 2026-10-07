@@ -121,24 +121,15 @@
         </div>
     </div>
 
-    {# Undated editions (no round, no date) are listed here too, last - see GetCompetitionSeries::fetchEditions() #}
-    {% if upcoming_editions|length > 0 %}
-        <h2 class="h5 mt-4 mb-3">{{ 'series.upcoming_editions'|trans }}</h2>
-        <div class="row">
-            {% for edition in upcoming_editions %}
-                {{ include('_series_edition_card.html.twig', {edition: edition, series: series, past: false}) }}
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    {% if past_editions|length > 0 %}
-        <h2 class="h5 mt-4 mb-3">{{ 'series.past_editions'|trans }}</h2>
-        <div class="row">
-            {% for edition in past_editions %}
-                {{ include('_series_edition_card.html.twig', {edition: edition, series: series, past: true}) }}
-            {% endfor %}
-        </div>
-    {% endif %}
+    {% for entry in page_sections %}
+        {% if entry.isSystem %}
+            {% if entry.key == 'editions' %}
+                {{ include('_series_editions_section.html.twig') }}
+            {% endif %}
+        {% else %}
+            {{ include('_page_section.html.twig', {section: entry}) }}
+        {% endif %}
+    {% endfor %}
 
     {% if upcoming_editions|length == 0 and past_editions|length == 0 %}
         <p class="text-muted mt-4">{{ 'series.no_editions'|trans }}</p>

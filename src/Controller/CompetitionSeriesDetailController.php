@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Entity\CompetitionSeries;
+use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,6 +16,7 @@ final class CompetitionSeriesDetailController extends AbstractController
 {
     public function __construct(
         readonly private GetCompetitionSeries $getCompetitionSeries,
+        readonly private GetCompetitionPageSections $getCompetitionPageSections,
     ) {
     }
 
@@ -40,6 +42,7 @@ final class CompetitionSeriesDetailController extends AbstractController
             'series' => $seriesOverview,
             'upcoming_editions' => $upcomingEditions,
             'past_editions' => $pastEditions,
+            'page_sections' => $this->getCompetitionPageSections->forSeries($series->id->toString()),
         ]);
     }
 }

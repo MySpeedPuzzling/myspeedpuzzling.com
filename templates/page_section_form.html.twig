@@ -1,0 +1,185 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ ('competition.page.type.' ~ section_type.value)|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: manage_url, fallbackTitle: 'competition.page.manage_title'|trans}) }}
+
+    <div class="row justify-content-center pb-4">
+        <div class="col-lg-8">
+            <h1 class="h3 mb-3">{{ ('competition.page.type.' ~ section_type.value)|trans }}</h1>
+
+            <form method="post" action="{{ form_action }}">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">{{ 'competition.page.form.title'|trans }}</label>
+                            <input type="text" name="title" class="form-control" maxlength="250" value="{{ title_value }}">
+                            <div class="form-text">{{ 'competition.page.form.title_help'|trans }}</div>
+                        </div>
+
+                        {% if section_type.value == 'rich_text' %}
+                            <div data-controller="wysiwyg">
+                                <div data-wysiwyg-target="editor" class="bg-white" style="min-height: 220px;">{{ content.html|default('')|raw }}</div>
+                                <textarea name="html" class="d-none" data-wysiwyg-target="input">{{ content.html|default('') }}</textarea>
+                            </div>
+                        {% elseif section_type.value == 'faq' %}
+                            <div data-controller="repeatable-rows">
+                                <div data-repeatable-rows-target="container">
+                                    {% for item in content.items|default([{question: '', answer: ''}]) %}
+                                        <div class="card bg-light border mb-2 p-3" data-repeatable-row>
+                                            <div class="mb-2">
+                                                <input type="text" name="items[{{ loop.index0 }}][question]" class="form-control" placeholder="{{ 'competition.page.form.question'|trans }}" value="{{ item.question }}">
+                                            </div>
+                                            <textarea name="items[{{ loop.index0 }}][answer]" class="form-control" rows="3" placeholder="{{ 'competition.page.form.answer'|trans }}">{{ item.answer }}</textarea>
+                                            <button type="button" class="btn btn-sm btn-outline-danger mt-2 align-self-start" data-action="repeatable-rows#remove">
+                                                <i class="bi bi-trash me-1"></i>{{ 'competition.page.form.remove_row'|trans }}
+                                            </button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <template data-repeatable-rows-target="template">
+                                    <div class="card bg-light border mb-2 p-3" data-repeatable-row>
+                                        <div class="mb-2">
+                                            <input type="text" name="items[__INDEX__][question]" class="form-control" placeholder="{{ 'competition.page.form.question'|trans }}">
+                                        </div>
+                                        <textarea name="items[__INDEX__][answer]" class="form-control" rows="3" placeholder="{{ 'competition.page.form.answer'|trans }}"></textarea>
+                                        <button type="button" class="btn btn-sm btn-outline-danger mt-2 align-self-start" data-action="repeatable-rows#remove">
+                                            <i class="bi bi-trash me-1"></i>{{ 'competition.page.form.remove_row'|trans }}
+                                        </button>
+                                    </div>
+                                </template>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-action="repeatable-rows#add">
+                                    <i class="bi bi-plus-lg me-1"></i>{{ 'competition.page.form.add_question'|trans }}
+                                </button>
+                            </div>
+                        {% elseif section_type.value == 'gallery' %}
+                            <div data-controller="repeatable-rows">
+                                <div data-repeatable-rows-target="container">
+                                    {% for image in content.images|default([]) %}
+                                        <div class="card bg-light border mb-2 p-3" data-repeatable-row>
+                                            <div class="d-flex align-items-center gap-3" data-controller="section-image-upload" data-section-image-upload-url-value="{{ path('upload_page_section_image') }}" data-section-image-upload-owner-type-value="{{ owner_type }}" data-section-image-upload-owner-id-value="{{ owner_id }}">
+                                                <img src="{{ image.path|thumbnail('puzzle_small') }}" alt="" class="rounded" style="height: 56px;" data-section-image-upload-target="preview">
+                                                <input type="hidden" name="images[{{ loop.index0 }}][path]" value="{{ image.path }}" data-section-image-upload-target="path">
+                                                <input type="file" accept="image/*" class="form-control form-control-sm w-auto" data-section-image-upload-target="file" data-action="section-image-upload#upload">
+                                                <input type="text" name="images[{{ loop.index0 }}][caption]" class="form-control form-control-sm" placeholder="{{ 'competition.page.form.caption'|trans }}" value="{{ image.caption }}">
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <template data-repeatable-rows-target="template">
+                                    <div class="card bg-light border mb-2 p-3" data-repeatable-row>
+                                        <div class="d-flex align-items-center gap-3" data-controller="section-image-upload" data-section-image-upload-url-value="{{ path('upload_page_section_image') }}" data-section-image-upload-owner-type-value="{{ owner_type }}" data-section-image-upload-owner-id-value="{{ owner_id }}">
+                                            <img src="" alt="" class="rounded d-none" style="height: 56px;" data-section-image-upload-target="preview">
+                                            <input type="hidden" name="images[__INDEX__][path]" value="" data-section-image-upload-target="path">
+                                            <input type="file" accept="image/*" class="form-control form-control-sm w-auto" data-section-image-upload-target="file" data-action="section-image-upload#upload">
+                                            <input type="text" name="images[__INDEX__][caption]" class="form-control form-control-sm" placeholder="{{ 'competition.page.form.caption'|trans }}">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-action="repeatable-rows#add">
+                                    <i class="bi bi-plus-lg me-1"></i>{{ 'competition.page.form.add_image'|trans }}
+                                </button>
+                            </div>
+                        {% elseif section_type.value == 'venue' %}
+                            <div class="mb-3">
+                                <label class="form-label">{{ 'competition.page.form.address'|trans }}</label>
+                                <input type="text" name="address" class="form-control" value="{{ content.address|default('') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{{ 'competition.page.form.map_url'|trans }}</label>
+                                <input type="url" name="mapUrl" class="form-control" placeholder="https://maps.google.com/..." value="{{ content.mapUrl|default('') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{{ 'competition.page.form.directions'|trans }}</label>
+                                <textarea name="directions" class="form-control" rows="3">{{ content.directions|default('') }}</textarea>
+                                <div class="form-text">{{ 'competition.page.form.directions_help'|trans }}</div>
+                            </div>
+                        {% elseif section_type.value == 'sponsors' %}
+                            <div data-controller="repeatable-rows">
+                                <div data-repeatable-rows-target="container">
+                                    {% for sponsor in content.sponsors|default([]) %}
+                                        <div class="card bg-light border mb-2 p-3" data-repeatable-row>
+                                            <div class="d-flex align-items-center gap-2 flex-wrap" data-controller="section-image-upload" data-section-image-upload-url-value="{{ path('upload_page_section_image') }}" data-section-image-upload-owner-type-value="{{ owner_type }}" data-section-image-upload-owner-id-value="{{ owner_id }}">
+                                                <input type="text" name="sponsors[{{ loop.index0 }}][name]" class="form-control form-control-sm w-auto" placeholder="{{ 'competition.page.form.sponsor_name'|trans }}" value="{{ sponsor.name }}">
+                                                <input type="url" name="sponsors[{{ loop.index0 }}][url]" class="form-control form-control-sm w-auto" placeholder="https://..." value="{{ sponsor.url }}">
+                                                {% if sponsor.logoPath %}
+                                                    <img src="{{ sponsor.logoPath|thumbnail('puzzle_small') }}" alt="" class="rounded" style="height: 40px;" data-section-image-upload-target="preview">
+                                                {% else %}
+                                                    <img src="" alt="" class="rounded d-none" style="height: 40px;" data-section-image-upload-target="preview">
+                                                {% endif %}
+                                                <input type="hidden" name="sponsors[{{ loop.index0 }}][logoPath]" value="{{ sponsor.logoPath }}" data-section-image-upload-target="path">
+                                                <input type="file" accept="image/*" class="form-control form-control-sm w-auto" data-section-image-upload-target="file" data-action="section-image-upload#upload">
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <template data-repeatable-rows-target="template">
+                                    <div class="card bg-light border mb-2 p-3" data-repeatable-row>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap" data-controller="section-image-upload" data-section-image-upload-url-value="{{ path('upload_page_section_image') }}" data-section-image-upload-owner-type-value="{{ owner_type }}" data-section-image-upload-owner-id-value="{{ owner_id }}">
+                                            <input type="text" name="sponsors[__INDEX__][name]" class="form-control form-control-sm w-auto" placeholder="{{ 'competition.page.form.sponsor_name'|trans }}">
+                                            <input type="url" name="sponsors[__INDEX__][url]" class="form-control form-control-sm w-auto" placeholder="https://...">
+                                            <img src="" alt="" class="rounded d-none" style="height: 40px;" data-section-image-upload-target="preview">
+                                            <input type="hidden" name="sponsors[__INDEX__][logoPath]" value="" data-section-image-upload-target="path">
+                                            <input type="file" accept="image/*" class="form-control form-control-sm w-auto" data-section-image-upload-target="file" data-action="section-image-upload#upload">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-action="repeatable-rows#add">
+                                    <i class="bi bi-plus-lg me-1"></i>{{ 'competition.page.form.add_sponsor'|trans }}
+                                </button>
+                            </div>
+                        {% elseif section_type.value == 'links' %}
+                            <div data-controller="repeatable-rows">
+                                <div data-repeatable-rows-target="container">
+                                    {% for link in content.links|default([{label: '', url: ''}]) %}
+                                        <div class="d-flex align-items-center gap-2 mb-2" data-repeatable-row>
+                                            <input type="text" name="links[{{ loop.index0 }}][label]" class="form-control form-control-sm" placeholder="{{ 'competition.page.form.link_label'|trans }}" value="{{ link.label }}">
+                                            <input type="url" name="links[{{ loop.index0 }}][url]" class="form-control form-control-sm" placeholder="https://..." value="{{ link.url }}">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <template data-repeatable-rows-target="template">
+                                    <div class="d-flex align-items-center gap-2 mb-2" data-repeatable-row>
+                                        <input type="text" name="links[__INDEX__][label]" class="form-control form-control-sm" placeholder="{{ 'competition.page.form.link_label'|trans }}">
+                                        <input type="url" name="links[__INDEX__][url]" class="form-control form-control-sm" placeholder="https://...">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </template>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-action="repeatable-rows#add">
+                                    <i class="bi bi-plus-lg me-1"></i>{{ 'competition.page.form.add_link'|trans }}
+                                </button>
+                            </div>
+                        {% elseif section_type.value == 'contact' %}
+                            <div class="alert alert-light border small">
+                                <i class="bi bi-shield-check me-2"></i>{{ 'competition.page.form.contact_optin_note'|trans }}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{{ 'competition.page.form.email'|trans }}</label>
+                                <input type="email" name="email" class="form-control" value="{{ content.email|default('') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{{ 'competition.page.form.phone'|trans }}</label>
+                                <input type="text" name="phone" class="form-control" value="{{ content.phone|default('') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{{ 'competition.page.form.note'|trans }}</label>
+                                <textarea name="note" class="form-control" rows="2">{{ content.note|default('') }}</textarea>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>{{ 'forms.save'|trans }}
+                </button>
+                <a href="{{ manage_url }}" class="btn btn-outline-secondary">{{ 'forms.cancel'|trans }}</a>
+            </form>
+        </div>
+    </div>
+{% endblock %}

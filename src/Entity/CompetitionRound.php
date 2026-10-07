@@ -69,6 +69,8 @@ class CompetitionRound implements EntityWithEvents
         // The zone the organiser typed the start in, so it is edited and shown in that zone - see RoundTimezone
         #[Column(length: 64, nullable: true)]
         public null|string $timezone = null,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $resultsPublishedAt = null,
     ) {
     }
 
@@ -110,6 +112,21 @@ class CompetitionRound implements EntityWithEvents
     public function assignSlug(string $slug): void
     {
         $this->slug = $slug;
+    }
+
+    public function publishResults(DateTimeImmutable $publishedAt): void
+    {
+        $this->resultsPublishedAt = $publishedAt;
+    }
+
+    public function unpublishResults(): void
+    {
+        $this->resultsPublishedAt = null;
+    }
+
+    public function areResultsPublished(): bool
+    {
+        return $this->resultsPublishedAt !== null;
     }
 
     public function edit(

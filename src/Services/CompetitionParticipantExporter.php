@@ -19,6 +19,10 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  */
 readonly final class CompetitionParticipantExporter
 {
+    // PORT-TODO: PR #136 added a `registration_status` column (after `status`) to the export and the template, imported
+    // back by CompetitionParticipantImporter. Main rewrote the import (ParticipantImport\*, ColumnMapping, PlanBuilder) and
+    // keeps "an unchanged export imports as no change", so neither side is ported yet - port both together, opt-in for
+    // managed registration only, aligned with docs/features/competitions-management/participants-spreadsheet.md
     /** The columns of the downloadable template - an event-less sheet for new participants. */
     private const array TEMPLATE_HEADERS = ['name', 'country', 'external_id', 'msp_player_id', 'status', 'round_names', 'team_name'];
 

@@ -16,6 +16,39 @@ readonly final class GetRoundTeams
     }
 
     /**
+     * Teams across all duo/team rounds of a competition, for the join/claim picker.
+     *
+     * @return array<array{teamId: string, teamName: null|string, roundId: string, roundName: string, memberNames: null|string}>
+     */
+    public function teamsForCompetition(string $competitionId): array
+    {
+        $query = <<<SQL
+SELECT ct.id AS team_id, ct.name AS team_name, r.id AS round_id, r.name AS round_name,
+    (
+        SELECT STRING_AGG(cp.name, ', ' ORDER BY cp.name)
+        FROM competition_participant_round cpr
+        INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND cp.deleted_at IS NULL
+        WHERE cpr.team_id = ct.id
+    ) AS member_names
+FROM competition_team ct
+INNER JOIN competition_round r ON r.id = ct.round_id
+WHERE r.competition_id = :competitionId
+ORDER BY r.starts_at ASC, ct.name ASC NULLS LAST
+SQL;
+
+        /** @var array<array{team_id: string, team_name: null|string, round_id: string, round_name: string, member_names: null|string}> $rows */
+        $rows = $this->database->executeQuery($query, ['competitionId' => $competitionId])->fetchAllAssociative();
+
+        return array_map(static fn (array $row): array => [
+            'teamId' => $row['team_id'],
+            'teamName' => $row['team_name'],
+            'roundId' => $row['round_id'],
+            'roundName' => $row['round_name'],
+            'memberNames' => $row['member_names'],
+        ], $rows);
+    }
+
+    /**
      * @return array<RoundTeamDetail>
      */
     public function forRound(string $roundId): array

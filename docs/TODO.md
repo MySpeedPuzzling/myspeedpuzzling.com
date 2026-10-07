@@ -62,10 +62,6 @@ that would otherwise be forgotten. Newest section on top.
       `--write` - until then old rows have `hides_everywhere = false` and a round move moves only the event page.
 - [ ] Wisconsin State Jigsaw Puzzle Championship 2026: confirm the 4 round times with the organiser, set the
       rounds' `timezone` to `America/Chicago`, re-sync the 2 Team Relay secret puzzles (SQL in the PR description).
-- [ ] Rounds saved before 2026-10 have no `timezone` and are read in their country's default zone - organisers of
-      events outside it (US Central/Mountain/Pacific, ...) may want to re-save their rounds once.
-- [ ] US events default to New York (`CountryCode::defaultTimezone()`) - a known limitation for Central/Mountain/Pacific
-      events without a stored zone (e.g. past `assemble-puzzlery-…` reads 21:30 New York); ask organisers to set theirs.
 - [ ] Rename the random (hex) image names of secret puzzles to SEO names once revealed or approved.
 - [ ] Existence signals of secret puzzles still open (nothing of the puzzle itself, but they tell that something is
       there): `MergeUnapprovedPuzzleController`
@@ -103,8 +99,6 @@ that would otherwise be forgotten. Newest section on top.
       page before its round starts, as when adding it. Revisit if that should be refused too.
 - [ ] Not in the internal API: changing a reveal, Reveal now, "Keep it hidden everywhere", attaching a secret puzzle
       (refused - its reveal is chosen on the round's page).
-- [ ] Repair historic rounds moved by untouched saves before the zone fix (e.g. Ou La La SPC No. 16) - compare with the
-      organisers' published schedules.
 - [ ] The coordinator saw America/Chicago twice at the end of the zone select; the server renders it once and TomSelect
       moves the selected option to the end of the native select - not reproduced in Chrome 2026-10-06, re-check on a phone.
 

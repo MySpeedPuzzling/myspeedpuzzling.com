@@ -1,0 +1,265 @@
+{% extends 'base.html.twig' %}
+
+{# Seating of a round - docs/features/competitions-management/seating.md. The lists are drawn by
+   controllers/round_seating_controller.js from the entries below and kept current over Mercure; every write goes
+   through the official results endpoints. #}
+
+{% set hide_comparison_launcher = true %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block title %}{{ 'seating.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'seating.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
+
+    <div class="pb-5">
+        <h1 class="h2 mb-1">{{ 'seating.title'|trans }}</h1>
+        <p class="h5 text-muted mb-3">
+            {{ competition.name }} — {{ round.name }}
+            <span class="badge bg-secondary align-middle ms-1">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
+        </p>
+
+        {% if competition.isOnline %}
+            <div class="alert alert-secondary" role="status">
+                <h2 class="h6 mb-1"><i class="bi bi-wifi me-1" aria-hidden="true"></i>{{ 'seating.online.title'|trans }}</h2>
+                <p class="mb-0">{{ 'seating.online.text'|trans }}</p>
+            </div>
+        {% else %}
+            {% set texts = {
+                readinessProgress: 'seating.readiness.progress'|trans,
+                readinessRecommended: 'seating.readiness.recommended'|trans,
+                readinessDone: 'seating.readiness.done'|trans,
+                renumber: 'seating.toolbar.renumber'|trans,
+                clearAllConfirm: browser_translation('seating.toolbar.clear_all_confirm'),
+                unseatedHeading: browser_translation('seating.list.unseated_heading'),
+                seatedHeading: browser_translation('seating.list.seated_heading'),
+                seatRest: browser_translation('seating.list.seat_rest'),
+                noTable: 'seating.list.no_table'|trans,
+                tableFor: 'seating.list.table_for'|trans,
+                drag: 'seating.list.drag'|trans,
+                moveUp: 'seating.list.move_up'|trans,
+                moveDown: 'seating.list.move_down'|trans,
+                swap: 'seating.list.swap'|trans,
+                swapHere: 'seating.list.swap_here'|trans,
+                swapCancel: 'seating.list.swap_cancel'|trans,
+                swapPick: 'seating.list.swap_pick'|trans,
+                tableTaken: 'seating.list.table_taken'|trans,
+                swapThem: 'seating.list.swap_them'|trans,
+                changedMeanwhile: 'seating.list.changed_meanwhile'|trans,
+                invalidNumber: 'seating.list.invalid_number'|trans,
+                leaveUnsaved: 'seating.list.leave_unsaved'|trans,
+                statusSaving: 'seating.status.saving'|trans,
+                statusSaved: 'seating.status.saved'|trans,
+                statusOffline: 'seating.status.offline'|trans,
+                statusFailed: 'seating.status.failed'|trans,
+                statusRetry: 'seating.status.retry'|trans,
+                statusSignIn: 'seating.status.sign_in'|trans,
+                statusSignInLink: 'seating.status.sign_in_link'|trans,
+                statusForbidden: 'seating.status.forbidden'|trans,
+                toastApplied: browser_translation('seating.toast.applied'),
+                toastRenumbered: 'seating.toast.renumbered'|trans,
+                toastSeatedRest: 'seating.toast.seated_rest'|trans,
+                toastCleared: browser_translation('seating.toast.cleared'),
+                toastSwapped: 'seating.toast.swapped'|trans,
+                toastUndo: 'seating.toast.undo'|trans,
+                toastUndone: 'seating.toast.undone'|trans,
+                toastClose: 'seating.toast.close'|trans,
+                toastNothingSaved: 'seating.toast.nothing_saved'|trans,
+                turnedOff: 'seating.off.turned_off'|trans,
+                turnedOn: 'seating.off.turned_on'|trans,
+                withData: browser_translation('seating.auto.with_data'),
+                bestAvailable: 'seating.auto.best_available'|trans,
+                proposing: 'seating.auto.proposing'|trans,
+                noData: browser_translation('seating.auto.no_data'),
+                piecesAssumed: 'seating.auto.pieces_assumed'|trans,
+                draw: 'seating.auto.draw'|trans,
+                changes: browser_translation('seating.auto.changes'),
+                columnTable: 'seating.auto.column_table'|trans,
+                columnEntrant: 'seating.auto.column_entrant'|trans,
+                columnBasis: 'seating.auto.column_basis'|trans,
+                columnNow: 'seating.auto.column_now'|trans,
+                basis: 'seating.auto.basis'|trans,
+                noBasis: 'seating.auto.no_basis'|trans,
+                entrantsChanged: 'seating.auto.entrants_changed'|trans,
+                proposalFailed: 'seating.auto.failed'|trans,
+                proposalEmpty: 'seating.auto.empty'|trans,
+                mspHelp: 'seating.auto.source_msp_times_help'|trans,
+                orderFirst: 'seating.auto.order'|trans,
+            } %}
+
+            <div
+                class="seating"
+                data-controller="round-seating"
+                data-round-seating-round-id-value="{{ round.id }}"
+                data-round-seating-locale-value="{{ app.request.locale }}"
+                data-round-seating-state-url-value="{{ path('official_results_round_state', {roundId: round.id}) }}"
+                data-round-seating-record-url-value="{{ path('official_results_record', {roundId: round.id}) }}"
+                data-round-seating-assign-url-value="{{ path('official_results_assign_table_numbers', {roundId: round.id}) }}"
+                data-round-seating-usage-url-value="{{ path('official_results_table_numbers_usage', {roundId: round.id}) }}"
+                data-round-seating-proposal-url-value="{{ path('official_results_seating_proposal', {roundId: round.id}) }}"
+                data-round-seating-sign-in-url-value="{{ path('login', {return: path('round_seating', {roundId: round.id})}) }}"
+                data-round-seating-csrf-token-value="{{ csrf_token(csrf_token_id) }}"
+                data-round-seating-entries-value="{{ entries|json_encode }}"
+                data-round-seating-round-value="{{ overview|json_encode }}"
+                data-round-seating-texts-value="{{ texts|json_encode }}"
+                data-round-seating-propose-value="{{ propose }}"
+                data-action="mercure:message@document->round-seating#mercureMessage visibilitychange@document->round-seating#visibilityChanged online@window->round-seating#refresh beforeunload@window->round-seating#beforeUnload turbo:before-visit@document->round-seating#beforeVisit keydown.esc@document->round-seating#escape"
+            >
+                {# "Tables: 180 / 200 assigned - recommended before the round starts", drawn again after every change #}
+                <div class="seating-readiness alert d-flex flex-wrap align-items-center gap-2 py-2 {{ overview.isSeated ? 'alert-light border' : 'alert-info' }}" role="status" data-round-seating-target="readiness">
+                    <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
+                    <span>
+                        <strong data-round-seating-target="readinessProgress">{{ 'seating.readiness.progress'|trans({'%assigned%': overview.entriesWithTableNumber, '%total%': overview.entriesTotal}) }}</strong>
+                        <span data-round-seating-target="readinessNote">- {{ overview.entriesTotal > 0 and overview.entriesWithTableNumber >= overview.entriesTotal ? 'seating.readiness.done'|trans : 'seating.readiness.recommended'|trans }}</span>
+                    </span>
+                </div>
+
+                {# The organiser said the round does without table numbers - undoable #}
+                <div class="card border-secondary mb-4" data-round-seating-target="offPanel" {% if not overview.tableNumbersOff %}hidden{% endif %}>
+                    <div class="card-body">
+                        <h2 class="h5">{{ 'seating.off.title'|trans }}</h2>
+                        <p class="text-muted">{{ 'seating.off.text'|trans }}</p>
+                        <button type="button" class="btn btn-primary" data-action="round-seating#turnOn">
+                            <i class="bi bi-123 me-1" aria-hidden="true"></i>{{ 'seating.off.turn_on'|trans }}
+                        </button>
+                    </div>
+                </div>
+
+                <div data-round-seating-target="onPanel" {% if overview.tableNumbersOff %}hidden{% endif %}>
+                    <p class="text-muted">{{ 'seating.intro'|trans }}</p>
+
+                    <div class="seating-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <button type="button" class="btn btn-primary" data-action="round-seating#toggleAuto" data-round-seating-target="autoButton" aria-expanded="false" aria-controls="seating-auto-{{ round.id }}">
+                            <i class="bi bi-magic me-1" aria-hidden="true"></i>{{ 'seating.toolbar.auto_assign'|trans }}
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" data-action="round-seating#renumber" data-round-seating-target="renumberButton" disabled>
+                            <i class="bi bi-sort-numeric-down me-1" aria-hidden="true"></i><span data-round-seating-target="renumberLabel">{{ 'seating.toolbar.renumber'|trans({'%first%': 1, '%last%': max(1, overview.entriesWithTableNumber)}) }}</span>
+                        </button>
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-printer me-1" aria-hidden="true"></i>{{ 'seating.toolbar.print'|trans }}
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ path('round_seating_print', {roundId: round.id}) }}" target="_blank" rel="noopener" data-turbo="false">{{ 'seating.toolbar.print_both'|trans }}</a></li>
+                                <li><a class="dropdown-item" href="{{ path('round_seating_print', {roundId: round.id, list: 'tables'}) }}" target="_blank" rel="noopener" data-turbo="false">{{ 'seating.toolbar.print_tables'|trans }}</a></li>
+                                <li><a class="dropdown-item" href="{{ path('round_seating_print', {roundId: round.id, list: 'names'}) }}" target="_blank" rel="noopener" data-turbo="false">{{ 'seating.toolbar.print_names'|trans }}</a></li>
+                            </ul>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger" data-action="round-seating#clearAll" data-round-seating-target="clearButton" disabled>
+                            <i class="bi bi-eraser me-1" aria-hidden="true"></i>{{ 'seating.toolbar.clear_all'|trans }}
+                        </button>
+                        <span class="seating-status small ms-sm-auto" data-round-seating-target="status" role="status" aria-live="polite"></span>
+                    </div>
+
+                    {# Auto-assign: a proposal first, applied as one write #}
+                    <section class="card shadow-sm mb-4" id="seating-auto-{{ round.id }}" data-round-seating-target="autoPanel" hidden aria-labelledby="seating-auto-title-{{ round.id }}">
+                        <div class="card-body">
+                            <h2 class="h5 mb-1" id="seating-auto-title-{{ round.id }}">{{ 'seating.auto.title'|trans }}</h2>
+                            <p class="text-muted small">{{ 'seating.auto.intro'|trans }}</p>
+
+                            <div class="row g-3">
+                                <fieldset class="col-12 col-lg-6">
+                                    <legend class="form-label fs-6 fw-semibold">{{ 'seating.auto.source'|trans }}</legend>
+                                    {% for source in ['earlier_rounds', 'msp_times', 'random', 'name'] %}
+                                        <div class="form-check seating-source">
+                                            <input class="form-check-input" type="radio" name="seating-source-{{ round.id }}" id="seating-source-{{ source }}-{{ round.id }}" value="{{ source }}" data-round-seating-target="sourceInput" data-action="round-seating#optionsChanged">
+                                            <label class="form-check-label" for="seating-source-{{ source }}-{{ round.id }}">
+                                                {{ ('seating.auto.source_' ~ source)|trans }}
+                                                <span class="small text-muted" data-source-count="{{ source }}"></span>
+                                                <span class="badge text-bg-success ms-1" data-source-best="{{ source }}" hidden>{{ 'seating.auto.best_available'|trans }}</span>
+                                                {% if source == 'earlier_rounds' %}
+                                                    <span class="d-block small text-muted">{{ 'seating.auto.source_earlier_rounds_help'|trans }}</span>
+                                                {% elseif source == 'msp_times' %}
+                                                    <span class="d-block small text-muted" data-round-seating-target="mspHelp"></span>
+                                                {% endif %}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </fieldset>
+
+                                <div class="col-12 col-lg-6">
+                                    <fieldset class="mb-3" data-round-seating-target="orderFieldset">
+                                        <legend class="form-label fs-6 fw-semibold" data-round-seating-target="orderLegend">{{ 'seating.auto.order'|trans({'%first%': 1}) }}</legend>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="seating-order-{{ round.id }}" id="seating-order-fastest-{{ round.id }}" value="fastest_first" checked data-round-seating-target="orderInput" data-action="round-seating#optionsChanged">
+                                            <label class="form-check-label" for="seating-order-fastest-{{ round.id }}">{{ 'seating.auto.order_fastest'|trans }}</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="seating-order-{{ round.id }}" id="seating-order-slowest-{{ round.id }}" value="slowest_first" data-round-seating-target="orderInput" data-action="round-seating#optionsChanged">
+                                            <label class="form-check-label" for="seating-order-slowest-{{ round.id }}">{{ 'seating.auto.order_slowest'|trans }}</label>
+                                        </div>
+                                    </fieldset>
+                                    <label class="form-label fw-semibold" for="seating-first-{{ round.id }}">{{ 'seating.auto.first_table'|trans }}</label>
+                                    <input type="number" class="form-control seating-first-input" id="seating-first-{{ round.id }}" inputmode="numeric" min="1" max="9999" value="{{ first_table }}" data-round-seating-target="firstInput" data-action="change->round-seating#optionsChanged">
+                                </div>
+                            </div>
+
+                            <div class="mt-3" data-round-seating-target="proposal" aria-live="polite"></div>
+
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <button type="button" class="btn btn-success" data-action="round-seating#applyProposal" data-round-seating-target="applyButton" disabled>
+                                    <i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'seating.auto.apply'|trans }}
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-action="round-seating#drawAgain" data-round-seating-target="drawAgainButton" hidden>
+                                    <i class="bi bi-shuffle me-1" aria-hidden="true"></i>{{ 'seating.auto.draw_again'|trans }}
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" data-action="round-seating#toggleAuto">{{ 'seating.auto.cancel'|trans }}</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="mb-3" style="max-width: 24rem;">
+                        <label class="form-label small text-muted mb-1" for="seating-filter-{{ round.id }}">{{ 'seating.toolbar.filter'|trans }}</label>
+                        <input type="search" class="form-control" id="seating-filter-{{ round.id }}" placeholder="{{ 'seating.toolbar.filter_placeholder'|trans }}" autocomplete="off" data-round-seating-target="filter" data-action="input->round-seating#filterChanged">
+                        <div class="form-text" data-round-seating-target="filterNote" hidden>{{ 'seating.list.drag_off_while_filtering'|trans }}</div>
+                    </div>
+
+                    {# A dragged / moved order waits for "Renumber" - nothing is written before #}
+                    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 seating-sticky-bar" data-round-seating-target="orderBar" hidden role="status">
+                        <span class="me-auto">{{ 'seating.list.order_changed'|trans }}</span>
+                        <button type="button" class="btn btn-sm btn-primary" data-action="round-seating#renumber" data-round-seating-target="orderBarRenumber"></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="round-seating#undoOrder">{{ 'seating.list.undo_order'|trans }}</button>
+                    </div>
+
+                    <div class="alert alert-primary d-flex flex-wrap align-items-center gap-2 seating-sticky-bar" data-round-seating-target="swapBar" hidden role="status">
+                        <span class="me-auto" data-round-seating-target="swapText"></span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="round-seating#cancelSwap">{{ 'seating.list.cancel'|trans }}</button>
+                    </div>
+
+                    <p class="text-muted" data-round-seating-target="empty" hidden>{{ 'seating.list.empty'|trans }}</p>
+                    <p class="text-muted" data-round-seating-target="nothingFound" hidden>{{ 'seating.list.nothing_found'|trans }}</p>
+
+                    <div class="seating-lists" data-round-seating-target="lists" data-action="focusout->round-seating#listFocusOut">
+                        <section class="mb-4" data-round-seating-target="unseatedSection">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <h2 class="h6 mb-0" data-round-seating-target="unseatedHeading"></h2>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-action="round-seating#seatRest" data-round-seating-target="seatRestButton" hidden></button>
+                            </div>
+                            <ul class="list-group seating-list seating-list-unseated" data-round-seating-target="unseatedList" data-drop-label="{{ 'seating.list.drop_here'|trans }}"></ul>
+                        </section>
+                        <section>
+                            <h2 class="h6 mb-2" data-round-seating-target="seatedHeading"></h2>
+                            <ul class="list-group seating-list" data-round-seating-target="seatedList"></ul>
+                        </section>
+                    </div>
+
+                    <div class="mt-5 pt-3 border-top">
+                        <button type="button" class="btn btn-link px-0" data-action="round-seating#turnOff">
+                            <i class="bi bi-slash-circle me-1" aria-hidden="true"></i>{{ 'seating.off.turn_off'|trans }}
+                        </button>
+                        <div class="small text-muted">{{ 'seating.off.turn_off_help'|trans }}</div>
+                    </div>
+                </div>
+
+                <div class="seating-toast-region" data-round-seating-target="toast" role="status" aria-live="polite"></div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

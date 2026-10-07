@@ -82,6 +82,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetResultReviewEmailCandidates' => self::BACKGROUND,
         'GetRoundResultEntries' => self::ORGANISER,
         'GetRoundTeams' => self::ORGANISER,
+        'GetSeatingSeedTimes' => self::ORGANISER . ' Returns no identity either: only orders the organiser\'s entrants.',
         'GetSoldSwappedHistory' => self::BILATERAL,
         'GetStatistics' => self::AGGREGATE,
         'GetStoredFileReferences' => 'Storage housekeeping - reads which file keys rows point at, never who.',

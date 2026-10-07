@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+{# The printable seating list of a round (RoundSeatingPrintController, docs/features/competitions-management/seating.md):
+   by table number, and "find your table" by name - large type, meant to be posted at the venue. Standalone, like the
+   table layout print. Names as the organiser recorded them, never player profiles. #}
+<html lang="{{ app.request.locale }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ 'seating.print.title'|trans }} - {{ round.name }} - {{ competition.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; padding: 24px; font-size: 16px; color: #000; background: #fff; }
+        header { margin-bottom: 20px; }
+        h1 { font-size: 28px; line-height: 1.2; }
+        .subtitle { font-size: 18px; color: #333; margin-top: 4px; }
+        h2 { font-size: 24px; margin: 8px 0 14px; border-bottom: 3px solid #000; padding-bottom: 6px; }
+        .list { margin-bottom: 32px; }
+        .list + .list { page-break-before: always; break-before: page; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: #444; border-bottom: 2px solid #000; padding: 6px 8px; }
+        td { padding: 8px; border-bottom: 1px solid #bbb; vertical-align: top; font-size: 18px; }
+        tr { break-inside: avoid; page-break-inside: avoid; }
+        .table-number { width: 90px; font-size: 26px; font-weight: bold; text-align: right; padding-right: 16px; white-space: nowrap; }
+        .country { width: 70px; font-size: 14px; color: #444; white-space: nowrap; }
+        .members { display: block; font-size: 15px; color: #333; margin-top: 2px; }
+        .no-table { color: #666; font-style: italic; font-size: 16px; }
+        .names { columns: 2; column-gap: 40px; }
+        .name-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-bottom: 1px solid #ccc; break-inside: avoid; page-break-inside: avoid; font-size: 20px; }
+        .name-row .name { flex: 1; min-width: 0; }
+        .name-row .with { display: block; font-size: 14px; color: #444; }
+        .name-row .table { font-size: 26px; font-weight: bold; min-width: 64px; text-align: right; }
+        .name-row .table.missing { font-size: 20px; color: #666; }
+        .note { margin-top: 12px; font-size: 14px; color: #444; }
+        .actions { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 15px; }
+        .actions a { color: #333; }
+        .actions a[aria-current="page"] { font-weight: bold; text-decoration: none; }
+
+        @media (max-width: 640px) {
+            body { padding: 16px; }
+            .names { columns: 1; }
+        }
+
+        @media print {
+            .actions { display: none; }
+            body { padding: 0; }
+            @page { margin: 14mm; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="actions">
+        <a href="{{ path('round_seating', {roundId: round.id}) }}">&larr; {{ 'seating.print.back'|trans }}</a>
+        <a href="#" onclick="window.print(); return false;">{{ 'seating.print.print'|trans }}</a>
+        <a href="{{ path('round_seating_print', {roundId: round.id}) }}" {% if list == 'both' %}aria-current="page"{% endif %}>{{ 'seating.print.show_both'|trans }}</a>
+        <a href="{{ path('round_seating_print', {roundId: round.id, list: 'tables'}) }}" {% if list == 'tables' %}aria-current="page"{% endif %}>{{ 'seating.print.show_tables'|trans }}</a>
+        <a href="{{ path('round_seating_print', {roundId: round.id, list: 'names'}) }}" {% if list == 'names' %}aria-current="page"{% endif %}>{{ 'seating.print.show_names'|trans }}</a>
+    </nav>
+
+    {% if list != 'names' %}
+        <section class="list" aria-labelledby="seating-by-table">
+            <header>
+                <h1>{{ competition.name }} — {{ round.name }}</h1>
+                <p class="subtitle">{{ 'seating.print.entries'|trans({'%count%': by_table|length}) }}</p>
+            </header>
+            <h2 id="seating-by-table">{{ 'seating.print.by_table'|trans }}</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="table-number">{{ 'seating.print.table'|trans }}</th>
+                        <th>{{ 'seating.print.entrant'|trans }}</th>
+                        <th class="country">{{ 'seating.print.country'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in by_table %}
+                        <tr>
+                            <td class="table-number">{{ entry.tableNumber ?? '–' }}</td>
+                            <td>
+                                {{ entry.displayName }}
+                                {% if entry.kind == 'team' and entry.name is not null and entry.members|length > 0 %}
+                                    <span class="members">{{ entry.members|map(member => member.name)|join(', ') }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="country">{{ entry.countries|map(country => country|upper)|join(' ') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if without_table > 0 %}
+                <p class="note">– {{ 'seating.print.no_table'|trans }}</p>
+            {% endif %}
+        </section>
+    {% endif %}
+
+    {% if list != 'tables' %}
+        <section class="list" aria-labelledby="seating-by-name">
+            <header>
+                <h1>{{ competition.name }} — {{ round.name }}</h1>
+            </header>
+            <h2 id="seating-by-name">{{ 'seating.print.by_name'|trans }}</h2>
+            <div class="names">
+                {% for row in by_name %}
+                    <div class="name-row">
+                        <span class="name">
+                            {{ row.name }}
+                            {% if row.teamName is not null %}
+                                <span class="with">{{ row.teamName }}</span>
+                            {% elseif row.partners|length > 0 %}
+                                <span class="with">{{ 'seating.print.with'|trans({'%names%': row.partners|join(', ')}) }}</span>
+                            {% endif %}
+                        </span>
+                        <span class="table{% if row.tableNumber is null %} missing{% endif %}">{{ row.tableNumber ?? '–' }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if without_table > 0 %}
+                <p class="note">– {{ 'seating.print.no_table'|trans }}</p>
+            {% endif %}
+        </section>
+    {% endif %}
+</body>
+</html>

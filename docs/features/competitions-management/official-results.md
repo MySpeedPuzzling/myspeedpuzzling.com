@@ -141,6 +141,12 @@ Live updates: after the commit the controller publishes a **private** Mercure up
 `MercureTopicCollector::addTopic(OfficialResultsLiveUpdates::topic($roundId))` in its controller (organisers only); the
 base layout's `mercure-hub` controller then dispatches each update as a `mercure:message` event on `document`.
 
+## Seating
+
+Table numbers before each in-person round - the seating page (`round_seating`: type, swap, drag and renumber, clear,
+"this round doesn't use table numbers"), auto-assign as a proposal first (earlier rounds through `AdvancementSeeding`,
+MySpeedPuzzling times, a draw, by name), the printed lists and the readiness line: [seating.md](seating.md).
+
 ## Not built yet (follow-ups in docs/TODO.md)
 
 Unfinished results onto profiles (after unfinished-results phase 1b), several puzzles per round, deriving table numbers

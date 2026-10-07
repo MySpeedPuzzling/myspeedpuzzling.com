@@ -43,6 +43,17 @@ that would otherwise be forgotten. Newest section on top.
       columns, unique `(participant_id, round_id)`, `competition_round.results_first_published_at` + `table_numbers_off`,
       `notification.target_competition_round_id`) once the official results PR is complete.
 
+## Seating (`docs/features/competitions-management/seating.md`)
+
+- [ ] Translate the `seating.*` keys into cs, de, es, fr, ja (English only in the official results streams).
+- [ ] Two rounds running at once in one hall (WJPC semifinals): table numbers are unique per round only - the
+      organiser gives the second round "First table number 101"; a shared check across simultaneous rounds if asked.
+- [ ] Pairs/teams seated by MySpeedPuzzling times: a pair's own pair time beats the mean of its members' solo times, so
+      pairs that puzzled together come first - calibrate (e.g. scale members' solo times by the typical pair speed-up)
+      if organisers notice.
+- [ ] Seat-by-drag on phones works through Move up / Move down only (SortableJS touch drag is there, but small screens
+      make it awkward) - a "Move to table…" action if organisers seat on phones.
+
 ## Participant import (`docs/features/competitions-management/participant-import-preview.md`)
 
 - [ ] `.xls` / `.ods` uploads; localized header aliases ("Jméno", "Nom", …); a header row chosen by hand; remembering

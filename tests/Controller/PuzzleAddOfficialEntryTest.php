@@ -153,6 +153,23 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         $this->assertNotFilledIn($browser->request('GET', $this->url(null, 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA)));
     }
 
+    public function testAPuzzleTheCompetitionStillKeepsSecretIsNeverFilledIn(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE puzzle SET hide_until = NOW() + INTERVAL '1 day' WHERE id = :id",
+            ['id' => PuzzleFixture::PUZZLE_1000_05],
+        );
+
+        $this->assertNotFilledIn($browser->request('GET', $this->url(null, 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA)));
+
+        // Nor does the round page offer it
+        $browser->request('GET', '/en/events/results-cup/results/group-a');
+        $this->assertSelectorExists('[data-official-results]');
+        $this->assertSelectorNotExists('[data-official-add-to-profile]');
+    }
+
     public function testAPairWithLinkedMembersBringsThemAsPlayersAndTheOthersAsGuests(): void
     {
         $browser = self::createClient();

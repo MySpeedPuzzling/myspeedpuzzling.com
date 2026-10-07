@@ -17,23 +17,23 @@ use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\SuspicionAssessment;
 use SpeedPuzzling\Web\Value\SuspicionCheckOutcome;
-use SpeedPuzzling\Web\Value\SuspiciousTimeCaseOrigin;
 use SpeedPuzzling\Web\Value\SuspiciousTimeDecisionKind;
 use SpeedPuzzling\Web\Value\SuspiciousTimeResponse;
 use Throwable;
 
 /**
  * "When the player edits a marked time" (docs/features/suspicious-time-review.md): a marked time whose entry changed
- * - the time, the puzzle (or its piece count) or the group - is judged again with the new values. From inside the edit
- * handler (afterEdit()), and from the scan for an entry changed without the edit form (afterOutsideChange(): a
- * piece-count fix, a merge, an SQL repair, an edit whose re-check failed).
+ * - the time, the puzzle (or its piece count) or the group.
  *
- * - The new entry is clear and the mark rested on detector reasons (origin detector, reasons shown to the player):
- *   unmarked automatically - the flag cleared, the case corrected, the decision logged (corrected_automatically); after
- *   an edit every notice of the mark is answered "fixed".
- * - Anything else (it still looks off, it could not be judged - no data or a failed check -, the mark was manual or had
- *   no reasons): it stays marked and goes back to the moderators ("Player replied" tab, player_edited_at); after an
- *   edit the editor's notice is answered "fixed", so the banner stops.
+ * - A player's edit (afterEdit()) always removes the label - a changed result is another result (Jan, 2026-10-07): the
+ *   flag cleared, the case corrected, every notice of the mark answered "fixed", the decision logged
+ *   (unmarked_after_edit). The scan judges the new entry like any other result: still far off → a new pending case,
+ *   and a moderator may mark it again (a new mark, told again). The edit form itself asks before saving a time it
+ *   would raise, so a one-second tweak does not slip through unnoticed.
+ * - Changed without the edit form (afterOutsideChange(): a piece-count fix, a merge, an SQL repair, an edit whose
+ *   re-check failed) - judged again with the new values: clear → unmarked automatically (corrected_automatically), for
+ *   every mark, also one set by SQL; anything else (still off, could not be judged) → back to the moderators ("Player
+ *   replied" tab, player_edited_at). A merge does not change the result, so it must not announce the mark again.
  *
  * Serialized with the moderators' decisions and the scan by the case's row lock, taken before anything is read: a
  * "Looks fine" in flight is either seen here, or sees the edit and refuses ("Changed meanwhile").
@@ -85,6 +85,10 @@ readonly final class MarkedTimeEditRecheck
 
             if ($case !== null) {
                 $this->rejudge($case, $time, $entry, $editor);
+            } else {
+                // Flagged by SQL and not taken over by a scan yet: no case, no notices - the label goes all the same
+                $time->clearSuspicion();
+                $this->decisionRecorder->recordAboutTime(SuspiciousTimeDecisionKind::UnmarkedAfterEdit, $time, null, null);
             }
         } catch (Throwable $e) {
             $this->logger->warning('Time verification: the re-check of an edited marked time failed - the edit is saved, the time stays marked', [
@@ -113,15 +117,22 @@ readonly final class MarkedTimeEditRecheck
      */
     private function rejudge(SuspiciousTimeCase $case, PuzzleSolvingTime $time, string $entry, null|Player $editor): bool
     {
-        [$notices, $assessment] = $this->readInSavepoint($case, $time);
+        // A player's edit needs no judgement - the scan judges the new entry
+        [$notices, $assessment] = $this->readInSavepoint($case, $time, judge: $editor === null);
         $now = $this->clock->now();
         $editorWasTold = false;
-        $unmarked = self::passes($case, $assessment);
+        // A player's edit always removes the label; a change outside the edit form only when the new entry is clear
+        $unmarked = $editor !== null || self::passes($assessment);
 
         if ($unmarked) {
             $time->clearSuspicion();
             $case->markCorrected($entry, $now);
-            $this->decisionRecorder->recordAboutTime(SuspiciousTimeDecisionKind::CorrectedAutomatically, $time, $case, null);
+            $this->decisionRecorder->recordAboutTime(
+                $editor !== null ? SuspiciousTimeDecisionKind::UnmarkedAfterEdit : SuspiciousTimeDecisionKind::CorrectedAutomatically,
+                $time,
+                $case,
+                null,
+            );
         } else {
             $case->playerEdited($assessment, $entry, SuspiciousTimeClassifier::VERSION, $now);
         }
@@ -175,11 +186,12 @@ readonly final class MarkedTimeEditRecheck
     }
 
     /**
-     * The case's notices of the mark in force and the judgement of the time's entry now (null = not judged).
+     * The case's notices of the mark in force and, with $judge, the judgement of the time's entry now (null = not
+     * judged).
      *
      * @return array{list<SuspiciousTimeNotice>, null|SuspicionAssessment}
      */
-    private function readInSavepoint(SuspiciousTimeCase $case, PuzzleSolvingTime $time): array
+    private function readInSavepoint(SuspiciousTimeCase $case, PuzzleSolvingTime $time, bool $judge): array
     {
         $this->connection->beginTransaction();
 
@@ -189,7 +201,7 @@ readonly final class MarkedTimeEditRecheck
                 static fn (SuspiciousTimeNotice $notice): bool => $notice->isAbout($case),
             ));
 
-            $assessment = $time->secondsToSolve !== null && $time->secondsToSolve > 0
+            $assessment = $judge && $time->secondsToSolve !== null && $time->secondsToSolve > 0
                 ? $this->singleTimeSuspicionCheck->forEntry(
                     // A solo time is judged against its player - whoever tracked it, whoever edits it
                     $time->player->id->toString(),
@@ -210,14 +222,11 @@ readonly final class MarkedTimeEditRecheck
     }
 
     /**
-     * The new entry is clear and the mark rested on the detector's reasons - an entry that could not be judged (no
-     * data, a failed check), a manual mark or one the moderator gave no reasons for always goes back to a person.
+     * A change outside the edit form unmarks only a clear new entry - one that could not be judged (no data, a failed
+     * check) or still looks off goes back to a person. Any mark: one set by SQL as well as one from the queue.
      */
-    private static function passes(SuspiciousTimeCase $case, null|SuspicionAssessment $assessment): bool
+    private static function passes(null|SuspicionAssessment $assessment): bool
     {
-        return $assessment !== null
-            && $assessment->outcome === SuspicionCheckOutcome::Clear
-            && $case->origin === SuspiciousTimeCaseOrigin::Detector
-            && $case->reasonsShown !== [];
+        return $assessment !== null && $assessment->outcome === SuspicionCheckOutcome::Clear;
     }
 }

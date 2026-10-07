@@ -25,8 +25,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
- * docs/features/suspicious-time-review.md, "When the player edits a marked time": the edit handler judges a marked
- * time again once its time, puzzle or group changed.
+ * docs/features/suspicious-time-review.md, "When the player edits a marked time": an edit of the time, the puzzle or
+ * the group removes the label - a changed result is another result; the scan judges the new entry like any other.
  */
 final class EditMarkedTimeRecheckTest extends KernelTestCase
 {
@@ -48,7 +48,7 @@ final class EditMarkedTimeRecheckTest extends KernelTestCase
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
     }
 
-    public function testAFixThatPassesUnmarksADetectorMark(): void
+    public function testAnEditOfTheTimeRemovesTheLabel(): void
     {
         $this->markSamsFastTime();
         self::assertSame(1, $this->bannerCount(SuspiciousTimesFixture::PLAYER_STEADY));
@@ -64,7 +64,7 @@ final class EditMarkedTimeRecheckTest extends KernelTestCase
         self::assertSame($this->currentFingerprint(SuspiciousTimesFixture::TIME_STEADY_FAST), $case['fingerprint']);
         self::assertSame(['fixed'], $this->responses(SuspiciousTimesFixture::TIME_STEADY_FAST));
         self::assertSame(
-            [['decision' => 'corrected_automatically', 'decided_by_id' => null]],
+            [['decision' => 'unmarked_after_edit', 'decided_by_id' => null]],
             $this->database->fetchAllAssociative(
                 'SELECT decision, decided_by_id FROM suspicious_time_decision WHERE time_id = :id',
                 ['id' => SuspiciousTimesFixture::TIME_STEADY_FAST],
@@ -73,27 +73,30 @@ final class EditMarkedTimeRecheckTest extends KernelTestCase
         self::assertSame(0, $this->bannerCount(SuspiciousTimesFixture::PLAYER_STEADY));
     }
 
-    public function testAFixThatStillLooksOffGoesBackToTheModerators(): void
+    public function testAnEditThatStillLooksOffRemovesTheLabelAndTheScanRaisesTheNewEntryAgain(): void
     {
         $this->markSamsFastTime();
 
+        // Another result now - still far below his usual 9.5 hours
         $this->edit(self::SAM_USER_ID, SuspiciousTimesFixture::TIME_STEADY_FAST, '02:40:00');
 
-        self::assertTrue($this->time(SuspiciousTimesFixture::TIME_STEADY_FAST)['suspicious']);
+        self::assertFalse($this->time(SuspiciousTimesFixture::TIME_STEADY_FAST)['suspicious']);
+        self::assertSame('corrected', $this->case(SuspiciousTimesFixture::TIME_STEADY_FAST)['status']);
+        self::assertSame(['fixed'], $this->responses(SuspiciousTimesFixture::TIME_STEADY_FAST));
+        self::assertSame(0, $this->bannerCount(SuspiciousTimesFixture::PLAYER_STEADY));
+
+        // The scan judges the new entry like any other result: a pending case again, never a mark by itself
+        $this->entityManager->clear();
+        $this->messageBus->dispatch(new DetectSuspiciousTimes());
 
         $case = $this->case(SuspiciousTimesFixture::TIME_STEADY_FAST);
-        self::assertSame('marked', $case['status']);
-        self::assertNotNull($case['player_edited_at']);
+        self::assertSame('pending', $case['status']);
         self::assertSame($this->currentFingerprint(SuspiciousTimesFixture::TIME_STEADY_FAST), $case['fingerprint']);
-        // The card shows what the detector says about the edited entry
         self::assertStringContainsString('"entered": 9600', $case['reasons']);
-        self::assertSame(['fixed'], $this->responses(SuspiciousTimesFixture::TIME_STEADY_FAST));
-        self::assertEquals(0, $this->database->fetchOne('SELECT COUNT(*) FROM suspicious_time_decision WHERE time_id = :id', ['id' => SuspiciousTimesFixture::TIME_STEADY_FAST]));
-        // The banner stops asking
-        self::assertSame(0, $this->bannerCount(SuspiciousTimesFixture::PLAYER_STEADY));
+        self::assertFalse($this->time(SuspiciousTimesFixture::TIME_STEADY_FAST)['suspicious']);
     }
 
-    public function testAManualMarkNeverUnmarksItselfAndAMemberMayFixIt(): void
+    public function testAnEditByAMemberRemovesAMarkSetBySqlForEverybody(): void
     {
         // The pair Fay saved, flagged "by SQL": the scan gives it a marked case (origin manual), the notice run tells
         // Fay and Pat
@@ -101,51 +104,66 @@ final class EditMarkedTimeRecheckTest extends KernelTestCase
         $this->entityManager->clear();
         $this->messageBus->dispatch(new NotifySuspiciousTimes());
         self::assertSame(1, $this->bannerCount(SuspiciousTimesFixture::PLAYER_PARTNER));
+        self::assertSame(1, $this->bannerCount(SuspiciousTimesFixture::PLAYER_FLAGGED));
 
-        // Pat edits Fay's result - a 520-piece pair in an hour passes every rule
+        // Pat edits Fay's result
         $this->edit(self::PAT_USER_ID, SuspiciousTimesFixture::TIME_SQL_FLAGGED, '01:00:00', ['#partner1']);
 
         self::assertSame(3600, $this->time(SuspiciousTimesFixture::TIME_SQL_FLAGGED)['seconds_to_solve']);
-        self::assertTrue($this->time(SuspiciousTimesFixture::TIME_SQL_FLAGGED)['suspicious']);
+        self::assertFalse($this->time(SuspiciousTimesFixture::TIME_SQL_FLAGGED)['suspicious']);
 
         $case = $this->case(SuspiciousTimesFixture::TIME_SQL_FLAGGED);
-        self::assertSame('marked', $case['status']);
+        self::assertSame('corrected', $case['status']);
         self::assertSame('manual', $case['origin']);
-        self::assertNotNull($case['player_edited_at']);
 
-        // Only the editor answered - Fay is still asked
+        // The label is gone for both of them
         self::assertSame(
-            [SuspiciousTimesFixture::PLAYER_FLAGGED => null, SuspiciousTimesFixture::PLAYER_PARTNER => 'fixed'],
+            [SuspiciousTimesFixture::PLAYER_FLAGGED => 'fixed', SuspiciousTimesFixture::PLAYER_PARTNER => 'fixed'],
             $this->responsesByPlayer(SuspiciousTimesFixture::TIME_SQL_FLAGGED),
         );
         self::assertSame(0, $this->bannerCount(SuspiciousTimesFixture::PLAYER_PARTNER));
-        self::assertSame(1, $this->bannerCount(SuspiciousTimesFixture::PLAYER_FLAGGED));
+        self::assertSame(0, $this->bannerCount(SuspiciousTimesFixture::PLAYER_FLAGGED));
     }
 
-    public function testMarkWithoutReasonsShownGoesBackToTheModerators(): void
+    public function testAnEditRemovesAMarkWithoutReasonsToo(): void
     {
         $this->markSamsFastTime(withReasons: false);
 
         $this->edit(self::SAM_USER_ID, SuspiciousTimesFixture::TIME_STEADY_FAST, '09:30:00');
 
-        self::assertTrue($this->time(SuspiciousTimesFixture::TIME_STEADY_FAST)['suspicious']);
-        self::assertSame('marked', $this->case(SuspiciousTimesFixture::TIME_STEADY_FAST)['status']);
-        self::assertNotNull($this->case(SuspiciousTimesFixture::TIME_STEADY_FAST)['player_edited_at']);
+        self::assertFalse($this->time(SuspiciousTimesFixture::TIME_STEADY_FAST)['suspicious']);
+        self::assertSame('corrected', $this->case(SuspiciousTimesFixture::TIME_STEADY_FAST)['status']);
     }
 
-    public function testAnEntryThatCannotBeJudgedGoesBackToTheModerators(): void
+    public function testAnEditThatCannotBeJudgedRemovesTheLabel(): void
     {
-        // Mia has no other results and her range no community reference here: her fix is no_data - not a pass
+        // Mia has no other results and her range no community reference here - nothing to judge, the label goes anyway
         $this->edit(self::MIA_USER_ID, SuspiciousTimesFixture::TIME_MARKED, '01:21:40');
 
         self::assertSame(4900, $this->time(SuspiciousTimesFixture::TIME_MARKED)['seconds_to_solve']);
-        self::assertTrue($this->time(SuspiciousTimesFixture::TIME_MARKED)['suspicious']);
+        self::assertFalse($this->time(SuspiciousTimesFixture::TIME_MARKED)['suspicious']);
 
         $case = $this->case(SuspiciousTimesFixture::TIME_MARKED);
-        self::assertSame('marked', $case['status']);
-        self::assertNotNull($case['player_edited_at']);
+        self::assertSame('corrected', $case['status']);
         self::assertSame($this->currentFingerprint(SuspiciousTimesFixture::TIME_MARKED), $case['fingerprint']);
         self::assertSame(['fixed'], $this->responses(SuspiciousTimesFixture::TIME_MARKED));
+    }
+
+    public function testAnEditRemovesAFlagSetBySqlBeforeAnyScan(): void
+    {
+        // Flagged "by SQL", no scan yet: no case, no notices
+        self::assertEquals(0, $this->database->fetchOne('SELECT COUNT(*) FROM suspicious_time_case WHERE time_id = :id', ['id' => SuspiciousTimesFixture::TIME_SQL_FLAGGED]));
+
+        $this->edit(self::PAT_USER_ID, SuspiciousTimesFixture::TIME_SQL_FLAGGED, '01:00:00', ['#partner1']);
+
+        self::assertFalse($this->time(SuspiciousTimesFixture::TIME_SQL_FLAGGED)['suspicious']);
+        self::assertSame(
+            [['decision' => 'unmarked_after_edit', 'case_id' => null]],
+            $this->database->fetchAllAssociative(
+                'SELECT decision, case_id FROM suspicious_time_decision WHERE time_id = :id',
+                ['id' => SuspiciousTimesFixture::TIME_SQL_FLAGGED],
+            ),
+        );
     }
 
     public function testTheReCheckWaitsForADecisionHoldingTheCase(): void
@@ -188,20 +206,19 @@ final class EditMarkedTimeRecheckTest extends KernelTestCase
         self::assertSame(1, $this->bannerCount(SuspiciousTimesFixture::PLAYER_MARKED));
     }
 
-    public function testAFailingCheckNeverCostsTheEdit(): void
+    public function testAFailingReCheckNeverCostsTheEdit(): void
     {
         $this->markSamsFastTime();
-        // Every check reads the community references - without the table each of its statements fails, inside the
-        // transaction the edit is saved in
-        $this->database->executeStatement('ALTER TABLE suspicious_time_reference RENAME TO suspicious_time_reference_gone');
+        // The re-check reads the case's notices - without the table its statement fails, inside the transaction the
+        // edit is saved in
+        $this->database->executeStatement('ALTER TABLE suspicious_time_notice RENAME TO suspicious_time_notice_gone');
 
         $this->edit(self::SAM_USER_ID, SuspiciousTimesFixture::TIME_STEADY_FAST, '09:30:00');
 
-        // Saved anyway, still marked - a person looks at it
+        // Saved anyway, still marked - the next scan finds the changed entry and judges it
         self::assertSame(34200, $this->time(SuspiciousTimesFixture::TIME_STEADY_FAST)['seconds_to_solve']);
         self::assertTrue($this->time(SuspiciousTimesFixture::TIME_STEADY_FAST)['suspicious']);
         self::assertSame('marked', $this->case(SuspiciousTimesFixture::TIME_STEADY_FAST)['status']);
-        self::assertNotNull($this->case(SuspiciousTimesFixture::TIME_STEADY_FAST)['player_edited_at']);
     }
 
     /**

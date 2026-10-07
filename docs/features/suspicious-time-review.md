@@ -211,9 +211,10 @@ edition 11, teammates' group 3, comment 1; includes breaks 94, minutes in the ho
 - A run **never** checks a time a person decided (marked or trusted) while its fingerprint is unchanged, whatever the
   version.
 - **A marked time whose entry changed without the edit form** (a piece count fixed, a merge, an SQL repair, an edit whose
-  re-check failed - the case's fingerprint differs from the time's) is judged again by the scan like an edit ("When the
-  player edits a marked time"): unmarked automatically when the new entry is clear and the mark rested on the detector's
-  reasons, otherwise back to the moderators. The candidates leave flagged times out, so this is a step of its own.
+  re-check failed - the case's fingerprint differs from the time's) is judged again by the scan: unmarked automatically
+  when the new entry is clear (any mark, also one set by SQL), otherwise back to the moderators. A merge does not change
+  the result, so it must not announce the mark again. The candidates leave flagged times out, so this is a step of its
+  own. (A player's edit is different - see "When the player edits a marked time".)
 - **Trust belongs to the entry**: an edit that changes the fingerprint of a trusted time lapses the trust, and the new
   entry is checked like any other.
 - `--dry-run` prints what the current code would raise (counts by direction, tier, source) without writing anything.
@@ -321,17 +322,18 @@ reply is e-mailed whatever the notice's `via`: the player asked for it.
 
 ### When the player edits a marked time
 
-Changing the time, the puzzle or the group re-runs the classifier for that one time in the edit handler:
-- the corrected entry is **clear** **and** the mark rested on detector reasons shown to the player → unmarked
-  automatically, case `corrected`, notices `fixed`, logged `corrected_automatically` (the moderator sees it under
-  Numbers);
-- it still looks off, it cannot be judged (`no_data` - nothing to judge it by -, a failed check), or the mark was manual
-  or had no reasons → it stays marked and goes back to the queue ("Player replied" tab, `player_edited_at`), the
-  editor's notice answered `fixed`.
+**A changed result is another result** (Jan, 2026-10-07): changing the time, the puzzle or the people (e.g. adding the
+co-puzzlers) of a marked time **removes the label** - for every mark, also one set by SQL or at go-live: the flag
+cleared, the case `corrected`, every notice of the mark answered `fixed` (the banner and the card disappear for every
+member), logged `unmarked_after_edit`. A flagged time without a case yet (set by SQL, before the next scan) loses the
+flag the same way. Nothing is judged in the edit handler: the next scan judges the new entry like any other result -
+still far off → a new **pending** case, and a moderator may mark it again (a new mark, told again). A one-second tweak
+does not slip through unnoticed: the edit form itself asks before saving a time the scan would raise ("Catch it while
+typing").
 
-The re-check takes the case's row lock first (a "Looks fine" in flight either sees the edit and refuses, or the edit
-sees the unmark). An entry changed without the edit form is judged the same way by the next scan ("Checks and
-versions"); the card then says "The entry changed".
+The edit takes the case's row lock first (a "Looks fine" in flight either sees the edit and refuses, or the edit sees
+the unmark); if the lock or a read fails, the edit is saved anyway with the label on and the next scan judges the changed
+entry as a change outside the edit form ("Checks and versions"; the card then says "The entry changed").
 
 Any registered member may edit (`group-time-editing.md`); only the tracker may change the puzzle.
 
@@ -351,9 +353,8 @@ players again (Jan, 2026-10-07). Nothing in the code knows which times they are:
    **with the option** before anything else - a plain run would tell those players.
 4. Then add the cron row (below). From here on every new mark is told normally.
 
-These are flags set by SQL, so a player who fixes one of them later sends it back to the queue as "Player edited" (a
-manual flag never unmarks itself); a moderator then unmarks it. A new mark of the same time later is a new mark with
-its own notice.
+A player who fixes one of these times later removes its label by the edit, like any mark ("When the player edits a
+marked time"); the scan then judges the new entry. A new mark of the same time later is a new mark with its own notice.
 
 ## Catch it while typing (the add/edit form)
 
@@ -397,7 +398,7 @@ the 10 heaviest players × the 5 most solved puzzles 4.8 / 7.2 ms. With the edit
 | `suspicious_time_reference` | PK (`pieces_range`, `puzzling_type`): `median_ppm`, `p999_ppm`, `sample_size`, `computed_at`. Community pace per piece-count range and type (≥ 30 non-flagged results; a row whose sample falls below keeps its last values), refreshed by every scan |
 | `suspicious_time_case` | One per time a scan raised or a person flagged: `time_id` (unique, FK cascade), `origin` (`detector`/`manual`/`moderator`), `status` (`pending`/`marked`/`trusted`/`corrected`/`gone`), `direction` (null for a flag the scan never raised), `tier`, `score`, `reasons` (jsonb `[{code, params}]`), `expected_seconds`, `expected_source`, `detector_version`, `fingerprint`, `detected_at`, `last_checked_at`, `decided_at`, `decided_by_id` (plain id), `reasons_shown`, `moderator_note`, `marked_at`, `player_edited_at`. Index (`status`, `direction`) |
 | `suspicious_time_notice` | One per person per mark: `case_id` (FK cascade), `player_id` (FK cascade), `marked_at`, `notified_at`, `via` (`run`/`manual_email`), `contact_id` (the e-mail that carried the mark), `response` (`fixed`/`says_correct`/`left_as_is`), `response_text`, `responded_at`, `answer` (`trusted`/`kept`), `answer_note`, `answered_at`, `answer_contact_id`. Unique (`case_id`, `player_id`, `marked_at`) |
-| `suspicious_time_decision` | Append-only log, no FKs: `decision` (`marked`, `trusted`, `unmarked`, `kept_after_reply`, `corrected_automatically`, `marked_outside_app`, `unmarked_outside_app`, `pieces_confirmed`), `decided_at`, `puzzle_id`, `time_id`, `tracker_id`, `case_id`, `reasons_shown`, `note`, `snapshot` (seconds, piece count, expected, version), `decided_by_id/_name/_code` |
+| `suspicious_time_decision` | Append-only log, no FKs: `decision` (`marked`, `trusted`, `unmarked`, `kept_after_reply`, `corrected_automatically`, `unmarked_after_edit`, `marked_outside_app`, `unmarked_outside_app`, `pieces_confirmed`), `decided_at`, `puzzle_id`, `time_id`, `tracker_id`, `case_id`, `reasons_shown`, `note`, `snapshot` (seconds, piece count, expected, version), `decided_by_id/_name/_code` |
 | `suspicious_time_puzzle_confirmation` | "The piece count is right": PK `puzzle_id` (FK cascade), `pieces_count` (lapses when the puzzle's count differs), `confirmed_by_id`, `confirmed_at` |
 | `suspicious_time_confirmation` | "Yes, it's right" in the form: `time_id`, `player_id` (both FK cascade), `expected_seconds` (what the notice compared it with), `confirmed_at` |
 | `result_review_contact.suspicious_notice_ids` | jsonb list next to `case_ids` / `removal_ids`: the notices an e-mail really told |
@@ -519,7 +520,8 @@ still holds it) and `context=review-results` (`EditTimeReturnContext::ReviewResu
 `#awaiting-verification`). The edit re-check: `MarkedTimeEditRecheck::afterEdit()` in `EditPuzzleSolvingTimeHandler` -
 the case's row lock taken in a savepoint of its own, the reads in an always rolled-back savepoint, failures logged
 (a lock it cannot get included: the case then stays about the old entry and the next scan judges the new one), the
-edit is always saved; only a `clear` entry unmarks. Keys `suspicious_time.*` in `messages` (`.reason.<code>` rendered by
+edit is always saved; a changed time, puzzle or group always removes the label (`unmarked_after_edit`), the scan
+judges the new entry. Keys `suspicious_time.*` in `messages` (`.reason.<code>` rendered by
 `templates/suspicious_time/_reason.html.twig`, shared with the admin cards; `.review.*`, `.banner`, `.flash.*`,
 `.form.*`).
 
@@ -573,8 +575,9 @@ references), documented in `.claude/fixtures.md`.
 6. **Reasons are structured and translated; the note is optional free text.** A prefilled free-text note would freeze
    the reasons in the moderator's language. Players read 6 languages, moderators write English or Czech. The detected
    reasons *are* the prefill - ticked boxes, each rendered in the player's language with its numbers.
-7. **Automatic unmark after a fix** only when the corrected entry is clear (not merely "could not be judged") and the
-   mark rested on detector reasons. Manual flags always go back to a person.
+7. **Automatic unmark after a fix** - first only for a clear entry of a detector mark; **changed by Jan after go-live
+   (2026-10-07)**: a player's edit of the time, puzzle or people always removes the label, any mark - a changed result
+   is another result, the scan judges it again (and may raise it again).
 8. **The notice run handles SQL flags too** (a case, the statistics recalculation and the notice), so a flag set by hand
    behaves exactly like one set in the queue.
 9. **Considered and dropped: checking top pace against event results.** A history wrong from the start would agree

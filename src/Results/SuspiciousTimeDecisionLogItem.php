@@ -49,6 +49,7 @@ readonly final class SuspiciousTimeDecisionLogItem
             SuspiciousTimeDecisionKind::Trusted => 'Looks fine',
             SuspiciousTimeDecisionKind::Unmarked => 'Unmarked',
             SuspiciousTimeDecisionKind::KeptAfterReply => 'Kept marked after a reply',
+            SuspiciousTimeDecisionKind::UnmarkedAfterEdit => 'The player changed the result - unmarked, the scan judges the new entry',
             SuspiciousTimeDecisionKind::CorrectedAutomatically => 'The entry changed and passes - unmarked automatically',
             SuspiciousTimeDecisionKind::MarkedOutsideApp => 'Flagged outside the app',
             SuspiciousTimeDecisionKind::UnmarkedOutsideApp => 'Unflagged outside the app',

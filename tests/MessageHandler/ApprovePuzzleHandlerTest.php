@@ -58,7 +58,7 @@ final class ApprovePuzzleHandlerTest extends KernelTestCase
         self::assertNotNull($puzzle->approvedAt);
 
         $decision = $this->decisions(PuzzleModerationAction::PuzzleApproved)[0];
-        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decision->decidedById->toString());
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decision->decidedById?->toString());
         self::assertNotNull($decision->decidedByCode);
         self::assertSame(PuzzleFixture::PUZZLE_UNAPPROVED, $decision->puzzleId?->toString());
         $before = $decision->details['before'] ?? null;

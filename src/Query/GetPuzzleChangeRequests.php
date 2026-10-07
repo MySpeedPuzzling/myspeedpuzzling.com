@@ -19,7 +19,7 @@ readonly final class GetPuzzleChangeRequests
     }
 
     /**
-     * @return array{pending: int, approved: int, rejected: int}
+     * @return array{pending: int, approved: int, rejected: int, outdated: int}
      */
     public function countByStatus(bool $includeSecret = false): array
     {
@@ -30,7 +30,8 @@ readonly final class GetPuzzleChangeRequests
 SELECT
     COUNT(*) FILTER (WHERE pcr.status = 'pending') as pending,
     COUNT(*) FILTER (WHERE pcr.status = 'approved') as approved,
-    COUNT(*) FILTER (WHERE pcr.status = 'rejected') as rejected
+    COUNT(*) FILTER (WHERE pcr.status = 'rejected') as rejected,
+    COUNT(*) FILTER (WHERE pcr.status = 'outdated') as outdated
 FROM puzzle_change_request pcr
 JOIN puzzle p ON p.id = pcr.puzzle_id
 WHERE {$notSecret}
@@ -39,7 +40,7 @@ SQL;
         $row = $this->database->fetchAssociative($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s')]);
 
         if ($row === false) {
-            return ['pending' => 0, 'approved' => 0, 'rejected' => 0];
+            return ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'outdated' => 0];
         }
 
         /** @var int $pending */
@@ -48,11 +49,14 @@ SQL;
         $approved = $row['approved'];
         /** @var int $rejected */
         $rejected = $row['rejected'];
+        /** @var int $outdated */
+        $outdated = $row['outdated'];
 
         return [
             'pending' => $pending,
             'approved' => $approved,
             'rejected' => $rejected,
+            'outdated' => $outdated,
         ];
     }
 
@@ -78,6 +82,16 @@ SQL;
     public function allRejected(bool $includeSecret = false): array
     {
         return $this->byStatus(PuzzleReportStatus::Rejected, 'pcr.reviewed_at DESC', $includeSecret);
+    }
+
+    /**
+     * Closed without a review - the puzzle had every proposed value already (PuzzleReportStatus::Outdated).
+     *
+     * @return array<PuzzleChangeRequestOverview>
+     */
+    public function allOutdated(bool $includeSecret = false): array
+    {
+        return $this->byStatus(PuzzleReportStatus::Outdated, 'pcr.reviewed_at DESC', $includeSecret);
     }
 
     /**
@@ -138,6 +152,8 @@ SELECT
     pcr.submitted_at,
     pcr.reviewed_at,
     pcr.rejection_reason,
+    pcr.outdated_reason,
+    pcr.merged_from_puzzle_id,
     pcr.proposed_name,
     pcr.proposed_pieces_count,
     pcr.proposed_ean,
@@ -216,6 +232,8 @@ SELECT
     pcr.submitted_at,
     pcr.reviewed_at,
     pcr.rejection_reason,
+    pcr.outdated_reason,
+    pcr.merged_from_puzzle_id,
     pcr.proposed_name,
     pcr.proposed_pieces_count,
     pcr.proposed_ean,

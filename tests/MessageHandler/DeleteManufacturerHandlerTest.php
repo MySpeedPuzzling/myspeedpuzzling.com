@@ -44,7 +44,7 @@ final class DeleteManufacturerHandlerTest extends KernelTestCase
         $decisions = $this->decisions();
         self::assertCount(1, $decisions);
         self::assertSame(MergeDecisionSource::InternalApi, $decisions[0]->source);
-        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decisions[0]->decidedById->toString());
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decisions[0]->decidedById?->toString());
         self::assertSame($brandId, $decisions[0]->manufacturerId?->toString());
         self::assertSame('Typo of Trefl, nothing under it', $decisions[0]->note);
         self::assertSame([

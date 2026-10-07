@@ -53,6 +53,9 @@ readonly final class PuzzleChangeRequestOutcome
 
         if ($request->status === PuzzleReportStatus::Rejected) {
             $judge = static fn (string $field): ProposedChangeResult => ProposedChangeResult::NotApplied;
+        } elseif ($request->status === PuzzleReportStatus::Outdated) {
+            // Closed because the puzzle had every proposed value already (PuzzleChangeRequest::nothingLeftToApply())
+            $judge = static fn (string $field): ProposedChangeResult => ProposedChangeResult::Applied;
         } elseif ($selectedFields !== null) {
             // Applied as proposed, unless the internal API call gave the value to apply instead
             $judge = static fn (string $field): null|ProposedChangeResult => match (true) {
@@ -81,7 +84,7 @@ readonly final class PuzzleChangeRequestOutcome
             $fields[] = new ProposedChangeOutcome($label, $original, $proposed, $judge($field), image: $isImage);
         }
 
-        return new self($names, $fields, [], recorded: $request->status === PuzzleReportStatus::Rejected || $selectedFields !== null);
+        return new self($names, $fields, [], recorded: $request->status === PuzzleReportStatus::Rejected || $request->status === PuzzleReportStatus::Outdated || $selectedFields !== null);
     }
 
     public function appliedCount(): int

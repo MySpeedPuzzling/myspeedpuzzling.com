@@ -35,6 +35,7 @@ readonly final class GetPuzzleHistory
         'competitionRoundPuzzles' => 'event round puzzles',
         'conversations' => 'conversations',
         'stopwatches' => 'stopwatches',
+        'changeRequests' => 'change requests',
         'tags' => 'tags',
     ];
 
@@ -313,6 +314,43 @@ SQL;
                     byCode: $byCode,
                     viaInternalApi: $viaInternalApi,
                     note: $note,
+                    mergeRequestId: $mergeRequestId,
+                    proposedById: self::string($row['merge_reporter_id']),
+                    proposedByName: self::string($row['merge_reporter_name']),
+                    proposedByCode: self::string($row['merge_reporter_code']),
+                    puzzles: array_map(static fn (string $id): PuzzleHistoryPuzzle => new PuzzleHistoryPuzzle($id, $names[$id] ?? null), $reported),
+                );
+
+            case 'change_request_outdated':
+                return new PuzzleHistoryEntry(
+                    kind: PuzzleHistoryEntryKind::ChangeRequestOutdated,
+                    at: $at,
+                    byId: null,
+                    byName: null,
+                    byCode: null,
+                    viaInternalApi: false,
+                    note: null,
+                    proposal: self::proposal($row),
+                    changeRequestId: $changeRequestId,
+                    proposedById: self::string($row['change_reporter_id']),
+                    proposedByName: self::string($row['change_reporter_name']),
+                    proposedByCode: self::string($row['change_reporter_code']),
+                );
+
+            case 'merge_request_outdated':
+                $reported = array_values(array_filter(
+                    self::stringList($details['reportedDuplicatePuzzleIds'] ?? null),
+                    static fn (string $id): bool => strtolower($id) !== strtolower($puzzleId),
+                ));
+
+                return new PuzzleHistoryEntry(
+                    kind: PuzzleHistoryEntryKind::MergeOutdated,
+                    at: $at,
+                    byId: null,
+                    byName: null,
+                    byCode: null,
+                    viaInternalApi: false,
+                    note: null,
                     mergeRequestId: $mergeRequestId,
                     proposedById: self::string($row['merge_reporter_id']),
                     proposedByName: self::string($row['merge_reporter_name']),

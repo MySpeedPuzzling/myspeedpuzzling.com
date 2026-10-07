@@ -19,7 +19,7 @@ readonly final class GetPuzzleMergeRequests
     }
 
     /**
-     * @return array{pending: int, approved: int, rejected: int}
+     * @return array{pending: int, approved: int, rejected: int, outdated: int}
      */
     public function countByStatus(): array
     {
@@ -28,7 +28,8 @@ readonly final class GetPuzzleMergeRequests
 SELECT
     COUNT(*) FILTER (WHERE pmr.status = 'pending') as pending,
     COUNT(*) FILTER (WHERE pmr.status = 'approved') as approved,
-    COUNT(*) FILTER (WHERE pmr.status = 'rejected') as rejected
+    COUNT(*) FILTER (WHERE pmr.status = 'rejected') as rejected,
+    COUNT(*) FILTER (WHERE pmr.status = 'outdated') as outdated
 FROM puzzle_merge_request pmr
 WHERE {$noSecretPuzzle}
 SQL;
@@ -36,7 +37,7 @@ SQL;
         $row = $this->database->fetchAssociative($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s')]);
 
         if ($row === false) {
-            return ['pending' => 0, 'approved' => 0, 'rejected' => 0];
+            return ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'outdated' => 0];
         }
 
         /** @var int $pending */
@@ -45,11 +46,14 @@ SQL;
         $approved = $row['approved'];
         /** @var int $rejected */
         $rejected = $row['rejected'];
+        /** @var int $outdated */
+        $outdated = $row['outdated'];
 
         return [
             'pending' => $pending,
             'approved' => $approved,
             'rejected' => $rejected,
+            'outdated' => $outdated,
         ];
     }
 
@@ -75,6 +79,16 @@ SQL;
     public function allRejected(): array
     {
         return $this->byStatus(PuzzleReportStatus::Rejected, 'pmr.reviewed_at DESC');
+    }
+
+    /**
+     * Closed without a review - nothing was left to merge (PuzzleReportStatus::Outdated).
+     *
+     * @return array<PuzzleMergeRequestOverview>
+     */
+    public function allOutdated(): array
+    {
+        return $this->byStatus(PuzzleReportStatus::Outdated, 'pmr.reviewed_at DESC');
     }
 
     /**
@@ -113,6 +127,8 @@ SELECT
     pmr.survivor_puzzle_id,
     pmr.merged_puzzle_ids,
     pmr.reported_name_languages,
+    pmr.outdated_reason,
+    pmr.outdated_by_merge_request_id,
     pmr.source_puzzle_name as stored_source_puzzle_name,
     source_p.id as source_puzzle_id,
     source_p.name as source_puzzle_name,
@@ -169,6 +185,8 @@ SELECT
     pmr.reported_duplicate_puzzle_ids,
     pmr.survivor_puzzle_id,
     pmr.merged_puzzle_ids,
+    pmr.outdated_reason,
+    pmr.outdated_by_merge_request_id,
     pmr.source_puzzle_name as stored_source_puzzle_name,
     source_p.id as source_puzzle_id,
     source_p.name as source_puzzle_name,

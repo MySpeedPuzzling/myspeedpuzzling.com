@@ -8,8 +8,11 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\PuzzleMergeRequest;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
+use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -291,5 +294,100 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
         ));
 
         return $mergeRequestId;
+    }
+
+    public function testAPuzzleMergedSinceTheReportIsReviewedInItsPlace(): void
+    {
+        $browser = self::createClient();
+        $merged = $this->report($browser, PuzzleFixture::PUZZLE_500_04, PuzzleFixture::PUZZLE_500_05);
+        $withAnother = $this->report($browser, PuzzleFixture::PUZZLE_500_05, PuzzleFixture::PUZZLE_1000_05);
+        $this->approve($browser, $merged, PuzzleFixture::PUZZLE_500_04);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/admin/puzzle-merge-requests/' . $withAnother);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('[data-merge-review-target="card"][data-puzzle-id="' . PuzzleFixture::PUZZLE_500_04 . '"]');
+        self::assertSelectorExists('[data-merge-review-target="card"][data-puzzle-id="' . PuzzleFixture::PUZZLE_1000_05 . '"]');
+        self::assertSelectorTextContains('[data-role="merged-meanwhile"]', 'was merged into');
+    }
+
+    public function testARequestWithNothingLeftToMergeCanStillBeRejected(): void
+    {
+        $browser = self::createClient();
+        $container = $browser->getContainer();
+        $request = new PuzzleMergeRequest(
+            id: Uuid::uuid7(),
+            sourcePuzzle: null,
+            reporter: $container->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR),
+            submittedAt: new DateTimeImmutable(),
+            // A puzzle deleted without a merge
+            reportedDuplicatePuzzleIds: [PuzzleFixture::PUZZLE_500_04, Uuid::uuid7()->toString()],
+        );
+        $container->get(EntityManagerInterface::class)->persist($request);
+        $container->get(EntityManagerInterface::class)->flush();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/admin/puzzle-merge-requests/' . $request->id->toString());
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-role="nothing-to-merge"]', 'only one of the reported puzzles is left (1 deleted without a merge)');
+        self::assertSelectorNotExists('form[data-controller~="merge-review"]');
+        self::assertSelectorExists('button[data-bs-target="#rejectModal"]');
+        self::assertSelectorExists('#rejectModal form[action$="/reject"]');
+    }
+
+    public function testARequestTheMergeLeftNothingToDoForIsListedAsAlreadyDone(): void
+    {
+        $browser = self::createClient();
+        $merged = $this->report($browser, PuzzleFixture::PUZZLE_500_04, PuzzleFixture::PUZZLE_500_05);
+        $sameAgain = $this->report($browser, PuzzleFixture::PUZZLE_500_05, PuzzleFixture::PUZZLE_500_04);
+        $this->approve($browser, $merged, PuzzleFixture::PUZZLE_500_04);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/admin/puzzle-merge-requests?tab=outdated');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('a[href="/admin/puzzle-merge-requests/' . $sameAgain . '"]');
+        self::assertSelectorTextContains('.nav-link.active', 'Already done');
+
+        $browser->request('GET', '/admin/puzzle-merge-requests');
+        self::assertSelectorNotExists('a[href="/admin/puzzle-merge-requests/' . $sameAgain . '"]');
+
+        $browser->request('GET', '/admin/puzzle-merge-requests/' . $sameAgain);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1 ~ .badge', 'Already done');
+        self::assertSelectorTextContains('[data-role="outdated"]', 'other merges already joined these puzzles into one');
+        self::assertSelectorExists('[data-role="outdated"] a[href="/admin/puzzle-merge-requests/' . $merged . '"]');
+        self::assertSelectorNotExists('#rejectModal');
+    }
+
+    private function report(KernelBrowser $browser, string $sourceId, string $duplicateId): string
+    {
+        $mergeRequestId = Uuid::uuid7()->toString();
+        $browser->getContainer()->get(MessageBusInterface::class)->dispatch(new SubmitPuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            sourcePuzzleId: $sourceId,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            duplicatePuzzleIds: [$duplicateId],
+        ));
+
+        return $mergeRequestId;
+    }
+
+    private function approve(KernelBrowser $browser, string $mergeRequestId, string $survivorId): void
+    {
+        $container = $browser->getContainer();
+        $container->get(MessageBusInterface::class)->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: $survivorId,
+            mergedName: 'Merged',
+            mergedEans: null,
+            mergedBrandCodes: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: null,
+            selectedImagePuzzleId: null,
+        ));
+        $container->get(EntityManagerInterface::class)->clear();
     }
 }

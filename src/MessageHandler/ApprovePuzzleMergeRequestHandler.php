@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\GetCurrentPuzzleIds;
 use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
+use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -33,6 +35,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\PuzzleImageStorage;
@@ -40,9 +43,11 @@ use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleMergeSnapshotBuilder;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\NotificationType;
+use SpeedPuzzling\Web\Value\MergeRequestPuzzles;
 use SpeedPuzzling\Web\Value\NamedPuzzle;
 use SpeedPuzzling\Web\Value\PuzzleMergeNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
+use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -62,6 +67,9 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private SecretPuzzleHides $secretPuzzleHides,
         private IsPuzzleKeptSecret $isPuzzleKeptSecret,
         private PuzzleImageStorage $puzzleImageStorage,
+        private GetCurrentPuzzleIds $getCurrentPuzzleIds,
+        private PuzzleChangeRequestRepository $puzzleChangeRequestRepository,
+        private OutdatedPuzzleRequests $outdatedPuzzleRequests,
     ) {
     }
 
@@ -80,8 +88,23 @@ readonly final class ApprovePuzzleMergeRequestHandler
         $reviewer = $this->playerRepository->get($message->reviewerId);
         $survivorPuzzleId = strtolower($message->survivorPuzzleId);
 
-        // Every reported puzzle but the survivor is deleted - a survivor outside the request would be deleted itself
-        if (in_array($survivorPuzzleId, array_map(strtolower(...), $mergeRequest->reportedDuplicatePuzzleIds), true) === false) {
+        if ($mergeRequest->status !== PuzzleReportStatus::Pending) {
+            throw new InvalidPuzzleValues('This merge request is not waiting for a decision any more.');
+        }
+
+        // The reported puzzles as they are now - one merged into another puzzle meanwhile is that puzzle
+        // (MergeRequestPuzzles), one deleted without a merge is left out
+        $currentPuzzleIds = MergeRequestPuzzles::resolve(
+            $mergeRequest->reportedDuplicatePuzzleIds,
+            $this->getCurrentPuzzleIds->of($mergeRequest->reportedDuplicatePuzzleIds),
+        )->currentIds();
+
+        if (count($currentPuzzleIds) < 2) {
+            throw new InvalidPuzzleValues('Nothing left to merge - other merges already joined these puzzles, or they no longer exist.');
+        }
+
+        // Every puzzle of the request but the survivor is deleted - a survivor outside the request would be deleted itself
+        if (in_array($survivorPuzzleId, $currentPuzzleIds, true) === false) {
             throw new InvalidPuzzleValues('The puzzle that stays must be one of the reported puzzles.');
         }
 
@@ -90,17 +113,17 @@ readonly final class ApprovePuzzleMergeRequestHandler
         // (the check below refuses the merge) or waits until the merge commits
         $lockedPuzzles = [];
 
-        foreach ($this->puzzleRepository->findByIdsForUpdate(array_values($mergeRequest->reportedDuplicatePuzzleIds)) as $puzzle) {
+        foreach ($this->puzzleRepository->findByIdsForUpdate($currentPuzzleIds) as $puzzle) {
             $lockedPuzzles[$puzzle->id->toString()] = $puzzle;
         }
 
         $survivorPuzzle = $lockedPuzzles[$survivorPuzzleId] ?? throw new PuzzleNotFound();
 
-        // Collect all puzzle IDs to merge (including source puzzle, excluding survivor)
+        // Every puzzle of the request but the survivor
         $puzzlesToMerge = [];
 
-        foreach ($mergeRequest->reportedDuplicatePuzzleIds as $puzzleId) {
-            $puzzle = $lockedPuzzles[strtolower($puzzleId)] ?? null;
+        foreach ($currentPuzzleIds as $puzzleId) {
+            $puzzle = $lockedPuzzles[$puzzleId] ?? null;
 
             if ($puzzle === $survivorPuzzle) {
                 continue;
@@ -228,6 +251,9 @@ readonly final class ApprovePuzzleMergeRequestHandler
             ),
         );
 
+        // Other requests this merge leaves nothing to do for - before the merged puzzles are deleted
+        $this->outdatedPuzzleRequests->afterMerge($mergeRequest, $survivorPuzzle, $puzzlesToMerge);
+
         // Clear source puzzle reference if it will be deleted
         // This prevents stale entity references during event processing
         if ($mergeRequest->sourcePuzzle !== null) {
@@ -352,6 +378,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
             'competitionRoundPuzzles' => ['moved' => [], 'droppedAsDuplicate' => []],
             'conversations' => [],
             'stopwatches' => [],
+            'changeRequests' => [],
             'tags' => [],
         ];
 
@@ -490,6 +517,13 @@ readonly final class ApprovePuzzleMergeRequestHandler
             foreach ($stopwatches as $stopwatch) {
                 $stopwatch->puzzle = $survivorPuzzle;
                 $inventory['stopwatches'][] = $stopwatch->id->toString();
+            }
+
+            // Change requests are about the same puzzle - the survivor now. Every one, decided or not: a pending one
+            // stays reviewable, a decided one stays in the history. Without this the delete fails (no cascade)
+            foreach ($this->puzzleChangeRequestRepository->findByPuzzle($puzzleToMerge) as $changeRequest) {
+                $changeRequest->puzzleMergedInto($survivorPuzzle);
+                $inventory['changeRequests'][] = $changeRequest->id->toString();
             }
 
             // Tags also cascade-delete through the join table

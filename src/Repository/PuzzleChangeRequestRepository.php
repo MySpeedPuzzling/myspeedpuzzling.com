@@ -75,4 +75,42 @@ readonly final class PuzzleChangeRequestRepository
         return $this->entityManager->getRepository(PuzzleChangeRequest::class)
             ->count(['proposedManufacturer' => $manufacturer]);
     }
+
+    /**
+     * Every request about the puzzle, decided or not - what a merge moves onto the survivor.
+     *
+     * @return list<PuzzleChangeRequest>
+     */
+    public function findByPuzzle(Puzzle $puzzle): array
+    {
+        return $this->entityManager->getRepository(PuzzleChangeRequest::class)->findBy(['puzzle' => $puzzle]);
+    }
+
+    /**
+     * @param list<Puzzle> $puzzles
+     *
+     * @return list<PuzzleChangeRequest>
+     */
+    public function findPendingForPuzzles(array $puzzles): array
+    {
+        if ($puzzles === []) {
+            return [];
+        }
+
+        return $this->entityManager->getRepository(PuzzleChangeRequest::class)->findBy([
+            'puzzle' => $puzzles,
+            'status' => PuzzleReportStatus::Pending,
+        ]);
+    }
+
+    /**
+     * @return list<PuzzleChangeRequest>
+     */
+    public function findAllPending(): array
+    {
+        return $this->entityManager->getRepository(PuzzleChangeRequest::class)->findBy(
+            ['status' => PuzzleReportStatus::Pending],
+            ['submittedAt' => 'ASC'],
+        );
+    }
 }

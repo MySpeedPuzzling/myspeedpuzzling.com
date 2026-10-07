@@ -57,4 +57,33 @@ readonly final class PuzzleModerationDecisionRecorder
             details: $details,
         ));
     }
+
+    /**
+     * A request the application closed by itself - nobody decided it (OutdatedPuzzleRequests).
+     *
+     * @param array<string, mixed> $details
+     */
+    public function recordAutomatic(
+        PuzzleModerationAction $action,
+        null|UuidInterface $puzzleId,
+        null|string $puzzleName,
+        null|UuidInterface $changeRequestId = null,
+        null|UuidInterface $mergeRequestId = null,
+        array $details = [],
+    ): void {
+        $this->entityManager->persist(new PuzzleModerationDecision(
+            id: Uuid::uuid7(),
+            action: $action,
+            decidedAt: $this->clock->now(),
+            decidedById: null,
+            decidedByName: null,
+            decidedByCode: null,
+            source: MergeDecisionSource::Automatic,
+            puzzleId: $puzzleId,
+            puzzleName: $puzzleName,
+            changeRequestId: $changeRequestId,
+            mergeRequestId: $mergeRequestId,
+            details: $details,
+        ));
+    }
 }

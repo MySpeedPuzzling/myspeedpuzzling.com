@@ -1265,7 +1265,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             ->findBy(['mergeRequestId' => Uuid::fromString($mergeRequestId)]);
         self::assertCount(1, $decisions);
         self::assertSame(PuzzleModerationAction::MergeRequestApproved, $decisions[0]->action);
-        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decisions[0]->decidedById->toString());
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decisions[0]->decidedById?->toString());
         self::assertSame([PuzzleFixture::PUZZLE_1000_01], $decisions[0]->details['mergedPuzzleIds'] ?? null);
 
         $selfNotifications = $this->entityManager->getRepository(Notification::class)->findBy([

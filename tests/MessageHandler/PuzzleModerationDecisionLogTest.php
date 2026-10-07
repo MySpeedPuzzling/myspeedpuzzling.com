@@ -45,7 +45,7 @@ final class PuzzleModerationDecisionLogTest extends KernelTestCase
 
         $decision = $this->onlyDecision(['changeRequestId' => Uuid::fromString(PuzzleReportFixture::CHANGE_REQUEST_PENDING)]);
         self::assertSame(PuzzleModerationAction::ChangeRequestApproved, $decision->action);
-        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decision->decidedById->toString());
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decision->decidedById?->toString());
         self::assertSame(['name'], $decision->details['selectedFields'] ?? null);
     }
 
@@ -59,7 +59,7 @@ final class PuzzleModerationDecisionLogTest extends KernelTestCase
 
         $decision = $this->onlyDecision(['changeRequestId' => Uuid::fromString(PuzzleReportFixture::CHANGE_REQUEST_PENDING)]);
         self::assertSame(PuzzleModerationAction::ChangeRequestRejected, $decision->action);
-        self::assertSame(PlayerFixture::PLAYER_REGULAR, $decision->decidedById->toString());
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $decision->decidedById?->toString());
         self::assertNotNull($decision->decidedByCode);
         self::assertSame('Wrong edition', $decision->note);
     }

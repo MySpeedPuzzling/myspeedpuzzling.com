@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
+use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
+use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 
@@ -25,12 +27,14 @@ readonly final class EditCompetitionRoundHandler
         private SecretPuzzleHides $secretPuzzleHides,
         private ClockInterface $clock,
         private SecretRevealPreview $secretRevealPreview,
+        private OfficialResultsGuard $officialResultsGuard,
     ) {
     }
 
     /**
      * @throws PuzzleAlreadyInCompetitionRoundCategory
      * @throws SecretPuzzlesWouldBeRevealed
+     * @throws OfficialResultsProtected
      */
     public function __invoke(EditCompetitionRound $message): void
     {
@@ -45,6 +49,11 @@ readonly final class EditCompetitionRoundHandler
         $keep = static fn (string $field): bool => in_array($field, $message->keepFields, true);
         $startsAt = $keep('startsAt') ? $round->startsAt : $message->startsAt;
         $category = $keep('category') ? $round->category : $message->category;
+
+        // Official results belong to the round's kind of entries (people or pairs/teams) - checked before anything changes
+        if ($category !== $round->category && $this->officialResultsGuard->countResultsInRound($round->id->toString()) > 0) {
+            throw new OfficialResultsProtected(OfficialResultsProtected::ROUND_CATEGORY_LOCKED);
+        }
 
         if ($message->refuseToReveal || $message->confirmedRevealHash !== null) {
             $revealed = $this->secretRevealPreview->byMovingRound($round, $startsAt);

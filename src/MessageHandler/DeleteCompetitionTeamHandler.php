@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Message\DeleteCompetitionTeam;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
@@ -23,9 +24,16 @@ readonly final class DeleteCompetitionTeamHandler
     ) {
     }
 
+    /**
+     * @throws OfficialResultsProtected a pair/team with a result or a qualified mark stays - its result goes first
+     */
     public function __invoke(DeleteCompetitionTeam $message): void
     {
         $team = $this->competitionTeamRepository->get($message->teamId);
+
+        if ($team->hasOfficialData()) {
+            throw new OfficialResultsProtected(OfficialResultsProtected::TEAM_HAS_RESULT);
+        }
 
         // Doctrine writes these updates before the delete, all in the handler's one transaction
         foreach ($this->participantRoundRepository->findByTeam($team) as $participantRound) {

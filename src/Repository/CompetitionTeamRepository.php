@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Exceptions\CompetitionTeamNotFound;
 
@@ -28,6 +29,23 @@ readonly final class CompetitionTeamRepository
         $team = $this->entityManager->find(CompetitionTeam::class, $teamId);
 
         return $team ?? throw new CompetitionTeamNotFound();
+    }
+
+    public function find(string $teamId): null|CompetitionTeam
+    {
+        if (!Uuid::isValid($teamId)) {
+            return null;
+        }
+
+        return $this->entityManager->find(CompetitionTeam::class, $teamId);
+    }
+
+    /**
+     * @return list<CompetitionTeam>
+     */
+    public function findByRound(CompetitionRound $round): array
+    {
+        return $this->entityManager->getRepository(CompetitionTeam::class)->findBy(['round' => $round]);
     }
 
     public function save(CompetitionTeam $team): void

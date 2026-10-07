@@ -79,6 +79,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetReports' => self::ADMIN,
         'GetResultReviewContactsOverview' => self::ADMIN,
         'GetResultReviewEmailCandidates' => self::BACKGROUND,
+        'GetRoundResultEntries' => self::ORGANISER,
         'GetRoundTeams' => self::ORGANISER,
         'GetSoldSwappedHistory' => self::BILATERAL,
         'GetStatistics' => self::AGGREGATE,

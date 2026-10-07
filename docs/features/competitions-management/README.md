@@ -7,7 +7,7 @@ The feature set is **tiered and opt-in**: a competition with everything off is j
 | Capability | How it's enabled | Docs |
 |-----------|------------------|------|
 | Managed registration (capacity, reserved/paid, waitlist, check-in) | "Manage registration on MySpeedPuzzling" on the event's own Registration page (`manage_competition_registration`) | [registration.md](registration.md) |
-| Official round results + player claiming | Enter results in the round results console, publish per round | [results.md](results.md) |
+| Official round results (live entry, results desk, qualification and advancing, seating, publishing) | Recorded by the organiser per round, published per round | [official-results.md](official-results.md) |
 | Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Page content" on the event/edition edit page or the series management page - a page shows nothing new until a section is added | [public-page.md](public-page.md) |
 | Participant management, import/export, pairing | Always available | [participants.md](participants.md) |
 
@@ -61,11 +61,10 @@ Each competition also appears in "My Competitions" for its creator/maintainers r
 | Submit a new competition | Any authenticated player |
 | Edit competition & manage rounds/tables/stopwatch | Admin, original creator, or named maintainer |
 | Manage registrations (mark paid, promote, check-in) | Admin, creator, or maintainer |
-| Enter/publish round results (results console) | Admin, creator, or maintainer |
+| Record/publish official round results, qualify, advance, seat | Admin, creator, or maintainer |
 | Edit public page content | Admin, creator, or maintainer (series voter for series pages) |
 | View public stopwatch page | Everyone (no auth required) |
-| View published standings | Everyone |
-| Claim a result | Any authenticated player (own identity/team only) |
+| View published official results (round results page) | Everyone, while the competition is publicly visible |
 | Approve or reject a competition | Admin only |
 
 Access is enforced via a `CompetitionEditVoter` that checks whether the player is admin, the creator, or in the maintainers list. All management controllers use this same voter, including round-level controllers (which resolve the competition from the round).
@@ -188,7 +187,7 @@ A competition has multiple **rounds**, each with:
 - **Category** — `solo`, `duo`, or `team` (`RoundCategory` enum, default `solo`)
 - **Badge colour** — see "Round badge" below
 
-Rounds are displayed sorted by start time. Each round can be edited or deleted. The round list shows each round's badge and its category pill (Solo too, like Pair and Team) and action buttons for: Puzzles, Teams (for duo/team rounds only), Tables (only for in-person events), Stopwatch, Results (official results console), Edit, Delete.
+Rounds are displayed sorted by start time. Each round can be edited or deleted. The round list shows each round's badge and its category pill (Solo too, like Pair and Team) and action buttons for: Puzzles, Teams (for duo/team rounds only), Tables (only for in-person events), Stopwatch, Edit, Delete.
 
 ### Round badge
 
@@ -348,9 +347,9 @@ This eliminates all behavioral branching — the same participant handlers, quer
 - Secret/private player handling fix
 - Replaces admin-only import routes (`/admin/import-competition-puzzlers`)
 
-## Official Round Results & Claiming
+## Official Round Results
 
-Official results per round are entered by maintainers in the **results entry console** (`/en/manage-round-results/{roundId}`) — an offline-first Stimulus console with an IndexedDB outbox, quick-add by name (auto-creating participants/teams), DNF via missing pieces, and per-round publish. Published standings render on the event/edition page with podium styling and a claim CTA. Players claim their (team) results, which materialize as **verified** `PuzzleSolvingTime` rows on their profiles. Full design: [results.md](results.md).
+The organiser's record of a round: one result per round entry (a person of a solo round, a pair/team of a pair/team round) - a time, pieces placed, or did not start - plus the qualified mark and the table number, written through one change-set write path (`RecordRoundResults`, three-way checked, offline-safe). Qualified entries are advanced into later rounds explicitly (`AdvanceQualified`), and a round's results are published per round on its round results page. Players' own times stay theirs: nothing is copied onto profiles. Full design: [official-results.md](official-results.md).
 
 ## Managed Registration
 
@@ -369,7 +368,6 @@ Email notifications sent during the competition lifecycle:
 3. **Rejected (to creator):** When an admin rejects a competition, the creator receives an email with the rejection reason. Sent in the creator's locale.
 4. **Registration confirmed / waitlisted (to player):** on managed registration, with entry fee and payment instructions, or waitlist position.
 5. **Payment confirmed / promoted from waitlist (to player):** when the organizer marks them paid or promotes them.
-6. **Results published (to connected participants of the round):** when a round's results are published with notification enabled.
 
 All emails use the `transactional` mailer transport and follow the standard Inky email template structure. Player-facing emails are sent in the player's locale and only when an email address exists.
 
@@ -395,6 +393,6 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 19. **A solving time can be linked to any publicly visible competition row** — the add/edit-time picker offers every approved & not-rejected standalone competition (any date) and every edition of an approved & not-rejected series (`IsCompetitionPubliclyVisible::SQL_CONDITION`), never the series umbrella itself; the edit form additionally keeps the currently linked competition selectable; the submitted id is validated against exactly that set
 20. **MSP never processes payments** — managed registration only records the organizer's manual payment confirmation
 21. **Managed registration keeps the external registration link** — saved as it is, hidden on every page while registration is managed (one way to register), back when management is switched off
-22. **Official results are the organizer's record** — claiming/un-claiming never modifies `OfficialRoundResult`; only the player's materialized `PuzzleSolvingTime` is created/updated/removed
-23. **Claimed times are `verified = true`** — organizer-attested results are stronger evidence than self-reporting
-24. **Draft results are private** — standings appear publicly (and become claimable) only after the round is published
+22. **Official results are the organiser's record** — stored on the round entry (`CompetitionParticipantRound` / `CompetitionTeam`), never written onto players' profiles
+23. **Official data never disappears as a side effect** — an entry with a result or a qualified mark is never removed by taking somebody out of a round, deleting a pair/team, removing a person from the event, an import or leaving the event (the player is only disconnected)
+24. **Draft results are private** — public only on the round results page after the round is published; the first publish tells the players with a finished result once (in-app notification)

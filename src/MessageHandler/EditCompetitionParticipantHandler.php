@@ -11,10 +11,10 @@ use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\OrganizerNoteTooLong;
+use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Message\EditCompetitionParticipant;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
-use SpeedPuzzling\Web\Services\ClaimedResultReverter;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -25,10 +25,12 @@ readonly final class EditCompetitionParticipantHandler
         private PlayerRepository $playerRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
-        private ClaimedResultReverter $claimedResultReverter,
     ) {
     }
 
+    /**
+     * @throws OfficialResultsProtected taking the person out of a round where they hold official results - nothing changes
+     */
     public function __invoke(EditCompetitionParticipant $message): void
     {
         // The column's length - refused before anything changes (the participants page checks it first)
@@ -37,6 +39,15 @@ readonly final class EditCompetitionParticipantHandler
         }
 
         $participant = $this->participantRepository->get($message->participantId);
+
+        // Validated before anything changes: rounds the person is taken out of must not hold their official results
+        foreach ($this->existingRounds($message->participantId) as $participantRound) {
+            $official = $participantRound->hasOfficialData() || $participantRound->team?->hasOfficialData() === true;
+
+            if ($official && !in_array($participantRound->round->id->toString(), $message->roundIds, true)) {
+                throw new OfficialResultsProtected(OfficialResultsProtected::ENTRY_HAS_RESULT);
+            }
+        }
 
         $participant->updateName($message->name);
         $participant->updateCountry($message->country);
@@ -51,25 +62,11 @@ readonly final class EditCompetitionParticipantHandler
             $currentPlayerId = $participant->player?->id->toString();
 
             if ($currentPlayerId !== $message->playerId) {
-                if ($currentPlayerId !== null) {
-                    $this->claimedResultReverter->revertForPlayerInCompetition(
-                        $currentPlayerId,
-                        $participant->competition->id->toString(),
-                    );
-                }
-
                 $player = $this->playerRepository->get($message->playerId);
                 $participant->disconnect();
                 $participant->connect($player, $this->clock->now());
             }
         } else {
-            if ($participant->player !== null) {
-                $this->claimedResultReverter->revertForPlayerInCompetition(
-                    $participant->player->id->toString(),
-                    $participant->competition->id->toString(),
-                );
-            }
-
             $participant->disconnect();
         }
 
@@ -79,10 +76,7 @@ readonly final class EditCompetitionParticipantHandler
 
     private function syncRoundAssignments(EditCompetitionParticipant $message): void
     {
-        /** @var array<CompetitionParticipantRound> $existingRounds */
-        $existingRounds = $this->entityManager
-            ->getRepository(CompetitionParticipantRound::class)
-            ->findBy(['participant' => $message->participantId]);
+        $existingRounds = $this->existingRounds($message->participantId);
 
         $existingRoundIds = [];
 
@@ -116,5 +110,15 @@ readonly final class EditCompetitionParticipantHandler
                 $this->entityManager->persist($participantRound);
             }
         }
+    }
+
+    /**
+     * @return array<CompetitionParticipantRound>
+     */
+    private function existingRounds(string $participantId): array
+    {
+        return $this->entityManager
+            ->getRepository(CompetitionParticipantRound::class)
+            ->findBy(['participant' => $participantId]);
     }
 }

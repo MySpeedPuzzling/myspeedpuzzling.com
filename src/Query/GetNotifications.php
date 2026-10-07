@@ -164,7 +164,14 @@ SELECT * FROM (
         NULL::varchar AS conversation_initiator_avatar,
         NULL::boolean AS conversation_is_marketplace,
         NULL::varchar AS conversation_puzzle_name,
-        NULL::varchar AS conversation_puzzle_image
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug
     FROM notification
     LEFT JOIN puzzle_solving_time ON notification.target_solving_time_id = puzzle_solving_time.id
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -248,7 +255,14 @@ SELECT * FROM (
         NULL::varchar AS conversation_initiator_avatar,
         NULL::boolean AS conversation_is_marketplace,
         NULL::varchar AS conversation_puzzle_name,
-        NULL::varchar AS conversation_puzzle_image
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug
     FROM notification
     INNER JOIN lent_puzzle_transfer lpt ON notification.target_transfer_id = lpt.id
     LEFT JOIN lent_puzzle lp ON lpt.lent_puzzle_id = lp.id
@@ -329,7 +343,14 @@ SELECT * FROM (
         NULL::varchar AS conversation_initiator_avatar,
         NULL::boolean AS conversation_is_marketplace,
         NULL::varchar AS conversation_puzzle_name,
-        NULL::varchar AS conversation_puzzle_image
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug
     FROM notification
     INNER JOIN puzzle_change_request pcr ON notification.target_change_request_id = pcr.id
     INNER JOIN puzzle ON pcr.puzzle_id = puzzle.id
@@ -405,7 +426,14 @@ SELECT * FROM (
         NULL::varchar AS conversation_initiator_avatar,
         NULL::boolean AS conversation_is_marketplace,
         NULL::varchar AS conversation_puzzle_name,
-        NULL::varchar AS conversation_puzzle_image
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug
     FROM notification
     INNER JOIN puzzle_merge_request pmr ON notification.target_merge_request_id = pmr.id
     INNER JOIN puzzle source_puzzle ON pmr.source_puzzle_id = source_puzzle.id
@@ -487,7 +515,14 @@ SELECT * FROM (
         NULL::varchar AS conversation_initiator_avatar,
         NULL::boolean AS conversation_is_marketplace,
         NULL::varchar AS conversation_puzzle_name,
-        NULL::varchar AS conversation_puzzle_image
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug
     FROM notification
     INNER JOIN sold_swapped_item ssi ON notification.target_sold_swapped_item_id = ssi.id
     INNER JOIN puzzle ON ssi.puzzle_id = puzzle.id
@@ -565,7 +600,14 @@ SELECT * FROM (
         initiator.avatar AS conversation_initiator_avatar,
         (conv.sell_swap_list_item_id IS NOT NULL) AS conversation_is_marketplace,
         conv_puzzle.name AS conversation_puzzle_name,
-        CASE WHEN conv_puzzle.hide_image_until IS NOT NULL AND conv_puzzle.hide_image_until > :now::timestamp THEN NULL ELSE conv_puzzle.image END AS conversation_puzzle_image
+        CASE WHEN conv_puzzle.hide_image_until IS NOT NULL AND conv_puzzle.hide_image_until > :now::timestamp THEN NULL ELSE conv_puzzle.image END AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug
     FROM notification
     INNER JOIN conversation conv ON notification.target_conversation_id = conv.id
     INNER JOIN player initiator ON conv.initiator_id = initiator.id
@@ -643,10 +685,101 @@ SELECT * FROM (
         NULL::varchar AS conversation_initiator_avatar,
         NULL::boolean AS conversation_is_marketplace,
         NULL::varchar AS conversation_puzzle_name,
-        NULL::varchar AS conversation_puzzle_image
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug
     FROM notification
     WHERE notification.player_id = :playerId
         AND notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked')
+
+    UNION ALL
+
+    -- Official results of a round the player has a result in were published: the target is the round
+    SELECT
+        notification.notified_at,
+        notification.read_at,
+        notification.type AS notification_type,
+        -- Puzzle solving fields (NULL)
+        NULL::uuid AS target_player_id,
+        NULL::varchar AS target_player_name,
+        NULL::varchar AS target_player_code,
+        NULL::varchar AS target_player_country,
+        NULL::varchar AS target_player_avatar,
+        NULL::boolean AS target_player_is_private,
+        NULL::uuid AS puzzle_id,
+        NULL::varchar AS puzzle_name,
+        NULL::varchar AS manufacturer_name,
+        NULL::int AS pieces_count,
+        NULL::int AS time,
+        NULL::boolean AS first_attempt,
+        NULL::boolean AS unboxed,
+        NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
+        NULL::varchar AS team_id,
+        NULL::varchar AS team_name,
+        NULL::uuid AS guest_link_request_id,
+        NULL::varchar AS guest_link_guest_name,
+        NULL::json AS players,
+        -- Lending fields (NULL)
+        NULL::uuid AS transfer_id,
+        NULL::varchar AS transfer_type,
+        NULL::uuid AS from_player_id,
+        NULL::varchar AS from_player_name,
+        NULL::varchar AS from_player_avatar,
+        NULL::uuid AS to_player_id,
+        NULL::varchar AS to_player_name,
+        NULL::varchar AS to_player_avatar,
+        NULL::uuid AS owner_player_id,
+        NULL::varchar AS owner_player_name,
+        NULL::uuid AS lending_puzzle_id,
+        NULL::varchar AS lending_puzzle_name,
+        NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
+        NULL::varchar AS lending_manufacturer_name,
+        NULL::int AS lending_pieces_count,
+        -- Puzzle report fields (NULL)
+        NULL::uuid AS change_request_id,
+        NULL::uuid AS change_request_puzzle_id,
+        NULL::varchar AS change_request_puzzle_name,
+        NULL::varchar AS change_request_puzzle_image,
+        NULL::varchar AS change_request_rejection_reason,
+        NULL::uuid AS merge_request_id,
+        NULL::uuid AS merge_request_puzzle_id,
+        NULL::varchar AS merge_request_puzzle_name,
+        NULL::varchar AS merge_request_puzzle_image,
+        NULL::varchar AS merge_request_rejection_reason,
+        -- Rating notification fields (NULL)
+        NULL::uuid AS sold_swapped_item_id,
+        NULL::varchar AS rating_puzzle_name,
+        NULL::varchar AS rating_puzzle_image,
+        NULL::varchar AS rating_other_player_name,
+        NULL::uuid AS rating_other_player_id,
+        -- Conversation request fields (NULL)
+        NULL::uuid AS conversation_id,
+        NULL::uuid AS conversation_initiator_id,
+        NULL::varchar AS conversation_initiator_name,
+        NULL::varchar AS conversation_initiator_avatar,
+        NULL::boolean AS conversation_is_marketplace,
+        NULL::varchar AS conversation_puzzle_name,
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields
+        competition_round.id AS round_id,
+        competition_round.name AS round_name,
+        competition_round.slug AS round_slug,
+        competition.name AS round_competition_name,
+        competition.slug AS round_competition_slug,
+        competition_series.slug AS round_series_slug
+    FROM notification
+    INNER JOIN competition_round ON competition_round.id = notification.target_competition_round_id
+    INNER JOIN competition ON competition.id = competition_round.competition_id
+    LEFT JOIN competition_series ON competition_series.id = competition.series_id
+    WHERE notification.player_id = :playerId
+        AND notification.target_competition_round_id IS NOT NULL
 
     UNION ALL
 
@@ -717,7 +850,14 @@ SELECT * FROM (
         NULL::varchar AS conversation_initiator_avatar,
         NULL::boolean AS conversation_is_marketplace,
         NULL::varchar AS conversation_puzzle_name,
-        NULL::varchar AS conversation_puzzle_image
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug
     FROM notification
     INNER JOIN puzzling_team ON puzzling_team.id = notification.target_puzzling_team_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -794,7 +934,14 @@ SELECT * FROM (
         NULL::varchar AS conversation_initiator_avatar,
         NULL::boolean AS conversation_is_marketplace,
         NULL::varchar AS conversation_puzzle_name,
-        NULL::varchar AS conversation_puzzle_image
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug
     FROM notification
     INNER JOIN guest_link_request ON guest_link_request.id = notification.target_guest_link_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id

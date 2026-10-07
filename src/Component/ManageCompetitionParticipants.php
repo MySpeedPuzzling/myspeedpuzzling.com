@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Message\AddCompetitionParticipant;
 use SpeedPuzzling\Web\Message\EditCompetitionParticipant;
 use SpeedPuzzling\Web\Message\MarkParticipantPaid;
@@ -38,6 +39,9 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 final class ManageCompetitionParticipants
 {
     use DefaultActionTrait;
+
+    // Why the last save or removal was refused (official results it would lose) - shown once, for this render only
+    public null|string $protectedMessage = null;
 
     #[LiveProp]
     public string $competitionId = '';
@@ -295,17 +299,24 @@ final class ManageCompetitionParticipants
             return;
         }
 
-        $this->messageBus->dispatch(new EditCompetitionParticipant(
-            participantId: $participant->participantId,
-            name: $name,
-            country: CountryCode::fromCode($this->editCountry)?->name,
-            externalId: trim($this->editExternalId) !== '' ? trim($this->editExternalId) : null,
-            playerId: $this->editPlayerId,
-            roundIds: array_values(array_unique($this->editRoundIds)),
-            // The note is edited only while registration is managed - otherwise it stays as it is
-            changeOrganizerNote: $this->registrationManaged,
-            organizerNote: $organizerNote !== '' ? $organizerNote : null,
-        ));
+        try {
+            $this->messageBus->dispatch(new EditCompetitionParticipant(
+                participantId: $participant->participantId,
+                name: $name,
+                country: CountryCode::fromCode($this->editCountry)?->name,
+                externalId: trim($this->editExternalId) !== '' ? trim($this->editExternalId) : null,
+                playerId: $this->editPlayerId,
+                roundIds: array_values(array_unique($this->editRoundIds)),
+                // The note is edited only while registration is managed - otherwise it stays as it is
+                changeOrganizerNote: $this->registrationManaged,
+                organizerNote: $organizerNote !== '' ? $organizerNote : null,
+            ));
+        } catch (OfficialResultsProtected $protected) {
+            // Nothing saved - the form stays open with the reason
+            $this->protectedMessage = $protected->translationKey();
+
+            return;
+        }
 
         $this->resetEditForm();
     }
@@ -403,9 +414,15 @@ final class ManageCompetitionParticipants
         // Throws for a participant of another competition
         $participant = $this->getParticipants->byId($this->competitionId, $participantId);
 
-        $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(
-            participantId: $participant->participantId,
-        ));
+        try {
+            $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(
+                participantId: $participant->participantId,
+            ));
+        } catch (OfficialResultsProtected $protected) {
+            $this->protectedMessage = $protected->translationKey();
+
+            return;
+        }
 
         if ($this->editingParticipantId === $participant->participantId) {
             $this->resetEditForm();

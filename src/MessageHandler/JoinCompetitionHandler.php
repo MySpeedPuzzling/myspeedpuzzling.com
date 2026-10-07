@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionRegistrationMailer;
+use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RegistrationEmail;
@@ -47,6 +48,7 @@ readonly final class JoinCompetitionHandler
         private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         private CountCompetitionRegistrations $countCompetitionRegistrations,
         private CompetitionRegistrationMailer $registrationMailer,
+        private OfficialResultsGuard $officialResultsGuard,
     ) {
     }
 
@@ -164,7 +166,8 @@ readonly final class JoinCompetitionHandler
 
             $participant = $this->participantRepository->get($participantId);
 
-            if ($participant->source === ParticipantSource::SelfJoined) {
+            // A row holding official results is the organiser's record - the player only lets go of it
+            if ($participant->source === ParticipantSource::SelfJoined && $this->officialResultsGuard->participantHasOfficialData($participantId) === false) {
                 $participant->softDelete($this->clock->now());
             } else {
                 $participant->disconnect();

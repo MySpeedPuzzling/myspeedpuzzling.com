@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Message\DeleteCompetitionTeam;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
@@ -50,7 +51,13 @@ final class DeleteTeamFromRoundController extends AbstractController
         }
 
         // Its members go back to "unassigned" in this round, nothing else about them changes
-        $this->messageBus->dispatch(new DeleteCompetitionTeam(teamId: $teamId));
+        try {
+            $this->messageBus->dispatch(new DeleteCompetitionTeam(teamId: $teamId));
+        } catch (OfficialResultsProtected $protected) {
+            $this->addFlash('danger', $this->translator->trans($protected->translationKey()));
+
+            return $this->redirectToRoute('manage_round_teams', ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
+        }
 
         $this->addFlash('success', $this->translator->trans('competition.teams.flash.team_deleted'));
 

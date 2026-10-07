@@ -42,4 +42,7 @@ enum NotificationType: string
     // "This guest of mine is you" - asked, and agreed to (GuestLinkRequest)
     case GuestLinkRequested = 'GuestLinkRequested';
     case GuestLinkAccepted = 'GuestLinkAccepted';
+
+    // A round's official results were published for the first time and the player has a finished result in it
+    case OfficialResultPublished = 'OfficialResultPublished';
 }

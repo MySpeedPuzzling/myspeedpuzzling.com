@@ -257,13 +257,46 @@ PLAYER_PRIVATE = [WJPC_2024]. Nobody but the players above goes to the fair.
 |-------|-------------|------|------------|---------|
 | `ROUND_WJPC_QUALIFICATION` | WJPC 2024 | Qualification Round | 60 min | PUZZLE_500_01, PUZZLE_500_02 |
 | `ROUND_WJPC_FINAL` | WJPC 2024 | Final Round | 120 min | PUZZLE_1000_01, PUZZLE_1000_02 |
-| `ROUND_WJPC_PAIRS` | WJPC 2024 | Pairs Round (category duo) | 90 min | PUZZLE_1000_01 |
 | `ROUND_CZECH_FINAL` | Czech Nationals 2024 | Final Round | 90 min | PUZZLE_500_01 |
 | `ROUND_EJJ_68` | EDITION_EJJ_68 | EJJ #68 — February 2026 | 120 min | - |
 | `ROUND_EJJ_69` | EDITION_EJJ_69 | EJJ #69 — May 2026 | 120 min | - |
 | `ROUND_OFFLINE_SOLO` | EDITION_OFFLINE_1 | Solo Round | 60 min | - |
 | `ROUND_OFFLINE_TEAM` | EDITION_OFFLINE_1 | Team Round | 90 min | - |
 | `ROUND_PAST_ONLY` | EDITION_PAST_ONLY_1 | Berlin Puzzle Cup 2026 | 90 min | - |
+
+### Official results (`OfficialResultsFixture`, ids `018d0020-…`)
+
+`COMPETITION_RESULTS_CUP` "Results Cup" (slug `results-cup`) - a past (-10 days), approved, in-person event in Brno, CZ,
+created by **PLAYER_WITH_STRIPE** (its organiser - `COMPETITION_EDIT`; PLAYER_REGULAR is not one). Its own
+competition, so no other fixture's rounds change. Official results live on the round entries
+(docs/features/competitions-management/official-results.md), entered by PLAYER_WITH_STRIPE; no player times.
+
+| Round (const) | Slug | Category | Puzzle | Published |
+|---|---|---|---|---|
+| `ROUND_GROUP_A` | group-a | solo | PUZZLE_1000_05 (1000 pcs) | yes (first published = published) |
+| `ROUND_GROUP_B` | group-b | solo | PUZZLE_5000 | no |
+| `ROUND_PAIRS` | pairs | duo | PUZZLE_2000 | no |
+| `ROUND_FINAL` | final | solo | PUZZLE_6000 | no |
+| `ROUND_PAIRS_FINAL` | pairs-final | duo | none | no |
+
+Rounds start at 09:00, 11:00, 13:00 (Pairs), 15:00 (Final), 17:00 (Pairs Final) Europe/Prague on the event day.
+
+| Participant (const) | Country | Linked player | Group A (`ENTRY_A_*`) | Group B (`ENTRY_B_*`) | Pairs |
+|---|---|---|---|---|---|
+| `PARTICIPANT_ANNA` "Anna Fast" | cz | PLAYER_ADMIN | 1:00:00, table 1, qualified, rank 1 | - | Puzzle Sharks |
+| `PARTICIPANT_BEN` "Ben Steady" | de | - | 1:10:00, table 2, qualified, rank 2 | - | Puzzle Sharks |
+| `PARTICIPANT_CARA` "Cara Tied" | us | - | 1:10:00, table 3, rank 2 (tie) | - | Corner Pieces |
+| `PARTICIPANT_DAN` "Dan Unfinished" | cz | - | 850 / 1000 pcs, table 4, rank 4 | - | Corner Pieces |
+| `PARTICIPANT_EVA` "Eva Noshow" | sk | - | did not start, table 5 | - | unnamed pair |
+| `PARTICIPANT_FILIP` "Filip Pending" | cz | - | no result, no table | - | unnamed pair |
+| `PARTICIPANT_GINA` "Gina Quick" | us | PLAYER_PRIVATE | - | 1:05:00, table 1, qualified | Edge Hunters |
+| `PARTICIPANT_HUGO` "Hugo Slow" | de | PLAYER_REGULAR | - | 1:15:00, table 2, qualified | Edge Hunters |
+| `PARTICIPANT_IVAN` "Ivan Last" | sk | - | - | 1:23:20, table 3 | - |
+
+Pairs (`TEAM_*`, round `ROUND_PAIRS`): `TEAM_SHARKS` "Puzzle Sharks" 1:30:00, table 1, qualified; `TEAM_CORNERS`
+"Corner Pieces" 1700 / 2000 pcs, table 2; `TEAM_UNNAMED` (no name) no result; `TEAM_EDGES` "Edge Hunters" 1:40:00,
+table 3, qualified. `ENTRY_FINAL_ANNA`: Anna is in the Final already (no result) - advancing Group A skips her.
+PLAYER_REGULAR (Hugo) blocks PLAYER_PRIVATE (Gina) - useful for the public page's hidden rows.
 
 ## Tags
 

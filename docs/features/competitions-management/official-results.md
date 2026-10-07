@@ -227,7 +227,9 @@ A round whose results are published leads its public page (`event_round_results`
   `OfficialEntryTimePrefill` re-runs the very same read model for the viewer and fills the form in (GET) only for an
   entry it offers - anything else is ignored silently: the puzzle, the time, the finished date (the round's start day in
   the round's zone), the competition, and for a pair/team the co-puzzlers (linked members by `#CODE`, the others as guest
-  names) and the pair's/team's name when the form may still set it (no puzzling team of these exact people yet, or an
+  names; a linked member hidden from the viewer - a private player the round page shows them by the organiser's name
+  only, or a player blocked in either direction - comes as a guest under the organiser's participant name, never by
+  code or id: browser verification of PR #136, `PuzzleAddOfficialEntryTest::testALinkedPartnerHiddenFromTheViewerIsFilledInAsAGuest`) and the pair's/team's name when the form may still set it (no puzzling team of these exact people yet, or an
   unnamed one - `PuzzlingTeam::nameIfUnnamed()`; with nobody filled in, the name comes along and the save decides). A
   pair/team result **never opens as a solo time**: `OfficialEntryTime` carries the round's category, the co-puzzler
   picker opens in Pair/Team mode without Solo (a "pair" recorded with more people opens as a team), and when the people
@@ -283,7 +285,9 @@ Live updates: after the commit the controller publishes a **private** Mercure up
 (`OfficialResultsLiveUpdates`; a Mercure failure is a logged warning, never a failed write): `official_results.entries`
 (the changed entries + the round), `official_results.refresh` (more than 50 entries changed, or an entry taken out of
 the round - fetch the state again),
-`official_results.round` (publication / table numbers usage).
+`official_results.round` (publication / table numbers usage). The same updates go to the referees' topic
+`/round-results/{roundId}/referees` with every private linked player withheld (live-results.md "Private players") -
+one update for both topics when nothing is withheld, two otherwise.
 
 ### Subscribing: a token per page, never the cookie
 
@@ -292,8 +296,8 @@ Every organiser page - live entry, results desk, seating, results overview - fol
 its state: `mercure: {url, topics, token, expiresAt, expiresIn}` (`OfficialResultsSubscription`). The token is minted
 only after the voter let the request in (the round state and the live entry: `COMPETITION_RESULTS_ENTRY`, so referees
 get their round's; desk, seating, overview and `GET competitions/{id}`: `COMPETITION_EDIT`), lists its topics one by
-one (`/round-results/{id}` + the public `/round-stopwatch/{id}` for a round's page; every round's `/round-results/{id}`
-for the overview - never a URI template), may subscribe only, lasts an hour, and is signed with the hub key through
+one (`/round-results/{id}` + the public `/round-stopwatch/{id}` for a round's page - a referee gets
+`/round-results/{id}/referees` instead; every round's `/round-results/{id}` for the overview - never a URI template), may subscribe only, lasts an hour, and is signed with the hub key through
 MercureBundle's token factory (`null` + a warning when none can be made: the page then lives on its state refreshes).
 A token cannot be taken back: after a referee or a maintainer loses their rights, the page stops its stream at its next
 state fetch (at most 60 s - the 403 suspends it), but a token copied out of the page stays valid until it expires (at

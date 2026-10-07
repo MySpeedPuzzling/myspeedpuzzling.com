@@ -22,6 +22,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
     private const array RAW_COLUMN = [
         'Services/Community/CommunityStatsCalculator.php' => 'Counts public newcomers per scope (community_scope_stats.new_faces14d) - an aggregate without identity, the raw setting decides who is counted.',
         'Query/FindSimilarSpeedPuzzler.php' => 'A random suggestion of somebody at your speed offers public profiles only - the same pool for every viewer, like a global ranking.',
+        'Query/GetRoundResultEntries.php' => 'Organiser tooling (and write handlers / live updates without a viewer): the participant list as recorded; the raw setting rides along only for RoundResultEntry::forReferee(), which masks private players for referees through PrivateProfileAccess (RefereeEntriesView).',
         'Query/GetCompetitionNameTags.php' => 'A name tag is worn in public: a linked player\'s #CODE is printed only for a public profile, whoever prints it - the organiser\'s own allow list must not decide what strangers read on a badge.',
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
         'Query/GetFastestGroups.php' => 'fastest_teams keeps a group only if a member is public - the same rows and positions for every viewer; names on them go through the service.',

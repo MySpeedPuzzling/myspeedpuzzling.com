@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\LiveResults;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
+use SpeedPuzzling\Web\Services\NameTagQrCode;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
@@ -36,6 +37,32 @@ final class LiveResultsLinksTest extends WebTestCase
 
         // Every round of the fixture event was ten days ago: none runs, none started lately, none is next - the last one
         self::assertResponseRedirects('/en/live-results/' . OfficialResultsFixture::ROUND_PAIRS_FINAL . '?auto=1');
+    }
+
+    /**
+     * The organiser pages have paths of their language like the other management pages (browser verification of
+     * PR #136) - the name tag's QR keeps its one path for every language: printed tags depend on it.
+     */
+    public function testTheLiveEntryAndNameTagsHaveCzechPathsAndTheQrPathStays(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $this->browser->request('GET', '/zadavani-vysledku-udalosti/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
+        self::assertResponseRedirects('/zadavani-vysledku/' . OfficialResultsFixture::ROUND_PAIRS_FINAL . '?auto=1');
+
+        $crawler = $this->browser->request('GET', '/zadavani-vysledku/' . OfficialResultsFixture::ROUND_GROUP_A);
+        self::assertResponseIsSuccessful();
+        self::assertSame('/cs/live/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '/p/00000000-0000-0000-0000-000000000000', $crawler->filter('[data-live-results-scan-url-value]')->attr('data-live-results-scan-url-value'));
+
+        $this->browser->request('GET', '/jmenovky-ucastniku/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            'http://localhost/cs/live/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '/p/' . OfficialResultsFixture::PARTICIPANT_ANNA,
+            self::getContainer()->get(NameTagQrCode::class)->url(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::PARTICIPANT_ANNA, 'cs'),
+        );
+
+        $this->browser->request('GET', '/cs/live-results/' . OfficialResultsFixture::ROUND_GROUP_A);
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testTheEventLinkOfAnEventWithoutRoundsLeadsToTheRounds(): void

@@ -36,9 +36,16 @@ final class CompetitionNameTagsController extends AbstractController
     }
 
     #[Route(
-        path: '/{_locale}/name-tags/{competitionId}',
+        path: [
+            'cs' => '/jmenovky-ucastniku/{competitionId}',
+            'en' => '/en/name-tags/{competitionId}',
+            'es' => '/es/name-tags/{competitionId}',
+            'ja' => '/ja/name-tags/{competitionId}',
+            'fr' => '/fr/name-tags/{competitionId}',
+            'de' => '/de/name-tags/{competitionId}',
+        ],
         name: 'competition_name_tags',
-        requirements: ['_locale' => 'en|cs|es|ja|fr|de', 'competitionId' => FirstTryConflictsController::ID_REQUIREMENT],
+        requirements: ['competitionId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['GET'],
     )]
     public function __invoke(Request $request, string $competitionId): Response

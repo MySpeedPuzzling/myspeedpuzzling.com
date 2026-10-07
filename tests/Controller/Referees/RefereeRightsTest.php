@@ -84,6 +84,8 @@ final class RefereeRightsTest extends WebTestCase
         self::assertSelectorNotExists('[data-live-results-target="readiness"]');
         self::assertSelectorExists('[data-live-results-target="findInput"]');
         self::assertSelectorExists('[data-live-results-target="addButton"]');
+        // A referee cannot save table numbers - the quick add does not promise it
+        self::assertSelectorTextSame('[data-live-results-add-note]', 'The entrant is added to this round with the first result you save.');
     }
 
     public function testTheOrganiserKeepsTheirTools(): void
@@ -96,6 +98,7 @@ final class RefereeRightsTest extends WebTestCase
         self::assertStringContainsString('/en/manage-event-rounds/', $html);
         self::assertStringContainsString('/en/manage-round-results/', $html);
         self::assertSelectorExists('[data-live-results-target="addTable"]');
+        self::assertSelectorTextSame('[data-live-results-add-note]', 'The entrant is added to this round with the first result or table number you save.');
     }
 
     public function testTheRefereeRecordsAResult(): void

@@ -168,6 +168,14 @@ final class CompetitionNameTagsTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $crawler = $this->browser->request('GET', '/en/manage-event-participants/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
         self::assertCount(1, $crawler->filter('a[href="' . self::PAGE . '"]'));
+        self::assertCount(1, $crawler->filter('[data-participants-tools] a[href="' . self::PAGE . '"]'));
+
+        // With managed registration, name tags sit in one row with the registration tools (browser verification)
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
+        $crawler = $this->browser->request('GET', '/en/manage-event-participants/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
+        self::assertCount(1, $crawler->filter('[data-participants-tools]'));
+        self::assertCount(3, $crawler->filter('[data-participants-tools] a'));
+        self::assertCount(1, $crawler->filter('[data-participants-tools] a[href="' . self::PAGE . '"]'));
 
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
         $crawler = $this->browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE);

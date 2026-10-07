@@ -95,6 +95,9 @@ carries the same token. An expired token is said ("The form expired - please con
 self-registration is let go of only with the explicit `release_paid` checkbox (refused with a message otherwise). After it: reserved = main's
 `afterJoin()` (marketplace picker or flash); waitlisted = a flash with the position, back to the event page, no
 marketplace step (not going). Every way out goes through `CompetitionDetailUrl`.
+The marketplace card of a managed event (`_event_offers.html.twig`) never says "Click “I'm going”" - there is no such
+button: with a free spot it says "Register first, then choose what you'll bring" ("Going too? Register …" for a
+seller), else (full, waitlisted, not open) "Once you have a spot at this event, …" (`EventOffersCardTest`).
 
 ## Public card
 

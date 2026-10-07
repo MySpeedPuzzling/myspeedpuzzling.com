@@ -172,9 +172,10 @@ final class OfficialResultsApiTest extends WebTestCase
 
         $this->post(self::CHANGES, ['changes' => [self::change('participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'table_number', null, 6)]]);
 
+        // Nobody private in it: the organisers' and the referees' topic get the one update
         $updates = self::hub()->getPublishedUpdates();
         self::assertCount(1, $updates);
-        self::assertSame(['/round-results/' . OfficialResultsFixture::ROUND_GROUP_A], $updates[0]->getTopics());
+        self::assertSame(['/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, '/round-results/' . OfficialResultsFixture::ROUND_GROUP_A . '/referees'], $updates[0]->getTopics());
         self::assertTrue($updates[0]->isPrivate());
 
         $payload = json_decode($updates[0]->getData(), true, flags: JSON_THROW_ON_ERROR);
@@ -395,7 +396,7 @@ final class OfficialResultsApiTest extends WebTestCase
         // The other organisers' pages fetch the round again
         $updates = self::hub()->getPublishedUpdates();
         self::assertCount(1, $updates);
-        self::assertSame(['/round-results/' . OfficialResultsFixture::ROUND_FINAL], $updates[0]->getTopics());
+        self::assertSame(['/round-results/' . OfficialResultsFixture::ROUND_FINAL, '/round-results/' . OfficialResultsFixture::ROUND_FINAL . '/referees'], $updates[0]->getTopics());
         self::assertStringContainsString('official_results.refresh', $updates[0]->getData());
     }
 

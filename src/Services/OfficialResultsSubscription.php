@@ -40,12 +40,17 @@ final readonly class OfficialResultsSubscription
 
     /**
      * One round's private results topic and its public stopwatch topic - the live entry, the results desk, seating.
+     * A referee (not an organiser) gets the referees' results topic instead: its updates withhold private players
+     * (OfficialResultsLiveUpdates::refereesTopic()).
      *
      * @return null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int}
      */
-    public function forRound(string $roundId): null|array
+    public function forRound(string $roundId, bool $organiser = true): null|array
     {
-        return $this->forTopics([OfficialResultsLiveUpdates::topic($roundId), self::stopwatchTopic($roundId)]);
+        return $this->forTopics([
+            $organiser ? OfficialResultsLiveUpdates::topic($roundId) : OfficialResultsLiveUpdates::refereesTopic($roundId),
+            self::stopwatchTopic($roundId),
+        ]);
     }
 
     /**

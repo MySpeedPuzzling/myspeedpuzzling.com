@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
+use SpeedPuzzling\Web\Services\RefereeEntriesView;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,13 +40,21 @@ final class LiveResultsController extends AbstractController
         private readonly GetLiveResultsEventPeople $getLiveResultsEventPeople,
         private readonly ClockInterface $clock,
         private readonly OfficialResultsSubscription $subscription,
+        private readonly RefereeEntriesView $refereeEntriesView,
     ) {
     }
 
     #[Route(
-        path: '/{_locale}/live-results/{roundId}',
+        path: [
+            'cs' => '/zadavani-vysledku/{roundId}',
+            'en' => '/en/live-results/{roundId}',
+            'es' => '/es/live-results/{roundId}',
+            'ja' => '/ja/live-results/{roundId}',
+            'fr' => '/fr/live-results/{roundId}',
+            'de' => '/de/live-results/{roundId}',
+        ],
         name: 'live_results',
-        requirements: ['_locale' => 'en|cs|es|ja|fr|de', 'roundId' => FirstTryConflictsController::ID_REQUIREMENT],
+        requirements: ['roundId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['GET'],
     )]
     public function __invoke(Request $request, string $roundId): Response
@@ -91,14 +100,15 @@ final class LiveResultsController extends AbstractController
                 ],
                 'round' => $thisRound,
                 'rounds' => $rounds,
-                'entries' => $this->getRoundResultEntries->forRound($roundId),
+                // A referee never sees a private player's #code (RefereeEntriesView) - nor on their live updates' topic
+                'entries' => $this->refereeEntriesView->entries($this->getRoundResultEntries->forRound($roundId), $organiser),
                 // The round's private topic + its stopwatch, for whoever passed the voter above (referees too)
-                'mercure' => $this->subscription->forRound($roundId),
+                'mercure' => $this->subscription->forRound($roundId, $organiser),
             ],
             // Referees (live-results.md "Referees") get no links to the other organiser tools
             'organiser' => $organiser,
             // Quick add offers them before typing a name in again - put into the round by their id
-            'event_people' => $this->getLiveResultsEventPeople->notInRound($competitionId, $roundId),
+            'event_people' => $this->getLiveResultsEventPeople->notInRound($competitionId, $roundId, withPrivateCodes: $organiser),
         ]);
 
         $response->setPrivate();

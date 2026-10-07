@@ -33,9 +33,16 @@ final class LiveResultsEventController extends AbstractController
     }
 
     #[Route(
-        path: '/{_locale}/live-results/event/{competitionId}',
+        path: [
+            'cs' => '/zadavani-vysledku-udalosti/{competitionId}',
+            'en' => '/en/live-results/event/{competitionId}',
+            'es' => '/es/live-results/event/{competitionId}',
+            'ja' => '/ja/live-results/event/{competitionId}',
+            'fr' => '/fr/live-results/event/{competitionId}',
+            'de' => '/de/live-results/event/{competitionId}',
+        ],
         name: 'live_results_event',
-        requirements: ['_locale' => 'en|cs|es|ja|fr|de', 'competitionId' => FirstTryConflictsController::ID_REQUIREMENT],
+        requirements: ['competitionId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['GET'],
     )]
     public function __invoke(string $competitionId): RedirectResponse

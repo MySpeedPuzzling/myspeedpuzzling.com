@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +25,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * table, name, #code or name-tag QR, enter the result, confirm, save - through an outbox that survives bad venue
  * Wi-Fi. The page carries the round's state so it renders at once; live_results_controller.js keeps it current.
  * `?entrant=<participantId>` opens that participant's entry (the name-tag QR route sends organisers here).
+ * Organisers and the event's referees may open it; referees get no links to the other organiser tools.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class LiveResultsController extends AbstractController
@@ -49,7 +51,9 @@ final class LiveResultsController extends AbstractController
         $competition = $round->competition;
         $competitionId = $competition->id->toString();
 
-        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
+        $this->denyAccessUnlessGranted(CompetitionResultsEntryVoter::COMPETITION_RESULTS_ENTRY, $competitionId);
+        // A referee (live-results.md "Referees") gets the page without the organiser tools
+        $organiser = $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         $roundId = $round->id->toString();
         $rounds = $this->getRoundResultsOverview->forCompetition($competitionId);
@@ -85,8 +89,9 @@ final class LiveResultsController extends AbstractController
                 'entries' => $this->getRoundResultEntries->forRound($roundId),
             ],
             // Pages of the other organiser tools, linked once they exist
-            'results_desk_url' => $this->optionalUrl('results_desk', ['roundId' => $roundId]),
-            'seating_url' => $this->optionalUrl('round_seating', ['roundId' => $roundId]),
+            'results_desk_url' => $organiser ? $this->optionalUrl('results_desk', ['roundId' => $roundId]) : null,
+            'seating_url' => $organiser ? $this->optionalUrl('round_seating', ['roundId' => $roundId]) : null,
+            'organiser' => $organiser,
         ]);
 
         $response->setPrivate();

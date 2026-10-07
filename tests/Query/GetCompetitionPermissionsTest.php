@@ -125,6 +125,31 @@ final class GetCompetitionPermissionsTest extends KernelTestCase
         self::assertFalse($stripe->canEditSeries(CompetitionSeriesFixture::SERIES_OFFLINE));
     }
 
+    public function testARefereeMayEnterResultsOfThatCompetitionAndNothingElse(): void
+    {
+        $this->connection->insert('competition_referee', [
+            'id' => '018d0099-0000-0000-0000-000000000001',
+            'competition_id' => CompetitionFixture::COMPETITION_WJPC_2024,
+            'player_id' => PlayerFixture::PLAYER_PRIVATE,
+            'added_by_id' => null,
+            'added_at' => '2026-10-01 10:00:00',
+        ]);
+
+        $referee = $this->query()->forPlayer(PlayerFixture::PLAYER_PRIVATE);
+        self::assertTrue($referee->canEnterResults(CompetitionFixture::COMPETITION_WJPC_2024));
+        self::assertTrue($referee->canEnterResults(strtoupper(CompetitionFixture::COMPETITION_WJPC_2024)));
+        self::assertFalse($referee->canEditCompetition(CompetitionFixture::COMPETITION_WJPC_2024));
+        self::assertFalse($referee->canDeleteCompetition(CompetitionFixture::COMPETITION_WJPC_2024));
+        self::assertFalse($referee->canEnterResults(CompetitionFixture::COMPETITION_UNAPPROVED));
+
+        // Every organiser may enter results - the maintainer from setUp(), the creator, a series maintainer
+        $favorites = $this->query()->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertTrue($favorites->canEnterResults(CompetitionFixture::COMPETITION_WJPC_2024));
+        self::assertTrue($favorites->canEnterResults(CompetitionSeriesFixture::EDITION_OFFLINE_1));
+        self::assertTrue($this->query()->forPlayer(PlayerFixture::PLAYER_REGULAR)->canEnterResults(CompetitionFixture::COMPETITION_UNAPPROVED));
+        self::assertFalse($this->query()->forPlayer(PlayerFixture::PLAYER_REGULAR)->canEnterResults(CompetitionFixture::COMPETITION_WJPC_2024));
+    }
+
     public function testIdsAreMatchedCaseInsensitivelyLikePostgresUuids(): void
     {
         $permissions = $this->query()->forPlayer(PlayerFixture::PLAYER_REGULAR);

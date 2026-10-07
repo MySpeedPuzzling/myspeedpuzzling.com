@@ -980,6 +980,39 @@ for_developers:
     sign_in_to_request: "Sign In to Request"
     questions: "Questions? Reach out at <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a>."
 
+competition_referees:
+    title: "Referees"
+    button: "Referees"
+    intro: "Referees enter results on their phones in the live entry - and nothing else: they cannot change the event, its participants, rounds, table numbers or qualification, and cannot publish results. Every referee needs a MySpeedPuzzling account. You and the other organisers of the event can always enter results too."
+    link:
+        title: "Link for referees"
+        help: "Send it to your referees or let them scan the QR code. It always opens the round that is running now; they sign in with their own account."
+        copy: "Copy link"
+        qr_alt: "QR code of the link for referees"
+        qr_help: "Show it on your screen for the referees' phone cameras, or print it."
+        qr_download: "Download QR code"
+    add:
+        title: "Add referees"
+        label: "Players"
+        help: "Search by name or #code - they need a MySpeedPuzzling account."
+        submit: "Add as referees"
+    outcome:
+        added: "Added %count% referee.|Added %count% referees."
+        already_referee: "Already a referee - nothing changed.|%count% players are referees already - nothing changed."
+        organiser: "Organises this event and can enter results anyway - not added as a referee.|%count% players organise this event and can enter results anyway - not added as referees."
+        unknown_player: "This player does not exist any more.|%count% players do not exist any more."
+        limit_reached: "An event can have at most %limit% referees."
+    list:
+        title: "Referees (%count%)"
+        empty: "No referees yet."
+        player: "Player"
+        added: "Added"
+    remove:
+        button: "Remove"
+        confirm: "Remove %name% from the referees? Results they entered stay."
+        done: "Referee removed. Results they entered stay."
+        expired: "This page was open too long - nothing was removed, try again."
+
 for_organizers:
     meta:
         title: "For Organizers — Run Your Puzzle Competition"
@@ -6653,6 +6686,7 @@ official_results:
         did_not_start: "Did not start"
     reason:
         invalid_change: "This change could not be read."
+        results_only: "Referees enter results only - table numbers and qualification are up to the organisers."
         entry_not_found: "This entrant is not in the round (any more)."
         entry_kind_mismatch: "This round takes people one by one, not pairs/teams - or the other way round."
         entry_id_taken: "This new entrant clashes with another one - add them again."

@@ -10,6 +10,8 @@ use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\RecordedRoundResults;
 use SpeedPuzzling\Web\Results\RoundResultChangeOutcome;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
@@ -25,6 +27,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The organiser devices' change sets (RecordRoundResults): `{"changes": [...], "dryRun": false}` → one outcome per
  * change, the entries as they are now, and - after the commit - a private Mercure update for the other devices.
+ * Organisers and referees may send them; a referee's table number and qualified changes are refused one by one.
  * docs/features/competitions-management/official-results.md - request and response documented there.
  */
 final class RecordRoundResultsController extends AbstractController
@@ -50,7 +53,7 @@ final class RecordRoundResultsController extends AbstractController
     {
         $round = $this->roundRepository->get($roundId);
         $competitionId = $round->competition->id->toString();
-        $playerId = $this->api->authorise($request, $competitionId, write: true);
+        $playerId = $this->api->authorise($request, $competitionId, write: true, attribute: CompetitionResultsEntryVoter::COMPETITION_RESULTS_ENTRY);
 
         if ($playerId instanceof JsonResponse) {
             return $playerId;
@@ -79,6 +82,8 @@ final class RecordRoundResultsController extends AbstractController
             actingPlayerId: $playerId,
             changes: $changes,
             dryRun: $dryRun,
+            // A referee (live-results.md "Referees") enters results only - tables and qualified marks are refused
+            resultsOnly: $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false,
         ));
 
         $recorded = $envelope->last(HandledStamp::class)?->getResult();

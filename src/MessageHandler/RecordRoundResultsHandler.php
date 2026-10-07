@@ -206,7 +206,7 @@ readonly final class RecordRoundResultsHandler
             }
 
             $current = self::value($state[$refString], $change->field);
-            $refusal = $excluded[$index] ?? self::valueRefusal($change, $round);
+            $refusal = $excluded[$index] ?? ($message->resultsOnly && $change->field !== RoundResultField::Result ? 'results_only' : null) ?? self::valueRefusal($change, $round);
 
             if ($refusal !== null) {
                 $outcomes[] = self::outcome($change, RoundResultChangeStatus::Rejected, $refusal, $current, $state[$refString]);

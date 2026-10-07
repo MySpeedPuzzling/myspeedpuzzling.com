@@ -15,7 +15,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * The shared rules of the official results JSON endpoints (docs/features/competitions-management/official-results.md):
  * every answer is JSON and `private, no-store`; nobody is ever redirected to the login page (a device's outbox must
  * see "sign in again", not a 200 login page) - 401 `sign_in_required` instead; 403 `forbidden` without
- * COMPETITION_EDIT on the competition; writes need `Content-Type: application/json` (415) and the stateless CSRF token
+ * COMPETITION_EDIT on the competition (the round state and result changes ask COMPETITION_RESULTS_ENTRY, which
+ * referees have too); writes need `Content-Type: application/json` (415) and the stateless CSRF token
  * in the `X-CSRF-Token` header (403 `invalid_csrf_token`) - the page renders `csrf_token('official_results')` into a
  * data attribute.
  */
@@ -34,15 +35,19 @@ final readonly class OfficialResultsApi
     /**
      * @return string|JsonResponse the acting player's id, or the error to answer with
      */
-    public function authorise(Request $request, string $competitionId, bool $write): string|JsonResponse
-    {
+    public function authorise(
+        Request $request,
+        string $competitionId,
+        bool $write,
+        string $attribute = CompetitionEditVoter::COMPETITION_EDIT,
+    ): string|JsonResponse {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($profile === null) {
             return self::error('sign_in_required', JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        if ($this->authorizationChecker->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false) {
+        if ($this->authorizationChecker->isGranted($attribute, $competitionId) === false) {
             return self::error('forbidden', JsonResponse::HTTP_FORBIDDEN);
         }
 

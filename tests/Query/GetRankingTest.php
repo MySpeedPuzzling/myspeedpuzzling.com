@@ -6,9 +6,13 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Component\PuzzleTimes;
 use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -28,7 +32,7 @@ final class GetRankingTest extends KernelTestCase
 
     public function testOfPuzzleForPlayerExcludesPrivatePeersForPublicSubject(): void
     {
-        // PUZZLE_500_01 best solo times per player (no verified/suspicious filter):
+        // PUZZLE_500_01 best solo times per player (no verified filter, no suspicious time in the fixtures):
         //   PLAYER_ADMIN            1200 (public)
         //   PLAYER_PRIVATE          1400 (private — must be excluded)
         //   PLAYER_REGULAR          1750 (public, subject)
@@ -110,7 +114,7 @@ final class GetRankingTest extends KernelTestCase
         self::assertSame(3, $all[PuzzleFixture::PUZZLE_500_01]->totalPlayers);
 
         // Another viewer still gets the whole pool
-        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
         $this->query->reset();
 
         $ranking = $this->query->ofPuzzleForPlayer(PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR);
@@ -118,6 +122,74 @@ final class GetRankingTest extends KernelTestCase
         self::assertSame(2, $ranking->rank);
         self::assertSame(4, $ranking->totalPlayers);
         self::assertSame(2, $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR)[PuzzleFixture::PUZZLE_500_01]->rank);
+    }
+
+    public function testPrivatePlayerCountsForTheViewersSheAllows(): void
+    {
+        // PLAYER_PRIVATE (1400) lets PLAYER_WITH_FAVORITES see her - the puzzle page lists her for that viewer, so the rank counts her
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $ranking = $this->query->ofPuzzleForPlayer(PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($ranking);
+        self::assertSame(3, $ranking->rank);
+        self::assertSame(5, $ranking->totalPlayers);
+    }
+
+    public function testSuspiciousTimesLeaveTheRankedPool(): void
+    {
+        // PLAYER_ADMIN's 1200 (TIME_32) turns suspicious - their next best is 1780, slower than PLAYER_REGULAR's 1750
+        $this->markSuspicious(PuzzleSolvingTimeFixture::TIME_32);
+
+        $ranking = $this->query->ofPuzzleForPlayer(PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($ranking);
+        self::assertSame(1, $ranking->rank);
+        self::assertSame(4, $ranking->totalPlayers);
+        self::assertSame(1, $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR)[PuzzleFixture::PUZZLE_500_01]->rank);
+    }
+
+    /**
+     * The profile shows the rank the puzzle page shows: every row of the solo leaderboard, with a suspicious time in it
+     */
+    #[DataProvider('provideSoloLeaderboards')]
+    public function testRankEqualsTheLeaderboard(string $puzzleId): void
+    {
+        $this->markSuspicious(PuzzleSolvingTimeFixture::TIME_32);
+
+        $component = self::getContainer()->get(PuzzleTimes::class);
+        $component->puzzleId = $puzzleId;
+        $component->category = 'solo';
+        $component->populate();
+        self::assertNotEmpty($component->times);
+
+        foreach ($component->times as $rowKey => $grouped) {
+            $best = $grouped[0];
+            self::assertInstanceOf(PuzzleSolver::class, $best);
+
+            $this->query->reset();
+            $ranking = $this->query->ofPuzzleForPlayer($puzzleId, $best->playerId);
+            self::assertNotNull($ranking, "Row {$rowKey}");
+            self::assertSame($component->ranks[$rowKey], $ranking->rank, "Rank of {$rowKey}");
+            self::assertSame(count($component->times), $ranking->totalPlayers, "Total for {$rowKey}");
+            self::assertSame($ranking->rank, $this->query->allForPlayer($best->playerId)[$puzzleId]->rank, "Profile rank of {$rowKey}");
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideSoloLeaderboards(): iterable
+    {
+        yield '500_01' => [PuzzleFixture::PUZZLE_500_01];
+        yield '500_02' => [PuzzleFixture::PUZZLE_500_02];
+        yield '1000_01' => [PuzzleFixture::PUZZLE_1000_01];
+    }
+
+    private function markSuspicious(string $timeId): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE id = :id',
+            ['id' => $timeId],
+        );
     }
 
     private function block(string $blockerId, string $blockedId): void

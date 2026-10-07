@@ -11,8 +11,14 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use Symfony\Contracts\Service\ResetInterface;
 
+/**
+ * The player's rank on each puzzle's solo leaderboard - the same pool the puzzle page ranks (PuzzleTimes): best
+ * non-suspicious time per player, hidden players left out, private players only when the viewer may see them
+ * (and the ranked player themselves).
+ */
 final class GetRanking implements ResetInterface
 {
     /** @var array<string, array<string, PlayerRanking>> */
@@ -25,6 +31,7 @@ final class GetRanking implements ResetInterface
         private readonly Connection $database,
         private readonly ClockInterface $clock,
         private readonly HiddenPlayers $hiddenPlayers,
+        private readonly PrivateProfileAccess $privateProfileAccess,
     ) {
     }
 
@@ -43,6 +50,7 @@ final class GetRanking implements ResetInterface
         }
 
         $notHidden = $this->hiddenPlayers->sqlExclude('pl.id');
+        $isPublic = $this->privateProfileAccess->sqlIsPublic('pl');
 
         $query = <<<SQL
 WITH PlayerPuzzles AS (
@@ -66,7 +74,8 @@ BestTimes AS (
     WHERE
         pst.puzzling_type = 'solo'
         AND pst.seconds_to_solve IS NOT NULL
-        AND (pl.is_private = false OR pl.id = :playerId)
+        AND pst.suspicious = false
+        AND ({$isPublic} OR pl.id = :playerId)
         {$notHidden}
     GROUP BY
         pst.puzzle_id, pst.player_id
@@ -157,6 +166,7 @@ SQL;
         }
 
         $notHidden = $this->hiddenPlayers->sqlExclude('pl.id');
+        $isPublic = $this->privateProfileAccess->sqlIsPublic('pl');
 
         $query = <<<SQL
 WITH BestTimes AS (
@@ -170,7 +180,8 @@ WITH BestTimes AS (
     WHERE pst.puzzling_type = 'solo'
         AND pst.puzzle_id = :puzzleId
         AND pst.seconds_to_solve IS NOT NULL
-        AND (pl.is_private = false OR pl.id = :playerId)
+        AND pst.suspicious = false
+        AND ({$isPublic} OR pl.id = :playerId)
         {$notHidden}
     GROUP BY
         pst.puzzle_id, pst.player_id

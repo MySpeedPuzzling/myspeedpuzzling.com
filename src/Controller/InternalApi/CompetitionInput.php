@@ -87,12 +87,10 @@ final class CompetitionInput
             $data->isOnline = $input->bool('isOnline') ?? false;
         }
 
-        // Like the web form (Add/EditCompetitionController): an online event has no place and no dates of its own -
-        // its rounds carry the times. Also when only `"isOnline": true` is sent
+        // Like the web form (Add/EditCompetitionController): an online event has no place - also when only
+        // `"isOnline": true` is sent. Its dates stay: optional for an online event (empty = ongoing), never thrown away
         if ($data->isOnline === true) {
             $data->location = null;
-            $data->dateFrom = null;
-            $data->dateTo = null;
         }
 
         $slug = $input->string('slug');

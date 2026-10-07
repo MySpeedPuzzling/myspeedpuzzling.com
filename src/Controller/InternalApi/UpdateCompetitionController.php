@@ -19,8 +19,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 /**
  * Changes only the fields sent - the rest stays as it is (null or "" clears a field).
  *
- * **The slug stays** when the name changes, unlike in the web form: published links and search engines know the
- * competition by it. Only an explicit `slug` changes it (unique, else 409).
+ * **The slug stays** when the name changes, like in the web form: published links and search engines know the
+ * competition by it. Only an explicit `slug` changes it (unique, else 409) - the web edit form's "URL" field.
  */
 final class UpdateCompetitionController extends AbstractController
 {
@@ -72,7 +72,6 @@ final class UpdateCompetitionController extends AbstractController
             logo: null,
             maintainerIds: $maintainerIds ?? $data->maintainers,
             slug: $slug !== $competition->slug ? $slug : null,
-            regenerateSlugOnRename: false,
         ));
 
         return new JsonResponse($this->getAdminCompetitions->detail($competition->id->toString())->toArray());

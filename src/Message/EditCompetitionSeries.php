@@ -22,6 +22,8 @@ readonly final class EditCompetitionSeries
         public null|string $locationCountryCode,
         public null|UploadedFile $logo,
         public array $maintainerIds,
+        // An explicitly chosen slug (validated unique among series) - null keeps the slug, also on a rename
+        public null|string $slug = null,
     ) {
     }
 }

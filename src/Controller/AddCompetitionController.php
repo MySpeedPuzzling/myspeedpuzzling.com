@@ -93,8 +93,9 @@ final class AddCompetitionController extends AbstractController
                 resultsLink: $data->resultsLink,
                 location: $data->isOnline === true ? null : $data->location,
                 locationCountryCode: $data->locationCountryCode,
-                dateFrom: $data->isOnline === true ? null : $data->dateFrom,
-                dateTo: $data->isOnline === true ? null : $data->dateTo,
+                // An online event keeps its dates too - optional for it, an ongoing one leaves them empty
+                dateFrom: $data->dateFrom,
+                dateTo: $data->dateTo,
                 isOnline: $data->isOnline === true,
                 logo: $data->logo,
                 maintainerIds: $data->maintainers,

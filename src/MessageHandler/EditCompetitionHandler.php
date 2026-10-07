@@ -36,6 +36,21 @@ readonly final class EditCompetitionHandler
     {
         $competition = $this->competitionRepository->get($message->competitionId);
 
+        // A rename keeps the slug - only an explicitly chosen one changes it. Checked before the logo is stored
+        $slug = $competition->slug;
+
+        if ($message->slug !== null) {
+            if (CompetitionSlugGenerator::isValid($message->slug) === false) {
+                throw new InvalidCompetitionSlug($message->slug);
+            }
+
+            if ($this->slugGenerator->isTaken($message->slug, $competition->series?->id->toString(), $message->competitionId)) {
+                throw new CompetitionSlugTaken($message->slug);
+            }
+
+            $slug = $message->slug;
+        }
+
         $logoPath = $competition->logo;
         if ($message->logo !== null) {
             $extension = $message->logo->guessExtension();
@@ -50,22 +65,6 @@ readonly final class EditCompetitionHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
-        }
-
-        $slug = $competition->slug;
-
-        if ($message->slug !== null) {
-            if (CompetitionSlugGenerator::isValid($message->slug) === false) {
-                throw new InvalidCompetitionSlug($message->slug);
-            }
-
-            if ($this->slugGenerator->isTaken($message->slug, $competition->series?->id->toString(), $message->competitionId)) {
-                throw new CompetitionSlugTaken($message->slug);
-            }
-
-            $slug = $message->slug;
-        } elseif ($message->regenerateSlugOnRename && $competition->name !== $message->name) {
-            $slug = $this->slugGenerator->generate($message->name, $message->competitionId);
         }
 
         $competition->edit(

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
 use SpeedPuzzling\Web\FormType\CompetitionFormType;
 use SpeedPuzzling\Web\Message\EditCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\CompetitionUrlField;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +28,7 @@ final class EditCompetitionController extends AbstractController
         private readonly CompetitionRepository $competitionRepository,
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionUrlField $urlField,
     ) {
     }
 
@@ -47,38 +50,62 @@ final class EditCompetitionController extends AbstractController
         $competition = $this->competitionRepository->get($competitionId);
         $competitionEvent = $this->getCompetitionEvents->byId($competitionId);
 
+        $seriesId = $competition->series?->id->toString();
+        $seriesSlug = $competition->series?->slug;
+
         $formData = CompetitionFormData::fromCompetition($competition);
-        $form = $this->createForm(CompetitionFormType::class, $formData);
+        $formData->slug = $competition->slug;
+        $form = $this->createForm(CompetitionFormType::class, $formData, ['url_field' => true]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
+            $slug = $this->urlField->competitionSlug($form->get('slug'), $competition->slug, $seriesId, $competitionId);
 
-            $this->messageBus->dispatch(new EditCompetition(
-                competitionId: $competitionId,
-                name: $data->name ?? '',
-                shortcut: $data->shortcut,
-                description: $data->description,
-                link: $data->link,
-                registrationLink: $data->registrationLink,
-                resultsLink: $data->resultsLink,
-                location: $data->isOnline === true ? null : $data->location,
-                locationCountryCode: $data->locationCountryCode,
-                dateFrom: $data->isOnline === true ? null : $data->dateFrom,
-                dateTo: $data->isOnline === true ? null : $data->dateTo,
-                isOnline: $data->isOnline === true,
-                logo: $data->logo,
-                maintainerIds: $data->maintainers,
-            ));
+            // The URL field holds an error when the typed URL cannot be used
+            if ($form->get('slug')->getErrors()->count() === 0) {
+                try {
+                    $this->messageBus->dispatch(new EditCompetition(
+                        competitionId: $competitionId,
+                        name: $data->name ?? '',
+                        shortcut: $data->shortcut,
+                        description: $data->description,
+                        link: $data->link,
+                        registrationLink: $data->registrationLink,
+                        resultsLink: $data->resultsLink,
+                        location: $data->isOnline === true ? null : $data->location,
+                        locationCountryCode: $data->locationCountryCode,
+                        // An online event keeps its dates too - an edition of an online series always is one
+                        dateFrom: $data->dateFrom,
+                        dateTo: $data->dateTo,
+                        isOnline: $data->isOnline === true,
+                        logo: $data->logo,
+                        maintainerIds: $data->maintainers,
+                        slug: $slug,
+                    ));
 
-            $this->addFlash('success', $this->translator->trans('competition.flash.updated'));
+                    $this->addFlash('success', $this->translator->trans('competition.flash.updated'));
 
-            return $this->redirectToRoute('edit_competition', ['competitionId' => $competitionId]);
+                    return $this->redirectToRoute('edit_competition', ['competitionId' => $competitionId]);
+                } catch (CompetitionSlugTaken) {
+                    // Taken by another save since the check above
+                    $this->urlField->markTaken($form->get('slug'));
+                }
+            }
+        }
+
+        if ($seriesId === null) {
+            $slugPrefix = $this->urlField->prefix('event_detail', 'slug');
+        } elseif ($seriesSlug !== null) {
+            $slugPrefix = $this->urlField->prefix('edition_detail', 'editionSlug', ['seriesSlug' => $seriesSlug]);
+        } else {
+            $slugPrefix = null;
         }
 
         return $this->render('edit_competition.html.twig', [
             'form' => $form,
             'competition' => $competitionEvent,
+            'slug_prefix' => $slugPrefix,
         ]);
     }
 }

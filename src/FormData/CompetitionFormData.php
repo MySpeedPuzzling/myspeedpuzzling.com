@@ -43,6 +43,8 @@ final class CompetitionFormData
         public null|UploadedFile $logo = null,
         /** @var array<string> */
         public array $maintainers = [],
+        // The "URL" field of the edit forms (CompetitionFormType `url_field`), checked by CompetitionUrlField
+        public null|string $slug = null,
     ) {
     }
 

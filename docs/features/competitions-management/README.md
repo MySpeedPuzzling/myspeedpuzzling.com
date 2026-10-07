@@ -26,7 +26,9 @@ An admin notification email is sent automatically when a new competition is subm
 
 Maintainers and admins can edit all competition fields. While unapproved, a warning banner is shown on the edit page. If rejected, a danger banner with the rejection reason is shown instead. The edit page provides navigation to round management and participant management.
 
-Changing the name regenerates the slug in the web form. The internal API (`PATCH /internal-api/competitions/{id}`, [internal-api.md](../internal-api.md#competitions-and-events)) keeps it - published links depend on it - and changes it only to an explicitly sent, free slug (`EditCompetition::$slug` / `$regenerateSlugOnRename`, `CompetitionSlugGenerator`). Maintainer lists are fully replaced on each save (clear + re-add).
+**A rename never changes the URL (slug)** - not in the web forms (event, edition, series) and not in the internal API (`PATCH /internal-api/competitions/{id}`, [internal-api.md](../internal-api.md#competitions-and-events)): published links and search engines know the event by it. The address changes only on purpose: the event/edition and series edit forms have a **"URL" field** (`CompetitionFormType` option `url_field`, never on the add form - the first slug comes from the name) pre-filled with the current slug behind the real route's prefix (`myspeedpuzzling.com/en/events/`, `…/en/series/{seriesSlug}/`, `…/en/series/`). What is typed is normalised like a generated slug ("My New URL" → `my-new-url`) and must be free in its scope - any competition for a standalone event, the series' editions for an edition, the other series for a series (`CompetitionUrlField` → `CompetitionSlugGenerator::isTaken()` / `isSeriesSlugTaken()`, the same checks as the handlers and the API's explicit `slug`); a clash or an empty/unusable URL is a form error (422), a clash found by the handler (`CompetitionSlugTaken`, another save in between) too. Old URLs do not redirect - the help text says so. Maintainer lists are fully replaced on each save (clear + re-add).
+
+The edit forms show the current logo above the file input ("Leave empty to keep the current logo") - the handlers keep the stored logo unless a new file is uploaded.
 
 ### 4. Public Listing
 
@@ -55,6 +57,10 @@ Access is enforced via a `CompetitionEditVoter` that checks whether the player i
 ## Event Types
 
 **Online and offline are never combined** — a competition is either fully online or fully offline. Users must create separate competitions for each format. The "Recurring event" checkbox is available for both online and offline events. Date fields (dateFrom/dateTo) are shown for non-recurring events — they are hidden when recurring is selected (toggled via `competition-form` Stimulus controller's `offlineFields`, `dateFields`, and `recurringField` targets).
+
+**An online event keeps its dates.** Saving an online event clears its location only - never dateFrom/dateTo (web add/edit forms for standalone events and editions, internal API). The dates are required for an in-person one-time event only; for an online event they are optional - an ongoing one (e.g. Euro Jigsaw Jam) leaves them empty. The form drops the required marker of the date labels and says so under them when "Online" is picked (`dateLabel` / `onlineDatesHelp` targets). Until 2026-10 every save of an online event (so of every edition of an online series) silently wiped its dates.
+
+**A series has no registration or results link** - those belong to its editions. With "recurring" ticked the add form hides both fields and shows "Registration and results links are set for each edition separately" in their place (`editionLinks` / `editionLinksNote` targets); the server ignores them for a series. The series edit form leaves the date, registration/results and recurring fields out (`CompetitionFormType` option `series`), so an in-person series is never asked for dates.
 
 ### Standalone Competitions (One-Time Events)
 

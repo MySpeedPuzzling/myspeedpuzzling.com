@@ -355,7 +355,7 @@ final class CompetitionsInternalApiTest extends WebTestCase
         self::assertSame(CompetitionSeriesFixture::SERIES_OFFLINE, $answer['series']['seriesId']);
     }
 
-    public function testAnOnlineEventHasNoPlaceAndNoDatesLikeInTheWebForm(): void
+    public function testAnOnlineEventHasNoPlaceButKeepsItsDatesLikeInTheWebForm(): void
     {
         $browser = self::createClient();
 
@@ -370,9 +370,12 @@ final class CompetitionsInternalApiTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(201);
         self::assertNull($created['location']);
-        self::assertNull($created['dateFrom']);
-        self::assertNull($created['dateTo']);
+        self::assertSame('2026-11-14', $created['dateFrom']);
+        self::assertSame('2026-11-15', $created['dateTo']);
         self::assertSame('cz', $created['locationCountryCode']);
+
+        $before = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024);
+        self::assertNotNull($before['dateFrom']);
 
         $patched = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, [
             'isOnline' => true,
@@ -381,8 +384,50 @@ final class CompetitionsInternalApiTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertTrue($patched['isOnline']);
         self::assertNull($patched['location']);
-        self::assertNull($patched['dateFrom']);
-        self::assertNull($patched['dateTo']);
+        self::assertSame($before['dateFrom'], $patched['dateFrom']);
+        self::assertSame($before['dateTo'], $patched['dateTo']);
+    }
+
+    public function testAnOnlineEventMayBeUndated(): void
+    {
+        $browser = self::createClient();
+
+        $created = self::callInternalApi($browser, 'POST', '/internal-api/competitions', [
+            'name' => 'Ongoing Online Jam',
+            'isOnline' => true,
+        ]);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertNull($created['dateFrom']);
+        self::assertNull($created['dateTo']);
+    }
+
+    public function testUpdatingAnEditionOfAnOnlineSeriesKeepsItsDates(): void
+    {
+        $browser = self::createClient();
+
+        $before = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionSeriesFixture::EDITION_EJJ_69);
+        self::assertNotNull($before['dateFrom']);
+        self::assertNotNull($before['dateTo']);
+
+        $patched = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionSeriesFixture::EDITION_EJJ_69, [
+            'name' => 'EJJ #69 — June 2026',
+            'resultsLink' => 'https://eurojj.com/69/results',
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertTrue($patched['isOnline']);
+        self::assertSame('ejj-69-may-2026', $patched['slug']);
+        self::assertSame($before['dateFrom'], $patched['dateFrom']);
+        self::assertSame($before['dateTo'], $patched['dateTo']);
+
+        $patched = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionSeriesFixture::EDITION_EJJ_69, [
+            'isOnline' => true,
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame($before['dateFrom'], $patched['dateFrom']);
+        self::assertSame($before['dateTo'], $patched['dateTo']);
     }
 
     public function testTheSlugCannotBeCleared(): void

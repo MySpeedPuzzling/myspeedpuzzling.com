@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -74,5 +75,75 @@ final class AddCompetitionControllerTest extends WebTestCase
         $this->assertResponseRedirects();
         $browser->followRedirect();
         $this->assertResponseIsSuccessful();
+    }
+
+    public function testAnOnlineEventKeepsTheDatesTyped(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/add-event');
+        $browser->submitForm('Submit for Approval', [
+            'competition_form[name]' => 'Online Weekend Jam',
+            'competition_form[isOnline]' => '1',
+            'competition_form[location]' => 'Should not be stored',
+            'competition_form[dateFrom]' => '14.11.2026',
+            'competition_form[dateTo]' => '15.11.2026',
+        ]);
+
+        $this->assertResponseRedirects();
+        $row = self::competitionRow('Online Weekend Jam');
+        self::assertTrue($row['is_online']);
+        self::assertNull($row['location']);
+        self::assertIsString($row['date_from']);
+        self::assertIsString($row['date_to']);
+        self::assertStringStartsWith('2026-11-14', $row['date_from']);
+        self::assertStringStartsWith('2026-11-15', $row['date_to']);
+    }
+
+    public function testAnOnlineEventMayBeUndated(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/add-event');
+        $browser->submitForm('Submit for Approval', [
+            'competition_form[name]' => 'Ongoing Online Jam',
+            'competition_form[isOnline]' => '1',
+        ]);
+
+        $this->assertResponseRedirects();
+        $row = self::competitionRow('Ongoing Online Jam');
+        self::assertNull($row['date_from']);
+        self::assertNull($row['date_to']);
+    }
+
+    public function testTheFormSaysWhereTheLinksOfASeriesGo(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/add-event');
+
+        // Shown in place of the registration and results fields once "recurring" is ticked
+        self::assertCount(1, $crawler->filter('[data-competition-form-target="editionLinks"] #competition_form_registrationLink'));
+        self::assertCount(1, $crawler->filter('[data-competition-form-target="editionLinks"] #competition_form_resultsLink'));
+        $this->assertSelectorTextContains('[data-competition-form-target="editionLinksNote"]', 'Registration and results links are set for each edition');
+        // The add form never offers the URL - the first one comes from the name
+        self::assertCount(0, $crawler->filter('#competition_form_slug'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function competitionRow(string $name): array
+    {
+        $row = self::getContainer()->get(Connection::class)->fetchAssociative(
+            'SELECT location, is_online, date_from, date_to FROM competition WHERE name = :name',
+            ['name' => $name],
+        );
+        self::assertIsArray($row);
+
+        return $row;
     }
 }

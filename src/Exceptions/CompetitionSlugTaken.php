@@ -7,7 +7,8 @@ namespace SpeedPuzzling\Web\Exceptions;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
- * An explicitly chosen slug another competition already holds (CompetitionSlugGenerator::isTaken()).
+ * An explicitly chosen slug another competition already holds (CompetitionSlugGenerator::isTaken()) - or, for a
+ * series, another series (isSeriesSlugTaken()).
  */
 final class CompetitionSlugTaken extends ConflictHttpException
 {

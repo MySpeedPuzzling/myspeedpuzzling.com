@@ -4,33 +4,52 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
+use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
 use SpeedPuzzling\Web\Message\EditCompetitionSeries;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[AsMessageHandler]
 readonly final class EditCompetitionSeriesHandler
 {
     public function __construct(
-        private EntityManagerInterface $entityManager,
         private CompetitionSeriesRepository $seriesRepository,
         private PlayerRepository $playerRepository,
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
-        private SluggerInterface $slugger,
+        private CompetitionSlugGenerator $slugGenerator,
     ) {
     }
 
+    /**
+     * @throws CompetitionSlugTaken
+     * @throws InvalidCompetitionSlug
+     */
     public function __invoke(EditCompetitionSeries $message): void
     {
         $series = $this->seriesRepository->get($message->seriesId);
+
+        // A rename keeps the slug (published links know the series by it) - only an explicitly chosen one changes it
+        $slug = $series->slug;
+
+        if ($message->slug !== null) {
+            if (CompetitionSlugGenerator::isValid($message->slug) === false) {
+                throw new InvalidCompetitionSlug($message->slug);
+            }
+
+            if ($this->slugGenerator->isSeriesSlugTaken($message->slug, $message->seriesId)) {
+                throw new CompetitionSlugTaken($message->slug);
+            }
+
+            $slug = $message->slug;
+        }
 
         $logoPath = $series->logo;
         if ($message->logo !== null) {
@@ -46,11 +65,6 @@ readonly final class EditCompetitionSeriesHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
-        }
-
-        $slug = $series->slug;
-        if ($series->name !== $message->name) {
-            $slug = $this->generateUniqueSlug($message->name, $message->seriesId);
         }
 
         $series->edit(
@@ -70,25 +84,5 @@ readonly final class EditCompetitionSeriesHandler
             $maintainer = $this->playerRepository->get($maintainerId);
             $series->maintainers->add($maintainer);
         }
-    }
-
-    private function generateUniqueSlug(string $name, string $seriesId): string
-    {
-        $slug = (string) $this->slugger->slug(strtolower($name));
-
-        /** @var int|string $existingCount */
-        $existingCount = $this->entityManager->getConnection()
-            ->executeQuery(
-                'SELECT COUNT(*) FROM competition_series WHERE slug = :slug AND id != :id',
-                ['slug' => $slug, 'id' => $seriesId],
-            )
-            ->fetchOne();
-        $existingCount = (int) $existingCount;
-
-        if ($existingCount > 0) {
-            $slug .= '-' . substr(md5(uniqid()), 0, 6);
-        }
-
-        return $slug;
     }
 }

@@ -24,16 +24,9 @@ final class EditCompetitionHandlerTest extends KernelTestCase
         $this->competitionRepository = self::getContainer()->get(CompetitionRepository::class);
     }
 
-    public function testRenamingRegeneratesTheSlugLikeTheWebFormAlwaysDid(): void
+    public function testRenamingKeepsTheSlug(): void
     {
         $this->messageBus->dispatch($this->edit(name: 'Vienna Puzzle Days'));
-
-        self::assertSame('vienna-puzzle-days', $this->competition()->slug);
-    }
-
-    public function testRenamingKeepsTheSlugWhenAsked(): void
-    {
-        $this->messageBus->dispatch($this->edit(name: 'Vienna Puzzle Days', regenerateSlugOnRename: false));
 
         $competition = $this->competition();
         self::assertSame('Vienna Puzzle Days', $competition->name);
@@ -54,7 +47,7 @@ final class EditCompetitionHandlerTest extends KernelTestCase
         $this->messageBus->dispatch($this->edit(name: 'Unapproved Puzzle Event', slug: 'wjpc-2024'));
     }
 
-    private function edit(string $name, null|string $slug = null, bool $regenerateSlugOnRename = true): EditCompetition
+    private function edit(string $name, null|string $slug = null): EditCompetition
     {
         $competition = $this->competition();
 
@@ -74,7 +67,6 @@ final class EditCompetitionHandlerTest extends KernelTestCase
             logo: null,
             maintainerIds: [],
             slug: $slug,
-            regenerateSlugOnRename: $regenerateSlugOnRename,
         );
     }
 

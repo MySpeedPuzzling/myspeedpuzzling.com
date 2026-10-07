@@ -147,6 +147,32 @@ final class CompetitionFormType extends AbstractType
             'required' => false,
         ]);
 
+        // A series has no dates nor registration/results links (its editions have them) and is recurring by
+        // definition - the fields are left out, so `isRecurring` keeps the true its form data comes with and the
+        // dates of an in-person event are not asked for
+        if ($options['series'] === true) {
+            $builder
+                ->remove('registrationLink')
+                ->remove('resultsLink')
+                ->remove('dateFrom')
+                ->remove('dateTo')
+                ->remove('isRecurring');
+        }
+
+        // Edit forms only - a new event's first URL comes from its name
+        if ($options['url_field'] === true) {
+            $builder->add('slug', TextType::class, [
+                'label' => 'competition.form.slug',
+                'help' => 'competition.form.slug_help',
+                'required' => false,
+                'attr' => [
+                    'autocapitalize' => 'off',
+                    'autocomplete' => 'off',
+                    'spellcheck' => 'false',
+                ],
+            ]);
+        }
+
         $builder->add('logo', FileType::class, [
             'label' => 'competition.form.logo',
             'required' => false,
@@ -221,7 +247,12 @@ final class CompetitionFormType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => CompetitionFormData::class,
+            'url_field' => false,
+            'series' => false,
         ]);
+
+        $resolver->setAllowedTypes('url_field', 'bool');
+        $resolver->setAllowedTypes('series', 'bool');
     }
 
     private function buildPlayerOptionHtml(

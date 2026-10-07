@@ -8,11 +8,12 @@ use Doctrine\DBAL\Connection;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
 /**
- * The URL slug of a competition (`/en/events/{slug}`): generated from the name, or chosen explicitly.
+ * The URL slug of a competition (`/en/events/{slug}`) or of a series (`/en/series/{slug}`): generated from the name
+ * once, or chosen explicitly (the edit forms' "URL" field, the internal API's `slug`). A rename never changes it.
  *
  * The event page looks a competition up by its slug alone, so a standalone competition's slug is unique across every
  * competition. An edition's slug is only unique within its series (`competition (series_id, slug)`), because its
- * address is `/en/series/{seriesSlug}/{editionSlug}`.
+ * address is `/en/series/{seriesSlug}/{editionSlug}`. A series' slug is unique among series (`competition_series.slug`).
  */
 readonly final class CompetitionSlugGenerator
 {
@@ -39,6 +40,40 @@ readonly final class CompetitionSlugGenerator
         }
 
         return $slug;
+    }
+
+    /**
+     * What a person typed as a URL, made into a slug the way names are: "My New URL" → "my-new-url". Can be empty
+     * (nothing sluggable typed) - check it with isValid().
+     */
+    public function normalize(string $input): string
+    {
+        return strtolower((string) $this->slugger->slug(strtolower(trim($input))));
+    }
+
+    /**
+     * Whether another series holds the slug.
+     */
+    public function isSeriesSlugTaken(string $slug, null|string $exceptSeriesId = null): bool
+    {
+        $taken = $this->database
+            ->executeQuery(
+                <<<SQL
+SELECT EXISTS (
+    SELECT 1
+    FROM competition_series
+    WHERE slug = :slug
+        AND (CAST(:exceptId AS UUID) IS NULL OR id <> CAST(:exceptId AS UUID))
+)
+SQL,
+                [
+                    'slug' => $slug,
+                    'exceptId' => $exceptSeriesId,
+                ],
+            )
+            ->fetchOne();
+
+        return $taken === true;
     }
 
     /**

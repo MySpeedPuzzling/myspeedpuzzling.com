@@ -579,10 +579,10 @@ paths:
       operationId: updateCompetition
       description: |
         Only the fields sent change; `null` or `""` clears a field. **The slug is
-        kept when the name changes** (unlike the web form) - only an explicit `slug`
+        kept when the name changes** (like the web forms) - only an explicit `slug`
         changes it, and it must be free (409 otherwise); old URLs of the event get no
         redirect. The slug cannot be cleared (400). `maintainerIds` replaces the whole
-        list (`null` keeps it). `"isOnline": true` clears location and dates.
+        list (`null` keeps it). `"isOnline": true` clears the location; dates stay.
       parameters:
         - $ref: "#/components/parameters/CompetitionId"
       requestBody:
@@ -1012,7 +1012,7 @@ components:
           format: uri
         isOnline:
           type: boolean
-          description: An online event has no place and no dates - true clears `location`, `dateFrom` and `dateTo`, like the web form.
+          description: An online event has no place - true clears `location`, like the web form. Its dates stay (optional for an online event - empty = ongoing).
         slug:
           type: string
           pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"

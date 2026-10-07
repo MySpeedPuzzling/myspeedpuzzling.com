@@ -38,6 +38,17 @@
                         <div data-controller="competition-form">
                             <div class="required">{{ form_row(form.name) }}</div>
                             {{ form_row(form.shortcut) }}
+                            <div class="mb-3">
+                                {{ form_label(form.slug) }}
+                                <div class="input-group">
+                                    {% if slug_prefix is not null %}
+                                        <span class="input-group-text text-wrap text-break text-start small" style="max-width: 60%;">{{ slug_prefix }}</span>
+                                    {% endif %}
+                                    {{ form_widget(form.slug) }}
+                                </div>
+                                {{ form_help(form.slug) }}
+                                {{ form_errors(form.slug) }}
+                            </div>
                             {{ form_row(form.description) }}
                             <div class="required" data-action="change->competition-form#toggle">
                                 {{ form_row(form.isOnline) }}
@@ -54,7 +65,19 @@
                             </div>
 
                             {{ form_row(form.link) }}
-                            {{ form_row(form.logo) }}
+                            <div class="mb-3">
+                                {{ form_label(form.logo) }}
+                                {% if series.logo is not null %}
+                                    <div class="mb-2">
+                                        <img style="max-height: 84px;" src="{{ series.logo|thumbnail('puzzle_small') }}" alt="{{ 'competition.form.logo_current'|trans }}" class="img-fluid rounded border">
+                                    </div>
+                                {% endif %}
+                                {{ form_widget(form.logo) }}
+                                {% if series.logo is not null %}
+                                    <div class="form-text">{{ 'competition.form.logo_keep_help'|trans }}</div>
+                                {% endif %}
+                                {{ form_errors(form.logo) }}
+                            </div>
                             <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
                                 {{ form_row(form.maintainers) }}
                             </div>
@@ -63,11 +86,6 @@
                                 {{ 'competition.save_changes'|trans }}
                             </button>
                         </div>
-                        {% do form.isRecurring.setRendered %}
-                        {% do form.dateFrom.setRendered %}
-                        {% do form.dateTo.setRendered %}
-                        {% do form.registrationLink.setRendered %}
-                        {% do form.resultsLink.setRendered %}
                         {{ form_end(form) }}
                     </div>
                 </div>

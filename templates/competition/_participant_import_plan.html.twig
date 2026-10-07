@@ -1,0 +1,303 @@
+{# What confirming the import does - part of participant_import_preview.html.twig (needs: plan, preview, actions, csrf) #}
+{% set prefix = 'competition.participants.import.preview.' %}
+{% set is_sync = plan.mode.value == 'sync' %}
+{% set action_badges = {
+    new: 'bg-success',
+    update: 'bg-primary',
+    restore: 'bg-info text-dark',
+    unchanged: 'bg-light text-muted border',
+    remove: 'bg-danger',
+    skipped: 'bg-warning text-dark',
+    same_person: 'bg-light text-muted border',
+} %}
+
+<div id="participant-import-plan" class="mt-4">
+    <h3 class="h5">{{ (prefix ~ 'summary_title')|trans }}</h3>
+
+    <div class="d-flex flex-wrap gap-2 mb-3" id="participant-import-summary">
+        {% for action in actions %}
+            {% set count = plan.count(action) %}
+            {% if count > 0 %}
+                <span class="badge rounded-pill fs-6 fw-normal {{ action_badges[action.value] }}" data-import-action="{{ action.value }}">
+                    {{ ('competition.participants.import.preview.summary.' ~ action.value)|trans({'%count%': count}) }}
+                </span>
+            {% endif %}
+        {% endfor %}
+        {% if is_sync and preview.removedPeople > 0 %}
+            <span class="badge rounded-pill fs-6 fw-normal bg-danger" data-import-action="removed">
+                {{ (prefix ~ 'summary.removed')|trans({'%count%': preview.removedPeople}) }}
+            </span>
+        {% endif %}
+        {% if plan.rows is empty %}
+            <span class="text-muted">{{ (prefix ~ 'no_rows')|trans }}</span>
+        {% endif %}
+    </div>
+
+    {% if plan.errors is not empty %}
+        <div class="alert alert-danger" role="alert">
+            <strong class="d-block mb-1">{{ (prefix ~ 'errors_title')|trans }}</strong>
+            <ul class="mb-0 ps-3">
+                {% for error in plan.errors %}
+                    <li>{{ error|trans }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% set message_groups = preview.rowMessageGroups %}
+    {% if plan.warnings is not empty or message_groups is not empty %}
+        <div class="alert alert-warning" role="alert" id="participant-import-warnings">
+            <strong class="d-block mb-1">{{ (prefix ~ 'warnings_title')|trans }}</strong>
+            <ul class="mb-0 ps-3">
+                {% for warning in plan.warnings %}
+                    <li>{{ warning|trans }}</li>
+                {% endfor %}
+                {% for group in message_groups %}
+                    <li>
+                        {{ group.message|trans }}
+                        {% if group.rows|length > 1 %}
+                            <span class="d-block small">
+                                {{ (prefix ~ 'on_rows')|trans({'%count%': group.rows|length, '%rows%': group.rows|slice(0, 10)|join(', ') ~ (group.rows|length > 10 ? ', …' : '')}) }}
+                            </span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {# Rows of the file - the ones that change something first, unchanged and repeated rows folded #}
+    {% set quiet_actions = ['unchanged', 'same_person'] %}
+    {% set changing_rows = plan.rows|filter(row => row.action.value not in quiet_actions) %}
+    {% set quiet_rows = plan.rows|filter(row => row.action.value in quiet_actions) %}
+
+    {% macro rows_table(rows, action_badges) %}
+        {% set prefix = 'competition.participants.import.preview.' %}
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col" class="text-nowrap">{{ (prefix ~ 'row')|trans }}</th>
+                        <th scope="col">{{ (prefix ~ 'name')|trans }}</th>
+                        <th scope="col">{{ (prefix ~ 'what_changes')|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr data-row="{{ row.rowNumber }}">
+                            <td class="text-muted">{{ row.rowNumber }}</td>
+                            <td class="text-break">
+                                <span class="badge {{ action_badges[row.action.value] }} me-1">{{ (prefix ~ 'action.' ~ row.action.value)|trans }}</span>
+                                {% if row.name is empty %}
+                                    <span class="fst-italic text-muted">{{ (prefix ~ 'no_name')|trans }}</span>
+                                {% else %}
+                                    {{ row.name }}
+                                {% endif %}
+                            </td>
+                            <td class="small text-break">
+                                {% if row.removedAt is not null %}
+                                    <div class="text-muted">{{ (prefix ~ 'removed_on')|trans({'%date%': row.removedAt|format_date('medium')}) }}</div>
+                                {% endif %}
+                                {% for change in row.changes %}
+                                    <div>
+                                        <span class="text-muted">{{ ('competition.participants.import.field.' ~ change.field)|trans }}:</span>
+                                        {% if change.before is not empty %}<del>{{ change.before }}</del> →{% endif %}
+                                        <strong>{{ change.after is empty ? '–' : change.after }}</strong>
+                                    </div>
+                                {% endfor %}
+                                {% if row.roundsAdded is not empty or row.roundsRemoved is not empty %}
+                                    <div>
+                                        {% for round in row.roundsAdded %}
+                                            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">+ {{ round }}</span>
+                                        {% endfor %}
+                                        {% for round in row.roundsRemoved %}
+                                            <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">− {{ round }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                {% for round_name, team in row.teams %}
+                                    <div>
+                                        <span class="text-muted">{{ round_name }}:</span>
+                                        {{ team is null ? (prefix ~ 'no_team')|trans : team }}
+                                    </div>
+                                {% endfor %}
+                                {% for message in row.messages %}
+                                    <div class="text-warning-emphasis"><i class="bi bi-exclamation-triangle me-1"></i>{{ message|trans }}</div>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endmacro %}
+
+    {% if changing_rows is not empty %}
+        <h3 class="h5 mt-4">{{ (prefix ~ 'rows_title')|trans }}</h3>
+        <div id="participant-import-rows">
+            {{ _self.rows_table(changing_rows, action_badges) }}
+        </div>
+    {% endif %}
+
+    {% if quiet_rows is not empty %}
+        <details class="mt-3" id="participant-import-quiet-rows">
+            <summary class="small">{{ (prefix ~ 'quiet_rows')|trans({'%count%': quiet_rows|length}) }}</summary>
+            <div class="mt-2">
+                {{ _self.rows_table(quiet_rows, action_badges) }}
+            </div>
+        </details>
+    {% endif %}
+
+    {# On the site but not in the file - kept in "Update only", removed by full sync #}
+    {% set removals = plan.removals %}
+    <section class="mt-4" id="participant-import-removals">
+        <h3 class="h5">{{ (prefix ~ (is_sync ? 'removals_removed_title' : 'removals_kept_title'))|trans }}</h3>
+        <p class="small text-muted mb-2">{{ (prefix ~ (is_sync ? 'removals_removed_intro' : 'removals_kept_intro'))|trans }}</p>
+
+        {% if removals.isEmpty and removals.participantsKeptWithResults is empty and removals.roundEntriesKeptWithResults is empty %}
+            <p class="small mb-0">{{ (prefix ~ 'removals_nothing')|trans }}</p>
+        {% else %}
+            <div class="row g-3">
+                {% if removals.participants is not empty %}
+                    <div class="col-md-6">
+                        <h4 class="h6">{{ (prefix ~ 'removals_participants')|trans({'%count%': removals.participants|length}) }}</h4>
+                        <ul class="small mb-0 ps-3">
+                            {% for participant in removals.participants %}
+                                <li>
+                                    {{ participant.name }}
+                                    {% if participant.country is not empty %}<span class="text-muted">({{ participant.country|upper }})</span>{% endif %}
+                                    {% if participant.playerName is not empty %}<span class="text-muted">– {{ (prefix ~ 'msp_player')|trans({'%name%': participant.playerName}) }}</span>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if removals.selfJoined is not empty %}
+                    <div class="col-md-6">
+                        <h4 class="h6">{{ (prefix ~ 'removals_self_joined')|trans({'%count%': removals.selfJoined|length}) }}</h4>
+                        <p class="small text-muted mb-1">{{ (prefix ~ 'removals_self_joined_help')|trans }}</p>
+                        <ul class="small mb-0 ps-3">
+                            {% for participant in removals.selfJoined %}
+                                <li>
+                                    {{ participant.name }}
+                                    {% if participant.country is not empty %}<span class="text-muted">({{ participant.country|upper }})</span>{% endif %}
+                                    {% if participant.playerName is not empty %}<span class="text-muted">– {{ (prefix ~ 'msp_player')|trans({'%name%': participant.playerName}) }}</span>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if removals.roundEntries is not empty %}
+                    <div class="col-md-6">
+                        <h4 class="h6">{{ (prefix ~ 'removals_round_entries')|trans({'%count%': removals.roundEntries|length}) }}</h4>
+                        <ul class="small mb-0 ps-3">
+                            {% for entry in removals.roundEntries %}
+                                <li>
+                                    {{ entry.participantName }} <span class="text-muted">–</span> {{ entry.roundName }}
+                                    {% if entry.teamName is not empty %}<span class="text-muted">({{ entry.teamName }})</span>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if removals.teamChanges is not empty %}
+                    <div class="col-md-6">
+                        <h4 class="h6">{{ (prefix ~ 'removals_team_changes')|trans({'%count%': removals.teamChanges|length}) }}</h4>
+                        <ul class="small mb-0 ps-3">
+                            {% for change in removals.teamChanges %}
+                                <li>
+                                    {{ change.participantName }} <span class="text-muted">– {{ change.roundName }}:</span>
+                                    {{ change.from is empty ? (prefix ~ 'no_team')|trans : change.from }}
+                                    → {{ change.to is empty ? (prefix ~ 'no_team')|trans : change.to }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if removals.teams is not empty %}
+                    <div class="col-md-6">
+                        <h4 class="h6">{{ (prefix ~ 'removals_teams')|trans({'%count%': removals.teams|length}) }}</h4>
+                        <ul class="small mb-0 ps-3">
+                            {% for team in removals.teams %}
+                                <li>
+                                    <span class="text-muted">{{ team.roundName }}:</span>
+                                    {{ team.teamName is empty ? (prefix ~ 'unnamed_team')|trans : team.teamName }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                {% if removals.participantsKeptWithResults is not empty or removals.roundEntriesKeptWithResults is not empty %}
+                    <div class="col-md-6">
+                        <h4 class="h6">{{ (prefix ~ 'removals_kept_with_results')|trans({'%count%': removals.participantsKeptWithResults|length + removals.roundEntriesKeptWithResults|length}) }}</h4>
+                        <p class="small text-muted mb-1">{{ (prefix ~ 'removals_kept_with_results_help')|trans }}</p>
+                        <ul class="small mb-0 ps-3">
+                            {% for participant in removals.participantsKeptWithResults %}
+                                <li>{{ participant.name }}{% if participant.rounds is not empty %} <span class="text-muted">– {{ participant.rounds|join(', ') }}</span>{% endif %}</li>
+                            {% endfor %}
+                            {% for entry in removals.roundEntriesKeptWithResults %}
+                                <li>{{ entry.participantName }} <span class="text-muted">– {{ entry.roundName }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </section>
+
+    {# Confirm - a POST of its own carrying exactly the previewed state #}
+    <div class="card shadow-sm mt-4 {{ plan.removesAnything ? 'border-danger' }}" id="participant-import-confirm">
+        <div class="card-body">
+            <p class="small text-muted">{{ 'competition.participants.import.confirm.nothing_saved_yet'|trans }}</p>
+
+            <form method="post" action="{{ path('participant_import_confirm', {competitionId: competition.id, token: stashed.token}) }}" data-turbo-frame="_top">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <input type="hidden" name="fingerprint" value="{{ plan.fingerprint }}">
+                {% for name, value in preview.query %}
+                    {% if value is iterable %}
+                        {% for index, item in value %}
+                            <input type="hidden" name="{{ name }}[{{ index }}]" value="{{ item }}">
+                        {% endfor %}
+                    {% else %}
+                        <input type="hidden" name="{{ name }}" value="{{ value }}">
+                    {% endif %}
+                {% endfor %}
+
+                {% if plan.canBeApplied %}
+                    {% if plan.removesAnything %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="confirm_removal" value="1" id="participant-import-confirm-removal" required>
+                            <label class="form-check-label" for="participant-import-confirm-removal">
+                                {{ 'competition.participants.import.confirm.removal_checkbox'|trans({'%people%': preview.removedPeople, '%entries%': plan.removals.roundEntries|length, '%teams%': plan.removals.teams|length}) }}
+                            </label>
+                        </div>
+                        {% if plan.isLargeRemoval %}
+                            <div class="mb-3" style="max-width: 32rem;">
+                                <label class="form-label small" for="participant-import-removed-count">
+                                    {{ 'competition.participants.import.confirm.removed_count_label'|trans({'%count%': preview.removedPeople}) }}
+                                </label>
+                                <input class="form-control form-control-sm" type="number" inputmode="numeric" min="0" name="removed_count" id="participant-import-removed-count" required autocomplete="off" style="max-width: 8rem;">
+                            </div>
+                        {% endif %}
+                    {% endif %}
+
+                    <button type="submit" class="btn {{ plan.removesAnything ? 'btn-danger' : 'btn-primary' }}">
+                        <i class="bi bi-check2-circle me-1"></i>{{ ('competition.participants.import.confirm.' ~ (plan.removesAnything ? 'button_sync' : 'button'))|trans }}
+                    </button>
+                {% else %}
+                    <p class="text-danger small mb-2">
+                        {{ ('competition.participants.import.confirm.' ~ (plan.errors is not empty ? 'cannot_apply_errors' : 'cannot_apply_sync'))|trans }}
+                    </p>
+                    <button type="submit" class="btn btn-primary" disabled>
+                        <i class="bi bi-check2-circle me-1"></i>{{ 'competition.participants.import.confirm.button'|trans }}
+                    </button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>

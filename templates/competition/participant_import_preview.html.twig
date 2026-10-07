@@ -1,0 +1,237 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.participants.import.preview.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {% set participants_url = path('manage_competition_participants', {competitionId: competition.id}) %}
+    {% set prefix = 'competition.participants.import.preview.' %}
+
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_participants'|trans, url: participants_url},
+        {label: (prefix ~ 'title')|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: participants_url, fallbackTitle: 'competition.manage_participants'|trans}) }}
+
+    <div class="pb-4">
+        <h1 class="h2">{{ competition.name }}</h1>
+        <h2 class="h4 mt-3">{{ (prefix ~ 'title')|trans }}</h2>
+
+        {% if preview is null %}
+            <div class="alert alert-info mt-3">
+                <p class="mb-2">{{ (prefix ~ 'already_imported')|trans }}</p>
+                <a href="{{ participants_url }}" class="btn btn-primary btn-sm">
+                    <i class="ci-arrow-left me-1"></i>{{ (prefix ~ 'back_to_participants')|trans }}
+                </a>
+            </div>
+        {% else %}
+            {% set csrf = csrf_token(csrf_token_id) %}
+            {% set preview_url = path('participant_import_preview', {competitionId: competition.id, token: stashed.token}) %}
+
+            <p class="text-muted">{{ (prefix ~ 'intro')|trans }}</p>
+
+            <turbo-frame id="participant-import-preview" data-turbo-action="advance">
+                {# File + start over #}
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div class="text-break">
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i>
+                            <strong>{{ stashed.fileName }}</strong>
+                            <span class="text-muted small ms-1">{{ (prefix ~ 'uploaded_at')|trans({'%date%': stashed.storedAt|format_datetime('medium', 'short')}) }}</span>
+                        </div>
+                        <form method="post" action="{{ path('participant_import_discard', {competitionId: competition.id, token: stashed.token}) }}" data-turbo-frame="_top" onsubmit="return confirm('{{ (prefix ~ 'start_over_confirm')|trans|e('js') }}')">
+                            <input type="hidden" name="_token" value="{{ csrf }}">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>{{ (prefix ~ 'start_over')|trans }}
+                            </button>
+                        </form>
+                    </div>
+
+                    {% if preview.sheets|length > 1 %}
+                        <div class="card-footer bg-transparent">
+                            <div class="small fw-semibold mb-1">{{ (prefix ~ 'sheet')|trans }}</div>
+                            <nav class="nav nav-pills flex-wrap gap-1" aria-label="{{ (prefix ~ 'sheet')|trans }}">
+                                {% for sheet_info in preview.sheets %}
+                                    {# A sheet link drops the mapping - it belongs to the current sheet's columns #}
+                                    <a href="{{ path('participant_import_preview', {competitionId: competition.id, token: stashed.token}|merge(preview.sheetQuery(sheet_info.index))) }}"
+                                       class="nav-link py-1 px-2 small {{ sheet_info.index == preview.sheetIndex ? 'active' : 'border' }}"
+                                       {% if sheet_info.index == preview.sheetIndex %}aria-current="page"{% endif %}>
+                                        {{ sheet_info.name is empty ? (prefix ~ 'sheet_unnamed')|trans({'%number%': sheet_info.index + 1}) : sheet_info.name }}
+                                        {% if sheet_info.hidden %}<span class="fst-italic">{{ (prefix ~ 'sheet_hidden')|trans }}</span>{% endif %}
+                                        <span class="opacity-75">· {{ (prefix ~ 'sheet_rows')|trans({'%count%': sheet_info.rows}) }}</span>
+                                    </a>
+                                {% endfor %}
+                            </nav>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <form method="get" action="{{ preview_url }}" id="participant-import-form">
+                    <input type="hidden" name="sheet" value="{{ preview.sheetIndex }}">
+                    {% if preview.sheet is not null %}
+                        <input type="hidden" name="headers" value="{{ preview.headersKey }}">
+                    {% endif %}
+
+                    {% if preview.isCsv %}
+                        {% set detected = preview.sheet.detectedOptions ?? null %}
+                        <div class="row g-2 mb-3" style="max-width: 36rem;">
+                            <div class="col-sm-6">
+                                <label for="participant-import-encoding" class="form-label small fw-semibold mb-1">{{ (prefix ~ 'encoding')|trans }}</label>
+                                <select id="participant-import-encoding" name="encoding" class="form-select form-select-sm" onchange="this.form.requestSubmit()">
+                                    {% for encoding in encodings %}
+                                        <option value="{{ encoding }}" {{ encoding == preview.options.encoding ? 'selected' }}>
+                                            {%- if encoding == 'auto' -%}
+                                                {{ detected is not null and detected.encoding != 'auto' ? (prefix ~ 'automatic_detected')|trans({'%value%': detected.encoding}) : (prefix ~ 'automatic')|trans }}
+                                            {%- else -%}
+                                                {{ encoding }}
+                                            {%- endif -%}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="participant-import-separator" class="form-label small fw-semibold mb-1">{{ (prefix ~ 'separator')|trans }}</label>
+                                <select id="participant-import-separator" name="separator" class="form-select form-select-sm" onchange="this.form.requestSubmit()">
+                                    <option value="auto" {{ preview.options.separator == 'auto' ? 'selected' }}>
+                                        {{- detected is not null and detected.separator != 'auto' ? (prefix ~ 'automatic_detected')|trans({'%value%': (prefix ~ 'separator_' ~ detected.separator)|trans}) : (prefix ~ 'automatic')|trans -}}
+                                    </option>
+                                    {% for separator in separators %}
+                                        <option value="{{ separator }}" {{ separator == preview.options.separator ? 'selected' }}>{{ (prefix ~ 'separator_' ~ separator)|trans }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    {% else %}
+                        <input type="hidden" name="encoding" value="{{ preview.options.encoding }}">
+                        <input type="hidden" name="separator" value="{{ preview.options.separator }}">
+                    {% endif %}
+
+                    {% if preview.sheet is null %}
+                        <div class="alert alert-danger">{{ (prefix ~ 'unreadable')|trans }}</div>
+                        <input type="hidden" name="mode" value="{{ preview.mode.value }}">
+                    {% else %}
+                        {# Columns #}
+                        <h3 class="h5 mt-2">{{ (prefix ~ 'columns_title')|trans }}</h3>
+                        <p class="small text-muted mb-2">{{ (prefix ~ 'columns_intro')|trans }}</p>
+
+                        {% if preview.mappingErrors is not empty %}
+                            <div class="alert alert-danger py-2" role="alert">
+                                <ul class="mb-0 ps-3">
+                                    {% for error in preview.mappingErrors %}
+                                        <li>{{ error|trans }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                        {% set duplicate_columns = preview.duplicateColumns %}
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm align-middle mb-0" id="participant-import-columns">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">{{ (prefix ~ 'column')|trans }}</th>
+                                        <th scope="col">{{ (prefix ~ 'samples')|trans }}</th>
+                                        <th scope="col" style="min-width: 14rem;">{{ (prefix ~ 'imported_as')|trans }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for index, header in preview.sheet.headers %}
+                                        {% set value = preview.mapping.valueOf(index) %}
+                                        <tr class="{{ value == 'ignore' ? 'text-muted' }}" data-column="{{ index }}">
+                                            <td class="text-break">
+                                                {% if header is empty %}
+                                                    <span class="fst-italic">{{ (prefix ~ 'no_header')|trans({'%number%': index + 1}) }}</span>
+                                                {% else %}
+                                                    <strong>{{ header }}</strong>
+                                                {% endif %}
+                                                {% if value == 'ignore' and header is not empty %}
+                                                    <span class="badge bg-light text-muted border ms-1">{{ (prefix ~ 'not_imported')|trans }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="small text-break">
+                                                {% for sample in preview.sheet.samples(index) %}
+                                                    <span class="d-inline-block text-truncate align-bottom" style="max-width: 12rem;">{{ sample }}</span>{% if not loop.last %}<span class="text-muted"> · </span>{% endif %}
+                                                {% endfor %}
+                                            </td>
+                                            <td>
+                                                <label class="visually-hidden" for="participant-import-map-{{ index }}">{{ (prefix ~ 'imported_as')|trans }}: {{ header }}</label>
+                                                <select id="participant-import-map-{{ index }}" name="map[{{ index }}]" class="form-select form-select-sm {{ index in duplicate_columns ? 'is-invalid' }}" onchange="this.form.requestSubmit()">
+                                                    <option value="ignore" {{ value == 'ignore' ? 'selected' }}>{{ 'competition.participants.import.mapping.ignore'|trans }}</option>
+                                                    {% for field in fields %}
+                                                        <option value="{{ field.value }}" {{ value == field.value ? 'selected' }}>{{ ('competition.participants.import.field.' ~ field.value)|trans }}</option>
+                                                        {% if field.value == 'team_name' %}
+                                                            {% for round in preview.rounds|filter(round => round.hasTeams) %}
+                                                                {% set team_value = constant('SpeedPuzzling\\Web\\Value\\ColumnMapping::TEAM_IN_ROUND_PREFIX') ~ round.id %}
+                                                                <option value="{{ team_value }}" {{ value == team_value ? 'selected' }}>{{ 'competition.participants.import.mapping.team_in_round'|trans({'%round%': round.name}) }}</option>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {# Mode #}
+                        <h3 class="h5 mt-4">{{ (prefix ~ 'mode_title')|trans }}</h3>
+                        {% set sync_blockers = plan is not null ? plan.syncBlockers : [] %}
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="card h-100 {{ preview.mode.value == 'update' ? 'border-primary' }}" for="participant-import-mode-update">
+                                    <span class="card-body">
+                                        <span class="form-check mb-1">
+                                            <input class="form-check-input" type="radio" name="mode" value="update" id="participant-import-mode-update" {{ preview.mode.value == 'update' ? 'checked' }} onchange="this.form.requestSubmit()">
+                                            <span class="form-check-label fw-semibold">{{ (prefix ~ 'mode_update')|trans }}</span>
+                                        </span>
+                                        <span class="d-block small text-muted">{{ (prefix ~ 'mode_update_help')|trans }}</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="card h-100 {{ preview.mode.value == 'sync' ? 'border-danger' }}" for="participant-import-mode-sync">
+                                    <span class="card-body">
+                                        <span class="form-check mb-1">
+                                            <input class="form-check-input" type="radio" name="mode" value="sync" id="participant-import-mode-sync" {{ preview.mode.value == 'sync' ? 'checked' }} {{ sync_blockers is not empty ? 'disabled' }} onchange="this.form.requestSubmit()">
+                                            <span class="form-check-label fw-semibold">{{ (prefix ~ 'mode_sync')|trans }}</span>
+                                        </span>
+                                        <span class="d-block small text-muted">{{ (prefix ~ 'mode_sync_help')|trans }}</span>
+                                        {% if plan is not null and sync_blockers is empty %}
+                                            <span class="d-block small mt-1">
+                                                {% if plan.removals.isEmpty %}
+                                                    {{ (prefix ~ 'mode_sync_nothing')|trans }}
+                                                {% else %}
+                                                    {{ (prefix ~ 'mode_sync_would_remove')|trans({'%people%': preview.removedPeople, '%entries%': plan.removals.roundEntries|length, '%teams%': plan.removals.teams|length}) }}
+                                                {% endif %}
+                                            </span>
+                                        {% endif %}
+                                        {% if sync_blockers is not empty %}
+                                            <span class="d-block small text-danger mt-1">{{ (prefix ~ 'mode_sync_blocked')|trans }}</span>
+                                            <span class="d-block small text-danger">
+                                                {% for blocker in sync_blockers %}
+                                                    <span class="d-block">– {{ blocker|trans }}</span>
+                                                {% endfor %}
+                                            </span>
+                                        {% endif %}
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-arrow-repeat me-1"></i>{{ (prefix ~ 'update_preview')|trans }}
+                    </button>
+                </form>
+
+                {% if plan is not null %}
+                    {{ include('competition/_participant_import_plan.html.twig') }}
+                {% endif %}
+            </turbo-frame>
+        {% endif %}
+    </div>
+{% endblock %}

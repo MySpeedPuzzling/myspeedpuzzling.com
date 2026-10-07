@@ -27,8 +27,10 @@ second of two semifinals in one hall).
 Desk and tablet first, usable on a phone (44 px touch targets). It is drawn by the Stimulus controller from the round's
 entries (`GetRoundResultEntries`, embedded in the page - nothing to load) and kept current from the round's private
 Mercure topic (`OfficialResultsLiveUpdates`; `official_results.entries` merged, `official_results.refresh` and a tab
-coming back after 20 s or the network coming back fetch `official_results_round_state` again) - and, like the results
-desk, the round's state is fetched once a minute while the tab is shown (the Mercure subscription may lapse silently).
+coming back after 20 s or the network coming back fetch `official_results_round_state` again) on the page's own stream
+with the subscriber token it came with (`data-round-seating-mercure-value`; renewed with every state answer -
+official-results.md "Subscribing: a token per page, never the cookie"; online events: none) - and, like the results
+desk, the round's state is fetched once a minute while the tab is shown, the last safety net.
 A state answer overtaken by a newer one, or older than entries merged while it was on its way, is dropped (and asked for
 again), so a slow GET never undoes newer numbers.
 

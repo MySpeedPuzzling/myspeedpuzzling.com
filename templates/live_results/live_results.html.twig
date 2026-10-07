@@ -186,7 +186,6 @@
          data-live-results-live-url-value="{{ path('live_results', {roundId: uuid_placeholder}) }}"
          data-live-results-scan-url-value="{{ path('live_results_scan', {competitionId: competition.id, participantId: uuid_placeholder}) }}"
          data-live-results-login-url-value="{{ path('login', {return: path('live_results', {roundId: round.id})}) }}"
-         data-live-results-mercure-url-value="{{ mercure_public_url }}"
          data-live-results-csrf-token-value="{{ csrf_token('official_results') }}"
          data-live-results-entrant-value="{{ entrant ? entrant.participantId : '' }}"
          data-live-results-entrant-name-value="{{ entrant ? entrant.name : '' }}"

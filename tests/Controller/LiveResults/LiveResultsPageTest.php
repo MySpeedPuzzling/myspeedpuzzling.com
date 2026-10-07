@@ -185,14 +185,19 @@ final class LiveResultsPageTest extends WebTestCase
         }
     }
 
-    public function testTheStateAnswerKeepsTheRoundsPrivateTopicInTheMercureCookie(): void
+    public function testThePageFollowsTheRoundWithItsOwnTokenNotTheCookie(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $this->browser->request('GET', '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A);
+        $crawler = $this->browser->request('GET', self::PAGE);
 
         self::assertResponseIsSuccessful();
-        self::assertContains('/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, $this->subscribedTopics());
+        $mercure = $this->state($crawler)['mercure'] ?? null;
+        self::assertIsArray($mercure);
+        self::assertSame(['/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, '/round-stopwatch/' . OfficialResultsFixture::ROUND_GROUP_A], $mercure['topics']);
+        self::assertIsString($mercure['token']);
+        // Never in a URL (proxies log them) - the page sends it as a header
+        self::assertCount(0, $crawler->filter('[data-live-results-mercure-url-value]'));
     }
 
     /**
@@ -205,27 +210,5 @@ final class LiveResultsPageTest extends WebTestCase
 
         /** @var array<string, mixed> $state */
         return $state;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function subscribedTopics(): array
-    {
-        foreach ($this->browser->getResponse()->headers->getCookies() as $cookie) {
-            if ($cookie->getName() !== 'mercureAuthorization') {
-                continue;
-            }
-
-            $parts = explode('.', (string) $cookie->getValue());
-            $payload = json_decode((string) base64_decode(strtr($parts[1] ?? '', '-_', '+/'), true), true);
-
-            if (is_array($payload) && is_array($payload['mercure'] ?? null) && is_array($payload['mercure']['subscribe'] ?? null)) {
-                /** @var list<string> */
-                return $payload['mercure']['subscribe'];
-            }
-        }
-
-        self::fail('No Mercure subscriber cookie was set.');
     }
 }

@@ -7,9 +7,8 @@ namespace SpeedPuzzling\Web\Controller\OfficialResults;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
-use SpeedPuzzling\Web\Services\MercureTopicCollector;
-use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\OfficialResultsRounds;
+use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,7 +18,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * The organiser's control room during the event (docs/features/competitions-management/results-desk.md): every
  * round with its entries, results entered, qualified, seating and publication, the way into each round's live
  * entry, results desk and seating, and "Advance the qualified" across rounds. The counters follow the rounds'
- * private Mercure topics.
+ * private Mercure topics (one subscription for all of them, renewed through `official_results_competition_state`).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class CompetitionResultsOverviewController extends AbstractController
@@ -27,7 +26,7 @@ final class CompetitionResultsOverviewController extends AbstractController
     public function __construct(
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly OfficialResultsRounds $officialResultsRounds,
-        private readonly MercureTopicCollector $mercureTopicCollector,
+        private readonly OfficialResultsSubscription $subscription,
     ) {
     }
 
@@ -50,13 +49,10 @@ final class CompetitionResultsOverviewController extends AbstractController
         $competition = $this->getCompetitionEvents->byId($competitionId);
         $rounds = $this->officialResultsRounds->forCompetition($competition->id);
 
-        foreach ($rounds as $round) {
-            $this->mercureTopicCollector->addTopic(OfficialResultsLiveUpdates::topic($round->id()));
-        }
-
         $response = $this->render('official_results/competition_results_overview.html.twig', [
             'competition' => $competition,
             'rounds' => $rounds,
+            'mercure' => $this->subscription->forRounds(array_map(static fn ($round): string => $round->id(), $rounds)),
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 

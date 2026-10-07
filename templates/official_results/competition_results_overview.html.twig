@@ -18,7 +18,8 @@
 
     <div class="pb-5"
          data-controller="results-overview"
-         data-results-overview-state-template-value="{{ path('official_results_round_state', {roundId: '00000000-0000-0000-0000-000000000000'}) }}"
+         data-results-overview-state-url-value="{{ path('official_results_competition_state', {competitionId: competition.id}) }}"
+         data-results-overview-mercure-value="{{ (mercure ?? {})|json_encode|e('html_attr') }}"
          data-results-overview-is-online-value="{{ competition.isOnline ? 'true' : 'false' }}"
          data-results-overview-texts-value="{{ {tables_off: 'results_desk.overview.tables_off'|trans}|json_encode|e('html_attr') }}">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">

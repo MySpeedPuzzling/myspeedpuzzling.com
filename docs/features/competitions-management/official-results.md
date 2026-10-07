@@ -248,7 +248,8 @@ changes are refused with reason `results_only`, live-results.md "Referees"), wri
 
 | Method + path | Message | Answer |
 |---|---|---|
-| `GET rounds/{roundId}` | - | `serverNow`, `topic`, `competition`, `round`, `rounds`, `entries` |
+| `GET rounds/{roundId}` | - | `serverNow`, `topic`, `competition`, `round`, `rounds`, `entries`, `mercure` |
+| `GET competitions/{competitionId}` (organisers only - the results overview) | - | `rounds` (every round's progress), `mercure` |
 | `POST rounds/{roundId}/changes` | `RecordRoundResults` | `dryRun`, `outcomes`, `entries` (400 unreadable set) |
 | `POST rounds/{roundId}/publish` / `unpublish` | `PublishRoundResults` / `UnpublishRoundResults` | `round` |
 | `POST rounds/{roundId}/table-numbers` | `AssignTableNumbers` | `changed`, `entries` (422 `problems`, `changed_meanwhile` with `current`; 400 without `from`) |
@@ -260,9 +261,52 @@ Live updates: after the commit the controller publishes a **private** Mercure up
 (`OfficialResultsLiveUpdates`; a Mercure failure is a logged warning, never a failed write): `official_results.entries`
 (the changed entries + the round), `official_results.refresh` (more than 50 entries changed, or an entry taken out of
 the round - fetch the state again),
-`official_results.round` (publication / table numbers usage). A page subscribes by adding the topic with
-`MercureTopicCollector::addTopic(OfficialResultsLiveUpdates::topic($roundId))` in its controller (organisers only); the
-base layout's `mercure-hub` controller then dispatches each update as a `mercure:message` event on `document`.
+`official_results.round` (publication / table numbers usage).
+
+### Subscribing: a token per page, never the cookie
+
+Every organiser page - live entry, results desk, seating, results overview - follows its rounds on a stream of its own
+(`assets/official_results_events.js`, `OfficialResultsEvents`) authorised by a short-lived subscriber JWT it gets with
+its state: `mercure: {url, topics, token, expiresAt, expiresIn}` (`OfficialResultsSubscription`). The token is minted
+only after the voter let the request in (the round state and the live entry: `COMPETITION_RESULTS_ENTRY`, so referees
+get their round's; desk, seating, overview and `GET competitions/{id}`: `COMPETITION_EDIT`), lists its topics one by
+one (`/round-results/{id}` + the public `/round-stopwatch/{id}` for a round's page; every round's `/round-results/{id}`
+for the overview - never a URI template), may subscribe only, lasts an hour, and is signed with the hub key through
+MercureBundle's token factory (`null` + a warning when none can be made: the page then lives on its state refreshes).
+
+Why not the `mercureAuthorization` cookie: `MercureSubscribeCookieListener` rewrites it on **every** signed-in response
+with that request's topics only (the chat topics), so any other request - another tab, a JSON call - dropped the round
+topic from it, and the stream's next reconnect (a Wi-Fi drop, a sleeping laptop, the hub's write timeout every ~10 min)
+silently stopped receiving private updates (review 2 M1). A token sent with the connection beats the cookie (checked on
+Mercure 0.24.2, the image dev and production run), so the cookie now carries the chat topics only - no official
+results controller adds a topic to `MercureTopicCollector` any more, and the base layout's `mercure-hub` subscription
+(unread counts, conversations) is untouched.
+
+`OfficialResultsEvents`:
+- reads the stream with `fetch()` and parses the server-sent events itself (`EventStreamParser`), because EventSource
+  cannot send a header: the token goes as `Authorization: Bearer` - **never in the URL** (Traefik logs the request
+  path with its query of slow 2xx answers, which every stream is, and Mercure 1.0 drops the `authorization` query
+  parameter), with `credentials: 'omit'` and `Last-Event-ID` after a drop;
+- reopens after the stream ended (the hub's write timeout), a network error or a 5xx after 1 s, 2 s, 5 s, 15 s, then
+  every minute (never sooner than the hub's `retry:`; a stream that stayed open 30 s starts from 1 s again), and
+  fetches the page's state once it is open again (catch-up - whatever was published meanwhile);
+- treats a stream silent for 100 s as dead (the hub sends a heartbeat comment every 40 s; a phone woken from sleep, a
+  Wi-Fi switch) and opens it again;
+- on 401 (an ended or refused token - the hub closes a token's stream ~7 s before `exp` and refuses it after) and when a
+  token has less than 15 minutes left, asks the page for its state again for a fresh token; an open stream is replaced
+  by opening the new one first, then closing the old one (updates arriving on both are handed over once, by event id).
+  The pages fetch their state every minute while shown anyway, so the renewal normally rides on that; a page in the
+  background renews by itself;
+- stops (`suspend()`) when a state answers signed out / no rights - a token is for whoever may still use the page - and
+  resumes with the next state that answers (the banner's Retry, signing in again);
+- hands every update over parsed; the pages filter by `type` / `roundId` as before. Turbo leaving the page closes it.
+
+The pages keep their periodic state fetch (once a minute while shown, and when the tab comes back or the network
+returns) as the last safety net. Dev: the hub runs on another port, so the browser sends a CORS preflight for
+`authorization, last-event-id` - Mercure allows both for `cors_origins` (compose.yml); production is same-origin and
+needs no hub change. Pinned by `tests/official-results-events-harness.mjs` (`OfficialResultsEventsScriptsTest`: parser,
+backoff, catch-up, 401, renewal, silence, suspend, close), `OfficialResultsSubscriptionTest` (topics, `exp`, the
+signature) and `LiveUpdatesSubscriptionTest` (who gets a token, the pages carry it, the cookie carries no round topic).
 
 ## Seating
 

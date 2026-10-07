@@ -40,8 +40,8 @@ the zone a start is shown in) with their progress (`GetRoundResultsOverview`) an
 
 ## The desk (`results_desk_controller.js`)
 
-The page bootstraps exactly what `official_results_round_state` answers (plus the colours and the public URL) and
-authorises the round's private Mercure topic. Columns: rank, table (hidden for online events and rounds without
+The page bootstraps exactly what `official_results_round_state` answers (plus the colours and the public URL) - its
+live updates token included (see "Live updates" below). Columns: rank, table (hidden for online events and rounds without
 table numbers), entrant (team: members with flags and #CODE), country flags, result, entered by · at, Qualified.
 Entries without a result and did-not-start are listed (organisers only). Search by table number (exact), names,
 member names and #CODE (accent-insensitive); filter all / without a result / qualified / not saved yet. "Entered at"
@@ -77,7 +77,7 @@ and "published since" are shown in the round's zone (like the export), not the d
 - **Live updates**: `official_results.entries` merges the entries (an older result never replaces a newer one -
   `enteredAt`), `official_results.refresh` fetches the state, `official_results.round` updates publication/table
   usage. The state is fetched again when the tab returns after 10 s, when the connection returns, and once a minute
-  while the tab is shown - see "Mercure cookie" below. When our own answer and a live update disagree about an entry
+  while the tab is shown - see "Live updates" below. When our own answer and a live update disagree about an entry
   we just saved, the desk asks the server once more.
 
 ### Qualification helpers - always the organiser's decision
@@ -150,19 +150,21 @@ A row per round: badge + category, start (round's zone) + stopwatch running/stop
 (x / y + bar), qualified, tables (x / y or "not used"; no column for online events; warning colour only while the
 seating step is recommended), published (+ public page), Live entry / Results desk / Seating / Stopwatch. At the top:
 Advance the qualified, the round list, **Name tags** (in-person events) and the **Referees** page
-(`official_results/_referees_link.html.twig` - linked once the route `competition_referees` exists, `optional_path()`). The counters follow every round's private topic (each update carries the round's
-progress; a refresh signal fetches it). After a minute in a background tab the page reloads when it comes back
-(never while a dialog is open).
+(`official_results/_referees_link.html.twig` - linked once the route `competition_referees` exists, `optional_path()`). The counters follow every round's private topic on one stream (the page's token lists every round;
+each update carries the round's progress). A refresh signal, the stream opening again, the tab coming back after 10 s
+and every minute while it is shown fetch `official_results_competition_state` (`GET /{_locale}/official-results/
+competitions/{competitionId}`, organisers only: every round's progress in one statement + a fresh token) and rewrite
+every row - no page reload any more (it used to reload after a minute in the background because the subscription may
+have lapsed).
 
-## Mercure cookie (known limitation)
+## Live updates
 
-`MercureSubscribeCookieListener` writes the subscribe cookie on **every** signed-in response with the topics of that
-request only. The state and record endpoints add the round's topic again, but the other JSON endpoints and any page
-opened in another tab do not. An open desk keeps receiving updates on its established connection, but after a reconnect
-(a Wi-Fi drop, the hub's write timeout) the cookie may no longer authorise the round's topic and updates stop silently.
-The desk and the seating page therefore re-fetch the state once a minute while shown (2 statements + 1 for the rounds) -
-eventual consistency within a minute even without Mercure - and every write carries the value the page saw (`from`), so
-a stale page gets a conflict, never overwrites. Follow-up in `docs/TODO.md`.
+Every page follows its rounds on a stream of its own with the subscriber token its state carries
+(`OfficialResultsEvents`, official-results.md "Subscribing: a token per page, never the cookie") - not the
+`mercureAuthorization` cookie, which every signed-in response rewrote with its own topics, so a reconnect silently lost
+the round (review 2 M1). The desk, the seating page and the overview still fetch the state once a minute while shown
+(2 statements + 1 for the rounds; the overview 1) as the last safety net, and every write carries the value the page
+saw (`from`), so a stale page gets a conflict, never overwrites.
 
 ## Tests
 

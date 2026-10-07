@@ -74,12 +74,17 @@ final class CompetitionResultsOverviewControllerTest extends WebTestCase
         // Advancing across the event's rounds, no source preselected
         self::assertSame('', $crawler->filter('[data-controller="advance-qualified"]')->attr('data-advance-qualified-source-value'));
 
-        // The counters follow every round's private topic
+        // The counters follow every round's private topic - with the page's own token, never the cookie
+        $mercure = json_decode((string) $crawler->filter('[data-controller="results-overview"]')->attr('data-results-overview-mercure-value'), true);
+        self::assertIsArray($mercure);
+        self::assertIsArray($mercure['topics']);
         $topics = json_decode((string) $crawler->filter('[data-controller="mercure-hub"]')->attr('data-mercure-hub-topics-value'), true);
         self::assertIsArray($topics);
         foreach ([OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_PAIRS_FINAL] as $roundId) {
-            self::assertContains('/round-results/' . $roundId, $topics);
+            self::assertContains('/round-results/' . $roundId, $mercure['topics']);
+            self::assertNotContains('/round-results/' . $roundId, $topics);
         }
+        self::assertSame('/en/official-results/competitions/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $crawler->filter('[data-controller="results-overview"]')->attr('data-results-overview-state-url-value'));
     }
 
     public function testARoundWithoutTableNumbersSaysSo(): void

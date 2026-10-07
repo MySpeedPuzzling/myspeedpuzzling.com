@@ -9,9 +9,8 @@ use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
-use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
-use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
+use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use SpeedPuzzling\Web\Services\SeatingProposer;
 use SpeedPuzzling\Web\Value\SeatingSource;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -36,7 +35,7 @@ final class RoundSeatingController extends AbstractController
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetRoundResultEntries $getRoundResultEntries,
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
-        private readonly MercureTopicCollector $mercureTopicCollector,
+        private readonly OfficialResultsSubscription $subscription,
     ) {
     }
 
@@ -63,6 +62,7 @@ final class RoundSeatingController extends AbstractController
         $entries = [];
         // The round switch: the event's rounds (online events have no seating to switch to)
         $rounds = [];
+        $mercure = null;
 
         if ($competition->isOnline === false) {
             $rounds = $this->getRoundResultsOverview->forCompetition($competition->id->toString());
@@ -74,7 +74,7 @@ final class RoundSeatingController extends AbstractController
 
             $overview ??= $this->getRoundResultsOverview->forRound($round->id->toString());
             $entries = $this->getRoundResultEntries->forRound($round->id->toString());
-            $this->mercureTopicCollector->addTopic(OfficialResultsLiveUpdates::topic($round->id->toString()));
+            $mercure = $this->subscription->forRound($round->id->toString());
         }
 
         $propose = $request->query->getString('propose');
@@ -98,6 +98,7 @@ final class RoundSeatingController extends AbstractController
             'propose' => $propose,
             'first_table' => $firstTable,
             'csrf_token_id' => OfficialResultsApi::CSRF_TOKEN_ID,
+            'mercure' => $mercure,
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 

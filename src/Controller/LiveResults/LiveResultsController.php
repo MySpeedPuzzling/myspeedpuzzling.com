@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
+use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,6 +38,7 @@ final class LiveResultsController extends AbstractController
         private readonly GetLiveResultsEntrant $getLiveResultsEntrant,
         private readonly GetLiveResultsEventPeople $getLiveResultsEventPeople,
         private readonly ClockInterface $clock,
+        private readonly OfficialResultsSubscription $subscription,
     ) {
     }
 
@@ -90,6 +92,8 @@ final class LiveResultsController extends AbstractController
                 'round' => $thisRound,
                 'rounds' => $rounds,
                 'entries' => $this->getRoundResultEntries->forRound($roundId),
+                // The round's private topic + its stopwatch, for whoever passed the voter above (referees too)
+                'mercure' => $this->subscription->forRound($roundId),
             ],
             // Referees (live-results.md "Referees") get no links to the other organiser tools
             'organiser' => $organiser,

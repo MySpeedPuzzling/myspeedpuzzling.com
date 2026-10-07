@@ -10,11 +10,13 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetPublishedRoundResults;
+use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\OfficialEntryTime;
 use SpeedPuzzling\Web\Results\PublishedRoundEntrant;
 use SpeedPuzzling\Web\Results\PublishedRoundEntry;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantNameKey;
 use SpeedPuzzling\Web\Value\OfficialEntryProfileState;
 use SpeedPuzzling\Web\Value\Puzzler;
@@ -35,6 +37,12 @@ use SpeedPuzzling\Web\Value\TeamComposition;
  * A pair/team entry carries the round's category: the form opens in Pair/Team mode with every person the organiser
  * recorded besides the viewer (linked ones by their code, the others as guests) - never as a solo time, also when the
  * organiser recorded a name only or fewer people than the round needs (the form then asks for them).
+ *
+ * A linked member hidden from the viewer is never filled in by their code (browser verification of PR #136, privacy):
+ * a private player the viewer may not see (the round page shows them by the organiser's name only -
+ * PrivateProfileAccess) or a player blocked in either direction comes as a guest under the organiser's participant
+ * name, which the official results show anyway. A guest becomes that player only with their consent
+ * (docs/features/pairs-and-teams/README.md, guest links).
  */
 readonly final class OfficialEntryTimePrefill
 {
@@ -43,6 +51,8 @@ readonly final class OfficialEntryTimePrefill
         private GetEditionRounds $getEditionRounds,
         private GetPublishedRoundResults $getPublishedRoundResults,
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
+        private GetUserBlocks $getUserBlocks,
     ) {
     }
 
@@ -135,18 +145,41 @@ readonly final class OfficialEntryTimePrefill
         }
 
         $groupPlayers = [];
+        $blockersOfViewer = null;
 
         foreach ($members as $member) {
             if ($member->linkedPlayerId === $viewerPlayerId) {
                 continue;
             }
 
-            $groupPlayers[] = $member->linkedPlayerId !== null && $member->linkedPlayerCode !== null
+            if ($member->linkedPlayerId === null || $member->linkedPlayerCode === null) {
+                $groupPlayers[] = $member->playerName;
+
+                continue;
+            }
+
+            // Blocks the viewer: asked only when a linked member could be filled in by code - one query at most
+            $blockersOfViewer ??= array_map(strtolower(...), $this->getUserBlocks->blockersOf([$viewerPlayerId]));
+
+            $groupPlayers[] = $this->mayFillInByCode($member, $blockersOfViewer)
                 ? '#' . $member->linkedPlayerCode
                 : $member->playerName;
         }
 
         return [$groupPlayers, []];
+    }
+
+    /**
+     * The round page shows the member's profile to the viewer (`playerId` - public, or a private player who lets the
+     * viewer see them), and there is no block between the two in either direction.
+     *
+     * @param list<string> $blockersOfViewer
+     */
+    private function mayFillInByCode(PublishedRoundEntrant $member, array $blockersOfViewer): bool
+    {
+        return $member->playerId !== null
+            && $this->hiddenPlayers->isHidden($member->linkedPlayerId) === false
+            && in_array(strtolower((string) $member->linkedPlayerId), $blockersOfViewer, true) === false;
     }
 
     /**

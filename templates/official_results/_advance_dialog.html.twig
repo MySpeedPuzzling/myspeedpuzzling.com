@@ -63,6 +63,10 @@
          error_forbidden: 'results_desk.error.forbidden'|trans,
          error_generic: 'results_desk.error.generic'|trans,
          close: 'results_desk.close'|trans,
+         country_rule_badge: 'results_desk.advance.country_rule.badge'|trans,
+         country_rule_marked: browser_translation('results_desk.advance.country_rule.marked'),
+         country_rule_without: browser_translation('results_desk.advance.country_rule.without_country'),
+         unsaved_marks: browser_translation('results_desk.advance.unsaved_marks'),
      }|json_encode|e('html_attr') }}">
     <button type="button" class="btn {{ button_class|default('btn-outline-primary') }}" data-action="advance-qualified#open">
         <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{{ 'results_desk.advance.button'|trans }}
@@ -78,7 +82,9 @@
                 <div class="modal-body">
                     <div class="alert alert-danger" role="alert" hidden data-advance-qualified-target="error"></div>
 
-                    <div data-advance-qualified-target="choose" data-action="change->advance-qualified#choiceChanged">
+                    <div class="alert alert-warning" role="alert" hidden data-advance-qualified-target="unsaved"></div>
+
+                    <div data-advance-qualified-target="choose" data-action="change->advance-qualified#choiceChanged input->advance-qualified#choiceChanged">
                         <p class="text-body-secondary small">{{ 'results_desk.advance.intro'|trans }}</p>
                         <div class="row g-4">
                             <div class="col-md-6">
@@ -95,6 +101,19 @@
                             <div data-options></div>
                         </fieldset>
                         <div class="mt-2" hidden data-advance-qualified-target="map"></div>
+                        {# The country rule over all the chosen rounds - the plan shows whom it takes, applying marks them #}
+                        <fieldset class="mt-3" hidden data-advance-qualified-target="countryRule">
+                            <legend class="h6">{{ 'results_desk.advance.country_rule.legend'|trans }}</legend>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="advance-country-rule" data-kind="country_rule">
+                                <label class="form-check-label" for="advance-country-rule">{{ 'results_desk.advance.country_rule.label'|trans }}</label>
+                            </div>
+                            <div class="d-flex flex-wrap align-items-center gap-2 ms-4 mt-1" hidden data-country-count-row>
+                                <label class="small" for="advance-country-count">{{ 'results_desk.advance.country_rule.count'|trans }}</label>
+                                <input type="number" min="1" max="99" inputmode="numeric" class="form-control form-control-sm w-auto" id="advance-country-count" value="1" data-kind="country_count">
+                            </div>
+                            <div class="form-text ms-4">{{ 'results_desk.advance.country_rule.help'|trans }}</div>
+                        </fieldset>
                     </div>
 
                     <div hidden data-advance-qualified-target="plan" aria-live="polite"></div>

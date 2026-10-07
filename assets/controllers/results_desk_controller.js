@@ -74,8 +74,10 @@ export default class extends Controller {
         this.onOnline = this.onOnline.bind(this);
         this.onBeforeUnload = this.onBeforeUnload.bind(this);
         this.onBeforeVisit = this.onBeforeVisit.bind(this);
+        this.onUnsavedMarks = this.onUnsavedMarks.bind(this);
 
         document.addEventListener('mercure:message', this.onMercure);
+        document.addEventListener('official-results:unsaved-marks', this.onUnsavedMarks);
         document.addEventListener('visibilitychange', this.onVisibility);
         document.addEventListener('turbo:before-visit', this.onBeforeVisit);
         window.addEventListener('online', this.onOnline);
@@ -92,6 +94,7 @@ export default class extends Controller {
 
     disconnect() {
         document.removeEventListener('mercure:message', this.onMercure);
+        document.removeEventListener('official-results:unsaved-marks', this.onUnsavedMarks);
         document.removeEventListener('visibilitychange', this.onVisibility);
         document.removeEventListener('turbo:before-visit', this.onBeforeVisit);
         window.removeEventListener('online', this.onOnline);
@@ -1047,6 +1050,15 @@ export default class extends Controller {
         this.resync();
     }
 
+    /**
+     * The advance dialog asks before planning: qualified marks of this page that are not saved yet are not in the plan.
+     */
+    onUnsavedMarks(event) {
+        if (event.detail && typeof event.detail.count === 'number') {
+            event.detail.count += this.pending.list().filter((cell) => cell.field === QUALIFIED).length;
+        }
+    }
+
     onBeforeUnload(event) {
         if (!this.pending.isEmpty()) {
             event.preventDefault();
@@ -1244,6 +1256,10 @@ export default class extends Controller {
             }
 
             lines.push(`<p class="mb-2"><i class="bi bi-bell me-1" aria-hidden="true"></i>${escapeHtml(this.round.resultsFirstPublishedAt ? this.t('publish_no_new_notification') : this.t('publish_notification'))}</p>`);
+
+            if (this.competition.isPubliclyVisible === false) {
+                lines.push(`<div class="alert alert-info py-2 mb-2"><i class="bi bi-eye-slash me-1" aria-hidden="true"></i>${escapeHtml(this.t('publish_not_public'))}</div>`);
+            }
 
             if (withoutResult > 0) {
                 lines.push(`<div class="alert alert-warning py-2 mb-2"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>${escapeHtml(this.tc('publish_without_result', withoutResult))}</div>`);

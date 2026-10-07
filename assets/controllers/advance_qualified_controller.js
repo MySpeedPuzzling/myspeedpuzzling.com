@@ -17,7 +17,7 @@ const ROUND_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
  * Afterwards "Seat them now" gives the advanced entries table numbers in the plan's seed order.
  */
 export default class extends Controller {
-    static targets = ['modal', 'choose', 'sources', 'targets', 'distribution', 'map', 'error', 'plan', 'done', 'backButton', 'planButton', 'applyButton'];
+    static targets = ['modal', 'choose', 'sources', 'targets', 'distribution', 'map', 'countryRule', 'unsaved', 'error', 'plan', 'done', 'backButton', 'planButton', 'applyButton'];
 
     static values = {
         rounds: Array,
@@ -34,6 +34,7 @@ export default class extends Controller {
         this.chosenTargets = new Set();
         this.distribution = null;
         this.targetBySource = {};
+        this.countryRule = null;
         this.plan = null;
         this.busy = false;
     }
@@ -86,7 +87,9 @@ export default class extends Controller {
         this.chosenTargets = new Set();
         this.distribution = null;
         this.targetBySource = {};
+        this.countryRule = null;
         this.plan = null;
+        this.resetCountryRule();
         this.showStep('choose');
         this.renderChoose();
         Modal.getOrCreateInstance(this.modalTarget).show();
@@ -214,7 +217,48 @@ export default class extends Controller {
             this.mapTarget.innerHTML = '';
         }
 
+        this.renderCountryRule();
         this.planButtonTarget.disabled = !this.canPlan();
+    }
+
+    resetCountryRule() {
+        if (!this.hasCountryRuleTarget) {
+            return;
+        }
+
+        const checkbox = this.countryRuleTarget.querySelector('[data-kind="country_rule"]');
+        const count = this.countryRuleTarget.querySelector('[data-kind="country_count"]');
+
+        if (checkbox) {
+            checkbox.checked = false;
+        }
+
+        if (count) {
+            count.value = '1';
+        }
+    }
+
+    /**
+     * "Also the best of each country" - offered once the qualified come from somewhere and go somewhere.
+     */
+    renderCountryRule() {
+        if (!this.hasCountryRuleTarget) {
+            return;
+        }
+
+        this.countryRuleTarget.hidden = this.chosenSources.size === 0 || this.chosenTargets.size === 0;
+        const row = this.countryRuleTarget.querySelector('[data-country-count-row]');
+
+        if (row) {
+            row.hidden = this.countryRule === null;
+        }
+    }
+
+    readCountryRule() {
+        const checkbox = this.countryRuleTarget.querySelector('[data-kind="country_rule"]');
+        const count = Math.floor(Number(this.countryRuleTarget.querySelector('[data-kind="country_count"]')?.value) || 0);
+
+        this.countryRule = checkbox?.checked ? Math.min(99, Math.max(1, count)) : null;
     }
 
     canPlan() {
@@ -244,6 +288,9 @@ export default class extends Controller {
         } else if (input.dataset.kind === 'map') {
             this.targetBySource[input.dataset.source] = input.value;
             this.planButtonTarget.disabled = !this.canPlan();
+        } else if (input.dataset.kind === 'country_rule' || input.dataset.kind === 'country_count') {
+            this.readCountryRule();
+            this.renderCountryRule();
         }
 
         this.hideError();
@@ -257,6 +304,7 @@ export default class extends Controller {
             targetRoundIds: [...this.chosenTargets],
             distribution: this.distribution,
             targetBySource: this.distribution === 'by_source' ? this.targetBySource : {},
+            bestOfEachCountry: this.countryRule,
             dryRun,
         };
 
@@ -322,7 +370,7 @@ export default class extends Controller {
                     </tr></thead>
                     <tbody>${rows.map((assignment) => `<tr>
                         <td class="text-end">${assignment.seed}</td>
-                        <td>${escapeHtml(assignment.entry.displayName)}</td>
+                        <td>${escapeHtml(assignment.entry.displayName)}${assignment.byCountryRule ? this.countryRuleBadge() : ''}</td>
                         <td>${escapeHtml(roundName(assignment.sourceRoundId))}${assignment.entry.rank ? ` <span class="text-body-secondary">(${escapeHtml(this.t('rank_short', { rank: assignment.entry.rank }))})</span>` : ''}</td>
                         <td>${escapeHtml(this.formatResult(assignment.entry.result, assignment.sourceRoundId))}</td>
                     </tr>`).join('')}</tbody>
@@ -330,17 +378,48 @@ export default class extends Controller {
         }).join('');
 
         const skipped = plan.skipped.length === 0 ? '' : `<h3 class="h6 mt-3">${escapeHtml(this.tc('plan_skipped', plan.skipped.length))}</h3>
-            <ul class="small mb-0">${plan.skipped.map((skip) => `<li>${escapeHtml(skip.entry.displayName)} <span class="text-body-secondary">(${escapeHtml(roundName(skip.sourceRoundId))})</span> - ${escapeHtml(skip.message ?? skip.reason)}</li>`).join('')}</ul>`;
+            <ul class="small mb-0">${plan.skipped.map((skip) => `<li>${escapeHtml(skip.entry.displayName)}${skip.byCountryRule ? this.countryRuleBadge() : ''} <span class="text-body-secondary">(${escapeHtml(roundName(skip.sourceRoundId))})</span> - ${escapeHtml(skip.message ?? skip.reason)}</li>`).join('')}</ul>`;
+
+        const markedByRule = plan.markedByCountryRule ?? [];
+        const withoutCountry = plan.withoutCountry ?? [];
+        const countryRule = plan.bestOfEachCountry === null || plan.bestOfEachCountry === undefined ? '' : `${markedByRule.length > 0 ? `<p class="small mb-2"><i class="bi bi-flag me-1" aria-hidden="true"></i>${escapeHtml(this.tc('country_rule_marked', markedByRule.length))}</p>` : ''}
+            ${withoutCountry.length > 0 ? `<details class="small mb-2"><summary>${escapeHtml(this.tc('country_rule_without', withoutCountry.length))}</summary><ul class="mb-0">${withoutCountry.map((without) => `<li>${escapeHtml(without.entry.displayName)} <span class="text-body-secondary">(${escapeHtml(roundName(without.sourceRoundId))}${without.entry.rank ? `, ${escapeHtml(this.t('rank_short', { rank: without.entry.rank }))}` : ''})</span></li>`).join('')}</ul></details>` : ''}`;
 
         this.planTarget.innerHTML = `${notice ? `<div class="alert alert-warning" role="alert"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>${escapeHtml(notice)}</div>` : ''}
             <p class="fw-semibold mb-1">${escapeHtml(added > 0 ? this.tc('plan_summary', added) : this.t('plan_nobody'))}</p>
             <ul class="mb-2">${targets}</ul>
+            ${countryRule}
             ${groups}
             ${skipped}`;
 
         this.applyButtonTarget.hidden = added === 0;
         this.applyButtonTarget.disabled = added === 0;
         this.applyButtonTarget.textContent = this.tc('apply', added);
+    }
+
+    countryRuleBadge() {
+        return ` <span class="badge text-bg-info ms-1">${escapeHtml(this.t('country_rule_badge'))}</span>`;
+    }
+
+    /**
+     * Qualified marks the results desk on this page has not saved yet (the desk answers this event) - the plan is made
+     * from the saved marks only (review2-b m7).
+     */
+    unsavedMarks() {
+        const detail = { count: 0 };
+        document.dispatchEvent(new CustomEvent('official-results:unsaved-marks', { detail }));
+
+        return detail.count;
+    }
+
+    renderUnsaved() {
+        if (!this.hasUnsavedTarget) {
+            return;
+        }
+
+        const count = this.unsavedMarks();
+        this.unsavedTarget.hidden = count === 0;
+        this.unsavedTarget.textContent = count === 0 ? '' : this.tc('unsaved_marks', count);
     }
 
     formatResult(result, roundId) {
@@ -540,6 +619,12 @@ export default class extends Controller {
     }
 
     showStep(step) {
+        if (step !== 'done') {
+            this.renderUnsaved();
+        } else if (this.hasUnsavedTarget) {
+            this.unsavedTarget.hidden = true;
+        }
+
         this.chooseTarget.hidden = step !== 'choose';
         this.planTarget.hidden = step !== 'plan';
         this.doneTarget.hidden = step !== 'done';

@@ -3592,6 +3592,16 @@ qr_code:
     "import_title": "Importovat účastníky"
     "import_button": "Nahrát a zkontrolovat"
     "import":
+      "upload":
+        "label": "Seznam účastníků (.xlsx, .csv, .tsv nebo .txt)"
+        "choose_file": "Vyberte prosím soubor se seznamem účastníků."
+        "invalid_type": "Nahrajte prosím sešit .xlsx nebo soubor .csv, .tsv či .txt."
+        "too_large": "Soubor je příliš velký – nejvýše %max%."
+        "failed": "Soubor se nepodařilo nahrát. Zkuste to prosím znovu."
+      "file":
+        "unreadable": "Soubor se nepodařilo přečíst. Nahrajte prosím sešit .xlsx (Excel, Numbers, Tabulky Google, LibreOffice) nebo soubor CSV."
+        "empty": "Soubor neobsahuje žádné hodnoty."
+        "too_many_rows": "Soubor má více než %max% řádků – to je víc, než pojme jeden seznam účastníků. Nahrajte prosím jen samotný seznam."
       "summary": "Import dokončen: %added% přidáno, %updated% aktualizováno, %unchanged% beze změny, %deleted% odebráno."
       "empty_file": "Soubor je prázdný."
       "unreadable_file": "Soubor se nepodařilo přečíst. Nahrajte prosím soubor .xlsx uložený z Excelu, Numbers nebo Tabulek Google."
@@ -3629,7 +3639,7 @@ qr_code:
         "separator_comma": "Čárka ( , )"
         "separator_semicolon": "Středník ( ; )"
         "separator_tab": "Tabulátor"
-        "unreadable": "Soubor se nepodařilo přečíst. U CSV zkuste jiné kódování nebo oddělovač; jinak ho uložte z Excelu, Numbers nebo Tabulek Google jako .xlsx nebo .csv a nahrajte znovu."
+        "try_other_options": "U souboru CSV zkuste výše jiné kódování nebo oddělovač."
         "columns_title": "Sloupce"
         "columns_intro": "Zvolte, co obsahuje který sloupec souboru. Sloupce ponechané na „Přeskočit“ se neimportují."
         "column": "Sloupec"

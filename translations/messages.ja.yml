@@ -3585,6 +3585,16 @@ qr_code:
     "import_title": "参加者をインポート"
     "import_button": "アップロードして確認"
     "import":
+      "upload":
+        "label": "参加者リスト（.xlsx、.csv、.tsv、.txt）"
+        "choose_file": "参加者リストのファイルを選んでください。"
+        "invalid_type": ".xlsx ブック、または .csv、.tsv、.txt ファイルをアップロードしてください。"
+        "too_large": "ファイルが大きすぎます（最大 %max%）。"
+        "failed": "ファイルをアップロードできませんでした。もう一度お試しください。"
+      "file":
+        "unreadable": "ファイルを読み込めませんでした。.xlsx ブック（Excel、Numbers、Googleスプレッドシート、LibreOffice）またはCSVファイルをアップロードしてください。"
+        "empty": "ファイルに値がありません。"
+        "too_many_rows": "ファイルの行数が %max% を超えています。参加者リスト1つとしては多すぎます。リストだけをアップロードしてください。"
       "summary": "インポート完了: 追加 %added% 件、更新 %updated% 件、変更なし %unchanged% 件、削除 %deleted% 件。"
       "empty_file": "ファイルが空です。"
       "unreadable_file": "ファイルを読み込めませんでした。Excel、Numbers、Google スプレッドシートで保存した .xlsx ファイルをアップロードしてください。"
@@ -3622,7 +3632,7 @@ qr_code:
         "separator_comma": "カンマ ( , )"
         "separator_semicolon": "セミコロン ( ; )"
         "separator_tab": "タブ"
-        "unreadable": "ファイルを読み込めませんでした。CSVの場合は別の文字コードや区切り文字をお試しください。それ以外の場合は、Excel、Numbers、Googleスプレッドシートから .xlsx または .csv として保存し、もう一度アップロードしてください。"
+        "try_other_options": "CSVファイルの場合は、上で別の文字コードや区切り文字をお試しください。"
         "columns_title": "列"
         "columns_intro": "ファイルの各列の内容を選んでください。「無視」のままの列はインポートされません。"
         "column": "列"

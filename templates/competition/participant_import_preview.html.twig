@@ -76,7 +76,7 @@
                     {% endif %}
 
                     {% if preview.isCsv %}
-                        {% set detected = preview.sheet.detectedOptions ?? null %}
+                        {% set detected = stashed.detectedOptions %}
                         <div class="row g-2 mb-3" style="max-width: 36rem;">
                             <div class="col-sm-6">
                                 <label for="participant-import-encoding" class="form-label small fw-semibold mb-1">{{ (prefix ~ 'encoding')|trans }}</label>
@@ -110,7 +110,10 @@
                     {% endif %}
 
                     {% if preview.sheet is null %}
-                        <div class="alert alert-danger">{{ (prefix ~ 'unreadable')|trans }}</div>
+                        <div class="alert alert-danger" id="participant-import-file-error">
+                            {{ preview.fileError is not null ? preview.fileError|trans : 'competition.participants.import.file.unreadable'|trans }}
+                            {% if preview.isCsv %}<span class="d-block mt-1">{{ (prefix ~ 'try_other_options')|trans }}</span>{% endif %}
+                        </div>
                         <input type="hidden" name="mode" value="{{ preview.mode.value }}">
                     {% else %}
                         {# Columns #}

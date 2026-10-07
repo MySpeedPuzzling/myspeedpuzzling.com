@@ -3925,7 +3925,7 @@ competition:
                 separator_comma: "Comma ( , )"
                 separator_semicolon: "Semicolon ( ; )"
                 separator_tab: "Tab"
-                unreadable: "The file could not be read. For a CSV file, try another encoding or separator; otherwise save it from Excel, Numbers or Google Sheets as .xlsx or .csv and upload it again."
+                try_other_options: "For a CSV file, try another encoding or separator above."
                 columns_title: "Columns"
                 columns_intro: "Choose what each column of your file holds. Columns left on “Ignore” are not imported."
                 column: "Column"

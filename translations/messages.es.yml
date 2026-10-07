@@ -3595,6 +3595,16 @@ fair_use_policy:
     "import_title": "Importar participantes"
     "import_button": "Subir y revisar"
     "import":
+      "upload":
+        "label": "Lista de participantes (.xlsx, .csv, .tsv o .txt)"
+        "choose_file": "Elige un archivo con tu lista de participantes."
+        "invalid_type": "Sube un libro .xlsx o un archivo .csv, .tsv o .txt."
+        "too_large": "El archivo es demasiado grande: como máximo %max%."
+        "failed": "No se pudo subir el archivo. Inténtalo de nuevo."
+      "file":
+        "unreadable": "No se pudo leer el archivo. Sube un libro .xlsx (Excel, Numbers, Hojas de cálculo de Google, LibreOffice) o un archivo CSV."
+        "empty": "El archivo no tiene ningún valor."
+        "too_many_rows": "El archivo tiene más de %max% filas, más de las que puede tener una lista de participantes. Sube solo la lista."
       "summary": "Importación completada: %added% añadidos, %updated% actualizados, %unchanged% sin cambios, %deleted% eliminados."
       "empty_file": "El archivo está vacío."
       "unreadable_file": "No se pudo leer el archivo. Sube un archivo .xlsx guardado desde Excel, Numbers o Hojas de cálculo de Google."
@@ -3632,7 +3642,7 @@ fair_use_policy:
         "separator_comma": "Coma ( , )"
         "separator_semicolon": "Punto y coma ( ; )"
         "separator_tab": "Tabulador"
-        "unreadable": "No se pudo leer el archivo. Si es un CSV, prueba otra codificación u otro separador; si no, guárdalo desde Excel, Numbers o Hojas de cálculo de Google como .xlsx o .csv y súbelo de nuevo."
+        "try_other_options": "Si es un archivo CSV, prueba arriba otra codificación u otro separador."
         "columns_title": "Columnas"
         "columns_intro": "Elige qué contiene cada columna de tu archivo. Las columnas que se quedan en «Ignorar» no se importan."
         "column": "Columna"

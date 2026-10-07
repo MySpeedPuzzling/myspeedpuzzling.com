@@ -74,7 +74,7 @@ final class ConfirmParticipantImportController extends AbstractController
             return $toParticipants;
         }
 
-        if ($stashed->appliedAt !== null) {
+        if ($stashed->isApplied()) {
             $this->flash('info', 'competition.participants.import.confirm.already_imported');
 
             return $toParticipants;

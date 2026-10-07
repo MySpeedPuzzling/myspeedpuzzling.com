@@ -3595,6 +3595,16 @@ competition:
     "import_title": "Importer des participants"
     "import_button": "Envoyer et vérifier"
     "import":
+      "upload":
+        "label": "Liste des participants (.xlsx, .csv, .tsv ou .txt)"
+        "choose_file": "Veuillez choisir un fichier contenant votre liste de participants."
+        "invalid_type": "Veuillez envoyer un classeur .xlsx ou un fichier .csv, .tsv ou .txt."
+        "too_large": "Le fichier est trop volumineux – %max% au maximum."
+        "failed": "Le fichier n'a pas pu être envoyé. Veuillez réessayer."
+      "file":
+        "unreadable": "Le fichier n'a pas pu être lu. Veuillez envoyer un classeur .xlsx (Excel, Numbers, Google Sheets, LibreOffice) ou un fichier CSV."
+        "empty": "Le fichier ne contient aucune valeur."
+        "too_many_rows": "Le fichier a plus de %max% lignes – plus qu'une liste de participants ne peut en contenir. Veuillez n'envoyer que la liste."
       "summary": "Import terminé : %added% ajoutés, %updated% mis à jour, %unchanged% inchangés, %deleted% retirés."
       "empty_file": "Le fichier est vide."
       "unreadable_file": "Le fichier n'a pas pu être lu. Veuillez importer un fichier .xlsx enregistré depuis Excel, Numbers ou Google Sheets."
@@ -3632,7 +3642,7 @@ competition:
         "separator_comma": "Virgule ( , )"
         "separator_semicolon": "Point-virgule ( ; )"
         "separator_tab": "Tabulation"
-        "unreadable": "Le fichier n'a pas pu être lu. Pour un fichier CSV, essayez un autre encodage ou séparateur ; sinon, enregistrez-le depuis Excel, Numbers ou Google Sheets au format .xlsx ou .csv et envoyez-le à nouveau."
+        "try_other_options": "Pour un fichier CSV, essayez ci-dessus un autre encodage ou un autre séparateur."
         "columns_title": "Colonnes"
         "columns_intro": "Choisissez ce que contient chaque colonne de votre fichier. Les colonnes laissées sur « Ignorer » ne sont pas importées."
         "column": "Colonne"

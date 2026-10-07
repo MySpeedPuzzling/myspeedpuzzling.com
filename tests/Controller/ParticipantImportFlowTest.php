@@ -52,6 +52,7 @@ final class ParticipantImportFlowTest extends WebTestCase
         self::assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
         self::assertSame('same-origin', $response->headers->get('Referrer-Policy'));
         self::assertSame('noindex, nofollow', $crawler->filter('meta[name="robots"]')->attr('content'));
+        self::assertStringNotContainsString('competition.participants.', $crawler->filter('main')->text(), 'Untranslated key');
 
         self::assertStringContainsString('participants.csv', $crawler->filter('turbo-frame#participant-import-preview')->text());
         self::assertSame('advance', $crawler->filter('turbo-frame#participant-import-preview')->attr('data-turbo-action'));
@@ -69,7 +70,7 @@ final class ParticipantImportFlowTest extends WebTestCase
         self::assertCount(1, $crawler->filter('select[name="separator"]'));
 
         // Mode: "Update only" by default
-        self::assertSame('checked', $crawler->filter('#participant-import-mode-update')->attr('checked'));
+        self::assertNotNull($crawler->filter('#participant-import-mode-update')->attr('checked'));
 
         // The plan
         self::assertCount(1, $crawler->filter('#participant-import-summary [data-import-action="new"]'));
@@ -149,12 +150,9 @@ final class ParticipantImportFlowTest extends WebTestCase
 
         // Somebody else changes the event meanwhile
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->persist(new CompetitionParticipant(
-            Uuid::uuid7(),
-            'Casey Example',
-            null,
-            $entityManager->getReference(Competition::class, self::COMPETITION),
-        ));
+        $competition = $entityManager->find(Competition::class, self::COMPETITION);
+        self::assertNotNull($competition);
+        $entityManager->persist(new CompetitionParticipant(Uuid::uuid7(), 'Casey Example', null, $competition));
         $entityManager->flush();
 
         $this->browser->submit($form);
@@ -195,12 +193,13 @@ final class ParticipantImportFlowTest extends WebTestCase
         $crawler = $this->browser->request('GET', $this->previewUrl($token) . '?mode=sync');
 
         $this->assertResponseIsSuccessful();
-        self::assertSame('checked', $crawler->filter('#participant-import-mode-sync')->attr('checked'));
+        self::assertNotNull($crawler->filter('#participant-import-mode-sync')->attr('checked'));
         // Participants of the event that are not in the file
         $removals = $crawler->filter('#participant-import-removals')->text();
         self::assertStringContainsString('Will be removed', $removals);
         self::assertStringContainsString('Jane Unconnected', $removals);
         self::assertCount(1, $crawler->filter('#participant-import-confirm input[name="confirm_removal"][required]'));
+        self::assertStringNotContainsString('competition.participants.', $crawler->filter('main')->text(), 'Untranslated key');
 
         $form = $this->confirmForm($crawler);
         self::assertSame('sync', $form->getPhpValues()['mode']);
@@ -213,7 +212,7 @@ final class ParticipantImportFlowTest extends WebTestCase
         self::assertSame(1, $this->participantsCalled('Jane Unconnected'));
         $crawler = $this->browser->followRedirect();
         self::assertStringContainsString('Please tick the box', $crawler->filter('.alert-danger')->text());
-        self::assertSame('checked', $crawler->filter('#participant-import-mode-sync')->attr('checked'));
+        self::assertNotNull($crawler->filter('#participant-import-mode-sync')->attr('checked'));
 
         $form = $this->confirmForm($crawler);
         /** @var \Symfony\Component\DomCrawler\Field\ChoiceFormField $checkbox */

@@ -59,7 +59,7 @@ final class ParticipantImportPreviewController extends AbstractController
         $stashed = $this->stash->describe($token, $competitionId)
             ?? throw new NotFoundHttpException('The uploaded participant list is gone or belongs to another event.');
 
-        $preview = $stashed->appliedAt === null
+        $preview = $stashed->isApplied() === false
             ? $this->previewBuilder->build($stashed, $competitionId, $request->query->all())
             : null;
 

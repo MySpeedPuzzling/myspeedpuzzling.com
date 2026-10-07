@@ -11,11 +11,13 @@ use SpeedPuzzling\Web\Value\ParticipantFileOptions;
 use SpeedPuzzling\Web\Value\ParticipantFileSheetInfo;
 use SpeedPuzzling\Web\Value\ParticipantImportMode;
 use SpeedPuzzling\Web\Value\StashedParticipantImport;
+use Symfony\Component\Translation\TranslatableMessage;
 
 /**
  * Turns the import preview's form state (query of the preview, hidden fields of the confirm) into what the page shows
  * and what the confirm applies - one code path for both, so the confirm never differs from what was shown.
- * Reads only: the stash, the event's rounds and the plan.
+ * Reads only: the stash, the event's rounds and the plan. A token the stash does not keep for this event throws
+ * StashedParticipantImportNotFound (404) - left to bubble.
  */
 readonly final class ParticipantImportPreviewBuilder
 {
@@ -35,16 +37,16 @@ readonly final class ParticipantImportPreviewBuilder
 
         try {
             $sheets = $this->stash->sheets($stashed->token, $competitionId);
-        } catch (ParticipantFileUnreadable) {
-            return new ParticipantImportPreview($stashed, [], 0, $options, $mode);
+        } catch (ParticipantFileUnreadable $e) {
+            return new ParticipantImportPreview($stashed, [], 0, $options, $mode, fileError: self::errorOf($e));
         }
 
         $sheetIndex = self::chosenSheet($sheets, $input['sheet'] ?? null);
 
         try {
             $sheet = $this->stash->sheet($stashed->token, $competitionId, $sheetIndex, $options);
-        } catch (ParticipantFileUnreadable) {
-            return new ParticipantImportPreview($stashed, $sheets, $sheetIndex, $options, $mode);
+        } catch (ParticipantFileUnreadable $e) {
+            return new ParticipantImportPreview($stashed, $sheets, $sheetIndex, $options, $mode, fileError: self::errorOf($e));
         }
 
         $rounds = $this->planner->rounds($competitionId);
@@ -88,6 +90,11 @@ readonly final class ParticipantImportPreviewBuilder
             rows: $rows,
             plan: $this->planner->plan($competitionId, $rows, $mode),
         );
+    }
+
+    private static function errorOf(ParticipantFileUnreadable $e): TranslatableMessage
+    {
+        return new TranslatableMessage($e->translationKey, $e->translationParameters);
     }
 
     /**

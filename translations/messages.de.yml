@@ -3594,6 +3594,16 @@ qr_code:
     "import_title": "Teilnehmer importieren"
     "import_button": "Hochladen und prüfen"
     "import":
+      "upload":
+        "label": "Teilnehmerliste (.xlsx, .csv, .tsv oder .txt)"
+        "choose_file": "Bitte wählen Sie eine Datei mit Ihrer Teilnehmerliste."
+        "invalid_type": "Bitte laden Sie eine .xlsx-Arbeitsmappe oder eine .csv-, .tsv- oder .txt-Datei hoch."
+        "too_large": "Die Datei ist zu groß – höchstens %max%."
+        "failed": "Die Datei konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut."
+      "file":
+        "unreadable": "Die Datei konnte nicht gelesen werden. Bitte laden Sie eine .xlsx-Arbeitsmappe (Excel, Numbers, Google Tabellen, LibreOffice) oder eine CSV-Datei hoch."
+        "empty": "Die Datei enthält keine Werte."
+        "too_many_rows": "Die Datei hat mehr als %max% Zeilen – mehr, als eine Teilnehmerliste haben kann. Bitte laden Sie nur die Liste hoch."
       "summary": "Import abgeschlossen: %added% hinzugefügt, %updated% aktualisiert, %unchanged% unverändert, %deleted% entfernt."
       "empty_file": "Die Datei ist leer."
       "unreadable_file": "Die Datei konnte nicht gelesen werden. Bitte laden Sie eine .xlsx-Datei hoch, die mit Excel, Numbers oder Google Tabellen gespeichert wurde."
@@ -3631,7 +3641,7 @@ qr_code:
         "separator_comma": "Komma ( , )"
         "separator_semicolon": "Semikolon ( ; )"
         "separator_tab": "Tabulator"
-        "unreadable": "Die Datei konnte nicht gelesen werden. Versuchen Sie bei einer CSV-Datei eine andere Zeichenkodierung oder ein anderes Trennzeichen; andernfalls speichern Sie sie aus Excel, Numbers oder Google Tabellen als .xlsx oder .csv und laden Sie sie erneut hoch."
+        "try_other_options": "Versuchen Sie bei einer CSV-Datei oben eine andere Zeichenkodierung oder ein anderes Trennzeichen."
         "columns_title": "Spalten"
         "columns_intro": "Wählen Sie, was jede Spalte Ihrer Datei enthält. Spalten auf „Ignorieren“ werden nicht importiert."
         "column": "Spalte"

@@ -43,6 +43,8 @@ readonly final class ParticipantImportPreview
         public array $mappingErrors = [],
         public null|ParticipantImportRows $rows = null,
         public null|ParticipantImportPlan $plan = null,
+        /** Why the file or the chosen sheet could not be read (sheet = null) */
+        public null|TranslatableMessage $fileError = null,
     ) {
     }
 

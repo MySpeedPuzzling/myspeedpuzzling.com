@@ -766,3 +766,217 @@ an automatic rule would also race with results being entered). As built:
 - Real touch, screen-reader and paste behaviour of every library (no browser test, which is what stage 0 is for). JS
   sizes from esbuild, not Webpack Encore.
 - The in-house effort estimate.
+
+## Client architecture (as built)
+
+Stream C of the delivery (the client core + the basic People grid). Streams D (round tabs) and E (People extras, person
+editor, phone list) build on these APIs. Everything is plain ES modules under `assets/participants_sheet/` (no bundler-only
+import - they run as native modules in a browser and under node), plus the lazy Stimulus controller
+`assets/controllers/participants_sheet_controller.js`. Pure modules are pinned by
+`tests/ParticipantsSheetCoreScriptsTest.php` → `tests/participants-sheet-core-harness.mjs` → the suites in
+`tests/participants-sheet-core/` (node:assert; `echo '[{"suite":"queue"}]' | node tests/participants-sheet-core-harness.mjs`).
+
+### Modules
+
+| Module | Responsibility |
+|---|---|
+| `tsv.js` | Clipboard: `parseClipboardText` (tabs, CRLF/LF/CR, one trailing line end, RFC 4180 quoting only where a producer had to, BOM), `parseClipboardHtml` (fallback), `rowsFromClipboard(text, html)`, `toTsv` / `toHtmlTable` (copy), `readBoolean` (TRUE/FALSE, 1/0, x, yes/no in the site's languages → true/false/null), `trimCell`. From the stage 0b spike. |
+| `grid_keys.js` | `nextAction(state, keyEvent)` - the APG grid keyboard model as a pure state machine (navigation vs edit, Tab wrap, IME, AltGr, non-Latin layouts). From the spike. |
+| `sheet_model.js` | `SheetModel` - the state JSON (§4.2) as indexes, the derived facts, the optimistic overlay, merges; `SheetMarks` (cell markers); `Working` (the copy-on-write state the overlay and inverses run on); cleaning helpers identical to the server's (`cleanName`, `cleanTeamName`, `cleanOptionalText`, `nameKey` = ParticipantNameKey). |
+| `sheet_changes.js` | Builders of **actions** for every op of §3.1 and the composite actions; client checks with the server's reason codes; exact inverses. |
+| `sheet_save_queue.js` | `SheetSaveQueue` - the one FIFO to the server, the version protocol, retries, problems. |
+| `sheet_undo.js` | `SheetUndo` - per page view. |
+| `sheet_live.js` | `SheetLive` - the Mercure stream (`OfficialResultsEvents` with the state's token), version polling, catch-up. |
+| `sheet_grid.js` | `SheetGrid` - the generic DOM grid views configure. `escapeHtml`, `markerHtml`. |
+| `preview_dialog.js` | `PreviewDialog` - the generic match-then-confirm `<dialog>`. |
+| `views/people_view.js` | The People grid (desktop) - the first real view, extended by stream E. |
+
+### Data flow
+
+1. A view builds an **action** with a `sheet_changes.js` builder and calls `context.act(action)`.
+2. `act()` announces client refusals (`action.errors`), shows every group at once (`model.applyLocal(groupId, changes)`),
+   queues them (`queue.enqueueGroups`), queues results changes (`action.results` → `queue.results(roundId).set(...)` +
+   `enqueueResults`) and records one undo step.
+3. The queue sends after ~800 ms (one request in flight). Per answered group: applied/unchanged → `model.confirm(id,
+   deletedTeams)` (folded into the base, markers cleared); conflict/refused → `model.revert(id)` + a **problem** (with the
+   server's translated message and `current`) + a marker on the cell. `versionBefore === model.version` (and not a
+   replay) → `model.version = versionAfter`; otherwise the state is fetched (through the same FIFO, so a fetch never races
+   our own save) and merged. Saves that create what the browser cannot know (new round entries' ids, `source` after a
+   removal, registration after a restore, a new person) fetch the state 1.5 s after things got quiet.
+4. Every model change emits a **delta** `{people: Set, teams: Set, rounds: Set, rows: bool, all: bool}` (a diff of what
+   views read - unchanged records keep their identity, so the diff is cheap); the controller hands it to the mounted
+   view's `update(delta)` and re-renders the tab counts. Marker changes emit deltas the same way.
+5. Live: `participants_sheet.changed` with an unknown version → fetch; `official_results.entries` → `model.mergeEntries`
+   (an unknown ref → fetch); `.refresh` → fetch; `.round` → `model.updateRound`. Plus `GET urls.version` every 30 s while
+   visible and idle, a fetch when the tab returns after 10 s, when the browser is online again, and when the stream
+   reopens.
+
+### The model (`SheetModel`)
+
+Reading (base + pending, i.e. what the organiser sees): `rounds()`, `round(id)`, `people({includeRemoved})` (state order -
+by name - with people added on the page at the end), `person(id)`, `team(id)`, `teamsOf(roundId)` (state order, new ones
+last), `place(personId, roundId)`, `placeValue(personId, roundId)` → `out` | `in` | `team:<id>`, `placesOf(personId)`,
+`placeById(entryId)`, `peopleIn(roundId)`, `membersOf(teamId)` (active people), `trayOf(roundId)` (in the round without a
+pair/team), `expectedSize(roundId)` (2 for pairs, the stored size of a team round else `usualTeamSize()` = the most common,
+the smaller on a tie, ≥ 2; null for solo), `isNamesOnly(roundId)` (O7), `sizeStatus(teamId)` → `{count, expected, status:
+complete | incomplete | too_many | empty | names_only}`, `sameNameTeams(roundId)` → Map teamId → other ids,
+`problems(roundId)` → `{incomplete, tooMany, withoutTeam, sameName, total}` (total = the tab badge; same names are
+informational), `peopleInNoRound()`, `duplicateNames()` / `peopleNamed(name)` (ParticipantNameKey fold),
+`teamLabel(teamId)` → `{name, table, members}` (O1 - the view formats `Corners · Table 2 · Kim Example, Pat Sample`),
+`entryRef(personId, roundId)` → `participant_round:<id>` / `team:<id>` / null for an entry not saved yet,
+`holdsDataInRound()` / `holdsDataInEvent()` (the results guard on what the page knows), `isRemoved()`, `isWaitlisted()`.
+Derived values are cached per change.
+
+Writing: `applyLocal(groupId, changes)`, `confirm(groupId, deletedTeams)`, `revert(groupId)`, `replaceState(state)` (a
+fetched state; pending groups replayed on it; a newer live result is never replaced by an older state), `mergeEntries(entries)`
+→ `{unknown, delta}`, `updateRound(overview)`, `scratch()`, `subscribe(listener)`. `model.version` = the known sheet
+version, `model.resultsGeneration` counts merged result updates. Places created on the page have `local: true` and an id
+`local:…` until the next state.
+
+**Markers** (`model.marks`, a `SheetMarks`): key → `{state: saving | waiting | conflict | refused | warning, message,
+groupId, problemId}`. Keys: `person:<id>:<name|country|externalId|note|player|removed>`, `place:<personId>:<roundId>`,
+`team:<teamId>:<name|delete>`, `round:<roundId>:teamSize`, `result:<ref>:<result|table_number|qualified>`. Views ask
+`context.markerFor(key)` → `{state, text, title}` and put it in a cell's `marker` (the grid draws an icon **and** a
+word). Server warnings mark `person:<id>:name` / `team:<id>:name` for 20 s and are announced.
+
+### Actions (`sheet_changes.js`)
+
+An action = **one undo step**: `{label: {key, …}, groups: [{id, changes}], inverse: [{id, inverseOf, changes}], errors:
+[{reason, change}], results?: [{roundId, ref, field, from, to}], inverseResults?}`. A group is atomic on the server; an
+action holds several groups when its parts are independent (a bulk "Solo: in" of 40 rows = 40 groups). Every `from` is
+what the model shows (the organiser's own pending value included - a second edit chains on the first). `errors` are
+client refusals (codes of §3.1: `name_blank`, `name_too_long`, `invalid_country` (with `countries`), `note_too_long`,
+`external_id_too_long`, `team_name_too_long`, `participant_removed`, `has_result_in_round`, `has_result_in_event`,
+`team_has_result`, `player_linked_elsewhere`, `not_a_team_round`, `team_of_another_round`, `invalid_team_size`, …);
+those groups never leave the browser. Inverses are computed change by change on a scratch state: a deleted pair is
+created again **with the same id** and its active members put back; a pair the server will delete automatically when a
+group empties it is created again first; a new person's undo is `remove`, its redo `restore`.
+
+Builders (each `(model, …, options)` with `options = {newId?, countries?, label?}`): `setField(personId, field, value)`,
+`setFields(field, [{personId, value}])`, `linkProfile(personId, player|null)` (`player` = `{id, name, code, avatar,
+country, profileUrl}` - shown at once via the `_player` hint, stripped from the wire), `addPerson({name, country?,
+externalId?, id?})` (+ `personId`), `removePeople(ids)`, `restorePeople(ids)`, `setPlace(personId, roundId, to)`,
+`setInRound(ids, roundId, bool)`, `newTeamRow(roundId, {id?, name, members: [personId | {name, country}]})` (+ `teamId`;
+"type a pair into the new row" - one group: new people, the team, every member placed from wherever they are),
+`putInTeam(roundId, teamId, personId | {name, country})` (move / add, + `personId`), `clearMember(roundId, personId)`
+(→ the tray), `renameTeam(teamId, name)`, `deleteTeam(teamId)`, `setTeamSize(roundId, size|null)`, `resultsAction(changes)`
+(RecordRoundResults fields, undone by the swapped change). Lower level: `buildAction(model, [[changes], …])`,
+`combine(label, …actions)` (independent actions as one step), `invertGroups(groups, model)`, `checkChange(change, state)`,
+`changeTarget(change, model)` (marker key + entities), `wireChange` / `wireGroups`, `isEmpty(action)`.
+
+Undo labels (`label.key`) map to `action_<key>` texts (core); a new key needs its text there.
+
+### The save queue (`SheetSaveQueue`)
+
+Items: `sheet` (groups → `urls.changes`, `changesetId` kept across retries - frozen once sent, later groups go into a new
+changeset; limits 1,000 groups / 5,000 changes), `results` (a round's queued cells of a `PendingChanges` - the results
+desk's module - → `urls.record`), `tables` (`enqueueTables(roundId, [{entry, from, number}])` → `urls.tables`, resolves
+`{kind: ok, entries}` | `{kind: refused, problems}` - a refusal also fetches the state), `preview` (`preview(groups)` → the
+dry run answer, after everything queued before it, never retried), `state` (`refetch()`, coalesced, resolves to the
+answer's kind). Debounce 800 ms after the last edit (results and sheet groups); one request in flight; offline / 5xx /
+busy kept and retried after 2, 5, 10, 20, 30 s (typing does not shorten the backoff), at once on `online()`; `auth`,
+`forbidden`, `gone` stop sending until `retryNow()` (dry runs and fetches answer at once meanwhile).
+
+For results: `queue.results(roundId)` is the round's `PendingChanges` (`set(ref, field, to, seen)`, `value(ref, field,
+serverValue)` for what a cell shows, `get(ref, field)` for its status) - D's result cells read it; `context.act()` with
+`action.results` fills it.
+
+Problems: `problems()` → `[{id, kind: sheet|results, status: conflict|refused, reason, message, current, change | ref+field,
+group (with `origin` = the tab it was made on), target: {key, people, teams, rounds}}]`; `keepMine(id)` (a sheet group sent
+again with `from` = the current value of its conflicting changes; results: the desk's keep mine), `dismiss(id)` (use
+theirs / OK - a conflict fetches the state), `retryProblem(id)` (a refused results cell). Status:
+`status()` → `{state: saved | saving | waiting | offline | attention | auth | forbidden | gone, waiting, attention}`.
+Events (`subscribe`): `status`, `outcome` (every answered group - the undo stack and views listen), `warnings`, `problems`,
+`state` (a fetch answered, with `kind`), `results`, `gone`. `installLeaveGuards({window, document, confirm, message})`
+(beforeunload + turbo:before-visit while `hasUnsaved()` - unsent changes or undecided conflicts).
+
+### Undo (`SheetUndo`)
+
+`record(action)`, `outcome(groupId, status)` (→ `'undo'` / `'redo'` when an undo/redo group was refused: the controller
+says "Can't undo - somebody changed it meanwhile"), `undo(model)` / `redo(model)` → an action with `kind` (performed by
+`act()`, which hands it back with `done()`), `canUndo/canRedo`, `peekUndo/peekRedo`. Only forward groups that went
+through (or are still on their way) are undone; a step with nothing left is skipped. Limit 100 steps.
+
+### The grid (`SheetGrid`)
+
+`new SheetGrid({container, label, columns, rows, cell, …callbacks})` - views get it through `context.createGrid(options)`
+(texts, announce and undo/redo pre-wired). Native `<table role="grid">`, every row in the DOM, no content-visibility.
+
+Columns: `{key, label, kind: text | list | checkbox | readonly | action, width (px - every column should have one: the
+table then gets a fixed width and the browser never measures 10,000 cells), headerHtml?, space?: 'panel', autoHighlight?
+(list: the first suggestion highlighted, default true), className?}`. The first column is the sticky row header.
+
+`cell(rowKey, colKey)` → `{text, html?, checked?, label? (checkbox name), readonly?, marker?, className?, copy?}` - keep
+the markup small (every element costs layout time: a 400 × 18 sheet is 7,000+ cells; plain text needs no wrapper).
+
+Callbacks: `commit(row, col, {text, option}, {fill, cells})` → `{error}` keeps the editor open with the reason
+(`aria-invalid` + described), `{focus: {row, col} | (move) => {row, col}}` overrides where the focus goes next;
+`suggest(row, col, query)` → options (array or `{options, hint}`, sync or a Promise; option = `{value, label, html?, detail?,
+create?, className?, …anything the view needs back}`); `toggle(cells, value|null)`; `clear(cells)`; `paste(anchor, rows,
+selectedCells)` (rows already parsed by tsv.js); `fill('down' | 'selection', {rows, cols}, active)`; `cut(cells)` (default
+clear); `activate(row, col)` (action cells: Enter, double click); `openPanel(row)` (Space on a `space: 'panel'` column);
+`editValue(row, col)` (Enter/F2 start text); `rowLabel(row)` (editor/checkbox names); `rowClass(row)`.
+
+Methods: `setRows(keys)` (keyed: rows reused, created, removed, moved - cells not re-rendered), `updateRows(keys)` /
+`updateCell(row, col)` (cell-local: only cells whose markup changed are touched; a focused checkbox keeps its element;
+the cell being edited is never re-rendered), `focusCell(row, col)`, `focusActive()`, `isEditing()`, `fitHeight()`,
+`destroy()`; `grid.rows`, `grid.columns`, `grid.active`, `grid.stats` (`renderMs`, `lastCommitMs`, `lastCellMs`).
+
+Behaviour: roving tabindex (a checkbox cell focuses its checkbox - its name carries the checked state); ranges by
+Shift+arrows, mouse drag, Shift+Space (row), Ctrl+Space or a header click (column), Ctrl+A; one floating 16 px editor
+(IME-safe; Enter/Tab/arrows commit and move per grid_keys); `list` columns are a combobox + listbox (arrows, Enter/Tab pick,
+Esc closes the list, a second Esc cancels); Ctrl/Cmd+C/X/V through a hidden textarea (WebKit sends no clipboard event to
+a table cell); a blur commits (a refused value is dropped and its reason announced); the scroller's height fits the
+viewport, sticky header + first column with scroll padding (2.4.11).
+
+### The view interface
+
+A view module is `assets/participants_sheet/views/<name>.js` with `export default function (context) → view`. The
+controller picks it by name (`VIEW_MODULES` in the controller) and loads it with a dynamic import (a separate chunk):
+
+| Tab | Desktop | Phone (< 768 px) | Missing module |
+|---|---|---|---|
+| People | `people_view` (C, E extends) | `people_list_view` (E) | the People grid |
+| solo round | `solo_round_view` (D) | `round_cards_view` (D) | a summary placeholder |
+| duo / team round | `team_round_view` (D) | `round_cards_view` (D) | a summary placeholder |
+| person editor (Space on a name) | `person_editor` (E): `export default (context) → {open(personId), update?(delta), destroy()}` | same | nothing happens |
+
+`context`: `root` (the view's element), `kind` (`people` | `round`), `round` (round tabs), `phone`, `model`, `queue`, `undo`,
+`texts` (`{core, round, people}`, each `{t(key, params), tc(key, count, params), has(key)}` over `_texts_core|round|people`),
+`countries` (code → label), `countryCodes` (Set), `locale`, `urls`, `csrfToken`, `act(action, {origin?, quiet?})` → `{performed,
+errors}`, `announce(text)` (the polite live region), `switchTab(tabId, focus)` (`focus` = `{personId?, teamId?, col?}` handed
+to the new view's `focus()`), `openPersonEditor(personId)`, `createGrid(options)`, `preview(options)` (an open
+`PreviewDialog`), `reasonText(code)`, `markerFor(key)`.
+
+`view`: `render()`, `update(delta)` (re-render only what the delta names), `focus(target)`, `reveal(problem)` (jump to a
+problem's cell - the problems panel's "Show"), `onOutcome?(event)`, `destroy()`.
+
+The controller owns: tabs (People + every round in order, counts, problem badges, `?tab=` via `replaceState`, APG tab
+keys), the status pill (click: problems / retry / reload), banners (signed out, forbidden, gone, offline), the problems
+panel (Show, Keep mine, Use theirs, OK, Try again), undo/redo (targets + Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y outside text
+inputs), the keyboard help (`help` target or `?` outside the grid), the live region, the phone breakpoint, and the
+teardown of every listener in `disconnect()`. The undo/redo/help buttons are wired by the controller unless their markup
+already calls `participants-sheet#undo` / `#redo` / `#showHelp`.
+
+### The People grid (basic, `views/people_view.js`)
+
+Name (sticky row header; badges "On the waitlist", "Joined by themselves"), Country (combobox over `countries`, typed
+codes and names accepted), MySpeedPuzzling profile (O9: name + #CODE + a link when visible, else "Linked to a
+MySpeedPuzzling profile"; a combobox over `urls.playerSearch` - Open / Unlink while nothing is typed), a checkbox column
+per solo round, a read-only label per pair/team round (team name or "(no name)", "No pair yet", size when off; Enter or a
+double click opens the round's tab at the person), the new-person row (type a name, Enter = the next name, Tab = the new
+person's next cell). Delete clears (a name refuses), Ctrl+D / Ctrl+Enter fill country and solo columns, paste fills
+names / countries / solo columns of existing rows (one value onto a selection fills it); more than 10 rows or anything
+left out opens the preview with the server's dry run; rows below the list are listed, not added (adding by paste is E's).
+
+### Measured (2026-10-08, standalone harness, headless Chromium 124, invented WJPC-sized event)
+
+400 people × 15 rounds (18 columns, 7,236 cells, 100 pairs, 50 teams): render 190 ms at 1× CPU (layout ~95 ms of it),
+760-820 ms at 4×; an edit = 6-8 ms from Enter to the re-rendered cell (the cell itself 0.3 ms). 1,000 people: render
+500 ms, an edit 7.6 ms. Checked with real keys (CDP): arrows, Home/End, Ctrl+Home/End, PageDown, Tab wrap, leaving with
+Ctrl+End + Tab, ranges, header click, the focused cell never under the sticky header/column, typing to edit, Enter/Esc,
+an invalid name kept with `aria-invalid` + the reason, country and profile comboboxes, a checkbox cell, the new-person
+row, Delete, Ctrl+D, undo/redo through the server, a real Ctrl+V of an Excel CRLF block, a 12-row paste through the
+preview + dry run, Ctrl+C as TSV, a conflict + Keep mine, a live version change keeping the focus, offline + back online,
+an IME composition, the tabs keyboard, the help dialog, `disconnect()` leaving no listener, timer or request; no
+horizontal page scroll at 1280 and 375 px.

@@ -203,10 +203,12 @@ A round whose results are published leads its public page (`event_round_results`
   offer) (`OfficialRoundResultsPageTest`). The meta description counts every ranked entry (`rankedCount`), whatever the
   viewer's blocks hide.
 - **Add to my profile**: offered to the signed-in viewer on their own entry. When the organiser linked them to **no
-  entry of the round at all** (did not start and no result yet count as entries): on a **pair/team nobody is linked
-  to** (team names only, the Minnesota case), and on an **unlinked person whose name is the viewer's**
-  (`ParticipantNameKey` - case, accents, spaces and dashes do not matter - and no other country) - never on every
-  unlinked row for every visitor (an imported WJPC group is mostly unlinked). Such a viewer gets one line under the table
+  entry of the round at all** (did not start and no result yet count as entries): on an **unlinked person whose name is
+  the viewer's** (`ParticipantNameKey` - case, accents, spaces and dashes do not matter - and no other country), on a
+  **pair/team nobody is linked to with one member of the viewer's name** (the same rule), and on a **pair/team with no
+  member names at all** (the organiser typed the team's name only, the Minnesota case - nothing tells whose it is, so
+  every such viewer) - never on every unlinked row for every visitor (an imported WJPC group or pairs round is mostly
+  unlinked). Such a viewer gets one line under the table
   instead, "Is your name here? Connect it to your profile" → the event's join flow (`join_competition`), when some name
   of the round is nobody's. Offered for a **finished** result, in a round with **exactly one puzzle** that the viewer
   sees revealed (not left out by the reveal rules, picture not hidden), until they have a time in the round
@@ -216,7 +218,7 @@ A round whose results are published leads its public page (`event_round_results`
   untouched round page, which runs exactly main's statements for every viewer (no permission check; pinned by
   `OfficialRoundResultsPageTest`).
   The link is `puzzle_add` with `?competition=<id>&official_entry=<participant_round|team>:<id>`;
-  `OfficialEntryTimePrefill` (GET only) re-runs the very same read model for the viewer and fills the form in only for an
+  `OfficialEntryTimePrefill` re-runs the very same read model for the viewer and fills the form in (GET) only for an
   entry it offers - anything else is ignored silently: the puzzle, the time, the finished date (the round's start day in
   the round's zone), the competition, and for a pair/team the co-puzzlers (linked members by `#CODE`, the others as guest
   names) and the pair's/team's name when the form may still set it (no puzzling team of these exact people yet, or an
@@ -225,9 +227,15 @@ A round whose results are published leads its public page (`event_round_results`
   picker opens in Pair/Team mode without Solo (a "pair" recorded with more people opens as a team), and when the people
   are fewer than the category needs (pair 2, team 3, the viewer included) the form says "Add the person/people you
   puzzled with" - a team typed by name only, a linked viewer whose partner was not recorded. In a pair/team nobody is
-  linked to, the member named like the viewer (one match) is left out; with no clear match nobody is filled in (one of
-  the names is the viewer - all of them would make a pair of three) and the form asks "Which one of them are you?" with
-  one link per name (`&official_member=<position>`, read back the same way). The save is an ordinary time: first try,
+  linked to, the member named like the viewer (`ParticipantNameKey`, one match) is left out; with two members of the
+  viewer's name nobody is filled in (one of them is the viewer - both would make a pair of three) and the form asks
+  "Which one of them are you?" with one link per name (`&official_member=<position>`, read back the same way). The
+  entry travels on in the form (hidden `official_entry` + `official_member`) and **the save checks it again**: for a
+  pair/team result of the form's competition and puzzle, the people sent must be the category's - a pair exactly two,
+  a team three or more, the tracker included (`OfficialEntryTime::groupRefusal()`) - otherwise 422 with "Add the
+  person/people you puzzled with" (or "A pair is two people") on the form, everything typed and the photos kept like
+  any refused save. So an empty picker or a skipped "Which one are you?" never saves a pair/team result as a solo time.
+  A form whose puzzle or competition was changed is no longer that entry. The save is an ordinary time: first try,
   duplicates, secret puzzles and privacy run as for any other.
 - **Event and edition pages**: `CompetitionEvent::$hasPublishedOfficialResults` (an EXISTS in `GetCompetitionEvents::byId()`,
   the statement every competition page runs anyway) turns on the official counts in `CountCompetitionResults::forCompetition()`

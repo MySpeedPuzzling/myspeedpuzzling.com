@@ -69,6 +69,36 @@ readonly final class OfficialEntryTime
         return max(0, $needed - 1 - count($this->groupPlayers));
     }
 
+    /**
+     * The picker's mode for a form that holds this many co-puzzlers: the round's - except more people than a pair
+     * holds, shown as they are (a team) next to the form error asking to keep one.
+     */
+    public function pickerModeWith(int $coPuzzlers): null|string
+    {
+        $mode = $this->pickerMode();
+
+        return $mode === 'pair' && $coPuzzlers > 1 ? null : $mode;
+    }
+
+    /**
+     * Why a save with this many co-puzzlers (the tracker not counted) is not this pair's/team's result - null when it
+     * is: a pair is exactly two people, a team three or more. A solo entry takes any group.
+     *
+     * @return null|array{message: string, count: int}
+     */
+    public function groupRefusal(int $coPuzzlers): null|array
+    {
+        return match ($this->pickerMode()) {
+            'pair' => match (true) {
+                $coPuzzlers < 1 => ['message' => 'puzzle_add.official_entry.pair_needs_partner', 'count' => 1],
+                $coPuzzlers > 1 => ['message' => 'puzzle_add.official_entry.pair_too_many', 'count' => $coPuzzlers + 1],
+                default => null,
+            },
+            'team' => $coPuzzlers < 2 ? ['message' => 'puzzle_add.official_entry.team_needs_people', 'count' => 2 - $coPuzzlers] : null,
+            default => null,
+        };
+    }
+
     public function hours(): int
     {
         return intdiv($this->seconds, 3600);

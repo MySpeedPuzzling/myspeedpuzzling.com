@@ -262,7 +262,7 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
         self::assertFalse($results->offersConnecting, 'linked already');
     }
 
-    public function testAPairNobodyIsLinkedToIsOfferedToAViewerLinkedToNoEntry(): void
+    public function testAPairNobodyIsLinkedToIsOfferedOnlyToAViewerOfOneOfItsNames(): void
     {
         // Corner Pieces (Cara, Dan - typed names, nobody linked) finished after all
         $this->database->executeStatement(
@@ -271,7 +271,15 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
         );
         $this->publish(OfficialResultsFixture::ROUND_PAIRS);
 
+        // Linked to nothing, but neither of the two is Michael Johnson: somebody else's pair
         $this->viewAs(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $results = $this->results(OfficialResultsFixture::ROUND_PAIRS);
+        self::assertNull(self::states($results)[OfficialResultsFixture::TEAM_CORNERS]);
+        self::assertTrue($results->offersConnecting);
+
+        // Dan is him after all (the organiser's spelling, his country): the pair is offered to him
+        $this->renameParticipant(OfficialResultsFixture::PARTICIPANT_DAN, 'michael JÓHNSON');
+        $this->database->executeStatement("UPDATE competition_participant SET country = 'de' WHERE id = :id", ['id' => OfficialResultsFixture::PARTICIPANT_DAN]);
         self::assertSame(OfficialEntryProfileState::Offer, self::states($this->results(OfficialResultsFixture::ROUND_PAIRS))[OfficialResultsFixture::TEAM_CORNERS]);
 
         // Hugo's player is in Edge Hunters: his pair is his, Corner Pieces is somebody else's
@@ -279,6 +287,24 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
         $states = self::states($this->results(OfficialResultsFixture::ROUND_PAIRS));
         self::assertNull($states[OfficialResultsFixture::TEAM_CORNERS]);
         self::assertSame(OfficialEntryProfileState::Offer, $states[OfficialResultsFixture::TEAM_EDGES]);
+    }
+
+    public function testAPairOfANameOnlyIsOfferedToEveryViewerLinkedToNoEntry(): void
+    {
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+        // Minnesota: the organiser typed the pair's name, nobody of it - no name to tell whose it is
+        $teamId = Uuid::uuid7()->toString();
+        $this->database->executeStatement(
+            "INSERT INTO competition_team (id, round_id, name, result_seconds, result_did_not_start) VALUES (:id, :roundId, 'Lake Puzzlers', 5100, false)",
+            ['id' => $teamId, 'roundId' => OfficialResultsFixture::ROUND_PAIRS],
+        );
+
+        $this->viewAs(PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertSame(OfficialEntryProfileState::Offer, self::states($this->results(OfficialResultsFixture::ROUND_PAIRS))[$teamId]);
+
+        // Linked to a pair of the round: theirs is theirs
+        $this->viewAs(PlayerFixture::PLAYER_REGULAR);
+        self::assertNull(self::states($this->results(OfficialResultsFixture::ROUND_PAIRS))[$teamId]);
     }
 
     public function testTheRankedCountIsTheRoundsWhateverTheViewerMaySee(): void

@@ -42,6 +42,7 @@ INNER JOIN manufacturer m ON m.id = p.manufacturer_id
 WHERE pst.player_id = :playerId
     AND pst.puzzling_type = 'solo'
     AND pst.seconds_to_solve IS NOT NULL
+    AND pst.suspicious = false
     AND pst.puzzle_id IN (:puzzleIds)
 GROUP BY pst.puzzle_id
 SQL;

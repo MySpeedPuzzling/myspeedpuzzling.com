@@ -107,6 +107,7 @@ INNER JOIN
 WHERE
     puzzle_solving_time.player_id IN (:playerIds)
     AND puzzle_solving_time.puzzling_type = 'solo'
+    AND puzzle_solving_time.suspicious = false
     AND puzzle.pieces_count = 500
 SQL;
 

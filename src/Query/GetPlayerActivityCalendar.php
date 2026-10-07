@@ -41,6 +41,7 @@ WHERE
     finished_at IS NOT NULL
     AND finished_at >= :dateFrom
     AND finished_at <= :dateTo
+    AND suspicious = false
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -108,6 +109,7 @@ WHERE
     finished_at IS NOT NULL
     AND finished_at >= :dateFrom
     AND finished_at <= :dateTo
+    AND suspicious = false
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -146,6 +148,7 @@ WHERE
     finished_at IS NOT NULL
     AND finished_at >= :dateFrom
     AND finished_at <= :dateTo
+    AND suspicious = false
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -192,6 +195,7 @@ FROM puzzle_solving_time
 WHERE
     tracked_at >= :dateFrom
     AND tracked_at <= :dateTo
+    AND suspicious = false
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))

@@ -77,6 +77,7 @@ SELECT
     COALESCE(time.finished_at, time.tracked_at) AS solved_at,
     time.first_attempt,
     time.unboxed,
+    time.suspicious,
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.pieces_count,
@@ -98,6 +99,7 @@ SQL;
          *     solved_at: string,
          *     first_attempt: bool,
          *     unboxed: bool,
+         *     suspicious: bool,
          *     puzzle_id: string,
          *     puzzle_name: string,
          *     pieces_count: int,
@@ -122,6 +124,7 @@ SQL;
             solvedAt: new DateTimeImmutable($row['solved_at']),
             firstAttempt: $row['first_attempt'],
             unboxed: $row['unboxed'],
+            suspicious: $row['suspicious'],
         ), $rows);
     }
 
@@ -148,7 +151,7 @@ SQL;
 SELECT other.id, other.name, other.size, stats.times_count
 FROM puzzling_team other
 INNER JOIN LATERAL (
-    SELECT COUNT(*) AS times_count FROM puzzle_solving_time WHERE puzzling_team_id = other.id
+    SELECT COUNT(*) AS times_count FROM puzzle_solving_time WHERE puzzling_team_id = other.id AND suspicious = false
 ) stats ON TRUE
 WHERE other.id IN (SELECT team_id FROM puzzling_team_member WHERE player_id IN (:memberPlayerIds))
     AND other.id <> :teamId

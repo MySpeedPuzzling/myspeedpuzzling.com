@@ -81,7 +81,7 @@ So each sheet is readable on its own (the results export is denormalised the sam
 | `puzzle_image_url` | `puzzle.image` through the uploaded-assets base URL, **empty while `hide_image_until` is in the future** (same `CASE` as every list query, `:now` from `ClockInterface`) |
 | `my_solved_count` | how many results the player has on this puzzle (solo + every pair/team they are a registered member of) |
 | `my_first_solved_at`, `my_last_solved_at` | `COALESCE(finished_at, tracked_at)` min/max |
-| `my_best_solo_seconds`, `my_best_solo_time` | best solo time, raw + `HH:MM:SS` |
+| `my_best_solo_seconds`, `my_best_solo_time` | best solo time (never a suspicious one), raw + `HH:MM:SS` |
 | `community_solved_count` | `puzzle_statistics.solved_times_count` (what the list pages show as "Completed N×") |
 | `difficulty_tier` | **members only**, `DifficultyTier::toApiValue()` (stable token, same as the API); empty for others - the header stays the same so files compare across a membership change; same rule as `ResolvePuzzleListInsights` |
 

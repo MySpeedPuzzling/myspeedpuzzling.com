@@ -78,7 +78,10 @@
                                 </p>
                             </td>
                             <td class="text-end">
-                                <small class="low-line-height d-inline-block">{{ 'fastest_time_short'|trans({ '%time%': most_solved_puzzle.fastestTimeSolo|puzzlingTime }) }}</small>
+                                {# 0 = no solo time to show (group or relax solves only, or only a suspicious time) #}
+                                {% if most_solved_puzzle.fastestTimeSolo > 0 %}
+                                    <small class="low-line-height d-inline-block">{{ 'fastest_time_short'|trans({ '%time%': most_solved_puzzle.fastestTimeSolo|puzzlingTime }) }}</small>
+                                {% endif %}
 
                                 {% if logged_user.profile is not null %}
                                     {% if ranking[most_solved_puzzle.puzzleId] is defined %}

@@ -112,14 +112,6 @@
 
                 {{ include('_leaderboard_time_badges.html.twig', {time: attempt}) }}
 
-                {% if attempt.suspicious %}
-                    <div class="lb-badges">
-                        <span class="badge rounded-pill bg-warning">
-                            <i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}
-                        </span>
-                    </div>
-                {% endif %}
-
                 {% if attempt.comment %}
                     <p class="fs-xs text-muted fst-italic text-break mb-0 mt-1">{{ attempt.comment }}</p>
                 {% endif %}

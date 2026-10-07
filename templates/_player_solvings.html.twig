@@ -70,12 +70,6 @@
                                 team_page_label: (puzzle.players|length == 2 ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
                             }) }}
 
-                            {% if puzzle.suspicious %}
-                                <span class="badge rounded-pill bg-warning">
-                                    <i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}
-                                </span>
-                            {% endif %}
-
                         </div>
                     </td>
 

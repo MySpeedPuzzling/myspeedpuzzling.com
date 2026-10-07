@@ -343,6 +343,7 @@ SELECT
 FROM puzzle_solving_time
 WHERE puzzle_id = :puzzleId
     AND seconds_to_solve IS NULL
+    AND suspicious = false
 SQL;
 
         /** @var array{solo_count: int, duo_count: int, team_count: int} $row */

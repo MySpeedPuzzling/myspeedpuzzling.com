@@ -92,7 +92,7 @@
         <table class="table table-sm align-middle fs-sm" data-testid="team-times">
             <tbody>
                 {% for time in times %}
-                    <tr>
+                    <tr class="{{ time.suspicious ? 'table-warning' }}">
                         <td style="width: 60px;">
                             {% if time.puzzleImage is not null %}
                                 <img class="rounded-2" style="max-width: 50px; max-height: 50px;" loading="lazy" alt="" src="{{ time.puzzleImage|thumbnail('puzzle_small') }}">
@@ -104,6 +104,9 @@
                         </td>
                         <td class="text-end text-nowrap">
                             {% if time.time is not null %}<strong>{{ time.time|puzzlingTime }}</strong>{% else %}<span class="text-muted">{{ 'puzzle_add.mode.relax'|trans }}</span>{% endif %}<br>
+                            {% if time.suspicious %}
+                                <span class="badge rounded-pill bg-warning" data-testid="suspicious-badge"><i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}</span><br>
+                            {% endif %}
                             <span class="text-muted">{{ time.solvedAt|date('d.m.Y') }}</span>
                         </td>
                     </tr>

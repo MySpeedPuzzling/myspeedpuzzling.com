@@ -44,6 +44,8 @@ readonly final class RecentActivityItem
         public null|string $competitionSeriesShortcut = null,
         public null|string $competitionSeriesSlug = null,
         public null|string $playerAvatar = null,
+        // Only the player's own feed lists a suspicious time (labelled) - the shared feeds leave it out
+        public bool $suspicious = false,
     ) {
     }
 
@@ -91,6 +93,7 @@ readonly final class RecentActivityItem
      *     competition_series_slug: null|string,
      *     skill_tier_name?: null|string,
      *     ranking_opted_out?: bool,
+     *     suspicious?: bool,
      *     ...
      * } $row
      */
@@ -139,6 +142,7 @@ readonly final class RecentActivityItem
             skillTierName: $row['skill_tier_name'] ?? null,
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
             playerAvatar: $row['player_avatar'] ?? null,
+            suspicious: $row['suspicious'] ?? false,
         );
     }
 

@@ -37,6 +37,8 @@ FROM (
         pst.player_id
     FROM
         puzzle_solving_time pst
+    WHERE
+        pst.suspicious = false
 
     UNION ALL
 
@@ -48,6 +50,7 @@ FROM (
         CROSS JOIN LATERAL json_array_elements(pst.team -> 'puzzlers') AS elem(player)
     WHERE
         pst.team IS NOT NULL
+        AND pst.suspicious = false
 ) as subquery
 JOIN player p ON subquery.player_id = p.id{$notHidden}
 GROUP BY p.id, p.name, p.country
@@ -78,6 +81,7 @@ FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
 WHERE puzzle_solving_time.puzzling_type = 'solo'
+    AND puzzle_solving_time.suspicious = false
     {$notHidden}
 GROUP BY player.id
 ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC
@@ -136,6 +140,7 @@ FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
 WHERE puzzle_solving_time.puzzling_type = 'solo'
+    AND puzzle_solving_time.suspicious = false
     AND puzzle_solving_time.finished_at >= :startDate
     AND puzzle_solving_time.finished_at < :endDate
     {$notHidden}

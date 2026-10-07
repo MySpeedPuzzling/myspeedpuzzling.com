@@ -36,7 +36,7 @@ SQL;
 
         // Solves count includes every recorded time (solo/duo/team); the
         // median is computed over solo solves only so group times do not
-        // skew it.
+        // skew it. A suspicious time is neither counted nor timed.
         $solvesQuery = <<<SQL
 SELECT
     COUNT(*) AS solves_count,
@@ -46,6 +46,7 @@ FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 WHERE puzzle.pieces_count = :piecesCount
     AND pst.seconds_to_solve IS NOT NULL
+    AND pst.suspicious = false
 SQL;
 
         /** @var array{solves_count: int, median_seconds: null|float|string} $solvesRow */
@@ -69,6 +70,7 @@ WITH top_brands AS (
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     WHERE puzzle.pieces_count = :piecesCount
         AND pst.seconds_to_solve IS NOT NULL
+        AND pst.suspicious = false
         AND manufacturer.approved = true
         AND manufacturer.slug IS NOT NULL
     GROUP BY manufacturer.id, manufacturer.name, manufacturer.slug

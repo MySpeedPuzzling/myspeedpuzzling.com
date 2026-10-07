@@ -60,6 +60,7 @@ SELECT
     puzzle_solving_time.puzzling_team_id::varchar AS team_id,
     first_attempt,
     puzzle_solving_time.unboxed,
+    puzzle_solving_time.suspicious,
     {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
@@ -130,6 +131,7 @@ SQL;
              *     finished_at: null|string,
              *     first_attempt: bool,
              *     unboxed: bool,
+             *     suspicious: bool,
              *     is_private: bool,
              *     competition_id: null|string,
              *     competition_name: null|string,
@@ -215,6 +217,7 @@ LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
 LEFT JOIN competition_series cs ON cs.id = competition.series_id
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE {$this->privateProfileAccess->sqlIsPublic('player')}
+    AND puzzle_solving_time.suspicious = false
     {$notHidden}
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
@@ -313,8 +316,11 @@ WITH filtered_puzzle_solving_time AS (
     FROM
         puzzle_solving_time pst
     WHERE
-        pst.player_id IN (:favoritePlayerIds){$notHidden}
-        OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> ANY(ARRAY[:favoritePuzzlers]::jsonb[]){$notHidden})
+        pst.suspicious = false
+        AND (
+            pst.player_id IN (:favoritePlayerIds){$notHidden}
+            OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> ANY(ARRAY[:favoritePuzzlers]::jsonb[]){$notHidden})
+        )
     ORDER BY pst.tracked_at DESC
     LIMIT :limit
 )

@@ -39,7 +39,10 @@ readonly final class PerCategoryStatistics
         /** @var array<string, int> $countPerManufacturer */
         $countPerManufacturer = [];
 
-        foreach ($this->results as $result) {
+        // A suspicious result is listed on the profile, but no statistic counts it (docs/features/suspicious-times.md)
+        $counted = array_filter($this->results, static fn (SolvedPuzzle $result): bool => $result->suspicious === false);
+
+        foreach ($counted as $result) {
             $piecesCount = $result->piecesCount;
             $time = $result->time;
             $manufacturerName = $result->manufacturerName;
@@ -99,6 +102,6 @@ readonly final class PerCategoryStatistics
         $this->totalPieces = $totalPieces;
         $this->activeDays = array_keys($activeDays);
         $this->timeSpentSolving = new TimeSpentSolvingStatistics($timePerDay);
-        $this->solvedPuzzle = new SolvedPuzzleStatistics(count($this->results), $countPerManufacturer);
+        $this->solvedPuzzle = new SolvedPuzzleStatistics(count($counted), $countPerManufacturer);
     }
 }

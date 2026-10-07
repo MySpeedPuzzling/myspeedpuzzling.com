@@ -208,7 +208,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
         }
 
         try {
-            $this->messageBus->dispatch(new DeleteCompetitionRound(OfficialResultsFixture::ROUND_FINAL, refuseWhenItHasResults: true));
+            $this->messageBus->dispatch(new DeleteCompetitionRound(OfficialResultsFixture::ROUND_FINAL, OfficialResultsFixture::COMPETITION_RESULTS_CUP, refuseWhenItHasResults: true));
             self::fail('A round with a qualified mark must stay.');
         } catch (CompetitionRoundHasResults $hasResults) {
             self::assertSame(1, $hasResults->resultsCount);

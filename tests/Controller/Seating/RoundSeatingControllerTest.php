@@ -73,8 +73,12 @@ final class RoundSeatingControllerTest extends WebTestCase
         // "Tables: 5 / 6 assigned"
         self::assertStringContainsString('Tables: 5 / 6 assigned', $crawler->filter('[data-round-seating-target="readinessProgress"]')->text());
 
-        // Other organisers' changes arrive over the round's private topic
-        self::assertContains('/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, self::mercureTopics($crawler));
+        // Other organisers' changes arrive over the round's private topic - with the page's own token, never the cookie
+        $mercure = json_decode((string) $seating->attr('data-round-seating-mercure-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($mercure);
+        self::assertIsArray($mercure['topics']);
+        self::assertContains('/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, $mercure['topics']);
+        self::assertNotContains('/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, self::mercureTopics($crawler));
 
         // Print views
         self::assertCount(1, $crawler->filter('a[href="/en/print-round-seating/' . OfficialResultsFixture::ROUND_GROUP_A . '?list=names"]'));

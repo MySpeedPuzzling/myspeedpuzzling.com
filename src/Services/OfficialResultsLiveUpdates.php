@@ -12,9 +12,9 @@ use Symfony\Component\Mercure\Update;
 
 /**
  * Tells the organisers' open pages what changed in a round's official results - private Mercure updates on
- * `/round-results/{roundId}` (topic()), authorised only on the organiser pages: a page adds the topic with
- * MercureTopicCollector::addTopic(OfficialResultsLiveUpdates::topic($roundId)) and the base layout's mercure-hub
- * controller subscribes, dispatching each update as a `mercure:message` event on `document`.
+ * `/round-results/{roundId}` (topic()), authorised only on the organiser pages: each page subscribes with a token of
+ * its own that its state carries (OfficialResultsSubscription, assets/official_results_events.js) - never through the
+ * subscribe cookie, which every signed-in response rewrites with its own topics.
  *
  * Called by the controllers after the dispatch returned, i.e. after the commit. A Mercure failure never fails the
  * write: it is logged (warning) and the pages catch up on their next state fetch.

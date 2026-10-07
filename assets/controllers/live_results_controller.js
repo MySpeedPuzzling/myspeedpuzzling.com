@@ -3,13 +3,13 @@ import { Controller } from '@hotwired/stimulus';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
 import { newClientId, officialResultsRequest } from '../official_results_api.js';
 import { createIndexedDbStorage, createMemoryStorage, createTabLock, Outbox, STUCK_AFTER_ATTEMPTS } from '../official_results_outbox.js';
+import { OfficialResultsEvents } from '../official_results_events.js';
 import {
     buildSearchIndex,
     describeResult,
     entryForEnter,
     entryOfParticipant,
     entryValue,
-    LiveEvents,
     preferredRound,
     recentEntries,
     sameValue,
@@ -25,7 +25,8 @@ import { chooseTranslation } from '../translation_choice.js';
  *
  * Every save goes into the outbox (official_results_outbox.js) before the network sees it; the page shows the
  * device's own unsent values on top of the server's. Other devices' saves come in over a private Mercure topic,
- * the stopwatch over its public one. Inputs are never re-rendered: lists and texts around them are.
+ * the stopwatch over its public one - one stream with the page's own token (official_results_events.js). Inputs are
+ * never re-rendered: lists and texts around them are.
  */
 
 const UUID_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
@@ -80,7 +81,6 @@ export default class extends Controller {
         liveUrl: String,
         scanUrl: String,
         loginUrl: String,
-        mercureUrl: String,
         csrfToken: String,
         entrant: String,
         entrantName: String,
@@ -97,18 +97,12 @@ export default class extends Controller {
         this.stopwatchKnownAt = Date.now();
         // The event's people who are no entry of this round - quick add offers them before typing a name in again
         this.eventPeople = this.hasEventPeopleTarget ? JSON.parse(this.eventPeopleTarget.textContent || '[]') : [];
-        // The round's private results topic + its public stopwatch topic, reopened whenever the hub closes the stream
-        this.events = new LiveEvents({
-            open: () => {
-                const url = new URL(this.mercureUrlValue, window.location.href);
-                url.searchParams.append('topic', `/round-results/${this.roundIdValue}`);
-                url.searchParams.append('topic', `/round-stopwatch/${this.roundIdValue}`);
-
-                return new EventSource(url, { withCredentials: true });
-            },
+        // The round's private results topic + its public stopwatch topic, with the token the state carries - kept open,
+        // renewed and caught up by OfficialResultsEvents (signed out / no rights: the banner's Retry takes it from there)
+        this.events = new OfficialResultsEvents({
+            subscription: state.mercure ?? null,
             onMessage: (data) => this.receiveUpdate(data),
-            // Signed out / no rights: the banner's Retry takes it from there
-            refresh: () => (!this.stateBlocked && this.isConnected() ? this.refreshState() : null),
+            refresh: () => (this.isConnected() ? this.refreshState() : Promise.resolve('closed')),
         });
         this.serverEntries = new Map();
         this.localEntries = new Map();
@@ -233,7 +227,8 @@ export default class extends Controller {
             this.notice(this.noticeValue, 'warning');
         }
 
-        // The page came with the state; this fetch syncs the clock and authorises the round's private topic
+        // The page came with the state (and the stream's token); this fetch syncs the clock
+        this.events.start();
         this.refreshState();
     }
 
@@ -463,25 +458,18 @@ export default class extends Controller {
                 this.stopwatchKnownAt = answeredAt;
                 this.applyState(answer.data);
                 this.scheduleRender();
-                // Subscribed only now: this answer's Mercure cookie authorises the round's private topic
-                this.connectEvents();
+                // A fresh token - the stream is renewed with it in its last minutes, or opened again if it is down
+                this.events.update(answer.data.mercure ?? null);
             } else if (answer.kind === 'auth' || answer.kind === 'forbidden') {
                 this.stateBlocked = answer.kind;
                 this.scheduleRender();
-            } else if (!this.events.isOpen()) {
-                // No state, no live updates: try both again after a pause
-                this.events.reconnectLater();
+                // A token is only for whoever may still enter results: no stream until a state answers again
+                this.events.suspend();
             }
 
             return answer.kind;
         } finally {
             clearTimeout(timer);
-        }
-    }
-
-    connectEvents() {
-        if (this.mercureUrlValue && this.isConnected()) {
-            this.events.connect();
         }
     }
 

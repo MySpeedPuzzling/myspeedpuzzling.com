@@ -98,10 +98,13 @@ final class ResultsDeskControllerTest extends WebTestCase
         self::assertSame('/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . '/changes', $urls['record']);
         self::assertSame('csrf-token', $desk->attr('data-results-desk-csrf-token-value'));
 
-        // The page subscribes to the round's private topic
+        // The page follows the round's private topic with a token of its own (LiveUpdatesSubscriptionTest), never the cookie
+        self::assertIsArray($state['mercure']);
+        self::assertIsArray($state['mercure']['topics']);
+        self::assertContains('/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, $state['mercure']['topics']);
         $topics = json_decode((string) $crawler->filter('[data-controller="mercure-hub"]')->attr('data-mercure-hub-topics-value'), true);
         self::assertIsArray($topics);
-        self::assertContains('/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, $topics);
+        self::assertNotContains('/round-results/' . OfficialResultsFixture::ROUND_GROUP_A, $topics);
 
         // Published: the unpublish button shows, the public page is linked
         self::assertNull($crawler->filter('[data-publish-action="unpublish"]')->attr('hidden'));

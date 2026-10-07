@@ -11,9 +11,7 @@ import {
     describeResult,
     entryForEnter,
     entryOfParticipant,
-    EVENTS_RECONNECT_MS,
     foldText,
-    LiveEvents,
     preferredRound,
     recentEntries,
     sameValue,
@@ -88,40 +86,6 @@ async function save(outbox, entryRef, to, { roundId = ROUND_A, field = 'result',
     await persisted;
 
     return item;
-}
-
-/**
- * A stand-in EventSource: the test fires 'open' / 'error' / 'message' and sets readyState (0 connecting, 1 open, 2 closed).
- */
-function fakeEvents() {
-    const opened = [];
-    const timers = [];
-    let refreshes = 0;
-    const messages = [];
-    let events;
-
-    events = new LiveEvents({
-        open: () => {
-            const listeners = {};
-            const source = {
-                readyState: 0,
-                closed: false,
-                addEventListener: (type, listener) => { (listeners[type] ??= []).push(listener); },
-                close() { this.closed = true; this.readyState = 2; },
-                fire(type, data = {}) { (listeners[type] ?? []).forEach((listener) => listener(data)); },
-            };
-            opened.push(source);
-
-            return source;
-        },
-        onMessage: (data) => messages.push(data),
-        // The state fetch answers and opens the stream again - as the live page's refreshState() does
-        refresh: () => { refreshes += 1; events.connect(); },
-        schedule: (task, ms) => { const timer = { task, ms }; timers.push(timer); return timer; },
-        cancel: (timer) => { const index = timers.indexOf(timer); if (index >= 0) timers.splice(index, 1); },
-    });
-
-    return { events, opened, timers, messages, refreshes: () => refreshes };
 }
 
 const scenarios = {
@@ -775,73 +739,6 @@ const scenarios = {
         assert.equal(entryOfParticipant([anna, team], 'aaa').ref, 'team:9');
         assert.equal(entryOfParticipant([anna, team], 'CCC').ref, ANNA);
         assert.equal(entryOfParticipant([anna, team], 'ddd'), null);
-    },
-
-    async 'live updates the hub closed for good (401, 5xx) are reopened after a pause, with a catch-up'() {
-        const { events, opened, timers, messages, refreshes } = fakeEvents();
-        events.connect();
-        opened[0].readyState = 1;
-        opened[0].fire('open');
-        opened[0].fire('message', { data: JSON.stringify({ type: 'official_results.refresh', roundId: 'r' }) });
-
-        assert.equal(events.isLive(), true);
-        assert.deepEqual(messages, [{ type: 'official_results.refresh', roundId: 'r' }]);
-
-        // The hub answers the browser's reconnect with an error: CLOSED, the browser gives up
-        opened[0].readyState = 2;
-        opened[0].fire('error');
-
-        assert.equal(events.isLive(), false);
-        assert.equal(events.isOpen(), false);
-        assert.deepEqual(timers.map((timer) => timer.ms), [EVENTS_RECONNECT_MS[0]]);
-
-        // Paused, then the state is fetched (catch-up) and the stream opened again
-        timers.shift().task();
-        assert.equal(refreshes(), 1);
-        assert.equal(opened.length, 2);
-
-        // Failing again and again: the pauses grow, then stay at a minute; one try at a time
-        for (let attempt = 1; attempt < 7; attempt++) {
-            opened[opened.length - 1].readyState = 2;
-            opened[opened.length - 1].fire('error');
-            events.reconnectLater();
-            assert.equal(timers.length, 1);
-            assert.equal(timers[0].ms, EVENTS_RECONNECT_MS[Math.min(attempt, EVENTS_RECONNECT_MS.length - 1)]);
-            timers.shift().task();
-        }
-
-        // Open again: the next drop starts from the shortest pause
-        const last = opened[opened.length - 1];
-        last.readyState = 1;
-        last.fire('open');
-        last.readyState = 2;
-        last.fire('error');
-        assert.equal(timers[0].ms, EVENTS_RECONNECT_MS[0]);
-    },
-
-    async 'a dropped stream the browser brings back catches up once, without a second stream'() {
-        const { events, opened, timers, refreshes } = fakeEvents();
-        events.connect();
-        opened[0].readyState = 1;
-        opened[0].fire('open');
-        assert.equal(refreshes(), 0, 'the page fetched its state just before');
-
-        // Wi-Fi drop: the browser reconnects by itself (CONNECTING), nothing is scheduled here
-        opened[0].readyState = 0;
-        opened[0].fire('error');
-        assert.equal(events.isLive(), false, '"Finished now" no longer trusts the stopwatch');
-        assert.equal(timers.length, 0);
-
-        opened[0].readyState = 1;
-        opened[0].fire('open');
-        assert.equal(refreshes(), 1, 'whatever was published meanwhile is fetched');
-        assert.equal(opened.length, 1);
-        assert.equal(events.isLive(), true);
-
-        events.close();
-        assert.equal(opened[0].closed, true);
-        events.reconnectLater();
-        assert.equal(timers.length, 0, 'a closed page never reconnects');
     },
 
     async 'the event link keeps a round this device picked while it still runs'() {

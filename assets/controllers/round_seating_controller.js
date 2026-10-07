@@ -1,6 +1,7 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { officialResultsRequest, newClientId } from '../official_results_api.js';
+import { OfficialResultsEvents } from '../official_results_events.js';
 import { chooseTranslation } from '../translation_choice.js';
 import {
     clearAssignments,
@@ -32,7 +33,8 @@ const RESYNC_EVERY_MS = 60000;
  * swapping, drag and drop / Move up / Move down (an order that waits for "Renumber"), auto-assign as a proposal first,
  * and "Clear all". A typed number is one RecordRoundResults change (three-way checked against what this page saw);
  * every other action is one AssignTableNumbers write, validated as a whole - nothing is ever half applied - and can be
- * undone from its toast. Other organisers' changes arrive over Mercure (`mercure:message`).
+ * undone from its toast. Other organisers' changes arrive over Mercure - the page's own stream with the token its state
+ * carries (official_results_events.js).
  *
  * The pure half (order, the writes each action sends) is assets/seating.js.
  */
@@ -61,6 +63,8 @@ export default class extends Controller {
         round: Object,
         texts: Object,
         propose: String,
+        // The live updates subscription ({} for an online event - no seating, no stream)
+        mercure: Object,
     };
 
     connect() {
@@ -94,8 +98,15 @@ export default class extends Controller {
             this.openAuto(this.proposeValue === 'auto' ? null : this.proposeValue);
         }
 
-        // Mercure may lapse silently (a reconnect without the round's topic) - the page re-reads the round once a minute
-        // while it is shown, like the results desk, so a bulk write is never built from stale numbers for long
+        this.events = new OfficialResultsEvents({
+            subscription: this.mercureValue,
+            onMessage: (data) => this.mercureMessage({ detail: data }),
+            refresh: () => this.refresh(),
+        });
+        this.events.start();
+
+        // The last safety net under the live updates - the page re-reads the round once a minute while it is shown, like
+        // the results desk, so a bulk write is never built from stale numbers for long
         this.resyncInterval = setInterval(() => {
             if (document.visibilityState === 'visible' && !this.busy) {
                 this.refresh();
@@ -104,6 +115,7 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this.events?.close();
         this.sortables.forEach((sortable) => sortable.destroy());
         this.sortables = [];
         clearTimeout(this.toastTimer);
@@ -211,7 +223,8 @@ export default class extends Controller {
     /**
      * The round's state again. An answer overtaken by a newer refresh is dropped, and one that may be older than
      * entries merged while it was on its way (an answer of our own write, a Mercure update) is asked for again - a slow
-     * GET never undoes newer numbers (review2-b nit).
+     * GET never undoes newer numbers (review2-b nit). Every answer hands its live updates subscription on (a fresh
+     * token; signed out / no rights stop the stream). Resolves to the answer's kind.
      */
     async refresh(attempt = 0) {
         const tries = Number.isInteger(attempt) ? attempt : 0;
@@ -219,16 +232,26 @@ export default class extends Controller {
         const generation = this.dataGeneration;
         const result = await officialResultsRequest(this.stateUrlValue);
 
+        if (!this.element.isConnected) {
+            return result.kind;
+        }
+
+        if (result.kind === 'ok') {
+            this.events.update(result.data.mercure ?? null);
+        } else if (result.kind === 'auth' || result.kind === 'forbidden') {
+            this.events.suspend();
+        }
+
         if (sequence !== this.refreshSequence || result.kind !== 'ok' || !Array.isArray(result.data.entries)) {
-            return;
+            return result.kind;
         }
 
         if (generation !== this.dataGeneration) {
             if (tries < 3) {
-                await this.refresh(tries + 1);
+                return this.refresh(tries + 1);
             }
 
-            return;
+            return result.kind;
         }
 
         this.setEntries(result.data.entries);
@@ -238,6 +261,8 @@ export default class extends Controller {
         }
 
         this.afterDataChange();
+
+        return result.kind;
     }
 
     mercureMessage(event) {

@@ -11,8 +11,8 @@ use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
-use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
+use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,7 +21,9 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * The organiser tools' bootstrap (live entry, results desk, seating): the round, every round of the event (round
  * picker, advancement targets, seating readiness) and every entry of the round with its official record, ranked.
- * The server's clock comes along for the stopwatch ("Finished now"). Referees may read it (the live entry).
+ * The server's clock comes along for the stopwatch ("Finished now"), and a fresh live updates subscription (`mercure`,
+ * OfficialResultsSubscription - only for whoever passed the voter) the pages renew their stream with. Referees may
+ * read it (the live entry).
  * docs/features/competitions-management/official-results.md - the JSON shape is documented there.
  */
 final class RoundResultsStateController extends AbstractController
@@ -32,7 +34,7 @@ final class RoundResultsStateController extends AbstractController
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
         private readonly OfficialResultsApi $api,
         private readonly ClockInterface $clock,
-        private readonly MercureTopicCollector $mercureTopicCollector,
+        private readonly OfficialResultsSubscription $subscription,
     ) {
     }
 
@@ -51,10 +53,6 @@ final class RoundResultsStateController extends AbstractController
         if ($authorised instanceof JsonResponse) {
             return $authorised;
         }
-
-        // The answer's Mercure cookie keeps authorising the round's private topic - a page's EventSource reconnecting
-        // after this request would lose its updates otherwise (live entry, live-results.md)
-        $this->mercureTopicCollector->addTopic(OfficialResultsLiveUpdates::topic($round->id->toString()));
 
         $rounds = $this->getRoundResultsOverview->forCompetition($competition->id->toString());
         $thisRound = null;
@@ -75,6 +73,7 @@ final class RoundResultsStateController extends AbstractController
             'round' => $thisRound,
             'rounds' => $rounds,
             'entries' => $this->getRoundResultEntries->forRound($round->id->toString()),
+            'mercure' => $this->subscription->forRound($round->id->toString()),
         ]);
     }
 }

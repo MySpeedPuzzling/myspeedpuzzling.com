@@ -11,9 +11,9 @@ use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
-use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\OfficialResultsRounds;
+use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,8 +24,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * The results desk of one round (docs/features/competitions-management/results-desk.md): the ranked table with
  * inline edits, qualified marks and the qualification helpers, advancing the qualified, publishing, the export.
  * Desktop/tablet-first, the event's organisers only. The page bootstraps the same state the JSON endpoint
- * `official_results_round_state` answers and follows the round's private Mercure topic; every write goes through
- * the official results JSON endpoints.
+ * `official_results_round_state` answers and follows the round's private Mercure topic with the subscription in it
+ * (OfficialResultsSubscription); every write goes through the official results JSON endpoints.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ResultsDeskController extends AbstractController
@@ -35,7 +35,7 @@ final class ResultsDeskController extends AbstractController
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly GetRoundResultEntries $getRoundResultEntries,
         private readonly OfficialResultsRounds $officialResultsRounds,
-        private readonly MercureTopicCollector $mercureTopicCollector,
+        private readonly OfficialResultsSubscription $subscription,
         private readonly ClockInterface $clock,
         private readonly IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
     ) {
@@ -60,7 +60,6 @@ final class ResultsDeskController extends AbstractController
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         $roundId = $round->id->toString();
-        $this->mercureTopicCollector->addTopic(OfficialResultsLiveUpdates::topic($roundId));
 
         $competition = $this->getCompetitionEvents->byId($competitionId);
         $rounds = $this->officialResultsRounds->forCompetition($competitionId);
@@ -98,6 +97,7 @@ final class ResultsDeskController extends AbstractController
                 'round' => $thisRound,
                 'rounds' => $rounds,
                 'entries' => $this->getRoundResultEntries->forRound($roundId),
+                'mercure' => $this->subscription->forRound($roundId),
             ],
             'countries' => $countries,
         ]);

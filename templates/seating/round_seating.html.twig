@@ -127,7 +127,8 @@
                 data-round-seating-round-value="{{ overview|json_encode }}"
                 data-round-seating-texts-value="{{ texts|json_encode }}"
                 data-round-seating-propose-value="{{ propose }}"
-                data-action="mercure:message@document->round-seating#mercureMessage visibilitychange@document->round-seating#visibilityChanged online@window->round-seating#refresh beforeunload@window->round-seating#beforeUnload turbo:before-visit@document->round-seating#beforeVisit keydown.esc@document->round-seating#escape"
+                data-round-seating-mercure-value="{{ (mercure ?? {})|json_encode }}"
+                data-action="visibilitychange@document->round-seating#visibilityChanged online@window->round-seating#refresh beforeunload@window->round-seating#beforeUnload turbo:before-visit@document->round-seating#beforeVisit keydown.esc@document->round-seating#escape"
             >
                 {% if rounds|length > 1 %}
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">

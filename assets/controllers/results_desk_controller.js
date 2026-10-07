@@ -2,6 +2,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { Modal } from 'bootstrap';
 import { officialResultsRequest, newClientId } from '../official_results_api.js';
+import { OfficialResultsEvents } from '../official_results_events.js';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
 import { rankEntries } from '../official_results_ranking.js';
 import { bestOfEachCountry, qualificationDiff, topN } from '../official_results_qualification.js';
@@ -26,9 +27,10 @@ const MAX_CHANGES_PER_REQUEST = 500;
  * exactly that value - a lost connection, a login redirect or a refused change never look saved. One request at a
  * time, in order; offline and 5xx retry with backoff; signed out stops sending until the organiser signed in again.
  *
- * Other devices' saves arrive over the round's private Mercure topic; the state is fetched again on
- * `official_results.refresh`, when the tab comes back, when the connection returns and once a minute while shown
- * (the Mercure subscription may silently lapse - the page must not).
+ * Other devices' saves arrive over the round's private Mercure topic, on the page's own stream with the token its
+ * state carries (official_results_events.js: reopened, caught up and renewed with the state); the state is fetched
+ * again on `official_results.refresh`, when the tab comes back, when the connection returns and once a minute while
+ * shown - the last safety net.
  */
 export default class extends Controller {
     static targets = [
@@ -58,7 +60,7 @@ export default class extends Controller {
         this.flushing = false;
         this.retryIndex = 0;
         this.retryTimer = null;
-        this.resyncing = false;
+        this.resyncing = null;
         this.resyncTimer = null;
         this.ownWrites = new Map();
         this.helper = null;
@@ -69,14 +71,17 @@ export default class extends Controller {
 
         this.replaceEntries(this.stateValue.entries ?? []);
 
-        this.onMercure = this.onMercure.bind(this);
         this.onVisibility = this.onVisibility.bind(this);
         this.onOnline = this.onOnline.bind(this);
         this.onBeforeUnload = this.onBeforeUnload.bind(this);
         this.onBeforeVisit = this.onBeforeVisit.bind(this);
         this.onUnsavedMarks = this.onUnsavedMarks.bind(this);
 
-        document.addEventListener('mercure:message', this.onMercure);
+        this.events = new OfficialResultsEvents({
+            subscription: this.stateValue.mercure ?? null,
+            onMessage: (data) => this.onMercure({ detail: data }),
+            refresh: () => this.resync(),
+        });
         document.addEventListener('official-results:unsaved-marks', this.onUnsavedMarks);
         document.addEventListener('visibilitychange', this.onVisibility);
         document.addEventListener('turbo:before-visit', this.onBeforeVisit);
@@ -90,10 +95,11 @@ export default class extends Controller {
         }, RESYNC_EVERY_MS);
 
         this.render();
+        this.events.start();
     }
 
     disconnect() {
-        document.removeEventListener('mercure:message', this.onMercure);
+        this.events.close();
         document.removeEventListener('official-results:unsaved-marks', this.onUnsavedMarks);
         document.removeEventListener('visibilitychange', this.onVisibility);
         document.removeEventListener('turbo:before-visit', this.onBeforeVisit);
@@ -1084,26 +1090,41 @@ export default class extends Controller {
         this.resync();
     }
 
-    async resync(attempt = 0) {
-        if (this.resyncing) {
-            return;
+    /**
+     * The round's state again - one request at a time (a call meanwhile gets that one). Resolves to the answer's kind.
+     */
+    resync() {
+        if (this.resyncing === null) {
+            this.resyncing = this.fetchState().finally(() => {
+                this.resyncing = null;
+            });
         }
 
-        this.resyncing = true;
-        const generation = this.generation;
-        const answer = await officialResultsRequest(this.urlsValue.state);
-        this.resyncing = false;
+        return this.resyncing;
+    }
 
-        if (answer.kind === 'ok' && this.generation !== generation && attempt < 3) {
+    async fetchState() {
+        let answer;
+
+        for (let attempt = 0; ; attempt++) {
+            const generation = this.generation;
+            answer = await officialResultsRequest(this.urlsValue.state);
+
             // Newer entries arrived while the state was on its way - it may be older than them: ask again
-            this.resync(attempt + 1);
+            if (answer.kind !== 'ok' || this.generation === generation || attempt >= 3) {
+                break;
+            }
+        }
 
-            return;
+        if (!this.element.isConnected) {
+            return answer.kind;
         }
 
         if (answer.kind === 'ok') {
             this.replaceEntries(answer.data.entries ?? []);
             this.updateRound(answer.data.round);
+            // A fresh token: the stream is renewed with it in its last minutes, or opened again if it is down
+            this.events.update(answer.data.mercure ?? null);
 
             if (this.transport === 'offline' || this.transport === 'server') {
                 // The server answers again - send what waits
@@ -1112,10 +1133,17 @@ export default class extends Controller {
             }
 
             this.render();
-        } else if (answer.kind === 'auth') {
-            this.transport = 'auth';
-            this.renderSync();
+        } else if (answer.kind === 'auth' || answer.kind === 'forbidden') {
+            // A token is only for whoever may still edit the event: no stream until a state answers again
+            this.events.suspend();
+
+            if (answer.kind === 'auth') {
+                this.transport = 'auth';
+                this.renderSync();
+            }
         }
+
+        return answer.kind;
     }
 
     // ---------------------------------------------------------------- events

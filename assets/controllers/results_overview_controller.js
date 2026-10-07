@@ -1,32 +1,50 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { officialResultsRequest } from '../official_results_api.js';
+import { OfficialResultsEvents } from '../official_results_events.js';
 
-const ROUND_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
+const REFRESH_EVERY_MS = 60000;
+const HIDDEN_LONG_MS = 10000;
 
 /**
  * The results overview's counters follow the rounds' private Mercure topics (docs/features/competitions-management/
- * results-desk.md): every official results update carries the round's progress (RoundResultsOverview), a refresh
- * signal fetches it. The rows are server-rendered; this only rewrites the numbers and badges of the round that changed.
- * Coming back to the tab after a while reloads the page (the subscription may have lapsed meanwhile).
+ * results-desk.md): one stream for all of them with the token the page came with (official_results_events.js), every
+ * official results update carries the round's progress (RoundResultsOverview). The rows are server-rendered; this only
+ * rewrites the numbers and badges of the round that changed. A refresh signal, the stream opening again, the tab
+ * coming back and a minute while it is shown fetch every round's progress again (`official_results_competition_state`,
+ * one statement) - its answer also renews the stream's token.
  */
 export default class extends Controller {
     static values = {
-        stateTemplate: String,
+        stateUrl: String,
+        mercure: Object,
         texts: Object,
         isOnline: Boolean,
     };
 
     connect() {
         this.hiddenSince = null;
-        this.onMercure = this.onMercure.bind(this);
+        this.refreshing = null;
         this.onVisibility = this.onVisibility.bind(this);
-        document.addEventListener('mercure:message', this.onMercure);
         document.addEventListener('visibilitychange', this.onVisibility);
+
+        this.events = new OfficialResultsEvents({
+            subscription: this.mercureValue,
+            onMessage: (data) => this.onMercure(data),
+            refresh: () => this.refresh(),
+        });
+        this.events.start();
+
+        this.refreshTimer = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                this.refresh();
+            }
+        }, REFRESH_EVERY_MS);
     }
 
     disconnect() {
-        document.removeEventListener('mercure:message', this.onMercure);
+        this.events.close();
+        clearInterval(this.refreshTimer);
         document.removeEventListener('visibilitychange', this.onVisibility);
     }
 
@@ -34,9 +52,7 @@ export default class extends Controller {
         return this.element.querySelector(`[data-overview-round="${CSS.escape(roundId)}"]`);
     }
 
-    async onMercure(event) {
-        const detail = event.detail;
-
+    onMercure(detail) {
         if (!detail || typeof detail.roundId !== 'string' || this.row(detail.roundId) === null) {
             return;
         }
@@ -44,12 +60,38 @@ export default class extends Controller {
         if ((detail.type === 'official_results.entries' || detail.type === 'official_results.round') && detail.round) {
             this.update(detail.round);
         } else if (detail.type === 'official_results.refresh') {
-            const answer = await officialResultsRequest(this.stateTemplateValue.replace(ROUND_PLACEHOLDER, detail.roundId));
-
-            if (answer.kind === 'ok' && answer.data.round) {
-                this.update(answer.data.round);
-            }
+            this.refresh();
         }
+    }
+
+    /**
+     * Every round's progress again - one request at a time. Resolves to the answer's kind.
+     */
+    refresh() {
+        if (this.refreshing === null) {
+            this.refreshing = this.fetchState().finally(() => {
+                this.refreshing = null;
+            });
+        }
+
+        return this.refreshing;
+    }
+
+    async fetchState() {
+        const answer = await officialResultsRequest(this.stateUrlValue);
+
+        if (!this.element.isConnected) {
+            return answer.kind;
+        }
+
+        if (answer.kind === 'ok') {
+            (Array.isArray(answer.data.rounds) ? answer.data.rounds : []).forEach((round) => this.update(round));
+            this.events.update(answer.data.mercure ?? null);
+        } else if (answer.kind === 'auth' || answer.kind === 'forbidden') {
+            this.events.suspend();
+        }
+
+        return answer.kind;
     }
 
     update(round) {
@@ -105,9 +147,9 @@ export default class extends Controller {
             return;
         }
 
-        // Never while a dialog is open (an advancement plan under review)
-        if (this.hiddenSince !== null && Date.now() - this.hiddenSince > 60000 && document.querySelector('.modal.show') === null) {
-            window.location.reload();
+        // Whatever changed while a laptop slept or the tab was in the background
+        if (this.hiddenSince !== null && Date.now() - this.hiddenSince > HIDDEN_LONG_MS) {
+            this.refresh();
         }
 
         this.hiddenSince = null;

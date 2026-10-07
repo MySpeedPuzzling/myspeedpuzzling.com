@@ -15,14 +15,19 @@
         <h1 class="h2">{{ 'competition.stopwatch.manage'|trans }}</h1>
         <h2 class="h5 text-muted">{{ competition.name }} — {{ round.name }}</h2>
 
-        {% if show_seating_readiness|default(false) %}
-            <div class="mt-3">{{ include('seating/_readiness.html.twig', {overview: round_overview}) }}</div>
-        {% endif %}
+        {{ include('seating/_readiness.html.twig', {overview: round_overview, wrapper_class: 'mt-3'}) }}
 
-        <div class="mb-3 mt-3">
+        <div class="mb-3 mt-3 d-flex flex-wrap gap-2" data-stopwatch-tools>
             <a href="{{ path('round_stopwatch', {'roundId': round.id}) }}" class="btn btn-outline-primary">
                 <i class="bi bi-display me-1"></i>{{ 'competition.stopwatch.view_public'|trans }}
             </a>
+            {# The round's results tools - referees enter results while the stopwatch runs #}
+            {{ include('official_results/_round_tool_links.html.twig', {
+                round_id: round.id,
+                is_online: competition.isOnline,
+                table_numbers_off: round.tableNumbersOff,
+                button_class: 'btn-outline-primary',
+            }) }}
         </div>
 
         <div class="card mt-4">

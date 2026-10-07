@@ -297,6 +297,17 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * The round switch - another round's seating page (leaving asks first while an own order waits for "Renumber").
+     */
+    switchRound(event) {
+        const url = event.currentTarget.value;
+
+        if (url) {
+            window.location.assign(url);
+        }
+    }
+
     // ---- rendering
 
     render() {
@@ -324,7 +335,8 @@ export default class extends Controller {
         this.readinessTarget.classList.toggle('alert-info', !(total > 0 && assigned >= total));
         this.readinessTarget.classList.toggle('alert-light', total > 0 && assigned >= total);
         this.readinessTarget.classList.toggle('border', total > 0 && assigned >= total);
-        this.readinessTarget.hidden = off;
+        // The one rule (SeatingReadiness, `tablesReadiness`): a round under way or over does not nag
+        this.readinessTarget.hidden = off || this.round?.tablesReadiness !== true;
 
         const start = renumberStart(this.seated, this.byRef);
         const renumberText = this.t('renumber', { '%first%': start, '%last%': start + Math.max(this.seated.length, 1) - 1 });

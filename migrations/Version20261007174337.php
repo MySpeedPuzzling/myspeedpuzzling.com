@@ -10,11 +10,11 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20261007155429 extends AbstractMigration
+final class Version20261007174337 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Competition management (PR #136 port): managed registration, page sections, official results on round entries (+ unique participant/round), seating table numbers, publishing, official-result notifications';
+        return 'Competition management (PR #136 port): managed registration, page sections, official results on round entries (+ unique participant/round), seating table numbers, publishing + one-time notices, change receipts, referees, official-result notifications';
     }
 
     public function up(Schema $schema): void
@@ -22,8 +22,26 @@ final class Version20261007155429 extends AbstractMigration
         $this->addSql('CREATE TABLE competition_page_section (id UUID NOT NULL, type VARCHAR(255) NOT NULL, position INT NOT NULL, title VARCHAR(255) DEFAULT NULL, content JSONB NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, updated_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, visible BOOLEAN DEFAULT true NOT NULL, competition_id UUID DEFAULT NULL, series_id UUID DEFAULT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IDX_60866CEE7B39D312 ON competition_page_section (competition_id)');
         $this->addSql('CREATE INDEX IDX_60866CEE5278319C ON competition_page_section (series_id)');
+        $this->addSql('CREATE TABLE competition_referee (id UUID NOT NULL, added_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, competition_id UUID NOT NULL, player_id UUID NOT NULL, added_by_id UUID DEFAULT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE INDEX IDX_C9BA73EC7B39D312 ON competition_referee (competition_id)');
+        $this->addSql('CREATE INDEX IDX_C9BA73EC55B127A4 ON competition_referee (added_by_id)');
+        $this->addSql('CREATE INDEX IDX_C9BA73EC99E6F5DF ON competition_referee (player_id)');
+        $this->addSql('CREATE UNIQUE INDEX UNIQ_C9BA73EC7B39D31299E6F5DF ON competition_referee (competition_id, player_id)');
+        $this->addSql('CREATE TABLE official_result_notice (id UUID NOT NULL, notified_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, player_id UUID NOT NULL, round_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE INDEX IDX_E01B6EE599E6F5DF ON official_result_notice (player_id)');
+        $this->addSql('CREATE INDEX IDX_E01B6EE5A6005CA0 ON official_result_notice (round_id)');
+        $this->addSql('CREATE UNIQUE INDEX official_result_notice_unique ON official_result_notice (player_id, round_id)');
+        $this->addSql('CREATE TABLE round_result_change_receipt (id UUID NOT NULL, status VARCHAR(16) NOT NULL, received_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, round_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE INDEX IDX_35E2377EA6005CA0 ON round_result_change_receipt (round_id)');
+        $this->addSql('CREATE INDEX IDX_35E2377E6D4F7F99 ON round_result_change_receipt (received_at)');
         $this->addSql('ALTER TABLE competition_page_section ADD CONSTRAINT FK_60866CEE7B39D312 FOREIGN KEY (competition_id) REFERENCES competition (id) ON DELETE CASCADE NOT DEFERRABLE');
         $this->addSql('ALTER TABLE competition_page_section ADD CONSTRAINT FK_60866CEE5278319C FOREIGN KEY (series_id) REFERENCES competition_series (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE competition_referee ADD CONSTRAINT FK_C9BA73EC7B39D312 FOREIGN KEY (competition_id) REFERENCES competition (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE competition_referee ADD CONSTRAINT FK_C9BA73EC99E6F5DF FOREIGN KEY (player_id) REFERENCES player (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE competition_referee ADD CONSTRAINT FK_C9BA73EC55B127A4 FOREIGN KEY (added_by_id) REFERENCES player (id) ON DELETE SET NULL NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE official_result_notice ADD CONSTRAINT FK_E01B6EE599E6F5DF FOREIGN KEY (player_id) REFERENCES player (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE official_result_notice ADD CONSTRAINT FK_E01B6EE5A6005CA0 FOREIGN KEY (round_id) REFERENCES competition_round (id) ON DELETE CASCADE NOT DEFERRABLE');
+        $this->addSql('ALTER TABLE round_result_change_receipt ADD CONSTRAINT FK_35E2377EA6005CA0 FOREIGN KEY (round_id) REFERENCES competition_round (id) ON DELETE CASCADE NOT DEFERRABLE');
         $this->addSql('ALTER TABLE competition ADD registration_timezone VARCHAR(255) DEFAULT NULL');
         $this->addSql('ALTER TABLE competition ADD registration_managed BOOLEAN DEFAULT false NOT NULL');
         $this->addSql('ALTER TABLE competition ADD capacity INT DEFAULT NULL');
@@ -67,7 +85,16 @@ final class Version20261007155429 extends AbstractMigration
     {
         $this->addSql('ALTER TABLE competition_page_section DROP CONSTRAINT FK_60866CEE7B39D312');
         $this->addSql('ALTER TABLE competition_page_section DROP CONSTRAINT FK_60866CEE5278319C');
+        $this->addSql('ALTER TABLE competition_referee DROP CONSTRAINT FK_C9BA73EC7B39D312');
+        $this->addSql('ALTER TABLE competition_referee DROP CONSTRAINT FK_C9BA73EC99E6F5DF');
+        $this->addSql('ALTER TABLE competition_referee DROP CONSTRAINT FK_C9BA73EC55B127A4');
+        $this->addSql('ALTER TABLE official_result_notice DROP CONSTRAINT FK_E01B6EE599E6F5DF');
+        $this->addSql('ALTER TABLE official_result_notice DROP CONSTRAINT FK_E01B6EE5A6005CA0');
+        $this->addSql('ALTER TABLE round_result_change_receipt DROP CONSTRAINT FK_35E2377EA6005CA0');
         $this->addSql('DROP TABLE competition_page_section');
+        $this->addSql('DROP TABLE competition_referee');
+        $this->addSql('DROP TABLE official_result_notice');
+        $this->addSql('DROP TABLE round_result_change_receipt');
         $this->addSql('ALTER TABLE competition DROP registration_timezone');
         $this->addSql('ALTER TABLE competition DROP registration_managed');
         $this->addSql('ALTER TABLE competition DROP capacity');

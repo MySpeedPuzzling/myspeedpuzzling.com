@@ -157,11 +157,12 @@ progress; a refresh signal fetches it). After a minute in a background tab the p
 ## Mercure cookie (known limitation)
 
 `MercureSubscribeCookieListener` writes the subscribe cookie on **every** signed-in response with the topics of that
-request only - also on the JSON endpoints and on any page opened in another tab. An open desk keeps receiving
-updates on its established connection, but after a reconnect (a Wi-Fi drop, the hub's write timeout) the cookie may
-no longer authorise the round's topic and updates stop silently. The desk therefore re-fetches the state once a
-minute while shown (2 statements + 1 for the rounds) - eventual consistency within a minute even without Mercure.
-Follow-up in `docs/TODO.md`.
+request only. The state and record endpoints add the round's topic again, but the other JSON endpoints and any page
+opened in another tab do not. An open desk keeps receiving updates on its established connection, but after a reconnect
+(a Wi-Fi drop, the hub's write timeout) the cookie may no longer authorise the round's topic and updates stop silently.
+The desk and the seating page therefore re-fetch the state once a minute while shown (2 statements + 1 for the rounds) -
+eventual consistency within a minute even without Mercure - and every write carries the value the page saw (`from`), so
+a stale page gets a conflict, never overwrites. Follow-up in `docs/TODO.md`.
 
 ## Tests
 

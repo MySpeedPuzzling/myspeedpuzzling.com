@@ -84,7 +84,7 @@
 
                     <div class="alert alert-warning" role="alert" hidden data-advance-qualified-target="unsaved"></div>
 
-                    <div data-advance-qualified-target="choose" data-action="change->advance-qualified#choiceChanged input->advance-qualified#choiceChanged">
+                    <div data-advance-qualified-target="choose" data-action="change->advance-qualified#choiceChanged">
                         <p class="text-body-secondary small">{{ 'results_desk.advance.intro'|trans }}</p>
                         <div class="row g-4">
                             <div class="col-md-6">
@@ -110,7 +110,7 @@
                             </div>
                             <div class="d-flex flex-wrap align-items-center gap-2 ms-4 mt-1" hidden data-country-count-row>
                                 <label class="small" for="advance-country-count">{{ 'results_desk.advance.country_rule.count'|trans }}</label>
-                                <input type="number" min="1" max="99" inputmode="numeric" class="form-control form-control-sm w-auto" id="advance-country-count" value="1" data-kind="country_count">
+                                <input type="number" min="1" max="99" inputmode="numeric" class="form-control form-control-sm w-auto" id="advance-country-count" value="1" data-kind="country_count" data-action="input->advance-qualified#choiceChanged">
                             </div>
                             <div class="form-text ms-4">{{ 'results_desk.advance.country_rule.help'|trans }}</div>
                         </fieldset>

@@ -30,6 +30,8 @@
                             'data-round-badge-preview-round-form-default-value': constant('SpeedPuzzling\\Web\\Value\\RoundBadgeColor::ROUND_FORM_DEFAULT'),
                             'data-round-badge-preview-placeholder-value': 'competition.round.form.name'|trans,
                         }}) }}
+                            {# Errors of the whole form - e.g. a field the form does not have #}
+                            {{ form_errors(form) }}
                             {{ form_row(form.name) }}
                             {{ form_row(form.category) }}
                             {{ form_row(form.minutesLimit) }}
@@ -65,6 +67,7 @@
                                 </div>
                                 {{ form_row(form.timezone) }}
                             {% endif %}
+                            <div id="reveal-delay">{{ form_row(form.revealDelayMinutes) }}</div>
                             <div class="row">
                                 <div class="col-12">{{ form_row(form.resultsLink) }}</div>
                                 {{ include('competition/_round_badge_field.html.twig') }}

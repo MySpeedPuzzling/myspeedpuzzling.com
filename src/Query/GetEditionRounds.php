@@ -89,7 +89,8 @@ SELECT
         ELSE p.image_ratio
     END AS puzzle_image_ratio,
     m.name AS manufacturer_name,
-    cr.starts_at AS round_starts_at
+    cr.starts_at AS round_starts_at,
+    cr.reveal_delay_minutes AS round_reveal_delay_minutes
 FROM competition_round_puzzle crp
 INNER JOIN puzzle p ON p.id = crp.puzzle_id
 INNER JOIN competition_round cr ON cr.id = crp.round_id
@@ -110,7 +111,7 @@ SQL;
         /** @var array<string, array<EditionRoundPuzzle>> $puzzlesByRound */
         $puzzlesByRound = [];
         foreach ($puzzleRows as $row) {
-            /** @var array{round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, reveal_mode: string, reveal_at: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, puzzle_image_ratio: null|float|string, manufacturer_name: null|string, round_starts_at: string} $row */
+            /** @var array{round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, reveal_mode: string, reveal_at: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, puzzle_image_ratio: null|float|string, manufacturer_name: null|string, round_starts_at: string, round_reveal_delay_minutes: int|string} $row */
             $hideUntilRoundStarts = $row['hide_until_round_starts'];
             if (is_string($hideUntilRoundStarts)) {
                 $hideUntilRoundStarts = $hideUntilRoundStarts === 't' || $hideUntilRoundStarts === '1' || $hideUntilRoundStarts === 'true';
@@ -122,6 +123,7 @@ SQL;
             if ($hideUntilRoundStarts) {
                 $revealAt = RoundPuzzleReveal::from($row['reveal_mode'])->revealAt(
                     new DateTimeImmutable($row['round_starts_at']),
+                    (int) $row['round_reveal_delay_minutes'],
                     $row['reveal_at'] !== null ? new DateTimeImmutable($row['reveal_at']) : null,
                 );
                 $imageHidden = $revealAt === null || $now < $revealAt;

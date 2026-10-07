@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
@@ -26,6 +27,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class RoundResultsSecretPuzzleTest extends WebTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     private const string NAME = 'Held Elsewhere Secret';
     private const string RESULTS = '/en/events/wjpc-2024/results/qualification-round';
 
@@ -82,6 +85,7 @@ final class RoundResultsSecretPuzzleTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf($roundId),
         );
     }
 }

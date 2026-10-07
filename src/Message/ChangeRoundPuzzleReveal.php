@@ -18,6 +18,12 @@ readonly final class ChangeRoundPuzzleReveal
         public null|DateTimeImmutable $scheduledAt = null,
         // Yes to publishing the name now: "entirely" -> "image only" of a row still hiding it (it is never hidden again)
         public bool $namePublicationConfirmed = false,
+        // The round's automatic reveal (start + reveal delay) the caller agreed to - required for an automatic reveal:
+        // checked under the handler's lock, another moment now (the round changed after the organiser's page was
+        // loaded) or none at all is refused (AutomaticRevealChangedMeanwhile). No caller is exempt - one that offers
+        // "Automatic" says which moment it showed (CompetitionRound::automaticRevealAt() as it read the round). Ignored
+        // for scheduled and manual reveals.
+        public null|DateTimeImmutable $shownAutomaticRevealAt = null,
     ) {
     }
 }

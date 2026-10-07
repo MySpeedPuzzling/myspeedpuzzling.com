@@ -6,10 +6,14 @@ namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
+use Symfony\Component\Form\Exception\TransformationFailedException;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
@@ -87,7 +91,55 @@ final class CompetitionRoundFormType extends AbstractType
             },
         ]);
 
-        // Editing a round with secret puzzles: saving a start that reveals them right away needs an explicit yes
+        // The automatic reveal of the round's secret puzzles - minutes after the start, so the start stays the real start.
+        // The templates render it inside <div id="reveal-delay"> - the round's puzzles page links there
+        $data = $options['data'] ?? null;
+        $current = $data instanceof CompetitionRoundFormData && $data->revealDelayMinutes !== null
+            ? $data->revealDelayMinutes
+            : RoundPuzzleReveal::DEFAULT_DELAY_MINUTES;
+        $rangeParameters = ['{{ min }}' => '0', '{{ max }}' => (string) RoundPuzzleReveal::MAX_DELAY_MINUTES];
+
+        $builder->add('revealDelayMinutes', IntegerType::class, [
+            'label' => 'competition.round.form.reveal_delay_minutes',
+            'help' => 'competition.round.form.reveal_delay_minutes_help',
+            'help_translation_parameters' => ['%max%' => RoundPuzzleReveal::MAX_DELAY_MINUTES],
+            'required' => true,
+            // A missing or blank value keeps the delay the form was shown with (also a page rendered by a release
+            // without the field)
+            'empty_data' => (string) $current,
+            'invalid_message' => 'competition_round_reveal_delay_range',
+            'invalid_message_parameters' => $rangeParameters,
+            'attr' => [
+                'min' => 0,
+                'max' => RoundPuzzleReveal::MAX_DELAY_MINUTES,
+                'step' => 1,
+                'inputmode' => 'numeric',
+                'class' => 'w-auto',
+            ],
+        ]);
+
+        // Whole minutes exactly as typed, the same in every page language - IntegerType parses with the language's
+        // decimal and grouping separators ("2,5" or "2.5" mean different things in en and cs). A number input sends
+        // plain digits anyway; anything else is the range error, never a guess
+        $builder->get('revealDelayMinutes')
+            ->resetViewTransformers()
+            ->addViewTransformer(new CallbackTransformer(
+                static fn (mixed $minutes): string => is_int($minutes) ? (string) $minutes : '',
+                static function (mixed $typed): null|int {
+                    if ($typed === null || $typed === '') {
+                        return null;
+                    }
+
+                    if (!is_string($typed) || preg_match('/^\s*\d{1,4}\s*$/', $typed) !== 1) {
+                        throw new TransformationFailedException('Whole minutes are expected.');
+                    }
+
+                    return (int) trim($typed);
+                },
+            ));
+
+        // Editing a round with secret puzzles: saving a start or a reveal delay that reveals them earlier than planned needs
+        // an explicit yes (EditCompetitionRoundController)
         if ($options['reveal_confirmation'] === true) {
             $builder->add('confirmReveal', CheckboxType::class, [
                 'label' => 'competition.reveal.form.confirm_reveal',

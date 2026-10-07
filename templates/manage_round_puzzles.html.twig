@@ -13,13 +13,29 @@
 
     {% set timezone = round.displayTimezone %}
     {% set timezone_assumed = round.timezoneAssumed %}
+    {# The round's automatic reveal: its reveal minutes after the start (RoundPuzzleReveal) - the same for all its puzzles #}
+    {% set after_start = 'competition.reveal.after_start'|trans({'%count%': round.revealDelayMinutes}) %}
+    {% set change_delay_url = path('edit_competition_round', {
+        roundId: round.id,
+        return: path('manage_round_puzzles', {roundId: round.id}),
+        return_title: 'competition.manage_puzzles'|trans,
+    }) ~ '#reveal-delay' %}
+    {# The "Change" links next to it repeat on the page: their accessible name (change_delay_label) says what they change,
+       and contains the visible word #}
+    {% set has_automatic_secret = puzzles|filter(puzzle => puzzle.hideUntilRoundStarts and puzzle.hidden and puzzle.revealMode.value == 'automatic') is not empty %}
 
     <div class="pb-4">
         <h1 class="h2">{{ round.name }}</h1>
         <p class="text-muted mb-1">{{ competition.name }}</p>
-        <p class="small text-muted" data-round-start>
+        <p class="small text-muted{{ has_automatic_secret ? ' mb-1' }}" data-round-start>
             <i class="bi bi-calendar-event me-1"></i>{{ 'competition.reveal.round_start'|trans({'%time%': zoned_datetime(round.startsAt, timezone, timezone_assumed)}) }}
         </p>
+        {% if has_automatic_secret %}
+            <p class="small text-muted" data-automatic-reveal>
+                <i class="bi bi-eye-slash me-1"></i>{{ 'competition.reveal.automatic_line'|trans({'%after_start%': after_start, '%time%': zoned_datetime(round.automaticRevealAt, timezone, timezone_assumed)}) }}
+                · <a href="{{ change_delay_url }}" aria-label="{{ 'competition.reveal.change_delay_label'|trans }}" data-change-reveal-delay>{{ 'competition.reveal.change_delay'|trans }}</a>
+            </p>
+        {% endif %}
 
         <div class="mb-3">
             <a href="{{ path('add_puzzle_to_round', {'roundId': round.id, return: path('manage_round_puzzles', {roundId: round.id}), return_title: 'competition.manage_puzzles'|trans}) }}" class="btn btn-outline-primary">
@@ -99,7 +115,7 @@
 
                             {% if puzzle.hideUntilRoundStarts and puzzle.hidden %}
                                 <p class="small text-muted mb-0">
-                                    {{ ('competition.reveal.source.' ~ puzzle.revealMode.value)|trans }}
+                                    {{ ('competition.reveal.source.' ~ puzzle.revealMode.value)|trans({'%after_start%': after_start}) }}
                                     {% if puzzle.revealsAt is not null and puzzle.revealsAt < round.startsAt %}
                                         <span class="text-danger">{{ 'competition.reveal.source.before_round_start'|trans({'%time%': zoned_datetime(round.startsAt, timezone, timezone_assumed)}) }}</span>
                                     {% endif %}
@@ -142,6 +158,8 @@
 
                                 <form method="post" action="{{ path('change_round_puzzle_reveal', {roundPuzzleId: puzzle.roundPuzzleId}) }}" class="mt-2 border-start ps-3">
                                     <input type="hidden" name="_token" value="{{ csrf_token('round_puzzle_reveal_' ~ puzzle.roundPuzzleId) }}">
+                                    {# The automatic reveal shown below - "Automatic" is saved only while the round still has it (ChangeRoundPuzzleReveal) #}
+                                    <input type="hidden" name="automatic_reveal_at" value="{{ round.automaticRevealAt.timestamp }}">
 
                                     {% if refused is not null %}
                                         <div class="alert alert-danger py-2" data-reveal-error>{{ refused.message }}</div>
@@ -179,8 +197,15 @@
                                             <label class="form-check-label" for="reveal-automatic-{{ puzzle.roundPuzzleId }}">
                                                 {{ automatic_over
                                                     ? 'competition.reveal.form.automatic_over'|trans
-                                                    : 'competition.reveal.form.automatic'|trans({'%time%': zoned_datetime(round.automaticRevealAt, timezone, timezone_assumed)}) }}
+                                                    : 'competition.reveal.form.automatic'|trans({'%after_start%': after_start, '%time%': zoned_datetime(round.automaticRevealAt, timezone, timezone_assumed)}) }}
                                             </label>
+                                            {# The minutes belong to the round, not to this puzzle #}
+                                            {% if not automatic_over %}
+                                                <div class="form-text mt-0">
+                                                    {{ 'competition.reveal.form.automatic_delay_help'|trans }}
+                                                    <a href="{{ change_delay_url }}" aria-label="{{ 'competition.reveal.change_delay_label'|trans }}" data-change-reveal-delay>{{ 'competition.reveal.change_delay'|trans }}</a>
+                                                </div>
+                                            {% endif %}
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="reveal_mode" value="scheduled" id="reveal-scheduled-{{ puzzle.roundPuzzleId }}" {{ current_mode == 'scheduled' ? 'checked' }}>

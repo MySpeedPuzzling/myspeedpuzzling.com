@@ -21,9 +21,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Changes only the fields sent. The round's slug never changes (shared result links keep working). A category change
- * that would put one of its puzzles into two rounds of the same category is refused (409). A new start that reveals
- * secret puzzles right away (their automatic reveal would be over) is refused (409, `revealedPuzzles`) unless the body
- * says `"confirmReveal": true`.
+ * that would put one of its puzzles into two rounds of the same category is refused (409).
+ *
+ * Any change that moves the round's automatic reveal (start + `revealDelayMinutes`) EARLIER - by the start, the delay or
+ * both, the net moment decides - lets its secret puzzles with an automatic reveal out earlier than planned: refused
+ * (409, `revealedPuzzles` - each with when, `rightAway` / `revealsAt`, and how far, `scope`) unless the body says
+ * `"confirmReveal": true`. A later moment needs no yes and hides them longer on the whole site too.
  */
 final class UpdateCompetitionRoundController extends AbstractController
 {
@@ -66,11 +69,13 @@ final class UpdateCompetitionRoundController extends AbstractController
                 badgeTextColor: $data->badgeTextColor,
                 category: $data->category,
                 resultsLink: $data->resultsLink,
-                // A start moved so that secret puzzles come out right away needs an explicit yes (409 otherwise)
+                // An automatic reveal moved earlier (start and/or delay) needs an explicit yes (409 otherwise)
                 refuseToReveal: $confirmReveal === false,
                 // What the body leaves out is kept as the round has it under the handler's lock - the values above
                 // for those fields were read before it and are ignored
                 keepFields: self::keptFields($input),
+                // Left out = null = the round's delay as it is under the handler's lock
+                revealDelayMinutes: $input->has('revealDelayMinutes') ? $data->revealDelayMinutes : null,
             ));
         } catch (HandlerFailedException $exception) {
             $previous = $exception->getPrevious();

@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
@@ -36,6 +37,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class SecretPuzzleAccessTest extends WebTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     private KernelBrowser $browser;
 
     protected function setUp(): void
@@ -190,13 +193,14 @@ final class SecretPuzzleAccessTest extends WebTestCase
             roundId: CompetitionApiFixture::ROUND_FUTURE,
             userId: $userId,
             brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
-            puzzle: 'Rolling Hills Secret',
+            puzzle: 'Secret Puzzle Bravo',
             piecesCount: 1000,
             puzzlePhoto: null,
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
 
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);

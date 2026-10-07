@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Message\DeleteObsoletePuzzleImage;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
  * The site-wide hide of a secret competition puzzle belongs to the PUZZLE, not to one round: a puzzle may be secret in
@@ -27,8 +28,9 @@ use SpeedPuzzling\Web\Value\PuzzleHideMode;
  * yet counts as never (CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED).
  *
  * Call resync() after anything that may move a reveal: adding a puzzle to a round, a reveal change, "Reveal now",
- * a round's start, removing the puzzle from a round, deleting a round or an event, a merge. With no such row left the
- * dates stay as they are - a puzzle is never revealed by accident.
+ * a round's start or its reveal delay (CompetitionRound::changeRevealDelay()), removing the puzzle from a round,
+ * deleting a round or an event, a merge. With no such row left the dates stay as they are - a puzzle is never revealed
+ * by accident.
  *
  * Works on the unit of work as it is now (rows added or removed in this handler count), since a handler only flushes
  * at its end (doctrine_transaction).
@@ -208,13 +210,15 @@ readonly final class SecretPuzzleHides
     /**
      * The site-wide hide the puzzle's rows ask for - null when no row keeps it hidden everywhere (the dates then stay).
      * The hypotheticals answer "what would this change reveal?" before it is made: rows left out (a removal, a deleted
-     * round) and rounds at another start (a round edit).
+     * round) and rounds with another automatic reveal (a round edit moving its start or its reveal delay).
      *
      * @param array<string> $withoutRoundPuzzleIds
-     * @param array<string, DateTimeImmutable> $roundStartsAt round id => the start to assume
+     * @param array<string, DateTimeImmutable> $automaticRevealsAt round id => the automatic reveal to assume for its rows
+     *     with an automatic reveal that are still hidden (RoundPuzzleReveal::automaticRevealAt() of the new start and
+     *     delay)
      * @return null|array{hiddenUntil: null|DateTimeImmutable, imageHiddenUntil: DateTimeImmutable}
      */
-    public function hideOf(Puzzle $puzzle, array $withoutRoundPuzzleIds = [], array $roundStartsAt = []): null|array
+    public function hideOf(Puzzle $puzzle, array $withoutRoundPuzzleIds = [], array $automaticRevealsAt = []): null|array
     {
         $hiddenUntil = null;
         $imageHiddenUntil = null;
@@ -230,9 +234,12 @@ readonly final class SecretPuzzleHides
                 continue;
             }
 
-            // A round edit pins reveals that already happened (EditCompetitionRoundHandler) - only the others move
-            $startsAt = $row->isHiddenAt($now) ? ($roundStartsAt[$row->round->id->toString()] ?? $row->round->startsAt) : $row->round->startsAt;
-            $revealsAt = $row->revealMode->revealAt($startsAt, $row->revealAt) ?? $neverRevealed;
+            // A round edit pins reveals that already happened (EditCompetitionRoundHandler) - only the automatic reveals
+            // still ahead move; scheduled and manual ones are the organiser's own and never follow the round
+            $assumed = $automaticRevealsAt[$row->round->id->toString()] ?? null;
+            $revealsAt = $assumed !== null && $row->revealMode === RoundPuzzleReveal::Automatic && $row->isHiddenAt($now)
+                ? $assumed
+                : ($row->revealsAt() ?? $neverRevealed);
 
             if ($imageHiddenUntil === null || $revealsAt > $imageHiddenUntil) {
                 $imageHiddenUntil = $revealsAt;

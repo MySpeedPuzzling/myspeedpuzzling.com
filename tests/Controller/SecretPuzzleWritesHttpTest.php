@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\PatTestHelper;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
@@ -35,6 +36,7 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 final class SecretPuzzleWritesHttpTest extends WebTestCase
 {
     use InteractsWithLiveComponents;
+    use ReadsRoundAutomaticReveal;
 
     private const string SECRET_NAME = 'Lighthouse Secret';
 
@@ -232,6 +234,7 @@ final class SecretPuzzleWritesHttpTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -314,6 +317,7 @@ final class SecretPuzzleWritesHttpTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: $hideMode,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
 
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);

@@ -261,6 +261,7 @@ Not settable here: the logo (upload it in the UI), the series of an edition (rec
 | `startsAt` | Required on create. ISO 8601 date-time, **stored and answered in UTC** like the round form stores it: with an offset (`"2026-11-14T10:00:00+01:00"`, `"…Z"`) it is that moment; without one (`"2026-11-14T10:00"`) a wall-clock time in the round's zone (the `timezone` sent along, else the round's own) - a `400` when a daylight-saving change skips or repeats that time there (send it with an offset). Left out of a `PATCH`, the start stays exactly as stored |
 | `timezone` | The round's own IANA zone (`"America/Chicago"`) - its times are typed and shown in it, on the organiser's form and the event pages, and the answer carries it. A new round gets the zone of the event's other rounds, else of its country (`CountryCode::defaultTimezone()`, the series' country for an edition), else `Europe/Prague` - like the form. Only together with `startsAt` (a `400` alone: it would leave open whether the round keeps its moment or its wall-clock time); `null` is a `400` too |
 | `minutesLimit` | Required on create, ≥ 1 |
+| `revealDelayMinutes` | When the round's secret puzzles with an automatic reveal come out: whole minutes after `startsAt`, from `0` (when the round starts) to `240` (the longest round on record - anything later is an own reveal time, set in the UI); `10` when left out on create. Anything else (`-1`, `241`, `2.5`, `"10"`, `null`) is a `400`. Left out of a `PATCH`, the round keeps its delay. Moving the automatic reveal earlier needs `"confirmReveal": true` (see below) |
 | `badgeBackgroundColor` | The round's badge colour, `"#rrggbb"` or `"#rgb"` (anything else is a `400`); `null` or left out on create = a distinct colour picked automatically by the round's place in the schedule (`"#fe696a"`, the old form default, counts as none) - `RoundBadgeColor` |
 | `badgeTextColor` | Stored and answered, but never shown: every page picks black or white for contrast with the badge colour. The round form no longer asks for it |
 | `resultsLink` | The organiser's results page of this round |
@@ -280,15 +281,50 @@ round, and **nothing** changes (`SetCompetitionRoundPuzzles` is one transaction)
 **Deleting a round** is refused (`409`) while any solving time belongs to it (`resultsCount` > 0); the organiser's
 own delete button in the UI does not have this guard.
 
-**Secret puzzles are never revealed by accident.** A round puzzle may keep its puzzle secret until its reveal
-(`hideUntilRoundStarts`, `revealMode` `automatic` = 10 minutes after the round starts / `scheduled` / `manual`,
-`revealsAt` in UTC, `hidesEverywhere` = the whole site, not only the event pages -
-[competitions docs](./competitions-management/README.md) "Hide Until Round Starts"). A change that would reveal such
-a puzzle **right away** - deleting the round or removing the puzzle (`PUT …/puzzles`) while another round has revealed
-it already, or a `PATCH` moving the start so that its automatic reveal is over - is refused with a `409` that lists them (`revealedPuzzles`: `puzzleId`, `name`,
-`revealedEverywhere`, `stillHiddenElsewhereUntil`), and nothing changes. Send the same request again with
-`"confirmReveal": true` (in the `DELETE` body too) to go ahead - the organiser's form asks the same question. Changing
-a reveal, revealing now and making a round keep its puzzle secret on the whole site stay in the UI.
+**Secret puzzles are never revealed by accident.** A round puzzle may keep its puzzle secret until its reveal:
+- `hideUntilRoundStarts` marks it secret.
+- `revealMode` is `automatic` (the round's `revealDelayMinutes` after it starts, 10 unless set otherwise; it follows the round's start and delay), `scheduled` or `manual`.
+- `revealsAt` is the reveal moment, in UTC.
+- `hidesEverywhere` means it is hidden on the whole site, not only on the event pages.
+
+See the [competitions docs](./competitions-management/README.md), "Hide Until Round Starts".
+
+A change that would reveal such a puzzle **earlier than planned** is refused with a `409` that lists the puzzles, and
+nothing changes:
+- **Deleting the round or removing the puzzle** (`PUT …/puzzles`) while another round has revealed it already. The
+  puzzle comes out right away.
+- **A round `PATCH` that moves the round's automatic reveal** (`startsAt` + `revealDelayMinutes`) **earlier.** That is
+  an earlier start, a shorter delay, or both; the net moment decides (a start 15 minutes earlier with 15 minutes more
+  delay asks nothing). This also applies when the new moment is still in the future, since 2026-10; before that, only
+  a start that moved the reveal into the past asked.
+  - Only rows that are still secret and have an automatic reveal are listed. Own reveal times and manual reveals
+    never follow the round.
+  - A later moment needs no yes. It keeps the puzzles hidden longer on the whole site too (`hiddenUntil` /
+    `imageHiddenUntil` follow).
+
+Each item of `revealedPuzzles` has:
+- `puzzleId`, `name`.
+- **When:** `rightAway` (`true` = the moment the request is applied) and `revealsAt` (the new moment in UTC, `null`
+  when right away).
+- **From when:** `previousRevealsAt` - the moment it moves from (UTC): for a round `PATCH`, the round's automatic
+  reveal as it is now. `null` for a removal or a deleted round (the puzzle leaves the round). The organiser's form binds
+  its yes to it too, so a round whose reveal moved meanwhile is asked again.
+- **How far:** `scope` is one of:
+  - `everywhere`: everything the round hid comes out on the whole site.
+  - `name_everywhere`: its name comes out on the whole site; its picture stays hidden elsewhere until
+    `stillHiddenElsewhereUntil`.
+  - `event`: it comes out on this event only; another round keeps it hidden elsewhere until
+    `stillHiddenElsewhereUntil` - or, when that is `null`, it was public elsewhere all along (a public catalogue puzzle
+    the round keeps secret on its event pages only).
+- `revealedEverywhere` (`true` when `scope` is `everywhere`) and `stillHiddenElsewhereUntil`. Both existed before
+  `scope` and stay. `stillHiddenElsewhereUntil` = `9999-12-31T00:00:00+00:00` means until a manual reveal: another
+  round waits for its organiser's "Reveal now".
+
+To go ahead, send the same request again with `"confirmReveal": true` (in the `DELETE` body too). The organiser's form
+asks the same question. The check runs in the handler after its locks (`refuseToReveal`), so a list that changed in
+the meantime is decided on as it is at that point - `confirmReveal` is a blanket yes, not bound to the list the 409
+showed: one that grew before the resend is applied unseen. Changing a reveal, revealing now and making a round keep its puzzle
+secret on the whole site stay in the UI.
 
 **The competition's own puzzles** ("Competition puzzles" on the standalone event page) are the puzzles of the
 competition's **tag**. `PUT …/competitions/{competitionId}/puzzles` makes them exactly `puzzleIds`; a competition
@@ -359,6 +395,7 @@ Competition answer (`GET`, and the answer of create / update / set puzzles):
     "startsAt": "2024-09-20T08:00:00+00:00",
     "timezone": "Europe/Prague",
     "minutesLimit": 60,
+    "revealDelayMinutes": 10,
     "badgeBackgroundColor": "#1e88e5",
     "badgeTextColor": "#000000",
     "resultsLink": null,
@@ -444,6 +481,14 @@ curl -X DELETE "$API/rounds/019a0000-0000-7000-8000-000000000004" -H "$AUTH"
 # A US event: its rounds in Chicago time; a rename later keeps the start
 curl -X PATCH "$API/rounds/019a0000-0000-7000-8000-000000000005" -H "$AUTH" -H "Content-Type: application/json" \
   -d '{"startsAt": "2026-10-17T08:05", "timezone": "America/Chicago"}'
+
+# Secret puzzles out 15 minutes after the start instead of 10 (a later reveal needs no yes)
+curl -X PATCH "$API/rounds/019a0000-0000-7000-8000-000000000005" -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"revealDelayMinutes": 15}'
+
+# A shorter delay or an earlier start lets them out earlier: 409 listing them, then the same request with the yes
+curl -X PATCH "$API/rounds/019a0000-0000-7000-8000-000000000005" -H "$AUTH" -H "Content-Type: application/json" \
+  -d '{"revealDelayMinutes": 5, "confirmReveal": true}'
 
 # A 409 listed the secret puzzles a delete would reveal - delete anyway
 curl -X DELETE "$API/rounds/019a0000-0000-7000-8000-000000000006" -H "$AUTH" -H "Content-Type: application/json" \
@@ -575,6 +620,7 @@ the `fingers_crossed` one that drops info records of requests without a warning.
 | `409 Conflict` | Brand already approved, or its name is taken by an approved brand, or a brand to delete is still in use; a change request already reviewed | `{"error": "..."}` |
 | `409 Conflict` | A taken competition slug; the round invariant (a puzzle in two rounds of one category); a round with results to delete; a shared tag; a competition already approved / rejected / an edition to approve; a known EAN for a new puzzle | `{"error": "..."}` |
 | `409 Conflict` | A puzzle changed since the `recordVersion(s)` sent with a merge / change-request approve; a change proposal for a puzzle with a pending one | `{"error": "..."}` |
+| `409 Conflict` | A round change, a round delete or a puzzle removal that would reveal secret puzzles earlier than planned, sent without `"confirmReveal": true` | `{"error": "...", "revealedPuzzles": [...]}` |
 | `422 Unprocessable Entity` | A brand merge that cannot be done (survivor in its own list) | `{"error": "..."}` |
 
 Every refusal is JSON, whatever the client accepts: `InternalApiErrorResponseSubscriber` renders each 4xx HTTP

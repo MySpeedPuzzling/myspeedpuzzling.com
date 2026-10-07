@@ -14,13 +14,13 @@
         <div class="alert alert-warning" data-confirm-reveal>
             <p class="mb-2">{{ intro|trans }}</p>
             <ul class="mb-0">
+                {# All right away (the intro says so) - how far each comes out #}
                 {% for item in revealed %}
-                    <li>
-                        <strong>{{ item.name }}</strong>
-                        {% if not item.everywhere %}
-                            <span class="text-muted">– {{ 'competition.reveal.confirm.only_this_event'|trans({'%time%': zoned_datetime(item.hiddenElsewhereUntil, timezone, round.timezoneAssumed)}) }}</span>
-                        {% endif %}
-                    </li>
+                    {{ include('competition/_revealed_puzzle.html.twig', {
+                        item: item,
+                        timezone: timezone,
+                        timezone_assumed: round.timezoneAssumed,
+                    }, with_context = false) }}
                 {% endfor %}
             </ul>
         </div>

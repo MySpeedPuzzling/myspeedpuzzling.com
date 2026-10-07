@@ -22,6 +22,8 @@ readonly final class AdminCompetitionRound
         // The zone its times are typed and shown in (IANA)
         public string $timezone,
         public int $minutesLimit,
+        // Minutes after the start when its secret puzzles with an automatic reveal come out (RoundPuzzleReveal)
+        public int $revealDelayMinutes,
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
         public null|string $resultsLink,
@@ -40,6 +42,7 @@ readonly final class AdminCompetitionRound
      *     category: string,
      *     starts_at: string,
      *     minutes_limit: int,
+     *     reveal_delay_minutes: int,
      *     badge_background_color: null|string,
      *     badge_text_color: null|string,
      *     results_link: null|string,
@@ -62,6 +65,7 @@ readonly final class AdminCompetitionRound
             startsAt: AdminCompetition::isoDateTime($row['starts_at']) ?? $row['starts_at'],
             timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code'], $row['series_country_code']),
             minutesLimit: $row['minutes_limit'],
+            revealDelayMinutes: $row['reveal_delay_minutes'],
             badgeBackgroundColor: $row['badge_background_color'],
             badgeTextColor: $row['badge_text_color'],
             resultsLink: $row['results_link'],
@@ -84,6 +88,7 @@ readonly final class AdminCompetitionRound
             'startsAt' => $this->startsAt,
             'timezone' => $this->timezone,
             'minutesLimit' => $this->minutesLimit,
+            'revealDelayMinutes' => $this->revealDelayMinutes,
             'badgeBackgroundColor' => $this->badgeBackgroundColor,
             'badgeTextColor' => $this->badgeTextColor,
             'resultsLink' => $this->resultsLink,

@@ -43,6 +43,9 @@
                             'data-round-badge-preview-round-form-default-value': constant('SpeedPuzzling\\Web\\Value\\RoundBadgeColor::ROUND_FORM_DEFAULT'),
                             'data-round-badge-preview-placeholder-value': 'competition.round.form.name'|trans,
                         }}) }}
+                            {# Errors of the whole form - e.g. a field the form does not have, or an earlier reveal to confirm
+                               when the form has no tick box (EditCompetitionRoundController::askToConfirm()) #}
+                            {{ form_errors(form) }}
                             {{ form_row(form.name) }}
                             {{ form_row(form.category) }}
                             {{ form_row(form.minutesLimit) }}
@@ -78,29 +81,32 @@
                                 </div>
                                 {{ form_row(form.timezone) }}
                             {% endif %}
+                            {# The round's puzzles page links here #}
+                            <div id="reveal-delay">{{ form_row(form.revealDelayMinutes) }}</div>
                             <div class="row">
                                 <div class="col-12">{{ form_row(form.resultsLink) }}</div>
                                 {{ include('competition/_round_badge_field.html.twig') }}
                             </div>
 
-                            {# Only asked when the new start would reveal secret puzzles right away (EditCompetitionRoundController) #}
+                            {# Only asked when the new start or reveal minutes would reveal secret puzzles earlier than planned
+                               (EditCompetitionRoundController) #}
                             {% if form.confirmReveal is defined %}
-                                {% if revealed_right_away is not empty %}
+                                {% if revealed_earlier is not empty %}
                                     <div class="alert alert-warning" data-confirm-reveal>
                                         <p class="mb-2">{{ 'competition.reveal.form.confirm_reveal_list'|trans }}</p>
                                         <ul class="mb-2">
-                                            {% for item in revealed_right_away %}
-                                                <li>
-                                                    <strong>{{ item.name }}</strong>
-                                                    {% if not item.everywhere %}
-                                                        <span class="text-muted">– {{ 'competition.reveal.confirm.only_this_event'|trans({'%time%': zoned_datetime(item.hiddenElsewhereUntil, timezone, round.timezoneAssumed)}) }}</span>
-                                                    {% endif %}
-                                                </li>
+                                            {% for item in revealed_earlier %}
+                                                {{ include('competition/_revealed_puzzle.html.twig', {
+                                                    item: item,
+                                                    timezone: timezone,
+                                                    timezone_assumed: round.timezoneAssumed,
+                                                }, with_context = false) }}
                                             {% endfor %}
                                         </ul>
-                                        {# The yes counts only for exactly this list (SecretRevealPreview::hash()) #}
+                                        {# The yes counts only for exactly this list (SecretRevealPreview::hash()) - a tick given for
+                                           another list is shown cleared #}
                                         <input type="hidden" name="confirm_reveal_hash" value="{{ reveal_confirmation_hash }}">
-                                        {{ form_row(form.confirmReveal) }}
+                                        {{ form_row(form.confirmReveal, {checked: reveal_confirmation_ticked}) }}
                                     </div>
                                 {% else %}
                                     {% do form.confirmReveal.setRendered %}

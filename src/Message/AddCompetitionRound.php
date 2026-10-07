@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Message;
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 readonly final class AddCompetitionRound
 {
@@ -22,6 +23,8 @@ readonly final class AddCompetitionRound
         public null|string $badgeTextColor,
         public RoundCategory $category = RoundCategory::Solo,
         public null|string $resultsLink = null,
+        // Minutes after the start when the round's secret puzzles with an automatic reveal come out (RoundPuzzleReveal)
+        public int $revealDelayMinutes = RoundPuzzleReveal::DEFAULT_DELAY_MINUTES,
     ) {
     }
 }

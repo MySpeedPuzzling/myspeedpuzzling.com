@@ -1,0 +1,34 @@
+{#
+    One secret puzzle a change lets out earlier than planned (a SecretRevealPreview item): when, and how far.
+
+    item, timezone, timezone_assumed. item.previousRevealsAt = the moment it moves from (a round edit: the round's automatic
+    reveal as it was when the list was made - the item comes out at item.revealsAt instead, null = right away), or null
+    (a removal or a round deletion: always right away, the page says so)
+#}
+{% set hidden_elsewhere_until = item.hiddenElsewhereUntil %}
+{# A manual reveal nobody made yet is stored as the far future (CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED) - never a date to print #}
+{% set until_revealed_manually = hidden_elsewhere_until is not null and hidden_elsewhere_until|date('Y', 'UTC') >= 9999 %}
+<li data-revealed-puzzle>
+    <strong>{{ item.name }}</strong>
+    {# The moment the yes is bound to (SecretRevealPreview::hash()) - never recomputed from the round as it is now #}
+    {% if item.previousRevealsAt is not null %}
+        <span data-revealed-when>– {{ item.revealsAt is null
+            ? 'competition.reveal.form.revealed_right_away'|trans
+            : 'competition.reveal.form.revealed_earlier_at'|trans({
+                '%time%': zoned_datetime(item.revealsAt, timezone, timezone_assumed),
+                '%previous%': zoned_datetime(item.previousRevealsAt, timezone, timezone_assumed),
+            }) }}</span>
+    {% endif %}
+    {# How far: everything everywhere (nothing to add), only on this event, or its name everywhere and the picture only here #}
+    {% if item.scope != 'everywhere' and hidden_elsewhere_until is not null %}
+        {% set scope_key = item.scope == 'name_everywhere'
+            ? 'competition.reveal.confirm.name_everywhere_image_elsewhere'
+            : 'competition.reveal.confirm.only_this_event' %}
+        <span class="text-muted" data-revealed-scope>– {{ until_revealed_manually
+            ? (scope_key ~ '_manual')|trans
+            : scope_key|trans({'%time%': zoned_datetime(hidden_elsewhere_until, timezone, timezone_assumed)}) }}</span>
+    {% elseif item.scope == 'event' %}
+        {# A public catalogue puzzle the round keeps secret on its event pages only - nothing hides it elsewhere #}
+        <span class="text-muted" data-revealed-scope>– {{ 'competition.reveal.confirm.only_this_event_public_elsewhere'|trans }}</span>
+    {% endif %}
+</li>

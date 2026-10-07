@@ -27,6 +27,9 @@
                          data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
                          data-time-form-autocomplete-puzzle-required-message-value="{{ 'forms.required_field'|trans }}">
                         {{ form_start(form) }}
+                            {# The automatic reveal named under "Hide until the round starts" - a secret puzzle is added only while
+                               the round still has it (AddPuzzleToCompetitionRound) #}
+                            <input type="hidden" name="automatic_reveal_at" value="{{ round.automaticRevealAt.timestamp }}">
                             {{ form_row(form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
                             {{ form_row(form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
 
@@ -50,7 +53,10 @@
                                     'attr': {'data-action': 'change->time-form-autocomplete#toggleHideOptions'},
                                     'help': revealed_right_away
                                         ? 'competition.round_puzzle.form.hide_help_round_started'|trans({'%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed)})
-                                        : 'competition.round_puzzle.form.hide_help'|trans({'%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed)}),
+                                        : 'competition.round_puzzle.form.hide_help'|trans({
+                                            '%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed),
+                                            '%after_start%': 'competition.reveal.after_start'|trans({'%count%': round.revealDelayMinutes}),
+                                        }),
                                 }) }}
 
                                 <div data-time-form-autocomplete-target="hideOptions" class="d-none ms-4 mt-2">

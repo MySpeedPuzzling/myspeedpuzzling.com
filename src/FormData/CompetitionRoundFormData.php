@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -36,6 +37,10 @@ final class CompetitionRoundFormData
         #[Assert\Url]
         #[Assert\Length(max: 2000)]
         public null|string $resultsLink = null,
+        // Minutes after the start when the round's secret puzzles with an automatic reveal come out (RoundPuzzleReveal)
+        #[Assert\NotNull]
+        #[Assert\Range(notInRangeMessage: 'competition_round_reveal_delay_range', min: 0, max: RoundPuzzleReveal::MAX_DELAY_MINUTES)]
+        public null|int $revealDelayMinutes = RoundPuzzleReveal::DEFAULT_DELAY_MINUTES,
     ) {
     }
 
@@ -64,6 +69,7 @@ final class CompetitionRoundFormData
         $data->badgeTextColor = $round->badgeTextColor;
         $data->category = $round->category;
         $data->resultsLink = $round->resultsLink;
+        $data->revealDelayMinutes = $round->revealDelayMinutes;
 
         return $data;
     }

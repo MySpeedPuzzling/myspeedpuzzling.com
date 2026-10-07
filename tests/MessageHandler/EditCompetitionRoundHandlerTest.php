@@ -104,7 +104,7 @@ final class EditCompetitionRoundHandlerTest extends KernelTestCase
         $newStart = $this->round()->startsAt->modify('+5 hours');
         $this->editRound($newStart, 'America/Chicago');
 
-        $automatic = $newStart->modify('+10 minutes');
+        $automatic = $newStart->modify(sprintf('+%d minutes', RoundPuzzleReveal::DEFAULT_DELAY_MINUTES));
         self::assertSame($automatic->getTimestamp(), $this->puzzle(PuzzleFixture::PUZZLE_500_03)->hideUntil?->getTimestamp());
         self::assertSame($automatic->getTimestamp(), $this->puzzle(PuzzleFixture::PUZZLE_500_03)->hideImageUntil?->getTimestamp());
 

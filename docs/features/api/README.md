@@ -120,7 +120,12 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 - **List** returns basic info for **approved, standalone** competitions only (mirrors the public website listing). Series editions are not listed, but they are reachable by id through the detail endpoint. Optional filters: `status` (default `all`), `online` (default `false`), `country` (ISO 3166-1 alpha-2). Response shape: `{ "count": N, "competitions": [ ... ] }`. Participants are never returned.
 - **Detail** returns the competition metadata plus its `rounds` and a `series` object. Each round exposes `id`, `name`, `starts_at`, `minutes_limit`, `category`, and `puzzles`. `series` is `{ "id", "name", "slug" }` for an edition of a competition series and `null` for a standalone competition (an edition's own `slug` is only unique within its series — build links as `/series/{series.slug}/{slug}`). **Participants are never returned.**
 - **Unapproved or rejected competitions return `404`** — they must not leak through the API (the underlying `byId()` query does not filter on approval, so the provider gates on `IsCompetitionPubliclyVisible`). An **edition** is readable when its **series** is approved and not rejected; the edition's own `approved_at` is irrelevant (editions are never approved individually).
-- **Puzzle-reveal privacy (critical):** a round puzzle flagged *hide until round starts* is governed by the same single-source-of-truth rule used on the website (`GetEditionRounds`). Until `round.startsAt + 10 minutes`:
+- **Puzzle-reveal privacy (critical):** a round puzzle flagged *hide until round starts* is governed by the same single-source-of-truth rule used on the website (`GetEditionRounds`, `RoundPuzzleReveal`). It applies until the round puzzle's reveal moment. That moment is:
+  - for an automatic reveal, `round.startsAt` + the round's reveal delay (`competition_round.reveal_delay_minutes`, 10 minutes unless the organiser set another);
+  - for a scheduled reveal, the organiser's own time (also what "Reveal now" sets);
+  - for a manual reveal, never until "Reveal now".
+
+  Until then:
   - `hideMode = Entirely` → the puzzle is **omitted entirely** from the round's `puzzles`.
   - `hideMode = ImageOnly` → the puzzle is returned but `image` is `null` (name, pieces count, manufacturer remain visible).
   - After reveal, everything is visible. This behavior is covered by dedicated tests in `CompetitionDetailEndpointTest`.

@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use DateTimeImmutable;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
+use SpeedPuzzling\Web\Results\CompetitionEvent;
+use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Ramsey\Uuid\Uuid;
 use Psr\Clock\ClockInterface;
@@ -44,6 +50,7 @@ final class AddPuzzleToRoundController extends AbstractController
         private readonly SecretPuzzleAccess $secretPuzzleAccess,
         private readonly FormPhotoStash $formPhotoStash,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
     ) {
     }
 
@@ -76,6 +83,27 @@ final class AddPuzzleToRoundController extends AbstractController
         $form->handleRequest($request);
         $this->formPhotoStash->reportLost($form, $restoredPhotos);
 
+        // The round's automatic reveal the page named under "Hide until the round starts" (a Unix timestamp) - the
+        // handler adds a secret puzzle only while the round still has it. Missing or malformed (a page from before
+        // this field): asked again on the page as it is now.
+        $postedAutomaticRevealAt = (string) $request->request->get('automatic_reveal_at');
+        $shownAutomaticRevealAt = preg_match('/^\d{1,12}\z/', $postedAutomaticRevealAt) === 1
+            ? new DateTimeImmutable('@' . $postedAutomaticRevealAt)
+            : null;
+
+        // Said right away, whatever else the form refuses: a submit refused for another reason (a typo) re-renders the
+        // page with the round's moment as it is now, and its next save must not quietly take a moment that moved behind
+        // the organiser's back. The handler checks it again under its lock.
+        if (
+            $form->isSubmitted()
+            && $form->get('hideUntilRoundStarts')->getData() === true
+            && $shownAutomaticRevealAt?->getTimestamp() !== $round->automaticRevealAt()->getTimestamp()
+        ) {
+            $form->get('hideUntilRoundStarts')->addError(new FormError($this->translator->trans('competition.reveal.flash.automatic_changed', [
+                '%time%' => $this->zonedDateTimeFormatter->format($round->automaticRevealAt(), $round->displayTimezone(), $round->isTimezoneAssumed()),
+            ])));
+        }
+
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             assert($data->puzzle !== null);
@@ -99,7 +127,18 @@ final class AddPuzzleToRoundController extends AbstractController
                     brandCodes: BrandCodeList::fromInputs($data->puzzleBrandCodes),
                     hideUntilRoundStarts: $data->hideUntilRoundStarts,
                     hideMode: $data->hideMode,
+                    shownAutomaticRevealAt: $shownAutomaticRevealAt,
                 ));
+            } catch (AutomaticRevealChangedMeanwhile) {
+                // The handler cleared the entity manager (SecretPuzzleHides::lockForAddingTo()) - read the round again;
+                // the page comes back with the moment the round has now (the message names the same one the page
+                // sends along), everything typed and the photo kept
+                $round = $this->competitionRoundRepository->get($roundId);
+                $form->get('hideUntilRoundStarts')->addError(new FormError($this->translator->trans('competition.reveal.flash.automatic_changed', [
+                    '%time%' => $this->zonedDateTimeFormatter->format($round->automaticRevealAt(), $round->displayTimezone(), $round->isTimezoneAssumed()),
+                ])));
+
+                return $this->page($form, $competition, $round, $restoredPhotos, $playerId);
             } catch (PuzzleHiddenByHand | PuzzleNameAlreadyPublic $refusal) {
                 // The handler cleared the entity manager (SecretPuzzleHides::lock()) - read the round again
                 $round = $this->competitionRoundRepository->get($roundId);
@@ -109,13 +148,7 @@ final class AddPuzzleToRoundController extends AbstractController
                     $refusal instanceof PuzzleNameAlreadyPublic ? 'competition.reveal.flash.name_already_public' : 'competition.reveal.flash.puzzle_hidden_by_hand',
                 )));
 
-                return $this->render('add_puzzle_to_round.html.twig', [
-                    'form' => $form,
-                    'competition' => $competition,
-                    'round' => $round,
-                    'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
-                    'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
-                ]);
+                return $this->page($form, $competition, $round, $restoredPhotos, $playerId);
             } catch (HandlerFailedException $e) {
                 $nested = $e->getPrevious() ?? $e;
 
@@ -131,13 +164,7 @@ final class AddPuzzleToRoundController extends AbstractController
                     ['%round%' => $nested->conflictingRoundName],
                 )));
 
-                return $this->render('add_puzzle_to_round.html.twig', [
-                    'form' => $form,
-                    'competition' => $competition,
-                    'round' => $round,
-                    'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
-                    'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
-                ]);
+                return $this->page($form, $competition, $round, $restoredPhotos, $playerId);
             }
 
             if ($playerId !== null) {
@@ -149,11 +176,24 @@ final class AddPuzzleToRoundController extends AbstractController
             return $this->redirectToRoute('manage_round_puzzles', ['roundId' => $roundId]);
         }
 
+        return $this->page($form, $competition, $round, $restoredPhotos, $playerId);
+    }
+
+    /**
+     * The add form - a submitted form with an error is answered 422 by render(), with the photo kept (FormPhotoStash).
+     * The page names the round's automatic reveal as read in this request and sends it along (automatic_reveal_at).
+     *
+     * @param FormInterface<RoundPuzzleFormData> $form
+     * @param array<string, null|string> $restoredPhotos
+     */
+    private function page(FormInterface $form, CompetitionEvent $competition, CompetitionRound $round, array $restoredPhotos, null|string $playerId): Response
+    {
         return $this->render('add_puzzle_to_round.html.twig', [
             'form' => $form,
             'competition' => $competition,
             'round' => $round,
-            // The round already started: a secret puzzle added now is revealed at once - the form says so
+            // The round's automatic reveal (start + its reveal delay) is over: a secret puzzle added now with it is
+            // revealed at once - the form says so
             'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
             'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
         ]);

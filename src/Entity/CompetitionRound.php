@@ -69,7 +69,14 @@ class CompetitionRound implements EntityWithEvents
         // The zone the organiser typed the start in, so it is edited and shown in that zone - see RoundTimezone
         #[Column(length: 64, nullable: true)]
         public null|string $timezone = null,
+        // Minutes after the start when the round's secret puzzles with an automatic reveal come out (RoundPuzzleReveal),
+        // 0..RoundPuzzleReveal::MAX_DELAY_MINUTES - changed only through changeRevealDelay(). The column default keeps a
+        // round inserted by an older release (blue-green deploy) at the old fixed 10 minutes.
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(options: ['default' => RoundPuzzleReveal::DEFAULT_DELAY_MINUTES])]
+        public int $revealDelayMinutes = RoundPuzzleReveal::DEFAULT_DELAY_MINUTES,
     ) {
+        RoundPuzzleReveal::assertValidDelay($revealDelayMinutes);
     }
 
     /**
@@ -77,10 +84,18 @@ class CompetitionRound implements EntityWithEvents
      */
     public function automaticRevealAt(): DateTimeImmutable
     {
-        $revealAt = RoundPuzzleReveal::Automatic->revealAt($this->startsAt, null);
-        assert($revealAt !== null);
+        return RoundPuzzleReveal::automaticRevealAt($this->startsAt, $this->revealDelayMinutes);
+    }
 
-        return $revealAt;
+    /**
+     * The automatic reveal of the round's secret puzzles moves with it. Only EditCompetitionRoundHandler calls it (after
+     * its confirmation check and its pins of reveals that already happened) - re-sync the puzzles afterwards
+     * (SecretPuzzleHides).
+     */
+    public function changeRevealDelay(int $minutes): void
+    {
+        RoundPuzzleReveal::assertValidDelay($minutes);
+        $this->revealDelayMinutes = $minutes;
     }
 
     public function displayTimezone(): string

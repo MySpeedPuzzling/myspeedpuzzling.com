@@ -62,12 +62,16 @@ Each competition also appears in "My Competitions" for its creator/maintainers r
 | Edit competition & manage rounds/tables/stopwatch | Admin, original creator, or named maintainer |
 | Manage registrations (mark paid, promote, check-in) | Admin, creator, or maintainer |
 | Record/publish official round results, qualify, advance, seat | Admin, creator, or maintainer |
+| Enter results in the live entry (live entry pages, name-tag QR, round state, result changes only) | Admin, creator, maintainer, or one of the event's **referees** |
+| Add/remove referees | Admin, creator, or maintainer |
 | Edit public page content | Admin, creator, or maintainer (series voter for series pages) |
 | View public stopwatch page | Everyone (no auth required) |
 | View published official results (round results page) | Everyone, while the competition is publicly visible |
 | Approve or reject a competition | Admin only |
 
 Access is enforced via a `CompetitionEditVoter` that checks whether the player is admin, the creator, or in the maintainers list. All management controllers use this same voter, including round-level controllers (which resolve the competition from the round).
+
+**Referees** (`CompetitionReferee`, per competition - an edition is a competition) are volunteers who enter results on their phones and nothing else: `CompetitionResultsEntryVoter` (`COMPETITION_RESULTS_ENTRY` = everybody with `COMPETITION_EDIT` plus the referees) guards only the live entry, its round state and result changes; a referee's table number and qualified changes are refused. Organisers add them on the event's Referees page (linked from the edit page and the results overview), which also shows the link for referees with a QR. Details: [live-results.md](live-results.md) "Referees".
 
 ## Event Types
 

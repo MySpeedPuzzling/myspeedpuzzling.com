@@ -61,7 +61,8 @@ the rounds, name, id. Entries without a ranked result last.
 
 All writes take `CompetitionParticipantsLock::key($competitionId)` (`SerializedByLock`; the same key as the participant
 import and registrations), validate everything before changing anything, and check that every round/entry belongs to
-the competition the caller was authorised on (`CompetitionEditVoter`).
+the competition the caller was authorised on (`CompetitionEditVoter`; `RecordRoundResults` also
+`CompetitionResultsEntryVoter` for the event's referees, with `resultsOnly` - live-results.md "Referees").
 
 - **`RecordRoundResults`** (`competitionId`, `roundId`, `actingPlayerId`, list of `RoundResultChange`, `dryRun`) -
   results, table numbers, qualified marks and entrants typed in at the venue. Each change: `clientChangeId` (UUID, for
@@ -173,7 +174,9 @@ A round whose results are published leads its public page (`event_round_results`
 ## JSON API (organiser pages)
 
 Routes under `/{_locale}/official-results/`, JSON in and out, `Cache-Control: private, no-store`, never a redirect
-to the login page (401 `sign_in_required`), 403 `forbidden` without `COMPETITION_EDIT`, writes need
+to the login page (401 `sign_in_required`), 403 `forbidden` without `COMPETITION_EDIT` (the round state and
+`changes` ask `COMPETITION_RESULTS_ENTRY`, which the event's referees have too - their `table_number` / `qualified`
+changes are refused with reason `results_only`, live-results.md "Referees"), writes need
 `Content-Type: application/json` (415) and the stateless CSRF token `csrf_token('official_results')` in the
 `X-CSRF-Token` header (403 `invalid_csrf_token`) - `OfficialResultsApi`.
 

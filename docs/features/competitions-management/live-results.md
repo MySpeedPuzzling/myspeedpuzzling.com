@@ -8,10 +8,11 @@ Decided 2026-10-07 (RESULTS-SPEC §4, §5): "focus on quick action, verify and c
 
 | Route | Path | Who | What |
 |---|---|---|---|
-| `live_results` | `GET /{_locale}/live-results/{roundId}` | organisers (`CompetitionEditVoter`) | the live entry page; `?entrant=<participantId>` opens that person's entry (theirs or their pair's/team's) |
-| `live_results_event` | `GET /{_locale}/live-results/event/{competitionId}` | organisers | the link to hand the referees: 302 to the current round (`?auto=1`), or to the round list when the event has no rounds |
-| `live_results_scan` | `GET /{_locale}/live/{competitionId}/p/{participantId}` | anyone | the URL in a name tag's QR: organisers → the person's current round with them open; everybody else, unknown/removed/other event's people → the event page (`CompetitionDetailUrl`), an unknown event → the events list |
+| `live_results` | `GET /{_locale}/live-results/{roundId}` | organisers and referees (`CompetitionResultsEntryVoter`) | the live entry page; `?entrant=<participantId>` opens that person's entry (theirs or their pair's/team's) |
+| `live_results_event` | `GET /{_locale}/live-results/event/{competitionId}` | organisers and referees | the link to hand the referees (the referees page shows it with a QR): 302 to the current round (`?auto=1`), or - when the event has no rounds - to the round list (organisers) / the event page (referees) |
+| `live_results_scan` | `GET /{_locale}/live/{competitionId}/p/{participantId}` | anyone | the URL in a name tag's QR: organisers and referees → the person's current round with them open; everybody else, unknown/removed/other event's people → the event page (`CompetitionDetailUrl`), an unknown event → the events list |
 | `competition_name_tags` | `GET /{_locale}/name-tags/{competitionId}` | organisers | standalone A4 print page; `?round=<roundId>`, `?sort=name|table` |
+| `competition_referees` | `GET/POST /en/manage-event-referees/{competitionId}` (localized) | organisers (`CompetitionEditVoter`) | the referees page: list, add by player search, remove (`competition_referee_remove`, POST + CSRF), the link for referees with copy button and QR (`competition_referees_qr_code`, SVG, `private, max-age=86400`) |
 
 All of them answer `Cache-Control: private, no-store` and `X-Robots-Tag: noindex, nofollow`. The participants page
 has a "Name tags" button (in-person events only); the round list links `live_results` (results desk stream).
@@ -56,6 +57,40 @@ fetches that state once (clock sync + Mercure cookie, see below).
 
 Views over Find get a history entry of their own (Turbo's history paused meanwhile, like `dynamic_modal_controller`),
 so the phone's back button returns to Find instead of leaving. Lists and texts are re-rendered; inputs never are.
+
+## Referees
+
+At an in-person event volunteers enter results on their phones. They do not need - and must not get - the organisers'
+rights (edit or delete the event, participants, registration, rounds, seating, qualification, publishing), so a
+competition has **referees** (`CompetitionReferee`: competition, player, added by, added at; unique per competition +
+player; an edition is a competition - series owners and maintainers stay full organisers of every edition).
+
+- **Who may enter results** - `CompetitionResultsEntryVoter::COMPETITION_RESULTS_ENTRY` (subject = competition id):
+  admins, everybody with `COMPETITION_EDIT`, and the competition's referees. `GetCompetitionPermissions` loads the
+  referee rows in the same one statement per request as the organiser rights (`canEnterResults()`), so a referee
+  check costs no query of its own.
+- **What a referee may do**: open `live_results` / `live_results_event` / `live_results_scan` (a name-tag QR opens the
+  live entry like for an organiser), read the round state (`official_results_round_state`) and send result changes
+  (`official_results_record`). `RecordRoundResultsController` sets `RecordRoundResults::$resultsOnly` for a caller
+  without `COMPETITION_EDIT`, and the handler refuses every `table_number` / `qualified` change of that set one by one
+  (`rejected`, reason `results_only`, translated) while the results in the same set go through. Quick add works with a
+  result (the new entrant is created by the result change; a table number sent with it is refused). Everything else -
+  results desk, export, seating, publish/unpublish, table numbers, advancing, the overview, rounds, stopwatch control,
+  participants, registration, check-in, name tags, the event edit page, the referees page - stays `COMPETITION_EDIT`.
+- **The page for a referee** hides what they cannot use: no back link to the round list, no results desk / seating
+  links, no "give every entry a table number" hint, no table field in quick add.
+- **Referees page** (`competition_referees`, linked from the event/edition edit page and - through
+  `official_results/_referees_link.html.twig` - from the results overview): the referees with who added them and
+  when, "Add referees" (the maintainers' player picker, `player_search_autocomplete`, up to 10 at once;
+  `AddCompetitionReferee` answers `added` / `already_referee` / `organiser` (an organiser is never stored - they can
+  enter results anyway) / `unknown_player` / `limit_reached` (200 per competition), shown as flashes), Remove
+  (`RemoveCompetitionReferee`, CSRF; an expired form gets the page again with 422 and removes nothing; results the
+  referee entered keep "entered by"), and the **link for referees** - the absolute `live_results_event` URL in the
+  page's language with a copy button and its QR (`NameTagQrCode`), to send or to scan from the organiser's screen.
+  Referees need a MySpeedPuzzling account and sign in with it. `noindex`, `private, no-store`.
+- Referees do not see the event under "My events" - they open the link they were given (the "My events" cards are
+  organiser cards with edit/delete; see docs/TODO.md).
+- A referee's account deletion removes the row (FK cascade); the organiser who added them going leaves `added_by` empty.
 
 ## Reliability (`assets/official_results_outbox.js`)
 
@@ -118,6 +153,10 @@ people with that round's numbers; sorted by name or table (no table last). `GetC
 
 `tests/Controller/LiveResults/` (page access, state, entrant, the Mercure cookie, event link, QR route for organisers /
 others / foreign / unknown, name tags content, round filter, sort, the participants page button),
+`tests/Controller/Referees/` (who may enter results, a referee's result / refused table and qualified changes / quick
+add, every organiser-only page and endpoint refused to a referee, event link and QR route for a referee, the referees
+page: access, add, organiser/duplicate notes, 422, remove, CSRF, series maintainers), `tests/MessageHandler/
+CompetitionRefereeHandlersTest.php`, `tests/Query/GetCompetitionPermissionsTest.php` (`canEnterResults()`),
 `tests/Services/LiveResults/LiveResultsCurrentRoundTest.php`, `tests/LiveResultsScriptsTest.php` running
 `tests/live-results-harness.mjs` under node (the outbox state machine with a fake server and clock: stored before sent,
 order, batches, conflicts, refusals, auth, offline backoff, server-error isolation, two tabs, lease fallback, foreign

@@ -6,8 +6,6 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Managed registration (`docs/features/competitions-management/registration.md`)
 
-- [ ] Translate the `competition_registration.*` keys (messages, emails, the validators key
-      `competition_registration_closes_before_opens`) into cs, de, es, fr, ja - added in English only with the port.
 - [ ] Registration status / paid / checked-in as optional columns of the participants spreadsheet's People tab
       (participants-spreadsheet.md D10) - the import reads nothing from the export's registration columns today.
 - [ ] Notify maintainers about a new registration, a cancelled *paid* registration (refund talk) and a listed name
@@ -24,7 +22,6 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Event page content sections (`docs/features/competitions-management/public-page.md`)
 
-- [ ] Translate the `page_sections.*` keys (messages domain) into cs, de, es, fr, ja - English only so far.
 - [ ] Prune unreferenced `competition-pages/<owner>/` objects: uploads of a section form that was never saved, and the
       pictures of a deleted competition/series (its sections cascade, the files stay). `GetStoredFileReferences` already
       knows section pictures; a daily cron like `myspeedpuzzling:prune-photo-stash`, with an age threshold - needs a cron
@@ -43,18 +40,14 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Rounds with several puzzles: one total result per entry today - a result per puzzle when organisers ask.
 - [ ] Derive table numbers from the table layout tool (`table_spot`) instead of typing them.
 - [ ] Results from timing devices without the round stopwatch (import of a device's export).
-- [ ] Add the cron row on lily.srv: `0 4 * * * docker compose exec web php bin/console myspeedpuzzling:prune-round-result-change-receipts`
-      (daily, keeps 90 days of `round_result_change_receipt` - the ids of official results changes the server took,
-      so an outbox replay never re-applies a corrected value). Without the cron the table only grows (a few thousand
-      rows per big event); nothing breaks.
+- [ ] Cron row on lily.srv (`apps/myspeedpuzzling/cron.d/myspeedpuzzling`, `lily-cron-run` + `sentry-cli monitors run`
+      pattern) for `myspeedpuzzling:prune-round-result-change-receipts` (daily) - added once the release with the
+      command is deployed.
 - [ ] Live entry quick add: the event's people come with the page (`GetLiveResultsEventPeople`) - somebody added to
       the event by another device during the session is not offered until a reload (rare; typing the name in creates a
       second person, as before).
-- [ ] The participants spreadsheet (second PR) writes results through `RecordRoundResults` (`op: "result"` changesets).
-- [ ] Generate the migration for the new columns (`competition_participant_round` / `competition_team` official result
-      columns, unique `(participant_id, round_id)`, `competition_round.results_first_published_at` + `table_numbers_off`,
-      `notification.target_competition_round_id`, the `official_result_notice` table) once the official results PR is
-      complete.
+- [ ] The participants spreadsheet (`participants-spreadsheet.md`, its own PR): its result / table / qualified cells
+      send `RecordRoundResults` changes (the live entry's and the desk's write path), not a separate changeset type.
 - [ ] Advance with the country rule: entries sharing the K-th place of a country across groups are ordered by the
       advancement seed (relative result, round order, name) - highlight such ties for the organiser like the desk's
       per-round helper does, if organisers ask.
@@ -74,7 +67,6 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Seating (`docs/features/competitions-management/seating.md`)
 
-- [ ] Translate the `seating.*` keys into cs, de, es, fr, ja (English only in the official results streams).
 - [ ] Two rounds running at once in one hall (WJPC semifinals): table numbers are unique per round only - the
       organiser gives the second round "First table number 101"; a shared check across simultaneous rounds if asked.
 - [ ] Pairs/teams seated by MySpeedPuzzling times: a pair's own pair time beats the mean of its members' solo times, so

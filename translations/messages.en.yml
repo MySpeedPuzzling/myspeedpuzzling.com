@@ -438,6 +438,9 @@ stopwatch:
 puzzle_add:
     meta:
         title: "Add Puzzle"
+    official_entry:
+        notice: "Filled in from the official results of %round% at %event%. Check it and save it to your profile."
+        check_group: "You save this time, so you are part of the pair/team already - if your name is among the co-puzzlers, remove it."
     title: "Add..."
     chosen_puzzle: "Selected puzzle:"
     choose_puzzle: "Choose a puzzle"

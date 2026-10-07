@@ -40,6 +40,7 @@ use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
+use SpeedPuzzling\Web\Services\RoundResults\OfficialEntryTimePrefill;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
@@ -84,6 +85,7 @@ final class PuzzleAddController extends AbstractController
         readonly private ClockInterface $clock,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
+        readonly private OfficialEntryTimePrefill $officialEntryTimePrefill,
     ) {
     }
 
@@ -205,6 +207,44 @@ final class PuzzleAddController extends AbstractController
             $data->competition = $queryCompetition;
         }
 
+        // "Add to my profile" of a round's published official results (`&official_entry=<participant_round|team>:<id>`,
+        // docs/features/competitions-management/official-results.md): the entry fills in the puzzle, the time, the
+        // round's day and the pair/team - only when the round page offers exactly that to this player, anything else
+        // is ignored silently like `?competition=`. A pre-fill only: the save runs every rule of any other time
+        $officialEntry = null;
+
+        if (
+            $request->isMethod('GET')
+            && $data->competition !== null
+            && $activeStopwatch === null
+            && $request->query->getString('official_entry') !== ''
+        ) {
+            $officialEntry = $this->officialEntryTimePrefill->forViewer(
+                $data->competition,
+                $request->query->getString('official_entry'),
+                $userProfile->playerId,
+                $userProfile->playerName,
+            );
+
+            // The puzzle in the URL is the entry's, or the link is not what the round page made
+            if ($officialEntry !== null && $activePuzzle !== null && $activePuzzle->puzzleId !== $officialEntry->puzzleId) {
+                $officialEntry = null;
+            }
+        }
+
+        if ($officialEntry !== null) {
+            if ($activePuzzle === null) {
+                $activePuzzle = $this->getPuzzleOverview->byId($officialEntry->puzzleId);
+                $data->brand = $activePuzzle->manufacturerId;
+                $data->puzzle = $activePuzzle->puzzleId;
+            }
+
+            $data->timeHours = $officialEntry->hours();
+            $data->timeMinutes = $officialEntry->minutes();
+            $data->timeSeconds = $officialEntry->secondsPart();
+            $data->finishedAt = $officialEntry->finishedAt;
+        }
+
         // Get player collections for form options (include system collection)
         $hasActiveMembership = $userProfile->activeMembership;
         $collections = [];
@@ -235,6 +275,12 @@ final class PuzzleAddController extends AbstractController
 
         // Like the co-puzzlers, a plain field next to the Symfony form - see _copuzzler_picker.html.twig
         $teamName = $request->request->getString('team_name');
+
+        // "Add to my profile" of an official pair/team result: its people, and its name when the form may still set it
+        if ($officialEntry !== null) {
+            $groupPlayers = $officialEntry->groupPlayers;
+            $teamName = $officialEntry->teamName ?? '';
+        }
 
         $isGroupPuzzlersValid = true;
         foreach ($groupPlayers as $groupPlayer) {
@@ -460,6 +506,7 @@ final class PuzzleAddController extends AbstractController
             'duplicate_confirmed' => $duplicateConfirmed,
             'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId),
             'secret_puzzle_notice' => $secretPuzzleNotice,
+            'official_entry' => $officialEntry,
             'time_id' => $timeId->toString(),
             'new_puzzle_id' => $newPuzzleId->toString(),
         ]);

@@ -11,6 +11,16 @@
         <div class="alert alert-warning" role="status" data-secret-puzzle-notice>{{ secret_puzzle_notice }}</div>
     {% endif %}
 
+    {# "Add to my profile" of a round's official results filled the form in (docs/features/competitions-management/official-results.md) #}
+    {% if official_entry|default(null) is not null %}
+        <div class="alert alert-info" role="status" data-official-entry-notice>
+            <i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'puzzle_add.official_entry.notice'|trans({'%round%': official_entry.roundName, '%event%': official_entry.competitionName}) }}
+            {% if official_entry.viewerMayBeAmongGuests %}
+                <div class="mt-1 small" data-official-entry-check-group>{{ 'puzzle_add.official_entry.check_group'|trans }}</div>
+            {% endif %}
+        </div>
+    {% endif %}
+
     <div data-controller="puzzle-add-form" data-puzzle-add-form-mode-value="{{ initial_mode|default('speed_puzzling') }}" data-puzzle-add-form-system-id-value="{{ system_collection_id }}">
         <div class="mb-4">
             <div class="btn-group w-100" role="group" aria-label="Form mode selection">

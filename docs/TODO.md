@@ -39,6 +39,11 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Derive table numbers from the table layout tool (`table_spot`) instead of typing them.
 - [ ] Results from timing devices without the round stopwatch (import of a device's export).
 - [ ] The participants spreadsheet (second PR) writes results through `RecordRoundResults` (`op: "result"` changesets).
+- [ ] Mercure subscribe cookie: `MercureSubscribeCookieListener` rewrites it on every signed-in response with that
+      request's topics only (JSON endpoints, other tabs), so a long-open organiser page loses its private
+      `/round-results/{id}` topic on the next EventSource reconnect. The results desk re-fetches its state every
+      minute meanwhile (`results-desk.md`); a fix keeps the topics a page authorised (e.g. per-page cookie path or
+      a short-lived subscriber JWT the page renews).
 - [ ] Generate the migration for the new columns (`competition_participant_round` / `competition_team` official result
       columns, unique `(participant_id, round_id)`, `competition_round.results_first_published_at` + `table_numbers_off`,
       `notification.target_competition_round_id`) once the official results PR is complete.

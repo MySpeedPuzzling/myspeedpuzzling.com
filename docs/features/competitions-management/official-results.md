@@ -12,6 +12,8 @@ This document is the design of record **as built for the core** (data model, wri
 models, JSON API). The organiser pages (live entry, results desk, seating, name tags) and the public round page build
 on it - see their own sections once they ship.
 
+- Results desk, results overview, qualification helpers, advancing and "Seat them now": [results-desk.md](results-desk.md)
+
 Vocabulary: a **round entry** is `CompetitionParticipantRound` (a person in a solo round) or `CompetitionTeam` (a
 pair/team of a pair/team round). An **official result** is what the organiser recorded for a round entry. A **time** is
 a player's own `PuzzleSolvingTime` - official results never create, change or delete times.

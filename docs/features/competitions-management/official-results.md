@@ -9,7 +9,7 @@ qualified, and at which table everybody sat. Decided 2026-10-07 ("best of both w
 3. **who qualified between rounds** - a results desk: rank, mark qualified, advance them into the next round(s), seat them.
 
 This document is the design of record **as built for the core** (data model, write path, guards, ranking, read
-models, JSON API). The organiser pages (live entry, results desk, seating, name tags) and the public round page build
+models, JSON API) and the public round page. The organiser pages (live entry, results desk, seating, name tags) build
 on it - see their own sections once they ship.
 
 Vocabulary: a **round entry** is `CompetitionParticipantRound` (a person in a solo round) or `CompetitionTeam` (a
@@ -115,6 +115,57 @@ Refusals throw `OfficialResultsProtected` (409, reason `official_results.guard.*
   a single-puzzle round, `tableNumbersOff` and the counts (entries, with table number, with result, qualified) - the
   seating readiness line "Tables: 180 / 200 assigned". One statement.
 - `GetOfficialResultRecipients` - the notification fan-out.
+
+## Public round page (as built)
+
+A round whose results are published leads its public page (`event_round_results` / `edition_round_results`,
+`RoundResultsPageBuilder`) with the organiser's ranking; everything else stays main's round page.
+
+- **Not published - or published with nothing ranked: the page is exactly as before**, byte for byte, and runs the same
+  statements. `EditionRoundDetail::$resultsPublished` rides on the rounds statement the page runs anyway
+  (`GetEditionRounds`); every expression of `round_results.html.twig` that depends on official results sits inside an
+  existing line or tag, and the parts the published layout reuses (`round_results/_puzzle_card.html.twig`,
+  `round_results/_player_times.html.twig`) are included right after the indentation of their old lines and end without
+  a newline, so they render exactly what the inline markup did.
+- **Published** (`round_results/_official.html.twig`): the puzzle card(s), then **Official results** - rank (ties share
+  it, 1-3 on a medal tint), the entrant (the person, or the pair's/team's members with the name as a pill - the
+  leaderboard's `_leaderboard_player` rows), the result (`official_results/_result.html.twig`: "1:23:45", "479 / 500 pcs")
+  and a **Q** pill for a qualified entry with a legend. Did not start, no result yet and table numbers are the
+  organiser's - never shown. Below it, folded in a `<details>` "Times added by puzzlers (N)", main's list of times with
+  its note ("not the official placings"). The round's external results link turns into **Organiser's results** (the MSP
+  table is the official result now). The meta description says "Official results of …"; the round has no JSON-LD.
+- **Read model `GetPublishedRoundResults::forRound()`**: entries with a ranked result (people removed from the event left
+  out, like the organiser's tools), ranked with `OfficialResultsRanking` over all of them, then the rows hidden from the
+  viewer (`HiddenPlayers`) dropped **without renumbering** - a solo row of a hidden player; a pair/team with a hidden
+  linked member unless the viewer is a linked member too (main's group rule). Names are always the organiser's participant
+  names; a linked player links to their profile (avatar, flag) only when the viewer may see them
+  (`PrivateProfileAccess::sqlIsPrivate()`, the viewer themselves included) - a private player otherwise keeps just the
+  organiser's name (`PublishedRoundEntrant`: `playerId` for display, `linkedPlayerId` / `linkedPlayerCode` never rendered).
+  One statement (a pair/team round brings its members as JSON), plus one for the viewer's own times in the round when a
+  row could offer "Add to my profile". Pinned: an unpublished page +0, a published one +1 (guest) / +2 (signed in)
+  (`OfficialRoundResultsPageTest`).
+- **Add to my profile**: offered to the signed-in viewer on their own entry - or, when the organiser linked them to no
+  entry of the round, on the entries nobody is linked to (team names only, the Minnesota case) - for a **finished**
+  result, in a round with **exactly one puzzle** that the viewer sees revealed (not left out by the reveal rules, picture
+  not hidden), until they have a time in the round (`competition_round_id` = the round, tracker or in the group). Then the
+  own entry - or the unlinked entry with the viewer's time - says "On your profile". Derived on every read, nothing stored.
+  The link is `puzzle_add` with `?competition=<id>&official_entry=<participant_round|team>:<id>`;
+  `OfficialEntryTimePrefill` (GET only) re-runs the very same read model for the viewer and fills the form in only for an
+  entry it offers - anything else is ignored silently: the puzzle, the time, the finished date (the round's start day in
+  the round's zone), the competition, and for a pair/team the co-puzzlers (linked members by `#CODE`, the others as guest
+  names; in a pair/team nobody is linked to, the member named like the viewer is left out - else a notice asks them to
+  remove themselves) and the pair's/team's name when the form may still set it (no puzzling team of these exact people
+  yet, or an unnamed one - `PuzzlingTeam::nameIfUnnamed()`). The save is an ordinary time: first try, duplicates, secret
+  puzzles and privacy run as for any other.
+- **Event and edition pages**: `CompetitionEvent::$hasPublishedOfficialResults` (an EXISTS in `GetCompetitionEvents::byId()`,
+  the statement every competition page runs anyway) turns on the official counts in `CountCompetitionResults::forCompetition()`
+  / `perRound()` - folded into their existing statements, so even an event with official results pays no extra
+  statement. They drive `EventTitle::saysResults()` ("Results" in the title), the "Results by round" buttons, and the
+  meta descriptions say "the official results round by round" instead of counting times. The sitemap lists a round page
+  with published ranked results too. One SQL rule for all of them: `GetPublishedRoundResults::sqlShowsOfficialResults()`
+  / `sqlRankedEntriesCount()`.
+- **Guards**: `BlocklistCanaryTest` / `PrivateProfileCanaryTest` cover the published table (the queries pass
+  `BlocklistQueryCoverageTest` / `PrivateProfileQueryCoverageTest` by using `HiddenPlayers` and `PrivateProfileAccess`).
 
 ## JSON API (organiser pages)
 

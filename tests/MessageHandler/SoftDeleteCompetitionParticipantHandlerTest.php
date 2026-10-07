@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Message\SoftDeleteCompetitionParticipant;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
@@ -25,6 +26,7 @@ final class SoftDeleteCompetitionParticipantHandlerTest extends KernelTestCase
     public function testSoftDeleteSetsDeletedAt(): void
     {
         $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(
+            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             participantId: CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED,
         ));
 

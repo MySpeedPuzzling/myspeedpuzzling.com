@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionTeamOfAnotherRound;
 use SpeedPuzzling\Web\Message\AssignParticipantToTeam;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
@@ -20,11 +21,16 @@ readonly final class AssignParticipantToTeamHandler
     }
 
     /**
+     * @throws CompetitionParticipantNotFound a round entry of another event
      * @throws CompetitionTeamOfAnotherRound
      */
     public function __invoke(AssignParticipantToTeam $message): void
     {
         $participantRound = $this->participantRoundRepository->get($message->participantRoundId);
+
+        if ($participantRound->round->competition->id->toString() !== strtolower($message->competitionId)) {
+            throw new CompetitionParticipantNotFound();
+        }
 
         if ($message->teamId === null) {
             $participantRound->removeFromTeam();

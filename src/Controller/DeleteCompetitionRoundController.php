@@ -76,6 +76,7 @@ final class DeleteCompetitionRoundController extends AbstractController
         try {
             $this->messageBus->dispatch(new DeleteCompetitionRound(
                 roundId: $roundId,
+                competitionId: $competitionId,
                 // Re-checked after the handler's locks - another change in between asks again
                 confirmedRevealHash: SecretRevealPreview::hash($revealed),
                 confirmedOfficialResultsHash: $officialResultsHash,

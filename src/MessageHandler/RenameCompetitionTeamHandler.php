@@ -29,6 +29,10 @@ readonly final class RenameCompetitionTeamHandler
     {
         $team = $this->competitionTeamRepository->get($message->teamId);
 
+        if ($team->round->competition->id->toString() !== strtolower($message->competitionId)) {
+            throw new CompetitionTeamNotFound();
+        }
+
         $team->rename($message->name);
     }
 }

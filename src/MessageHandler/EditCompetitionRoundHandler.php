@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
@@ -32,6 +33,7 @@ readonly final class EditCompetitionRoundHandler
     }
 
     /**
+     * @throws CompetitionRoundNotFound a round of another event
      * @throws PuzzleAlreadyInCompetitionRoundCategory
      * @throws SecretPuzzlesWouldBeRevealed
      * @throws OfficialResultsProtected
@@ -43,6 +45,11 @@ readonly final class EditCompetitionRoundHandler
         $this->secretPuzzleHides->lockRoundsForChange([$message->roundId]);
 
         $round = $this->competitionRoundRepository->get($message->roundId);
+
+        if ($round->competition->id->toString() !== strtolower($message->competitionId)) {
+            throw new CompetitionRoundNotFound();
+        }
+
         $now = $this->clock->now();
 
         // Kept fields come from the round as it is now, under the lock - never from a read before it

@@ -32,6 +32,23 @@ readonly final class CompetitionParticipantRepository
     }
 
     /**
+     * A participant of the given event, removed ones included - an organiser's action on another event's participant is a
+     * 404 (the organiser was authorised for $competitionId only).
+     *
+     * @throws CompetitionParticipantNotFound
+     */
+    public function getOfCompetition(string $competitionId, string $participantId): CompetitionParticipant
+    {
+        $participant = $this->get($participantId);
+
+        if ($participant->competition->id->toString() !== strtolower($competitionId)) {
+            throw new CompetitionParticipantNotFound();
+        }
+
+        return $participant;
+    }
+
+    /**
      * A participant of the given event that is not deleted - an organiser's action on another event's participant, or
      * on a removed one, is a 404 (the organiser was authorised for $competitionId only).
      *
@@ -49,25 +66,29 @@ readonly final class CompetitionParticipantRepository
     }
 
     /**
-     * The event's waitlist, first in line first.
+     * The event's waitlist, first in line first. With $includeDeleted also the rows of people who left the waitlist -
+     * they keep the status on the removed row, and a removed row can come back (joining again, the organiser's restore).
      *
      * @return list<CompetitionParticipant>
      */
-    public function waitlistOf(string $competitionId): array
+    public function waitlistOf(string $competitionId, bool $includeDeleted = false): array
     {
-        /** @var list<CompetitionParticipant> $participants */
-        $participants = $this->entityManager->createQueryBuilder()
+        $queryBuilder = $this->entityManager->createQueryBuilder()
             ->select('participant')
             ->from(CompetitionParticipant::class, 'participant')
             ->where('participant.competition = :competitionId')
-            ->andWhere('participant.deletedAt IS NULL')
             ->andWhere('participant.registrationStatus = :waitlisted')
             ->setParameter('competitionId', $competitionId)
             ->setParameter('waitlisted', RegistrationStatus::Waitlisted)
             ->orderBy('participant.registeredAt', 'ASC')
-            ->addOrderBy('participant.id', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->addOrderBy('participant.id', 'ASC');
+
+        if ($includeDeleted === false) {
+            $queryBuilder->andWhere('participant.deletedAt IS NULL');
+        }
+
+        /** @var list<CompetitionParticipant> $participants */
+        $participants = $queryBuilder->getQuery()->getResult();
 
         return $participants;
     }

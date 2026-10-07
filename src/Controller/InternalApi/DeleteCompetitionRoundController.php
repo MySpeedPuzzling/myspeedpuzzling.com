@@ -44,6 +44,7 @@ final class DeleteCompetitionRoundController extends AbstractController
 
         $this->messageBus->dispatch(new DeleteCompetitionRound(
             roundId: $round->id->toString(),
+            competitionId: $round->competition->id->toString(),
             refuseWhenItHasResults: true,
             refuseToReveal: $confirmReveal === false,
         ));

@@ -29,6 +29,7 @@ final class CreateCompetitionTeamsHandlerTest extends KernelTestCase
         $before = $this->teamNames();
 
         $this->messageBus->dispatch(new CreateCompetitionTeams(
+            competitionId: CompetitionSeriesFixture::EDITION_OFFLINE_1,
             roundId: CompetitionSeriesFixture::ROUND_OFFLINE_TEAM,
             names: ['Team Alpha', 'Team Beta'],
         ));
@@ -41,6 +42,7 @@ final class CreateCompetitionTeamsHandlerTest extends KernelTestCase
         $before = $this->teamCount();
 
         $this->messageBus->dispatch(new CreateCompetitionTeams(
+            competitionId: CompetitionSeriesFixture::EDITION_OFFLINE_1,
             roundId: CompetitionSeriesFixture::ROUND_OFFLINE_TEAM,
             names: [],
         ));
@@ -55,6 +57,7 @@ final class CreateCompetitionTeamsHandlerTest extends KernelTestCase
 
         try {
             $this->messageBus->dispatch(new CreateCompetitionTeams(
+                competitionId: CompetitionSeriesFixture::EDITION_OFFLINE_1,
                 roundId: CompetitionSeriesFixture::ROUND_OFFLINE_TEAM,
                 names: ['Team Gamma', str_repeat('x', CompetitionTeam::NAME_MAX_LENGTH + 1)],
             ));

@@ -41,22 +41,22 @@ final class RenameCompetitionTeamHandlerTest extends KernelTestCase
 
     public function testTeamGetsTheNewNameTidiedUp(): void
     {
-        $this->messageBus->dispatch(new RenameCompetitionTeam($this->teamId, "  Corner   Crew \n"));
+        $this->messageBus->dispatch(new RenameCompetitionTeam(CompetitionSeriesFixture::EDITION_OFFLINE_1, $this->teamId, "  Corner   Crew \n"));
 
         self::assertSame('Corner Crew', $this->teamName());
     }
 
     public function testEmptyNameLeavesTheTeamUnnamed(): void
     {
-        $this->messageBus->dispatch(new RenameCompetitionTeam($this->teamId, '   '));
+        $this->messageBus->dispatch(new RenameCompetitionTeam(CompetitionSeriesFixture::EDITION_OFFLINE_1, $this->teamId, '   '));
 
         self::assertNull($this->teamName());
     }
 
     public function testUnnamedTeamGetsAName(): void
     {
-        $this->messageBus->dispatch(new RenameCompetitionTeam($this->teamId, null));
-        $this->messageBus->dispatch(new RenameCompetitionTeam($this->teamId, 'Piece Seekers'));
+        $this->messageBus->dispatch(new RenameCompetitionTeam(CompetitionSeriesFixture::EDITION_OFFLINE_1, $this->teamId, null));
+        $this->messageBus->dispatch(new RenameCompetitionTeam(CompetitionSeriesFixture::EDITION_OFFLINE_1, $this->teamId, 'Piece Seekers'));
 
         self::assertSame('Piece Seekers', $this->teamName());
     }
@@ -64,7 +64,7 @@ final class RenameCompetitionTeamHandlerTest extends KernelTestCase
     public function testTooLongNameIsRefusedAndTheNameStays(): void
     {
         try {
-            $this->messageBus->dispatch(new RenameCompetitionTeam($this->teamId, str_repeat('x', CompetitionTeam::NAME_MAX_LENGTH + 1)));
+            $this->messageBus->dispatch(new RenameCompetitionTeam(CompetitionSeriesFixture::EDITION_OFFLINE_1, $this->teamId, str_repeat('x', CompetitionTeam::NAME_MAX_LENGTH + 1)));
             self::fail('A team name longer than the column must be refused.');
         } catch (CompetitionTeamNameTooLong) {
         }

@@ -84,7 +84,7 @@ final class DeleteCompetitionRoundHandlerTest extends KernelTestCase
             ['id' => CompetitionRoundFixture::ROUND_WJPC_FINAL],
         );
 
-        $this->messageBus->dispatch(new DeleteCompetitionRound(roundId: $roundId));
+        $this->messageBus->dispatch(new DeleteCompetitionRound(roundId: $roundId, competitionId: CompetitionFixture::COMPETITION_WJPC_2024));
 
         // Round itself is gone
         try {
@@ -144,7 +144,7 @@ final class DeleteCompetitionRoundHandlerTest extends KernelTestCase
     {
         $roundId = CompetitionRoundFixture::ROUND_CZECH_FINAL;
 
-        $this->messageBus->dispatch(new DeleteCompetitionRound(roundId: $roundId));
+        $this->messageBus->dispatch(new DeleteCompetitionRound(roundId: $roundId, competitionId: CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024));
 
         $this->expectException(CompetitionRoundNotFound::class);
         $this->competitionRoundRepository->get($roundId);

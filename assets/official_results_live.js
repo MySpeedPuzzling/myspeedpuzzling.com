@@ -1,7 +1,8 @@
 /**
  * Pure helpers of the live result entry (docs/features/competitions-management/live-results.md) - finding an
- * entrant by table / name / #code, comparing and describing official values, the "recent entries" list. No DOM,
- * no network: pinned by tests/LiveResultsScriptsTest.php under node.
+ * entrant by table / name / #code, comparing and describing official values, the "recent entries" list - and the
+ * lifecycle of its live updates (LiveEvents, the stream injected). No DOM, no network: pinned by
+ * tests/LiveResultsScriptsTest.php under node.
  */
 
 import { formatResultTime } from './official_results_time.js';
@@ -72,7 +73,7 @@ export function entryValue(entry, field) {
  */
 export function describeResult(result, piecesCount, texts) {
     if (result === null || result === undefined) {
-        return texts.noResult ?? '–';
+        return texts.noResult;
     }
 
     if (typeof result.seconds === 'number') {
@@ -81,19 +82,19 @@ export function describeResult(result, piecesCount, texts) {
 
     if (typeof result.piecesPlaced === 'number') {
         if (piecesCount) {
-            return (texts.piecesPlacedOf ?? '%placed% / %pieces% pcs')
+            return texts.piecesPlacedOf
                 .replace('%placed%', String(result.piecesPlaced))
                 .replace('%pieces%', String(piecesCount));
         }
 
-        return (texts.piecesPlaced ?? '%placed% pcs').replace('%placed%', String(result.piecesPlaced));
+        return texts.piecesPlaced.replace('%placed%', String(result.piecesPlaced));
     }
 
     if (result.didNotStart === true) {
-        return texts.didNotStart ?? 'DNS';
+        return texts.didNotStart;
     }
 
-    return texts.noResult ?? '–';
+    return texts.noResult;
 }
 
 /**
@@ -308,4 +309,120 @@ export function preferredRound(currentRoundId, remembered, rounds, now) {
     }
 
     return round.id;
+}
+
+// A live updates stream the hub closed for good is opened again after 1 s, 2 s, 5 s, 15 s, then every minute
+export const EVENTS_RECONNECT_MS = [1000, 2000, 5000, 15000, 60000];
+
+/**
+ * The round's live updates (Mercure, EventSource) of the live entry. The browser retries a dropped stream by itself,
+ * but not one the hub answered with an error (401, a 502/503 while it restarts): that one is CLOSED for good - so it
+ * is reopened here after a growing pause, by fetching the round's state first (`refresh`, which catches up on what
+ * was missed and opens the stream again through `connect()` once it answers). A stream that comes back after a drop
+ * catches up the same way.
+ */
+export class LiveEvents {
+    /**
+     * @param {object} options
+     * @param {function(): EventSource} options.open       a new stream (EventSource or a stand-in)
+     * @param {function(object): void} options.onMessage   every update, parsed
+     * @param {function(): *} options.refresh              fetch the state again (and connect() when it answers)
+     * @param {function(function(), number): *} [options.schedule]
+     * @param {function(*): void} [options.cancel]
+     */
+    constructor({ open, onMessage, refresh, schedule = (task, ms) => setTimeout(task, ms), cancel = (timer) => clearTimeout(timer) }) {
+        this.open = open;
+        this.onMessage = onMessage;
+        this.refresh = refresh;
+        this.schedule = schedule;
+        this.cancel = cancel;
+        this.source = null;
+        this.broken = false;
+        this.attempts = 0;
+        this.timer = null;
+        this.closed = false;
+    }
+
+    connect() {
+        if (this.source !== null || this.closed) {
+            return;
+        }
+
+        this.cancel(this.timer);
+        this.timer = null;
+
+        const source = this.open();
+        this.source = source;
+        this.broken = false;
+
+        source.addEventListener('message', (event) => {
+            let data;
+
+            try {
+                data = JSON.parse(event.data);
+            } catch (e) {
+                return;
+            }
+
+            this.onMessage(data);
+        });
+        source.addEventListener('error', () => {
+            this.broken = true;
+
+            // CLOSED = 2 (EventSource.CLOSED)
+            if (source.readyState === 2 && this.source === source) {
+                source.close();
+                this.source = null;
+                this.reconnectLater();
+            }
+        });
+        source.addEventListener('open', () => {
+            this.attempts = 0;
+
+            // Back after a drop: whatever was published meanwhile is fetched
+            if (this.broken) {
+                this.broken = false;
+                this.refresh();
+            }
+        });
+    }
+
+    /**
+     * Tries again after the next pause of the series - one try at a time.
+     */
+    reconnectLater() {
+        if (this.timer !== null || this.source !== null || this.closed) {
+            return;
+        }
+
+        this.attempts += 1;
+        const delay = EVENTS_RECONNECT_MS[Math.min(this.attempts, EVENTS_RECONNECT_MS.length) - 1];
+
+        this.timer = this.schedule(() => {
+            this.timer = null;
+
+            if (!this.closed) {
+                this.refresh();
+            }
+        }, delay);
+    }
+
+    /**
+     * Updates flow right now (OPEN = 1) - what the page shows of the stopwatch is the round's.
+     */
+    isLive() {
+        return this.source !== null && this.source.readyState === 1 && !this.broken;
+    }
+
+    isOpen() {
+        return this.source !== null;
+    }
+
+    close() {
+        this.closed = true;
+        this.cancel(this.timer);
+        this.timer = null;
+        this.source?.close();
+        this.source = null;
+    }
 }

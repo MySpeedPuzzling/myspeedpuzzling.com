@@ -38,6 +38,13 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Rounds with several puzzles: one total result per entry today - a result per puzzle when organisers ask.
 - [ ] Derive table numbers from the table layout tool (`table_spot`) instead of typing them.
 - [ ] Results from timing devices without the round stopwatch (import of a device's export).
+- [ ] Add the cron row on lily.srv: `0 4 * * * docker compose exec web php bin/console myspeedpuzzling:prune-round-result-change-receipts`
+      (daily, keeps 90 days of `round_result_change_receipt` - the ids of official results changes the server took,
+      so an outbox replay never re-applies a corrected value). Without the cron the table only grows (a few thousand
+      rows per big event); nothing breaks.
+- [ ] Live entry quick add: the event's people come with the page (`GetLiveResultsEventPeople`) - somebody added to
+      the event by another device during the session is not offered until a reload (rare; typing the name in creates a
+      second person, as before).
 - [ ] The participants spreadsheet (second PR) writes results through `RecordRoundResults` (`op: "result"` changesets).
 - [ ] Mercure subscribe cookie: `MercureSubscribeCookieListener` rewrites it on every signed-in response with that
       request's topics only (JSON endpoints, other tabs), so a long-open organiser page loses its private

@@ -48,8 +48,12 @@
     syncSending: 'live_results.sync.sending'|trans,
     syncSignIn: 'live_results.sync.sign_in'|trans,
     syncForbidden: 'live_results.sync.forbidden'|trans,
+    syncReload: 'live_results.sync.reload'|trans,
     bannerAuth: 'live_results.banner.auth'|trans,
     bannerForbidden: 'live_results.banner.forbidden'|trans,
+    bannerCsrf: 'live_results.banner.csrf'|trans,
+    reload: 'live_results.banner.reload'|trans,
+    showUnsent: 'live_results.banner.show'|trans,
     bannerStorage: 'live_results.banner.storage'|trans,
     signIn: 'live_results.banner.sign_in'|trans,
     retry: 'live_results.banner.retry'|trans,
@@ -61,6 +65,10 @@
     rejected: 'live_results.problem.rejected'|trans,
     fix: 'live_results.problem.fix'|trans,
     discard: 'live_results.problem.discard'|trans,
+    discardConfirm: 'live_results.problem.discard_confirm'|trans,
+    discardAll: 'live_results.problem.discard_all'|trans,
+    problemForbidden: 'live_results.problem.forbidden'|trans,
+    invalidChange: 'official_results.reason.invalid_change'|trans,
     stuck: 'live_results.problem.stuck'|trans,
     retryIn: 'live_results.problem.retry_in'|trans,
     retryNow: 'live_results.problem.retry_now'|trans,
@@ -86,6 +94,10 @@
     sheetSending: 'live_results.sheet.sending'|trans,
     sheetOffline: 'live_results.sheet.offline'|trans,
     sheetOtherRound: 'live_results.sheet.other_round'|trans,
+    sheetOtherEvent: 'live_results.sheet.other_event'|trans,
+    sheetBusy: 'live_results.sheet.busy'|trans,
+    finishedNowStopped: 'live_results.entry.finished_now_stopped'|trans,
+    eventPerson: 'live_results.add.event_person'|trans,
     sheetRetryAll: 'live_results.sheet.retry_all'|trans,
     keyboardLetters: 'live_results.find.keyboard_letters'|trans,
     keyboardDigits: 'live_results.find.keyboard_digits'|trans,
@@ -179,12 +191,15 @@
          data-live-results-entrant-value="{{ entrant ? entrant.participantId : '' }}"
          data-live-results-entrant-name-value="{{ entrant ? entrant.name : '' }}"
          data-live-results-auto-picked-value="{{ auto_picked ? 'true' : 'false' }}"
+         data-live-results-notice-value="{{ unknown_tag ? 'live_results.scan.unknown_person'|trans : '' }}"
          data-live-results-messages-value="{{ live_messages|json_encode|e('html_attr') }}"
          data-live-results-plurals-value="{{ {
              waiting: browser_translation('live_results.sync.waiting'),
              offline: browser_translation('live_results.sync.offline'),
              attention: browser_translation('live_results.sync.attention'),
              foreign: browser_translation('live_results.banner.foreign'),
+             forbiddenRounds: browser_translation('live_results.banner.forbidden_rounds'),
+             discardAllConfirm: browser_translation('live_results.problem.discard_all_confirm'),
          }|json_encode|e('html_attr') }}"
     >
         <div class="lr-bar">
@@ -231,7 +246,7 @@
                        autocapitalize="off"
                        spellcheck="false">
                 <button type="button" class="btn btn-outline-secondary lr-keyboard" data-live-results-target="keyboardToggle" data-action="live-results#toggleKeyboard"{% if not uses_tables %} hidden{% endif %}
-                        aria-label="{{ 'live_results.find.keyboard'|trans }}" title="{{ 'live_results.find.keyboard'|trans }}">ABC</button>
+                        aria-label="{{ 'live_results.find.keyboard'|trans }}" title="{{ 'live_results.find.keyboard'|trans }}">{{ 'live_results.find.keyboard_letters'|trans }}</button>
                 <button type="button" class="btn btn-outline-primary" data-action="live-results#openScanner"
                         aria-label="{{ 'live_results.scan.button'|trans }}" title="{{ 'live_results.scan.button'|trans }}">
                     <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
@@ -243,9 +258,7 @@
             {% if uses_tables and organiser %}
                 <div class="alert alert-info small py-2 px-3 mt-2 mb-0" data-live-results-target="readiness" hidden>
                     {{ 'live_results.tables.recommended'|trans }}
-                    {% if seating_url %}
-                        <a href="{{ seating_url }}" class="alert-link text-nowrap">{{ 'live_results.tables.seating'|trans }}</a>
-                    {% endif %}
+                    <a href="{{ path('round_seating', {roundId: round.id}) }}" class="alert-link text-nowrap">{{ 'live_results.tables.seating'|trans }}</a>
                 </div>
             {% endif %}
 
@@ -260,10 +273,10 @@
                 <div class="lr-list" data-live-results-target="recent"></div>
             </div>
 
-            {% if results_desk_url %}
-                <p class="text-center mt-4 mb-0">
-                    <a href="{{ results_desk_url }}" class="small">{{ 'live_results.results_desk'|trans }}</a>
-                </p>
+            {% if organiser %}{# referees get no organiser tools #}
+            <p class="text-center mt-4 mb-0">
+                <a href="{{ path('results_desk', {roundId: round.id}) }}" class="small">{{ 'live_results.results_desk'|trans }}</a>
+            </p>
             {% endif %}
         </section>
 
@@ -384,6 +397,12 @@
                     <div class="lr-list mb-3" data-live-results-target="addSuggestionList"></div>
                 </div>
 
+                {# People of the event who are not in this round: put in by their id, never typed in as a second person #}
+                <div data-live-results-target="addPeople" hidden>
+                    <h2 class="lr-recent-title mt-0">{{ (solo_round ? 'live_results.add.event_people' : 'live_results.add.event_people_members')|trans }}</h2>
+                    <div class="lr-list mb-3" data-live-results-target="addPeopleList"></div>
+                </div>
+
                 <button type="submit" class="btn btn-primary w-100 lr-big-btn">{{ 'live_results.add.submit'|trans }}</button>
                 <p class="small text-muted mt-2 mb-0">{{ 'live_results.add.note'|trans }}</p>
             </form>
@@ -418,6 +437,7 @@
             <p class="lr-scanner-hint mb-0" data-live-results-target="scanHint" aria-live="polite">{{ 'live_results.scan.hint'|trans }}</p>
         </div>
 
+        <script type="application/json" data-live-results-target="eventPeople">{{ event_people|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
         <script type="application/json" data-live-results-target="initialState">{{ state|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
     </div>
 {% endblock %}

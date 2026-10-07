@@ -9,6 +9,7 @@ import {
     entryForEnter,
     entryOfParticipant,
     entryValue,
+    LiveEvents,
     preferredRound,
     recentEntries,
     sameValue,
@@ -32,6 +33,8 @@ const REQUEST_TIMEOUT_MS = 15000;
 const STATE_REFRESH_MS = 60000;
 const FLUSH_TICK_MS = 5000;
 const TOAST_MS = 8000;
+// "Finished now" trusts the stopwatch it knows only while live updates flow, or this soon after a state fetch
+const STOPWATCH_TRUSTED_MS = 10000;
 const CHANNEL = 'msp-official-results';
 const KEYBOARD_KEY = 'msp.liveResults.keyboard';
 const ROUND_KEY = 'msp.liveResults.round.';
@@ -63,7 +66,7 @@ export default class extends Controller {
         'entryView', 'entryTable', 'entryName', 'entryMembers', 'entryNow', 'entryProblems',
         'timeForm', 'timeInput', 'timeParsed', 'piecesForm', 'piecesInput', 'piecesParsed', 'finishedNow', 'finishedNowClock', 'clearButton',
         'confirmView', 'confirmTable', 'confirmName', 'confirmResult', 'confirmNote', 'saveButton',
-        'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList',
+        'addView', 'addForm', 'addName', 'addMembers', 'addTable', 'addError', 'addSuggestions', 'addSuggestionList', 'addPeople', 'addPeopleList', 'eventPeople',
         'toast', 'toastText', 'toastUndo', 'sheet', 'sheetBody', 'scanner', 'video', 'scanHint',
     ];
 
@@ -82,6 +85,7 @@ export default class extends Controller {
         entrant: String,
         entrantName: String,
         autoPicked: Boolean,
+        notice: String,
         messages: Object,
         plurals: Object,
     };
@@ -90,6 +94,22 @@ export default class extends Controller {
         const state = JSON.parse(this.initialStateTarget.textContent);
         // Server clock minus ours - refined (round trip compensated) by every state fetch
         this.clockOffset = Date.now() - Date.parse(state.serverNow);
+        this.stopwatchKnownAt = Date.now();
+        // The event's people who are no entry of this round - quick add offers them before typing a name in again
+        this.eventPeople = this.hasEventPeopleTarget ? JSON.parse(this.eventPeopleTarget.textContent || '[]') : [];
+        // The round's private results topic + its public stopwatch topic, reopened whenever the hub closes the stream
+        this.events = new LiveEvents({
+            open: () => {
+                const url = new URL(this.mercureUrlValue, window.location.href);
+                url.searchParams.append('topic', `/round-results/${this.roundIdValue}`);
+                url.searchParams.append('topic', `/round-stopwatch/${this.roundIdValue}`);
+
+                return new EventSource(url, { withCredentials: true });
+            },
+            onMessage: (data) => this.receiveUpdate(data),
+            // Signed out / no rights: the banner's Retry takes it from there
+            refresh: () => (!this.stateBlocked && this.isConnected() ? this.refreshState() : null),
+        });
         this.serverEntries = new Map();
         this.localEntries = new Map();
         this.applyState(state);
@@ -209,6 +229,10 @@ export default class extends Controller {
             this.findInputTarget.focus({ preventScroll: true });
         }
 
+        if (this.noticeValue !== '') {
+            this.notice(this.noticeValue, 'warning');
+        }
+
         // The page came with the state; this fetch syncs the clock and authorises the round's private topic
         this.refreshState();
     }
@@ -219,8 +243,7 @@ export default class extends Controller {
         clearInterval(this.stateTimer);
         clearTimeout(this.toastTimer);
         clearTimeout(this.countsTimer);
-        this.eventSource?.close();
-        this.eventSource = null;
+        this.events?.close();
         this.channel?.close();
         this.stopScan?.();
 
@@ -367,7 +390,9 @@ export default class extends Controller {
 
     localEntry(newEntry) {
         const team = newEntry.kind === 'team';
-        const members = team ? (newEntry.members ?? []).map((member) => ({ name: typeof member === 'string' ? member : member.name })) : [];
+        const members = team
+            ? (newEntry.members ?? []).map((member) => (typeof member === 'string' ? { name: member, participantId: null } : { name: member.name ?? '', participantId: member.participantId ?? null }))
+            : [];
         const name = newEntry.name ?? null;
 
         return {
@@ -377,7 +402,7 @@ export default class extends Controller {
             roundId: this.roundIdValue,
             name,
             displayName: name ?? members.map((member) => member.name).join(', '),
-            participantId: null,
+            participantId: newEntry.participantId ?? null,
             country: null,
             countries: [],
             members,
@@ -408,12 +433,22 @@ export default class extends Controller {
         return this.index;
     }
 
-    async refreshState() {
+    /**
+     * Fetches the round's state; a call while one is out waits for that one. Resolves to the answer's kind.
+     */
+    refreshState() {
         if (this.refreshing) {
-            return;
+            return this.refreshing;
         }
 
-        this.refreshing = true;
+        this.refreshing = this.fetchState().finally(() => {
+            this.refreshing = null;
+        });
+
+        return this.refreshing;
+    }
+
+    async fetchState() {
         const abort = new AbortController();
         const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
         const sentAt = Date.now();
@@ -425,6 +460,7 @@ export default class extends Controller {
             if (answer.kind === 'ok') {
                 this.stateBlocked = null;
                 this.clockOffset = (sentAt + answeredAt) / 2 - Date.parse(answer.data.serverNow);
+                this.stopwatchKnownAt = answeredAt;
                 this.applyState(answer.data);
                 this.scheduleRender();
                 // Subscribed only now: this answer's Mercure cookie authorises the round's private topic
@@ -432,45 +468,28 @@ export default class extends Controller {
             } else if (answer.kind === 'auth' || answer.kind === 'forbidden') {
                 this.stateBlocked = answer.kind;
                 this.scheduleRender();
+            } else if (!this.events.isOpen()) {
+                // No state, no live updates: try both again after a pause
+                this.events.reconnectLater();
             }
+
+            return answer.kind;
         } finally {
             clearTimeout(timer);
-            this.refreshing = false;
         }
     }
 
     connectEvents() {
-        if (this.eventSource || !this.mercureUrlValue || !this.isConnected()) {
-            return;
+        if (this.mercureUrlValue && this.isConnected()) {
+            this.events.connect();
         }
+    }
 
-        const url = new URL(this.mercureUrlValue, window.location.href);
-        url.searchParams.append('topic', `/round-results/${this.roundIdValue}`);
-        url.searchParams.append('topic', `/round-stopwatch/${this.roundIdValue}`);
-
-        this.eventSource = new EventSource(url, { withCredentials: true });
-        this.eventsBroken = false;
-        this.eventSource.addEventListener('message', (event) => {
-            let data;
-
-            try {
-                data = JSON.parse(event.data);
-            } catch (e) {
-                return;
-            }
-
-            this.receiveUpdate(data);
-        });
-        this.eventSource.addEventListener('error', () => {
-            this.eventsBroken = true;
-        });
-        this.eventSource.addEventListener('open', () => {
-            // Back after a drop: whatever was published meanwhile is fetched
-            if (this.eventsBroken) {
-                this.eventsBroken = false;
-                this.refreshState();
-            }
-        });
+    /**
+     * The stopwatch this page knows is the round's: live updates flow, or the state was fetched just now.
+     */
+    stopwatchTrusted() {
+        return this.events.isLive() || Date.now() - this.stopwatchKnownAt < STOPWATCH_TRUSTED_MS;
     }
 
     isConnected() {
@@ -502,6 +521,7 @@ export default class extends Controller {
         // The round's stopwatch (public topic, RoundStopwatchStateController's shape)
         if (data && 'status' in data) {
             this.stopwatch = { status: data.status ?? null, startedAt: data.startedAt ?? null, stoppedAt: data.stoppedAt ?? null };
+            this.stopwatchKnownAt = Date.now();
 
             if (typeof data.minutesLimit === 'number' && this.round) {
                 this.round.minutesLimit = data.minutesLimit;
@@ -651,7 +671,7 @@ export default class extends Controller {
     }
 
     renderHeader() {
-        const status = this.outbox ? this.outbox.status() : { pending: 0, conflicts: 0, rejected: 0, blocked: null, offline: false, sending: false };
+        const status = this.outbox ? this.outbox.status() : { pending: 0, conflicts: 0, rejected: 0, forbidden: 0, blocked: null, offline: false, sending: false };
         const blocked = status.blocked ?? this.stateBlocked;
         let state = 'saved';
         let text = this.t('syncSaved');
@@ -662,9 +682,12 @@ export default class extends Controller {
         } else if (blocked === 'forbidden') {
             state = 'blocked';
             text = this.t('syncForbidden');
-        } else if (status.conflicts + status.rejected > 0) {
+        } else if (blocked === 'csrf') {
+            state = 'blocked';
+            text = this.t('syncReload');
+        } else if (status.conflicts + status.rejected + status.forbidden > 0) {
             state = 'problem';
-            text = this.plural('attention', status.conflicts + status.rejected);
+            text = this.plural('attention', status.conflicts + status.rejected + status.forbidden);
         } else if (status.pending > 0) {
             state = 'waiting';
             text = status.offline ? this.plural('offline', status.pending) : (status.sending ? this.t('syncSending') : this.plural('waiting', status.pending));
@@ -696,15 +719,35 @@ export default class extends Controller {
 
     renderBanner() {
         const blocked = this.outbox?.blocked ?? null;
-        const reason = blocked ?? this.stateBlocked;
+        const reason = blocked === 'auth' || this.stateBlocked === 'auth' ? 'auth' : (this.stateBlocked ?? blocked);
         const parts = [];
 
         if (reason === 'auth' || reason === 'forbidden') {
+            // Signed out, or no rights for THIS round's event: nothing of it can be sent
             parts.push(`<div class="alert alert-danger mb-2" role="alert">
                 <p class="mb-2">${escapeHtml(this.t(reason === 'auth' ? 'bannerAuth' : 'bannerForbidden'))}</p>
                 <div class="d-flex flex-wrap gap-2">
                     <a class="btn btn-danger" href="${escapeHtml(this.loginUrlValue)}" target="_blank" rel="noopener">${escapeHtml(this.t('signIn'))}</a>
                     <button type="button" class="btn btn-outline-danger" data-action="live-results#retry">${escapeHtml(this.t('retry'))}</button>
+                </div>
+            </div>`);
+        } else if (reason === 'csrf') {
+            parts.push(`<div class="alert alert-danger mb-2" role="alert">
+                <p class="mb-2">${escapeHtml(this.t('bannerCsrf'))}</p>
+                <button type="button" class="btn btn-danger" data-action="live-results#reload">${escapeHtml(this.t('reload'))}</button>
+            </div>`);
+        }
+
+        // No rights for another round's event (yesterday's event, a removed maintainer): only those changes wait -
+        // everything of this round goes on
+        const forbidden = this.outbox ? this.outbox.status().forbidden : 0;
+
+        if (forbidden > 0 && reason !== 'forbidden') {
+            parts.push(`<div class="alert alert-warning mb-2" role="alert">
+                <p class="mb-2">${escapeHtml(this.plural('forbiddenRounds', forbidden))}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-warning" data-action="live-results#openSheet">${escapeHtml(this.t('showUnsent'))}</button>
+                    <a class="btn btn-outline-secondary" href="${escapeHtml(this.loginUrlValue)}" target="_blank" rel="noopener">${escapeHtml(this.t('signIn'))}</a>
                 </div>
             </div>`);
         }
@@ -882,25 +925,54 @@ export default class extends Controller {
         }
 
         if (item.state === 'rejected') {
+            // The server's translated reason; a refusal the device made up itself gets the generic text - never a key
+            const message = typeof item.message === 'string' && item.message !== '' ? item.message : this.t('invalidChange');
+            const fixable = item.field === 'result' && item.reason !== 'round_not_found' && item.roundId === this.roundIdValue;
+
             return `<div class="alert alert-danger lr-problem" role="alert">
                 <div>${title}: ${escapeHtml(this.describeField(item.field, item.to))}</div>
-                <p class="mb-2">${escapeHtml(this.t('rejected', { '%message%': item.message ?? item.reason ?? '' }))}</p>
+                <p class="mb-2">${escapeHtml(this.t('rejected', { '%message%': message }))}</p>
                 <div class="d-flex flex-wrap gap-2">
-                    ${item.field === 'result' ? `<button type="button" class="btn btn-danger" data-action="live-results#fix" data-id="${id}" data-ref="${escapeHtml(item.entryRef)}">${escapeHtml(this.t('fix'))}</button>` : ''}
+                    ${fixable ? `<button type="button" class="btn btn-danger" data-action="live-results#fix" data-id="${id}" data-ref="${escapeHtml(item.entryRef)}">${escapeHtml(this.t('fix'))}</button>` : ''}
                     <button type="button" class="btn btn-outline-danger" data-action="live-results#discard" data-id="${id}">${escapeHtml(this.t('discard'))}</button>
                 </div>
             </div>`;
         }
 
-        const seconds = Math.max(0, Math.ceil((item.nextAttemptAt - Date.now()) / 1000));
-        const waiting = this.outbox.inFlight.has(item.id)
-            ? this.t('sheetSending')
-            : (this.outbox.offline ? this.t('sheetOffline') : (item.attempts >= STUCK_AFTER_ATTEMPTS ? this.t('stuck') : this.t('sheetWaiting')));
+        if (item.state === 'forbidden') {
+            return `<div class="alert alert-warning lr-problem" role="alert">
+                <div>${title}: ${escapeHtml(this.describeField(item.field, item.to))}</div>
+                <p class="mb-2">${escapeHtml(this.t('problemForbidden'))}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-action="live-results#retryItem" data-id="${id}">${escapeHtml(this.t('retryNow'))}</button>
+                    <button type="button" class="btn btn-outline-danger" data-action="live-results#discard" data-id="${id}" data-confirm="1">${escapeHtml(this.t('discard'))}</button>
+                </div>
+            </div>`;
+        }
+
+        const seconds = Math.max(0, Math.ceil((Math.max(item.nextAttemptAt, this.outbox.retryAt) - Date.now()) / 1000));
+        let waiting = this.t('sheetWaiting');
+
+        if (this.outbox.inFlight.has(item.id)) {
+            waiting = this.t('sheetSending');
+        } else if (this.outbox.offline) {
+            waiting = this.t('sheetOffline');
+        } else if (this.outbox.busy) {
+            waiting = this.t('sheetBusy');
+        } else if (item.attempts >= STUCK_AFTER_ATTEMPTS) {
+            waiting = this.t('stuck');
+        }
+
+        // A change of an event this page is not about can be let go (the referee may have lost the rights to it)
+        const elsewhere = !this.rounds.some((round) => round.id === item.roundId);
 
         return `<div class="alert ${item.attempts >= STUCK_AFTER_ATTEMPTS ? 'alert-warning' : 'alert-light border'} lr-problem py-2">
             <div>${title}: ${escapeHtml(this.describeField(item.field, item.to))}</div>
             <div class="small">${escapeHtml(waiting)}${seconds > 0 ? ` · ${escapeHtml(this.t('retryIn', { '%seconds%': seconds }))}` : ''}</div>
-            ${item.attempts > 0 || this.outbox.offline ? `<button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-action="live-results#retryItem" data-id="${id}">${escapeHtml(this.t('retryNow'))}</button>` : ''}
+            <div class="d-flex flex-wrap gap-2">
+                ${item.attempts > 0 || this.outbox.offline || this.outbox.busy ? `<button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-action="live-results#retryItem" data-id="${id}">${escapeHtml(this.t('retryNow'))}</button>` : ''}
+                ${elsewhere ? `<button type="button" class="btn btn-sm btn-outline-danger mt-2" data-action="live-results#discard" data-id="${id}" data-confirm="1">${escapeHtml(this.t('discard'))}</button>` : ''}
+            </div>
         </div>`;
     }
 
@@ -920,13 +992,19 @@ export default class extends Controller {
         this.sheetBodyTarget.innerHTML = sorted.map((item) => {
             const entry = entries.get(item.entryRef) ?? (item.newEntry ? this.localEntry(item.newEntry) : { displayName: item.label ?? '' });
             const other = item.roundId !== this.roundIdValue
-                ? `<div class="small text-muted mb-1">${escapeHtml(this.t('sheetOtherRound', { '%round%': roundNames.get(item.roundId) ?? '' }))}</div>`
+                ? `<div class="small text-muted mb-1">${escapeHtml(roundNames.has(item.roundId) ? this.t('sheetOtherRound', { '%round%': roundNames.get(item.roundId) }) : this.t('sheetOtherEvent'))}</div>`
                 : '';
 
             return other + this.problemHtml(item, entry, true);
         }).join('');
 
-        if (items.some((item) => item.state === 'pending') || this.outbox.blocked !== null) {
+        const forbidden = items.filter((item) => item.state === 'forbidden').length;
+
+        if (forbidden > 1) {
+            this.sheetBodyTarget.insertAdjacentHTML('beforeend', `<button type="button" class="btn btn-outline-danger w-100 mt-2 lr-big-btn fw-normal" data-action="live-results#discardForbidden">${escapeHtml(this.t('discardAll'))}</button>`);
+        }
+
+        if (items.some((item) => item.state === 'pending' || item.state === 'forbidden') || this.outbox.blocked !== null) {
             this.sheetBodyTarget.insertAdjacentHTML('beforeend', `<button type="button" class="btn btn-outline-primary w-100 mt-2 lr-big-btn fw-normal" data-action="live-results#retry">${escapeHtml(this.t('sheetRetryAll'))}</button>`);
         }
     }
@@ -953,12 +1031,12 @@ export default class extends Controller {
         return Date.now() - this.clockOffset;
     }
 
-    elapsedSeconds() {
+    elapsedSeconds(at = this.serverNow()) {
         if (this.stopwatch?.status !== 'running' || !this.stopwatch.startedAt) {
             return null;
         }
 
-        return Math.max(0, Math.floor((this.serverNow() - Date.parse(this.stopwatch.startedAt)) / 1000));
+        return Math.max(0, Math.floor((at - Date.parse(this.stopwatch.startedAt)) / 1000));
     }
 
     tickClock(force = false) {
@@ -1078,12 +1156,13 @@ export default class extends Controller {
     }
 
     cleanUrl() {
-        // ?entrant= / ?auto= do their job once - a reload must not open the entrant again
+        // ?entrant= / ?auto= / ?notice= do their job once - a reload must not open the entrant again
         const url = new URL(window.location.href);
 
-        if (url.searchParams.has('entrant') || url.searchParams.has('auto')) {
+        if (url.searchParams.has('entrant') || url.searchParams.has('auto') || url.searchParams.has('notice')) {
             url.searchParams.delete('entrant');
             url.searchParams.delete('auto');
+            url.searchParams.delete('notice');
             window.history.replaceState(window.history.state, '', url.toString());
         }
     }
@@ -1275,11 +1354,34 @@ export default class extends Controller {
         this.review({ seconds: parsed.seconds });
     }
 
-    finishedNow() {
-        // Frozen the moment it is tapped
-        const elapsed = this.elapsedSeconds();
+    async finishedNow() {
+        // Frozen the moment it is tapped - on the server's clock
+        const tappedAt = this.serverNow();
+        const ref = this.openRef;
+
+        // Live updates down for a while: the stopwatch may have been paused or stopped meanwhile - ask the server
+        // before trusting it (a failed fetch keeps what is known: better than nothing on venue Wi-Fi)
+        if (!this.stopwatchTrusted()) {
+            this.finishedNowTarget.disabled = true;
+
+            try {
+                await this.refreshState();
+            } finally {
+                this.finishedNowTarget.disabled = false;
+            }
+
+            if (this.openRef !== ref || this.view !== 'entry') {
+                return;
+            }
+        }
+
+        const elapsed = this.elapsedSeconds(tappedAt);
 
         if (elapsed === null || elapsed < 1) {
+            this.tickClock(true);
+            this.setText(this.timeParsedTarget, this.t('finishedNowStopped'));
+            this.timeInputTarget.focus();
+
             return;
         }
 
@@ -1468,7 +1570,26 @@ export default class extends Controller {
     }
 
     discard(event) {
+        // Never sent anywhere: a change set apart for missing rights, or of another event, goes only when confirmed
+        if (event.currentTarget.dataset.confirm === '1' && !window.confirm(this.t('discardConfirm'))) {
+            return;
+        }
+
         this.outbox.remove(event.currentTarget.dataset.id).finally(() => this.broadcast());
+    }
+
+    discardForbidden() {
+        const count = this.outbox.status().forbidden;
+
+        if (count === 0 || !window.confirm(this.plural('discardAllConfirm', count))) {
+            return;
+        }
+
+        this.outbox.discardWhere((item) => item.state === 'forbidden').finally(() => this.broadcast());
+    }
+
+    reload() {
+        window.location.reload();
     }
 
     fix(event) {
@@ -1574,6 +1695,12 @@ export default class extends Controller {
         this.clearNotice();
         this.addFormTarget.reset();
         this.addErrorTarget.hidden = true;
+        this.lastMemberInput = null;
+
+        for (const input of this.addFormTarget.querySelectorAll('input[data-participant-id]')) {
+            delete input.dataset.participantId;
+            delete input.dataset.participantName;
+        }
 
         if (typed !== '' && /^\d+$/.test(typed) && this.hasAddTableTarget) {
             this.addTableTarget.value = typed;
@@ -1607,21 +1734,82 @@ export default class extends Controller {
         input.focus();
     }
 
+    /**
+     * The quick add form: the name, the members - a member picked from the event's people carries their participant
+     * id (`{participantId, name}`), a typed one is a name - and the table.
+     */
     addValues() {
         const name = this.addNameTarget.value.trim();
         const members = this.hasAddMembersTarget
-            ? [...this.addMembersTarget.querySelectorAll('input[data-member]')].map((input) => input.value.trim()).filter((value) => value !== '')
+            ? [...this.addMembersTarget.querySelectorAll('input[data-member]')]
+                .filter((input) => input.value.trim() !== '')
+                .map((input) => (input.dataset.participantId ? { participantId: input.dataset.participantId, name: input.value.trim() } : input.value.trim()))
             : [];
         const tableText = this.hasAddTableTarget ? this.addTableTarget.value.trim() : '';
 
         return { name, members, tableText };
     }
 
-    addTyped() {
+    /**
+     * Participant ids that are an entry of this round already, or in one added on this device - not offered again.
+     */
+    participantIdsInRound() {
+        const ids = new Set();
+
+        for (const entry of this.allEntries()) {
+            if (entry.participantId) {
+                ids.add(String(entry.participantId).toLowerCase());
+            }
+
+            for (const member of entry.members ?? []) {
+                if (member.participantId) {
+                    ids.add(String(member.participantId).toLowerCase());
+                }
+            }
+        }
+
+        return ids;
+    }
+
+    eventPeopleIndex() {
+        if (!this.peopleIndex) {
+            this.peopleIndex = buildSearchIndex(this.eventPeople.map((person) => ({
+                ref: `participant:${person.participantId}`,
+                kind: 'person',
+                name: person.name,
+                displayName: person.name,
+                members: [],
+                playerCode: person.playerCode,
+                tableNumber: null,
+                participantId: person.participantId,
+                country: person.country,
+                result: null,
+            })));
+        }
+
+        return this.peopleIndex;
+    }
+
+    addTyped(event = null) {
+        const input = event?.target;
+
+        if (input && input.dataset && 'member' in input.dataset) {
+            this.lastMemberInput = input;
+
+            // A member picked from the event's people and then retyped is somebody typed in
+            if (input.dataset.participantId && input.value.trim() !== input.dataset.participantName) {
+                delete input.dataset.participantId;
+                delete input.dataset.participantName;
+            }
+        }
+
         const { name, members } = this.addValues();
-        const typed = [name, ...members].filter((value) => value.length >= 2);
+        const typed = [name, ...members.map((member) => (typeof member === 'string' ? member : ''))].filter((value) => value.length >= 2);
         const seen = new Set();
         const suggestions = [];
+        const people = [];
+        const inRound = this.participantIdsInRound();
+        const picked = new Set(members.filter((member) => typeof member !== 'string').map((member) => member.participantId));
 
         for (const text of typed) {
             for (const entry of searchEntries(this.searchIndex(), text, { tableNumbersOff: true, limit: 3 }).matches) {
@@ -1630,37 +1818,123 @@ export default class extends Controller {
                     suggestions.push(entry);
                 }
             }
+
+            for (const person of searchEntries(this.eventPeopleIndex(), text, { tableNumbersOff: true, limit: 5 }).matches) {
+                const id = String(person.participantId).toLowerCase();
+
+                if (!seen.has(person.ref) && !inRound.has(id) && !picked.has(person.participantId) && people.length < 5) {
+                    seen.add(person.ref);
+                    people.push(person);
+                }
+            }
         }
 
         const items = this.outbox ? this.outbox.all() : [];
         this.addSuggestionListTarget.innerHTML = suggestions.map((entry) => this.rowHtml(entry, items, false)).join('');
         this.addSuggestionsTarget.hidden = suggestions.length === 0;
+
+        if (this.hasAddPeopleTarget) {
+            this.addPeopleListTarget.innerHTML = people.map((person) => this.personHtml(person)).join('');
+            this.addPeopleTarget.hidden = people.length === 0;
+        }
     }
 
-    addEntrant(event) {
-        event.preventDefault();
-        const solo = this.round?.category === 'solo';
-        const { name, members, tableText } = this.addValues();
-        let error = null;
-        let table = null;
+    personHtml(person) {
+        const sub = [this.t('eventPerson')];
 
-        if (solo && name === '') {
-            error = this.t('addNameMissing');
-        } else if (!solo && name === '' && members.length === 0) {
-            error = this.t('addTeamMissing');
+        if (person.playerCode) {
+            sub.push(`#${String(person.playerCode).toUpperCase()}`);
         }
 
-        if (error === null && tableText !== '') {
-            table = /^\d+$/.test(tableText) ? parseInt(tableText, 10) : null;
+        const flag = typeof person.country === 'string' && /^[a-z]{2}(-[a-z]{2,4})?$/.test(person.country)
+            ? `<span class="fi fi-${person.country} me-1" aria-hidden="true"></span>`
+            : '';
 
-            if (table === null || table < 1 || table > 9999) {
-                error = this.t('addTableInvalid');
-            } else {
-                const holder = this.allEntries().find((entry) => entry.tableNumber === table);
+        return `<button type="button" class="lr-row" data-action="live-results#pickEventPerson" data-participant-id="${escapeHtml(person.participantId)}">
+            ${this.tableHtml(null)}
+            <span class="lr-row-main">
+                <span class="lr-row-name">${flag}${escapeHtml(person.name)}</span>
+                <span class="lr-row-sub">${escapeHtml(sub.join(' · '))}</span>
+            </span>
+            <span class="lr-row-result"><i class="bi bi-plus-lg" aria-hidden="true"></i></span>
+            <span class="lr-row-sync"></span>
+        </button>`;
+    }
 
-                if (holder) {
-                    error = this.t('addTableTaken', { '%number%': table, '%name%': holder.displayName ?? holder.name ?? '' });
-                }
+    /**
+     * A person of the event picked in quick add: a solo round gets them as its entry at once (by their id, nobody
+     * typed in twice); a pair/team round gets them as a member of the pair/team being added.
+     */
+    pickEventPerson(event) {
+        const participantId = event.currentTarget.dataset.participantId;
+        const person = this.eventPeople.find((candidate) => candidate.participantId === participantId);
+
+        if (!person) {
+            return;
+        }
+
+        if (this.round?.category !== 'solo') {
+            // The member field the referee was typing this person's name into, else the first empty one, else a new one
+            const inputs = [...this.addMembersTarget.querySelectorAll('input[data-member]')];
+            let input = inputs.includes(this.lastMemberInput) && !this.lastMemberInput.dataset.participantId
+                ? this.lastMemberInput
+                : inputs.find((candidate) => candidate.value.trim() === '');
+
+            if (!input) {
+                this.addMemberInput({ currentTarget: this.addMembersTarget.parentElement.querySelector('[data-action="live-results#addMemberInput"]') });
+                const inputs = this.addMembersTarget.querySelectorAll('input[data-member]');
+                input = inputs[inputs.length - 1];
+            }
+
+            if (!input) {
+                return;
+            }
+
+            input.value = person.name;
+            input.dataset.participantId = person.participantId;
+            input.dataset.participantName = person.name;
+            this.addTyped();
+
+            return;
+        }
+
+        const { tableText } = this.addValues();
+        const table = this.addTable(tableText);
+
+        if (table === false) {
+            return;
+        }
+
+        const newEntry = { clientEntryId: newClientId(), kind: 'person', participantId: person.participantId, name: person.name };
+        const entry = { ...this.localEntry(newEntry), country: person.country ?? null, playerCode: person.playerCode ?? null };
+        this.localEntries.set(entry.ref, entry);
+        this.indexDirty = true;
+
+        if (table !== null) {
+            this.enqueue(entry, 'table_number', table);
+        }
+
+        this.openEntry(entry.ref);
+    }
+
+    /**
+     * The quick add's table number: null for none, false when refused (the error is shown).
+     */
+    addTable(tableText) {
+        if (tableText === '') {
+            return null;
+        }
+
+        const table = /^\d+$/.test(tableText) ? parseInt(tableText, 10) : null;
+        let error = null;
+
+        if (table === null || table < 1 || table > 9999) {
+            error = this.t('addTableInvalid');
+        } else {
+            const holder = this.allEntries().find((entry) => entry.tableNumber === table);
+
+            if (holder) {
+                error = this.t('addTableTaken', { '%number%': table, '%name%': holder.displayName ?? holder.name ?? '' });
             }
         }
 
@@ -1668,6 +1942,34 @@ export default class extends Controller {
             this.addErrorTarget.textContent = error;
             this.addErrorTarget.hidden = false;
 
+            return false;
+        }
+
+        return table;
+    }
+
+    addEntrant(event) {
+        event.preventDefault();
+        const solo = this.round?.category === 'solo';
+        const { name, members, tableText } = this.addValues();
+        let error = null;
+
+        if (solo && name === '') {
+            error = this.t('addNameMissing');
+        } else if (!solo && name === '' && members.length === 0) {
+            error = this.t('addTeamMissing');
+        }
+
+        if (error !== null) {
+            this.addErrorTarget.textContent = error;
+            this.addErrorTarget.hidden = false;
+
+            return;
+        }
+
+        const table = this.addTable(tableText);
+
+        if (table === false) {
             return;
         }
 

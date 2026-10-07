@@ -63,6 +63,12 @@ return App::config([
                 'marketplace_events_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Name tag QR codes as SVG (NameTagQrCode), one per participant URL - the same forever, while drawing
+                // one costs ~15 ms: a sheet of a few hundred tags would hold a worker for seconds on every view.
+                // 90-day TTL.
+                'name_tag_qr_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

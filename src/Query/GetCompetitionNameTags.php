@@ -8,10 +8,13 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CompetitionNameTag;
 
 /**
- * Name tags of an event (docs/features/competitions-management/live-results.md): every active participant - not
- * removed, not on the waitlist - with the table number of their first round (by schedule) or, with a round given,
- * only the people of that round with its table number. A pair/team round's number is the pair's/team's.
- * Organiser tooling behind COMPETITION_EDIT: names as the organiser recorded them, no blocklist. One statement.
+ * Name tags of an event (docs/features/competitions-management/live-results.md): everybody going
+ * (CompetitionParticipantGoing - not removed, not on the waitlist; the waitlist too when the organiser asks) with the
+ * table number of their first round (by schedule) or, with a round given, only the people of that round with its table
+ * number. A pair/team round's number is the pair's/team's.
+ * Organiser tooling behind COMPETITION_EDIT: names as the organiser recorded them, no blocklist. A tag is worn in
+ * public, so a linked player's #CODE is printed only when their profile is public - whoever prints (the organiser's own
+ * view of private profiles must not decide what strangers read on a badge). One statement.
  */
 readonly final class GetCompetitionNameTags
 {
@@ -26,8 +29,9 @@ readonly final class GetCompetitionNameTags
     /**
      * @return list<CompetitionNameTag>
      */
-    public function forCompetition(string $competitionId, null|string $roundId, string $sort): array
+    public function forCompetition(string $competitionId, null|string $roundId, string $sort, bool $withWaitlist = false): array
     {
+        $who = $withWaitlist ? 'cp.deleted_at IS NULL' : CompetitionParticipantGoing::sql('cp');
         $roundCondition = $roundId !== null ? 'AND cr.id = :roundId' : '';
         $roundRequired = $roundId !== null ? 'AND entry.round_id IS NOT NULL' : '';
         $order = $sort === self::SORT_TABLE
@@ -40,7 +44,8 @@ SELECT
     cp.id,
     cp.name,
     cp.country,
-    p.code AS player_code,
+    CASE WHEN p.is_private THEN NULL ELSE p.code END AS player_code,
+    cp.registration_status = 'waitlisted' AS waitlisted,
     entry.table_number,
     entry.round_name
 FROM competition_participant cp
@@ -63,8 +68,7 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) entry ON true
 WHERE cp.competition_id = :competitionId
-    AND cp.deleted_at IS NULL
-    AND (cp.registration_status IS NULL OR cp.registration_status <> 'waitlisted')
+    AND {$who}
     {$roundRequired}
 ORDER BY {$order}
 SQL,
@@ -72,7 +76,7 @@ SQL,
         );
 
         return array_map(static function (array $row): CompetitionNameTag {
-            /** @var array{id: string, name: string, country: null|string, player_code: null|string, table_number: null|int, round_name: null|string} $row */
+            /** @var array{id: string, name: string, country: null|string, player_code: null|string, waitlisted: null|bool, table_number: null|int, round_name: null|string} $row */
             return new CompetitionNameTag(
                 participantId: $row['id'],
                 name: $row['name'],
@@ -80,6 +84,7 @@ SQL,
                 playerCode: $row['player_code'],
                 tableNumber: $row['table_number'],
                 roundName: $row['round_name'],
+                waitlisted: $row['waitlisted'] === true,
             );
         }, $rows);
     }

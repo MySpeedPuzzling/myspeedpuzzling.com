@@ -395,7 +395,6 @@
     "to_collection": "Puzzle a la Colección"
   official_entry:
     notice: "Rellenado a partir de los resultados oficiales de %round% en %event%. Revísalo y guárdalo en tu perfil."
-    check_group: "Guardas este tiempo, así que ya formas parte de la pareja/equipo: si tu nombre aparece entre los compañeros de puzzle, quítalo."
 "forms":
   "choose_from_favorites": "- Elegir de favoritos -"
   "drop_file": "Arrastra y suelta un archivo aquí para subirlo"

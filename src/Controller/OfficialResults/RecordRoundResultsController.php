@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\OfficialResults;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
+use SpeedPuzzling\Web\Exceptions\UnreadableRoundResultChanges;
 use SpeedPuzzling\Web\Message\RecordRoundResults;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -51,7 +53,15 @@ final class RecordRoundResultsController extends AbstractController
     )]
     public function __invoke(Request $request, string $roundId): JsonResponse
     {
-        $round = $this->roundRepository->get($roundId);
+        try {
+            $round = $this->roundRepository->get($roundId);
+        } catch (CompetitionRoundNotFound) {
+            // A round deleted while a device still holds changes for it: a refusal the outbox shows, not a page to retry
+            return OfficialResultsApi::error('round_not_found', JsonResponse::HTTP_NOT_FOUND, [
+                'message' => $this->translator->trans('official_results.reason.round_not_found'),
+            ]);
+        }
+
         $competitionId = $round->competition->id->toString();
         $playerId = $this->api->authorise($request, $competitionId, write: true, attribute: CompetitionResultsEntryVoter::COMPETITION_RESULTS_ENTRY);
 
@@ -70,8 +80,12 @@ final class RecordRoundResultsController extends AbstractController
 
         try {
             $changes = RoundResultChangesParser::parse($body['changes'] ?? null);
-        } catch (\InvalidArgumentException $exception) {
-            return OfficialResultsApi::error('invalid_changes', JsonResponse::HTTP_BAD_REQUEST, ['message' => $exception->getMessage()]);
+        } catch (UnreadableRoundResultChanges $exception) {
+            // The referee reads `message` - always the translated reason, never the parser's developer text
+            return OfficialResultsApi::error('invalid_changes', JsonResponse::HTTP_BAD_REQUEST, [
+                'reason' => $exception->reason,
+                'message' => $this->translator->trans('official_results.reason.' . $exception->reason),
+            ]);
         }
 
         $dryRun = ($body['dryRun'] ?? false) === true;

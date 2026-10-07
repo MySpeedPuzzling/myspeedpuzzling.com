@@ -396,7 +396,6 @@
   "group_puzzling": "Puzzle en duo/groupe"
   official_entry:
     notice: "Rempli à partir des résultats officiels de %round% à %event%. Vérifiez-le et enregistrez-le sur votre profil."
-    check_group: "Vous enregistrez ce temps, vous faites donc déjà partie du duo/de l'équipe - si votre nom figure parmi les co-puzzleurs, retirez-le."
 "forms":
   "add_new_brand": "Ajouter une nouvelle marque :"
   "choose_from_favorites": "- Choisir parmi les favoris -"

@@ -35,6 +35,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetCompetitionNameTags' => self::ORGANISER,
         'GetCompetitionParticipantsForManagement' => self::ORGANISER,
         'GetCompetitionReferees' => self::ORGANISER,
+        'GetLiveResultsEventPeople' => self::ORGANISER,
         'GetCompetitionSeries' => 'The organiser\'s name is part of a public event, not a player listing.',
         'GetConversationLog' => self::ADMIN,
         'GetConversationPartnersForListing' => self::BILATERAL,

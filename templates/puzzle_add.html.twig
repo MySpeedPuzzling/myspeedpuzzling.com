@@ -15,8 +15,18 @@
     {% if official_entry|default(null) is not null %}
         <div class="alert alert-info" role="status" data-official-entry-notice>
             <i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'puzzle_add.official_entry.notice'|trans({'%round%': official_entry.roundName, '%event%': official_entry.competitionName}) }}
-            {% if official_entry.viewerMayBeAmongGuests %}
-                <div class="mt-1 small" data-official-entry-check-group>{{ 'puzzle_add.official_entry.check_group'|trans }}</div>
+            {% if official_entry.memberChoices is not empty %}
+                {# Nobody of the pair/team is linked and the name is not clearly the player's: they say which one they are #}
+                <div class="mt-2 small" data-official-entry-which-one>
+                    {{ 'puzzle_add.official_entry.which_one'|trans }}
+                    <span class="d-flex flex-wrap gap-2 mt-1">
+                        {% for name in official_entry.memberChoices %}
+                            <a class="btn btn-sm btn-outline-primary" rel="nofollow" href="{{ path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')|merge(app.request.query.all)|merge({official_member: loop.index0})) }}" data-official-member="{{ loop.index0 }}">{{ 'puzzle_add.official_entry.its_me'|trans({'%name%': name}) }}</a>
+                        {% endfor %}
+                    </span>
+                </div>
+            {% elseif official_entry.missingPeople > 0 %}
+                <div class="mt-1 small" data-official-entry-add-people>{{ 'puzzle_add.official_entry.add_people'|trans({'%count%': official_entry.missingPeople}) }}</div>
             {% endif %}
         </div>
     {% endif %}

@@ -6,11 +6,38 @@
  * Every call resolves (never rejects) to one of:
  * - {kind: 'ok', status, data}          2xx with a JSON body
  * - {kind: 'auth', status}              signed out or the session expired (401, or any redirect) - keep unsent work
- * - {kind: 'forbidden', status, data}   403 (no edit rights, or an invalid CSRF token)
- * - {kind: 'client', status, data}      other 4xx - a validation answer the person must act on (data = JSON body)
- * - {kind: 'server', status}            5xx - retry later
+ * - {kind: 'forbidden', status, data}   403 from our endpoint (JSON `error`: no edit rights, or an invalid CSRF token)
+ * - {kind: 'client', status, data}      other 4xx from our endpoint - an answer the person must act on (JSON body)
+ * - {kind: 'server', status, retryAfter, busy}  retry later: 5xx, and anything that is not our endpoint's answer or
+ *                                       asks to come back - 408 / 425 / 429, and every 4xx without our JSON (a rate
+ *                                       limiter's or a ban page, a proxy). `busy` is true for those (the whole server
+ *                                       is unavailable for a while, not one change); `retryAfter` = ms from the
+ *                                       Retry-After header, or null
  * - {kind: 'offline'}                   the request never reached the server - retry later
  */
+
+// The request may simply go again: Request Timeout, Too Early, Too Many Requests
+const RETRYABLE_STATUSES = [408, 425, 429];
+
+/**
+ * Retry-After in milliseconds (seconds or an HTTP date), null when absent or unreadable.
+ *
+ * @param {string|null} header
+ * @param {number} now
+ */
+export function retryAfterMs(header, now = Date.now()) {
+    if (typeof header !== 'string' || header.trim() === '') {
+        return null;
+    }
+
+    if (/^\d+$/.test(header.trim())) {
+        return parseInt(header.trim(), 10) * 1000;
+    }
+
+    const date = Date.parse(header);
+
+    return Number.isNaN(date) ? null : Math.max(0, date - now);
+}
 
 /**
  * @param {Response} response
@@ -19,7 +46,7 @@
 async function readJson(response) {
     const type = response.headers.get('Content-Type') || '';
 
-    if (!type.includes('application/json')) {
+    if (!type.includes('application/json') && !type.includes('+json')) {
         return null;
     }
 
@@ -74,12 +101,20 @@ export async function officialResultsRequest(url, { method = 'GET', body = undef
         return { kind: 'ok', status: response.status, data };
     }
 
-    if (response.status === 403) {
-        return { kind: 'forbidden', status: 403, data };
-    }
+    const retryAfter = retryAfterMs(response.headers.get('Retry-After'));
 
     if (response.status >= 500) {
-        return { kind: 'server', status: response.status };
+        return { kind: 'server', status: response.status, retryAfter, busy: false };
+    }
+
+    // Our endpoints answer every refusal with a JSON `error` - anything else (a rate limiter, a ban page, a proxy) or
+    // an answer asking to come back is no verdict on the change: sent again later
+    if (RETRYABLE_STATUSES.includes(response.status) || typeof data?.error !== 'string') {
+        return { kind: 'server', status: response.status, retryAfter, busy: true };
+    }
+
+    if (response.status === 403) {
+        return { kind: 'forbidden', status: 403, data };
     }
 
     return { kind: 'client', status: response.status, data };

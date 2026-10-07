@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\LiveResults;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetLiveResultsEntrant;
+use SpeedPuzzling\Web\Query\GetLiveResultsEventPeople;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -17,7 +18,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
@@ -35,6 +35,7 @@ final class LiveResultsController extends AbstractController
         private readonly GetRoundResultEntries $getRoundResultEntries,
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
         private readonly GetLiveResultsEntrant $getLiveResultsEntrant,
+        private readonly GetLiveResultsEventPeople $getLiveResultsEventPeople,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -75,6 +76,8 @@ final class LiveResultsController extends AbstractController
             'rounds' => $rounds,
             'entrant' => $entrant,
             'auto_picked' => $request->query->getBoolean('auto'),
+            // The name tag scanned with the phone's camera is nobody of this event (any more)
+            'unknown_tag' => $request->query->getString('notice') === 'tag_unknown',
             // Same shape as official_results_round_state - the page renders at once, the controller refreshes it
             'state' => [
                 'serverNow' => $this->clock->now()->format(\DateTimeInterface::ATOM),
@@ -88,10 +91,10 @@ final class LiveResultsController extends AbstractController
                 'rounds' => $rounds,
                 'entries' => $this->getRoundResultEntries->forRound($roundId),
             ],
-            // Pages of the other organiser tools, linked once they exist
-            'results_desk_url' => $organiser ? $this->optionalUrl('results_desk', ['roundId' => $roundId]) : null,
-            'seating_url' => $organiser ? $this->optionalUrl('round_seating', ['roundId' => $roundId]) : null,
+            // Referees (live-results.md "Referees") get no links to the other organiser tools
             'organiser' => $organiser,
+            // Quick add offers them before typing a name in again - put into the round by their id
+            'event_people' => $this->getLiveResultsEventPeople->notInRound($competitionId, $roundId),
         ]);
 
         $response->setPrivate();
@@ -99,17 +102,5 @@ final class LiveResultsController extends AbstractController
         $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
 
         return $response;
-    }
-
-    /**
-     * @param array<string, string> $parameters
-     */
-    private function optionalUrl(string $route, array $parameters): null|string
-    {
-        try {
-            return $this->generateUrl($route, $parameters);
-        } catch (RouteNotFoundException) {
-            return null;
-        }
     }
 }

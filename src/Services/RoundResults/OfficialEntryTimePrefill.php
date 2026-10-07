@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Results\PublishedRoundEntry;
 use SpeedPuzzling\Web\Value\OfficialEntryProfileState;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\TeamComposition;
 
@@ -29,6 +30,10 @@ use SpeedPuzzling\Web\Value\TeamComposition;
  *
  * Nothing about the entry is stored: the player saves an ordinary time, and every rule of the add form (first tries,
  * duplicates, secret puzzles, privacy) runs as for any other.
+ *
+ * A pair/team entry carries the round's category: the form opens in Pair/Team mode with every person the organiser
+ * recorded besides the viewer (linked ones by their code, the others as guests) - never as a solo time, also when the
+ * organiser recorded a name only or fewer people than the round needs (the form then asks for them).
  */
 readonly final class OfficialEntryTimePrefill
 {
@@ -40,7 +45,11 @@ readonly final class OfficialEntryTimePrefill
     ) {
     }
 
-    public function forViewer(string $competitionId, string $officialEntry, string $viewerPlayerId, null|string $viewerName): null|OfficialEntryTime
+    /**
+     * @param null|int $memberChoice `official_member`: in a pair/team nobody is linked to, the position of the member
+     *                               the viewer said is them ("Which one are you?")
+     */
+    public function forViewer(string $competitionId, string $officialEntry, string $viewerPlayerId, null|string $viewerName, null|int $memberChoice = null): null|OfficialEntryTime
     {
         $ref = RoundEntryRef::tryFromString($officialEntry);
 
@@ -73,9 +82,10 @@ readonly final class OfficialEntryTimePrefill
             return null;
         }
 
-        [$groupPlayers, $viewerMayBeAmongGuests] = $entry->isTeam
-            ? $this->coPuzzlers($entry, strtolower($viewerPlayerId), $viewerName)
-            : [[], false];
+        $category = $entry->isTeam ? $round->category : RoundCategory::Solo;
+        [$groupPlayers, $memberChoices] = $entry->isTeam
+            ? $this->coPuzzlers($entry, strtolower($viewerPlayerId), $viewerName, $memberChoice)
+            : [[], []];
 
         return new OfficialEntryTime(
             puzzleId: $results->profilePuzzleId,
@@ -85,33 +95,39 @@ readonly final class OfficialEntryTimePrefill
             teamName: $entry->isTeam ? $this->teamNameTheFormMaySet($entry, $groupPlayers, $viewerPlayerId) : null,
             roundName: $round->name,
             competitionName: $entryRound['competition_name'],
-            viewerMayBeAmongGuests: $viewerMayBeAmongGuests,
+            // A pair/team row of a round whose category says solo cannot exist - but never a solo form for a team row
+            category: $entry->isTeam && $category === RoundCategory::Solo ? RoundCategory::Team : $category,
+            memberChoices: $memberChoices,
         );
     }
 
     /**
-     * The members besides the viewer - linked ones by their code, the others as guests by the organiser's name. In a
-     * pair/team nobody is linked to, the viewer is one of the names: the one equal to their own name is left out (one
-     * match only), else they are told to remove themselves.
+     * The members besides the viewer - linked ones by their code, the others as guests by the organiser's name - and,
+     * when the viewer has to say which one they are, the names to pick from.
      *
-     * @return array{list<string>, bool}
+     * In a pair/team nobody is linked to, the viewer is one of the names: the one they picked (`$memberChoice`), else
+     * the one equal to their own name (one match only). Neither: nobody is filled in (one of the names is the viewer -
+     * listing them all would make a pair of three) and the names are offered to pick from.
+     *
+     * @return array{list<string>, list<string>}
      */
-    private function coPuzzlers(PublishedRoundEntry $entry, string $viewerPlayerId, null|string $viewerName): array
+    private function coPuzzlers(PublishedRoundEntry $entry, string $viewerPlayerId, null|string $viewerName, null|int $memberChoice): array
     {
         $members = $entry->entrants;
-        $viewerMayBeAmongGuests = false;
 
-        if ($entry->isViewers === false) {
+        if ($entry->isViewers === false && $members !== []) {
             $viewerKey = $viewerName !== null && trim($viewerName) !== '' ? TeamComposition::guestMemberKey($viewerName) : null;
             $matching = array_keys(array_filter(
                 $members,
                 static fn (PublishedRoundEntrant $member): bool => $viewerKey !== null && TeamComposition::guestMemberKey($member->playerName) === $viewerKey,
             ));
 
-            if (count($matching) === 1) {
+            if ($memberChoice !== null && isset($members[$memberChoice])) {
+                unset($members[$memberChoice]);
+            } elseif (count($matching) === 1) {
                 unset($members[$matching[0]]);
             } else {
-                $viewerMayBeAmongGuests = true;
+                return [[], array_map(static fn (PublishedRoundEntrant $member): string => $member->playerName, $members)];
             }
         }
 
@@ -127,12 +143,14 @@ readonly final class OfficialEntryTimePrefill
                 : $member->playerName;
         }
 
-        return [$groupPlayers, $viewerMayBeAmongGuests];
+        return [$groupPlayers, []];
     }
 
     /**
      * The add form may only name a pair/team that has no name yet (PuzzlingTeam::nameIfUnnamed()) - so the organiser's
-     * name is offered only when these exact people are no pair/team yet, or an unnamed one.
+     * name is offered only when these exact people are no pair/team yet, or an unnamed one. Nobody filled in (a name
+     * only, or the viewer still has to say who they are): the name comes along - the people they add decide, the save
+     * names that pair/team only when it has no name yet.
      *
      * @param list<string> $groupPlayers
      */
@@ -141,7 +159,7 @@ readonly final class OfficialEntryTimePrefill
         $name = PuzzlingTeam::cleanName($entry->teamName);
 
         if ($name === null || $groupPlayers === []) {
-            return null;
+            return $name;
         }
 
         $codes = [];

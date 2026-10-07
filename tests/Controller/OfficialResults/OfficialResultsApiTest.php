@@ -212,6 +212,20 @@ final class OfficialResultsApiTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(400);
         self::assertSame('invalid_changes', $this->json()['error']);
+        // The referee reads the translated reason - never the parser's developer text
+        self::assertSame('changes_unreadable', $this->json()['reason']);
+        self::assertSame('These changes could not be read - enter them again.', $this->json()['message']);
+    }
+
+    public function testChangesForARoundThatIsGoneAreRefusedAsJson(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $this->post('/en/official-results/rounds/018d0020-0000-0000-0000-00000000dead/changes', ['changes' => []]);
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame('round_not_found', $this->json()['error']);
+        self::assertSame('This round does not exist any more.', $this->json()['message']);
     }
 
     public function testPublishAndUnpublish(): void

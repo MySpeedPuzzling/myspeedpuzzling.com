@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\LiveResults;
 
+use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\NameTagQrCode;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
@@ -61,6 +63,68 @@ final class CompetitionNameTagsTest extends WebTestCase
         // Filip has no table number in Group A
         self::assertCount(0, $crawler->filter('.tag')->eq(5)->filter('.tag-table'));
         self::assertCount(9, $crawler->filter('.tag-qr svg'));
+
+        // Gina's player keeps her profile private: a badge worn in public shows no #CODE of hers
+        $gina = $crawler->filter('.tag')->eq(6);
+        self::assertSame('Gina Quick', trim($gina->filter('.tag-name')->text()));
+        self::assertCount(0, $gina->filter('.tag-who span'));
+        self::assertCount(1, $crawler->filter('[data-first-round-note]'));
+    }
+
+    public function testTheWaitlistGetsTagsOnlyWhenTheOrganiserAsks(): void
+    {
+        self::getContainer()->get(Connection::class)->insert('competition_participant', [
+            'id' => Uuid::uuid7()->toString(),
+            'name' => 'Wanda Waiting',
+            'country' => 'cz',
+            'competition_id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            'source' => 'self_joined',
+            'registration_status' => 'waitlisted',
+            'registered_at' => '2026-01-01 10:00:00',
+        ]);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $this->browser->request('GET', self::PAGE);
+        self::assertNotContains('Wanda Waiting', $this->names($crawler));
+        self::assertSame('Also the 1 person on the waitlist', trim($crawler->filter('input[name="waitlist"]')->closest('label')?->text() ?? ''));
+
+        $crawler = $this->browser->request('GET', self::PAGE . '?waitlist=1');
+        self::assertContains('Wanda Waiting', $this->names($crawler));
+        self::assertCount(10, $crawler->filter('.tag'));
+    }
+
+    /**
+     * WJPC scale: the QR codes are drawn once per participant and cached - the sheet of 200 tags shown again (another
+     * sort, another round, the print preview) is a page render, not 200 QR drawings (~15 ms each).
+     */
+    public function testTwoHundredTagsRenderQuicklyOnceTheirCodesAreDrawn(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+
+        for ($number = 1; $number <= 191; $number++) {
+            $database->insert('competition_participant', [
+                'id' => Uuid::uuid7()->toString(),
+                'name' => sprintf('Budget Person %03d', $number),
+                'country' => 'cz',
+                'competition_id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+                'source' => 'imported',
+            ]);
+        }
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->browser->disableReboot();
+
+        // Draws every code once
+        $crawler = $this->browser->request('GET', self::PAGE);
+        self::assertCount(200, $crawler->filter('.tag-qr svg'));
+
+        $startedAt = hrtime(true);
+        $crawler = $this->browser->request('GET', self::PAGE . '?sort=table');
+        $milliseconds = (hrtime(true) - $startedAt) / 1_000_000;
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(200, $crawler->filter('.tag-qr svg'));
+        self::assertLessThan(1500, $milliseconds, sprintf('200 name tags took %d ms with their codes cached', $milliseconds));
     }
 
     public function testARoundShowsOnlyItsPeopleWithItsTables(): void

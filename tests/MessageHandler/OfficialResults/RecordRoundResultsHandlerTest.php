@@ -244,6 +244,148 @@ final class RecordRoundResultsHandlerTest extends KernelTestCase
         self::assertFalse($this->database->fetchOne("SELECT 1 FROM competition_participant WHERE name = 'Dry Runner'"));
     }
 
+    public function testAReplayedChangeNeverBringsBackAValueCorrectedSince(): void
+    {
+        // A referee's result whose answer got lost, cleared at the desk, then sent again by the device's outbox
+        $lost = self::change(self::filip(), 'result', null, ['seconds' => 4000]);
+
+        self::assertSame(['applied'], self::statuses($this->record([$lost])));
+        self::assertSame(['applied'], self::statuses($this->record([self::change(self::filip(), 'result', ['seconds' => 4000], null)])));
+
+        $replayed = $this->record([$lost]);
+
+        self::assertSame(['unchanged'], self::statuses($replayed));
+        self::assertNull($replayed->outcomes[0]->jsonSerialize()['current']);
+        self::assertSame([], $replayed->changedEntryRefs);
+        self::assertNull($this->entryRow(OfficialResultsFixture::ENTRY_A_FILIP)['result_seconds']);
+    }
+
+    public function testAChangeThatFoundItsValueThereIsNotAppliedLaterEither(): void
+    {
+        $sameAsSaved = self::change(self::anna(), 'result', null, ['seconds' => 3600]);
+
+        self::assertSame(['unchanged'], self::statuses($this->record([$sameAsSaved])));
+        $this->record([self::change(self::anna(), 'result', ['seconds' => 3600], null)]);
+
+        self::assertSame(['unchanged'], self::statuses($this->record([$sameAsSaved])));
+        self::assertNull($this->entryRow(OfficialResultsFixture::ENTRY_A_ANNA)['result_seconds']);
+    }
+
+    public function testOnlyChangesThatWentThroughLeaveAReceipt(): void
+    {
+        $applied = self::change(self::filip(), 'result', null, ['seconds' => 4000]);
+        $conflict = self::change(self::anna(), 'result', null, ['seconds' => 1000]);
+        $rejected = self::change(self::ben(), 'table_number', 2, 0);
+
+        $this->record([$applied, $conflict, $rejected]);
+        $this->record([self::change(self::filip(), 'result', ['seconds' => 4000], ['seconds' => 4100])], dryRun: true);
+
+        $receipts = $this->database->fetchAllKeyValue(
+            'SELECT id::text, status FROM round_result_change_receipt WHERE id IN (:ids)',
+            ['ids' => [$applied['clientChangeId'], $conflict['clientChangeId'], $rejected['clientChangeId']]],
+            ['ids' => \Doctrine\DBAL\ArrayParameterType::STRING],
+        );
+        $appliedId = $applied['clientChangeId'];
+        assert(is_string($appliedId));
+        self::assertSame([$appliedId => 'applied'], $receipts);
+    }
+
+    public function testAChangeIdTakenInAnotherRoundIsRefused(): void
+    {
+        $change = self::change(self::filip(), 'qualified', false, true);
+        $this->record([$change]);
+
+        $elsewhere = $this->record([['clientChangeId' => $change['clientChangeId'], 'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_B_IVAN, 'field' => 'qualified', 'from' => false, 'to' => true]], OfficialResultsFixture::ROUND_GROUP_B);
+
+        self::assertSame(['rejected'], self::statuses($elsewhere));
+        self::assertNull($this->entryRow(OfficialResultsFixture::ENTRY_B_IVAN)['qualified_at']);
+    }
+
+    public function testAPersonOfTheEventIsPutIntoTheRoundInsteadOfTypedInAgain(): void
+    {
+        $entryId = Uuid::uuid7()->toString();
+        $participants = $this->participantCount();
+
+        $recorded = $this->record([
+            self::newEntryChange(['clientEntryId' => $entryId, 'kind' => 'person', 'participantId' => OfficialResultsFixture::PARTICIPANT_GINA, 'name' => 'Gina Quick'], 'result', null, ['seconds' => 4321]),
+        ]);
+
+        self::assertSame(['applied'], self::statuses($recorded));
+        self::assertSame($participants, $this->participantCount(), 'nobody new in the event');
+        $row = $this->entryRow($entryId);
+        self::assertSame(OfficialResultsFixture::PARTICIPANT_GINA, $row['participant_id']);
+        self::assertSame(OfficialResultsFixture::ROUND_GROUP_A, $row['round_id']);
+        self::assertSame(4321, $row['result_seconds']);
+    }
+
+    public function testAPersonOfTheEventMustBeOneNotInTheRoundYet(): void
+    {
+        $recorded = $this->record([
+            // In Group A already
+            self::newEntryChange(['clientEntryId' => Uuid::uuid7()->toString(), 'kind' => 'person', 'participantId' => OfficialResultsFixture::PARTICIPANT_BEN], 'qualified', false, true),
+            // Not a participant of this event
+            self::newEntryChange(['clientEntryId' => Uuid::uuid7()->toString(), 'kind' => 'person', 'participantId' => Uuid::uuid7()->toString()], 'qualified', false, true),
+            // Put in twice by one set
+            self::newEntryChange(['clientEntryId' => Uuid::uuid7()->toString(), 'kind' => 'person', 'participantId' => OfficialResultsFixture::PARTICIPANT_HUGO], 'qualified', false, true),
+            self::newEntryChange(['clientEntryId' => Uuid::uuid7()->toString(), 'kind' => 'person', 'participantId' => OfficialResultsFixture::PARTICIPANT_HUGO], 'qualified', false, true),
+        ]);
+
+        self::assertSame(
+            ['participant_already_in_round', 'participant_not_found', null, 'duplicate_entry'],
+            array_map(static fn (RoundResultChangeOutcome $outcome): null|string => $outcome->reason, $recorded->outcomes),
+        );
+    }
+
+    public function testAPairIsBuiltFromPeopleOfTheEventAndANewcomer(): void
+    {
+        // Cara is in the Pairs Final already, in no pair yet - her row joins the pair (one row per person and round)
+        $caraRowId = Uuid::uuid7()->toString();
+        $this->database->insert('competition_participant_round', [
+            'id' => $caraRowId,
+            'participant_id' => OfficialResultsFixture::PARTICIPANT_CARA,
+            'round_id' => OfficialResultsFixture::ROUND_PAIRS_FINAL,
+            'result_did_not_start' => 'false',
+        ]);
+        $teamId = Uuid::uuid7()->toString();
+        $participants = $this->participantCount();
+
+        $recorded = $this->record([
+            self::newEntryChange(['clientEntryId' => $teamId, 'kind' => 'team', 'name' => null, 'members' => [
+                ['participantId' => OfficialResultsFixture::PARTICIPANT_ANNA, 'name' => 'Anna Fast'],
+                ['participantId' => OfficialResultsFixture::PARTICIPANT_CARA],
+                'Newbie Third',
+            ]], 'result', null, ['seconds' => 6100]),
+        ], OfficialResultsFixture::ROUND_PAIRS_FINAL);
+
+        self::assertSame(['applied'], self::statuses($recorded));
+        self::assertSame($participants + 1, $this->participantCount(), 'only the typed-in member is new');
+
+        $members = $this->database->fetchAllKeyValue(
+            'SELECT cp.name, cpr.id FROM competition_participant_round cpr INNER JOIN competition_participant cp ON cp.id = cpr.participant_id WHERE cpr.team_id = :id ORDER BY cp.name',
+            ['id' => $teamId],
+        );
+        self::assertSame(['Anna Fast', 'Cara Tied', 'Newbie Third'], array_keys($members));
+        self::assertSame($caraRowId, $members['Cara Tied']);
+    }
+
+    public function testSomebodyInAPairOfTheRoundAlreadyCannotJoinAnother(): void
+    {
+        $recorded = $this->record([
+            self::newEntryChange(['clientEntryId' => Uuid::uuid7()->toString(), 'kind' => 'team', 'members' => [['participantId' => OfficialResultsFixture::PARTICIPANT_ANNA], 'Somebody New']], 'qualified', false, true),
+        ], OfficialResultsFixture::ROUND_PAIRS);
+
+        self::assertSame('participant_already_in_round', $recorded->outcomes[0]->reason);
+        self::assertFalse($this->database->fetchOne("SELECT 1 FROM competition_participant WHERE name = 'Somebody New'"));
+    }
+
+    private function participantCount(): int
+    {
+        $count = $this->database->fetchOne('SELECT COUNT(*) FROM competition_participant WHERE competition_id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
+        assert(is_int($count) || is_string($count));
+
+        return (int) $count;
+    }
+
     /**
      * @param list<array<string, mixed>> $changes wire format
      */

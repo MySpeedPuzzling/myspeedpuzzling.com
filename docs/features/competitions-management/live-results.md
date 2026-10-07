@@ -8,10 +8,10 @@ Decided 2026-10-07 (RESULTS-SPEC §4, §5): "focus on quick action, verify and c
 
 | Route | Path | Who | What |
 |---|---|---|---|
-| `live_results` | `GET /{_locale}/live-results/{roundId}` | organisers and referees (`CompetitionResultsEntryVoter`) | the live entry page; `?entrant=<participantId>` opens that person's entry (theirs or their pair's/team's) |
+| `live_results` | `GET /{_locale}/live-results/{roundId}` | organisers and referees (`CompetitionResultsEntryVoter`) | the live entry page; `?entrant=<participantId>` opens that person's entry (theirs or their pair's/team's); `?notice=tag_unknown` says the scanned name tag is nobody of this event (any more) |
 | `live_results_event` | `GET /{_locale}/live-results/event/{competitionId}` | organisers and referees | the link to hand the referees (the referees page shows it with a QR): 302 to the current round (`?auto=1`), or - when the event has no rounds - to the round list (organisers) / the event page (referees) |
-| `live_results_scan` | `GET /{_locale}/live/{competitionId}/p/{participantId}` | anyone | the URL in a name tag's QR: organisers and referees → the person's current round with them open; everybody else, unknown/removed/other event's people → the event page (`CompetitionDetailUrl`), an unknown event → the events list |
-| `competition_name_tags` | `GET /{_locale}/name-tags/{competitionId}` | organisers | standalone A4 print page; `?round=<roundId>`, `?sort=name|table` |
+| `live_results_scan` | `GET /{_locale}/live/{competitionId}/p/{participantId}` | anyone | the URL in a name tag's QR: organisers and referees → the person's current round with them open; a person removed from the event, unknown or of another event → the current round with `?notice=tag_unknown`; an event without rounds → the round list with a warning; everybody else → the event page (`CompetitionDetailUrl`), an unknown event → the events list |
+| `competition_name_tags` | `GET /{_locale}/name-tags/{competitionId}` | organisers | standalone A4 print page; `?round=<roundId>`, `?sort=name|table`, `?waitlist=1` (offered only while somebody is on the waitlist) |
 | `competition_referees` | `GET/POST /en/manage-event-referees/{competitionId}` (localized) | organisers (`CompetitionEditVoter`) | the referees page: list, add by player search, remove (`competition_referee_remove`, POST + CSRF), the link for referees with copy button and QR (`competition_referees_qr_code`, SVG, `private, max-age=86400`) |
 
 All of them answer `Cache-Control: private, no-store` and `X-Robots-Tag: noindex, nofollow`. The participants page
@@ -42,7 +42,10 @@ fetches that state once (clock sync + Mercure cookie, see below).
    [seating.md](seating.md#the-seating-step-one-rule) - a round under way or over never nags), with the seating link.
 2. **Entry card** - table, name, members/#code, "Saved: 1:23:45 · Eva · 10:42" (or "Not sent yet: …"), problems of
    this entry (conflict, refused, failing) with their actions. While the round's stopwatch runs **Finished now** comes
-   first and gets the focus (no keyboard over it): elapsed = server-synced now − `startedAt`, frozen at the tap. Then
+   first and gets the focus (no keyboard over it): elapsed = server-synced now − `startedAt`, frozen at the tap. The
+   page trusts the stopwatch it knows only while live updates flow or within 10 s of a state fetch; otherwise the tap
+   fetches the state first (a stop or pause meanwhile never over-counts - a stopped stopwatch says "type the time";
+   a failed fetch keeps what is known). Then
    the time field (`inputmode="numeric"`, the shared `parseResultTime()`, the parsed value always shown under it,
    "longer than the 90 min limit" as a note), **Didn't finish** → pieces placed (1..pieces−1 for a single-puzzle round),
    **Did not start**, **Clear**.
@@ -52,9 +55,13 @@ fetches that state once (clock sync + Mercure cookie, see below).
    change is just dropped; a sent one gets the opposite change; then the entry opens again), back to Find with the
    input empty and focused.
 5. **Quick add** - "Not on the list? Add an entrant": a name (solo round) or a pair/team name + members, optional table
-   (refused on the device when another entry has it). "Already on the list?" shows matches while typing. The entrant is
-   a `newEntry` with a device-made id: created on the server by its first saved change (the table number, else the
-   result), never matched by name.
+   (refused on the device when another entry has it). While typing, "Already on the list?" shows the round's matching
+   entries, and below them the **event's people who are no entry of this round** (`GetLiveResultsEventPeople`, embedded
+   in the page: another group, a forgotten import row, the individual rounds' people in a pairs round). Picking one of
+   them puts that participant into the round (solo: `newEntry.participantId`; a pair/team: the member field gets them,
+   `members[].participantId`) - never a second person of the same name, so their link, country and notifications stay.
+   The entrant is a `newEntry` with a device-made id: created on the server by its first saved change (the table
+   number, else the result), never matched by name.
 
 Views over Find get a history entry of their own (Turbo's history paused meanwhile, like `dynamic_modal_controller`),
 so the phone's back button returns to Find instead of leaving. Lists and texts are re-rendered; inputs never are.
@@ -106,20 +113,37 @@ player; an edition is a competition - series owners and maintainers stay full or
   waits only behind earlier changes of the same entry's field; other entries go on. Every change of every round of the
   signed-in organiser is sent from any live entry page (a round switch loses nothing).
 - **Answers**: applied/unchanged → gone; conflict → kept with the other value and who/when ("Keep mine" = all my changes
-  of that field sent again as one, from their value; "Take theirs" = mine dropped); refused → kept with the translated
-  reason ("Fix" opens the entry with the value, "Discard"); a new save of that field replaces a refused/conflicting one.
-- **Failures**: signed out (401, any redirect, a 200 that is not JSON) → stop, keep everything, "Sign in again" banner
-  with a sign-in link in a new tab and Retry (also retried when the window gets the focus back); 403 → "No permission",
-  same; offline/timeout (15 s) → retry after 1, 2, 4 … 30 s, and on `online`/visibility; 5xx → the batch is split up,
-  a change failing alone pauses 5 s, 15 s … 2 min on its own (after 3 attempts shown as "the server keeps failing"); a
-  whole set the server cannot read is split up and the unreadable change refused alone.
+  of that field sent again as one, from their value; "Take theirs" = mine dropped); refused → kept with the server's
+  translated reason, or the generic translated "could not be read" - never a key or a developer text ("Fix" opens the
+  entry with the value, "Discard"); a new save of that field replaces a refused/conflicting one. The server keeps the id
+  of every change it took (`RoundResultChangeReceipt`): a replay whose answer got lost is `unchanged` even after
+  somebody corrected the value meanwhile.
+- **Failures** - only our endpoint's JSON is a verdict (`officialResultsRequest()` kinds):
+  - signed out (401, any redirect, a 200 that is not JSON) → stop, keep everything, "Sign in again" banner with a
+    sign-in link in a new tab and Retry (also retried when the window gets the focus back);
+  - 403 `invalid_csrf_token` → stop, "This page is out of date - reload it" with Reload;
+  - 403 `forbidden` (no rights for that round's event, e.g. yesterday's event the referee is no maintainer of any more)
+    → **only that round's changes** are set apart (`state: forbidden`), every other round goes on; a banner counts them
+    with "Show" (the list: Retry, and Discard with a confirmation, "Discard them" for all); the page's own round
+    forbidden (its state fetch too) shows "This account may not enter results of this event";
+  - 404 `round_not_found` (the round was deleted) → that round's waiting changes are refused with the reason;
+  - offline/timeout (15 s) → retry after 1, 2, 4 … 30 s, and on `online`/visibility;
+  - busy: 408 / 425 / 429 and every 4xx that is not our JSON (a rate limiter's or CrowdSec's HTML page, a proxy) → no
+    verdict on any change: everything pauses for the `Retry-After` the answer asks (at most 15 min - Retry sends at
+    once), else 5 s, 15 s … 2 min; nothing is refused, no batch is split;
+  - 5xx → the batch is split up, a change failing alone pauses 5 s, 15 s … 2 min on its own (at least its
+    `Retry-After`; after 3 attempts shown as "the server keeps failing"); a whole set the server cannot read is split
+    up and the unreadable change refused alone.
+  - A waiting change of a round of **another event** (not in this page's round list) can be discarded with a
+    confirmation.
 - **Two tabs**: one sends at a time (Web Locks `ifAvailable`, a localStorage lease where they are missing); every tab
   reads the shared store and a BroadcastChannel tells the others to re-read. Two senders at once would do no harm -
   replays answer `unchanged`.
 - **Leaving**: `beforeunload` warns while anything is unsent; a Turbo visit out of the tool asks first (another live
   entry page is fine - it sends them).
-- **Sync pill**, always visible: "All saved" / "Saving…" / "3 waiting" / "3 waiting - offline" / "2 need you" /
-  "Sign in again" / "No permission"; tap → the list of what is not saved yet with the actions above.
+- **Sync pill**, always visible: "All saved" / "Saving…" / "3 waiting" / "3 waiting - offline" / "2 need you"
+  (conflicts, refusals, changes without rights) / "Sign in again" / "No permission" / "Reload the page"; tap → the list
+  of what is not saved yet with the actions above.
 - No service worker changes: the page itself needs the network to load; once loaded it works offline.
 
 ## Live updates
@@ -128,9 +152,15 @@ The page subscribes with its own `EventSource` to the round's private `/round-re
 `/round-stopwatch/{roundId}` - **after** its state fetch: `RoundResultsStateController` and
 `RecordRoundResultsController` add the round's topic to `MercureTopicCollector`, because the Mercure subscriber
 cookie is rewritten by every response of a signed-in user and a reconnect after a Wi-Fi drop would otherwise lose the
-private topic. Entries updates are merged by ref (own saves arrive twice, harmlessly); `refresh` refetches; the
-stopwatch payload updates the clock. After a drop the state is fetched again (catch-up), and every 60 s while visible.
-The clock offset is NTP-style (midpoint of the state request).
+private topic (known limitation: other responses still drop it - a page-scoped subscriber token is the planned fix).
+Entries updates are merged by ref (own saves arrive twice, harmlessly); `refresh` refetches; the stopwatch payload
+updates the clock. After a drop the state is fetched again (catch-up), and every 60 s while visible. The clock offset
+is NTP-style (midpoint of the state request).
+
+The stream's lifecycle is `LiveEvents` (`official_results_live.js`): the browser retries a dropped stream by itself,
+but not one the hub answered with an error (401, a 502/503 while it restarts) - that one is CLOSED for good. It is
+reopened after 1 s, 2 s, 5 s, 15 s, then every minute, always through a state fetch first (catch-up, and its answer
+opens the stream again); signed out / no rights stop it until Retry.
 
 ## Scanning (`assets/official_results_scan.js`)
 
@@ -144,28 +174,41 @@ scan URL). The native apps' scanner bridge reads EAN only, so the apps use the w
 ## Name tags (`competition_name_tags`)
 
 A4, 2 × 5 tags of 90 × 55 mm with dashed cut lines; each: event (and round), name (smaller from 25 characters), flag
-(`build/images/<country>.svg`), #CODE of a linked player, the table of the person's **first** round by schedule (a
-pair's/team's number in a pair/team round; none when that round has none or does not use table numbers), and a QR
-(`NameTagQrCode`: bacon/bacon-qr-code SVG inline, error correction M, ~9 KB each - no request per tag) of the absolute
-`live_results_scan` URL in the page's language. Everybody active (not removed, not waitlisted) by name, or one round's
-people with that round's numbers; sorted by name or table (no table last). `GetCompetitionNameTags`: one statement.
+(`build/images/<country>.svg`), #CODE of a linked player **with a public profile** (a badge is worn in public - a
+private player's code is never printed, whoever prints), the table of the person's **first** round by schedule (a
+pair's/team's number in a pair/team round; none when that round has none or does not use table numbers - the page says
+to print again after re-seating), and a QR (`NameTagQrCode`: bacon/bacon-qr-code SVG inline, error correction M,
+~9 KB each - no request per tag) of the absolute `live_results_scan` URL in the page's language. Everybody going
+(`CompetitionParticipantGoing`: not removed, not waitlisted - the waitlist too when the organiser ticks "Also the N
+people on the waitlist") by name, or one round's people with that round's numbers; sorted by name or table (no table
+last). `GetCompetitionNameTags`: one statement.
+
+Drawing a QR costs ~15 ms (the ~110-character URL is a version 7 code), so each SVG is cached per URL in the
+`name_tag_qr_cache` pool for 90 days: 200 tags shown again render in ~0.1 s instead of ~4 s (pinned by a test). The URL
+keeps the route's shape - printed tags keep working and the in-page scanner checks the event's id in it.
 
 ## Tests
 
-`tests/Controller/LiveResults/` (page access, state, entrant, the Mercure cookie, event link, QR route for organisers /
-others / foreign / unknown, name tags content, round filter, sort, the participants page button),
+`tests/Controller/LiveResults/` (page access, state, entrant, the event's people for quick add, the Mercure cookie,
+event link, QR route for organisers / others / foreign / unknown / removed / an event without rounds, name tags content,
+private codes, the waitlist, 200 tags with cached codes, round filter, sort, the participants page button),
 `tests/Controller/Referees/` (who may enter results, a referee's result / refused table and qualified changes / quick
 add, every organiser-only page and endpoint refused to a referee, event link and QR route for a referee, the referees
 page: access, add, organiser/duplicate notes, 422, remove, CSRF, series maintainers), `tests/MessageHandler/
 CompetitionRefereeHandlersTest.php`, `tests/Query/GetCompetitionPermissionsTest.php` (`canEnterResults()`),
 `tests/Services/LiveResults/LiveResultsCurrentRoundTest.php`, `tests/LiveResultsScriptsTest.php` running
 `tests/live-results-harness.mjs` under node (the outbox state machine with a fake server and clock: stored before sent,
-order, batches, conflicts, refusals, auth, offline backoff, server-error isolation, two tabs, lease fallback, foreign
-account, broken store; search; shown values; recent list; result texts; time parser; QR URL parsing; round preference).
+order, batches, conflicts, refusals, auth, a 403 for one event while another goes on, a stale page, a busy server with
+and without Retry-After, a deleted round, offline backoff, server-error isolation, two tabs, lease fallback, foreign
+account, broken store; the JSON client's classification of answers; the live updates reopened after the hub closed
+them and the catch-up after a drop; search; shown values; recent list; result texts; time parser; QR URL parsing;
+round preference).
 
 ## Follow-ups
 
-- Mercure for the live entry is not covered by an automated browser test (the dev hub runs on another host).
+- Mercure for the live entry is not covered by an automated browser test (the dev hub runs on another host); the
+  subscriber cookie can still lose the round's topic through another response - a page-scoped subscriber token
+  (review 2 M1) is the planned fix.
 - Table numbers are not edited on the live entry (only given to a quick-added entrant) - that is the seating page's job.
 - The native apps could get a QR mode in their scanner bridge.
 - Quick add has no country field (the name tag and "best of each country" need one - set it on the participants page).

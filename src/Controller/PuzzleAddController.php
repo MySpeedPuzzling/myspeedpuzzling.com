@@ -224,6 +224,8 @@ final class PuzzleAddController extends AbstractController
                 $request->query->getString('official_entry'),
                 $userProfile->playerId,
                 $userProfile->playerName,
+                // "Which one are you?" of a pair/team nobody is linked to: the member the player picked
+                ctype_digit($request->query->getString('official_member')) ? $request->query->getInt('official_member') : null,
             );
 
             // The puzzle in the URL is the entry's, or the link is not what the round page made
@@ -507,6 +509,9 @@ final class PuzzleAddController extends AbstractController
             'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId),
             'secret_puzzle_notice' => $secretPuzzleNotice,
             'official_entry' => $officialEntry,
+            // An official pair/team result opens in its round's mode, never as a solo time
+            'copuzzler_picker_without_solo' => $officialEntry?->isGroup() === true,
+            'copuzzler_picker_initial_mode' => $officialEntry?->pickerMode(),
             'time_id' => $timeId->toString(),
             'new_puzzle_id' => $newPuzzleId->toString(),
         ]);

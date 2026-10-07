@@ -136,6 +136,32 @@ final class LiveResultsPageTest extends WebTestCase
         self::assertContains('Puzzle Sharks', array_column($state['entries'], 'name'));
     }
 
+    public function testQuickAddKnowsTheEventsPeopleWhoAreNoEntryOfTheRoundYet(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $solo = $this->browser->request('GET', self::PAGE);
+        self::assertResponseIsSuccessful();
+        // Group A: the people of Group B are in the event, not in this round
+        self::assertSame(['Gina Quick', 'Hugo Slow', 'Ivan Last'], array_column($this->eventPeople($solo), 'name'));
+        self::assertSame(OfficialResultsFixture::PARTICIPANT_GINA, $this->eventPeople($solo)[0]['participantId']);
+
+        // Pairs: everybody in a pair already except Ivan
+        $pairs = $this->browser->request('GET', '/en/live-results/' . OfficialResultsFixture::ROUND_PAIRS);
+        self::assertSame(['Ivan Last'], array_column($this->eventPeople($pairs), 'name'));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function eventPeople(Crawler $crawler): array
+    {
+        /** @var list<array<string, mixed>> $people */
+        $people = json_decode($crawler->filter('script[data-live-results-target="eventPeople"]')->text(), true, flags: JSON_THROW_ON_ERROR);
+
+        return $people;
+    }
+
     public function testTheEntrantOfANameTagIsHandedToThePage(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);

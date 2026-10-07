@@ -73,6 +73,14 @@
             </table>
         </div>
 
+        {# Linked to no entry of the round, and some names here are nobody's: one may be theirs - the event's join flow connects it #}
+        {% if official.offersConnecting %}
+            <p class="small mb-1" data-official-connect>
+                {{ 'round_results.official.connect'|trans }}
+                <a href="{{ path('join_competition', {competitionId: event.id}) }}" rel="nofollow">{{ 'round_results.official.connect_link'|trans }}</a>
+            </p>
+        {% endif %}
+
         {% if official.hasQualified %}
             <p class="small text-muted mb-0" data-official-legend>
                 <span class="badge rounded-pill official-qualified-badge" aria-hidden="true">{{ 'round_results.official.qualified_short'|trans }}</span>

@@ -216,17 +216,80 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
         );
     }
 
-    public function testAViewerTheOrganiserLinkedToNothingIsOfferedTheEntriesNobodyIsLinkedTo(): void
+    public function testAnUnlinkedPersonIsOfferedOnlyToAViewerOfTheSameName(): void
     {
         $this->viewAs(PlayerFixture::PLAYER_WITH_FAVORITES);
 
-        // Anna is somebody else's, Dan did not finish
+        // Linked to nothing, but nobody of these is Michael Johnson - other people's rows offer nothing, one line does
+        $results = $this->results(OfficialResultsFixture::ROUND_GROUP_A);
+        self::assertSame([null, null, null, null], array_values(self::states($results)));
+        self::assertTrue($results->offersConnecting);
+
+        // The organiser typed his name their own way (accent, case) - the same person as far as the import is concerned
+        $this->renameParticipant(OfficialResultsFixture::PARTICIPANT_BEN, 'michael  JÓHNSON');
+
+        // (Ben's row sorts after Cara's tie now - by name)
         self::assertSame([
             OfficialResultsFixture::ENTRY_A_ANNA => null,
+            OfficialResultsFixture::ENTRY_A_CARA => null,
             OfficialResultsFixture::ENTRY_A_BEN => OfficialEntryProfileState::Offer,
-            OfficialResultsFixture::ENTRY_A_CARA => OfficialEntryProfileState::Offer,
             OfficialResultsFixture::ENTRY_A_DAN => null,
         ], self::states($this->results(OfficialResultsFixture::ROUND_GROUP_A)));
+    }
+
+    public function testASameNamedPersonOfAnotherCountryIsNotOffered(): void
+    {
+        $this->viewAs(PlayerFixture::PLAYER_WITH_FAVORITES);
+        // Michael Johnson is German, this one from the US
+        $this->renameParticipant(OfficialResultsFixture::PARTICIPANT_CARA, 'Michael Johnson');
+
+        self::assertNull(self::states($this->results(OfficialResultsFixture::ROUND_GROUP_A))[OfficialResultsFixture::ENTRY_A_CARA]);
+    }
+
+    public function testAViewerLinkedToAnEntryWithoutARankedResultIsOfferedNothingElse(): void
+    {
+        // The organiser linked the viewer to Eva, who did not start - Ben's row, even named like them, is not theirs
+        $this->database->executeStatement('UPDATE competition_participant SET player_id = :player WHERE id = :id', [
+            'player' => PlayerFixture::PLAYER_WITH_FAVORITES,
+            'id' => OfficialResultsFixture::PARTICIPANT_EVA,
+        ]);
+        $this->renameParticipant(OfficialResultsFixture::PARTICIPANT_BEN, 'Michael Johnson');
+        $this->viewAs(PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $results = $this->results(OfficialResultsFixture::ROUND_GROUP_A);
+
+        self::assertSame([null, null, null, null], array_values(self::states($results)));
+        self::assertFalse($results->offersConnecting, 'linked already');
+    }
+
+    public function testAPairNobodyIsLinkedToIsOfferedToAViewerLinkedToNoEntry(): void
+    {
+        // Corner Pieces (Cara, Dan - typed names, nobody linked) finished after all
+        $this->database->executeStatement(
+            'UPDATE competition_team SET result_seconds = 5900, result_pieces_placed = NULL WHERE id = :id',
+            ['id' => OfficialResultsFixture::TEAM_CORNERS],
+        );
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+
+        $this->viewAs(PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertSame(OfficialEntryProfileState::Offer, self::states($this->results(OfficialResultsFixture::ROUND_PAIRS))[OfficialResultsFixture::TEAM_CORNERS]);
+
+        // Hugo's player is in Edge Hunters: his pair is his, Corner Pieces is somebody else's
+        $this->viewAs(PlayerFixture::PLAYER_REGULAR);
+        $states = self::states($this->results(OfficialResultsFixture::ROUND_PAIRS));
+        self::assertNull($states[OfficialResultsFixture::TEAM_CORNERS]);
+        self::assertSame(OfficialEntryProfileState::Offer, $states[OfficialResultsFixture::TEAM_EDGES]);
+    }
+
+    public function testTheRankedCountIsTheRoundsWhateverTheViewerMaySee(): void
+    {
+        $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_ADMIN);
+        $this->viewAs(PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $results = $this->results(OfficialResultsFixture::ROUND_GROUP_A);
+
+        self::assertCount(3, $results->entries, 'Anna is hidden from this viewer');
+        self::assertSame(4, $results->rankedCount);
     }
 
     public function testATimeInTheRoundMarksTheEntryWithItsResultAndOffersNothingElse(): void
@@ -235,6 +298,8 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
             'UPDATE competition_participant_round SET result_seconds = 4300 WHERE id = :id',
             ['id' => OfficialResultsFixture::ENTRY_A_CARA],
         );
+        $this->renameParticipant(OfficialResultsFixture::PARTICIPANT_CARA, 'Michael Johnson');
+        $this->database->executeStatement("UPDATE competition_participant SET country = 'de' WHERE id = :id", ['id' => OfficialResultsFixture::PARTICIPANT_CARA]);
         $this->viewAs(PlayerFixture::PLAYER_WITH_FAVORITES);
         $this->addRoundTime(PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID, '01:11:40');
 
@@ -338,6 +403,11 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
             'UPDATE competition_round SET results_published_at = NOW(), results_first_published_at = NOW() WHERE id = :id',
             ['id' => $roundId],
         );
+    }
+
+    private function renameParticipant(string $participantId, string $name): void
+    {
+        $this->database->executeStatement('UPDATE competition_participant SET name = :name WHERE id = :id', ['name' => $name, 'id' => $participantId]);
     }
 
     private function viewAs(null|string $playerId): void

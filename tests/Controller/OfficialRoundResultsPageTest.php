@@ -178,18 +178,38 @@ final class OfficialRoundResultsPageTest extends WebTestCase
         self::assertSame('On your profile', trim($crawler->filter('[data-official-on-profile]')->text()));
     }
 
-    public function testAPlayerTheOrganiserLinkedToNothingIsOfferedTheEntriesNobodyIsLinkedTo(): void
+    public function testAPlayerTheOrganiserLinkedToNothingIsOfferedOnlyTheRowWithTheirNameAndAWayToConnect(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
 
+        // Nobody is called Michael Johnson: no row offers anything - one line leads to the event's join flow
         $crawler = $browser->request('GET', self::GROUP_A_URL);
+        $this->assertSelectorNotExists('[data-official-add-to-profile]');
+        self::assertSame('/en/join-event/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $crawler->filter('[data-official-connect] a')->attr('href'));
 
-        // Ben and Cara - not Anna (somebody else's), not Dan (did not finish)
+        // Ben's row carries his name: only that one
+        $this->database()->executeStatement('UPDATE competition_participant SET name = :name WHERE id = :id', [
+            'name' => 'Michael Johnson',
+            'id' => OfficialResultsFixture::PARTICIPANT_BEN,
+        ]);
+        $crawler = $browser->request('GET', self::GROUP_A_URL);
         self::assertSame(
-            ['participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, 'participant_round:' . OfficialResultsFixture::ENTRY_A_CARA],
+            ['participant_round:' . OfficialResultsFixture::ENTRY_A_BEN],
             $crawler->filter('[data-official-add-to-profile]')->each(static fn (Crawler $link): string => (string) $link->closest('tr')?->attr('data-official-entry')),
         );
+    }
+
+    public function testNobodyLinkedToTheRoundIsAskedToConnect(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', self::GROUP_A_URL);
+        $this->assertSelectorNotExists('[data-official-connect]');
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $browser->request('GET', self::GROUP_A_URL);
+        $this->assertSelectorNotExists('[data-official-connect]');
     }
 
     /**
@@ -198,8 +218,9 @@ final class OfficialRoundResultsPageTest extends WebTestCase
      */
     public function testPublishedResultsCostABoundedNumberOfStatements(): void
     {
-        // A guest: the entries. Anna's player: her offer needs her times. Hugo's: the entries nobody is linked to too
-        foreach ([[null, 1], [PlayerFixture::PLAYER_ADMIN, 2], [PlayerFixture::PLAYER_REGULAR, 2]] as [$viewer, $extra]) {
+        // A guest: the entries. Anna's player: her offer needs her times. Hugo's (in no entry of Group A, no row with
+        // his name): the entries only
+        foreach ([[null, 1], [PlayerFixture::PLAYER_ADMIN, 2], [PlayerFixture::PLAYER_REGULAR, 1]] as [$viewer, $extra]) {
             $browser = self::createClient();
             $this->publish(OfficialResultsFixture::ROUND_GROUP_A);
 

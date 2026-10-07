@@ -114,11 +114,8 @@
             {% if event.dateFrom %}
                 <div class="mb-2">
                     <i class="ci-calendar me-2 ps-1"></i>
-                    {% if event.dateTo and event.dateFrom|date('Y-m-d') != event.dateTo|date('Y-m-d') %}
-                        {{ include('_event_date_range.html.twig', {date_from: event.dateFrom, date_to: event.dateTo}) }}
-                    {% else %}
-                        {{ event.dateFrom|date('d.m.Y H:i') }}
-                    {% endif %}
+                    {# A date of its own has no time - CompetitionEvent pins it to 09:00, which must not show #}
+                    {{ include('_event_date_range.html.twig', {date_from: event.dateFrom, date_to: event.dateTo}) }}
                     <small class="text-muted ps-1">({{ event.dateFrom|ago }})</small>
                 </div>
             {% endif %}
@@ -189,7 +186,7 @@
                 </h2>
 
                 <div class="text-muted small mb-3">
-                    <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i', round.timezone) }} <span class="text-muted" data-round-zone>({{ timezone_name(round.timezone) }})</span>
+                    <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i', round.timezone) }} <span class="text-muted" data-round-zone>({{ timezone_name(round.timezone, round.timezoneAssumed) }})</span>
                     <span class="mx-1">&middot;</span>
                     <i class="bi bi-stopwatch me-1"></i>{{ round.minutesLimit }} min
                     {% if round.slug is not null and series.slug is not null and event.slug is not null %}

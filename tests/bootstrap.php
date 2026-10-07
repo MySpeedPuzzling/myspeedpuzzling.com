@@ -262,6 +262,10 @@ function createCustomIndexes(): void
 
     // Player search (Version20260930163100)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_player_search_trgm ON player USING GIN (LOWER(name) gin_trgm_ops, LOWER(code) gin_trgm_ops, LOWER(immutable_unaccent(name)) gin_trgm_ops, LOWER(immutable_unaccent(code)) gin_trgm_ops)');
+
+    // Review queue counts in the key menu: hidden and unapproved puzzles (Version20261008100000)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_hidden ON puzzle (id) WHERE hide_until IS NOT NULL OR hide_image_until IS NOT NULL');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_unapproved ON puzzle (id) INCLUDE (hide_until, hide_image_until) WHERE approved = false');
 }
 
 /**

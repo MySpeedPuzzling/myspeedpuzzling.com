@@ -197,7 +197,7 @@
                                         </div>
                                     </fieldset>
                                     <label class="form-label fw-semibold" for="seating-first-{{ round.id }}">{{ 'seating.auto.first_table'|trans }}</label>
-                                    <input type="number" class="form-control seating-first-input" id="seating-first-{{ round.id }}" inputmode="numeric" min="1" max="9999" value="1" data-round-seating-target="firstInput" data-action="change->round-seating#optionsChanged">
+                                    <input type="number" class="form-control seating-first-input" id="seating-first-{{ round.id }}" inputmode="numeric" min="1" max="9999" value="{{ first_table }}" data-round-seating-target="firstInput" data-action="change->round-seating#optionsChanged">
                                 </div>
                             </div>
 

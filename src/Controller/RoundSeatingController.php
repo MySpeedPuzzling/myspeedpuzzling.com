@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
+use SpeedPuzzling\Web\Services\SeatingProposer;
 use SpeedPuzzling\Web\Value\SeatingSource;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,7 +27,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * seating - the page says so.
  *
  * `?propose=` opens the auto-assign proposal straight away ("Seat them now" after advancing): `auto` = the best
- * available source, or a SeatingSource value.
+ * available source, or a SeatingSource value; `?first=` pre-fills its first table number.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class RoundSeatingController extends AbstractController
@@ -72,12 +73,20 @@ final class RoundSeatingController extends AbstractController
             $propose = '';
         }
 
+        // The proposal's first table (a second hall numbered from 101)
+        $first = $request->query->getString('first');
+        $firstTable = preg_match('/^\d{1,4}$/', $first) === 1 ? (int) $first : 1;
+        if ($firstTable < 1 || $firstTable > SeatingProposer::MAX_TABLE_NUMBER) {
+            $firstTable = 1;
+        }
+
         $response = $this->render('seating/round_seating.html.twig', [
             'competition' => $competition,
             'round' => $round,
             'overview' => $overview,
             'entries' => $entries,
             'propose' => $propose,
+            'first_table' => $firstTable,
             'csrf_token_id' => OfficialResultsApi::CSRF_TOKEN_ID,
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');

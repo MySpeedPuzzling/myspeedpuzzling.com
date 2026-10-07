@@ -124,6 +124,16 @@ final class RoundSeatingControllerTest extends WebTestCase
 
         $crawler = $this->browser->request('GET', self::PAGE . '?propose=%3Cscript%3E');
         self::assertSame('', $crawler->filter('[data-controller="round-seating"]')->attr('data-round-seating-propose-value'));
+        self::assertSame('1', $crawler->filter('[data-round-seating-target="firstInput"]')->attr('value'));
+
+        // The second semifinal's hall starts at table 101
+        $crawler = $this->browser->request('GET', self::PAGE . '?propose=earlier_rounds&first=101');
+        self::assertSame('101', $crawler->filter('[data-round-seating-target="firstInput"]')->attr('value'));
+
+        foreach (['0', '10000', 'abc'] as $first) {
+            $crawler = $this->browser->request('GET', self::PAGE . '?first=' . $first);
+            self::assertSame('1', $crawler->filter('[data-round-seating-target="firstInput"]')->attr('value'));
+        }
     }
 
     public function testUnknownRoundsAreNotFound(): void

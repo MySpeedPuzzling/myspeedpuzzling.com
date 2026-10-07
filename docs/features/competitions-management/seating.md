@@ -19,7 +19,8 @@ watching). Optional, but highly recommended: a referee then enters results by ta
 All of them: `CompetitionEditVoter` on the round's competition, `noindex`, `Cache-Control: private, no-store`. The
 JSON endpoint follows `OfficialResultsApi` (401 `sign_in_required`, 403 `forbidden`, never a login redirect).
 `?propose=auto|earlier_rounds|msp_times|random|name` on the seating page opens the auto-assign proposal at once - the
-"Seat them now" link after advancing qualified entries.
+"Seat them now" link after advancing qualified entries (`&first=101` pre-fills the first table number, e.g. for the
+second of two semifinals in one hall).
 
 ## The page
 

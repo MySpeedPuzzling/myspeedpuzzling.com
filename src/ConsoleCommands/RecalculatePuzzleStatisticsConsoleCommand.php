@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\PuzzleStatisticsCalculator;
 use SpeedPuzzling\Web\Value\PuzzleStatisticsData;
@@ -41,11 +42,19 @@ final class RecalculatePuzzleStatisticsConsoleCommand extends Command
         $progressBar->start();
 
         $processed = 0;
+        $vanished = 0;
 
         foreach ($puzzleIds as $puzzleId) {
             $data = $this->calculator->calculateForPuzzle(Uuid::fromString($puzzleId));
-            $this->upsertStatistics($puzzleId, $data);
-            $processed++;
+
+            try {
+                $this->upsertStatistics($puzzleId, $data);
+                $processed++;
+            } catch (ForeignKeyConstraintViolationException) {
+                // Merged into another puzzle (deleted) since the list was read - its statistics row went with it
+                $vanished++;
+            }
+
             $progressBar->advance();
         }
 
@@ -90,7 +99,7 @@ final class RecalculatePuzzleStatisticsConsoleCommand extends Command
             AND ps.solved_times_count > 0
         ");
 
-        $io->success("Recalculated statistics for $processed puzzles");
+        $io->success("Recalculated statistics for $processed puzzles" . ($vanished > 0 ? ", skipped $vanished deleted meanwhile" : ''));
 
         return self::SUCCESS;
     }

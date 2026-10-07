@@ -80,9 +80,10 @@ final class ParticipantFileReader
     private const array E_CARON_BYTES = [0xCC, 0xEC];
 
     /**
-     * Bytes that are a Western letter in Windows-1252 (À Ã Å Æ Ñ Õ à ã å æ ê ñ õ û) and a rare letter in Windows-1250.
+     * Bytes that are a Western letter in Windows-1252 (À Ã Å Õ à ã å õ û) and a rare letter in Windows-1250. Æ æ ê Ñ ñ
+     * are left out: in Windows-1250 they are the common Polish Ć ć ę Ń ń (Jędrzej Kamiński), so they prove nothing.
      */
-    private const array WESTERN_BYTES = [0xC0, 0xC3, 0xC5, 0xC6, 0xD1, 0xD5, 0xE0, 0xE3, 0xE5, 0xE6, 0xEA, 0xF1, 0xF5, 0xFB];
+    private const array WESTERN_BYTES = [0xC0, 0xC3, 0xC5, 0xD5, 0xE0, 0xE3, 0xE5, 0xF5, 0xFB];
 
     /**
      * Vowels that are the same letter in both code pages (Á É Í Ó Ú Ý Ä Ö Ü Â Ô Ë Î and lower case).

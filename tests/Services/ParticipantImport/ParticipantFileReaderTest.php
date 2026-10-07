@@ -165,6 +165,8 @@ final class ParticipantFileReaderTest extends TestCase
         yield 'Czech' => ["\xD8eho\xF8 \xC8erm\xE1k", 'Řehoř Čermák', 'Windows-1250'];
         yield 'Czech with rare letters' => ["\x8A\x9Dastn\xFD", 'Šťastný', 'Windows-1250'];
         yield 'Polish' => ["\xA3ukasz", 'Łukasz', 'Windows-1250'];
+        yield 'Polish with ę and ń' => ["J\xEAdrzej Kami\xF1ski \xA3ukasz", 'Jędrzej Kamiński Łukasz', 'Windows-1250'];
+        yield 'Spanish' => ["Mu\xF1oz Pe\xF1a", 'Muñoz Peña', 'Windows-1252'];
     }
 
     #[DataProvider('codePages')]

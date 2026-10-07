@@ -10,7 +10,6 @@ use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
-use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 
 /**
@@ -63,8 +62,7 @@ trait HasOfficialResult
 
     /**
      * A finished result recorded or corrected while the round's results are published may be news for somebody not
-     * told yet (a referee's phone syncing late, a corrected did-not-finish): OfficialRoundResultsPublished runs the
-     * notification again - players told before are never told twice.
+     * told yet - RecordRoundResultsHandler runs the notification again once per change set (OfficialRoundResultsPublished).
      */
     public function recordResult(RoundEntryResult $result, null|Player $enteredBy, DateTimeImmutable $enteredAt): void
     {
@@ -73,10 +71,6 @@ trait HasOfficialResult
         $this->resultDidNotStart = $result->didNotStart;
         $this->resultEnteredBy = $enteredBy;
         $this->resultEnteredAt = $enteredAt;
-
-        if ($result->isFinished() && $this->round->areResultsPublished()) {
-            $this->recordThat(new OfficialRoundResultsPublished($this->round->id));
-        }
     }
 
     public function isQualified(): bool

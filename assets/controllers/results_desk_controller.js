@@ -1,7 +1,7 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { Modal } from 'bootstrap';
-import { officialResultsRequest, newClientId } from '../official_results_api.js';
+import { officialResultsRequest, newClientId, isGone } from '../official_results_api.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
 import { rankEntries } from '../official_results_ranking.js';
@@ -605,7 +605,11 @@ export default class extends Controller {
         let text = this.t('pill_all_saved');
         let banner = null;
 
-        if (this.transport === 'auth') {
+        if (this.transport === 'gone') {
+            tone = 'danger';
+            text = this.t('pill_gone');
+            banner = 'gone';
+        } else if (this.transport === 'auth') {
             tone = 'danger';
             text = this.t('pill_sign_in');
             banner = 'auth';
@@ -1004,6 +1008,8 @@ export default class extends Controller {
         if (answer.kind === 'auth') {
             this.transport = 'auth';
             this.renderSync();
+        } else if (isGone(answer)) {
+            this.goneAway();
         }
 
         this.toast(answer.data?.message ?? this.t(answer.kind === 'offline' ? 'publish_offline' : 'error_request'), 'error');
@@ -1013,7 +1019,7 @@ export default class extends Controller {
     // ---------------------------------------------------------------- saving
 
     async flush() {
-        if (this.flushing || this.transport === 'auth' || this.transport === 'forbidden') {
+        if (this.flushing || this.transport === 'auth' || this.transport === 'forbidden' || this.transport === 'gone') {
             this.renderSync();
 
             return;
@@ -1061,6 +1067,9 @@ export default class extends Controller {
         } else if (answer.kind === 'forbidden') {
             this.pending.retryInFlight();
             this.transport = 'forbidden';
+        } else if (isGone(answer)) {
+            this.pending.failInFlight(answer.data?.message ?? this.t('error_request'));
+            this.goneAway();
         } else if (answer.kind === 'client') {
             this.pending.failInFlight(answer.data?.message ?? this.t('error_request'));
         } else {
@@ -1084,6 +1093,10 @@ export default class extends Controller {
     }
 
     retryNow() {
+        if (this.transport === 'gone') {
+            return;
+        }
+
         this.transport = 'ok';
         this.retryIndex = 0;
         this.flush();
@@ -1094,6 +1107,11 @@ export default class extends Controller {
      * The round's state again - one request at a time (a call meanwhile gets that one). Resolves to the answer's kind.
      */
     resync() {
+        // The round is gone - nothing to ask for any more
+        if (this.transport === 'gone') {
+            return Promise.resolve('client');
+        }
+
         if (this.resyncing === null) {
             this.resyncing = this.fetchState().finally(() => {
                 this.resyncing = null;
@@ -1141,9 +1159,28 @@ export default class extends Controller {
                 this.transport = 'auth';
                 this.renderSync();
             }
+        } else if (isGone(answer)) {
+            this.goneAway();
         }
 
         return answer.kind;
+    }
+
+    /**
+     * The round was deleted (or never existed): nothing of it can be read or saved any more - the page says so and
+     * stops asking (no stream, no minute refresh, no retries).
+     */
+    goneAway() {
+        if (this.transport === 'gone') {
+            return;
+        }
+
+        this.transport = 'gone';
+        this.events.close();
+        clearInterval(this.resyncInterval);
+        clearTimeout(this.retryTimer);
+        clearTimeout(this.resyncTimer);
+        this.renderSync();
     }
 
     // ---------------------------------------------------------------- events
@@ -1449,6 +1486,13 @@ export default class extends Controller {
         if (answer.kind === 'auth') {
             this.transport = 'auth';
             this.renderSync();
+        } else if (isGone(answer)) {
+            this.modal(this.publishModalTarget).hide();
+            this.publishAction = null;
+            this.goneAway();
+            this.toast(answer.data.message, 'error');
+
+            return;
         }
 
         this.toast(this.t(answer.kind === 'auth' ? 'pill_sign_in' : (answer.kind === 'offline' ? 'publish_offline' : 'publish_failed')), 'error');

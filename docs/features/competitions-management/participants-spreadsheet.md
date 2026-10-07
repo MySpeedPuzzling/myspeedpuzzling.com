@@ -65,7 +65,7 @@ The facts in §1 describe main *before* PR #136. What it changed, and what the s
 | Entity | Relevant facts |
 |---|---|
 | `CompetitionParticipant` | `name` (required), `country` (stores the `CountryCode` enum *name*), `player` (nullable, `connect()`/`disconnect()`), `source` (`self_joined` / `imported` / `manual`), `externalId`, `remoteId` (legacy WJPF, written only by a console command), `deletedAt` (soft delete), `connectedAt`. All fields are written only through entity methods. **No unique constraint** on (competition, player), (competition, external id) or (competition, name). |
-| `CompetitionParticipantRound` | participant × round, nullable `team`. **No unique (participant, round)**. Removing a person from a round = deleting the row. |
+| `CompetitionParticipantRound` | participant × round, nullable `team`. **No unique (participant, round)** (before PR #136 - now a unique index, see §0). Removing a person from a round = deleting the row. |
 | `CompetitionTeam` | belongs to **one round**, `name` nullable (max 255, `cleanName()` collapses whitespace, empty → null). **Names may repeat within a round on purpose** (no unique index). A person has a separate team per pair/team round. |
 | `CompetitionRound` | `category` = `RoundCategory`: **`solo` / `duo` / `team` only** - "Team Relay" is a `team` round. **No team size anywhere**: "duo = 2" is a convention; the import's `PlanBuilder::warnAboutTeamSizes()` guesses a team round's "usual size" from the most common size. |
 
@@ -367,7 +367,8 @@ stored number in that round (D7), so it survives renames and deletions.
 - **A new person** typed into a member cell who is not on the list yet: the typeahead's last option is
   "+ Add "Jo Do" as a new participant" (never automatic: a typo must not create a person).
 - **A person in two teams of the same round** cannot exist by construction (typing them elsewhere moves them).
-  Existing data could hold it (no unique index): shown as "⚠ also in #7"; fixed by clearing one cell.
+  Existing data could hold it (no unique index before PR #136 - now one row per person and round, see §0): shown as
+  "⚠ also in #7"; fixed by clearing one cell.
 
 **Wrong size.** The expected size is 2 for `duo`. For `team` it is the round's expected size (D5), pre-filled from the
 import's "usual size" heuristic (the most common size in the round, at least 2). Display: a size cell with text +

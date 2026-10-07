@@ -23,7 +23,8 @@ All three: `IS_AUTHENTICATED_REMEMBERED` + `CompetitionEditVoter` on the round's
 "Results desk", "Seating" + "Results overview" at the top), the event edit page and the series' editions list (one
 "Results overview" button), the overview's rows, the desk itself (round switcher, the other tools of the round), the
 seating page and the stopwatch control page (the round's tools), the live entry ("Results desk"), and - for the event's
-organisers only - the public round page (`official_results/_organiser_round_links.html.twig`, included by that page).
+organisers only - the public round page once its results are published (`official_results/_organiser_round_links.html.twig`,
+included by that page; an untouched round page asks nobody's permissions).
 One name everywhere: **Results desk**.
 
 `templates/official_results/_round_tool_links.html.twig` is the **one** place a round's tools are linked
@@ -150,7 +151,7 @@ A row per round: badge + category, start (round's zone) + stopwatch running/stop
 (x / y + bar), qualified, tables (x / y or "not used"; no column for online events; warning colour only while the
 seating step is recommended), published (+ public page), Live entry / Results desk / Seating / Stopwatch. At the top:
 Advance the qualified, the round list, **Name tags** (in-person events) and the **Referees** page
-(`official_results/_referees_link.html.twig` - linked once the route `competition_referees` exists, `optional_path()`). The counters follow every round's private topic on one stream (the page's token lists every round;
+(`official_results/_referees_link.html.twig`). The counters follow every round's private topic on one stream (the page's token lists every round;
 each update carries the round's progress). A refresh signal, the stream opening again, the tab coming back after 10 s
 and every minute while it is shown fetch `official_results_competition_state` (`GET /{_locale}/official-results/
 competitions/{competitionId}`, organisers only: every round's progress in one statement + a fresh token) and rewrite

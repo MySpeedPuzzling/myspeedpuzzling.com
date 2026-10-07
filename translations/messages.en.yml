@@ -445,6 +445,9 @@ puzzle_add:
         which_one: "The official results list the pair/team by name - which one of them are you?"
         its_me: "I am %name%"
         add_people: "{1}Add the person you puzzled with - the official results do not say who it was.|]1,Inf[Add the people you puzzled with - the official results do not say who all of them were."
+        pair_needs_partner: "Add the person you puzzled with - this official result belongs to a pair."
+        pair_too_many: "A pair is two people - keep only the person you puzzled with."
+        team_needs_people: "{1}Add one more person you puzzled with - this official result belongs to a team of three or more.|]1,Inf[Add the people you puzzled with - this official result belongs to a team of three or more."
     title: "Add..."
     chosen_puzzle: "Selected puzzle:"
     choose_puzzle: "Choose a puzzle"
@@ -4486,6 +4489,7 @@ live_results:
         sign_in: "Sign in again"
         forbidden: "No permission"
         reload: "Reload the page"
+        gone: "Round deleted"
     take_out:
         button: "Take out of this round"
         confirm: "Take %name% out of this round? They stay in the event and its other rounds - only an entry without a result or a qualified mark can be taken out."
@@ -4498,6 +4502,7 @@ live_results:
         sign_in: "Sign in"
         retry: "Retry"
         csrf: "This page is out of date - reload it to send what you entered. Nothing is lost."
+        gone: "This round does not exist any more - it was deleted. Pick another round above."
         reload: "Reload"
         forbidden_rounds: "{1}1 result for an event this account may not enter results of (any more) waits on this device - sign in as an organiser of that event and retry, or discard it.|]1,Inf[%count% results for events this account may not enter results of (any more) wait on this device - sign in as an organiser of those events and retry, or discard them."
         show: "Show"
@@ -4660,6 +4665,7 @@ results_desk:
         forbidden: "This change was refused - you may not manage this event's results any more, or the page is out of date. Reload the page; unsaved changes are listed in the table until then."
         offline: "No connection - unsaved changes wait here and are sent as soon as the connection is back."
         try_now: "Try now"
+        gone: "This round does not exist any more - it was deleted. Nothing more can be saved here."
     conflicts_bar:
         text: "1 change was saved by somebody else meanwhile.|%count% changes were saved by somebody else meanwhile."
         keep_all_mine: "Keep all mine"
@@ -4756,6 +4762,7 @@ results_desk:
         saving: "Saving…"
         sign_in: "Sign in again"
         forbidden: "Not allowed"
+        gone: "Round deleted"
         conflicts: "1 conflict|%count% conflicts"
         not_saved: "1 not saved|%count% not saved"
         waiting: "1 waiting - offline|%count% waiting - offline"
@@ -4917,6 +4924,8 @@ seating:
         sign_in: "Not saved - you were signed out."
         sign_in_link: "Sign in again"
         forbidden: "Not saved - you can't edit this event any more."
+        gone: "Not saved - this round does not exist any more."
+    gone: "This round does not exist any more - it was deleted. Nothing more can be saved here."
     toast:
         applied: "One table assigned.|%count% tables assigned."
         renumbered: "Renumbered."
@@ -6767,6 +6776,9 @@ api_usage:
 
 official_results:
     qualified: "Qualified"
+    waitlist_note:
+        text: "{1}One person on the waitlist is in this round - give them a spot to include them.|]1,Inf[%count% people on the waitlist are in this round - give them a spot to include them."
+        link: "Participants"
     result:
         pieces_placed: "%placed% pcs"
         pieces_placed_of: "%placed% / %pieces% pcs"
@@ -6791,7 +6803,9 @@ official_results:
         change_sent_twice: "The same change was sent twice - enter it again."
         participant_not_found: "This person is not a participant of the event (any more)."
         participant_already_in_round: "This person is in this round already - find them on the list."
+        participant_waitlisted: "This person is on the event's waitlist - give them a spot on the participants page first."
         round_not_found: "This round does not exist any more."
+        competition_not_found: "This event does not exist any more."
     notification:
         published: "The official results of %round% at %competition% are out - see your result."
     guard:

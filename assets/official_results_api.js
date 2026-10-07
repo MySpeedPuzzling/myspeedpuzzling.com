@@ -14,6 +14,9 @@
  *                                       is unavailable for a while, not one change); `retryAfter` = ms from the
  *                                       Retry-After header, or null
  * - {kind: 'offline'}                   the request never reached the server - retry later
+ *
+ * isGone(answer) tells a `client` answer that the round or the event no longer exists (our JSON 404) - the page says so
+ * and stops asking, never retries.
  */
 
 // The request may simply go again: Request Timeout, Too Early, Too Many Requests
@@ -118,6 +121,18 @@ export async function officialResultsRequest(url, { method = 'GET', body = undef
     }
 
     return { kind: 'client', status: response.status, data };
+}
+
+/**
+ * The round or the event of the request does not exist (any more - deleted while the page was open): the endpoints'
+ * JSON 404 `round_not_found` / `competition_not_found` (OfficialResultsApiNotFoundSubscriber).
+ *
+ * @param {object} answer what officialResultsRequest() resolved to
+ */
+export function isGone(answer) {
+    return answer?.kind === 'client'
+        && answer.status === 404
+        && (answer.data?.error === 'round_not_found' || answer.data?.error === 'competition_not_found');
 }
 
 /**

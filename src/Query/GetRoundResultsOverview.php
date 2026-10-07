@@ -10,11 +10,14 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Services\SeatingReadiness;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 
 /**
  * The rounds of an event with their official results progress - entries, table numbers, results, qualified marks
  * (docs/features/competitions-management/official-results.md). One statement for all rounds of the event; the
- * counts follow GetRoundResultEntries (solo round: its people; pair/team round: its teams; removed people left out).
+ * counts follow GetRoundResultEntries (solo round: its people; pair/team round: its teams; only people going to the
+ * event - CompetitionParticipantGoing), and say how many people of the round wait on the event's waitlist (left out
+ * until the organiser gives them a spot).
  */
 readonly final class GetRoundResultsOverview
 {
@@ -38,7 +41,8 @@ SELECT
     entries.total,
     entries.with_table_number,
     entries.with_result,
-    entries.qualified
+    entries.qualified,
+    waitlisted.on_waitlist
 FROM competition_round cr
 INNER JOIN competition c ON c.id = cr.competition_id
 LEFT JOIN LATERAL (
@@ -61,7 +65,7 @@ LEFT JOIN LATERAL (
             cpr.qualified_at,
             (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start) AS has_result
         FROM competition_participant_round cpr
-        INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND cp.deleted_at IS NULL
+        INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND %going%
         WHERE cpr.round_id = cr.id
             AND cr.category = 'solo'
         UNION ALL
@@ -74,6 +78,13 @@ LEFT JOIN LATERAL (
             AND cr.category <> 'solo'
     ) entry
 ) entries ON true
+LEFT JOIN LATERAL (
+    SELECT COUNT(*) AS on_waitlist
+    FROM competition_participant_round cpr
+    INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND cp.deleted_at IS NULL
+    WHERE cpr.round_id = cr.id
+        AND cp.registration_status = '%waitlisted%'
+) waitlisted ON true
 SQL;
 
     public function __construct(
@@ -88,7 +99,7 @@ SQL;
     public function forCompetition(string $competitionId): array
     {
         $rows = $this->database->fetchAllAssociative(
-            self::SELECT . "\nWHERE cr.competition_id = :competitionId\nORDER BY cr.starts_at, cr.name, cr.id",
+            self::select() . "\nWHERE cr.competition_id = :competitionId\nORDER BY cr.starts_at, cr.name, cr.id",
             ['competitionId' => $competitionId],
         );
 
@@ -100,7 +111,7 @@ SQL;
      */
     public function forRound(string $roundId): RoundResultsOverview
     {
-        $row = $this->database->fetchAssociative(self::SELECT . "\nWHERE cr.id = :roundId", ['roundId' => $roundId]);
+        $row = $this->database->fetchAssociative(self::select() . "\nWHERE cr.id = :roundId", ['roundId' => $roundId]);
 
         if ($row === false) {
             throw new CompetitionRoundNotFound();
@@ -109,12 +120,20 @@ SQL;
         return $this->hydrate($row);
     }
 
+    private static function select(): string
+    {
+        return strtr(self::SELECT, [
+            '%going%' => CompetitionParticipantGoing::sql('cp'),
+            '%waitlisted%' => RegistrationStatus::Waitlisted->value,
+        ]);
+    }
+
     /**
      * @param array<string, mixed> $row
      */
     private function hydrate(array $row): RoundResultsOverview
     {
-        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, is_online: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int} $row */
+        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, is_online: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int} $row */
         $date = static fn (null|string $value): null|DateTimeImmutable => $value !== null ? new DateTimeImmutable($value) : null;
         $startsAt = new DateTimeImmutable($row['starts_at']);
 
@@ -138,6 +157,7 @@ SQL;
             entriesWithResult: $row['with_result'],
             entriesQualified: $row['qualified'],
             competitionIsOnline: $row['is_online'],
+            peopleOnWaitlist: $row['on_waitlist'],
             showsTablesReadiness: SeatingReadiness::isShown(
                 $row['is_online'],
                 $row['table_numbers_off'],

@@ -118,6 +118,43 @@ final class PublishRoundResultsTest extends KernelTestCase
         self::assertSame([PlayerFixture::PLAYER_ADMIN], $this->notifiedPlayers(OfficialResultsFixture::ROUND_FINAL));
     }
 
+    /**
+     * Review round 3 NIT: a desk batch of many corrections on a published round runs the notification once, not once
+     * per result - and a set that records no finished result runs none.
+     */
+    public function testAChangeSetOfFinishedResultsRunsTheNotificationOnce(): void
+    {
+        // Group A is published: Filip gets his first result, Dan's unfinished one becomes a time, Ben's is corrected
+        $this->messageBus->dispatch(new RecordRoundResults(
+            competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            roundId: OfficialResultsFixture::ROUND_GROUP_A,
+            actingPlayerId: PlayerFixture::PLAYER_WITH_STRIPE,
+            changes: RoundResultChangesParser::parse([
+                ['clientChangeId' => Uuid::uuid4()->toString(), 'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'field' => 'result', 'from' => null, 'to' => ['seconds' => 5100]],
+                ['clientChangeId' => Uuid::uuid4()->toString(), 'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_DAN, 'field' => 'result', 'from' => ['piecesPlaced' => 850], 'to' => ['seconds' => 5200]],
+                ['clientChangeId' => Uuid::uuid4()->toString(), 'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_BEN, 'field' => 'result', 'from' => ['seconds' => 4200], 'to' => ['seconds' => 4190]],
+            ]),
+        ));
+
+        $events = $this->publishedEvents();
+        self::assertCount(1, $events);
+        self::assertSame(OfficialResultsFixture::ROUND_GROUP_A, $events[0]->roundId->toString());
+        self::assertSame(5100, $this->database->fetchOne('SELECT result_seconds FROM competition_participant_round WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_A_FILIP]));
+
+        // Table numbers and an unfinished result tell nobody anything new
+        $this->messageBus->dispatch(new RecordRoundResults(
+            competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            roundId: OfficialResultsFixture::ROUND_GROUP_A,
+            actingPlayerId: PlayerFixture::PLAYER_WITH_STRIPE,
+            changes: RoundResultChangesParser::parse([
+                ['clientChangeId' => Uuid::uuid4()->toString(), 'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'field' => 'table_number', 'from' => null, 'to' => 6],
+                ['clientChangeId' => Uuid::uuid4()->toString(), 'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_CARA, 'field' => 'result', 'from' => ['seconds' => 4200], 'to' => ['piecesPlaced' => 990]],
+            ]),
+        ));
+
+        self::assertCount(1, $this->publishedEvents());
+    }
+
     public function testAResultOnAnUnpublishedRoundRunsNoNotification(): void
     {
         $this->messageBus->dispatch(new RecordRoundResults(

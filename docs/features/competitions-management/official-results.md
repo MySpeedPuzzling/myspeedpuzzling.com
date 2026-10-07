@@ -73,9 +73,10 @@ before changing anything and check that every round/entry belongs to the competi
   results, table numbers, qualified marks and entrants typed in at the venue. Each change: `clientChangeId` (UUID, for
   idempotent replays), an existing entry (`participant_round:<id>` / `team:<id>`) **or** a new one (`clientEntryId` +
   kind + name + members; created with that id, never matched by name - but a participant of the event may be put in by
-  id: a person's `participantId`, a member's `{participantId}`; they must be of this competition, not removed, and no
-  entry of the round yet - in a pair/team round somebody in the round without a pair/team joins with their row;
-  refused: `participant_not_found` / `participant_already_in_round` / `duplicate_entry`), `field` (`result` |
+  id: a person's `participantId`, a member's `{participantId}`; they must be of this competition, not removed, not on
+  the event's waitlist, and no entry of the round yet - in a pair/team round somebody in the round without a pair/team
+  joins with their row; refused: `participant_not_found` / `participant_waitlisted` / `participant_already_in_round` /
+  `duplicate_entry`), `field` (`result` |
   `table_number` | `qualified`), `from` (what the device last saw), `to`. Three-way per change against the working
   state of the round: current = `to` → `unchanged` (a replay); current = `from` → `applied`; otherwise `conflict`
   (current value + who/when returned). Invalid → `rejected` with a reason key (`official_results.reason.*`). Table
@@ -102,8 +103,9 @@ before changing anything and check that every round/entry belongs to the competi
   `first_published_at`. **Every** publish records `OfficialRoundResultsPublished` (async) →
   `NotifyWhenOfficialRoundResultsPublished`: an in-app notification (no e-mail) to every player linked to an entry with a
   **finished** result (solo: the connected participant; pair/team: connected members) who was not told about the round
-  yet. The same event is recorded when a finished result is recorded or corrected on a published round
-  (`HasOfficialResult::recordResult()` - a referee's phone syncing late, a did-not-finish corrected) and dispatched for the
+  yet. The same event is dispatched once per change set that records or corrects a finished result on a published round
+  (`RecordRoundResultsHandler`, after the commit - a referee's phone syncing late, a did-not-finish corrected; a desk
+  batch of 100 corrections is one run, which checks every entry anyway) and for the
   already published rounds when the event (`ApproveCompetitionHandler`) or its series (`ApproveCompetitionSeriesHandler`)
   is approved. The handler tells nobody while the results are off the page or the event is not publicly visible
   (`IsCompetitionPubliclyVisible` - the link would 404); the next publish or the approval runs it again. **Never twice**:
@@ -163,12 +165,16 @@ rounds whose message does not take the lock (or carry a listed reason).
 ## Read models
 
 - `GetRoundResultEntries::forRound()` / `byRefs()` - every entry of a round (organiser tooling: participant names as
-  recorded, no blocklist), ranked and ordered (rank, did not start, no result; ties by table number, name), with
+  recorded, no blocklist; only people going to the event - `CompetitionParticipantGoing`: removed people and the
+  waitlist of a managed event are no entries, a pair/team leaves such members out, and the write path treats them the
+  same way), ranked and ordered (rank, did not start, no result; ties by table number, name), with
   members, countries, linked player, table, result, qualified, entered by/at. `RoundResultEntry::jsonSerialize()` is the
   JSON every endpoint and Mercure update uses.
 - `GetRoundResultsOverview::forCompetition()` / `forRound()` - every round with stopwatch, publication, piece count of
-  a single-puzzle round, `tableNumbersOff` and the counts (entries, with table number, with result, qualified) - the
-  seating readiness line "Tables: 180 / 200 assigned" - and whether that line shows now (`showsTablesReadiness`, JSON
+  a single-puzzle round, `tableNumbersOff` and the counts (entries, with table number, with result, qualified - the
+  going rule like the entries) - the seating readiness line "Tables: 180 / 200 assigned" - plus `peopleOnWaitlist`
+  (people of the round on the waitlist: the desk and the seating page say "N people on the waitlist are in this round -
+  give them a spot to include them", `official_results/_waitlist_note.html.twig`), and whether that line shows now (`showsTablesReadiness`, JSON
   `tablesReadiness`: THE rule, `SeatingReadiness`, see [seating.md](seating.md)). One statement.
 - `GetOfficialResultRecipients` - the notification fan-out (players not told about the round yet).
 
@@ -203,18 +209,22 @@ A round whose results are published leads its public page (`event_round_results`
   offer) (`OfficialRoundResultsPageTest`). The meta description counts every ranked entry (`rankedCount`), whatever the
   viewer's blocks hide.
 - **Add to my profile**: offered to the signed-in viewer on their own entry. When the organiser linked them to **no
-  entry of the round at all** (did not start and no result yet count as entries): on a **pair/team nobody is linked
-  to** (team names only, the Minnesota case), and on an **unlinked person whose name is the viewer's**
-  (`ParticipantNameKey` - case, accents, spaces and dashes do not matter - and no other country) - never on every
-  unlinked row for every visitor (an imported WJPC group is mostly unlinked). Such a viewer gets one line under the table
+  entry of the round at all** (did not start and no result yet count as entries): on an **unlinked person whose name is
+  the viewer's** (`ParticipantNameKey` - case, accents, spaces and dashes do not matter - and no other country), on a
+  **pair/team nobody is linked to with one member of the viewer's name** (the same rule), and on a **pair/team with no
+  member names at all** (the organiser typed the team's name only, the Minnesota case - nothing tells whose it is, so
+  every such viewer) - never on every unlinked row for every visitor (an imported WJPC group or pairs round is mostly
+  unlinked). Such a viewer gets one line under the table
   instead, "Is your name here? Connect it to your profile" → the event's join flow (`join_competition`), when some name
   of the round is nobody's. Offered for a **finished** result, in a round with **exactly one puzzle** that the viewer
   sees revealed (not left out by the reveal rules, picture not hidden), until they have a time in the round
   (`competition_round_id` = the round, tracker or in the group). Then the own entry - or the unlinked entry with the
   viewer's time - says "On your profile". Derived on every read, nothing stored. Organisers also get the round's tool
-  links on the page (`official_results/_organiser_round_links.html.twig`).
+  links on a round page with published results (`official_results/_organiser_round_links.html.twig`) - never on an
+  untouched round page, which runs exactly main's statements for every viewer (no permission check; pinned by
+  `OfficialRoundResultsPageTest`).
   The link is `puzzle_add` with `?competition=<id>&official_entry=<participant_round|team>:<id>`;
-  `OfficialEntryTimePrefill` (GET only) re-runs the very same read model for the viewer and fills the form in only for an
+  `OfficialEntryTimePrefill` re-runs the very same read model for the viewer and fills the form in (GET) only for an
   entry it offers - anything else is ignored silently: the puzzle, the time, the finished date (the round's start day in
   the round's zone), the competition, and for a pair/team the co-puzzlers (linked members by `#CODE`, the others as guest
   names) and the pair's/team's name when the form may still set it (no puzzling team of these exact people yet, or an
@@ -223,9 +233,15 @@ A round whose results are published leads its public page (`event_round_results`
   picker opens in Pair/Team mode without Solo (a "pair" recorded with more people opens as a team), and when the people
   are fewer than the category needs (pair 2, team 3, the viewer included) the form says "Add the person/people you
   puzzled with" - a team typed by name only, a linked viewer whose partner was not recorded. In a pair/team nobody is
-  linked to, the member named like the viewer (one match) is left out; with no clear match nobody is filled in (one of
-  the names is the viewer - all of them would make a pair of three) and the form asks "Which one of them are you?" with
-  one link per name (`&official_member=<position>`, read back the same way). The save is an ordinary time: first try,
+  linked to, the member named like the viewer (`ParticipantNameKey`, one match) is left out; with two members of the
+  viewer's name nobody is filled in (one of them is the viewer - both would make a pair of three) and the form asks
+  "Which one of them are you?" with one link per name (`&official_member=<position>`, read back the same way). The
+  entry travels on in the form (hidden `official_entry` + `official_member`) and **the save checks it again**: for a
+  pair/team result of the form's competition and puzzle, the people sent must be the category's - a pair exactly two,
+  a team three or more, the tracker included (`OfficialEntryTime::groupRefusal()`) - otherwise 422 with "Add the
+  person/people you puzzled with" (or "A pair is two people") on the form, everything typed and the photos kept like
+  any refused save. So an empty picker or a skipped "Which one are you?" never saves a pair/team result as a solo time.
+  A form whose puzzle or competition was changed is no longer that entry. The save is an ordinary time: first try,
   duplicates, secret puzzles and privacy run as for any other.
 - **Event and edition pages**: `CompetitionEvent::$hasPublishedOfficialResults` (an EXISTS in `GetCompetitionEvents::byId()`,
   the statement every competition page runs anyway) turns on the official counts in `CountCompetitionResults::forCompetition()`
@@ -244,7 +260,13 @@ to the login page (401 `sign_in_required`), 403 `forbidden` without `COMPETITION
 `changes` ask `COMPETITION_RESULTS_ENTRY`, which the event's referees have too - their `table_number` / `qualified`
 changes are refused with reason `results_only`, live-results.md "Referees"), writes need
 `Content-Type: application/json` (415) and the stateless CSRF token `csrf_token('official_results')` in the
-`X-CSRF-Token` header (403 `invalid_csrf_token`) - `OfficialResultsApi`.
+`X-CSRF-Token` header (403 `invalid_csrf_token`) - `OfficialResultsApi`. A round or an event that is unknown or was
+deleted is a JSON 404 `{"error": "round_not_found" | "competition_not_found", "message": "…"}` on every route
+(`OfficialResultsApiNotFoundSubscriber`, routes `official_results_*`), never Symfony's HTML 404: the client
+(`official_results_api.js`) reads a 4xx without our JSON as "busy, retry later", and `isGone()` tells the pages the
+round/event is gone - the results desk, the seating page, the live entry and the results overview then say so
+("This round does not exist any more"), close their stream and stop their minute refresh and retries; the live entry's
+unsent changes of that round are refused one by one (`round_not_found`).
 
 | Method + path | Message | Answer |
 |---|---|---|
@@ -273,6 +295,9 @@ get their round's; desk, seating, overview and `GET competitions/{id}`: `COMPETI
 one (`/round-results/{id}` + the public `/round-stopwatch/{id}` for a round's page; every round's `/round-results/{id}`
 for the overview - never a URI template), may subscribe only, lasts an hour, and is signed with the hub key through
 MercureBundle's token factory (`null` + a warning when none can be made: the page then lives on its state refreshes).
+A token cannot be taken back: after a referee or a maintainer loses their rights, the page stops its stream at its next
+state fetch (at most 60 s - the 403 suspends it), but a token copied out of the page stays valid until it expires (at
+most 1 h) and receives the round's full entry updates until then.
 
 Why not the `mercureAuthorization` cookie: `MercureSubscribeCookieListener` rewrites it on **every** signed-in response
 with that request's topics only (the chat topics), so any other request - another tab, a JSON call - dropped the round

@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\OfficialEntryTime;
 use SpeedPuzzling\Web\Results\PublishedRoundEntrant;
 use SpeedPuzzling\Web\Results\PublishedRoundEntry;
+use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantNameKey;
 use SpeedPuzzling\Web\Value\OfficialEntryProfileState;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
@@ -105,9 +106,11 @@ readonly final class OfficialEntryTimePrefill
      * The members besides the viewer - linked ones by their code, the others as guests by the organiser's name - and,
      * when the viewer has to say which one they are, the names to pick from.
      *
-     * In a pair/team nobody is linked to, the viewer is one of the names: the one they picked (`$memberChoice`), else
-     * the one equal to their own name (one match only). Neither: nobody is filled in (one of the names is the viewer -
-     * listing them all would make a pair of three) and the names are offered to pick from.
+     * In a pair/team nobody is linked to, the viewer is one of the names (the round page offers it only to a viewer
+     * of one of the names - GetPublishedRoundResults): the one they picked (`$memberChoice`), else the one equal to
+     * their own name (ParticipantNameKey, like the round page - one match only). Neither (two members of the viewer's
+     * name): nobody is filled in (one of the names is the viewer - listing them all would make a pair of three) and the
+     * names are offered to pick from.
      *
      * @return array{list<string>, list<string>}
      */
@@ -116,10 +119,10 @@ readonly final class OfficialEntryTimePrefill
         $members = $entry->entrants;
 
         if ($entry->isViewers === false && $members !== []) {
-            $viewerKey = $viewerName !== null && trim($viewerName) !== '' ? TeamComposition::guestMemberKey($viewerName) : null;
+            $viewerKey = $viewerName !== null && trim($viewerName) !== '' ? ParticipantNameKey::of($viewerName) : null;
             $matching = array_keys(array_filter(
                 $members,
-                static fn (PublishedRoundEntrant $member): bool => $viewerKey !== null && TeamComposition::guestMemberKey($member->playerName) === $viewerKey,
+                static fn (PublishedRoundEntrant $member): bool => $viewerKey !== null && ParticipantNameKey::of($member->playerName) === $viewerKey,
             ));
 
             if ($memberChoice !== null && isset($members[$memberChoice])) {

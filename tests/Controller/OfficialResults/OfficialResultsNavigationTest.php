@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
-use SpeedPuzzling\Web\Twig\OptionalPathTwigExtension;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -69,9 +68,7 @@ final class OfficialResultsNavigationTest extends WebTestCase
             $crawler->filter('[data-overview-round="' . OfficialResultsFixture::ROUND_GROUP_A . '"] [data-round-tool="stopwatch"]')->attr('href'),
         );
 
-        // The referees page is linked once its route exists
-        $refereesRouteExists = self::getContainer()->get(OptionalPathTwigExtension::class)->optionalPath('competition_referees', ['competitionId' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]) !== null;
-        self::assertCount($refereesRouteExists ? 1 : 0, $crawler->filter('[data-results-tool="referees"]'));
+        self::assertSame('/en/manage-event-referees/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $crawler->filter('[data-results-tool="referees"]')->attr('href'));
     }
 
     public function testTheStopwatchControlPageReachesTheLiveEntry(): void
@@ -83,16 +80,6 @@ final class OfficialResultsNavigationTest extends WebTestCase
         self::assertSame('/en/live-results/' . OfficialResultsFixture::ROUND_GROUP_A, explode('?', (string) $tools->filter('[data-round-tool="live"]')->attr('href'))[0]);
         self::assertCount(1, $tools->filter('[data-round-tool="desk"]'));
         self::assertCount(1, $tools->filter('[data-round-tool="seating"]'));
-    }
-
-    public function testOptionalPathIsNullForARouteThatDoesNotExist(): void
-    {
-        $optionalPath = self::getContainer()->get(OptionalPathTwigExtension::class);
-
-        self::assertSame('/en/manage-round-results/' . OfficialResultsFixture::ROUND_GROUP_A, $optionalPath->optionalPath('results_desk', ['roundId' => OfficialResultsFixture::ROUND_GROUP_A, '_locale' => 'en']));
-        self::assertNull($optionalPath->optionalPath('no_such_route_anywhere'));
-        // A route that needs other parameters
-        self::assertNull($optionalPath->optionalPath('results_desk', ['competitionId' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]));
     }
 
     public function testThePublicRoundPageLinksTheResultsDeskForOrganisersOnly(): void

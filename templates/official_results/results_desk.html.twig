@@ -82,6 +82,7 @@
              pill_saving: 'results_desk.pill.saving'|trans,
              pill_sign_in: 'results_desk.pill.sign_in'|trans,
              pill_forbidden: 'results_desk.pill.forbidden'|trans,
+             pill_gone: 'results_desk.pill.gone'|trans,
              pill_conflicts: browser_translation('results_desk.pill.conflicts'),
              pill_not_saved: browser_translation('results_desk.pill.not_saved'),
              pill_waiting: browser_translation('results_desk.pill.waiting'),
@@ -214,6 +215,10 @@
                 <span class="me-auto"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>{{ 'results_desk.banner.forbidden'|trans }}</span>
                 <button type="button" class="btn btn-sm btn-outline-danger" data-action="results-desk#retryNow">{{ 'results_desk.banner.try_again'|trans }}</button>
             </div></div>
+            <div data-banner="gone" hidden><div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert">
+                <span class="me-auto"><i class="bi bi-x-octagon me-1" aria-hidden="true"></i>{{ 'results_desk.banner.gone'|trans }}</span>
+                <a class="btn btn-sm btn-outline-danger" href="{{ path('competition_results_overview', {competitionId: competition.id}) }}">{{ 'results_desk.overview.title'|trans }}</a>
+            </div></div>
             <div data-banner="offline" hidden><div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="status">
                 <span class="me-auto"><i class="bi bi-wifi-off me-1" aria-hidden="true"></i>{{ 'results_desk.banner.offline'|trans }}</span>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#retryNow">{{ 'results_desk.banner.try_now'|trans }}</button>
@@ -227,6 +232,8 @@
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#takeAllTheirs">{{ 'results_desk.conflicts_bar.take_all_theirs'|trans }}</button>
             </div>
         </div>
+
+        {{ include('official_results/_waitlist_note.html.twig', {overview: round.overview, competition_id: competition.id}) }}
 
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
             <div>

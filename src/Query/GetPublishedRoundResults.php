@@ -30,9 +30,10 @@ use Doctrine\DBAL\Connection;
  *   a private player the viewer may not see (PrivateProfileAccess) keeps the organiser's name, nothing of the profile.
  * - People removed from the event (soft-deleted participants) are left out, like in the organiser's tools.
  * - "Add to my profile" (OfficialEntryProfileState) for the signed-in viewer: their own entry - or, when the organiser
- *   linked them to no entry of the round at all (did not start and no result yet included), a pair/team nobody is
- *   linked to (the organiser typed names only - the Minnesota case) and an unlinked person whose name is the viewer's
- *   (ParticipantNameKey, the country must not differ) - with a finished result, in a round with exactly one puzzle
+ *   linked them to no entry of the round at all (did not start and no result yet included), an unlinked person whose
+ *   name is the viewer's (ParticipantNameKey, the country must not differ), a pair/team nobody is linked to with one
+ *   member of the viewer's name (the same rule), and a pair/team with no member names at all (the organiser typed the
+ *   team's name only - the Minnesota case) - with a finished result, in a round with exactly one puzzle
  *   that is revealed; offered until the viewer has a time in the round, then "On your profile" (derived, nothing
  *   stored). Every other unlinked row is somebody else's as far as anybody knows: the viewer linked to no entry gets one
  *   line instead, "Is your name here? Connect it" (the event's join flow), when the round has an unlinked row.
@@ -202,16 +203,16 @@ SQL,
      */
     private function withProfileStates(array $entries, string $roundId, string $viewerPlayerId, array $viewer): array
     {
-        // The organiser linked the viewer to an entry of the round (ranked or not): that one is theirs. Otherwise a
-        // pair/team nobody is linked to may be (the organiser typed names only, team names say), and a person nobody
-        // is linked to whose name is the viewer's - never everybody's unlinked row for every visitor
+        // The organiser linked the viewer to an entry of the round (ranked or not): that one is theirs. Otherwise an
+        // entry nobody is linked to with a person of the viewer's name may be - and a pair/team the organiser typed by
+        // its name only (no member names to tell whose it is) - never everybody's unlinked row for every visitor
         $candidates = array_filter(
             $entries,
             static fn (PublishedRoundEntry $entry): bool => $entry->result->isFinished()
                 && ($entry->isViewers || (
                     $viewer['has_entry'] === false
                     && $entry->hasLinkedPlayer() === false
-                    && ($entry->isTeam || self::isViewersName($entry, $viewer))
+                    && (($entry->isTeam && $entry->entrants === []) || self::hasViewersName($entry, $viewer))
                 )),
         );
 
@@ -461,26 +462,25 @@ SQL;
     }
 
     /**
-     * The one person of an unlinked solo row has the viewer's name - spelled the way the participant import compares
-     * names (ParticipantNameKey) - and no other country.
+     * A person of an unlinked row - the one of a solo row, any member of a pair/team - has the viewer's name, spelled
+     * the way the participant import compares names (ParticipantNameKey), and no other country.
      *
      * @param array{has_entry: bool, name: null|string, country: null|string} $viewer
      */
-    private static function isViewersName(PublishedRoundEntry $entry, array $viewer): bool
+    private static function hasViewersName(PublishedRoundEntry $entry, array $viewer): bool
     {
-        $entrant = $entry->entrants[0] ?? null;
-
-        if ($entrant === null || $viewer['name'] === null || trim($viewer['name']) === '') {
+        if ($viewer['name'] === null || trim($viewer['name']) === '') {
             return false;
         }
 
-        if (ParticipantNameKey::of($entrant->playerName) !== ParticipantNameKey::of($viewer['name'])) {
-            return false;
-        }
-
+        $viewerKey = ParticipantNameKey::of($viewer['name']);
         $viewerCountry = CountryCode::fromCode($viewer['country']);
 
-        return $entrant->playerCountry === null || $viewerCountry === null || $entrant->playerCountry === $viewerCountry;
+        return array_any(
+            $entry->entrants,
+            static fn (PublishedRoundEntrant $entrant): bool => ParticipantNameKey::of($entrant->playerName) === $viewerKey
+                && ($entrant->playerCountry === null || $viewerCountry === null || $entrant->playerCountry === $viewerCountry),
+        );
     }
 
     private static function sortName(PublishedRoundEntry $entry): string

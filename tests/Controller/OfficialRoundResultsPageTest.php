@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -214,13 +215,14 @@ final class OfficialRoundResultsPageTest extends WebTestCase
 
     /**
      * Query budget: an unpublished round page runs exactly what it ran before, a published one a bounded constant number
-     * more - one statement for the entries, one for the viewer's own times when a row could offer "Add to my profile".
+     * more - one statement for the entries, one for the viewer's own times when a row could offer "Add to my profile",
+     * and for a signed-in viewer one for their permissions (the organiser's tool links come with published results).
      */
     public function testPublishedResultsCostABoundedNumberOfStatements(): void
     {
-        // A guest: the entries. Anna's player: her offer needs her times. Hugo's (in no entry of Group A, no row with
-        // his name): the entries only
-        foreach ([[null, 1], [PlayerFixture::PLAYER_ADMIN, 2], [PlayerFixture::PLAYER_REGULAR, 1]] as [$viewer, $extra]) {
+        // A guest: the entries. Anna's player (an admin - edits every event without a statement): her offer needs her
+        // times. Hugo's (in no entry of Group A, no row with his name): the entries + his permissions
+        foreach ([[null, 1], [PlayerFixture::PLAYER_ADMIN, 2], [PlayerFixture::PLAYER_REGULAR, 2]] as [$viewer, $extra]) {
             $browser = self::createClient();
             $this->publish(OfficialResultsFixture::ROUND_GROUP_A);
 
@@ -253,6 +255,65 @@ final class OfficialRoundResultsPageTest extends WebTestCase
 
             self::ensureKernelShutdown();
         }
+    }
+
+    /**
+     * Absolute budget (review round 3, MINOR 1): a round page nobody published official results on runs exactly the
+     * statements main runs - measured on origin/main 99684f88 for WJPC 2024's qualification round: 7 for a guest, 11
+     * for a signed-in player, 11 for the event's organiser. The organiser's tool links come only with published
+     * results, so nobody's permissions are asked on an untouched page.
+     */
+    public function testAnUntouchedRoundPageRunsExactlyMainsStatementsForEveryViewer(): void
+    {
+        $url = '/en/events/wjpc-2024/results/qualification-round';
+
+        foreach (['guest' => [null, false, 7], 'player' => [PlayerFixture::PLAYER_REGULAR, false, 11], 'organiser' => [PlayerFixture::PLAYER_REGULAR, true, 11]] as $viewer => [$playerId, $organiser, $mainsStatements]) {
+            $browser = self::createClient();
+
+            if ($organiser) {
+                $this->database()->executeStatement(
+                    'INSERT INTO competition_maintainer (competition_id, player_id) VALUES (:competitionId, :playerId)',
+                    ['competitionId' => CompetitionFixture::COMPETITION_WJPC_2024, 'playerId' => $playerId],
+                );
+            }
+
+            if ($playerId !== null) {
+                TestingLogin::asPlayer($browser, $playerId);
+            }
+
+            $browser->request('GET', $url);
+
+            $this->startCountingQueries($browser);
+            $browser->request('GET', $url);
+
+            $this->assertResponseIsSuccessful();
+            $this->assertSelectorNotExists('[data-organiser-round-links]');
+            self::assertSame($mainsStatements, $this->queryCount($browser), sprintf('The untouched round page as %s: %s', $viewer, implode("\n", $this->executedSql($browser))));
+            self::assertSame([], array_values(array_filter(
+                $this->executedSql($browser),
+                static fn (string $sql): bool => str_contains($sql, 'competition_maintainer') || str_contains($sql, 'competition_referee'),
+            )), 'Nobody\'s permissions are asked on an untouched round page.');
+
+            self::ensureKernelShutdown();
+        }
+    }
+
+    public function testTheOrganisersToolLinksComeWithThePublishedResults(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', self::GROUP_A_URL);
+        self::assertSame('/en/manage-round-results/' . OfficialResultsFixture::ROUND_GROUP_A, $crawler->filter('[data-organiser-round-links] [data-round-tool="desk"]')->attr('href'));
+
+        // Not published yet: the page is main's, the organiser reaches the tools from the round list
+        $browser->request('GET', self::GROUP_B_URL);
+        $this->assertSelectorNotExists('[data-organiser-round-links]');
+
+        // Anybody else never sees them
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', self::GROUP_A_URL);
+        $this->assertSelectorNotExists('[data-organiser-round-links]');
     }
 
     public function testTheEventPageListsTheRoundAndSaysResults(): void

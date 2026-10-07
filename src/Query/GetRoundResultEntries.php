@@ -17,7 +17,9 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * Every entry of a round with its official record, for the organiser's tools - live entry, results desk, seating,
  * the official results endpoints and their Mercure updates (docs/features/competitions-management/official-results.md).
  * Organiser tooling behind COMPETITION_EDIT: participant names as the organiser recorded them, blocks and private
- * profiles do not apply. People removed from the event (soft-deleted participants) are left out.
+ * profiles do not apply. Only people going to the event (CompetitionParticipantGoing) - removed ones and the waitlist
+ * of a managed event are left out (a waitlisted person put into a round counts once the organiser gives them a spot;
+ * GetRoundResultsOverview tells how many wait).
  *
  * Two statements: the entries, and for a pair/team round their members.
  */
@@ -118,6 +120,7 @@ readonly final class GetRoundResultEntries
      */
     private function people(string $roundId): array
     {
+        $going = CompetitionParticipantGoing::sql('cp');
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
@@ -138,7 +141,7 @@ SELECT
     p.code AS player_code,
     p.name AS player_name
 FROM competition_participant_round cpr
-INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND cp.deleted_at IS NULL
+INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND {$going}
 LEFT JOIN player p ON p.id = cp.player_id
 LEFT JOIN player entered_by ON entered_by.id = cpr.result_entered_by_id
 WHERE cpr.round_id = :roundId
@@ -200,6 +203,7 @@ SQL,
             ['roundId' => $roundId],
         );
 
+        $going = CompetitionParticipantGoing::sql('cp');
         $memberRows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT
@@ -212,7 +216,7 @@ SELECT
     p.code AS player_code,
     p.name AS player_name
 FROM competition_participant_round cpr
-INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND cp.deleted_at IS NULL
+INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND {$going}
 LEFT JOIN player p ON p.id = cp.player_id
 WHERE cpr.round_id = :roundId
     AND cpr.team_id IS NOT NULL

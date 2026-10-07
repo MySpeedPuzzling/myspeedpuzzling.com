@@ -57,6 +57,13 @@ that would otherwise be forgotten. Newest section on top.
       (`live_results.tables.*`) - switch it to `seating.readiness.*` with the live page's next change.
 - [ ] An event that never numbers tables: "none of this event's rounds use table numbers" in one click (today per round
       on the seating page; past rounds never show the step any more).
+- [ ] An event-wide results export (every round of the event in one file) - today the results desk exports one round.
+- [ ] A "disqualified" result (with a reason) - today the organiser clears the result or marks "did not start".
+- [ ] Check-in → "did not start": when a round starts, offer to mark its entrants who were not checked in (managed
+      registration) as did not start - the organiser decides, nothing automatic.
+- [ ] `result_entered_at` is `TIMESTAMP(0)` and the results desk's late-answer guard compares with a strict `<`: two
+      saves of one entry within the same second can briefly show the older one (the 1.5 s own-write resync puts it
+      right) - harmless; compare with `<=` plus the result value, or store milliseconds, if it ever confuses anybody.
 
 ## Referees (`docs/features/competitions-management/live-results.md` "Referees")
 

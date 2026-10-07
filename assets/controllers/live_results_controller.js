@@ -1,7 +1,7 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
-import { newClientId, officialResultsRequest } from '../official_results_api.js';
+import { isGone, newClientId, officialResultsRequest } from '../official_results_api.js';
 import { createIndexedDbStorage, createMemoryStorage, createTabLock, Outbox, STUCK_AFTER_ATTEMPTS } from '../official_results_outbox.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import {
@@ -148,7 +148,7 @@ export default class extends Controller {
         };
         this.onFocus = () => {
             // Back from the sign-in tab
-            if (this.outbox.blocked !== null || this.stateBlocked !== null) {
+            if (this.outbox.blocked !== null || (this.stateBlocked !== null && this.stateBlocked !== 'gone')) {
                 this.retryAll();
             }
         };
@@ -436,6 +436,11 @@ export default class extends Controller {
             return this.refreshing;
         }
 
+        // The round is gone - nothing to ask for any more (another round is picked above, a page of its own)
+        if (this.stateBlocked === 'gone') {
+            return Promise.resolve('client');
+        }
+
         this.refreshing = this.fetchState().finally(() => {
             this.refreshing = null;
         });
@@ -465,6 +470,11 @@ export default class extends Controller {
                 this.scheduleRender();
                 // A token is only for whoever may still enter results: no stream until a state answers again
                 this.events.suspend();
+            } else if (isGone(answer)) {
+                // The round was deleted: the page says so and stops asking - its unsent changes are refused one by one
+                this.stateBlocked = 'gone';
+                this.events.close();
+                this.scheduleRender();
             }
 
             return answer.kind;
@@ -673,6 +683,9 @@ export default class extends Controller {
         } else if (blocked === 'csrf') {
             state = 'blocked';
             text = this.t('syncReload');
+        } else if (blocked === 'gone') {
+            state = 'blocked';
+            text = this.t('syncGone');
         } else if (status.conflicts + status.rejected + status.forbidden > 0) {
             state = 'problem';
             text = this.plural('attention', status.conflicts + status.rejected + status.forbidden);
@@ -724,6 +737,8 @@ export default class extends Controller {
                 <p class="mb-2">${escapeHtml(this.t('bannerCsrf'))}</p>
                 <button type="button" class="btn btn-danger" data-action="live-results#reload">${escapeHtml(this.t('reload'))}</button>
             </div>`);
+        } else if (reason === 'gone') {
+            parts.push(`<div class="alert alert-danger mb-2" role="alert" data-live-round-gone>${escapeHtml(this.t('bannerGone'))}</div>`);
         }
 
         // No rights for another round's event (yesterday's event, a removed maintainer): only those changes wait -

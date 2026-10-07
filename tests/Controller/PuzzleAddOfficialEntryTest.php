@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Imagick;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
@@ -15,8 +16,10 @@ use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -233,27 +236,50 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         $this->assertSelectorNotExists('[data-official-entry-check-group]');
     }
 
-    public function testAPairNobodyIsLinkedToWithoutTheViewersNameAsksWhichOneTheyAre(): void
+    public function testAPairNobodyIsLinkedToWithoutTheViewersNameIsSomebodyElses(): void
     {
         $browser = self::createClient();
         $this->publish(OfficialResultsFixture::ROUND_PAIRS);
         $teamId = $this->addUnlinkedPair(null, ['Kim Lee', 'Mike J.'], 5000);
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
-        $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . $teamId));
+
+        $this->assertNotFilledIn($browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . $teamId)));
+    }
+
+    public function testAPairOfTwoPeopleOfTheViewersNameAsksWhichOneTheyAre(): void
+    {
+        $browser = self::createClient();
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+        // Father and son of one name
+        $teamId = $this->addUnlinkedPair(null, ['Michael Johnson', 'Michael Johnson'], 5000);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $page = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . $teamId));
 
         // One of the two is the viewer: both as guests would be three people - a pair, nobody filled in yet
-        self::assertSame([], $this->groupPlayers($crawler));
-        self::assertSame('pair', $this->pickerMode($crawler));
-        self::assertFalse($this->pickerOffersSolo($crawler));
-        self::assertSame(['I am Kim Lee', 'I am Mike J.'], $crawler->filter('[data-official-entry-which-one] a')->each(static fn (Crawler $link): string => trim($link->text())));
+        self::assertSame([], $this->groupPlayers($page));
+        self::assertSame('pair', $this->pickerMode($page));
+        self::assertFalse($this->pickerOffersSolo($page));
+        self::assertSame(['I am Michael Johnson', 'I am Michael Johnson'], $page->filter('[data-official-entry-which-one] a')->each(static fn (Crawler $link): string => trim($link->text())));
 
-        $crawler = $browser->click($crawler->filter('[data-official-member="1"]')->link());
+        // Saving without saying it - or adding anybody - is no solo time
+        $crawler = $this->submitPrefilled($browser, $page, []);
+        $this->assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Add the person you puzzled with', $crawler->filter('form[name="puzzle_add_form"]')->text());
+        self::assertSame(0, $this->timesOn(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_2000));
 
-        self::assertSame(['Kim Lee'], $this->groupPlayers($crawler));
+        $crawler = $browser->click($page->filter('[data-official-member="1"]')->link());
+
+        self::assertSame(['Michael Johnson'], $this->groupPlayers($crawler));
         self::assertSame('pair', $this->pickerMode($crawler));
+        self::assertSame('1', $crawler->filter('input[name="official_member"]')->attr('value'));
         $this->assertSelectorNotExists('[data-official-entry-which-one]');
         $this->assertSelectorNotExists('[data-official-entry-add-people]');
+
+        $this->submitPrefilled($browser, $crawler, $this->groupPlayers($crawler));
+        $this->assertResponseRedirects();
+        self::assertSame(1, $this->timesOn(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_2000));
     }
 
     public function testATeamRecordedByNameOnlyOpensAsATeamAskingForItsPeople(): void
@@ -336,6 +362,105 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         $this->assertSelectorNotExists('[data-official-add-to-profile]');
     }
 
+    public function testATeamRecordedByNameOnlyIsNeverSavedWithoutItsPeople(): void
+    {
+        $browser = self::createClient();
+        // Kept photos live in the in-memory storage of the test kernel - it must survive between requests
+        $browser->disableReboot();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement("UPDATE competition_round SET category = 'team' WHERE id = :id", ['id' => OfficialResultsFixture::ROUND_PAIRS]);
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+        // Minnesota: a team typed by its name only
+        $teamId = $this->addUnlinkedPair('Lake Puzzlers', [], 5100);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . $teamId));
+        self::assertSame('team:' . $teamId, $crawler->filter('input[name="official_entry"]')->attr('value'));
+
+        // Saved with nobody added: refused on the form, everything typed and the photo kept
+        $crawler = $this->submitPrefilled($browser, $crawler, [], $this->photo());
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Add the people you puzzled with - this official result belongs to a team of three or more.', $crawler->filter('form[name="puzzle_add_form"]')->text());
+        self::assertSame(['1', '25', '0'], [$this->value($crawler, 'timeHours'), $this->value($crawler, 'timeMinutes'), $this->value($crawler, 'timeSeconds')]);
+        self::assertSame('team:' . $teamId, $crawler->filter('input[name="official_entry"]')->attr('value'));
+        self::assertNotSame('', (string) $crawler->filter('input[name="photo_stash[finishedPuzzlesPhoto]"]')->attr('value'));
+        self::assertSame('team', $this->pickerMode($crawler));
+        self::assertFalse($this->pickerOffersSolo($crawler));
+        self::assertSame(0, $this->timesOn(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_2000));
+
+        // One person is a pair, not this team
+        $crawler = $this->submitPrefilled($browser, $crawler, ['Kim Lee']);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Add one more person you puzzled with', $crawler->filter('form[name="puzzle_add_form"]')->text());
+        self::assertSame(['Kim Lee'], $this->groupPlayers($crawler));
+        self::assertSame('team', $this->pickerMode($crawler));
+        self::assertSame(0, $this->timesOn(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_2000));
+
+        // With the people: the team's time, in the team round, with the kept photo
+        $this->submitPrefilled($browser, $crawler, ['Kim Lee', 'Pat Doe']);
+
+        $this->assertResponseRedirects();
+        /** @var false|array{competition_round_id: null|string, team: string, finished_puzzle_photo: null|string} $time */
+        $time = $database->fetchAssociative(
+            'SELECT competition_round_id, team, finished_puzzle_photo FROM puzzle_solving_time WHERE player_id = :playerId AND puzzle_id = :puzzleId',
+            ['playerId' => PlayerFixture::PLAYER_WITH_FAVORITES, 'puzzleId' => PuzzleFixture::PUZZLE_2000],
+        );
+        self::assertIsArray($time);
+        self::assertSame(OfficialResultsFixture::ROUND_PAIRS, $time['competition_round_id']);
+        /** @var array{puzzlers: list<array<string, mixed>>} $team */
+        $team = json_decode($time['team'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertCount(3, $team['puzzlers']);
+        self::assertNotNull($time['finished_puzzle_photo']);
+    }
+
+    public function testAPairRecordedByNameOnlyIsSavedAsExactlyAPair(): void
+    {
+        $browser = self::createClient();
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+        $teamId = $this->addUnlinkedPair('Lake Puzzlers', [], 5100);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . $teamId));
+
+        // Nobody added: never a solo time
+        $crawler = $this->submitPrefilled($browser, $crawler, []);
+        $this->assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Add the person you puzzled with - this official result belongs to a pair.', $crawler->filter('form[name="puzzle_add_form"]')->text());
+        self::assertSame('pair', $this->pickerMode($crawler));
+
+        // Two people added: a team of three, not this pair
+        $crawler = $this->submitPrefilled($browser, $crawler, ['Kim Lee', 'Pat Doe']);
+        $this->assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('A pair is two people - keep only the person you puzzled with.', $crawler->filter('form[name="puzzle_add_form"]')->text());
+        self::assertSame(0, $this->timesOn(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_2000));
+
+        $this->submitPrefilled($browser, $crawler, ['Kim Lee']);
+        $this->assertResponseRedirects();
+        self::assertSame(OfficialResultsFixture::ROUND_PAIRS, self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT competition_round_id FROM puzzle_solving_time WHERE player_id = :playerId AND puzzle_id = :puzzleId',
+            ['playerId' => PlayerFixture::PLAYER_WITH_FAVORITES, 'puzzleId' => PuzzleFixture::PUZZLE_2000],
+        ));
+    }
+
+    public function testAFormWhosePuzzleChangedIsNoLongerTheOfficialEntry(): void
+    {
+        $browser = self::createClient();
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+        $teamId = $this->addUnlinkedPair('Lake Puzzlers', [], 5100);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . $teamId));
+
+        // Another puzzle, solo: an ordinary time like any other
+        $timesBefore = $this->timesOn(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_500_03);
+        $this->submitPrefilled($browser, $crawler, [], fields: ['puzzle' => PuzzleFixture::PUZZLE_500_03]);
+
+        $this->assertResponseRedirects();
+        self::assertSame($timesBefore + 1, $this->timesOn(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_500_03));
+    }
+
     private function url(null|string $puzzleId, string $officialEntry): string
     {
         return sprintf(
@@ -344,6 +469,63 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
             OfficialResultsFixture::COMPETITION_RESULTS_CUP,
             $officialEntry,
         );
+    }
+
+    /**
+     * Saves the form as the page rendered it, with these co-puzzlers - posted to the address without its query string:
+     * the official entry travels in the form's own hidden fields.
+     *
+     * @param list<string> $groupPlayers
+     * @param array<string, string> $fields
+     */
+    private function submitPrefilled(KernelBrowser $browser, Crawler $page, array $groupPlayers, null|UploadedFile $photo = null, array $fields = []): Crawler
+    {
+        $form = $page->filter('form[name="puzzle_add_form"]')->form();
+        /** @var array<string, mixed> $values */
+        $values = $form->getPhpValues();
+        unset($values['group_players']);
+
+        if ($groupPlayers !== []) {
+            $values['group_players'] = $groupPlayers;
+        }
+
+        if ($fields !== []) {
+            /** @var array<string, mixed> $formValues */
+            $formValues = $values['puzzle_add_form'];
+            $values['puzzle_add_form'] = [...$formValues, ...$fields];
+        }
+
+        return $browser->request(
+            'POST',
+            (string) parse_url($form->getUri(), PHP_URL_PATH),
+            $values,
+            $photo !== null ? ['puzzle_add_form' => ['finishedPuzzlesPhoto' => $photo]] : [],
+        );
+    }
+
+    private function photo(): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'official-entry-photo-');
+        assert(is_string($path));
+
+        $image = new Imagick();
+        $image->newImage(64, 48, 'orange');
+        $image->setImageFormat('jpeg');
+        $image->writeImage($path);
+        $image->destroy();
+
+        return new UploadedFile($path, 'finished.jpg', 'image/jpeg', null, true);
+    }
+
+    private function timesOn(string $playerId, string $puzzleId): int
+    {
+        $count = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :playerId AND puzzle_id = :puzzleId',
+            ['playerId' => $playerId, 'puzzleId' => $puzzleId],
+        );
+        assert(is_int($count) || is_string($count));
+
+        return (int) $count;
     }
 
     private function value(Crawler $crawler, string $field): string
@@ -442,7 +624,7 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         foreach ($names as $memberName) {
             $participantId = Uuid::uuid7()->toString();
             $database->executeStatement(
-                "INSERT INTO competition_participant (id, name, country, competition_id, source) VALUES (:id, :name, 'us', :competitionId, 'imported')",
+                "INSERT INTO competition_participant (id, name, country, competition_id, source) VALUES (:id, :name, NULL, :competitionId, 'imported')",
                 ['id' => $participantId, 'name' => $memberName, 'competitionId' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
             );
             $database->executeStatement(

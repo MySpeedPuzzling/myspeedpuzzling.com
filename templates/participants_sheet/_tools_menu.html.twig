@@ -1,0 +1,75 @@
+{# The sheet's Tools menu: the import and export of the old participants page and the event's other organiser tools.
+   Managed registration (registration.md): its settings and the check-in; nobody walks in to an online event, so no
+   check-in and no name tags there. Expects: competition (ParticipantsSheetCompetition), urls #}
+{%- set sheet_url = path('participants_sheet', {competitionId: competition.id}) -%}
+{%- set back_here = {return: sheet_url, return_title: 'participants_sheet.title'|trans} -%}
+<div class="dropdown participants-sheet-bar__tools">
+    <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-participants-sheet-tools>
+        <i class="bi bi-tools" aria-hidden="true"></i><span class="participants-sheet-bar__label">{{ 'participants_sheet.tools.button'|trans }}</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#participants-sheet-import" data-sheet-tool="import">
+                <i class="bi bi-upload me-2" aria-hidden="true"></i>{{ 'participants_sheet.tools.import'|trans }}
+            </button>
+        </li>
+        <li>
+            <a class="dropdown-item" href="{{ urls.export }}" data-turbo="false" download data-sheet-tool="export">
+                <i class="bi bi-download me-2" aria-hidden="true"></i>{{ 'competition.participants.export_current'|trans }}
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" href="{{ path('download_competition_participant_template') }}" data-turbo="false" download data-sheet-tool="template">
+                <i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>{{ 'competition.participants.download_template'|trans }}
+            </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        {% if competition.registrationManaged %}
+            <li>
+                <a class="dropdown-item" href="{{ path('manage_competition_registration', {competitionId: competition.id}|merge(back_here)) }}" data-sheet-tool="registration">
+                    <i class="bi bi-ticket-perforated me-2" aria-hidden="true"></i>{{ 'competition_registration.settings.title'|trans }}
+                </a>
+            </li>
+            {% if not competition.isOnline %}
+                <li>
+                    <a class="dropdown-item" href="{{ path('competition_check_in', {competitionId: competition.id}) }}" data-sheet-tool="check-in">
+                        <i class="bi bi-person-check me-2" aria-hidden="true"></i>{{ 'competition_registration.check_in.title'|trans }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endif %}
+        {% if not competition.isOnline %}
+            <li>
+                <a class="dropdown-item" href="{{ path('competition_name_tags', {competitionId: competition.id}) }}" target="_blank" rel="noopener" data-sheet-tool="name-tags">
+                    <i class="bi bi-person-badge me-2" aria-hidden="true"></i>{{ 'name_tags.button'|trans }}
+                </a>
+            </li>
+        {% endif %}
+        <li>
+            <a class="dropdown-item" href="{{ path('competition_referees', {competitionId: competition.id}|merge(back_here)) }}" data-sheet-tool="referees">
+                <i class="bi bi-person-lines-fill me-2" aria-hidden="true"></i>{{ 'competition_referees.button'|trans }}
+            </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <a class="dropdown-item" href="{{ path('competition_results_overview', {competitionId: competition.id}) }}" data-sheet-tool="results">
+                <i class="bi bi-clipboard-data me-2" aria-hidden="true"></i>{{ 'results_desk.overview.button'|trans }}
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" href="{{ path('manage_competition_rounds', {competitionId: competition.id}|merge(back_here)) }}" data-sheet-tool="rounds">
+                <i class="bi bi-list-ol me-2" aria-hidden="true"></i>{{ 'competition.manage_rounds'|trans }}
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" href="{{ competition.eventUrl }}" data-sheet-tool="event">
+                <i class="bi bi-box-arrow-up-right me-2" aria-hidden="true"></i>{{ 'participants_sheet.tools.event_page'|trans }}
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" href="{{ competition.editUrl }}" data-sheet-tool="edit">
+                <i class="bi bi-pencil me-2" aria-hidden="true"></i>{{ 'competition.edit_event'|trans }}
+            </a>
+        </li>
+    </ul>
+</div>

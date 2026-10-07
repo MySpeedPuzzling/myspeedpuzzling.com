@@ -5,7 +5,7 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-    {% set participants_url = path('manage_competition_participants', {competitionId: competition.id}) %}
+    {% set participants_url = path('participants_sheet', {competitionId: competition.id}) %}
     {% set prefix = 'competition.participants.import.preview.' %}
 
     {{ include('_breadcrumb.html.twig', {items: [

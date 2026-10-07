@@ -6930,6 +6930,38 @@ suspicious_time:
 # delivery stream; add keys above your block's closing comment only
 participants_sheet:
     title: "Participants"
+    page:
+        back: "Event"
+        back_label: "Back to the event"
+        history: "Undo and redo"
+        undo: "Undo"
+        undo_shortcut: "Undo (Ctrl+Z)"
+        redo: "Redo"
+        redo_shortcut: "Redo (Ctrl+Y)"
+        help: "Keyboard shortcuts and help"
+        tabs: "People and rounds"
+        loading: "Loading the participants…"
+        needs_javascript: "This tool needs JavaScript. Turn JavaScript on in your browser to manage the participants."
+    tools:
+        button: "Tools"
+        import: "Import…"
+        event_page: "Event page"
+    import:
+        intro: "Upload an Excel (.xlsx), CSV or text file. You will see exactly what changes before anything is saved."
+    checklist:
+        import: "Import a list"
+        or_type: "or type the names into the sheet below."
+    help:
+        title: "Keyboard shortcuts"
+        intro: "The shortcuts appear here once the sheet has loaded."
+    registration:
+        error:
+            invalid_request: "This action could not be read. Reload the page and try again."
+            participant_not_found: "This person is not on this event's list (any more)."
+            participant_removed: "This person was removed from the event. Restore them first."
+            registration_not_managed: "This event does not manage registration on MySpeedPuzzling (any more)."
+            waitlisted_paid: "This person is on the waitlist. Give them a spot to mark them paid."
+            waitlisted_check_in: "This person is on the waitlist. Give them a spot before checking them in."
 # end participants_sheet
 
 participants_sheet_server:

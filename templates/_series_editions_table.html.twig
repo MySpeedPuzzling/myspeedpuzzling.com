@@ -68,7 +68,7 @@
                         <a href="{{ path('manage_competition_rounds', {'competitionId': edition.competitionId, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-list-ol me-1"></i>{{ 'competition.manage_rounds'|trans }}
                         </a>
-                        <a href="{{ path('manage_competition_participants', {'competitionId': edition.competitionId, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-sm btn-outline-primary">
+                        <a href="{{ path('participants_sheet', {'competitionId': edition.competitionId}) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}
                         </a>
                         <a href="{{ path('competition_results_overview', {'competitionId': edition.competitionId}) }}" class="btn btn-sm btn-outline-primary" data-results-overview-link>

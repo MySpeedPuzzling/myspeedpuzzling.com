@@ -30,9 +30,7 @@ use SpeedPuzzling\Web\Message\BackfillRoundTimezones;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
-use SpeedPuzzling\Web\Message\DeleteCompetitionTeam;
 use SpeedPuzzling\Web\Message\DeletePlayer;
-use SpeedPuzzling\Web\Message\EditCompetitionParticipant;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\GenerateTableLayout;
 use SpeedPuzzling\Web\Message\PublishRoundResults;
@@ -49,7 +47,6 @@ use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Message\AddCompetitionParticipant;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\ApplyParticipantImport;
@@ -149,7 +146,6 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new JoinCompetition($competitionId, 'player'))->lockKey());
         self::assertSame($key, (new JoinCompetition(strtolower($competitionId), 'player', $participantId))->lockKey());
         self::assertSame($key, (new LeaveCompetition($competitionId, 'player'))->lockKey());
-        self::assertSame($key, (new AddCompetitionParticipant($competitionId, 'Name', null, null, null))->lockKey());
         self::assertSame($key, (new MarkParticipantPaid($competitionId, $participantId))->lockKey());
         self::assertSame($key, (new UnmarkParticipantPaid($competitionId, $participantId))->lockKey());
         self::assertSame($key, (new PromoteParticipantFromWaitlist($competitionId, $participantId))->lockKey());
@@ -174,7 +170,7 @@ final class SerializedByLockMessagesTest extends TestCase
         $touching = self::messagesTouchingParticipants();
 
         // The detection itself works - these are known writers
-        foreach ([ApplyParticipantImport::class, JoinCompetition::class, EditCompetitionParticipant::class, DeleteCompetitionTeam::class, DeleteCompetitionRound::class, EditCompetitionRound::class] as $known) {
+        foreach ([ApplyParticipantImport::class, JoinCompetition::class, MarkParticipantPaid::class, LeaveCompetition::class, DeleteCompetitionRound::class, EditCompetitionRound::class] as $known) {
             self::assertArrayHasKey($known, $touching, $known . ' must be detected as touching the participants');
         }
 

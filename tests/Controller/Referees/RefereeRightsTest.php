@@ -214,6 +214,9 @@ final class RefereeRightsTest extends WebTestCase
         yield 'rounds' => ['GET', '/en/manage-event-rounds/' . $competition];
         yield 'stopwatch control' => ['GET', '/en/manage-round-stopwatch/' . $round];
         yield 'participants' => ['GET', '/en/manage-event-participants/' . $competition];
+        yield 'participants sheet' => ['GET', '/en/participants-sheet/' . $competition];
+        yield 'participants sheet state' => ['GET', '/en/participants-sheet-api/' . $competition . '/state'];
+        yield 'participants sheet version' => ['GET', '/en/participants-sheet-api/' . $competition . '/version'];
         yield 'registration' => ['GET', '/en/manage-event-registration/' . $competition];
         yield 'check-in' => ['GET', '/en/event-check-in/' . $competition];
         yield 'name tags' => ['GET', '/en/name-tags/' . $competition];
@@ -246,6 +249,10 @@ final class RefereeRightsTest extends WebTestCase
             'sourceRoundIds' => [OfficialResultsFixture::ROUND_PAIRS],
             'targetRoundIds' => [OfficialResultsFixture::ROUND_PAIRS_FINAL],
             'distribution' => 'single',
+        ]];
+        yield 'participants sheet registration' => ['/en/participants-sheet-api/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '/registration', [
+            'participant' => OfficialResultsFixture::PARTICIPANT_ANNA,
+            'action' => 'checkIn',
         ]];
     }
 

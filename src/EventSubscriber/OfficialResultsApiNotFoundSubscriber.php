@@ -15,7 +15,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The official results JSON endpoints (routes `official_results_*`, docs/features/competitions-management/official-results.md)
- * answer a round or an event that is unknown or was deleted with their own JSON 404 - `{"error": "round_not_found" |
+ * and the participants spreadsheet's (routes `participants_sheet_*` - the JSON ones; the page itself, `participants_sheet`,
+ * 404s like any page) answer a round or an event that is unknown or was deleted with their own JSON 404 - `{"error": "round_not_found" |
  * "competition_not_found", "message": "…"}` - never Symfony's HTML error page: the pages' client
  * (assets/official_results_api.js) reads a 4xx without our JSON as "the server is busy, retry later", so a deleted
  * round would be retried forever instead of the page saying it is gone.
@@ -25,7 +26,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class OfficialResultsApiNotFoundSubscriber implements EventSubscriberInterface
 {
-    private const string ROUTE_PREFIX = 'official_results_';
+    private const array ROUTE_PREFIXES = ['official_results_', 'participants_sheet_'];
 
     public function __construct(
         private TranslatorInterface $translator,
@@ -46,7 +47,7 @@ final readonly class OfficialResultsApiNotFoundSubscriber implements EventSubscr
     {
         $route = $event->getRequest()->attributes->get('_route');
 
-        if (!is_string($route) || !str_starts_with($route, self::ROUTE_PREFIX)) {
+        if (!is_string($route) || !self::isJsonEndpoint($route)) {
             return;
         }
 
@@ -63,5 +64,16 @@ final readonly class OfficialResultsApiNotFoundSubscriber implements EventSubscr
         $event->setResponse(OfficialResultsApi::error($error, JsonResponse::HTTP_NOT_FOUND, [
             'message' => $this->translator->trans('official_results.reason.' . $error),
         ]));
+    }
+
+    private static function isJsonEndpoint(string $route): bool
+    {
+        foreach (self::ROUTE_PREFIXES as $prefix) {
+            if (str_starts_with($route, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

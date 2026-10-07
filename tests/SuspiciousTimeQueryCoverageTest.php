@@ -44,6 +44,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetGettingStartedProgress.php' => self::OWN,
         'Query/GetGuestLinkRequests.php' => 'Lists a guest\'s results to the player asked to become that guest - their own results.',
         'Query/GetNotifications.php' => 'A notification about one result - no figure.',
+        'Query/GetParticipantsSheetState.php' => 'Organiser tooling: in which rounds a linked player has any time at all - the results guard of the participants spreadsheet (a person with a time in a round stays in it, like the import\'s rule); no figure.',
         'Query/GetPendingPuzzleProposals.php' => self::ADMIN,
         'Query/GetPlayerDuplicateCases.php' => self::DUPLICATES,
         'Query/GetPlayerIdsForSitemap.php' => self::BACKGROUND,

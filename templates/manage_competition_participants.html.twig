@@ -27,6 +27,9 @@
             </div>
         {% endif %}
 
+        {# Name tags with a QR for the live result entry (live-results.md) - added by the live entry stream #}
+        {% if not competition.isOnline %}<p class="mb-3"><a href="{{ path('competition_name_tags', {competitionId: competition.id}) }}" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener"><i class="bi bi-person-badge me-1"></i>{{ 'name_tags.button'|trans }}</a></p>{% endif %}
+
         {# Import section #}
         <details class="mb-4">
             <summary class="btn btn-outline-secondary btn-sm">

@@ -1,0 +1,421 @@
+{% extends 'base.html.twig' %}
+
+{# The referee's phone during a round - docs/features/competitions-management/live-results.md.
+   No site header/footer: every pixel of a 375 px screen goes to find → enter → confirm. #}
+
+{% set hide_comparison_launcher = true %}
+{% set uuid_placeholder = '00000000-0000-0000-0000-000000000000' %}
+{% set solo_round = round.category.value == 'solo' %}
+{% set uses_tables = not competition.isOnline and not round.tableNumbersOff %}
+
+{# Texts the controller writes itself (placeholders filled in JS) #}
+{% set live_messages = {
+    noResult: 'live_results.entry.no_result'|trans,
+    savedBy: 'live_results.entry.saved_by'|trans,
+    saved: 'live_results.entry.saved'|trans,
+    waiting: 'live_results.entry.waiting'|trans,
+    you: 'live_results.entry.you'|trans,
+    local: 'live_results.entry.local'|trans,
+    timeHint: 'live_results.entry.time_hint'|trans,
+    timeParsed: 'live_results.entry.time_parsed'|trans,
+    timeInvalid: 'live_results.entry.time_invalid'|trans,
+    timeOutOfRange: 'official_results.reason.invalid_seconds'|trans,
+    overLimit: 'live_results.entry.over_limit'|trans,
+    piecesOf: 'live_results.entry.pieces_of'|trans,
+    piecesHint: 'live_results.entry.pieces_hint'|trans,
+    piecesInvalid: 'official_results.reason.invalid_pieces_placed'|trans,
+    piecesPlaced: 'official_results.result.pieces_placed'|trans,
+    piecesPlacedOf: 'official_results.result.pieces_placed_of'|trans,
+    didNotStart: 'official_results.result.did_not_start'|trans,
+    finishedNowNote: 'live_results.confirm.finished_now'|trans,
+    replaces: 'live_results.confirm.replaces'|trans,
+    replacesBy: 'live_results.confirm.replaces_by'|trans,
+    same: 'live_results.confirm.same'|trans,
+    clearResult: 'live_results.confirm.clear_result'|trans,
+    table: 'live_results.table'|trans,
+    noTable: 'live_results.no_table'|trans,
+    toastSaved: 'live_results.toast.saved'|trans,
+    toastUndone: 'live_results.toast.undone'|trans,
+    toastNothing: 'live_results.toast.nothing'|trans,
+    scanForeign: 'live_results.scan.foreign'|trans,
+    scanNotInRound: 'live_results.scan.not_in_round'|trans({'%round%': round.name}),
+    entrantNotInRound: 'live_results.entrant_not_in_round'|trans({'%round%': round.name}),
+    openTheirRound: 'live_results.scan.open_their_round'|trans,
+    scanCamera: 'live_results.scan.camera_error'|trans,
+    scanDecoder: 'live_results.scan.decoder_error'|trans,
+    scanHint: 'live_results.scan.hint'|trans,
+    syncSaved: 'live_results.sync.saved'|trans,
+    syncSending: 'live_results.sync.sending'|trans,
+    syncSignIn: 'live_results.sync.sign_in'|trans,
+    syncForbidden: 'live_results.sync.forbidden'|trans,
+    bannerAuth: 'live_results.banner.auth'|trans,
+    bannerForbidden: 'live_results.banner.forbidden'|trans,
+    bannerStorage: 'live_results.banner.storage'|trans,
+    signIn: 'live_results.banner.sign_in'|trans,
+    retry: 'live_results.banner.retry'|trans,
+    conflict: 'live_results.problem.conflict'|trans,
+    conflictBy: 'live_results.problem.conflict_by'|trans,
+    yours: 'live_results.problem.yours'|trans,
+    keepMine: 'live_results.problem.keep_mine'|trans,
+    takeTheirs: 'live_results.problem.take_theirs'|trans,
+    rejected: 'live_results.problem.rejected'|trans,
+    fix: 'live_results.problem.fix'|trans,
+    discard: 'live_results.problem.discard'|trans,
+    stuck: 'live_results.problem.stuck'|trans,
+    retryIn: 'live_results.problem.retry_in'|trans,
+    retryNow: 'live_results.problem.retry_now'|trans,
+    fieldResult: 'live_results.problem.field_result'|trans,
+    fieldTable: 'live_results.problem.field_table'|trans,
+    fieldQualified: 'live_results.problem.field_qualified'|trans,
+    qualified: 'official_results.qualified'|trans,
+    notQualified: 'live_results.problem.not_qualified'|trans,
+    leaveUnsent: 'live_results.leave_unsent'|trans,
+    recentEmpty: 'live_results.recent.empty'|trans,
+    matchesNone: 'live_results.find.none'|trans,
+    stopwatchRunning: 'live_results.stopwatch.running'|trans,
+    stopwatchStopped: 'live_results.stopwatch.stopped'|trans,
+    stopwatchNotStarted: 'live_results.stopwatch.not_started'|trans,
+    stopwatchTimesUp: 'live_results.stopwatch.times_up'|trans,
+    tables: 'live_results.tables.count'|trans,
+    addNameMissing: 'live_results.add.name_missing'|trans,
+    addTeamMissing: 'live_results.add.team_missing'|trans,
+    addTableInvalid: 'official_results.reason.invalid_table_number'|trans,
+    addTableTaken: 'live_results.add.table_taken'|trans,
+    sheetEmpty: 'live_results.sheet.empty'|trans,
+    sheetWaiting: 'live_results.sheet.waiting'|trans,
+    sheetSending: 'live_results.sheet.sending'|trans,
+    sheetOffline: 'live_results.sheet.offline'|trans,
+    sheetOtherRound: 'live_results.sheet.other_round'|trans,
+    sheetRetryAll: 'live_results.sheet.retry_all'|trans,
+    keyboardLetters: 'live_results.find.keyboard_letters'|trans,
+    keyboardDigits: 'live_results.find.keyboard_digits'|trans,
+    rowSaved: 'live_results.row.saved'|trans,
+    rowWaiting: 'live_results.row.waiting'|trans,
+    rowProblem: 'live_results.row.problem'|trans,
+} %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block title %}{{ 'live_results.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block full_content %}
+    <style>
+        main { padding-top: 0 !important; }
+        .lr { --lr-row: 3.5rem; max-width: 40rem; margin: 0 auto; padding-bottom: 6rem; }
+        .lr-bar { position: sticky; top: 0; z-index: 1030; background: var(--bs-body-bg, #fff); border-bottom: 1px solid var(--bs-border-color, #e3e9ef); padding: .5rem .75rem .375rem; }
+        .lr-bar-row { display: flex; align-items: center; gap: .5rem; }
+        .lr-icon-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: .5rem; font-size: 1.25rem; color: inherit; }
+        .lr-round-select { flex: 1 1 auto; min-width: 0; height: 2.75rem; font-weight: 500; }
+        .lr-pill { flex: 0 0 auto; display: inline-flex; align-items: center; gap: .375rem; min-height: 2.75rem; max-width: 11rem; padding: 0 .75rem; border: 1px solid transparent; border-radius: 1.375rem; font-size: .875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #e9f7ef; color: #146c43; }
+        .lr-pill[data-state="waiting"] { background: #fff4e0; color: #8a5300; }
+        .lr-pill[data-state="problem"], .lr-pill[data-state="blocked"] { background: #fde8e8; color: #b02a37; border-color: #f1aeb5; }
+        .lr-pill-dot { flex: 0 0 auto; width: .625rem; height: .625rem; border-radius: 50%; background: currentColor; }
+        .lr-pill[data-sending="1"] .lr-pill-dot { animation: lr-pulse 1s ease-in-out infinite; }
+        @keyframes lr-pulse { 50% { opacity: .25; } }
+        @media (prefers-reduced-motion: reduce) { .lr-pill[data-sending="1"] .lr-pill-dot { animation: none; } }
+        .lr-status { display: flex; justify-content: space-between; gap: .5rem; min-height: 1.5rem; margin-top: .25rem; font-size: .875rem; color: var(--bs-secondary-color, #6c757d); font-variant-numeric: tabular-nums; }
+        .lr-status [data-state="running"] { color: #146c43; font-weight: 500; }
+        .lr-section { padding: .75rem; }
+        .lr-find { display: flex; gap: .5rem; }
+        .lr-find-input { flex: 1 1 auto; min-width: 0; height: 3.5rem; font-size: 1.375rem; }
+        .lr-find-input::placeholder { font-size: 1rem; }
+        .lr-find .btn { flex: 0 0 auto; min-width: 3.5rem; height: 3.5rem; font-size: 1.25rem; }
+        .lr-find .lr-keyboard { min-width: 3rem; padding: 0 .5rem; font-size: .875rem; font-weight: 600; }
+        .lr-list { display: flex; flex-direction: column; gap: .375rem; margin-top: .75rem; }
+        .lr-row { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: var(--lr-row); padding: .5rem .75rem; border: 1px solid var(--bs-border-color, #e3e9ef); border-radius: .5rem; background: var(--bs-body-bg, #fff); text-align: left; color: inherit; }
+        .lr-row:hover { background: var(--bs-tertiary-bg, #f8f9fa); }
+        .lr-row.lr-row-exact { border-color: var(--bs-primary, #fe696a); box-shadow: 0 0 0 1px var(--bs-primary, #fe696a); }
+        .lr-table { flex: 0 0 auto; min-width: 2.75rem; padding: .25rem .375rem; border-radius: .375rem; background: var(--bs-tertiary-bg, #f3f5f9); font-size: 1.125rem; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+        .lr-table-none { color: var(--bs-secondary-color, #6c757d); font-weight: 400; }
+        .lr-row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+        .lr-row-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lr-row-sub { font-size: .8125rem; color: var(--bs-secondary-color, #6c757d); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lr-row-result { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-weight: 500; text-align: right; }
+        .lr-row-sync { flex: 0 0 1.25rem; text-align: center; }
+        .lr-recent-title { margin: 1.25rem 0 0; font-size: .875rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--bs-secondary-color, #6c757d); }
+        .lr-entry-head { display: flex; align-items: center; gap: .5rem; }
+        .lr-entry-head .lr-table { font-size: 1.5rem; min-width: 3.5rem; }
+        .lr-entry-name { font-size: 1.25rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+        .lr-entry-now { margin: .5rem 0 .75rem; font-size: .9375rem; }
+        .lr-time-input { height: 4rem; font-size: 2rem; text-align: center; font-variant-numeric: tabular-nums; letter-spacing: .05em; }
+        .lr-parsed { min-height: 1.75rem; padding-top: .25rem; font-size: 1rem; text-align: center; font-variant-numeric: tabular-nums; }
+        .lr-big-btn { min-height: 3.5rem; font-size: 1.125rem; font-weight: 600; }
+        .lr-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .5rem; margin-top: .75rem; }
+        .lr-actions .btn { min-height: 3.25rem; padding: .375rem .5rem; font-weight: 500; white-space: normal; line-height: 1.2; }
+        .lr-finished-now { font-variant-numeric: tabular-nums; }
+        .lr-confirm { text-align: center; }
+        .lr-confirm-table { font-size: 1rem; color: var(--bs-secondary-color, #6c757d); }
+        .lr-confirm-name { font-size: 1.5rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+        .lr-confirm-result { margin: .75rem 0; font-size: 3rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+        .lr-problem { margin: .5rem 0; }
+        .lr-toast { position: fixed; left: .75rem; right: .75rem; bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); z-index: 1080; display: flex; align-items: center; gap: .75rem; max-width: 38.5rem; margin: 0 auto; padding: .5rem .5rem .5rem 1rem; border-radius: .75rem; background: #212529; color: #fff; box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.25); }
+        .lr-toast-text { flex: 1 1 auto; min-width: 0; }
+        .lr-toast .btn { min-height: 2.75rem; color: #ffc9c9; font-weight: 600; }
+        .lr-overlay { position: fixed; inset: 0; z-index: 1090; display: flex; flex-direction: column; background: var(--bs-body-bg, #fff); overflow-y: auto; }
+        .lr-overlay-head { position: sticky; top: 0; display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; background: inherit; border-bottom: 1px solid var(--bs-border-color, #e3e9ef); }
+        .lr-scanner { background: #000; color: #fff; }
+        .lr-scanner .lr-overlay-head { background: rgba(0,0,0,.6); border-color: transparent; }
+        .lr-scanner video { flex: 1 1 auto; width: 100%; min-height: 0; object-fit: cover; }
+        .lr-scanner-hint { padding: .75rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px)); text-align: center; }
+        .lr-hidden { display: none !important; }
+    </style>
+
+    <div class="lr"
+         data-controller="live-results"
+         data-live-results-user-id-value="{{ logged_user.profile.playerId }}"
+         data-live-results-competition-id-value="{{ competition.id }}"
+         data-live-results-round-id-value="{{ round.id }}"
+         data-live-results-locale-value="{{ app.request.locale }}"
+         data-live-results-state-url-value="{{ path('official_results_round_state', {roundId: round.id}) }}"
+         data-live-results-record-url-value="{{ path('official_results_record', {roundId: uuid_placeholder}) }}"
+         data-live-results-live-url-value="{{ path('live_results', {roundId: uuid_placeholder}) }}"
+         data-live-results-scan-url-value="{{ path('live_results_scan', {competitionId: competition.id, participantId: uuid_placeholder}) }}"
+         data-live-results-login-url-value="{{ path('login', {return: path('live_results', {roundId: round.id})}) }}"
+         data-live-results-mercure-url-value="{{ mercure_public_url }}"
+         data-live-results-csrf-token-value="{{ csrf_token('official_results') }}"
+         data-live-results-entrant-value="{{ entrant ? entrant.participantId : '' }}"
+         data-live-results-entrant-name-value="{{ entrant ? entrant.name : '' }}"
+         data-live-results-auto-picked-value="{{ auto_picked ? 'true' : 'false' }}"
+         data-live-results-messages-value="{{ live_messages|json_encode|e('html_attr') }}"
+         data-live-results-plurals-value="{{ {
+             waiting: browser_translation('live_results.sync.waiting'),
+             offline: browser_translation('live_results.sync.offline'),
+             attention: browser_translation('live_results.sync.attention'),
+             foreign: browser_translation('live_results.banner.foreign'),
+         }|json_encode|e('html_attr') }}"
+    >
+        <div class="lr-bar">
+            <div class="lr-bar-row">
+                <a class="lr-icon-btn" href="{{ path('manage_competition_rounds', {competitionId: competition.id}) }}" aria-label="{{ 'live_results.back_to_rounds'|trans }}" title="{{ 'live_results.back_to_rounds'|trans }}">
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                </a>
+                <select class="form-select lr-round-select" aria-label="{{ 'live_results.round'|trans }}" data-action="live-results#switchRound" data-live-results-target="roundSelect">
+                    {% for option in rounds %}
+                        <option value="{{ option.roundId }}" {{ option.roundId == round.id ? 'selected' }}>
+                            {{- option.name -}}
+                            {%- if option.stopwatchStatus == 'running' %} · {{ 'live_results.stopwatch.running'|trans }}{% endif -%}
+                        </option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="lr-pill" data-live-results-target="pill" data-action="live-results#openSheet" data-state="saved" aria-haspopup="dialog">
+                    <span class="lr-pill-dot" aria-hidden="true"></span>
+                    <span data-live-results-target="pillText">{{ 'live_results.sync.saved'|trans }}</span>
+                </button>
+            </div>
+            <div class="lr-status" aria-live="off">
+                <span data-live-results-target="stopwatch">&nbsp;</span>
+                <span data-live-results-target="tables"{% if not uses_tables %} hidden{% endif %}>&nbsp;</span>
+            </div>
+        </div>
+
+        <div class="lr-section pb-0" data-live-results-target="banner" hidden></div>
+
+        {# 1. Find #}
+        <section class="lr-section" data-live-results-target="findView">
+            <form class="lr-find" role="search" novalidate data-action="submit->live-results#find">
+                <input type="search"
+                       class="form-control lr-find-input"
+                       data-live-results-target="findInput"
+                       data-action="input->live-results#search"
+                       placeholder="{{ (uses_tables ? 'live_results.find.placeholder' : 'live_results.find.placeholder_names')|trans }}"
+                       aria-label="{{ (uses_tables ? 'live_results.find.placeholder' : 'live_results.find.placeholder_names')|trans }}"
+                       inputmode="search"
+                       enterkeyhint="go"
+                       autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       spellcheck="false">
+                <button type="button" class="btn btn-outline-secondary lr-keyboard" data-live-results-target="keyboardToggle" data-action="live-results#toggleKeyboard"{% if not uses_tables %} hidden{% endif %}
+                        aria-label="{{ 'live_results.find.keyboard'|trans }}" title="{{ 'live_results.find.keyboard'|trans }}">ABC</button>
+                <button type="button" class="btn btn-outline-primary" data-action="live-results#openScanner"
+                        aria-label="{{ 'live_results.scan.button'|trans }}" title="{{ 'live_results.scan.button'|trans }}">
+                    <i class="bi bi-qr-code-scan" aria-hidden="true"></i>
+                </button>
+            </form>
+
+            <div class="mt-2" data-live-results-target="findNotice" role="status" hidden></div>
+
+            {% if uses_tables %}
+                <div class="alert alert-info small py-2 px-3 mt-2 mb-0" data-live-results-target="readiness" hidden>
+                    {{ 'live_results.tables.recommended'|trans }}
+                    {% if seating_url %}
+                        <a href="{{ seating_url }}" class="alert-link text-nowrap">{{ 'live_results.tables.seating'|trans }}</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <div class="lr-list" data-live-results-target="matches"></div>
+
+            <button type="button" class="btn btn-outline-secondary w-100 mt-2 lr-big-btn fw-normal" data-action="live-results#openAdd" data-live-results-target="addButton">
+                <i class="bi bi-person-plus me-1" aria-hidden="true"></i>{{ 'live_results.add.button'|trans }}
+            </button>
+
+            <div data-live-results-target="recentBlock">
+                <h2 class="lr-recent-title">{{ 'live_results.recent.title'|trans }}</h2>
+                <div class="lr-list" data-live-results-target="recent"></div>
+            </div>
+
+            {% if results_desk_url %}
+                <p class="text-center mt-4 mb-0">
+                    <a href="{{ results_desk_url }}" class="small">{{ 'live_results.results_desk'|trans }}</a>
+                </p>
+            {% endif %}
+        </section>
+
+        {# 2. Enter #}
+        <section class="lr-section" data-live-results-target="entryView" hidden aria-labelledby="lr-entry-name">
+            <div class="lr-entry-head">
+                <button type="button" class="btn btn-link lr-icon-btn p-0" data-action="live-results#backToFind" aria-label="{{ 'live_results.back'|trans }}" title="{{ 'live_results.back'|trans }}">
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                </button>
+                <span class="lr-table" data-live-results-target="entryTable"{% if not uses_tables %} hidden{% endif %}></span>
+                <div class="flex-grow-1 min-w-0">
+                    <div class="lr-entry-name" id="lr-entry-name" data-live-results-target="entryName"></div>
+                    <div class="small text-muted" data-live-results-target="entryMembers"></div>
+                </div>
+            </div>
+
+            <div class="lr-entry-now" data-live-results-target="entryNow" aria-live="polite"></div>
+            <div data-live-results-target="entryProblems"></div>
+
+            {# While the round's stopwatch runs, the usual case is "finished just now" - first, and without a keyboard over it #}
+            <button type="button" class="btn btn-success w-100 lr-big-btn lr-finished-now mb-3" data-live-results-target="finishedNow" data-action="live-results#finishedNow" hidden>
+                <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'live_results.entry.finished_now'|trans }}
+                <span class="ms-1" data-live-results-target="finishedNowClock"></span>
+            </button>
+
+            <form data-live-results-target="timeForm" data-action="submit->live-results#reviewTime" novalidate>
+                <label for="lr-time" class="form-label mb-1">{{ 'live_results.entry.time'|trans }}</label>
+                <input type="text"
+                       id="lr-time"
+                       class="form-control lr-time-input"
+                       data-live-results-target="timeInput"
+                       data-action="input->live-results#timeTyped"
+                       inputmode="numeric"
+                       enterkeyhint="next"
+                       autocomplete="off"
+                       autocorrect="off"
+                       spellcheck="false"
+                       placeholder="{{ 'live_results.entry.time_placeholder'|trans }}"
+                       aria-describedby="lr-time-parsed">
+                <div class="lr-parsed" id="lr-time-parsed" data-live-results-target="timeParsed" aria-live="polite"></div>
+                <button type="submit" class="btn btn-primary w-100 lr-big-btn">{{ 'live_results.entry.review'|trans }}</button>
+            </form>
+
+            <form class="lr-hidden" data-live-results-target="piecesForm" data-action="submit->live-results#reviewPieces" novalidate>
+                <label for="lr-pieces" class="form-label mb-1">{{ 'live_results.entry.pieces_placed'|trans }}</label>
+                <input type="text"
+                       id="lr-pieces"
+                       class="form-control lr-time-input"
+                       data-live-results-target="piecesInput"
+                       data-action="input->live-results#piecesTyped"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       enterkeyhint="next"
+                       autocomplete="off"
+                       aria-describedby="lr-pieces-parsed">
+                <div class="lr-parsed" id="lr-pieces-parsed" data-live-results-target="piecesParsed" aria-live="polite"></div>
+                <button type="submit" class="btn btn-primary w-100 lr-big-btn">{{ 'live_results.entry.review'|trans }}</button>
+                <button type="button" class="btn btn-link w-100 mt-1" data-action="live-results#showTimeForm">{{ 'live_results.entry.back_to_time'|trans }}</button>
+            </form>
+
+            <div class="lr-actions">
+                <button type="button" class="btn btn-outline-secondary" data-action="live-results#didNotFinish">{{ 'live_results.entry.did_not_finish'|trans }}</button>
+                <button type="button" class="btn btn-outline-secondary" data-action="live-results#didNotStart">{{ 'live_results.entry.did_not_start'|trans }}</button>
+                <button type="button" class="btn btn-outline-danger" data-live-results-target="clearButton" data-action="live-results#clearResult">{{ 'live_results.entry.clear'|trans }}</button>
+            </div>
+        </section>
+
+        {# 3. Confirm #}
+        <section class="lr-section lr-confirm" data-live-results-target="confirmView" hidden aria-labelledby="lr-confirm-name">
+            <div class="lr-confirm-table" data-live-results-target="confirmTable"></div>
+            <div class="lr-confirm-name" id="lr-confirm-name" data-live-results-target="confirmName"></div>
+            <div class="lr-confirm-result" data-live-results-target="confirmResult"></div>
+            <div class="small mb-3" data-live-results-target="confirmNote"></div>
+            <button type="button" class="btn btn-success w-100 lr-big-btn" data-live-results-target="saveButton" data-action="live-results#save">
+                <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'live_results.confirm.save'|trans }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary w-100 mt-2 lr-big-btn fw-normal" data-action="live-results#backToEntry">{{ 'live_results.confirm.change'|trans }}</button>
+        </section>
+
+        {# 4. Quick add #}
+        <section class="lr-section" data-live-results-target="addView" hidden aria-labelledby="lr-add-title">
+            <div class="lr-entry-head mb-2">
+                <button type="button" class="btn btn-link lr-icon-btn p-0" data-action="live-results#backToFind" aria-label="{{ 'live_results.back'|trans }}" title="{{ 'live_results.back'|trans }}">
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                </button>
+                <h1 class="h5 mb-0" id="lr-add-title">{{ (solo_round ? 'live_results.add.title_person' : 'live_results.add.title_team')|trans }}</h1>
+            </div>
+
+            <form data-live-results-target="addForm" data-action="submit->live-results#addEntrant input->live-results#addTyped" novalidate>
+                {% if solo_round %}
+                    <label for="lr-add-name" class="form-label">{{ 'live_results.add.name'|trans }}</label>
+                    <input type="text" id="lr-add-name" class="form-control form-control-lg mb-3" data-live-results-target="addName" autocomplete="off" autocapitalize="words" enterkeyhint="next" maxlength="255">
+                {% else %}
+                    <label for="lr-add-name" class="form-label">{{ 'live_results.add.team_name'|trans }}</label>
+                    <input type="text" id="lr-add-name" class="form-control form-control-lg mb-3" data-live-results-target="addName" autocomplete="off" autocapitalize="words" enterkeyhint="next" maxlength="255">
+                    <fieldset class="mb-3">
+                        <legend class="form-label fs-6 mb-2">{{ 'live_results.add.members'|trans }}</legend>
+                        <div class="d-flex flex-column gap-2" data-live-results-target="addMembers">
+                            {% for number in 1..(round.category.value == 'duo' ? 2 : 3) %}
+                                <input type="text" class="form-control form-control-lg" data-member aria-label="{{ 'live_results.add.member'|trans({'%number%': number}) }}" placeholder="{{ 'live_results.add.member'|trans({'%number%': number}) }}" autocomplete="off" autocapitalize="words" maxlength="255">
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-link px-0" data-action="live-results#addMemberInput" data-label="{{ 'live_results.add.member'|trans({'%number%': '__N__'}) }}">
+                            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ 'live_results.add.another_member'|trans }}
+                        </button>
+                    </fieldset>
+                {% endif %}
+
+                {% if uses_tables %}
+                    <label for="lr-add-table" class="form-label">{{ 'live_results.add.table'|trans }}</label>
+                    <input type="text" id="lr-add-table" class="form-control form-control-lg mb-3" data-live-results-target="addTable" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done">
+                {% endif %}
+
+                <div class="alert alert-danger py-2 small" data-live-results-target="addError" role="alert" hidden></div>
+
+                <div data-live-results-target="addSuggestions" hidden>
+                    <h2 class="lr-recent-title mt-0">{{ 'live_results.add.already'|trans }}</h2>
+                    <div class="lr-list mb-3" data-live-results-target="addSuggestionList"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 lr-big-btn">{{ 'live_results.add.submit'|trans }}</button>
+                <p class="small text-muted mt-2 mb-0">{{ 'live_results.add.note'|trans }}</p>
+            </form>
+        </section>
+
+        {# Saved - with Undo #}
+        <div class="lr-toast" data-live-results-target="toast" role="status" aria-live="polite" hidden>
+            <span class="lr-toast-text" data-live-results-target="toastText"></span>
+            <button type="button" class="btn btn-link text-decoration-none" data-live-results-target="toastUndo" data-action="live-results#undo">{{ 'live_results.toast.undo'|trans }}</button>
+        </div>
+
+        {# What is not saved yet, and what needs the referee #}
+        <div class="lr-overlay" data-live-results-target="sheet" role="dialog" aria-modal="true" aria-labelledby="lr-sheet-title" hidden>
+            <div class="lr-overlay-head">
+                <h2 class="h5 mb-0 flex-grow-1" id="lr-sheet-title">{{ 'live_results.sheet.title'|trans }}</h2>
+                <button type="button" class="btn btn-outline-secondary lr-icon-btn" data-action="live-results#closeOverlays" aria-label="{{ 'live_results.close'|trans }}" title="{{ 'live_results.close'|trans }}">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="lr-section" data-live-results-target="sheetBody"></div>
+        </div>
+
+        {# Name tag scanner #}
+        <div class="lr-overlay lr-scanner" data-live-results-target="scanner" role="dialog" aria-modal="true" aria-labelledby="lr-scanner-title" hidden>
+            <div class="lr-overlay-head">
+                <h2 class="h6 mb-0 flex-grow-1 text-white" id="lr-scanner-title">{{ 'live_results.scan.title'|trans }}</h2>
+                <button type="button" class="btn btn-light lr-icon-btn" data-action="live-results#closeOverlays" aria-label="{{ 'live_results.close'|trans }}" title="{{ 'live_results.close'|trans }}">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+            <video data-live-results-target="video" muted playsinline></video>
+            <p class="lr-scanner-hint mb-0" data-live-results-target="scanHint" aria-live="polite">{{ 'live_results.scan.hint'|trans }}</p>
+        </div>
+
+        <script type="application/json" data-live-results-target="initialState">{{ state|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
+    </div>
+{% endblock %}

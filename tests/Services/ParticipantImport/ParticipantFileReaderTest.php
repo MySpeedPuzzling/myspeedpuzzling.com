@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\ParticipantImport;
 
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWriter;
@@ -148,6 +149,40 @@ final class ParticipantFileReaderTest extends TestCase
         self::assertSame('André Müller', $sheet->rows[3][0]);
         self::assertSame('José Peña', $sheet->rows[4][0]);
         self::assertSame('Windows-1252', $this->reader->detectCsvOptions($path)->encoding);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function codePages(): iterable
+    {
+        // Western names with letters that are Czech ones in Windows-1250 (è = č, ò = ň, ø = ř)
+        yield 'French' => ["H\xE9l\xE8ne Lef\xE8vre", 'Hélène Lefèvre', 'Windows-1252'];
+        yield 'Italian' => ["Niccol\xF2", 'Niccolò', 'Windows-1252'];
+        yield 'Danish' => ["S\xF8ren", 'Søren', 'Windows-1252'];
+        yield 'British fee' => ["Alex Example \xA315", 'Alex Example £15', 'Windows-1252'];
+        // Central European names
+        yield 'Czech' => ["\xD8eho\xF8 \xC8erm\xE1k", 'Řehoř Čermák', 'Windows-1250'];
+        yield 'Czech with rare letters' => ["\x8A\x9Dastn\xFD", 'Šťastný', 'Windows-1250'];
+        yield 'Polish' => ["\xA3ukasz", 'Łukasz', 'Windows-1250'];
+    }
+
+    #[DataProvider('codePages')]
+    public function testWindowsCodePageIsToldFromTheLetters(string $bytes, string $name, string $encoding): void
+    {
+        $path = $this->file("name,country\n" . $bytes . ",xx\n");
+
+        self::assertSame($name, $this->reader->read($path, ParticipantFileFormat::Csv)->rows[2][0]);
+        self::assertSame($encoding, $this->reader->detectCsvOptions($path)->encoding);
+    }
+
+    public function testWesternNamesTogetherStayWindows1252(): void
+    {
+        $path = $this->file("name;country\nH\xE9l\xE8ne Lef\xE8vre;fr\nNiccol\xF2;it\nS\xF8ren;dk\n");
+
+        $sheet = $this->reader->read($path, ParticipantFileFormat::Csv);
+
+        self::assertSame(['Hélène Lefèvre', 'Niccolò', 'Søren'], array_column($sheet->rows, 0));
     }
 
     public function testEncodingAndSeparatorCanBeOverridden(): void
@@ -338,6 +373,84 @@ final class ParticipantFileReaderTest extends TestCase
         $this->reader->read($path, $format);
     }
 
+    /**
+     * @return iterable<string, array{list<int>}>
+     */
+    public static function zipBombs(): iterable
+    {
+        yield 'one huge part' => [[ParticipantFileReader::MAX_UNPACKED_PART_BYTES + 1]];
+        yield 'too much together' => [[18 * 1024 * 1024, 18 * 1024 * 1024, 18 * 1024 * 1024]];
+    }
+
+    /**
+     * @param list<int> $partSizes
+     */
+    #[DataProvider('zipBombs')]
+    public function testAZipBombIsRefusedBeforeItIsUnpacked(array $partSizes): void
+    {
+        $path = (string) tempnam(sys_get_temp_dir(), 'participant-reader-bomb-');
+        $this->files[] = $path;
+        $zip = new \ZipArchive();
+        $zip->open($path, \ZipArchive::OVERWRITE);
+        foreach ($partSizes as $index => $size) {
+            $zip->addFromString(sprintf('xl/worksheets/sheet%d.xml', $index + 1), str_repeat(' ', $size));
+        }
+        $zip->close();
+
+        // Tiny on disk, huge unpacked
+        self::assertLessThan(500_000, (int) filesize($path));
+
+        foreach (['sheets', 'read'] as $method) {
+            try {
+                $this->reader->{$method}($path, ParticipantFileFormat::Xlsx);
+                self::fail($method . '() refuses a zip bomb');
+            } catch (ParticipantFileUnreadable $e) {
+                self::assertSame(ParticipantFileUnreadable::TOO_LARGE, $e->translationKey);
+            }
+        }
+    }
+
+    public function testASheetWithTooManyCellsIsRefused(): void
+    {
+        $columns = ParticipantFileReader::MAX_COLUMNS;
+        $rows = intdiv(ParticipantFileReader::MAX_CELLS, $columns) + 1;
+
+        $xml = '';
+        for ($row = 1; $row <= $rows; $row++) {
+            $xml .= '<row r="' . $row . '">';
+            for ($column = 1; $column <= $columns; $column++) {
+                $xml .= '<c r="' . Coordinate::stringFromColumnIndex($column) . $row . '"><v>' . $column . '</v></c>';
+            }
+            $xml .= '</row>';
+        }
+
+        try {
+            $this->reader->read($this->xlsxWithSheetXml($xml), ParticipantFileFormat::Xlsx);
+            self::fail('A sheet with more cells than a list holds is refused');
+        } catch (ParticipantFileUnreadable $e) {
+            self::assertSame(ParticipantFileUnreadable::TOO_LARGE, $e->translationKey);
+        }
+    }
+
+    public function testOnlySoManyMergedRangesAreTakenIntoAccount(): void
+    {
+        $data = '<row r="1"><c r="A1" t="inlineStr"><is><t>name</t></is></c><c r="B1" t="inlineStr"><is><t>team</t></is></c></row>'
+            . '<row r="2"><c r="A2" t="inlineStr"><is><t>Alex Example</t></is></c><c r="B2" t="inlineStr"><is><t>Corner Crew</t></is></c></row>'
+            . '<row r="3"><c r="A3" t="inlineStr"><is><t>Bea Sample</t></is></c></row>';
+
+        $merges = '';
+        for ($i = 0; $i < ParticipantFileReader::MAX_MERGED_RANGES; $i++) {
+            $merges .= '<mergeCell ref="D' . ($i * 2 + 10) . ':D' . ($i * 2 + 11) . '"/>';
+        }
+
+        // Within the limit the team merged over both rows reaches the second one; past it, it does not
+        $within = $this->reader->read($this->xlsxWithSheetXml($data, '<mergeCell ref="B2:B3"/>'), ParticipantFileFormat::Xlsx);
+        self::assertSame('Corner Crew', $within->rows[3][1]);
+
+        $past = $this->reader->read($this->xlsxWithSheetXml($data, $merges . '<mergeCell ref="B2:B3"/>'), ParticipantFileFormat::Xlsx);
+        self::assertSame('', $past->rows[3][1]);
+    }
+
     public function testEmptyWorkbookIsUnreadable(): void
     {
         $path = $this->xlsx(new Spreadsheet());
@@ -365,6 +478,30 @@ final class ParticipantFileReaderTest extends TestCase
         $path = $this->file('');
         (new XlsxWriter($spreadsheet))->save($path);
         $spreadsheet->disconnectWorksheets();
+
+        return $path;
+    }
+
+    /**
+     * A real workbook whose only sheet is replaced by the given cells (and merged ranges) - for sheets PhpSpreadsheet
+     * would take long to write.
+     */
+    private function xlsxWithSheetXml(string $sheetData, string $mergeCells = ''): string
+    {
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->getActiveSheet()->fromArray([['name', 'team']]);
+        $path = $this->xlsx($spreadsheet);
+
+        $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            . '<sheetData>' . $sheetData . '</sheetData>'
+            . ($mergeCells !== '' ? '<mergeCells>' . $mergeCells . '</mergeCells>' : '')
+            . '</worksheet>';
+
+        $zip = new \ZipArchive();
+        $zip->open($path);
+        $zip->addFromString('xl/worksheets/sheet1.xml', $xml);
+        $zip->close();
 
         return $path;
     }

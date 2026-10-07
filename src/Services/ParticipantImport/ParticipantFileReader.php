@@ -30,14 +30,25 @@ use SpeedPuzzling\Web\Value\ParticipantSheet;
  *
  * The header is the first row with at least 2 values (title rows above it are left out). Rows are keyed by the row number
  * a spreadsheet shows, empty rows are left out, every row is as wide as the widest row (headers padded with ''). At most
- * MAX_ROWS rows × MAX_COLUMNS columns are read. Anything that is not a readable file throws ParticipantFileUnreadable -
- * never a 500.
+ * MAX_ROWS rows × MAX_COLUMNS columns are read; a workbook unpacking to more than MAX_UNPACKED_BYTES (or one part to
+ * more than MAX_UNPACKED_PART_BYTES) or holding more than MAX_CELLS cells in the sheet is refused. Anything that is not
+ * a readable file throws ParticipantFileUnreadable - never a 500.
  */
 final class ParticipantFileReader
 {
     public const int MAX_ROWS = 5000;
-    public const int MAX_COLUMNS = 100;
+    public const int MAX_COLUMNS = 40;
+    /** Cells of one sheet read from a workbook (MAX_ROWS × MAX_COLUMNS would be twice as many) */
+    public const int MAX_CELLS = 100_000;
+    /** Merged ranges of one sheet taken into account */
+    public const int MAX_MERGED_RANGES = 5000;
+    /** An .xlsx unpacked: all parts together, and any single part (a zip bomb is refused before it is opened) */
+    public const int MAX_UNPACKED_BYTES = 50 * 1024 * 1024;
+    public const int MAX_UNPACKED_PART_BYTES = 20 * 1024 * 1024;
+    private const int MAX_ZIP_ENTRIES = 10_000;
     private const int DELIMITER_SAMPLE_RECORDS = 20;
+    /** Bytes of a file looked at to tell Windows-1250 from Windows-1252 */
+    private const int ENCODING_SAMPLE_BYTES = 256 * 1024;
 
     /**
      * Windows-1250 bytes 0x80-0xFF as Unicode code points (mbstring does not know the code page, glibc iconv does but
@@ -50,18 +61,36 @@ final class ParticipantFileReader
         . '155 E1 E2 103 E4 13A 107 E7 10D E9 119 EB 11B ED EE 10F 111 144 148 F3 F4 151 F6 F7 159 16F FA 171 FC FD 163 2D9';
 
     /**
-     * Bytes that are a Czech/Slovak/Polish/Hungarian letter in Windows-1250 (Š Ť Ž š ť ž Ś Ź ś ź Ł Ą ł ą Ľ ľ Č Ě Ď Ň Ř Ů
-     * č ě ď ň ř ů …) and rare in Western text.
+     * Bytes that are a Central European letter in Windows-1250 (Š Ś Ť Ž Ź š ś ť ž ź Ł Ą ł ą Ľ ľ) and rare in Western
+     * text (Œ œ Ÿ £ ¥ ³ ¹ ¼ ¾ or nothing in Windows-1252) - evidence only next to a letter (£15 is a price).
      */
     private const array CENTRAL_EUROPEAN_BYTES = [
         0x8A, 0x8C, 0x8D, 0x8E, 0x8F, 0x9A, 0x9C, 0x9D, 0x9E, 0x9F, 0xA3, 0xA5, 0xB3, 0xB9, 0xBC, 0xBE,
-        0xC8, 0xCC, 0xCF, 0xD2, 0xD8, 0xD9, 0xE8, 0xEC, 0xEF, 0xF2, 0xF8, 0xF9,
     ];
+
+    /**
+     * Bytes that are a consonant in Windows-1250 (Č č Ň ň Ř ř) and a vowel in Windows-1252 (È è Ò ò Ø ø): Czech has
+     * them next to vowels (Jiří, Černý, Dvořák), Western text between consonants (Hélène, Søren, Niccolò).
+     */
+    private const array CONSONANT_OR_VOWEL_BYTES = [0xC8, 0xE8, 0xD2, 0xF2, 0xD8, 0xF8];
+
+    /**
+     * Ě ě in Windows-1250, Ì ì in Windows-1252: ě sits inside a word (Věra, Zbyněk), ì mostly ends one (così).
+     */
+    private const array E_CARON_BYTES = [0xCC, 0xEC];
 
     /**
      * Bytes that are a Western letter in Windows-1252 (À Ã Å Æ Ñ Õ à ã å æ ê ñ õ û) and a rare letter in Windows-1250.
      */
     private const array WESTERN_BYTES = [0xC0, 0xC3, 0xC5, 0xC6, 0xD1, 0xD5, 0xE0, 0xE3, 0xE5, 0xE6, 0xEA, 0xF1, 0xF5, 0xFB];
+
+    /**
+     * Vowels that are the same letter in both code pages (Á É Í Ó Ú Ý Ä Ö Ü Â Ô Ë Î and lower case).
+     */
+    private const array SHARED_VOWEL_BYTES = [
+        0xC1, 0xC9, 0xCD, 0xD3, 0xDA, 0xDD, 0xE1, 0xE9, 0xED, 0xF3, 0xFA, 0xFD,
+        0xC4, 0xD6, 0xDC, 0xE4, 0xF6, 0xFC, 0xC2, 0xD4, 0xE2, 0xF4, 0xCB, 0xEB, 0xCE, 0xEE,
+    ];
 
     /**
      * @return list<ParticipantFileSheetInfo> xlsx: the sheets with a value, in workbook order (read() takes an index of
@@ -130,6 +159,8 @@ final class ParticipantFileReader
      */
     private function xlsxSheets(string $path): array
     {
+        self::assertUnpackedSizeIsSafe($path);
+
         $reader = $this->xlsxReader();
 
         try {
@@ -170,21 +201,35 @@ final class ParticipantFileReader
     {
         $reader = $this->xlsxReader();
         $reader->setLoadSheetsOnly([$sheetName]);
-        $reader->setReadFilter(new class (self::MAX_ROWS, self::MAX_COLUMNS) implements IReadFilter {
+        $reader->setReadFilter(new class (self::MAX_ROWS, self::MAX_COLUMNS, self::MAX_CELLS) implements IReadFilter {
+            private int $cells = 0;
+
             public function __construct(
                 private readonly int $maxRows,
                 private readonly int $maxColumns,
+                private readonly int $maxCells,
             ) {
             }
 
             public function readCell(string $columnAddress, int $row, string $worksheetName = ''): bool
             {
-                return $row <= $this->maxRows && Coordinate::columnIndexFromString($columnAddress) <= $this->maxColumns;
+                if ($row > $this->maxRows || Coordinate::columnIndexFromString($columnAddress) > $this->maxColumns) {
+                    return false;
+                }
+
+                // Memory: every accepted cell becomes an object
+                if (++$this->cells > $this->maxCells) {
+                    throw ParticipantFileUnreadable::tooLarge(sprintf('more than %d cells', $this->maxCells));
+                }
+
+                return true;
             }
         });
 
         try {
             $spreadsheet = $reader->load($path);
+        } catch (ParticipantFileUnreadable $e) {
+            throw $e;
         } catch (\Throwable $e) {
             throw new ParticipantFileUnreadable('broken .xlsx workbook', $e);
         }
@@ -216,6 +261,47 @@ final class ParticipantFileReader
         } finally {
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
+        }
+    }
+
+    /**
+     * A 5 MB upload may unpack to gigabytes (a zip bomb): the sizes the archive declares are checked before
+     * PhpSpreadsheet reads a byte of it. A file that is no zip at all is left to the reader's own check.
+     */
+    private static function assertUnpackedSizeIsSafe(string $path): void
+    {
+        $zip = new \ZipArchive();
+
+        if ($zip->open($path, \ZipArchive::RDONLY) !== true) {
+            return;
+        }
+
+        try {
+            if ($zip->count() > self::MAX_ZIP_ENTRIES) {
+                throw ParticipantFileUnreadable::tooLarge(sprintf('%d zip entries', $zip->count()));
+            }
+
+            $total = 0;
+
+            for ($index = 0; $index < $zip->count(); $index++) {
+                $stat = $zip->statIndex($index);
+
+                if ($stat === false) {
+                    throw new ParticipantFileUnreadable('a broken zip entry');
+                }
+
+                if ($stat['size'] > self::MAX_UNPACKED_PART_BYTES) {
+                    throw ParticipantFileUnreadable::tooLarge(sprintf('the zip entry "%s" unpacks to %d bytes', $stat['name'], $stat['size']));
+                }
+
+                $total += $stat['size'];
+
+                if ($total > self::MAX_UNPACKED_BYTES) {
+                    throw ParticipantFileUnreadable::tooLarge(sprintf('the workbook unpacks to more than %d bytes', self::MAX_UNPACKED_BYTES));
+                }
+            }
+        } finally {
+            $zip->close();
         }
     }
 
@@ -277,6 +363,11 @@ final class ParticipantFileReader
                 }
 
                 if ($xml->localName === 'mergeCell') {
+                    // Each range is walked over the rows later - a list never has thousands
+                    if (count($ranges) >= self::MAX_MERGED_RANGES) {
+                        break;
+                    }
+
                     $reference = (string) $xml->getAttribute('ref');
 
                     if (preg_match('/^\$?[A-Z]{1,3}\$?\d+:\$?[A-Z]{1,3}\$?\d+$/i', $reference) === 1) {
@@ -548,20 +639,68 @@ final class ParticipantFileReader
         };
     }
 
+    /**
+     * Windows-1250 only with Central European evidence, and more of it than of Western text: most bytes 0x80-0xFF are
+     * a letter in both code pages, so a byte counts by what stands next to it (see the byte lists above).
+     */
     private static function looksCentralEuropean(string $bytes): bool
     {
+        $sample = substr($bytes, 0, self::ENCODING_SAMPLE_BYTES);
+        $length = strlen($sample);
         $central = 0;
         $western = 0;
 
-        foreach (count_chars($bytes, 1) as $byte => $count) {
+        if (preg_match_all('/[\x80-\xFF]/', $sample, $matches, PREG_OFFSET_CAPTURE) === false) {
+            return false;
+        }
+
+        foreach ($matches[0] as [$character, $offset]) {
+            $byte = ord($character);
+            $before = $offset > 0 ? ord($sample[$offset - 1]) : null;
+            $after = $offset + 1 < $length ? ord($sample[$offset + 1]) : null;
+
             if (in_array($byte, self::CENTRAL_EUROPEAN_BYTES, true)) {
-                $central += $count;
+                if (self::isLetterByte($before) || self::isLetterByte($after)) {
+                    $central++;
+                }
             } elseif (in_array($byte, self::WESTERN_BYTES, true)) {
-                $western += $count;
+                $western++;
+            } elseif (in_array($byte, self::CONSONANT_OR_VOWEL_BYTES, true)) {
+                if (self::isVowelByte($before) || self::isVowelByte($after)) {
+                    $central++;
+                } else {
+                    $western++;
+                }
+            } elseif (in_array($byte, self::E_CARON_BYTES, true)) {
+                if (self::isLetterByte($after)) {
+                    $central++;
+                } else {
+                    $western++;
+                }
             }
         }
 
-        return $central > $western;
+        return $central >= 1 && $central > $western;
+    }
+
+    private static function isVowelByte(null|int $byte): bool
+    {
+        return $byte !== null
+            && (in_array($byte, [0x41, 0x45, 0x49, 0x4F, 0x55, 0x59, 0x61, 0x65, 0x69, 0x6F, 0x75, 0x79], true)
+                || in_array($byte, self::SHARED_VOWEL_BYTES, true));
+    }
+
+    /**
+     * A letter in both code pages (or in one of them): A-Z, a-z, 0x8A-0x9F letters, 0xC0-0xFF but × and ÷.
+     */
+    private static function isLetterByte(null|int $byte): bool
+    {
+        return $byte !== null && (
+            ($byte >= 0x41 && $byte <= 0x5A)
+            || ($byte >= 0x61 && $byte <= 0x7A)
+            || in_array($byte, [0x8A, 0x8C, 0x8D, 0x8E, 0x8F, 0x9A, 0x9C, 0x9D, 0x9E, 0x9F], true)
+            || ($byte >= 0xC0 && $byte !== 0xD7 && $byte !== 0xF7)
+        );
     }
 
     private static function fromWindows1250(string $bytes): string

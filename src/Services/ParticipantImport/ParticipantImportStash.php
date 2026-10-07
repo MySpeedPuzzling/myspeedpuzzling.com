@@ -64,8 +64,6 @@ final class ParticipantImportStash implements ResetInterface
             return null;
         }
 
-        $this->makeRoom($competitionId);
-
         $token = bin2hex(random_bytes(16));
         $base = $this->base($competitionId, $token);
         $storedAt = $this->clock->now();
@@ -114,6 +112,9 @@ final class ParticipantImportStash implements ResetInterface
         }
 
         $this->localFiles[$token] = $file->getPathname();
+
+        // Only now that the new one is kept: a failed upload never costs the organiser an older one
+        $this->makeRoom($competitionId, $token);
 
         return new StashedParticipantImport(
             token: $token,
@@ -297,8 +298,15 @@ final class ParticipantImportStash implements ResetInterface
             ->filter(static fn(StorageAttributes $attributes): bool => ($attributes->lastModified() ?? 0) < $cutoff);
 
         foreach ($listing as $file) {
-            $this->filesystem->delete($file->path());
-            $removed++;
+            try {
+                $this->filesystem->delete($file->path());
+                $removed++;
+            } catch (FilesystemException $e) {
+                // One file object storage refuses must not keep the others (personal data) around
+                $this->logger->warning('Could not prune a kept participant list file', [
+                    'exception' => $e,
+                ]);
+            }
         }
 
         return $removed;
@@ -333,6 +341,8 @@ final class ParticipantImportStash implements ResetInterface
             throw new ParticipantFileUnreadable('no temporary file');
         }
 
+        $source = null;
+
         try {
             try {
                 $source = $this->filesystem->readStream($this->base($competitionId, $token));
@@ -347,15 +357,22 @@ final class ParticipantImportStash implements ResetInterface
                 throw new ParticipantFileUnreadable('no temporary file');
             }
 
-            stream_copy_to_stream($source, $target);
-            fclose($target);
+            try {
+                $copied = stream_copy_to_stream($source, $target);
+            } finally {
+                fclose($target);
+            }
 
-            if (is_resource($source)) {
-                fclose($source);
+            if ($copied === false) {
+                throw new ParticipantFileUnreadable('the kept file could not be downloaded');
             }
 
             return $read($path);
         } finally {
+            if (is_resource($source)) {
+                fclose($source);
+            }
+
             @unlink($path);
         }
     }
@@ -470,19 +487,21 @@ final class ParticipantImportStash implements ResetInterface
     }
 
     /**
-     * Only a few uploads per event are kept at a time - the oldest makes way.
+     * Only a few uploads per event are kept at a time - the oldest make way for the one just kept.
      */
-    private function makeRoom(string $competitionId): void
+    private function makeRoom(string $competitionId, string $keptToken): void
     {
         try {
             $kept = $this->filesystem->listContents($this->eventDirectory($competitionId), false)
                 ->filter(static fn(StorageAttributes $attributes): bool => $attributes->isFile() && self::isToken(basename($attributes->path())))
                 ->map(static fn(StorageAttributes $attributes): string => basename($attributes->path()))
+                ->filter(static fn(string $token): bool => $token !== $keptToken)
                 ->toArray();
         } catch (FilesystemException) {
             return;
         }
 
+        // The others may keep MAX_PER_EVENT - 1 next to the new one
         if (count($kept) < self::MAX_PER_EVENT) {
             return;
         }

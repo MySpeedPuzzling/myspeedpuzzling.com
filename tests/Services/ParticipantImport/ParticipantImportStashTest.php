@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Tests\Services\ParticipantImport;
 
 use League\Flysystem\Filesystem;
 use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
+use Monolog\Handler\TestHandler;
+use Monolog\Logger;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWriter;
 use PHPUnit\Framework\TestCase;
@@ -209,6 +211,47 @@ final class ParticipantImportStashTest extends TestCase
 
         self::assertSame(3, $this->stash->prune());
         self::assertSame([], $this->paths());
+    }
+
+    public function testAFailedUploadNeverCostsAnOlderOne(): void
+    {
+        $adapter = new RefusingFilesystemAdapter();
+        $this->filesystem = new Filesystem($adapter);
+        $this->stash = $this->newStash();
+
+        $tokens = [];
+        for ($i = 0; $i < ParticipantImportStash::MAX_PER_EVENT; $i++) {
+            $this->clock->modify('+1 second');
+            $stashed = $this->stash->keep($this->csv(), self::EVENT, self::PLAYER);
+            self::assertNotNull($stashed);
+            $tokens[] = $stashed->token;
+        }
+
+        $adapter->refuseWrites = true;
+        self::assertNull($this->stash->keep($this->csv(), self::EVENT, self::PLAYER));
+
+        foreach ($tokens as $token) {
+            self::assertNotNull($this->stash->describe($token, self::EVENT), 'Every kept list is still there');
+        }
+    }
+
+    public function testPruneGoesOnPastAFileItCannotRemove(): void
+    {
+        $adapter = new RefusingFilesystemAdapter();
+        $this->filesystem = new Filesystem($adapter);
+        $logs = new TestHandler();
+        $this->stash = new ParticipantImportStash($this->filesystem, $this->clock, new Logger('test', [$logs]), new ParticipantFileReader());
+
+        $stuck = $this->stash->keep($this->csv(), self::EVENT, self::PLAYER);
+        self::assertNotNull($this->stash->keep($this->csv(), self::OTHER_EVENT, self::PLAYER));
+        self::assertNotNull($stuck);
+        $adapter->refuseDeleteOf = 'tmp-imports/' . self::EVENT . '/' . $stuck->token;
+
+        $this->clock->modify('+2 days');
+
+        self::assertSame(3, $this->stash->prune(), 'Everything but the one file');
+        self::assertSame(['tmp-imports/' . self::EVENT . '/' . $stuck->token], $this->paths());
+        self::assertTrue($logs->hasWarningThatContains('Could not prune'));
     }
 
     private function newStash(): ParticipantImportStash

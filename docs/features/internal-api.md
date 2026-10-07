@@ -276,8 +276,10 @@ round, and **nothing** changes (`SetCompetitionRoundPuzzles` is one transaction)
 `404` listing them. Solving times follow automatically: every attach/removal reconciles the competition's round results
 (`CompetitionRoundsChanged` → `RoundResultsReconciler`), so `resultsCount` is current in the answer.
 
-**Deleting a round** is refused (`409`) while any solving time belongs to it (`resultsCount` > 0); the organiser's
-own delete button in the UI does not have this guard.
+**Deleting a round** is refused (`409`) while any solving time belongs to it or the organiser recorded an official
+result in it (`resultsCount` > 0 counts both, docs/features/competitions-management/official-results.md); the
+organiser's own delete button in the UI deletes it after a confirmation listing the official results. A round `PATCH`
+changing the category of a round with official results is refused (`409`).
 
 **Secret puzzles are never revealed by accident.** A round puzzle may keep its puzzle secret until its reveal
 (`hideUntilRoundStarts`, `revealMode` `automatic` = 10 minutes after the round starts / `scheduled` / `manual`,

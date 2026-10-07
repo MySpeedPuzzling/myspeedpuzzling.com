@@ -4,6 +4,18 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Official round results (`docs/features/competitions-management/official-results.md`)
+
+- [ ] Unfinished (pieces placed) and did-not-start results onto players' profiles - after phase 1b of
+      `unfinished-results-plan.md` (today only finished results are offered as "Add to my profile").
+- [ ] Rounds with several puzzles: one total result per entry today - a result per puzzle when organisers ask.
+- [ ] Derive table numbers from the table layout tool (`table_spot`) instead of typing them.
+- [ ] Results from timing devices without the round stopwatch (import of a device's export).
+- [ ] The participants spreadsheet (second PR) writes results through `RecordRoundResults` (`op: "result"` changesets).
+- [ ] Generate the migration for the new columns (`competition_participant_round` / `competition_team` official result
+      columns, unique `(participant_id, round_id)`, `competition_round.results_first_published_at` + `table_numbers_off`,
+      `notification.target_competition_round_id`) once the official results PR is complete.
+
 ## Participant import (`docs/features/competitions-management/participant-import-preview.md`)
 
 - [ ] `.xls` / `.ods` uploads; localized header aliases ("Jméno", "Nom", …); a header row chosen by hand; remembering

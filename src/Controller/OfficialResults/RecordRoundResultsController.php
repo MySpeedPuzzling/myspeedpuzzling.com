@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\RecordedRoundResults;
 use SpeedPuzzling\Web\Results\RoundResultChangeOutcome;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
+use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\RoundResultChangesParser;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -35,6 +36,7 @@ final class RecordRoundResultsController extends AbstractController
         private readonly OfficialResultsApi $api,
         private readonly OfficialResultsLiveUpdates $liveUpdates,
         private readonly TranslatorInterface $translator,
+        private readonly MercureTopicCollector $mercureTopicCollector,
     ) {
     }
 
@@ -53,6 +55,9 @@ final class RecordRoundResultsController extends AbstractController
         if ($playerId instanceof JsonResponse) {
             return $playerId;
         }
+
+        // Keeps the round's private topic in the answer's Mercure cookie (see RoundResultsStateController)
+        $this->mercureTopicCollector->addTopic(OfficialResultsLiveUpdates::topic($round->id->toString()));
 
         $body = OfficialResultsApi::body($request);
 

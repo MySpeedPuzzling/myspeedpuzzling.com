@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
+use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -30,6 +31,7 @@ final class RoundResultsStateController extends AbstractController
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
         private readonly OfficialResultsApi $api,
         private readonly ClockInterface $clock,
+        private readonly MercureTopicCollector $mercureTopicCollector,
     ) {
     }
 
@@ -48,6 +50,10 @@ final class RoundResultsStateController extends AbstractController
         if ($authorised instanceof JsonResponse) {
             return $authorised;
         }
+
+        // The answer's Mercure cookie keeps authorising the round's private topic - a page's EventSource reconnecting
+        // after this request would lose its updates otherwise (live entry, live-results.md)
+        $this->mercureTopicCollector->addTopic(OfficialResultsLiveUpdates::topic($round->id->toString()));
 
         $rounds = $this->getRoundResultsOverview->forCompetition($competition->id->toString());
         $thisRound = null;

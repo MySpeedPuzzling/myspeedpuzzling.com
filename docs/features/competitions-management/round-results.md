@@ -160,6 +160,10 @@ Profile solved counts keep counting them (decided — revisit later).
 
 ## The round page
 
+Once the organiser publishes a round's official results, they lead the page and the times below fold into "Times added
+by puzzlers" - see [official-results.md § Public round page](official-results.md#public-round-page-as-built). Until then
+the page is exactly what this section describes.
+
 ### URLs
 
 - Standalone: `/en/events/{eventSlug}/results/{roundSlug}` (route `event_round_results`)

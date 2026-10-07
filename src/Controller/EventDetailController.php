@@ -122,7 +122,7 @@ final class EventDetailController extends AbstractController
         }
 
         // "Results by round": the rounds whose results page has something to show, in schedule order
-        $resultsPerRound = $roundResultsUrls !== [] ? $this->countCompetitionResults->perRound($competitionId) : [];
+        $resultsPerRound = $roundResultsUrls !== [] ? $this->countCompetitionResults->perRound($competitionId, $competitionEvent->hasPublishedOfficialResults) : [];
         $resultRounds = array_values(array_filter(
             $rounds,
             static fn (EditionRoundDetail $round): bool => isset($roundResultsUrls[$round->id]) && ($resultsPerRound[$round->id] ?? 0) > 0,
@@ -165,7 +165,7 @@ final class EventDetailController extends AbstractController
             'event' => $competitionEvent,
             'event_title' => $eventTitle,
             // Only a past event's meta description quotes the number of results
-            'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionId) : 0,
+            'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionId, $competitionEvent->hasPublishedOfficialResults) : 0,
             'puzzles' => $puzzles,
             'puzzle_rounds' => $puzzleRounds,
             'round_results_urls' => $roundResultsUrls,

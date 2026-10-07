@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -121,5 +123,23 @@ final class SitemapControllerTest extends WebTestCase
         self::assertStringContainsString('/en/events/wjpc-2024/results/qualification-round</loc>', $content);
         self::assertStringContainsString('/en/events/wjpc-2024/results/final-round</loc>', $content);
         self::assertStringNotContainsString('/en/events/czech-nationals-2024/results/', $content);
+    }
+
+    public function testEventsSitemapListsRoundPagesWithPublishedOfficialResults(): void
+    {
+        $browser = self::createClient();
+        // Results Cup's Final is published, but nobody in it has a ranked result yet
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition_round SET results_published_at = NOW() WHERE slug = 'final' AND competition_id = :id",
+            ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
+        );
+
+        $browser->request('GET', '/sitemap-events.xml');
+
+        $content = (string) $browser->getResponse()->getContent();
+        // Group A is published, Group B is not - neither has a time puzzlers added
+        self::assertStringContainsString('/en/events/results-cup/results/group-a</loc>', $content);
+        self::assertStringNotContainsString('/en/events/results-cup/results/group-b</loc>', $content);
+        self::assertStringNotContainsString('/en/events/results-cup/results/final</loc>', $content);
     }
 }

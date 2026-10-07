@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
+use SpeedPuzzling\Web\Query\GetPublishedRoundResults;
 use SpeedPuzzling\Web\Query\GetRoundPuzzlesHeldElsewhere;
 use SpeedPuzzling\Web\Query\GetRoundResults;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
@@ -37,6 +38,7 @@ readonly final class RoundResultsPageBuilder
         private SecretPuzzleAccess $secretPuzzleAccess,
         private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
         private GetRoundPuzzlesHeldElsewhere $getRoundPuzzlesHeldElsewhere,
+        private GetPublishedRoundResults $getPublishedRoundResults,
     ) {
     }
 
@@ -106,6 +108,8 @@ readonly final class RoundResultsPageBuilder
                 static fn (EditionRoundPuzzle $puzzle): string => $puzzle->puzzleId,
                 array_filter($round->puzzles, static fn (EditionRoundPuzzle $puzzle): bool => $puzzle->puzzleImage !== null),
             )),
+            // Queried only for a published round - any other round page runs exactly what it ran before
+            officialResults: $round->resultsPublished ? $this->getPublishedRoundResults->forRound($round, $viewer?->playerId) : null,
         );
     }
 }

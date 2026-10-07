@@ -41,6 +41,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     payment_instructions?: null|string,
  *     registration_timezone?: null|string,
  *     has_page_sections?: bool|string,
+ *     has_published_official_results?: bool|string,
  * }
  */
 readonly final class CompetitionEvent
@@ -83,6 +84,9 @@ readonly final class CompetitionEvent
         // An organiser-written section shows on the page (GetCompetitionPageSections) - only GetCompetitionEvents::byId()
         // reads it, so the event and edition pages query sections only when there is one to show
         public bool $hasPageSections = false,
+        // A round shows published official results (GetPublishedRoundResults::sqlShowsOfficialResults()) - only
+        // GetCompetitionEvents::byId() reads it, so the result counts look at official results only when there are some
+        public bool $hasPublishedOfficialResults = false,
     ) {
         $this->link = $this->appendUtm($link);
         // While the event manages registration on MySpeedPuzzling the external link stays saved but is not shown -
@@ -133,6 +137,7 @@ readonly final class CompetitionEvent
             paymentInstructions: $row['payment_instructions'] ?? null,
             registrationTimezone: $row['registration_timezone'] ?? null,
             hasPageSections: self::parseBool($row['has_page_sections'] ?? false),
+            hasPublishedOfficialResults: self::parseBool($row['has_published_official_results'] ?? false),
         );
     }
 

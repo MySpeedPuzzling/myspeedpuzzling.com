@@ -29,10 +29,15 @@ readonly final class GetCompetitionEvents
         }
 
         // hasPageSections: one EXISTS in the statement every competition page runs anyway - a page without sections
-        // never queries them (docs/features/competitions-management/public-page.md)
+        // never queries them (docs/features/competitions-management/public-page.md); hasPublishedOfficialResults the
+        // same for the official results (docs/features/competitions-management/official-results.md)
         $shownOnPage = GetCompetitionPageSections::sqlShownOnCompetitionPage('s', 'c');
+        $showsOfficialResults = GetPublishedRoundResults::sqlShowsOfficialResults('official_round');
         $query = <<<SQL
-SELECT c.*, EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections
+SELECT
+    c.*,
+    EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections,
+    EXISTS (SELECT 1 FROM competition_round official_round WHERE official_round.competition_id = c.id AND {$showsOfficialResults}) AS has_published_official_results
 FROM competition c
 WHERE c.id = :id
 SQL;

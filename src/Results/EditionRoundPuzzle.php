@@ -14,6 +14,9 @@ readonly final class EditionRoundPuzzle
         public null|float $puzzleImageRatio,
         public null|string $manufacturerName,
         public bool $hidden,
+        // Shown, but its picture is still under wraps (the round's "image only" hiding or the puzzle's own
+        // hide_image_until) - not revealed yet
+        public bool $imageHidden = false,
     ) {
     }
 }

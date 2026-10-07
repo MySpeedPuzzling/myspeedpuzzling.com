@@ -102,7 +102,7 @@ final class EditionDetailController extends AbstractController
             'event' => $competitionEvent,
             'event_title' => $eventTitle,
             // Only a past edition's meta description quotes the number of results
-            'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionId) : 0,
+            'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionId, $competitionEvent->hasPublishedOfficialResults) : 0,
             'is_publicly_visible' => $isPubliclyVisible,
             'rounds' => $rounds,
             'puzzles' => $puzzles,

@@ -100,6 +100,8 @@ SQL;
     public function roundResultSlugs(): array
     {
         $visibility = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        // A round page with published official results has something to show too (official-results.md)
+        $showsOfficialResults = GetPublishedRoundResults::sqlShowsOfficialResults('cr');
 
         $query = <<<SQL
 SELECT c.slug AS event_slug, cs.slug AS series_slug, cr.slug AS round_slug
@@ -110,7 +112,7 @@ WHERE {$visibility}
     AND c.slug IS NOT NULL
     AND cr.slug IS NOT NULL
     AND (c.series_id IS NULL OR cs.slug IS NOT NULL)
-    AND EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr.id)
+    AND (EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr.id) OR {$showsOfficialResults})
 ORDER BY cs.slug NULLS FIRST, c.slug, cr.starts_at
 SQL;
 

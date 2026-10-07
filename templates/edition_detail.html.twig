@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {# The full name - the series in front unless the edition's name mentions it - plus the year when the name
-   has none; "Results" once the edition is over and has results here (see EventTitle::saysResults()) #}
+   has none; "Results" once the edition is over and has results here (see EventTitle::saysResults()) - official ones too (official-results.md) #}
 {% block title %}
     {%- if event_title.saysResults(results_count) -%}
         {{- 'events.meta.event_detail_title_results'|trans({'%event%': event_title.label}) -}}
@@ -21,7 +21,7 @@
 
 {% block meta_description %}
     {%- if event_title.saysResults(results_count) -%}
-        {{- 'series.meta.edition_description_past'|trans({
+        {{- (event.hasPublishedOfficialResults ? 'series.meta.edition_description_past_official' : 'series.meta.edition_description_past')|trans({
             '%count%': results_count,
             '%results%': results_count|format_number,
             '%name%': event.name,

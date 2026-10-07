@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {# The full event name - never shortened, it is what people search - plus the year when the name has none;
-   "Results" once the event is over and has results here (see EventTitle::saysResults()) #}
+   "Results" once the event is over and has results here (see EventTitle::saysResults()) - official ones too (official-results.md) #}
 {% block title %}
     {%- if event_title.saysResults(results_count) -%}
         {{- 'events.meta.event_detail_title_results'|trans({'%event%': event_title.label}) -}}
@@ -29,11 +29,11 @@
             '%location%': event.location ?? '',
         } -%}
         {%- if event.isOnline -%}
-            {{- 'events.meta.event_detail_description_past_online'|trans(past_description_params) -}}
+            {{- (event.hasPublishedOfficialResults ? 'events.meta.event_detail_description_past_official_online' : 'events.meta.event_detail_description_past_online')|trans(past_description_params) -}}
         {%- elseif event.location -%}
-            {{- 'events.meta.event_detail_description_past'|trans(past_description_params) -}}
+            {{- (event.hasPublishedOfficialResults ? 'events.meta.event_detail_description_past_official' : 'events.meta.event_detail_description_past')|trans(past_description_params) -}}
         {%- else -%}
-            {{- 'events.meta.event_detail_description_past_no_location'|trans(past_description_params) -}}
+            {{- (event.hasPublishedOfficialResults ? 'events.meta.event_detail_description_past_official_no_location' : 'events.meta.event_detail_description_past_no_location')|trans(past_description_params) -}}
         {%- endif -%}
     {%- elseif event.isOnline and event.dateFrom -%}
         {{- 'events.meta.event_detail_description_online'|trans({'%name%': event.name, '%date%': event.dateFrom|format_date('long')}) -}}

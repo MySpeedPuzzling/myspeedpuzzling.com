@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { clearPhoto, hasPhoto } from '../photo_drop_area.js';
 
 // A puzzle's record in the moderators' forms - the review of a change request and the direct edit: every field is
 // editable, and each is marked by what saving does with it - the player's proposal, the moderator's own edit, or the
@@ -281,34 +282,12 @@ export default class extends Controller {
     }
 
     hasUpload(field) {
-        const input = this.uploadOf(field);
-        const token = field.querySelector('[data-kept-photo-target="token"]');
-
-        return (input.files && input.files.length > 0) || Boolean(token && token.value);
+        return hasPhoto(field.querySelector('.file-drop-area'));
     }
 
-    // Back to an empty drop area: no file, no kept photo, no crop button
     clearUpload(field) {
-        if (!this.hasUpload(field)) {
-            return;
-        }
-
         const area = field.querySelector('.file-drop-area');
-        const icon = area.querySelector('[data-role="drop-icon"]');
-        const token = area.querySelector('[data-kept-photo-target="token"]');
-
-        this.uploadOf(field).value = '';
-
-        if (token) {
-            token.value = '';
-        }
-
-        area.querySelector('[data-kept-photo-target="note"]')?.remove();
-        area.querySelector('.file-drop-edit-btn')?.remove();
-
-        icon.className = 'file-drop-icon';
-        icon.innerHTML = '<i class="ci-cloud-upload"></i>';
-        area.querySelector('.file-drop-message').textContent = area.dataset.dropText || '';
+        clearPhoto(area, area.dataset.dropText);
     }
 
     inputOf(field) {

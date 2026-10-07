@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use League\Flysystem\Filesystem;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -62,21 +61,13 @@ readonly final class PuzzleImageStorage
             return $this->puzzleImageNamer->secretFilename($extension);
         }
 
-        $newImagePath = $this->puzzleImageNamer->generateFilename(
+        // Never a name written before - the image caches would keep the old picture's thumbnails
+        return $this->puzzleImageNamer->generateFilename(
             $puzzle->manufacturer !== null ? $puzzle->manufacturer->name : 'puzzle',
             $puzzle->name,
             $puzzle->piecesCount,
             $puzzle->id->toString(),
             $extension,
         );
-
-        // If generated name matches current puzzle image, force unique name for browser cache busting
-        if ($newImagePath === $puzzle->image) {
-            $uuid = substr(Uuid::uuid7()->toString(), 0, 8);
-            $pathInfo = pathinfo($newImagePath);
-            $newImagePath = $pathInfo['filename'] . "-$uuid." . ($pathInfo['extension'] ?? 'jpg');
-        }
-
-        return $newImagePath;
     }
 }

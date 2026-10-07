@@ -70,6 +70,7 @@
                         attr: {
                             'data-controller': 'merge-review',
                             'data-action': 'input->merge-review#refreshChoices change->merge-review#refreshChoices',
+                            'data-merge-review-drop-text-value': 'forms.drop_file'|trans,
                         },
                     }) }}
 
@@ -237,7 +238,8 @@
                     }, with_context = false) }}
 
                     {# Image: one of the reported puzzles' images, or a new photo used instead - kept on a refused
-                       submit (FormPhotoStash) and cropped with image-editor like on the add form #}
+                       submit (FormPhotoStash) and cropped with image-editor like on the add form. While a photo is
+                       there no image stays picked and they are dimmed (merge_review_controller.js) #}
                     <div class="border rounded-3 p-3 mb-3 shadow-sm"
                          data-controller="image-editor"
                          data-image-editor-title-value="{{ 'image_editor.title'|trans }}"
@@ -252,11 +254,15 @@
                                 {% for image_radio in form.selectedImagePuzzleId %}
                                     {% set image_puzzle = puzzles|filter(p => p.puzzleId == image_radio.vars.value)|first %}
                                     <div class="col-6 col-md-4">
-                                        <div class="border rounded-3 p-2 h-100">
+                                        <div class="border rounded-3 p-2 h-100" data-merge-review-target="imageOption">
                                             <div class="mb-2">
                                                 {{ form_widget(image_radio, {
                                                     label: image_puzzle ? image_puzzle.puzzleName : 'This image',
                                                     label_attr: {class: 'small text-break'},
+                                                    attr: {
+                                                        'data-merge-review-target': 'imageRadio',
+                                                        'data-action': 'change->merge-review#imageChosen',
+                                                    },
                                                 }) }}
                                             </div>
                                             {{ macros.thumbnail(merged_data.images[image_radio.vars.value], 'Puzzle image', 140) }}
@@ -268,14 +274,16 @@
                                 {% set image_puzzle_id = merged_data.images|keys|first %}
                                 {% set image_puzzle = puzzles|filter(p => p.puzzleId == image_puzzle_id)|first %}
                                 <div class="col-6 col-md-4">
-                                    <div class="border rounded-3 p-2 h-100">
+                                    <div class="border rounded-3 p-2 h-100" data-merge-review-target="imageOption">
                                         <div class="small text-muted text-break mb-2">{{ image_puzzle ? image_puzzle.puzzleName : 'Current' }}</div>
                                         {{ macros.thumbnail(merged_data.images[image_puzzle_id], 'Puzzle image', 140) }}
                                     </div>
                                 </div>
                             {% endif %}
 
-                            <div class="col-12 {{ merged_data.images is not empty ? 'col-md-4' }}">
+                            <div class="col-12 {{ merged_data.images is not empty ? 'col-md-4' }}"
+                                 data-merge-review-target="photoArea"
+                                 data-action="change->merge-review#refreshImage kept-photo:removed->merge-review#photoRemoved">
                                 {{ include('photo_stash/_photo_drop_area.html.twig', {
                                     field: form.puzzlePhoto,
                                     stash_field: 'puzzlePhoto',

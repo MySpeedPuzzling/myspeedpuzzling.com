@@ -18,9 +18,6 @@ use SpeedPuzzling\Web\Services\UploadFailureCollector;
  *
  * Catches \Throwable, not FilesystemException: AsyncAwsS3Adapter::fileExists()
  * leaks raw AsyncAws NetworkException on timeouts.
- *
- * Known accepted degradation: PuzzleImageNamer's uniqueness check may reuse a
- * deterministic name during an outage (stale browser-cache risk only).
  */
 final readonly class FailoverS3Adapter implements FilesystemAdapter
 {

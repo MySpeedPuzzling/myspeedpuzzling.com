@@ -23,7 +23,8 @@ All three: `IS_AUTHENTICATED_REMEMBERED` + `CompetitionEditVoter` on the round's
 "Results desk", "Seating" + "Results overview" at the top), the event edit page and the series' editions list (one
 "Results overview" button), the overview's rows, the desk itself (round switcher, the other tools of the round), the
 seating page and the stopwatch control page (the round's tools), the live entry ("Results desk"), and - for the event's
-organisers only - the public round page (`official_results/_organiser_round_links.html.twig`, included by that page).
+organisers only - the public round page once its results are published (`official_results/_organiser_round_links.html.twig`,
+included by that page; an untouched round page asks nobody's permissions).
 One name everywhere: **Results desk**.
 
 `templates/official_results/_round_tool_links.html.twig` is the **one** place a round's tools are linked

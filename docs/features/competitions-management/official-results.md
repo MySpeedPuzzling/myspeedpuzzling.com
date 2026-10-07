@@ -212,7 +212,9 @@ A round whose results are published leads its public page (`event_round_results`
   sees revealed (not left out by the reveal rules, picture not hidden), until they have a time in the round
   (`competition_round_id` = the round, tracker or in the group). Then the own entry - or the unlinked entry with the
   viewer's time - says "On your profile". Derived on every read, nothing stored. Organisers also get the round's tool
-  links on the page (`official_results/_organiser_round_links.html.twig`).
+  links on a round page with published results (`official_results/_organiser_round_links.html.twig`) - never on an
+  untouched round page, which runs exactly main's statements for every viewer (no permission check; pinned by
+  `OfficialRoundResultsPageTest`).
   The link is `puzzle_add` with `?competition=<id>&official_entry=<participant_round|team>:<id>`;
   `OfficialEntryTimePrefill` (GET only) re-runs the very same read model for the viewer and fills the form in only for an
   entry it offers - anything else is ignored silently: the puzzle, the time, the finished date (the round's start day in

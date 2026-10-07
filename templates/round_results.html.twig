@@ -75,8 +75,10 @@
         {% endif %}
     </div>
 
-    {# The organiser's way back to their tools of this round (official results: live entry, results desk) #}
-    {% if app.user %}{{ include('official_results/_organiser_round_links.html.twig', {competition_id: event.id, round_id: round.id}) }}{% endif %}
+    {# The organiser's way back to their tools of this round (official results: live entry, results desk) - only on a
+       round with published official results, which already runs statements of its own: an untouched round page never
+       asks for the viewer's permissions (OfficialRoundResultsPageTest pins main's statement count) #}
+    {% if app.user and page.officialResults is not null %}{{ include('official_results/_organiser_round_links.html.twig', {competition_id: event.id, round_id: round.id}) }}{% endif %}
 
     {% if page.officialResults is null and page.hasStarted and page.resultsCount > 0 %}
         <p class="small text-muted mb-3">

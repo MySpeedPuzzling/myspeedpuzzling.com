@@ -4533,8 +4533,9 @@ results_desk:
         title: "Publish the official results?"
         intro: "The ranked results of this round appear on its public results page for everybody."
         team_names: "Pair and team names and the names of their members become public."
-        notification: "Players linked to an entry with a finished result get a notification - once, on this first publication."
-        no_new_notification: "The results were published before - nobody gets another notification."
+        notification: "Players linked to an entry with a finished result get a notification - each of them once, also for a result added after publishing."
+        no_new_notification: "Players told before are not told again - only players with a finished result who were not told yet get a notification."
+        not_public: "This event is not public yet - the results page stays hidden and the players are told once the event is approved."
         without_result: "1 entry has no result yet - it will not be listed until it has one.|%count% entries have no result yet - they will not be listed until they have one."
         unsaved: "1 change on this page is not saved yet - publishing shows the saved results only.|%count% changes on this page are not saved yet - publishing shows the saved results only."
         confirm: "Publish"
@@ -4542,7 +4543,7 @@ results_desk:
     unpublish:
         button: "Unpublish"
         title: "Take the results off the public page?"
-        intro: "The official results disappear from the round's public page until you publish them again. Nobody is notified again later."
+        intro: "The official results disappear from the round's public page until you publish them again. Players told before are not told again."
         confirm: "Unpublish"
         done: "The results are no longer public."
     banner:
@@ -4691,6 +4692,15 @@ results_desk:
             column_from: "From"
             column_result: "Result"
             rank_short: "rank %rank%"
+        country_rule:
+            legend: "Country rule"
+            label: "Also the best of each country"
+            count: "How many per country"
+            help: "Over all the rounds chosen above, by the advancement seed - a pair or team counts for each of its members' countries, and entries marked qualified count too. The plan shows whom it takes; adding them marks them qualified in their own round."
+            badge: "country rule"
+            marked: "1 entry is taken by the country rule and will be marked qualified in its round.|%count% entries are taken by the country rule and will be marked qualified in their rounds."
+            without_country: "1 entry with a result has no country - the country rule cannot take it; mark it on the results desk if it qualifies:|%count% entries with a result have no country - the country rule cannot take them; mark them on the results desk if they qualify:"
+        unsaved_marks: "1 qualified mark on the results desk is not saved yet - the plan uses the saved marks only. Wait until the desk shows \"All saved\".|%count% qualified marks on the results desk are not saved yet - the plan uses the saved marks only. Wait until the desk shows \"All saved\"."
         apply: "Add 1 entry|Add %count% entries"
         done:
             title: "Added 1 entry.|Added %count% entries."
@@ -4808,6 +4818,7 @@ seating:
         undone: "Undone."
         close: "Close"
         nothing_saved: "Nothing was saved - fix the tables below and try again."
+        changed_meanwhile: "Somebody else changed table numbers meanwhile - nothing was saved. The page shows their numbers now; check and try again."
     auto:
         title: "Auto-assign tables"
         intro: "You get a proposal first - nothing changes until you apply it."
@@ -6671,7 +6682,7 @@ official_results:
         entry_has_result: "This person has an official result or a qualified mark in a round you took them out of - clear it on the round's results first. Nothing was saved."
         team_has_result: "This pair/team has an official result or a qualified mark - clear it first if the pair/team really has to go."
         participant_has_result: "This person has an official result or a qualified mark in this event, so they stay. Clear it first if they really have to go."
-        round_category_locked: "This round has official results - its category stays as long as they do."
+        round_category_locked: "This round has official results or qualified marks - its category stays as long as they do."
         team_line_up_changed: "This pair/team has an official result - it now belongs to the new line-up."
     delete_round:
         title: "Delete the round and its official results?"
@@ -6686,8 +6697,10 @@ official_results:
             category_mismatch: "All rounds must be of one kind - people, pairs or teams."
             single_needs_one_target: "Choose exactly one round to put the qualified in, or spread them over several rounds."
             by_source_map_incomplete: "Choose the round for the qualified of every round they come from."
+            invalid_country_rule: "Best of each country: choose 1 to 99 per country."
             plan_changed: "Something changed meanwhile - review the plan again. Nothing was added."
         skip:
             already_in_target: "Already in the round"
             member_already_in_target: "Somebody of this pair/team is already in the round"
+            member_already_planned: "Somebody of this pair/team goes with a better placed pair/team already"
             qualified_twice: "Qualified in another round too - advanced once"

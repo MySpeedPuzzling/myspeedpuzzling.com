@@ -13,9 +13,11 @@ use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\CompetitionHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
+use SpeedPuzzling\Web\Message\DeleteCompetition;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Message\DeleteCompetitionTeam;
 use SpeedPuzzling\Web\Message\EditCompetitionParticipant;
@@ -186,6 +188,56 @@ final class OfficialResultsGuardsTest extends KernelTestCase
         }
 
         self::assertNotFalse($this->database->fetchOne('SELECT 1 FROM competition_round WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_B]));
+    }
+
+    /**
+     * review2-b nit: a qualified mark alone keeps the round's category and the round itself (internal API).
+     */
+    public function testAQualifiedMarkAloneKeepsTheCategoryAndTheRound(): void
+    {
+        $this->database->executeStatement('UPDATE competition_participant_round SET qualified_at = NOW() WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_FINAL_ANNA]);
+
+        try {
+            $this->messageBus->dispatch($this->categoryChange(OfficialResultsFixture::ROUND_FINAL, RoundCategory::Team));
+            self::fail('The category must stay.');
+        } catch (OfficialResultsProtected $protected) {
+            self::assertSame(OfficialResultsProtected::ROUND_CATEGORY_LOCKED, $protected->reason);
+        }
+
+        try {
+            $this->messageBus->dispatch(new DeleteCompetitionRound(OfficialResultsFixture::ROUND_FINAL, refuseWhenItHasResults: true));
+            self::fail('A round with a qualified mark must stay.');
+        } catch (CompetitionRoundHasResults $hasResults) {
+            self::assertSame(1, $hasResults->resultsCount);
+        }
+    }
+
+    /**
+     * review2-b m4: the internal API's event delete counts official results (and qualified marks) as results.
+     */
+    public function testTheInternalApiNeverDeletesAnEventWithOfficialResults(): void
+    {
+        try {
+            $this->messageBus->dispatch(new DeleteCompetition(OfficialResultsFixture::COMPETITION_RESULTS_CUP, refuseWhenItHasResults: true));
+            self::fail('An event with official results must stay.');
+        } catch (CompetitionHasResults $hasResults) {
+            // Group A 5 (Anna, Ben, Cara, Dan, Eva), Group B 3, Pairs 3 (Sharks, Corners, Edges)
+            self::assertSame(11, $hasResults->resultsCount);
+        }
+
+        // Only qualified marks left - still official data
+        $this->database->executeStatement('UPDATE competition_participant_round SET result_seconds = NULL, result_pieces_placed = NULL, result_did_not_start = false');
+        $this->database->executeStatement('UPDATE competition_team SET result_seconds = NULL, result_pieces_placed = NULL, result_did_not_start = false');
+
+        try {
+            $this->messageBus->dispatch(new DeleteCompetition(OfficialResultsFixture::COMPETITION_RESULTS_CUP, refuseWhenItHasResults: true));
+            self::fail('An event with qualified marks must stay.');
+        } catch (CompetitionHasResults $hasResults) {
+            // Anna, Ben (A), Gina, Hugo (B), Sharks, Edges
+            self::assertSame(6, $hasResults->resultsCount);
+        }
+
+        self::assertNotFalse($this->database->fetchOne('SELECT 1 FROM competition WHERE id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]));
     }
 
     public function testTheOrganisersYesCountsOnlyForTheResultsTheyWereShown(): void

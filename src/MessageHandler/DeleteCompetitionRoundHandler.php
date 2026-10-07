@@ -40,9 +40,9 @@ readonly final class DeleteCompetitionRoundHandler
             $resultsCount = $this->database
                 ->executeQuery('SELECT COUNT(*) FROM puzzle_solving_time WHERE competition_round_id = :id', $params)
                 ->fetchOne();
-            // Official results recorded by the organiser count as results too
+            // Official results recorded by the organiser count as results too - a qualified mark as well
             $resultsCount = (is_numeric($resultsCount) ? (int) $resultsCount : 0)
-                + $this->officialResultsGuard->countResultsInRound($message->roundId);
+                + $this->officialResultsGuard->countEntriesWithOfficialDataInRound($message->roundId);
 
             if ($resultsCount > 0) {
                 throw new CompetitionRoundHasResults($resultsCount);

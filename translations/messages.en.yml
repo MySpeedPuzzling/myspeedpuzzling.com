@@ -6689,7 +6689,7 @@ official_results:
         duplicate_entry: "This entrant is listed twice."
         changed_meanwhile: "Somebody else changed this meanwhile."
         changes_unreadable: "These changes could not be read - enter them again."
-        too_many_changes: "Too many changes at once - they are sent in smaller parts."
+        too_many_changes: "Too many changes at once - they are sent again one by one."
         change_sent_twice: "The same change was sent twice - enter it again."
         participant_not_found: "This person is not a participant of the event (any more)."
         participant_already_in_round: "This person is in this round already - find them on the list."

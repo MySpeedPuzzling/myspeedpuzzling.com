@@ -108,7 +108,7 @@ export default class extends Controller {
             },
             onMessage: (data) => this.receiveUpdate(data),
             // Signed out / no rights: the banner's Retry takes it from there
-            refresh: () => (this.stateBlocked === null && this.isConnected() ? this.refreshState() : null),
+            refresh: () => (!this.stateBlocked && this.isConnected() ? this.refreshState() : null),
         });
         this.serverEntries = new Map();
         this.localEntries = new Map();

@@ -4,6 +4,24 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Puzzle picker - feedback from a puzzler (`docs/features/puzzle-picker/README.md`, e-mail 2026-09-20)
+
+A second puzzler asked for much the same, so it is not a one-off wish.
+
+- [ ] The whole result list, not just 5 more: the page shows the total of matches, but "Show more" only reveals the
+      over-fetched rows (README "Show 5 more"). Wanted most when the results are sorted (e.g. by the gap to the
+      prediction). The README's way out: chained Turbo Frames `?seed=…&offset=6&limit=5`, the seeded order already
+      makes paging stable (`GetPuzzlePickerSuggestions` takes `LIMIT :limit OFFSET :offset`).
+- [ ] A short explanation of what each preset ("Surprise me", "Quick one", "Rating grind", …) and each filter does,
+      next to it - for accessibility, not only for newcomers.
+- [ ] Pick from the puzzles people bring to a meetup. Today it needs a temporary custom collection (members only,
+      one owner). Idea: a shared collection where each attendee adds the puzzles they bring, which the picker then
+      uses as its source like any collection. Check overlap with "Marketplace at events" (`11-events.md`, sellers
+      mark listings they are *bringing*) before designing a second "bringing" concept.
+- [ ] "Similar puzzles" (more like a puzzle I liked / want to improve on): needs image/category classification
+      (small models, embeddings) - not before the more important backlog items. Same person offered help with
+      embedding models (no training, existing models only).
+
 ## Outdated puzzle requests (`docs/features/puzzle-approvals.md`, "Outdated requests", PR #247)
 
 - [ ] `GetPendingPuzzleProposals` (the puzzle page's "pending proposal" badge, `blocksNewProposal()`, the pending list)

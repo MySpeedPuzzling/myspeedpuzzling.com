@@ -209,8 +209,10 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
 
     /**
      * Browser verification of PR #136 (privacy): a linked member is filled in by their code only when the round page
-     * shows them to the viewer - never a private player the viewer may not see, never across a block in either
-     * direction. Such a member comes as a guest under the organiser's name, which the official results show anyway.
+     * shows them to the viewer - never a private player the viewer may not see (a block either way outranks her allow
+     * list - PrivateProfileAccess), never a player the viewer blocks. A player who blocks the viewer is filled in as
+     * usual - the blocked side must never be able to tell. Such a member comes as a guest under the organiser's name,
+     * which the official results show anyway.
      * Hugo (PLAYER_REGULAR) and Gina (PLAYER_PRIVATE) are "Edge Hunters"; the fixtures have Hugo block Gina.
      *
      * @param array{gina_public: bool, hugo_blocks_gina: bool, gina_blocks_hugo: bool, hugo_on_ginas_allow_list: bool} $situation
@@ -260,7 +262,8 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         yield 'private, on her allow list but she blocks the viewer' => [[...$nothing, 'hugo_on_ginas_allow_list' => true, 'gina_blocks_hugo' => true], 'Gina Quick'];
         yield 'public' => [[...$nothing, 'gina_public' => true], '#PLAYER2'];
         yield 'public, the viewer blocks her' => [[...$nothing, 'gina_public' => true, 'hugo_blocks_gina' => true], 'Gina Quick'];
-        yield 'public, she blocks the viewer' => [[...$nothing, 'gina_public' => true, 'gina_blocks_hugo' => true], 'Gina Quick'];
+        // Blocks are one-directional: the blocked viewer must never be able to tell (docs/features/player-blocklist.md)
+        yield 'public, she blocks the viewer' => [[...$nothing, 'gina_public' => true, 'gina_blocks_hugo' => true], '#PLAYER2'];
     }
 
     public function testThePairsNameIsNotOfferedWhenTheseExactPeopleAreANamedPairAlready(): void

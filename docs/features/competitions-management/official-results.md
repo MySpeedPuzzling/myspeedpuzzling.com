@@ -228,7 +228,8 @@ A round whose results are published leads its public page (`event_round_results`
   entry it offers - anything else is ignored silently: the puzzle, the time, the finished date (the round's start day in
   the round's zone), the competition, and for a pair/team the co-puzzlers (linked members by `#CODE`, the others as guest
   names; a linked member hidden from the viewer - a private player the round page shows them by the organiser's name
-  only, or a player blocked in either direction - comes as a guest under the organiser's participant name, never by
+  only, or a player the viewer blocks (blocks are one-directional: a player who blocks the viewer is filled in as
+  usual, the blocked side must never be able to tell) - comes as a guest under the organiser's participant name, never by
   code or id: browser verification of PR #136, `PuzzleAddOfficialEntryTest::testALinkedPartnerHiddenFromTheViewerIsFilledInAsAGuest`) and the pair's/team's name when the form may still set it (no puzzling team of these exact people yet, or an
   unnamed one - `PuzzlingTeam::nameIfUnnamed()`; with nobody filled in, the name comes along and the save decides). A
   pair/team result **never opens as a solo time**: `OfficialEntryTime` carries the round's category, the co-puzzler

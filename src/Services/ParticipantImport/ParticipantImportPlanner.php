@@ -61,12 +61,17 @@ readonly final class ParticipantImportPlanner
             ? $built->removals
             : (new PlanBuilder($site, $rows, ParticipantImportMode::Sync))->build()->removals;
 
+        $existingPlayers = array_keys($site->existingPlayers);
+        sort($existingPlayers);
+
         $fingerprint = hash('sha256', json_encode([
             $rows->hash(),
             $mode->value,
             $site->stateVersion,
-            // Results are not in the state version; what full sync keeps because of them is (D8, D11)
-            $mode === ParticipantImportMode::Sync ? $built->resultsGuard : null,
+            // Results are not in the state version; what the plan keeps because of them is (D8, D11)
+            $built->resultsGuard,
+            // The file's msp_player_ids that exist - a player deleted meanwhile is not connected
+            $existingPlayers,
         ], JSON_THROW_ON_ERROR));
 
         return new ParticipantImportPlan(
@@ -85,6 +90,10 @@ readonly final class ParticipantImportPlanner
     private function snapshot(string $competitionId, ParticipantImportRows $rows): SiteSnapshot
     {
         $parameters = ['competitionId' => $competitionId];
+
+        // First, before the data: a change committed between the reads below then makes the plan stale on confirm,
+        // instead of a plan nobody saw carrying the newer version
+        $stateVersion = $this->getStateVersion->ofCompetition($competitionId);
 
         $participants = [];
         $participantRows = $this->database->fetchAllAssociative(
@@ -201,7 +210,7 @@ SQL,
             teams: $teams,
             results: $results,
             existingPlayers: $existingPlayers,
-            stateVersion: $this->getStateVersion->ofCompetition($competitionId),
+            stateVersion: $stateVersion,
         );
     }
 }

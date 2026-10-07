@@ -154,11 +154,7 @@ readonly final class ParticipantImportPreview
      */
     public function removedPeople(): int
     {
-        if ($this->plan === null) {
-            return 0;
-        }
-
-        return count($this->plan->removals->participants) + count($this->plan->removals->selfJoined);
+        return $this->plan?->removedPeople() ?? 0;
     }
 
     public function sheetInfo(): null|ParticipantFileSheetInfo

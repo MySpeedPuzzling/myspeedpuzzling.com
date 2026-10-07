@@ -19,6 +19,8 @@ readonly final class ParticipantImportRow
      * @param list<string> $roundsRemoved round names full sync takes the person out of (only on the person's first row)
      * @param array<string, null|string> $teams round name => team name after the import, for the row's pair/team rounds
      *        (null = no team in that round)
+     * @param array<string, null|string> $teamsBefore round name => team name before the import, only for the rounds of
+     *        $teams whose team the import gives or changes (null = no team, or an unnamed one)
      * @param list<TranslatableMessage> $messages what the organiser should know about this row
      * @param list<string> $roundsRestored round names a restored participant comes back with (Restore only; in full sync
      *        after the file's rounds took out what it does not list)
@@ -37,6 +39,7 @@ readonly final class ParticipantImportRow
         /** When a removed participant is restored: when they were removed */
         public null|\DateTimeImmutable $removedAt = null,
         public array $roundsRestored = [],
+        public array $teamsBefore = [],
     ) {
     }
 

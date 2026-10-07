@@ -53,11 +53,20 @@ readonly final class ParticipantImportPlan
      */
     public function isLargeRemoval(): bool
     {
-        $removed = count($this->removals->participants) + count($this->removals->selfJoined);
+        $removed = $this->removedPeople();
 
         return $this->mode === ParticipantImportMode::Sync
             && $removed >= 10
             && $removed * 4 > $this->activeParticipantsBefore;
+    }
+
+    /**
+     * People full sync takes off the event (organiser's and self-joined participants not in the file) - what
+     * "Update only" lists as kept.
+     */
+    public function removedPeople(): int
+    {
+        return count($this->removals->participants) + count($this->removals->selfJoined);
     }
 
     /**

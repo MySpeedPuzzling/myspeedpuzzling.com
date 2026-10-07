@@ -13,10 +13,12 @@ use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\ParticipantImportNotApplicable;
 use SpeedPuzzling\Web\Exceptions\ParticipantImportPreviewStale;
 use SpeedPuzzling\Web\Message\ApplyParticipantImport;
 use SpeedPuzzling\Web\Results\ParticipantImportResult;
+use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportApplier;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportPlanner;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
@@ -230,6 +232,153 @@ final class ApplyParticipantImportHandlerTest extends KernelTestCase
         self::assertSame([self::SOLO], $this->roundsOf($erin->id->toString()));
     }
 
+    public function testATeamRenamedOrAnEntryChangedMeanwhileMakesThePreviewStale(): void
+    {
+        $crew = $this->team('Corner Crew');
+        $alex = $this->participant('Alex Staying', [self::SOLO, self::TEAM], $crew);
+        $this->entityManager->flush();
+
+        $rows = new ParticipantImportRows([self::row(2, 'Alex Staying', roundNames: 'Solo Round, Team Round', teamsByRound: [self::TEAM => 'Corner Crew'])], roundsMapped: true);
+
+        foreach (
+            [
+            "UPDATE competition_team SET name = 'Edge Lords' WHERE id = :team",
+            'UPDATE competition_participant_round SET team_id = NULL WHERE team_id = :team',
+            ] as $concurrentChange
+        ) {
+            $plan = $this->planner->plan(self::EVENT, $rows, ParticipantImportMode::Sync);
+            $this->database->executeStatement($concurrentChange, ['team' => $crew->id->toString()]);
+            $before = $this->eventState();
+
+            try {
+                $this->messageBus->dispatch(new ApplyParticipantImport(self::EVENT, $rows, ParticipantImportMode::Sync->value, $plan->fingerprint));
+                self::fail('A preview made before the change must not be applied: ' . $concurrentChange);
+            } catch (ParticipantImportPreviewStale) {
+            }
+
+            $this->entityManager->clear();
+            self::assertSame($before, $this->eventState());
+        }
+
+        self::assertSame([self::SOLO, self::TEAM], $this->roundsOf($alex->id->toString()));
+    }
+
+    public function testUpdateOnlyNeverDeletes(): void
+    {
+        $crew = $this->team('Corner Crew');
+        $this->participant('Alex Staying', [self::SOLO, self::TEAM], $crew);
+        $this->participant('Blake Missing', [self::TEAM], $crew);
+        $this->entityManager->flush();
+        $before = $this->eventState();
+
+        // Alex out of the Team Round and out of his team, Blake and the self-joined Sarah not in the file
+        $rows = new ParticipantImportRows([self::row(2, 'Alex Staying', roundNames: 'Solo Round', teamsByRound: [self::TEAM => ''])], roundsMapped: true);
+
+        $result = $this->apply($rows, ParticipantImportMode::Update);
+
+        self::assertSame(0, $result->removed);
+        self::assertSame(0, $result->roundEntriesRemoved);
+        self::assertSame(0, $result->teamsRemoved);
+        $this->entityManager->clear();
+        self::assertSame($before, $this->eventState());
+    }
+
+    public function testABadModeIsNotApplicable(): void
+    {
+        $rows = new ParticipantImportRows([self::row(2, 'Nora New')]);
+        $plan = $this->planner->plan(self::EVENT, $rows, ParticipantImportMode::Update);
+
+        $this->expectException(ParticipantImportNotApplicable::class);
+        $this->messageBus->dispatch(new ApplyParticipantImport(self::EVENT, $rows, 'everything', $plan->fingerprint));
+    }
+
+    public function testAnUnknownEventIsNotFound(): void
+    {
+        $this->expectException(CompetitionNotFound::class);
+        $this->messageBus->dispatch(new ApplyParticipantImport('018d0000-0000-0000-0000-00000000dddd', new ParticipantImportRows([]), 'update', 'nothing'));
+    }
+
+    public function testALargeRemovalNeedsTheTypedNumberOfPeople(): void
+    {
+        $this->participant('Alex Staying', [self::SOLO]);
+        for ($i = 1; $i <= 12; $i++) {
+            $this->participant(sprintf('Leaving Person %d', $i), [self::SOLO]);
+        }
+        $this->entityManager->flush();
+
+        $rows = new ParticipantImportRows([self::row(2, 'Alex Staying')]);
+        $plan = $this->planner->plan(self::EVENT, $rows, ParticipantImportMode::Sync);
+        self::assertTrue($plan->isLargeRemoval());
+        self::assertSame(13, $plan->removedPeople(), 'Twelve people and the self-joined Sarah');
+        $before = $this->eventState();
+
+        foreach ([null, 12] as $typed) {
+            try {
+                $this->messageBus->dispatch(new ApplyParticipantImport(self::EVENT, $rows, ParticipantImportMode::Sync->value, $plan->fingerprint, $typed));
+                self::fail('A large removal needs the right number');
+            } catch (ParticipantImportNotApplicable) {
+            }
+
+            $this->entityManager->clear();
+            self::assertSame($before, $this->eventState());
+        }
+
+        $result = $this->dispatch(new ApplyParticipantImport(self::EVENT, $rows, ParticipantImportMode::Sync->value, $plan->fingerprint, 13));
+        self::assertSame(13, $result->removed);
+    }
+
+    public function testAnEntryMovedAwayFromATeamDeletedInTheSameImportKeepsItsNewTeam(): void
+    {
+        $oldCrew = $this->team('Old Crew');
+        $alex = $this->participant('Alex Mover', [self::TEAM], $oldCrew);
+        $this->participant('Blake Leaving', [self::TEAM], $oldCrew);
+        $this->entityManager->flush();
+
+        $rows = new ParticipantImportRows([
+            self::row(2, 'Alex Mover', roundNames: 'Team Round', teamsByRound: [self::TEAM => 'Fresh Crew']),
+        ], roundsMapped: true);
+
+        $result = $this->apply($rows, ParticipantImportMode::Sync);
+
+        self::assertSame(1, $result->teamsRemoved);
+        $this->entityManager->clear();
+        self::assertFalse($this->database->fetchOne('SELECT id FROM competition_team WHERE id = :id', ['id' => $oldCrew->id->toString()]));
+        self::assertSame('Fresh Crew', $this->database->fetchOne(
+            'SELECT ct.name FROM competition_participant_round cpr INNER JOIN competition_team ct ON ct.id = cpr.team_id WHERE cpr.participant_id = :id',
+            ['id' => $alex->id->toString()],
+        ));
+    }
+
+    public function testSomethingTheApplierNeedsGoneMeanwhileIsStaleBeforeAnyChange(): void
+    {
+        $alex = $this->participant('Alex Staying', [self::SOLO, self::TEAM]);
+        $this->participant('Blake Leaving', [self::SOLO]);
+        $this->entityManager->flush();
+
+        $rows = new ParticipantImportRows([self::row(2, 'Alex Renamed', participantId: $alex->id->toString(), roundNames: 'Solo Round')], roundsMapped: true);
+        $plan = $this->planner->plan(self::EVENT, $rows, ParticipantImportMode::Sync);
+
+        // The Team Round entry full sync deletes is gone (outside the import's lock)
+        $this->database->executeStatement(
+            'DELETE FROM competition_participant_round WHERE participant_id = :id AND round_id = :round',
+            ['id' => $alex->id->toString(), 'round' => self::TEAM],
+        );
+        $this->entityManager->clear();
+
+        try {
+            self::getContainer()->get(ParticipantImportApplier::class)->apply(self::EVENT, $plan);
+            self::fail('The applier must not apply half a plan');
+        } catch (ParticipantImportPreviewStale) {
+        }
+
+        // Nothing was changed before the check: no entity is scheduled for writing
+        $unitOfWork = $this->entityManager->getUnitOfWork();
+        $unitOfWork->computeChangeSets();
+        self::assertSame([], $unitOfWork->getScheduledEntityUpdates());
+        self::assertSame([], $unitOfWork->getScheduledEntityInsertions());
+        self::assertSame([], $unitOfWork->getScheduledEntityDeletions());
+    }
+
     private function dispatch(ApplyParticipantImport $message): ParticipantImportResult
     {
         $stamp = $this->messageBus->dispatch($message)->last(HandledStamp::class);
@@ -282,12 +431,13 @@ final class ApplyParticipantImportHandlerTest extends KernelTestCase
     /**
      * @param array<string, string> $teamsByRound
      */
-    private static function row(int $number, string $name, null|string $externalId = null, null|string $roundNames = null, array $teamsByRound = []): ParticipantImportRowData
+    private static function row(int $number, string $name, null|string $externalId = null, null|string $roundNames = null, array $teamsByRound = [], null|string $participantId = null): ParticipantImportRowData
     {
         return new ParticipantImportRowData(
             rowNumber: $number,
             name: $name,
             externalId: $externalId,
+            participantId: $participantId,
             roundNames: $roundNames,
             teamsByRound: $teamsByRound,
         );

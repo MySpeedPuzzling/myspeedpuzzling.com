@@ -85,6 +85,16 @@ final class PlanBuilder
     /** @var array<string, list<int>> round name as written => row numbers */
     private array $unknownRounds = [];
 
+    /**
+     * Removed self-joined participants - the player's own "I left" record: never matched, never a second record
+     *
+     * @var array<string, PlanPerson>
+     */
+    private array $selfJoinedLeft = [];
+
+    /** @var list<string> participant ids a `status = deleted` row would remove, kept because of results (D11) */
+    private array $keptByStatus = [];
+
     /** @var array<string, true> participants a skipped ambiguous row may have meant - never removed */
     private array $ambiguousCandidates = [];
 
@@ -165,7 +175,9 @@ final class PlanBuilder
             $this->people[$person->key] = $person;
 
             // A player's own "I left" record is not the organiser's data: restoring it would sign them up again
-            if (!($participant['selfJoined'] && $participant['deletedAt'] !== null)) {
+            if ($participant['selfJoined'] && $participant['deletedAt'] !== null) {
+                $this->selfJoinedLeft[$person->key] = $person;
+            } else {
                 $this->pool[$person->key] = self::poolRow($person);
                 $this->nameKeys[$person->key] = ParticipantNameKey::of($person->name);
             }
@@ -250,6 +262,10 @@ final class PlanBuilder
 
             if (Uuid::isValid($normalisedId) && isset($this->pool[$normalisedId])) {
                 $matchedKey = $normalisedId;
+            } elseif (isset($this->selfJoinedLeft[$normalisedId])) {
+                $this->skipSelfJoinedLeft($row, $this->selfJoinedLeft[$normalisedId]);
+
+                return;
             } else {
                 $row->messages[] = self::message('foreign_participant_id', ['%row%' => $rowNum, '%id%' => $participantIdCell]);
                 $this->foreignParticipantIds++;
@@ -275,6 +291,17 @@ final class PlanBuilder
                 $matchedKey = $this->findMatchByNameKey($validPlayerId, $externalId !== '' ? $externalId : null, $name, $countryCode?->name);
                 $byNameKey = $matchedKey !== null;
             }
+
+            // Nobody else - but a player who signed up by themselves and left: never a second record of them
+            if ($matchedKey === null) {
+                $left = $this->findSelfJoinedLeft($validPlayerId, $name);
+
+                if ($left !== null) {
+                    $this->skipSelfJoinedLeft($row, $left);
+
+                    return;
+                }
+            }
         }
 
         if ($matchedKey !== null) {
@@ -291,11 +318,26 @@ final class PlanBuilder
             if ($countryCode !== null) {
                 $person->country = $countryCode->name;
             }
-            if ($externalId !== '') {
-                $person->externalId = $externalId;
+            // A row never takes over a link the participant has (somebody else's participant_id, a typo): a matched
+            // participant keeps their external id and their player
+            if ($externalId !== '' && $externalId !== $person->externalId) {
+                if ($person->externalId !== null) {
+                    $row->messages[] = self::message('external_id_kept', [
+                        '%row%' => $rowNum,
+                        '%name%' => $name,
+                        '%current%' => $person->externalId,
+                        '%id%' => $externalId,
+                    ]);
+                } else {
+                    $person->externalId = $externalId;
+                }
             }
-            if ($validPlayerId !== null) {
-                $person->playerId = $validPlayerId;
+            if ($validPlayerId !== null && $validPlayerId !== $person->playerId) {
+                if ($person->playerId !== null) {
+                    $row->messages[] = self::message('player_id_kept', ['%row%' => $rowNum, '%name%' => $name, '%id%' => $validPlayerId]);
+                } elseif ($this->canConnect($validPlayerId, $person->key, $row, $name)) {
+                    $person->playerId = $validPlayerId;
+                }
             }
             $person->deleted = false;
         } else {
@@ -305,7 +347,7 @@ final class PlanBuilder
                 name: $name,
                 country: $countryCode?->name,
                 externalId: $externalId !== '' ? $externalId : null,
-                playerId: $validPlayerId,
+                playerId: $validPlayerId !== null && $this->canConnect($validPlayerId, 'new:' . $rowNum, $row, $name) ? $validPlayerId : null,
                 deleted: false,
             );
             $this->people[$person->key] = $person;
@@ -316,8 +358,14 @@ final class PlanBuilder
         $row->personKey = $person->key;
 
         if ($status === 'deleted') {
-            $person->deleted = true;
-            $person->deletedByFile = true;
+            // Somebody with results in this event stays (D11), as full sync keeps them
+            if ($person->wasActive() && $this->site->hasResult($person->playerId)) {
+                $row->messages[] = self::message('deleted_kept_with_results', ['%row%' => $rowNum, '%name%' => $name]);
+                $this->keptByStatus[] = $person->key;
+            } else {
+                $person->deleted = true;
+                $person->deletedByFile = true;
+            }
         }
 
         // Later rows match what this row made of the participant (a rename, a new external id, ...)
@@ -966,9 +1014,16 @@ final class PlanBuilder
             $seenPeople[$personKey] = true;
 
             $teams = [];
+            $teamsBefore = [];
             foreach ($row->teamRoundIds as $roundId) {
                 $entry = $this->entryOf($personKey, $roundId);
-                $teams[$this->roundsById[$roundId]->name] = $entry !== null && !$entry->removed ? $this->teamName($entry->team) : null;
+                $roundName = $this->roundsById[$roundId]->name;
+                $teams[$roundName] = $entry !== null && !$entry->removed ? $this->teamName($entry->team) : null;
+
+                // A team the import gives or changes - shown as a change, not like a team line that stays
+                if ($entry !== null && !$entry->removed && $entry->team !== $entry->originalTeam) {
+                    $teamsBefore[$roundName] = $this->teamName($entry->originalTeam);
+                }
             }
 
             $rows[] = new ParticipantImportRow(
@@ -980,6 +1035,7 @@ final class PlanBuilder
                 roundsAdded: $roundsAddedByRow[$rowNumber] ?? [],
                 roundsRemoved: $first ? $this->roundsRemovedOf($person) : [],
                 teams: $teams,
+                teamsBefore: $teamsBefore,
                 messages: $row->messages,
                 removedAt: $first && $person->isRestored() ? $person->deletedAt : null,
                 roundsRestored: $first && $person->isRestored() ? $this->roundsRestoredOf($person) : [],
@@ -1094,14 +1150,16 @@ final class PlanBuilder
     }
 
     /**
-     * What full sync keeps because of results - part of the fingerprint, so a result arriving after the preview for
-     * somebody the preview removed makes the preview stale (D8), while results of everybody else do not.
+     * What the plan keeps because of results (full sync's removals, `status = deleted` rows) - part of the fingerprint,
+     * so a result arriving after the preview for somebody the preview removed makes the preview stale (D8), while
+     * results of everybody else do not.
      */
     private function resultsGuard(): string
     {
         $kept = [
             array_map(static fn (array $participant): string => $participant['participantId'], $this->keptWithResults),
             array_map(static fn (array $entry): string => $entry['entryId'], $this->keptEntries),
+            $this->keptByStatus,
         ];
 
         return hash('sha256', json_encode($kept, JSON_THROW_ON_ERROR));
@@ -1267,7 +1325,8 @@ final class PlanBuilder
 
     /**
      * D17 (b): no participant has the row's exact name - exactly one active participant with the same name key
-     * (and the same constraints as the name match) is them.
+     * (and the same constraints as the name match) is them. Only participants on the site before the import: two rows
+     * of the file written differently stay two people (warned by D17 (a)), never merged by the key.
      */
     private function findMatchByNameKey(null|string $playerId, null|string $externalId, string $name, null|string $country): null|string
     {
@@ -1276,6 +1335,7 @@ final class PlanBuilder
         $candidates = array_filter(
             $this->pool,
             fn (array $row): bool => $row['deleted'] === false
+                && !str_starts_with($row['id'], 'new:')
                 && $this->nameKeys[$row['id']] === $key
                 && ($externalId === null || $row['external_id'] === null || $row['external_id'] === $externalId)
                 && ($playerId === null || $row['player_id'] === null || $playerId === $row['player_id']),
@@ -1290,6 +1350,51 @@ final class PlanBuilder
         }
 
         return count($candidates) === 1 ? (string) array_key_first($candidates) : null;
+    }
+
+    /**
+     * A removed self-joined participant the row stands for: the same player, or (no player in the row) the same name key.
+     */
+    private function findSelfJoinedLeft(null|string $playerId, string $name): null|PlanPerson
+    {
+        $key = ParticipantNameKey::of($name);
+
+        foreach ($this->selfJoinedLeft as $person) {
+            if ($playerId !== null ? $person->playerId === $playerId : ParticipantNameKey::of($person->name) === $key) {
+                return $person;
+            }
+        }
+
+        return null;
+    }
+
+    private function skipSelfJoinedLeft(PlanRow $row, PlanPerson $person): void
+    {
+        $row->messages[] = self::message('self_joined_left', [
+            '%row%' => $row->rowNumber,
+            '%name%' => $person->name,
+        ]);
+    }
+
+    /**
+     * A player is connected to one active participant of the event at most.
+     */
+    private function canConnect(string $playerId, string $personKey, PlanRow $row, string $name): bool
+    {
+        foreach ($this->people as $other) {
+            if ($other->key !== $personKey && !$other->deleted && $other->playerId === $playerId) {
+                $row->messages[] = self::message('player_linked_elsewhere', [
+                    '%row%' => $row->rowNumber,
+                    '%name%' => $name,
+                    '%id%' => $playerId,
+                    '%other%' => $other->name,
+                ]);
+
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

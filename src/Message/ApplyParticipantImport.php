@@ -20,6 +20,11 @@ readonly final class ApplyParticipantImport implements SerializedByLock
         /** ParticipantImportMode value */
         public string $mode,
         public string $expectedFingerprint,
+        /**
+         * The number of people the organiser typed to confirm a large removal (D7) - required when full sync removes
+         * more than a quarter of the event's participants, ignored otherwise
+         */
+        public null|int $confirmedRemovedCount = null,
     ) {
     }
 

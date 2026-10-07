@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Results\ParticipantImportPlan;
 use SpeedPuzzling\Web\Services\CompetitionParticipantExporter;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportPlanner;
@@ -22,6 +23,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Value\ColumnMapping;
 use SpeedPuzzling\Web\Value\ParticipantImportMode;
 use SpeedPuzzling\Web\Value\ParticipantImportRowAction;
@@ -163,17 +166,29 @@ final class ParticipantImportPlannerTest extends KernelTestCase
         self::assertSame(['Team Round'], $plan->rows[0]->roundsRemoved);
     }
 
-    public function testRemovedSelfJoinedRowIsNeverMatched(): void
+    public function testRemovedSelfJoinedRowIsNeverMatchedNorCreatedAgain(): void
     {
         $this->database->executeStatement(
             'UPDATE competition_participant SET deleted_at = now() WHERE id = :id',
             ['id' => MarketplaceEventFixture::PARTICIPANT_EDITION_SELLER_A],
         );
 
-        $plan = $this->planner->plan(self::EVENT, $this->rows([self::row(2, 'Sarah Williams')]), ParticipantImportMode::Sync);
+        $plan = $this->planner->plan(self::EVENT, $this->rows([
+            self::row(2, 'Sarah Williams'),
+            self::row(3, 'Somebody Else', participantId: MarketplaceEventFixture::PARTICIPANT_EDITION_SELLER_A),
+        ]), ParticipantImportMode::Sync);
 
-        self::assertSame(ParticipantImportRowAction::New, $plan->rows[0]->action);
-        self::assertNull($plan->rows[0]->participantId);
+        // The player's own "I left" record: not restored, and no second record of her either
+        foreach ($plan->rows as $row) {
+            self::assertSame(ParticipantImportRowAction::Skipped, $row->action);
+            self::assertNull($row->participantId);
+            self::assertSame(
+                [sprintf('Row %d: "Sarah Williams" signed up on MySpeedPuzzling by themselves and left the event again, so the row was skipped. If they take part after all, add them on the participants page.', $row->rowNumber)],
+                $this->texts($row->messages),
+            );
+        }
+        self::assertSame([], self::operations($plan)->participants);
+        self::assertSame([], $plan->syncBlockers, 'Not a row the plan cannot vouch for');
     }
 
     public function testApostropheVariantIsTheSamePersonAndTakesTheFilesSpelling(): void
@@ -197,11 +212,184 @@ final class ParticipantImportPlannerTest extends KernelTestCase
             self::row(3, 'Robin O’Hara'),
         ]), ParticipantImportMode::Update);
 
-        // The second spelling is the same person, never a second participant
+        // Two rows of the file are never merged by the name key - only warned (a person on the site would be matched)
         self::assertSame(ParticipantImportRowAction::New, $plan->rows[0]->action);
-        self::assertSame(ParticipantImportRowAction::SamePerson, $plan->rows[1]->action);
-        self::assertSame(1, self::operations($plan)->added);
+        self::assertSame(ParticipantImportRowAction::New, $plan->rows[1]->action);
+        self::assertSame(2, self::operations($plan)->added);
         self::assertContains('One name is written in different ways in rows 2, 3: "Robin O\'Hara", "Robin O’Hara". If it is one person, write it the same way everywhere.', $this->texts($plan->warnings));
+    }
+
+    public function testNameKeyMatchesOnlyPeopleOnTheSiteNeverAnEarlierRowOfTheFile(): void
+    {
+        $rows = $this->rows([
+            self::row(2, 'Shay O’Example', participantId: '018d0000-0000-0000-0000-00000000bbb1'),
+            self::row(3, "Shay O'Example", participantId: '018d0000-0000-0000-0000-00000000bbb2'),
+            self::row(4, "Shay O'Example", roundNames: 'Solo Round'),
+        ], roundsMapped: true);
+
+        $plan = $this->planner->plan(self::EVENT, $rows, ParticipantImportMode::Update);
+
+        // Rows differing only by the key stay two people; the exact name still adds up
+        self::assertSame(ParticipantImportRowAction::New, $plan->rows[0]->action);
+        self::assertSame(ParticipantImportRowAction::New, $plan->rows[1]->action);
+        self::assertSame(ParticipantImportRowAction::SamePerson, $plan->rows[2]->action);
+        self::assertSame(2, self::operations($plan)->added);
+        self::assertSame([['participantKey' => 'new:3', 'roundId' => self::SOLO, 'team' => null]], self::operations($plan)->newEntries);
+        self::assertContains('One name is written in different ways in rows 2, 3, 4: "Shay O’Example", "Shay O\'Example". If it is one person, write it the same way everywhere.', $this->texts($plan->warnings));
+    }
+
+    public function testAParticipantIdRowNeverTakesOverAnotherLink(): void
+    {
+        // WJPC 2024: John Regular (EXT-001, PLAYER_REGULAR), Jane Unconnected (nothing), Secret Player (PLAYER_PRIVATE)
+        $plan = $this->planner->plan(CompetitionFixture::COMPETITION_WJPC_2024, $this->rows([
+            self::row(2, 'John Regular', externalId: 'EXT-999', playerId: PlayerFixture::PLAYER_ADMIN, participantId: CompetitionParticipantFixture::PARTICIPANT_CONNECTED),
+            self::row(3, 'Jane Unconnected', playerId: PlayerFixture::PLAYER_PRIVATE, participantId: CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED),
+        ]), ParticipantImportMode::Update);
+
+        self::assertSame(ParticipantImportRowAction::Unchanged, $plan->rows[0]->action);
+        self::assertSame([
+            'Row 2: "John Regular" keeps external_id "EXT-001" - "EXT-999" from the file ignored (an import never replaces an external id a participant has).',
+            sprintf('Row 2: "John Regular" stays connected to their MySpeedPuzzling player - msp_player_id "%s" from the file ignored (an import never replaces a connected player).', PlayerFixture::PLAYER_ADMIN),
+        ], $this->texts($plan->rows[0]->messages));
+
+        // Secret Player is an active participant connected to that player already
+        self::assertSame(ParticipantImportRowAction::Unchanged, $plan->rows[1]->action);
+        self::assertSame(
+            [sprintf('Row 3: msp_player_id "%s" is already connected to "Secret Player" in this event, so it was not connected to "Jane Unconnected".', PlayerFixture::PLAYER_PRIVATE)],
+            $this->texts($plan->rows[1]->messages),
+        );
+        self::assertTrue(self::operations($plan)->changesNothingVisible());
+
+        // An unconnected participant is connected to a player nobody else of the event has
+        $plan = $this->planner->plan(CompetitionFixture::COMPETITION_WJPC_2024, $this->rows([
+            self::row(2, 'Jane Unconnected', playerId: PlayerFixture::PLAYER_ADMIN, participantId: CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED),
+        ]), ParticipantImportMode::Update);
+        self::assertSame(ParticipantImportRowAction::Update, $plan->rows[0]->action);
+        self::assertSame([['field' => 'msp_player_id', 'before' => null, 'after' => PlayerFixture::PLAYER_ADMIN]], $plan->rows[0]->changes);
+    }
+
+    public function testStatusDeletedNeverRemovesSomebodyWithResults(): void
+    {
+        foreach ([ParticipantImportMode::Update, ParticipantImportMode::Sync] as $mode) {
+            // John Regular has results in the Qualification Round; Jane has none
+            $plan = $this->planner->plan(CompetitionFixture::COMPETITION_WJPC_2024, $this->rows([
+                self::row(2, 'John Regular', externalId: 'EXT-001', status: 'deleted'),
+                self::row(3, 'Jane Unconnected', status: 'deleted'),
+                self::row(4, 'Secret Player'),
+            ]), $mode);
+
+            self::assertSame(ParticipantImportRowAction::Unchanged, $plan->rows[0]->action, $mode->value);
+            self::assertSame(['Row 2: "John Regular" has results in this event, so the status "deleted" was ignored and they stay.'], $this->texts($plan->rows[0]->messages));
+            self::assertSame(ParticipantImportRowAction::Remove, $plan->rows[1]->action, $mode->value);
+
+            $softDeleted = array_values(array_filter(self::operations($plan)->participants, static fn (array $operation): bool => $operation['softDelete']));
+            self::assertContains(CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED, array_column($softDeleted, 'key'));
+            self::assertNotContains(CompetitionParticipantFixture::PARTICIPANT_CONNECTED, array_column($softDeleted, 'key'));
+        }
+    }
+
+    public function testAForeignParticipantIdFallsBackToTheNameAndOnlyManyBlockFullSync(): void
+    {
+        $alex = $this->participant('Alex Example', [self::SOLO]);
+        $this->entityManager->flush();
+
+        $plan = $this->planner->plan(self::EVENT, $this->rows([
+            self::row(2, 'Alex Example', participantId: '018d0000-0000-0000-0000-00000000ccc1'),
+        ]), ParticipantImportMode::Sync);
+
+        self::assertSame($alex->id->toString(), $plan->rows[0]->participantId);
+        self::assertSame(ParticipantImportRowAction::Unchanged, $plan->rows[0]->action);
+        self::assertSame(
+            ['Row 2: participant_id "018d0000-0000-0000-0000-00000000ccc1" is not a participant of this event, so the row was matched like a row without it.'],
+            $this->texts($plan->rows[0]->messages),
+        );
+        self::assertSame([], $plan->syncBlockers);
+        self::assertTrue($plan->canBeApplied());
+    }
+
+    public function testTwoRowsOfOnePersonWithDifferentTeamsKeepTheFirst(): void
+    {
+        $plan = $this->planner->plan(self::EVENT, $this->rows([
+            self::row(2, 'Alex Example', roundNames: 'Team Round', teamsByRound: [self::TEAM => 'Corner Crew']),
+            self::row(3, 'Alex Example', roundNames: 'Team Round', teamsByRound: [self::TEAM => 'Edge Lords']),
+        ], roundsMapped: true), ParticipantImportMode::Update);
+
+        self::assertSame(ParticipantImportRowAction::SamePerson, $plan->rows[1]->action);
+        self::assertSame(
+            ['Row 3: "Alex Example" already has team "Corner Crew" in round "Team Round" from an earlier row, team "Edge Lords" ignored.'],
+            $this->texts($plan->rows[1]->messages),
+        );
+        self::assertSame(['Team Round' => 'Corner Crew'], $plan->rows[0]->teams);
+        self::assertSame(['Team Round' => null], $plan->rows[0]->teamsBefore, 'A team the import gives is shown as a change');
+        self::assertCount(1, self::operations($plan)->newTeams);
+    }
+
+    public function testFullSyncDeletesOnlyTeamsTheImportEmpties(): void
+    {
+        $round = $this->round(self::TEAM);
+        $movedAway = new CompetitionTeam(Uuid::uuid7(), $round, 'Moved Away');
+        $leftBehind = new CompetitionTeam(Uuid::uuid7(), $round, 'Left Behind');
+        $emptyAlready = new CompetitionTeam(Uuid::uuid7(), $round, 'Made In Advance');
+        $unnamed = new CompetitionTeam(Uuid::uuid7(), $round, null);
+        $withResults = new CompetitionTeam(Uuid::uuid7(), $round, 'Has Results');
+        $target = new CompetitionTeam(Uuid::uuid7(), $round, 'Target Crew');
+        foreach ([$movedAway, $leftBehind, $emptyAlready, $unnamed, $withResults, $target] as $team) {
+            $this->entityManager->persist($team);
+        }
+
+        $this->participant('Mover Alone', [self::TEAM], [self::TEAM => $movedAway]);
+        $this->participant('Gone Member', [self::TEAM], [self::TEAM => $leftBehind]);
+        $this->participant('Unnamed Stayer', [self::TEAM], [self::TEAM => $unnamed]);
+        $this->participant('Target Member', [self::TEAM], [self::TEAM => $target]);
+        $resulter = $this->participant('Result Holder', [self::TEAM], [self::TEAM => $withResults]);
+        $this->participant('Result Teammate', [self::TEAM], [self::TEAM => $withResults]);
+        $player = $this->entityManager->find(Player::class, PlayerFixture::PLAYER_REGULAR);
+        self::assertInstanceOf(Player::class, $player);
+        $resulter->connect($player, new DateTimeImmutable());
+        $this->entityManager->flush();
+
+        // The Result Holder has a result in the Team Round
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET player_id = :player, competition_round_id = :round WHERE id = :id',
+            ['player' => PlayerFixture::PLAYER_REGULAR, 'round' => self::TEAM, 'id' => PuzzleSolvingTimeFixture::TIME_11],
+        );
+
+        $plan = $this->planner->plan(self::EVENT, $this->rows([
+            self::row(2, 'Mover Alone', roundNames: 'Team Round', teamsByRound: [self::TEAM => 'Target Crew']),
+            self::row(3, 'Unnamed Stayer', roundNames: 'Team Round', teamsByRound: [self::TEAM => '']),
+            self::row(4, 'Target Member', roundNames: 'Team Round', teamsByRound: [self::TEAM => 'Target Crew']),
+        ], roundsMapped: true), ParticipantImportMode::Sync);
+
+        self::assertTrue($plan->canBeApplied());
+        self::assertSame(['Gone Member', 'Result Teammate', 'Sarah Williams'], array_values(array_map(
+            static fn (array $participant): string => $participant['name'],
+            [...$plan->removals->participants, ...$plan->removals->selfJoined],
+        )));
+        self::assertSame(['Result Holder'], array_column($plan->removals->participantsKeptWithResults, 'name'));
+
+        // Moved Away (its member moved) and Left Behind (its member removed) are emptied; the team made in advance,
+        // the unnamed team (its member stays) and the team of somebody kept because of results stay
+        $deleted = array_column($plan->removals->teams, 'teamName');
+        sort($deleted);
+        self::assertSame(['Left Behind', 'Moved Away'], $deleted);
+        self::assertEqualsCanonicalizing([$movedAway->id->toString(), $leftBehind->id->toString()], self::operations($plan)->deletedTeams);
+
+        self::assertSame(['Team Round' => 'Target Crew'], $plan->rows[0]->teams);
+        self::assertSame(['Team Round' => 'Moved Away'], $plan->rows[0]->teamsBefore);
+        self::assertSame([], $plan->rows[2]->teamsBefore, 'An unchanged team is no change');
+    }
+
+    public function testTheFingerprintFollowsTheRoundsStart(): void
+    {
+        $rows = $this->rows([self::row(2, 'Alex Example', roundNames: 'Solo Round')], roundsMapped: true);
+        $before = $this->planner->plan(self::EVENT, $rows, ParticipantImportMode::Update)->fingerprint;
+
+        $this->database->executeStatement(
+            "UPDATE competition_round SET starts_at = starts_at + interval '1 hour' WHERE id = :id",
+            ['id' => self::SOLO],
+        );
+
+        self::assertNotSame($before, $this->planner->plan(self::EVENT, $rows, ParticipantImportMode::Update)->fingerprint);
     }
 
     public function testCorrectedTypoNextToTheOldSpellingIsWarned(): void
@@ -468,13 +656,17 @@ final class ParticipantImportPlannerTest extends KernelTestCase
         null|string $roundNames = null,
         null|string $team = null,
         array $teamsByRound = [],
+        null|string $playerId = null,
+        null|string $status = null,
     ): ParticipantImportRowData {
         return new ParticipantImportRowData(
             rowNumber: $number,
             name: $name,
             country: $country,
             externalId: $externalId,
+            playerId: $playerId,
             participantId: $participantId,
+            status: $status,
             roundNames: $roundNames,
             team: $team,
             teamsByRound: $teamsByRound,

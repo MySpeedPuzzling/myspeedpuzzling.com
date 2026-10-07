@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\ParticipantImportPreviewStale;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
@@ -24,6 +25,9 @@ use SpeedPuzzling\Web\Value\ParticipantSource;
  * Writes what ParticipantImportPlanner planned - through the entities, persist only: the caller's transaction
  * flushes (ApplyParticipantImportHandler; the console façade flushes itself). Ids of new participants, teams and
  * round entries are generated here, never at plan time.
+ *
+ * Every entity the plan references is loaded before the first change: one that is gone meanwhile (somebody deleted
+ * it outside the import's lock) throws ParticipantImportPreviewStale with nothing changed.
  */
 readonly final class ParticipantImportApplier
 {
@@ -36,6 +40,9 @@ readonly final class ParticipantImportApplier
     ) {
     }
 
+    /**
+     * @throws ParticipantImportPreviewStale
+     */
     public function apply(string $competitionId, ParticipantImportPlan $plan): ParticipantImportResult
     {
         $operations = $plan->operations;
@@ -44,8 +51,57 @@ readonly final class ParticipantImportApplier
         $competition = $this->competitionRepository->get($competitionId);
         $now = $this->clock->now();
 
+        // 1. Everything the plan references - nothing is changed yet
+
+        /** @var array<string, CompetitionParticipant> $existing participant id => participant */
+        $existing = [];
+        /** @var array<string, Player> $players */
+        $players = [];
+        foreach ($operations->participants as $operation) {
+            if (!str_starts_with($operation['key'], 'new:')) {
+                $existing[$operation['key']] = $this->find(CompetitionParticipant::class, $operation['key']);
+            }
+            if ($operation['connectPlayerId'] !== null) {
+                $players[$operation['connectPlayerId']] = $this->find(Player::class, $operation['connectPlayerId']);
+            }
+        }
+        foreach ($operations->newEntries as $operation) {
+            if (!str_starts_with($operation['participantKey'], 'new:') && !isset($existing[$operation['participantKey']])) {
+                $existing[$operation['participantKey']] = $this->find(CompetitionParticipant::class, $operation['participantKey']);
+            }
+        }
+
+        /** @var array<string, CompetitionRound> $rounds */
+        $rounds = [];
+        foreach ([...$operations->newTeams, ...$operations->newEntries] as $operation) {
+            $rounds[$operation['roundId']] ??= $this->find(CompetitionRound::class, $operation['roundId']);
+        }
+
+        /** @var array<string, CompetitionTeam> $teams existing team id => team */
+        $teams = [];
+        foreach ([...$operations->newEntries, ...$operations->entryTeams] as $operation) {
+            if ($operation['team'] !== null && str_starts_with($operation['team'], 't:')) {
+                $teamId = substr($operation['team'], 2);
+                $teams[$teamId] ??= $this->find(CompetitionTeam::class, $teamId);
+            }
+        }
+        foreach ($operations->deletedTeams as $teamId) {
+            $teams[$teamId] ??= $this->find(CompetitionTeam::class, $teamId);
+        }
+
+        /** @var array<string, CompetitionParticipantRound> $entries */
+        $entries = [];
+        foreach ($operations->entryTeams as $operation) {
+            $entries[$operation['entryId']] = $this->find(CompetitionParticipantRound::class, $operation['entryId']);
+        }
+        foreach ($operations->deletedEntries as $entryId) {
+            $entries[$entryId] ??= $this->find(CompetitionParticipantRound::class, $entryId);
+        }
+
+        // 2. The changes
+
         /** @var array<string, CompetitionParticipant> $participants key => participant */
-        $participants = [];
+        $participants = $existing;
         foreach ($operations->participants as $operation) {
             if (str_starts_with($operation['key'], 'new:')) {
                 $participant = new CompetitionParticipant(
@@ -57,7 +113,7 @@ readonly final class ParticipantImportApplier
                 );
                 $this->entityManager->persist($participant);
             } else {
-                $participant = $this->participant($operation['key']);
+                $participant = $existing[$operation['key']];
 
                 if ($participant->name !== $operation['name']) {
                     $participant->updateName($operation['name']);
@@ -72,10 +128,7 @@ readonly final class ParticipantImportApplier
             }
 
             if ($operation['connectPlayerId'] !== null) {
-                $player = $this->entityManager->find(Player::class, $operation['connectPlayerId']);
-                if ($player !== null) {
-                    $participant->connect($player, $now);
-                }
+                $participant->connect($players[$operation['connectPlayerId']], $now);
             }
 
             if ($operation['markAsImported']) {
@@ -98,38 +151,39 @@ readonly final class ParticipantImportApplier
         foreach ($operations->newTeams as $operation) {
             $team = new CompetitionTeam(
                 id: Uuid::uuid7(),
-                round: $this->round($operation['roundId']),
+                round: $rounds[$operation['roundId']],
                 name: $operation['name'],
             );
             $this->competitionTeamRepository->save($team);
             $newTeams[$operation['key']] = $team;
         }
 
-        $teamOf = function (null|string $key) use ($newTeams): null|CompetitionTeam {
+        $teamOf = static function (null|string $key) use ($newTeams, $teams): null|CompetitionTeam {
             if ($key === null) {
                 return null;
             }
 
             if (str_starts_with($key, 't:')) {
-                return $this->competitionTeamRepository->get(substr($key, 2));
+                return $teams[substr($key, 2)];
             }
 
             return $newTeams[$key] ?? throw new \LogicException(sprintf('The plan references team "%s" it does not create.', $key));
         };
 
         foreach ($operations->newEntries as $operation) {
-            $participant = $participants[$operation['participantKey']] ?? $this->participant($operation['participantKey']);
+            $participant = $participants[$operation['participantKey']]
+                ?? throw new \LogicException(sprintf('The plan references participant "%s" it does not create.', $operation['participantKey']));
 
             $this->participantRoundRepository->save(new CompetitionParticipantRound(
                 id: Uuid::uuid7(),
                 participant: $participant,
-                round: $this->round($operation['roundId']),
+                round: $rounds[$operation['roundId']],
                 team: $teamOf($operation['team']),
             ));
         }
 
         foreach ($operations->entryTeams as $operation) {
-            $entry = $this->participantRoundRepository->get($operation['entryId']);
+            $entry = $entries[$operation['entryId']];
             $team = $teamOf($operation['team']);
 
             if ($team === null) {
@@ -140,12 +194,12 @@ readonly final class ParticipantImportApplier
         }
 
         foreach ($operations->deletedEntries as $entryId) {
-            $this->participantRoundRepository->delete($this->participantRoundRepository->get($entryId));
+            $this->participantRoundRepository->delete($entries[$entryId]);
         }
 
         // Teams the import empties - members incl. hidden removed ones let go first, like DeleteCompetitionTeamHandler
         foreach ($operations->deletedTeams as $teamId) {
-            $team = $this->competitionTeamRepository->get($teamId);
+            $team = $teams[$teamId];
 
             foreach ($this->participantRoundRepository->findByTeam($team) as $entry) {
                 // findByTeam() reads the database: an entry this import already moved elsewhere is not the team's
@@ -169,17 +223,15 @@ readonly final class ParticipantImportApplier
         );
     }
 
-    private function participant(string $id): CompetitionParticipant
+    /**
+     * @template T of object
+     * @param class-string<T> $class
+     * @return T
+     *
+     * @throws ParticipantImportPreviewStale
+     */
+    private function find(string $class, string $id): object
     {
-        $participant = $this->entityManager->find(CompetitionParticipant::class, $id);
-
-        return $participant ?? throw new \LogicException(sprintf('The planned participant "%s" does not exist.', $id));
-    }
-
-    private function round(string $id): CompetitionRound
-    {
-        $round = $this->entityManager->find(CompetitionRound::class, $id);
-
-        return $round ?? throw new \LogicException(sprintf('The planned round "%s" does not exist.', $id));
+        return $this->entityManager->find($class, $id) ?? throw new ParticipantImportPreviewStale();
     }
 }

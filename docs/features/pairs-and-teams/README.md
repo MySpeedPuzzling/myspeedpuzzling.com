@@ -178,7 +178,14 @@ the card opens instantly with skeleton chips. Edit form, 422 re-render and `?tea
 - **Guests tab** (`/pairs-and-teams?show=guests`): rename, and "They have an account now" (player code) →
   `RequestGuestLink` → `GuestLinkRequested` notification → `/pairs-and-teams/guest-link/{id}` (GET only shows:
   who asks + the results it is about) → `AnswerGuestLink`. Asking again replaces the open question; only the
-  asked player can open or answer it, once.
+  asked player can open or answer it, once. The player is found **by name or by player code**
+  (`guest_link_picker_controller.js`, added 2026-10-08 after a puzzler's feedback): TomSelect fills the same `code`
+  field the plain input posts (no JS = type the code), started only when the section opens. Order = a name like
+  the guest's (same name, then same first name, also searched on the server as soon as it opens), then favorites,
+  then the other co-puzzlers (`my_co_puzzlers`, fetched once per page), then everybody from
+  `player_search_autocomplete?format=co-puzzler`. Guests and the player themselves are never offered.
+- **Cards show every member**: names on the manage page wrap (`text-break`), never `text-truncate` - a cut-off
+  list hid who is in a big team.
 - **Archive**: `puzzling_team_archive (team, player)`; `GetCoPuzzlers` flags `archived` per viewer,
   `MyCoPuzzlersController` drops archived teams (and an archived pair's person) from the picker payload, the
   manage page folds them under "Archived". `PuzzlingTeamResolver::resolve(..., usedByPlayerId:)` deletes the

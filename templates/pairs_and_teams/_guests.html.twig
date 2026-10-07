@@ -6,7 +6,7 @@
         <div class="card card-body shadow-sm mb-2 pairs-and-teams-guest" data-guest-key="{{ guest.key }}">
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <div class="flex-grow-1" style="min-width: 0;">
-                    <div class="fw-semibold text-truncate" data-testid="guest-name"><i class="ci-user text-muted me-1"></i>{{ guest.label }}</div>
+                    <div class="fw-semibold text-break" data-testid="guest-name"><i class="ci-user text-muted me-1"></i>{{ guest.label }}</div>
                     <div class="fs-sm text-muted">{{ 'pairs_and_teams.times_together'|trans({'%count%': guest.timesCount}) }}{% if guest.lastTogetherAt is not null %} · {{ guest.lastTogetherAt|ago }}{% endif %}</div>
                 </div>
             </div>
@@ -29,13 +29,27 @@
                 </div>
             {% endif %}
 
-            <details class="mt-2">
+            {# Found by name or by player code, the people the player knows first - like the add form's picker #}
+            <details class="mt-2"
+                     data-controller="guest-link-picker"
+                     data-action="toggle->guest-link-picker#start"
+                     data-guest-link-picker-suggestions-url-value="{{ path('my_co_puzzlers') }}"
+                     data-guest-link-picker-search-url-value="{{ path('player_search_autocomplete', {format: 'co-puzzler'}) }}"
+                     data-guest-link-picker-guest-name-value="{{ guest.label }}"
+                     data-guest-link-picker-viewer-value="{{ logged_user.profile.playerId }}"
+                     data-guest-link-picker-texts-value="{{ {
+                         placeholder: 'pairs_and_teams.guests.link_search_placeholder'|trans,
+                         noResults: 'pairs_and_teams.guests.link_no_results'|trans,
+                         favorite: 'pairs_and_teams.guests.link_favorite'|trans,
+                     }|json_encode }}">
                 <summary class="fs-sm text-primary">{{ 'pairs_and_teams.guests.link'|trans }}</summary>
-                <form action="{{ path('pairs_and_teams_link_guest') }}" method="post" class="d-flex flex-wrap gap-2 mt-2">
+                <form action="{{ path('pairs_and_teams_link_guest') }}" method="post" class="d-flex flex-wrap align-items-start gap-2 mt-2">
                     <input type="hidden" name="_token" value="{{ csrf }}">
                     <input type="hidden" name="guest" value="{{ guest.key }}">
                     <label class="visually-hidden" for="guest-code-{{ loop.index }}">{{ 'pairs_and_teams.guests.link_code_label'|trans }}</label>
-                    <input type="text" class="form-control form-control-sm" style="max-width: 320px;" id="guest-code-{{ loop.index }}" name="code" maxlength="50" required placeholder="#CODE" autocapitalize="off" autocomplete="off">
+                    <div class="flex-grow-1" style="max-width: 320px; min-width: 200px;">
+                        <input type="text" class="form-control form-control-sm" id="guest-code-{{ loop.index }}" name="code" maxlength="50" required placeholder="{{ 'pairs_and_teams.guests.link_search_placeholder'|trans }}" autocapitalize="off" autocomplete="off" data-guest-link-picker-target="input">
+                    </div>
                     <button type="submit" class="btn btn-sm btn-primary">{{ 'pairs_and_teams.guests.link_submit'|trans }}</button>
                 </form>
                 <div class="form-text">{{ 'pairs_and_teams.guests.link_help'|trans }}</div>

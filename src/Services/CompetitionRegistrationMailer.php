@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Value\RegistrationEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
@@ -15,7 +16,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * (docs/features/transactional-emails.md). Nothing for a row without a player or a player without an e-mail address.
  *
  * The event's name, entry fee and payment instructions are typed by its organiser: the templates escape them, and
- * label the payment instructions as the organiser's - MySpeedPuzzling does not process payments.
+ * label the payment instructions as the organiser's - MySpeedPuzzling does not process payments. The fee and the
+ * instructions go out only while the event manages registration and is not over - a waitlist promoted by switching
+ * management off, or a status changed after the event, never asks anybody to pay.
  */
 readonly final class CompetitionRegistrationMailer
 {
@@ -24,6 +27,7 @@ readonly final class CompetitionRegistrationMailer
         private TranslatorInterface $translator,
         private PlayerAccountEmail $playerAccountEmail,
         private CompetitionDetailUrl $competitionDetailUrl,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -43,6 +47,7 @@ readonly final class CompetitionRegistrationMailer
 
         $locale = $player->locale ?? 'en';
         $competition = $participant->competition;
+        $paymentDetails = $competition->registrationManaged && $competition->isOver($this->clock->now()) === false;
 
         $subject = $this->translator->trans(
             'competition_registration.' . $kind->value . '.subject',
@@ -59,8 +64,8 @@ readonly final class CompetitionRegistrationMailer
             ->context([
                 'competitionName' => $competition->name,
                 'eventUrl' => $this->competitionDetailUrl->absoluteOf($competition->id->toString(), $locale),
-                'entryFeeText' => $competition->entryFeeText,
-                'paymentInstructions' => $competition->paymentInstructions,
+                'entryFeeText' => $paymentDetails ? $competition->entryFeeText : null,
+                'paymentInstructions' => $paymentDetails ? $competition->paymentInstructions : null,
                 'waitlistPosition' => $waitlistPosition,
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'transactional');

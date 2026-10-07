@@ -141,14 +141,26 @@ class CompetitionParticipant
     /**
      * A new registration to an event with managed registration (docs/features/competitions-management/registration.md):
      * reserved, or waitlisted when the event is full. A registration made again after cancelling starts fresh - not paid,
-     * not checked in, at the end of the waitlist.
+     * not checked in, at the end of the queue - but keeps when it was paid before: the organiser's record of a payment
+     * they hold is never wiped by the player (the participants page shows it, "Mark paid" confirms it again).
      */
     public function register(RegistrationStatus $status, DateTimeImmutable $registeredAt): void
     {
         $this->registrationStatus = $status;
         $this->registeredAt = $registeredAt;
-        $this->paidAt = null;
         $this->checkedInAt = null;
+    }
+
+    /**
+     * A waitlist exists only on an event that manages registration (CompetitionParticipantGoing): a waitlisted row that
+     * comes back on an event that does not - joining again, the organiser's restore - holds a spot like every other
+     * "I'm going".
+     */
+    public function leaveWaitlistOfUnmanagedEvent(): void
+    {
+        if ($this->registrationStatus === RegistrationStatus::Waitlisted) {
+            $this->registrationStatus = RegistrationStatus::Reserved;
+        }
     }
 
     /**

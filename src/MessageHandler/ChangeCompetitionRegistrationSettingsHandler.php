@@ -8,14 +8,18 @@ use SpeedPuzzling\Web\Exceptions\InvalidRegistrationSettings;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Services\CompetitionRegistrationMailer;
+use SpeedPuzzling\Web\Value\RegistrationEmail;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * Switching management on: every row already "going" holds a spot (reserved) - the settings page says how many.
  * Switching it off: the event is an open "I'm going" list again, so the waitlist becomes going too (the page says how
- * many) - no waitlisted row stays behind on an event that does not manage registration (CompetitionParticipantGoing).
- * Statuses, payments and check-ins stay on the rows and count again when management is switched back on.
+ * many) and gets the "a spot opened up" e-mail the waitlist was promised. No waitlisted row stays behind on an event
+ * that does not manage registration (CompetitionParticipantGoing) - not even the row of somebody who left the waitlist,
+ * since joining again restores it. Statuses, payments and check-ins stay on the rows and count again when management
+ * is switched back on.
  */
 #[AsMessageHandler]
 readonly final class ChangeCompetitionRegistrationSettingsHandler
@@ -23,6 +27,7 @@ readonly final class ChangeCompetitionRegistrationSettingsHandler
     public function __construct(
         private CompetitionRepository $competitionRepository,
         private CompetitionParticipantRepository $participantRepository,
+        private CompetitionRegistrationMailer $registrationMailer,
     ) {
     }
 
@@ -47,8 +52,13 @@ readonly final class ChangeCompetitionRegistrationSettingsHandler
         );
 
         if ($switchedOff) {
-            foreach ($this->participantRepository->waitlistOf($message->competitionId) as $participant) {
+            foreach ($this->participantRepository->waitlistOf($message->competitionId, includeDeleted: true) as $participant) {
                 $participant->promoteFromWaitlist();
+
+                // Sent through the transactional queue inside this transaction - a rollback sends nothing
+                if ($participant->isDeleted() === false) {
+                    $this->registrationMailer->send($participant, RegistrationEmail::Promoted);
+                }
             }
         }
     }

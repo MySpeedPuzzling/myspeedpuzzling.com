@@ -11,7 +11,9 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  * "Automatic" chosen for a round puzzle's reveal, but not for the moment the round has now: the organiser saw another
  * automatic reveal (the round's start or reveal delay changed after the page was loaded - a page left open while the
  * delay was set from 25 to 5 minutes would otherwise save "Automatic" for a reveal 20 minutes earlier than the one
- * shown), or the caller said no moment at all (ChangeRoundPuzzleReveal::$shownAutomaticRevealAt). Nothing was changed.
+ * shown), or the caller said no moment at all (ChangeRoundPuzzleReveal::$shownAutomaticRevealAt). The same for a
+ * secret puzzle added to a round from a page that named another automatic reveal
+ * (AddPuzzleToCompetitionRound::$shownAutomaticRevealAt). Nothing was changed.
  *
  * An HTTP exception, so UnwrapHttpExceptionMiddleware hands it to the controller as itself.
  */

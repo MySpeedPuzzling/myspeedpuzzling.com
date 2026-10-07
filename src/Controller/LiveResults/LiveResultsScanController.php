@@ -10,7 +10,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Query\GetLiveResultsEntrant;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
-use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\LiveResultsCurrentRound;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,8 +18,8 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The URL in a name tag's QR (docs/features/competitions-management/live-results.md). An organiser of the event
- * (their phone's camera) lands on the live entry of the participant's current round with their entry open - their
+ * The URL in a name tag's QR (docs/features/competitions-management/live-results.md). An organiser or referee of the
+ * event (their phone's camera) lands on the live entry of the participant's current round with their entry open - their
  * own round when they are in several, so parallel halls each get theirs. Anyone else - signed out, a puzzler, an
  * unknown or another event's participant - lands on the event page.
  */
@@ -47,7 +47,7 @@ final class LiveResultsScanController extends AbstractController
     {
         $entrant = null;
 
-        if ($this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId)) {
+        if ($this->isGranted(CompetitionResultsEntryVoter::COMPETITION_RESULTS_ENTRY, $competitionId)) {
             $entrant = $this->getLiveResultsEntrant->ofCompetition($competitionId, $participantId);
         }
 

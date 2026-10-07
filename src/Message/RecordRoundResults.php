@@ -14,7 +14,8 @@ use SpeedPuzzling\Web\Value\RoundResultChange;
  * three-way against the value the device last saw; the handler answers with one outcome per change
  * (RecordedRoundResults, from the HandledStamp). A dry run checks and answers without writing.
  *
- * `competitionId` is the competition the caller authorised (CompetitionEditVoter) - a round of another one is refused.
+ * `competitionId` is the competition the caller authorised (CompetitionEditVoter, or CompetitionResultsEntryVoter
+ * with `resultsOnly`) - a round of another one is refused.
  * Serialised with every other participant write of the event (the participant import, registrations, ...).
  */
 readonly final class RecordRoundResults implements SerializedByLock
@@ -26,6 +27,9 @@ readonly final class RecordRoundResults implements SerializedByLock
         /** @var list<RoundResultChange> */
         public array $changes,
         public bool $dryRun = false,
+        // The acting player is a referee, not an organiser: only `result` changes go through, others are refused
+        // (reason `results_only`) - docs/features/competitions-management/live-results.md "Referees"
+        public bool $resultsOnly = false,
     ) {
     }
 

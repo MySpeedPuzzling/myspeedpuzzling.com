@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
@@ -20,7 +21,7 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * The organiser tools' bootstrap (live entry, results desk, seating): the round, every round of the event (round
  * picker, advancement targets, seating readiness) and every entry of the round with its official record, ranked.
- * The server's clock comes along for the stopwatch ("Finished now").
+ * The server's clock comes along for the stopwatch ("Finished now"). Referees may read it (the live entry).
  * docs/features/competitions-management/official-results.md - the JSON shape is documented there.
  */
 final class RoundResultsStateController extends AbstractController
@@ -45,7 +46,7 @@ final class RoundResultsStateController extends AbstractController
     {
         $round = $this->roundRepository->get($roundId);
         $competition = $round->competition;
-        $authorised = $this->api->authorise($request, $competition->id->toString(), write: false);
+        $authorised = $this->api->authorise($request, $competition->id->toString(), write: false, attribute: CompetitionResultsEntryVoter::COMPETITION_RESULTS_ENTRY);
 
         if ($authorised instanceof JsonResponse) {
             return $authorised;

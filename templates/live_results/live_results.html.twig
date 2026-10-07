@@ -189,9 +189,11 @@
     >
         <div class="lr-bar">
             <div class="lr-bar-row">
+                {% if organiser %}{# referees (live-results.md "Referees") get no organiser tools #}
                 <a class="lr-icon-btn" href="{{ path('manage_competition_rounds', {competitionId: competition.id}) }}" aria-label="{{ 'live_results.back_to_rounds'|trans }}" title="{{ 'live_results.back_to_rounds'|trans }}">
                     <i class="bi bi-arrow-left" aria-hidden="true"></i>
                 </a>
+                {% endif %}
                 <select class="form-select lr-round-select" aria-label="{{ 'live_results.round'|trans }}" data-action="live-results#switchRound" data-live-results-target="roundSelect">
                     {% for option in rounds %}
                         <option value="{{ option.roundId }}" {{ option.roundId == round.id ? 'selected' }}>
@@ -238,7 +240,7 @@
 
             <div class="mt-2" data-live-results-target="findNotice" role="status" hidden></div>
 
-            {% if uses_tables %}
+            {% if uses_tables and organiser %}
                 <div class="alert alert-info small py-2 px-3 mt-2 mb-0" data-live-results-target="readiness" hidden>
                     {{ 'live_results.tables.recommended'|trans }}
                     {% if seating_url %}
@@ -370,7 +372,7 @@
                     </fieldset>
                 {% endif %}
 
-                {% if uses_tables %}
+                {% if uses_tables and organiser %}
                     <label for="lr-add-table" class="form-label">{{ 'live_results.add.table'|trans }}</label>
                     <input type="text" id="lr-add-table" class="form-control form-control-lg mb-3" data-live-results-target="addTable" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done">
                 {% endif %}

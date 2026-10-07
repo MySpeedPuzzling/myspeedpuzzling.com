@@ -48,6 +48,13 @@ that would otherwise be forgotten. Newest section on top.
       columns, unique `(participant_id, round_id)`, `competition_round.results_first_published_at` + `table_numbers_off`,
       `notification.target_competition_round_id`) once the official results PR is complete.
 
+## Referees (`docs/features/competitions-management/live-results.md` "Referees")
+
+- [ ] "My events" does not list the events a player referees (its cards are organiser cards with edit/delete) - a
+      referee opens the link they were given. A "Referee at" list with a Live entry button when referees ask for it.
+- [ ] A newly added referee is not told (no notification/e-mail) - the organiser hands them the link.
+- [ ] Referees on the results desk (read-only ranking) if events want referees to check what others entered.
+
 ## Seating (`docs/features/competitions-management/seating.md`)
 
 - [ ] Translate the `seating.*` keys into cs, de, es, fr, ja (English only in the official results streams).

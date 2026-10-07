@@ -30,6 +30,7 @@ use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -420,6 +421,32 @@ final class CompetitionRegistrationTest extends KernelTestCase
         // A one-day event (no date_to) is over after its day too
         $this->setDates(new DateTimeImmutable($today)->modify('-1 day'), null);
         $this->assertRefused(RegistrationAvailability::Closed, self::EVENT, PlayerFixture::PLAYER_REGULAR);
+    }
+
+    /**
+     * An edition without a country of its own and without a saved zone reads in its series' country zone - on the card
+     * like in the export (review 2 nit).
+     */
+    public function testTheCardOfAnEditionReadsTheSeriesCountryZoneLikeTheExport(): void
+    {
+        $edition = CompetitionSeriesFixture::EDITION_OFFLINE_1;
+        $this->database->executeStatement(
+            'UPDATE competition SET registration_managed = true, registration_timezone = NULL, location_country_code = NULL WHERE id = :id',
+            ['id' => $edition],
+        );
+        $this->database->executeStatement(
+            "UPDATE competition_series SET location_country_code = 'jp' WHERE id = :id",
+            ['id' => CompetitionSeriesFixture::SERIES_OFFLINE],
+        );
+
+        $registration = self::getContainer()->get(GetEventAttendance::class)->forEvent(
+            self::getContainer()->get(GetCompetitionEvents::class)->byId($edition),
+            null,
+            true,
+        )->registration;
+
+        self::assertNotNull($registration);
+        self::assertSame('Asia/Tokyo', $registration->timezone);
     }
 
     /**

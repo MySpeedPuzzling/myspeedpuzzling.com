@@ -31,7 +31,10 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SpeedPuzzling\Web\Value\RoundResultChange;
 use SpeedPuzzling\Web\Value\RoundResultChangeStatus;
 use SpeedPuzzling\Web\Value\RoundResultField;
+use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 /**
  * Plans the whole change set first - every change checked three-way against the working state of the round, table
@@ -61,6 +64,7 @@ readonly final class RecordRoundResultsHandler
         private PlayerRepository $playerRepository,
         private RoundResultChangeReceiptRepository $receiptRepository,
         private ClockInterface $clock,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -109,11 +113,17 @@ readonly final class RecordRoundResultsHandler
             $changed[$ref] = true;
         }
 
+        $finishedResultRecorded = false;
+
         foreach ($plan['applied'] as $index) {
             $change = $message->changes[$index];
             $ref = $change->entryRef()?->toString();
             assert($ref !== null && isset($entries[$ref]));
             $entry = $entries[$ref];
+
+            if ($change->field === RoundResultField::Result && self::result($change->to)->isFinished()) {
+                $finishedResultRecorded = true;
+            }
 
             match ($change->field) {
                 RoundResultField::Result => $entry->recordResult(self::result($change->to), $actor, $now),
@@ -123,6 +133,13 @@ readonly final class RecordRoundResultsHandler
             };
 
             $changed[$ref] = true;
+        }
+
+        // A finished result on published results may be news for somebody not told yet (a referee's phone syncing late, a
+        // corrected did-not-finish): the notification runs again - once for the whole set, after the commit; players
+        // told before are never told twice
+        if ($finishedResultRecorded && $round->areResultsPublished()) {
+            $this->messageBus->dispatch(new OfficialRoundResultsPublished($round->id), [new DispatchAfterCurrentBusStamp()]);
         }
 
         // The ids of everything that went through or was there already - sent again, they change nothing any more

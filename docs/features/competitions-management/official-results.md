@@ -103,8 +103,9 @@ before changing anything and check that every round/entry belongs to the competi
   `first_published_at`. **Every** publish records `OfficialRoundResultsPublished` (async) →
   `NotifyWhenOfficialRoundResultsPublished`: an in-app notification (no e-mail) to every player linked to an entry with a
   **finished** result (solo: the connected participant; pair/team: connected members) who was not told about the round
-  yet. The same event is recorded when a finished result is recorded or corrected on a published round
-  (`HasOfficialResult::recordResult()` - a referee's phone syncing late, a did-not-finish corrected) and dispatched for the
+  yet. The same event is dispatched once per change set that records or corrects a finished result on a published round
+  (`RecordRoundResultsHandler`, after the commit - a referee's phone syncing late, a did-not-finish corrected; a desk
+  batch of 100 corrections is one run, which checks every entry anyway) and for the
   already published rounds when the event (`ApproveCompetitionHandler`) or its series (`ApproveCompetitionSeriesHandler`)
   is approved. The handler tells nobody while the results are off the page or the event is not publicly visible
   (`IsCompetitionPubliclyVisible` - the link would 404); the next publish or the approval runs it again. **Never twice**:

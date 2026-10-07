@@ -4,6 +4,15 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Inbox promises (simona@ backlog, 2026-10-07)
+
+What a reply to a player promised to build. Each has an MSP Mailer follow-up: tell the player when it ships.
+
+- [ ] First tries (and unboxed) filter for pairs and teams. Today the switch is shown, but `PlayerSolvedPuzzles.php`
+      (~222-225) resets it outside solo and only solo results are filtered (~263-280); the puzzle leaderboard has
+      the same reset (`PuzzleTimes.php` ~245-247). A pair/team result is a first try only when it is everybody's
+      (`docs/features/first-try-integrity.md`). Promised to Gav (MSP #90, follow-up F45) and Allison (MSP #107, F46).
+
 ## Managed registration (`docs/features/competitions-management/registration.md`)
 
 - [ ] Registration status / paid / checked-in as optional columns of the participants spreadsheet's People tab

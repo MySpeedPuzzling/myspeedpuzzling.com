@@ -1,0 +1,120 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block title %}{{ 'results_desk.overview.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'results_desk.overview.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('edit_competition', {competitionId: competition.id}), fallbackTitle: 'competition.edit_event'|trans}) }}
+
+    {% set overview_url = path('competition_results_overview', {competitionId: competition.id}) %}
+
+    <div class="pb-5"
+         data-controller="results-overview"
+         data-results-overview-state-template-value="{{ path('official_results_round_state', {roundId: '00000000-0000-0000-0000-000000000000'}) }}"
+         data-results-overview-is-online-value="{{ competition.isOnline ? 'true' : 'false' }}"
+         data-results-overview-texts-value="{{ {tables_off: 'results_desk.overview.tables_off'|trans}|json_encode|e('html_attr') }}">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+            <div>
+                <h1 class="h3 mb-1">{{ 'results_desk.overview.title'|trans }}</h1>
+                <p class="text-body-secondary mb-0">{{ competition.name }}</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                {% if rounds|length > 1 %}
+                    {{ include('official_results/_advance_dialog.html.twig', {competition: competition, rounds: rounds}) }}
+                {% endif %}
+                <a href="{{ path('manage_competition_rounds', {competitionId: competition.id, return: overview_url, return_title: 'results_desk.overview.title'|trans}) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-list-ol me-1" aria-hidden="true"></i>{{ 'competition.manage_rounds'|trans }}
+                </a>
+            </div>
+        </div>
+
+        <p class="small text-body-secondary">{{ 'results_desk.overview.intro'|trans }}</p>
+
+        {% if rounds|length == 0 %}
+            <p class="text-muted">{{ 'competition.no_rounds'|trans }}</p>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table align-middle results-overview-table">
+                    <caption class="visually-hidden">{{ 'results_desk.overview.caption'|trans }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'results_desk.overview.column.round'|trans }}</th>
+                            <th scope="col">{{ 'results_desk.overview.column.starts'|trans }}</th>
+                            <th scope="col" class="text-end">{{ 'results_desk.overview.column.entries'|trans }}</th>
+                            <th scope="col" style="min-width: 8rem;">{{ 'results_desk.overview.column.results'|trans }}</th>
+                            <th scope="col" class="text-end">{{ 'results_desk.overview.column.qualified'|trans }}</th>
+                            {% if not competition.isOnline %}
+                                <th scope="col" class="text-end">{{ 'results_desk.overview.column.tables'|trans }}</th>
+                            {% endif %}
+                            <th scope="col">{{ 'results_desk.overview.column.published'|trans }}</th>
+                            <th scope="col"><span class="visually-hidden">{{ 'results_desk.overview.column.tools'|trans }}</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for round in rounds %}
+                            {% set overview = round.overview %}
+                            {% set results_percent = overview.entriesTotal > 0 ? (overview.entriesWithResult * 100 / overview.entriesTotal)|round : 0 %}
+                            <tr data-overview-round="{{ round.id }}">
+                                <th scope="row" class="fw-normal">
+                                    <span class="badge" style="background-color: {{ round.color }}; color: {{ round.textColor }}">{{ overview.name }}</span>
+                                    <span class="d-block small text-body-secondary mt-1">{{ ('competition.round.category.' ~ overview.category)|trans }}</span>
+                                </th>
+                                <td class="small text-nowrap">
+                                    {{ overview.startsAt|date('d.m.Y H:i', round.timezone) }}
+                                    <span class="d-block text-body-secondary">{{ timezone_name(round.timezone, round.timezoneAssumed) }}</span>
+                                    <span class="badge text-bg-success" data-overview-stopwatch="running" {{ overview.stopwatchStatus != 'running' ? 'hidden' }}><i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'competition.stopwatch.running'|trans }}</span>
+                                    <span class="badge text-bg-warning" data-overview-stopwatch="stopped" {{ overview.stopwatchStatus != 'stopped' ? 'hidden' }}>{{ 'competition.stopwatch.stopped'|trans }}</span>
+                                </td>
+                                <td class="text-end" data-overview-field="entries">{{ overview.entriesTotal }}</td>
+                                <td>
+                                    <span class="small" data-overview-field="results">{{ overview.entriesWithResult }} / {{ overview.entriesTotal }}</span>
+                                    <div class="progress mt-1" style="height: 0.375rem;" role="progressbar" aria-label="{{ 'results_desk.overview.column.results'|trans }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ results_percent }}">
+                                        <div class="progress-bar bg-success" style="width: {{ results_percent }}%" data-overview-progress></div>
+                                    </div>
+                                </td>
+                                <td class="text-end" data-overview-field="qualified">{{ overview.entriesQualified }}</td>
+                                {% if not competition.isOnline %}
+                                    <td class="text-end text-nowrap">
+                                        {% if overview.tableNumbersOff %}
+                                            <span class="text-body-secondary" data-overview-field="tables">{{ 'results_desk.overview.tables_off'|trans }}</span>
+                                        {% else %}
+                                            <span class="{{ overview.entriesTotal > 0 and overview.entriesWithTableNumber >= overview.entriesTotal ? 'text-success' : (overview.entriesWithTableNumber < overview.entriesTotal ? 'text-warning-emphasis') }}" data-overview-field="tables">{{ overview.entriesWithTableNumber }} / {{ overview.entriesTotal }}</span>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                <td class="text-nowrap">
+                                    <span data-overview-published="true" {{ overview.resultsPublishedAt is null ? 'hidden' }}>
+                                        <span class="badge text-bg-success">{{ 'results_desk.publication.published'|trans }}</span>
+                                        {% if round.publicUrl is not null %}
+                                            <a href="{{ round.publicUrl }}" class="small d-block" target="_blank" rel="noopener">{{ 'results_desk.publication.public_page'|trans }}<i class="bi bi-box-arrow-up-right ms-1" aria-hidden="true"></i></a>
+                                        {% endif %}
+                                    </span>
+                                    <span class="badge text-bg-secondary" data-overview-published="false" {{ overview.resultsPublishedAt is not null ? 'hidden' }}>{{ 'results_desk.publication.not_published'|trans }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                        {{ include('official_results/_round_tool_links.html.twig', {
+                                            round_id: round.id,
+                                            is_online: competition.isOnline,
+                                            table_numbers_off: overview.tableNumbersOff,
+                                            return_url: overview_url,
+                                            return_title: 'results_desk.overview.title'|trans,
+                                        }) }}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

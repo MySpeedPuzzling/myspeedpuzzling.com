@@ -1,0 +1,116 @@
+{# "Advance the qualified" - trigger button + dialog (controllers/advance_qualified_controller.js), on the results desk
+   (source_round_id preselected) and on the results overview. Expects: competition (CompetitionEvent), rounds
+   (list of OfficialResultsRound); optional: source_round_id, button_class #}
+{%- set placeholder = '00000000-0000-0000-0000-000000000000' -%}
+<div class="d-inline-block"
+     data-controller="advance-qualified"
+     data-advance-qualified-rounds-value="{{ rounds|json_encode|e('html_attr') }}"
+     data-advance-qualified-source-value="{{ source_round_id|default('') }}"
+     data-advance-qualified-is-online-value="{{ competition.isOnline ? 'true' : 'false' }}"
+     data-advance-qualified-csrf-token-value="{{ csrf_token('official_results') }}"
+     data-advance-qualified-urls-value="{{ {
+         advance: path('official_results_advance', {competitionId: competition.id}),
+         stateTemplate: path('official_results_round_state', {roundId: placeholder}),
+         assignTemplate: path('official_results_assign_table_numbers', {roundId: placeholder}),
+         deskTemplate: path('results_desk', {roundId: placeholder}),
+         seatingTemplate: path('round_seating', {roundId: placeholder}),
+     }|json_encode|e('html_attr') }}"
+     data-advance-qualified-texts-value="{{ {
+         category_solo: 'competition.round.category.solo'|trans,
+         category_duo: 'competition.round.category.duo'|trans,
+         category_team: 'competition.round.category.team'|trans,
+         qualified_count: browser_translation('results_desk.advance.qualified_count'),
+         entries_count: browser_translation('results_desk.advance.entries_count'),
+         choose_source_first: 'results_desk.advance.choose_source_first'|trans,
+         no_target_rounds: 'results_desk.advance.no_target_rounds'|trans,
+         distribution_single: 'results_desk.advance.distribution.single'|trans,
+         distribution_single_help: 'results_desk.advance.distribution.single_help'|trans,
+         distribution_balanced: 'results_desk.advance.distribution.balanced'|trans,
+         distribution_balanced_help: 'results_desk.advance.distribution.balanced_help'|trans,
+         distribution_by_source: 'results_desk.advance.distribution.by_source'|trans,
+         distribution_by_source_help: 'results_desk.advance.distribution.by_source_help'|trans,
+         map_label: 'results_desk.advance.map_label'|trans,
+         map_choose: 'results_desk.advance.map_choose'|trans,
+         plan_target: 'results_desk.advance.plan.target'|trans,
+         plan_group: browser_translation('results_desk.advance.plan.group'),
+         plan_summary: browser_translation('results_desk.advance.plan.summary'),
+         plan_nobody: 'results_desk.advance.plan.nobody'|trans,
+         plan_skipped: browser_translation('results_desk.advance.plan.skipped'),
+         plan_changed: 'official_results.advance.error.plan_changed'|trans,
+         column_seed: 'results_desk.advance.plan.column_seed'|trans,
+         column_entrant: 'results_desk.advance.plan.column_entrant'|trans,
+         column_from: 'results_desk.advance.plan.column_from'|trans,
+         column_result: 'results_desk.advance.plan.column_result'|trans,
+         rank_short: 'results_desk.advance.plan.rank_short'|trans,
+         pieces_placed: 'official_results.result.pieces_placed'|trans,
+         pieces_placed_of: 'official_results.result.pieces_placed_of'|trans,
+         apply: browser_translation('results_desk.advance.apply'),
+         done: browser_translation('results_desk.advance.done.title'),
+         done_round: browser_translation('results_desk.advance.done.round'),
+         open_desk: 'results_desk.advance.done.open_desk'|trans,
+         arrange_by_hand: 'results_desk.advance.done.arrange_by_hand'|trans,
+         seat_title: 'results_desk.advance.seat.title'|trans,
+         seat_help: 'results_desk.advance.seat.help'|trans,
+         seat_order_label: 'results_desk.advance.seat.order_label'|trans,
+         seat_fastest_first: 'results_desk.advance.seat.fastest_first'|trans,
+         seat_slowest_first: 'results_desk.advance.seat.slowest_first'|trans,
+         seat_now: 'results_desk.advance.seat.now'|trans,
+         seat_skip: 'results_desk.advance.seat.skip'|trans,
+         seat_done: browser_translation('results_desk.advance.seat.done'),
+         seat_nothing: 'results_desk.advance.seat.nothing'|trans,
+         error_sign_in: 'results_desk.error.sign_in'|trans,
+         error_offline: 'results_desk.error.offline'|trans,
+         error_forbidden: 'results_desk.error.forbidden'|trans,
+         error_generic: 'results_desk.error.generic'|trans,
+         close: 'results_desk.close'|trans,
+     }|json_encode|e('html_attr') }}">
+    <button type="button" class="btn {{ button_class|default('btn-outline-primary') }}" data-action="advance-qualified#open">
+        <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{{ 'results_desk.advance.button'|trans }}
+    </button>
+
+    <div class="modal fade" tabindex="-1" aria-labelledby="advance-qualified-title" aria-hidden="true" data-advance-qualified-target="modal">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="advance-qualified-title">{{ 'results_desk.advance.title'|trans }}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'results_desk.close'|trans }}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" role="alert" hidden data-advance-qualified-target="error"></div>
+
+                    <div data-advance-qualified-target="choose" data-action="change->advance-qualified#choiceChanged">
+                        <p class="text-body-secondary small">{{ 'results_desk.advance.intro'|trans }}</p>
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <h3 class="h6">{{ 'results_desk.advance.from'|trans }}</h3>
+                                <div data-advance-qualified-target="sources"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <h3 class="h6">{{ 'results_desk.advance.into'|trans }}</h3>
+                                <div data-advance-qualified-target="targets"></div>
+                            </div>
+                        </div>
+                        <fieldset class="mt-3" hidden data-advance-qualified-target="distribution">
+                            <legend class="h6">{{ 'results_desk.advance.distribution.legend'|trans }}</legend>
+                            <div data-options></div>
+                        </fieldset>
+                        <div class="mt-2" hidden data-advance-qualified-target="map"></div>
+                    </div>
+
+                    <div hidden data-advance-qualified-target="plan" aria-live="polite"></div>
+                    <div hidden data-advance-qualified-target="done" aria-live="polite"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary me-auto" hidden data-advance-qualified-target="backButton" data-action="advance-qualified#back">
+                        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'results_desk.advance.back'|trans }}
+                    </button>
+                    <button type="button" class="btn btn-primary" disabled data-advance-qualified-target="planButton" data-action="advance-qualified#requestPlan">
+                        {{ 'results_desk.advance.show_plan'|trans }}
+                    </button>
+                    <button type="button" class="btn btn-success" hidden data-advance-qualified-target="applyButton" data-action="advance-qualified#apply"></button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'results_desk.close'|trans }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

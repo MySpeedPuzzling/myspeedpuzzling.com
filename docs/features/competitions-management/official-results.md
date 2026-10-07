@@ -13,6 +13,7 @@ models, JSON API). The organiser pages (live entry, results desk, seating, name 
 on it - see their own sections once they ship.
 
 - Live result entry on a phone + name tags with QR: [live-results.md](live-results.md)
+- Results desk, results overview, qualification helpers, advancing and "Seat them now": [results-desk.md](results-desk.md)
 
 Vocabulary: a **round entry** is `CompetitionParticipantRound` (a person in a solo round) or `CompetitionTeam` (a
 pair/team of a pair/team round). An **official result** is what the organiser recorded for a round entry. A **time** is

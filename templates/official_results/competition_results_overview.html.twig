@@ -53,7 +53,9 @@
         {% if rounds|length == 0 %}
             <p class="text-muted">{{ 'competition.no_rounds'|trans }}</p>
         {% else %}
-            <div class="table-responsive">
+            {# position-relative: the visually hidden texts in the table (position: absolute) stay inside the scroller -
+               without it they widen the page at 375 px (browser verification) #}
+            <div class="table-responsive position-relative">
                 <table class="table align-middle results-overview-table">
                     <caption class="visually-hidden">{{ 'results_desk.overview.caption'|trans }}</caption>
                     <thead>

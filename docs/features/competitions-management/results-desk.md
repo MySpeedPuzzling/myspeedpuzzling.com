@@ -65,8 +65,16 @@ and "published since" are shown in the round's zone (like the export), not the d
   Enter saves, Escape cancels; while an editor is open the row order is frozen and that row is never re-rendered
   (typing is never wiped); focus is restored after every re-render.
 - **Unsaved changes** (`assets/official_results_pending_changes.js`, `PendingChanges`): one cell per entry field;
-  `from` = the server value the organiser saw when they changed it, so a value somebody else saved meanwhile comes
-  back as a conflict. A cell is saved only when the server answered `applied`/`unchanged` for exactly that value.
+  `from` = the value the organiser saw when they started changing it, so a value somebody else saved meanwhile comes
+  back as a conflict. For an inline editor that is the value shown when it **opened** (`openEditor()` - never the
+  server's value at save time: a live update reaching a frozen row would otherwise become the `from` and be
+  overwritten silently - browser verification BLOCKER, 2026-10-07). A value somebody else saved while the editor is
+  open (a live update, or a conflict answer to the organiser's earlier value) is shown **next to the editor**: "Saved
+  meanwhile by Eva: 1:20:00 · Keep mine / Take theirs" (`savedMeanwhile()`); Save/Enter does not go through until the
+  organiser chose (the same value typed = nothing to decide); Keep mine saves over it knowingly
+  (`keepMineInEditor()`), Take theirs closes the editor. A qualified tick sends the mark the organiser saw before
+  the click, a helper the marks its diff showed, "Swap them" the number the refusal named. Pinned by
+  `OfficialResultsDeskHelpersTest::testAnInlineEditorSendsWhatTheOrganiserSawWhenItOpened`. A cell is saved only when the server answered `applied`/`unchanged` for exactly that value.
   One request at a time, in order (max 500 changes); a value changed while the previous one is on its way follows
   it (chained `from`). Conflict = "Saved meanwhile by Eva: 1:20:00 · Keep mine / Take theirs" (+ "keep all mine /
   take all theirs" when there are several); refused = the reason + Try again / Discard.

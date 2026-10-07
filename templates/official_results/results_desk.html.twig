@@ -268,7 +268,9 @@
             </div>
         </div>
 
-        <div class="table-responsive">
+        {# position-relative: the visually hidden texts in the table (position: absolute) stay inside the scroller -
+           without it they widen the page at 375 px (browser verification) #}
+        <div class="table-responsive position-relative">
             <table class="table table-sm align-middle results-desk-table">
                 <caption class="visually-hidden">{{ 'results_desk.table.caption'|trans({'%round%': round.overview.name}) }}</caption>
                 <thead>

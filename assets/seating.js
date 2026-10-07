@@ -269,6 +269,40 @@ export function parseTableNumber(text) {
 }
 
 /**
+ * A table number typed into the list (round_seating_controller.js): what to do with it. `seen` = the entry's number
+ * the input showed when the organiser started typing, `current` = the entry's number now - a live update from another
+ * organiser may have changed it meanwhile -, `typed` = the parsed number (null = no table).
+ *
+ * - `nothing`: the entry has that number already;
+ * - `meanwhile`: somebody else changed the number while the organiser was typing - shown with Keep mine / Take theirs,
+ *   never written over silently (browser verification BLOCKER 1, the seating page's inline editor);
+ * - `write` with `from` = what the organiser saw.
+ */
+export function typedNumberWrite(seen, current, typed) {
+    if (typed === current) {
+        return { action: 'nothing' };
+    }
+
+    if (seen !== current) {
+        return { action: 'meanwhile', current };
+    }
+
+    return { action: 'write', from: seen };
+}
+
+/**
+ * The number an input showed (its `data-seen`, written whenever the page fills the input from the round's data);
+ * an input never filled yet showed the entry's number.
+ */
+export function seenNumber(seenAttribute, current) {
+    if (seenAttribute === undefined || seenAttribute === null) {
+        return current;
+    }
+
+    return seenAttribute === '' ? null : parseInt(seenAttribute, 10);
+}
+
+/**
  * The "Find" box: a table number exactly, or a part of the name, a member's name or the #code - accents ignored.
  */
 export function matchesQuery(entry, query) {

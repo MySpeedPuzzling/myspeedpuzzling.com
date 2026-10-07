@@ -22,6 +22,8 @@ const operations = {
     withFrom: ({ assignments, entries }) => seating.withFrom(assignments, byRef(entries)),
     holder: ({ entries, number, except }) => seating.holderOf(byRef(entries), number, except)?.ref ?? null,
     parse: ({ text }) => seating.parseTableNumber(text),
+    typed: ({ seen, current, typed }) => seating.typedNumberWrite(seen, current, typed),
+    seen: ({ attribute, current }) => seating.seenNumber(attribute, current),
     matches: ({ entry, query }) => seating.matchesQuery(entry, query),
     fold: ({ text }) => seating.fold(text),
 };

@@ -94,6 +94,9 @@ final class PageSectionEditorTest extends WebTestCase
         self::assertSame('noindex, nofollow', $crawler->filter('meta[name="robots"]')->attr('content'));
         $form = $crawler->filter('form[method="post"]');
         self::assertSame($url, $form->attr('action'));
+        // Every question and answer has its label (browser verification: placeholders only before)
+        self::assertSame('Question', $crawler->filter('label[for="' . $crawler->filter('input[name="items[0][question]"]')->attr('id') . '"]')->text());
+        self::assertSame('Answer', $crawler->filter('label[for="' . $crawler->filter('textarea[name="items[0][answer]"]')->attr('id') . '"]')->text());
 
         // Without the page's token nothing is saved and the form says why
         $this->browser->request('POST', $url, ['title' => 'FAQ', 'items' => [['question' => 'Parking?', 'answer' => 'Yes']]]);

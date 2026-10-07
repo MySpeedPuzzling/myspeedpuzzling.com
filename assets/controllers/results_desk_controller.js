@@ -6,7 +6,14 @@ import { OfficialResultsEvents } from '../official_results_events.js';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
 import { rankEntries } from '../official_results_ranking.js';
 import { bestOfEachCountry, qualificationDiff, topN } from '../official_results_qualification.js';
-import { PendingChanges, sameValue } from '../official_results_pending_changes.js';
+import {
+    PendingChanges,
+    sameValue,
+    openEditor as editorOpened,
+    savedMeanwhile,
+    keepMineInEditor,
+    saveEditor as saveEditorValue,
+} from '../official_results_pending_changes.js';
 import { chooseTranslation } from '../translation_choice.js';
 
 const RESULT = 'result';
@@ -21,9 +28,10 @@ const MAX_CHANGES_PER_REQUEST = 500;
  * The results desk of one round (docs/features/competitions-management/results-desk.md): the ranked table with
  * inline edits of results, table numbers and qualified marks, the qualification helpers and publishing.
  *
- * Every write is a change set to `official_results_record` with the value the desk last saw from the server as
- * `from`, so a value somebody else saved meanwhile comes back as a conflict (keep mine / take theirs) instead of
- * being overwritten. Unsaved changes live in PendingChanges and stay visibly unsaved until the server answered for
+ * Every write is a change set to `official_results_record` with the value the organiser saw when they started changing
+ * the field as `from` (captured when an editor opens - a live update arriving while it is open is shown next to it,
+ * never taken as the new `from`), so a value somebody else saved meanwhile comes back as a conflict (keep mine / take
+ * theirs) instead of being overwritten. Unsaved changes live in PendingChanges and stay visibly unsaved until the server answered for
  * exactly that value - a lost connection, a login redirect or a refused change never look saved. One request at a
  * time, in order; offline and 5xx retry with backoff; signed out stops sending until the organiser signed in again.
  *
@@ -233,6 +241,7 @@ export default class extends Controller {
 
     render() {
         this.renderTable();
+        this.renderEditorMeanwhile();
         this.renderCounts();
         this.renderSync();
         this.renderPublication();
@@ -692,7 +701,8 @@ export default class extends Controller {
         }
 
         this.frozenOrder = this.visibleEntries().map((visible) => visible.ref);
-        this.editor = { ref, field };
+        // What the organiser sees now is the `from` of the save - never the server's value at save time
+        this.editor = editorOpened(this.pending, ref, field, this.serverValue(entry, field));
 
         const row = this.rows.get(ref);
         if (row === undefined) {
@@ -709,6 +719,7 @@ export default class extends Controller {
 
         cell.innerHTML = field === RESULT ? this.resultEditorHtml(entry) : this.tableEditorHtml(entry);
         this.editorPreview();
+        this.renderEditorMeanwhile();
         cell.querySelector('[data-editor-input]:not([hidden])')?.focus();
         cell.querySelector('[data-editor-input]:not([hidden])')?.select?.();
     }
@@ -732,6 +743,7 @@ export default class extends Controller {
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#cancelEditor">${escapeHtml(this.t('cancel'))}</button>
             </div>
             <div class="small mt-1" id="results-desk-preview" data-editor-preview aria-live="polite"></div>
+            <div class="small text-danger mt-1" data-editor-meanwhile role="alert" hidden></div>
         </form>`;
     }
 
@@ -745,6 +757,7 @@ export default class extends Controller {
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#cancelEditor">${escapeHtml(this.t('cancel'))}</button>
             </div>
             <div class="small mt-1" id="results-desk-preview" data-editor-preview aria-live="polite"></div>
+            <div class="small text-danger mt-1" data-editor-meanwhile role="alert" hidden></div>
         </form>`;
     }
 
@@ -855,15 +868,131 @@ export default class extends Controller {
             return;
         }
 
-        const { ref, field } = this.editor;
-        const entry = this.entries.get(ref);
+        const meanwhile = this.editorMeanwhile();
 
-        if (entry !== undefined) {
-            this.pending.set(ref, field, outcome.value, this.serverValue(entry, field));
+        if (meanwhile !== null) {
+            if (sameValue(outcome.value, meanwhile.current)) {
+                // Both typed the same - nothing to decide
+                this.editorTakeTheirs();
+
+                return;
+            }
+
+            // Somebody else saved this field while the editor was open: the organiser decides, nothing goes silently
+            this.renderEditorMeanwhile();
+            this.editorForm()?.querySelector('[data-editor-keep-mine]')?.focus();
+
+            return;
+        }
+
+        this.commitEditor(outcome.value);
+    }
+
+    commitEditor(value) {
+        if (this.entries.has(this.editor.ref)) {
+            saveEditorValue(this.pending, this.editor, value);
         }
 
         this.closeEditor(true);
         this.flush();
+    }
+
+    /**
+     * Somebody else's value of the edited field that arrived while the editor was open (a live update, or a conflict
+     * answer to the organiser's earlier value) - or null.
+     */
+    editorMeanwhile() {
+        if (this.editor === null) {
+            return null;
+        }
+
+        const entry = this.entries.get(this.editor.ref);
+
+        if (entry === undefined) {
+            return null;
+        }
+
+        return savedMeanwhile(this.pending, this.editor, {
+            value: this.serverValue(entry, this.editor.field),
+            enteredBy: this.editor.field === RESULT ? (entry.enteredBy ?? null) : null,
+        });
+    }
+
+    renderEditorMeanwhile() {
+        const slot = this.editorForm()?.querySelector('[data-editor-meanwhile]');
+
+        if (!slot) {
+            return;
+        }
+
+        const meanwhile = this.editorMeanwhile();
+        const key = meanwhile === null ? '' : JSON.stringify(meanwhile);
+
+        if (slot.dataset.shown === key) {
+            return;
+        }
+
+        slot.dataset.shown = key;
+        slot.hidden = meanwhile === null;
+
+        if (meanwhile === null) {
+            slot.replaceChildren();
+
+            return;
+        }
+
+        const theirs = this.formatField(this.editor.field, meanwhile.current);
+        const who = meanwhile.enteredBy?.name;
+        const text = who ? this.t('conflict_by', { name: who, value: theirs }) : this.t('conflict', { value: theirs });
+
+        slot.innerHTML = `<i class="bi bi-people me-1" aria-hidden="true"></i>${escapeHtml(text)}
+            <span class="d-inline-flex gap-1 ms-1">
+                <button type="button" class="btn btn-sm btn-outline-danger py-0" data-editor-keep-mine data-action="results-desk#editorKeepMine">${escapeHtml(this.t('keep_mine'))}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary py-0" data-action="results-desk#editorTakeTheirs">${escapeHtml(this.t('take_theirs'))}</button>
+            </span>`;
+    }
+
+    /**
+     * "Keep mine" next to the editor: the organiser saw the other value and saves theirs over it.
+     */
+    editorKeepMine() {
+        if (this.editor === null) {
+            return;
+        }
+
+        const outcome = this.editorValue();
+
+        if (outcome.error !== undefined) {
+            this.editorPreview();
+            this.editorForm()?.querySelector('[data-editor-input]')?.focus();
+
+            return;
+        }
+
+        const entry = this.entries.get(this.editor.ref);
+
+        if (entry !== undefined) {
+            this.editor = keepMineInEditor(this.pending, this.editor, this.serverValue(entry, this.editor.field));
+        }
+
+        this.commitEditor(outcome.value);
+    }
+
+    /**
+     * "Take theirs" next to the editor: the organiser's value is dropped, the other one stays.
+     */
+    editorTakeTheirs() {
+        if (this.editor === null) {
+            return;
+        }
+
+        const cell = this.pending.get(this.editor.ref, this.editor.field);
+
+        if (cell !== null && cell.status === 'conflict') {
+            this.pending.discard(this.editor.ref, this.editor.field);
+        }
+
+        this.closeEditor(true);
     }
 
     cancelEditor() {
@@ -901,7 +1030,8 @@ export default class extends Controller {
             return;
         }
 
-        this.pending.set(ref, QUALIFIED, event.currentTarget.checked, this.serverValue(entry, QUALIFIED));
+        // `from` = the mark the organiser saw before the click (a row with an open editor is not redrawn meanwhile)
+        this.pending.set(ref, QUALIFIED, event.currentTarget.checked, !event.currentTarget.checked);
         this.render();
         this.flush();
     }
@@ -974,7 +1104,8 @@ export default class extends Controller {
             return;
         }
 
-        this.pending.set(holder.ref, TABLE, cell.base ?? null, this.serverValue(holder, TABLE));
+        // The holder's number is the one the refusal named - what the organiser saw them hold
+        this.pending.set(holder.ref, TABLE, cell.base ?? null, cell.to);
         this.pending.retry(ref, TABLE);
         this.render();
         this.flush();
@@ -1405,7 +1536,8 @@ export default class extends Controller {
                 const entry = this.entries.get(ref);
 
                 if (entry !== undefined) {
-                    this.pending.set(ref, QUALIFIED, to, this.serverValue(entry, QUALIFIED));
+                    // The helper's diff only lists marks it showed the other way round: that is what the organiser saw
+                    this.pending.set(ref, QUALIFIED, to, !to);
                 }
             }
         }

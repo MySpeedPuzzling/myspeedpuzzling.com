@@ -18,9 +18,11 @@ import {
     renumberAssignments,
     renumberStart,
     seatRestAssignments,
+    seenNumber,
     splitByTable,
     swapAssignments,
     takeOverAssignments,
+    typedNumberWrite,
     undoAssignments,
     withFrom,
 } from '../seating.js';
@@ -40,7 +42,7 @@ const RESYNC_EVERY_MS = 60000;
  */
 export default class extends Controller {
     static targets = [
-        'readiness', 'readinessProgress', 'readinessNote', 'onPanel', 'offPanel',
+        'readiness', 'readinessBox', 'readinessProgress', 'readinessNote', 'onPanel', 'offPanel',
         'autoButton', 'renumberButton', 'renumberLabel', 'clearButton', 'status',
         'autoPanel', 'sourceInput', 'orderInput', 'orderFieldset', 'orderLegend', 'firstInput', 'mspHelp', 'proposal',
         'applyButton', 'drawAgainButton',
@@ -366,9 +368,9 @@ export default class extends Controller {
 
         this.readinessProgressTarget.textContent = this.t('readinessProgress', { '%assigned%': assigned, '%total%': total });
         this.readinessNoteTarget.textContent = total > 0 && assigned >= total ? `- ${this.t('readinessDone')}` : `- ${this.t('readinessRecommended')}`;
-        this.readinessTarget.classList.toggle('alert-info', !(total > 0 && assigned >= total));
-        this.readinessTarget.classList.toggle('alert-light', total > 0 && assigned >= total);
-        this.readinessTarget.classList.toggle('border', total > 0 && assigned >= total);
+        this.readinessBoxTarget.classList.toggle('alert-info', !(total > 0 && assigned >= total));
+        this.readinessBoxTarget.classList.toggle('alert-light', total > 0 && assigned >= total);
+        this.readinessBoxTarget.classList.toggle('border', total > 0 && assigned >= total);
         // The one rule (SeatingReadiness, `tablesReadiness`): a round under way or over does not nag
         this.readinessTarget.hidden = off || this.round?.tablesReadiness !== true;
 
@@ -488,6 +490,16 @@ export default class extends Controller {
         return row;
     }
 
+    problemButton(text, action) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-link btn-sm p-0 ms-2 align-baseline';
+        button.dataset.action = action;
+        button.textContent = text;
+
+        return button;
+    }
+
     iconButton(name, icon, action) {
         const button = document.createElement('button');
         button.type = 'button';
@@ -515,7 +527,13 @@ export default class extends Controller {
         input.disabled = this.busy;
 
         if (document.activeElement !== input && !saving) {
-            input.value = problem?.typed ?? (entry.tableNumber !== null ? String(entry.tableNumber) : '');
+            if (problem?.typed !== undefined) {
+                input.value = problem.typed;
+            } else {
+                input.value = entry.tableNumber !== null ? String(entry.tableNumber) : '';
+                // What the organiser sees when they start typing - the `from` of their write (typedNumberWrite)
+                input.dataset.seen = input.value;
+            }
         }
 
         const flag = row.querySelector('.seating-flag');
@@ -534,6 +552,13 @@ export default class extends Controller {
 
         if (problem !== null) {
             problemElement.append(document.createTextNode(problem.message));
+
+            if (problem.meanwhile) {
+                problemElement.append(
+                    this.problemButton(this.t('keepMine'), 'round-seating#keepMineNumber'),
+                    this.problemButton(this.t('takeTheirs'), 'round-seating#takeTheirsNumber'),
+                );
+            }
 
             if (problem.takeOver) {
                 const takeOver = document.createElement('button');
@@ -599,15 +624,34 @@ export default class extends Controller {
             handle: '[data-drag-handle]',
             animation: 150,
             ghostClass: 'seating-ghost',
-            onStart: () => {
+            onStart: (event) => {
+                // "No table yet" opens above the seated list as the drop target - the page scrolls by what it adds, so
+                // the list stays where it was under the pointer (browser verification: the first drop landed in it)
+                const before = event.item.getBoundingClientRect().top;
+
                 this.dragging = true;
                 this.listsTarget.classList.add('is-dragging');
                 this.unseatedSectionTarget.hidden = false;
+
+                const shift = event.item.getBoundingClientRect().top - before;
+
+                if (shift !== 0) {
+                    window.scrollBy({ top: shift, behavior: 'instant' });
+                }
             },
             onEnd: () => {
+                // ... and when it closes again, the seated list stays put as well
+                const before = this.seatedListTarget.getBoundingClientRect().top;
+
                 this.dragging = false;
                 this.listsTarget.classList.remove('is-dragging');
                 this.dragged();
+
+                const shift = this.seatedListTarget.getBoundingClientRect().top - before;
+
+                if (shift !== 0) {
+                    window.scrollBy({ top: shift, behavior: 'instant' });
+                }
             },
         };
 
@@ -765,6 +809,7 @@ export default class extends Controller {
             const entry = ref !== null ? this.byRef.get(ref) : null;
             this.problems.delete(ref);
             input.value = entry && entry.tableNumber !== null ? String(entry.tableNumber) : '';
+            input.dataset.seen = input.value;
             this.render();
         }
     }
@@ -806,7 +851,9 @@ export default class extends Controller {
             return;
         }
 
-        if (parsed.number === entry.tableNumber) {
+        const decision = typedNumberWrite(seenNumber(input.dataset.seen, entry.tableNumber), entry.tableNumber, parsed.number);
+
+        if (decision.action === 'nothing') {
             if (this.problems.delete(ref)) {
                 this.render();
             }
@@ -814,24 +861,99 @@ export default class extends Controller {
             return;
         }
 
+        if (decision.action === 'meanwhile') {
+            // Another organiser changed this entry's table while this one was typing: they decide, nothing goes over it
+            this.problems.set(ref, this.meanwhileProblem(decision.current, input.value, parsed.number));
+            this.render();
+
+            return;
+        }
+
+        this.writeNumber(entry, parsed.number, input.value);
+    }
+
+    /**
+     * "Somebody else saved table 9 meanwhile." with Keep mine / Take theirs - the typed value stays in the input.
+     */
+    meanwhileProblem(current, typed, number) {
+        return {
+            message: current === null || current === undefined ? this.t('removedMeanwhile') : this.t('savedMeanwhile', { '%number%': current }),
+            typed,
+            meanwhile: { number, current: current ?? null },
+        };
+    }
+
+    keepMineNumber(event) {
+        const ref = this.refOf(event);
+        const problem = ref !== null ? this.problems.get(ref) : null;
+        const entry = ref !== null ? this.byRef.get(ref) : null;
+
+        if (!problem?.meanwhile || !entry) {
+            return;
+        }
+
+        // The organiser has seen the other number now - their own goes over it
+        const input = this.rows.get(ref)?.querySelector('.seating-number');
+        if (input) {
+            input.dataset.seen = entry.tableNumber !== null ? String(entry.tableNumber) : '';
+        }
+
+        this.problems.delete(ref);
+        this.writeNumber(entry, problem.meanwhile.number, problem.typed ?? '');
+    }
+
+    takeTheirsNumber(event) {
+        const ref = this.refOf(event);
+        const entry = ref !== null ? this.byRef.get(ref) : null;
+
+        if (!entry || !this.problems.get(ref)?.meanwhile) {
+            return;
+        }
+
+        this.problems.delete(ref);
+        const input = this.rows.get(ref)?.querySelector('.seating-number');
+        if (input) {
+            input.value = entry.tableNumber !== null ? String(entry.tableNumber) : '';
+            input.dataset.seen = input.value;
+        }
+
+        this.render();
+    }
+
+    /**
+     * The typed number goes to the server - or, when somebody has that table, the swap is offered instead.
+     */
+    writeNumber(entry, number, typed) {
+        const ref = entry.ref;
+
+        if (number === entry.tableNumber) {
+            this.render();
+
+            return;
+        }
+
         // Somebody has that table: offer the swap instead of a refusal
-        const holder = parsed.number !== null ? holderOf(this.byRef, parsed.number, ref) : null;
+        const holder = number !== null ? holderOf(this.byRef, number, ref) : null;
 
         if (holder) {
             this.problems.set(ref, {
-                message: this.t('tableTaken', { '%number%': parsed.number, '%name%': holder.displayName }),
-                typed: input.value,
-                takeOver: { number: parsed.number, holder: holder.ref },
+                message: this.t('tableTaken', { '%number%': number, '%name%': holder.displayName }),
+                typed,
+                takeOver: { number, holder: holder.ref },
             });
             this.render();
 
             return;
         }
 
-        this.recordNumber(entry, parsed.number);
+        this.recordNumber(entry, number, entry.tableNumber ?? null);
     }
 
-    async recordNumber(entry, number) {
+    /**
+     * One typed number. `from` = the number the organiser saw - kept for a retry, so a change arriving meanwhile comes
+     * back as a conflict instead of being written over.
+     */
+    async recordNumber(entry, number, from) {
         const ref = entry.ref;
         this.pendingNumbers.set(ref, number);
         this.problems.delete(ref);
@@ -842,7 +964,7 @@ export default class extends Controller {
             clientChangeId: newClientId(),
             entry: ref,
             field: 'table_number',
-            from: entry.tableNumber ?? null,
+            from,
             to: number,
         };
         const result = await officialResultsRequest(this.recordUrlValue, {
@@ -855,7 +977,7 @@ export default class extends Controller {
 
         if (result.kind !== 'ok') {
             this.problems.set(ref, { message: this.failureText(result), typed: number === null ? '' : String(number) });
-            this.failed(result, () => this.recordNumber(this.byRef.get(ref) ?? entry, number));
+            this.failed(result, () => this.recordNumber(this.byRef.get(ref) ?? entry, number, from));
             this.render();
 
             return;
@@ -867,7 +989,7 @@ export default class extends Controller {
         if (outcome && (outcome.status === 'applied' || outcome.status === 'unchanged')) {
             this.problems.delete(ref);
         } else if (outcome && outcome.status === 'conflict') {
-            this.problems.set(ref, { message: this.t('changedMeanwhile') });
+            this.problems.set(ref, this.meanwhileProblem(outcome.current, number === null ? '' : String(number), number));
         } else if (outcome && outcome.reason === 'table_number_taken') {
             const holder = holderOf(this.byRef, number, ref);
             this.problems.set(ref, holder

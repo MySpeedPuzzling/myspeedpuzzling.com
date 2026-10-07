@@ -83,7 +83,9 @@
         {% if referees is empty %}
             <p class="text-muted">{{ 'competition_referees.list.empty'|trans }}</p>
         {% else %}
-            <div class="table-responsive">
+            {# position-relative: the visually hidden texts in the table (position: absolute) stay inside the scroller -
+               without it they widen the page at 375 px (browser verification) #}
+            <div class="table-responsive position-relative">
                 <table class="table align-middle">
                     <thead>
                         <tr>

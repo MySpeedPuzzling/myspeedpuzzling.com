@@ -112,6 +112,12 @@ CASCADE`.
   `data-wysiwyg-*-value` attributes (Quill's example `https://quilljs.com` placeholder becomes `https://`). Verified with
   Quill 2.0.3 in jsdom: translated picker items and label, the toolbar's titles kept next to the icons. Pinned by
   `PageSectionEditorTest::testTheRichTextEditorHasNoUntranslatedText`.
+- FAQ rows have real labels ("Question", "Answer", `for` = the row's own ids, `__INDEX__` in the template row) - a
+  placeholder is gone once something is typed.
+- **Lists on the public page**: the site resets every list (base.html.twig's critical CSS `ul,ol{list-style:none}`), so
+  `.page-section-rich-text` gives `ul` / `ol` their bullets and numbers back (nested: circle / lower-alpha) with their
+  indent and spacing - the browser verification found an event's numbered rules without numbers
+  (`PageSectionRichTextListsTest`). FAQ answers are plain text (`nl2br`) - no list markup to restore there.
 
 ## Messages
 

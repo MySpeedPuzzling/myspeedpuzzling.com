@@ -69,6 +69,10 @@
                 tableTaken: 'seating.list.table_taken'|trans,
                 swapThem: 'seating.list.swap_them'|trans,
                 changedMeanwhile: 'seating.list.changed_meanwhile'|trans,
+                savedMeanwhile: 'seating.list.saved_meanwhile'|trans,
+                removedMeanwhile: 'seating.list.removed_meanwhile'|trans,
+                keepMine: 'seating.list.keep_mine'|trans,
+                takeTheirs: 'seating.list.take_theirs'|trans,
                 invalidNumber: 'seating.list.invalid_number'|trans,
                 leaveUnsaved: 'seating.list.leave_unsaved'|trans,
                 statusSaving: 'seating.status.saving'|trans,
@@ -149,13 +153,16 @@
                     <a class="btn btn-sm btn-outline-danger" href="{{ path('competition_results_overview', {competitionId: competition.id.toString}) }}">{{ 'results_desk.overview.title'|trans }}</a>
                 </div></div>
 
-                {# "Tables: 180 / 200 assigned - recommended before the round starts", drawn again after every change #}
-                <div class="seating-readiness alert d-flex flex-wrap align-items-center gap-2 py-2 {{ overview.isSeated ? 'alert-light border' : 'alert-info' }}" role="status" data-round-seating-target="readiness" {{ overview.showsTablesReadiness ? '' : 'hidden' }}>
-                    <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
-                    <span>
-                        <strong data-round-seating-target="readinessProgress">{{ 'seating.readiness.progress'|trans({'%assigned%': overview.entriesWithTableNumber, '%total%': overview.entriesTotal}) }}</strong>
-                        <span data-round-seating-target="readinessNote">- {{ overview.entriesTotal > 0 and overview.entriesWithTableNumber >= overview.entriesTotal ? 'seating.readiness.done'|trans : 'seating.readiness.recommended'|trans }}</span>
-                    </span>
+                {# "Tables: 180 / 200 assigned - recommended before the round starts", drawn again after every change.
+                   `hidden` on the wrapper - d-flex would win over it (and the alert would show on every round) #}
+                <div data-round-seating-target="readiness" {{ overview.showsTablesReadiness ? '' : 'hidden' }}>
+                    <div class="seating-readiness alert d-flex flex-wrap align-items-center gap-2 py-2 {{ overview.isSeated ? 'alert-light border' : 'alert-info' }}" role="status" data-round-seating-target="readinessBox">
+                        <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
+                        <span>
+                            <strong data-round-seating-target="readinessProgress">{{ 'seating.readiness.progress'|trans({'%assigned%': overview.entriesWithTableNumber, '%total%': overview.entriesTotal}) }}</strong>
+                            <span data-round-seating-target="readinessNote">- {{ overview.entriesTotal > 0 and overview.entriesWithTableNumber >= overview.entriesTotal ? 'seating.readiness.done'|trans : 'seating.readiness.recommended'|trans }}</span>
+                        </span>
+                    </div>
                 </div>
 
                 {{ include('official_results/_waitlist_note.html.twig', {overview: overview, competition_id: competition.id.toString}) }}
@@ -260,16 +267,21 @@
                         <div class="form-text" data-round-seating-target="filterNote" hidden>{{ 'seating.list.drag_off_while_filtering'|trans }}</div>
                     </div>
 
-                    {# A dragged / moved order waits for "Renumber" - nothing is written before #}
-                    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 seating-sticky-bar" data-round-seating-target="orderBar" hidden role="status">
-                        <span class="me-auto">{{ 'seating.list.order_changed'|trans }}</span>
-                        <button type="button" class="btn btn-sm btn-primary" data-action="round-seating#renumber" data-round-seating-target="orderBarRenumber"></button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="round-seating#undoOrder">{{ 'seating.list.undo_order'|trans }}</button>
+                    {# A dragged / moved order waits for "Renumber" - nothing is written before. Both bars: `hidden` and the
+                       sticky position on the wrapper - d-flex on the same element would win over `hidden` #}
+                    <div class="seating-sticky-bar" data-round-seating-target="orderBar" hidden role="status">
+                        <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">
+                            <span class="me-auto">{{ 'seating.list.order_changed'|trans }}</span>
+                            <button type="button" class="btn btn-sm btn-primary" data-action="round-seating#renumber" data-round-seating-target="orderBarRenumber"></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="round-seating#undoOrder">{{ 'seating.list.undo_order'|trans }}</button>
+                        </div>
                     </div>
 
-                    <div class="alert alert-primary d-flex flex-wrap align-items-center gap-2 seating-sticky-bar" data-round-seating-target="swapBar" hidden role="status">
-                        <span class="me-auto" data-round-seating-target="swapText"></span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="round-seating#cancelSwap">{{ 'seating.list.cancel'|trans }}</button>
+                    <div class="seating-sticky-bar" data-round-seating-target="swapBar" hidden role="status">
+                        <div class="alert alert-primary d-flex flex-wrap align-items-center gap-2">
+                            <span class="me-auto" data-round-seating-target="swapText"></span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="round-seating#cancelSwap">{{ 'seating.list.cancel'|trans }}</button>
+                        </div>
                     </div>
 
                     <p class="text-muted" data-round-seating-target="empty" hidden>{{ 'seating.list.empty'|trans }}</p>

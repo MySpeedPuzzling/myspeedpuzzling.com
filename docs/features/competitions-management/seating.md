@@ -43,12 +43,18 @@ to the other rounds' seating.
 - **Two lists**: "No table yet" on top (by name), then the seated entries by table number. Each row: drag handle, the
   table number input, name (flag, `#CODE`, members of a named pair/team), Move up / Move down, Swap.
 - **Typing a number** (Enter saves and goes to the next row; Escape reverts) is one `official_results_record` change
-  `table_number` with `from` = what the page saw: three-way checked, so another organiser's change in between comes back
-  as "Somebody else changed this table meanwhile." A number that belongs to another entry is not sent: the row says
+  `table_number` with `from` = what the input showed when the organiser started typing (`data-seen`, written whenever
+  the page fills the input; kept for a retry) - never the entry's number at save time: while an input has the focus a
+  live update does not touch it, and taking its number as `from` would overwrite the other organiser silently
+  (browser verification BLOCKER, 2026-10-07; `seating.js` `typedNumberWrite()`, pinned by `SeatingJsTest`). A number
+  another organiser saved while this one was typing - seen before sending, or answered as a conflict - shows "Somebody
+  else saved table 9 meanwhile." with **Keep mine** (written over it knowingly) / **Take theirs**. A number that belongs to another entry is not sent: the row says
   "Table 12 is Anna's." with **Swap them** (the other entry gets this entry's old number, or none). While a number
   input has the focus the rows do not re-sort (no jumping under the cursor); they settle when the focus leaves the list.
 - **Swap**: Swap on one row, then "Swap with …" on another (Escape cancels) - one bulk write of the two numbers.
-- **Drag and drop** (SortableJS, loaded only here) and **Move up / Move down** (keyboard / phone twin, crossing between
+- **Drag and drop** (SortableJS, loaded only here; the "No table yet" drop target that opens above the seated list
+  while dragging scrolls the page by its own height, so nothing moves under the pointer - and back when it closes) and
+  **Move up / Move down** (keyboard / phone twin, crossing between
   the two lists) change only the page's order: a bar says "nothing is saved until you renumber" with **Renumber
   101…200 in this order** and **Undo the order changes**; leaving the page asks first. Renumbering starts at the
   smallest table among the seated list (a second hall numbered from 101 stays from 101), else 1; entries moved to "No
@@ -65,6 +71,8 @@ to the other rounds' seating.
   toast has **Undo** (the numbers before, as one more bulk write whose `from` is the number the write set - an entry
   renumbered by somebody else since is not undone over their change). Signed out / offline / server errors keep the
   page and offer "Try again" (+ "Sign in again" in a new tab).
+- The order bar, the swap bar and the readiness alert carry `hidden` on a wrapper: Bootstrap's `d-flex` is
+  `!important` and wins over `[hidden]` on the same element (`HiddenAttributeDisplayUtilityTest` guards every template).
 - **"This round doesn't use table numbers"** (`official_results_table_numbers_usage`, undoable from the toast): the page
   then says so and offers **Use table numbers**; the readiness line disappears everywhere.
 - **Online events**: the page only explains that seating is for in-person events.

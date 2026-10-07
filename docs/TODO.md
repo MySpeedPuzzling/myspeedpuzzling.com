@@ -43,9 +43,7 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Rounds with several puzzles: one total result per entry today - a result per puzzle when organisers ask.
 - [ ] Derive table numbers from the table layout tool (`table_spot`) instead of typing them.
 - [ ] Results from timing devices without the round stopwatch (import of a device's export).
-- [ ] Cron row on lily.srv (`apps/myspeedpuzzling/cron.d/myspeedpuzzling`, `lily-cron-run` + `sentry-cli monitors run`
-      pattern) for `myspeedpuzzling:prune-round-result-change-receipts` (daily) - added once the release with the
-      command is deployed.
+- [x] Cron row on lily.srv for `myspeedpuzzling:prune-round-result-change-receipts` - daily at 03:23 (lily.srv 3cf56d0, 2026-10-07).
 - [ ] Live entry quick add: the event's people come with the page (`GetLiveResultsEventPeople`) - somebody added to
       the event by another device during the session is not offered until a reload (rare; typing the name in creates a
       second person, as before).

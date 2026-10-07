@@ -73,6 +73,7 @@ to the other rounds' seating.
   page and offer "Try again" (+ "Sign in again" in a new tab).
 - The order bar, the swap bar and the readiness alert carry `hidden` on a wrapper: Bootstrap's `d-flex` is
   `!important` and wins over `[hidden]` on the same element (`HiddenAttributeDisplayUtilityTest` guards every template).
+  The two bars stick right under the site's header (`--header-height`).
 - **"This round doesn't use table numbers"** (`official_results_table_numbers_usage`, undoable from the toast): the page
   then says so and offers **Use table numbers**; the readiness line disappears everywhere.
 - **Online events**: the page only explains that seating is for in-person events.

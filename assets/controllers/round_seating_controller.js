@@ -988,6 +988,12 @@ export default class extends Controller {
 
         if (outcome && (outcome.status === 'applied' || outcome.status === 'unchanged')) {
             this.problems.delete(ref);
+
+            // The organiser's own number is what they see now - also while the input keeps the focus
+            const input = this.rows.get(ref)?.querySelector('.seating-number');
+            if (input) {
+                input.dataset.seen = number === null ? '' : String(number);
+            }
         } else if (outcome && outcome.status === 'conflict') {
             this.problems.set(ref, this.meanwhileProblem(outcome.current, number === null ? '' : String(number), number));
         } else if (outcome && outcome.reason === 'table_number_taken') {

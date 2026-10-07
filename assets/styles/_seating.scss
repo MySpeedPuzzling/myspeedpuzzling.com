@@ -102,9 +102,10 @@
     background-color: rgba($primary, 0.1);
 }
 
+// Under the site's fixed header (its height is a custom property - 4.5rem left the bar's first line behind it)
 .seating-sticky-bar {
     position: sticky;
-    top: 4.5rem;
+    top: calc(var(--header-height, 97px) + .5rem);
     z-index: 5;
 }
 

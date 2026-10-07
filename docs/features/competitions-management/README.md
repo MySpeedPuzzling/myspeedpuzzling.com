@@ -204,7 +204,7 @@ CompetitionTeam
 - View unassigned participants
 - Every form carries the page's CSRF token (`ManageRoundTeamsController::csrfTokenId()`, one per round); a team is assigned only within its own round
 
-**Import/Export**: The Excel import reads optional `round_names` (comma-separated, what the template and the export write; the old single `round_name` still works) and `team_name` columns, plus what the export adds: one `team_name: <round>` column per duo/team round and `participant_id`, so an export imported back changes nothing. Participants are added to every listed round (several rows of one person add up, nothing is ever removed), and for duo/team rounds teams are created or matched by name. Unknown rounds and columns and ambiguous names are reported after the import - see `participants.md` §Excel Import.
+**Import/Export**: The Excel import reads optional `round_names` (comma-separated, what the template and the export write; the old single `round_name` still works) and `team_name` columns, plus what the export adds: one `team_name: <round>` column per duo/team round and `participant_id`, so an export imported back changes nothing. Participants are added to every listed round (several rows of one person add up), and for duo/team rounds teams are created or matched by name. An upload (`.xlsx`, `.csv`, `.tsv`, `.txt`) first goes to a **preview** - sheet, column mapping, exactly what will change, warnings - and nothing is written before the organiser confirms; *Update only* never removes anything, *Full sync – the file is the truth* also removes participants, round entries and emptied pairs/teams the file does not have (never anybody with results). See [participant-import-preview.md](participant-import-preview.md) and `participants.md` §Excel Import.
 
 ## Puzzle Assignment
 
@@ -307,7 +307,7 @@ This eliminates all behavioral branching — the same participant handlers, quer
 **Full specification:** See [participants.md](participants.md) for the complete participant management design including:
 - Unified "I'm going" + pairing flow (replaces old `CompetitionConnectionController`)
 - Organizer management UI with inline editing (Live Component)
-- Excel import/export with upsert logic
+- Excel/CSV import (preview, column mapping, update-only or full sync) and export
 - Soft delete mechanism
 - Secret/private player handling fix
 - Replaces admin-only import routes (`/admin/import-competition-puzzlers`)

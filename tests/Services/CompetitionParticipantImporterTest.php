@@ -314,7 +314,12 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
         $result = $this->importer->import(CompetitionFixture::COMPETITION_WJPC_2024, $file);
         unlink($file);
 
-        self::assertSame(1, $result->added);
+        // Nor a second record of them: the row is skipped and reported
+        self::assertSame(0, $result->added);
+        self::assertContains(
+            'competition.participants.import.self_joined_left',
+            array_map(static fn (TranslatableMessage $message): string => $message->getMessage(), $result->warnings),
+        );
 
         /** @var array{deleted_at: null|string} $row */
         $row = $this->database->executeQuery(

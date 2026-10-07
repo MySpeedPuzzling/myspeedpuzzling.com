@@ -17,7 +17,8 @@ use SpeedPuzzling\Web\Results\MarketplaceEventForListing;
  * events and series editions alike. "Today" comes from the clock, an event stays a marketplace event through its
  * last day.
  *
- * A player is going to an event when a competition_participant row connects them to it and is not deleted.
+ * A player is going to an event when a competition_participant row connects them to it and is going
+ * (CompetitionParticipantGoing - not deleted, not on the waitlist of an event that manages registration).
  *
  * @phpstan-import-type MarketplaceEventDatabaseRow from MarketplaceEvent
  */
@@ -68,13 +69,15 @@ SQL;
      */
     public static function sqlPlayerGoing(string $competitionIdSql, string $playerIdSql): string
     {
+        $going = CompetitionParticipantGoing::sql('going_participant');
+
         return <<<SQL
 EXISTS (
     SELECT 1
     FROM competition_participant going_participant
     WHERE going_participant.competition_id = {$competitionIdSql}
         AND going_participant.player_id = {$playerIdSql}
-        AND going_participant.deleted_at IS NULL
+        AND {$going}
 )
 SQL;
     }

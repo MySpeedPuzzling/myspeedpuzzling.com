@@ -6,19 +6,30 @@ namespace SpeedPuzzling\Web\Tests\Services\MessengerMiddleware;
 
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\AddCompetitionParticipant;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
 use SpeedPuzzling\Web\Message\AddPuzzle;
+use SpeedPuzzling\Web\Message\ApplyParticipantImport;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
+use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
+use SpeedPuzzling\Web\Message\CheckInParticipant;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\EditPuzzle;
+use SpeedPuzzling\Web\Message\JoinCompetition;
+use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Message\LinkEanToPuzzle;
+use SpeedPuzzling\Web\Message\MarkParticipantPaid;
+use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
+use SpeedPuzzling\Web\Message\UndoParticipantCheckIn;
+use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\ComparisonKind;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\ParticipantImportRows;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -77,5 +88,29 @@ final class SerializedByLockMessagesTest extends TestCase
             EanList::fromStored(null),
             BrandCodeList::fromStored(null),
         ))->lockKey());
+    }
+
+    /**
+     * Every write to an event's participants takes turns with the others under the import's key
+     * (docs/features/competitions-management/registration.md, participants-spreadsheet.md D13): two registrations
+     * never both take the last spot, an import never plans over a registration that is half way through.
+     */
+    public function testEveryWriteToAnEventsParticipantsLocksTheEventUnderTheImportsKey(): void
+    {
+        $competitionId = '018D0004-0000-0000-0000-000000000002';
+        $participantId = '018d0006-0000-0000-0000-000000000001';
+        $key = (new ApplyParticipantImport($competitionId, new ParticipantImportRows([]), 'update', 'fingerprint'))->lockKey();
+
+        self::assertSame('participant-import-018d0004-0000-0000-0000-000000000002', $key);
+        self::assertSame($key, (new JoinCompetition($competitionId, 'player'))->lockKey());
+        self::assertSame($key, (new JoinCompetition(strtolower($competitionId), 'player', $participantId))->lockKey());
+        self::assertSame($key, (new LeaveCompetition($competitionId, 'player'))->lockKey());
+        self::assertSame($key, (new AddCompetitionParticipant($competitionId, 'Name', null, null, null))->lockKey());
+        self::assertSame($key, (new MarkParticipantPaid($competitionId, $participantId))->lockKey());
+        self::assertSame($key, (new UnmarkParticipantPaid($competitionId, $participantId))->lockKey());
+        self::assertSame($key, (new PromoteParticipantFromWaitlist($competitionId, $participantId))->lockKey());
+        self::assertSame($key, (new CheckInParticipant($competitionId, $participantId))->lockKey());
+        self::assertSame($key, (new UndoParticipantCheckIn($competitionId, $participantId))->lockKey());
+        self::assertSame($key, (new ChangeCompetitionRegistrationSettings($competitionId, true, 10, null, null, 'Europe/Prague', null, null))->lockKey());
     }
 }

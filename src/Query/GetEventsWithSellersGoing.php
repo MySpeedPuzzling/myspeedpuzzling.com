@@ -61,6 +61,7 @@ readonly final class GetEventsWithSellersGoing
     public function load(): array
     {
         $qualifies = GetMarketplaceEvents::SQL_QUALIFIES;
+        $going = CompetitionParticipantGoing::sql('going');
 
         // Sellers come from the participant list (DISTINCT: a player may hold more than one row of an event),
         // their published listings from the player_id index - never a scan of every listing per event
@@ -88,7 +89,7 @@ JOIN LATERAL (
         FROM competition_participant going
         WHERE going.competition_id = c.id
             AND going.player_id IS NOT NULL
-            AND going.deleted_at IS NULL
+            AND {$going}
     ) sellers
     JOIN sell_swap_list_item ssli ON ssli.player_id = sellers.player_id
         AND ssli.published_on_marketplace = true

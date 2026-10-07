@@ -74,6 +74,8 @@ readonly final class GetSuggestedPlayers
         $similarTime = SuggestionReason::SimilarTime->priority();
         $puzzlesInCommon = SuggestionReason::PuzzlesInCommon->priority();
         $competitionVisible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $mineGoing = CompetitionParticipantGoing::sql('mine');
+        $participantGoing = CompetitionParticipantGoing::sql('participant');
         $hiddenCoPuzzler = $this->hiddenPlayers->sqlExclude('co_player.id');
         $hidden = $this->hiddenPlayers->sqlExclude('player.id');
 
@@ -129,7 +131,7 @@ via_co_puzzler AS (
 my_events AS MATERIALIZED (
     SELECT DISTINCT mine.competition_id
     FROM competition_participant mine
-    WHERE mine.player_id = :viewerId AND mine.deleted_at IS NULL
+    WHERE mine.player_id = :viewerId AND {$mineGoing}
 ),
 at_event AS (
     SELECT DISTINCT ON (participant.player_id)
@@ -142,7 +144,7 @@ at_event AS (
     INNER JOIN competition_participant participant ON participant.competition_id = c.id
     WHERE participant.player_id IS NOT NULL
         AND participant.player_id <> :viewerId
-        AND participant.deleted_at IS NULL
+        AND {$participantGoing}
         AND {$competitionVisible}
     ORDER BY participant.player_id, c.date_from DESC NULLS LAST, c.id
 ),

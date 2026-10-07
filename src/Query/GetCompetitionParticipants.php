@@ -29,6 +29,9 @@ readonly final class GetCompetitionParticipants
      */
     public function getConnectedParticipants(string $competitionId, array $roundsFilter = [], bool $firstTryOnly = false): array
     {
+        // The public list: people going - a waitlist is not listed (its size is on the registration card)
+        $going = CompetitionParticipantGoing::sql('competition_participant');
+
         $query1 = <<<SQL
 SELECT DISTINCT
     competition_participant.id AS participant_id,
@@ -57,7 +60,7 @@ SQL;
 WHERE
     competition_participant.player_id IS NOT NULL
     AND competition_participant.competition_id = :competitionId
-    AND competition_participant.deleted_at IS NULL
+    AND {$going}
 SQL;
 
         if (count($roundsFilter) > 0) {
@@ -206,6 +209,8 @@ SQL;
      */
     public function getNotConnectedParticipants(string $competitionId, array $roundsFilter = []): array
     {
+        $going = CompetitionParticipantGoing::sql('competition_participant');
+
         $query = <<<SQL
 SELECT DISTINCT competition_participant.id, competition_participant.name, competition_participant.country
 FROM competition_participant
@@ -222,7 +227,7 @@ SQL;
         $query .= <<<SQL
 
 WHERE competition_participant.player_id IS NULL AND competition_participant.competition_id = :competitionId
-AND competition_participant.deleted_at IS NULL
+AND {$going}
 SQL;
 
         if (count($roundsFilter) > 0) {
@@ -301,13 +306,15 @@ SQL;
 
     public function hasNotConnectedParticipants(string $competitionId): bool
     {
+        $going = CompetitionParticipantGoing::sql('competition_participant');
+
         $query = <<<SQL
 SELECT EXISTS (
     SELECT 1
     FROM competition_participant
     WHERE competition_id = :competitionId
     AND player_id IS NULL
-    AND deleted_at IS NULL
+    AND {$going}
 )
 SQL;
 
@@ -327,12 +334,14 @@ SQL;
             return null;
         }
 
+        $going = CompetitionParticipantGoing::sql('competition_participant');
+
         $query = <<<SQL
 SELECT id
 FROM competition_participant
 WHERE competition_id = :competitionId
 AND player_id IS NULL
-AND deleted_at IS NULL
+AND {$going}
 AND lower(regexp_replace(trim(immutable_unaccent(name)), '\s+', ' ', 'g'))
     = lower(regexp_replace(trim(immutable_unaccent(:name)), '\s+', ' ', 'g'))
 AND (country IS NULL OR CAST(:country AS TEXT) IS NULL OR country = :country)

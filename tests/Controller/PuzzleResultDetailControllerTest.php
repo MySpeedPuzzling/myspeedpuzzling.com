@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -205,7 +202,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         self::assertStringContainsString('"referenceCaption":"Median ', $chartData);
     }
 
-    public function testEditButtonAndSuspiciousTimesOnlyForTheOwner(): void
+    public function testEditButtonOnlyForTheOwnerSuspiciousTimesForEverybody(): void
     {
         $browser = self::createClient();
         $timeId = $this->cloneSolvingTime(PuzzleSolvingTimeFixture::TIME_08, ['seconds_to_solve' => 2400, 'days_ago' => 1]);
@@ -215,8 +212,9 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         );
 
         $crawler = $this->modal($browser, $timeId);
-        self::assertCount(3, $crawler->filter('li.pr-attempt'));
+        self::assertCount(4, $crawler->filter('li.pr-attempt'));
         self::assertCount(0, $crawler->filter('a[href*="/edit-time/"]'));
+        self::assertCount(1, $crawler->filter('[data-testid="suspicious-badge"]'));
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $crawler = $this->modal($browser, $timeId);
@@ -225,35 +223,35 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         self::assertStringContainsString('Verification needed', $crawler->text());
     }
 
-    public function testSuspiciousOnlyResultIsShownToTheSubjectAdminsAndModerators(): void
+    public function testSuspiciousOnlyResultOpensForEverybodyWithThePuzzlePhotoAsPreview(): void
     {
         $browser = self::createClient();
         $timeId = $this->cloneSolvingTime(PuzzleSolvingTimeFixture::TIME_08, ['seconds_to_solve' => 600, 'days_ago' => 1]);
-        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->getConnection()->executeStatement(
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
             'UPDATE puzzle_solving_time SET suspicious = true WHERE player_id = (SELECT player_id FROM puzzle_solving_time WHERE id = :id)
                 AND puzzle_id = (SELECT puzzle_id FROM puzzle_solving_time WHERE id = :id) AND team IS NULL',
             ['id' => $timeId],
         );
-        // A community moderator (no admin)
-        $moderator = $entityManager->find(Player::class, PlayerFixture::PLAYER_WITH_STRIPE);
-        self::assertNotNull($moderator);
-        $moderator->moderatorSince = new DateTimeImmutable('-1 year');
-        $entityManager->flush();
+        $database->executeStatement(
+            "UPDATE puzzle SET image = 'result-preview-box.jpg' WHERE id = (SELECT puzzle_id FROM puzzle_solving_time WHERE id = :id)",
+            ['id' => $timeId],
+        );
 
-        $browser->request('GET', '/en/result/' . $timeId);
-        self::assertResponseStatusCodeSame(404, 'a guest');
+        // A guest - e.g. the player opening a mailed link signed out - and then another player
+        $this->assertSuspiciousResultShown($browser, $timeId, 'a guest');
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
-        $browser->request('GET', '/en/result/' . $timeId);
-        self::assertResponseStatusCodeSame(404, 'another player');
+        $this->assertSuspiciousResultShown($browser, $timeId, 'another player');
+    }
 
-        foreach ([PlayerFixture::PLAYER_REGULAR => 'the player', PlayerFixture::PLAYER_ADMIN => 'an admin', PlayerFixture::PLAYER_WITH_STRIPE => 'a moderator'] as $playerId => $who) {
-            TestingLogin::asPlayer($browser, $playerId);
-            $crawler = $browser->request('GET', '/en/result/' . $timeId);
-            self::assertResponseIsSuccessful($who);
-            self::assertGreaterThan(0, $crawler->filter('[data-testid="suspicious-badge"]')->count(), $who);
-        }
+    private function assertSuspiciousResultShown(KernelBrowser $browser, string $timeId, string $who): void
+    {
+        $crawler = $browser->request('GET', '/en/result/' . $timeId);
+
+        self::assertResponseIsSuccessful($who);
+        self::assertGreaterThan(0, $crawler->filter('[data-testid="suspicious-badge"]')->count(), $who);
+        self::assertStringContainsString('result-preview-box.jpg', (string) $crawler->filter('meta[property="og:image"]')->attr('content'), $who);
     }
 
     public function testBlockedPlayersResultIsNotFoundForTheBlocker(): void

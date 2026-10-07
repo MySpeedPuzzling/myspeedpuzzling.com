@@ -11,6 +11,9 @@
 
 {% block hreflang %}{% endblock %}
 
+{# A shared result link previews with the puzzle's photo, like the puzzle page #}
+{% block og_image %}{% if result.puzzleImage is not null %}{{ absolute_url(result.puzzleImage|thumbnail('puzzle_large')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+
 {% block content %}
     <div class="container py-3" style="max-width: 720px;">
         {{ include('_return_back_button.html.twig', {

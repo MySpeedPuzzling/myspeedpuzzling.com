@@ -199,8 +199,10 @@ CompetitionTeam
 - Create teams (with optional name)
 - Assign participants to teams (from those assigned to the round)
 - Remove participants from teams
-- Delete teams
+- Rename a team, or name an unnamed one (pencil on the team card, `RenameCompetitionTeam`; empty = unnamed, max 255 characters). Two teams of one round may share a name - different groups really do; every such card says so and the assign dropdown adds the members' names to tell them apart
+- Delete teams - a team with members can be deleted: its members go back to "unassigned" in that round, nothing else about them changes (`DeleteCompetitionTeamHandler`, one transaction; the confirmation says how many). This includes removed (soft-deleted) participants, who keep their round entries and team while hidden from the page - such a team used to look empty and fail to delete (Sentry WEB-D5, 2026-10-07)
 - View unassigned participants
+- Every form carries the page's CSRF token (`ManageRoundTeamsController::csrfTokenId()`, one per round); a team is assigned only within its own round
 
 **Import/Export**: The Excel import reads optional `round_names` (comma-separated, what the template and the export write; the old single `round_name` still works) and `team_name` columns, plus what the export adds: one `team_name: <round>` column per duo/team round and `participant_id`, so an export imported back changes nothing. Participants are added to every listed round (several rows of one person add up, nothing is ever removed), and for duo/team rounds teams are created or matched by name. Unknown rounds and columns and ambiguous names are reported after the import - see `participants.md` §Excel Import.
 

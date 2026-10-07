@@ -399,6 +399,9 @@
     which_one: "Oficiální výsledky uvádějí dvojici/tým pod názvem - kdo z nich jste vy?"
     its_me: "Jsem %name%"
     add_people: "{1}Přidejte člověka, se kterým jste skládali - oficiální výsledky neuvádějí, kdo to byl.|[2,4]Přidejte lidi, se kterými jste skládali - oficiální výsledky neuvádějí, kdo všichni byli.|[5,Inf[Přidejte lidi, se kterými jste skládali - oficiální výsledky neuvádějí, kdo všichni byli."
+    pair_needs_partner: "Přidejte člověka, se kterým jste skládali - tento oficiální výsledek patří dvojici."
+    pair_too_many: "Dvojice jsou dva lidé - nechte jen toho, se kterým jste skládali."
+    team_needs_people: "{1}Přidejte ještě jednoho člověka, se kterým jste skládali - tento oficiální výsledek patří týmu tří a více lidí.|[2,Inf[Přidejte lidi, se kterými jste skládali - tento oficiální výsledek patří týmu tří a více lidí."
 "forms":
   "choose_from_favorites": "- Vybrat z oblíbených -"
   "saving": "Ukládání..."
@@ -4214,6 +4217,7 @@ live_results:
     sign_in: "Přihlásit se znovu"
     forbidden: "Bez oprávnění"
     reload: "Načíst stránku znovu"
+    gone: "Kolo smazáno"
   banner:
     auth: "Jste odhlášeni. Nic z toho, co jste zadali, se neztratí - přihlaste se znovu (otevře se na nové kartě) a vraťte se sem."
     forbidden: "Tento účet (už) nemůže zadávat výsledky této události. Nic z toho, co jste zadali, se neztratí - přihlaste se jako organizátor události a zkuste to znovu."
@@ -4225,6 +4229,7 @@ live_results:
     reload: "Načíst znovu"
     forbidden_rounds: "{1}1 výsledek k události, jejíž výsledky tento účet (už) nesmí zadávat, čeká v tomto zařízení - přihlaste se jako organizátor této události a zkuste to znovu, nebo ho zahoďte.|[2,4]%count% výsledky k událostem, jejichž výsledky tento účet (už) nesmí zadávat, čekají v tomto zařízení - přihlaste se jako organizátor těchto událostí a zkuste to znovu, nebo je zahoďte.|[5,Inf[%count% výsledků k událostem, jejichž výsledky tento účet (už) nesmí zadávat, čeká v tomto zařízení - přihlaste se jako organizátor těchto událostí a zkuste to znovu, nebo je zahoďte."
     show: "Zobrazit"
+    gone: "Toto kolo už neexistuje - bylo smazáno. Vyberte nahoře jiné kolo."
   problem:
     field_result: "Výsledek"
     field_table: "Číslo stolu"
@@ -4357,6 +4362,7 @@ results_desk:
     forbidden: "Tato změna byla odmítnuta - buď už nesmíte spravovat výsledky této události, nebo je stránka zastaralá. Načtěte stránku znovu; neuložené změny jsou do té doby uvedeny v tabulce."
     offline: "Žádné připojení - neuložené změny zde čekají a odešlou se, jakmile se připojení vrátí."
     try_now: "Zkusit hned"
+    gone: "Toto kolo už neexistuje - bylo smazáno. Nic dalšího tu už nelze uložit."
   conflicts_bar:
     text: "1 změnu mezitím uložil někdo jiný.|%count% změny mezitím uložil někdo jiný.|%count% změn mezitím uložil někdo jiný."
     keep_all_mine: "Ponechat všechny moje"
@@ -4456,6 +4462,7 @@ results_desk:
     conflicts: "1 konflikt|%count% konflikty|%count% konfliktů"
     not_saved: "1 neuložen|%count% neuloženy|%count% neuloženo"
     waiting: "1 čeká - offline|%count% čekají - offline|%count% čeká - offline"
+    gone: "Kolo smazáno"
   counts:
     entries: "1 soutěžící|%count% soutěžící|%count% soutěžících"
     results: "1 s výsledkem|%count% s výsledkem|%count% s výsledkem"
@@ -4591,6 +4598,7 @@ seating:
     sign_in: "Neuloženo - byli jste odhlášeni."
     sign_in_link: "Přihlásit se znovu"
     forbidden: "Neuloženo - tuto událost už nemůžete upravovat."
+    gone: "Neuloženo - toto kolo už neexistuje."
   toast:
     applied: "Přidělen jeden stůl.|Přiděleny %count% stoly.|Přiděleno %count% stolů."
     renumbered: "Přečíslováno."
@@ -4650,6 +4658,7 @@ seating:
     show_both: "Oba seznamy"
     show_tables: "Jen podle stolu"
     show_names: "Jen jména"
+  gone: "Toto kolo už neexistuje - bylo smazáno. Nic dalšího tu už nelze uložit."
 official_results:
   qualified: "Postupující"
   result:
@@ -4677,6 +4686,8 @@ official_results:
     participant_not_found: "Tento člověk (už) není účastníkem události."
     participant_already_in_round: "Tento člověk už v tomto kole je - najděte ho v seznamu."
     round_not_found: "Toto kolo už neexistuje."
+    participant_waitlisted: "Tento člověk je na čekací listině události - nejdřív mu dejte místo na stránce účastníků."
+    competition_not_found: "Tato událost už neexistuje."
   notification:
     published: "Oficiální výsledky kola %round% na události %competition% jsou venku - podívejte se na svůj výsledek."
   guard:
@@ -4706,6 +4717,9 @@ official_results:
       member_already_in_target: "Někdo z této dvojice/týmu už je v kole"
       qualified_twice: "Postupuje i z jiného kola - posunut jednou"
       member_already_planned: "Někdo z této dvojice/týmu už postupuje s lépe umístěnou dvojicí/týmem"
+  waitlist_note:
+    text: "{1}V tomto kole je jeden člověk z čekací listiny - dejte mu místo, aby se započítal.|[2,4]V tomto kole jsou %count% lidé z čekací listiny - dejte jim místo, aby se započítali.|[5,Inf[V tomto kole je %count% lidí z čekací listiny - dejte jim místo, aby se započítali."
+    link: "Účastníci"
 
 "series":
   "meta":

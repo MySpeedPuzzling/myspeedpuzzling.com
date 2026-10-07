@@ -400,6 +400,9 @@
     which_one: "Los resultados oficiales muestran la pareja/equipo por nombre: ¿cuál de ellos eres tú?"
     its_me: "Soy %name%"
     add_people: "{1}Añade a la persona con la que hiciste el puzzle: los resultados oficiales no dicen quién fue.|]1,Inf[Añade a las personas con las que hiciste el puzzle: los resultados oficiales no dicen quiénes fueron todas."
+    pair_needs_partner: "Añade a la persona con la que hiciste el puzzle: este resultado oficial es de una pareja."
+    pair_too_many: "Una pareja son dos personas: deja solo a la persona con la que hiciste el puzzle."
+    team_needs_people: "{1}Añade una persona más con la que hiciste el puzzle: este resultado oficial es de un equipo de tres o más personas.|]1,Inf[Añade a las personas con las que hiciste el puzzle: este resultado oficial es de un equipo de tres o más personas."
 "forms":
   "choose_from_favorites": "- Elegir de favoritos -"
   "drop_file": "Arrastra y suelta un archivo aquí para subirlo"
@@ -4217,6 +4220,7 @@ live_results:
     sign_in: "Inicia sesión de nuevo"
     forbidden: "Sin permiso"
     reload: "Recargar la página"
+    gone: "Ronda eliminada"
   banner:
     auth: "Has cerrado sesión. No se pierde nada de lo que introdujiste: inicia sesión de nuevo (se abre en una pestaña nueva) y vuelve aquí."
     forbidden: "Esta cuenta no puede (ya) introducir resultados de este evento. No se pierde nada de lo que introdujiste: inicia sesión como organizador del evento y vuelve a intentarlo."
@@ -4228,6 +4232,7 @@ live_results:
     reload: "Recargar"
     forbidden_rounds: "{1}1 resultado de un evento en el que esta cuenta no (puede) introducir resultados (ya) espera en este dispositivo: inicia sesión como organizador de ese evento y vuelve a intentarlo, o descártalo.|]1,Inf[%count% resultados de eventos en los que esta cuenta no (puede) introducir resultados (ya) esperan en este dispositivo: inicia sesión como organizador de esos eventos y vuelve a intentarlo, o descártalos."
     show: "Mostrar"
+    gone: "Esta ronda ya no existe: se eliminó. Elige otra ronda arriba."
   problem:
     field_result: "Resultado"
     field_table: "Número de mesa"
@@ -4360,6 +4365,7 @@ results_desk:
     forbidden: "Este cambio fue rechazado: puede que ya no puedas gestionar los resultados de este evento, o que la página esté desactualizada. Recarga la página; hasta entonces, los cambios sin guardar se muestran en la tabla."
     offline: "Sin conexión: los cambios sin guardar esperan aquí y se envían en cuanto vuelva la conexión."
     try_now: "Reintentar ahora"
+    gone: "Esta ronda ya no existe: se eliminó. Aquí ya no se puede guardar nada más."
   conflicts_bar:
     text: "Otra persona guardó 1 cambio mientras tanto.|Otras personas guardaron %count% cambios mientras tanto."
     keep_all_mine: "Quedarme con todos los míos"
@@ -4459,6 +4465,7 @@ results_desk:
     conflicts: "1 conflicto|%count% conflictos"
     not_saved: "1 sin guardar|%count% sin guardar"
     waiting: "1 en espera - sin conexión|%count% en espera - sin conexión"
+    gone: "Ronda eliminada"
   counts:
     entries: "1 participante|%count% participantes"
     results: "1 con resultado|%count% con resultado"
@@ -4594,6 +4601,7 @@ seating:
     sign_in: "Sin guardar: has cerrado sesión."
     sign_in_link: "Inicia sesión de nuevo"
     forbidden: "Sin guardar: ya no puedes editar este evento."
+    gone: "No guardado: esta ronda ya no existe."
   toast:
     applied: "Se asignó una mesa.|Se asignaron %count% mesas."
     renumbered: "Renumerado."
@@ -4653,6 +4661,7 @@ seating:
     show_both: "Ambas listas"
     show_tables: "Solo por mesa"
     show_names: "Solo nombres"
+  gone: "Esta ronda ya no existe: se eliminó. Aquí ya no se puede guardar nada más."
 official_results:
   qualified: "Clasificado"
   result:
@@ -4680,6 +4689,8 @@ official_results:
     participant_not_found: "Esta persona no es (ya) participante del evento."
     participant_already_in_round: "Esta persona ya está en esta ronda: búscala en la lista."
     round_not_found: "Esta ronda ya no existe."
+    participant_waitlisted: "Esta persona está en la lista de espera del evento: primero dale una plaza en la página de participantes."
+    competition_not_found: "Este evento ya no existe."
   notification:
     published: "Ya están los resultados oficiales de %round% en %competition%: mira tu resultado."
   guard:
@@ -4709,6 +4720,9 @@ official_results:
       member_already_in_target: "Alguien de esta pareja/equipo ya está en la ronda"
       qualified_twice: "Clasificado también en otra ronda: avanzó una sola vez"
       member_already_planned: "Alguien de esta pareja/equipo ya va con una pareja/equipo mejor clasificada"
+  waitlist_note:
+    text: "{1}Una persona de la lista de espera está en esta ronda: dale una plaza para incluirla.|]1,Inf[%count% personas de la lista de espera están en esta ronda: dales una plaza para incluirlas."
+    link: "Participantes"
 
 "series":
   "meta":

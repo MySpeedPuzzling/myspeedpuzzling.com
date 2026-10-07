@@ -401,6 +401,9 @@
     which_one: "Les résultats officiels listent le duo/l'équipe par son nom - lequel d'entre eux êtes-vous ?"
     its_me: "Je suis %name%"
     add_people: "{1}Ajoutez la personne avec qui vous avez assemblé le puzzle - les résultats officiels n'indiquent pas qui c'était.|]1,Inf[Ajoutez les personnes avec qui vous avez assemblé le puzzle - les résultats officiels n'indiquent pas qui elles étaient toutes."
+    pair_needs_partner: "Ajoutez la personne avec qui vous avez assemblé le puzzle - ce résultat officiel appartient à un duo."
+    pair_too_many: "Un duo, c'est deux personnes - gardez seulement la personne avec qui vous avez assemblé le puzzle."
+    team_needs_people: "{1}Ajoutez encore une personne avec qui vous avez assemblé le puzzle - ce résultat officiel appartient à une équipe de trois personnes ou plus.|]1,Inf[Ajoutez les personnes avec qui vous avez assemblé le puzzle - ce résultat officiel appartient à une équipe de trois personnes ou plus."
 "forms":
   "add_new_brand": "Ajouter une nouvelle marque :"
   "choose_from_favorites": "- Choisir parmi les favoris -"
@@ -4217,6 +4220,7 @@ live_results:
     sign_in: "Se reconnecter"
     forbidden: "Accès refusé"
     reload: "Recharger la page"
+    gone: "Manche supprimée"
   banner:
     auth: "Vous êtes déconnecté(e). Rien de ce que vous avez saisi n'est perdu - reconnectez-vous (dans un nouvel onglet), puis revenez ici."
     forbidden: "Ce compte n'est pas (ou plus) autorisé à saisir les résultats de cet événement. Rien de ce que vous avez saisi n'est perdu - connectez-vous en tant qu'organisateur de l'événement, puis réessayez."
@@ -4228,6 +4232,7 @@ live_results:
     reload: "Recharger"
     forbidden_rounds: "{1}1 résultat d'un événement dont ce compte n'est pas (ou plus) autorisé à saisir les résultats attend sur cet appareil - connectez-vous en tant qu'organisateur de cet événement et réessayez, ou abandonnez-le.|]1,Inf[%count% résultats d'événements dont ce compte n'est pas (ou plus) autorisé à saisir les résultats attendent sur cet appareil - connectez-vous en tant qu'organisateur de ces événements et réessayez, ou abandonnez-les."
     show: "Afficher"
+    gone: "Cette manche n'existe plus - elle a été supprimée. Choisissez une autre manche ci-dessus."
   problem:
     field_result: "Résultat"
     field_table: "Numéro de table"
@@ -4360,6 +4365,7 @@ results_desk:
     forbidden: "Cette modification a été refusée - vous n'avez peut-être plus le droit de gérer les résultats de cet événement, ou la page est obsolète. Rechargez la page ; en attendant, les modifications non enregistrées restent listées dans le tableau."
     offline: "Pas de connexion - les modifications non enregistrées attendent ici et seront envoyées dès le retour de la connexion."
     try_now: "Réessayer maintenant"
+    gone: "Cette manche n'existe plus - elle a été supprimée. Plus rien ne peut être enregistré ici."
   conflicts_bar:
     text: "1 modification a été enregistrée par quelqu'un d'autre entre-temps.|%count% modifications ont été enregistrées par quelqu'un d'autre entre-temps."
     keep_all_mine: "Tout garder du mien"
@@ -4459,6 +4465,7 @@ results_desk:
     conflicts: "1 conflit|%count% conflits"
     not_saved: "1 non enregistré|%count% non enregistrés"
     waiting: "1 en attente - hors ligne|%count% en attente - hors ligne"
+    gone: "Manche supprimée"
   counts:
     entries: "1 concurrent|%count% concurrents"
     results: "1 avec un résultat|%count% avec un résultat"
@@ -4594,6 +4601,7 @@ seating:
     sign_in: "Non enregistré - vous avez été déconnecté(e)."
     sign_in_link: "Se reconnecter"
     forbidden: "Non enregistré - vous ne pouvez plus modifier cet événement."
+    gone: "Non enregistré - cette manche n'existe plus."
   toast:
     applied: "Une table attribuée.|%count% tables attribuées."
     renumbered: "Renumérotation effectuée."
@@ -4653,6 +4661,7 @@ seating:
     show_both: "Les deux listes"
     show_tables: "Par table uniquement"
     show_names: "Noms uniquement"
+  gone: "Cette manche n'existe plus - elle a été supprimée. Plus rien ne peut être enregistré ici."
 official_results:
   qualified: "Qualifié"
   result:
@@ -4680,6 +4689,8 @@ official_results:
     participant_not_found: "Cette personne n'est pas (ou plus) participante de l'événement."
     participant_already_in_round: "Cette personne est déjà dans cette manche - retrouvez-la dans la liste."
     round_not_found: "Cette manche n'existe plus."
+    participant_waitlisted: "Cette personne est sur la liste d'attente de l'événement - donnez-lui d'abord une place sur la page des participants."
+    competition_not_found: "Cet événement n'existe plus."
   notification:
     published: "Les résultats officiels de %round% à %competition% sont publiés - découvrez votre résultat."
   guard:
@@ -4709,6 +4720,9 @@ official_results:
       member_already_in_target: "Quelqu'un de ce duo/cette équipe est déjà dans la manche"
       qualified_twice: "Également qualifié dans une autre manche - avancé une seule fois"
       member_already_planned: "Quelqu'un de ce duo/cette équipe avance déjà avec un duo/une équipe mieux classé(e)"
+  waitlist_note:
+    text: "{1}Une personne de la liste d'attente est dans cette manche - donnez-lui une place pour l'inclure.|]1,Inf[%count% personnes de la liste d'attente sont dans cette manche - donnez-leur une place pour les inclure."
+    link: "Participants"
 
 series:
   "meta":

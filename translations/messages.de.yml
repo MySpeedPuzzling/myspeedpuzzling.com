@@ -398,6 +398,9 @@
     which_one: "Die offiziellen Ergebnisse führen das Paar/Team unter einem Namen – welches davon sind Sie?"
     its_me: "Ich bin %name%"
     add_people: "{1}Fügen Sie die Person hinzu, mit der Sie gepuzzelt haben – die offiziellen Ergebnisse nennen sie nicht.|]1,Inf[Fügen Sie die Personen hinzu, mit denen Sie gepuzzelt haben – die offiziellen Ergebnisse nennen nicht alle."
+    pair_needs_partner: "Fügen Sie die Person hinzu, mit der Sie gepuzzelt haben – dieses offizielle Ergebnis gehört einem Paar."
+    pair_too_many: "Ein Paar sind zwei Personen – behalten Sie nur die Person, mit der Sie gepuzzelt haben."
+    team_needs_people: "{1}Fügen Sie noch eine Person hinzu, mit der Sie gepuzzelt haben – dieses offizielle Ergebnis gehört einem Team aus drei oder mehr Personen.|]1,Inf[Fügen Sie die Personen hinzu, mit denen Sie gepuzzelt haben – dieses offizielle Ergebnis gehört einem Team aus drei oder mehr Personen."
 "forms":
   "choose_from_favorites": "- Aus Favoriten wählen -"
   "drop_file": "Datei hierher ziehen und ablegen zum Hochladen"
@@ -4216,6 +4219,7 @@ live_results:
     sign_in: "Erneut anmelden"
     forbidden: "Keine Berechtigung"
     reload: "Seite neu laden"
+    gone: "Runde gelöscht"
   banner:
     auth: "Sie sind abgemeldet. Nichts von Ihren Eingaben geht verloren – melden Sie sich erneut an (es öffnet sich in einem neuen Tab) und kommen Sie dann hierher zurück."
     forbidden: "Dieses Konto darf (nicht mehr) Ergebnisse dieser Veranstaltung eingeben. Nichts von Ihren Eingaben geht verloren – melden Sie sich als Veranstalter der Veranstaltung an und versuchen Sie es dann erneut."
@@ -4227,6 +4231,7 @@ live_results:
     reload: "Neu laden"
     forbidden_rounds: "{1}1 Ergebnis zu einer Veranstaltung, für die dieses Konto (nicht mehr) Ergebnisse eingeben darf, wartet auf diesem Gerät – melden Sie sich als Veranstalter dieser Veranstaltung an und versuchen Sie es erneut, oder verwerfen Sie es.|]1,Inf[%count% Ergebnisse zu Veranstaltungen, für die dieses Konto (nicht mehr) Ergebnisse eingeben darf, warten auf diesem Gerät – melden Sie sich als Veranstalter dieser Veranstaltungen an und versuchen Sie es erneut, oder verwerfen Sie sie."
     show: "Anzeigen"
+    gone: "Diese Runde gibt es nicht mehr – sie wurde gelöscht. Wählen Sie oben eine andere Runde."
   problem:
     field_result: "Ergebnis"
     field_table: "Tischnummer"
@@ -4359,6 +4364,7 @@ results_desk:
     forbidden: "Diese Änderung wurde abgelehnt – Sie dürfen die Ergebnisse dieser Veranstaltung nicht mehr verwalten, oder die Seite ist veraltet. Laden Sie die Seite neu; bis dahin sind ungespeicherte Änderungen in der Tabelle aufgelistet."
     offline: "Keine Verbindung – ungespeicherte Änderungen warten hier und werden gesendet, sobald die Verbindung wieder da ist."
     try_now: "Jetzt versuchen"
+    gone: "Diese Runde gibt es nicht mehr – sie wurde gelöscht. Hier kann nichts mehr gespeichert werden."
   conflicts_bar:
     text: "1 Änderung wurde inzwischen von jemand anderem gespeichert.|%count% Änderungen wurden inzwischen von jemand anderem gespeichert."
     keep_all_mine: "Alle meine behalten"
@@ -4458,6 +4464,7 @@ results_desk:
     conflicts: "1 Konflikt|%count% Konflikte"
     not_saved: "1 nicht gespeichert|%count% nicht gespeichert"
     waiting: "1 wartet – offline|%count% warten – offline"
+    gone: "Runde gelöscht"
   counts:
     entries: "1 Eintrag|%count% Einträge"
     results: "1 mit Ergebnis|%count% mit Ergebnis"
@@ -4593,6 +4600,7 @@ seating:
     sign_in: "Nicht gespeichert – Sie wurden abgemeldet."
     sign_in_link: "Erneut anmelden"
     forbidden: "Nicht gespeichert – Sie dürfen diese Veranstaltung nicht mehr bearbeiten."
+    gone: "Nicht gespeichert – diese Runde gibt es nicht mehr."
   toast:
     applied: "Ein Tisch zugewiesen.|%count% Tische zugewiesen."
     renumbered: "Neu nummeriert."
@@ -4652,6 +4660,7 @@ seating:
     show_both: "Beide Listen"
     show_tables: "Nur nach Tisch"
     show_names: "Nur Namen"
+  gone: "Diese Runde gibt es nicht mehr – sie wurde gelöscht. Hier kann nichts mehr gespeichert werden."
 official_results:
   qualified: "Qualifiziert"
   result:
@@ -4679,6 +4688,8 @@ official_results:
     participant_not_found: "Diese Person ist (nicht mehr) Teilnehmer der Veranstaltung."
     participant_already_in_round: "Diese Person ist schon in dieser Runde – suchen Sie sie in der Liste."
     round_not_found: "Diese Runde gibt es nicht mehr."
+    participant_waitlisted: "Diese Person steht auf der Warteliste der Veranstaltung – geben Sie ihr zuerst auf der Teilnehmerseite einen Platz."
+    competition_not_found: "Diese Veranstaltung gibt es nicht mehr."
   notification:
     published: "Die offiziellen Ergebnisse von %round% bei %competition% sind da – sehen Sie sich Ihr Ergebnis an."
   guard:
@@ -4708,6 +4719,9 @@ official_results:
       member_already_in_target: "Jemand aus diesem Paar/Team ist schon in der Runde"
       qualified_twice: "Auch in einer anderen Runde qualifiziert – einmal weitergeleitet"
       member_already_planned: "Jemand aus diesem Paar/Team kommt schon mit einem besser platzierten Paar/Team weiter"
+  waitlist_note:
+    text: "{1}Eine Person von der Warteliste ist in dieser Runde – geben Sie ihr einen Platz, damit sie mitzählt.|]1,Inf[%count% Personen von der Warteliste sind in dieser Runde – geben Sie ihnen einen Platz, damit sie mitzählen."
+    link: "Teilnehmer"
 
 "series":
   "meta":

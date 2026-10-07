@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Tests\Component;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\JoinCompetition;
+use SpeedPuzzling\Web\Message\LeaveCompetition;
+use SpeedPuzzling\Web\Message\MarkParticipantPaid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -89,6 +91,25 @@ final class CompetitionRegistrationLiveActionsTest extends WebTestCase
         $component->set('editOrganizerNote', str_repeat('x', 256));
         $component->call('saveEdit');
         self::assertSame('Paid cash at the door', $this->noteOf($participantId));
+    }
+
+    /**
+     * Review 2, A-F4: a player who paid, cancelled and registered again is reserved - the page still shows that they
+     * paid before, so the organiser never asks for the fee twice.
+     */
+    public function testAnEarlierPaymentStaysVisibleAfterRegisteringAgain(): void
+    {
+        $this->manage(capacity: 5);
+        $this->join(PlayerFixture::PLAYER_REGULAR);
+        $participantId = $this->participantIdOf(PlayerFixture::PLAYER_REGULAR);
+        $this->messageBus()->dispatch(new MarkParticipantPaid(self::NATIONALS, $participantId));
+        $this->messageBus()->dispatch(new LeaveCompetition(self::NATIONALS, PlayerFixture::PLAYER_REGULAR));
+        $this->join(PlayerFixture::PLAYER_REGULAR);
+
+        $html = $this->participantsComponent(self::NATIONALS, managed: true, capacity: 5)->render()->toString();
+
+        self::assertSame('reserved', $this->statusOf($participantId));
+        self::assertStringContainsString('data-registration-paid-before', $html);
     }
 
     public function testEditOnAnEventWithoutManagedRegistrationKeepsTheNote(): void

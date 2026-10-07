@@ -59,7 +59,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
     public function testAPairWithAResultIsNotDeletedOneWithoutIs(): void
     {
         try {
-            $this->messageBus->dispatch(new DeleteCompetitionTeam(OfficialResultsFixture::TEAM_SHARKS));
+            $this->messageBus->dispatch(new DeleteCompetitionTeam(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::TEAM_SHARKS));
             self::fail('A pair with a result must stay.');
         } catch (OfficialResultsProtected $protected) {
             self::assertSame(OfficialResultsProtected::TEAM_HAS_RESULT, $protected->reason);
@@ -67,7 +67,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
 
         self::assertNotFalse($this->database->fetchOne('SELECT 1 FROM competition_team WHERE id = :id', ['id' => OfficialResultsFixture::TEAM_SHARKS]));
 
-        $this->messageBus->dispatch(new DeleteCompetitionTeam(OfficialResultsFixture::TEAM_UNNAMED));
+        $this->messageBus->dispatch(new DeleteCompetitionTeam(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::TEAM_UNNAMED));
         self::assertFalse($this->database->fetchOne('SELECT 1 FROM competition_team WHERE id = :id', ['id' => OfficialResultsFixture::TEAM_UNNAMED]));
     }
 
@@ -76,7 +76,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
         // Ben: his own result in Group A; Dan: did not finish - still a result
         foreach ([OfficialResultsFixture::PARTICIPANT_BEN, OfficialResultsFixture::PARTICIPANT_DAN] as $participantId) {
             try {
-                $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant($participantId));
+                $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(OfficialResultsFixture::COMPETITION_RESULTS_CUP, $participantId));
                 self::fail('A participant with a result must stay.');
             } catch (OfficialResultsProtected $protected) {
                 self::assertSame(OfficialResultsProtected::PARTICIPANT_HAS_RESULT, $protected->reason);
@@ -86,7 +86,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
         }
 
         // Filip: no result in Group A, his pair has none either
-        $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(OfficialResultsFixture::PARTICIPANT_FILIP));
+        $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::PARTICIPANT_FILIP));
         self::assertNotNull($this->database->fetchOne('SELECT deleted_at FROM competition_participant WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_FILIP]));
     }
 
@@ -102,7 +102,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
 
         $this->expectException(OfficialResultsProtected::class);
 
-        $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant($participant->id->toString()));
+        $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(OfficialResultsFixture::COMPETITION_RESULTS_CUP, $participant->id->toString()));
     }
 
     public function testTakingSomebodyOutOfARoundWithTheirResultIsRefusedWithoutChangingAnything(): void
@@ -110,12 +110,15 @@ final class OfficialResultsGuardsTest extends KernelTestCase
         try {
             // Anna out of the Pairs round (Puzzle Sharks have a result) - and renamed in the same save
             $this->messageBus->dispatch(new EditCompetitionParticipant(
+                competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
                 participantId: OfficialResultsFixture::PARTICIPANT_ANNA,
                 name: 'Anna Renamed',
                 country: 'cz',
                 externalId: null,
+                changePlayer: true,
                 playerId: PlayerFixture::PLAYER_ADMIN,
-                roundIds: [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_FINAL],
+                addRoundIds: [OfficialResultsFixture::ROUND_FINAL],
+                removeRoundIds: [OfficialResultsFixture::ROUND_PAIRS],
             ));
             self::fail('Anna must stay in the Pairs round.');
         } catch (OfficialResultsProtected $protected) {
@@ -126,12 +129,12 @@ final class OfficialResultsGuardsTest extends KernelTestCase
 
         // Filip out of Group A, where he has no result
         $this->messageBus->dispatch(new EditCompetitionParticipant(
+            competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
             participantId: OfficialResultsFixture::PARTICIPANT_FILIP,
             name: 'Filip Pending',
             country: 'cz',
             externalId: null,
-            playerId: null,
-            roundIds: [OfficialResultsFixture::ROUND_PAIRS],
+            removeRoundIds: [OfficialResultsFixture::ROUND_GROUP_A],
         ));
         self::assertFalse($this->database->fetchOne('SELECT 1 FROM competition_participant_round WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_A_FILIP]));
     }
@@ -181,7 +184,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
     public function testTheInternalApiNeverDeletesARoundWithOfficialResults(): void
     {
         try {
-            $this->messageBus->dispatch(new DeleteCompetitionRound(OfficialResultsFixture::ROUND_GROUP_B, refuseWhenItHasResults: true));
+            $this->messageBus->dispatch(new DeleteCompetitionRound(OfficialResultsFixture::ROUND_GROUP_B, OfficialResultsFixture::COMPETITION_RESULTS_CUP, refuseWhenItHasResults: true));
             self::fail('A round with results must stay.');
         } catch (CompetitionRoundHasResults $hasResults) {
             self::assertSame(3, $hasResults->resultsCount);
@@ -249,7 +252,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
         $this->database->executeStatement('UPDATE competition_participant_round SET result_seconds = 5100 WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_B_IVAN]);
 
         try {
-            $this->messageBus->dispatch(new DeleteCompetitionRound(OfficialResultsFixture::ROUND_GROUP_B, confirmedOfficialResultsHash: $shown));
+            $this->messageBus->dispatch(new DeleteCompetitionRound(OfficialResultsFixture::ROUND_GROUP_B, OfficialResultsFixture::COMPETITION_RESULTS_CUP, confirmedOfficialResultsHash: $shown));
             self::fail('The changed list must be confirmed again.');
         } catch (OfficialResultsChangedMeanwhile) {
         }
@@ -258,7 +261,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
 
         $this->entityManager->clear();
         $current = OfficialResultsGuard::hashEntries($guard->entriesWithOfficialData(OfficialResultsFixture::ROUND_GROUP_B));
-        $this->messageBus->dispatch(new DeleteCompetitionRound(OfficialResultsFixture::ROUND_GROUP_B, confirmedOfficialResultsHash: $current));
+        $this->messageBus->dispatch(new DeleteCompetitionRound(OfficialResultsFixture::ROUND_GROUP_B, OfficialResultsFixture::COMPETITION_RESULTS_CUP, confirmedOfficialResultsHash: $current));
 
         self::assertFalse($this->database->fetchOne('SELECT 1 FROM competition_round WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_B]));
     }
@@ -309,6 +312,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
     {
         return new EditCompetitionRound(
             roundId: $roundId,
+            competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
             name: '',
             minutesLimit: 0,
             startsAt: new \DateTimeImmutable(),

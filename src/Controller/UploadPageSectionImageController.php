@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints\Image;
@@ -38,6 +39,7 @@ final class UploadPageSectionImageController extends AbstractController
         private readonly ImageOptimizer $imageOptimizer,
         private readonly ValidatorInterface $validator,
         private readonly TranslatorInterface $translator,
+        private readonly RateLimiterFactoryInterface $pageSectionImageUploadLimiter,
     ) {
     }
 
@@ -65,6 +67,14 @@ final class UploadPageSectionImageController extends AbstractController
 
         if ($this->isCsrfTokenValid($owner->csrfTokenId(), $request->request->getString('_token')) === false) {
             return $this->refuse($this->translator->trans('page_sections.error.expired'));
+        }
+
+        // Uploads live on the CDN - a page's sections are no free image hosting (config/packages/rate_limiter.php)
+        $user = $this->getUser();
+        assert($user !== null);
+
+        if ($this->pageSectionImageUploadLimiter->create($user->getUserIdentifier())->consume()->isAccepted() === false) {
+            return new JsonResponse(['error' => $this->translator->trans('page_sections.upload.rate_limited')], Response::HTTP_TOO_MANY_REQUESTS);
         }
 
         $file = $request->files->get('file');

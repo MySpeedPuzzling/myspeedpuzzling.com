@@ -144,13 +144,29 @@ final class JoinCompetitionController extends AbstractController
 
         if ($request->isMethod('POST')) {
             $participantId = $request->request->getString('participant_id');
+            $selfJoin = $request->request->getBoolean('self_join');
 
-            $confirmed = $request->request->getBoolean('self_join')
-                && $this->isCsrfTokenValid(self::REGISTER_CSRF_PREFIX . $competitionId, $request->request->getString('_token'));
-
-            if ($participantId === '' && $confirmed === false) {
+            if ($participantId === '' && $selfJoin === false) {
                 // A registration is only ever the confirmation form - never a bare POST, never a GET
                 return $this->redirectToRoute('join_competition', ['competitionId' => $competitionId]);
+            }
+
+            // Both forms of the page carry the event's token - an expired one is said, never silently ignored
+            if ($this->isCsrfTokenValid(self::REGISTER_CSRF_PREFIX . $competitionId, $request->request->getString('_token')) === false) {
+                $this->addFlash('warning', $this->translator->trans('competition_registration.flash.form_expired'));
+
+                return $this->redirectToRoute('join_competition', ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
+            }
+
+            if ($participantId !== '' && $request->request->getBoolean('release_paid') === false) {
+                // Picking a name lets go of the player's own registration - a paid one only on their explicit yes
+                $current = $this->getEventAttendance->forEvent($competition, $profile->playerId, true)->registration;
+
+                if ($current !== null && $current->playerSelfJoined && $current->isPaid()) {
+                    $this->addFlash('warning', $this->translator->trans('competition_registration.flash.release_paid_not_confirmed'));
+
+                    return $this->redirectToRoute('join_competition', ['competitionId' => $competitionId], Response::HTTP_SEE_OTHER);
+                }
             }
 
             $wasGoing = $this->mightBeMarketplaceEvent($competition)

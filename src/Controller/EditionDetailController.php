@@ -115,8 +115,9 @@ final class EditionDetailController extends AbstractController
             'attendance' => $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible),
             'event_offers' => $eventOffers,
             'event_offers_just_joined' => $eventOffers !== null && EventJustJoinedFlash::take($request, $competitionId),
-            // Organiser-written sections: queried only when one shows - a page without them runs what it ran before
-            'page_sections' => $competitionEvent->hasPageSections
+            // Organiser-written sections: queried only when one shows - a page without them runs what it ran before. Only
+            // on a publicly visible event: nothing an organiser writes is published before the event is approved
+            'page_sections' => $competitionEvent->hasPageSections && $isPubliclyVisible
                 ? $this->getCompetitionPageSections->forCompetitionPage($competitionId)
                 : [],
         ]);

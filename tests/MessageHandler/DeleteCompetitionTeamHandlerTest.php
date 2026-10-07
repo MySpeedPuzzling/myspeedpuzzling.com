@@ -50,7 +50,7 @@ final class DeleteCompetitionTeamHandlerTest extends KernelTestCase
         $this->entityManager->flush();
         $this->entityManager->clear();
 
-        $this->messageBus->dispatch(new DeleteCompetitionTeam(teamId: $team->id->toString()));
+        $this->messageBus->dispatch(new DeleteCompetitionTeam(competitionId: CompetitionSeriesFixture::EDITION_OFFLINE_1, teamId: $team->id->toString()));
 
         self::assertFalse($this->database->fetchOne('SELECT id FROM competition_team WHERE id = :id', ['id' => $team->id->toString()]));
 
@@ -80,7 +80,7 @@ final class DeleteCompetitionTeamHandlerTest extends KernelTestCase
         $this->entityManager->flush();
         $this->entityManager->clear();
 
-        $this->messageBus->dispatch(new DeleteCompetitionTeam(teamId: $team->id->toString()));
+        $this->messageBus->dispatch(new DeleteCompetitionTeam(competitionId: CompetitionSeriesFixture::EDITION_OFFLINE_1, teamId: $team->id->toString()));
 
         self::assertFalse($this->database->fetchOne('SELECT id FROM competition_team WHERE id = :id', ['id' => $team->id->toString()]));
     }

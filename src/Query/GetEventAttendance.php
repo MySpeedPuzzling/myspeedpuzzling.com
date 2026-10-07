@@ -103,6 +103,12 @@ SELECT
             AND listed.player_id IS NULL
             AND {$listedGoing}
     ) AS has_not_connected_participants,
+    (
+        SELECT event_series.location_country_code
+        FROM competition this_event
+        INNER JOIN competition_series event_series ON event_series.id = this_event.series_id
+        WHERE this_event.id = :competitionId
+    ) AS series_country_code,
     mine.id AS player_participant_id,
     mine.registration_status AS player_status,
     mine.source AS player_source,
@@ -131,6 +137,7 @@ SQL;
          *     spots_taken: int|string,
          *     waitlisted_count: int|string,
          *     has_not_connected_participants: bool,
+         *     series_country_code: null|string,
          *     player_participant_id: null|string,
          *     player_status: null|string,
          *     player_source: null|string,
@@ -148,9 +155,15 @@ SQL;
         $status = $connected ? (RegistrationStatus::tryFrom($row['player_status'] ?? '') ?? RegistrationStatus::Reserved) : null;
         $isGoing = $connected && $status !== RegistrationStatus::Waitlisted;
 
-        $now = $this->clock->now();
+        $timezone = self::timezoneOf($event, $row['series_country_code']);
         $availability = $publiclyVisible
-            ? RegistrationAvailability::ofWindow($now, $event->registrationOpensAt, $event->registrationClosesAt)
+            ? RegistrationAvailability::ofWindow(
+                $this->clock->now(),
+                $event->registrationOpensAt,
+                $event->registrationClosesAt,
+                // Without a closing time of its own, registration closes when the event is over
+                RegistrationAvailability::eventEndsAt($event->dateFrom, $event->dateTo, $timezone),
+            )
             : RegistrationAvailability::NotPublic;
 
         $registration = new EventRegistration(
@@ -160,7 +173,7 @@ SQL;
             waitlistedCount: (int) $row['waitlisted_count'],
             opensAt: $event->registrationOpensAt,
             closesAt: $event->registrationClosesAt,
-            timezone: self::timezoneOf($event),
+            timezone: $timezone,
             entryFeeText: $event->entryFeeText,
             paymentInstructions: $event->paymentInstructions,
             playerStatus: $status,
@@ -177,10 +190,11 @@ SQL;
     }
 
     /**
-     * The zone saved with the settings; an event made managed some other way reads in its country's zone.
+     * The zone saved with the settings; an event made managed some other way reads in its (or its series') country's
+     * zone - the same as Competition::registrationZone() and the participants export.
      */
-    public static function timezoneOf(CompetitionEvent $event): string
+    private static function timezoneOf(CompetitionEvent $event, null|string $seriesCountryCode): string
     {
-        return RoundTimezone::resolve($event->registrationTimezone, $event->locationCountryCode?->name);
+        return RoundTimezone::resolve($event->registrationTimezone, $event->locationCountryCode?->name, $seriesCountryCode);
     }
 }

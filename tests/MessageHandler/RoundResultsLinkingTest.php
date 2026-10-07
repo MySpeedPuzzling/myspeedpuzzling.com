@@ -221,6 +221,7 @@ final class RoundResultsLinkingTest extends KernelTestCase
     {
         $this->messageBus->dispatch(new EditCompetitionRound(
             roundId: $roundId,
+            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: 'Qualification Round',
             minutesLimit: 60,
             startsAt: new DateTimeImmutable('+30 days'),

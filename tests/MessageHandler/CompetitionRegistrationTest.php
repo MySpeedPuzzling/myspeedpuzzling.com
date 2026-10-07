@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -21,6 +22,7 @@ use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Message\MarkParticipantPaid;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
+use SpeedPuzzling\Web\Message\RestoreCompetitionParticipant;
 use SpeedPuzzling\Web\Message\UndoParticipantCheckIn;
 use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
@@ -28,6 +30,7 @@ use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -160,10 +163,10 @@ final class CompetitionRegistrationTest extends KernelTestCase
 
         $this->join(PlayerFixture::PLAYER_REGULAR);
         $again = $this->rowOf(PlayerFixture::PLAYER_REGULAR);
-        // The same row, restored - at the end of the queue, not paid any more
+        // The same row, restored - at the end of the queue, not paid any more (when it was paid stays on record)
         self::assertTrue($again->id->equals($first->id));
         self::assertSame(RegistrationStatus::Waitlisted, $again->registrationStatus);
-        self::assertNull($again->paidAt);
+        self::assertNotNull($again->paidAt);
     }
 
     public function testMarkPaidOnceAndOnTheWaitlistOnlyTogetherWithAPromotion(): void
@@ -315,20 +318,157 @@ final class CompetitionRegistrationTest extends KernelTestCase
         self::assertSame(RegistrationStatus::Reserved->value, $added);
     }
 
-    public function testSwitchingManagementOffMakesTheWaitlistGoing(): void
+    public function testSwitchingManagementOffMakesTheWaitlistGoingAndTellsThem(): void
     {
-        $this->manage(capacity: 1);
+        $this->manage(capacity: 1, entryFee: '10 EUR', paymentInstructions: 'Bank 123/0100');
         $this->join(PlayerFixture::PLAYER_REGULAR);
         $this->join(PlayerFixture::PLAYER_ADMIN);
         self::assertSame(RegistrationStatus::Waitlisted, $this->rowOf(PlayerFixture::PLAYER_ADMIN)->registrationStatus);
+        $before = count(self::getMailerMessages());
 
-        $this->manage(managed: false, capacity: 1);
+        $this->manage(managed: false, capacity: 1, entryFee: '10 EUR', paymentInstructions: 'Bank 123/0100');
 
         self::assertSame(RegistrationStatus::Reserved, $this->rowOf(PlayerFixture::PLAYER_ADMIN)->registrationStatus);
         self::assertSame(0, self::toInt($this->database->fetchOne(
             "SELECT COUNT(*) FROM competition_participant WHERE competition_id = :id AND registration_status = 'waitlisted'",
             ['id' => self::EVENT],
         )));
+
+        // The waitlist e-mail promised one when a spot opens up - kept, and nobody is asked to pay for an event that no
+        // longer manages registration
+        $emails = array_slice(self::getMailerMessages(), $before);
+        self::assertCount(1, $emails);
+        self::assertInstanceOf(TemplatedEmail::class, $emails[0]);
+        self::assertSame(PlayerFixture::PLAYER_ADMIN_EMAIL, $emails[0]->getTo()[0]->getAddress());
+        self::assertSame('A spot opened up for you at Czech National Championship 2024', $emails[0]->getSubject());
+        self::assertStringNotContainsString('Bank 123/0100', (string) $emails[0]->getHtmlBody());
+    }
+
+    /**
+     * Review 2, A-F1: B leaves the waitlist (the row is removed, its status stays), the organiser switches management
+     * off, B clicks "I'm going" - B must be going, not stuck on a waitlist of an event that has none.
+     */
+    public function testWhoLeftTheWaitlistIsGoingWhenJoiningAgainAfterManagementWasSwitchedOff(): void
+    {
+        $this->manage(capacity: 1);
+        $this->join(PlayerFixture::PLAYER_REGULAR);
+        $this->join(PlayerFixture::PLAYER_ADMIN);
+        $this->messageBus->dispatch(new LeaveCompetition(self::EVENT, PlayerFixture::PLAYER_ADMIN));
+        $before = count(self::getMailerMessages());
+
+        $this->manage(managed: false);
+
+        // Nobody is e-mailed about a waitlist they had left
+        self::assertCount($before, self::getMailerMessages());
+
+        $this->join(PlayerFixture::PLAYER_ADMIN);
+
+        $row = $this->rowOf(PlayerFixture::PLAYER_ADMIN);
+        self::assertFalse($row->isDeleted());
+        self::assertNotSame(RegistrationStatus::Waitlisted, $row->registrationStatus);
+        self::assertTrue(self::getContainer()->get(GetEventAttendance::class)->forEvent(
+            self::getContainer()->get(GetCompetitionEvents::class)->byId(self::EVENT),
+            PlayerFixture::PLAYER_ADMIN,
+            true,
+        )->isGoing);
+    }
+
+    /**
+     * Belt and braces for rows that are waitlisted on an event without management anyway (written by SQL, or before the
+     * switch-off covered removed rows): coming back - joining again or the organiser's restore - makes them going.
+     */
+    public function testAWaitlistedRowComingBackOnAnEventWithoutManagementIsGoing(): void
+    {
+        $this->join(PlayerFixture::PLAYER_ADMIN);
+        $rowId = $this->rowOf(PlayerFixture::PLAYER_ADMIN)->id->toString();
+        $this->database->executeStatement(
+            "UPDATE competition_participant SET registration_status = 'waitlisted', deleted_at = NOW() WHERE id = :id",
+            ['id' => $rowId],
+        );
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        $this->messageBus->dispatch(new RestoreCompetitionParticipant(self::EVENT, $rowId));
+        self::assertSame(RegistrationStatus::Reserved, $this->rowOf(PlayerFixture::PLAYER_ADMIN)->registrationStatus);
+
+        $this->database->executeStatement(
+            "UPDATE competition_participant SET registration_status = 'waitlisted', deleted_at = NOW() WHERE id = :id",
+            ['id' => $rowId],
+        );
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        $this->join(PlayerFixture::PLAYER_ADMIN);
+        self::assertSame(RegistrationStatus::Reserved, $this->rowOf(PlayerFixture::PLAYER_ADMIN)->registrationStatus);
+    }
+
+    /**
+     * Review 2, A-F5: no closing time set - registration closes at the end of the event's last day in its zone.
+     */
+    public function testRegistrationWithoutAClosingTimeClosesWhenTheEventIsOver(): void
+    {
+        $this->manage(capacity: 10, entryFee: '10 EUR', paymentInstructions: 'Bank 123/0100');
+        $today = $this->now()->setTimezone(new DateTimeZone('Europe/Prague'))->format('Y-m-d');
+
+        // Today is the event's last day - still open
+        $this->setDates($this->now()->modify('-2 days'), new DateTimeImmutable($today));
+        self::assertSame(RegistrationAvailability::Open, $this->registrationOf(PlayerFixture::PLAYER_REGULAR)->availability);
+
+        // It was yesterday - closed: no registration, no payment instructions
+        $this->setDates($this->now()->modify('-3 days'), new DateTimeImmutable($today)->modify('-1 day'));
+        self::assertSame(RegistrationAvailability::Closed, $this->registrationOf(PlayerFixture::PLAYER_REGULAR)->availability);
+        $this->assertRefused(RegistrationAvailability::Closed, self::EVENT, PlayerFixture::PLAYER_REGULAR);
+        self::assertQueuedEmailCount(0);
+
+        // A one-day event (no date_to) is over after its day too
+        $this->setDates(new DateTimeImmutable($today)->modify('-1 day'), null);
+        $this->assertRefused(RegistrationAvailability::Closed, self::EVENT, PlayerFixture::PLAYER_REGULAR);
+    }
+
+    /**
+     * An edition without a country of its own and without a saved zone reads in its series' country zone - on the card
+     * like in the export (review 2 nit).
+     */
+    public function testTheCardOfAnEditionReadsTheSeriesCountryZoneLikeTheExport(): void
+    {
+        $edition = CompetitionSeriesFixture::EDITION_OFFLINE_1;
+        $this->database->executeStatement(
+            'UPDATE competition SET registration_managed = true, registration_timezone = NULL, location_country_code = NULL WHERE id = :id',
+            ['id' => $edition],
+        );
+        $this->database->executeStatement(
+            "UPDATE competition_series SET location_country_code = 'jp' WHERE id = :id",
+            ['id' => CompetitionSeriesFixture::SERIES_OFFLINE],
+        );
+
+        $registration = self::getContainer()->get(GetEventAttendance::class)->forEvent(
+            self::getContainer()->get(GetCompetitionEvents::class)->byId($edition),
+            null,
+            true,
+        )->registration;
+
+        self::assertNotNull($registration);
+        self::assertSame('Asia/Tokyo', $registration->timezone);
+    }
+
+    /**
+     * Review 2, A-F4: a registration made again after cancelling starts over, but the organiser's record of a payment is
+     * kept - the participants page shows when it was paid, "Mark paid" confirms it again.
+     */
+    public function testRegisteringAgainKeepsTheRecordOfAnEarlierPayment(): void
+    {
+        $this->manage(capacity: 5);
+        $this->join(PlayerFixture::PLAYER_REGULAR);
+        $first = $this->rowOf(PlayerFixture::PLAYER_REGULAR);
+        $this->messageBus->dispatch(new MarkParticipantPaid(self::EVENT, $first->id->toString()));
+        $paidAt = $this->rowOf(PlayerFixture::PLAYER_REGULAR)->paidAt;
+        self::assertNotNull($paidAt);
+
+        $this->messageBus->dispatch(new LeaveCompetition(self::EVENT, PlayerFixture::PLAYER_REGULAR));
+        self::assertEquals($paidAt, $this->participantRepository->get($first->id->toString())->paidAt, 'Cancelling keeps the record');
+
+        $this->join(PlayerFixture::PLAYER_REGULAR);
+        $again = $this->rowOf(PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(RegistrationStatus::Reserved, $again->registrationStatus);
+        self::assertEquals($paidAt, $again->paidAt);
     }
 
     public function testSettingsNeverTouchTheExternalRegistrationLink(): void
@@ -389,6 +529,15 @@ final class CompetitionRegistrationTest extends KernelTestCase
             entryFeeText: $entryFee,
             paymentInstructions: $paymentInstructions,
         ));
+    }
+
+    private function setDates(DateTimeImmutable $dateFrom, null|DateTimeImmutable $dateTo): void
+    {
+        $this->database->executeStatement(
+            'UPDATE competition SET date_from = :dateFrom, date_to = :dateTo WHERE id = :id',
+            ['dateFrom' => $dateFrom->format('Y-m-d 00:00:00'), 'dateTo' => $dateTo?->format('Y-m-d 00:00:00'), 'id' => self::EVENT],
+        );
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
     }
 
     private function join(string $playerId, string $competitionId = self::EVENT): void

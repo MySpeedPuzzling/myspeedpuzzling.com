@@ -114,6 +114,10 @@ readonly final class PageSectionRequestParser
             $errors->add('page_sections.error.empty');
         }
 
+        if (count($images) > PageSectionContentSanitizer::MAX_IMAGES) {
+            $errors->add('page_sections.error.too_many_images', ['%max%' => PageSectionContentSanitizer::MAX_IMAGES]);
+        }
+
         return ['images' => $images];
     }
 
@@ -160,6 +164,12 @@ readonly final class PageSectionRequestParser
 
         if ($sponsors === []) {
             $errors->add('page_sections.error.empty');
+        }
+
+        $logos = array_filter($sponsors, static fn (array $sponsor): bool => $sponsor['logoPath'] !== '');
+
+        if (count($logos) > PageSectionContentSanitizer::MAX_IMAGES) {
+            $errors->add('page_sections.error.too_many_images', ['%max%' => PageSectionContentSanitizer::MAX_IMAGES]);
         }
 
         return ['sponsors' => $sponsors];

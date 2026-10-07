@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -397,7 +398,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
             'keep' => new KeepRoundPuzzleHiddenEverywhere($roundPuzzleId),
             // The same values - the handler changes nothing, so only its own lock holds the round
             'edit' => $this->editRoundMessage($this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION)->startsAt),
-            'delete' => new DeleteCompetitionRound(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION),
+            'delete' => new DeleteCompetitionRound(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, CompetitionFixture::COMPETITION_WJPC_2024),
             'set' => new SetCompetitionRoundPuzzles(
                 CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
                 array_values(array_map(
@@ -627,6 +628,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
 
         return new EditCompetitionRound(
             roundId: CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
+            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: $round->name,
             minutesLimit: $round->minutesLimit,
             startsAt: $startsAt,

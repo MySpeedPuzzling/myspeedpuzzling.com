@@ -54,6 +54,8 @@ final class ManageSeriesPageController extends AbstractController
             'sections' => $this->getCompetitionPageSections->forSeriesEditor($owner->id()),
             'section_types' => PageSectionType::availableFor($series->isOnline),
             'series_editor_url' => null,
+            // The sections show on the public page only once the series is approved
+            'publicly_visible' => $series->approvedAt !== null && $series->rejectedAt === null,
         ]);
 
         // An organiser's tool: never cached, never indexed (the template says noindex)

@@ -42,7 +42,8 @@ final class DeleteTeamFromRoundController extends AbstractController
     {
         $team = $this->competitionTeamRepository->get($teamId);
         $roundId = $team->round->id->toString();
-        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $team->round->competition->id->toString());
+        $competitionId = $team->round->competition->id->toString();
+        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         if (!$this->isCsrfTokenValid(ManageRoundTeamsController::csrfTokenId($roundId), $request->request->getString('_token'))) {
             $this->addFlash('danger', $this->translator->trans('competition.teams.flash.expired'));
@@ -52,7 +53,7 @@ final class DeleteTeamFromRoundController extends AbstractController
 
         // Its members go back to "unassigned" in this round, nothing else about them changes
         try {
-            $this->messageBus->dispatch(new DeleteCompetitionTeam(teamId: $teamId));
+            $this->messageBus->dispatch(new DeleteCompetitionTeam(competitionId: $competitionId, teamId: $teamId));
         } catch (OfficialResultsProtected $protected) {
             $this->addFlash('danger', $this->translator->trans($protected->translationKey()));
 

@@ -26,6 +26,8 @@ readonly final class PageSectionContentSanitizer
     public const int MAX_LONG_TEXT_LENGTH = 5000;
     public const int MAX_URL_LENGTH = 2000;
     public const int MAX_ROWS = 50;
+    // Gallery photos / sponsor logos of one section - uploads are hosted on the CDN, a page is no free image hosting
+    public const int MAX_IMAGES = 40;
 
     public function __construct(
         #[Autowire(service: 'html_sanitizer.sanitizer.competition_page')]
@@ -57,7 +59,7 @@ readonly final class PageSectionContentSanitizer
                         'path' => $this->uploadPath($item['path'] ?? null, $owner),
                         'caption' => $this->text($item['caption'] ?? null),
                     ]
-                    : null),
+                    : null, self::MAX_IMAGES),
             ],
             PageSectionType::Venue => [
                 'address' => $this->text($content['address'] ?? null),
@@ -65,13 +67,13 @@ readonly final class PageSectionContentSanitizer
                 'directions' => $this->text($content['directions'] ?? null, self::MAX_LONG_TEXT_LENGTH),
             ],
             PageSectionType::Sponsors => [
-                'sponsors' => $this->rows($content['sponsors'] ?? null, fn (array $item): null|array => $this->text($item['name'] ?? null) !== ''
+                'sponsors' => self::limitLogos($this->rows($content['sponsors'] ?? null, fn (array $item): null|array => $this->text($item['name'] ?? null) !== ''
                     ? [
                         'name' => $this->text($item['name'] ?? null),
                         'url' => $this->url($item['url'] ?? null),
                         'logoPath' => $this->uploadPath($item['logoPath'] ?? null, $owner),
                     ]
-                    : null),
+                    : null)),
             ],
             PageSectionType::Links => [
                 'links' => $this->rows($content['links'] ?? null, fn (array $item): null|array => $this->url($item['url'] ?? null) !== null
@@ -137,10 +139,29 @@ readonly final class PageSectionContentSanitizer
     }
 
     /**
+     * The first MAX_IMAGES logos are kept, sponsors after them are listed without one.
+     *
+     * @param list<array<string, mixed>> $sponsors
+     * @return list<array<string, mixed>>
+     */
+    private static function limitLogos(array $sponsors): array
+    {
+        $logos = 0;
+
+        foreach ($sponsors as $index => $sponsor) {
+            if (($sponsor['logoPath'] ?? null) !== null && ++$logos > self::MAX_IMAGES) {
+                $sponsors[$index]['logoPath'] = null;
+            }
+        }
+
+        return $sponsors;
+    }
+
+    /**
      * @param callable(array<mixed>): (null|array<string, mixed>) $cleanRow
      * @return list<array<string, mixed>>
      */
-    private function rows(mixed $rows, callable $cleanRow): array
+    private function rows(mixed $rows, callable $cleanRow, int $maxRows = self::MAX_ROWS): array
     {
         if (!is_array($rows)) {
             return [];
@@ -159,7 +180,7 @@ readonly final class PageSectionContentSanitizer
                 $clean[] = $cleanedRow;
             }
 
-            if (count($clean) === self::MAX_ROWS) {
+            if (count($clean) === $maxRows) {
                 break;
             }
         }

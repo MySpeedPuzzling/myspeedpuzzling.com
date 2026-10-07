@@ -22,3 +22,28 @@
 [data-page-section="faq"] summary {
     cursor: pointer;
 }
+
+// The rich text editor (page_section_form.html.twig): Quill's snow theme writes the link tooltip's texts as CSS content
+// ("Visit URL:", "Edit", "Remove", "Enter link:", "Save") - the page's translations replace them through the custom
+// properties wysiwyg_controller.js sets. More specific than the theme's own rules, which load after this stylesheet.
+.page-section-editor .ql-snow {
+    .ql-tooltip::before {
+        content: var(--ql-visit-url);
+    }
+
+    .ql-tooltip[data-mode="link"]::before {
+        content: var(--ql-enter-link);
+    }
+
+    .ql-tooltip a.ql-action::after {
+        content: var(--ql-edit-link);
+    }
+
+    .ql-tooltip.ql-editing a.ql-action::after {
+        content: var(--ql-save-link);
+    }
+
+    .ql-tooltip a.ql-remove::before {
+        content: var(--ql-remove-link);
+    }
+}

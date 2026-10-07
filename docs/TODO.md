@@ -10,22 +10,27 @@ that would otherwise be forgotten. Newest section on top.
       `competition_registration_closes_before_opens`) into cs, de, es, fr, ja - added in English only with the port.
 - [ ] Registration status / paid / checked-in as optional columns of the participants spreadsheet's People tab
       (participants-spreadsheet.md D10) - the import reads nothing from the export's registration columns today.
-- [ ] Notify maintainers about a new registration and a cancelled *paid* registration (refund talk); optional daily
-      digest.
+- [ ] Notify maintainers about a new registration, a cancelled *paid* registration (refund talk) and a listed name
+      picked on a managed event ("connected by …" on the participants page - review 2 A-F10, documented trade-off);
+      optional daily digest.
 - [ ] Payment deadline / automatic release of unpaid spots; a response deadline for a spot offered from the waitlist.
 - [ ] A verified e-mail before registering (throwaway accounts can fill a capacity).
 - [ ] Check-in tolerant of venue Wi-Fi (client-side search, optimistic taps) - it is a Live component today.
 - [ ] Event JSON-LD `offers` pointing at the event page with availability (sold out / waitlist) while managed.
 - [ ] Series edition cards: an internal "Register" button for a managed edition (the external link is hidden).
-- [ ] `ImportCompetitionParticipants` (the import without preview) under `CompetitionParticipantsLock` like
-      `ApplyParticipantImport`.
+- [ ] API v1 (`CompetitionDetailResponseProvider`, `CompetitionListResponseProvider`) returns `registrationLink: null`
+      for a managed event - clients cannot tell registration happens on MSP. Additive field, e.g. `registrationManaged`
+      plus the event page URL (no BC break); left unchanged in the port on purpose.
 
 ## Event page content sections (`docs/features/competitions-management/public-page.md`)
 
 - [ ] Translate the `page_sections.*` keys (messages domain) into cs, de, es, fr, ja - English only so far.
 - [ ] Prune unreferenced `competition-pages/<owner>/` objects: uploads of a section form that was never saved, and the
       pictures of a deleted competition/series (its sections cascade, the files stay). `GetStoredFileReferences` already
-      knows section pictures; a daily cron like `myspeedpuzzling:prune-photo-stash`, with an age threshold.
+      knows section pictures; a daily cron like `myspeedpuzzling:prune-photo-stash`, with an age threshold - needs a cron
+      row on lily. Until then the per-player upload limit (60/h) and the 40-picture cap per section bound the leftovers.
+- [ ] A gallery photo also embedded by URL in a rich-text `<img>` is not seen by `GetStoredFileReferences`: removing it
+      from the gallery deletes the file and the rich text image breaks (edge case, review 2).
 - [ ] Contact section publishes the e-mail address in clear text - obfuscate it or offer "message the organiser" via MSP
       chat instead.
 - [ ] If organisers ask: order/hide the page's own parts (puzzles, participants, ...) - deliberately not built

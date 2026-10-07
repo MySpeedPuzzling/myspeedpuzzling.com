@@ -4,10 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
-readonly final class DeleteCompetitionRound
+use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
+
+/**
+ * Takes turns with every write to the event's participants (CompetitionParticipantsLock): the official results the
+ * organiser agreed to lose are compared under the same lock the results desk records under.
+ */
+readonly final class DeleteCompetitionRound implements SerializedByLock
 {
     public function __construct(
         public string $roundId,
+        // The round's event, as the caller authorised it - the handler refuses a round of another event
+        public string $competitionId,
         // The internal API never deletes a round people have results in (their times would lose the round, official
         // results would be gone); the organiser's own delete button does - the times stay linked to the competition
         // either way, official results only after the organiser confirmed them (confirmedOfficialResultsHash)
@@ -24,5 +33,10 @@ readonly final class DeleteCompetitionRound
         // is refused (OfficialResultsChangedMeanwhile). Null = no check (refuseWhenItHasResults decides instead)
         public null|string $confirmedOfficialResultsHash = null,
     ) {
+    }
+
+    public function lockKey(): string
+    {
+        return CompetitionParticipantsLock::key($this->competitionId);
     }
 }

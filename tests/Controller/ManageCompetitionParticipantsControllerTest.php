@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ManageCompetitionParticipantsControllerTest extends WebTestCase
 {
@@ -58,6 +60,28 @@ final class ManageCompetitionParticipantsControllerTest extends WebTestCase
         $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_UNAPPROVED);
 
         $this->assertResponseIsSuccessful();
+    }
+
+    /**
+     * Managed registration: an in-person event offers the check-in page, an online one does not - nobody walks in.
+     */
+    public function testCheckInIsOfferedOnlyForInPersonManagedEvents(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+
+        foreach ([CompetitionFixture::COMPETITION_UNAPPROVED, CompetitionFixture::COMPETITION_RECURRING_ONLINE] as $competitionId) {
+            $bus->dispatch(new ChangeCompetitionRegistrationSettings($competitionId, true, null, null, null, 'Europe/Prague', null, null));
+        }
+
+        $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_UNAPPROVED);
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists('a[href="/en/event-check-in/' . CompetitionFixture::COMPETITION_UNAPPROVED . '"]');
+
+        $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE);
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorNotExists('a[href*="/event-check-in/"]');
     }
 
     public function testNonMaintainerDenied(): void

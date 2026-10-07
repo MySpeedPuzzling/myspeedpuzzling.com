@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionPageSection;
+use SpeedPuzzling\Web\Exceptions\PageSectionLimitReached;
 use SpeedPuzzling\Web\Exceptions\PageSectionTypeNotAvailable;
 use SpeedPuzzling\Web\Message\AddPageSection;
 use SpeedPuzzling\Web\Repository\CompetitionPageSectionRepository;
@@ -32,6 +33,7 @@ readonly final class AddPageSectionHandler
 
     /**
      * @throws PageSectionTypeNotAvailable
+     * @throws PageSectionLimitReached
      */
     public function __invoke(AddPageSection $message): void
     {
@@ -44,9 +46,16 @@ readonly final class AddPageSectionHandler
             throw new PageSectionTypeNotAvailable();
         }
 
+        $existingSections = $this->sectionRepository->allOf($owner);
+
+        // Counted under the page's lock (AddPageSection is SerializedByLock) - never one over the cap
+        if (count($existingSections) >= CompetitionPageSection::MAX_PER_PAGE) {
+            throw new PageSectionLimitReached();
+        }
+
         $lastPosition = 0;
 
-        foreach ($this->sectionRepository->allOf($owner) as $existing) {
+        foreach ($existingSections as $existing) {
             $lastPosition = max($lastPosition, $existing->position);
         }
 

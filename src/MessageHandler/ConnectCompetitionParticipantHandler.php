@@ -36,6 +36,22 @@ readonly final class ConnectCompetitionParticipantHandler
     {
         $player = $this->playerRepository->get($message->playerId);
 
+        // Everything checked before anything changes: a rolled-back handler leaves its changed entities in the entity
+        // manager, and the next flush of the same request would still write them
+        $participant = $message->participantId !== null
+            ? $this->participantRepository->getActiveOfCompetition($message->competitionId, $message->participantId)
+            : null;
+
+        if ($participant?->player !== null && $participant->player->id->equals($player->id) === false) {
+            $this->logger->warning('Competition participant connection to multiple players', [
+                'participant_id' => $participant->id->toString(),
+                'existing_connected_player_id' => $participant->player->id->toString(),
+                'new_player_id' => $player->id->toString(),
+            ]);
+
+            throw new CompetitionParticipantAlreadyConnectedToDifferentPlayer();
+        }
+
         // 1. Disconnect existing connection(s)
         $connections = $this->getCompetitionParticipants->getPlayerConnections(
             $message->competitionId,
@@ -47,23 +63,11 @@ readonly final class ConnectCompetitionParticipantHandler
             $connectedParticipant->disconnect();
         }
 
-        if ($message->participantId === null) {
+        if ($participant === null) {
             return;
         }
 
         // 2. Make new connection
-        $participant = $this->participantRepository->get($message->participantId);
-
-        if ($participant->player !== null && $participant->player->id->equals($player->id) === false) {
-            $this->logger->warning('Competition participant connection to multiple players', [
-                'participant_id' => $participant->id->toString(),
-                'existing_connected_player_id' => $participant->player->id->toString(),
-                'new_player_id' => $player->id->toString(),
-            ]);
-
-            throw new CompetitionParticipantAlreadyConnectedToDifferentPlayer();
-        }
-
         $participant->connect(
             $player,
             $this->clock->now(),

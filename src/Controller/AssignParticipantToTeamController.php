@@ -44,7 +44,8 @@ final class AssignParticipantToTeamController extends AbstractController
     {
         $participantRound = $this->participantRoundRepository->get($participantRoundId);
         $roundId = $participantRound->round->id->toString();
-        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $participantRound->round->competition->id->toString());
+        $competitionId = $participantRound->round->competition->id->toString();
+        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         if (!$this->isCsrfTokenValid(ManageRoundTeamsController::csrfTokenId($roundId), $request->request->getString('_token'))) {
             $this->addFlash('danger', $this->translator->trans('competition.teams.flash.expired'));
@@ -69,6 +70,7 @@ final class AssignParticipantToTeamController extends AbstractController
         );
 
         $this->messageBus->dispatch(new AssignParticipantToTeam(
+            competitionId: $competitionId,
             participantRoundId: $participantRoundId,
             teamId: $teamId !== '' ? $teamId : null,
         ));

@@ -35,7 +35,7 @@ final class AssignParticipantToTeamHandlerTest extends KernelTestCase
     {
         [$participantRoundId, $teamId] = $this->participantAndTeam(CompetitionSeriesFixture::ROUND_OFFLINE_TEAM);
 
-        $this->messageBus->dispatch(new AssignParticipantToTeam($participantRoundId, $teamId));
+        $this->messageBus->dispatch(new AssignParticipantToTeam(CompetitionSeriesFixture::EDITION_OFFLINE_1, $participantRoundId, $teamId));
 
         self::assertSame($teamId, $this->teamOf($participantRoundId));
     }
@@ -45,7 +45,7 @@ final class AssignParticipantToTeamHandlerTest extends KernelTestCase
         [$participantRoundId, $teamId] = $this->participantAndTeam(CompetitionSeriesFixture::ROUND_OFFLINE_SOLO);
 
         try {
-            $this->messageBus->dispatch(new AssignParticipantToTeam($participantRoundId, $teamId));
+            $this->messageBus->dispatch(new AssignParticipantToTeam(CompetitionSeriesFixture::EDITION_OFFLINE_1, $participantRoundId, $teamId));
             self::fail('A team of another round must be refused.');
         } catch (CompetitionTeamOfAnotherRound) {
         }

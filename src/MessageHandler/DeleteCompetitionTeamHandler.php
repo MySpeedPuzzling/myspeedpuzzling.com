@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Exceptions\CompetitionTeamNotFound;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Message\DeleteCompetitionTeam;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
+use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -21,17 +23,26 @@ readonly final class DeleteCompetitionTeamHandler
     public function __construct(
         private CompetitionTeamRepository $competitionTeamRepository,
         private CompetitionParticipantRoundRepository $participantRoundRepository,
+        private OfficialResultsGuard $officialResultsGuard,
     ) {
     }
 
     /**
+     * @throws CompetitionTeamNotFound a team of another event
      * @throws OfficialResultsProtected a pair/team with a result or a qualified mark stays - its result goes first
      */
     public function __invoke(DeleteCompetitionTeam $message): void
     {
         $team = $this->competitionTeamRepository->get($message->teamId);
+        $competitionId = $team->round->competition->id->toString();
 
-        if ($team->hasOfficialData()) {
+        if ($competitionId !== strtolower($message->competitionId)) {
+            throw new CompetitionTeamNotFound();
+        }
+
+        // Read from the database under the event's lock (SerializedByLock) - the page loaded the team before the lock,
+        // a result recorded since then must count
+        if (isset($this->officialResultsGuard->teamsWithOfficialData($competitionId)[$team->id->toString()])) {
             throw new OfficialResultsProtected(OfficialResultsProtected::TEAM_HAS_RESULT);
         }
 

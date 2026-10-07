@@ -32,6 +32,7 @@ final class GetRoundTeamsTest extends KernelTestCase
     public function testCreatedTeamAppearsInResults(): void
     {
         $this->messageBus->dispatch(new CreateCompetitionTeams(
+            competitionId: CompetitionSeriesFixture::EDITION_OFFLINE_1,
             roundId: CompetitionSeriesFixture::ROUND_OFFLINE_TEAM,
             names: ['Test Team'],
         ));

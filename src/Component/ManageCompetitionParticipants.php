@@ -89,6 +89,19 @@ final class ManageCompetitionParticipants
     #[LiveProp(writable: true)]
     public array $editRoundIds = [];
 
+    /**
+     * The round entries and the player the row was opened with - not writable. The save sends what this edit changed
+     * against them (EditCompetitionParticipant), so whatever happened to the person meanwhile - advanced to a final and
+     * seated by the results desk, connected by the player - stays.
+     *
+     * @var array<string>
+     */
+    #[LiveProp]
+    public array $editOriginalRoundIds = [];
+
+    #[LiveProp]
+    public null|string $editOriginalPlayerId = null;
+
     #[LiveProp]
     public bool $editNameMissing = false;
 
@@ -268,6 +281,8 @@ final class ManageCompetitionParticipants
         $this->editPlayerId = $participant->playerId;
         $this->editPlayerName = $participant->playerName ?? $participant->playerCode;
         $this->editRoundIds = array_values($participant->roundIds);
+        $this->editOriginalRoundIds = array_values($participant->roundIds);
+        $this->editOriginalPlayerId = $participant->playerId;
         $this->editNameMissing = false;
         $this->editOrganizerNoteTooLong = false;
         $this->playerSearchQuery = '';
@@ -299,14 +314,20 @@ final class ManageCompetitionParticipants
             return;
         }
 
+        $roundIds = array_values(array_unique($this->editRoundIds));
+
         try {
             $this->messageBus->dispatch(new EditCompetitionParticipant(
+                competitionId: $this->competitionId,
                 participantId: $participant->participantId,
                 name: $name,
                 country: CountryCode::fromCode($this->editCountry)?->name,
                 externalId: trim($this->editExternalId) !== '' ? trim($this->editExternalId) : null,
+                // Only what this edit changed - the row may be minutes old on a busy event day
+                changePlayer: $this->editPlayerId !== $this->editOriginalPlayerId,
                 playerId: $this->editPlayerId,
-                roundIds: array_values(array_unique($this->editRoundIds)),
+                addRoundIds: array_values(array_diff($roundIds, $this->editOriginalRoundIds)),
+                removeRoundIds: array_values(array_diff($this->editOriginalRoundIds, $roundIds)),
                 // The note is edited only while registration is managed - otherwise it stays as it is
                 changeOrganizerNote: $this->registrationManaged,
                 organizerNote: $organizerNote !== '' ? $organizerNote : null,
@@ -416,6 +437,7 @@ final class ManageCompetitionParticipants
 
         try {
             $this->messageBus->dispatch(new SoftDeleteCompetitionParticipant(
+                competitionId: $this->competitionId,
                 participantId: $participant->participantId,
             ));
         } catch (OfficialResultsProtected $protected) {
@@ -436,6 +458,7 @@ final class ManageCompetitionParticipants
         $participant = $this->getParticipants->byId($this->competitionId, $participantId);
 
         $this->messageBus->dispatch(new RestoreCompetitionParticipant(
+            competitionId: $this->competitionId,
             participantId: $participant->participantId,
         ));
     }
@@ -545,6 +568,8 @@ final class ManageCompetitionParticipants
         $this->editPlayerId = null;
         $this->editPlayerName = null;
         $this->editRoundIds = [];
+        $this->editOriginalRoundIds = [];
+        $this->editOriginalPlayerId = null;
         $this->editNameMissing = false;
         $this->editOrganizerNoteTooLong = false;
         $this->playerSearchQuery = '';

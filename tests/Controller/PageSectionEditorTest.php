@@ -9,8 +9,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Entity\CompetitionPageSection;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\PageSectionLimitReached;
 use SpeedPuzzling\Web\Message\AddPageSection;
+use SpeedPuzzling\Web\Services\PageSectionContentSanitizer;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -21,6 +24,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The page editor and every write behind it: authorised on the page that owns the section, CSRF on every POST, 303 on
@@ -134,6 +138,134 @@ final class PageSectionEditorTest extends WebTestCase
             self::assertSame($photo, $crawler->filter('input[name="' . $field . '"]')->attr('value'));
             self::assertStringEndsWith('/plain/' . $photo, (string) $crawler->filter('[data-section-image-upload-target="preview"]')->first()->attr('src'));
         }
+    }
+
+    /**
+     * Review 2, A-F8: the rich text editor speaks the page's language - its toolbar is the template's, with a translated
+     * title and accessible name on every control, and the link tooltip's texts (CSS content in Quill's theme) come as
+     * translated values the stylesheet reads.
+     */
+    public function testTheRichTextEditorHasNoUntranslatedText(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+
+        $crawler = $this->browser->request('GET', '/en/add-page-section?competition=' . self::OWN_EVENT . '&type=rich_text');
+        $this->assertResponseIsSuccessful();
+
+        $editor = $crawler->filter('[data-controller="wysiwyg"]');
+        foreach (['visit-url' => 'visit_url', 'enter-link' => 'enter_link', 'edit-link' => 'edit_link', 'remove-link' => 'remove_link', 'save-link' => 'save_link'] as $value => $key) {
+            self::assertSame($translator->trans('page_sections.editor.' . $key), $editor->attr('data-wysiwyg-' . $value . '-value'));
+        }
+
+        $buttons = $crawler->filter('[data-wysiwyg-target="toolbar"] button');
+        self::assertCount(9, $buttons);
+        foreach ($buttons as $button) {
+            self::assertInstanceOf(\DOMElement::class, $button);
+            self::assertNotSame('', $button->getAttribute('title'), $button->getAttribute('class'));
+            self::assertSame($button->getAttribute('title'), $button->getAttribute('aria-label'));
+        }
+
+        // The header picker's options are its labels (Quill reads them as data-label)
+        self::assertSame(
+            [$translator->trans('page_sections.editor.heading_2'), $translator->trans('page_sections.editor.heading_3'), $translator->trans('page_sections.editor.heading_4'), $translator->trans('page_sections.editor.normal')],
+            $crawler->filter('select.ql-header option')->each(static fn ($option): string => $option->text()),
+        );
+        self::assertNotSame('', $crawler->filter('select.ql-header')->attr('aria-label'));
+
+        // Every English text of the snow theme the editor can show is replaced by the stylesheet
+        $styles = (string) file_get_contents(dirname(__DIR__, 2) . '/assets/styles/_page-sections.scss');
+        foreach (['--ql-visit-url', '--ql-enter-link', '--ql-edit-link', '--ql-remove-link', '--ql-save-link'] as $property) {
+            self::assertStringContainsString('content: var(' . $property . ')', $styles);
+        }
+    }
+
+    /**
+     * Review 2, A-F9: a page holds at most CompetitionPageSection::MAX_PER_PAGE sections, a section at most
+     * PageSectionContentSanitizer::MAX_IMAGES pictures.
+     */
+    public function testQuotasOfSectionsAndPictures(): void
+    {
+        $owner = PageSectionOwner::competition(self::OWN_EVENT);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        // Pictures: one too many is explained, not stored
+        $photos = [];
+        for ($i = 0; $i <= PageSectionContentSanitizer::MAX_IMAGES; $i++) {
+            $photos[] = ['path' => $owner->uploadDirectory() . Uuid::uuid7()->toString() . '.jpg', 'caption' => ''];
+        }
+        $url = '/en/add-page-section?competition=' . self::OWN_EVENT . '&type=gallery';
+        $crawler = $this->browser->request('GET', $url);
+        $token = $crawler->filter('input[name="_token"]')->attr('value');
+        $this->browser->request('POST', $url, ['_token' => $token, 'title' => 'Photos', 'images' => $photos]);
+        $this->assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[data-page-section-errors]', 'at most ' . PageSectionContentSanitizer::MAX_IMAGES . ' pictures');
+        self::assertSame(0, $this->sectionCount(self::OWN_EVENT));
+
+        // The sanitizer keeps no more either, whatever reaches the handler
+        $galleryId = $this->section($owner, PageSectionType::Gallery, ['images' => $photos]);
+        $content = json_decode((string) $this->scalar('SELECT content FROM competition_page_section WHERE id = :id', ['id' => $galleryId]), true);
+        self::assertIsArray($content);
+        self::assertIsArray($content['images']);
+        self::assertCount(PageSectionContentSanitizer::MAX_IMAGES, $content['images']);
+
+        // Sections: up to the cap, then the editor offers no more and the add page refuses
+        for ($i = 1; $i < CompetitionPageSection::MAX_PER_PAGE; $i++) {
+            $this->section($owner, PageSectionType::RichText, ['html' => '<p>Section ' . $i . '</p>']);
+        }
+        self::assertSame(CompetitionPageSection::MAX_PER_PAGE, $this->sectionCount(self::OWN_EVENT));
+
+        $this->browser->request('GET', '/en/manage-event-page/' . self::OWN_EVENT);
+        self::assertSelectorExists('[data-page-sections-limit-reached]');
+        self::assertSelectorNotExists('.dropdown-menu a[href*="/add-page-section"]');
+
+        $this->browser->request('GET', '/en/add-page-section?competition=' . self::OWN_EVENT . '&type=faq');
+        $this->assertResponseRedirects('/en/manage-event-page/' . self::OWN_EVENT);
+
+        try {
+            $this->section($owner, PageSectionType::RichText, ['html' => '<p>One too many</p>']);
+            self::fail('A page holds at most ' . CompetitionPageSection::MAX_PER_PAGE . ' sections');
+        } catch (PageSectionLimitReached) {
+        }
+        self::assertSame(CompetitionPageSection::MAX_PER_PAGE, $this->sectionCount(self::OWN_EVENT));
+    }
+
+    /**
+     * Review 2, A-F7: an event that is not approved yet publishes none of its sections; its maintainers see why.
+     */
+    public function testSectionsOfAnEventThatIsNotApprovedAreNotPublished(): void
+    {
+        $owner = PageSectionOwner::competition(self::OWN_EVENT);
+        $this->section($owner, PageSectionType::RichText, ['html' => '<p>Visit our shop</p>'], 'Shop');
+
+        $this->browser->request('GET', '/en/events/unapproved-puzzle-event');
+        $this->assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[data-page-sections]');
+        self::assertStringNotContainsString('Visit our shop', (string) $this->browser->getResponse()->getContent());
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $this->browser->request('GET', '/en/manage-event-page/' . self::OWN_EVENT);
+        self::assertSelectorExists('[data-page-sections-not-public]');
+
+        // An approved event's editor says nothing of the kind
+        $this->database->executeStatement('UPDATE competition SET approved_at = NOW() WHERE id = :id', ['id' => self::OWN_EVENT]);
+        $this->browser->request('GET', '/en/manage-event-page/' . self::OWN_EVENT);
+        self::assertSelectorNotExists('[data-page-sections-not-public]');
+        $this->browser->request('GET', '/en/events/unapproved-puzzle-event');
+        self::assertSelectorTextContains('[data-page-sections]', 'Visit our shop');
+    }
+
+    public function testSectionsOfASeriesThatIsNotApprovedAreNotPublished(): void
+    {
+        $this->section(PageSectionOwner::series(CompetitionSeriesFixture::SERIES_UNAPPROVED), PageSectionType::RichText, ['html' => '<p>League rules</p>'], 'Rules');
+
+        $this->browser->request('GET', '/en/series/pending-puzzle-league');
+        $this->assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[data-page-sections]');
+
+        $this->browser->request('GET', '/en/series/pending-puzzle-league/pending-puzzle-league-1');
+        $this->assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[data-page-sections]');
     }
 
     public function testInvalidLinksAreExplainedNotDropped(): void

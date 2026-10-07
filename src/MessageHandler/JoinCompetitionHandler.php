@@ -99,6 +99,11 @@ readonly final class JoinCompetitionHandler
             $participant = $this->participantRepository->get($existingId);
             $participant->restore();
             $participant->connect($player, $this->clock->now());
+
+            if ($registration === null) {
+                // Left the waitlist while the event managed registration - it no longer does, so they are going
+                $participant->leaveWaitlistOfUnmanagedEvent();
+            }
         } else {
             $participant = new CompetitionParticipant(
                 id: Uuid::uuid7(),

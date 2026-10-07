@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsChangedMeanwhile;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -28,12 +29,18 @@ readonly final class DeleteCompetitionRoundHandler
     }
 
     /**
+     * @throws CompetitionRoundNotFound a round of another event
      * @throws CompetitionRoundHasResults
      * @throws SecretPuzzlesWouldBeRevealed
      * @throws OfficialResultsChangedMeanwhile
      */
     public function __invoke(DeleteCompetitionRound $message): void
     {
+        // The event whose lock this message holds (SerializedByLock) - never a round of another one
+        if ($this->competitionRoundRepository->get($message->roundId)->competition->id->toString() !== strtolower($message->competitionId)) {
+            throw new CompetitionRoundNotFound();
+        }
+
         $params = ['id' => $message->roundId];
 
         if ($message->refuseWhenItHasResults) {

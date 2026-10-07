@@ -154,6 +154,12 @@ Refusals throw `OfficialResultsProtected` (409, reason `official_results.guard.*
 | Take an entry out of its round (results desk, `TakeEntryOutOfRound`) | refused while it has a result or a qualified mark |
 | Move a person between pairs/teams (`AssignParticipantToTeamController`) | allowed; a warning that the result now belongs to the new line-up |
 
+Every change in this table takes the event's `CompetitionParticipantsLock` like the result writes do (`SerializedByLock`,
+competitionId resolved from the authorised entity and re-checked by the handler), and its guard reads the database under
+it - so a result recorded at the same moment is either seen by the check or recorded after the change, never lost while
+both sides report success. `SerializedByLockMessagesTest` fails for any handler touching participants, entries, teams or
+rounds whose message does not take the lock (or carry a listed reason).
+
 ## Read models
 
 - `GetRoundResultEntries::forRound()` / `byRefs()` - every entry of a round (organiser tooling: participant names as

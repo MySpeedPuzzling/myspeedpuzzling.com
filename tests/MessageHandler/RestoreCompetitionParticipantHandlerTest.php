@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Message\RestoreCompetitionParticipant;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
@@ -28,6 +29,7 @@ final class RestoreCompetitionParticipantHandlerTest extends KernelTestCase
         self::assertTrue($participant->isDeleted());
 
         $this->messageBus->dispatch(new RestoreCompetitionParticipant(
+            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             participantId: CompetitionParticipantFixture::PARTICIPANT_DELETED,
         ));
 

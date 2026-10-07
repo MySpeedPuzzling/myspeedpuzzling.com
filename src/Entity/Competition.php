@@ -20,6 +20,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 #[Entity]
 #[Table]
@@ -196,7 +197,31 @@ class Competition
             return RegistrationAvailability::NotPublic;
         }
 
-        return RegistrationAvailability::ofWindow($now, $this->registrationOpensAt, $this->registrationClosesAt);
+        return RegistrationAvailability::ofWindow($now, $this->registrationOpensAt, $this->registrationClosesAt, $this->endsAt());
+    }
+
+    /**
+     * The zone of the registration window: the one saved with the settings, else the event's (or its series') country's.
+     */
+    public function registrationZone(): string
+    {
+        return RoundTimezone::resolve($this->registrationTimezone, $this->locationCountryCode, $this->series?->locationCountryCode);
+    }
+
+    /**
+     * The end of the event's last day in its zone - registration without a closing time closes then, and nothing about
+     * paying is sent after it. Null for an event without dates.
+     */
+    public function endsAt(): null|DateTimeImmutable
+    {
+        return RegistrationAvailability::eventEndsAt($this->dateFrom, $this->dateTo, $this->registrationZone());
+    }
+
+    public function isOver(DateTimeImmutable $now): bool
+    {
+        $endsAt = $this->endsAt();
+
+        return $endsAt !== null && $now >= $endsAt;
     }
 
     private static function normalizeCountryCode(null|string $countryCode): null|string

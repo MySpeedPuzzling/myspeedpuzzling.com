@@ -4211,6 +4211,7 @@ live_results:
     event_people: "En el evento, aún no en esta ronda"
     event_people_members: "En el evento: añadir como miembro"
     event_person: "En el evento · no en esta ronda"
+    note_result_only: "El participante se añade a esta ronda con el primer resultado que guardes."
   sync:
     saved: "Todo guardado"
     sending: "Guardando…"
@@ -4592,6 +4593,10 @@ seating:
     swap_them: "Intercambiarlos"
     changed_meanwhile: "Otra persona cambió esta mesa mientras tanto."
     invalid_number: "Un número de mesa va de 1 a 9999."
+    saved_meanwhile: "Otra persona guardó la mesa %number% mientras tanto."
+    removed_meanwhile: "Otra persona quitó el número de mesa mientras tanto."
+    keep_mine: "Mantener el mío"
+    take_theirs: "Usar el suyo"
   status:
     saving: "Guardando…"
     saved: "Todo guardado"
@@ -6361,6 +6366,10 @@ marketplace_events:
         non_member_link: "membresía"
         member_no_listings: "¿Tienes puzzles para vender o intercambiar? %link%"
         member_no_listings_link: "Añádelos a tu lista de venta/intercambio."
+        seller_not_going_register: "¿Tú también vas? Inscríbete y podrás llevar puzzles de tu lista."
+        seller_not_going_needs_spot: "Cuando tengas plaza en este evento, podrás llevar puzzles de tu lista."
+        seller_empty_register: "Primero inscríbete y luego elige qué vas a llevar."
+        seller_empty_needs_spot: "Cuando tengas plaza en este evento, elige qué vas a llevar."
     picker:
         title: "¿Qué llevarás a %event%?"
         joined_title: "¡Vas a ir a %event%!"

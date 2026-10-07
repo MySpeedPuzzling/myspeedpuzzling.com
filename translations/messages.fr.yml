@@ -4211,6 +4211,7 @@ live_results:
     event_people: "Dans l'événement, pas encore dans cette manche"
     event_people_members: "Dans l'événement - ajouter comme membre"
     event_person: "Dans l'événement · pas dans cette manche"
+    note_result_only: "Le concurrent est ajouté à cette manche avec le premier résultat que vous enregistrez."
   sync:
     saved: "Tout est enregistré"
     sending: "Enregistrement…"
@@ -4592,6 +4593,10 @@ seating:
     swap_them: "Les échanger"
     changed_meanwhile: "Quelqu'un d'autre a modifié cette table entre-temps."
     invalid_number: "Un numéro de table est compris entre 1 et 9999."
+    saved_meanwhile: "Quelqu'un d'autre a enregistré la table %number% entre-temps."
+    removed_meanwhile: "Quelqu'un d'autre a retiré le numéro de table entre-temps."
+    keep_mine: "Garder le mien"
+    take_theirs: "Prendre le leur"
   status:
     saving: "Enregistrement…"
     saved: "Tout est enregistré"
@@ -6362,6 +6367,10 @@ marketplace_events:
         non_member_link: "l'adhésion"
         member_no_listings: "Des puzzles à vendre ou à échanger ? %link%"
         member_no_listings_link: "Ajoutez-les à votre liste vente/échange."
+        seller_not_going_register: "Vous y allez aussi ? Inscrivez-vous et vous pourrez apporter des puzzles de votre liste."
+        seller_not_going_needs_spot: "Dès que vous aurez une place à cet événement, vous pourrez apporter des puzzles de votre liste."
+        seller_empty_register: "Inscrivez-vous d'abord, puis choisissez ce que vous apporterez."
+        seller_empty_needs_spot: "Dès que vous aurez une place à cet événement, choisissez ce que vous apporterez."
     picker:
         title: "Qu'allez-vous apporter à %event% ?"
         joined_title: "Vous allez à %event% !"

@@ -4210,6 +4210,7 @@ live_results:
     event_people: "In der Veranstaltung, noch nicht in dieser Runde"
     event_people_members: "In der Veranstaltung – als Mitglied hinzufügen"
     event_person: "In der Veranstaltung · nicht in dieser Runde"
+    note_result_only: "Der Teilnehmer wird mit dem ersten Ergebnis, das Sie speichern, zu dieser Runde hinzugefügt."
   sync:
     saved: "Alles gespeichert"
     sending: "Speichern…"
@@ -4591,6 +4592,10 @@ seating:
     swap_them: "Tauschen"
     changed_meanwhile: "Jemand anderes hat diesen Tisch inzwischen geändert."
     invalid_number: "Eine Tischnummer liegt zwischen 1 und 9999."
+    saved_meanwhile: "Jemand anderes hat Tisch %number% inzwischen gespeichert."
+    removed_meanwhile: "Jemand anderes hat die Tischnummer inzwischen entfernt."
+    keep_mine: "Meine behalten"
+    take_theirs: "Ihre übernehmen"
   status:
     saving: "Speichern…"
     saved: "Alles gespeichert"
@@ -6360,6 +6365,10 @@ marketplace_events:
         non_member_link: "Mitgliedschaft"
         member_no_listings: "Haben Sie Puzzles zum Verkaufen oder Tauschen? %link%"
         member_no_listings_link: "Fügen Sie sie Ihrer Verkauf/Tausch-Liste hinzu."
+        seller_not_going_register: "Sie kommen auch? Melden Sie sich an, dann können Sie Puzzles von Ihrer Liste mitbringen."
+        seller_not_going_needs_spot: "Sobald Sie einen Platz bei dieser Veranstaltung haben, können Sie Puzzles von Ihrer Liste mitbringen."
+        seller_empty_register: "Melden Sie sich zuerst an, dann wählen Sie aus, was Sie mitbringen."
+        seller_empty_needs_spot: "Sobald Sie einen Platz bei dieser Veranstaltung haben, wählen Sie aus, was Sie mitbringen."
     picker:
         title: "Was bringen Sie zu %event% mit?"
         joined_title: "Sie sind bei %event% dabei!"

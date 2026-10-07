@@ -4201,6 +4201,7 @@ live_results:
     event_people: "イベントにはいるが、このラウンドにはまだいない人"
     event_people_members: "イベントにいる人 - メンバーとして追加"
     event_person: "イベントにいる · このラウンドにはいない"
+    note_result_only: "最初の結果を保存すると、この出場者がこのラウンドに追加されます。"
   sync:
     saved: "すべて保存済み"
     sending: "保存中…"
@@ -4582,6 +4583,10 @@ seating:
     swap_them: "入れ替える"
     changed_meanwhile: "その間に別の人がこのテーブルを変更しました。"
     invalid_number: "テーブル番号は1～9999です。"
+    saved_meanwhile: "その間に別の人がテーブル%number%を保存しました。"
+    removed_meanwhile: "その間に別の人がテーブル番号を外しました。"
+    keep_mine: "自分の値を残す"
+    take_theirs: "相手の値にする"
   status:
     saving: "保存中…"
     saved: "すべて保存済み"
@@ -6351,6 +6356,10 @@ marketplace_events:
         non_member_link: "メンバーシップ"
         member_no_listings: "販売・交換したいパズルはありますか？%link%"
         member_no_listings_link: "売買・交換リストに追加しましょう。"
+        seller_not_going_register: "あなたも参加しますか？登録すると、リストのパズルを持っていけます。"
+        seller_not_going_needs_spot: "このイベントの枠を確保したら、リストのパズルを持っていけます。"
+        seller_empty_register: "まず登録してから、持っていくものを選んでください。"
+        seller_empty_needs_spot: "このイベントの枠を確保したら、持っていくものを選んでください。"
     picker:
         title: "%event%に何を持っていきますか？"
         joined_title: "%event%に参加予定です！"

@@ -4208,6 +4208,7 @@ live_results:
     event_people: "V události, zatím ne v tomto kole"
     event_people_members: "V události - přidat jako člena"
     event_person: "V události · ne v tomto kole"
+    note_result_only: "Soutěžící se do tohoto kola přidá s prvním výsledkem, který uložíte."
   sync:
     saved: "Vše uloženo"
     sending: "Ukládání…"
@@ -4589,6 +4590,10 @@ seating:
     swap_them: "Prohodit je"
     changed_meanwhile: "Někdo jiný mezitím tento stůl změnil."
     invalid_number: "Číslo stolu je od 1 do 9999."
+    saved_meanwhile: "Mezitím uložil stůl %number% někdo jiný."
+    removed_meanwhile: "Mezitím číslo stolu někdo jiný odebral."
+    keep_mine: "Ponechat moje"
+    take_theirs: "Převzít jejich"
   status:
     saving: "Ukládání…"
     saved: "Vše uloženo"
@@ -6358,6 +6363,10 @@ marketplace_events:
         non_member_link: "členství"
         member_no_listings: "Máte puzzle na prodej nebo výměnu? %link%"
         member_no_listings_link: "Přidejte je na svůj seznam k prodeji/výměně."
+        seller_not_going_register: "Jdete taky? Zaregistrujte se a můžete přivézt puzzle ze svého seznamu."
+        seller_not_going_needs_spot: "Až budete mít na této události místo, můžete přivézt puzzle ze svého seznamu."
+        seller_empty_register: "Nejdřív se zaregistrujte, pak vyberte, co přivezete."
+        seller_empty_needs_spot: "Až budete mít na této události místo, vyberte, co přivezete."
     picker:
         title: "Co přivezete na %event%?"
         joined_title: "Jdete na %event%!"

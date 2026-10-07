@@ -110,6 +110,7 @@ SQL;
                 decidedById: $row['decided_by_id'],
                 decidedByName: $row['decided_by_name'],
                 decidedByCode: $row['decided_by_code'],
+                slowThreshold: is_int($snapshot['slow_threshold'] ?? null) || is_float($snapshot['slow_threshold'] ?? null) ? (float) $snapshot['slow_threshold'] : null,
             );
         }, $rows);
     }

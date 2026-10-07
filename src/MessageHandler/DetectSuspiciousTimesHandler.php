@@ -56,6 +56,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
  *
  * The scan never marks a time - only a person does. A dry run writes nothing and answers the raised rows.
  *
+ * One puzzle only (onlyPuzzleId, right after its slow threshold changed): steps 4 and 5 for its candidates, with the
+ * stored references - nothing reconciled, nothing else touched.
+ *
  * A moderator may decide while the scan runs: every case is locked and read again right before the scan writes to it
  * (SuspiciousTimeCaseRepository::lockForDecision() - the moderators' handlers take the same row lock), and written
  * only while it is still in the state the scan read.
@@ -95,19 +98,20 @@ readonly final class DetectSuspiciousTimesHandler
             $this->idLock->lockUntilCommit(Uuid::fromString(self::SCAN_LOCK_ID));
         }
 
-        $references = $this->references($message->dryRun, $now);
+        $onePuzzle = $message->onlyPuzzleId !== null;
+        $references = $onePuzzle ? $this->getReferences->stored() : $this->references($message->dryRun, $now);
         $tally->references = $references->count();
 
-        $reconciledTimeIds = $message->dryRun ? [] : $this->reconcileFlags($now, $tally);
+        $reconciledTimeIds = $message->dryRun || $onePuzzle ? [] : $this->reconcileFlags($now, $tally);
 
-        if ($message->dryRun === false) {
+        if ($message->dryRun === false && $onePuzzle === false) {
             $this->judgeChangedMarksAgain($tally);
         }
 
-        $raised = $this->checkCandidates($references, $reconciledTimeIds, $message->dryRun, $now, $tally);
+        $raised = $this->checkCandidates($references, $reconciledTimeIds, $message->dryRun, $now, $tally, $message->onlyPuzzleId);
         $this->recordRaised($raised, $message->dryRun, $now, $tally);
 
-        if ($message->dryRun === false) {
+        if ($message->dryRun === false && $onePuzzle === false) {
             $noLongerEligible = array_map(
                 static fn (SuspiciousTimeCase $case): string => $case->id->toString(),
                 $this->caseRepository->findPendingNoLongerEligible(),
@@ -243,13 +247,13 @@ readonly final class DetectSuspiciousTimesHandler
      * @param array<string, true> $skipTimeIds
      * @return list<array{SuspicionCandidate, SuspicionInput}> the raised ones
      */
-    private function checkCandidates(PaceReferences $references, array $skipTimeIds, bool $dryRun, DateTimeImmutable $now, SuspiciousTimeScanTally $tally): array
+    private function checkCandidates(PaceReferences $references, array $skipTimeIds, bool $dryRun, DateTimeImmutable $now, SuspiciousTimeScanTally $tally, null|string $onlyPuzzleId): array
     {
         $raised = [];
         $noLongerRaisedTimeIds = [];
         $noDataSince = $now->modify(sprintf('-%d days', SuspiciousTimeClassifier::NO_DATA_RECHECK_DAYS));
 
-        foreach ($this->getCandidates->batches(SuspiciousTimeClassifier::VERSION, $noDataSince, self::BATCH_SIZE) as $batch) {
+        foreach ($this->getCandidates->batches(SuspiciousTimeClassifier::VERSION, $noDataSince, self::BATCH_SIZE, $onlyPuzzleId) as $batch) {
             $paceRequests = [];
 
             foreach ($batch as $candidate) {
@@ -277,6 +281,7 @@ readonly final class DetectSuspiciousTimesHandler
                     references: $references,
                     previousAttemptSeconds: $candidate->previousAttemptSeconds,
                     previousAttemptRaisedSlow: $candidate->previousAttemptRaisedSlow,
+                    slowThreshold: $candidate->slowThreshold,
                 );
                 $assessment = $this->classifier->classify($input);
                 $tally->checked($assessment);

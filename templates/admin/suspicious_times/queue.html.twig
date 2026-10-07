@@ -39,7 +39,7 @@
                 Strong before possible; {{ tab.value == 'fast'
                     ? 'then the times leading their puzzle, bigger leaderboards first'
                     : 'then the times furthest off' }}.
-                {% if puzzle_cards is not empty %}Puzzles where several players are off the same way come first - one look at the piece count may settle them all.{% endif %}
+                {% if puzzle_cards is not empty %}Puzzles where several players are off the same way come first - a wrong piece count or a hard puzzle may settle them all at once; otherwise decide their times right there.{% endif %}
             </p>
 
             {% for card in puzzle_cards %}

@@ -1,17 +1,21 @@
-{# One case of the time verification queue. Expects: case (SuspiciousTimeCaseCard), tab, page, note_max_length. #}
+{# One case of the time verification queue. Expects: case (SuspiciousTimeCaseCard), tab, page, note_max_length;
+   in_puzzle_card (optional) leaves out what the puzzle card above already shows. #}
+{% set in_puzzle_card = in_puzzle_card ?? false %}
 {% set ratio = case.ratio %}
 {% set status = case.status.value %}
 {% set group_label = case.puzzlersCount == 2 ? 'Pair' : 'Team of ' ~ case.puzzlersCount %}
-<article class="card shadow-sm mb-3" id="case-{{ case.caseId }}" data-testid="time-verification-case">
+<article class="card {{ in_puzzle_card ? 'bg-light' : 'shadow-sm' }} mb-3" id="case-{{ case.caseId }}" data-testid="time-verification-case">
     <div class="card-body">
         <div class="d-flex flex-wrap gap-3">
-            <a class="flex-shrink-0 text-center" style="width: 72px;" href="{{ path('puzzle_detail', {puzzleId: case.puzzleId}) }}">
-                {% if case.puzzleImage %}
-                    <img src="{{ case.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded" style="max-width: 72px; max-height: 72px;">
-                {% else %}
-                    <i class="bi bi-puzzle text-muted fs-2"></i>
-                {% endif %}
-            </a>
+            {% if not in_puzzle_card %}
+                <a class="flex-shrink-0 text-center" style="width: 72px;" href="{{ path('puzzle_detail', {puzzleId: case.puzzleId}) }}">
+                    {% if case.puzzleImage %}
+                        <img src="{{ case.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded" style="max-width: 72px; max-height: 72px;">
+                    {% else %}
+                        <i class="bi bi-puzzle text-muted fs-2"></i>
+                    {% endif %}
+                </a>
+            {% endif %}
 
             <div class="flex-grow-1 min-w-0">
                 <div class="d-flex flex-wrap align-items-baseline gap-2">
@@ -48,15 +52,17 @@
                     {% endif %}
                 </div>
 
-                <div class="fw-semibold text-break mt-1">
-                    <a href="{{ path('puzzle_detail', {puzzleId: case.puzzleId}) }}">{{ case.puzzleName }}</a>
-                </div>
-                <div class="small text-muted text-break">
-                    {{ case.manufacturerName ?? 'No brand' }} &bull; {{ case.piecesCount }} pcs
-                    {% if case.puzzleMedian %}&bull; median {{ case.puzzleMedian|puzzlingTime }}{% endif %}
-                    {% if case.puzzleFastest %}&bull; fastest {{ case.puzzleFastest|puzzlingTime }}{% endif %}
-                    {% if case.difficultyScore is not null %}&bull; difficulty {{ case.difficultyScore|number_format(2) }}{% endif %}
-                </div>
+                {% if not in_puzzle_card %}
+                    <div class="fw-semibold text-break mt-1">
+                        <a href="{{ path('puzzle_detail', {puzzleId: case.puzzleId}) }}">{{ case.puzzleName }}</a>
+                    </div>
+                    <div class="small text-muted text-break">
+                        {{ case.manufacturerName ?? 'No brand' }} &bull; {{ case.piecesCount }} pcs
+                        {% if case.puzzleMedian %}&bull; median {{ case.puzzleMedian|puzzlingTime }}{% endif %}
+                        {% if case.puzzleFastest %}&bull; fastest {{ case.puzzleFastest|puzzlingTime }}{% endif %}
+                        {% if case.difficultyScore is not null %}&bull; difficulty {{ case.difficultyScore|number_format(2) }}{% endif %}
+                    </div>
+                {% endif %}
                 <div class="small mt-1">
                     Solved {{ case.solvedAt|date('j M Y') }}, saved {{ case.trackedAt|date('j M Y H:i') }}
                     {% if case.competitionName %}

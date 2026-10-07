@@ -11,7 +11,6 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\GrantModeratorRole;
 use SpeedPuzzling\Web\Repository\SuspiciousTimeCaseRepository;
 use SpeedPuzzling\Web\Repository\SuspiciousTimeNoticeRepository;
-use SpeedPuzzling\Web\Repository\SuspiciousTimePuzzleConfirmationRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SuspiciousTimesFixture;
 use SpeedPuzzling\Web\Tests\SuspiciousTimeQueueCases;
@@ -42,7 +41,7 @@ final class TimeVerificationControllerTest extends WebTestCase
         yield 'mark' => ['/admin/time-verification/' . SuspiciousTimesFixture::CASE_PENDING_FAST . '/mark'];
         yield 'trust' => ['/admin/time-verification/' . SuspiciousTimesFixture::CASE_PENDING_FAST . '/trust'];
         yield 'keep' => ['/admin/time-verification/' . SuspiciousTimesFixture::CASE_MARKED . '/keep'];
-        yield 'piece count is right' => ['/admin/time-verification/puzzles/' . SuspiciousTimesFixture::PUZZLE_HARBOUR . '/pieces-count-right'];
+        yield 'slow threshold' => ['/admin/time-verification/puzzles/' . SuspiciousTimesFixture::PUZZLE_ORCHARD . '/slow-threshold'];
     }
 
     /**
@@ -276,7 +275,7 @@ final class TimeVerificationControllerTest extends WebTestCase
         self::assertFalse($case->time->suspicious);
     }
 
-    public function testModeratorConfirmsThePiecesCountOnAPuzzleCard(): void
+    public function testEveryTimeOfAPuzzleCardIsDecidedRightInIt(): void
     {
         $browser = $this->signedInModerator();
         $this->raiseCopyOf(SuspiciousTimesFixture::TIME_STEADY_FAST, ['player_id' => SuspiciousTimesFixture::PLAYER_EDITION]);
@@ -286,18 +285,51 @@ final class TimeVerificationControllerTest extends WebTestCase
         self::assertCount(1, $card);
         self::assertStringContainsString('2 players are much faster here than usual', $card->text());
         self::assertCount(1, $card->filter('a[href^="/admin/puzzles/' . SuspiciousTimesFixture::PUZZLE_HARBOUR . '/edit"]'));
-        // The puzzle's cases are in the card, not in the list
-        self::assertCount(0, $crawler->filter('#case-' . SuspiciousTimesFixture::CASE_PENDING_FAST));
+        // A hard puzzle is about slow times only
+        self::assertCount(0, $card->filter('form[action$="/slow-threshold"]'));
+        // Each case is a card of its own inside the puzzle card, with every action
+        self::assertCount(1, $card->filter('#case-' . SuspiciousTimesFixture::CASE_PENDING_FAST));
+        self::assertCount(1, $card->filter('form[action$="/' . SuspiciousTimesFixture::CASE_PENDING_FAST . '/mark"]'));
 
-        $browser->submit($card->filter('form[action$="/pieces-count-right"]')->form());
+        $browser->submit($this->formOf($crawler, SuspiciousTimesFixture::CASE_PENDING_FAST, 'trust'));
 
         self::assertResponseRedirects('/admin/time-verification?tab=fast');
-        $confirmation = $browser->getContainer()->get(SuspiciousTimePuzzleConfirmationRepository::class)->find(SuspiciousTimesFixture::PUZZLE_HARBOUR);
-        self::assertSame(4000, $confirmation?->piecesCount);
+        self::assertSame(SuspiciousTimeCaseStatus::Trusted, $this->case($browser, SuspiciousTimesFixture::CASE_PENDING_FAST)->status);
+    }
 
-        $crawler = $browser->request('GET', '/admin/time-verification?tab=fast');
-        self::assertCount(0, $crawler->filter('#puzzle-' . SuspiciousTimesFixture::PUZZLE_HARBOUR));
-        self::assertCount(1, $crawler->filter('#case-' . SuspiciousTimesFixture::CASE_PENDING_FAST));
+    public function testModeratorSetsAHardPuzzlesSlowThresholdAndItsCasesCloseAtOnce(): void
+    {
+        $browser = $this->signedInModerator();
+        // Players are usually far slower on the orchard than on others - a card of its own
+        $browser->getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, confidence, sample_size, computed_at) VALUES (:id, 2.5, 'high', 30, NOW())
+             ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_score = 2.5, confidence = 'high'",
+            ['id' => SuspiciousTimesFixture::PUZZLE_ORCHARD],
+        );
+
+        $crawler = $browser->request('GET', '/admin/time-verification?tab=slow');
+        $card = $crawler->filter('#puzzle-' . SuspiciousTimesFixture::PUZZLE_ORCHARD);
+        self::assertCount(1, $card);
+        self::assertCount(1, $card->filter('#case-' . SuspiciousTimesFixture::CASE_PENDING_SLOW));
+        $form = $card->filter('form[action$="/slow-threshold"]');
+        self::assertCount(1, $form);
+        // 49× against the prediction - suggested a quarter above
+        self::assertSame('62', $form->filter('input[name="slow_threshold"]')->attr('value'));
+
+        // Out of range: nothing saved
+        $browser->submit($form->form(), ['slow_threshold' => '2']);
+        self::assertResponseRedirects('/admin/time-verification?tab=slow');
+        self::assertFalse($this->slowThresholdOf($browser, SuspiciousTimesFixture::PUZZLE_ORCHARD));
+
+        $browser->submit($form->form(), ['slow_threshold' => '60']);
+
+        self::assertResponseRedirects('/admin/time-verification?tab=slow');
+        $crawler = $browser->followRedirect();
+        self::assertStringContainsString('too slow only from 60× the expected time', $crawler->text());
+        self::assertStringContainsString('1 case closed', $crawler->text());
+        self::assertCount(0, $crawler->filter('#puzzle-' . SuspiciousTimesFixture::PUZZLE_ORCHARD));
+        self::assertSame(SuspiciousTimeCaseStatus::Gone, $this->case($browser, SuspiciousTimesFixture::CASE_PENDING_SLOW)->status);
+        self::assertSame(60.0, $this->slowThresholdOf($browser, SuspiciousTimesFixture::PUZZLE_ORCHARD));
     }
 
     public function testADecisionOnACaseThatChangedMeanwhileIsRefused(): void
@@ -341,6 +373,18 @@ final class TimeVerificationControllerTest extends WebTestCase
         self::assertCount(1, $form, sprintf('No %s form for case %s', $action, $caseId));
 
         return $form->form();
+    }
+
+    /**
+     * The puzzle's stored slow threshold - false without a row.
+     */
+    private function slowThresholdOf(KernelBrowser $browser, string $puzzleId): null|false|float
+    {
+        $threshold = $browser->getContainer()->get(Connection::class)->fetchOne('SELECT slow_threshold FROM suspicious_time_puzzle_confirmation WHERE puzzle_id = :id', ['id' => $puzzleId]);
+
+        assert($threshold === false || $threshold === null || is_float($threshold) || is_string($threshold));
+
+        return $threshold === false || $threshold === null ? $threshold : (float) $threshold;
     }
 
     private function signedInModerator(): KernelBrowser

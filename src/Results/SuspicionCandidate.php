@@ -33,6 +33,8 @@ readonly final class SuspicionCandidate
         public string $fingerprint,
         public null|string $caseId,
         public null|SuspiciousTimeCaseStatus $caseStatus,
+        // A moderator's slow threshold for the puzzle at its current piece count - pair/team results too
+        public null|float $slowThreshold = null,
     ) {
     }
 }

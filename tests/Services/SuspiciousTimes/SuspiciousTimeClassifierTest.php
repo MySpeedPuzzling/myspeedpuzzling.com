@@ -582,6 +582,73 @@ final class SuspiciousTimeClassifierTest extends TestCase
         $this->assertRaised($assessment, SuspicionDirection::Fast, SuspiciousTimeTier::Strong, ExpectedTimeSource::Prediction);
     }
 
+    public function testAHardPuzzlesSlowThresholdRaisesTheBarOfThePlayersOwnTimes(): void
+    {
+        // All of one colour: 9.7× the usual time is how long it takes - with a threshold of 12 it is no longer raised
+        self::assertSame(SuspicionCheckOutcome::Raised, $this->classify(200, 9700, baseline: 1000)->outcome);
+        self::assertSame(SuspicionCheckOutcome::Clear, $this->classify(200, 9700, baseline: 1000, slowThreshold: 12.0)->outcome);
+        self::assertSame(SuspicionCheckOutcome::Clear, $this->classify(200, 11999, baseline: 1000, slowThreshold: 12.0)->outcome);
+
+        $raised = $this->classify(200, 12000, baseline: 1000, slowThreshold: 12.0);
+        $this->assertRaised($raised, SuspicionDirection::Slow, SuspiciousTimeTier::Possible, ExpectedTimeSource::Baseline);
+        self::assertSame(['slower_than_usual'], $raised->reasonCodes());
+        // Strong from twice the threshold
+        $this->assertRaised($this->classify(200, 23999, baseline: 1000, slowThreshold: 12.0), SuspicionDirection::Slow, SuspiciousTimeTier::Possible, ExpectedTimeSource::Baseline);
+        $this->assertRaised($this->classify(200, 24000, baseline: 1000, slowThreshold: 12.0), SuspicionDirection::Slow, SuspiciousTimeTier::Strong, ExpectedTimeSource::Baseline);
+
+        // The prediction's 3× too
+        self::assertSame(SuspicionCheckOutcome::Clear, $this->classify(200, 11999, predicted: 1000, slowThreshold: 12.0)->outcome);
+        $this->assertRaised($this->classify(200, 12000, predicted: 1000, slowThreshold: 12.0), SuspicionDirection::Slow, SuspiciousTimeTier::Possible, ExpectedTimeSource::Prediction);
+    }
+
+    public function testASlowThresholdBelowARulesOwnBarChangesNothingForIt(): void
+    {
+        // 4× lifts the prediction's 3×, the baseline keeps its 5× and strong stays at 10×
+        self::assertSame(SuspicionCheckOutcome::Clear, $this->classify(200, 3999, predicted: 1000, slowThreshold: 4.0)->outcome);
+        self::assertSame(SuspicionCheckOutcome::Raised, $this->classify(200, 4000, predicted: 1000, slowThreshold: 4.0)->outcome);
+        self::assertSame(SuspicionCheckOutcome::Clear, $this->classify(200, 4999, baseline: 1000, slowThreshold: 4.0)->outcome);
+        $this->assertRaised($this->classify(200, 5000, baseline: 1000, slowThreshold: 4.0), SuspicionDirection::Slow, SuspiciousTimeTier::Possible, ExpectedTimeSource::Baseline);
+        $this->assertRaised($this->classify(200, 10000, baseline: 1000, slowThreshold: 4.0), SuspicionDirection::Slow, SuspiciousTimeTier::Strong, ExpectedTimeSource::Baseline);
+    }
+
+    public function testAHardPuzzlesSlowThresholdLowersTheCommunityFloor(): void
+    {
+        // A pair at 1000 pieces: most pairs take 1:51:07 - 25 h is 13.5× that, below the floor (10×) but within 15×
+        self::assertSame(SuspicionCheckOutcome::Raised, $this->classify(1000, 90000, type: PuzzlingType::Duo)->outcome);
+        self::assertSame(SuspicionCheckOutcome::Clear, $this->classify(1000, 90000, type: PuzzlingType::Duo, slowThreshold: 15.0)->outcome);
+
+        $beyond = $this->classify(1000, 110000, type: PuzzlingType::Duo, slowThreshold: 15.0);
+        $this->assertRaised($beyond, SuspicionDirection::Slow, SuspiciousTimeTier::Strong, null);
+        self::assertSame(0.6, $beyond->reasons[0]->param('floor_ppm'));
+
+        // A new player's solo time: the floor of 10× the community median becomes 15×
+        self::assertSame(SuspicionCheckOutcome::Raised, $this->classify(500, 45000)->outcome);
+        self::assertSame(SuspicionCheckOutcome::NoData, $this->classify(500, 45000, slowThreshold: 15.0)->outcome);
+        self::assertSame(SuspiciousTimeClassifier::SLOW_FLOOR_SHARE, SuspiciousTimeClassifier::slowFloorShare(new SuspicionInput(500, 45000, PuzzlingType::Solo, null, null, null, null, self::references())));
+    }
+
+    public function testFastTimesIgnoreTheSlowThreshold(): void
+    {
+        $without = $this->classify(500, 1800, baseline: 7200);
+        $with = $this->classify(500, 1800, baseline: 7200, slowThreshold: 20.0);
+
+        $this->assertRaised($with, SuspicionDirection::Fast, SuspiciousTimeTier::Strong, ExpectedTimeSource::Baseline);
+        self::assertEquals($without, $with);
+    }
+
+    public function testOnAHardPuzzleASlowEarlierAttemptStillMakesATrustedPrediction(): void
+    {
+        // The attempt before took 9× the usual 6:40 - far too slow anywhere else, so the honest 6:20 is judged by the
+        // baseline. On a puzzle that takes everybody 12× longer it is how long the puzzle takes: the prediction stands
+        self::assertSame(SuspicionCheckOutcome::Clear, $this->classify(99, 380, predicted: 3600, baseline: 400, previous: 3600)->outcome);
+        $this->assertRaised(
+            $this->classify(99, 380, predicted: 3600, baseline: 400, previous: 3600, slowThreshold: 12.0),
+            SuspicionDirection::Fast,
+            SuspiciousTimeTier::Strong,
+            ExpectedTimeSource::Prediction,
+        );
+    }
+
     public function testThePaceIsNeededWhenAPersonalPredictionMayBeReplaced(): void
     {
         self::assertTrue(SuspiciousTimeClassifier::needsPace(null, null));
@@ -605,6 +672,7 @@ final class SuspiciousTimeClassifierTest extends TestCase
         null|PaceReferences $references = null,
         null|int $previous = null,
         bool $previousRaisedSlow = false,
+        null|float $slowThreshold = null,
     ): SuspicionAssessment {
         return $this->classifier->classify(new SuspicionInput(
             piecesCount: $piecesCount,
@@ -618,6 +686,7 @@ final class SuspiciousTimeClassifierTest extends TestCase
             evidence: $evidence,
             previousAttemptSeconds: $previous,
             previousAttemptRaisedSlow: $previousRaisedSlow,
+            slowThreshold: $slowThreshold,
         ));
     }
 

@@ -70,7 +70,7 @@ readonly final class SuspiciousTimeDecisionRecorder
     }
 
     /**
-     * A decision about a puzzle card (pieces_confirmed).
+     * A decision about a puzzle (its slow threshold; pieces_confirmed earlier).
      *
      * @param array<string, mixed> $details
      */

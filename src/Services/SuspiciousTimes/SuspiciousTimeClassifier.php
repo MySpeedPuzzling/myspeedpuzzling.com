@@ -43,6 +43,13 @@ use SpeedPuzzling\Web\Value\SuspiciousTimeTier;
  * Pair/team results have no personal expectation: they are judged only by the community's slow floor of their range
  * and puzzling type (raised strong below it, clear otherwise). Every fast rule is solo-only.
  *
+ * A hard puzzle (all of one colour) takes everybody many times longer than its piece count suggests. A moderator may
+ * give it a slow threshold (suspicious_time_puzzle_confirmation.slow_threshold, for its current piece count): every
+ * slow rule of its times then needs at least that many times the expectation - 3× / 5× / the floor's 10× become
+ * max(rule, threshold), strong from max(10, 2 × threshold) - and so does "the prediction was built on a far too slow
+ * attempt". Fast rules never change. Without a threshold nothing differs, so it is no new VERSION: setting one makes
+ * the scan judge the puzzle's times again (GetSuspiciousTimeCandidates).
+ *
  * Explanations describe a raised time and suggest the fix; they never raise one. Fitting ones (a likely mistake:
  * hours left out, a group saved as solo, another edition; minutes typed into the hours box, days counted instead of
  * puzzling time) make it strong. Fast explanations are only looked for on fast times and slow ones on slow times, so
@@ -180,7 +187,7 @@ final class SuspiciousTimeClassifier
             return $this->raisedFast($input, $expectedSeconds, $source, $ratio);
         }
 
-        if ($slowRatio >= ($againstPrediction ? self::SLOW_PREDICTION_RAISE_RATIO : self::SLOW_USUAL_RAISE_RATIO)) {
+        if ($slowRatio >= self::slowBar($againstPrediction ? self::SLOW_PREDICTION_RAISE_RATIO : self::SLOW_USUAL_RAISE_RATIO, $input)) {
             return $this->raisedSlow($input, $expectedSeconds, $source, $slowRatio);
         }
 
@@ -220,6 +227,36 @@ final class SuspiciousTimeClassifier
         }
 
         return [null, null];
+    }
+
+    /**
+     * The bar of a slow rule for this time: the rule's own ratio, or the puzzle's slow threshold when a moderator set
+     * a higher one.
+     */
+    public static function slowBar(float $ruleRatio, SuspicionInput $input): float
+    {
+        return $input->slowThreshold !== null ? max($ruleRatio, $input->slowThreshold) : $ruleRatio;
+    }
+
+    /**
+     * A slow raise is strong from SLOW_STRONG_RATIO - on a puzzle with a slow threshold from twice the threshold.
+     */
+    public static function slowStrongBar(SuspicionInput $input): float
+    {
+        return $input->slowThreshold !== null ? max(self::SLOW_STRONG_RATIO, 2 * $input->slowThreshold) : self::SLOW_STRONG_RATIO;
+    }
+
+    /**
+     * The community's slow floor as a share of the median pace: SLOW_FLOOR_SHARE (10× slower than most puzzlers), on
+     * a puzzle with a higher slow threshold that many times slower.
+     */
+    public static function slowFloorShare(SuspicionInput $input): float
+    {
+        if ($input->slowThreshold === null) {
+            return self::SLOW_FLOOR_SHARE;
+        }
+
+        return 1 / self::slowBar(1 / self::SLOW_FLOOR_SHARE, $input);
     }
 
     /**
@@ -280,12 +317,12 @@ final class SuspiciousTimeClassifier
         [$usual] = self::expectation($input->withoutPrediction());
 
         if ($usual !== null) {
-            return $previous >= self::SLOW_USUAL_RAISE_RATIO * $usual;
+            return $previous >= self::slowBar(self::SLOW_USUAL_RAISE_RATIO, $input) * $usual;
         }
 
         $reference = $input->soloReference($input->piecesCount);
 
-        return $reference !== null && $input->piecesCount * 60 / $previous < $reference->medianPpm * self::SLOW_FLOOR_SHARE;
+        return $reference !== null && $input->piecesCount * 60 / $previous < $reference->medianPpm * self::slowFloorShare($input);
     }
 
     /**
@@ -441,7 +478,7 @@ final class SuspiciousTimeClassifier
 
         return new SuspicionAssessment(
             outcome: SuspicionCheckOutcome::Raised,
-            tier: $slowRatio >= self::SLOW_STRONG_RATIO || self::hasFittingExplanation($explanations) ? SuspiciousTimeTier::Strong : SuspiciousTimeTier::Possible,
+            tier: $slowRatio >= self::slowStrongBar($input) || self::hasFittingExplanation($explanations) ? SuspiciousTimeTier::Strong : SuspiciousTimeTier::Possible,
             ratio: $expectedSeconds / $input->seconds,
             expectedSeconds: $expectedSeconds,
             expectedSource: $source,
@@ -483,7 +520,7 @@ final class SuspiciousTimeClassifier
             );
         }
 
-        if ($ppm < $reference->medianPpm * self::SLOW_FLOOR_SHARE) {
+        if ($ppm < $reference->medianPpm * self::slowFloorShare($input)) {
             return $this->raisedBelowFloor($input, $reference, $ppm);
         }
 
@@ -503,7 +540,7 @@ final class SuspiciousTimeClassifier
 
         $ppm = $input->piecesCount * 60 / $input->seconds;
 
-        if ($ppm < $reference->medianPpm * self::SLOW_FLOOR_SHARE) {
+        if ($ppm < $reference->medianPpm * self::slowFloorShare($input)) {
             return $this->raisedBelowFloor($input, $reference, $ppm);
         }
 
@@ -512,7 +549,7 @@ final class SuspiciousTimeClassifier
 
     private function raisedBelowFloor(SuspicionInput $input, PaceReference $reference, float $ppm): SuspicionAssessment
     {
-        $floorPpm = $reference->medianPpm * self::SLOW_FLOOR_SHARE;
+        $floorPpm = $reference->medianPpm * self::slowFloorShare($input);
         $medianSeconds = $reference->medianSeconds($input->piecesCount);
 
         $trigger = new SuspiciousTimeReason(SuspiciousTimeReasonCode::BelowSlowFloor, [

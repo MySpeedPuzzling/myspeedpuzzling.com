@@ -1,7 +1,10 @@
-{# A puzzle whose pending cases of one direction are shown together - "is the piece count right?"
-   Expects: card (SuspiciousTimePuzzleCard), tab, page. #}
+{# A puzzle whose pending cases of one direction are shown together - wrong piece count, a hard puzzle, or decide each
+   time. Expects: card (SuspiciousTimePuzzleCard), puzzle_card_cases (case id => SuspiciousTimeCaseCard), tab, page,
+   note_max_length. #}
 {% set faster = card.direction.value == 'fast' %}
-<article class="card border-warning shadow-sm mb-3" id="puzzle-{{ card.puzzleId }}" data-testid="time-verification-puzzle-card">
+{% set ratio_range = card.ratioRange %}
+{% set threshold_text = card.slowThreshold is not null ? card.slowThreshold|number_format(1)|replace({'.0': ''}) : null %}
+<article class="card border-warning shadow-sm mb-4" id="puzzle-{{ card.puzzleId }}" data-testid="time-verification-puzzle-card">
     <div class="card-body">
         <div class="d-flex flex-wrap gap-3">
             <a class="flex-shrink-0 text-center" style="width: 72px;" href="{{ path('puzzle_detail', {puzzleId: card.puzzleId}) }}">
@@ -22,31 +25,63 @@
                     {% if card.fastestSolo %}&bull; fastest {{ card.fastestSolo|puzzlingTime }}{% endif %}
                     {% if card.difficultyScore is not null %}&bull; difficulty {{ card.difficultyScore|number_format(2) }}{% endif %}
                 </div>
-                <p class="mt-2 mb-2">
-                    {% if card.isSeveralPlayers %}
-                        <strong>{{ card.playersCount }} players are much {{ faster ? 'faster' : 'slower' }} here than usual</strong> - is the piece count right?
-                    {% else %}
-                        <strong>Players are usually much {{ faster ? 'faster' : 'slower' }} on this puzzle than on others</strong> (difficulty {{ card.difficultyScore is not null ? card.difficultyScore|number_format(2) : '-' }}) - is the piece count right?
-                    {% endif %}
+                {% if threshold_text %}
+                    <div class="small mt-1"><span class="badge bg-info text-dark">Hard puzzle</span> too slow only from <strong>{{ threshold_text }}×</strong> the expected time</div>
+                {% endif %}
+                <p class="mt-2 mb-1">
+                    <strong>
+                        {% if card.isSeveralPlayers %}
+                            {{ card.playersCount }} players are much {{ faster ? 'faster' : 'slower' }} here than usual{% if ratio_range %} ({{ ratio_range[0]|number_format(1) }}{% if ratio_range[1] != ratio_range[0] %}-{{ ratio_range[1]|number_format(1) }}{% endif %}× {{ faster ? 'faster' : 'slower' }}){% endif %}.
+                        {% else %}
+                            Players are usually much {{ faster ? 'faster' : 'slower' }} on this puzzle than on others (difficulty {{ card.difficultyScore is not null ? card.difficultyScore|number_format(2) : '-' }}).
+                        {% endif %}
+                    </strong>
+                    Which is it?
                 </p>
-                <div class="d-flex flex-wrap gap-2">
-                    <a class="btn btn-sm btn-primary" href="{{ path('admin_edit_puzzle', {puzzleId: card.puzzleId, return: path('admin_time_verification', {tab: tab.value})}) }}">
-                        Fix the puzzle
-                    </a>
-                    <form method="post" action="{{ path('admin_time_verification_confirm_pieces', {puzzleId: card.puzzleId}) }}" data-turbo="false">
+            </div>
+        </div>
+
+        <ol class="list-unstyled mt-2 mb-0">
+            <li class="border rounded p-2 mb-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <strong>The piece count is wrong</strong>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ path('admin_edit_puzzle', {puzzleId: card.puzzleId, return: path('admin_time_verification', {tab: tab.value})}) }}">Edit the puzzle</a>
+                </div>
+                <div class="small text-muted mt-1">
+                    {{ faster ? 'A count too high makes everybody fast' : 'A count too low makes everybody slow' }}. After the fix the next scan judges these times again - the ones that fit close by themselves.
+                </div>
+            </li>
+            {% if not faster %}
+                <li class="border rounded p-2 mb-2" data-testid="time-verification-slow-threshold">
+                    <form method="post" action="{{ path('admin_time_verification_slow_threshold', {puzzleId: card.puzzleId}) }}" class="d-flex flex-wrap align-items-center gap-2" data-turbo="false">
                         <input type="hidden" name="_token" value="{{ csrf_token('time-verification-puzzle-' ~ card.puzzleId) }}">
                         <input type="hidden" name="tab" value="{{ tab.value }}">
                         <input type="hidden" name="page" value="{{ page }}">
                         <input type="hidden" name="pieces" value="{{ card.piecesCount }}">
-                        <button type="submit" class="btn btn-sm btn-outline-secondary">Piece count is right</button>
+                        <strong>It is a hard puzzle</strong>
+                        <label class="small" for="slow-threshold-{{ card.puzzleId }}">- too slow here only from</label>
+                        <span class="input-group input-group-sm" style="width: 7.5rem;">
+                            <input class="form-control" type="number" name="slow_threshold" id="slow-threshold-{{ card.puzzleId }}" min="3" max="100" step="0.5" value="{{ card.suggestedSlowThreshold }}" required>
+                            <span class="input-group-text">×</span>
+                        </span>
+                        <span class="small">the expected time</span>
+                        <button type="submit" class="btn btn-sm btn-primary">{{ threshold_text ? 'Change' : 'Save' }}</button>
+                        {% if threshold_text %}
+                            <button type="submit" name="remove" value="1" class="btn btn-sm btn-outline-secondary" formnovalidate>Remove</button>
+                        {% endif %}
                     </form>
-                </div>
-                <p class="small text-muted mt-2 mb-0">
-                    Fixing the piece count makes the next scan judge these times again - the cases close by themselves when they fit.
-                    "Piece count is right" sends them to the list one by one, until the piece count changes.
-                </p>
-            </div>
-        </div>
+                    <div class="small text-muted mt-1">
+                        All of one colour, a gradient, an "impossible" puzzle: everybody takes many times longer than the piece count suggests.
+                        Normally a time is too slow from 5× the player's usual time (3× their prediction, 10× what most puzzlers take for pairs, teams and new players);
+                        the threshold raises all three for this puzzle, until its piece count changes.
+                        Saving judges its times again right away - the ones within the new bar close. Fast times are judged as before.
+                    </div>
+                </li>
+            {% endif %}
+            <li class="border rounded p-2">
+                <strong>Neither</strong> <span class="small text-muted">- decide each time below, like any other.</span>
+            </li>
+        </ol>
 
         <div class="table-responsive mt-3">
             <table class="table table-sm align-middle fs-sm mb-0">
@@ -57,33 +92,46 @@
                         <th class="text-end">Expected</th>
                         <th class="text-end">Off by</th>
                         <th>Why</th>
-                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for line in card.cases %}
+                        {% set line_ratio = line.ratio %}
                         <tr>
                             <td class="text-break">
-                                <a href="{{ path('player_profile', {playerId: line.playerId}) }}">{{ line.playerName ?? ('#' ~ line.playerCode) }}</a>
+                                <a href="#case-{{ line.caseId }}">{{ line.playerName ?? ('#' ~ line.playerCode) }}</a>
                                 {% if line.playerName %}<span class="text-muted">#{{ line.playerCode }}</span>{% endif %}
                                 {% if line.playerPrivate %}<span class="badge bg-light text-dark border">Private profile</span>{% endif %}
                                 {% if line.puzzlersCount > 1 %}<span class="badge bg-info text-dark">{{ line.puzzlersCount == 2 ? 'Pair' : 'Team of ' ~ line.puzzlersCount }}</span>{% endif %}
                             </td>
                             <td class="text-end text-nowrap">{{ line.seconds is not null ? line.seconds|puzzlingTime : '-' }}</td>
                             <td class="text-end text-nowrap">
-                                {{ line.expectedSeconds is not null ? line.expectedSeconds|puzzlingTime : '-' }}
-                                {% if line.expectedSource %}<span class="text-muted">({{ line.expectedSource.value }})</span>{% endif %}
+                                {% set compared_with = line.comparedWithSeconds %}
+                                {{ compared_with is not null ? compared_with|puzzlingTime : '-' }}
+                                {% if line.isComparedWithCommunity %}
+                                    <span class="text-muted">(most puzzlers)</span>
+                                {% elseif line.expectedSource %}
+                                    <span class="text-muted">({{ line.expectedSource.value }})</span>
+                                {% endif %}
                             </td>
-                            <td class="text-end text-nowrap">{{ line.ratio is not null ? line.ratio|number_format(1) ~ '×' : '-' }}</td>
+                            <td class="text-end text-nowrap">{{ line_ratio is not null ? line_ratio|number_format(1) ~ '×' : '-' }}</td>
                             <td>
                                 {% if line.tier %}<span class="badge {{ line.tier.value == 'strong' ? 'bg-danger' : 'bg-secondary' }}">{{ line.tier.value == 'strong' ? 'Strong' : 'Possible' }}</span>{% endif %}
                                 {% if line.trigger %}{{ include('suspicious_time/_reason.html.twig', {reason: line.trigger}, with_context = false) }}{% endif %}
                             </td>
-                            <td class="text-end">{% if not line.playerPrivate %}<a href="{{ path('puzzle_result_detail', {timeId: line.timeId}) }}">Result</a>{% endif %}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <div class="mt-3">
+            {% for line in card.cases %}
+                {% set case = puzzle_card_cases[line.caseId] ?? null %}
+                {% if case %}
+                    {{ include('admin/suspicious_times/_case_card.html.twig', {case: case, in_puzzle_card: true}) }}
+                {% endif %}
+            {% endfor %}
         </div>
     </div>
 </article>

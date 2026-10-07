@@ -9,10 +9,12 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
+use SpeedPuzzling\Web\Services\RefereeEntriesView;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,6 +37,7 @@ final class RoundResultsStateController extends AbstractController
         private readonly OfficialResultsApi $api,
         private readonly ClockInterface $clock,
         private readonly OfficialResultsSubscription $subscription,
+        private readonly RefereeEntriesView $refereeEntriesView,
     ) {
     }
 
@@ -54,6 +57,8 @@ final class RoundResultsStateController extends AbstractController
             return $authorised;
         }
 
+        // A referee reads the round too (the live entry) - without private players' #codes (RefereeEntriesView)
+        $organiser = $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString());
         $rounds = $this->getRoundResultsOverview->forCompetition($competition->id->toString());
         $thisRound = null;
         foreach ($rounds as $overview) {
@@ -72,8 +77,8 @@ final class RoundResultsStateController extends AbstractController
             ],
             'round' => $thisRound,
             'rounds' => $rounds,
-            'entries' => $this->getRoundResultEntries->forRound($round->id->toString()),
-            'mercure' => $this->subscription->forRound($round->id->toString()),
+            'entries' => $this->refereeEntriesView->entries($this->getRoundResultEntries->forRound($round->id->toString()), $organiser),
+            'mercure' => $this->subscription->forRound($round->id->toString(), $organiser),
         ]);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use Closure;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
@@ -46,7 +47,51 @@ readonly final class RoundResultEntry implements \JsonSerializable
         public null|DateTimeImmutable $resultEnteredAt,
         public null|string $resultEnteredById,
         public null|string $resultEnteredByName,
+        // Person: the linked player's own private profile setting - never serialized, see forReferee()
+        public bool $playerIsPrivate = false,
+        // Person: forReferee() left the linked player out
+        public bool $playerWithheld = false,
     ) {
+    }
+
+    /**
+     * The entry as a referee may see it (docs/features/competitions-management/live-results.md "Referees"): a linked
+     * player who is private to the referee - PrivateProfileAccess semantics, `$isRevealed` = their allow list -
+     * keeps the organiser's name only, without their #code, profile name or id. Organisers get every entry as it is.
+     *
+     * @param Closure(string): bool $isRevealed
+     */
+    public function forReferee(Closure $isRevealed): self
+    {
+        $hidePlayer = $this->playerId !== null && $this->playerIsPrivate && $isRevealed($this->playerId) === false;
+        $members = array_map(static fn (RoundResultEntryMember $member): RoundResultEntryMember => $member->forReferee($isRevealed), $this->members);
+
+        if ($hidePlayer === false && $members === $this->members) {
+            return $this;
+        }
+
+        return new self(
+            ref: $this->ref,
+            kind: $this->kind,
+            roundId: $this->roundId,
+            name: $this->name,
+            participantId: $this->participantId,
+            country: $this->country,
+            countries: $this->countries,
+            members: $members,
+            playerId: $hidePlayer ? null : $this->playerId,
+            playerCode: $hidePlayer ? null : $this->playerCode,
+            playerName: $hidePlayer ? null : $this->playerName,
+            tableNumber: $this->tableNumber,
+            result: $this->result,
+            rank: $this->rank,
+            qualifiedAt: $this->qualifiedAt,
+            resultEnteredAt: $this->resultEnteredAt,
+            resultEnteredById: $this->resultEnteredById,
+            resultEnteredByName: $this->resultEnteredByName,
+            playerIsPrivate: $this->playerIsPrivate,
+            playerWithheld: $hidePlayer,
+        );
     }
 
     public function isQualified(): bool
@@ -99,6 +144,8 @@ readonly final class RoundResultEntry implements \JsonSerializable
             'playerId' => $this->playerId,
             'playerCode' => $this->playerCode,
             'playerName' => $this->playerName,
+            // Only on what a referee gets - the organisers' JSON stays as it was
+            ...($this->playerWithheld ? ['playerWithheld' => true] : []),
             'tableNumber' => $this->tableNumber,
             'result' => $this->result->toWire(),
             'rank' => $this->rank,

@@ -102,10 +102,13 @@
                                 <div data-repeatable-rows-target="container">
                                     {% for item in content.items|default([{question: '', answer: ''}]) %}
                                         <div class="card bg-light border mb-2 p-3" data-repeatable-row>
+                                            {# Real labels - a placeholder is gone once something is typed #}
                                             <div class="mb-2">
-                                                <input type="text" name="items[{{ loop.index0 }}][question]" class="form-control" placeholder="{{ 'page_sections.form.question'|trans }}" aria-label="{{ 'page_sections.form.question'|trans }}" value="{{ item.question }}">
+                                                <label class="form-label small mb-1" for="faq-question-{{ loop.index0 }}">{{ 'page_sections.form.question'|trans }}</label>
+                                                <input type="text" id="faq-question-{{ loop.index0 }}" name="items[{{ loop.index0 }}][question]" class="form-control" value="{{ item.question }}">
                                             </div>
-                                            <textarea name="items[{{ loop.index0 }}][answer]" class="form-control" rows="3" placeholder="{{ 'page_sections.form.answer'|trans }}" aria-label="{{ 'page_sections.form.answer'|trans }}">{{ item.answer }}</textarea>
+                                            <label class="form-label small mb-1" for="faq-answer-{{ loop.index0 }}">{{ 'page_sections.form.answer'|trans }}</label>
+                                            <textarea id="faq-answer-{{ loop.index0 }}" name="items[{{ loop.index0 }}][answer]" class="form-control" rows="3">{{ item.answer }}</textarea>
                                             <button type="button" class="btn btn-sm btn-outline-danger mt-2 align-self-start" data-action="repeatable-rows#remove">
                                                 <i class="bi bi-trash me-1"></i>{{ 'page_sections.form.remove_row'|trans }}
                                             </button>
@@ -115,9 +118,11 @@
                                 <template data-repeatable-rows-target="template">
                                     <div class="card bg-light border mb-2 p-3" data-repeatable-row>
                                         <div class="mb-2">
-                                            <input type="text" name="items[__INDEX__][question]" class="form-control" placeholder="{{ 'page_sections.form.question'|trans }}" aria-label="{{ 'page_sections.form.question'|trans }}">
+                                            <label class="form-label small mb-1" for="faq-question-__INDEX__">{{ 'page_sections.form.question'|trans }}</label>
+                                            <input type="text" id="faq-question-__INDEX__" name="items[__INDEX__][question]" class="form-control">
                                         </div>
-                                        <textarea name="items[__INDEX__][answer]" class="form-control" rows="3" placeholder="{{ 'page_sections.form.answer'|trans }}" aria-label="{{ 'page_sections.form.answer'|trans }}"></textarea>
+                                        <label class="form-label small mb-1" for="faq-answer-__INDEX__">{{ 'page_sections.form.answer'|trans }}</label>
+                                        <textarea id="faq-answer-__INDEX__" name="items[__INDEX__][answer]" class="form-control" rows="3"></textarea>
                                         <button type="button" class="btn btn-sm btn-outline-danger mt-2 align-self-start" data-action="repeatable-rows#remove">
                                             <i class="bi bi-trash me-1"></i>{{ 'page_sections.form.remove_row'|trans }}
                                         </button>

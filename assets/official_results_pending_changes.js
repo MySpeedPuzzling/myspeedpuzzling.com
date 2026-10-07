@@ -10,10 +10,65 @@
  * overwritten.
  *
  * Statuses: queued (to send) · sending · conflict (somebody else saved another value) · error (refused, `message`).
+ *
+ * The functions before the class are the inline editors' half (openEditor … saveEditor): what the organiser saw when
+ * an editor opened is the `from` of its save.
  */
 
 export function sameValue(a, b) {
     return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
+/**
+ * An inline editor of the desk (a result, a table number) opened on a field: `seen` is the value the organiser saw
+ * when they started changing it - their own unsaved value, else the server's. It is what the save sends as `from`,
+ * never the server's value at save time: a live update arriving while the editor is open is somebody else's change
+ * and must come back as a conflict, not be overwritten (browser verification, BLOCKER 1).
+ */
+export function openEditor(pending, ref, field, serverValue) {
+    return { ref, field, seen: pending.value(ref, field, serverValue) };
+}
+
+/**
+ * What somebody else saved while the editor was open - shown next to it ("Saved meanwhile by … · Keep mine / Take
+ * theirs") - or null. `server` = {value, enteredBy} of the field as the desk has it now.
+ */
+export function savedMeanwhile(pending, editor, server) {
+    const cell = pending.get(editor.ref, editor.field);
+
+    if (cell !== null) {
+        // The organiser's own earlier value is on its way or waits - only a refusal as a conflict is news
+        return cell.status === 'conflict' ? { current: cell.conflict.current, enteredBy: cell.conflict.enteredBy ?? null } : null;
+    }
+
+    if (sameValue(server.value, editor.seen)) {
+        return null;
+    }
+
+    return { current: server.value ?? null, enteredBy: server.enteredBy ?? null };
+}
+
+/**
+ * "Keep mine" next to the editor: the organiser has seen the other value - their save goes over it.
+ */
+export function keepMineInEditor(pending, editor, serverValue) {
+    const cell = pending.get(editor.ref, editor.field);
+
+    if (cell !== null && cell.status === 'conflict') {
+        const theirs = cell.conflict.current ?? null;
+        pending.keepMine(editor.ref, editor.field);
+
+        return { ...editor, seen: theirs };
+    }
+
+    return { ...editor, seen: serverValue };
+}
+
+/**
+ * The editor's value saved: `from` is what the organiser saw (an existing cell keeps its own base).
+ */
+export function saveEditor(pending, editor, to) {
+    pending.set(editor.ref, editor.field, to, editor.seen);
 }
 
 export class PendingChanges {

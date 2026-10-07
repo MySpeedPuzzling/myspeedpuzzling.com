@@ -31,6 +31,11 @@
         .tag-qr svg { display: block; width: 30mm; height: 30mm; }
         .empty { color: #666; }
 
+        /* A phone shows one tag per row - the A4 sheet of two columns (180 mm) would widen the page */
+        @media screen and (max-width: 720px) {
+            .sheet { grid-template-columns: minmax(0, 90mm); }
+        }
+
         @page { size: A4; margin: 10mm 15mm; }
         @media print {
             body { padding: 0; }

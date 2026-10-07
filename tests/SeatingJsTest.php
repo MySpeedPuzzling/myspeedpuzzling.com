@@ -164,6 +164,37 @@ final class SeatingJsTest extends TestCase
         ], $this->runInNode(array_map(static fn (string $text): array => ['op' => 'parse', 'text' => $text], ['  ', ' 12 ', '9999', '0', '10000', '1.5', 'x3'])));
     }
 
+    /**
+     * The list's inline number editor, like the results desk's (browser verification BLOCKER 1): a number another
+     * organiser saved while this one was typing is shown with Keep mine / Take theirs, never written over - and a
+     * write sends what the input showed as `from`.
+     */
+    public function testATypedNumberNeverOverwritesOneSavedMeanwhile(): void
+    {
+        self::assertSame([
+            ['action' => 'write', 'from' => 4],
+            ['action' => 'write', 'from' => null],
+            ['action' => 'nothing'],
+            ['action' => 'meanwhile', 'current' => 9],
+            ['action' => 'meanwhile', 'current' => null],
+            // Somebody else typed the same number meanwhile - nothing to decide
+            ['action' => 'nothing'],
+            4,
+            null,
+            7,
+        ], $this->runInNode([
+            ['op' => 'typed', 'seen' => 4, 'current' => 4, 'typed' => 5],
+            ['op' => 'typed', 'seen' => null, 'current' => null, 'typed' => 5],
+            ['op' => 'typed', 'seen' => 4, 'current' => 4, 'typed' => 4],
+            ['op' => 'typed', 'seen' => 4, 'current' => 9, 'typed' => 5],
+            ['op' => 'typed', 'seen' => 4, 'current' => null, 'typed' => 5],
+            ['op' => 'typed', 'seen' => 4, 'current' => 5, 'typed' => 5],
+            ['op' => 'seen', 'attribute' => '4', 'current' => 9],
+            ['op' => 'seen', 'attribute' => '', 'current' => 9],
+            ['op' => 'seen', 'attribute' => null, 'current' => 7],
+        ]));
+    }
+
     public function testTheFindBoxMatchesTablesNamesMembersAndCodes(): void
     {
         $team = [

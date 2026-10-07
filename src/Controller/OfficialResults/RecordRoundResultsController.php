@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
+use SpeedPuzzling\Web\Services\RefereeEntriesView;
 use SpeedPuzzling\Web\Services\RoundResultChangesParser;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -40,6 +41,7 @@ final class RecordRoundResultsController extends AbstractController
         private readonly OfficialResultsApi $api,
         private readonly OfficialResultsLiveUpdates $liveUpdates,
         private readonly TranslatorInterface $translator,
+        private readonly RefereeEntriesView $refereeEntriesView,
     ) {
     }
 
@@ -84,6 +86,7 @@ final class RecordRoundResultsController extends AbstractController
         }
 
         $dryRun = ($body['dryRun'] ?? false) === true;
+        $organiser = $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         $envelope = $this->messageBus->dispatch(new RecordRoundResults(
             competitionId: $competitionId,
@@ -92,7 +95,7 @@ final class RecordRoundResultsController extends AbstractController
             changes: $changes,
             dryRun: $dryRun,
             // A referee (live-results.md "Referees") enters results only - tables and qualified marks are refused
-            resultsOnly: $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false,
+            resultsOnly: $organiser === false,
         ));
 
         $recorded = $envelope->last(HandledStamp::class)?->getResult();
@@ -112,7 +115,7 @@ final class RecordRoundResultsController extends AbstractController
                 ...$outcome->jsonSerialize(),
                 'message' => $outcome->reason !== null ? $this->translator->trans('official_results.reason.' . $outcome->reason) : null,
             ], $recorded->outcomes),
-            'entries' => $this->getRoundResultEntries->byRefs($round->id->toString(), $refs),
+            'entries' => $this->refereeEntriesView->entries($this->getRoundResultEntries->byRefs($round->id->toString(), $refs), $organiser),
         ]);
     }
 }

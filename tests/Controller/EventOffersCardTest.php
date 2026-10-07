@@ -152,6 +152,28 @@ final class EventOffersCardTest extends WebTestCase
         self::assertSame('Click “I\'m going” first, then choose what you\'ll bring.', $card->filter('.event-offers-card-footer')->text());
     }
 
+    /**
+     * Browser verification of PR #136: an event that manages its registration has "Register", not "I'm going" - the
+     * card says so, and a full event asks for a spot first.
+     */
+    public function testOnAnEventThatManagesRegistrationTheCardSaysRegister(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => CompetitionFixture::COMPETITION_WJPC_2024]);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $card = $this->card($browser->request('GET', self::WJPC_URL));
+
+        self::assertSame('Register first, then choose what you\'ll bring.', $card->filter('.event-offers-card-footer')->text());
+
+        // Full: joining is the waitlist now - a spot first
+        $database->executeStatement('UPDATE competition SET capacity = 1 WHERE id = :id', ['id' => CompetitionFixture::COMPETITION_WJPC_2024]);
+        $card = $this->card($browser->request('GET', self::WJPC_URL));
+
+        self::assertSame('Once you have a spot at this event, choose what you\'ll bring.', $card->filter('.event-offers-card-footer')->text());
+    }
+
     public function testGoingSellerNeverGetsTheEmptyCard(): void
     {
         $browser = self::createClient();

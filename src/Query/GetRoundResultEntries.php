@@ -102,6 +102,7 @@ readonly final class GetRoundResultEntries
                 resultEnteredAt: $entry->resultEnteredAt,
                 resultEnteredById: $entry->resultEnteredById,
                 resultEnteredByName: $entry->resultEnteredByName,
+                playerIsPrivate: $entry->playerIsPrivate,
             );
         }
 
@@ -139,7 +140,8 @@ SELECT
     cp.country AS participant_country,
     p.id AS player_id,
     p.code AS player_code,
-    p.name AS player_name
+    p.name AS player_name,
+    p.is_private AS player_is_private
 FROM competition_participant_round cpr
 INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND {$going}
 LEFT JOIN player p ON p.id = cp.player_id
@@ -151,7 +153,7 @@ SQL,
 
         $entries = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string} $row */
+            /** @var array{id: string, table_number: null|int, result_seconds: null|int, result_pieces_placed: null|int, result_did_not_start: bool, result_entered_at: null|string, result_entered_by_id: null|string, entered_by_name: null|string, entered_by_code: null|string, qualified_at: null|string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool} $row */
             $entries[] = new RoundResultEntry(
                 ref: RoundEntryRef::participantRound($row['id']),
                 kind: RoundResultEntry::KIND_PERSON,
@@ -171,6 +173,7 @@ SQL,
                 resultEnteredAt: self::date($row['result_entered_at']),
                 resultEnteredById: $row['result_entered_by_id'],
                 resultEnteredByName: $row['entered_by_name'] ?? self::code($row['entered_by_code']),
+                playerIsPrivate: $row['player_is_private'] === true,
             );
         }
 
@@ -214,7 +217,8 @@ SELECT
     cp.country AS participant_country,
     p.id AS player_id,
     p.code AS player_code,
-    p.name AS player_name
+    p.name AS player_name,
+    p.is_private AS player_is_private
 FROM competition_participant_round cpr
 INNER JOIN competition_participant cp ON cp.id = cpr.participant_id AND {$going}
 LEFT JOIN player p ON p.id = cp.player_id
@@ -228,7 +232,7 @@ SQL,
         /** @var array<string, list<RoundResultEntryMember>> $members */
         $members = [];
         foreach ($memberRows as $row) {
-            /** @var array{team_id: string, participant_round_id: string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string} $row */
+            /** @var array{team_id: string, participant_round_id: string, participant_id: string, participant_name: string, participant_country: null|string, player_id: null|string, player_code: null|string, player_name: null|string, player_is_private: null|bool} $row */
             $members[$row['team_id']][] = new RoundResultEntryMember(
                 participantId: $row['participant_id'],
                 participantRoundId: $row['participant_round_id'],
@@ -237,6 +241,7 @@ SQL,
                 playerId: $row['player_id'],
                 playerCode: $row['player_code'],
                 playerName: $row['player_name'],
+                playerIsPrivate: $row['player_is_private'] === true,
             );
         }
 

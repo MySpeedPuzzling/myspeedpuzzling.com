@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 
 /**
  * The live entry's "Already on the list?" beyond the round (docs/features/competitions-management/live-results.md):
@@ -13,23 +14,30 @@ use Doctrine\DBAL\Connection;
  * typed in as a second person. Organiser tooling behind COMPETITION_EDIT: names as the organiser recorded them, no
  * blocklist; only people going to the event (CompetitionParticipantGoing) - somebody of the waitlist who turns up gets a
  * spot on the participants page first, an entry of a waitlisted person would be no entry of the round. One statement.
+ *
+ * A referee (live-results.md "Referees") gets no #code of a player private to them (`withPrivateCodes: false`,
+ * PrivateProfileAccess) - organisers get every code, as on their participant list.
  */
 readonly final class GetLiveResultsEventPeople
 {
     public function __construct(
         private Connection $database,
+        private PrivateProfileAccess $privateProfileAccess,
     ) {
     }
 
     /**
      * @return list<array{participantId: string, name: string, country: null|string, playerCode: null|string}>
      */
-    public function notInRound(string $competitionId, string $roundId): array
+    public function notInRound(string $competitionId, string $roundId, bool $withPrivateCodes = true): array
     {
         $going = CompetitionParticipantGoing::sql('cp');
+        $code = $withPrivateCodes
+            ? 'player.code'
+            : "CASE WHEN {$this->privateProfileAccess->sqlIsPrivate('player')} THEN NULL ELSE player.code END";
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
-SELECT cp.id, cp.name, cp.country, player.code AS player_code
+SELECT cp.id, cp.name, cp.country, {$code} AS player_code
 FROM competition_participant cp
 LEFT JOIN player ON player.id = cp.player_id
 WHERE cp.competition_id = :competitionId

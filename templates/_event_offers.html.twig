@@ -17,6 +17,10 @@
     {%- set seller = member and offers.viewerPublishedCount > 0 -%}
     {%- set going = attendance.isGoing -%}
     {%- set picker_url = path('event_offers_picker', {competitionId: competition_id}) -%}
+    {#- An event that manages its registration has no "I'm going": the way in is "Register" while a spot is free, else
+        (full, waitlisted, not open) a spot first - docs/features/competitions-management/registration.md -#}
+    {%- set registration = attendance.registration -%}
+    {%- set registration_way = registration is null ? null : (registration.isOpen and not registration.isFull and not registration.isWaitlisted ? 'register' : 'needs_spot') -%}
 
     {% if offers.totalCount > 0 %}
         {# %puzzles% counts what is packed - or, when nothing is, what buyers can ask for; %more% what they can ask for on top #}
@@ -37,7 +41,7 @@
                     <a href="{{ picker_url }}" class="event-offers-card-link">{{ 'marketplace_events.card.choose_what_you_pack'|trans }}</a>
                 {%- endif -%}
             {%- elseif seller -%}
-                {{ 'marketplace_events.card.seller_not_going'|trans }}
+                {{ (registration_way is null ? 'marketplace_events.card.seller_not_going' : 'marketplace_events.card.seller_not_going_' ~ registration_way)|trans }}
             {%- elseif just_joined and not member -%}
                 {%- set link -%}
                     <a href="{{ path('membership') }}" class="event-offers-card-link">{{ 'marketplace_events.card.non_member_link'|trans }}</a>
@@ -114,7 +118,7 @@
                 </div>
             </div>
             {% if not going %}
-                <p class="event-offers-card-footer">{{ 'marketplace_events.card.seller_empty_not_going'|trans }}</p>
+                <p class="event-offers-card-footer">{{ (registration_way is null ? 'marketplace_events.card.seller_empty_not_going' : 'marketplace_events.card.seller_empty_' ~ registration_way)|trans }}</p>
             {% endif %}
         </section>
     {% endif %}

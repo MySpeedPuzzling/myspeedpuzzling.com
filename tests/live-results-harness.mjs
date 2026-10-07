@@ -12,6 +12,7 @@ import {
     entryForEnter,
     entryOfParticipant,
     foldText,
+    keepWithheldPlayers,
     preferredRound,
     recentEntries,
     sameValue,
@@ -770,6 +771,31 @@ const scenarios = {
         assert.equal(entryOfParticipant([anna, team], 'aaa').ref, 'team:9');
         assert.equal(entryOfParticipant([anna, team], 'CCC').ref, ANNA);
         assert.equal(entryOfParticipant([anna, team], 'ddd'), null);
+    },
+
+    async 'a referee\'s live update never takes away what the referee\'s own state showed - nor adds anything'() {
+        // Gina is private: on this referee's state only when she lets them see her (allow list)
+        const revealed = { ...entry(ANNA, 'Gina Quick', 3), participantId: 'g', playerId: 'p2', playerCode: 'player2', playerName: 'Jane Smith' };
+        const withheld = { ...entry(ANNA, 'Gina Quick', 3), participantId: 'g', playerId: null, playerCode: null, playerName: null, playerWithheld: true, result: { seconds: 60 } };
+
+        assert.deepEqual(
+            [keepWithheldPlayers(revealed, withheld).playerCode, keepWithheldPlayers(revealed, withheld).playerId, keepWithheldPlayers(revealed, withheld).result],
+            ['player2', 'p2', { seconds: 60 }],
+        );
+        // The state did not show her - the update does not either
+        const hidden = { ...withheld, result: null };
+        assert.equal(keepWithheldPlayers(hidden, withheld).playerCode, null);
+        assert.equal(keepWithheldPlayers(undefined, withheld).playerCode, null);
+        // Nothing withheld: the update as it is
+        const publicPlayer = { ...revealed, playerCode: 'player9' };
+        assert.equal(keepWithheldPlayers(revealed, publicPlayer).playerCode, 'player9');
+
+        const team = (members) => ({ ...entry('team:1', 'Edge Hunters', 2), kind: 'team', participantId: null, members });
+        const merged = keepWithheldPlayers(
+            team([{ participantId: 'g', name: 'Gina Quick', playerId: 'p2', playerCode: 'player2', playerName: 'Jane Smith' }, { participantId: 'h', name: 'Hugo', playerId: null, playerCode: null, playerName: null }]),
+            team([{ participantId: 'g', name: 'Gina Quick', playerId: null, playerCode: null, playerName: null, playerWithheld: true }, { participantId: 'h', name: 'Hugo', playerId: null, playerCode: null, playerName: null, playerWithheld: true }]),
+        );
+        assert.deepEqual(merged.members.map((member) => member.playerCode), ['player2', null]);
     },
 
     async 'the event link keeps a round this device picked while it still runs'() {

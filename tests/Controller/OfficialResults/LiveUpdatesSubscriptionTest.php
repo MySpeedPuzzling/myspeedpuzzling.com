@@ -39,6 +39,9 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
 
     private const array ROUND_TOPICS = ['/round-results/' . self::ROUND, '/round-stopwatch/' . self::ROUND];
 
+    // A referee's updates withhold private players (live-results.md "Referees") - a topic of their own
+    private const array REFEREE_TOPICS = ['/round-results/' . self::ROUND . '/referees', '/round-stopwatch/' . self::ROUND];
+
     private KernelBrowser $browser;
 
     protected function setUp(): void
@@ -173,13 +176,13 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
 
         $this->browser->request('GET', self::STATE);
         self::assertResponseIsSuccessful();
-        self::assertSubscription(self::ROUND_TOPICS, $this->json()['mercure'] ?? null);
+        self::assertSubscription(self::REFEREE_TOPICS, $this->json()['mercure'] ?? null);
 
         $crawler = $this->browser->request('GET', self::LIVE);
         self::assertResponseIsSuccessful();
         $state = json_decode($crawler->filter('script[data-live-results-target="initialState"]')->text(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($state);
-        self::assertSubscription(self::ROUND_TOPICS, $state['mercure'] ?? null);
+        self::assertSubscription(self::REFEREE_TOPICS, $state['mercure'] ?? null);
 
         // The organiser tools - and their tokens - stay closed
         foreach ([self::DESK, self::SEATING, self::OVERVIEW] as $url) {

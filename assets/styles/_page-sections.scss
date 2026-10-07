@@ -14,6 +14,43 @@
         color: $gray-600;
     }
 
+    // The site resets every list (base.html.twig's critical CSS: `ul, ol { list-style: none }`) - an organiser's
+    // numbered rules and bullet points get their markers back (browser verification of PR #136)
+    ul,
+    ol {
+        margin-bottom: 1rem;
+        padding-left: 1.5rem;
+    }
+
+    ul {
+        list-style: disc;
+    }
+
+    ol {
+        list-style: decimal;
+    }
+
+    ul ul,
+    ol ul {
+        list-style: circle;
+    }
+
+    ol ol {
+        list-style: lower-alpha;
+    }
+
+    ul ul,
+    ul ol,
+    ol ul,
+    ol ol {
+        margin-top: .25rem;
+        margin-bottom: 0;
+    }
+
+    li + li {
+        margin-top: .25rem;
+    }
+
     > :last-child {
         margin-bottom: 0;
     }

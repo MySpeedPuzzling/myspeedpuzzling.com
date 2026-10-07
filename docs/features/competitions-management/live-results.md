@@ -8,14 +8,16 @@ Decided 2026-10-07 (RESULTS-SPEC §4, §5): "focus on quick action, verify and c
 
 | Route | Path | Who | What |
 |---|---|---|---|
-| `live_results` | `GET /{_locale}/live-results/{roundId}` | organisers and referees (`CompetitionResultsEntryVoter`) | the live entry page; `?entrant=<participantId>` opens that person's entry (theirs or their pair's/team's); `?notice=tag_unknown` says the scanned name tag is nobody of this event (any more) |
-| `live_results_event` | `GET /{_locale}/live-results/event/{competitionId}` | organisers and referees | the link to hand the referees (the referees page shows it with a QR): 302 to the current round (`?auto=1`), or - when the event has no rounds - to the round list (organisers) / the event page (referees) |
-| `live_results_scan` | `GET /{_locale}/live/{competitionId}/p/{participantId}` | anyone | the URL in a name tag's QR: organisers and referees → the person's current round with them open; a person removed from the event, unknown or of another event → the current round with `?notice=tag_unknown`; an event without rounds → the round list with a warning; everybody else → the event page (`CompetitionDetailUrl`), an unknown event → the events list |
-| `competition_name_tags` | `GET /{_locale}/name-tags/{competitionId}` | organisers | standalone A4 print page; `?round=<roundId>`, `?sort=name|table`, `?waitlist=1` (offered only while somebody is on the waitlist) |
+| `live_results` | `GET /en/live-results/{roundId}` (localized, cs `/zadavani-vysledku/{roundId}`) | organisers and referees (`CompetitionResultsEntryVoter`) | the live entry page; `?entrant=<participantId>` opens that person's entry (theirs or their pair's/team's); `?notice=tag_unknown` says the scanned name tag is nobody of this event (any more) |
+| `live_results_event` | `GET /en/live-results/event/{competitionId}` (localized, cs `/zadavani-vysledku-udalosti/{competitionId}`) | organisers and referees | the link to hand the referees (the referees page shows it with a QR): 302 to the current round (`?auto=1`), or - when the event has no rounds - to the round list (organisers) / the event page (referees) |
+| `live_results_scan` | `GET /{_locale}/live/{competitionId}/p/{participantId}` - **never change this path**: printed name tags carry it | anyone | the URL in a name tag's QR: organisers and referees → the person's current round with them open; a person removed from the event, unknown or of another event → the current round with `?notice=tag_unknown`; an event without rounds → the round list with a warning; everybody else → the event page (`CompetitionDetailUrl`), an unknown event → the events list |
+| `competition_name_tags` | `GET /en/name-tags/{competitionId}` (localized, cs `/jmenovky-ucastniku/{competitionId}`) | organisers | standalone A4 print page; `?round=<roundId>`, `?sort=name|table`, `?waitlist=1` (offered only while somebody is on the waitlist) |
 | `competition_referees` | `GET/POST /en/manage-event-referees/{competitionId}` (localized) | organisers (`CompetitionEditVoter`) | the referees page: list, add by player search, remove (`competition_referee_remove`, POST + CSRF), the link for referees with copy button and QR (`competition_referees_qr_code`, SVG, `private, max-age=86400`) |
 
 All of them answer `Cache-Control: private, no-store` and `X-Robots-Tag: noindex, nofollow`. The participants page
-has a "Name tags" button (in-person events only); the round list links `live_results` (results desk stream).
+has a "Name tags" button (in-person events only) in one row with its other tools (registration, check-in); the round
+list links `live_results` (results desk stream). The name tags sheet shows one tag per row on a phone (the A4 sheet
+of two 90 mm columns would widen the page).
 
 **Current round** (`LiveResultsCurrentRound`): the round whose stopwatch runs (the latest started if several run -
 parallel halls), else the one started last within 12 hours (a stopwatch start, or the schedule once it passed), else
@@ -87,7 +89,17 @@ player; an edition is a competition - series owners and maintainers stay full or
   results desk, export, seating, publish/unpublish, table numbers, advancing, the overview, rounds, stopwatch control,
   participants, registration, check-in, name tags, the event edit page, the referees page - stays `COMPETITION_EDIT`.
 - **The page for a referee** hides what they cannot use: no back link to the round list, no results desk / seating
-  links, no "give every entry a table number" hint, no table field in quick add.
+  links, no "give every entry a table number" hint, no table field in quick add (and its note promises the first
+  result only, not a table number - like an organiser's on a round without tables).
+- **Private players** (browser verification of PR #136): a referee never gets the #code, profile name or id of a
+  linked player who is private to them - PrivateProfileAccess decides, so one who lets the referee see them (allow
+  list) stays visible. `RefereeEntriesView` masks the round's entries (`RoundResultEntry::forReferee()`, flagged
+  `playerWithheld`) in the page's initial state, `official_results_round_state` and the answers to the referee's own
+  saves; the quick add's event people (`GetLiveResultsEventPeople`, `withPrivateCodes: false`) lose the code the same
+  way. The referee's live updates come on a topic of their own, `/round-results/{roundId}/referees`
+  (`OfficialResultsSubscription::forRound($roundId, organiser: false)`): an update has no viewer, so it withholds
+  every private player, and the live entry keeps what its own state showed of them (`keepWithheldPlayers()` in
+  `official_results_live.js`). Organisers see every code as recorded. `RefereePrivatePlayersTest`.
 - **Referees page** (`competition_referees`, linked from the event/edition edit page and - through
   `official_results/_referees_link.html.twig` - from the results overview): the referees with who added them and
   when, "Add referees" (the maintainers' player picker, `player_search_autocomplete`, up to 10 at once;
@@ -149,9 +161,9 @@ player; an edition is a competition - series owners and maintainers stay full or
 
 ## Live updates
 
-The page follows the round's private `/round-results/{roundId}` and the public `/round-stopwatch/{roundId}` on one
-stream of its own, authorised by the subscriber token its state carries (`mercure`, minted after the voter - a referee
-gets their round's too) and kept by `OfficialResultsEvents` (`assets/official_results_events.js`, shared with the desk,
+The page follows the round's private `/round-results/{roundId}` (a referee: `/round-results/{roundId}/referees`, see
+"Private players" above) and the public `/round-stopwatch/{roundId}` on one stream of its own, authorised by the
+subscriber token its state carries (`mercure`, minted after the voter - a referee gets their round's too) and kept by `OfficialResultsEvents` (`assets/official_results_events.js`, shared with the desk,
 seating and the overview - official-results.md "Subscribing: a token per page, never the cookie"): reopened with
 backoff after a drop, an error or the hub's write timeout (then the state is fetched again - catch-up), renewed with
 the state before the token ends, stopped while the state answers signed out / no rights (until Retry). The Mercure

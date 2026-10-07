@@ -4,7 +4,7 @@
 
 import { readFileSync } from 'node:fs';
 import { bestOfEachCountry, qualificationDiff, seatAdvanced, topN } from '../assets/official_results_qualification.js';
-import { PendingChanges } from '../assets/official_results_pending_changes.js';
+import { PendingChanges, keepMineInEditor, openEditor, saveEditor, savedMeanwhile } from '../assets/official_results_pending_changes.js';
 
 const cases = JSON.parse(readFileSync(0, 'utf8'));
 
@@ -13,6 +13,7 @@ function runPending(steps) {
     let counter = 0;
     const newId = () => `c${++counter}`;
     let lastTaken = [];
+    let editor = null;
     const output = [];
 
     for (const step of steps) {
@@ -44,6 +45,21 @@ function runPending(steps) {
                 break;
             case 'retry':
                 pending.retry(step.ref, step.field);
+                break;
+            // An inline editor of the desk (results_desk_controller.js): opened, a live update, saved
+            case 'openEditor':
+                editor = openEditor(pending, step.ref, step.field, step.server);
+                output.push({ seen: editor.seen });
+                break;
+            case 'meanwhile':
+                output.push({ meanwhile: savedMeanwhile(pending, editor, { value: step.server, enteredBy: step.enteredBy ?? null }) });
+                break;
+            case 'keepMineInEditor':
+                editor = keepMineInEditor(pending, editor, step.server);
+                break;
+            case 'saveEditor':
+                saveEditor(pending, editor, step.to);
+                editor = null;
                 break;
             case 'snapshot':
                 output.push({

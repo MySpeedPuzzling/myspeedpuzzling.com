@@ -10,6 +10,7 @@ import {
     entryForEnter,
     entryOfParticipant,
     entryValue,
+    keepWithheldPlayers,
     preferredRound,
     recentEntries,
     sameValue,
@@ -331,7 +332,7 @@ export default class extends Controller {
 
             const before = this.serverEntries.get(entry.ref);
             countsChanged = countsChanged || before === undefined || before.tableNumber !== entry.tableNumber;
-            this.serverEntries.set(entry.ref, entry);
+            this.serverEntries.set(entry.ref, keepWithheldPlayers(before, entry));
             this.localEntries.delete(entry.ref);
         }
 

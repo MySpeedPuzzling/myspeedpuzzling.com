@@ -405,7 +405,8 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 lr-big-btn">{{ 'live_results.add.submit'|trans }}</button>
-                <p class="small text-muted mt-2 mb-0">{{ 'live_results.add.note'|trans }}</p>
+                {# Table numbers only where this page can set them (organisers, a round with tables) #}
+                <p class="small text-muted mt-2 mb-0" data-live-results-add-note>{{ (uses_tables and organiser ? 'live_results.add.note' : 'live_results.add.note_result_only')|trans }}</p>
             </form>
         </section>
 

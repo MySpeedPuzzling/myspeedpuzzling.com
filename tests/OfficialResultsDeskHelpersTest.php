@@ -203,6 +203,78 @@ final class OfficialResultsDeskHelpersTest extends TestCase
         ], self::path($swap, 1, 'taken'));
     }
 
+    /**
+     * Browser verification BLOCKER 1: organiser A opens the result editor, organiser B saves that cell, the live update
+     * reaches A's desk - A's save must still send what A saw as `from` (the server then answers a conflict), never B's
+     * new value, which would overwrite B silently. The desk shows B's value next to the open editor instead.
+     */
+    public function testAnInlineEditorSendsWhatTheOrganiserSawWhenItOpened(): void
+    {
+        [$liveUpdate, $quiet, $keptMine, $ownValueSaved, $ownValueRefused] = $this->runInNode([
+            ['fn' => 'pending', 'steps' => [
+                ['op' => 'openEditor', 'ref' => 'r1', 'field' => 'result', 'server' => ['seconds' => 4740]],
+                // B's 1:20:00 arrives over Mercure while the editor is open
+                ['op' => 'meanwhile', 'server' => ['seconds' => 4800], 'enteredBy' => ['playerId' => 'b', 'name' => 'Admin User']],
+                ['op' => 'saveEditor', 'to' => ['seconds' => 4860]],
+                ['op' => 'take'],
+            ]],
+            ['fn' => 'pending', 'steps' => [
+                ['op' => 'openEditor', 'ref' => 'r1', 'field' => 'table_number', 'server' => 4],
+                ['op' => 'meanwhile', 'server' => 4],
+                ['op' => 'saveEditor', 'to' => 7],
+                ['op' => 'take'],
+            ]],
+            ['fn' => 'pending', 'steps' => [
+                ['op' => 'openEditor', 'ref' => 'r1', 'field' => 'result', 'server' => ['seconds' => 4740]],
+                ['op' => 'meanwhile', 'server' => ['seconds' => 4800]],
+                // "Keep mine" next to the editor: A has seen B's value
+                ['op' => 'keepMineInEditor', 'server' => ['seconds' => 4800]],
+                ['op' => 'saveEditor', 'to' => ['seconds' => 4860]],
+                ['op' => 'take'],
+            ]],
+            ['fn' => 'pending', 'steps' => [
+                // A's own earlier value is on its way when the editor opens - and is saved meanwhile: no news
+                ['op' => 'set', 'ref' => 'r1', 'field' => 'table_number', 'to' => 3, 'server' => null],
+                ['op' => 'take'],
+                ['op' => 'openEditor', 'ref' => 'r1', 'field' => 'table_number', 'server' => null],
+                ['op' => 'settle', 'index' => 0, 'status' => 'applied'],
+                ['op' => 'meanwhile', 'server' => 3],
+                ['op' => 'saveEditor', 'to' => 5],
+                ['op' => 'take'],
+            ]],
+            ['fn' => 'pending', 'steps' => [
+                // ... or comes back as a conflict while the editor is open: shown next to it, kept only on request
+                ['op' => 'set', 'ref' => 'r1', 'field' => 'result', 'to' => ['seconds' => 100], 'server' => null],
+                ['op' => 'take'],
+                ['op' => 'openEditor', 'ref' => 'r1', 'field' => 'result', 'server' => null],
+                ['op' => 'settle', 'index' => 0, 'status' => 'conflict', 'current' => ['seconds' => 90], 'enteredBy' => ['playerId' => 'e', 'name' => 'Eva']],
+                ['op' => 'meanwhile', 'server' => ['seconds' => 90]],
+                ['op' => 'keepMineInEditor', 'server' => ['seconds' => 90]],
+                ['op' => 'saveEditor', 'to' => ['seconds' => 110]],
+                ['op' => 'take'],
+            ]],
+        ]);
+
+        self::assertSame(['seconds' => 4740], self::path($liveUpdate, 0, 'seen'));
+        self::assertSame(['current' => ['seconds' => 4800], 'enteredBy' => ['playerId' => 'b', 'name' => 'Admin User']], self::path($liveUpdate, 1, 'meanwhile'));
+        // Saved anyway: `from` is what A saw - the server answers a conflict instead of overwriting B
+        self::assertSame(['seconds' => 4740], self::path($liveUpdate, 2, 'taken', 0, 'from'));
+        self::assertSame(['seconds' => 4860], self::path($liveUpdate, 2, 'taken', 0, 'to'));
+
+        self::assertNull(self::path($quiet, 1, 'meanwhile'));
+        self::assertSame(4, self::path($quiet, 2, 'taken', 0, 'from'));
+
+        self::assertSame(['seconds' => 4800], self::path($keptMine, 2, 'taken', 0, 'from'));
+        self::assertSame(['seconds' => 4860], self::path($keptMine, 2, 'taken', 0, 'to'));
+
+        self::assertSame(3, self::path($ownValueSaved, 1, 'seen'));
+        self::assertNull(self::path($ownValueSaved, 2, 'meanwhile'));
+        self::assertSame(['from' => 3, 'to' => 5], array_intersect_key(self::rows(self::path($ownValueSaved, 3, 'taken'))[0], ['from' => 0, 'to' => 0]));
+
+        self::assertSame(['current' => ['seconds' => 90], 'enteredBy' => ['playerId' => 'e', 'name' => 'Eva']], self::path($ownValueRefused, 2, 'meanwhile'));
+        self::assertSame(['from' => ['seconds' => 90], 'to' => ['seconds' => 110]], array_intersect_key(self::rows(self::path($ownValueRefused, 3, 'taken'))[0], ['from' => 0, 'to' => 0]));
+    }
+
     public function testAConflictKeepsBothValuesUntilTheOrganiserDecides(): void
     {
         [$keepMine, $takeTheirs, $typedOver] = $this->runInNode([

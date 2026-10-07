@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\OfficialEntryTime;
 use SpeedPuzzling\Web\Results\PublishedRoundEntrant;
 use SpeedPuzzling\Web\Results\PublishedRoundEntry;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantNameKey;
 use SpeedPuzzling\Web\Value\OfficialEntryProfileState;
 use SpeedPuzzling\Web\Value\Puzzler;
@@ -35,6 +36,13 @@ use SpeedPuzzling\Web\Value\TeamComposition;
  * A pair/team entry carries the round's category: the form opens in Pair/Team mode with every person the organiser
  * recorded besides the viewer (linked ones by their code, the others as guests) - never as a solo time, also when the
  * organiser recorded a name only or fewer people than the round needs (the form then asks for them).
+ *
+ * A linked member hidden from the viewer is never filled in by their code (browser verification of PR #136, privacy):
+ * a private player the viewer may not see (the round page shows them by the organiser's name only -
+ * PrivateProfileAccess) or a player the viewer blocks (HiddenPlayers - blocks are one-directional, so a player who
+ * blocks the viewer is filled in as usual: the blocked side must never be able to tell, docs/features/player-blocklist.md)
+ * comes as a guest under the organiser's participant name, which the official results show anyway. A guest becomes that player only with their consent
+ * (docs/features/pairs-and-teams/README.md, guest links).
  */
 readonly final class OfficialEntryTimePrefill
 {
@@ -43,6 +51,7 @@ readonly final class OfficialEntryTimePrefill
         private GetEditionRounds $getEditionRounds,
         private GetPublishedRoundResults $getPublishedRoundResults,
         private Connection $database,
+        private HiddenPlayers $hiddenPlayers,
     ) {
     }
 
@@ -141,12 +150,28 @@ readonly final class OfficialEntryTimePrefill
                 continue;
             }
 
-            $groupPlayers[] = $member->linkedPlayerId !== null && $member->linkedPlayerCode !== null
+            if ($member->linkedPlayerId === null || $member->linkedPlayerCode === null) {
+                $groupPlayers[] = $member->playerName;
+
+                continue;
+            }
+
+            $groupPlayers[] = $this->mayFillInByCode($member)
                 ? '#' . $member->linkedPlayerCode
                 : $member->playerName;
         }
 
         return [$groupPlayers, []];
+    }
+
+    /**
+     * The round page shows the member's profile to the viewer (`playerId` - public, or a private player who lets the
+     * viewer see them) and the viewer does not block them - exactly what the round page shows them.
+     */
+    private function mayFillInByCode(PublishedRoundEntrant $member): bool
+    {
+        return $member->playerId !== null
+            && $this->hiddenPlayers->isHidden($member->linkedPlayerId) === false;
     }
 
     /**

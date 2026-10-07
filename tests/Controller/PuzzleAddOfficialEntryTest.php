@@ -199,12 +199,71 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         self::assertFalse($this->pickerOffersSolo($crawler));
         $this->assertSelectorNotExists('[data-official-entry-add-people]');
 
-        // Hugo's "Edge Hunters" with Gina - a linked (private) player, by her code
+        // Hugo's "Edge Hunters" with Gina - a linked player, but private and blocked by Hugo: the organiser's name only
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . OfficialResultsFixture::TEAM_EDGES));
 
-        self::assertSame(['#PLAYER2'], $this->groupPlayers($crawler));
+        self::assertSame(['Gina Quick'], $this->groupPlayers($crawler));
         self::assertSame(['1', '40', '0'], [$this->value($crawler, 'timeHours'), $this->value($crawler, 'timeMinutes'), $this->value($crawler, 'timeSeconds')]);
+    }
+
+    /**
+     * Browser verification of PR #136 (privacy): a linked member is filled in by their code only when the round page
+     * shows them to the viewer - never a private player the viewer may not see (a block either way outranks her allow
+     * list - PrivateProfileAccess), never a player the viewer blocks. A player who blocks the viewer is filled in as
+     * usual - the blocked side must never be able to tell. Such a member comes as a guest under the organiser's name,
+     * which the official results show anyway.
+     * Hugo (PLAYER_REGULAR) and Gina (PLAYER_PRIVATE) are "Edge Hunters"; the fixtures have Hugo block Gina.
+     *
+     * @param array{gina_public: bool, hugo_blocks_gina: bool, gina_blocks_hugo: bool, hugo_on_ginas_allow_list: bool} $situation
+     */
+    #[DataProvider('provideLinkedPartnerVisibility')]
+    public function testALinkedPartnerHiddenFromTheViewerIsFilledInAsAGuest(array $situation, string $expected): void
+    {
+        $browser = self::createClient();
+        $this->publish(OfficialResultsFixture::ROUND_PAIRS);
+
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement('DELETE FROM user_block WHERE blocker_id IN (:hugo, :gina) AND blocked_id IN (:hugo, :gina)', ['hugo' => PlayerFixture::PLAYER_REGULAR, 'gina' => PlayerFixture::PLAYER_PRIVATE]);
+        $database->executeStatement('UPDATE player SET is_private = :private WHERE id = :gina', ['private' => $situation['gina_public'] ? 'false' : 'true', 'gina' => PlayerFixture::PLAYER_PRIVATE]);
+
+        foreach ([[$situation['hugo_blocks_gina'], PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE], [$situation['gina_blocks_hugo'], PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_REGULAR]] as [$blocks, $blocker, $blocked]) {
+            if ($blocks) {
+                $database->executeStatement(
+                    "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+                    ['id' => Uuid::uuid7()->toString(), 'blocker' => $blocker, 'blocked' => $blocked],
+                );
+            }
+        }
+
+        if ($situation['hugo_on_ginas_allow_list']) {
+            $database->executeStatement(
+                'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :gina, :hugo, NOW())',
+                ['id' => Uuid::uuid7()->toString(), 'gina' => PlayerFixture::PLAYER_PRIVATE, 'hugo' => PlayerFixture::PLAYER_REGULAR],
+            );
+        }
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', $this->url(PuzzleFixture::PUZZLE_2000, 'team:' . OfficialResultsFixture::TEAM_EDGES));
+
+        self::assertSame([$expected], $this->groupPlayers($crawler));
+        self::assertStringNotContainsString(PlayerFixture::PLAYER_PRIVATE, $expected === 'Gina Quick' ? (string) $crawler->filter('form[name="puzzle_add_form"]')->html() : '');
+    }
+
+    /**
+     * @return iterable<string, array{array{gina_public: bool, hugo_blocks_gina: bool, gina_blocks_hugo: bool, hugo_on_ginas_allow_list: bool}, string}>
+     */
+    public static function provideLinkedPartnerVisibility(): iterable
+    {
+        $nothing = ['gina_public' => false, 'hugo_blocks_gina' => false, 'gina_blocks_hugo' => false, 'hugo_on_ginas_allow_list' => false];
+
+        yield 'private, the viewer not on her allow list' => [$nothing, 'Gina Quick'];
+        yield 'private, the viewer on her allow list' => [[...$nothing, 'hugo_on_ginas_allow_list' => true], '#PLAYER2'];
+        yield 'private, on her allow list but she blocks the viewer' => [[...$nothing, 'hugo_on_ginas_allow_list' => true, 'gina_blocks_hugo' => true], 'Gina Quick'];
+        yield 'public' => [[...$nothing, 'gina_public' => true], '#PLAYER2'];
+        yield 'public, the viewer blocks her' => [[...$nothing, 'gina_public' => true, 'hugo_blocks_gina' => true], 'Gina Quick'];
+        // Blocks are one-directional: the blocked viewer must never be able to tell (docs/features/player-blocklist.md)
+        yield 'public, she blocks the viewer' => [[...$nothing, 'gina_public' => true, 'gina_blocks_hugo' => true], '#PLAYER2'];
     }
 
     public function testThePairsNameIsNotOfferedWhenTheseExactPeopleAreANamedPairAlready(): void

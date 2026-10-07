@@ -290,6 +290,40 @@ export function entryOfParticipant(entries, participantId) {
 }
 
 /**
+ * A referee's live update withholds every private linked player (`playerWithheld` - the update has no viewer,
+ * OfficialResultsLiveUpdates::refereesTopic()): the entry keeps what this device's own state showed of that person -
+ * a private player who lets this referee see them stays visible. Nothing is kept that the state did not show.
+ */
+export function keepWithheldPlayers(before, after) {
+    if (!before || !after) {
+        return after;
+    }
+
+    let merged = after;
+
+    if (after.playerWithheld === true && before.playerId && (before.participantId ?? null) === (after.participantId ?? null)) {
+        merged = { ...merged, playerId: before.playerId, playerCode: before.playerCode ?? null, playerName: before.playerName ?? null };
+    }
+
+    if (Array.isArray(after.members) && Array.isArray(before.members) && after.members.some((member) => member.playerWithheld === true)) {
+        const known = new Map(before.members.map((member) => [member.participantId, member]));
+
+        merged = {
+            ...merged,
+            members: after.members.map((member) => {
+                const previous = known.get(member.participantId);
+
+                return member.playerWithheld === true && previous?.playerId
+                    ? { ...member, playerId: previous.playerId, playerCode: previous.playerCode ?? null, playerName: previous.playerName ?? null }
+                    : member;
+            }),
+        };
+    }
+
+    return merged;
+}
+
+/**
  * The round a device lands on through the event link (`auto`): the server's current round, unless the device picked
  * another round by hand in the last 12 hours that is still running or not started (parallel halls).
  */

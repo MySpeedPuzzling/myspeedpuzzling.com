@@ -202,6 +202,71 @@ readonly final class ColumnMapping
     }
 
     /**
+     * The sheet's rows as the planner reads them. Rows whose mapped cells are all empty are left out
+     * (a row with only an address and no name is not a participant); a row with data but no name stays,
+     * with name '', so the planner can report it.
+     */
+    public function toRows(ParticipantSheet $sheet): ParticipantImportRows
+    {
+        $cell = self::cell(...);
+
+        $nameColumn = $this->column(ParticipantImportField::Name);
+        $firstNameColumn = $this->column(ParticipantImportField::FirstName);
+        $lastNameColumn = $this->column(ParticipantImportField::LastName);
+
+        $rows = [];
+        foreach ($sheet->rows as $rowNumber => $row) {
+            if ($nameColumn !== null) {
+                $name = (string) $cell($row, $nameColumn);
+            } else {
+                $name = trim(((string) $cell($row, $firstNameColumn)) . ' ' . ((string) $cell($row, $lastNameColumn)));
+            }
+            $name = trim((string) preg_replace('/\s+/u', ' ', $name));
+
+            $teamsByRound = [];
+            foreach ($this->teamRounds as $column => $roundId) {
+                $teamsByRound[$roundId] = (string) $cell($row, $column);
+            }
+
+            $data = new ParticipantImportRowData(
+                rowNumber: $rowNumber,
+                name: $name,
+                country: $cell($row, $this->column(ParticipantImportField::Country)),
+                externalId: $cell($row, $this->column(ParticipantImportField::ExternalId)),
+                playerId: $cell($row, $this->column(ParticipantImportField::PlayerId)),
+                participantId: $cell($row, $this->column(ParticipantImportField::ParticipantId)),
+                status: $cell($row, $this->column(ParticipantImportField::Status)),
+                roundNames: $cell($row, $this->column(ParticipantImportField::Rounds)),
+                roundName: $cell($row, $this->column(ParticipantImportField::Round)),
+                team: $cell($row, $this->column(ParticipantImportField::Team)),
+                teamsByRound: $teamsByRound,
+            );
+
+            $mappedValues = array_filter(
+                [$data->name, $data->country, $data->externalId, $data->playerId, $data->participantId, $data->status, $data->roundNames, $data->roundName, $data->team, ...array_values($teamsByRound)],
+                static fn (null|string $value): bool => $value !== null && $value !== '',
+            );
+
+            if ($mappedValues !== []) {
+                $rows[] = $data;
+            }
+        }
+
+        $unmappedHeaders = [];
+        foreach ($sheet->headers as $index => $header) {
+            if (!isset($this->fields[$index]) && $header !== '') {
+                $unmappedHeaders[] = $header;
+            }
+        }
+
+        return new ParticipantImportRows(
+            rows: $rows,
+            unmappedHeaders: $unmappedHeaders,
+            roundsMapped: $this->column(ParticipantImportField::Rounds) !== null || $this->column(ParticipantImportField::Round) !== null,
+        );
+    }
+
+    /**
      * Problems the organiser fixes in the mapping before any preview - translatable, `competition.participants.import.*`.
      *
      * @return list<TranslatableMessage>
@@ -277,5 +342,13 @@ readonly final class ColumnMapping
         }
 
         return null;
+    }
+
+    /**
+     * @param array<int, string> $row
+     */
+    private static function cell(array $row, null|int $column): null|string
+    {
+        return $column === null ? null : trim($row[$column] ?? '');
     }
 }

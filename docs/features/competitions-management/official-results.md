@@ -259,7 +259,13 @@ to the login page (401 `sign_in_required`), 403 `forbidden` without `COMPETITION
 `changes` ask `COMPETITION_RESULTS_ENTRY`, which the event's referees have too - their `table_number` / `qualified`
 changes are refused with reason `results_only`, live-results.md "Referees"), writes need
 `Content-Type: application/json` (415) and the stateless CSRF token `csrf_token('official_results')` in the
-`X-CSRF-Token` header (403 `invalid_csrf_token`) - `OfficialResultsApi`.
+`X-CSRF-Token` header (403 `invalid_csrf_token`) - `OfficialResultsApi`. A round or an event that is unknown or was
+deleted is a JSON 404 `{"error": "round_not_found" | "competition_not_found", "message": "…"}` on every route
+(`OfficialResultsApiNotFoundSubscriber`, routes `official_results_*`), never Symfony's HTML 404: the client
+(`official_results_api.js`) reads a 4xx without our JSON as "busy, retry later", and `isGone()` tells the pages the
+round/event is gone - the results desk, the seating page, the live entry and the results overview then say so
+("This round does not exist any more"), close their stream and stop their minute refresh and retries; the live entry's
+unsent changes of that round are refused one by one (`round_not_found`).
 
 | Method + path | Message | Answer |
 |---|---|---|

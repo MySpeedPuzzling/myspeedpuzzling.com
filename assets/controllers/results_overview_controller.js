@@ -1,6 +1,6 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
-import { officialResultsRequest } from '../official_results_api.js';
+import { officialResultsRequest, isGone } from '../official_results_api.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 
 const REFRESH_EVERY_MS = 60000;
@@ -25,6 +25,7 @@ export default class extends Controller {
     connect() {
         this.hiddenSince = null;
         this.refreshing = null;
+        this.gone = false;
         this.onVisibility = this.onVisibility.bind(this);
         document.addEventListener('visibilitychange', this.onVisibility);
 
@@ -68,6 +69,11 @@ export default class extends Controller {
      * Every round's progress again - one request at a time. Resolves to the answer's kind.
      */
     refresh() {
+        // The event is gone - nothing to ask for any more
+        if (this.gone) {
+            return Promise.resolve('client');
+        }
+
         if (this.refreshing === null) {
             this.refreshing = this.fetchState().finally(() => {
                 this.refreshing = null;
@@ -89,6 +95,12 @@ export default class extends Controller {
             this.events.update(answer.data.mercure ?? null);
         } else if (answer.kind === 'auth' || answer.kind === 'forbidden') {
             this.events.suspend();
+        } else if (isGone(answer)) {
+            // The event was deleted while the page was open: it says so and stops asking
+            this.gone = true;
+            this.events.close();
+            clearInterval(this.refreshTimer);
+            this.element.querySelectorAll('[data-results-overview-gone]').forEach((element) => { element.hidden = false; });
         }
 
         return answer.kind;

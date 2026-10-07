@@ -79,6 +79,7 @@
                 statusSignIn: 'seating.status.sign_in'|trans,
                 statusSignInLink: 'seating.status.sign_in_link'|trans,
                 statusForbidden: 'seating.status.forbidden'|trans,
+                statusGone: 'seating.status.gone'|trans,
                 toastApplied: browser_translation('seating.toast.applied'),
                 toastRenumbered: 'seating.toast.renumbered'|trans,
                 toastSeatedRest: 'seating.toast.seated_rest'|trans,
@@ -140,6 +141,13 @@
                         </select>
                     </div>
                 {% endif %}
+
+                {# The round was deleted while the page was open (its JSON 404) - shown by the controller, which stops asking #}
+                {# `hidden` on the wrapper - d-flex would win over it #}
+                <div data-round-seating-target="gone" hidden><div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert">
+                    <span class="me-auto"><i class="bi bi-x-octagon me-1" aria-hidden="true"></i>{{ 'seating.gone'|trans }}</span>
+                    <a class="btn btn-sm btn-outline-danger" href="{{ path('competition_results_overview', {competitionId: competition.id.toString}) }}">{{ 'results_desk.overview.title'|trans }}</a>
+                </div></div>
 
                 {# "Tables: 180 / 200 assigned - recommended before the round starts", drawn again after every change #}
                 <div class="seating-readiness alert d-flex flex-wrap align-items-center gap-2 py-2 {{ overview.isSeated ? 'alert-light border' : 'alert-info' }}" role="status" data-round-seating-target="readiness" {{ overview.showsTablesReadiness ? '' : 'hidden' }}>

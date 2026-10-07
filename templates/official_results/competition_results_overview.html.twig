@@ -45,6 +45,11 @@
 
         <p class="small text-body-secondary">{{ 'results_desk.overview.intro'|trans }}</p>
 
+        {# The event was deleted while the page was open (its JSON 404) - shown by the controller, which stops asking #}
+        <div data-results-overview-gone hidden><div class="alert alert-danger" role="alert">
+            <i class="bi bi-x-octagon me-1" aria-hidden="true"></i>{{ 'official_results.reason.competition_not_found'|trans }}
+        </div></div>
+
         {% if rounds|length == 0 %}
             <p class="text-muted">{{ 'competition.no_rounds'|trans }}</p>
         {% else %}

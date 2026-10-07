@@ -1,6 +1,6 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
-import { officialResultsRequest, newClientId } from '../official_results_api.js';
+import { officialResultsRequest, newClientId, isGone } from '../official_results_api.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { chooseTranslation } from '../translation_choice.js';
 import {
@@ -46,7 +46,7 @@ export default class extends Controller {
         'applyButton', 'drawAgainButton',
         'filter', 'filterNote', 'orderBar', 'orderBarRenumber', 'swapBar', 'swapText', 'empty', 'nothingFound',
         'lists', 'unseatedSection', 'unseatedHeading', 'seatRestButton', 'unseatedList', 'seatedHeading', 'seatedList',
-        'toast',
+        'toast', 'gone',
     ];
 
     static values = {
@@ -88,6 +88,8 @@ export default class extends Controller {
         // Counts merges of newer entries (answers, Mercure) - a state fetched meanwhile may be older than them
         this.dataGeneration = 0;
         this.refreshSequence = 0;
+        // The round was deleted while the page was open (goneAway)
+        this.gone = false;
 
         this.setEntries(this.entriesValue);
         this.resetOrder();
@@ -227,6 +229,11 @@ export default class extends Controller {
      * token; signed out / no rights stop the stream). Resolves to the answer's kind.
      */
     async refresh(attempt = 0) {
+        // The round is gone - nothing to ask for any more
+        if (this.gone) {
+            return 'client';
+        }
+
         const tries = Number.isInteger(attempt) ? attempt : 0;
         const sequence = ++this.refreshSequence;
         const generation = this.dataGeneration;
@@ -240,6 +247,8 @@ export default class extends Controller {
             this.events.update(result.data.mercure ?? null);
         } else if (result.kind === 'auth' || result.kind === 'forbidden') {
             this.events.suspend();
+        } else if (isGone(result)) {
+            this.goneAway();
         }
 
         if (sequence !== this.refreshSequence || result.kind !== 'ok' || !Array.isArray(result.data.entries)) {
@@ -1054,7 +1063,11 @@ export default class extends Controller {
         }
 
         if (result.kind !== 'ok') {
-            this.proposalTarget.replaceChildren(this.paragraph(result.kind === 'auth' ? this.t('statusSignIn') : this.t('proposalFailed'), 'text-danger'));
+            if (isGone(result)) {
+                this.goneAway();
+            }
+
+            this.proposalTarget.replaceChildren(this.paragraph(result.kind === 'auth' ? this.t('statusSignIn') : (isGone(result) ? this.t('statusGone') : this.t('proposalFailed')), 'text-danger'));
 
             return;
         }
@@ -1258,7 +1271,29 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * The round was deleted (or never existed): the page says so and stops asking - no stream, no minute refresh, and
+     * nothing offers to try again.
+     */
+    goneAway() {
+        if (this.gone) {
+            return;
+        }
+
+        this.gone = true;
+        this.events?.close();
+        clearInterval(this.resyncInterval);
+
+        if (this.hasGoneTarget) {
+            this.goneTarget.hidden = false;
+        }
+    }
+
     failureText(result) {
+        if (isGone(result)) {
+            return this.t('statusGone');
+        }
+
         switch (result.kind) {
             case 'auth':
                 return this.t('statusSignIn');
@@ -1272,6 +1307,10 @@ export default class extends Controller {
     }
 
     failed(result, retry) {
+        if (isGone(result)) {
+            this.goneAway();
+        }
+
         this.statusTarget.replaceChildren();
         this.statusTarget.className = 'seating-status small ms-sm-auto text-danger fw-semibold';
         this.statusTarget.append(this.icon('bi-exclamation-triangle'), document.createTextNode(` ${this.failureText(result)} `));
@@ -1285,7 +1324,7 @@ export default class extends Controller {
             this.statusTarget.append(link, document.createTextNode(' '));
         }
 
-        if (result.kind !== 'forbidden') {
+        if (result.kind !== 'forbidden' && !this.gone) {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'btn btn-sm btn-outline-danger py-0';

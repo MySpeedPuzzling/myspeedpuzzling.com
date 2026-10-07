@@ -5,7 +5,7 @@
 
 import assert from 'node:assert/strict';
 import { createMemoryStorage, createTabLock, Outbox, STUCK_AFTER_ATTEMPTS } from '../assets/official_results_outbox.js';
-import { officialResultsRequest, retryAfterMs } from '../assets/official_results_api.js';
+import { isGone, officialResultsRequest, retryAfterMs } from '../assets/official_results_api.js';
 import {
     buildSearchIndex,
     describeResult,
@@ -378,6 +378,37 @@ const scenarios = {
 
             respond(404, JSON.stringify({ title: 'Not Found', status: 404 }), { 'Content-Type': 'application/problem+json' });
             assert.equal((await officialResultsRequest('/x')).kind, 'server', 'a 404 that is not our answer');
+            assert.equal(isGone(await officialResultsRequest('/x')), false);
+        } finally {
+            globalThis.fetch = realFetch;
+        }
+    },
+
+    async 'the JSON client: a deleted round or event is gone, never retried'() {
+        const realFetch = globalThis.fetch;
+        const respond = (status, body, headers = {}) => {
+            globalThis.fetch = async () => new Response(body, { status, headers });
+        };
+
+        try {
+            respond(404, JSON.stringify({ error: 'round_not_found', message: 'This round does not exist any more.' }), { 'Content-Type': 'application/json' });
+            const round = await officialResultsRequest('/x');
+            assert.deepEqual(round, { kind: 'client', status: 404, data: { error: 'round_not_found', message: 'This round does not exist any more.' } });
+            assert.equal(isGone(round), true);
+
+            respond(404, JSON.stringify({ error: 'competition_not_found', message: 'This event does not exist any more.' }), { 'Content-Type': 'application/json' });
+            assert.equal(isGone(await officialResultsRequest('/x')), true);
+
+            // Our other refusals are no "gone"
+            respond(404, JSON.stringify({ error: 'entry_not_found' }), { 'Content-Type': 'application/json' });
+            assert.equal(isGone(await officialResultsRequest('/x')), false);
+            respond(400, JSON.stringify({ error: 'round_not_found' }), { 'Content-Type': 'application/json' });
+            assert.equal(isGone(await officialResultsRequest('/x')), false);
+            // An HTML 404 (not our endpoint's answer) is retried as before
+            respond(404, '<html>Not found</html>', { 'Content-Type': 'text/html' });
+            const html = await officialResultsRequest('/x');
+            assert.equal(html.kind, 'server');
+            assert.equal(isGone(html), false);
 
             respond(503, '', { 'Retry-After': '7' });
             assert.deepEqual(await officialResultsRequest('/x'), { kind: 'server', status: 503, retryAfter: 7000, busy: false });

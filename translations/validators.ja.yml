@@ -2,6 +2,8 @@ image_invalid_mime_type: "有効な画像形式のファイルを入力してく
 puzzling_time_format: "HH:MM:SSまたはMM:SS形式でタイムを入力してください"
 player_code: "プレイヤーコードは文字と数字のみで、特殊文字やスペースは含められません。"
 competition_date_to_before_date_from: "終了日は開始日より前にできません。"
+competition_registration_closes_before_opens: "登録の締め切りを開始より前にすることはできません。"
+
 competition_duration_too_long: "イベントは%limit%日を超えることはできません。実際のイベント日程を入力してください。"
 competition_round_badge_color_invalid: "#1e88e5 のような形式で色を入力するか、空欄のままにすると自動で色が選ばれます。"
 finished_at_required_for_speed: "スピードパズルでは完成日が必須です。"

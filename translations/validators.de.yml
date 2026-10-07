@@ -2,6 +2,8 @@ image_invalid_mime_type: "Bitte geben Sie eine Datei in einem gültigen Bildform
 puzzling_time_format: "Bitte geben Sie die Zeit im Format HH:MM:SS oder MM:SS ein"
 player_code: "Der Spielercode darf nur Buchstaben und Zahlen enthalten, ohne Sonderzeichen oder Leerzeichen."
 competition_date_to_before_date_from: "Das Enddatum darf nicht vor dem Startdatum liegen."
+competition_registration_closes_before_opens: "Die Anmeldung kann nicht schließen, bevor sie öffnet."
+
 competition_duration_too_long: "Die Veranstaltung darf nicht länger als %limit% Tage dauern. Bitte geben Sie die tatsächlichen Veranstaltungsdaten ein."
 competition_round_badge_color_invalid: "Gib eine Farbe wie #1e88e5 ein oder lass das Feld leer, dann wird automatisch eine gewählt."
 finished_at_required_for_speed: "Datum der Fertigstellung ist für Speed Puzzling erforderlich."

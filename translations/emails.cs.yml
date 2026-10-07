@@ -101,6 +101,34 @@ moderator_role_granted:
         <p><strong>Pozor na slučování:</strong> schválením sloučení se duplicitní záznamy smažou a časy i kolekce všech hráčů se přesunou na záznam, který zůstává. Nelze to vrátit zpět, takže v případě pochybností - jiný počet dílků, jiný obrázek, jiná edice - to raději nechte být nebo zamítněte. Jedno puzzle může mít několik EAN kódů; to je v pořádku.</p>
         <p>Pokud by cokoli nebylo jasné, napište nám přes odkaz Zpětná vazba v horní části webu.</p>
 
+competition_registration:
+    entry_fee: "Startovné (určuje organizátor):"
+    payment_instructions: "Jak zaplatit - pokyny od organizátora:"
+    no_payment_processing: "MySpeedPuzzling nezpracovává platby. Platíte přímo organizátorovi tak, jak popisuje - s čímkoli kolem poplatku se prosím obraťte na něj."
+    event_page_button: "Otevřít stránku události"
+    reserved:
+        subject: "Jste zaregistrováni na %competitionName%"
+        preheader: "Vaše místo na %competitionName% je rezervováno."
+        title: "Jste zaregistrováni!"
+        content: "<p>Vaše registrace na <strong>%competitionName%</strong> je potvrzena - vaše místo je rezervováno.</p>\n"
+    waitlisted:
+        subject: "Jste na čekací listině %competitionName%"
+        preheader: "%competitionName% je plná - jste na její čekací listině."
+        title: "Jste na čekací listině"
+        position: "Vaše pořadí na čekací listině: #%position%"
+        next: "Pokud vám organizátor uvolní místo, hned vám pošleme e-mail."
+        content: "<p>Událost <strong>%competitionName%</strong> je momentálně plná, a proto jste na její čekací listině.</p>\n"
+    paid:
+        subject: "Platba na %competitionName% potvrzena"
+        preheader: "Organizátor události %competitionName% potvrdil vaši platbu."
+        title: "Platba potvrzena!"
+        content: "<p>Organizátor události <strong>%competitionName%</strong> potvrdil vaši platbu. Vaše místo je jisté - uvidíme se tam!</p>\n"
+    promoted:
+        subject: "Na %competitionName% se pro vás uvolnilo místo"
+        preheader: "Z čekací listiny %competitionName% jste se posunuli na rezervované místo."
+        title: "Uvolnilo se místo!"
+        content: "<p>Dobrá zpráva! Organizátor události <strong>%competitionName%</strong> vám dal místo - posunuli jste se z čekací listiny a vaše místo je nyní rezervováno.</p>\n"
+
 competition_rejected:
     subject: "Vaše událost nebyla schválena"
     preheader: "Událost %competitionName% nebyla schválena – důvod najdete v e-mailu."

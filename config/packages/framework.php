@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotApprovable;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
@@ -97,9 +98,11 @@ return App::config([
             PuzzleInTwoRoundsOfCategory::class => ['log_level' => 'info'],
             PuzzleEanAlreadyInCatalogue::class => ['log_level' => 'info'],
             // A secret competition puzzle guarding itself - answered 409 with the reason, nothing applied: a change
-            // that would reveal it unconfirmed, a hidden puzzle attached unhidden, a placeholder hidden by hand, a
-            // personal record before the reveal (docs/features/competitions-management/README.md)
+            // that would reveal it unconfirmed, an automatic reveal saved from a page showing another moment, a hidden
+            // puzzle attached unhidden, a placeholder hidden by hand, a personal record before the reveal
+            // (docs/features/competitions-management/README.md)
             SecretPuzzlesWouldBeRevealed::class => ['log_level' => 'info'],
+            AutomaticRevealChangedMeanwhile::class => ['log_level' => 'info'],
             PuzzleIsStillSecret::class => ['log_level' => 'info'],
             PuzzleHiddenByHand::class => ['log_level' => 'info'],
             PuzzleNameAlreadyPublic::class => ['log_level' => 'info'],

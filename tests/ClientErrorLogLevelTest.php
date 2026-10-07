@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;
 use RuntimeException;
+use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotApprovable;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
@@ -90,6 +92,7 @@ final class ClientErrorLogLevelTest extends KernelTestCase
         yield '409 puzzle in two rounds of a category' => [new PuzzleInTwoRoundsOfCategory('solo', 'Final'), LogLevel::INFO];
         yield '409 known EAN' => [new PuzzleEanAlreadyInCatalogue(['x']), LogLevel::INFO];
         yield '409 secret puzzles a change would reveal' => [new SecretPuzzlesWouldBeRevealed([['id' => 'x', 'name' => 'Secret', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'everywhere', 'everywhere' => true, 'hiddenElsewhereUntil' => null]]), LogLevel::INFO];
+        yield '409 automatic reveal changed meanwhile' => [new AutomaticRevealChangedMeanwhile(new DateTimeImmutable('2030-10-24 08:10:00'), null), LogLevel::INFO];
         yield '409 secret puzzle attached unhidden' => [new PuzzleIsStillSecret('x'), LogLevel::INFO];
         yield '409 placeholder hidden by hand' => [new PuzzleHiddenByHand(), LogLevel::INFO];
         yield '409 internal API round puzzles not attachable' => [new RoundPuzzlesNotAttachable('Hidden puzzles cannot be attached.'), LogLevel::INFO];

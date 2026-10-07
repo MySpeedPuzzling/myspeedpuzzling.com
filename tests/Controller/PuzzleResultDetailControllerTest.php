@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -220,6 +223,37 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         self::assertCount(4, $crawler->filter('li.pr-attempt'));
         self::assertCount(4, $crawler->filter('a[href*="/edit-time/"][data-turbo-frame="modal-frame"]'));
         self::assertStringContainsString('Verification needed', $crawler->text());
+    }
+
+    public function testSuspiciousOnlyResultIsShownToTheSubjectAdminsAndModerators(): void
+    {
+        $browser = self::createClient();
+        $timeId = $this->cloneSolvingTime(PuzzleSolvingTimeFixture::TIME_08, ['seconds_to_solve' => 600, 'days_ago' => 1]);
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->getConnection()->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE player_id = (SELECT player_id FROM puzzle_solving_time WHERE id = :id)
+                AND puzzle_id = (SELECT puzzle_id FROM puzzle_solving_time WHERE id = :id) AND team IS NULL',
+            ['id' => $timeId],
+        );
+        // A community moderator (no admin)
+        $moderator = $entityManager->find(Player::class, PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertNotNull($moderator);
+        $moderator->moderatorSince = new DateTimeImmutable('-1 year');
+        $entityManager->flush();
+
+        $browser->request('GET', '/en/result/' . $timeId);
+        self::assertResponseStatusCodeSame(404, 'a guest');
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $browser->request('GET', '/en/result/' . $timeId);
+        self::assertResponseStatusCodeSame(404, 'another player');
+
+        foreach ([PlayerFixture::PLAYER_REGULAR => 'the player', PlayerFixture::PLAYER_ADMIN => 'an admin', PlayerFixture::PLAYER_WITH_STRIPE => 'a moderator'] as $playerId => $who) {
+            TestingLogin::asPlayer($browser, $playerId);
+            $crawler = $browser->request('GET', '/en/result/' . $timeId);
+            self::assertResponseIsSuccessful($who);
+            self::assertGreaterThan(0, $crawler->filter('[data-testid="suspicious-badge"]')->count(), $who);
+        }
     }
 
     public function testBlockedPlayersResultIsNotFoundForTheBlocker(): void

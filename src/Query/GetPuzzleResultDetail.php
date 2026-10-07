@@ -32,9 +32,10 @@ readonly final class GetPuzzleResultDetail
     }
 
     /**
+     * @param bool $viewerSeesSuspicious admins and moderators (SuspiciousResultsVoter) see suspicious results of anybody
      * @throws PuzzleResultNotFound
      */
-    public function byTimeId(string $timeId, null|string $viewerPlayerId): PuzzleResultDetail
+    public function byTimeId(string $timeId, null|string $viewerPlayerId, bool $viewerSeesSuspicious = false): PuzzleResultDetail
     {
         if (Uuid::isValid($timeId) === false) {
             throw new PuzzleResultNotFound();
@@ -223,8 +224,8 @@ SQL;
         $attempts = [];
 
         foreach ($rows as $row) {
-            // Suspicious times are for the subject's own eyes only, like on their profile
-            if ($row['suspicious'] === true && $viewerIsSubject === false) {
+            // Suspicious times are for the subject's own eyes only - and for admins and moderators reviewing them
+            if ($row['suspicious'] === true && $viewerIsSubject === false && $viewerSeesSuspicious === false) {
                 continue;
             }
 
@@ -445,7 +446,7 @@ SQL;
     {
         $best = null;
 
-        // A suspicious time (shown to the subject only) never beats a clean one
+        // A suspicious time (shown to the subject, admins and moderators only) never beats a clean one
         foreach ([false, true] as $includeSuspicious) {
             foreach ($attempts as $attempt) {
                 if ($attempt->time === null || ($attempt->suspicious === true && $includeSuspicious === false)) {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetPuzzleResultDetail;
+use SpeedPuzzling\Web\Security\SuspiciousResultsVoter;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -46,7 +47,11 @@ final class PuzzleResultDetailController extends AbstractController
     {
         $viewer = $this->retrieveLoggedUserProfile->getProfile();
 
-        $result = $this->getPuzzleResultDetail->byTimeId($timeId, $viewer?->playerId);
+        $result = $this->getPuzzleResultDetail->byTimeId(
+            $timeId,
+            $viewer?->playerId,
+            viewerSeesSuspicious: $this->isGranted(SuspiciousResultsVoter::VIEW_SUSPICIOUS_RESULTS),
+        );
 
         $template = $request->headers->get('Turbo-Frame') === 'modal-frame'
             ? 'puzzle_result/_modal.html.twig'

@@ -24,7 +24,8 @@ Only in somebody's own results - on pages with the badge:
 
 - the player's profile - results table and its "Recent activity" feed;
 - the pair's / team's page (listed, never one of its best times);
-- the result detail - for the subject only (`docs/features/puzzle-result-detail.md`);
+- the result detail - for the subject, and for admins and moderators (`SuspiciousResultsVoter`); anybody else gets
+  a 404 when that is all the subject has on the puzzle (`docs/features/puzzle-result-detail.md`);
 - the player's own data: the results export (without a rank) and the API's results of a player (`/me/results`, `/players/{id}/results`, `solves`).
 
 The shared feeds (Hub "Latest" and "Favorites", `/recent-activity`) leave it out.

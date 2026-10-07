@@ -57,8 +57,9 @@ All in `GetPuzzleResultDetail::byTimeId()`, every case answers `PuzzleResultNotF
 - a pair/team where every registered member is private to the viewer and the viewer is not a member. Otherwise
   private members are rendered masked (`_leaderboard_player.html.twig`).
 
-Suspicious times (`suspicious = true`) are listed only for the subject itself (the solo player / a member), with the
-"Verification needed" badge. Guards: `BlocklistCanaryTest::testResultDetailOfABlockedPlayerDoesNotExistForTheBlocker`,
+Suspicious times (`suspicious = true`) are listed only for the subject itself (the solo player / a member) and for
+admins and moderators (`SuspiciousResultsVoter::VIEW_SUSPICIOUS_RESULTS`), with the "Verification needed" badge -
+anybody else gets a 404 when the subject has nothing but suspicious results on the puzzle. Guards: `BlocklistCanaryTest::testResultDetailOfABlockedPlayerDoesNotExistForTheBlocker`,
 `PrivateProfileCanaryTest::testResultDetailOf*`.
 
 ## Standing

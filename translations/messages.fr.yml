@@ -3765,7 +3765,7 @@ competition:
         "removed_count_wrong": "Le nombre saisi n'est pas le nombre de personnes qui seront retirées. Rien n'a été enregistré."
         "summary": "Importation terminée : %added% ajoutés, %updated% mis à jour, %restored% restaurés, %unchanged% inchangés, %removed% retirés."
         "discarded": "Le fichier envoyé a été jeté."
-        "summary_sync": "La synchronisation complète a aussi retiré %entries% inscriptions aux manches et %teams% paires/équipes restées vides."
+        "summary_sync": "La synchronisation complète a aussi retiré – inscriptions aux manches : %entries%, duos/équipes restés vides : %teams%."
     "export_title": "Exporter"
     "export_current": "Exporter les participants actuels"
     "download_template": "Télécharger le modèle"

@@ -108,10 +108,10 @@
                                 {% if row.roundsAdded is not empty or row.roundsRemoved is not empty %}
                                     <div>
                                         {% for round in row.roundsAdded %}
-                                            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">+ {{ round }}</span>
+                                            <span class="badge bg-light text-success border">+ {{ round }}</span>
                                         {% endfor %}
                                         {% for round in row.roundsRemoved %}
-                                            <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">− {{ round }}</span>
+                                            <span class="badge bg-light text-danger border">− {{ round }}</span>
                                         {% endfor %}
                                     </div>
                                 {% endif %}

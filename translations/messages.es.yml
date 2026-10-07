@@ -3765,7 +3765,7 @@ fair_use_policy:
         "removed_count_wrong": "El número que escribiste no es el número de personas que se quitarán. No se ha guardado nada."
         "summary": "Importación completada: %added% añadidos, %updated% actualizados, %restored% restaurados, %unchanged% sin cambios, %removed% quitados."
         "discarded": "Se ha descartado el archivo subido."
-        "summary_sync": "La sincronización completa también ha quitado %entries% inscripciones en rondas y %teams% parejas/equipos que quedaron vacíos."
+        "summary_sync": "La sincronización completa también ha quitado – inscripciones en rondas: %entries%, parejas/equipos que quedaron vacíos: %teams%."
     "export_title": "Exportar"
     "export_current": "Exportar participantes actuales"
     "download_template": "Descargar plantilla"

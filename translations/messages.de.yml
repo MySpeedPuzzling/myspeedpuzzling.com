@@ -3764,7 +3764,7 @@ qr_code:
         "removed_count_wrong": "Die eingegebene Zahl ist nicht die Anzahl der Personen, die entfernt werden. Es wurde nichts gespeichert."
         "summary": "Import abgeschlossen: %added% hinzugefügt, %updated% aktualisiert, %restored% wiederhergestellt, %unchanged% unverändert, %removed% entfernt."
         "discarded": "Die hochgeladene Datei wurde verworfen."
-        "summary_sync": "Die vollständige Synchronisierung hat außerdem %entries% Rundeneinträge und %teams% leer gewordene Paare/Teams entfernt."
+        "summary_sync": "Die vollständige Synchronisierung hat außerdem entfernt – Rundeneinträge: %entries%, leer gewordene Paare/Teams: %teams%."
     "export_title": "Export"
     "export_current": "Aktuelle Teilnehmer exportieren"
     "download_template": "Vorlage herunterladen"

@@ -288,7 +288,7 @@ final class ParticipantImportFlowTest extends WebTestCase
         $flash = $this->browser->followRedirect()->filter('.alert-success')->text();
         // Jane and the self-joined Michael; Robin's Qualification Round entry
         self::assertStringContainsString('2 removed', $flash);
-        self::assertStringContainsString('Full sync also removed 1 round entries and 0 pairs/teams left empty.', $flash);
+        self::assertStringContainsString('Full sync also removed round entries: 1, pairs/teams left empty: 0.', $flash);
     }
 
     public function testALargeRemovalNeedsTheTypedNumber(): void

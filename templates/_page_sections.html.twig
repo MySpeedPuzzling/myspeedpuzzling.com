@@ -1,0 +1,7 @@
+{# Organiser-written sections of an event, edition or series page, in page order - an edition shows its own first, then
+   its series' (docs/features/competitions-management/public-page.md). Expects: sections (list<Results\PageSection>) #}
+<div class="mt-4" data-page-sections>
+    {% for section in sections %}
+        {{ include('_page_section.html.twig', {section: section}) }}
+    {% endfor %}
+</div>

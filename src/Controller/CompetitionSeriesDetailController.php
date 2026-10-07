@@ -42,7 +42,10 @@ final class CompetitionSeriesDetailController extends AbstractController
             'series' => $seriesOverview,
             'upcoming_editions' => $upcomingEditions,
             'past_editions' => $pastEditions,
-            'page_sections' => $this->getCompetitionPageSections->forSeries($series->id->toString()),
+            // Organiser-written sections: queried only when one shows
+            'page_sections' => $seriesOverview->hasPageSections
+                ? $this->getCompetitionPageSections->forSeriesPage($seriesOverview->id)
+                : [],
         ]);
     }
 }

@@ -26,10 +26,12 @@ readonly final class GetCompetitionSeries
      */
     public function byId(string $seriesId): CompetitionSeriesOverview
     {
+        $shownOnPage = GetCompetitionPageSections::sqlShownOnSeriesPage('s', 'cs');
         $query = <<<SQL
-SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id, approved_at, rejected_at
-FROM competition_series
-WHERE id = :seriesId
+SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+       EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections
+FROM competition_series cs
+WHERE cs.id = :seriesId
 SQL;
 
         $row = $this->database
@@ -48,10 +50,12 @@ SQL;
      */
     public function bySlug(string $slug): CompetitionSeriesOverview
     {
+        $shownOnPage = GetCompetitionPageSections::sqlShownOnSeriesPage('s', 'cs');
         $query = <<<SQL
-SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id, approved_at, rejected_at
-FROM competition_series
-WHERE slug = :slug
+SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+       EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections
+FROM competition_series cs
+WHERE cs.slug = :slug
 SQL;
 
         $row = $this->database
@@ -334,6 +338,7 @@ SQL;
          *     rejected_at: null|string,
          *     next_edition_date?: null|string,
          *     added_by_player_name?: null|string,
+         *     has_page_sections?: bool,
          * } $row
          */
 
@@ -361,6 +366,7 @@ SQL;
             approvedAt: $row['approved_at'] !== null ? new DateTimeImmutable($row['approved_at']) : null,
             rejectedAt: $row['rejected_at'] !== null ? new DateTimeImmutable($row['rejected_at']) : null,
             addedByPlayerName: $row['added_by_player_name'] ?? null,
+            hasPageSections: $row['has_page_sections'] ?? false,
         );
     }
 }

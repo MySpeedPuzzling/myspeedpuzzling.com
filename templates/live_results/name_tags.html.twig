@@ -13,6 +13,8 @@
         .controls a, .controls button { color: #333; }
         .controls label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #555; }
         .controls select, .controls button { min-height: 36px; padding: 4px 10px; font-size: 14px; }
+        .controls label.inline { flex-direction: row; align-items: center; min-height: 36px; color: #333; }
+        .controls input[type="checkbox"] { width: 18px; height: 18px; vertical-align: middle; }
         .controls .print { font-weight: bold; }
         .hint { max-width: 180mm; margin-bottom: 16px; color: #555; font-size: 13px; line-height: 1.4; }
         .sheet { display: grid; grid-template-columns: repeat(2, 90mm); grid-auto-rows: 55mm; }
@@ -57,12 +59,20 @@
                 </select>
             </label>
         {% endif %}
+        {% if waitlisted_count > 0 %}
+            <label class="inline">
+                <span><input type="checkbox" name="waitlist" value="1" {{ with_waitlist ? 'checked' }} onchange="this.form.submit()"> {{ 'name_tags.waitlist'|trans({'%count%': waitlisted_count}) }}</span>
+            </label>
+        {% endif %}
         <noscript><button type="submit">{{ 'name_tags.show'|trans }}</button></noscript>
         <button type="button" class="print" onclick="window.print()">{{ 'name_tags.print'|trans }}</button>
         <span>{{ 'name_tags.count'|trans({'%count%': tags|length}) }}</span>
     </form>
 
     <p class="hint">{{ 'name_tags.hint'|trans }}</p>
+    {% if round is null and uses_table_numbers %}
+        <p class="hint" data-first-round-note>{{ 'name_tags.first_round_note'|trans }}</p>
+    {% endif %}
 
     {% if tags is empty %}
         <p class="empty">{{ 'name_tags.empty'|trans }}</p>

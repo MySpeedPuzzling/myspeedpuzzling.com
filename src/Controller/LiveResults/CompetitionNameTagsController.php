@@ -21,8 +21,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * Printable name tags of an event (docs/features/competitions-management/live-results.md): an A4 sheet of tags -
  * name, flag, #CODE when linked, the table of the first round, and a QR that opens the participant in the live
- * entry. `?sort=name|table`, `?round=<roundId>` (only that round's people, with its table numbers). A standalone
- * print page like the table layout's.
+ * entry. `?sort=name|table`, `?round=<roundId>` (only that round's people, with its table numbers), `?waitlist=1`
+ * (the waitlist too - somebody may get a place at the door). A standalone print page like the table layout's.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class CompetitionNameTagsController extends AbstractController
@@ -61,7 +61,14 @@ final class CompetitionNameTagsController extends AbstractController
             ? GetCompetitionNameTags::SORT_TABLE
             : GetCompetitionNameTags::SORT_NAME;
 
-        $tags = $this->getCompetitionNameTags->forCompetition($competitionId, $round?->roundId, $sort);
+        $withWaitlist = $request->query->getBoolean('waitlist');
+        $tags = $this->getCompetitionNameTags->forCompetition($competitionId, $round?->roundId, $sort, withWaitlist: true);
+        $waitlisted = count(array_filter($tags, static fn (CompetitionNameTag $tag): bool => $tag->waitlisted));
+
+        if ($withWaitlist === false) {
+            $tags = array_values(array_filter($tags, static fn (CompetitionNameTag $tag): bool => $tag->waitlisted === false));
+        }
+
         $locale = $request->getLocale();
 
         $response = $this->render('live_results/name_tags.html.twig', [
@@ -69,6 +76,9 @@ final class CompetitionNameTagsController extends AbstractController
             'rounds' => $rounds,
             'round' => $round,
             'sort' => $sort,
+            'with_waitlist' => $withWaitlist,
+            // The choice is offered only when somebody is on the waitlist
+            'waitlisted_count' => $waitlisted,
             'tags' => array_map(fn (CompetitionNameTag $tag): array => [
                 'tag' => $tag,
                 'qr' => $this->nameTagQrCode->svg($this->nameTagQrCode->url($competitionId, $tag->participantId, $locale)),

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
-use SpeedPuzzling\Web\Message\DeletePageSection;
+use SpeedPuzzling\Web\Message\ChangePageSectionVisibility;
 use SpeedPuzzling\Web\Repository\CompetitionPageSectionRepository;
 use SpeedPuzzling\Web\Value\PageSectionOwner;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,8 +16,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * Shows or hides one section of the page editor (`visible` = 1 / 0) - hidden ones stay in the editor as drafts.
+ */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
-final class DeletePageSectionController extends AbstractController
+final class ChangePageSectionVisibilityController extends AbstractController
 {
     public function __construct(
         private readonly CompetitionPageSectionRepository $sectionRepository,
@@ -28,14 +31,14 @@ final class DeletePageSectionController extends AbstractController
 
     #[Route(
         path: [
-            'cs' => '/smazat-sekci-stranky/{sectionId}',
-            'en' => '/en/delete-page-section/{sectionId}',
-            'es' => '/es/delete-page-section/{sectionId}',
-            'ja' => '/ja/delete-page-section/{sectionId}',
-            'fr' => '/fr/delete-page-section/{sectionId}',
-            'de' => '/de/delete-page-section/{sectionId}',
+            'cs' => '/zobrazeni-sekce-stranky/{sectionId}',
+            'en' => '/en/page-section-visibility/{sectionId}',
+            'es' => '/es/page-section-visibility/{sectionId}',
+            'ja' => '/ja/page-section-visibility/{sectionId}',
+            'fr' => '/fr/page-section-visibility/{sectionId}',
+            'de' => '/de/page-section-visibility/{sectionId}',
         ],
-        name: 'delete_page_section',
+        name: 'change_page_section_visibility',
         requirements: ['sectionId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['POST'],
     )]
@@ -46,17 +49,26 @@ final class DeletePageSectionController extends AbstractController
         $this->denyAccessUnlessGranted($owner->editAttribute(), $owner->id());
 
         [$editorRoute, $editorParameters] = $owner->editorRoute();
+        $backToSection = $this->redirect(
+            $this->generateUrl($editorRoute, $editorParameters) . '#page-section-' . $section->id->toString(),
+            Response::HTTP_SEE_OTHER,
+        );
 
         if ($this->isCsrfTokenValid($owner->csrfTokenId(), $request->request->getString('_token')) === false) {
             $this->addFlash('danger', $this->translator->trans('page_sections.error.expired'));
 
-            return $this->redirectToRoute($editorRoute, $editorParameters, Response::HTTP_SEE_OTHER);
+            return $backToSection;
         }
 
-        $this->messageBus->dispatch(new DeletePageSection(sectionId: $section->id->toString()));
+        $visible = $request->request->getString('visible') === '1';
 
-        $this->addFlash('success', $this->translator->trans('page_sections.flash.deleted'));
+        $this->messageBus->dispatch(new ChangePageSectionVisibility(
+            sectionId: $section->id->toString(),
+            visible: $visible,
+        ));
 
-        return $this->redirectToRoute($editorRoute, $editorParameters, Response::HTTP_SEE_OTHER);
+        $this->addFlash('success', $this->translator->trans($visible ? 'page_sections.flash.shown' : 'page_sections.flash.hidden'));
+
+        return $backToSection;
     }
 }

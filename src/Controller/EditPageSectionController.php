@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\EditPageSection;
+use SpeedPuzzling\Web\Query\GetPageSectionOwner;
 use SpeedPuzzling\Web\Repository\CompetitionPageSectionRepository;
-use SpeedPuzzling\Web\Security\CompetitionEditVoter;
-use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
+use SpeedPuzzling\Web\Results\PageSectionSubmission;
 use SpeedPuzzling\Web\Services\PageSectionRequestParser;
+use SpeedPuzzling\Web\Value\PageSectionOwner;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,13 +19,17 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-#[IsGranted('IS_AUTHENTICATED_FULLY')]
+/**
+ * Authorised against the page that owns the section - an edition's editor cannot change its series' sections.
+ */
+#[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class EditPageSectionController extends AbstractController
 {
     public function __construct(
         private readonly CompetitionPageSectionRepository $sectionRepository,
         private readonly MessageBusInterface $messageBus,
         private readonly PageSectionRequestParser $requestParser,
+        private readonly GetPageSectionOwner $getPageSectionOwner,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -38,44 +44,52 @@ final class EditPageSectionController extends AbstractController
             'de' => '/de/edit-page-section/{sectionId}',
         ],
         name: 'edit_page_section',
+        requirements: ['sectionId' => FirstTryConflictsController::ID_REQUIREMENT],
+        methods: ['GET', 'POST'],
     )]
     public function __invoke(string $sectionId, Request $request): Response
     {
         $section = $this->sectionRepository->get($sectionId);
+        $owner = PageSectionOwner::of($section);
+        $this->denyAccessUnlessGranted($owner->editAttribute(), $owner->id());
 
-        if ($section->competition !== null) {
-            $ownerId = $section->competition->id->toString();
-            $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $ownerId);
-            $manageUrl = $this->generateUrl('manage_competition_page', ['competitionId' => $ownerId]);
-            $ownerType = 'competition';
-        } else {
-            assert($section->series !== null);
-            $ownerId = $section->series->id->toString();
-            $this->denyAccessUnlessGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $ownerId);
-            $manageUrl = $this->generateUrl('manage_series_page', ['seriesId' => $ownerId]);
-            $ownerType = 'series';
-        }
+        [$editorRoute, $editorParameters] = $owner->editorRoute();
+        $submission = new PageSectionSubmission(title: $section->title ?? '', content: $section->content, errors: []);
 
         if ($request->isMethod('POST')) {
-            $this->messageBus->dispatch(new EditPageSection(
-                sectionId: $sectionId,
-                title: $request->request->getString('title'),
-                content: $this->requestParser->parseContent($section->type, $request),
-            ));
+            $submission = $this->requestParser->parse($section->type, $request, $owner);
 
-            $this->addFlash('success', $this->translator->trans('competition.page.flash.section_updated'));
+            if ($this->isCsrfTokenValid($owner->csrfTokenId(), $request->request->getString('_token')) === false) {
+                $submission = new PageSectionSubmission($submission->title, $submission->content, [
+                    ['key' => 'page_sections.error.expired', 'parameters' => []],
+                ]);
+            }
 
-            return $this->redirect($manageUrl);
+            if ($submission->isValid()) {
+                $this->messageBus->dispatch(new EditPageSection(
+                    sectionId: $section->id->toString(),
+                    title: $submission->title,
+                    content: $submission->content,
+                ));
+
+                $this->addFlash('success', $this->translator->trans('page_sections.flash.updated'));
+
+                return $this->redirectToRoute($editorRoute, $editorParameters, Response::HTTP_SEE_OTHER);
+            }
         }
 
-        return $this->render('page_section_form.html.twig', [
+        $response = $this->render('page_section_form.html.twig', [
             'section_type' => $section->type,
-            'title_value' => $section->title ?? '',
-            'content' => $section->content,
-            'form_action' => $request->getRequestUri(),
-            'manage_url' => $manageUrl,
-            'owner_type' => $ownerType,
-            'owner_id' => $ownerId,
-        ]);
+            'owner' => $owner,
+            'owner_name' => $this->getPageSectionOwner->of($owner)->name,
+            'submission' => $submission,
+            'form_action' => $this->generateUrl('edit_page_section', ['sectionId' => $section->id->toString()]),
+            'manage_url' => $this->generateUrl($editorRoute, $editorParameters),
+            'is_new' => false,
+        ], new Response(status: $submission->isValid() ? Response::HTTP_OK : Response::HTTP_UNPROCESSABLE_ENTITY));
+
+        $response->headers->set('Cache-Control', 'private, no-store');
+
+        return $response;
     }
 }

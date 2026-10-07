@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Message\DeleteObsoletePuzzleImage;
+use SpeedPuzzling\Web\Message\DeletePageSectionImages;
 use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
@@ -62,6 +63,7 @@ return App::config([
                 // Object storage calls after an account deletion - never in the way of the deletion
                 DeletePlayerStoredFiles::class => 'async',
                 DeleteObsoletePuzzleImage::class => 'async',
+                DeletePageSectionImages::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

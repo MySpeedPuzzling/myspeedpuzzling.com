@@ -139,7 +139,8 @@ readonly final class RecordRoundResultsHandler
 
     /**
      * @param list<CompetitionParticipantRound> $roundRows every person of the round
-     * @return array<string, CompetitionParticipantRound|CompetitionTeam> ref => entry; people removed from the event left out
+     * @return array<string, CompetitionParticipantRound|CompetitionTeam> ref => entry; only people going to the event
+     *                                                                   (GetRoundResultEntries - removed ones and the waitlist left out)
      */
     private function entriesOf(CompetitionRound $round, array $roundRows): array
     {
@@ -147,7 +148,7 @@ readonly final class RecordRoundResultsHandler
 
         if ($round->category === RoundCategory::Solo) {
             foreach ($roundRows as $participantRound) {
-                if ($participantRound->participant->isDeleted() === false) {
+                if ($participantRound->participant->isGoing()) {
                     $entries[$participantRound->entryRef()->toString()] = $participantRound;
                 }
             }
@@ -407,17 +408,22 @@ readonly final class RecordRoundResultsHandler
     }
 
     /**
-     * A participant of the event put into the round by a new entry: one of this event, not removed, and not an entry
-     * of the round already - in a pair/team round somebody of the round who is in no pair/team yet may join one.
+     * A participant of the event put into the round by a new entry: one of this event, going (not removed, not waiting
+     * on the waitlist - the organiser gives them a spot first), and not an entry of the round already - in a pair/team
+     * round somebody of the round who is in no pair/team yet may join one.
      *
      * @param array<string, CompetitionParticipantRound> $rowsByParticipant
      */
     private function existingParticipantRefusal(string $participantId, CompetitionRound $round, array $rowsByParticipant): null|string
     {
         try {
-            $this->participantRepository->getActiveOfCompetition($round->competition->id->toString(), $participantId);
+            $participant = $this->participantRepository->getActiveOfCompetition($round->competition->id->toString(), $participantId);
         } catch (CompetitionParticipantNotFound) {
             return 'participant_not_found';
+        }
+
+        if ($participant->isGoing() === false) {
+            return 'participant_waitlisted';
         }
 
         $row = $rowsByParticipant[$participantId] ?? null;

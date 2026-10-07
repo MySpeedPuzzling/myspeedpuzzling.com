@@ -150,6 +150,8 @@
                     </span>
                 </div>
 
+                {{ include('official_results/_waitlist_note.html.twig', {overview: overview, competition_id: competition.id.toString}) }}
+
                 {# The organiser said the round does without table numbers - undoable #}
                 <div class="card border-secondary mb-4" data-round-seating-target="offPanel" {% if not overview.tableNumbersOff %}hidden{% endif %}>
                     <div class="card-body">

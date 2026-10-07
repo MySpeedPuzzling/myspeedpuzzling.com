@@ -6770,6 +6770,9 @@ api_usage:
 
 official_results:
     qualified: "Qualified"
+    waitlist_note:
+        text: "{1}One person on the waitlist is in this round - give them a spot to include them.|]1,Inf[%count% people on the waitlist are in this round - give them a spot to include them."
+        link: "Participants"
     result:
         pieces_placed: "%placed% pcs"
         pieces_placed_of: "%placed% / %pieces% pcs"
@@ -6794,6 +6797,7 @@ official_results:
         change_sent_twice: "The same change was sent twice - enter it again."
         participant_not_found: "This person is not a participant of the event (any more)."
         participant_already_in_round: "This person is in this round already - find them on the list."
+        participant_waitlisted: "This person is on the event's waitlist - give them a spot on the participants page first."
         round_not_found: "This round does not exist any more."
     notification:
         published: "The official results of %round% at %competition% are out - see your result."

@@ -57,7 +57,8 @@ live updates token included), then fetches that state once (clock sync).
 5. **Quick add** - "Not on the list? Add an entrant": a name (solo round) or a pair/team name + members, optional table
    (refused on the device when another entry has it). While typing, "Already on the list?" shows the round's matching
    entries, and below them the **event's people who are no entry of this round** (`GetLiveResultsEventPeople`, embedded
-   in the page: another group, a forgotten import row, the individual rounds' people in a pairs round). Picking one of
+   in the page: another group, a forgotten import row, the individual rounds' people in a pairs round - people going
+   to the event only: somebody of the waitlist who turns up gets a spot on the participants page first). Picking one of
    them puts that participant into the round (solo: `newEntry.participantId`; a pair/team: the member field gets them,
    `members[].participantId`) - never a second person of the same name, so their link, country and notifications stay.
    The entrant is a `newEntry` with a device-made id: created on the server by its first saved change (the table

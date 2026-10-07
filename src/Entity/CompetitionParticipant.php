@@ -184,6 +184,15 @@ class CompetitionParticipant
         $this->paidAt = null;
     }
 
+    /**
+     * The one "is going" rule (CompetitionParticipantGoing) on the entity: not removed from the event, not waiting on
+     * its waitlist.
+     */
+    public function isGoing(): bool
+    {
+        return $this->isDeleted() === false && $this->registrationStatus !== RegistrationStatus::Waitlisted;
+    }
+
     public function promoteFromWaitlist(): void
     {
         $this->registrationStatus = RegistrationStatus::Reserved;

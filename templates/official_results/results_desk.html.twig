@@ -228,6 +228,8 @@
             </div>
         </div>
 
+        {{ include('official_results/_waitlist_note.html.twig', {overview: round.overview, competition_id: competition.id}) }}
+
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
             <div>
                 <div class="small fw-semibold" data-results-desk-target="counts"></div>

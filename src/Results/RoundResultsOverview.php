@@ -38,6 +38,8 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         public bool $competitionIsOnline = false,
         // The seating step "Tables: x / y assigned - recommended before the round starts" shows (SeatingReadiness)
         public bool $showsTablesReadiness = false,
+        // People put into the round who wait on the event's waitlist - not entries until the organiser gives them a spot
+        public int $peopleOnWaitlist = 0,
     ) {
     }
 

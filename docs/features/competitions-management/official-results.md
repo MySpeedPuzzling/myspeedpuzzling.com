@@ -73,9 +73,10 @@ before changing anything and check that every round/entry belongs to the competi
   results, table numbers, qualified marks and entrants typed in at the venue. Each change: `clientChangeId` (UUID, for
   idempotent replays), an existing entry (`participant_round:<id>` / `team:<id>`) **or** a new one (`clientEntryId` +
   kind + name + members; created with that id, never matched by name - but a participant of the event may be put in by
-  id: a person's `participantId`, a member's `{participantId}`; they must be of this competition, not removed, and no
-  entry of the round yet - in a pair/team round somebody in the round without a pair/team joins with their row;
-  refused: `participant_not_found` / `participant_already_in_round` / `duplicate_entry`), `field` (`result` |
+  id: a person's `participantId`, a member's `{participantId}`; they must be of this competition, not removed, not on
+  the event's waitlist, and no entry of the round yet - in a pair/team round somebody in the round without a pair/team
+  joins with their row; refused: `participant_not_found` / `participant_waitlisted` / `participant_already_in_round` /
+  `duplicate_entry`), `field` (`result` |
   `table_number` | `qualified`), `from` (what the device last saw), `to`. Three-way per change against the working
   state of the round: current = `to` → `unchanged` (a replay); current = `from` → `applied`; otherwise `conflict`
   (current value + who/when returned). Invalid → `rejected` with a reason key (`official_results.reason.*`). Table
@@ -163,12 +164,16 @@ rounds whose message does not take the lock (or carry a listed reason).
 ## Read models
 
 - `GetRoundResultEntries::forRound()` / `byRefs()` - every entry of a round (organiser tooling: participant names as
-  recorded, no blocklist), ranked and ordered (rank, did not start, no result; ties by table number, name), with
+  recorded, no blocklist; only people going to the event - `CompetitionParticipantGoing`: removed people and the
+  waitlist of a managed event are no entries, a pair/team leaves such members out, and the write path treats them the
+  same way), ranked and ordered (rank, did not start, no result; ties by table number, name), with
   members, countries, linked player, table, result, qualified, entered by/at. `RoundResultEntry::jsonSerialize()` is the
   JSON every endpoint and Mercure update uses.
 - `GetRoundResultsOverview::forCompetition()` / `forRound()` - every round with stopwatch, publication, piece count of
-  a single-puzzle round, `tableNumbersOff` and the counts (entries, with table number, with result, qualified) - the
-  seating readiness line "Tables: 180 / 200 assigned" - and whether that line shows now (`showsTablesReadiness`, JSON
+  a single-puzzle round, `tableNumbersOff` and the counts (entries, with table number, with result, qualified - the
+  going rule like the entries) - the seating readiness line "Tables: 180 / 200 assigned" - plus `peopleOnWaitlist`
+  (people of the round on the waitlist: the desk and the seating page say "N people on the waitlist are in this round -
+  give them a spot to include them", `official_results/_waitlist_note.html.twig`), and whether that line shows now (`showsTablesReadiness`, JSON
   `tablesReadiness`: THE rule, `SeatingReadiness`, see [seating.md](seating.md)). One statement.
 - `GetOfficialResultRecipients` - the notification fan-out (players not told about the round yet).
 

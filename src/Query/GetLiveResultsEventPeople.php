@@ -11,7 +11,8 @@ use Doctrine\DBAL\Connection;
  * the event's people who are no entry of the round yet - not in a solo round, in no pair/team of a pair/team round.
  * Picked there, they are put into the round by their id (RecordRoundResults `newEntry.participantId`) instead of being
  * typed in as a second person. Organiser tooling behind COMPETITION_EDIT: names as the organiser recorded them, no
- * blocklist; people removed from the event left out, waitlisted ones in (somebody may turn up). One statement.
+ * blocklist; only people going to the event (CompetitionParticipantGoing) - somebody of the waitlist who turns up gets a
+ * spot on the participants page first, an entry of a waitlisted person would be no entry of the round. One statement.
  */
 readonly final class GetLiveResultsEventPeople
 {
@@ -25,13 +26,14 @@ readonly final class GetLiveResultsEventPeople
      */
     public function notInRound(string $competitionId, string $roundId): array
     {
+        $going = CompetitionParticipantGoing::sql('cp');
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
 SELECT cp.id, cp.name, cp.country, player.code AS player_code
 FROM competition_participant cp
 LEFT JOIN player ON player.id = cp.player_id
 WHERE cp.competition_id = :competitionId
-    AND cp.deleted_at IS NULL
+    AND {$going}
     AND NOT EXISTS (
         SELECT 1
         FROM competition_participant_round cpr

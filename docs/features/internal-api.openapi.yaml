@@ -1133,10 +1133,10 @@ components:
           minimum: 1
         badgeBackgroundColor:
           type: [string, "null"]
-          example: "#fe696a"
+          example: "#1e88e5"
         badgeTextColor:
           type: [string, "null"]
-          example: "#ffffff"
+          example: "#000000"
         resultsLink:
           type: [string, "null"]
           format: uri

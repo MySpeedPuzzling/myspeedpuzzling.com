@@ -227,7 +227,7 @@ the competition's creator / the puzzle's adder, credited with the approval); the
 **Slugs - published URLs depend on them.** This API **keeps the slug when the name changes**, like the web forms
 (their "URL" field is the web counterpart of an explicit `slug`). Only an explicit `slug` changes it: lower-case words joined by hyphens
 (`^[a-z0-9]+(?:-[a-z0-9]+)*$`), free (`409` when another competition holds it - for an edition, another edition of
-the same series). **A slug change breaks every old URL of the event** (`/en/events/{old-slug}`, its round results
+the same series or a standalone event, whose `/en/events/{slug}` must keep reaching it). **A slug change breaks every old URL of the event** (`/en/events/{old-slug}`, its round results
 pages, links shared or indexed): there is no redirect from the old slug, so change it only when the old one is wrong.
 A slug cannot be cleared (`null` / `""` is a `400`). `POST` generates the slug from the name unless `slug` is sent.
 Round slugs are generated once from the name and never change.
@@ -260,7 +260,7 @@ Not settable here: the logo (upload it in the UI), the series of an edition (rec
 | `startsAt` | Required on create. ISO 8601 date-time, **stored and answered in UTC** like the round form stores it: with an offset (`"2026-11-14T10:00:00+01:00"`, `"…Z"`) it is that moment; without one (`"2026-11-14T10:00"`) a wall-clock time in the round's zone (the `timezone` sent along, else the round's own) - a `400` when a daylight-saving change skips or repeats that time there (send it with an offset). Left out of a `PATCH`, the start stays exactly as stored |
 | `timezone` | The round's own IANA zone (`"America/Chicago"`) - its times are typed and shown in it, on the organiser's form and the event pages, and the answer carries it. A new round gets the zone of the event's other rounds, else of its country (`CountryCode::defaultTimezone()`, the series' country for an edition), else `Europe/Prague` - like the form. Only together with `startsAt` (a `400` alone: it would leave open whether the round keeps its moment or its wall-clock time); `null` is a `400` too |
 | `minutesLimit` | Required on create, ≥ 1 |
-| `badgeBackgroundColor` | The round's badge colour, `"#rrggbb"`; `null` or left out on create = a distinct colour picked automatically by the round's place in the schedule (`"#fe696a"`, the old form default, counts as none) - `RoundBadgeColor` |
+| `badgeBackgroundColor` | The round's badge colour, `"#rrggbb"` or `"#rgb"` (anything else is a `400`); `null` or left out on create = a distinct colour picked automatically by the round's place in the schedule (`"#fe696a"`, the old form default, counts as none) - `RoundBadgeColor` |
 | `badgeTextColor` | Stored and answered, but never shown: every page picks black or white for contrast with the badge colour. The round form no longer asks for it |
 | `resultsLink` | The organiser's results page of this round |
 | `puzzleIds` | Create only: attach these puzzles right away |
@@ -358,8 +358,8 @@ Competition answer (`GET`, and the answer of create / update / set puzzles):
     "startsAt": "2024-09-20T08:00:00+00:00",
     "timezone": "Europe/Prague",
     "minutesLimit": 60,
-    "badgeBackgroundColor": "#fe696a",
-    "badgeTextColor": "#ffffff",
+    "badgeBackgroundColor": "#1e88e5",
+    "badgeTextColor": "#000000",
     "resultsLink": null,
     "resultsCount": 3,
     "puzzles": [{

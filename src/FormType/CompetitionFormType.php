@@ -18,6 +18,8 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -157,6 +159,17 @@ final class CompetitionFormType extends AbstractType
                 ->remove('dateFrom')
                 ->remove('dateTo')
                 ->remove('isRecurring');
+        } else {
+            // "Recurring" ticked on the add form hides the dates and the registration/results links (a series has
+            // none) - whatever was typed in them before is dropped here, so no error can land on a hidden field
+            $builder->addEventListener(FormEvents::PRE_SUBMIT, static function (FormEvent $event): void {
+                $submitted = $event->getData();
+
+                if (is_array($submitted) && ($submitted['isRecurring'] ?? '') !== '') {
+                    unset($submitted['registrationLink'], $submitted['resultsLink'], $submitted['dateFrom'], $submitted['dateTo']);
+                    $event->setData($submitted);
+                }
+            });
         }
 
         // Edit forms only - a new event's first URL comes from its name

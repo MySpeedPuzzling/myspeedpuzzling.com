@@ -3,10 +3,16 @@
     text colour picked for contrast (RoundBadgeColor). Needs `round_badge_preview` = round_badge(...) - the form
     carries round_badge_preview_controller.js (see the add/edit round templates).
 #}
-<div class="col-sm-6">
-    {{ form_row(form.badgeBackgroundColor, {attr: form.badgeBackgroundColor.vars.attr|merge({
-        'data-colorpicker-clear-label-value': 'competition.round.form.badge_color_clear'|trans,
-    })}) }}
+<div class="col-sm-6 mb-3">
+    {{ form_label(form.badgeBackgroundColor) }}
+    {# Its own block: Coloris wraps the input in an inline-block, which would sit next to the label #}
+    <div>
+        {{ form_widget(form.badgeBackgroundColor, {attr: form.badgeBackgroundColor.vars.attr|merge({
+            'data-colorpicker-clear-label-value': 'competition.round.form.badge_color_clear'|trans,
+        })}) }}
+    </div>
+    {{ form_help(form.badgeBackgroundColor) }}
+    {{ form_errors(form.badgeBackgroundColor) }}
 </div>
 <div class="col-sm-6 mb-3" data-round-badge-preview>
     <div class="form-label">{{ 'competition.round.form.badge_preview'|trans }}</div>

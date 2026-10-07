@@ -80,4 +80,23 @@ final class CompetitionRoundAssumedTimezoneTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/manage-event-rounds/' . CompetitionSeriesFixture::EDITION_EJJ_69);
         self::assertSame('(Toronto Time)', $crawler->filter('[data-round-zone]')->text());
     }
+
+    public function testRoundSavedWithThePreselectedFallbackStaysNamedWithoutACountry(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        // The form pre-selects Europe/Prague for an event without a country - saving it untouched must not bring
+        // "Czechia Time" back
+        $browser->request('GET', '/en/edit-event-round/' . CompetitionSeriesFixture::ROUND_EJJ_69);
+        $browser->submitForm('Save Changes', ['competition_round_form[timezone]' => 'Europe/Prague']);
+        $this->assertResponseRedirects();
+
+        $crawler = $browser->request('GET', '/en/manage-event-rounds/' . CompetitionSeriesFixture::EDITION_EJJ_69);
+        self::assertSame('(Central European Time)', $crawler->filter('[data-round-zone]')->text());
+
+        // The zone is saved now - the form no longer says it never was
+        $crawler = $browser->request('GET', '/en/edit-event-round/' . CompetitionSeriesFixture::ROUND_EJJ_69);
+        self::assertStringContainsString('Times will be displayed in this timezone.', $crawler->filter('#competition_round_form_timezone_help')->text());
+    }
 }

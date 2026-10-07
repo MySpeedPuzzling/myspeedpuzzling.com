@@ -72,12 +72,11 @@
                             {{ form_row(form.shortcut) }}
                             <div class="mb-3">
                                 {{ form_label(form.slug) }}
-                                <div class="input-group">
-                                    {% if slug_prefix is not null %}
-                                        <span class="input-group-text text-wrap text-break text-start small" style="max-width: 60%;">{{ slug_prefix }}</span>
-                                    {% endif %}
-                                    {{ form_widget(form.slug) }}
-                                </div>
+                                {% if slug_prefix is not null %}
+                                    {# The address the slug completes, above the input - beside it, it would squeeze the input on a phone #}
+                                    <div class="small text-muted text-break mb-1" data-slug-prefix>{{ slug_prefix }}</div>
+                                {% endif %}
+                                {{ form_widget(form.slug) }}
                                 {{ form_help(form.slug) }}
                                 {{ form_errors(form.slug) }}
                             </div>

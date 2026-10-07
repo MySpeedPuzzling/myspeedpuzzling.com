@@ -88,7 +88,7 @@ final class EditCompetitionRoundController extends AbstractController
             'single_day' => $singleDay !== null,
             'timezone_offset_at' => $round->startsAt,
             'reveal_confirmation' => $hasSecretPuzzles,
-            'timezone_assumed' => $round->isTimezoneAssumed(),
+            'timezone_assumed' => $round->isTimezoneNeverSaved(),
         ]);
         $form->handleRequest($request);
         $revealedRightAway = [];

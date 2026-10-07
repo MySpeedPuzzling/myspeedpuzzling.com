@@ -30,7 +30,8 @@ final class EventRoundResultsController extends AbstractController
         name: 'event_round_results',
     )]
     public function __invoke(
-        #[MapEntity(mapping: ['slug' => 'slug'])] Competition $competition,
+        // An edition's slug is unique only within its series - a standalone event holding the slug wins
+        #[MapEntity(expr: 'repository.findOneBy({"slug": slug}, {"series": "DESC"})')] Competition $competition,
         string $roundSlug,
     ): Response {
         // A series edition's slug is only unique within its series - its results live under the series URL

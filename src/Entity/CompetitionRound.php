@@ -89,11 +89,13 @@ class CompetitionRound implements EntityWithEvents
     }
 
     /**
-     * No zone of its own nor a country to take it from - displayTimezone() is only the fallback (RoundTimezone)
+     * No zone saved and no country to take one from - displayTimezone() is only the fallback (RoundTimezone), the round
+     * form asks the organiser to check the start and pick the zone
      */
-    public function isTimezoneAssumed(): bool
+    public function isTimezoneNeverSaved(): bool
     {
-        return RoundTimezone::isAssumed($this->timezone, $this->competition->locationCountryCode, $this->competition->series?->locationCountryCode);
+        return ($this->timezone === null || RoundTimezone::isValid($this->timezone) === false)
+            && RoundTimezone::isAssumed($this->timezone, $this->competition->locationCountryCode, $this->competition->series?->locationCountryCode);
     }
 
     public function assignSlug(string $slug): void

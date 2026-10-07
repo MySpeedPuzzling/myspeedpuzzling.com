@@ -129,6 +129,19 @@ final class CompetitionRoundBadgeTest extends WebTestCase
         self::assertNull($round->badgeTextColor);
     }
 
+    public function testSomethingThatIsNoColourIsAFormError(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/en/edit-event-round/' . CompetitionRoundFixture::ROUND_WJPC_FINAL);
+        $browser->submitForm('Save Changes', ['competition_round_form[badgeBackgroundColor]' => 'red']);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('body', 'Enter a colour like #1e88e5');
+        self::assertSame('#ffc107', $this->roundNamed('Final Round', CompetitionFixture::COMPETITION_WJPC_2024)->badgeBackgroundColor);
+    }
+
     public function testTheOldFormDefaultReadsAsNoColour(): void
     {
         $browser = self::createClient();

@@ -48,21 +48,20 @@ final class RoundTimezone
     }
 
     /**
-     * Whether resolve() falls back to FALLBACK for these: no valid stored zone and no country to take one from.
+     * Whether the zone resolve() gives names no place the event is known to be in: no country on the event nor on its
+     * series, and the zone is FALLBACK - not saved (the round predates kept zones) or saved as FALLBACK, which is what
+     * the round form pre-selects for an event without a country, so it was most likely never chosen. Such a zone is
+     * named without a place ("Central European Time") - still right if Prague was picked on purpose.
      */
     public static function isAssumed(null|string $storedTimezone, null|string ...$countryCodes): bool
     {
-        if ($storedTimezone !== null && self::isValid($storedTimezone)) {
-            return false;
-        }
-
         foreach ($countryCodes as $countryCode) {
             if (CountryCode::fromCode($countryCode) !== null) {
                 return false;
             }
         }
 
-        return true;
+        return self::resolve($storedTimezone) === self::FALLBACK;
     }
 
     public static function isValid(string $timezone): bool

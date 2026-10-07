@@ -133,6 +133,31 @@ final class AddCompetitionControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('#competition_form_slug'));
     }
 
+    public function testWhatWasTypedInFieldsHiddenByRecurringCannotBlockTheSeries(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/add-event');
+
+        // Typed before "recurring" was ticked and hid them - an error there would be invisible
+        $browser->submitForm('Submit for Approval', [
+            'competition_form[name]' => 'Hidden Fields Series',
+            'competition_form[location]' => 'Prague',
+            'competition_form[isOnline]' => '0',
+            'competition_form[isRecurring]' => true,
+            'competition_form[registrationLink]' => 'not a url',
+            'competition_form[dateFrom]' => '20.06.2026',
+            'competition_form[dateTo]' => '01.06.2026',
+        ]);
+
+        $this->assertResponseRedirects();
+        self::assertNotFalse(self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT id FROM competition_series WHERE name = :name',
+            ['name' => 'Hidden Fields Series'],
+        ));
+    }
+
     /**
      * @return array<string, mixed>
      */

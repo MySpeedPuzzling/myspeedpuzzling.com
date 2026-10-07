@@ -48,7 +48,16 @@ readonly final class CompetitionSlugGenerator
      */
     public function normalize(string $input): string
     {
-        return strtolower((string) $this->slugger->slug(strtolower(trim($input))));
+        $input = trim($input);
+
+        // A pasted address ("myspeedpuzzling.com/en/events/wjpc-2026/") means its last part, not all of it
+        if (str_contains($input, '/')) {
+            $segments = array_values(array_filter(explode('/', (string) preg_replace('/[?#].*$/', '', $input)), static fn (string $segment): bool => $segment !== ''));
+            $input = $segments === [] ? '' : rawurldecode($segments[array_key_last($segments)]);
+        }
+
+        // Transliterated the same whatever the page language ("ü" → "u", not "ue" on a German page)
+        return strtolower((string) $this->slugger->slug(strtolower($input), '-', 'en'));
     }
 
     /**
@@ -78,7 +87,8 @@ SQL,
 
     /**
      * Whether another competition holds the slug: any competition for a standalone one (`$seriesId` null), the
-     * editions of the same series for an edition.
+     * editions of the same series or a standalone event for an edition - `/en/events/{slug}` must keep reaching the
+     * standalone event (an edition reached there is redirected to its series URL).
      */
     public function isTaken(string $slug, null|string $seriesId, null|string $exceptCompetitionId = null): bool
     {
@@ -89,7 +99,7 @@ SELECT EXISTS (
     SELECT 1
     FROM competition
     WHERE slug = :slug
-        AND (CAST(:seriesId AS UUID) IS NULL OR series_id = CAST(:seriesId AS UUID))
+        AND (CAST(:seriesId AS UUID) IS NULL OR series_id = CAST(:seriesId AS UUID) OR series_id IS NULL)
         AND (CAST(:exceptId AS UUID) IS NULL OR id <> CAST(:exceptId AS UUID))
 )
 SQL,

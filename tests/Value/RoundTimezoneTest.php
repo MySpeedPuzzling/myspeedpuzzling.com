@@ -33,7 +33,11 @@ final class RoundTimezoneTest extends TestCase
         self::assertTrue(RoundTimezone::isAssumed('Not/AZone', null, 'xx'));
         self::assertTrue(RoundTimezone::isAssumed(null));
 
-        self::assertFalse(RoundTimezone::isAssumed('Europe/Prague', null, null));
+        // Saved as the fallback the form pre-selects for an event without a country - most likely never chosen
+        self::assertTrue(RoundTimezone::isAssumed('Europe/Prague', null, null));
+
+        self::assertFalse(RoundTimezone::isAssumed('America/Toronto', null, null));
+        self::assertFalse(RoundTimezone::isAssumed('Europe/Prague', 'cz', null));
         self::assertFalse(RoundTimezone::isAssumed(null, 'cz', null));
         self::assertFalse(RoundTimezone::isAssumed(null, null, 'ca'));
     }

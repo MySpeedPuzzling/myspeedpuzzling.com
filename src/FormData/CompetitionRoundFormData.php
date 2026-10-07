@@ -25,8 +25,9 @@ final class CompetitionRoundFormData
         // Single-day event: the local "H:i" in $timezone on the event's day
         public null|string $startsAtTime = null,
         public null|string $timezone = null,
-        // Null = picked automatically (RoundBadgeColor)
+        // Null = picked automatically (RoundBadgeColor) - anything else must be a colour, not silently "automatic"
         #[Assert\Length(max: 250)]
+        #[Assert\Regex(pattern: '/^\s*#?([0-9a-f]{3}|[0-9a-f]{6})\s*$/i', message: 'competition_round_badge_color_invalid')]
         public null|string $badgeBackgroundColor = null,
         // Not on the web form (the text colour is picked for contrast) - only the internal API sets it
         #[Assert\Length(max: 250)]

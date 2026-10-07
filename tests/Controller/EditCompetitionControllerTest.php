@@ -171,11 +171,11 @@ final class EditCompetitionControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/edit-event/' . CompetitionFixture::COMPETITION_WJPC_2024);
         $this->assertResponseIsSuccessful();
         self::assertSame('wjpc-2024', $crawler->filter('#competition_form_slug')->attr('value'));
-        $this->assertSelectorTextSame('.input-group-text', 'localhost/en/events/');
+        $this->assertSelectorTextSame('[data-slug-prefix]', 'localhost/en/events/');
 
         $crawler = $browser->request('GET', '/en/edit-event/' . CompetitionSeriesFixture::EDITION_EJJ_69);
         self::assertSame('ejj-69-may-2026', $crawler->filter('#competition_form_slug')->attr('value'));
-        $this->assertSelectorTextSame('.input-group-text', 'localhost/en/series/euro-jigsaw-jam-series/');
+        $this->assertSelectorTextSame('[data-slug-prefix]', 'localhost/en/series/euro-jigsaw-jam-series/');
     }
 
     public function testRenamingAnEventKeepsItsUrl(): void
@@ -274,6 +274,50 @@ final class EditCompetitionControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(422);
         $this->assertSelectorTextContains('body', 'This URL is already taken');
         self::assertSame('ejj-69-may-2026', self::competitionRow(CompetitionSeriesFixture::EDITION_EJJ_69)['slug']);
+    }
+
+    public function testAnEditionCannotTakeAStandaloneEventsUrl(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        // /en/events/wjpc-2024 must keep reaching the standalone WJPC 2024, not redirect to the edition
+        $browser->request('GET', '/en/edit-event/' . CompetitionSeriesFixture::EDITION_EJJ_69);
+        $browser->submitForm('Save Changes', [
+            'competition_form[slug]' => 'wjpc-2024',
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('body', 'This URL is already taken');
+        self::assertSame('ejj-69-may-2026', self::competitionRow(CompetitionSeriesFixture::EDITION_EJJ_69)['slug']);
+    }
+
+    public function testAStandaloneEventsUrlReachesItEvenWhenAnEditionSharesTheSlug(): void
+    {
+        $browser = self::createClient();
+
+        // Possible through older generated edition slugs
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition SET slug = 'wjpc-2024' WHERE id = :id",
+            ['id' => CompetitionSeriesFixture::EDITION_EJJ_69],
+        );
+
+        $browser->request('GET', '/en/events/wjpc-2024');
+        $this->assertResponseIsSuccessful();
+    }
+
+    public function testAPastedFullAddressKeepsOnlyItsLastPart(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/edit-event/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE);
+        $browser->submitForm('Save Changes', [
+            'competition_form[slug]' => 'https://myspeedpuzzling.com/en/events/Jigsaw-Jäm-2026/?utm_source=x',
+        ]);
+
+        $this->assertResponseRedirects();
+        self::assertSame('jigsaw-jam-2026', self::competitionRow(CompetitionFixture::COMPETITION_RECURRING_ONLINE)['slug']);
     }
 
     public function testAnEmptyOrUnusableUrlIsAFormError(): void

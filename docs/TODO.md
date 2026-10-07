@@ -41,6 +41,26 @@ that would otherwise be forgotten. Newest section on top.
       - [x] a player who left (their self-joined row is soft-deleted and never matched) was signed up again by an old
         file - such a row is now skipped with a message.
 
+## Organiser fixes 2026-10-07 (Ou La La Puzzles report, `docs/features/competitions-management/README.md`)
+
+- [ ] Prod: "Ou La La SPC No. 17" exists twice - the duplicate (slug `ou-la-la-spc-no-17`, no date, no rounds) was
+      invisible on the series page; it is now listed as "Date not set". Jan asks the organiser which one to keep - no
+      data was changed.
+- [ ] An assumed round zone ("Central European Time" instead of "Czechia Time") is named neutrally on the round list,
+      round results and edition page only. Reveal times on the round puzzles page, `add_puzzle_to_round` help, the
+      edit-round flash and the reveal confirmation still say "Czechia Time" - `zoned_datetime()` already takes the
+      `assumed` flag, pass `round.timezoneAssumed` / `CompetitionRound` through those ~15 calls.
+- [ ] Two saves taking the same slug at the same moment: the handler re-check catches a save that finished in between,
+      a truly simultaneous one fails at flush with a unique violation (series, editions) = 500. Standalone events have
+      no DB constraint at all (`series_id` NULL) - consider a partial unique index `custom_competition_standalone_slug`
+      on `competition (slug) WHERE series_id IS NULL` after checking prod for duplicates.
+- [ ] `AddEditionHandler` still generates its own slug unique only within the series (could equal a standalone event's
+      - harmless since `/en/events/{slug}` prefers the standalone event, but `CompetitionSlugGenerator` should do it).
+- [ ] A URL (slug) error on the event/series edit form loses a chosen logo file - it has to be picked again.
+- [ ] Missing translation keys seen on the way (not competition pages): `collections.no_move_target_member`
+      (`collections/move.html.twig`), `wish_list.remove.title` and `wish_list.already_in_wishlist`
+      (`wishlist/add_item.html.twig`).
+
 ## Round time zones and secret-puzzle reveal (`docs/features/competitions-management/README.md`)
 
 - [ ] With the deploy, right after it: `myspeedpuzzling:backfill-round-puzzle-reveals` (dry run), read the list, then

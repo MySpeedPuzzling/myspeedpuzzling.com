@@ -65,7 +65,8 @@ final class EventDetailController extends AbstractController
         name: 'event_detail',
     )]
     public function __invoke(
-        #[MapEntity(mapping: ['slug' => 'slug'])] Competition $competition,
+        // An edition's slug is unique only within its series - a standalone event holding the slug wins
+        #[MapEntity(expr: 'repository.findOneBy({"slug": slug}, {"series": "DESC"})')] Competition $competition,
         #[CurrentUser] null|UserInterface $user,
         Request $request,
     ): Response {

@@ -21,7 +21,7 @@ final class EditCompetitionSeriesControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         self::assertSame('euro-jigsaw-jam-series', $crawler->filter('#competition_form_slug')->attr('value'));
-        $this->assertSelectorTextSame('.input-group-text', 'localhost/en/series/');
+        $this->assertSelectorTextSame('[data-slug-prefix]', 'localhost/en/series/');
     }
 
     public function testRenamingASeriesKeepsItsUrl(): void

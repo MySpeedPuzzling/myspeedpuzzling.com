@@ -385,7 +385,9 @@ names.)
    containers may disagree about a reveal during the rollout. For this release the column does not exist yet: replace
    both `cr.starts_at + make_interval(mins => cr.reveal_delay_minutes)` with `cr.starts_at + interval '10 minutes'`.
 2. **Deploy.** During the rollout a round form rendered by a new container but posted to an old one fails the old
-   release's extra-field check with a bare 422 - nothing is saved, the organiser saves again.
+   release's extra-field check with a bare 422 - nothing is saved, the organiser saves again. An add-puzzle page of
+   the old release, saved with "Hide until the round starts" on a new container, is asked again too (it sends no
+   reveal moment).
 3. **Every container runs the new image.** On lily,
    `docker inspect --format '{{.Name}} {{.Image}}' $(docker ps -q --filter name=myspeedpuzzling)`: every `web`, every
    `api` and the `messenger-consumer` container show the id of the deployed image

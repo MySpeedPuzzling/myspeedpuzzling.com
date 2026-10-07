@@ -10,7 +10,10 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipantsForManagement;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
  * The export is meant to be edited and imported back: imported unchanged it changes nothing.
@@ -19,17 +22,21 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  */
 readonly final class CompetitionParticipantExporter
 {
-    // PORT-TODO: PR #136 added a `registration_status` column (after `status`) to the export and the template, imported
-    // back by CompetitionParticipantImporter. Main rewrote the import (ParticipantImport\*, ColumnMapping, PlanBuilder) and
-    // keeps "an unchanged export imports as no change", so neither side is ported yet - port both together, opt-in for
-    // managed registration only, aligned with docs/features/competitions-management/participants-spreadsheet.md
     /** The columns of the downloadable template - an event-less sheet for new participants. */
     private const array TEMPLATE_HEADERS = ['name', 'country', 'external_id', 'msp_player_id', 'status', 'round_names', 'team_name'];
+
+    /**
+     * Only in the export of an event that manages registration, after every other column
+     * (docs/features/competitions-management/registration.md): what the organiser sees on the participants page.
+     * The import knows them and reads nothing from them - registrations change on the site, never through a file.
+     */
+    public const array REGISTRATION_HEADERS = ['registration_status', 'paid_at', 'checked_in_at'];
 
     public function __construct(
         private GetCompetitionParticipantsForManagement $getParticipants,
         private GetCompetitionRoundsForManagement $getRounds,
         private Connection $database,
+        private CompetitionRepository $competitionRepository,
     ) {
     }
 
@@ -56,6 +63,15 @@ readonly final class CompetitionParticipantExporter
             $headers[] = CompetitionParticipantImporter::TEAM_COLUMN_PREFIX . ' ' . $roundName;
         }
         $headers[] = 'participant_id';
+
+        $competition = $this->competitionRepository->get($competitionId);
+        $registrationTimezone = $competition->registrationManaged
+            ? RoundTimezone::resolve($competition->registrationTimezone, $competition->locationCountryCode, $competition->series?->locationCountryCode)
+            : null;
+
+        if ($registrationTimezone !== null) {
+            $headers = [...$headers, ...self::REGISTRATION_HEADERS];
+        }
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -90,6 +106,13 @@ readonly final class CompetitionParticipantExporter
             }
 
             $values[] = $participant->participantId;
+
+            if ($registrationTimezone !== null) {
+                // Rows without a status hold a spot - reserved, as on the participants page
+                $values[] = ($participant->registrationStatus ?? RegistrationStatus::Reserved)->value;
+                $values[] = $participant->paidAt !== null ? RoundTimezone::toLocal($participant->paidAt, $registrationTimezone)->format('Y-m-d H:i') : null;
+                $values[] = $participant->checkedInAt !== null ? RoundTimezone::toLocal($participant->checkedInAt, $registrationTimezone)->format('Y-m-d H:i') : null;
+            }
 
             $col = 1;
             foreach ($values as $value) {

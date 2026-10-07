@@ -12,7 +12,6 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[Assert\Callback('validateOfflineFields')]
 #[Assert\Callback('validateDates')]
-#[Assert\Callback('validateRegistrationFields')]
 final class CompetitionFormData
 {
     private const int MAX_DURATION_DAYS = 30;
@@ -46,32 +45,7 @@ final class CompetitionFormData
         public array $maintainers = [],
         // The "URL" field of the edit forms (CompetitionFormType `url_field`), checked by CompetitionUrlField
         public null|string $slug = null,
-        public bool $registrationManaged = false,
-        #[Assert\Positive]
-        public null|int $capacity = null,
-        public null|DateTimeImmutable $registrationOpensAt = null,
-        public null|DateTimeImmutable $registrationClosesAt = null,
-        #[Assert\Length(max: 250)]
-        public null|string $entryFeeText = null,
-        public null|string $paymentInstructions = null,
     ) {
-    }
-
-    public function validateRegistrationFields(ExecutionContextInterface $context): void
-    {
-        if ($this->registrationManaged === false) {
-            return;
-        }
-
-        if (
-            $this->registrationOpensAt !== null
-            && $this->registrationClosesAt !== null
-            && $this->registrationClosesAt < $this->registrationOpensAt
-        ) {
-            $context->buildViolation('competition.form.registration_closes_before_opens')
-                ->atPath('registrationClosesAt')
-                ->addViolation();
-        }
     }
 
     public function validateOfflineFields(ExecutionContextInterface $context): void
@@ -140,13 +114,6 @@ final class CompetitionFormData
         $data->dateFrom = $competition->dateFrom;
         $data->dateTo = $competition->dateTo;
         $data->isOnline = $competition->isOnline;
-
-        $data->registrationManaged = $competition->registrationManaged;
-        $data->capacity = $competition->capacity;
-        $data->registrationOpensAt = $competition->registrationOpensAt;
-        $data->registrationClosesAt = $competition->registrationClosesAt;
-        $data->entryFeeText = $competition->entryFeeText;
-        $data->paymentInstructions = $competition->paymentInstructions;
 
         $maintainerIds = [];
         foreach ($competition->maintainers as $maintainer) {

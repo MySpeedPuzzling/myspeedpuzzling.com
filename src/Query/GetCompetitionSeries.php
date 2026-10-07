@@ -234,6 +234,7 @@ SQL;
             ? "({$editionStart} >= :now OR {$editionStart} IS NULL)"
             : "{$editionStart} < :now";
         $order = $upcoming ? 'ASC' : 'DESC';
+        $going = CompetitionParticipantGoing::sql('cp');
 
         $query = <<<SQL
 SELECT
@@ -243,7 +244,8 @@ SELECT
     c.logo,
     c.date_from,
     c.date_to,
-    c.registration_link,
+    -- Hidden while the edition manages registration on MySpeedPuzzling (docs/features/competitions-management/registration.md)
+    CASE WHEN c.registration_managed THEN NULL ELSE c.registration_link END AS registration_link,
     c.results_link,
     MIN(cr.starts_at) AS starts_at,
     -- An edition's rounds share one zone in practice; any of them shows its first start right
@@ -257,7 +259,7 @@ SELECT
 FROM competition c
 LEFT JOIN competition_round cr ON cr.competition_id = c.id
 LEFT JOIN competition_round_puzzle crp ON crp.round_id = cr.id
-LEFT JOIN competition_participant cp ON cp.competition_id = c.id AND cp.deleted_at IS NULL
+LEFT JOIN competition_participant cp ON cp.competition_id = c.id AND {$going}
 WHERE c.series_id = :seriesId
     AND {$dateCondition}
 GROUP BY c.id

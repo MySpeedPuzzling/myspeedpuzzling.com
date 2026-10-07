@@ -1,11 +1,15 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'competition.check_in.title'|trans }} - {{ competition.name }}{% endblock %}
+{% set hide_comparison_launcher = true %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block title %}{{ 'competition_registration.check_in.title'|trans }} - {{ competition.name }}{% endblock %}
 
 {% block content %}
-    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_participants', {competitionId: competition.id}), fallbackTitle: 'competition.participants.title'|trans}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_participants', {competitionId: competition.id}), fallbackTitle: 'competition.manage_participants'|trans}) }}
 
-    <h1 class="h3 mb-1">{{ 'competition.check_in.title'|trans }}</h1>
+    <h1 class="h3 mb-1">{{ 'competition_registration.check_in.title'|trans }}</h1>
     <p class="text-muted mb-4">{{ competition.name }}</p>
 
     <twig:CompetitionCheckIn competitionId="{{ competition.id }}" />

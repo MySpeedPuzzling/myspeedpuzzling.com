@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
 
 /**
@@ -30,6 +31,6 @@ readonly final class ApplyParticipantImport implements SerializedByLock
 
     public function lockKey(): string
     {
-        return 'participant-import-' . strtolower($this->competitionId);
+        return CompetitionParticipantsLock::key($this->competitionId);
     }
 }

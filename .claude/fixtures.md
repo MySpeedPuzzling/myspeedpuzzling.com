@@ -231,8 +231,6 @@ PLAYER_PRIVATE = [WJPC_2024]. Nobody but the players above goes to the fair.
 | `COMPETITION_UNAPPROVED` | Unapproved Puzzle Event | Vienna, AT | none |
 | `COMPETITION_RECURRING_ONLINE` | Euro Jigsaw Jam | Online | none (legacy recurring) |
 | `MarketplaceEventFixture::COMPETITION_SWAP_FAIR` | Puzzle Swap Fair | Olomouc, CZ | none (see "Marketplace at events") |
-| `COMPETITION_MANAGED_REGISTRATION` | Managed Registration Cup | Ostrava, CZ | none — registrationManaged, capacity 2, entry fee "10 EUR per person", payment instructions set |
-| `COMPETITION_MANAGED_CLOSED` | Managed Closed Cup | Plzen, CZ | none — registrationManaged, registration closed yesterday (window tests) |
 
 ### Competition Series
 

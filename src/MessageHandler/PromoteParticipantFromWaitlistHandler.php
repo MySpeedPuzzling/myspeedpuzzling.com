@@ -4,72 +4,47 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
+use SpeedPuzzling\Web\Exceptions\RegistrationNotManaged;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
-use SpeedPuzzling\Web\Services\PlayerAccountEmail;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\Mailer\MailerInterface;
+use SpeedPuzzling\Web\Services\CompetitionRegistrationMailer;
+use SpeedPuzzling\Web\Value\RegistrationEmail;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * The organiser decides who gets a free spot (the management page suggests the first in line) - promotion is never
+ * automatic. Promoting above the capacity is the organiser's call too, like adding a participant by hand.
+ */
 #[AsMessageHandler]
 readonly final class PromoteParticipantFromWaitlistHandler
 {
     public function __construct(
         private CompetitionParticipantRepository $participantRepository,
-        private MailerInterface $mailer,
-        private UrlGeneratorInterface $urlGenerator,
-        private TranslatorInterface $translator,
-        private PlayerAccountEmail $playerAccountEmail,
+        private CompetitionRegistrationMailer $registrationMailer,
     ) {
     }
 
+    /**
+     * @throws CompetitionParticipantNotFound
+     * @throws RegistrationNotManaged
+     */
     public function __invoke(PromoteParticipantFromWaitlist $message): void
     {
-        $participant = $this->participantRepository->get($message->participantId);
+        $participant = $this->participantRepository->getActiveOfCompetition($message->competitionId, $message->participantId);
+
+        if ($participant->competition->registrationManaged === false) {
+            throw new RegistrationNotManaged();
+        }
+
+        if ($participant->effectiveRegistrationStatus() !== RegistrationStatus::Waitlisted) {
+            // Promoted already (a second click, another device) - no change, no second e-mail
+            return;
+        }
+
         $participant->promoteFromWaitlist();
 
-        $player = $participant->player;
-
-        if ($player === null) {
-            return;
-        }
-
-        // PORT-TODO: player.email was dropped on main - the address is user_account.email (PlayerAccountEmail)
-        $playerEmail = $this->playerAccountEmail->ofPlayer($player);
-
-        if ($playerEmail === null) {
-            return;
-        }
-
-        $playerLocale = $player->locale ?? 'en';
-        $competition = $participant->competition;
-
-        $eventUrl = $this->urlGenerator->generate('event_detail', [
-            'slug' => $competition->slug,
-        ], UrlGeneratorInterface::ABSOLUTE_URL);
-
-        $subject = $this->translator->trans(
-            'competition_registration_promoted.subject',
-            ['%competitionName%' => $competition->name],
-            domain: 'emails',
-            locale: $playerLocale,
-        );
-
-        $email = (new TemplatedEmail())
-            ->to($playerEmail)
-            ->locale($playerLocale)
-            ->subject($subject)
-            ->htmlTemplate('emails/competition_registration_promoted.html.twig')
-            ->context([
-                'competitionName' => $competition->name,
-                'eventUrl' => $eventUrl,
-                'entryFeeText' => $competition->entryFeeText,
-                'paymentInstructions' => $competition->paymentInstructions,
-            ]);
-        $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
-
-        $this->mailer->send($email);
+        $this->registrationMailer->send($participant, RegistrationEmail::Promoted);
     }
 }

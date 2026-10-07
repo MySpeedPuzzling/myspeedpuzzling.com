@@ -22,11 +22,6 @@ use SpeedPuzzling\Web\Value\ParticipantImportRound;
 use SpeedPuzzling\Web\Value\ParticipantSheet;
 use Symfony\Component\Translation\TranslatableMessage;
 
-// PORT-TODO: PR #136 imported a `registration_status` column (reserved/paid/waitlisted, applyRegistrationStatus()) and
-// registered new participants of a managed-registration competition as reserved. Main replaced this importer with the
-// planner/applier pipeline - port it there (ColumnMapping field, PlanBuilder change, ParticipantImportApplier) together
-// with the export column (see CompetitionParticipantExporter)
-
 /**
  * The import without a preview - the console command (myspeedpuzzling:import-competition-participants) and
  * ImportCompetitionParticipants: the file's detected columns, planned in "Update only" and applied, the same code
@@ -129,8 +124,14 @@ readonly final class CompetitionParticipantImporter
 
         $unknownColumns = [];
         $teamColumnPrefix = ColumnMapping::normaliseHeader(self::TEAM_COLUMN_PREFIX);
+        $registrationColumns = array_map(ColumnMapping::normaliseHeader(...), CompetitionParticipantExporter::REGISTRATION_HEADERS);
         foreach ($sheet->headers as $index => $header) {
             if ($header === '' || isset($mapping->fields[$index])) {
+                continue;
+            }
+
+            // The export's registration columns (managed registration) - known, never imported
+            if (in_array(ColumnMapping::normaliseHeader($header), $registrationColumns, true)) {
                 continue;
             }
 

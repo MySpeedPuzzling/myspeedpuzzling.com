@@ -39,6 +39,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     registration_closes_at?: null|string,
  *     entry_fee_text?: null|string,
  *     payment_instructions?: null|string,
+ *     registration_timezone?: null|string,
  * }
  */
 readonly final class CompetitionEvent
@@ -77,9 +78,12 @@ readonly final class CompetitionEvent
         public null|DateTimeImmutable $registrationClosesAt = null,
         public null|string $entryFeeText = null,
         public null|string $paymentInstructions = null,
+        public null|string $registrationTimezone = null,
     ) {
         $this->link = $this->appendUtm($link);
-        $this->registrationLink = $this->appendUtm($registrationLink);
+        // While the event manages registration on MySpeedPuzzling the external link stays saved but is not shown -
+        // one way to register (docs/features/competitions-management/registration.md)
+        $this->registrationLink = $registrationManaged ? null : $this->appendUtm($registrationLink);
         $this->resultsLink = $this->appendUtm($resultsLink);
     }
 
@@ -123,6 +127,7 @@ readonly final class CompetitionEvent
             registrationClosesAt: isset($row['registration_closes_at']) ? new DateTimeImmutable($row['registration_closes_at']) : null,
             entryFeeText: $row['entry_fee_text'] ?? null,
             paymentInstructions: $row['payment_instructions'] ?? null,
+            registrationTimezone: $row['registration_timezone'] ?? null,
         );
     }
 

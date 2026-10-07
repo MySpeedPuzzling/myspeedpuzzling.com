@@ -7,8 +7,10 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Exceptions\OrganizerNoteTooLong;
 use SpeedPuzzling\Web\Message\EditCompetitionParticipant;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -29,12 +31,20 @@ readonly final class EditCompetitionParticipantHandler
 
     public function __invoke(EditCompetitionParticipant $message): void
     {
+        // The column's length - refused before anything changes (the participants page checks it first)
+        if ($message->organizerNote !== null && mb_strlen($message->organizerNote) > CompetitionParticipant::ORGANIZER_NOTE_MAX_LENGTH) {
+            throw new OrganizerNoteTooLong();
+        }
+
         $participant = $this->participantRepository->get($message->participantId);
 
         $participant->updateName($message->name);
         $participant->updateCountry($message->country);
         $participant->updateExternalId($message->externalId);
-        $participant->updateOrganizerNote($message->organizerNote);
+
+        if ($message->changeOrganizerNote) {
+            $participant->updateOrganizerNote($message->organizerNote);
+        }
 
         // Sync player connection
         if ($message->playerId !== null) {

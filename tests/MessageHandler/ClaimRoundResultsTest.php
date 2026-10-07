@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
+use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Message\ClaimRoundResults;
 use SpeedPuzzling\Web\Message\DeleteOfficialRoundResult;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Message\UpsertOfficialRoundResult;
 use SpeedPuzzling\Web\Query\GetClaimableResultsForPlayer;
+use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Message\PublishRoundResults;
 use SpeedPuzzling\Web\Repository\OfficialRoundResultRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -59,11 +64,7 @@ final class ClaimRoundResultsTest extends KernelTestCase
         $teamId = $result->team->id->toString();
 
         // A player claims their team spot via the join flow
-        $this->messageBus->dispatch(new JoinCompetition(
-            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
-            playerId: PlayerFixture::PLAYER_REGULAR,
-            teamId: $teamId,
-        ));
+        $this->putOnTeam(PlayerFixture::PLAYER_REGULAR, $teamId);
 
         // Their result is claimable
         $claimable = $this->getClaimableResults->inCompetition(
@@ -117,22 +118,14 @@ final class ClaimRoundResultsTest extends KernelTestCase
         $teamId = $result->team->id->toString();
 
         // First member joins + claims
-        $this->messageBus->dispatch(new JoinCompetition(
-            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
-            playerId: PlayerFixture::PLAYER_REGULAR,
-            teamId: $teamId,
-        ));
+        $this->putOnTeam(PlayerFixture::PLAYER_REGULAR, $teamId);
         $this->messageBus->dispatch(new ClaimRoundResults(
             playerId: PlayerFixture::PLAYER_REGULAR,
             resultIds: [$resultId],
         ));
 
         // Second member joins the same team + claims
-        $this->messageBus->dispatch(new JoinCompetition(
-            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
-            playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
-            teamId: $teamId,
-        ));
+        $this->putOnTeam(PlayerFixture::PLAYER_WITH_FAVORITES, $teamId);
         $this->messageBus->dispatch(new ClaimRoundResults(
             playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
             resultIds: [$resultId],
@@ -159,7 +152,11 @@ final class ClaimRoundResultsTest extends KernelTestCase
         self::assertSame(1, (int) $count);
     }
 
-    public function testLeaveCompetitionRevertsClaimCreatedTime(): void
+    /**
+     * Leaving an event is an RSVP ("I'm not coming"), it never deletes a result from the profile
+     * (architect D12 - the join flow no longer un-claims).
+     */
+    public function testLeaveCompetitionKeepsClaimedTime(): void
     {
         $resultId = Uuid::uuid7()->toString();
         $this->messageBus->dispatch(new UpsertOfficialRoundResult(
@@ -179,11 +176,7 @@ final class ClaimRoundResultsTest extends KernelTestCase
         $result = $this->resultRepository->get($resultId);
         self::assertNotNull($result->team);
 
-        $this->messageBus->dispatch(new JoinCompetition(
-            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
-            playerId: PlayerFixture::PLAYER_REGULAR,
-            teamId: $result->team->id->toString(),
-        ));
+        $this->putOnTeam(PlayerFixture::PLAYER_REGULAR, $result->team->id->toString());
         $this->messageBus->dispatch(new ClaimRoundResults(
             playerId: PlayerFixture::PLAYER_REGULAR,
             resultIds: [$resultId],
@@ -192,22 +185,14 @@ final class ClaimRoundResultsTest extends KernelTestCase
         $result = $this->resultRepository->get($resultId);
         self::assertNotNull($result->solvingTime);
 
-        // Leaving un-claims: the claim-created row is deleted, the official result stays
         $this->messageBus->dispatch(new LeaveCompetition(
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             playerId: PlayerFixture::PLAYER_REGULAR,
         ));
 
         $result = $this->resultRepository->get($resultId);
-        self::assertNull($result->solvingTime);
+        self::assertNotNull($result->solvingTime);
         self::assertSame(3333, $result->secondsToSolve);
-
-        /** @var int|string $count */
-        $count = $this->database->executeQuery(
-            'SELECT COUNT(*) FROM puzzle_solving_time WHERE competition_round_id = :roundId',
-            ['roundId' => CompetitionRoundFixture::ROUND_WJPC_PAIRS],
-        )->fetchOne();
-        self::assertSame(0, (int) $count);
     }
 
     public function testOrganizerEditPropagatesToClaimedTime(): void
@@ -230,11 +215,7 @@ final class ClaimRoundResultsTest extends KernelTestCase
         $result = $this->resultRepository->get($resultId);
         self::assertNotNull($result->team);
 
-        $this->messageBus->dispatch(new JoinCompetition(
-            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
-            playerId: PlayerFixture::PLAYER_REGULAR,
-            teamId: $result->team->id->toString(),
-        ));
+        $this->putOnTeam(PlayerFixture::PLAYER_REGULAR, $result->team->id->toString());
         $this->messageBus->dispatch(new ClaimRoundResults(
             playerId: PlayerFixture::PLAYER_REGULAR,
             resultIds: [$resultId],
@@ -282,11 +263,7 @@ final class ClaimRoundResultsTest extends KernelTestCase
         $result = $this->resultRepository->get($resultId);
         self::assertNotNull($result->team);
 
-        $this->messageBus->dispatch(new JoinCompetition(
-            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
-            playerId: PlayerFixture::PLAYER_REGULAR,
-            teamId: $result->team->id->toString(),
-        ));
+        $this->putOnTeam(PlayerFixture::PLAYER_REGULAR, $result->team->id->toString());
 
         // Round results are not published → nothing claimable
         $claimable = $this->getClaimableResults->inCompetition(
@@ -295,5 +272,44 @@ final class ClaimRoundResultsTest extends KernelTestCase
         );
 
         self::assertNotContains($resultId, array_column($claimable, 'resultId'));
+    }
+
+    /**
+     * The roster spot the removed "I was in team X" join gave (architect D3 - claiming is being redesigned): the
+     * player's own participant row of the event on the team of its round.
+     */
+    private function putOnTeam(string $playerId, string $teamId): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $team = $entityManager->find(CompetitionTeam::class, $teamId);
+        assert($team instanceof CompetitionTeam);
+
+        $connections = self::getContainer()->get(GetCompetitionParticipants::class)
+            ->getPlayerConnections(CompetitionFixture::COMPETITION_WJPC_2024, $playerId);
+
+        if ($connections === []) {
+            $this->messageBus->dispatch(new JoinCompetition(
+                competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
+                playerId: $playerId,
+            ));
+            $connections = self::getContainer()->get(GetCompetitionParticipants::class)
+                ->getPlayerConnections(CompetitionFixture::COMPETITION_WJPC_2024, $playerId);
+        }
+
+        $participant = $entityManager->find(CompetitionParticipant::class, $connections[0]);
+        assert($participant instanceof CompetitionParticipant);
+
+        $participantRound = $entityManager->getRepository(CompetitionParticipantRound::class)->findOneBy([
+            'participant' => $participant,
+            'round' => $team->round,
+        ]);
+
+        if ($participantRound instanceof CompetitionParticipantRound) {
+            $participantRound->assignToTeam($team);
+        } else {
+            $entityManager->persist(new CompetitionParticipantRound(Uuid::uuid7(), $participant, $team->round, $team));
+        }
+
+        $entityManager->flush();
     }
 }

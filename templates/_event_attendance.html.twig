@@ -7,8 +7,12 @@
     - attendance: SpeedPuzzling\Web\Results\EventAttendance (GetEventAttendance)
 
     A visitor gets "I'm going" too - joining asks them to sign in first and brings them back.
+    An event that manages registration shows its registration card instead (attendance.registration,
+    docs/features/competitions-management/registration.md).
 #}
-{% if attendance.isGoing %}
+{% if attendance.registration is not null %}
+    {{ include('_event_registration_card.html.twig', {competition_id: competition_id, attendance: attendance, registration: attendance.registration}) }}
+{% elseif attendance.isGoing %}
     <span class="btn btn-sm btn-success disabled me-2">
         <i class="bi bi-check-lg me-1"></i>{{ 'competition.join.you_are_going'|trans }}
     </span>

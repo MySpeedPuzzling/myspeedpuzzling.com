@@ -14,6 +14,8 @@ readonly final class EventAttendance
         public bool $isGoing,
         // "Change" only makes sense while the organizer's list still has someone to switch to
         public bool $canChangeParticipant,
+        // Only for an event that manages registration - the block then is the registration card
+        public null|EventRegistration $registration = null,
     ) {
     }
 

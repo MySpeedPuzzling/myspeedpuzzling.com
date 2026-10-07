@@ -13,10 +13,8 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
-use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -151,47 +149,6 @@ final class CompetitionFormType extends AbstractType
             'required' => false,
         ]);
 
-        $builder->add('registrationManaged', CheckboxType::class, [
-            'label' => 'competition.form.registration_managed',
-            'help' => 'competition.form.registration_managed_help',
-            'required' => false,
-        ]);
-
-        $builder->add('capacity', IntegerType::class, [
-            'label' => 'competition.form.capacity',
-            'help' => 'competition.form.capacity_help',
-            'required' => false,
-            'attr' => ['min' => 1],
-        ]);
-
-        $builder->add('registrationOpensAt', DateTimeType::class, [
-            'label' => 'competition.form.registration_opens_at',
-            'required' => false,
-            'widget' => 'single_text',
-            'input' => 'datetime_immutable',
-        ]);
-
-        $builder->add('registrationClosesAt', DateTimeType::class, [
-            'label' => 'competition.form.registration_closes_at',
-            'help' => 'competition.form.registration_closes_at_help',
-            'required' => false,
-            'widget' => 'single_text',
-            'input' => 'datetime_immutable',
-        ]);
-
-        $builder->add('entryFeeText', TextType::class, [
-            'label' => 'competition.form.entry_fee',
-            'help' => 'competition.form.entry_fee_help',
-            'required' => false,
-        ]);
-
-        $builder->add('paymentInstructions', TextareaType::class, [
-            'label' => 'competition.form.payment_instructions',
-            'help' => 'competition.form.payment_instructions_help',
-            'required' => false,
-            'attr' => ['rows' => 3],
-        ]);
-
         // A series has no dates nor registration/results links (its editions have them) and is recurring by
         // definition - the fields are left out, so `isRecurring` keeps the true its form data comes with and the
         // dates of an in-person event are not asked for
@@ -201,14 +158,7 @@ final class CompetitionFormType extends AbstractType
                 ->remove('resultsLink')
                 ->remove('dateFrom')
                 ->remove('dateTo')
-                ->remove('isRecurring')
-                // Managed registration is per event - a series has none (its editions may)
-                ->remove('registrationManaged')
-                ->remove('capacity')
-                ->remove('registrationOpensAt')
-                ->remove('registrationClosesAt')
-                ->remove('entryFeeText')
-                ->remove('paymentInstructions');
+                ->remove('isRecurring');
         } else {
             // "Recurring" ticked on the add form hides the dates and the registration/results links (a series has
             // none) - whatever was typed in them before is dropped here, so no error can land on a hidden field

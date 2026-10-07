@@ -1,0 +1,23 @@
+{# The organiser's official results tools of one round - Live entry (live_results), Results (results_desk) and
+   Seating (round_seating, in-person events only; "not used" while the round goes without table numbers).
+   Shared by the round list, the results overview and the results desk (docs/features/competitions-management/results-desk.md).
+   Expects: round_id, is_online; optional: table_numbers_off (false), current ('live' | 'desk' | 'seating' - left out),
+   button_class ('btn-sm btn-outline-primary'), return_url + return_title (passed on as ?return=) #}
+{%- set tool_query = return_url|default(null) is not null ? {return: return_url, return_title: return_title|default('')} : {} -%}
+{%- set tool_button = button_class|default('btn-sm btn-outline-primary') -%}
+{%- if current|default(null) != 'live' -%}
+    <a href="{{ path('live_results', {roundId: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="live">
+        <i class="bi bi-phone me-1" aria-hidden="true"></i>{{ 'results_desk.tools.live_entry'|trans }}
+    </a>
+{%- endif -%}
+{%- if current|default(null) != 'desk' -%}
+    <a href="{{ path('results_desk', {roundId: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="desk">
+        <i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'results_desk.tools.results'|trans }}
+    </a>
+{%- endif -%}
+{%- if not is_online and current|default(null) != 'seating' -%}
+    <a href="{{ path('round_seating', {roundId: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="seating">
+        <i class="bi bi-123 me-1" aria-hidden="true"></i>{{ 'results_desk.tools.seating'|trans }}
+        {%- if table_numbers_off|default(false) %} <span class="badge text-bg-light border ms-1" data-round-tool-not-used>{{ 'results_desk.tools.seating_not_used'|trans }}</span>{% endif -%}
+    </a>
+{%- endif -%}

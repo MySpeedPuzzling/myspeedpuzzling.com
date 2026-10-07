@@ -15,10 +15,13 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 
 #[Entity]
 class CompetitionParticipant
 {
+    public const int ORGANIZER_NOTE_MAX_LENGTH = 255;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $connectedAt = null;
@@ -38,6 +41,27 @@ class CompetitionParticipant
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $deletedAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, nullable: true, enumType: RegistrationStatus::class)]
+    public null|RegistrationStatus $registrationStatus = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $registeredAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $paidAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $checkedInAt = null;
+
+    /** Private to the event's maintainers, never shown publicly */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: self::ORGANIZER_NOTE_MAX_LENGTH, nullable: true)]
+    public null|string $organizerNote = null;
 
     public function __construct(
         #[Id]
@@ -112,5 +136,80 @@ class CompetitionParticipant
     public function markAsImported(): void
     {
         $this->source = ParticipantSource::Imported;
+    }
+
+    /**
+     * A new registration to an event with managed registration (docs/features/competitions-management/registration.md):
+     * reserved, or waitlisted when the event is full. A registration made again after cancelling starts fresh - not paid,
+     * not checked in, at the end of the queue - but keeps when it was paid before: the organiser's record of a payment
+     * they hold is never wiped by the player (the participants page shows it, "Mark paid" confirms it again).
+     */
+    public function register(RegistrationStatus $status, DateTimeImmutable $registeredAt): void
+    {
+        $this->registrationStatus = $status;
+        $this->registeredAt = $registeredAt;
+        $this->checkedInAt = null;
+    }
+
+    /**
+     * A waitlist exists only on an event that manages registration (CompetitionParticipantGoing): a waitlisted row that
+     * comes back on an event that does not - joining again, the organiser's restore - holds a spot like every other
+     * "I'm going".
+     */
+    public function leaveWaitlistOfUnmanagedEvent(): void
+    {
+        if ($this->registrationStatus === RegistrationStatus::Waitlisted) {
+            $this->registrationStatus = RegistrationStatus::Reserved;
+        }
+    }
+
+    /**
+     * Rows without a status (on the list before registration was managed, imported, "I'm going" before) hold a spot -
+     * they read as reserved.
+     */
+    public function effectiveRegistrationStatus(): RegistrationStatus
+    {
+        return $this->registrationStatus ?? RegistrationStatus::Reserved;
+    }
+
+    public function markPaid(DateTimeImmutable $paidAt): void
+    {
+        $this->registrationStatus = RegistrationStatus::Paid;
+        $this->paidAt = $paidAt;
+    }
+
+    public function unmarkPaid(): void
+    {
+        $this->registrationStatus = RegistrationStatus::Reserved;
+        $this->paidAt = null;
+    }
+
+    /**
+     * The one "is going" rule (CompetitionParticipantGoing) on the entity: not removed from the event, not waiting on
+     * its waitlist.
+     */
+    public function isGoing(): bool
+    {
+        return $this->isDeleted() === false && $this->registrationStatus !== RegistrationStatus::Waitlisted;
+    }
+
+    public function promoteFromWaitlist(): void
+    {
+        $this->registrationStatus = RegistrationStatus::Reserved;
+    }
+
+    public function checkIn(DateTimeImmutable $checkedInAt): void
+    {
+        $this->checkedInAt = $checkedInAt;
+    }
+
+    public function undoCheckIn(): void
+    {
+        $this->checkedInAt = null;
+    }
+
+    public function updateOrganizerNote(null|string $organizerNote): void
+    {
+        $this->organizerNote = $organizerNote;
     }
 }

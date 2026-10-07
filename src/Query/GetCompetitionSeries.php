@@ -26,10 +26,12 @@ readonly final class GetCompetitionSeries
      */
     public function byId(string $seriesId): CompetitionSeriesOverview
     {
+        $shownOnPage = GetCompetitionPageSections::sqlShownOnSeriesPage('s', 'cs');
         $query = <<<SQL
-SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id, approved_at, rejected_at
-FROM competition_series
-WHERE id = :seriesId
+SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+       EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections
+FROM competition_series cs
+WHERE cs.id = :seriesId
 SQL;
 
         $row = $this->database
@@ -48,10 +50,12 @@ SQL;
      */
     public function bySlug(string $slug): CompetitionSeriesOverview
     {
+        $shownOnPage = GetCompetitionPageSections::sqlShownOnSeriesPage('s', 'cs');
         $query = <<<SQL
-SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id, approved_at, rejected_at
-FROM competition_series
-WHERE slug = :slug
+SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+       EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections
+FROM competition_series cs
+WHERE cs.slug = :slug
 SQL;
 
         $row = $this->database
@@ -234,6 +238,7 @@ SQL;
             ? "({$editionStart} >= :now OR {$editionStart} IS NULL)"
             : "{$editionStart} < :now";
         $order = $upcoming ? 'ASC' : 'DESC';
+        $going = CompetitionParticipantGoing::sql('cp');
 
         $query = <<<SQL
 SELECT
@@ -243,7 +248,8 @@ SELECT
     c.logo,
     c.date_from,
     c.date_to,
-    c.registration_link,
+    -- Hidden while the edition manages registration on MySpeedPuzzling (docs/features/competitions-management/registration.md)
+    CASE WHEN c.registration_managed THEN NULL ELSE c.registration_link END AS registration_link,
     c.results_link,
     MIN(cr.starts_at) AS starts_at,
     -- An edition's rounds share one zone in practice; any of them shows its first start right
@@ -257,7 +263,7 @@ SELECT
 FROM competition c
 LEFT JOIN competition_round cr ON cr.competition_id = c.id
 LEFT JOIN competition_round_puzzle crp ON crp.round_id = cr.id
-LEFT JOIN competition_participant cp ON cp.competition_id = c.id AND cp.deleted_at IS NULL
+LEFT JOIN competition_participant cp ON cp.competition_id = c.id AND {$going}
 WHERE c.series_id = :seriesId
     AND {$dateCondition}
 GROUP BY c.id
@@ -334,6 +340,7 @@ SQL;
          *     rejected_at: null|string,
          *     next_edition_date?: null|string,
          *     added_by_player_name?: null|string,
+         *     has_page_sections?: bool,
          * } $row
          */
 
@@ -361,6 +368,7 @@ SQL;
             approvedAt: $row['approved_at'] !== null ? new DateTimeImmutable($row['approved_at']) : null,
             rejectedAt: $row['rejected_at'] !== null ? new DateTimeImmutable($row['rejected_at']) : null,
             addedByPlayerName: $row['added_by_player_name'] ?? null,
+            hasPageSections: $row['has_page_sections'] ?? false,
         );
     }
 }

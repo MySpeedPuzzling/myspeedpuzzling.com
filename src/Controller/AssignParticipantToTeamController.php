@@ -44,7 +44,8 @@ final class AssignParticipantToTeamController extends AbstractController
     {
         $participantRound = $this->participantRoundRepository->get($participantRoundId);
         $roundId = $participantRound->round->id->toString();
-        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $participantRound->round->competition->id->toString());
+        $competitionId = $participantRound->round->competition->id->toString();
+        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         if (!$this->isCsrfTokenValid(ManageRoundTeamsController::csrfTokenId($roundId), $request->request->getString('_token'))) {
             $this->addFlash('danger', $this->translator->trans('competition.teams.flash.expired'));
@@ -61,10 +62,22 @@ final class AssignParticipantToTeamController extends AbstractController
             return $this->redirectToRoute('manage_round_teams', ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
         }
 
+        // A pair/team with an official result keeps it - the organiser is told it now belongs to the new line-up
+        $moves = ($participantRound->team?->id->toString() ?? '') !== strtolower($teamId);
+        $teamsWithResult = $moves && (
+            $participantRound->team?->hasOfficialData() === true
+            || ($teamId !== '' && $this->competitionTeamRepository->get($teamId)->hasOfficialData())
+        );
+
         $this->messageBus->dispatch(new AssignParticipantToTeam(
+            competitionId: $competitionId,
             participantRoundId: $participantRoundId,
             teamId: $teamId !== '' ? $teamId : null,
         ));
+
+        if ($teamsWithResult) {
+            $this->addFlash('warning', $this->translator->trans('official_results.guard.team_line_up_changed'));
+        }
 
         return $this->redirectToRoute('manage_round_teams', ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
     }

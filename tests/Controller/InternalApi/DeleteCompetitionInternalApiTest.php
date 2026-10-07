@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class DeleteCompetitionInternalApiTest extends WebTestCase
@@ -31,6 +32,17 @@ final class DeleteCompetitionInternalApiTest extends WebTestCase
         self::assertStringContainsString('result(s) - it is not deleted', (string) json_encode($error));
 
         self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024);
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testRefusesACompetitionWithOfficialResultsOnly(): void
+    {
+        $browser = self::createClient();
+
+        self::callInternalApi($browser, 'DELETE', '/internal-api/competitions/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
+        self::assertResponseStatusCodeSame(409);
+
+        self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
         self::assertResponseIsSuccessful();
     }
 

@@ -129,6 +129,34 @@ moderator_role_granted:
         <p><strong>Ein Wort zur Vorsicht bei Zusammenführungen:</strong> Wenn du eine Zusammenführung genehmigst, werden die doppelten Einträge gelöscht und die Zeiten und Sammlungen aller auf den verbleibenden Eintrag übertragen. Das lässt sich nicht rückgängig machen. Im Zweifel - andere Teileanzahl, anderes Motiv, eine andere Ausgabe - lass die Anfrage also lieber liegen oder lehne sie ab. Ein Puzzle kann mehrere EAN-Codes haben; das ist in Ordnung.</p>
         <p>Wenn etwas unklar ist, schreib uns über den Feedback-Link oben auf der Website.</p>
 
+competition_registration:
+    entry_fee: "Startgebühr (vom Veranstalter festgelegt):"
+    payment_instructions: "So bezahlst du – Hinweise des Veranstalters:"
+    no_payment_processing: "MySpeedPuzzling wickelt keine Zahlungen ab. Du zahlst direkt an den Veranstalter, so wie er es beschreibt – bitte frage ihn bei allen Fragen zur Gebühr."
+    event_page_button: "Veranstaltungsseite öffnen"
+    reserved:
+        subject: "Du bist für %competitionName% angemeldet"
+        preheader: "Dein Platz bei %competitionName% ist reserviert."
+        title: "Du bist angemeldet!"
+        content: "<p>Deine Anmeldung für <strong>%competitionName%</strong> ist bestätigt – dein Platz ist reserviert.</p>\n"
+    waitlisted:
+        subject: "Du stehst auf der Warteliste für %competitionName%"
+        preheader: "%competitionName% ist voll – du stehst auf der Warteliste."
+        title: "Du stehst auf der Warteliste"
+        position: "Dein Platz auf der Warteliste: #%position%"
+        next: "Wenn der Veranstalter dir einen Platz gibt, schicken wir dir sofort eine E-Mail."
+        content: "<p><strong>%competitionName%</strong> ist im Moment voll, daher stehst du auf der Warteliste.</p>\n"
+    paid:
+        subject: "Zahlung für %competitionName% bestätigt"
+        preheader: "Der Veranstalter von %competitionName% hat deine Zahlung bestätigt."
+        title: "Zahlung bestätigt!"
+        content: "<p>Der Veranstalter von <strong>%competitionName%</strong> hat deine Zahlung bestätigt. Dein Platz ist gesichert – bis bald!</p>\n"
+    promoted:
+        subject: "Für dich ist ein Platz bei %competitionName% frei geworden"
+        preheader: "Du bist von der Warteliste von %competitionName% auf einen reservierten Platz gerückt."
+        title: "Ein Platz ist frei geworden!"
+        content: "<p>Gute Nachrichten! Der Veranstalter von <strong>%competitionName%</strong> hat dir einen Platz gegeben – du bist von der Warteliste nachgerückt und dein Platz ist jetzt reserviert.</p>\n"
+
 competition_rejected:
     subject: "Ihre Veranstaltung wurde nicht genehmigt"
     preheader: "%competitionName% wurde nicht genehmigt – den Grund finden Sie in der E-Mail."

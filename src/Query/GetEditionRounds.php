@@ -41,6 +41,7 @@ SELECT
     cr.slug,
     cr.results_link,
     cr.timezone,
+    cr.results_published_at IS NOT NULL AS results_published,
     c.location_country_code,
     tz_cs.location_country_code AS series_country_code
 FROM competition_round cr
@@ -88,6 +89,7 @@ SELECT
         THEN NULL
         ELSE p.image_ratio
     END AS puzzle_image_ratio,
+    p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp AS puzzle_image_embargoed,
     m.name AS manufacturer_name,
     cr.starts_at AS round_starts_at,
     cr.reveal_delay_minutes AS round_reveal_delay_minutes
@@ -111,7 +113,7 @@ SQL;
         /** @var array<string, array<EditionRoundPuzzle>> $puzzlesByRound */
         $puzzlesByRound = [];
         foreach ($puzzleRows as $row) {
-            /** @var array{round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, reveal_mode: string, reveal_at: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, puzzle_image_ratio: null|float|string, manufacturer_name: null|string, round_starts_at: string, round_reveal_delay_minutes: int|string} $row */
+            /** @var array{round_id: string, hide_until_round_starts: bool|string, hide_mode: null|string, reveal_mode: string, reveal_at: null|string, puzzle_id: string, puzzle_name: string, pieces_count: int|string, puzzle_image: null|string, puzzle_image_ratio: null|float|string, puzzle_image_embargoed: bool, manufacturer_name: null|string, round_starts_at: string, round_reveal_delay_minutes: int|string} $row */
             $hideUntilRoundStarts = $row['hide_until_round_starts'];
             if (is_string($hideUntilRoundStarts)) {
                 $hideUntilRoundStarts = $hideUntilRoundStarts === 't' || $hideUntilRoundStarts === '1' || $hideUntilRoundStarts === 'true';
@@ -140,13 +142,14 @@ SQL;
                     puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
                     manufacturerName: $row['manufacturer_name'],
                     hidden: false,
+                    imageHidden: $imageHidden || $row['puzzle_image_embargoed'],
                 );
             }
         }
 
         // Rounds come ordered by start, so the index is the round's position in the schedule
         return array_map(static function (array $row, int $schedulePosition) use ($puzzlesByRound): EditionRoundDetail {
-            /** @var array{id: string, name: string, minutes_limit: int|string, starts_at: string, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, location_country_code: null|string, series_country_code: null|string} $row */
+            /** @var array{id: string, name: string, minutes_limit: int|string, starts_at: string, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, results_published: bool, location_country_code: null|string, series_country_code: null|string} $row */
 
             $color = RoundBadgeColor::background($row['badge_background_color'], $schedulePosition);
 
@@ -165,6 +168,7 @@ SQL;
                 resultsLink: $row['results_link'],
                 timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code'], $row['series_country_code']),
                 timezoneAssumed: RoundTimezone::isAssumed($row['timezone'], $row['location_country_code'], $row['series_country_code']),
+                resultsPublished: $row['results_published'],
             );
         }, $rounds, array_keys($rounds));
     }

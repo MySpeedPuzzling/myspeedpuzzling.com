@@ -1,0 +1,121 @@
+{#
+    The registration card of an event that manages registration (docs/features/competitions-management/registration.md),
+    in place of the plain "I'm going" buttons of _event_attendance.html.twig. Everything comes from GetEventAttendance's
+    one statement. Entry fee and payment instructions are the organiser's text: escaped, labelled as theirs, and
+    MySpeedPuzzling says it does not process payments.
+
+    - competition_id
+    - attendance: SpeedPuzzling\Web\Results\EventAttendance
+    - registration: SpeedPuzzling\Web\Results\EventRegistration (attendance.registration)
+#}
+<div class="card shadow-sm mb-2" data-registration-card="{{ registration.availability.value }}">
+    <div class="card-body p-3">
+        <h2 class="h6 mb-2"><i class="bi bi-ticket-perforated me-1"></i>{{ 'competition_registration.card.title'|trans }}</h2>
+
+        {% if registration.capacity %}
+            <div class="d-flex flex-wrap justify-content-between gap-1 small text-muted mb-1">
+                <span>{{ 'competition_registration.card.spots_taken'|trans({'%taken%': registration.spotsTaken, '%capacity%': registration.capacity}) }}</span>
+                {% if registration.waitlistedCount > 0 %}
+                    <span>{{ 'competition_registration.card.waiting'|trans({'%count%': registration.waitlistedCount}) }}</span>
+                {% endif %}
+            </div>
+            <div class="progress mb-2" style="height: 6px;" role="progressbar" aria-label="{{ 'competition_registration.card.spots_taken'|trans({'%taken%': registration.spotsTaken, '%capacity%': registration.capacity}) }}" aria-valuenow="{{ registration.spotsTaken }}" aria-valuemin="0" aria-valuemax="{{ registration.capacity }}">
+                <div class="progress-bar {{ registration.isFull ? 'bg-danger' : 'bg-success' }}" style="width: {{ registration.takenPercent }}%"></div>
+            </div>
+        {% else %}
+            <p class="small text-muted mb-2">{{ 'competition_registration.card.registered_count'|trans({'%count%': registration.spotsTaken}) }}</p>
+        {% endif %}
+
+        {% if registration.entryFeeText %}
+            <p class="small mb-2"><strong>{{ 'competition_registration.card.entry_fee'|trans }}</strong> {{ registration.entryFeeText }}</p>
+        {% endif %}
+
+        {% if registration.isRegistered %}
+            {% if registration.isWaitlisted %}
+                <div class="alert alert-warning small py-2 mb-2" role="status">
+                    <i class="bi bi-hourglass-split me-1"></i>{{ 'competition_registration.card.you_are_waitlisted'|trans({'%position%': registration.playerWaitlistPosition ?? 1}) }}
+                </div>
+            {% elseif registration.isPaid %}
+                <div class="alert alert-success small py-2 mb-2" role="status">
+                    <i class="bi bi-check-circle-fill me-1"></i>{{ 'competition_registration.card.you_are_paid'|trans }}
+                </div>
+            {% else %}
+                <div class="alert alert-success small py-2 mb-2" role="status">
+                    <i class="bi bi-check-circle me-1"></i>{{ 'competition_registration.card.you_are_reserved'|trans }}
+                </div>
+                {% if registration.paymentInstructions %}
+                    <div class="border rounded p-2 small mb-2" data-registration-payment-instructions>
+                        <strong>{{ 'competition_registration.card.payment_instructions'|trans }}</strong><br>
+                        {{ registration.paymentInstructions|nl2br }}
+                    </div>
+                {% endif %}
+                {% if registration.entryFeeText or registration.paymentInstructions %}
+                    <p class="small text-muted mb-2">{{ 'competition_registration.card.no_payment_processing'|trans }}</p>
+                {% endif %}
+            {% endif %}
+
+            {% if attendance.canChangeParticipant %}
+                <a href="{{ path('join_competition', {'competitionId': competition_id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                    {{ 'competition.join.change'|trans }}
+                </a>
+            {% endif %}
+            {# Cancelling is a step of its own (review 2, A-F4): what happens is said first - a paid spot is never let
+               go of by one stray click - and the form carries a token of this event #}
+            {% if registration.isWaitlisted %}
+                {% set leave_kind = 'waitlisted' %}
+            {% elseif not registration.playerSelfJoined %}
+                {% set leave_kind = 'listed' %}
+            {% elseif registration.isPaid %}
+                {% set leave_kind = 'paid' %}
+            {% else %}
+                {% set leave_kind = 'reserved' %}
+            {% endif %}
+            <details class="d-inline-block align-top" data-registration-leave="{{ leave_kind }}">
+                <summary class="btn btn-sm btn-outline-danger">
+                    {% if leave_kind == 'waitlisted' %}
+                        {{ 'competition_registration.card.leave_waitlist'|trans }}
+                    {% elseif leave_kind == 'listed' %}
+                        {{ 'competition.join.leave'|trans }}
+                    {% else %}
+                        {{ 'competition_registration.card.cancel'|trans }}
+                    {% endif %}
+                </summary>
+                <div class="border border-danger-subtle rounded p-2 mt-2 small">
+                    <p class="mb-2">{{ ('competition_registration.card.leave_confirm.' ~ leave_kind)|trans }}</p>
+                    <form method="post" action="{{ path('leave_competition', {'competitionId': competition_id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\LeaveCompetitionController::CSRF_PREFIX') ~ competition_id) }}">
+                        <button type="submit" class="btn btn-sm btn-danger">
+                            {{ ('competition_registration.card.leave_confirm.button_' ~ leave_kind)|trans }}
+                        </button>
+                    </form>
+                </div>
+            </details>
+        {% elseif registration.isOpen %}
+            {% if registration.closesAt %}
+                <p class="small text-muted mb-2"><i class="bi bi-clock me-1"></i>{{ 'competition_registration.card.closes_at'|trans({'%date%': zoned_datetime(registration.closesAt, registration.timezone)}) }}</p>
+            {% endif %}
+            <a href="{{ path('join_competition', {'competitionId': competition_id}) }}" class="btn btn-sm {{ registration.isFull ? 'btn-warning' : 'btn-primary' }}" data-registration-action>
+                {% if registration.isFull %}
+                    <i class="bi bi-hourglass-split me-1"></i>{{ 'competition_registration.card.join_waitlist'|trans }}
+                {% else %}
+                    <i class="bi bi-person-plus me-1"></i>{{ 'competition_registration.card.register'|trans }}
+                {% endif %}
+            </a>
+        {% else %}
+            <p class="small text-muted mb-2" data-registration-unavailable="{{ registration.availability.value }}">
+                <i class="bi bi-clock me-1"></i>
+                {%- if registration.availability.value == 'not_yet_open' and registration.opensAt -%}
+                    {{ 'competition_registration.card.opens_at'|trans({'%date%': zoned_datetime(registration.opensAt, registration.timezone)}) }}
+                {%- else -%}
+                    {{ ('competition_registration.card.unavailable.' ~ registration.availability.value)|trans }}
+                {%- endif -%}
+            </p>
+            {% if registration.hasListedNames %}
+                {# The organiser holds the spots of the people on their list - picking your name always works #}
+                <a href="{{ path('join_competition', {'competitionId': competition_id}) }}" class="btn btn-sm btn-outline-secondary">
+                    {{ 'competition_registration.card.find_your_name'|trans }}
+                </a>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>

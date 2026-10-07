@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
@@ -42,6 +43,7 @@ final class EditionDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         readonly private CountCompetitionResults $countCompetitionResults,
+        readonly private GetCompetitionPageSections $getCompetitionPageSections,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -100,7 +102,7 @@ final class EditionDetailController extends AbstractController
             'event' => $competitionEvent,
             'event_title' => $eventTitle,
             // Only a past edition's meta description quotes the number of results
-            'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionId) : 0,
+            'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionId, $competitionEvent->hasPublishedOfficialResults) : 0,
             'is_publicly_visible' => $isPubliclyVisible,
             'rounds' => $rounds,
             'puzzles' => $puzzles,
@@ -110,9 +112,14 @@ final class EditionDetailController extends AbstractController
             ))),
             'puzzle_statuses' => $puzzleStatuses,
             'can_add_time' => $canAddTime,
-            'attendance' => $this->getEventAttendance->forPlayer($competitionId, $loggedPlayer?->playerId),
+            'attendance' => $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible),
             'event_offers' => $eventOffers,
             'event_offers_just_joined' => $eventOffers !== null && EventJustJoinedFlash::take($request, $competitionId),
+            // Organiser-written sections: queried only when one shows - a page without them runs what it ran before. Only
+            // on a publicly visible event: nothing an organiser writes is published before the event is approved
+            'page_sections' => $competitionEvent->hasPageSections && $isPubliclyVisible
+                ? $this->getCompetitionPageSections->forCompetitionPage($competitionId)
+                : [],
         ]);
     }
 }

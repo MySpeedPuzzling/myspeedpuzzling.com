@@ -1,0 +1,86 @@
+// Organiser-written sections of event, edition and series pages (docs/features/competitions-management/public-page.md).
+// The rich text carries no classes (the sanitizer drops them) - it is styled from here.
+.page-section-rich-text {
+    overflow-wrap: anywhere;
+
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    blockquote {
+        border-left: 3px solid $gray-300;
+        padding-left: 1rem;
+        color: $gray-600;
+    }
+
+    // The site resets every list (base.html.twig's critical CSS: `ul, ol { list-style: none }`) - an organiser's
+    // numbered rules and bullet points get their markers back (browser verification of PR #136)
+    ul,
+    ol {
+        margin-bottom: 1rem;
+        padding-left: 1.5rem;
+    }
+
+    ul {
+        list-style: disc;
+    }
+
+    ol {
+        list-style: decimal;
+    }
+
+    ul ul,
+    ol ul {
+        list-style: circle;
+    }
+
+    ol ol {
+        list-style: lower-alpha;
+    }
+
+    ul ul,
+    ul ol,
+    ol ul,
+    ol ol {
+        margin-top: .25rem;
+        margin-bottom: 0;
+    }
+
+    li + li {
+        margin-top: .25rem;
+    }
+
+    > :last-child {
+        margin-bottom: 0;
+    }
+}
+
+[data-page-section="faq"] summary {
+    cursor: pointer;
+}
+
+// The rich text editor (page_section_form.html.twig): Quill's snow theme writes the link tooltip's texts as CSS content
+// ("Visit URL:", "Edit", "Remove", "Enter link:", "Save") - the page's translations replace them through the custom
+// properties wysiwyg_controller.js sets. More specific than the theme's own rules, which load after this stylesheet.
+.page-section-editor .ql-snow {
+    .ql-tooltip::before {
+        content: var(--ql-visit-url);
+    }
+
+    .ql-tooltip[data-mode="link"]::before {
+        content: var(--ql-enter-link);
+    }
+
+    .ql-tooltip a.ql-action::after {
+        content: var(--ql-edit-link);
+    }
+
+    .ql-tooltip.ql-editing a.ql-action::after {
+        content: var(--ql-save-link);
+    }
+
+    .ql-tooltip a.ql-remove::before {
+        content: var(--ql-remove-link);
+    }
+}

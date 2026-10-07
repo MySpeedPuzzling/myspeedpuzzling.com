@@ -33,6 +33,15 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     event_status?: null|string,
  *     sort_date?: null|string,
  *     added_by_player_name?: null|string,
+ *     registration_managed?: bool|string,
+ *     capacity?: null|int|string,
+ *     registration_opens_at?: null|string,
+ *     registration_closes_at?: null|string,
+ *     entry_fee_text?: null|string,
+ *     payment_instructions?: null|string,
+ *     registration_timezone?: null|string,
+ *     has_page_sections?: bool|string,
+ *     has_published_official_results?: bool|string,
  * }
  */
 readonly final class CompetitionEvent
@@ -65,9 +74,24 @@ readonly final class CompetitionEvent
         public null|DateTimeImmutable $createdAt,
         public null|string $eventStatus = null,
         public null|string $addedByPlayerName = null,
+        public bool $registrationManaged = false,
+        public null|int $capacity = null,
+        public null|DateTimeImmutable $registrationOpensAt = null,
+        public null|DateTimeImmutable $registrationClosesAt = null,
+        public null|string $entryFeeText = null,
+        public null|string $paymentInstructions = null,
+        public null|string $registrationTimezone = null,
+        // An organiser-written section shows on the page (GetCompetitionPageSections) - only GetCompetitionEvents::byId()
+        // reads it, so the event and edition pages query sections only when there is one to show
+        public bool $hasPageSections = false,
+        // A round shows published official results (GetPublishedRoundResults::sqlShowsOfficialResults()) - only
+        // GetCompetitionEvents::byId() reads it, so the result counts look at official results only when there are some
+        public bool $hasPublishedOfficialResults = false,
     ) {
         $this->link = $this->appendUtm($link);
-        $this->registrationLink = $this->appendUtm($registrationLink);
+        // While the event manages registration on MySpeedPuzzling the external link stays saved but is not shown -
+        // one way to register (docs/features/competitions-management/registration.md)
+        $this->registrationLink = $registrationManaged ? null : $this->appendUtm($registrationLink);
         $this->resultsLink = $this->appendUtm($resultsLink);
     }
 
@@ -105,6 +129,15 @@ readonly final class CompetitionEvent
             createdAt: $row['created_at'] !== null ? new DateTimeImmutable($row['created_at']) : null,
             eventStatus: $row['event_status'] ?? null,
             addedByPlayerName: $row['added_by_player_name'] ?? null,
+            registrationManaged: self::parseBool($row['registration_managed'] ?? false),
+            capacity: isset($row['capacity']) ? (int) $row['capacity'] : null,
+            registrationOpensAt: isset($row['registration_opens_at']) ? new DateTimeImmutable($row['registration_opens_at']) : null,
+            registrationClosesAt: isset($row['registration_closes_at']) ? new DateTimeImmutable($row['registration_closes_at']) : null,
+            entryFeeText: $row['entry_fee_text'] ?? null,
+            paymentInstructions: $row['payment_instructions'] ?? null,
+            registrationTimezone: $row['registration_timezone'] ?? null,
+            hasPageSections: self::parseBool($row['has_page_sections'] ?? false),
+            hasPublishedOfficialResults: self::parseBool($row['has_published_official_results'] ?? false),
         );
     }
 
@@ -135,6 +168,15 @@ readonly final class CompetitionEvent
         }
 
         return $this->dateFrom->format('Y-m-d') === $this->dateTo->format('Y-m-d') ? $this->dateFrom : null;
+    }
+
+    private static function parseBool(bool|string $value): bool
+    {
+        if (is_string($value)) {
+            return $value === 't' || $value === '1' || $value === 'true';
+        }
+
+        return $value;
     }
 
     private function appendUtm(null|string $link): null|string

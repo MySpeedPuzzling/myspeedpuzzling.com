@@ -73,6 +73,11 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|GuestLinkRequest $targetGuestLinkRequest = null,
+        // OfficialResultPublished: the round whose official results the player is in
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|CompetitionRound $targetCompetitionRound = null,
     ) {
     }
 }

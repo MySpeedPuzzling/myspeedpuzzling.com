@@ -1,0 +1,5 @@
+{# The way to the event's referees page (route `competition_referees`) from the organiser's results tools.
+   Expects: competition_id; optional: button_class ('btn-outline-secondary') #}
+<a href="{{ path('competition_referees', {competitionId: competition_id}) }}" class="btn {{ button_class|default('btn-outline-secondary') }}" data-results-tool="referees">
+    <i class="bi bi-person-check me-1" aria-hidden="true"></i>{{ 'results_desk.overview.referees'|trans }}
+</a>

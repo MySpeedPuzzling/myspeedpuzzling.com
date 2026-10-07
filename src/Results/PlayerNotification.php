@@ -82,6 +82,13 @@ readonly final class PlayerNotification
         // GuestLinkRequested / GuestLinkAccepted: the question and the guest it is about
         public null|string $guestLinkRequestId = null,
         public null|string $guestLinkGuestName = null,
+        // OfficialResultPublished: the round, and what its page URL is built from (a series edition's or an event's)
+        public null|string $roundId = null,
+        public null|string $roundName = null,
+        public null|string $roundSlug = null,
+        public null|string $roundCompetitionName = null,
+        public null|string $roundCompetitionSlug = null,
+        public null|string $roundSeriesSlug = null,
     ) {
     }
 
@@ -198,6 +205,12 @@ readonly final class PlayerNotification
             teamName: is_string($row['team_name'] ?? null) ? $row['team_name'] : null,
             guestLinkRequestId: is_string($row['guest_link_request_id'] ?? null) ? $row['guest_link_request_id'] : null,
             guestLinkGuestName: is_string($row['guest_link_guest_name'] ?? null) ? $row['guest_link_guest_name'] : null,
+            roundId: is_string($row['round_id'] ?? null) ? $row['round_id'] : null,
+            roundName: is_string($row['round_name'] ?? null) ? $row['round_name'] : null,
+            roundSlug: is_string($row['round_slug'] ?? null) ? $row['round_slug'] : null,
+            roundCompetitionName: is_string($row['round_competition_name'] ?? null) ? $row['round_competition_name'] : null,
+            roundCompetitionSlug: is_string($row['round_competition_slug'] ?? null) ? $row['round_competition_slug'] : null,
+            roundSeriesSlug: is_string($row['round_series_slug'] ?? null) ? $row['round_series_slug'] : null,
         );
     }
 
@@ -246,6 +259,11 @@ readonly final class PlayerNotification
     public function isPuzzlingTeamRenamedNotification(): bool
     {
         return $this->notificationType === NotificationType::PuzzlingTeamRenamed;
+    }
+
+    public function isOfficialResultNotification(): bool
+    {
+        return $this->notificationType === NotificationType::OfficialResultPublished && $this->roundId !== null;
     }
 
     public function isConversationRequestNotification(): bool

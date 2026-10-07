@@ -121,6 +121,9 @@ final class PlanBuilder
     /** @var list<array{participantId: string, name: string, rounds: list<string>}> */
     private array $keptWithResults = [];
 
+    /** @var list<string> team ids full sync would delete as emptied, kept because they hold an official result */
+    private array $keptTeams = [];
+
     /** @var list<array{entryId: string, participantName: string, roundName: string, teamName: null|string}> */
     private array $removedEntries = [];
 
@@ -360,7 +363,7 @@ final class PlanBuilder
 
         if ($status === 'deleted') {
             // Somebody with results in this event stays (D11), as full sync keeps them
-            if ($person->wasActive() && $this->site->hasResult($person->playerId)) {
+            if ($person->wasActive() && $this->hasResult($person)) {
                 $row->messages[] = self::message('deleted_kept_with_results', ['%row%' => $rowNum, '%name%' => $name]);
                 $this->keptByStatus[] = $person->key;
             } else {
@@ -628,7 +631,7 @@ final class PlanBuilder
 
                     $roundName = $this->roundsById[$entry->roundId]->name;
 
-                    if ($this->site->hasResult($person->playerId, $entry->roundId)) {
+                    if ($this->hasResult($person, $entry->roundId)) {
                         $this->keptEntries[] = ['entryId' => (string) $entry->id, 'participantName' => $person->name, 'roundName' => $roundName];
 
                         continue;
@@ -654,11 +657,11 @@ final class PlanBuilder
                 continue;
             }
 
-            if ($this->site->hasResult($person->playerId)) {
+            if ($this->hasResult($person)) {
                 $this->keptWithResults[] = [
                     'participantId' => $participant['id'],
                     'name' => $person->name,
-                    'rounds' => $this->roundNamesWithResults((string) $person->playerId),
+                    'rounds' => $this->roundNamesWithResults($person),
                 ];
 
                 continue;
@@ -701,6 +704,18 @@ final class PlanBuilder
             }
 
             $team = $this->teams[$teamId];
+
+            // A pair/team holding an official result (or a qualified mark) stays, even emptied - its result is the
+            // organiser's record (official-results.md, guards)
+            if ($this->site->teamHasOfficialResult((string) $teamId)) {
+                $this->keptTeams[] = (string) $teamId;
+                $this->warnings[] = self::message('warning.team_kept_with_official_result', [
+                    '%team%' => $team['name'] ?? '–',
+                    '%round%' => $this->roundsById[$team['roundId']]->name,
+                ]);
+
+                continue;
+            }
             $this->deletedTeams[] = [
                 'teamId' => $teamId,
                 'roundName' => $this->roundsById[$team['roundId']]->name,
@@ -1161,6 +1176,7 @@ final class PlanBuilder
             array_map(static fn (array $participant): string => $participant['participantId'], $this->keptWithResults),
             array_map(static fn (array $entry): string => $entry['entryId'], $this->keptEntries),
             $this->keptByStatus,
+            $this->keptTeams,
         ];
 
         return hash('sha256', json_encode($kept, JSON_THROW_ON_ERROR));
@@ -1219,16 +1235,24 @@ final class PlanBuilder
     /**
      * @return list<string>
      */
-    private function roundNamesWithResults(string $playerId): array
+    private function roundNamesWithResults(PlanPerson $person): array
     {
         $names = [];
         foreach ($this->site->rounds as $round) {
-            if ($this->site->hasResult($playerId, $round->id)) {
+            if ($this->hasResult($person, $round->id)) {
                 $names[] = $round->name;
             }
         }
 
         return $names;
+    }
+
+    /**
+     * A result the import never takes away (D11): one the player added, or an official result of the participant.
+     */
+    private function hasResult(PlanPerson $person, null|string $roundId = null): bool
+    {
+        return $this->site->hasAnyResult($person->playerId, $person->id, $roundId);
     }
 
     private function entryOf(string $personKey, string $roundId): null|PlanEntry

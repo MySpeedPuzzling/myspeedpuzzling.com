@@ -1,0 +1,28 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'competition_registration.paid.preheader'|trans({'%competitionName%': competitionName})}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'competition_registration.paid.title'|trans }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {# The event's name is typed by its organiser - escaped before it goes into the translation's markup #}
+                    {{ 'competition_registration.paid.content'|trans({'%competitionName%': competitionName|e})|raw }}
+
+                    <spacer size-sm="8"></spacer>
+                    <button href="{{ eventUrl }}">{{ 'competition_registration.event_page_button'|trans }}</button>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

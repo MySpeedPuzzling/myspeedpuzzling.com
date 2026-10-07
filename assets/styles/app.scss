@@ -77,6 +77,12 @@
 
 @import 'marketplace-events-listing';
 
+// Organiser-written sections of event pages (docs/features/competitions-management/public-page.md)
+@import 'page-sections';
+
+// Seating of a round (docs/features/competitions-management/seating.md)
+@import 'seating';
+
 // Native app platform styles
 @import 'native';
 
@@ -86,6 +92,9 @@
 @import "moderation";
 @import "names-editor";
 @import "optional-rows";
+
+// Official results: the organiser's results desk (docs/features/competitions-management/results-desk.md)
+@import "results-desk";
 
 @import "flag-icons/sass/flag-icons";
 

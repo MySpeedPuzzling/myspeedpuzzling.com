@@ -25,6 +25,8 @@ export default class extends Controller {
         max: { type: Number, default: 15 },
         recentDays: { type: Number, default: 30 },
         defaultMode: { type: String, default: 'solo' },
+        // Set from outside ("Add to my profile" of an official pair/team result): the mode to open in, whatever the chips
+        initialMode: { type: String, default: '' },
         texts: Object,
     };
 
@@ -35,7 +37,8 @@ export default class extends Controller {
         // Set only when somebody else's time is edited: whoever tracked it stays, the viewer is a chip
         this.tracker = initial.tracker || null;
         this.viewerKey = initial.viewerKey || null;
-        this.mode = chips.length === 0 ? this.defaultModeValue : (chips.length === 1 ? 'pair' : 'team');
+        const initialMode = ['pair', 'team'].includes(this.initialModeValue) && !(this.initialModeValue === 'pair' && chips.length > 1) ? this.initialModeValue : null;
+        this.mode = initialMode ?? (chips.length === 0 ? this.defaultModeValue : (chips.length === 1 ? 'pair' : 'team'));
         this.stash = { pair: [], team: [] };
         this.names = { pair: '', team: '' };
         this.suggestions = null;

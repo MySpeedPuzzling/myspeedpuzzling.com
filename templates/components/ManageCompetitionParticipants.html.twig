@@ -1,9 +1,25 @@
 <div{{ attributes }}>
+    {% if this.protectedMessage is not null %}
+        <div class="alert alert-warning py-2 mb-3" role="alert">{{ this.protectedMessage|trans }}</div>
+    {% endif %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <span class="text-muted">
             {{ this.activeCount }} {{ 'competition.participants.active'|trans }}
             {% if this.deletedCount > 0 %}
                 &middot; {{ this.deletedCount }} {{ 'competition.participants.deleted'|trans }}
+            {% endif %}
+            {% if this.registrationManaged %}
+                {# Managed registration only (docs/features/competitions-management/registration.md, D17) #}
+                <span class="d-inline-flex flex-wrap gap-1 ms-1" data-registration-counters>
+                    <span class="badge bg-success">{{ 'competition_registration.manage.paid_count'|trans({'%count%': this.paidCount}) }}</span>
+                    <span class="badge bg-primary">{{ 'competition_registration.manage.reserved_count'|trans({'%count%': this.reservedCount}) }}</span>
+                    {% if this.waitlistedCount > 0 %}
+                        <span class="badge bg-warning text-dark">{{ 'competition_registration.manage.waitlisted_count'|trans({'%count%': this.waitlistedCount}) }}</span>
+                    {% endif %}
+                    {% if this.capacity %}
+                        <span class="badge {{ this.spotsTaken > this.capacity ? 'bg-danger' : 'bg-light text-dark border' }}">{{ 'competition_registration.manage.capacity'|trans({'%taken%': this.spotsTaken, '%capacity%': this.capacity}) }}</span>
+                    {% endif %}
+                </span>
             {% endif %}
         </span>
 
@@ -16,6 +32,21 @@
         </button>
     </div>
 
+    {% if this.hasPromotableSpot %}
+        <div class="alert alert-info d-flex flex-wrap align-items-center gap-2 py-2 mb-3" data-registration-promote-hint>
+            <i class="bi bi-arrow-up-circle"></i>
+            <span>{{ 'competition_registration.manage.promote_hint'|trans({'%count%': this.waitlistedCount, '%name%': this.nextInLine.participantName}) }}</span>
+            <button
+                class="btn btn-sm btn-success py-0 ms-auto"
+                data-action="live#action"
+                data-live-action-param="promoteFromWaitlist"
+                data-live-participant-id-param="{{ this.nextInLine.participantId }}"
+            >
+                {{ 'competition_registration.manage.promote_next'|trans }}
+            </button>
+        </div>
+    {% endif %}
+
     <div class="d-flex gap-2 mb-3">
         <input
             type="text"
@@ -23,6 +54,15 @@
             placeholder="{{ 'competition.participants.search'|trans }}"
             data-model="debounce(300)|searchQuery"
         >
+
+        {% if this.registrationManaged %}
+            <select class="form-select form-select-sm w-auto" data-model="statusFilter" aria-label="{{ 'competition_registration.manage.status'|trans }}">
+                <option value="">{{ 'competition_registration.manage.filter_all'|trans }}</option>
+                {% for status in ['reserved', 'paid', 'waitlisted'] %}
+                    <option value="{{ status }}" {{ this.statusFilter == status ? 'selected' }}>{{ ('competition_registration.status.' ~ status)|trans }}</option>
+                {% endfor %}
+            </select>
+        {% endif %}
 
         {% if this.deletedCount > 0 %}
             <div class="form-check form-switch d-flex align-items-center text-nowrap ms-2">
@@ -124,6 +164,9 @@
                         <th>{{ 'competition.participants.external_id'|trans }}</th>
                         <th>{{ 'competition.participants.msp_player'|trans }}</th>
                         <th>{{ 'competition.participants.rounds'|trans }}</th>
+                        {% if this.registrationManaged %}
+                            <th>{{ 'competition_registration.manage.status'|trans }}</th>
+                        {% endif %}
                         <th style="width: 80px;"></th>
                     </tr>
                 </thead>
@@ -216,6 +259,22 @@
                                     </button>
                                 {% endfor %}
                             </td>
+                            {% if this.registrationManaged %}
+                                <td>
+                                    <input
+                                        type="text"
+                                        class="form-control form-control-sm{{ this.editOrganizerNoteTooLong ? ' is-invalid' }}"
+                                        data-model="editOrganizerNote"
+                                        value="{{ this.editOrganizerNote }}"
+                                        maxlength="{{ constant('SpeedPuzzling\\Web\\Entity\\CompetitionParticipant::ORGANIZER_NOTE_MAX_LENGTH') }}"
+                                        placeholder="{{ 'competition_registration.manage.organizer_note'|trans }}"
+                                        aria-label="{{ 'competition_registration.manage.organizer_note'|trans }}"
+                                    >
+                                    {% if this.editOrganizerNoteTooLong %}
+                                        <div class="invalid-feedback">{{ 'competition_registration.manage.organizer_note_too_long'|trans({'%max%': constant('SpeedPuzzling\\Web\\Entity\\CompetitionParticipant::ORGANIZER_NOTE_MAX_LENGTH')}) }}</div>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
                             <td class="text-nowrap">
                                 <button class="btn btn-sm btn-primary py-0 px-1" data-action="live#action" data-live-action-param="saveEdit" title="{{ 'forms.save'|trans }}">
                                     <i class="bi bi-check-lg"></i>
@@ -253,6 +312,11 @@
                                     {% endif %}
                                 {% endfor %}
                             </td>
+                            {% if this.registrationManaged %}
+                                <td class="text-nowrap" data-registration-status="{{ participant.registrationStatus ? participant.registrationStatus.value : 'reserved' }}">
+                                    {{ include('competition/_participant_registration_actions.html.twig') }}
+                                </td>
+                            {% endif %}
                             <td class="text-nowrap">
                                 {% if participant.isDeleted %}
                                     <button

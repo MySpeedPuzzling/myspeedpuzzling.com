@@ -10,9 +10,12 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
+use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
+use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 
@@ -25,6 +28,7 @@ readonly final class EditCompetitionRoundHandler
         private SecretPuzzleHides $secretPuzzleHides,
         private ClockInterface $clock,
         private SecretRevealPreview $secretRevealPreview,
+        private OfficialResultsGuard $officialResultsGuard,
     ) {
     }
 
@@ -32,8 +36,10 @@ readonly final class EditCompetitionRoundHandler
      * Every check comes before anything is changed: a handler that throws after changing an entity is rolled back, but
      * the change stays in the entity manager and a later flush in the same request would write it.
      *
+     * @throws CompetitionRoundNotFound a round of another event
      * @throws PuzzleAlreadyInCompetitionRoundCategory
      * @throws SecretPuzzlesWouldBeRevealed
+     * @throws OfficialResultsProtected
      */
     public function __invoke(EditCompetitionRound $message): void
     {
@@ -42,6 +48,11 @@ readonly final class EditCompetitionRoundHandler
         $this->secretPuzzleHides->lockRoundsForChange([$message->roundId]);
 
         $round = $this->competitionRoundRepository->get($message->roundId);
+
+        if ($round->competition->id->toString() !== strtolower($message->competitionId)) {
+            throw new CompetitionRoundNotFound();
+        }
+
         $now = $this->clock->now();
 
         // Kept fields come from the round as it is now, under the lock - never from a read before it
@@ -50,6 +61,12 @@ readonly final class EditCompetitionRoundHandler
         $category = $keep('category') ? $round->category : $message->category;
         // Null = the round's delay as it is now, under the lock
         $revealDelayMinutes = $message->revealDelayMinutes ?? $round->revealDelayMinutes;
+
+        // Official results and qualified marks belong to the round's kind of entries (people or pairs/teams) - checked
+        // before anything changes
+        if ($category !== $round->category && $this->officialResultsGuard->countEntriesWithOfficialDataInRound($round->id->toString()) > 0) {
+            throw new OfficialResultsProtected(OfficialResultsProtected::ROUND_CATEGORY_LOCKED);
+        }
 
         RoundPuzzleReveal::assertValidDelay($revealDelayMinutes);
 

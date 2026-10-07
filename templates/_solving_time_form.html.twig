@@ -43,6 +43,13 @@
             <input type="hidden" name="time_id" value="{{ time_id }}">
             <input type="hidden" name="new_puzzle_id" value="{{ new_puzzle_id }}">
         {% endif %}
+        {# "Add to my profile" of an official result: the entry goes along - a pair/team result is checked on the save #}
+        {% if official_entry_ref|default(null) is not null %}
+            <input type="hidden" name="official_entry" value="{{ official_entry_ref }}">
+            {% if official_member|default(null) is not null %}
+                <input type="hidden" name="official_member" value="{{ official_member }}">
+            {% endif %}
+        {% endif %}
         {% if return_context|default(null) %}
             <input type="hidden" name="context" value="{{ return_context }}">
         {% endif %}

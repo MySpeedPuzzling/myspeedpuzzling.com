@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,6 +17,7 @@ final class ManageRoundStopwatchController extends AbstractController
 {
     public function __construct(
         private readonly CompetitionRoundRepository $competitionRoundRepository,
+        private readonly GetRoundResultsOverview $getRoundResultsOverview,
     ) {
     }
 
@@ -36,9 +38,13 @@ final class ManageRoundStopwatchController extends AbstractController
         $competitionId = $round->competition->id->toString();
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
+        // The seating step before an in-person round starts (docs/features/competitions-management/seating.md)
+        $roundOverview = $this->getRoundResultsOverview->forRound($roundId);
+
         return $this->render('manage_round_stopwatch.html.twig', [
             'round' => $round,
             'competition' => $round->competition,
+            'round_overview' => $roundOverview,
         ]);
     }
 }

@@ -129,6 +129,38 @@ moderator_role_granted:
         <p><strong>A word of care about merges:</strong> approving a merge deletes the duplicate entries and moves everybody's times and collections onto the one that stays. It cannot be undone, so when in doubt - different piece count, different artwork, a different edition - rather leave it or reject it. One puzzle may hold several EAN codes; that is fine.</p>
         <p>If anything is unclear, write to us through the Feedback link at the top of the website.</p>
 
+competition_registration:
+    entry_fee: "Entry fee (set by the organiser):"
+    payment_instructions: "How to pay - instructions from the organiser:"
+    no_payment_processing: "MySpeedPuzzling does not process payments. You pay the organiser directly, as they describe - please ask them about anything to do with the fee."
+    event_page_button: "Open the event page"
+    reserved:
+        subject: "You're registered for %competitionName%"
+        preheader: "Your spot at %competitionName% is reserved."
+        title: "You're registered!"
+        content: |
+            <p>Your registration for <strong>%competitionName%</strong> is confirmed - your spot is reserved.</p>
+    waitlisted:
+        subject: "You're on the waitlist for %competitionName%"
+        preheader: "%competitionName% is full - you are on its waitlist."
+        title: "You're on the waitlist"
+        position: "Your place on the waitlist: #%position%"
+        next: "If the organiser gives you a spot, we will e-mail you right away."
+        content: |
+            <p><strong>%competitionName%</strong> is full at the moment, so you are on its waitlist.</p>
+    paid:
+        subject: "Payment confirmed for %competitionName%"
+        preheader: "The organiser of %competitionName% confirmed your payment."
+        title: "Payment confirmed!"
+        content: |
+            <p>The organiser of <strong>%competitionName%</strong> confirmed your payment. Your spot is secured - see you there!</p>
+    promoted:
+        subject: "A spot opened up for you at %competitionName%"
+        preheader: "You moved from the waitlist of %competitionName% to a reserved spot."
+        title: "A spot opened up!"
+        content: |
+            <p>Good news! The organiser of <strong>%competitionName%</strong> gave you a spot - you moved from the waitlist and your spot is now reserved.</p>
+
 competition_rejected:
     subject: "Your event submission was not approved"
     preheader: "%competitionName% was not approved – the reason is inside."

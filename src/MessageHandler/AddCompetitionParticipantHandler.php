@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -44,6 +45,11 @@ readonly final class AddCompetitionParticipantHandler
         if ($message->playerId !== null) {
             $player = $this->playerRepository->get($message->playerId);
             $participant->connect($player, $this->clock->now());
+        }
+
+        // Organizer-added participants always hold a spot, even above capacity
+        if ($competition->registrationManaged === true) {
+            $participant->register(RegistrationStatus::Reserved, $this->clock->now());
         }
 
         $this->participantRepository->save($participant);

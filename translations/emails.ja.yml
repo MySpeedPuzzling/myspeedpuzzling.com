@@ -129,6 +129,34 @@ moderator_role_granted:
         <p><strong>統合についてのご注意：</strong> 統合を承認すると、重複している登録が削除され、全員のタイムとコレクションが残る方の登録に移されます。元に戻すことはできませんので、ピース数が違う、絵柄が違う、エディションが違うなど、少しでも迷う場合は、そのままにしておくか却下してください。1つのパズルに複数のEANコードがあっても問題ありません。</p>
         <p>ご不明な点がありましたら、ウェブサイト上部のフィードバックリンクからご連絡ください。</p>
 
+competition_registration:
+    entry_fee: "参加費（主催者が設定）："
+    payment_instructions: "お支払い方法 - 主催者からの案内："
+    no_payment_processing: "MySpeedPuzzlingでは支払いを処理しません。主催者の案内に従って、主催者に直接お支払いください。参加費に関するご質問は主催者にお問い合わせください。"
+    event_page_button: "イベントページを開く"
+    reserved:
+        subject: "%competitionName%への参加登録が完了しました"
+        preheader: "%competitionName%のあなたの枠を確保しました。"
+        title: "参加登録が完了しました！"
+        content: "<p><strong>%competitionName%</strong>への参加登録が確定し、あなたの枠を確保しました。</p>\n"
+    waitlisted:
+        subject: "%competitionName%のキャンセル待ちに登録されました"
+        preheader: "%competitionName%は満員のため、キャンセル待ちに登録されました。"
+        title: "キャンセル待ちに登録されました"
+        position: "キャンセル待ちの順番：%position%番目"
+        next: "主催者があなたに枠を割り当てた場合は、すぐにメールでお知らせします。"
+        content: "<p><strong>%competitionName%</strong>は現在満員のため、キャンセル待ちに登録されました。</p>\n"
+    paid:
+        subject: "%competitionName%のお支払いを確認しました"
+        preheader: "%competitionName%の主催者があなたのお支払いを確認しました。"
+        title: "お支払いを確認しました！"
+        content: "<p><strong>%competitionName%</strong>の主催者があなたのお支払いを確認しました。枠は確保されています。当日お会いできるのを楽しみにしています！</p>\n"
+    promoted:
+        subject: "%competitionName%に空きが出ました"
+        preheader: "%competitionName%のキャンセル待ちから、確保された枠に移りました。"
+        title: "空きが出ました！"
+        content: "<p>朗報です！<strong>%competitionName%</strong>の主催者があなたに枠を割り当てました。キャンセル待ちから移り、枠が確保されています。</p>\n"
+
 competition_rejected:
     subject: "イベントは承認されませんでした"
     preheader: "%competitionName%は承認されませんでした。理由はメール本文をご覧ください。"

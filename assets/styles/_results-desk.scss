@@ -1,0 +1,41 @@
+// Results desk (docs/features/competitions-management/results-desk.md): editable cells look editable, the qualified
+// checkbox is a 44 px target on a tablet, the inline editors keep their width while the organiser types
+.results-desk-table {
+  .results-desk-cell {
+    min-height: 2rem;
+    padding: .125rem .375rem;
+    border-bottom: 1px dashed $gray-400;
+    border-radius: 0;
+
+    &:hover,
+    &:focus-visible {
+      background-color: $gray-100;
+      border-bottom-style: solid;
+    }
+
+    // A tablet at the desk: 44 px targets
+    @media (pointer: coarse) {
+      min-height: 2.75rem;
+    }
+  }
+
+  .results-desk-check {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    cursor: pointer;
+
+    .form-check-input {
+      width: 1.375rem;
+      height: 1.375rem;
+      cursor: pointer;
+    }
+  }
+
+  .results-desk-input {
+    width: 7.5rem;
+  }
+
+  .results-desk-input-table {
+    width: 5rem;
+  }
+}

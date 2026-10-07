@@ -58,7 +58,7 @@ Both can be displayed in the UI. The connected participants table already shows 
 - `deletedAt = timestamp` → hidden from public views, hidden from chart, hidden from export by default
 - Organizer management UI shows deleted participants (with strikethrough) when "Show deleted" filter is active
 - Deleted participants can be restored (set `deletedAt = NULL`)
-- Self-joined players who "leave" an event → soft delete their participant record. They can re-join later — the existing soft-deleted record is restored (`deletedAt` cleared), not duplicated.
+- Self-joined players who "leave" an event → soft delete their participant record. They can re-join later — the existing soft-deleted record is restored (`deletedAt` cleared), not duplicated. A self-joined row that holds an official result or a qualified mark is only disconnected, never deleted (the organiser's record - [official-results.md](official-results.md)).
 
 ## Unified "I'm Going" + Pairing Flow
 
@@ -127,7 +127,7 @@ The button label and behavior depend on how the participant was created:
 
 Leaving handles **every** active row of the player in the competition, not just one.
 
-- **Self-joined participant** → button says **"Leave"** → soft deletes the participant record (`deletedAt` set). Player can re-join later.
+- **Self-joined participant** → button says **"Leave"** → soft deletes the participant record (`deletedAt` set). Player can re-join later. A row with an official result or a qualified mark is only disconnected (`OfficialResultsGuard`). On a managed event leaving is a confirmed step ([registration.md](registration.md)).
 - **Imported/manual participant** → button says **"Disconnect"** → unlinks player from participant (`player=NULL`, `connectedAt=NULL`), does NOT soft delete. The organizer's imported record stays intact. Player can reconnect later.
 
 Clear wording is important — "Disconnect" communicates that the participant record stays, you're just unlinking your profile.
@@ -192,6 +192,17 @@ Save/Cancel buttons appear inline when editing. Uses `#[LiveAction]` methods on 
 - Rows carry ids (`participant-{id}`, edit row `participant-{id}-edit`, its live-ignored country select `participant-{id}-edit-country`), so idiomorph never morphs one participant's form into another row. `live_controller.js` never removes a `data-live-ignore` node by itself - without the ids every closed form left its TomSelect behind in a display row, and Live reads every `select[data-model]` back into the model after a render.
 - Every Live request re-checks `CompetitionEditVoter` (`#[PostHydrate]`), and every participant id an action receives must belong to the component's competition; the handler ignores rounds of other competitions.
 - Guard: `tests/Component/ManageCompetitionParticipantsEditTest.php` (real Live requests, so hydration is the browser's).
+
+**Rounds and the player connection are saved as the change of this edit, never as the row's state** (review 2 of the
+PR #136 port, 2026-10-07): an edit row can be minutes old on an event day, while the results desk advances the person to
+a final and seats them, or the player connects themselves. `startEdit` keeps the round ids and the player the row was
+opened with (`editOriginalRoundIds`, `editOriginalPlayerId` - not writable); the save sends `addRoundIds` /
+`removeRoundIds` (the toggles of this edit) and `changePlayer` only when the edit changed the player.
+`EditCompetitionParticipantHandler` applies them as a diff against the entries the person has under the lock: an entry
+added meanwhile stays (with its table number), a round left meanwhile is nothing to remove, an untick of a round where the
+person holds official results is refused before anything changes. Name, country, external id and the note are the
+organiser's own fields and are written as typed. Every write of the page (edit, remove, restore, the registration
+actions) takes the event's `CompetitionParticipantsLock` - see registration.md, Concurrency.
 
 **Organizer can link any MSP player** to any participant without the player's consent. This is intentional — organizers need full control over participant pairing for competition management. The player can later disconnect themselves via the public event page if they disagree.
 

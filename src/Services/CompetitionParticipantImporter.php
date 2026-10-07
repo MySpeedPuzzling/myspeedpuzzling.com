@@ -124,8 +124,14 @@ readonly final class CompetitionParticipantImporter
 
         $unknownColumns = [];
         $teamColumnPrefix = ColumnMapping::normaliseHeader(self::TEAM_COLUMN_PREFIX);
+        $registrationColumns = array_map(ColumnMapping::normaliseHeader(...), CompetitionParticipantExporter::REGISTRATION_HEADERS);
         foreach ($sheet->headers as $index => $header) {
             if ($header === '' || isset($mapping->fields[$index])) {
+                continue;
+            }
+
+            // The export's registration columns (managed registration) - known, never imported
+            if (in_array(ColumnMapping::normaliseHeader($header), $registrationColumns, true)) {
                 continue;
             }
 

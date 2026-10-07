@@ -1,7 +1,11 @@
 image_invalid_mime_type: "Bitte geben Sie eine Datei in einem gültigen Bildformat ein. Unterstützt werden: jpg, jpeg, gif, png, webp, heic, heif, avif"
 puzzling_time_format: "Bitte geben Sie die Zeit im Format HH:MM:SS oder MM:SS ein"
 player_code: "Der Spielercode darf nur Buchstaben und Zahlen enthalten, ohne Sonderzeichen oder Leerzeichen."
+competition_referees_choose_player: "Wählen Sie mindestens einen Spieler aus."
+
 competition_date_to_before_date_from: "Das Enddatum darf nicht vor dem Startdatum liegen."
+competition_registration_closes_before_opens: "Die Anmeldung kann nicht schließen, bevor sie öffnet."
+
 competition_duration_too_long: "Die Veranstaltung darf nicht länger als %limit% Tage dauern. Bitte geben Sie die tatsächlichen Veranstaltungsdaten ein."
 competition_round_badge_color_invalid: "Gib eine Farbe wie #1e88e5 ein oder lass das Feld leer, dann wird automatisch eine gewählt."
 competition_round_reveal_delay_range: "Geben Sie ganze Minuten von {{ min }} bis {{ max }} ein."
@@ -16,3 +20,9 @@ puzzle_names:
 competition_teams:
     name_too_long: "„%name%“ ist zu lang für einen Teamnamen (%length% Zeichen, höchstens %max%). Schreiben Sie jedes Team in eine eigene Zeile."
     too_many: "Sie können höchstens %max% Teams auf einmal hinzufügen."
+admin:
+    moderators:
+        choose_player: "Wählen Sie mindestens einen Spieler aus."
+private_profile_viewers:
+    choose_player: "Wählen Sie mindestens einen Spieler."
+

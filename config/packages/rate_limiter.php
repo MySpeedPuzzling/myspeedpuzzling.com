@@ -100,6 +100,13 @@ return App::config([
                 'limit' => 20,
                 'interval' => '1 hour',
             ],
+            // Pictures of an event page's sections (gallery photos, sponsor logos) - stored on the CDN,
+            // so a page is no free image hosting. Per player: a big gallery an hour, no more.
+            'page_section_image_upload' => [
+                'policy' => 'sliding_window',
+                'limit' => 60,
+                'interval' => '1 hour',
+            ],
             // Public API catalog search (GET /api/v1/puzzles) - the only unbounded
             // read in V1, so scraping is kept to a walk. Keyed by the token owner
             // (player behind a PAT / auth-code token, client id for client_credentials);

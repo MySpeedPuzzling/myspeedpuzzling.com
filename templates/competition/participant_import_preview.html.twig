@@ -131,7 +131,8 @@
                         {% endif %}
 
                         {% set duplicate_columns = preview.duplicateColumns %}
-                        <div class="table-responsive mb-3">
+                        {# position-relative: the visually hidden labels stay inside the scroller (no page overflow on a phone) #}
+                        <div class="table-responsive position-relative mb-3">
                             <table class="table table-sm align-middle mb-0" id="participant-import-columns">
                                 <thead>
                                     <tr>

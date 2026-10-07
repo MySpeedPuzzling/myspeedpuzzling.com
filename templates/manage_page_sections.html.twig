@@ -1,0 +1,154 @@
+{% extends 'base.html.twig' %}
+
+{# Page editor of an event, edition or series (docs/features/competitions-management/public-page.md). Expects: owner
+   (Value\PageSectionOwner), owner_name, back_url, view_url, sections (list<Results\PageSection>, an edition's inherited
+   series sections last), section_types (what can be added), series_editor_url, publicly_visible (the page shows the
+   sections only once the event/series is approved), section_limit_reached #}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block title %}{{ 'page_sections.manage_title'|trans }} - {{ owner_name }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: back_url, fallbackTitle: owner_name}) }}
+
+    {% set token = csrf_token(owner.csrfTokenId) %}
+    {% set own_sections = sections|filter(section => not section.inherited) %}
+    {% set inherited_sections = sections|filter(section => section.inherited) %}
+
+    <div class="pb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h1 class="h3 mb-0">{{ 'page_sections.manage_title'|trans }}</h1>
+                <p class="text-muted mb-0">{{ owner_name }}</p>
+            </div>
+            {% if view_url %}
+                <a href="{{ view_url }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-eye me-1"></i>{{ 'page_sections.view_page'|trans }}
+                </a>
+            {% endif %}
+        </div>
+
+        <p class="text-muted small mt-2">{{ (owner.isSeries ? 'page_sections.intro_series' : 'page_sections.intro')|trans }}</p>
+
+        {% if not publicly_visible %}
+            <div class="alert alert-warning small py-2" role="status" data-page-sections-not-public>
+                <i class="bi bi-eye-slash me-1" aria-hidden="true"></i>{{ (owner.isSeries ? 'page_sections.not_public_yet_series' : 'page_sections.not_public_yet')|trans }}
+            </div>
+        {% endif %}
+
+        <div data-controller="page-sections-list"
+             data-page-sections-list-url-value="{{ path('reorder_page_sections') }}"
+             data-page-sections-list-owner-field-value="{{ owner.isSeries ? 'seriesId' : 'competitionId' }}"
+             data-page-sections-list-owner-id-value="{{ owner.id }}"
+             data-page-sections-list-token-value="{{ token }}"
+             data-page-sections-list-failed-message-value="{{ 'page_sections.reorder_failed'|trans }}"
+        >
+            <div class="alert alert-danger d-none" role="alert" data-page-sections-list-target="error"></div>
+
+            {% if own_sections is empty %}
+                <p class="my-4" data-page-sections-empty>{{ 'page_sections.empty'|trans }}</p>
+            {% else %}
+                <ul class="list-group shadow-sm my-3" data-page-sections-list-target="list">
+                    {% for section in own_sections %}
+                        <li class="list-group-item d-flex flex-wrap align-items-center gap-2{{ not section.visible ? ' bg-light' }}"
+                            id="page-section-{{ section.id }}"
+                            data-section-id="{{ section.id }}"
+                        >
+                            <span class="text-muted" style="cursor: grab;" data-drag-handle title="{{ 'page_sections.drag'|trans }}" aria-hidden="true">
+                                <i class="bi bi-grip-vertical"></i>
+                            </span>
+
+                            <span class="flex-fill text-break{{ not section.visible ? ' text-muted' }}">
+                                <i class="bi {{ section.type.icon }} me-1" aria-hidden="true"></i>
+                                {% if section.title %}
+                                    {{ section.title }}
+                                    <span class="small text-muted">&middot; {{ ('page_sections.type.' ~ section.type.value)|trans }}</span>
+                                {% else %}
+                                    {{ ('page_sections.type.' ~ section.type.value)|trans }}
+                                {% endif %}
+                                {% if not section.visible %}
+                                    <span class="badge bg-secondary ms-1">{{ 'page_sections.hidden_badge'|trans }}</span>
+                                {% endif %}
+                            </span>
+
+                            <span class="d-flex flex-wrap align-items-center gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-action="page-sections-list#moveUp"
+                                        data-move="up"
+                                        title="{{ 'page_sections.move_up'|trans }}"
+                                        aria-label="{{ 'page_sections.move_up'|trans }}"
+                                        {{ loop.first ? 'disabled' }}
+                                ><i class="bi bi-arrow-up" aria-hidden="true"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-action="page-sections-list#moveDown"
+                                        data-move="down"
+                                        title="{{ 'page_sections.move_down'|trans }}"
+                                        aria-label="{{ 'page_sections.move_down'|trans }}"
+                                        {{ loop.last ? 'disabled' }}
+                                ><i class="bi bi-arrow-down" aria-hidden="true"></i></button>
+
+                                <form method="post" action="{{ path('change_page_section_visibility', {sectionId: section.id}) }}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <input type="hidden" name="visible" value="{{ section.visible ? '0' : '1' }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap">
+                                        <i class="bi {{ section.visible ? 'bi-eye-slash' : 'bi-eye' }} me-1" aria-hidden="true"></i>{{ (section.visible ? 'page_sections.hide' : 'page_sections.show')|trans }}
+                                    </button>
+                                </form>
+
+                                <a href="{{ path('edit_page_section', {sectionId: section.id}) }}" class="btn btn-sm btn-outline-primary text-nowrap">
+                                    <i class="bi bi-pencil me-1" aria-hidden="true"></i>{{ 'page_sections.edit'|trans }}
+                                </a>
+
+                                <form method="post" action="{{ path('delete_page_section', {sectionId: section.id}) }}" class="d-inline"
+                                      onsubmit="return confirm('{{ 'page_sections.confirm_delete'|trans|e('js') }}');">
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ 'page_sections.delete'|trans }}" aria-label="{{ 'page_sections.delete'|trans }}">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    </button>
+                                </form>
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        {% set section_limit = constant('SpeedPuzzling\\Web\\Entity\\CompetitionPageSection::MAX_PER_PAGE') %}
+        {% if own_sections|length >= section_limit %}
+            <p class="text-muted small" data-page-sections-limit-reached>{{ 'page_sections.limit_reached'|trans({'%max%': section_limit}) }}</p>
+        {% else %}
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-plus-lg me-1"></i>{{ 'page_sections.add_section'|trans }}
+            </button>
+            <ul class="dropdown-menu">
+                {% for type in section_types %}
+                    <li>
+                        <a class="dropdown-item" href="{{ path('add_page_section', owner.queryParameter|merge({type: type.value})) }}">
+                            <i class="bi {{ type.icon }} me-2" aria-hidden="true"></i>{{ ('page_sections.type.' ~ type.value)|trans }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if inherited_sections is not empty %}
+            <h2 class="h6 mt-5 mb-1">{{ 'page_sections.inherited_title'|trans }}</h2>
+            <p class="small text-muted mb-2">{{ 'page_sections.inherited_info'|trans }}</p>
+            <ul class="list-group" data-page-sections-inherited>
+                {% for section in inherited_sections %}
+                    <li class="list-group-item text-muted text-break">
+                        <i class="bi {{ section.type.icon }} me-1" aria-hidden="true"></i>{{ section.title ?: ('page_sections.type.' ~ section.type.value)|trans }}
+                    </li>
+                {% endfor %}
+            </ul>
+            {% if series_editor_url %}
+                <a href="{{ series_editor_url }}" class="btn btn-sm btn-outline-secondary mt-2">
+                    <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>{{ 'page_sections.manage_on_series'|trans }}
+                </a>
+            {% endif %}
+        {% endif %}
+    </div>
+{% endblock %}

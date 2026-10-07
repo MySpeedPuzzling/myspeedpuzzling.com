@@ -1,6 +1,17 @@
 # Competitions Management
 
-Community-driven competition and event management. Any logged-in player can submit a competition; it becomes publicly visible after admin approval. Maintainers (the creator + named co-maintainers) can then manage rounds, assign puzzles, plan table layouts, and run a live stopwatch during the event.
+Community-driven competition and event management. Any logged-in player can submit a competition; it becomes publicly visible after admin approval. Maintainers (the creator + named co-maintainers) can then manage rounds, assign puzzles, plan table layouts, run a live stopwatch during the event, manage registrations, enter official results, and compose the public page.
+
+The feature set is **tiered and opt-in**: a competition with everything off is just a listing with the lightweight "I'm going" flow. Each capability is enabled separately:
+
+| Capability | How it's enabled | Docs |
+|-----------|------------------|------|
+| Managed registration (capacity, reserved/paid, waitlist, check-in) | "Manage registration on MySpeedPuzzling" on the event's own Registration page (`manage_competition_registration`) | [registration.md](registration.md) |
+| Official round results (live entry, results desk, qualification and advancing, seating, publishing) | Recorded by the organiser per round, published per round | [official-results.md](official-results.md) |
+| Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Page content" on the event/edition edit page or the series management page - a page shows nothing new until a section is added | [public-page.md](public-page.md) |
+| Participant management, import/export, pairing | Always available | [participants.md](participants.md) |
+
+One permanent product boundary: **MySpeedPuzzling never processes payments.** Managed registration only records the organizer's payment confirmation ("mark paid") — collecting entry fees is entirely the organizer's responsibility.
 
 ## Competition Lifecycle
 
@@ -49,10 +60,18 @@ Each competition also appears in "My Competitions" for its creator/maintainers r
 | Browse public events listing | Everyone |
 | Submit a new competition | Any authenticated player |
 | Edit competition & manage rounds/tables/stopwatch | Admin, original creator, or named maintainer |
+| Manage registrations (mark paid, promote, check-in) | Admin, creator, or maintainer |
+| Record/publish official round results, qualify, advance, seat | Admin, creator, or maintainer |
+| Enter results in the live entry (live entry pages, name-tag QR, round state, result changes only) | Admin, creator, maintainer, or one of the event's **referees** |
+| Add/remove referees | Admin, creator, or maintainer |
+| Edit public page content | Admin, creator, or maintainer (series voter for series pages) |
 | View public stopwatch page | Everyone (no auth required) |
+| View published official results (round results page) | Everyone, while the competition is publicly visible |
 | Approve or reject a competition | Admin only |
 
 Access is enforced via a `CompetitionEditVoter` that checks whether the player is admin, the creator, or in the maintainers list. All management controllers use this same voter, including round-level controllers (which resolve the competition from the round).
+
+**Referees** (`CompetitionReferee`, per competition - an edition is a competition) are volunteers who enter results on their phones and nothing else: `CompetitionResultsEntryVoter` (`COMPETITION_RESULTS_ENTRY` = everybody with `COMPETITION_EDIT` plus the referees) guards only the live entry, its round state and result changes; a referee's table number and qualified changes are refused. Organisers add them on the event's Referees page (linked from the edit page and the results overview), which also shows the link for referees with a QR. Details: [live-results.md](live-results.md) "Referees".
 
 ## Event Types
 
@@ -497,15 +516,33 @@ This eliminates all behavioral branching — the same participant handlers, quer
 - Secret/private player handling fix
 - Replaces admin-only import routes (`/admin/import-competition-puzzlers`)
 
+## Official Round Results
+
+The organiser's record of a round: one result per round entry (a person of a solo round, a pair/team of a pair/team round) - a time, pieces placed, or did not start - plus the qualified mark and the table number, written through one change-set write path (`RecordRoundResults`, three-way checked, offline-safe). Qualified entries are advanced into later rounds explicitly (`AdvanceQualified`), and a round's results are published per round on its round results page, where they lead the page (ranked, hidden players dropped without renumbering, private players by the organiser's name only) and the times puzzlers added fold below them. Players' own times stay theirs: nothing is copied onto profiles - "Add to my profile" only fills the normal add-time form in (puzzle, time, date, event, pair/team members and name) from a finished entry the player is linked to, or - for an entry nobody is linked to - a solo entry with the player's name, a pair/team entry with a member of the player's name, or a pair/team typed by its name only, and every first-try, duplicate and privacy rule of the add form applies. Organisers enter results on the live entry (phones, offline-safe, referees allowed - [live-results.md](live-results.md)), the results desk ([results-desk.md](results-desk.md)) and seat entrants by table number ([seating.md](seating.md)). Full design: [official-results.md](official-results.md).
+
+Seating - table numbers before each in-person round, auto-assign by earlier rounds or MySpeedPuzzling times, printed lists: [seating.md](seating.md).
+
+The organiser's results desk per round, the results overview of the whole event (the control room on the day) and advancing the qualified: [results-desk.md](results-desk.md).
+
+## Managed Registration
+
+Opt-in per event or edition on its own Registration page (`ChangeCompetitionRegistrationSettings` - `EditCompetition` and the internal API never touch it). While it is on, the "I'm going" block (`_event_attendance.html.twig`) is a registration card (spots, waitlist, entry fee, window in the event's zone) and "I'm going" becomes a confirmed registration: reserved under the capacity, waitlisted when full (first come, first served, under the participants lock), only while the event is publicly visible and its window is open. Organisers mark payments, give waitlisted people a spot and check people in on the day; MySpeedPuzzling never processes payments. A waitlisted row is not "going" anywhere (`CompetitionParticipantGoing`). Full design: [registration.md](registration.md).
+
+## Public Page Content
+
+Maintainers add content sections (rich text via Quill, FAQ, gallery, venue, sponsors, links, contact) to an event, edition or series page. They appear in one place, right after the description, in the order the maintainer sets (drag or move up/down), each one can be hidden; an edition shows its own sections, then its series'. The rest of the page is not reorderable. A page without a visible section renders and queries exactly as before (`CompetitionEvent::$hasPageSections`). Sections show only on publicly visible (approved) pages, with quotas (30 sections per page, 40 pictures per gallery/sponsors, 60 uploads an hour per player). All content is sanitised server-side. Full design: [public-page.md](public-page.md).
+
 ## Email Notifications
 
-Three email notifications are sent during the competition lifecycle:
+Email notifications sent during the competition lifecycle:
 
 1. **New submission (to admin):** When a player submits a new competition, an email is sent to `jan.mikes@myspeedpuzzling.com` with the event name, location, submitter name, and a link to the admin approval queue.
 2. **Approved (to creator):** When an admin approves a competition, the creator receives an email with a link to their public event page. Sent in the creator's locale.
 3. **Rejected (to creator):** When an admin rejects a competition, the creator receives an email with the rejection reason. Sent in the creator's locale.
+4. **Registration confirmed / waitlisted (to player):** on managed registration, with entry fee and payment instructions, or waitlist position.
+5. **Payment confirmed / promoted from waitlist (to player):** when the organizer marks them paid or promotes them.
 
-All emails use the `transactional` mailer transport and follow the standard Inky email template structure.
+All emails use the `transactional` mailer transport and follow the standard Inky email template structure. Player-facing emails are sent in the player's locale and only when an email address exists.
 
 ## Key Business Rules
 
@@ -527,3 +564,8 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 16. **Round category defaults to solo** — existing rounds get `solo` category via migration default
 18. **Teams are scoped to rounds** — `CompetitionTeam` belongs to a `CompetitionRound`, participants are assigned to teams via `CompetitionParticipantRound.team_id`
 19. **A solving time can be linked to any publicly visible competition row** — the add/edit-time picker offers every approved & not-rejected standalone competition (any date) and every edition of an approved & not-rejected series (`IsCompetitionPubliclyVisible::SQL_CONDITION`), never the series umbrella itself; the edit form additionally keeps the currently linked competition selectable; the submitted id is validated against exactly that set
+20. **MSP never processes payments** — managed registration only records the organizer's manual payment confirmation
+21. **Managed registration keeps the external registration link** — saved as it is, hidden on every page while registration is managed (one way to register), back when management is switched off
+22. **Official results are the organiser's record** — stored on the round entry (`CompetitionParticipantRound` / `CompetitionTeam`), never written onto players' profiles
+23. **Official data never disappears as a side effect** — an entry with a result or a qualified mark is never removed by taking somebody out of a round, deleting a pair/team, removing a person from the event, an import or leaving the event (the player is only disconnected)
+24. **Draft results are private** — public only on the round results page after the round is published; the first publish tells the players with a finished result once (in-app notification)

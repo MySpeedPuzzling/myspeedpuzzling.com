@@ -12,7 +12,7 @@ use Symfony\Contracts\Service\ResetInterface;
  * Everything one player may manage, in a single query per request: the event
  * listings ask the voters about every card they render, so a per-id lookup
  * would be an N+1 (Sentry WEB-BZ). The set is small - only what the player
- * owns or maintains - so it is loaded whole and cached until the next request.
+ * owns, maintains or referees - so it is loaded whole and cached until the next request.
  */
 final class GetCompetitionPermissions implements ResetInterface
 {
@@ -47,6 +47,8 @@ UNION ALL
 SELECT 'series', id::text, true FROM competition_series WHERE added_by_player_id = :playerId
 UNION ALL
 SELECT 'series', competition_series_id::text, false FROM competition_series_maintainer WHERE player_id = :playerId
+UNION ALL
+SELECT 'referee', competition_id::text, false FROM competition_referee WHERE player_id = :playerId
 SQL;
 
         /** @var list<array{kind: string, id: string, owner: bool}> $rows */
@@ -58,8 +60,15 @@ SQL;
         $deletableCompetitionIds = [];
         $editableSeriesIds = [];
         $deletableSeriesIds = [];
+        $refereeCompetitionIds = [];
 
         foreach ($rows as $row) {
+            if ($row['kind'] === 'referee') {
+                $refereeCompetitionIds[$row['id']] = true;
+
+                continue;
+            }
+
             if ($row['kind'] === 'competition') {
                 $editableCompetitionIds[$row['id']] = true;
 
@@ -82,6 +91,7 @@ SQL;
             deletableCompetitionIds: $deletableCompetitionIds,
             editableSeriesIds: $editableSeriesIds,
             deletableSeriesIds: $deletableSeriesIds,
+            refereeCompetitionIds: $refereeCompetitionIds,
         );
 
         $this->cache[$playerId] = $permissions;

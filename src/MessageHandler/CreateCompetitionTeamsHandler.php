@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionTeamNameTooLong;
 use SpeedPuzzling\Web\Message\CreateCompetitionTeams;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
@@ -22,11 +23,16 @@ readonly final class CreateCompetitionTeamsHandler
     }
 
     /**
+     * @throws CompetitionRoundNotFound a round of another event
      * @throws CompetitionTeamNameTooLong
      */
     public function __invoke(CreateCompetitionTeams $message): void
     {
         $round = $this->competitionRoundRepository->get($message->roundId);
+
+        if ($round->competition->id->toString() !== strtolower($message->competitionId)) {
+            throw new CompetitionRoundNotFound();
+        }
 
         // Every team is built before any is persisted - one name too long adds none of them
         $teams = array_map(

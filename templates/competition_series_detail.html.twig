@@ -121,6 +121,9 @@
         </div>
     </div>
 
+    {#~ Organiser-written sections (docs/features/competitions-management/public-page.md) - the ~ keep a series page
+       without any byte for byte as before #}
+    {%~ if page_sections is not empty %}{{ include('_page_sections.html.twig', {sections: page_sections}) }}{% endif %}
     {# Undated editions (no round, no date) are listed here too, last - see GetCompetitionSeries::fetchEditions() #}
     {% if upcoming_editions|length > 0 %}
         <h2 class="h5 mt-4 mb-3">{{ 'series.upcoming_editions'|trans }}</h2>

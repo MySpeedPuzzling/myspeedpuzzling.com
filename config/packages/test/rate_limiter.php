@@ -21,6 +21,12 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 hour',
             ],
+            // Fixture players upload in many tests and runs - the budget would trip within an hour of local runs
+            'page_section_image_upload' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 hour',
+            ],
         ],
     ],
 ]);

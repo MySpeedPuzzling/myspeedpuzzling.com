@@ -31,7 +31,7 @@ In person (`is_online = false`), publicly visible (`IsCompetitionPubliclyVisible
 (`date_from IS NOT NULL`), not over (`COALESCE(date_to, date_from)::date >= today`, today from `ClockInterface`).
 Standalone events and series editions alike.
 
-A player **is going** = a `competition_participant` row with `player_id = player`, `deleted_at IS NULL`.
+A player **is going** = a `competition_participant` row with `player_id = player`, `deleted_at IS NULL` and not waitlisted - the one rule `CompetitionParticipantGoing::sql()` (a waitlisted row of a managed event is not going; rows of events without managed registration have no status, so nothing changed for them - [registration.md](../competitions-management/registration.md)).
 
 ## Data model
 

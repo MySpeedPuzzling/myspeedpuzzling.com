@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {# The full event name - never shortened, it is what people search - plus the year when the name has none;
-   "Results" once the event is over and has results here (see EventTitle::saysResults()) #}
+   "Results" once the event is over and has results here (see EventTitle::saysResults()) - official ones too (official-results.md) #}
 {% block title %}
     {%- if event_title.saysResults(results_count) -%}
         {{- 'events.meta.event_detail_title_results'|trans({'%event%': event_title.label}) -}}
@@ -29,11 +29,11 @@
             '%location%': event.location ?? '',
         } -%}
         {%- if event.isOnline -%}
-            {{- 'events.meta.event_detail_description_past_online'|trans(past_description_params) -}}
+            {{- (event.hasPublishedOfficialResults ? 'events.meta.event_detail_description_past_official_online' : 'events.meta.event_detail_description_past_online')|trans(past_description_params) -}}
         {%- elseif event.location -%}
-            {{- 'events.meta.event_detail_description_past'|trans(past_description_params) -}}
+            {{- (event.hasPublishedOfficialResults ? 'events.meta.event_detail_description_past_official' : 'events.meta.event_detail_description_past')|trans(past_description_params) -}}
         {%- else -%}
-            {{- 'events.meta.event_detail_description_past_no_location'|trans(past_description_params) -}}
+            {{- (event.hasPublishedOfficialResults ? 'events.meta.event_detail_description_past_official_no_location' : 'events.meta.event_detail_description_past_no_location')|trans(past_description_params) -}}
         {%- endif -%}
     {%- elseif event.isOnline and event.dateFrom -%}
         {{- 'events.meta.event_detail_description_online'|trans({'%name%': event.name, '%date%': event.dateFrom|format_date('long')}) -}}
@@ -182,7 +182,7 @@
     {% if event.description %}
         {# Plain text: nl2br escapes first, then keeps the organiser's line breaks #}
         <p class="mt-3 mb-0" data-event-description>{{ event.description|nl2br }}</p>
-    {% endif %}
+    {% endif %}{# Organiser-written sections (competitions-management/public-page.md) - on this line, so a page without any renders byte for byte as before #}{% if page_sections is not empty %}{{ include('_page_sections.html.twig', {sections: page_sections}) }}{% endif %}
 
     <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
 

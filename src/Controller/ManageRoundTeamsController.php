@@ -66,6 +66,7 @@ final class ManageRoundTeamsController extends AbstractController
             $names = $form->getData()->names()->names;
 
             $this->messageBus->dispatch(new CreateCompetitionTeams(
+                competitionId: $competitionId,
                 roundId: $roundId,
                 names: $names,
             ));

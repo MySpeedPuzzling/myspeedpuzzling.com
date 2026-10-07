@@ -1,0 +1,349 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block title %}{{ 'results_desk.title'|trans }} - {{ round.overview.name }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'results_desk.overview.title'|trans, url: path('competition_results_overview', {competitionId: competition.id})},
+        {label: round.overview.name},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_results_overview', {competitionId: competition.id}), fallbackTitle: 'results_desk.overview.title'|trans}) }}
+
+    {% set desk_url = path('results_desk', {roundId: round.id}) %}
+
+    <div class="results-desk pb-5"
+         data-controller="results-desk"
+         data-results-desk-state-value="{{ state|json_encode|e('html_attr') }}"
+         data-results-desk-csrf-token-value="{{ csrf_token('official_results') }}"
+         data-results-desk-locale-value="{{ app.request.locale }}"
+         data-results-desk-countries-value="{{ countries|json_encode|e('html_attr') }}"
+         data-results-desk-urls-value="{{ {
+             state: path('official_results_round_state', {roundId: round.id}),
+             record: path('official_results_record', {roundId: round.id}),
+             publish: path('official_results_publish', {roundId: round.id}),
+             unpublish: path('official_results_unpublish', {roundId: round.id}),
+             takeOut: path('official_results_take_out', {roundId: round.id}),
+         }|json_encode|e('html_attr') }}"
+         data-results-desk-texts-value="{{ {
+             add_result: 'results_desk.table.add_result'|trans,
+             no_result: 'results_desk.table.no_result'|trans,
+             no_table: 'results_desk.table.no_table'|trans,
+             qualified_yes: 'results_desk.table.qualified_yes'|trans,
+             qualified_no: 'results_desk.table.qualified_no'|trans,
+             edit_result_label: 'results_desk.table.edit_result_label'|trans,
+             edit_table_label: 'results_desk.table.edit_table_label'|trans,
+             qualified_label: 'results_desk.table.qualified_label'|trans,
+             entered_by: 'results_desk.table.entered_by'|trans,
+             empty_round: 'results_desk.table.empty_round'|trans,
+             empty_filter: 'results_desk.table.empty_filter'|trans,
+             pieces_placed: 'official_results.result.pieces_placed'|trans,
+             pieces_placed_of: 'official_results.result.pieces_placed_of'|trans,
+             did_not_start: 'official_results.result.did_not_start'|trans,
+             editor_kind: 'results_desk.editor.kind'|trans,
+             editor_value: 'results_desk.editor.value'|trans,
+             editor_table: 'results_desk.editor.table'|trans,
+             mode_time: 'results_desk.editor.mode_time'|trans,
+             mode_pieces: 'results_desk.editor.mode_pieces'|trans,
+             mode_dns: 'results_desk.editor.mode_dns'|trans,
+             mode_none: 'results_desk.editor.mode_none'|trans,
+             placeholder_time: 'results_desk.editor.placeholder_time'|trans,
+             placeholder_pieces: 'results_desk.editor.placeholder_pieces'|trans,
+             preview_time: 'results_desk.editor.preview_time'|trans,
+             preview_dns: 'results_desk.editor.preview_dns'|trans,
+             preview_none: 'results_desk.editor.preview_none'|trans,
+             preview_no_table: 'results_desk.editor.preview_no_table'|trans,
+             error_time: 'results_desk.editor.error_time'|trans,
+             error_time_empty: 'results_desk.editor.error_time_empty'|trans,
+             error_time_range: 'official_results.reason.invalid_seconds'|trans,
+             error_pieces: 'results_desk.editor.error_pieces'|trans,
+             error_pieces_max: 'results_desk.editor.error_pieces_max'|trans,
+             error_table: 'official_results.reason.invalid_table_number'|trans,
+             save: 'results_desk.editor.save'|trans,
+             cancel: 'results_desk.editor.cancel'|trans,
+             status_saving: 'results_desk.status.saving'|trans,
+             status_waiting: 'results_desk.status.waiting'|trans,
+             status_sign_in: 'results_desk.status.sign_in'|trans,
+             status_forbidden: 'results_desk.status.forbidden'|trans,
+             status_not_saved: 'results_desk.status.not_saved'|trans,
+             error_request: 'results_desk.error.generic'|trans,
+             retry: 'results_desk.status.retry'|trans,
+             discard: 'results_desk.status.discard'|trans,
+             conflict: 'results_desk.status.conflict'|trans,
+             conflict_by: 'results_desk.status.conflict_by'|trans,
+             keep_mine: 'results_desk.status.keep_mine'|trans,
+             take_theirs: 'results_desk.status.take_theirs'|trans,
+             pill_all_saved: 'results_desk.pill.all_saved'|trans,
+             pill_saving: 'results_desk.pill.saving'|trans,
+             pill_sign_in: 'results_desk.pill.sign_in'|trans,
+             pill_forbidden: 'results_desk.pill.forbidden'|trans,
+             pill_gone: 'results_desk.pill.gone'|trans,
+             pill_conflicts: browser_translation('results_desk.pill.conflicts'),
+             pill_not_saved: browser_translation('results_desk.pill.not_saved'),
+             pill_waiting: browser_translation('results_desk.pill.waiting'),
+             conflicts_bar: browser_translation('results_desk.conflicts_bar.text'),
+             count_entries: browser_translation('results_desk.counts.entries'),
+             count_results: browser_translation('results_desk.counts.results'),
+             count_qualified: browser_translation('results_desk.counts.qualified'),
+             readiness_progress: 'seating.readiness.progress'|trans,
+             readiness_recommended: 'seating.readiness.recommended'|trans,
+             readiness_done: 'seating.readiness.done'|trans,
+             leave_unsaved: 'results_desk.leave_unsaved'|trans,
+             helper_title_top: 'results_desk.helper.title_top'|trans,
+             helper_title_country: 'results_desk.helper.title_country'|trans,
+             helper_title_clear: 'results_desk.helper.title_clear'|trans,
+             helper_ties: browser_translation('results_desk.helper.ties'),
+             helper_no_country: browser_translation('results_desk.helper.no_country'),
+             helper_diff: 'results_desk.helper.diff'|trans,
+             helper_will_mark: browser_translation('results_desk.helper.will_mark'),
+             helper_will_unmark: browser_translation('results_desk.helper.will_unmark'),
+             helper_applied: 'results_desk.helper.applied'|trans,
+             publish_title: 'results_desk.publish.title'|trans,
+             publish_intro: 'results_desk.publish.intro'|trans,
+             publish_team_names: 'results_desk.publish.team_names'|trans,
+             publish_notification: 'results_desk.publish.notification'|trans,
+             publish_no_new_notification: 'results_desk.publish.no_new_notification'|trans,
+             publish_not_public: 'results_desk.publish.not_public'|trans,
+             publish_without_result: browser_translation('results_desk.publish.without_result'),
+             publish_unsaved: browser_translation('results_desk.publish.unsaved'),
+             publish_confirm: 'results_desk.publish.confirm'|trans,
+             unpublish_title: 'results_desk.unpublish.title'|trans,
+             unpublish_intro: 'results_desk.unpublish.intro'|trans,
+             unpublish_confirm: 'results_desk.unpublish.confirm'|trans,
+             published_since: 'results_desk.publication.since'|trans,
+             published_toast: 'results_desk.publish.done'|trans,
+             unpublished_toast: 'results_desk.unpublish.done'|trans,
+             publish_offline: 'results_desk.error.offline'|trans,
+             publish_failed: 'results_desk.error.generic'|trans,
+             take_out: 'results_desk.take_out.button'|trans,
+             take_out_confirm: 'results_desk.take_out.confirm'|trans,
+             take_out_done: 'results_desk.take_out.done'|trans,
+             table_taken_by: 'results_desk.table.taken_by'|trans,
+             swap_tables: 'results_desk.table.swap'|trans,
+         }|json_encode|e('html_attr') }}">
+
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+            <div>
+                <h1 class="h3 mb-1">
+                    {{ 'results_desk.title'|trans }}:
+                    <span class="badge align-middle ms-1" style="background-color: {{ round.color }}; color: {{ round.textColor }}">{{ round.overview.name }}</span>
+                </h1>
+                <div class="small text-body-secondary">
+                    {{ competition.name }}
+                    <span class="mx-1">&middot;</span>{{ ('competition.round.category.' ~ round.overview.category)|trans }}
+                    <span class="mx-1">&middot;</span><i class="bi bi-calendar-event me-1" aria-hidden="true"></i>{{ round.overview.startsAt|date('d.m.Y H:i', round.timezone) }} ({{ timezone_name(round.timezone, round.timezoneAssumed) }})
+                    {% if round.overview.piecesCount is not null %}
+                        <span class="mx-1">&middot;</span><i class="bi bi-puzzle me-1" aria-hidden="true"></i>{{ 'results_desk.pieces'|trans({'%pieces%': round.overview.piecesCount}) }}
+                    {% endif %}
+                </div>
+            </div>
+            <span class="badge rounded-pill fs-6 fw-normal text-bg-success" role="status" aria-live="polite" data-results-desk-target="syncPill">{{ 'results_desk.pill.all_saved'|trans }}</span>
+        </div>
+
+        {% if rounds|length > 1 %}
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <label class="small text-body-secondary" for="results-desk-round">{{ 'results_desk.round_switch'|trans }}</label>
+                <select class="form-select form-select-sm w-auto" id="results-desk-round" data-action="change->results-desk#switchRound">
+                    {% for other in rounds %}
+                        <option value="{{ path('results_desk', {roundId: other.id}) }}" {{ other.id == round.id ? 'selected' }}>{{ other.overview.name }} ({{ ('competition.round.category.' ~ other.overview.category)|trans }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+
+        <div class="d-flex flex-wrap gap-2 mb-3" data-results-desk-tools>
+            {{ include('official_results/_round_tool_links.html.twig', {
+                round_id: round.id,
+                is_online: competition.isOnline,
+                table_numbers_off: round.overview.tableNumbersOff,
+                current: 'desk',
+                button_class: 'btn-outline-primary',
+                return_url: desk_url,
+                return_title: 'results_desk.title'|trans,
+            }) }}
+            {{ include('official_results/_advance_dialog.html.twig', {competition: competition, rounds: rounds, source_round_id: round.id}) }}
+            <div class="dropdown">
+                <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'results_desk.export.button'|trans }}
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ path('results_desk_export', {roundId: round.id, format: 'xlsx'}) }}" data-turbo="false">{{ 'results_desk.export.xlsx'|trans }}</a></li>
+                    <li><a class="dropdown-item" href="{{ path('results_desk_export', {roundId: round.id, format: 'csv'}) }}" data-turbo="false">{{ 'results_desk.export.csv'|trans }}</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3" data-results-desk-target="publication">
+            <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
+                <span data-published="true" {{ round.overview.resultsPublishedAt is null ? 'hidden' }}>
+                    <span class="badge text-bg-success"><i class="bi bi-globe me-1" aria-hidden="true"></i>{{ 'results_desk.publication.published'|trans }}</span>
+                    <span class="small text-body-secondary ms-1" data-published-since></span>
+                </span>
+                <span data-published="false" {{ round.overview.resultsPublishedAt is not null ? 'hidden' }}>
+                    <span class="badge text-bg-secondary"><i class="bi bi-eye-slash me-1" aria-hidden="true"></i>{{ 'results_desk.publication.not_published'|trans }}</span>
+                    <span class="small text-body-secondary ms-1">{{ 'results_desk.publication.not_published_help'|trans }}</span>
+                </span>
+                {% if round.publicUrl is not null %}
+                    <a href="{{ round.publicUrl }}" class="small" target="_blank" rel="noopener" data-public-link>
+                        {{ 'results_desk.publication.public_page'|trans }}<i class="bi bi-box-arrow-up-right ms-1" aria-hidden="true"></i>
+                    </a>
+                {% endif %}
+                <span class="ms-auto">
+                    <button type="button" class="btn btn-primary" data-published="false" data-publish-action="publish" data-action="results-desk#openPublish" {{ round.overview.resultsPublishedAt is not null ? 'hidden' }}>
+                        <i class="bi bi-megaphone me-1" aria-hidden="true"></i>{{ 'results_desk.publish.button'|trans }}
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" data-published="true" data-publish-action="unpublish" data-action="results-desk#openPublish" {{ round.overview.resultsPublishedAt is null ? 'hidden' }}>
+                        {{ 'results_desk.unpublish.button'|trans }}
+                    </button>
+                </span>
+            </div>
+        </div>
+
+        {# `hidden` sits on wrappers only - a display utility (d-flex) would win over it #}
+        <div hidden data-results-desk-target="banner">
+            <div data-banner="auth" hidden><div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert">
+                <span class="me-auto"><i class="bi bi-person-lock me-1" aria-hidden="true"></i>{{ 'results_desk.banner.auth'|trans }}</span>
+                <a class="btn btn-sm btn-danger" href="{{ path('login', {return: desk_url}) }}" target="_blank" rel="noopener">{{ 'results_desk.banner.sign_in'|trans }}</a>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-action="results-desk#retryNow">{{ 'results_desk.banner.try_again'|trans }}</button>
+            </div></div>
+            <div data-banner="forbidden" hidden><div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert">
+                <span class="me-auto"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>{{ 'results_desk.banner.forbidden'|trans }}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-action="results-desk#retryNow">{{ 'results_desk.banner.try_again'|trans }}</button>
+            </div></div>
+            <div data-banner="gone" hidden><div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert">
+                <span class="me-auto"><i class="bi bi-x-octagon me-1" aria-hidden="true"></i>{{ 'results_desk.banner.gone'|trans }}</span>
+                <a class="btn btn-sm btn-outline-danger" href="{{ path('competition_results_overview', {competitionId: competition.id}) }}">{{ 'results_desk.overview.title'|trans }}</a>
+            </div></div>
+            <div data-banner="offline" hidden><div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="status">
+                <span class="me-auto"><i class="bi bi-wifi-off me-1" aria-hidden="true"></i>{{ 'results_desk.banner.offline'|trans }}</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#retryNow">{{ 'results_desk.banner.try_now'|trans }}</button>
+            </div></div>
+        </div>
+
+        <div hidden data-results-desk-target="conflictBar">
+            <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="alert">
+                <span class="me-auto" data-conflict-count></span>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-action="results-desk#keepAllMine">{{ 'results_desk.conflicts_bar.keep_all_mine'|trans }}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="results-desk#takeAllTheirs">{{ 'results_desk.conflicts_bar.take_all_theirs'|trans }}</button>
+            </div>
+        </div>
+
+        {{ include('official_results/_waitlist_note.html.twig', {overview: round.overview, competition_id: competition.id}) }}
+
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+            <div>
+                <div class="small fw-semibold" data-results-desk-target="counts"></div>
+                {% if not competition.isOnline %}
+                    <div data-results-desk-target="readiness">
+                        {{ include('seating/_readiness.html.twig', {overview: round.overview, compact: true, force: true}) }}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-1" role="group" aria-label="{{ 'results_desk.helper.group_label'|trans }}">
+                <span class="small text-body-secondary me-1">{{ 'results_desk.helper.label'|trans }}</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-helper="top" data-action="results-desk#openHelper">{{ 'results_desk.helper.top_button'|trans }}</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-helper="country" data-action="results-desk#openHelper">{{ 'results_desk.helper.country_button'|trans }}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-helper="clear" data-action="results-desk#openHelper">{{ 'results_desk.helper.clear_button'|trans }}</button>
+            </div>
+        </div>
+
+        <div class="row g-2 mb-2">
+            <div class="col-sm-7 col-lg-5">
+                <label class="visually-hidden" for="results-desk-search">{{ 'results_desk.search.label'|trans }}</label>
+                <input type="search" id="results-desk-search" class="form-control" placeholder="{{ 'results_desk.search.placeholder'|trans }}" autocomplete="off" data-results-desk-target="search" data-action="input->results-desk#filterChanged">
+            </div>
+            <div class="col-sm-5 col-lg-3">
+                <label class="visually-hidden" for="results-desk-filter">{{ 'results_desk.filter.label'|trans }}</label>
+                <select id="results-desk-filter" class="form-select" data-results-desk-target="filter" data-action="change->results-desk#filterChanged">
+                    <option value="all">{{ 'results_desk.filter.all'|trans }}</option>
+                    <option value="no_result">{{ 'results_desk.filter.no_result'|trans }}</option>
+                    <option value="qualified">{{ 'results_desk.filter.qualified'|trans }}</option>
+                    <option value="not_saved">{{ 'results_desk.filter.not_saved'|trans }}</option>
+                </select>
+            </div>
+        </div>
+
+        {# position-relative: the visually hidden texts in the table (position: absolute) stay inside the scroller -
+           without it they widen the page at 375 px (browser verification) #}
+        <div class="table-responsive position-relative">
+            <table class="table table-sm align-middle results-desk-table">
+                <caption class="visually-hidden">{{ 'results_desk.table.caption'|trans({'%round%': round.overview.name}) }}</caption>
+                <thead>
+                    <tr>
+                        <th scope="col" class="text-end">{{ 'results_desk.table.rank'|trans }}</th>
+                        <th scope="col" data-results-desk-target="tableColumn" {{ competition.isOnline or round.overview.tableNumbersOff ? 'hidden' }}>{{ 'results_desk.table.table'|trans }}</th>
+                        <th scope="col">{{ (round.overview.category == 'solo' ? 'results_desk.table.entrant' : 'results_desk.table.team')|trans }}</th>
+                        <th scope="col">{{ 'results_desk.table.country'|trans }}</th>
+                        <th scope="col">{{ 'results_desk.table.result'|trans }}</th>
+                        <th scope="col">{{ 'results_desk.table.entered'|trans }}</th>
+                        <th scope="col" class="text-center">{{ 'official_results.qualified'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody data-results-desk-target="tbody"></tbody>
+            </table>
+        </div>
+        <p class="text-body-secondary" hidden data-results-desk-target="emptyState"></p>
+        <noscript><p class="alert alert-warning">{{ 'results_desk.noscript'|trans }}</p></noscript>
+
+        {# Qualification helpers - a proposal to review, applied only on confirm #}
+        <div class="modal fade" tabindex="-1" aria-labelledby="results-desk-helper-title" aria-hidden="true" data-results-desk-target="helperModal">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title h5" id="results-desk-helper-title" data-helper-title></h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'results_desk.close'|trans }}"></button>
+                    </div>
+                    <div class="modal-body" data-results-desk-target="helperBody" data-action="change->results-desk#helperChanged input->results-desk#helperChanged">
+                        <p class="small text-body-secondary">{{ 'results_desk.helper.explain'|trans }}</p>
+                        <div data-helper-section="top" hidden>
+                            <label class="form-label" for="results-desk-helper-top">{{ 'results_desk.helper.top_count'|trans }}</label>
+                            <input type="number" min="1" max="9999" inputmode="numeric" class="form-control w-auto mb-1" id="results-desk-helper-top" data-helper-count>
+                            <div class="form-text mb-3">{{ 'results_desk.helper.top_help'|trans }}</div>
+                        </div>
+                        <div data-helper-section="country" hidden>
+                            <label class="form-label" for="results-desk-helper-country">{{ 'results_desk.helper.country_count'|trans }}</label>
+                            <input type="number" min="1" max="99" inputmode="numeric" class="form-control w-auto mb-1" id="results-desk-helper-country" data-helper-count>
+                            <div class="form-text mb-3">{{ (round.overview.category == 'solo' ? 'results_desk.helper.country_help' : 'results_desk.helper.country_help_teams')|trans }}</div>
+                            <ul class="small list-unstyled mb-3" data-helper-countries hidden></ul>
+                        </div>
+                        <div data-helper-section="clear" hidden>
+                            <p>{{ 'results_desk.helper.clear_help'|trans }}</p>
+                        </div>
+                        <div class="form-check mb-3" data-helper-keep-row>
+                            <input class="form-check-input" type="checkbox" id="results-desk-helper-keep" data-helper-keep>
+                            <label class="form-check-label" for="results-desk-helper-keep">{{ 'results_desk.helper.keep_others'|trans }}</label>
+                        </div>
+                        <div data-helper-decide></div>
+                        <div data-results-desk-target="helperSummary" aria-live="polite"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'results_desk.editor.cancel'|trans }}</button>
+                        <button type="button" class="btn btn-primary" data-results-desk-target="helperApply" data-action="results-desk#applyHelper">{{ 'results_desk.helper.apply'|trans }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Publish / unpublish confirmation #}
+        <div class="modal fade" tabindex="-1" aria-labelledby="results-desk-publish-title" aria-hidden="true" data-results-desk-target="publishModal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title h5" id="results-desk-publish-title" data-results-desk-target="publishModalTitle"></h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'results_desk.close'|trans }}"></button>
+                    </div>
+                    <div class="modal-body" data-results-desk-target="publishModalBody"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'results_desk.editor.cancel'|trans }}</button>
+                        <button type="button" class="btn btn-primary" data-results-desk-target="publishConfirm" data-action="results-desk#confirmPublish"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

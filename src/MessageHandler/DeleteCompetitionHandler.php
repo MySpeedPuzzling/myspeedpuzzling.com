@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CompetitionHasResults;
 use SpeedPuzzling\Web\Message\DeleteCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -18,6 +19,7 @@ readonly final class DeleteCompetitionHandler
         private CompetitionRepository $competitionRepository,
         private Connection $database,
         private SecretPuzzleHides $secretPuzzleHides,
+        private OfficialResultsGuard $officialResultsGuard,
     ) {
     }
 
@@ -34,8 +36,12 @@ readonly final class DeleteCompetitionHandler
                 $params,
             );
 
-            if (is_numeric($resultsCount) && (int) $resultsCount > 0) {
-                throw new CompetitionHasResults((int) $resultsCount);
+            // Official results recorded by the organiser count as results too - a qualified mark as well
+            $resultsCount = (is_numeric($resultsCount) ? (int) $resultsCount : 0)
+                + $this->officialResultsGuard->countEntriesWithOfficialDataInCompetition($competitionId);
+
+            if ($resultsCount > 0) {
+                throw new CompetitionHasResults($resultsCount);
             }
         }
 

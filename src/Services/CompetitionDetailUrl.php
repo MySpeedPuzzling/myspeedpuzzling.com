@@ -36,4 +36,25 @@ readonly final class CompetitionDetailUrl
 
         return $this->urlGenerator->generate($routeName, $competition->routeParameters());
     }
+
+    /**
+     * The same page as an absolute URL in the given language - for e-mails, which open it in the recipient's language.
+     *
+     * @throws CompetitionNotFound
+     */
+    public function absoluteOf(string $competitionId, string $locale): string
+    {
+        $competition = $this->getCompetitionEvents->referenceById($competitionId);
+        $routeName = $competition->routeName();
+
+        if ($routeName === null) {
+            return $this->urlGenerator->generate('events', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
+        }
+
+        return $this->urlGenerator->generate(
+            $routeName,
+            [...$competition->routeParameters(), '_locale' => $locale],
+            UrlGeneratorInterface::ABSOLUTE_URL,
+        );
+    }
 }

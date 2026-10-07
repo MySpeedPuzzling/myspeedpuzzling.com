@@ -45,7 +45,8 @@ final class RenameCompetitionTeamController extends AbstractController
     {
         $team = $this->competitionTeamRepository->get($teamId);
         $roundId = $team->round->id->toString();
-        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $team->round->competition->id->toString());
+        $competitionId = $team->round->competition->id->toString();
+        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         $backToTeams = $this->redirect(
             $this->generateUrl('manage_round_teams', ['roundId' => $roundId]) . '#team-' . $team->id->toString(),
@@ -68,7 +69,7 @@ final class RenameCompetitionTeamController extends AbstractController
             return $backToTeams;
         }
 
-        $this->messageBus->dispatch(new RenameCompetitionTeam(teamId: $team->id->toString(), name: $name));
+        $this->messageBus->dispatch(new RenameCompetitionTeam(competitionId: $competitionId, teamId: $team->id->toString(), name: $name));
 
         $this->addFlash('success', $this->translator->trans(
             $name === null ? 'competition.teams.flash.team_name_removed' : 'competition.teams.flash.team_renamed',

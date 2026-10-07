@@ -1,7 +1,11 @@
 image_invalid_mime_type: "有効な画像形式のファイルを入力してください。サポートされているのは: jpg, jpeg, gif, png, webp, heic, heif, avif"
 puzzling_time_format: "HH:MM:SSまたはMM:SS形式でタイムを入力してください"
 player_code: "プレイヤーコードは文字と数字のみで、特殊文字やスペースは含められません。"
+competition_referees_choose_player: "プレイヤーを1人以上選んでください。"
+
 competition_date_to_before_date_from: "終了日は開始日より前にできません。"
+competition_registration_closes_before_opens: "登録の締め切りを開始より前にすることはできません。"
+
 competition_duration_too_long: "イベントは%limit%日を超えることはできません。実際のイベント日程を入力してください。"
 competition_round_badge_color_invalid: "#1e88e5 のような形式で色を入力するか、空欄のままにすると自動で色が選ばれます。"
 competition_round_reveal_delay_range: "{{ min }}〜{{ max }}の整数（分）で入力してください。"
@@ -16,3 +20,9 @@ puzzle_names:
 competition_teams:
     name_too_long: "「%name%」はチーム名として長すぎます（%length%文字、最大%max%文字）。1行に1チームずつ入力してください。"
     too_many: "一度に追加できるのは最大%max%チームです。"
+admin:
+    moderators:
+        choose_player: "プレイヤーを1人以上選択してください。"
+private_profile_viewers:
+    choose_player: "プレイヤーを1人以上選んでください。"
+

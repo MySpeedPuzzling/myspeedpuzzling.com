@@ -28,6 +28,9 @@
         <form method="post" action="{{ action }}">
             <input type="hidden" name="_token" value="{{ token }}">
             <input type="hidden" name="confirm_reveal_hash" value="{{ hash }}">
+            {% for field_name, field_value in extra_fields|default({}) %}
+                <input type="hidden" name="{{ field_name }}" value="{{ field_value }}">
+            {% endfor %}
             <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" name="confirm_reveal" value="1" id="confirm-reveal" required>
                 <label class="form-check-label" for="confirm-reveal">{{ 'competition.reveal.confirm.checkbox'|trans }}</label>

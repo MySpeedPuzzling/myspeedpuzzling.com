@@ -1,0 +1,41 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'official_results.delete_round.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block content %}
+    {# Asked before deleting a round with official results - the yes counts only for exactly these entries
+       (OfficialResultsGuard::hashEntries()); a secret puzzle confirmation may follow #}
+    <div class="pb-4 col-lg-8 px-0">
+        <h1 class="h3">{{ 'official_results.delete_round.title'|trans }}</h1>
+        <p class="text-muted">{{ round.name }}</p>
+
+        <div class="alert alert-danger" data-confirm-official-results>
+            <p class="mb-2">{{ 'official_results.delete_round.intro'|trans({'%count%': entries|length}) }}</p>
+            <ul class="mb-0">
+                {% for entry in entries %}
+                    <li>
+                        {% if entry.rank is not null %}{{ entry.rank }}. {% endif %}
+                        <strong>{{ entry.displayName }}</strong>
+                        – {{ include('official_results/_result.html.twig', {result: entry.result, pieces_count: round.singlePuzzlePiecesCount}) }}
+                        {% if entry.qualified %}
+                            <span class="badge bg-success ms-1">{{ 'official_results.qualified'|trans }}</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <form method="post" action="{{ action }}">
+            <input type="hidden" name="_token" value="{{ token }}">
+            <input type="hidden" name="confirm_official_results_hash" value="{{ hash }}">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="confirm_official_results" value="1" id="confirm-official-results" required>
+                <label class="form-check-label" for="confirm-official-results">{{ 'official_results.delete_round.checkbox'|trans }}</label>
+            </div>
+            <button type="submit" class="btn btn-danger">{{ 'official_results.delete_round.submit'|trans }}</button>
+            <a href="{{ cancel_url }}" class="btn btn-outline-secondary ms-2">{{ 'official_results.delete_round.cancel'|trans }}</a>
+        </form>
+    </div>
+{% endblock %}

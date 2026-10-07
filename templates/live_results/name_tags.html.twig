@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+{# Printable name tags - docs/features/competitions-management/live-results.md. Standalone like print_round_tables. #}
+<html lang="{{ app.request.locale }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ 'name_tags.title'|trans }} - {{ competition.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; color: #111; padding: 16px; font-size: 14px; }
+        .controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-bottom: 12px; }
+        .controls a, .controls button { color: #333; }
+        .controls label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #555; }
+        .controls select, .controls button { min-height: 36px; padding: 4px 10px; font-size: 14px; }
+        .controls label.inline { flex-direction: row; align-items: center; min-height: 36px; color: #333; }
+        .controls input[type="checkbox"] { width: 18px; height: 18px; vertical-align: middle; }
+        .controls .print { font-weight: bold; }
+        .hint { max-width: 180mm; margin-bottom: 16px; color: #555; font-size: 13px; line-height: 1.4; }
+        .sheet { display: grid; grid-template-columns: repeat(2, 90mm); grid-auto-rows: 55mm; }
+        .tag { position: relative; display: flex; gap: 3mm; padding: 4mm 4mm 4mm 5mm; border: 1px dashed #bbb; overflow: hidden; break-inside: avoid; page-break-inside: avoid; }
+        .tag-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+        .tag-event { font-size: 8pt; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tag-name { margin-top: 2mm; font-size: 19pt; font-weight: bold; line-height: 1.12; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .tag-name.long { font-size: 15pt; }
+        .tag-who { display: flex; align-items: center; gap: 2mm; margin-top: 2mm; font-size: 11pt; }
+        .tag-who img { width: 6mm; height: 4.5mm; object-fit: cover; border: 1px solid #ddd; }
+        .tag-table { margin-top: auto; font-size: 10pt; color: #444; }
+        .tag-table strong { font-size: 20pt; color: #111; }
+        .tag-qr { flex: 0 0 30mm; align-self: center; }
+        .tag-qr svg { display: block; width: 30mm; height: 30mm; }
+        .empty { color: #666; }
+
+        /* A phone shows one tag per row - the A4 sheet of two columns (180 mm) would widen the page */
+        @media screen and (max-width: 720px) {
+            .sheet { grid-template-columns: minmax(0, 90mm); }
+        }
+
+        @page { size: A4; margin: 10mm 15mm; }
+        @media print {
+            body { padding: 0; }
+            .controls, .hint { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <form class="controls" method="get" action="{{ path('competition_name_tags', {competitionId: competition.id}) }}">
+        <a href="{{ path('manage_competition_participants', {competitionId: competition.id}) }}">&larr; {{ 'name_tags.back'|trans }}</a>
+        <label>
+            {{ 'name_tags.round'|trans }}
+            <select name="round" onchange="this.form.submit()">
+                <option value="">{{ 'name_tags.all_rounds'|trans }}</option>
+                {% for option in rounds %}
+                    <option value="{{ option.roundId }}" {{ round is not null and round.roundId == option.roundId ? 'selected' }}>{{ option.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        {% if uses_table_numbers %}
+            <label>
+                {{ 'name_tags.sort'|trans }}
+                <select name="sort" onchange="this.form.submit()">
+                    <option value="name" {{ sort == 'name' ? 'selected' }}>{{ 'name_tags.sort_name'|trans }}</option>
+                    <option value="table" {{ sort == 'table' ? 'selected' }}>{{ 'name_tags.sort_table'|trans }}</option>
+                </select>
+            </label>
+        {% endif %}
+        {% if waitlisted_count > 0 %}
+            <label class="inline">
+                <span><input type="checkbox" name="waitlist" value="1" {{ with_waitlist ? 'checked' }} onchange="this.form.submit()"> {{ 'name_tags.waitlist'|trans({'%count%': waitlisted_count}) }}</span>
+            </label>
+        {% endif %}
+        <noscript><button type="submit">{{ 'name_tags.show'|trans }}</button></noscript>
+        <button type="button" class="print" onclick="window.print()">{{ 'name_tags.print'|trans }}</button>
+        <span>{{ 'name_tags.count'|trans({'%count%': tags|length}) }}</span>
+    </form>
+
+    <p class="hint">{{ 'name_tags.hint'|trans }}</p>
+    {% if round is null and uses_table_numbers %}
+        <p class="hint" data-first-round-note>{{ 'name_tags.first_round_note'|trans }}</p>
+    {% endif %}
+
+    {% if tags is empty %}
+        <p class="empty">{{ 'name_tags.empty'|trans }}</p>
+    {% else %}
+        <div class="sheet">
+            {% for item in tags %}
+                {% set tag = item.tag %}
+                <div class="tag">
+                    <div class="tag-text">
+                        <div class="tag-event">{{ competition.name }}{% if round is not null %} · {{ round.name }}{% endif %}</div>
+                        <div class="tag-name{{ tag.name|length > 24 ? ' long' }}">{{ tag.name }}</div>
+                        {% if tag.country or tag.playerCode %}
+                            <div class="tag-who">
+                                {% if tag.country %}
+                                    <img src="{{ asset('build/images/' ~ tag.country ~ '.svg') }}" alt="{{ tag.country|upper }}">
+                                {% endif %}
+                                {% if tag.playerCode %}
+                                    <span>#{{ tag.playerCode|upper }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        {% if tag.tableNumber is not null %}
+                            <div class="tag-table">{{ 'name_tags.table'|trans }} <strong>{{ tag.tableNumber }}</strong></div>
+                        {% endif %}
+                    </div>
+                    <div class="tag-qr">{{ item.qr|raw }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</body>
+</html>

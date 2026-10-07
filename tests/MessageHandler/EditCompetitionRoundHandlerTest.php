@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
@@ -58,6 +59,7 @@ final class EditCompetitionRoundHandlerTest extends KernelTestCase
         // A rename only (the internal API's PATCH) still carrying the start it read before
         $this->messageBus->dispatch(new EditCompetitionRound(
             roundId: CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
+            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: 'Renamed Qualification',
             minutesLimit: 1,
             startsAt: $readBefore,
@@ -143,6 +145,7 @@ final class EditCompetitionRoundHandlerTest extends KernelTestCase
 
         $this->messageBus->dispatch(new EditCompetitionRound(
             roundId: CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
+            competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: $round->name,
             minutesLimit: $round->minutesLimit,
             startsAt: $startsAt,

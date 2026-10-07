@@ -1,0 +1,15 @@
+{# One official result (RoundEntryResult) as text - "1:23:45", "479 / 500 pcs" (the round's piece count when it has one
+   puzzle), "Did not start", or a dash for no result yet. Expects: result, pieces_count (optional, null|int) #}
+{%- if result.seconds is not null -%}
+    {{ result.seconds|puzzlingTime }}
+{%- elseif result.piecesPlaced is not null -%}
+    {%- if pieces_count|default(null) is not null -%}
+        {{ 'official_results.result.pieces_placed_of'|trans({'%placed%': result.piecesPlaced, '%pieces%': pieces_count}) }}
+    {%- else -%}
+        {{ 'official_results.result.pieces_placed'|trans({'%placed%': result.piecesPlaced}) }}
+    {%- endif -%}
+{%- elseif result.didNotStart -%}
+    {{ 'official_results.result.did_not_start'|trans }}
+{%- else -%}
+    <span class="text-muted">–</span>
+{%- endif -%}

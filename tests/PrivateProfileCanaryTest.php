@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -322,6 +323,40 @@ final class PrivateProfileCanaryTest extends WebTestCase
 
         TestingLogin::asPlayer($browser, self::FRIEND);
         self::assertStringNotContainsString(self::OWNER_NAME, $this->get($browser, $url));
+    }
+
+    /**
+     * A round's published official results (docs/features/competitions-management/official-results.md) list her by the
+     * name the organiser recorded ("Gina Quick") - the official record - but nothing of her profile: no name of hers, no
+     * link, no avatar, except for the friend.
+     */
+    public function testPublishedOfficialResultsLinkHerProfileForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/results-cup/results/group-b';
+        $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition_round SET results_published_at = NOW() WHERE id = :id',
+            ['id' => OfficialResultsFixture::ROUND_GROUP_B],
+        );
+
+        $content = $this->get($browser, $url);
+        self::assertStringContainsString('Gina Quick', $content, 'No canary: the official results do not list her.');
+        self::assertStringNotContainsString($profileLink, $content, 'A guest is shown a private player.');
+        self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A guest is shown a private player.');
+        self::assertStringContainsString('public', (string) $browser->getResponse()->headers->get('Cache-Control'), 'Guest pages stay shared-cacheable.');
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $content = $this->get($browser, $url);
+            self::assertStringContainsString('Gina Quick', $content);
+            self::assertStringNotContainsString($profileLink, $content, "A signed-in stranger ({$who}) is shown a private player.");
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A signed-in stranger ({$who}) is shown a private player.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary.');
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
     }
 
     private function get(KernelBrowser $browser, string $url): string

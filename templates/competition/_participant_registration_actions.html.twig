@@ -1,0 +1,61 @@
+{#
+    Registration status and actions of one row of the participants page - managed registration only
+    (docs/features/competitions-management/registration.md, D17). Every action is a Live action of its own, never part of
+    the row's save. Rows without a status hold a spot: they read as reserved.
+
+    - participant: SpeedPuzzling\Web\Results\ManageableCompetitionParticipant
+#}
+{% set status = participant.registrationStatus ? participant.registrationStatus.value : 'reserved' %}
+<span class="badge {{ status == 'paid' ? 'bg-success' : (status == 'waitlisted' ? 'bg-warning text-dark' : 'bg-primary') }}">{{ ('competition_registration.status.' ~ status)|trans }}</span>
+{% if status != 'paid' and participant.paidAt %}
+    {# Paid, then cancelled (and maybe registered again) - the organiser's record of the payment stays (review 2, A-F4) #}
+    <span class="badge bg-light text-dark border" data-registration-paid-before title="{{ 'competition_registration.manage.paid_before'|trans({'%date%': participant.paidAt|format_date('medium')}) }}"><i class="bi bi-cash-coin" aria-hidden="true"></i><span class="visually-hidden">{{ 'competition_registration.manage.paid_before'|trans({'%date%': participant.paidAt|format_date('medium')}) }}</span></span>
+{% endif %}
+{% if participant.checkedInAt %}
+    <span class="badge bg-info text-dark" title="{{ 'competition_registration.manage.checked_in'|trans }}"><i class="bi bi-person-check" aria-hidden="true"></i><span class="visually-hidden">{{ 'competition_registration.manage.checked_in'|trans }}</span></span>
+{% endif %}
+{% if participant.organizerNote %}
+    <i class="bi bi-sticky text-muted" title="{{ participant.organizerNote }}" role="img" aria-label="{{ 'competition_registration.manage.organizer_note'|trans }}: {{ participant.organizerNote }}"></i>
+{% endif %}
+{% if not participant.isDeleted %}
+    {% if status == 'paid' %}
+        <button
+            class="btn btn-sm btn-outline-secondary py-0 px-1"
+            data-action="live#action"
+            data-live-action-param="unmarkPaid"
+            data-live-participant-id-param="{{ participant.participantId }}"
+            title="{{ 'competition_registration.manage.unmark_paid'|trans }}"
+        >
+            <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i><span class="visually-hidden">{{ 'competition_registration.manage.unmark_paid'|trans }}</span>
+        </button>
+    {% elseif status == 'waitlisted' %}
+        <button
+            class="btn btn-sm btn-outline-success py-0 px-1"
+            data-action="live#action"
+            data-live-action-param="promoteFromWaitlist"
+            data-live-participant-id-param="{{ participant.participantId }}"
+            title="{{ 'competition_registration.manage.promote'|trans }}"
+        >
+            <i class="bi bi-arrow-up-circle" aria-hidden="true"></i><span class="visually-hidden">{{ 'competition_registration.manage.promote'|trans }}</span>
+        </button>
+        <button
+            class="btn btn-sm btn-outline-success py-0 px-1"
+            data-action="live#action"
+            data-live-action-param="promoteAndMarkPaid"
+            data-live-participant-id-param="{{ participant.participantId }}"
+            title="{{ 'competition_registration.manage.promote_and_mark_paid'|trans }}"
+        >
+            <i class="bi bi-arrow-up-circle" aria-hidden="true"></i><i class="bi bi-cash-coin" aria-hidden="true"></i><span class="visually-hidden">{{ 'competition_registration.manage.promote_and_mark_paid'|trans }}</span>
+        </button>
+    {% else %}
+        <button
+            class="btn btn-sm btn-outline-success py-0 px-1"
+            data-action="live#action"
+            data-live-action-param="markPaid"
+            data-live-participant-id-param="{{ participant.participantId }}"
+            title="{{ 'competition_registration.manage.mark_paid'|trans }}"
+        >
+            <i class="bi bi-cash-coin" aria-hidden="true"></i><span class="visually-hidden">{{ 'competition_registration.manage.mark_paid'|trans }}</span>
+        </button>
+    {% endif %}
+{% endif %}

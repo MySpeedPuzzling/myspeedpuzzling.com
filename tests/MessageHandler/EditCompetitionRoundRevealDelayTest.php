@@ -261,6 +261,7 @@ final class EditCompetitionRoundRevealDelayTest extends KernelTestCase
         // A caller that does not set it (a rename, an older form) keeps it
         $this->messageBus->dispatch(new EditCompetitionRound(
             roundId: self::ROUND,
+            competitionId: $this->round()->competition->id->toString(),
             name: 'Renamed Qualification',
             minutesLimit: 60,
             startsAt: $this->round()->startsAt,
@@ -403,6 +404,7 @@ final class EditCompetitionRoundRevealDelayTest extends KernelTestCase
         // Everything else as the round has it under the handler's lock
         $this->messageBus->dispatch(new EditCompetitionRound(
             roundId: $roundId,
+            competitionId: $this->round($roundId)->competition->id->toString(),
             name: 'kept',
             minutesLimit: 1,
             startsAt: new DateTimeImmutable(),
@@ -421,6 +423,7 @@ final class EditCompetitionRoundRevealDelayTest extends KernelTestCase
     {
         $this->messageBus->dispatch(new EditCompetitionRound(
             roundId: self::ROUND,
+            competitionId: $this->round()->competition->id->toString(),
             name: 'kept',
             minutesLimit: 1,
             startsAt: $startsAt,

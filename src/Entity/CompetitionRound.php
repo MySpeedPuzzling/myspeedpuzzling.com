@@ -19,6 +19,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
+use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
@@ -69,6 +70,16 @@ class CompetitionRound implements EntityWithEvents
         // The zone the organiser typed the start in, so it is edited and shown in that zone - see RoundTimezone
         #[Column(length: 64, nullable: true)]
         public null|string $timezone = null,
+        // Official results (docs/features/competitions-management/official-results.md): public on the round page
+        // while set - publishResults() / unpublishResults()
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $resultsPublishedAt = null,
+        // The first publish - kept through unpublish/publish (the desk says whether players were told before)
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $resultsFirstPublishedAt = null,
+        // The organiser said this round does not use table numbers - the seating step and its reminders are hidden
+        #[Column(options: ['default' => false])]
+        public bool $tableNumbersOff = false,
         // Minutes after the start when the round's secret puzzles with an automatic reveal come out (RoundPuzzleReveal),
         // 0..RoundPuzzleReveal::MAX_DELAY_MINUTES - changed only through changeRevealDelay(). The column default keeps a
         // round inserted by an older release (blue-green deploy) at the old fixed 10 minutes.
@@ -139,6 +150,53 @@ class CompetitionRound implements EntityWithEvents
     public function assignSlug(string $slug): void
     {
         $this->slug = $slug;
+    }
+
+    /**
+     * Shows the official results on the round page. Every publish records OfficialRoundResultsPublished: the players with
+     * a finished result who were not told yet get a notification (each player once per round, ever - the notification
+     * handler's marker decides, so a publish → unpublish → publish before the worker ran still tells everybody).
+     * Publishing published results changes nothing.
+     */
+    public function publishResults(DateTimeImmutable $publishedAt): void
+    {
+        if ($this->resultsPublishedAt !== null) {
+            return;
+        }
+
+        $this->resultsPublishedAt = $publishedAt;
+        $this->resultsFirstPublishedAt ??= $publishedAt;
+        $this->recordThat(new OfficialRoundResultsPublished($this->id));
+    }
+
+    public function unpublishResults(): void
+    {
+        $this->resultsPublishedAt = null;
+    }
+
+    public function areResultsPublished(): bool
+    {
+        return $this->resultsPublishedAt !== null;
+    }
+
+    public function changeTableNumbersUsage(bool $off): void
+    {
+        $this->tableNumbersOff = $off;
+    }
+
+    /**
+     * The piece count of the round's puzzle when the round has exactly one - the most pieces an unfinished official
+     * result can have placed is one less. Null for a round with no puzzle or several.
+     */
+    public function singlePuzzlePiecesCount(): null|int
+    {
+        if ($this->roundPuzzles->count() !== 1) {
+            return null;
+        }
+
+        $roundPuzzle = $this->roundPuzzles->first();
+
+        return $roundPuzzle === false ? null : $roundPuzzle->puzzle->piecesCount;
     }
 
     public function edit(

@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
+use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
@@ -141,6 +142,7 @@ final class EditCompetitionRoundController extends AbstractController
                 try {
                     $this->messageBus->dispatch(new EditCompetitionRound(
                         roundId: $roundId,
+                        competitionId: $competitionId,
                         name: $data->name,
                         minutesLimit: $data->minutesLimit,
                         startsAt: $startsAt,
@@ -183,6 +185,10 @@ final class EditCompetitionRoundController extends AbstractController
                     $this->askToConfirm($form, $revealedEarlier, $ticked
                         ? 'competition.reveal.form.confirm_reveal_changed'
                         : 'competition.reveal.form.confirm_reveal_required');
+                } catch (OfficialResultsProtected $protected) {
+                    // The round's category stays while it has official results - read the round again, like below
+                    $round = $this->competitionRoundRepository->get($roundId);
+                    $form->get('category')->addError(new FormError($this->translator->trans($protected->translationKey())));
                 } catch (HandlerFailedException $e) {
                     $nested = $e->getPrevious() ?? $e;
 

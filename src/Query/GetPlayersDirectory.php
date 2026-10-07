@@ -154,6 +154,7 @@ SQL;
     public static function competesInEventsSql(string $playerColumn): string
     {
         $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $going = CompetitionParticipantGoing::sql('cp');
 
         return <<<SQL
 EXISTS (
@@ -162,7 +163,7 @@ EXISTS (
             JOIN competition c ON c.id = cp.competition_id
             LEFT JOIN competition_series cs ON cs.id = c.series_id
             WHERE cp.player_id = {$playerColumn}
-                AND cp.deleted_at IS NULL
+                AND {$going}
                 AND {$visible}
         )
 SQL;

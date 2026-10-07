@@ -1,0 +1,87 @@
+{# One organiser-written section (Results\PageSection). Every value is plain text escaped here, except the rich text,
+   sanitised on every write (PageSectionContentSanitizer, config/packages/html_sanitizer.php). External links open like
+   the page's other external links. Expects: section #}
+<section class="my-4" data-page-section="{{ section.type.value }}">
+    {% if section.title %}
+        <h2 class="h5 mb-3">{{ section.title }}</h2>
+    {% endif %}
+
+    {% if section.type.value == 'rich_text' %}
+        <div class="page-section-rich-text">{{ section.content.html|default('')|raw }}</div>
+    {% elseif section.type.value == 'faq' %}
+        <div class="border rounded">
+            {% for item in section.content.items|default([]) %}
+                <details class="px-3 py-2{{ not loop.last ? ' border-bottom' }}">
+                    <summary class="fw-semibold">{{ item.question }}</summary>
+                    {% if item.answer %}
+                        <p class="mt-2 mb-1">{{ item.answer|nl2br }}</p>
+                    {% endif %}
+                </details>
+            {% endfor %}
+        </div>
+    {% elseif section.type.value == 'gallery' %}
+        <div class="row g-2">
+            {% for image in section.content.images|default([]) %}
+                <figure class="col-6 col-md-3 mb-0">
+                    <a href="{{ image.path|thumbnail('puzzle_large') }}" target="_blank" rel="noopener">
+                        <img src="{{ image.path|thumbnail('puzzle_medium') }}" alt="{{ image.caption ?: section.title ?: 'page_sections.gallery.photo_alt'|trans }}" class="img-fluid rounded" loading="lazy">
+                    </a>
+                    {% if image.caption %}
+                        <figcaption class="small text-muted mt-1">{{ image.caption }}</figcaption>
+                    {% endif %}
+                </figure>
+            {% endfor %}
+        </div>
+    {% elseif section.type.value == 'venue' %}
+        <div class="card">
+            <div class="card-body">
+                {% if section.content.address|default('') %}
+                    <p class="mb-2"><i class="bi bi-geo-alt me-2" aria-hidden="true"></i>{{ section.content.address }}</p>
+                {% endif %}
+                {% if section.content.directions|default('') %}
+                    <p class="mb-2 text-muted">{{ section.content.directions|nl2br }}</p>
+                {% endif %}
+                {% if section.content.mapUrl|default(null) %}
+                    <a href="{{ section.content.mapUrl }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-map me-1"></i>{{ 'page_sections.venue.open_map'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% elseif section.type.value == 'sponsors' %}
+        <div class="row g-3 align-items-center">
+            {% for sponsor in section.content.sponsors|default([]) %}
+                <div class="col-6 col-md-3 text-center">
+                    {% if sponsor.url %}<a href="{{ sponsor.url }}" target="_blank" rel="noopener noreferrer nofollow" class="text-decoration-none">{% endif %}
+                    {% if sponsor.logoPath %}
+                        <img src="{{ sponsor.logoPath|thumbnail('puzzle_small') }}" alt="{{ sponsor.name }}" class="img-fluid mb-1" style="max-height: 64px;" loading="lazy">
+                    {% endif %}
+                    <div class="small">{{ sponsor.name }}</div>
+                    {% if sponsor.url %}</a>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% elseif section.type.value == 'links' %}
+        <div class="d-flex flex-wrap gap-2">
+            {% for link in section.content.links|default([]) %}
+                <a href="{{ link.href|default(link.url) }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-sm btn-outline-primary text-wrap">
+                    <i class="bi bi-link-45deg me-1"></i>{{ link.label ?: link.url }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
+                </a>
+            {% endfor %}
+        </div>
+    {% elseif section.type.value == 'contact' %}
+        <div class="card">
+            <div class="card-body">
+                {% if section.content.email|default('') %}
+                    <p class="mb-2"><i class="bi bi-envelope me-2" aria-hidden="true"></i><a href="mailto:{{ section.content.email }}">{{ section.content.email }}</a></p>
+                {% endif %}
+                {% if section.content.phone|default('') %}
+                    <p class="mb-2"><i class="bi bi-telephone me-2" aria-hidden="true"></i>{{ section.content.phone }}</p>
+                {% endif %}
+                {% if section.content.note|default('') %}
+                    <p class="mb-0 text-muted">{{ section.content.note|nl2br }}</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</section>

@@ -1,0 +1,34 @@
+{#
+    The round's puzzle card (picture, name, pieces, "Add my time") - main part of round_results.html.twig and of its
+    published layout (round_results/_official.html.twig). Included right after the indentation of its line, so its
+    lines keep the page's indentation and it ends without a newline: a round page renders byte for byte as before.
+    Expects the page context (page, event) plus puzzle and loop.index of the puzzle loop.
+#}
+<div class="card card-body shadow-sm p-2 mb-3">
+            <div class="d-flex align-items-center">
+                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="flex-shrink-0" style="width: 90px;">
+                    <span class="diff-corner-host">
+                        {# Hidden-until-round-starts puzzles come with a null image - the helper renders its placeholder #}
+                        {{ include('_puzzle_row_image.html.twig', {image: puzzle.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': (puzzle.manufacturerName ?? '') ~ ' ' ~ puzzle.puzzleName}), position: loop.index, ratio: puzzle.puzzleImageRatio}) }}
+
+                        {# Members see the difficulty on the corner - never on a puzzle whose picture is still hidden #}
+                        {% if page.difficultyTiers is not null and puzzle.puzzleImage is not null %}
+                            {{ include('_difficulty_corner.html.twig', {tier: page.difficultyTiers[puzzle.puzzleId] ?? null}) }}
+                        {% endif %}
+                    </span>
+                </a>
+
+                <div class="ps-3 flex-grow-1">
+                    <a class="text-decoration-underline" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}</a>
+                    <div class="small text-muted">
+                        {% if puzzle.manufacturerName %}{{ puzzle.manufacturerName }} &middot; {% endif %}{{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}
+                    </div>
+                </div>
+
+                {% if page.canAddTime %}
+                    <a class="btn btn-sm btn-outline-primary ms-2 flex-shrink-0" href="{{ path('puzzle_add', {puzzleId: puzzle.puzzleId, competition: event.id}) }}">
+                        <i class="bi bi-stopwatch me-1"></i>{{ 'round_results.add_my_time'|trans }}
+                    </a>
+                {% endif %}
+            </div>
+        </div>{# no newline: the include's line brings it #}

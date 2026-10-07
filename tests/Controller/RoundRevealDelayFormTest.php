@@ -197,6 +197,7 @@ final class RoundRevealDelayFormTest extends WebTestCase
         // Meanwhile another path lengthens the delay to 60 minutes
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new EditCompetitionRound(
             roundId: $roundId,
+            competitionId: self::COMPETITION,
             name: 'kept',
             minutesLimit: 1,
             startsAt: new DateTimeImmutable(),
@@ -603,6 +604,7 @@ final class RoundRevealDelayFormTest extends WebTestCase
         // Meanwhile the round's delay becomes 5 minutes (the puzzle has a manual reveal - nothing to confirm)
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new EditCompetitionRound(
             roundId: $roundId,
+            competitionId: self::COMPETITION,
             name: 'kept',
             minutesLimit: 1,
             startsAt: new DateTimeImmutable(),
@@ -752,6 +754,7 @@ final class RoundRevealDelayFormTest extends WebTestCase
     {
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new EditCompetitionRound(
             roundId: $roundId,
+            competitionId: self::COMPETITION,
             name: 'kept',
             minutesLimit: 1,
             startsAt: $startsAt ?? new DateTimeImmutable(),

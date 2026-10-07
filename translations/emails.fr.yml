@@ -129,6 +129,34 @@ moderator_role_granted:
         <p><strong>Un mot de prudence sur les fusions :</strong> approuver une fusion supprime les fiches en double et transfère les temps et les collections de tout le monde vers celle qui reste. C'est irréversible ; en cas de doute - nombre de pièces différent, illustration différente, édition différente - mieux vaut la laisser de côté ou la rejeter. Un même puzzle peut avoir plusieurs codes EAN ; c'est tout à fait normal.</p>
         <p>Si quelque chose n'est pas clair, écrivez-nous via le lien « Envoyer un commentaire » en haut du site.</p>
 
+competition_registration:
+    entry_fee: "Droit d'inscription (fixé par l'organisateur) :"
+    payment_instructions: "Comment payer - instructions de l'organisateur :"
+    no_payment_processing: "MySpeedPuzzling ne traite pas les paiements. Vous payez directement l'organisateur, selon ses indications - adressez-vous à lui pour toute question concernant le droit d'inscription."
+    event_page_button: "Ouvrir la page de l'événement"
+    reserved:
+        subject: "Vous êtes inscrit(e) à %competitionName%"
+        preheader: "Votre place à %competitionName% est réservée."
+        title: "Vous êtes inscrit(e) !"
+        content: "<p>Votre inscription à <strong>%competitionName%</strong> est confirmée - votre place est réservée.</p>\n"
+    waitlisted:
+        subject: "Vous êtes en liste d'attente pour %competitionName%"
+        preheader: "%competitionName% est complet - vous êtes en liste d'attente."
+        title: "Vous êtes en liste d'attente"
+        position: "Votre place en liste d'attente : n° %position%"
+        next: "Si l'organisateur vous accorde une place, nous vous enverrons immédiatement un e-mail."
+        content: "<p><strong>%competitionName%</strong> est complet pour le moment, vous êtes donc en liste d'attente.</p>\n"
+    paid:
+        subject: "Paiement confirmé pour %competitionName%"
+        preheader: "L'organisateur de %competitionName% a confirmé votre paiement."
+        title: "Paiement confirmé !"
+        content: "<p>L'organisateur de <strong>%competitionName%</strong> a confirmé votre paiement. Votre place est assurée - à bientôt !</p>\n"
+    promoted:
+        subject: "Une place s'est libérée pour vous à %competitionName%"
+        preheader: "Vous êtes passé(e) de la liste d'attente de %competitionName% à une place réservée."
+        title: "Une place s'est libérée !"
+        content: "<p>Bonne nouvelle ! L'organisateur de <strong>%competitionName%</strong> vous a accordé une place - vous êtes passé(e) de la liste d'attente à une place désormais réservée.</p>\n"
+
 competition_rejected:
     subject: "Votre événement n'a pas été approuvé"
     preheader: "Votre événement %competitionName% n’a pas été approuvé – la raison est indiquée dans l’e-mail."

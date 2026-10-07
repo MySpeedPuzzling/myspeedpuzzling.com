@@ -5,9 +5,15 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
-readonly final class EditCompetitionRound
+/**
+ * Takes turns with every write to the event's participants (CompetitionParticipantsLock): a category change is refused
+ * while the round holds official results, checked under the same lock the results desk records under.
+ */
+readonly final class EditCompetitionRound implements SerializedByLock
 {
     public const array FIELDS = ['name', 'minutesLimit', 'startsAt', 'timezone', 'badgeBackgroundColor', 'badgeTextColor', 'category', 'resultsLink'];
 
@@ -16,6 +22,8 @@ readonly final class EditCompetitionRound
      */
     public function __construct(
         public string $roundId,
+        // The round's event, as the caller authorised it - the handler refuses a round of another event
+        public string $competitionId,
         public string $name,
         public int $minutesLimit,
         // The instant (UTC); the organiser typed it as local time in $timezone
@@ -42,5 +50,10 @@ readonly final class EditCompetitionRound
         // Null = keep the round's value as it is under the handler's lock (callers that do not set it)
         public null|int $revealDelayMinutes = null,
     ) {
+    }
+
+    public function lockKey(): string
+    {
+        return CompetitionParticipantsLock::key($this->competitionId);
     }
 }

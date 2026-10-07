@@ -14,8 +14,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Deletes a round with its puzzle assignments, teams and seating - only while nobody has a result in it (409
- * otherwise, CompetitionRoundHasResults), and only with `{"confirmReveal": true}` when that reveals a secret puzzle
+ * Deletes a round with its puzzle assignments, teams and seating - only while nobody has a result in it, a player's
+ * time or an official result the organiser recorded (409 otherwise, CompetitionRoundHasResults), and only with `{"confirmReveal": true}` when that reveals a secret puzzle
  * right away (409, `revealedPuzzles`): another round has revealed it already. A secret puzzle no other round holds
  * stays hidden - its hide dates are kept, nothing is refused.
  */
@@ -44,6 +44,7 @@ final class DeleteCompetitionRoundController extends AbstractController
 
         $this->messageBus->dispatch(new DeleteCompetitionRound(
             roundId: $round->id->toString(),
+            competitionId: $round->competition->id->toString(),
             refuseWhenItHasResults: true,
             refuseToReveal: $confirmReveal === false,
         ));

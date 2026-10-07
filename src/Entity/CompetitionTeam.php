@@ -13,10 +13,16 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionTeamNameTooLong;
+use SpeedPuzzling\Web\Value\RoundEntryRef;
 
+/**
+ * A pair/team of one round - the round entry of a duo/team round, carrying its official result (HasOfficialResult).
+ */
 #[Entity]
 class CompetitionTeam
 {
+    use HasOfficialResult;
+
     public const int NAME_MAX_LENGTH = 255;
 
     /**
@@ -34,6 +40,11 @@ class CompetitionTeam
         public null|string $name = null,
     ) {
         $this->name = self::checkedName($name);
+    }
+
+    public function entryRef(): RoundEntryRef
+    {
+        return RoundEntryRef::team($this->id->toString());
     }
 
     /**

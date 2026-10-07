@@ -40,6 +40,8 @@ UNION SELECT logo FROM manufacturer WHERE logo IN (:paths)
 UNION SELECT logo FROM competition WHERE logo IN (:paths)
 UNION SELECT logo FROM competition_series WHERE logo IN (:paths)
 UNION SELECT logo_path FROM oauth2_client_request WHERE logo_path IN (:paths)
+UNION SELECT image->>'path' FROM competition_page_section, jsonb_array_elements(CASE WHEN jsonb_typeof(content->'images') = 'array' THEN content->'images' ELSE '[]'::jsonb END) AS image WHERE image->>'path' IN (:paths)
+UNION SELECT sponsor->>'logoPath' FROM competition_page_section, jsonb_array_elements(CASE WHEN jsonb_typeof(content->'sponsors') = 'array' THEN content->'sponsors' ELSE '[]'::jsonb END) AS sponsor WHERE sponsor->>'logoPath' IN (:paths)
 SQL;
 
             /** @var list<string> $rows */

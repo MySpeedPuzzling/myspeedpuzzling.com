@@ -112,6 +112,54 @@ final class ManageCompetitionParticipantsEditTest extends WebTestCase
         );
     }
 
+    /**
+     * Event day (review 2, A-F3): a helper opens Jane's row to fix a typo. Meanwhile the results desk advances her to the
+     * final and seats her at table 7, and she connects her account. Saving the typo fix touches neither.
+     */
+    public function testAStaleEditRowKeepsWhatChangedMeanwhile(): void
+    {
+        $component = $this->componentAsAdmin();
+        $component->call('startEdit', ['participantId' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]);
+
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->insert('competition_participant_round', [
+            'id' => '018d0006-0000-0000-0000-0000000000f7',
+            'participant_id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED,
+            'round_id' => CompetitionRoundFixture::ROUND_WJPC_FINAL,
+            'table_number' => 7,
+            'result_did_not_start' => 'false',
+        ]);
+        $connection->update('competition_participant', ['player_id' => PlayerFixture::PLAYER_WITH_FAVORITES], ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED]);
+
+        $component->set('editName', 'Jane Unconnected Fixed');
+        $component->call('saveEdit');
+
+        $row = $this->participantRow(CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED);
+        self::assertSame('Jane Unconnected Fixed', $row['name']);
+        self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $row['player_id']);
+        self::assertSame(
+            [CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, CompetitionRoundFixture::ROUND_WJPC_FINAL],
+            $row['rounds'],
+        );
+        self::assertEquals(7, $connection->fetchOne(
+            'SELECT table_number FROM competition_participant_round WHERE id = :id',
+            ['id' => '018d0006-0000-0000-0000-0000000000f7'],
+        ));
+    }
+
+    /**
+     * Unticking a round in the edit takes the person out of exactly that round - nothing else.
+     */
+    public function testUntickingARoundRemovesOnlyThatEntry(): void
+    {
+        $component = $this->componentAsAdmin();
+        $component->call('startEdit', ['participantId' => CompetitionParticipantFixture::PARTICIPANT_CONNECTED]);
+        $component->call('toggleEditRound', ['roundId' => CompetitionRoundFixture::ROUND_WJPC_FINAL]);
+        $component->call('saveEdit');
+
+        self::assertSame([CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION], $this->participantRow(CompetitionParticipantFixture::PARTICIPANT_CONNECTED)['rounds']);
+    }
+
     public function testCancelRestoresTheRow(): void
     {
         $component = $this->componentAsAdmin();

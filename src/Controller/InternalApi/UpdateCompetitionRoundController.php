@@ -61,6 +61,7 @@ final class UpdateCompetitionRoundController extends AbstractController
         try {
             $this->messageBus->dispatch(new EditCompetitionRound(
                 roundId: $round->id->toString(),
+                competitionId: $round->competition->id->toString(),
                 name: $data->name,
                 minutesLimit: $data->minutesLimit,
                 startsAt: $startsAt,

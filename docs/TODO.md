@@ -4,6 +4,90 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Managed registration (`docs/features/competitions-management/registration.md`)
+
+- [ ] Registration status / paid / checked-in as optional columns of the participants spreadsheet's People tab
+      (participants-spreadsheet.md D10) - the import reads nothing from the export's registration columns today.
+- [ ] Notify maintainers about a new registration, a cancelled *paid* registration (refund talk) and a listed name
+      picked on a managed event ("connected by …" on the participants page - review 2 A-F10, documented trade-off);
+      optional daily digest.
+- [ ] Payment deadline / automatic release of unpaid spots; a response deadline for a spot offered from the waitlist.
+- [ ] A verified e-mail before registering (throwaway accounts can fill a capacity).
+- [ ] Check-in tolerant of venue Wi-Fi (client-side search, optimistic taps) - it is a Live component today.
+- [ ] Event JSON-LD `offers` pointing at the event page with availability (sold out / waitlist) while managed.
+- [ ] Series edition cards: an internal "Register" button for a managed edition (the external link is hidden).
+- [ ] API v1 (`CompetitionDetailResponseProvider`, `CompetitionListResponseProvider`) returns `registrationLink: null`
+      for a managed event - clients cannot tell registration happens on MSP. Additive field, e.g. `registrationManaged`
+      plus the event page URL (no BC break); left unchanged in the port on purpose.
+
+## Event page content sections (`docs/features/competitions-management/public-page.md`)
+
+- [ ] Prune unreferenced `competition-pages/<owner>/` objects: uploads of a section form that was never saved, and the
+      pictures of a deleted competition/series (its sections cascade, the files stay). `GetStoredFileReferences` already
+      knows section pictures; a daily cron like `myspeedpuzzling:prune-photo-stash`, with an age threshold - needs a cron
+      row on lily. Until then the per-player upload limit (60/h) and the 40-picture cap per section bound the leftovers.
+- [ ] A gallery photo also embedded by URL in a rich-text `<img>` is not seen by `GetStoredFileReferences`: removing it
+      from the gallery deletes the file and the rich text image breaks (edge case, review 2).
+- [ ] Contact section publishes the e-mail address in clear text - obfuscate it or offer "message the organiser" via MSP
+      chat instead.
+- [ ] If organisers ask: order/hide the page's own parts (puzzles, participants, ...) - deliberately not built
+      (the PR's `page_layout` was dropped in the port).
+- [ ] The section form's other repeatable rows (photo caption, sponsor name/URL, link label/URL) have an `aria-label`
+      and a placeholder but no visible label - the FAQ rows got real labels after the browser verification; the same
+      pattern there if organisers find the rows unclear once something is typed.
+
+## Official round results (`docs/features/competitions-management/official-results.md`)
+
+- [ ] Unfinished (pieces placed) and did-not-start results onto players' profiles - after phase 1b of
+      `unfinished-results-plan.md` (today only finished results are offered as "Add to my profile").
+- [ ] Rounds with several puzzles: one total result per entry today - a result per puzzle when organisers ask.
+- [ ] Derive table numbers from the table layout tool (`table_spot`) instead of typing them.
+- [ ] Results from timing devices without the round stopwatch (import of a device's export).
+- [ ] Cron row on lily.srv (`apps/myspeedpuzzling/cron.d/myspeedpuzzling`, `lily-cron-run` + `sentry-cli monitors run`
+      pattern) for `myspeedpuzzling:prune-round-result-change-receipts` (daily) - added once the release with the
+      command is deployed.
+- [ ] Live entry quick add: the event's people come with the page (`GetLiveResultsEventPeople`) - somebody added to
+      the event by another device during the session is not offered until a reload (rare; typing the name in creates a
+      second person, as before).
+- [ ] The participants spreadsheet (`participants-spreadsheet.md`, its own PR): its result / table / qualified cells
+      send `RecordRoundResults` changes (the live entry's and the desk's write path), not a separate changeset type.
+- [ ] Advance with the country rule: entries sharing the K-th place of a country across groups are ordered by the
+      advancement seed (relative result, round order, name) - highlight such ties for the organiser like the desk's
+      per-round helper does, if organisers ask.
+- [ ] "Take out of this round" exists on the results desk only - the live entry (a referee quick-added the wrong
+      person) could offer it too.
+- [ ] The live entry's seating recommendation follows the one rule (`tablesReadiness`) but keeps its own wording
+      (`live_results.tables.*`) - switch it to `seating.readiness.*` with the live page's next change.
+- [ ] An event that never numbers tables: "none of this event's rounds use table numbers" in one click (today per round
+      on the seating page; past rounds never show the step any more).
+- [ ] An event-wide results export (every round of the event in one file) - today the results desk exports one round.
+- [ ] A "disqualified" result (with a reason) - today the organiser clears the result or marks "did not start".
+- [ ] Check-in → "did not start": when a round starts, offer to mark its entrants who were not checked in (managed
+      registration) as did not start - the organiser decides, nothing automatic.
+- [ ] `result_entered_at` is `TIMESTAMP(0)` and the results desk's late-answer guard compares with a strict `<`: two
+      saves of one entry within the same second can briefly show the older one (the 1.5 s own-write resync puts it
+      right) - harmless; compare with `<=` plus the result value, or store milliseconds, if it ever confuses anybody.
+
+## Referees (`docs/features/competitions-management/live-results.md` "Referees")
+
+- [ ] "My events" does not list the events a player referees (its cards are organiser cards with edit/delete) - a
+      referee opens the link they were given. A "Referee at" list with a Live entry button when referees ask for it.
+- [ ] A newly added referee is not told (no notification/e-mail) - the organiser hands them the link.
+- [ ] Referees on the results desk (read-only ranking) if events want referees to check what others entered.
+- [ ] A referee's live updates withhold every private player (the update has no viewer); a referee on a private
+      player's allow list keeps her code from the page's own state (`keepWithheldPlayers()`), but an entry they first
+      see through an update (a quick add on another device) shows her code only after the next state fetch (≤ 60 s).
+
+## Seating (`docs/features/competitions-management/seating.md`)
+
+- [ ] Two rounds running at once in one hall (WJPC semifinals): table numbers are unique per round only - the
+      organiser gives the second round "First table number 101"; a shared check across simultaneous rounds if asked.
+- [ ] Pairs/teams seated by MySpeedPuzzling times: a pair's own pair time beats the mean of its members' solo times, so
+      pairs that puzzled together come first - calibrate (e.g. scale members' solo times by the typical pair speed-up)
+      if organisers notice.
+- [ ] Seat-by-drag on phones works through Move up / Move down only (SortableJS touch drag is there, but small screens
+      make it awkward) - a "Move to table…" action if organisers seat on phones.
+
 ## Time verification (`docs/features/suspicious-time-review.md`)
 
 - [ ] Result detail of a private player's queued time: the queue card links no result detail for a private player

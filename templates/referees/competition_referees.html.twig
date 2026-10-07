@@ -1,0 +1,125 @@
+{% extends 'base.html.twig' %}
+
+{# Referees of one competition - docs/features/competitions-management/live-results.md "Referees" #}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'competition_referees.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition_referees.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('edit_competition', {competitionId: competition.id}), fallbackTitle: 'competition.edit_event'|trans}) }}
+
+    <div class="pb-4">
+        <h1 class="h2">{{ competition.name }}</h1>
+        <h2 class="h4 mt-4">{{ 'competition_referees.title'|trans }}</h2>
+        <p class="text-muted" style="max-width: 48rem;">{{ 'competition_referees.intro'|trans }}</p>
+
+        {% if error is defined %}
+            <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h3 class="h5">{{ 'competition_referees.link.title'|trans }}</h3>
+                        <p class="small text-muted">{{ 'competition_referees.link.help'|trans }}</p>
+
+                        <div data-controller="clipboard" class="mb-3">
+                            <div class="input-group">
+                                <input {{ stimulus_target('clipboard', 'input') }}
+                                       value="{{ referees_link }}"
+                                       class="form-control"
+                                       type="text"
+                                       readonly
+                                       aria-label="{{ 'competition_referees.link.title'|trans }}"
+                                       data-action="click->clipboard#selectInputContent focus->clipboard#selectInputContent">
+                                <button {{ stimulus_action('clipboard', 'copyToClipboard', 'click') }} class="btn btn-primary" type="button">
+                                    <i {{ stimulus_target('clipboard', 'buttonIcon') }} class="ci-share" aria-hidden="true"></i>
+                                    {{ 'competition_referees.link.copy'|trans }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <img src="{{ path('competition_referees_qr_code', {competitionId: competition.id}) }}" width="160" height="160" class="border rounded" alt="{{ 'competition_referees.link.qr_alt'|trans }}">
+                            <div class="small text-muted" style="max-width: 20rem;">
+                                <p class="mb-2">{{ 'competition_referees.link.qr_help'|trans }}</p>
+                                <a href="{{ path('competition_referees_qr_code', {competitionId: competition.id}) }}" download="referees-qr-code.svg" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'competition_referees.link.qr_download'|trans }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h3 class="h5">{{ 'competition_referees.add.title'|trans }}</h3>
+
+                        {{ form_start(form, {action: path('competition_referees', {competitionId: competition.id})}) }}
+                            <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
+                                {{ form_row(form.players) }}
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">{{ 'competition_referees.add.submit'|trans }}</button>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="h5 mt-2">{{ 'competition_referees.list.title'|trans({'%count%': referees|length}) }}</h3>
+
+        {% if referees is empty %}
+            <p class="text-muted">{{ 'competition_referees.list.empty'|trans }}</p>
+        {% else %}
+            {# position-relative: the visually hidden texts in the table (position: absolute) stay inside the scroller -
+               without it they widen the page at 375 px (browser verification) #}
+            <div class="table-responsive position-relative">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>{{ 'competition_referees.list.player'|trans }}</th>
+                            <th>{{ 'competition_referees.list.added'|trans }}</th>
+                            <th><span class="visually-hidden">{{ 'competition_referees.remove.button'|trans }}</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for referee in referees %}
+                            <tr data-referee="{{ referee.playerId }}">
+                                <td>
+                                    {% if referee.playerCountry is not null %}
+                                        <span class="shadow-custom fi fi-{{ referee.playerCountry.name }} me-1"></span>
+                                    {% endif %}
+                                    <a href="{{ path('player_profile', {playerId: referee.playerId}) }}">{{ referee.playerName ?? ('#' ~ referee.playerCode|upper) }}</a>
+                                    <small class="text-muted">#{{ referee.playerCode|upper }}</small>
+                                </td>
+                                <td class="small text-muted">
+                                    {{ referee.addedAt|date('d.m.Y') }}
+                                    {% if referee.addedByName is not null %}· {{ referee.addedByName }}{% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <form method="post" action="{{ path('competition_referee_remove', {competitionId: competition.id, playerId: referee.playerId}) }}" class="d-inline"
+                                          onsubmit="return confirm('{{ 'competition_referees.remove.confirm'|trans({'%name%': referee.playerName ?? ('#' ~ referee.playerCode|upper)})|e('js') }}')">
+                                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Services\\CompetitionRefereesPage::CSRF_TOKEN_ID')) }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ 'competition_referees.remove.button'|trans }}</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

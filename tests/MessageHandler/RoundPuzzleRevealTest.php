@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -241,7 +242,7 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         $laterReveal = $this->roundPuzzle($later)->revealsAt();
         self::assertNotNull($laterReveal);
 
-        $this->messageBus->dispatch(new DeleteCompetitionRound(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION));
+        $this->messageBus->dispatch(new DeleteCompetitionRound(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, CompetitionFixture::COMPETITION_WJPC_2024));
         $this->entityManager->clear();
 
         self::assertSame($laterReveal->getTimestamp(), $this->puzzle($puzzleId)->hideUntil?->getTimestamp());

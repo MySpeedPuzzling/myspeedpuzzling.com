@@ -1,0 +1,28 @@
+{# THE seating step of a round's management pages: "Tables: 180 / 200 assigned - recommended before the round starts".
+   One rule decides when it shows (SeatingReadiness → overview.showsTablesReadiness / JSON `tablesReadiness`), one set of
+   texts (seating.readiness.*), on the round list, the results desk, the stopwatch control page and the seating page
+   (docs/features/competitions-management/seating.md). A recommendation, never a block.
+   Variables: overview (RoundResultsOverview or null); optional: compact (false = an alert with the way to the seating
+   page; true = one small line for a card or a toolbar), wrapper_class, force (true = drawn hidden when the rule says no,
+   for a page whose script shows it again - the desk). #}
+{%- if overview is not null and (overview.showsTablesReadiness or force|default(false)) -%}
+    {%- set seated = overview.entriesTotal > 0 and overview.entriesWithTableNumber >= overview.entriesTotal -%}
+    {%- set progress = 'seating.readiness.progress'|trans({'%assigned%': overview.entriesWithTableNumber, '%total%': overview.entriesTotal}) -%}
+    {%- set note = seated ? 'seating.readiness.done'|trans : 'seating.readiness.recommended'|trans -%}
+    {%- if compact|default(false) -%}
+        <div class="small {{ wrapper_class|default('') }} {{ seated ? 'text-success' : 'text-warning-emphasis' }}" data-seating-readiness data-assigned="{{ overview.entriesWithTableNumber }}" data-total="{{ overview.entriesTotal }}" {{ overview.showsTablesReadiness ? '' : 'hidden' }}>
+            <i class="bi {{ seated ? 'bi-check-circle' : 'bi-exclamation-circle' }} me-1" aria-hidden="true"></i>{{ progress }} <span class="text-body-secondary">- {{ note }}</span>
+        </div>
+    {%- else -%}
+        {# `hidden` (force) on the wrapper - d-flex would win over it #}
+        <div class="{{ wrapper_class|default('') }}" data-seating-readiness data-assigned="{{ overview.entriesWithTableNumber }}" data-total="{{ overview.entriesTotal }}" {{ overview.showsTablesReadiness ? '' : 'hidden' }}>
+            <div class="alert {{ seated ? 'alert-light border' : 'alert-info' }} d-flex flex-wrap align-items-center gap-2 py-2" role="status">
+                <i class="bi {{ seated ? 'bi-check2-circle' : 'bi-grid-3x3-gap' }}" aria-hidden="true"></i>
+                <span><strong>{{ progress }}</strong> - {{ note }}</span>
+                <a href="{{ path('round_seating', {roundId: overview.roundId}) }}" class="btn btn-sm {{ seated ? 'btn-outline-secondary' : 'btn-primary' }} ms-auto">
+                    <i class="bi bi-123 me-1" aria-hidden="true"></i>{{ 'seating.button'|trans }}
+                </a>
+            </div>
+        </div>
+    {%- endif -%}
+{%- endif -%}

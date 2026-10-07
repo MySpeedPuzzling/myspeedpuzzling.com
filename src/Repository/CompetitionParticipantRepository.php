@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 
 readonly final class CompetitionParticipantRepository
 {
@@ -28,6 +29,99 @@ readonly final class CompetitionParticipantRepository
         $participant = $this->entityManager->find(CompetitionParticipant::class, $participantId);
 
         return $participant ?? throw new CompetitionParticipantNotFound();
+    }
+
+    /**
+     * A participant of the given event, removed ones included - an organiser's action on another event's participant is a
+     * 404 (the organiser was authorised for $competitionId only).
+     *
+     * @throws CompetitionParticipantNotFound
+     */
+    public function getOfCompetition(string $competitionId, string $participantId): CompetitionParticipant
+    {
+        $participant = $this->get($participantId);
+
+        if ($participant->competition->id->toString() !== strtolower($competitionId)) {
+            throw new CompetitionParticipantNotFound();
+        }
+
+        return $participant;
+    }
+
+    /**
+     * A participant of the given event that is not deleted - an organiser's action on another event's participant, or
+     * on a removed one, is a 404 (the organiser was authorised for $competitionId only).
+     *
+     * @throws CompetitionParticipantNotFound
+     */
+    public function getActiveOfCompetition(string $competitionId, string $participantId): CompetitionParticipant
+    {
+        $participant = $this->get($participantId);
+
+        if ($participant->competition->id->toString() !== strtolower($competitionId) || $participant->isDeleted()) {
+            throw new CompetitionParticipantNotFound();
+        }
+
+        return $participant;
+    }
+
+    /**
+     * The event's waitlist, first in line first. With $includeDeleted also the rows of people who left the waitlist -
+     * they keep the status on the removed row, and a removed row can come back (joining again, the organiser's restore).
+     *
+     * @return list<CompetitionParticipant>
+     */
+    public function waitlistOf(string $competitionId, bool $includeDeleted = false): array
+    {
+        $queryBuilder = $this->entityManager->createQueryBuilder()
+            ->select('participant')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->where('participant.competition = :competitionId')
+            ->andWhere('participant.registrationStatus = :waitlisted')
+            ->setParameter('competitionId', $competitionId)
+            ->setParameter('waitlisted', RegistrationStatus::Waitlisted)
+            ->orderBy('participant.registeredAt', 'ASC')
+            ->addOrderBy('participant.id', 'ASC');
+
+        if ($includeDeleted === false) {
+            $queryBuilder->andWhere('participant.deletedAt IS NULL');
+        }
+
+        /** @var list<CompetitionParticipant> $participants */
+        $participants = $queryBuilder->getQuery()->getResult();
+
+        return $participants;
+    }
+
+    /**
+     * Many participants in one statement (AdvanceQualified puts a whole qualified field into the next round).
+     *
+     * @param list<string> $participantIds
+     * @return array<string, CompetitionParticipant> lower-case id => participant; unknown ids are left out
+     */
+    public function findByIds(array $participantIds): array
+    {
+        $participantIds = array_values(array_filter($participantIds, static fn (string $id): bool => Uuid::isValid($id)));
+
+        if ($participantIds === []) {
+            return [];
+        }
+
+        /** @var list<CompetitionParticipant> $participants */
+        $participants = $this->entityManager->createQueryBuilder()
+            ->select('participant')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->where('participant.id IN (:ids)')
+            ->setParameter('ids', $participantIds)
+            ->getQuery()
+            ->getResult();
+
+        $byId = [];
+        foreach ($participants as $participant) {
+            $byId[$participant->id->toString()] = $participant;
+        }
+
+        return $byId;
     }
 
     public function save(CompetitionParticipant $participant): void

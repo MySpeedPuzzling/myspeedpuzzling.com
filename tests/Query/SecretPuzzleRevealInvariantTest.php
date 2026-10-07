@@ -324,6 +324,7 @@ final class SecretPuzzleRevealInvariantTest extends WebTestCase
     {
         $this->dispatch(new EditCompetitionRound(
             roundId: CompetitionApiFixture::ROUND_FUTURE,
+            competitionId: CompetitionApiFixture::COMPETITION_API,
             name: 'ignored',
             minutesLimit: 1,
             startsAt: new DateTimeImmutable(),

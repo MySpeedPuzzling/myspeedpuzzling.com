@@ -40,6 +40,7 @@ use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
+use SpeedPuzzling\Web\Services\RoundResults\OfficialEntryTimePrefill;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
 use SpeedPuzzling\Web\Value\BrandCodeList;
@@ -49,6 +50,7 @@ use SpeedPuzzling\Web\Value\FirstTryAssessment;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\ResultEntryCheck;
+use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
@@ -85,6 +87,7 @@ final class PuzzleAddController extends AbstractController
         readonly private ClockInterface $clock,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
+        readonly private OfficialEntryTimePrefill $officialEntryTimePrefill,
         readonly private SuspiciousTimeFormCheck $suspiciousTimeFormCheck,
     ) {
     }
@@ -207,6 +210,55 @@ final class PuzzleAddController extends AbstractController
             $data->competition = $queryCompetition;
         }
 
+        // "Add to my profile" of a round's published official results (`&official_entry=<participant_round|team>:<id>`,
+        // docs/features/competitions-management/official-results.md): the entry fills in the puzzle, the time, the
+        // round's day and the pair/team - only when the round page offers exactly that to this player, anything else
+        // is ignored silently like `?competition=`. A pre-fill only: the save runs every rule of any other time
+        // The entry travels on in the form (hidden `official_entry` + `official_member`): a pair/team result is checked
+        // again on the save - see below
+        $officialEntry = null;
+        [$officialEntryRef, $officialMember] = $this->officialEntryParameters($request);
+
+        if (
+            $request->isMethod('GET')
+            && $data->competition !== null
+            && $activeStopwatch === null
+            && $officialEntryRef !== null
+        ) {
+            $officialEntry = $this->officialEntryTimePrefill->forViewer(
+                $data->competition,
+                $officialEntryRef,
+                $userProfile->playerId,
+                $userProfile->playerName,
+                // "Which one are you?" of a pair/team nobody is linked to: the member the player picked
+                $officialMember,
+            );
+
+            // The puzzle in the URL is the entry's, or the link is not what the round page made
+            if ($officialEntry !== null && $activePuzzle !== null && $activePuzzle->puzzleId !== $officialEntry->puzzleId) {
+                $officialEntry = null;
+            }
+        }
+
+        // Nothing filled in - nothing travels on
+        if ($request->isMethod('GET') && $officialEntry === null) {
+            $officialEntryRef = null;
+            $officialMember = null;
+        }
+
+        if ($officialEntry !== null) {
+            if ($activePuzzle === null) {
+                $activePuzzle = $this->getPuzzleOverview->byId($officialEntry->puzzleId);
+                $data->brand = $activePuzzle->manufacturerId;
+                $data->puzzle = $activePuzzle->puzzleId;
+            }
+
+            $data->timeHours = $officialEntry->hours();
+            $data->timeMinutes = $officialEntry->minutes();
+            $data->timeSeconds = $officialEntry->secondsPart();
+            $data->finishedAt = $officialEntry->finishedAt;
+        }
+
         // Get player collections for form options (include system collection)
         $hasActiveMembership = $userProfile->activeMembership;
         $collections = [];
@@ -238,6 +290,12 @@ final class PuzzleAddController extends AbstractController
         // Like the co-puzzlers, a plain field next to the Symfony form - see _copuzzler_picker.html.twig
         $teamName = $request->request->getString('team_name');
 
+        // "Add to my profile" of an official pair/team result: its people, and its name when the form may still set it
+        if ($officialEntry !== null) {
+            $groupPlayers = $officialEntry->groupPlayers;
+            $teamName = $officialEntry->teamName ?? '';
+        }
+
         $isGroupPuzzlersValid = true;
         foreach ($groupPlayers as $groupPlayer) {
             if (trim($groupPlayer) === '') {
@@ -261,6 +319,37 @@ final class PuzzleAddController extends AbstractController
         // Collection mode hides the co-puzzlers (their inputs are still posted) and never uses them.
         if ($isGroupPuzzlersValid === false && $addTimeForm->isSubmitted() && $data->mode !== PuzzleAddMode::Collection) {
             $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_player')));
+        }
+
+        // "Add to my profile" of an official pair/team result saves that pair's/team's time - never a solo time (nobody
+        // added, "Which one are you?" skipped) nor a pair of a team result: the entry the form carries is read again,
+        // and the people sent must be as many as the result's category holds. Refused like every other form error -
+        // 422, everything typed and the photos kept. A form whose puzzle or competition changed is no longer that entry
+        if (
+            $addTimeForm->isSubmitted()
+            && $officialEntryRef !== null
+            && $data->mode === PuzzleAddMode::SpeedPuzzling
+            && $data->competition !== null
+            && $activeStopwatch === null
+        ) {
+            $officialEntry = $this->officialEntryTimePrefill->forViewer(
+                $data->competition,
+                $officialEntryRef,
+                $userProfile->playerId,
+                $userProfile->playerName,
+                $officialMember,
+            );
+
+            if ($officialEntry !== null && strtolower($officialEntry->puzzleId) !== strtolower((string) $data->puzzle)) {
+                $officialEntry = null;
+            }
+
+            $coPuzzlers = count(array_filter($groupPlayers, static fn (string $groupPlayer): bool => trim($groupPlayer) !== ''));
+            $refusal = $officialEntry?->groupRefusal($coPuzzlers);
+
+            if ($refusal !== null) {
+                $addTimeForm->addError(new FormError($this->translator->trans($refusal['message'], ['%count%' => $refusal['count']])));
+            }
         }
 
         // The form's id belongs to a saved result: the same form sent again only when it is the same entry (puzzle,
@@ -498,6 +587,12 @@ final class PuzzleAddController extends AbstractController
             'pace_confirmed' => $paceConfirmed,
             'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId),
             'secret_puzzle_notice' => $secretPuzzleNotice,
+            'official_entry' => $officialEntry,
+            'official_entry_ref' => $officialEntryRef,
+            'official_member' => $officialMember,
+            // An official pair/team result opens in its round's mode, never as a solo time
+            'copuzzler_picker_without_solo' => $officialEntry?->isGroup() === true,
+            'copuzzler_picker_initial_mode' => $officialEntry?->pickerModeWith(count($groupPlayers)),
             'time_id' => $timeId->toString(),
             'new_puzzle_id' => $newPuzzleId->toString(),
         ]);
@@ -522,6 +617,21 @@ final class PuzzleAddController extends AbstractController
             $this->mistypedYearNormalizer->normalizeFinishedAt($data->finishedAt),
             $this->clock->now(),
         );
+    }
+
+    /**
+     * `official_entry` (a round entry, `participant_round:<id>` / `team:<id>`) and `official_member` (the member the
+     * player said is them): from the "Add to my profile" link, then from the form's hidden fields on a save.
+     *
+     * @return array{null|string, null|int}
+     */
+    private function officialEntryParameters(Request $request): array
+    {
+        $parameters = $request->isMethod('POST') && $request->request->has('official_entry') ? $request->request : $request->query;
+        $ref = RoundEntryRef::tryFromString($parameters->getString('official_entry'));
+        $member = $parameters->getString('official_member');
+
+        return [$ref?->toString(), $ref !== null && ctype_digit($member) ? (int) $member : null];
     }
 
     private function submittedIdOrNew(Request $request, string $field): UuidInterface

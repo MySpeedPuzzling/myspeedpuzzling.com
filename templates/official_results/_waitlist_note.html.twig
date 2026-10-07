@@ -1,0 +1,9 @@
+{# People put into the round who wait on the event's waitlist are no entries of the results tools until the organiser
+   gives them a spot (CompetitionParticipantGoing, GetRoundResultsOverview::peopleOnWaitlist) - the desk and the seating
+   page say how many. Expects: overview (RoundResultsOverview), competition_id #}
+{% if overview.peopleOnWaitlist > 0 %}
+    <p class="small text-body-secondary mb-2" data-round-waitlist-note>
+        <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ 'official_results.waitlist_note.text'|trans({'%count%': overview.peopleOnWaitlist}) }}
+        <a href="{{ path('manage_competition_participants', {competitionId: competition_id}) }}" class="text-nowrap">{{ 'official_results.waitlist_note.link'|trans }}</a>
+    </p>
+{% endif %}

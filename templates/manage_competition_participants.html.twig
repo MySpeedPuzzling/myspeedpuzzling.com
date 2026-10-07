@@ -15,6 +15,27 @@
 
         <h2 class="h4 mt-4">{{ 'competition.manage_participants'|trans }}</h2>
 
+        {# The page's tools in one row: managed registration (docs/features/competitions-management/registration.md) and
+           name tags with a QR for the live result entry (live-results.md) - nobody walks in to an online event, so no
+           check-in and no name tags there #}
+        {% if competition.registrationManaged or not competition.isOnline %}
+            <div class="d-flex flex-wrap gap-2 mb-3" data-participants-tools>
+                {% if competition.registrationManaged %}
+                    <a href="{{ path('manage_competition_registration', {competitionId: competition.id, return: path('manage_competition_participants', {competitionId: competition.id}), return_title: 'competition.manage_participants'|trans}) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-ticket-perforated me-1"></i>{{ 'competition_registration.settings.title'|trans }}
+                    </a>
+                    {% if not competition.isOnline %}
+                        <a href="{{ path('competition_check_in', {competitionId: competition.id}) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-person-check me-1"></i>{{ 'competition_registration.check_in.title'|trans }}
+                        </a>
+                    {% endif %}
+                {% endif %}
+                {% if not competition.isOnline %}
+                    <a href="{{ path('competition_name_tags', {competitionId: competition.id}) }}" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener"><i class="bi bi-person-badge me-1"></i>{{ 'name_tags.button'|trans }}</a>
+                {% endif %}
+            </div>
+        {% endif %}
+
         {# Import section #}
         <details class="mb-4">
             <summary class="btn btn-outline-secondary btn-sm">
@@ -170,6 +191,6 @@
         {% endfor %}
 
         {# Live Component #}
-        <twig:ManageCompetitionParticipants competitionId="{{ competition.id }}" />
+        <twig:ManageCompetitionParticipants competitionId="{{ competition.id }}" :registrationManaged="competition.registrationManaged" :capacity="competition.capacity" />
     </div>
 {% endblock %}

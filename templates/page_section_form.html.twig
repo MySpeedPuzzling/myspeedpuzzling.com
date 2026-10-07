@@ -1,0 +1,252 @@
+{% extends 'base.html.twig' %}
+
+{# Add or edit one content section (AddPageSectionController / EditPageSectionController). Expects: section_type, owner
+   (Value\PageSectionOwner), owner_name, submission (Results\PageSectionSubmission - what is in the form and what is
+   wrong with it), form_action, manage_url, is_new #}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block title %}{{ ('page_sections.type.' ~ section_type.value)|trans }} - {{ owner_name }}{% endblock %}
+
+{% macro image_upload(owner, token, name, image_path, preview_height) %}
+    <div class="d-flex flex-wrap align-items-center gap-2"
+         data-controller="section-image-upload"
+         data-section-image-upload-url-value="{{ path('upload_page_section_image') }}"
+         data-section-image-upload-owner-field-value="{{ owner.isSeries ? 'seriesId' : 'competitionId' }}"
+         data-section-image-upload-owner-id-value="{{ owner.id }}"
+         data-section-image-upload-token-value="{{ token }}"
+         data-section-image-upload-failed-message-value="{{ 'page_sections.upload.failed'|trans }}"
+    >
+        <img {% if image_path %}src="{{ image_path|thumbnail('puzzle_small') }}" {% endif %}alt="" class="rounded{{ image_path ? '' : ' d-none' }}" style="height: {{ preview_height }}px;" data-section-image-upload-target="preview">
+        <input type="hidden" name="{{ name }}" value="{{ image_path }}" data-section-image-upload-target="path">
+        <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="form-control form-control-sm w-auto" aria-label="{{ 'page_sections.form.choose_image'|trans }}" data-section-image-upload-target="file" data-action="section-image-upload#upload">
+        <span class="small text-muted d-none" data-section-image-upload-target="progress">{{ 'page_sections.upload.uploading'|trans }}</span>
+        <div class="small text-danger w-100 d-none" role="alert" data-section-image-upload-target="error"></div>
+    </div>
+{% endmacro %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: manage_url, fallbackTitle: 'page_sections.manage_title'|trans}) }}
+
+    {% set token = csrf_token(owner.csrfTokenId) %}
+    {% set content = submission.content %}
+
+    <div class="row justify-content-center pb-4">
+        <div class="col-lg-8">
+            <h1 class="h3 mb-1">{{ ('page_sections.type.' ~ section_type.value)|trans }}</h1>
+            <p class="text-muted">{{ owner_name }}</p>
+
+            {% if submission.errors is not empty %}
+                <div class="alert alert-danger" role="alert" data-page-section-errors>
+                    <ul class="mb-0 ps-3">
+                        {% for error in submission.errors %}
+                            <li>{{ error.key|trans(error.parameters) }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <form method="post" action="{{ form_action }}">
+                <input type="hidden" name="_token" value="{{ token }}">
+
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="page-section-title">{{ 'page_sections.form.title'|trans }}</label>
+                            <input type="text" id="page-section-title" name="title" class="form-control" maxlength="{{ constant('SpeedPuzzling\\Web\\Entity\\CompetitionPageSection::TITLE_MAX_LENGTH') }}" value="{{ submission.title }}">
+                            <div class="form-text">{{ 'page_sections.form.title_help'|trans }}</div>
+                        </div>
+
+                        {% if section_type.value == 'rich_text' %}
+                            {# Every text of the editor is the page's language (review 2, A-F8): the toolbar is ours, with titles,
+                               the link tooltip's texts - CSS content in Quill's theme - come as values (wysiwyg_controller.js) #}
+                            <div data-controller="wysiwyg" class="page-section-editor"
+                                 data-wysiwyg-visit-url-value="{{ 'page_sections.editor.visit_url'|trans }}"
+                                 data-wysiwyg-enter-link-value="{{ 'page_sections.editor.enter_link'|trans }}"
+                                 data-wysiwyg-edit-link-value="{{ 'page_sections.editor.edit_link'|trans }}"
+                                 data-wysiwyg-remove-link-value="{{ 'page_sections.editor.remove_link'|trans }}"
+                                 data-wysiwyg-save-link-value="{{ 'page_sections.editor.save_link'|trans }}"
+                            >
+                                <div data-wysiwyg-target="toolbar" hidden>
+                                    <span class="ql-formats">
+                                        <select class="ql-header" aria-label="{{ 'page_sections.editor.text_style'|trans }}" title="{{ 'page_sections.editor.text_style'|trans }}">
+                                            <option value="2">{{ 'page_sections.editor.heading_2'|trans }}</option>
+                                            <option value="3">{{ 'page_sections.editor.heading_3'|trans }}</option>
+                                            <option value="4">{{ 'page_sections.editor.heading_4'|trans }}</option>
+                                            <option selected>{{ 'page_sections.editor.normal'|trans }}</option>
+                                        </select>
+                                    </span>
+                                    <span class="ql-formats">
+                                        {% for format in ['bold', 'italic', 'underline', 'strike'] %}
+                                            <button type="button" class="ql-{{ format }}" title="{{ ('page_sections.editor.' ~ format)|trans }}" aria-label="{{ ('page_sections.editor.' ~ format)|trans }}"></button>
+                                        {% endfor %}
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button type="button" class="ql-list" value="ordered" title="{{ 'page_sections.editor.ordered_list'|trans }}" aria-label="{{ 'page_sections.editor.ordered_list'|trans }}"></button>
+                                        <button type="button" class="ql-list" value="bullet" title="{{ 'page_sections.editor.bullet_list'|trans }}" aria-label="{{ 'page_sections.editor.bullet_list'|trans }}"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button type="button" class="ql-blockquote" title="{{ 'page_sections.editor.blockquote'|trans }}" aria-label="{{ 'page_sections.editor.blockquote'|trans }}"></button>
+                                        <button type="button" class="ql-link" title="{{ 'page_sections.editor.link'|trans }}" aria-label="{{ 'page_sections.editor.link'|trans }}"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button type="button" class="ql-clean" title="{{ 'page_sections.editor.clean'|trans }}" aria-label="{{ 'page_sections.editor.clean'|trans }}"></button>
+                                    </span>
+                                </div>
+                                {# Sanitised on write and again when a refused form comes back (PageSectionRequestParser) #}
+                                <div data-wysiwyg-target="editor" class="bg-white" style="min-height: 220px;">{{ content.html|default('')|raw }}</div>
+                                <textarea name="html" class="d-none" data-wysiwyg-target="input">{{ content.html|default('') }}</textarea>
+                            </div>
+                        {% elseif section_type.value == 'faq' %}
+                            <div data-controller="repeatable-rows">
+                                <div data-repeatable-rows-target="container">
+                                    {% for item in content.items|default([{question: '', answer: ''}]) %}
+                                        <div class="card bg-light border mb-2 p-3" data-repeatable-row>
+                                            {# Real labels - a placeholder is gone once something is typed #}
+                                            <div class="mb-2">
+                                                <label class="form-label small mb-1" for="faq-question-{{ loop.index0 }}">{{ 'page_sections.form.question'|trans }}</label>
+                                                <input type="text" id="faq-question-{{ loop.index0 }}" name="items[{{ loop.index0 }}][question]" class="form-control" value="{{ item.question }}">
+                                            </div>
+                                            <label class="form-label small mb-1" for="faq-answer-{{ loop.index0 }}">{{ 'page_sections.form.answer'|trans }}</label>
+                                            <textarea id="faq-answer-{{ loop.index0 }}" name="items[{{ loop.index0 }}][answer]" class="form-control" rows="3">{{ item.answer }}</textarea>
+                                            <button type="button" class="btn btn-sm btn-outline-danger mt-2 align-self-start" data-action="repeatable-rows#remove">
+                                                <i class="bi bi-trash me-1"></i>{{ 'page_sections.form.remove_row'|trans }}
+                                            </button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <template data-repeatable-rows-target="template">
+                                    <div class="card bg-light border mb-2 p-3" data-repeatable-row>
+                                        <div class="mb-2">
+                                            <label class="form-label small mb-1" for="faq-question-__INDEX__">{{ 'page_sections.form.question'|trans }}</label>
+                                            <input type="text" id="faq-question-__INDEX__" name="items[__INDEX__][question]" class="form-control">
+                                        </div>
+                                        <label class="form-label small mb-1" for="faq-answer-__INDEX__">{{ 'page_sections.form.answer'|trans }}</label>
+                                        <textarea id="faq-answer-__INDEX__" name="items[__INDEX__][answer]" class="form-control" rows="3"></textarea>
+                                        <button type="button" class="btn btn-sm btn-outline-danger mt-2 align-self-start" data-action="repeatable-rows#remove">
+                                            <i class="bi bi-trash me-1"></i>{{ 'page_sections.form.remove_row'|trans }}
+                                        </button>
+                                    </div>
+                                </template>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-action="repeatable-rows#add">
+                                    <i class="bi bi-plus-lg me-1"></i>{{ 'page_sections.form.add_question'|trans }}
+                                </button>
+                            </div>
+                        {% elseif section_type.value == 'gallery' %}
+                            <div data-controller="repeatable-rows">
+                                <div data-repeatable-rows-target="container">
+                                    {% for image in content.images|default([{path: '', caption: ''}]) %}
+                                        <div class="card bg-light border mb-2 p-3 gap-2" data-repeatable-row>
+                                            {{ _self.image_upload(owner, token, 'images[' ~ loop.index0 ~ '][path]', image.path, 56) }}
+                                            <div class="d-flex gap-2">
+                                                <input type="text" name="images[{{ loop.index0 }}][caption]" class="form-control form-control-sm" placeholder="{{ 'page_sections.form.caption'|trans }}" aria-label="{{ 'page_sections.form.caption'|trans }}" value="{{ image.caption }}">
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove" title="{{ 'page_sections.form.remove_row'|trans }}" aria-label="{{ 'page_sections.form.remove_row'|trans }}"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <template data-repeatable-rows-target="template">
+                                    <div class="card bg-light border mb-2 p-3 gap-2" data-repeatable-row>
+                                        {{ _self.image_upload(owner, token, 'images[__INDEX__][path]', '', 56) }}
+                                        <div class="d-flex gap-2">
+                                            <input type="text" name="images[__INDEX__][caption]" class="form-control form-control-sm" placeholder="{{ 'page_sections.form.caption'|trans }}" aria-label="{{ 'page_sections.form.caption'|trans }}">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove" title="{{ 'page_sections.form.remove_row'|trans }}" aria-label="{{ 'page_sections.form.remove_row'|trans }}"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-action="repeatable-rows#add">
+                                    <i class="bi bi-plus-lg me-1"></i>{{ 'page_sections.form.add_image'|trans }}
+                                </button>
+                            </div>
+                        {% elseif section_type.value == 'venue' %}
+                            <div class="mb-3">
+                                <label class="form-label" for="page-section-address">{{ 'page_sections.form.address'|trans }}</label>
+                                <input type="text" id="page-section-address" name="address" class="form-control" value="{{ content.address|default('') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="page-section-map">{{ 'page_sections.form.map_url'|trans }}</label>
+                                <input type="url" id="page-section-map" name="mapUrl" class="form-control" placeholder="https://" value="{{ content.mapUrl|default('') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="page-section-directions">{{ 'page_sections.form.directions'|trans }}</label>
+                                <textarea id="page-section-directions" name="directions" class="form-control" rows="3">{{ content.directions|default('') }}</textarea>
+                                <div class="form-text">{{ 'page_sections.form.directions_help'|trans }}</div>
+                            </div>
+                        {% elseif section_type.value == 'sponsors' %}
+                            <div data-controller="repeatable-rows">
+                                <div data-repeatable-rows-target="container">
+                                    {% for sponsor in content.sponsors|default([{name: '', url: '', logoPath: ''}]) %}
+                                        <div class="card bg-light border mb-2 p-3 gap-2" data-repeatable-row>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <input type="text" name="sponsors[{{ loop.index0 }}][name]" class="form-control form-control-sm w-auto flex-fill" placeholder="{{ 'page_sections.form.sponsor_name'|trans }}" aria-label="{{ 'page_sections.form.sponsor_name'|trans }}" value="{{ sponsor.name }}">
+                                                <input type="url" name="sponsors[{{ loop.index0 }}][url]" class="form-control form-control-sm w-auto flex-fill" placeholder="https://" aria-label="{{ 'page_sections.form.sponsor_url'|trans }}" value="{{ sponsor.url }}">
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove" title="{{ 'page_sections.form.remove_row'|trans }}" aria-label="{{ 'page_sections.form.remove_row'|trans }}"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                            {{ _self.image_upload(owner, token, 'sponsors[' ~ loop.index0 ~ '][logoPath]', sponsor.logoPath, 40) }}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <template data-repeatable-rows-target="template">
+                                    <div class="card bg-light border mb-2 p-3 gap-2" data-repeatable-row>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <input type="text" name="sponsors[__INDEX__][name]" class="form-control form-control-sm w-auto flex-fill" placeholder="{{ 'page_sections.form.sponsor_name'|trans }}" aria-label="{{ 'page_sections.form.sponsor_name'|trans }}">
+                                            <input type="url" name="sponsors[__INDEX__][url]" class="form-control form-control-sm w-auto flex-fill" placeholder="https://" aria-label="{{ 'page_sections.form.sponsor_url'|trans }}">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove" title="{{ 'page_sections.form.remove_row'|trans }}" aria-label="{{ 'page_sections.form.remove_row'|trans }}"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                        {{ _self.image_upload(owner, token, 'sponsors[__INDEX__][logoPath]', '', 40) }}
+                                    </div>
+                                </template>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-action="repeatable-rows#add">
+                                    <i class="bi bi-plus-lg me-1"></i>{{ 'page_sections.form.add_sponsor'|trans }}
+                                </button>
+                            </div>
+                        {% elseif section_type.value == 'links' %}
+                            <div data-controller="repeatable-rows">
+                                <div data-repeatable-rows-target="container">
+                                    {% for link in content.links|default([{label: '', url: ''}]) %}
+                                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2" data-repeatable-row>
+                                            <input type="text" name="links[{{ loop.index0 }}][label]" class="form-control form-control-sm w-auto flex-fill" placeholder="{{ 'page_sections.form.link_label'|trans }}" aria-label="{{ 'page_sections.form.link_label'|trans }}" value="{{ link.label }}">
+                                            <input type="url" name="links[{{ loop.index0 }}][url]" class="form-control form-control-sm w-auto flex-fill" placeholder="https://" aria-label="{{ 'page_sections.form.link_url'|trans }}" value="{{ link.url }}">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove" title="{{ 'page_sections.form.remove_row'|trans }}" aria-label="{{ 'page_sections.form.remove_row'|trans }}"><i class="bi bi-trash"></i></button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <template data-repeatable-rows-target="template">
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2" data-repeatable-row>
+                                        <input type="text" name="links[__INDEX__][label]" class="form-control form-control-sm w-auto flex-fill" placeholder="{{ 'page_sections.form.link_label'|trans }}" aria-label="{{ 'page_sections.form.link_label'|trans }}">
+                                        <input type="url" name="links[__INDEX__][url]" class="form-control form-control-sm w-auto flex-fill" placeholder="https://" aria-label="{{ 'page_sections.form.link_url'|trans }}">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-action="repeatable-rows#remove" title="{{ 'page_sections.form.remove_row'|trans }}" aria-label="{{ 'page_sections.form.remove_row'|trans }}"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </template>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-action="repeatable-rows#add">
+                                    <i class="bi bi-plus-lg me-1"></i>{{ 'page_sections.form.add_link'|trans }}
+                                </button>
+                            </div>
+                        {% elseif section_type.value == 'contact' %}
+                            <div class="alert alert-light border small">
+                                <i class="bi bi-shield-check me-2"></i>{{ 'page_sections.form.contact_note'|trans }}
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="page-section-email">{{ 'page_sections.form.email'|trans }}</label>
+                                <input type="email" id="page-section-email" name="email" class="form-control" value="{{ content.email|default('') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="page-section-phone">{{ 'page_sections.form.phone'|trans }}</label>
+                                <input type="text" id="page-section-phone" name="phone" class="form-control" value="{{ content.phone|default('') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="page-section-note">{{ 'page_sections.form.note'|trans }}</label>
+                                <textarea id="page-section-note" name="note" class="form-control" rows="2">{{ content.note|default('') }}</textarea>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>{{ (is_new ? 'page_sections.form.add' : 'page_sections.form.save')|trans }}
+                </button>
+                <a href="{{ manage_url }}" class="btn btn-outline-secondary">{{ 'forms.cancel'|trans }}</a>
+            </form>
+        </div>
+    </div>
+{% endblock %}

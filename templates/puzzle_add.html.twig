@@ -11,6 +11,26 @@
         <div class="alert alert-warning" role="status" data-secret-puzzle-notice>{{ secret_puzzle_notice }}</div>
     {% endif %}
 
+    {# "Add to my profile" of a round's official results filled the form in (docs/features/competitions-management/official-results.md) #}
+    {% if official_entry|default(null) is not null %}
+        <div class="alert alert-info" role="status" data-official-entry-notice>
+            <i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'puzzle_add.official_entry.notice'|trans({'%round%': official_entry.roundName, '%event%': official_entry.competitionName}) }}
+            {% if official_entry.memberChoices is not empty %}
+                {# Nobody of the pair/team is linked and the name is not clearly the player's: they say which one they are #}
+                <div class="mt-2 small" data-official-entry-which-one>
+                    {{ 'puzzle_add.official_entry.which_one'|trans }}
+                    <span class="d-flex flex-wrap gap-2 mt-1">
+                        {% for name in official_entry.memberChoices %}
+                            <a class="btn btn-sm btn-outline-primary" rel="nofollow" href="{{ path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')|merge(app.request.query.all)|merge({official_member: loop.index0})) }}" data-official-member="{{ loop.index0 }}">{{ 'puzzle_add.official_entry.its_me'|trans({'%name%': name}) }}</a>
+                        {% endfor %}
+                    </span>
+                </div>
+            {% elseif official_entry.missingPeople > 0 %}
+                <div class="mt-1 small" data-official-entry-add-people>{{ 'puzzle_add.official_entry.add_people'|trans({'%count%': official_entry.missingPeople}) }}</div>
+            {% endif %}
+        </div>
+    {% endif %}
+
     <div data-controller="puzzle-add-form" data-puzzle-add-form-mode-value="{{ initial_mode|default('speed_puzzling') }}" data-puzzle-add-form-system-id-value="{{ system_collection_id }}">
         <div class="mb-4">
             <div class="btn-group w-100" role="group" aria-label="Form mode selection">

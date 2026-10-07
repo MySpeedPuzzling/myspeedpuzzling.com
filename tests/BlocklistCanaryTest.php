@@ -8,10 +8,12 @@ use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * The read side has no chokepoint - every query is hand-written SQL - so nothing but a test can
@@ -151,6 +153,45 @@ final class BlocklistCanaryTest extends WebTestCase
         }
 
         self::assertSelectorExists('[data-testid="comparison-chip-unavailable"]');
+    }
+
+    /**
+     * A round's published official results (docs/features/competitions-management/official-results.md): the row of a
+     * player the viewer blocked is not there - by the organiser's name neither - and nobody behind it moves up a place.
+     */
+    public function testBlockedPlayerIsNowhereInPublishedOfficialResults(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/results-cup/results/group-a';
+        $database = self::getContainer()->get(Connection::class);
+
+        // "Ben Steady", tied second in Group A, is the blocked player
+        $database->executeStatement(
+            'UPDATE competition_participant SET player_id = :playerId, connected_at = NOW() WHERE id = :id',
+            ['playerId' => self::BLOCKED, 'id' => OfficialResultsFixture::PARTICIPANT_BEN],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED, $content, 'No canary: the official results do not link the player.');
+        self::assertStringContainsString('Ben Steady', $content);
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString('Ben Steady', $content, 'The blocker is shown a player they blocked.');
+        self::assertSame(['1', '2', '4'], $crawler->filter('[data-official-results] tbody tr')->each(
+            static fn (Crawler $row): string => (string) $row->attr('data-official-rank'),
+        ));
     }
 
     /**

@@ -1,0 +1,66 @@
+{#
+    The times puzzlers added for one puzzle of the round (GetRoundResults) - unofficial, no positions. Part of
+    round_results.html.twig and, below a round's published official results, of round_results/_official.html.twig.
+    Included right after the indentation of its line, so its lines keep the page's indentation and it ends without a
+    newline: a round page renders byte for byte as before. Expects the page context plus puzzle and puzzle_results.
+#}
+{% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
+<div class="table-responsive custom-table-wrapper mb-4">
+                <table class="table custom-table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>{{ 'puzzler_name'|trans }}</th>
+                        <th class="text-end">{{ 'round_results.column_result'|trans }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% set previous_status = null %}
+                    {% for result in puzzle_results %}
+                        {% if previous_status is not null and result.status != previous_status %}
+                            <tr>
+                                <td colspan="2" class="small text-muted fw-medium">{{ ('round_results.section.' ~ result.status.value)|trans }}</td>
+                            </tr>
+                        {% endif %}
+                        {% set previous_status = result.status %}
+
+                        {% set is_own_row = logged_user.profile is not null and result.containsPlayer(logged_user.profile.playerId) %}
+                        <tr class="{{ is_own_row ? 'table-active-player' }}" data-round-result-status="{{ result.status.value }}">
+                            <td class="player-name">
+                                {% for player in result.players %}
+                                    {% if not loop.first %}<br>{% endif %}
+                                    {% if player.isPrivate and (logged_user.profile is null or player.playerId != logged_user.profile.playerId) %}
+                                        <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                        <i class="bi bi-incognito text-muted"></i>
+                                    {% elseif player.playerId is not null %}
+                                        {% if logged_user.profile is not null and logged_user.profile.activeMembership and not player.rankingOptedOut %}
+                                            {{ skill_icon(player.skillTierName ?? 'unknown', 16) }}
+                                        {% else %}
+                                            {{ skill_icon('locked', 16) }}
+                                        {% endif %}
+                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: player.playerId}) }}">{{ player.playerName ?? ('#' ~ player.playerCode) }}</a>
+                                        {% if player.playerCountry is not null %}
+                                            <small class="shadow-custom fi fi-{{ player.playerCountry.name }}"></small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="player-name-item">{{ player.playerName }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td class="text-end">
+                                {% if result.status.value == 'unfinished' %}
+                                    <span class="tabular-nums">{{ 'round_results.pieces_placed'|trans({'%placed%': result.piecesPlaced, '%total%': puzzle.piecesCount}) }}</span>
+                                    {% if result.finishedLaterSeconds is not null %}
+                                        <br><small class="text-muted">{{ 'round_results.finished_later'|trans({'%time%': result.finishedLaterSeconds|puzzlingTime}) }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="tabular-nums">{{ result.seconds|puzzlingTime }}</span>
+                                {% endif %}
+                                {% if result.finishedAt is not null %}
+                                    <br><small class="text-muted">{{ result.finishedAt|date('d.m.Y') }}</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>{# no newline: the include's line brings it #}

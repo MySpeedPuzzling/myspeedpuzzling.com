@@ -6,9 +6,11 @@ namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\PuzzleMergeReviewFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -17,8 +19,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * The review of a merge request (templates/admin/puzzle_merge_request_detail.html.twig): the survivor among the
- * reported puzzles, the merged record with every name in the names editor, and the record versions the page was
- * loaded with. Labels live in the template (English-only admin).
+ * reported puzzles, the merged record with every name in the names editor, an image of theirs or a new photo, and the
+ * record versions the page was loaded with. Labels live in the template (English-only admin).
  *
  * @extends AbstractType<PuzzleMergeReviewFormData>
  */
@@ -65,6 +67,11 @@ final class PuzzleMergeReviewFormType extends AbstractType
                 'numeric' => true,
             ])
             ->add('brandCodes', CodeListType::class)
+            ->add('puzzlePhoto', FileType::class, [
+                'required' => false,
+                'constraints' => [PuzzleBoxPhoto::constraint()],
+                'attr' => ['accept' => 'image/*'],
+            ])
             ->add('decisionNote', TextareaType::class, [
                 'required' => false,
                 'attr' => ['rows' => 2, 'placeholder' => 'Why - e.g. "same EAN, same box photo"'],

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
-use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
@@ -17,7 +15,6 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Saves a puzzle's catalogue record - every name with its language, brand, pieces, codes and image. The one
@@ -33,9 +30,7 @@ readonly final class PuzzleRecordUpdater
 {
     public function __construct(
         private ManufacturerRepository $manufacturerRepository,
-        private Filesystem $filesystem,
-        private PuzzleImageNamer $puzzleImageNamer,
-        private ImageOptimizer $imageOptimizer,
+        private PuzzleImageStorage $puzzleImageStorage,
         private ClockInterface $clock,
         private IsPuzzleKeptSecret $isPuzzleKeptSecret,
     ) {
@@ -101,11 +96,11 @@ readonly final class PuzzleRecordUpdater
 
         // After the fields above: the image's file name is built from the final brand, name and pieces
         if ($values->image === PuzzleImageChoice::Proposed) {
-            $this->useProposedImage($proposedImage, $proposedImageRatio, $puzzle);
+            $this->puzzleImageStorage->useProposed($proposedImage, $proposedImageRatio, $puzzle);
         }
 
         if ($values->image === PuzzleImageChoice::Upload) {
-            $this->storeUploadedImage($values->uploadedImage, $puzzle);
+            $this->puzzleImageStorage->storeUploaded($values->uploadedImage, $puzzle);
         }
 
         return [
@@ -133,60 +128,5 @@ readonly final class PuzzleRecordUpdater
             'identificationNumber' => $puzzle->identificationNumber,
             'image' => $puzzle->image,
         ];
-    }
-
-    private function useProposedImage(string $proposedImage, null|float $proposedImageRatio, Puzzle $puzzle): void
-    {
-        $newImagePath = $this->newImagePath($puzzle, pathinfo($proposedImage, PATHINFO_EXTENSION) ?: 'jpg');
-
-        $this->filesystem->copy($proposedImage, $newImagePath);
-        $this->filesystem->delete($proposedImage);
-
-        $puzzle->image = $newImagePath;
-        $puzzle->imageRatio = $proposedImageRatio;
-    }
-
-    private function storeUploadedImage(UploadedFile $uploadedImage, Puzzle $puzzle): void
-    {
-        $newImagePath = $this->newImagePath($puzzle, $uploadedImage->guessExtension() ?? 'jpg');
-
-        $this->imageOptimizer->optimize($uploadedImage->getPathname());
-        $imageRatio = $this->imageOptimizer->getImageRatio($uploadedImage->getPathname());
-
-        // Stream is better because it is memory safe
-        $stream = fopen($uploadedImage->getPathname(), 'rb');
-        $this->filesystem->writeStream($newImagePath, $stream);
-
-        if (is_resource($stream)) {
-            fclose($stream);
-        }
-
-        $puzzle->image = $newImagePath;
-        $puzzle->imageRatio = $imageRatio;
-    }
-
-    private function newImagePath(Puzzle $puzzle, string $extension): string
-    {
-        // A secret puzzle's picture must not be found by guessing its file name from the public name and id
-        if ($this->isPuzzleKeptSecret->byId($puzzle->id->toString())) {
-            return $this->puzzleImageNamer->secretFilename($extension);
-        }
-
-        $newImagePath = $this->puzzleImageNamer->generateFilename(
-            $puzzle->manufacturer !== null ? $puzzle->manufacturer->name : 'puzzle',
-            $puzzle->name,
-            $puzzle->piecesCount,
-            $puzzle->id->toString(),
-            $extension,
-        );
-
-        // If generated name matches current puzzle image, force unique name for browser cache busting
-        if ($newImagePath === $puzzle->image) {
-            $uuid = substr(Uuid::uuid7()->toString(), 0, 8);
-            $pathInfo = pathinfo($newImagePath);
-            $newImagePath = $pathInfo['filename'] . "-$uuid." . ($pathInfo['extension'] ?? 'jpg');
-        }
-
-        return $newImagePath;
     }
 }

@@ -236,11 +236,19 @@
                         wrapper_class: 'border rounded-3 p-3 mb-3 shadow-sm',
                     }, with_context = false) }}
 
-                    {# Image: one of the reported puzzles' images #}
-                    {% if form.selectedImagePuzzleId is defined %}
-                        <div class="border rounded-3 p-3 mb-3 shadow-sm">
-                            <div class="form-label fw-semibold">Image</div>
-                            <div class="row g-2 gallery">
+                    {# Image: one of the reported puzzles' images, or a new photo used instead - kept on a refused
+                       submit (FormPhotoStash) and cropped with image-editor like on the add form #}
+                    <div class="border rounded-3 p-3 mb-3 shadow-sm"
+                         data-controller="image-editor"
+                         data-image-editor-title-value="{{ 'image_editor.title'|trans }}"
+                         data-image-editor-rotate-left-value="{{ 'image_editor.rotate_left'|trans }}"
+                         data-image-editor-rotate-right-value="{{ 'image_editor.rotate_right'|trans }}"
+                         data-image-editor-cancel-value="{{ 'forms.cancel'|trans }}"
+                         data-image-editor-apply-value="{{ 'image_editor.apply'|trans }}"
+                         data-image-editor-edit-value="{{ 'forms.edit'|trans }}">
+                        <div class="form-label fw-semibold">Image</div>
+                        <div class="row g-2 gallery">
+                            {% if form.selectedImagePuzzleId is defined %}
                                 {% for image_radio in form.selectedImagePuzzleId %}
                                     {% set image_puzzle = puzzles|filter(p => p.puzzleId == image_radio.vars.value)|first %}
                                     <div class="col-6 col-md-4">
@@ -255,10 +263,37 @@
                                         </div>
                                     </div>
                                 {% endfor %}
+                            {% elseif merged_data.images is not empty %}
+                                {# The only image of the puzzles - the merged puzzle keeps it #}
+                                {% set image_puzzle_id = merged_data.images|keys|first %}
+                                {% set image_puzzle = puzzles|filter(p => p.puzzleId == image_puzzle_id)|first %}
+                                <div class="col-6 col-md-4">
+                                    <div class="border rounded-3 p-2 h-100">
+                                        <div class="small text-muted text-break mb-2">{{ image_puzzle ? image_puzzle.puzzleName : 'Current' }}</div>
+                                        {{ macros.thumbnail(merged_data.images[image_puzzle_id], 'Puzzle image', 140) }}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <div class="col-12 {{ merged_data.images is not empty ? 'col-md-4' }}">
+                                {{ include('photo_stash/_photo_drop_area.html.twig', {
+                                    field: form.puzzlePhoto,
+                                    stash_field: 'puzzlePhoto',
+                                    kept_photo: (kept_photos|default({})).puzzlePhoto ?? null,
+                                }, with_context = false) }}
+                                <div class="small text-muted mt-1">
+                                    {% if merged_data.images is empty %}
+                                        None of the puzzles has an image - add a photo of the box.
+                                    {% else %}
+                                        A new photo is used instead {{ merged_data.images|length > 1 ? 'of the images of the puzzles' : 'of the current image' }}.
+                                    {% endif %}
+                                </div>
                             </div>
-                            {{ form_errors(form.selectedImagePuzzleId) }}
                         </div>
-                    {% endif %}
+                        {% if form.selectedImagePuzzleId is defined %}
+                            {{ form_errors(form.selectedImagePuzzleId) }}
+                        {% endif %}
+                    </div>
 
                     {# Kept in the puzzle's history next to the merge #}
                     <div class="mb-3">

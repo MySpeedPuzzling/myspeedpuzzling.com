@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormData;
 
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Length;
@@ -16,7 +17,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
  * The review of a merge request (PuzzleMergeReviewFormType): which reported puzzle keeps its address, and the merged
- * puzzle's record - every name of all of them in the names editor, brand, pieces, codes, image.
+ * puzzle's record - every name of all of them in the names editor, brand, pieces, codes, image (or a new photo).
  */
 final class PuzzleMergeReviewFormData
 {
@@ -47,6 +48,9 @@ final class PuzzleMergeReviewFormData
 
     // Asked for only when more of the puzzles have an image
     public null|string $selectedImagePuzzleId = null;
+
+    // A new photo of the box, used instead of the reported puzzles' images (the name FormPhotoStash knows)
+    public null|UploadedFile $puzzlePhoto = null;
 
     // Why - kept in the puzzle's history
     #[Length(max: 2000)]

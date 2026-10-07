@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Value\MergeDecisionConfidence;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Locked on the survivor - the lock takes one key. The handler then locks the row of every puzzle of the merge (the
@@ -48,6 +49,8 @@ readonly final class ApprovePuzzleMergeRequest implements SerializedByLock
         // (PuzzleMergeNames::alternativeNames())
         public null|PuzzleNames $mergedAlternativeNames = null,
         public array $recordVersions = [],
+        // The reviewer's new photo of the box - used instead of every reported puzzle's image (selectedImagePuzzleId)
+        public null|UploadedFile $uploadedImage = null,
     ) {
     }
 

@@ -35,6 +35,7 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\PuzzleImageStorage;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleMergeSnapshotBuilder;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
@@ -60,6 +61,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
         private SecretPuzzleHides $secretPuzzleHides,
         private IsPuzzleKeptSecret $isPuzzleKeptSecret,
+        private PuzzleImageStorage $puzzleImageStorage,
     ) {
     }
 
@@ -173,8 +175,11 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $survivorPuzzle->manufacturer = $manufacturer;
         }
 
-        // Copy image from selected puzzle if different from survivor
-        if ($message->selectedImagePuzzleId !== null && strtolower($message->selectedImagePuzzleId) !== $survivorPuzzleId) {
+        // The reviewer's photo wins over every reported image - stored after the fields above, its file name is built
+        // from the final brand, name and pieces. Otherwise copy the image of the selected puzzle if not the survivor's
+        if ($message->uploadedImage !== null) {
+            $this->puzzleImageStorage->storeUploaded($message->uploadedImage, $survivorPuzzle);
+        } elseif ($message->selectedImagePuzzleId !== null && strtolower($message->selectedImagePuzzleId) !== $survivorPuzzleId) {
             try {
                 $imagePuzzle = $this->puzzleRepository->get($message->selectedImagePuzzleId);
                 if ($imagePuzzle->image !== null) {

@@ -279,8 +279,10 @@ readonly final class ColumnMapping
             $errors[] = new TranslatableMessage('competition.participants.import.mapping.name_missing');
         }
 
-        if ($this->column(ParticipantImportField::Name) !== null
-            && ($this->column(ParticipantImportField::FirstName) !== null || $this->column(ParticipantImportField::LastName) !== null)) {
+        if (
+            $this->column(ParticipantImportField::Name) !== null
+            && ($this->column(ParticipantImportField::FirstName) !== null || $this->column(ParticipantImportField::LastName) !== null)
+        ) {
             $errors[] = new TranslatableMessage('competition.participants.import.mapping.name_twice');
         }
 

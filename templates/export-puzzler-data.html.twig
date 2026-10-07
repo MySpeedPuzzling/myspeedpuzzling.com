@@ -21,28 +21,28 @@
 
                 <div class="row g-3">
                     <div class="col-6">
-                        <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'json'}) }}"
+                        <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'json'}) }}" data-turbo="false"
                            class="btn btn-outline-primary w-100 py-3">
                             <i class="bi bi-filetype-json fs-4 d-block mb-2"></i>
                             {{ 'export.format.json'|trans }}
                         </a>
                     </div>
                     <div class="col-6">
-                        <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'xlsx'}) }}"
+                        <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'xlsx'}) }}" data-turbo="false"
                            class="btn btn-outline-success w-100 py-3">
                             <i class="bi bi-file-earmark-excel fs-4 d-block mb-2"></i>
                             {{ 'export.format.xlsx'|trans }}
                         </a>
                     </div>
                     <div class="col-6">
-                        <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'csv'}) }}"
+                        <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'csv'}) }}" data-turbo="false"
                            class="btn btn-outline-secondary w-100 py-3">
                             <i class="bi bi-filetype-csv fs-4 d-block mb-2"></i>
                             {{ 'export.format.csv'|trans }}
                         </a>
                     </div>
                     <div class="col-6">
-                        <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'xml'}) }}"
+                        <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'xml'}) }}" data-turbo="false"
                            class="btn btn-outline-warning w-100 py-3">
                             <i class="bi bi-filetype-xml fs-4 d-block mb-2"></i>
                             {{ 'export.format.xml'|trans }}
@@ -84,28 +84,28 @@
 
                 <div class="row g-3">
                     <div class="col-6">
-                        <a href="{{ path('export_puzzle_library_download', {playerId: player.playerId, format: 'json'}) }}"
+                        <a href="{{ path('export_puzzle_library_download', {playerId: player.playerId, format: 'json'}) }}" data-turbo="false"
                            class="btn btn-outline-primary w-100 py-3">
                             <i class="bi bi-filetype-json fs-4 d-block mb-2"></i>
                             {{ 'export.format.json'|trans }}
                         </a>
                     </div>
                     <div class="col-6">
-                        <a href="{{ path('export_puzzle_library_download', {playerId: player.playerId, format: 'xlsx'}) }}"
+                        <a href="{{ path('export_puzzle_library_download', {playerId: player.playerId, format: 'xlsx'}) }}" data-turbo="false"
                            class="btn btn-outline-success w-100 py-3">
                             <i class="bi bi-file-earmark-excel fs-4 d-block mb-2"></i>
                             {{ 'export.format.xlsx'|trans }}
                         </a>
                     </div>
                     <div class="col-6">
-                        <a href="{{ path('export_puzzle_library_download', {playerId: player.playerId, format: 'csv'}) }}"
+                        <a href="{{ path('export_puzzle_library_download', {playerId: player.playerId, format: 'csv'}) }}" data-turbo="false"
                            class="btn btn-outline-secondary w-100 py-3">
                             <i class="bi bi-file-earmark-zip fs-4 d-block mb-2"></i>
                             {{ 'export.library.format_csv_zip'|trans }}
                         </a>
                     </div>
                     <div class="col-6">
-                        <a href="{{ path('export_puzzle_library_download', {playerId: player.playerId, format: 'xml'}) }}"
+                        <a href="{{ path('export_puzzle_library_download', {playerId: player.playerId, format: 'xml'}) }}" data-turbo="false"
                            class="btn btn-outline-warning w-100 py-3">
                             <i class="bi bi-filetype-xml fs-4 d-block mb-2"></i>
                             {{ 'export.format.xml'|trans }}

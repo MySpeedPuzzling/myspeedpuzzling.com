@@ -172,7 +172,7 @@ final class RoundRevealMomentComputedOnlyHereTest extends TestCase
         yield 'PHP: a token expiry in hours' => ["\$now->modify('+1 hour')"];
         yield 'PHP: a DateInterval of days' => ["new DateInterval('P1D')"];
         yield 'PHP: a DateInterval of seconds' => ["new DateInterval('PT30S')"];
-        yield 'PHP: one minute back' => ["\$revealAt->modify('-1 second')"];
+        yield 'PHP: one second back' => ["\$revealAt->modify('-1 second')"];
         yield 'SQL: a start read' => ['cr.starts_at AS round_starts_at'];
         yield 'SQL: ordered by start' => ['ORDER BY cr.starts_at, cr.id'];
         yield 'SQL: a start compared' => ['WHERE cr.starts_at <= :now'];

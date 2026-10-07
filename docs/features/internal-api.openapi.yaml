@@ -1159,12 +1159,12 @@ components:
           type: integer
           minimum: 0
           maximum: 240
-          default: 10
           description: |
             When the round's secret puzzles with an automatic reveal come out, in whole
             minutes after `startsAt`. 0 means when the round starts. Anything later than
             240 is an own reveal time, set in the UI. Not a whole number from 0 to 240,
-            or `null`, is a 400. Moving the automatic reveal earlier needs
+            or `null`, is a 400. Left out on create, the round gets 10; left out on a
+            PATCH, the round keeps its value. Moving the automatic reveal earlier needs
             `confirmReveal` (409 otherwise).
           example: 15
         badgeBackgroundColor:

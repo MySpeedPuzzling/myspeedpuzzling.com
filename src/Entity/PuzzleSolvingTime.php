@@ -346,6 +346,52 @@ class PuzzleSolvingTime implements EntityWithEvents
         }
     }
 
+    /**
+     * A moderator marked the time (docs/features/suspicious-time-review.md): from now on it is neither counted nor
+     * timed anywhere (docs/features/suspicious-times.md). Statistics, insights and duplicate detection follow the
+     * PuzzleSolvingTimeModified event like after any edit - none of its consumers notifies anybody.
+     */
+    public function markSuspicious(): void
+    {
+        if ($this->suspicious) {
+            return;
+        }
+
+        $this->suspicious = true;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
+    /**
+     * Unmarked - by a moderator, or automatically after the player fixed the time. Counts again everywhere.
+     */
+    public function clearSuspicion(): void
+    {
+        if ($this->suspicious === false) {
+            return;
+        }
+
+        $this->suspicious = false;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
+    /**
+     * The flag was changed by SQL - only the event, so statistics and insights follow the change already made. The
+     * entity itself does not change, so Doctrine sees no update and DomainEventsSubscriber never picks this event
+     * up: whoever calls it hands popEvents() to the bus (the suspicious time scan's flag reconciliation).
+     */
+    public function suspicionChangedOutsideTheApp(): void
+    {
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
     public function changeCompetitionRound(null|CompetitionRound $competitionRound): void
     {
         $this->competitionRound = $competitionRound;

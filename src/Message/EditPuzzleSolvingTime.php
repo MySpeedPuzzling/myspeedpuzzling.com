@@ -34,6 +34,10 @@ readonly final class EditPuzzleSolvingTime
         // The puzzle the result belongs to - another one than now moves it there (tracker only,
         // docs/features/duplicate-results.md, Layer 4). Null = the puzzle stays
         public null|string $puzzleId = null,
+        // The form asked about the time (far off the player's own times) and the player answered "Yes, it's right"
+        // (docs/features/suspicious-time-review.md, "Catch it while typing"): the time the form compared it with -
+        // stored with the edit as a SuspiciousTimeConfirmation. Null = not asked
+        public null|int $paceConfirmedExpectedSeconds = null,
     ) {
     }
 
@@ -48,6 +52,7 @@ readonly final class EditPuzzleSolvingTime
         null|string $teamName = null,
         FirstTryResolution $firstTryResolution = FirstTryResolution::None,
         bool $duplicateConfirmed = false,
+        null|int $paceConfirmedExpectedSeconds = null,
     ): self {
         return new self(
             currentUserId: $userId,
@@ -64,6 +69,7 @@ readonly final class EditPuzzleSolvingTime
             firstTryResolution: $firstTryResolution,
             duplicateConfirmed: $duplicateConfirmed,
             puzzleId: $formData->puzzle,
+            paceConfirmedExpectedSeconds: $paceConfirmedExpectedSeconds,
         );
     }
 }

@@ -1,0 +1,15 @@
+{# One reason of a suspicious time in the viewer's language (docs/features/suspicious-time-review.md) - the player's
+   "Times to check", the e-mail and the moderator's card alike. Expects `reason`: a SuspiciousTimeReason, or its stored
+   form {code, params} (suspicious_time_case.reasons / reasons_shown). Times are rendered with puzzlingTime. Plain
+   text, escaped - a puzzle name is something a player typed. #}
+{%- set code = reason.code.value is defined ? reason.code.value : reason.code -%}
+{%- set params = reason.params ?? {} -%}
+{%- set time_params = {} -%}
+{%- for name in ['expected', 'entered', 'suggested', 'median', 'seconds', 'fastest', 'group_expected', 'predicted', 'previous'] -%}
+    {%- set time_params = time_params|merge({('%' ~ name ~ '%'): params[name] is defined and params[name] is not null ? params[name]|puzzlingTime : ''}) -%}
+{%- endfor -%}
+{%- set plain_params = {} -%}
+{%- for name in ['pieces', 'ratio', 'name', 'word', 'ppm', 'p999_ppm', 'floor_ppm', 'results', 'group_results', 'hours', 'puzzling_type'] -%}
+    {%- set plain_params = plain_params|merge({('%' ~ name ~ '%'): params[name] ?? ''}) -%}
+{%- endfor -%}
+{{- ('suspicious_time.reason.' ~ code)|trans(time_params|merge(plain_params)) -}}

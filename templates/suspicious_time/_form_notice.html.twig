@@ -1,0 +1,67 @@
+{#
+    The time checked against the player's own times - part of the add/edit time form notice
+    (docs/features/suspicious-time-review.md, "Catch it while typing"), rendered by first_try/_notice.html.twig between
+    the "same time already saved" and the first-try parts, for a refused submit and the live check alike. Neutral:
+    nothing here blames the player or calls the time suspicious.
+    pace: null|SuspicionAssessment (null = not judged), key: the key of the values judged (PaceFormCheck - "Yes, it's
+    right" sends it back), confirmed: whether "Yes, it's right" was chosen for exactly these values
+
+    The reasons are the explanations only when the comparison line says what the trigger would ("much faster than
+    your usual ..." next to "You entered ... - your usual time here is about ..."); without an expected time (a new
+    player, a pair/team below the community's floor) the trigger is the only line that says what is off.
+
+    data-pace-checked marks a time judged against the player's own times (raised or not) or asked about here: the
+    generic pieces-per-minute modal (ppm_validator_controller.js) then stays quiet - a not raised time leaves only the
+    empty marker.
+#}
+{% if pace is not null and (pace.expectedSeconds is not null or pace.isRaised()) %}
+    {% set raised = pace.isRaised() %}
+    <div class="pace-notice" data-pace-checked="1"{{ raised ? '' : ' hidden' }}>
+        {% if raised %}
+            {% set trigger = pace.reasons|first %}
+            {% set entered = trigger.param('entered') %}
+            {% if confirmed %}
+                {# The player said the time is right - it is saved as entered #}
+                <div class="alert alert-success small mt-2 mb-3" role="status">
+                    <p class="fw-semibold mb-1"><i class="bi bi-check2-circle me-1"></i>{{ 'suspicious_time.form.confirmed.title'|trans }}</p>
+                    {% if entered is not null %}
+                        <p class="mb-2">{{ 'suspicious_time.form.confirmed.body'|trans({'%time%': entered|puzzlingTime}) }}</p>
+                    {% endif %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-action="first-try-check#undoPace">
+                        {{ 'suspicious_time.form.action.undo'|trans }}
+                    </button>
+                </div>
+            {% else %}
+                <div class="alert alert-warning small mt-2 mb-3" role="alert">
+                    <p class="fw-semibold mb-1"><i class="bi bi-stopwatch me-1"></i>{{ 'suspicious_time.form.title'|trans }}</p>
+                    {% set compared = pace.expectedSeconds is not null and entered is not null %}
+                    {% set lines = pace.reasonsShownToPlayer()|filter(reason => not compared or reason.code != trigger.code) %}
+                    {% if compared %}
+                        <p class="mb-2">{{ 'suspicious_time.form.comparison'|trans({'%entered%': entered|puzzlingTime, '%expected%': pace.expectedSeconds|puzzlingTime}) }}</p>
+                    {% endif %}
+                    {% if lines is not empty %}
+                        <ul class="mb-2 ps-3">
+                            {% for reason in lines %}
+                                <li>{{ include('suspicious_time/_reason.html.twig', {reason: reason}, with_context = false) }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    {# Fast is judged on solo times only - a group saved as solo is one of the usual causes #}
+                    {% if pace.direction().value == 'fast' and not pace.hasReason(constant('SpeedPuzzling\\Web\\Value\\SuspiciousTimeReasonCode::TeammatesSavedGroup')) %}
+                        <p class="mb-2">{{ 'suspicious_time.form.with_others'|trans }}</p>
+                    {% endif %}
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if pace.suggestedSeconds is not null %}
+                            <button type="button" class="btn btn-sm btn-primary" data-action="first-try-check#useSuggested" data-first-try-check-seconds-param="{{ pace.suggestedSeconds }}">
+                                {{ 'suspicious_time.form.action.use'|trans({'%time%': pace.suggestedSeconds|puzzlingTime}) }}
+                            </button>
+                        {% endif %}
+                        <button type="button" class="btn btn-sm {{ pace.suggestedSeconds is not null ? 'btn-outline-secondary' : 'btn-primary' }}" data-action="first-try-check#confirmPace" data-first-try-check-key-param="{{ key }}">
+                            {{ 'suspicious_time.form.action.confirm'|trans }}
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+{% endif %}

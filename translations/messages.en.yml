@@ -3546,7 +3546,7 @@ puzzle_intelligence:
         section_data_quality_solo: "<strong>Solo only:</strong> Pair and team solves are excluded"
         section_data_quality_first: "<strong>First attempts:</strong> Only first encounters with each puzzle count for difficulty and baselines"
         section_data_quality_outlier: "<strong>Outlier filter:</strong> Difficulty indices above 5.0 are excluded (likely timer errors)"
-        section_data_quality_suspicious: "<strong>Suspicious exclusion:</strong> Times flagged as suspicious are excluded"
+        section_data_quality_suspicious: "<strong>Awaiting verification:</strong> Times awaiting verification are excluded"
         section_data_quality_recency: "<strong>Recency weighting:</strong> Recent solves count more — baselines, skill tiers, and Rating all use time decay to reflect your current ability"
         section_recalculation_note: "All insights metrics are recalculated every 15 minutes."
         section_recalculation_countdown: "Next recalculation in"
@@ -6522,7 +6522,7 @@ photo_stash:
 review_results:
     page:
         title: "Review your results"
-        intro: "Results that may show up twice, extra copies we removed for you and first tries to sort out – everything worth a look, in one place."
+        intro: "Results awaiting verification, results that may show up twice, extra copies we removed for you and first tries to sort out – everything worth a look, in one place."
         empty: "Nothing to review – your results look fine."
     duplicates:
         title: "The same result twice?"
@@ -6859,3 +6859,69 @@ official_results:
             member_already_in_target: "Somebody of this pair/team is already in the round"
             member_already_planned: "Somebody of this pair/team goes with a better placed pair/team already"
             qualified_twice: "Qualified in another round too - advanced once"
+suspicious_time:
+    # The add/edit time form's notice for a typed time far off the player's own times
+    # (templates/suspicious_time/_form_notice.html.twig) - it asks, it never blames.
+    form:
+        title: "Please check the time before saving"
+        comparison: "You entered %entered% - your usual time here is about %expected%."
+        with_others: "Did you puzzle with someone? Add them to the result."
+        error: "Please check the time - confirm it below if it is right."
+        action:
+            use: "Use %time%"
+            confirm: "Yes, it's right"
+            undo: "Change my answer"
+        confirmed:
+            title: "Thank you for checking"
+            body: "%time% will be saved as you entered it."
+    # One reason why a time awaits verification (templates/suspicious_time/_reason.html.twig) - neutral, never blaming.
+    # Times are h:mm:ss. Some are for moderators only (SuspiciousTimeReasonCode::isShownToPlayer()).
+    reason:
+        faster_than_predicted: "This is much faster than we expected for you on this puzzle (about %expected%)."
+        faster_than_usual: "This is much faster than your usual %expected% for %pieces% pieces."
+        beyond_known_pace: "This is faster than almost any time recorded for %pieces% pieces."
+        slower_than_predicted: "This is much slower than we expected for you on this puzzle (about %expected%)."
+        slower_than_usual: "This is much slower than your usual %expected% for %pieces% pieces."
+        below_slow_floor: "This is much slower than usual for %pieces% pieces - most puzzlers take about %median%."
+        hours_left_out: "Perhaps the hours box was left empty - %suggested%?"
+        teammates_saved_group: "Someone saved this puzzle as a pair or team result that day."
+        comment_mentions_group: "Your note mentions puzzling with others."
+        other_edition: "Maybe it was the %pieces%-piece edition: %name%."
+        minutes_in_hours_box: "Perhaps the minutes ended up in the hours box - %suggested%?"
+        includes_breaks: "If you puzzled over several days, the time should be only the time spent puzzling."
+        often_in_group: "Often puzzles in pairs or teams (%group_results% results) - the time fits their group pace of %group_expected%."
+        fastest_on_puzzle: "Would be the fastest of %results% solo results on this puzzle (fastest now %fastest%)."
+        prediction_from_slow_attempt: "The prediction (%predicted%) came from an earlier attempt of %previous% that looks far too slow - judged against the player's usual time instead."
+        new_player: "New player - %results% other solo results."
+        confirmed_while_saving: "Confirmed as right while saving (the form expected about %expected%)."
+    # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
+    # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
+    review:
+        title: "Awaiting verification"
+        intro: "We take a second look at results that are much faster or much slower than your usual times – most often it is a typo, like an empty hours box. Until it is sorted out, the result stays in your own results but does not count in rankings and statistics. Fix it in a moment, or tell us the time is correct."
+        pair_result: "Pair result"
+        team_result: "Team result"
+        note: "Note from the moderator: %note%"
+        fix_time: "Fix the time"
+        add_people: "Add the people I puzzled with"
+        change_puzzle: "Change the puzzle"
+        change_puzzle_only_tracker: "Was it another puzzle? Only the person who saved this result can change its puzzle."
+        correct: "The time is correct"
+        correct_message: "Anything the moderator should know? (optional)"
+        correct_send: "Send"
+        leave: "Leave it as it is"
+        leave_hint: "The result stays awaiting verification and does not count – we won't ask about it again."
+        waiting: "Thank you – a moderator will take a look at it."
+        your_message: "Your message: %message%"
+        edited: "You changed this result – a moderator will take another look at it."
+        left: "You left it as it is. You can still fix it any time."
+        kept: "A moderator checked it: it stays awaiting verification."
+        kept_note: "A moderator checked it: it stays awaiting verification – %note%"
+        answered_title: "Checked by a moderator"
+        trusted: "A moderator checked it: your time counts again."
+        suggested_time: "Suggested time from the verification note: %time% – check it and save."
+    banner: "{1}1 of your results needs verification.|]1,Inf[%count% of your results need verification."
+    flash:
+        replied: "Thank you – a moderator will take a look at it."
+        already_replied: "You have already told us this time is correct – a moderator will take a look at it."
+        left_as_is: "All right – we won't ask about this result again."

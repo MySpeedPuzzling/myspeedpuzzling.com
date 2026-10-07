@@ -11,11 +11,17 @@ use SpeedPuzzling\Web\Results\ResultReviewCandidate;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
 use SpeedPuzzling\Web\Value\DuplicateTier;
 use SpeedPuzzling\Web\Value\ResultReviewContactStatus;
+use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
+use SpeedPuzzling\Web\Value\SuspiciousTimeNoticeVia;
 
 /**
  * Everybody the daily planning of "Your results" e-mails has to consider (docs/features/duplicate-results.md,
  * "Contact rules"): open cases with both copies still there and automatic removals not undone - neither part of
- * a planned or sent e-mail yet.
+ * a planned or sent e-mail yet - and verification notices (docs/features/suspicious-time-review.md, "Where they see
+ * it"): a mark still in force that no e-mail carried and the player has not reacted to yet - only notices of the
+ * notice run, the marks e-mailed by hand (`manual_email`) are never told again -, and a moderator's answer no e-mail
+ * carried (to any notice: the player asked for it). Only results the person is still in
+ * (GetPlayerSuspiciousTimes::sqlStillInTime()).
  *
  * Only players who can get the e-mail at all: the switch on, an e-mail address, and no e-mail waiting to be sent
  * (one planned at a time - that keeps the planning idempotent and a case in one e-mail only).
@@ -32,8 +38,9 @@ readonly final class GetResultReviewEmailCandidates
      */
     public function all(): array
     {
+        $stillInTime = GetPlayerSuspiciousTimes::sqlStillInTime('notice', 't');
         $query = <<<SQL
-SELECT c.player_id, CAST(c.id AS text) AS id, c.tier
+SELECT c.player_id, CAST(c.id AS text) AS id, CASE c.tier WHEN :possibleTier THEN 'possible' ELSE 'strong' END AS part
 FROM result_duplicate_case c
 WHERE c.status = :open
     AND EXISTS (SELECT 1 FROM puzzle_solving_time a WHERE a.id = c.time_a_id)
@@ -46,33 +53,51 @@ WHERE c.status = :open
             AND CAST(contact.case_ids AS jsonb) @> jsonb_build_array(CAST(c.id AS text))
     )
 UNION ALL
-SELECT removal.player_id, CAST(removal.id AS text), NULL
+SELECT removal.player_id, CAST(removal.id AS text), 'removals'
 FROM result_auto_removal removal
 WHERE removal.reported_at IS NULL
     AND removal.undone_at IS NULL
+UNION ALL
+SELECT notice.player_id, CAST(notice.id AS text), 'notices'
+FROM suspicious_time_notice notice
+INNER JOIN suspicious_time_case suspicion ON suspicion.id = notice.case_id
+INNER JOIN puzzle_solving_time t ON t.id = suspicion.time_id
+WHERE {$stillInTime}
+    AND (
+        -- The mark is still in force (this very mark, the time still flagged), not e-mailed, not reacted to on the
+        -- site - told by the notice run only: the marks e-mailed by hand are never told again
+        (
+            notice.via = :run
+            AND notice.contact_id IS NULL
+            AND notice.response IS NULL
+            AND notice.answered_at IS NULL
+            AND suspicion.status = :marked
+            AND notice.marked_at = suspicion.marked_at
+            AND t.suspicious = true
+        )
+        -- A moderator's answer to the player's reply or fix, not e-mailed - however the mark was told
+        OR (notice.answered_at IS NOT NULL AND notice.answer_contact_id IS NULL)
+    )
 ORDER BY 1, 2
 SQL;
 
-        /** @var list<array{player_id: string, id: string, tier: null|string}> $rows */
+        /** @var list<array{player_id: string, id: string, part: 'strong'|'possible'|'removals'|'notices'}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             'open' => DuplicateCaseStatus::Open->value,
             'told' => [ResultReviewContactStatus::Planned->value, ResultReviewContactStatus::Sent->value],
+            'possibleTier' => DuplicateTier::Possible->value,
+            'run' => SuspiciousTimeNoticeVia::Run->value,
+            'marked' => SuspiciousTimeCaseStatus::Marked->value,
         ], [
             'told' => ArrayParameterType::STRING,
         ]);
 
-        /** @var array<string, array{strong: list<string>, possible: list<string>, removals: list<string>}> $news */
+        /** @var array<string, array{strong: list<string>, possible: list<string>, removals: list<string>, notices: list<string>}> $news */
         $news = [];
 
         foreach ($rows as $row) {
-            $news[$row['player_id']] ??= ['strong' => [], 'possible' => [], 'removals' => []];
-
-            $part = match ($row['tier']) {
-                null => 'removals',
-                DuplicateTier::Possible->value => 'possible',
-                default => 'strong',
-            };
-            $news[$row['player_id']][$part][] = $row['id'];
+            $news[$row['player_id']] ??= ['strong' => [], 'possible' => [], 'removals' => [], 'notices' => []];
+            $news[$row['player_id']][$row['part']][] = $row['id'];
         }
 
         if ($news === []) {
@@ -131,6 +156,7 @@ SQL;
             strongCaseIds: $news[$player['player_id']]['strong'],
             possibleCaseIds: $news[$player['player_id']]['possible'],
             removalIds: $news[$player['player_id']]['removals'],
+            suspiciousNoticeIds: $news[$player['player_id']]['notices'],
         ), $players);
     }
 }

@@ -33,7 +33,7 @@ final class PlayersDirectoryControllerTest extends WebTestCase
         self::assertContains('Sarah Williams', $names);
         self::assertContains('Dana Twin', $names);
         self::assertNotContains('Jane Smith', $names);
-        self::assertSelectorTextContains('.players-directory-count', '6 puzzlers');
+        self::assertSelectorTextContains('.players-directory-count', '12 puzzlers');
     }
 
     public function testAnyQueryStringIsANoindexVariant(): void

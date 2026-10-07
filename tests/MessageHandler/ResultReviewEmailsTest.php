@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Query\GetResultReviewEmails;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
 use SpeedPuzzling\Web\Repository\ResultReviewContactRepository;
+use SpeedPuzzling\Web\Repository\SuspiciousTimeNoticeRepository;
 use SpeedPuzzling\Web\Results\ResultReviewSendingSummary;
 use SpeedPuzzling\Web\Services\DelayedEmailQueue;
 use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
@@ -442,6 +443,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
             getResultReviewEmails: $container->get(GetResultReviewEmails::class),
             contactRepository: $container->get(ResultReviewContactRepository::class),
             autoRemovalRepository: $container->get(ResultAutoRemovalRepository::class),
+            noticeRepository: $container->get(SuspiciousTimeNoticeRepository::class),
             playerAccountEmail: $container->get(PlayerAccountEmail::class),
             emailComposer: $container->get(ResultReviewEmailComposer::class),
             emailQueue: $container->get(DelayedEmailQueue::class),

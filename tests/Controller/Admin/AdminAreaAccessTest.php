@@ -55,6 +55,7 @@ final class AdminAreaAccessTest extends WebTestCase
         yield 'puzzle approvals' => ['/admin/puzzle-approvals'];
         yield 'vouchers' => ['/admin/vouchers'];
         yield 'duplicate results' => ['/admin/duplicate-results'];
+        yield 'time verification' => ['/admin/time-verification'];
     }
 
     #[DataProvider('adminPages')]

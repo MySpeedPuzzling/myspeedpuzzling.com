@@ -50,13 +50,17 @@ final class SendResultReviewEmailPreviewHandlerTest extends KernelTestCase
         self::assertInstanceOf(TemplatedEmail::class, $email);
         self::assertSame('owner@example.com', $email->getTo()[0]->getAddress());
 
-        $subjectKey = match ($variant) {
-            ResultReviewEmailPreviewVariant::First => 'result_review.subject_first',
-            ResultReviewEmailPreviewVariant::Weekly => 'result_review.subject_weekly',
-            ResultReviewEmailPreviewVariant::Removed => 'result_review.subject_removed',
+        [$subjectKey, $count] = match ($variant) {
+            ResultReviewEmailPreviewVariant::First => ['result_review.subject_first', 1],
+            ResultReviewEmailPreviewVariant::Weekly => ['result_review.subject_weekly', 0],
+            ResultReviewEmailPreviewVariant::Removed => ['result_review.subject_removed', 0],
+            // Two times awaiting verification (and an answer)
+            ResultReviewEmailPreviewVariant::Verification => ['result_review.subject_verification', 2],
+            // Two answers
+            ResultReviewEmailPreviewVariant::Answered => ['result_review.subject_verification_answered', 2],
         };
         $translator = self::getContainer()->get(TranslatorInterface::class);
-        self::assertSame('[Preview] ' . $translator->trans($subjectKey, domain: 'emails', locale: $locale), $email->getSubject());
+        self::assertSame('[Preview] ' . $translator->trans($subjectKey, ['%count%' => $count], domain: 'emails', locale: $locale), $email->getSubject());
 
         // The real e-mail's headers: notifications transport, one-click unsubscribe for an id that belongs to nobody
         self::assertSame('notifications', $email->getHeaders()->get('X-Transport')?->getBodyAsString());
@@ -67,11 +71,32 @@ final class SendResultReviewEmailPreviewHandlerTest extends KernelTestCase
         );
 
         $html = (string) $email->getHtmlBody();
-        self::assertMatchesRegularExpression('~href="https?://[^/"]+/' . $locale . '/review-results\?from=rc-' . SendResultReviewEmailPreviewHandler::PREVIEW_CONTACT_ID . '"~', $html);
-        self::assertStringContainsString('Disney Family – 01:25:04', $html);
-        self::assertStringContainsString($translator->trans('result_review.removed_heading', domain: 'emails', locale: $locale), $html);
+        $withVerification = in_array($variant, [ResultReviewEmailPreviewVariant::First, ResultReviewEmailPreviewVariant::Verification, ResultReviewEmailPreviewVariant::Answered], true);
+        self::assertMatchesRegularExpression(
+            '~href="https?://[^/"]+/' . $locale . '/review-results\?from=rc-' . SendResultReviewEmailPreviewHandler::PREVIEW_CONTACT_ID . ($withVerification ? '#awaiting-verification' : '') . '"~',
+            $html,
+        );
 
-        if ($variant === ResultReviewEmailPreviewVariant::Removed) {
+        if (in_array($variant, [ResultReviewEmailPreviewVariant::Verification, ResultReviewEmailPreviewVariant::Answered], true)) {
+            // Nothing about results saved twice
+            self::assertStringNotContainsString('Disney Family', $html);
+            self::assertStringNotContainsString('Circle of Colors', $html);
+            self::assertStringContainsString('City Lights at Night', $html);
+        } else {
+            self::assertStringContainsString('Disney Family – 01:25:04', $html);
+            self::assertStringContainsString($translator->trans('result_review.removed_heading', domain: 'emails', locale: $locale), $html);
+        }
+
+        if ($variant === ResultReviewEmailPreviewVariant::First || $variant === ResultReviewEmailPreviewVariant::Verification) {
+            self::assertStringContainsString($translator->trans('result_review.verification_heading', domain: 'emails', locale: $locale), $html);
+            self::assertStringContainsString('Mountain Lake at Dawn – 01:03:00', $html);
+        }
+
+        if ($variant === ResultReviewEmailPreviewVariant::Verification) {
+            self::assertStringContainsString('Vintage Postcards – 49:08:00', $html);
+        }
+
+        if (in_array($variant, [ResultReviewEmailPreviewVariant::Removed, ResultReviewEmailPreviewVariant::Verification, ResultReviewEmailPreviewVariant::Answered], true)) {
             self::assertStringNotContainsString('Circle of Colors', $html);
         } else {
             self::assertStringContainsString('Circle of Colors: Tropical – 01:10:26', $html);

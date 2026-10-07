@@ -38,6 +38,34 @@ readonly final class PuzzleSolvingTimeRepository
         return $this->entityManager->find(PuzzleSolvingTime::class, $puzzleSolvingTimeId);
     }
 
+    /**
+     * @param list<string> $puzzleSolvingTimeIds
+     * @return array<string, PuzzleSolvingTime> keyed by id - the ones that exist
+     */
+    public function findByIds(array $puzzleSolvingTimeIds): array
+    {
+        if ($puzzleSolvingTimeIds === []) {
+            return [];
+        }
+
+        /** @var list<PuzzleSolvingTime> $times */
+        $times = $this->entityManager->createQueryBuilder()
+            ->select('time')
+            ->from(PuzzleSolvingTime::class, 'time')
+            ->where('time.id IN (:ids)')
+            ->setParameter('ids', $puzzleSolvingTimeIds)
+            ->getQuery()
+            ->getResult();
+
+        $byId = [];
+
+        foreach ($times as $time) {
+            $byId[$time->id->toString()] = $time;
+        }
+
+        return $byId;
+    }
+
     public function save(PuzzleSolvingTime $solvingTime): void
     {
         $this->entityManager->persist($solvingTime);

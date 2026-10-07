@@ -3118,7 +3118,7 @@ puzzle_intelligence:
         section_data_quality_title: "Kvalita dat"
         section_data_quality_solo: "<strong>Pouze sólo:</strong> Dvojice a týmová složení jsou vyloučena"
         section_data_quality_first: "<strong>První pokusy:</strong> Pro obtížnost a základy se počítají pouze první setkání s puzzlem"
-        section_data_quality_suspicious: "<strong>Vyloučení podezřelých:</strong> Časy označené jako podezřelé jsou vyloučeny"
+        section_data_quality_suspicious: "<strong>Čeká na ověření:</strong> Časy čekající na ověření se nezapočítávají"
         section_data_quality_outlier: "<strong>Filtr odlehlých hodnot:</strong> Indexy obtížnosti nad 5.0 jsou vyloučeny (pravděpodobně chyby stopek)"
         section_data_quality_recency: "<strong>Váhování aktuálnosti:</strong> Novější složení mají větší váhu — základy, úrovně dovedností a Rating používají časový úbytek, aby odrážely vaši aktuální schopnost"
         section_opt_out_title: "Odhlášení z hodnocení"
@@ -6251,7 +6251,7 @@ photo_stash:
 review_results:
     page:
         title: "Kontrola tvých výsledků"
-        intro: "Výsledky, které se možná objevují dvakrát, kopie navíc, které jsme za tebe odstranili, a první pokusy k vyřešení – všechno, na co se vyplatí podívat, na jednom místě."
+        intro: "Výsledky čekající na ověření, výsledky, které se možná objevují dvakrát, kopie navíc, které jsme za tebe odstranili, a první pokusy k vyřešení – všechno, na co se vyplatí podívat, na jednom místě."
         empty: "Není co kontrolovat – tvoje výsledky vypadají v pořádku."
     duplicates:
         title: "Stejný výsledek dvakrát?"
@@ -6520,3 +6520,69 @@ api_usage:
         kind_column: "Druh"
         player_profile: "Profil hráče"
         per_status: "Podle stavu"
+suspicious_time:
+    # The add/edit time form's notice for a typed time far off the player's own times
+    # (templates/suspicious_time/_form_notice.html.twig) - it asks, it never blames.
+    form:
+        title: "Zkontroluj prosím čas před uložením"
+        comparison: "Zadaný čas: %entered% – tvůj obvyklý čas tady je asi %expected%."
+        with_others: "Bylo vás víc? Přidej ostatní do výsledku."
+        error: "Zkontroluj prosím čas – pokud je správný, potvrď to níže."
+        action:
+            use: "Použít %time%"
+            confirm: "Ano, je správně"
+            undo: "Změnit odpověď"
+        confirmed:
+            title: "Díky za kontrolu"
+            body: "Čas %time% se uloží tak, jak je zadaný."
+    # One reason why a time awaits verification (templates/suspicious_time/_reason.html.twig) - neutral, never blaming.
+    # Times are h:mm:ss. Some are for moderators only (SuspiciousTimeReasonCode::isShownToPlayer()).
+    reason:
+        faster_than_predicted: "To je mnohem rychlejší, než jsme u tebe na těchto puzzle čekali (zhruba %expected%)."
+        faster_than_usual: "To je mnohem rychlejší než tvůj obvyklý čas %expected% u puzzle s %pieces% dílky."
+        beyond_known_pace: "To je rychlejší než skoro každý zaznamenaný čas u puzzle s %pieces% dílky."
+        slower_than_predicted: "To je mnohem pomalejší, než jsme u tebe na těchto puzzle čekali (zhruba %expected%)."
+        slower_than_usual: "To je mnohem pomalejší než tvůj obvyklý čas %expected% u puzzle s %pieces% dílky."
+        below_slow_floor: "To je mnohem pomalejší než obvykle u puzzle s %pieces% dílky – většina puzzlařů potřebuje zhruba %median%."
+        hours_left_out: "Možná zůstalo prázdné políčko pro hodiny – %suggested%?"
+        teammates_saved_group: "Někdo ten den uložil tato puzzle jako výsledek dvojice nebo týmu."
+        comment_mentions_group: "Tvoje poznámka zmiňuje skládání s dalšími lidmi."
+        other_edition: "Možná šlo o verzi s %pieces% dílky: %name%."
+        minutes_in_hours_box: "Možná se minuty dostaly do políčka pro hodiny – %suggested%?"
+        includes_breaks: "Pokud skládání trvalo několik dní, má se zadat jen čistý čas skládání."
+        often_in_group: "Často skládá ve dvojicích nebo týmech (%group_results% výsledků) – čas odpovídá jejich tempu ve skupině %group_expected%."
+        fastest_on_puzzle: "Byl by nejrychlejší z %results% sólo výsledků na těchto puzzle (nejrychlejší teď: %fastest%)."
+        prediction_from_slow_attempt: "Odhad (%predicted%) vycházel z dřívějšího pokusu s časem %previous%, který vypadá příliš pomalu – posuzováno proto podle obvyklého času hráče."
+        new_player: "Nový hráč – %results% dalších sólo výsledků."
+        confirmed_while_saving: "Při ukládání potvrzeno jako správné (formulář očekával zhruba %expected%)."
+    # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
+    # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
+    review:
+        title: "Čeká na ověření"
+        intro: "Výsledky, které jsou mnohem rychlejší nebo pomalejší než tvé obvyklé časy, si prohlížíme podruhé – nejčastěji jde o překlep, třeba prázdné políčko pro hodiny. Než se to vyjasní, výsledek zůstane v tvých výsledcích, ale nepočítá se do žebříčků a statistik. Opravit ho zvládneš za chvilku, nebo nám napiš, že je čas správný."
+        pair_result: "Výsledek dvojice"
+        team_result: "Výsledek týmu"
+        note: "Poznámka moderátora: %note%"
+        fix_time: "Opravit čas"
+        add_people: "Přidat další lidi do výsledku"
+        change_puzzle: "Změnit puzzle"
+        change_puzzle_only_tracker: "Byla to jiná puzzle? Změnit je může jen ten, kdo tento výsledek uložil."
+        correct: "Čas je správný"
+        correct_message: "Chceš moderátorovi něco sdělit? (nepovinné)"
+        correct_send: "Odeslat"
+        leave: "Nechat to tak"
+        leave_hint: "Výsledek zůstane čekat na ověření a nepočítá se – už se na něj znovu ptát nebudeme."
+        waiting: "Díky – moderátor se na to podívá."
+        your_message: "Tvoje zpráva: %message%"
+        edited: "Tento výsledek je upravený – moderátor se na něj znovu podívá."
+        left: "Výsledek zůstává, jak je. Opravit ho můžeš kdykoli."
+        kept: "Moderátor to zkontroloval: výsledek dál čeká na ověření."
+        kept_note: "Moderátor to zkontroloval: výsledek dál čeká na ověření – %note%"
+        answered_title: "Zkontrolováno moderátorem"
+        trusted: "Moderátor to zkontroloval: tvůj čas se zase počítá."
+        suggested_time: "Navržený čas z poznámky k ověření: %time% – zkontroluj ho a ulož."
+    banner: "%count% tvůj výsledek čeká na ověření.|%count% tvé výsledky čekají na ověření.|%count% tvých výsledků čeká na ověření."
+    flash:
+        replied: "Díky – moderátor se na to podívá."
+        already_replied: "Zprávu, že je tento čas správný, už máme – moderátor se na to podívá."
+        left_as_is: "Dobře – na tento výsledek se už ptát nebudeme."

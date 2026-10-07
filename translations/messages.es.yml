@@ -3191,7 +3191,7 @@ puzzle_intelligence:
         section_data_quality_title: "Calidad de Datos"
         section_data_quality_solo: "<strong>Solo en solitario:</strong> Las resoluciones en pareja y en equipo se excluyen"
         section_data_quality_first: "<strong>Primeros intentos:</strong> Solo los primeros encuentros con cada puzzle cuentan para dificultad y líneas base"
-        section_data_quality_suspicious: "<strong>Exclusión de sospechosos:</strong> Los tiempos marcados como sospechosos se excluyen"
+        section_data_quality_suspicious: "<strong>Pendientes de verificación:</strong> los tiempos pendientes de verificación se excluyen"
         section_data_quality_outlier: "<strong>Filtro de valores atípicos:</strong> Los índices de dificultad superiores a 5.0 se excluyen (probablemente errores de temporizador)"
         section_data_quality_recency: "<strong>Ponderación por recencia:</strong> Las resoluciones recientes cuentan más — las líneas base, niveles de habilidad y Rating usan decaimiento temporal para reflejar tu capacidad actual"
         section_opt_out_title: "Darse de Baja"
@@ -6254,7 +6254,7 @@ photo_stash:
 review_results:
     page:
         title: "Revisa tus resultados"
-        intro: "Resultados que quizá aparecen dos veces, copias sobrantes que eliminamos por ti y primeros intentos por aclarar – todo lo que merece un vistazo, en un solo lugar."
+        intro: "Resultados pendientes de verificación, resultados que quizá aparecen dos veces, copias sobrantes que eliminamos por ti y primeros intentos por aclarar – todo lo que merece un vistazo, en un solo lugar."
         empty: "Nada que revisar – tus resultados se ven bien."
     duplicates:
         title: "¿El mismo resultado dos veces?"
@@ -6523,3 +6523,69 @@ api_usage:
         kind_column: "Tipo"
         player_profile: "Perfil del jugador"
         per_status: "Por estado"
+suspicious_time:
+    # The add/edit time form's notice for a typed time far off the player's own times
+    # (templates/suspicious_time/_form_notice.html.twig) - it asks, it never blames.
+    form:
+        title: "Revisa el tiempo antes de guardar"
+        comparison: "Has introducido %entered% - tu tiempo habitual aquí es de unos %expected%."
+        with_others: "¿Armaste con alguien? Añádelo al resultado."
+        error: "Revisa el tiempo - confírmalo abajo si es correcto."
+        action:
+            use: "Usar %time%"
+            confirm: "Sí, es correcto"
+            undo: "Cambiar mi respuesta"
+        confirmed:
+            title: "Gracias por revisarlo"
+            body: "%time% se guardará tal como lo introdujiste."
+    # One reason why a time awaits verification (templates/suspicious_time/_reason.html.twig) - neutral, never blaming.
+    # Times are h:mm:ss. Some are for moderators only (SuspiciousTimeReasonCode::isShownToPlayer()).
+    reason:
+        faster_than_predicted: "Es mucho más rápido de lo que esperábamos de ti en este rompecabezas (unos %expected%)."
+        faster_than_usual: "Es mucho más rápido que tu tiempo habitual de %expected% para %pieces% piezas."
+        beyond_known_pace: "Es más rápido que casi cualquier tiempo registrado para %pieces% piezas."
+        slower_than_predicted: "Es mucho más lento de lo que esperábamos de ti en este rompecabezas (unos %expected%)."
+        slower_than_usual: "Es mucho más lento que tu tiempo habitual de %expected% para %pieces% piezas."
+        below_slow_floor: "Es mucho más lento de lo habitual para %pieces% piezas - la mayoría de los puzzleros tarda unos %median%."
+        hours_left_out: "Quizá la casilla de horas se quedó vacía - ¿%suggested%?"
+        teammates_saved_group: "Alguien guardó ese día este rompecabezas como resultado de pareja o equipo."
+        comment_mentions_group: "Tu comentario menciona que armaste con otras personas."
+        other_edition: "Quizá fue la edición de %pieces% piezas: %name%."
+        minutes_in_hours_box: "Quizá los minutos acabaron en la casilla de horas - ¿%suggested%?"
+        includes_breaks: "Si armaste durante varios días, el tiempo debe ser solo el que pasaste armando."
+        often_in_group: "Suele armar en pareja o en equipo (%group_results% resultados) - el tiempo encaja con su ritmo de grupo de %group_expected%."
+        fastest_on_puzzle: "Sería el más rápido de %results% resultados individuales en este rompecabezas (el más rápido ahora: %fastest%)."
+        prediction_from_slow_attempt: "La predicción (%predicted%) venía de un intento anterior de %previous% que parece demasiado lento - se valoró en cambio según el tiempo habitual del jugador."
+        new_player: "Jugador nuevo - %results% otros resultados individuales."
+        confirmed_while_saving: "Confirmado como correcto al guardar (el formulario esperaba unos %expected%)."
+    # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
+    # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
+    review:
+        title: "Pendiente de verificación"
+        intro: "Echamos un segundo vistazo a los resultados mucho más rápidos o mucho más lentos que tus tiempos habituales – casi siempre es un error al escribir, como una casilla de horas vacía. Mientras no se aclare, el resultado se queda entre tus resultados pero no cuenta en clasificaciones ni estadísticas. Corrígelo en un momento o dinos que el tiempo es correcto."
+        pair_result: "Resultado de pareja"
+        team_result: "Resultado de equipo"
+        note: "Nota del moderador: %note%"
+        fix_time: "Corregir el tiempo"
+        add_people: "Añadir a quienes armaron conmigo"
+        change_puzzle: "Cambiar el rompecabezas"
+        change_puzzle_only_tracker: "¿Era otro rompecabezas? Solo quien guardó este resultado puede cambiarlo."
+        correct: "El tiempo es correcto"
+        correct_message: "¿Algo que el moderador deba saber? (opcional)"
+        correct_send: "Enviar"
+        leave: "Dejarlo como está"
+        leave_hint: "El resultado sigue pendiente de verificación y no cuenta – no volveremos a preguntar por él."
+        waiting: "Gracias – un moderador le echará un vistazo."
+        your_message: "Tu mensaje: %message%"
+        edited: "Has cambiado este resultado – un moderador volverá a revisarlo."
+        left: "Lo dejaste como está. Puedes corregirlo en cualquier momento."
+        kept: "Un moderador lo revisó: sigue pendiente de verificación."
+        kept_note: "Un moderador lo revisó: sigue pendiente de verificación – %note%"
+        answered_title: "Revisado por un moderador"
+        trusted: "Un moderador lo revisó: tu tiempo vuelve a contar."
+        suggested_time: "Tiempo sugerido en la nota de verificación: %time% – compruébalo y guárdalo."
+    banner: "%count% de tus resultados necesita verificación.|%count% de tus resultados necesitan verificación."
+    flash:
+        replied: "Gracias – un moderador le echará un vistazo."
+        already_replied: "Ya nos dijiste que este tiempo es correcto – un moderador le echará un vistazo."
+        left_as_is: "De acuerdo – no volveremos a preguntar por este resultado."

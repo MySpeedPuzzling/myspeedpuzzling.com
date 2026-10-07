@@ -518,6 +518,15 @@
                                             Puzzle Approvals
                                         </a>
                                     </li>
+                                    {% if is_granted('REVIEW_SUSPICIOUS_TIMES') %}
+                                    <li>
+                                        {% set time_verification_pending = time_verification_pending_count() %}
+                                        <a class="dropdown-item pb-1 {% if currentRoute starts with 'admin_time_verification' %}active{% endif %}" href="{{ path('admin_time_verification') }}">
+                                            Time verification
+                                            {% if time_verification_pending > 0 %}<span class="badge bg-warning text-dark ms-1">{{ time_verification_pending }}</span>{% endif %}
+                                        </a>
+                                    </li>
+                                    {% endif %}
                                     {% if is_granted('ADMIN_ACCESS') %}
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_vouchers' %}active{% endif %}" href="{{ path('admin_vouchers') }}">

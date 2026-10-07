@@ -40,10 +40,10 @@ final class PuzzleSearchItemsControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        // Make the wishlist longer than one page
+        // Make the wishlist longer than one page, but not longer than two
         $connection = self::getContainer()->get(Connection::class);
         $puzzleIds = $connection->fetchFirstColumn(
-            'SELECT id FROM puzzle WHERE (hide_until IS NULL OR hide_until <= NOW()) AND id NOT IN (SELECT puzzle_id FROM wish_list_item WHERE player_id = ?)',
+            'SELECT id FROM puzzle WHERE (hide_until IS NULL OR hide_until <= NOW()) AND id NOT IN (SELECT puzzle_id FROM wish_list_item WHERE player_id = ?) ORDER BY id LIMIT 30',
             [PlayerFixture::PLAYER_WITH_STRIPE],
         );
         foreach ($puzzleIds as $puzzleId) {

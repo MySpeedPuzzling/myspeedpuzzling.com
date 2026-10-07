@@ -9,17 +9,20 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\SendResultReviewEmailPreview;
 use SpeedPuzzling\Web\Results\AutoRemovedResult;
 use SpeedPuzzling\Web\Results\ResultReviewEmailCase;
+use SpeedPuzzling\Web\Results\ResultReviewEmailMarkedTime;
+use SpeedPuzzling\Web\Results\ResultReviewEmailVerificationAnswer;
 use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewEmailComposer;
 use SpeedPuzzling\Web\Services\Listmonk\ListmonkNewsletterLists;
 use SpeedPuzzling\Web\Value\DuplicateKind;
 use SpeedPuzzling\Web\Value\DuplicateTier;
 use SpeedPuzzling\Web\Value\ResultReviewEmailPreviewVariant;
+use SpeedPuzzling\Web\Value\SuspiciousTimeReplyAnswer;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * A "Your results" e-mail with sample data, to see it in a real inbox before players get it
- * (docs/features/duplicate-results.md, "Sending"). Composed by the same ResultReviewEmailComposer as the real
+ * (docs/features/duplicate-results.md, "Sending"; times awaiting verification: docs/features/suspicious-time-review.md). Composed by the same ResultReviewEmailComposer as the real
  * e-mail - template, translations, headers, `notifications` transport - only the subject says "[Preview]".
  *
  * Writes nothing: no contact, no removal touched. The ids behind its links belong to nobody - the review button
@@ -43,7 +46,7 @@ readonly final class SendResultReviewEmailPreviewHandler
     public function __invoke(SendResultReviewEmailPreview $message): void
     {
         $now = $this->clock->now();
-        $cases = $message->variant === ResultReviewEmailPreviewVariant::Removed ? [] : $this->sampleCases($now);
+        $variant = $message->variant;
 
         $email = $this->emailComposer->compose(
             contactId: self::PREVIEW_CONTACT_ID,
@@ -51,9 +54,25 @@ readonly final class SendResultReviewEmailPreviewHandler
             playerName: 'Alex',
             emailAddress: $message->emailAddress,
             locale: ListmonkNewsletterLists::normalizeLocale($message->locale),
-            first: $message->variant === ResultReviewEmailPreviewVariant::First,
-            cases: $cases,
-            removals: $this->sampleRemovals($now),
+            first: $variant === ResultReviewEmailPreviewVariant::First,
+            cases: match ($variant) {
+                ResultReviewEmailPreviewVariant::First, ResultReviewEmailPreviewVariant::Weekly => $this->sampleCases($now),
+                default => [],
+            },
+            removals: match ($variant) {
+                ResultReviewEmailPreviewVariant::First, ResultReviewEmailPreviewVariant::Weekly, ResultReviewEmailPreviewVariant::Removed => $this->sampleRemovals($now),
+                default => [],
+            },
+            markedTimes: match ($variant) {
+                ResultReviewEmailPreviewVariant::First => array_slice($this->sampleMarkedTimes($now), 0, 1),
+                ResultReviewEmailPreviewVariant::Verification => $this->sampleMarkedTimes($now),
+                default => [],
+            },
+            verificationAnswers: match ($variant) {
+                ResultReviewEmailPreviewVariant::Verification => array_slice($this->sampleAnswers($now), 1),
+                ResultReviewEmailPreviewVariant::Answered => $this->sampleAnswers($now),
+                default => [],
+            },
         );
         $email->subject(self::SUBJECT_PREFIX . $email->getSubject());
 
@@ -87,6 +106,56 @@ readonly final class SendResultReviewEmailPreviewHandler
             secondsToSolve: $seconds,
             solvedAt: $solvedAt,
         );
+    }
+
+    /**
+     * Two times awaiting verification - one much faster, one much slower than usual.
+     *
+     * @return list<ResultReviewEmailMarkedTime>
+     */
+    private function sampleMarkedTimes(DateTimeImmutable $now): array
+    {
+        return [
+            new ResultReviewEmailMarkedTime(
+                noticeId: '00000000-0000-7000-8000-000000000701',
+                puzzleName: 'Mountain Lake at Dawn',
+                secondsToSolve: 3780,
+                solvedAt: $now->modify('-3 days'),
+            ),
+            new ResultReviewEmailMarkedTime(
+                noticeId: '00000000-0000-7000-8000-000000000702',
+                puzzleName: 'Vintage Postcards',
+                secondsToSolve: 176880,
+                solvedAt: $now->modify('-12 days'),
+            ),
+        ];
+    }
+
+    /**
+     * A time that counts again and one that stays set aside, with the moderator's note.
+     *
+     * @return list<ResultReviewEmailVerificationAnswer>
+     */
+    private function sampleAnswers(DateTimeImmutable $now): array
+    {
+        return [
+            new ResultReviewEmailVerificationAnswer(
+                noticeId: '00000000-0000-7000-8000-000000000801',
+                puzzleName: 'Garden Party',
+                secondsToSolve: 2711,
+                solvedAt: $now->modify('-20 days'),
+                answer: SuspiciousTimeReplyAnswer::Trusted,
+                note: null,
+            ),
+            new ResultReviewEmailVerificationAnswer(
+                noticeId: '00000000-0000-7000-8000-000000000802',
+                puzzleName: 'City Lights at Night',
+                secondsToSolve: 1845,
+                solvedAt: $now->modify('-26 days'),
+                answer: SuspiciousTimeReplyAnswer::Kept,
+                note: 'The box in your photo is the 500-piece edition - you can move the time to it.',
+            ),
+        ];
     }
 
     /**

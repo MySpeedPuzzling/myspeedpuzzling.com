@@ -1,0 +1,84 @@
+{% extends 'base.html.twig' %}
+
+{# The time verification queue (docs/features/suspicious-time-review.md, "Moderator queue"). Literal English, not
+   translated, and never "suspicious" in anything a person reads. #}
+
+{% block title %}Time verification{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-2">Time verification</h1>
+    <p class="text-muted small mb-3">
+        Times the scan found far off what the player usually does - much faster (hours box left empty, a pair or team
+        saved as solo, another edition) or much slower (minutes typed into the hours box, days counted). A time marked
+        <strong>Needs verification</strong> stops counting anywhere but in the player's own results, and the player is
+        told once with the next run - so a slip can still be undone before then. <strong>Looks fine</strong> means this
+        entry is never raised again. Skipping stores nothing.
+    </p>
+
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        {% for tab_option in tabs %}
+            {% set tab_count = counts.of(tab_option) %}
+            <li class="nav-item">
+                <a class="nav-link {% if tab_option == tab %}active{% endif %}"
+                   {% if tab_option == tab %}aria-current="page"{% endif %}
+                   href="{{ path('admin_time_verification', {tab: tab_option.value}) }}">
+                    {{ tab_option.label }}
+                    {% if tab_count is not null %}<span class="badge {{ tab_count > 0 and tab_option.value in ['fast', 'slow', 'replied'] ? 'bg-warning text-dark' : 'bg-secondary' }} ms-1">{{ tab_count|number_format(0, '.', ' ') }}</span>{% endif %}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    {% if tab.value == 'numbers' %}
+        {{ include('admin/suspicious_times/_numbers.html.twig') }}
+    {% elseif tab.value == 'log' %}
+        {{ include('admin/suspicious_times/_decision_log.html.twig') }}
+    {% else %}
+        {% if tab.value in ['fast', 'slow'] %}
+            <p class="text-muted small">
+                Strong before possible; {{ tab.value == 'fast'
+                    ? 'then the times leading their puzzle, bigger leaderboards first'
+                    : 'then the times furthest off' }}.
+                {% if puzzle_cards is not empty %}Puzzles where several players are off the same way come first - one look at the piece count may settle them all.{% endif %}
+            </p>
+
+            {% for card in puzzle_cards %}
+                {{ include('admin/suspicious_times/_puzzle_card.html.twig') }}
+            {% endfor %}
+        {% elseif tab.value == 'replied' %}
+            <p class="text-muted small">
+                Marked times whose player says the time is correct, or whose entry changed (the player's edit, a
+                piece-count fix, a merge) and still needs a look. Oldest first. Your note goes to the player with the
+                answer.
+            </p>
+        {% endif %}
+
+        {% if cases is empty and puzzle_cards is empty %}
+            <div class="alert alert-info">Nothing here.</div>
+        {% endif %}
+
+        {% for case in cases %}
+            {{ include('admin/suspicious_times/_case_card.html.twig') }}
+        {% endfor %}
+    {% endif %}
+
+    {% if pages > 1 %}
+        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Pages">
+            {% if page > 1 %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_time_verification', {tab: tab.value, page: page - 1}) }}">
+                    <i class="bi bi-chevron-left"></i> Previous
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+            <span class="small text-muted">Page {{ page }} of {{ pages }}</span>
+            {% if page < pages %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_time_verification', {tab: tab.value, page: page + 1}) }}">
+                    Next <i class="bi bi-chevron-right"></i>
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+        </nav>
+    {% endif %}
+{% endblock %}

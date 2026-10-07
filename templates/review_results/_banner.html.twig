@@ -1,9 +1,11 @@
 {# "Review your results" banner on the Hub and the player's own profile (docs/features/duplicate-results.md,
-   "Banner"). Expects review_counts (PlayerReviewCounts); nobody else's page computes it. #}
+   "Banner") and results awaiting verification (docs/features/suspicious-time-review.md). Expects review_counts
+   (PlayerReviewCounts); nobody else's page computes it. #}
 {% if review_counts is not null and not review_counts.isEmpty %}
     <div class="alert alert-warning d-flex align-items-center justify-content-between gap-2 py-2 fs-sm mb-3" data-testid="review-results-banner">
         <span>
             <i class="bi bi-exclamation-triangle me-1"></i>
+            {% if review_counts.suspiciousTimes > 0 %}<span class="d-block d-sm-inline" data-testid="review-results-banner-verification">{{ 'suspicious_time.banner'|trans({'%count%': review_counts.suspiciousTimes}) }}</span>{% endif %}
             {% if review_counts.duplicates > 0 %}<span class="d-block d-sm-inline">{{ 'review_results.banner.duplicates'|trans({'%count%': review_counts.duplicates}) }}</span>{% endif %}
             {% if review_counts.autoRemoved > 0 %}<span class="d-block d-sm-inline">{{ 'review_results.banner.auto_removed'|trans({'%count%': review_counts.autoRemoved}) }}</span>{% endif %}
             {% if review_counts.firstTryConflicts > 0 %}<span class="d-block d-sm-inline">{{ 'first_try.banner'|trans({'%count%': review_counts.firstTryConflicts}) }}</span>{% endif %}

@@ -3181,7 +3181,7 @@ puzzle_intelligence:
         section_data_quality_title: "データ品質"
         section_data_quality_solo: "<strong>ソロのみ：</strong>ペアとチームの完成は除外されます"
         section_data_quality_first: "<strong>初回挑戦：</strong>難易度とベースラインには各パズルとの初回遭遇のみがカウントされます"
-        section_data_quality_suspicious: "<strong>疑わしい結果の除外：</strong>疑わしいとフラグが付けられたタイムは除外されます"
+        section_data_quality_suspicious: "<strong>確認待ち：</strong>確認待ちのタイムは除外されます"
         section_data_quality_outlier: "<strong>外れ値フィルター：</strong>5.0を超える難易度指数は除外されます（タイマーエラーの可能性）"
         section_data_quality_recency: "<strong>新しさの重み付け：</strong>最近の完成がより重視されます — ベースライン、スキルティア、Ratingすべてが時間減衰を使用して現在の能力を反映します"
         section_opt_out_title: "オプトアウト"
@@ -6244,7 +6244,7 @@ photo_stash:
 review_results:
     page:
         title: "記録の確認"
-        intro: "重複しているかもしれない記録、自動で削除したコピー、整理が必要な初回など、確認しておきたいものをまとめて表示しています。"
+        intro: "確認待ちの記録、重複しているかもしれない記録、自動で削除したコピー、整理が必要な初回など、確認しておきたいものをまとめて表示しています。"
         empty: "確認が必要なものはありません。記録に問題はなさそうです。"
     duplicates:
         title: "同じ記録が重複していませんか？"
@@ -6513,3 +6513,69 @@ api_usage:
         kind_column: "種類"
         player_profile: "プレイヤーのプロフィール"
         per_status: "ステータス別"
+suspicious_time:
+    # The add/edit time form's notice for a typed time far off the player's own times
+    # (templates/suspicious_time/_form_notice.html.twig) - it asks, it never blames.
+    form:
+        title: "保存する前にタイムをご確認ください"
+        comparison: "入力されたタイムは%entered%です。このパズルでのいつものタイムは約%expected%です。"
+        with_others: "どなたかと一緒に組みましたか？その場合は記録にメンバーを追加してください。"
+        error: "タイムをご確認ください。合っている場合は、下で確定してください。"
+        action:
+            use: "%time%を使う"
+            confirm: "はい、合っています"
+            undo: "回答を変更"
+        confirmed:
+            title: "ご確認ありがとうございます"
+            body: "%time%を入力どおりに保存します。"
+    # One reason why a time awaits verification (templates/suspicious_time/_reason.html.twig) - neutral, never blaming.
+    # Times are h:mm:ss. Some are for moderators only (SuspiciousTimeReasonCode::isShownToPlayer()).
+    reason:
+        faster_than_predicted: "このパズルでの予想（約%expected%）よりかなり速いタイムです。"
+        faster_than_usual: "%pieces%ピースのいつものタイム（%expected%）よりかなり速いタイムです。"
+        beyond_known_pace: "%pieces%ピースで記録されているほとんどのタイムより速いタイムです。"
+        slower_than_predicted: "このパズルでの予想（約%expected%）よりかなり遅いタイムです。"
+        slower_than_usual: "%pieces%ピースのいつものタイム（%expected%）よりかなり遅いタイムです。"
+        below_slow_floor: "%pieces%ピースとしてはかなり遅いタイムです。多くのパズラーは約%median%で完成させています。"
+        hours_left_out: "「時間」の欄が空のままではありませんか？%suggested%でしょうか？"
+        teammates_saved_group: "同じ日に、このパズルがペアまたはチームの記録として保存されています。"
+        comment_mentions_group: "コメントに、ほかの人と一緒に組んだことが書かれています。"
+        other_edition: "%pieces%ピース版のパズルではありませんか？：%name%"
+        minutes_in_hours_box: "「分」が「時間」の欄に入っていませんか？%suggested%でしょうか？"
+        includes_breaks: "数日にわたって組んだ場合は、実際にパズルに取り組んだ時間だけを入力してください。"
+        often_in_group: "ペアやチームで組むことが多く（%group_results%件）、タイムはグループのペース（%group_expected%）に合っています。"
+        fastest_on_puzzle: "このパズルのソロ記録%results%件の中で最速になります（現在の最速：%fastest%）。"
+        prediction_from_slow_attempt: "予測（%predicted%）は以前の挑戦（%previous%）に基づいていますが、遅すぎるようです。そのためプレイヤーのいつものタイムを基準に判断しました。"
+        new_player: "新しいプレイヤーです。ほかのソロ記録は%results%件です。"
+        confirmed_while_saving: "保存時に正しいと確認されました（フォームの予想は約%expected%）。"
+    # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
+    # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
+    review:
+        title: "確認待ち"
+        intro: "いつものタイムよりかなり速い、またはかなり遅い記録は、もう一度確認しています。多くは、時間の欄が空のままといった入力ミスです。確認が済むまで、この記録はご自身の記録には残りますが、ランキングや統計には含まれません。すぐに修正するか、タイムが正しいことをお知らせください。"
+        pair_result: "ペアの記録"
+        team_result: "チームの記録"
+        note: "モデレーターからのメモ：%note%"
+        fix_time: "タイムを修正"
+        add_people: "一緒に組んだ人を追加"
+        change_puzzle: "パズルを変更"
+        change_puzzle_only_tracker: "別のパズルでしたか？パズルを変更できるのは、この記録を保存した人だけです。"
+        correct: "タイムは正しいです"
+        correct_message: "モデレーターに伝えておきたいことはありますか？（任意）"
+        correct_send: "送信"
+        leave: "そのままにする"
+        leave_hint: "記録は確認待ちのままで、集計には含まれません。この記録について再度お尋ねすることはありません。"
+        waiting: "ありがとうございます。モデレーターが確認します。"
+        your_message: "あなたのメッセージ：%message%"
+        edited: "この記録を変更しました。モデレーターが改めて確認します。"
+        left: "そのままにしました。修正はいつでもできます。"
+        kept: "モデレーターが確認しました。引き続き確認待ちのままです。"
+        kept_note: "モデレーターが確認しました。引き続き確認待ちのままです：%note%"
+        answered_title: "モデレーターが確認しました"
+        trusted: "モデレーターが確認しました。このタイムは再び集計に含まれます。"
+        suggested_time: "確認メモで提案されたタイム：%time%。ご確認のうえ保存してください。"
+    banner: "確認が必要な記録が%count%件あります。"
+    flash:
+        replied: "ありがとうございます。モデレーターが確認します。"
+        already_replied: "このタイムが正しいことはすでにお知らせいただいています。モデレーターが確認します。"
+        left_as_is: "承知しました。この記録について再度お尋ねすることはありません。"

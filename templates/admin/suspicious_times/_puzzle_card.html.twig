@@ -1,0 +1,89 @@
+{# A puzzle whose pending cases of one direction are shown together - "is the piece count right?"
+   Expects: card (SuspiciousTimePuzzleCard), tab, page. #}
+{% set faster = card.direction.value == 'fast' %}
+<article class="card border-warning shadow-sm mb-3" id="puzzle-{{ card.puzzleId }}" data-testid="time-verification-puzzle-card">
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-3">
+            <a class="flex-shrink-0 text-center" style="width: 72px;" href="{{ path('puzzle_detail', {puzzleId: card.puzzleId}) }}">
+                {% if card.image %}
+                    <img src="{{ card.image|puzzle_image('puzzle_small') }}" alt="" class="rounded" style="max-width: 72px; max-height: 72px;">
+                {% else %}
+                    <i class="bi bi-puzzle text-muted fs-2"></i>
+                {% endif %}
+            </a>
+            <div class="flex-grow-1 min-w-0">
+                <div class="fw-semibold text-break">
+                    <a href="{{ path('puzzle_detail', {puzzleId: card.puzzleId}) }}">{{ card.puzzleName }}</a>
+                </div>
+                <div class="small text-muted text-break">
+                    {{ card.manufacturerName ?? 'No brand' }} &bull; <strong>{{ card.piecesCount }} pcs</strong>
+                    &bull; {{ card.soloResults }} solo {{ card.soloResults == 1 ? 'result' : 'results' }}
+                    {% if card.medianSolo %}&bull; median {{ card.medianSolo|puzzlingTime }}{% endif %}
+                    {% if card.fastestSolo %}&bull; fastest {{ card.fastestSolo|puzzlingTime }}{% endif %}
+                    {% if card.difficultyScore is not null %}&bull; difficulty {{ card.difficultyScore|number_format(2) }}{% endif %}
+                </div>
+                <p class="mt-2 mb-2">
+                    {% if card.isSeveralPlayers %}
+                        <strong>{{ card.playersCount }} players are much {{ faster ? 'faster' : 'slower' }} here than usual</strong> - is the piece count right?
+                    {% else %}
+                        <strong>Players are usually much {{ faster ? 'faster' : 'slower' }} on this puzzle than on others</strong> (difficulty {{ card.difficultyScore is not null ? card.difficultyScore|number_format(2) : '-' }}) - is the piece count right?
+                    {% endif %}
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-sm btn-primary" href="{{ path('admin_edit_puzzle', {puzzleId: card.puzzleId, return: path('admin_time_verification', {tab: tab.value})}) }}">
+                        Fix the puzzle
+                    </a>
+                    <form method="post" action="{{ path('admin_time_verification_confirm_pieces', {puzzleId: card.puzzleId}) }}" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token('time-verification-puzzle-' ~ card.puzzleId) }}">
+                        <input type="hidden" name="tab" value="{{ tab.value }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        <input type="hidden" name="pieces" value="{{ card.piecesCount }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Piece count is right</button>
+                    </form>
+                </div>
+                <p class="small text-muted mt-2 mb-0">
+                    Fixing the piece count makes the next scan judge these times again - the cases close by themselves when they fit.
+                    "Piece count is right" sends them to the list one by one, until the piece count changes.
+                </p>
+            </div>
+        </div>
+
+        <div class="table-responsive mt-3">
+            <table class="table table-sm align-middle fs-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th class="text-end">Time</th>
+                        <th class="text-end">Expected</th>
+                        <th class="text-end">Off by</th>
+                        <th>Why</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in card.cases %}
+                        <tr>
+                            <td class="text-break">
+                                <a href="{{ path('player_profile', {playerId: line.playerId}) }}">{{ line.playerName ?? ('#' ~ line.playerCode) }}</a>
+                                {% if line.playerName %}<span class="text-muted">#{{ line.playerCode }}</span>{% endif %}
+                                {% if line.playerPrivate %}<span class="badge bg-light text-dark border">Private profile</span>{% endif %}
+                                {% if line.puzzlersCount > 1 %}<span class="badge bg-info text-dark">{{ line.puzzlersCount == 2 ? 'Pair' : 'Team of ' ~ line.puzzlersCount }}</span>{% endif %}
+                            </td>
+                            <td class="text-end text-nowrap">{{ line.seconds is not null ? line.seconds|puzzlingTime : '-' }}</td>
+                            <td class="text-end text-nowrap">
+                                {{ line.expectedSeconds is not null ? line.expectedSeconds|puzzlingTime : '-' }}
+                                {% if line.expectedSource %}<span class="text-muted">({{ line.expectedSource.value }})</span>{% endif %}
+                            </td>
+                            <td class="text-end text-nowrap">{{ line.ratio is not null ? line.ratio|number_format(1) ~ '×' : '-' }}</td>
+                            <td>
+                                {% if line.tier %}<span class="badge {{ line.tier.value == 'strong' ? 'bg-danger' : 'bg-secondary' }}">{{ line.tier.value == 'strong' ? 'Strong' : 'Possible' }}</span>{% endif %}
+                                {% if line.trigger %}{{ include('suspicious_time/_reason.html.twig', {reason: line.trigger}, with_context = false) }}{% endif %}
+                            </td>
+                            <td class="text-end">{% if not line.playerPrivate %}<a href="{{ path('puzzle_result_detail', {timeId: line.timeId}) }}">Result</a>{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</article>

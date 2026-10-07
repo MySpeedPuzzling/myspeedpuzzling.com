@@ -1,0 +1,134 @@
+{# "Awaiting verification" - the first section of "Review your results" (docs/features/suspicious-time-review.md,
+   "Where they see it"): the player's results a moderator marked, the reasons chosen for them, the moderator's note,
+   and what they can do - fix it in the edit form, say the time is correct (once per mark) or leave it as it is.
+   Then the moderators' answers to their replies of the last 30 days.
+   Expects suspicious_times and answered_suspicious_times (list<PlayerSuspiciousTime>) and player_id.
+   Neutral wording: nothing here says "suspicious". #}
+{%- macro time_line(item) -%}
+    {%- if item.secondsToSolve is not null %}<strong>{{ item.secondsToSolve|puzzlingTime }}</strong> · {% endif -%}
+    {{ item.solvedAt|date('d.m.Y') }}
+    {%- if item.puzzlingType.value == 'duo' %} · {{ 'suspicious_time.review.pair_result'|trans }}{% endif -%}
+    {%- if item.puzzlingType.value == 'team' %} · {{ 'suspicious_time.review.team_result'|trans }}{% endif -%}
+{%- endmacro -%}
+
+{% if suspicious_times is not empty or answered_suspicious_times is not empty %}
+    {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ReviewResults\\ReviewResultsController::CSRF_TOKEN_ID')) %}
+
+    <section id="awaiting-verification" data-testid="awaiting-verification">
+        <h2 class="h5 mt-4 mb-2"><i class="bi bi-hourglass-split me-2"></i>{{ 'suspicious_time.review.title'|trans }}</h2>
+
+        {% if suspicious_times is not empty %}
+            <p class="text-muted fs-sm">{{ 'suspicious_time.review.intro'|trans }}</p>
+        {% endif %}
+
+        {% for item in suspicious_times %}
+            {% set puzzle = item.puzzle %}
+            {% set edit_params = {timeId: item.timeId, context: 'review-results'} %}
+
+            <div class="card card-body shadow-sm mb-3" data-testid="suspicious-time" data-time-id="{{ item.timeId }}">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    {% if puzzle.image is not null %}
+                        <img class="rounded-2" style="width: 56px; height: 56px; object-fit: cover;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.name}) }}" src="{{ puzzle.image|thumbnail('puzzle_small') }}">
+                    {% endif %}
+                    <div class="low-line-height">
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="h6 mb-0">{{ puzzle.name }}</a><br>
+                        <small class="text-muted">{{ puzzle.manufacturerName|upper }} · {{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}</small>
+                    </div>
+                </div>
+
+                <p class="fs-sm mb-2">{{ _self.time_line(item) }}</p>
+
+                {% if item.reasonsShown is not empty %}
+                    <ul class="fs-sm mb-2 ps-3" data-testid="suspicious-time-reasons">
+                        {% for reason in item.reasonsShown %}
+                            <li>{{ include('suspicious_time/_reason.html.twig', {reason: reason}, with_context = false) }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% if item.moderatorNote is not null %}
+                    <p class="fs-sm mb-2" data-testid="suspicious-time-note"><i class="bi bi-chat-left-text me-1"></i>{{ 'suspicious_time.review.note'|trans({'%note%': item.moderatorNote}) }}</p>
+                {% endif %}
+
+                {% if item.isAwaitingModerator %}
+                    <div class="alert alert-info fs-sm py-2 mb-0" data-testid="suspicious-time-waiting">
+                        {{ 'suspicious_time.review.waiting'|trans }}
+                        {% if item.responseText is not null %}
+                            <span class="d-block text-muted mt-1">{{ 'suspicious_time.review.your_message'|trans({'%message%': item.responseText}) }}</span>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    {% if item.answer is not null %}
+                        <p class="fs-sm mb-2" data-testid="suspicious-time-kept">
+                            {{ item.answerNote is not null ? 'suspicious_time.review.kept_note'|trans({'%note%': item.answerNote}) : 'suspicious_time.review.kept'|trans }}
+                        </p>
+                    {% elseif item.response is not null and item.response.value == 'fixed' %}
+                        <p class="fs-sm text-muted mb-2" data-testid="suspicious-time-edited">{{ 'suspicious_time.review.edited'|trans }}</p>
+                    {% elseif item.response is not null and item.response.value == 'left_as_is' %}
+                        <p class="fs-sm text-muted mb-2" data-testid="suspicious-time-left">{{ 'suspicious_time.review.left'|trans }}</p>
+                    {% endif %}
+
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <a href="{{ path('edit_time', edit_params|merge(item.suggestedSeconds is not null ? {suggested_seconds: item.suggestedSeconds, suggested_for: item.secondsToSolve} : {})) }}" class="btn btn-sm btn-primary" data-testid="suspicious-time-fix">
+                            <i class="bi bi-pencil me-1"></i>{{ 'suspicious_time.review.fix_time'|trans }}
+                        </a>
+                        {% if item.suggestsGroup %}
+                            <a href="{{ path('edit_time', edit_params) }}" class="btn btn-sm btn-outline-primary" data-testid="suspicious-time-add-people">
+                                <i class="bi bi-people me-1"></i>{{ 'suspicious_time.review.add_people'|trans }}
+                            </a>
+                        {% endif %}
+                        {% if item.suggestsOtherEdition and item.isTrackedBy(player_id) %}
+                            <a href="{{ path('edit_time', edit_params) }}" class="btn btn-sm btn-outline-primary" data-testid="suspicious-time-change-puzzle">
+                                <i class="bi bi-puzzle me-1"></i>{{ 'suspicious_time.review.change_puzzle'|trans }}
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    {% if item.suggestsOtherEdition and not item.isTrackedBy(player_id) %}
+                        <p class="fs-sm text-muted mb-2" data-testid="suspicious-time-only-tracker">{{ 'suspicious_time.review.change_puzzle_only_tracker'|trans }}</p>
+                    {% endif %}
+
+                    {% if item.canSayCorrect %}
+                        <details class="mb-2" data-testid="suspicious-time-correct">
+                            <summary class="btn btn-sm btn-outline-secondary">{{ 'suspicious_time.review.correct'|trans }}</summary>
+                            <form method="post" action="{{ path('review_results_suspicious_correct', {caseId: item.caseId}) }}" class="mt-2">
+                                <input type="hidden" name="_token" value="{{ csrf }}">
+                                <label class="form-label fs-sm" for="verification-message-{{ item.caseId }}">{{ 'suspicious_time.review.correct_message'|trans }}</label>
+                                <textarea class="form-control form-control-sm mb-2" id="verification-message-{{ item.caseId }}" name="message" rows="2" maxlength="{{ constant('SpeedPuzzling\\Web\\Message\\ReplySuspiciousTimeIsCorrect::MAX_TEXT_LENGTH') }}"></textarea>
+                                <button type="submit" class="btn btn-sm btn-primary">{{ 'suspicious_time.review.correct_send'|trans }}</button>
+                            </form>
+                        </details>
+                    {% endif %}
+
+                    {% if item.canLeaveAsItIs %}
+                        <form method="post" action="{{ path('review_results_suspicious_leave', {caseId: item.caseId}) }}" data-testid="suspicious-time-leave">
+                            <input type="hidden" name="_token" value="{{ csrf }}">
+                            <button type="submit" class="btn btn-sm btn-link text-muted px-0">{{ 'suspicious_time.review.leave'|trans }}</button>
+                            <span class="d-block text-muted small">{{ 'suspicious_time.review.leave_hint'|trans }}</span>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        {% if answered_suspicious_times is not empty %}
+            <h3 class="h6 mt-3 mb-2">{{ 'suspicious_time.review.answered_title'|trans }}</h3>
+
+            {% for item in answered_suspicious_times %}
+                <div class="card card-body mb-2 py-2 fs-sm" data-testid="suspicious-time-answered" data-time-id="{{ item.timeId }}">
+                    <span>
+                        <a href="{{ path('puzzle_detail', {puzzleId: item.puzzle.puzzleId}) }}" class="fw-medium">{{ item.puzzle.name }}</a>
+                        · {{ _self.time_line(item) }}
+                    </span>
+                    <span class="d-block">
+                        {% if item.answer.value == 'trusted' %}
+                            <i class="bi bi-check-circle text-success me-1"></i>{{ 'suspicious_time.review.trusted'|trans }}
+                        {% else %}
+                            {{ item.answerNote is not null ? 'suspicious_time.review.kept_note'|trans({'%note%': item.answerNote}) : 'suspicious_time.review.kept'|trans }}
+                        {% endif %}
+                    </span>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </section>
+{% endif %}

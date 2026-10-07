@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
+use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,6 +26,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * On an edit (`time`) the `puzzle` counts only when the viewer tracked the result - only they may move it.
  * `first_attempt=0` = the tag is not ticked (no parameter = ticked, what the script sent before it checked
  * duplicates too); `seconds` = the time entered, `duplicate_confirmed=1` = "It's another solve" was chosen.
+ *
+ * `pace=1` also judges the time against the player's own times (docs/features/suspicious-time-review.md, "Catch it
+ * while typing") - the script asks for it unless a stopwatch measured the time; `pace_confirmed` = the key of the
+ * values "Yes, it's right" was chosen for (PaceFormCheck) - it counts only while the form still holds them.
  */
 final class FirstTryCheckController extends AbstractController
 {
@@ -33,6 +38,7 @@ final class FirstTryCheckController extends AbstractController
         readonly private FirstTryFormCheck $firstTryFormCheck,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
+        readonly private SuspiciousTimeFormCheck $suspiciousTimeFormCheck,
     ) {
     }
 
@@ -63,6 +69,8 @@ final class FirstTryCheckController extends AbstractController
         $duplicateConfirmed = $request->query->getString('duplicate_confirmed') === '1';
         $timeId = $request->query->getString('time');
         $puzzleId = $request->query->getString('puzzle');
+        $judgePace = $request->query->getString('pace') === '1' && $secondsToSolve !== null;
+        $paceCheck = null;
 
         // A puzzle a competition keeps secret from this player is no puzzle to check against (SecretPuzzleAccess)
         if (Uuid::isValid($puzzleId) && $this->secretPuzzleAccess->isHiddenFromViewer($puzzleId)) {
@@ -84,8 +92,16 @@ final class FirstTryCheckController extends AbstractController
             $pickedPuzzleId = $time->playerId === $viewer->playerId && Uuid::isValid($puzzleId) ? $puzzleId : null;
 
             $check = $this->firstTryFormCheck->forEditedResult($viewer->playerId, $time, $groupPlayers, $solvedAt, $firstAttempt, $secondsToSolve, $pickedPuzzleId);
+
+            if ($judgePace) {
+                $paceCheck = $this->suspiciousTimeFormCheck->forEditedResult($viewer->playerId, $viewer->code, $time, $groupPlayers, $solvedAt, $secondsToSolve, $pickedPuzzleId);
+            }
         } elseif (Uuid::isValid($puzzleId)) {
             $check = $this->firstTryFormCheck->forNewResult($viewer->playerId, $puzzleId, $groupPlayers, $solvedAt, $firstAttempt, $secondsToSolve);
+
+            if ($judgePace) {
+                $paceCheck = $this->suspiciousTimeFormCheck->forNewResult($viewer->playerId, $viewer->code, $puzzleId, $groupPlayers, $solvedAt, $secondsToSolve);
+            }
         } else {
             return $this->notice(null);
         }
@@ -95,6 +111,8 @@ final class FirstTryCheckController extends AbstractController
             'resolution' => $resolution->value,
             'duplicates' => $check->duplicates,
             'duplicate_confirmed' => $duplicateConfirmed,
+            'pace_check' => $paceCheck,
+            'pace_confirmed' => $paceCheck?->isConfirmedBy($request->query->getString('pace_confirmed')) === true,
         ]));
     }
 

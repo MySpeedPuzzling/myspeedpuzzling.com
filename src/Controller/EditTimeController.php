@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
+use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
@@ -61,6 +62,7 @@ final class EditTimeController extends AbstractController
         readonly private PuzzleChoicesBuilder $puzzleChoicesBuilder,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
+        readonly private SuspiciousTimeFormCheck $suspiciousTimeFormCheck,
     ) {
     }
 
@@ -104,6 +106,16 @@ final class EditTimeController extends AbstractController
         if ($solvedPuzzle->time !== null) {
             $data->setTimeFromSeconds($solvedPuzzle->time);
         }
+
+        // "Fix the time" of a result awaiting verification brings the time its reason suggests - shown on opening only,
+        // never over what the player submitted, never for another time than it was made for
+        // (docs/features/suspicious-time-review.md, "Where they see it")
+        $suggestedSeconds = self::suggestedSeconds($request, $solvedPuzzle->time);
+
+        if ($suggestedSeconds !== null && $solvedPuzzle->time !== null) {
+            $data->setTimeFromSeconds($suggestedSeconds);
+        }
+
         $data->comment = $solvedPuzzle->comment;
         $data->finishedAt = $solvedPuzzle->finishedAt;
         $data->puzzle = $solvedPuzzle->puzzleId;
@@ -203,6 +215,32 @@ final class EditTimeController extends AbstractController
             }
         }
 
+        // Time verification, the form's question (docs/features/suspicious-time-review.md, "Catch it while typing"): a
+        // changed time, puzzle or group far off the tracker's own times is saved only after "Yes, it's right" - asked
+        // of the tracker only; an entry left as it is was judged when it was saved, a failed check judges nothing.
+        // pace_confirmed = the key of the values "Yes, it's right" was chosen for - stale once the form holds others
+        $paceAnswer = $request->request->getString('pace_confirmed');
+        $paceConfirmed = false;
+        $paceCheck = null;
+
+        if ($editTimeForm->isSubmitted() && $data->mode === PuzzleAddMode::SpeedPuzzling) {
+            $paceCheck = $this->suspiciousTimeFormCheck->forEditedResult(
+                $player->playerId,
+                $player->code,
+                $solvedPuzzle,
+                $groupPlayers,
+                $data->finishedAt,
+                SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds,
+                $activePuzzle->puzzleId,
+            );
+
+            $paceConfirmed = $paceCheck?->isConfirmedBy($paceAnswer) === true;
+
+            if ($paceCheck?->isRaised() === true && $paceConfirmed === false) {
+                $editTimeForm->addError(new FormError($this->translator->trans('suspicious_time.form.error')));
+            }
+        }
+
         $firstTry = $check->firstTry;
 
         if ($editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
@@ -221,6 +259,8 @@ final class EditTimeController extends AbstractController
                         $firstTryResolution,
                         // Only an answer to a same-day twin the check found counts as "saved anyway"
                         $duplicateConfirmed && $check->duplicates?->needsConfirmation() === true,
+                        // Only an answer to a time the check raised is a confirmation
+                        $paceCheck !== null && $paceConfirmed ? SuspiciousTimeFormCheck::confirmedExpectation($paceCheck->assessment) : null,
                     ),
                 );
 
@@ -262,6 +302,7 @@ final class EditTimeController extends AbstractController
             ] : null,
             'solved_puzzle' => $solvedPuzzle,
             'solving_time_form' => $editTimeForm,
+            'suggested_seconds' => $solvedPuzzle->time !== null ? $suggestedSeconds : null,
             'filled_group_players' => $groupPlayers,
             'selected_add_puzzle' => false,
             'selected_add_manufacturer' => false,
@@ -284,6 +325,8 @@ final class EditTimeController extends AbstractController
             'first_try_resolution' => $firstTryResolution->value,
             'duplicates' => $check->duplicates,
             'duplicate_confirmed' => $duplicateConfirmed,
+            'pace_check' => $paceCheck,
+            'pace_confirmed' => $paceConfirmed,
             'kept_photos' => $this->formPhotoStash->keep($editTimeForm, $restoredPhotos, $player->playerId),
         ];
 
@@ -300,6 +343,7 @@ final class EditTimeController extends AbstractController
             EditTimeReturnContext::PuzzleDetail => $this->generateUrl('puzzle_detail', ['puzzleId' => $solvedPuzzle->puzzleId]),
             EditTimeReturnContext::TimeRecap => $this->generateUrl('added_time_recap', ['timeId' => $solvedPuzzle->timeId]),
             EditTimeReturnContext::Profile => $this->generateUrl('my_profile'),
+            EditTimeReturnContext::ReviewResults => $this->generateUrl('review_results') . '#awaiting-verification',
         };
     }
 
@@ -309,6 +353,24 @@ final class EditTimeController extends AbstractController
             EditTimeReturnContext::PuzzleDetail => $solvedPuzzle->puzzleName,
             EditTimeReturnContext::TimeRecap => $this->translator->trans('added_time_recap.title'),
             EditTimeReturnContext::Profile => $this->translator->trans('my_profile.title'),
+            EditTimeReturnContext::ReviewResults => $this->translator->trans('review_results.page.title'),
         };
+    }
+
+    /**
+     * `?suggested_seconds=` of a GET - a positive whole number of seconds, anything else is ignored - made for the
+     * time `?suggested_for=`: only while the result still holds that time (a review page opened before an edit links
+     * a suggestion for the time before it).
+     */
+    private static function suggestedSeconds(Request $request, null|int $currentSeconds): null|int
+    {
+        $value = $request->isMethod('GET') ? $request->query->getString('suggested_seconds') : '';
+        $for = $request->isMethod('GET') ? $request->query->getString('suggested_for') : '';
+
+        if (preg_match('/^[1-9][0-9]{0,6}$/', $value) !== 1 || $currentSeconds === null || $for !== (string) $currentSeconds) {
+            return null;
+        }
+
+        return (int) $value;
     }
 }

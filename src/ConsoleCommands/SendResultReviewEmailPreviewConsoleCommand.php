@@ -39,7 +39,7 @@ final class SendResultReviewEmailPreviewConsoleCommand extends Command
         $this
             ->addArgument('email', InputArgument::REQUIRED, 'Where to send the preview')
             ->addOption('locale', null, InputOption::VALUE_REQUIRED, 'Language: ' . implode(', ', ListmonkNewsletterLists::LOCALES), 'en')
-            ->addOption('variant', null, InputOption::VALUE_REQUIRED, 'Which e-mail: first, weekly or removed', ResultReviewEmailPreviewVariant::First->value);
+            ->addOption('variant', null, InputOption::VALUE_REQUIRED, 'Which e-mail: ' . implode(', ', ResultReviewEmailPreviewVariant::names()), ResultReviewEmailPreviewVariant::First->value);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -68,7 +68,7 @@ final class SendResultReviewEmailPreviewConsoleCommand extends Command
         $variant = ResultReviewEmailPreviewVariant::tryFrom($variantName);
 
         if ($variant === null) {
-            $io->error(sprintf('Unknown variant "%s" - use first, weekly or removed.', $variantName));
+            $io->error(sprintf('Unknown variant "%s" - use one of: %s.', $variantName, implode(', ', ResultReviewEmailPreviewVariant::names())));
 
             return self::FAILURE;
         }

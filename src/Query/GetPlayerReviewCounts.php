@@ -8,15 +8,23 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PlayerReviewCounts;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
+use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
+use SpeedPuzzling\Web\Value\SuspiciousTimeNoticeVia;
 
 /**
  * The banner on the Hub and the player's own profile (docs/features/duplicate-results.md, "Banner"): open
- * duplicate cases, copies removed automatically lately and first-try conflicts - in one query. Only the owner
- * pays for it; nobody else's page asks.
+ * duplicate cases, copies removed automatically lately, first-try conflicts and results awaiting verification
+ * (docs/features/suspicious-time-review.md, "Where they see it") - in one query. Only the owner pays for it;
+ * nobody else's page asks.
  *
  * The first-try part reads every result of the player (~4-5 ms for the players with 2,000 results, measured
  * 2026-10-02 on a production copy), the rest < 0.1 ms - the Hub, the most visited page, leaves it out (it never
  * showed first-try conflicts), the own profile keeps it.
+ *
+ * Awaiting verification counts only what the notice run told (via = run): the times e-mailed by hand were told
+ * already. A notice is answered once the player fixed the time, said it is correct or left it as it is; it counts
+ * only while its mark is the case's current one and the person is still in the result (a member an edit took out
+ * of the group is not asked any more).
  */
 readonly final class GetPlayerReviewCounts
 {
@@ -32,6 +40,7 @@ readonly final class GetPlayerReviewCounts
     public function forPlayer(string $playerId, bool $withFirstTryConflicts = true): PlayerReviewCounts
     {
         $firstTryConflicts = $withFirstTryConflicts ? $this->getFirstTryTimes->conflictCountSql() : '0';
+        $stillInTime = GetPlayerSuspiciousTimes::sqlStillInTime('notice', 'marked');
 
         $query = <<<SQL
 SELECT
@@ -52,20 +61,36 @@ SELECT
             AND removal.undone_at IS NULL
             AND removal.removed_at > :since
     ) AS auto_removed,
-    {$firstTryConflicts} AS first_try_conflicts
+    {$firstTryConflicts} AS first_try_conflicts,
+    (
+        SELECT COUNT(*)
+        FROM suspicious_time_notice notice
+        INNER JOIN suspicious_time_case stc ON stc.id = notice.case_id
+        INNER JOIN puzzle_solving_time marked ON marked.id = stc.time_id
+        WHERE notice.player_id = :playerId
+            AND notice.via = :run
+            AND notice.response IS NULL
+            AND stc.status = :marked
+            AND stc.marked_at = notice.marked_at
+            AND marked.suspicious = true
+            AND {$stillInTime}
+    ) AS suspicious_times
 SQL;
 
-        /** @var array{duplicates: int|string, auto_removed: int|string, first_try_conflicts: int|string} $row */
+        /** @var array{duplicates: int|string, auto_removed: int|string, first_try_conflicts: int|string, suspicious_times: int|string} $row */
         $row = $this->database->fetchAssociative($query, [
             'playerId' => $playerId,
             'open' => DuplicateCaseStatus::Open->value,
             'since' => $this->clock->now()->modify('-' . self::AUTO_REMOVED_DAYS . ' days')->format('Y-m-d H:i:s'),
+            'run' => SuspiciousTimeNoticeVia::Run->value,
+            'marked' => SuspiciousTimeCaseStatus::Marked->value,
         ]);
 
         return new PlayerReviewCounts(
             duplicates: (int) $row['duplicates'],
             autoRemoved: (int) $row['auto_removed'],
             firstTryConflicts: (int) $row['first_try_conflicts'],
+            suspiciousTimes: (int) $row['suspicious_times'],
         );
     }
 }

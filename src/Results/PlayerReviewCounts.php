@@ -16,6 +16,9 @@ readonly final class PlayerReviewCounts
         public int $autoRemoved,
         // Puzzles with more than one first try (docs/features/first-try-integrity.md)
         public int $firstTryConflicts,
+        // Results awaiting verification the player was told about and has not answered yet
+        // (docs/features/suspicious-time-review.md, "Where they see it")
+        public int $suspiciousTimes = 0,
     ) {
     }
 
@@ -26,6 +29,6 @@ readonly final class PlayerReviewCounts
 
     public function isEmpty(): bool
     {
-        return $this->duplicates === 0 && $this->autoRemoved === 0 && $this->firstTryConflicts === 0;
+        return $this->duplicates === 0 && $this->autoRemoved === 0 && $this->firstTryConflicts === 0 && $this->suspiciousTimes === 0;
     }
 }

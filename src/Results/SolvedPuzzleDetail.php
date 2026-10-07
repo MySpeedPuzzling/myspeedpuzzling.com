@@ -33,6 +33,8 @@ readonly final class SolvedPuzzleDetail
         public null|string $competitionId,
         // The puzzle has an image, held back until a competition round starts (puzzleImage is null then)
         public bool $puzzleImageHidden = false,
+        // When the result was saved - with finishedAt where it sits in the player's history (SolveMoment)
+        public null|DateTimeImmutable $trackedAt = null,
     ) {
     }
 
@@ -54,6 +56,7 @@ readonly final class SolvedPuzzleDetail
      *     comment: null|string,
      *     players: null|string,
      *     finished_at: null|string,
+     *     tracked_at?: null|string,
      *     finished_puzzle_photo: string,
      *     first_attempt: bool,
      *     unboxed: bool,
@@ -88,6 +91,7 @@ readonly final class SolvedPuzzleDetail
             unboxed: $row['unboxed'],
             competitionId: $row['competition_id'],
             puzzleImageHidden: $row['puzzle_image_hidden'],
+            trackedAt: isset($row['tracked_at']) ? new DateTimeImmutable($row['tracked_at']) : null,
         );
     }
 

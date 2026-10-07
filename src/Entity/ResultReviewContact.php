@@ -57,6 +57,7 @@ class ResultReviewContact
     /**
      * @param list<string> $caseIds
      * @param list<string> $removalIds
+     * @param list<string> $suspiciousNoticeIds
      */
     public function __construct(
         #[Id]
@@ -88,6 +89,10 @@ class ResultReviewContact
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $plannedAt,
+        // suspicious_time_notice ids: marks and moderators' answers the e-mail tells (docs/features/suspicious-time-review.md, "E-mail")
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::JSONB, options: ['default' => '[]'])]
+        public array $suspiciousNoticeIds = [],
     ) {
     }
 
@@ -99,12 +104,14 @@ class ResultReviewContact
     /**
      * @param list<string> $caseIds what the e-mail really listed
      * @param list<string> $removalIds
+     * @param list<string> $suspiciousNoticeIds the marks and moderators' answers it told
      */
-    public function sent(array $caseIds, array $removalIds, DateTimeImmutable $now): void
+    public function sent(array $caseIds, array $removalIds, DateTimeImmutable $now, array $suspiciousNoticeIds = []): void
     {
         $this->status = ResultReviewContactStatus::Sent;
         $this->caseIds = $caseIds;
         $this->removalIds = $removalIds;
+        $this->suspiciousNoticeIds = $suspiciousNoticeIds;
         $this->sentAt = $now;
     }
 

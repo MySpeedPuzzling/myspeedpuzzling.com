@@ -208,15 +208,15 @@ final class ParticipantImportPlannerTest extends KernelTestCase
     public function testOneNameWrittenTwoWaysInTheFileIsWarned(): void
     {
         $plan = $this->planner->plan(self::EVENT, $this->rows([
-            self::row(2, "Robin O'Hara"),
-            self::row(3, 'Robin O’Hara'),
+            self::row(2, "Robin O'Example"),
+            self::row(3, 'Robin O’Example'),
         ]), ParticipantImportMode::Update);
 
         // Two rows of the file are never merged by the name key - only warned (a person on the site would be matched)
         self::assertSame(ParticipantImportRowAction::New, $plan->rows[0]->action);
         self::assertSame(ParticipantImportRowAction::New, $plan->rows[1]->action);
         self::assertSame(2, self::operations($plan)->added);
-        self::assertContains('One name is written in different ways in rows 2, 3: "Robin O\'Hara", "Robin O’Hara". If it is one person, write it the same way everywhere.', $this->texts($plan->warnings));
+        self::assertContains('One name is written in different ways in rows 2, 3: "Robin O\'Example", "Robin O’Example". If it is one person, write it the same way everywhere.', $this->texts($plan->warnings));
     }
 
     public function testNameKeyMatchesOnlyPeopleOnTheSiteNeverAnEarlierRowOfTheFile(): void

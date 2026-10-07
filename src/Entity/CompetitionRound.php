@@ -19,6 +19,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
+use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
@@ -69,8 +70,16 @@ class CompetitionRound implements EntityWithEvents
         // The zone the organiser typed the start in, so it is edited and shown in that zone - see RoundTimezone
         #[Column(length: 64, nullable: true)]
         public null|string $timezone = null,
+        // Official results (docs/features/competitions-management/official-results.md): public on the round page
+        // while set - publishResults() / unpublishResults()
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $resultsPublishedAt = null,
+        // The first publish - kept through unpublish/publish, so the players are told about their results only once
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $resultsFirstPublishedAt = null,
+        // The organiser said this round does not use table numbers - the seating step and its reminders are hidden
+        #[Column(options: ['default' => false])]
+        public bool $tableNumbersOff = false,
     ) {
     }
 
@@ -114,9 +123,23 @@ class CompetitionRound implements EntityWithEvents
         $this->slug = $slug;
     }
 
+    /**
+     * Shows the official results on the round page. The first publish ever records OfficialRoundResultsPublished, which
+     * tells the players their result - never again for this round, also not after an unpublish and a new publish.
+     * Publishing published results changes nothing.
+     */
     public function publishResults(DateTimeImmutable $publishedAt): void
     {
+        if ($this->resultsPublishedAt !== null) {
+            return;
+        }
+
         $this->resultsPublishedAt = $publishedAt;
+
+        if ($this->resultsFirstPublishedAt === null) {
+            $this->resultsFirstPublishedAt = $publishedAt;
+            $this->recordThat(new OfficialRoundResultsPublished($this->id));
+        }
     }
 
     public function unpublishResults(): void
@@ -127,6 +150,26 @@ class CompetitionRound implements EntityWithEvents
     public function areResultsPublished(): bool
     {
         return $this->resultsPublishedAt !== null;
+    }
+
+    public function changeTableNumbersUsage(bool $off): void
+    {
+        $this->tableNumbersOff = $off;
+    }
+
+    /**
+     * The piece count of the round's puzzle when the round has exactly one - the most pieces an unfinished official
+     * result can have placed is one less. Null for a round with no puzzle or several.
+     */
+    public function singlePuzzlePiecesCount(): null|int
+    {
+        if ($this->roundPuzzles->count() !== 1) {
+            return null;
+        }
+
+        $roundPuzzle = $this->roundPuzzles->first();
+
+        return $roundPuzzle === false ? null : $roundPuzzle->puzzle->piecesCount;
     }
 
     public function edit(

@@ -190,8 +190,6 @@
                         }) }}
                     {% endfor %}
                 </div>
-            {% elseif entry.key == 'results' %}
-                {{ include('_competition_results_section.html.twig') }}
             {% elseif entry.key == 'registration' %}
                 {{ include('_competition_registration_block.html.twig', {show_add_time: false}) }}
 

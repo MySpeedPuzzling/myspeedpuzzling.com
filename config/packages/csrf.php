@@ -55,6 +55,9 @@ return App::config([
                 // event" menu, which sits on every conversation page a seller opens
                 'event_offers_picker',
                 'sell_swap_bring_to_event',
+                // Official results JSON endpoints (OfficialResultsApi): the organiser devices send it as the
+                // X-CSRF-Token header, often long after the page was loaded and from a page kept open offline
+                'official_results',
             ],
         ],
     ],

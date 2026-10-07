@@ -8,7 +8,6 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotOpen;
 use SpeedPuzzling\Web\Message\JoinCompetition;
-use SpeedPuzzling\Web\Query\GetClaimableResultsForPlayer;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
@@ -41,7 +40,6 @@ final class JoinCompetitionController extends AbstractController
         private readonly GetMarketplaceEvents $getMarketplaceEvents,
         private readonly ClockInterface $clock,
         private readonly GetRoundTeams $getRoundTeams,
-        private readonly GetClaimableResultsForPlayer $getClaimableResults,
     ) {
     }
 
@@ -87,14 +85,6 @@ final class JoinCompetitionController extends AbstractController
                 $participantId !== '' ? $participantId : null,
                 $teamId !== '' ? $teamId : null,
             );
-
-            // Newly connected identity may have claimable results — offer them right away
-            // PORT-TODO: PR #136 redirect to claiming skips the marketplace follow-up (F1/F2) - decide the order
-            if ($joined && $this->getClaimableResults->inCompetition($competitionId, $profile->playerId) !== []) {
-                $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
-
-                return $this->redirectToRoute('claim_results', ['competitionId' => $competitionId]);
-            }
 
             if ($wasGoing) {
                 if ($joined) {

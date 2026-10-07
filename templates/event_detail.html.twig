@@ -206,8 +206,6 @@
                 {% else %}
                     <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
                 {% endif %}
-            {% elseif entry.key == 'results' %}
-                {{ include('_competition_results_section.html.twig') }}
             {% elseif entry.key == 'registration' %}
                 {{ include('_competition_registration_block.html.twig') }}
 

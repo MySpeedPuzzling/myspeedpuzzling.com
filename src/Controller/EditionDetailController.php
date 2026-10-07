@@ -13,7 +13,6 @@ use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Query\GetEventOffers;
-use SpeedPuzzling\Web\Query\GetOfficialRoundResults;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -46,7 +45,6 @@ final class EditionDetailController extends AbstractController
         readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         readonly private CountCompetitionResults $countCompetitionResults,
         readonly private GetCompetitionRegistrationOverview $getCompetitionRegistrationOverview,
-        readonly private GetOfficialRoundResults $getOfficialRoundResults,
         readonly private GetCompetitionPageSections $getCompetitionPageSections,
         readonly private ClockInterface $clock,
     ) {
@@ -128,7 +126,6 @@ final class EditionDetailController extends AbstractController
             'registration' => $registration,
             'registration_is_open' => $registration->isOpen($now),
             'registration_opens_future' => $registration->opensInFuture($now),
-            'published_results' => $this->getOfficialRoundResults->publishedStandingsForCompetition($competitionId),
             'page_sections' => $this->getCompetitionPageSections->forCompetition($competitionId),
         ]);
     }

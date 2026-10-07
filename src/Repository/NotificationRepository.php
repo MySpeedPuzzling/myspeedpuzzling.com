@@ -11,6 +11,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
@@ -114,6 +115,22 @@ readonly final class NotificationRepository
             ->getSingleScalarResult();
 
         return (int) $count > 0;
+    }
+
+    /**
+     * Players told about the round's official results already - a retried async handler tells nobody twice.
+     *
+     * @return list<string>
+     */
+    public function playerIdsNotifiedAboutRound(CompetitionRound $round): array
+    {
+        /** @var list<string> $playerIds */
+        $playerIds = $this->entityManager->getConnection()->fetchFirstColumn(
+            'SELECT player_id FROM notification WHERE target_competition_round_id = :roundId AND type = :type',
+            ['roundId' => $round->id->toString(), 'type' => NotificationType::OfficialResultPublished->value],
+        );
+
+        return $playerIds;
     }
 
     /**

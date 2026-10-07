@@ -13,14 +13,12 @@ use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
-use SpeedPuzzling\Web\Value\RoundCategory;
 
 final class CompetitionRoundFixture extends Fixture implements DependentFixtureInterface
 {
     public const string ROUND_WJPC_QUALIFICATION = '018d0005-0000-0000-0000-000000000001';
     public const string ROUND_WJPC_FINAL = '018d0005-0000-0000-0000-000000000002';
     public const string ROUND_CZECH_FINAL = '018d0005-0000-0000-0000-000000000003';
-    public const string ROUND_WJPC_PAIRS = '018d0005-0000-0000-0000-000000000004';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -69,19 +67,6 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
         $this->addPuzzleToRound($manager, $wjpcFinalRound, $puzzle1000_01);
         $this->addPuzzleToRound($manager, $wjpcFinalRound, $puzzle1000_02);
 
-        $wjpcPairsRound = $this->createCompetitionRound(
-            id: self::ROUND_WJPC_PAIRS,
-            competition: $wjpcCompetition,
-            name: 'Pairs Round',
-            minutesLimit: 90,
-            daysFromNow: 31,
-            category: RoundCategory::Duo,
-        );
-        $manager->persist($wjpcPairsRound);
-        $this->addReference(self::ROUND_WJPC_PAIRS, $wjpcPairsRound);
-
-        $this->addPuzzleToRound($manager, $wjpcPairsRound, $puzzle1000_01);
-
         $czechFinalRound = $this->createCompetitionRound(
             id: self::ROUND_CZECH_FINAL,
             competition: $czechCompetition,
@@ -114,7 +99,6 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
         null|string $badgeBackgroundColor = null,
         null|string $badgeTextColor = null,
         null|string $slug = null,
-        RoundCategory $category = RoundCategory::Solo,
     ): CompetitionRound {
         $startsAt = $this->clock->now()->modify("+{$daysFromNow} days");
 
@@ -127,7 +111,6 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
             badgeBackgroundColor: $badgeBackgroundColor,
             badgeTextColor: $badgeTextColor,
             slug: $slug,
-            category: $category,
         );
     }
 

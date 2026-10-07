@@ -22,7 +22,6 @@ use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
-use SpeedPuzzling\Web\Services\ClaimedResultReverter;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -49,7 +48,6 @@ readonly final class JoinCompetitionHandler
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
         private PlayerAccountEmail $playerAccountEmail,
-        private ClaimedResultReverter $claimedResultReverter,
     ) {
     }
 
@@ -150,18 +148,6 @@ readonly final class JoinCompetitionHandler
     private function releaseOtherParticipants(string $competitionId, Player $player, null|CompetitionParticipant $keep): void
     {
         $connections = $this->getCompetitionParticipants->getPlayerConnections($competitionId, $player->id->toString());
-
-        $released = array_filter(
-            $connections,
-            static fn (string $participantId): bool => $keep === null || $keep->id->toString() !== $participantId,
-        );
-
-        if ($released !== []) {
-            // Switching identity un-claims materialized results of the old identity
-            // PORT-TODO: PR #136 reverted on every identity switch of a picked participant; with main's release rule
-            // this now also runs for "not on the list" - confirm, and that it reverts only the released identities
-            $this->claimedResultReverter->revertForPlayerInCompetition($player->id->toString(), $competitionId);
-        }
 
         foreach ($connections as $participantId) {
             if ($keep !== null && $keep->id->toString() === $participantId) {

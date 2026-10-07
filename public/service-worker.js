@@ -6,19 +6,6 @@
 const CACHE_VERSION = 'v7';
 const STATIC_CACHE = 'static-' + CACHE_VERSION;
 const IMAGES_CACHE = 'images-' + CACHE_VERSION;
-const PAGES_CACHE = 'pages-' + CACHE_VERSION;
-
-// Routes that must keep working offline (results entry console at venues).
-// Cached last state responds when the network is gone; the page's
-// own IndexedDB outbox handles the data.
-// PORT-TODO: PR #136 also cached the console's page shell here; main forbids caching any document
-// (see networkFirstNavigation() and ServiceWorkerBehaviourTest), so only non-HTML responses are cached now -
-// decide how the console page itself works offline.
-const OFFLINE_CAPABLE_PATTERNS = [
-    /\/manage-round-results\//,
-    /\/vysledky-kola\//,
-    /^\/round-results-state\//,
-];
 
 const OFFLINE_URL = '/offline.html';
 const ENTRYPOINTS_URL = '/build/entrypoints.json';
@@ -168,13 +155,6 @@ self.addEventListener('fetch', (event) => {
     // Strategy: Stale-while-revalidate for images
     if (isImageRequest(request, url)) {
         event.respondWith(staleWhileRevalidate(request, IMAGES_CACHE));
-        return;
-    }
-
-    // Strategy: network-first WITH cache for the offline-capable results console state
-    // (never documents - navigations are handled above, HTML is refused in networkFirstWithCache())
-    if (OFFLINE_CAPABLE_PATTERNS.some((pattern) => pattern.test(url.pathname))) {
-        event.respondWith(networkFirstWithCache(request, PAGES_CACHE));
         return;
     }
 
@@ -335,22 +315,6 @@ async function staleWhileRevalidate(request, cacheName) {
     }).catch(() => cached);
 
     return cached || fetchPromise;
-}
-
-async function networkFirstWithCache(request, cacheName) {
-    try {
-        const response = await fetch(request);
-        if (response.ok && !isHtmlResponse(response)) {
-            const cache = await caches.open(cacheName);
-            cache.put(request, response.clone());
-        }
-        return response;
-    } catch (e) {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-
-        return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
-    }
 }
 
 // ─── Static cache pruning ───────────────────────────────────────────

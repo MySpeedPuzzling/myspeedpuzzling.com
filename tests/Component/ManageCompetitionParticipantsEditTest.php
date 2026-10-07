@@ -18,7 +18,7 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 
 /**
- * An organiser (WI-JPA, 2026-10-05) opened the inline edit form of ~200 participants to assign
+ * An organiser (2026-10-05) opened the inline edit form of ~200 participants to assign
  * their rounds: every form came up empty or with the previous participant's values, and saving
  * it wrote those values over the participant - clearing the country, unlinking the MSP player,
  * renaming one participant after another. Every action goes through a real Live request here,

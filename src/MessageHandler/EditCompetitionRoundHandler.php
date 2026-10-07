@@ -33,6 +33,9 @@ readonly final class EditCompetitionRoundHandler
     }
 
     /**
+     * Every check comes before anything is changed: a handler that throws after changing an entity is rolled back, but
+     * the change stays in the entity manager and a later flush in the same request would write it.
+     *
      * @throws CompetitionRoundNotFound a round of another event
      * @throws PuzzleAlreadyInCompetitionRoundCategory
      * @throws SecretPuzzlesWouldBeRevealed
@@ -56,6 +59,8 @@ readonly final class EditCompetitionRoundHandler
         $keep = static fn (string $field): bool => in_array($field, $message->keepFields, true);
         $startsAt = $keep('startsAt') ? $round->startsAt : $message->startsAt;
         $category = $keep('category') ? $round->category : $message->category;
+        // Null = the round's delay as it is now, under the lock
+        $revealDelayMinutes = $message->revealDelayMinutes ?? $round->revealDelayMinutes;
 
         // Official results and qualified marks belong to the round's kind of entries (people or pairs/teams) - checked
         // before anything changes
@@ -63,21 +68,16 @@ readonly final class EditCompetitionRoundHandler
             throw new OfficialResultsProtected(OfficialResultsProtected::ROUND_CATEGORY_LOCKED);
         }
 
+        RoundPuzzleReveal::assertValidDelay($revealDelayMinutes);
+
+        // The round's automatic reveal (start + delay) moved earlier lets its secret puzzles out earlier than planned -
+        // only on a yes for exactly that list (SecretRevealPreview), checked again here, after the locks. A later moment
+        // never reveals anything early.
         if ($message->refuseToReveal || $message->confirmedRevealHash !== null) {
-            $revealed = $this->secretRevealPreview->byMovingRound($round, $startsAt);
+            $revealed = $this->secretRevealPreview->byChangingRound($round, $startsAt, $revealDelayMinutes);
 
             if (SecretRevealPreview::refuses($revealed, $message->refuseToReveal, $message->confirmedRevealHash)) {
                 throw new SecretPuzzlesWouldBeRevealed($revealed);
-            }
-        }
-
-        // A puzzle already revealed by this round's automatic reveal is public - a start moved later must not hide it
-        // again: its reveal stays at the moment it came out
-        foreach ($round->roundPuzzles as $roundPuzzle) {
-            $revealsAt = $roundPuzzle->revealsAt();
-
-            if ($roundPuzzle->hideUntilRoundStarts && $roundPuzzle->revealMode === RoundPuzzleReveal::Automatic && $revealsAt !== null && $revealsAt <= $now) {
-                $roundPuzzle->pinRevealAt($revealsAt);
             }
         }
 
@@ -97,6 +97,17 @@ readonly final class EditCompetitionRoundHandler
             }
         }
 
+        // A puzzle already revealed by this round's automatic reveal is public - a start moved later or a longer delay
+        // must not hide it again: its reveal stays at the moment it came out. Computed with the round's start and delay
+        // as they are now, before the edit below changes them.
+        foreach ($round->roundPuzzles as $roundPuzzle) {
+            $revealsAt = $roundPuzzle->revealsAt();
+
+            if ($roundPuzzle->hideUntilRoundStarts && $roundPuzzle->revealMode === RoundPuzzleReveal::Automatic && $revealsAt !== null && $revealsAt <= $now) {
+                $roundPuzzle->pinRevealAt($revealsAt);
+            }
+        }
+
         $round->edit(
             name: $keep('name') ? $round->name : $message->name,
             minutesLimit: $keep('minutesLimit') ? $round->minutesLimit : $message->minutesLimit,
@@ -107,9 +118,11 @@ readonly final class EditCompetitionRoundHandler
             category: $category,
             resultsLink: $keep('resultsLink') ? $round->resultsLink : $message->resultsLink,
         );
+        $round->changeRevealDelay($revealDelayMinutes);
 
-        // An automatic reveal follows the round's start - the puzzles it keeps secret on the whole site follow too.
-        // Scheduled and manual reveals are the organiser's own and stay where they are.
+        // An automatic reveal follows the round's start and its delay - the puzzles it keeps secret on the whole site
+        // follow too (a longer delay hides them longer). Scheduled and manual reveals are the organiser's own and stay
+        // where they are.
         foreach ($round->roundPuzzles as $roundPuzzle) {
             $this->secretPuzzleHides->resync($roundPuzzle->puzzle);
         }

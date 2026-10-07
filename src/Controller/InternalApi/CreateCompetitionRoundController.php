@@ -38,6 +38,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  * Adds a round to a competition (its slug is generated from the name and never changes afterwards), optionally with
  * its puzzles (`puzzleIds`, the same as PUT /internal-api/rounds/{roundId}/puzzles right after). The puzzles are
  * checked before the round is created - a refused list must not leave a round without its puzzles behind.
+ *
+ * `revealDelayMinutes` (default 10): minutes after the start when its secret puzzles with an automatic reveal come out.
  */
 final class CreateCompetitionRoundController extends AbstractController
 {
@@ -86,7 +88,7 @@ final class CreateCompetitionRoundController extends AbstractController
         $input->addViolations($this->validator->validate($data));
         $input->throwIfInvalid();
 
-        assert($data->name !== null && $data->minutesLimit !== null && $startsAt !== null && $data->timezone !== null);
+        assert($data->name !== null && $data->minutesLimit !== null && $startsAt !== null && $data->timezone !== null && $data->revealDelayMinutes !== null);
 
         if ($puzzleIds !== null && $puzzleIds !== []) {
             $puzzles = $this->getAdminPuzzles->byIds($puzzleIds);
@@ -131,6 +133,7 @@ final class CreateCompetitionRoundController extends AbstractController
             badgeTextColor: $data->badgeTextColor,
             category: $data->category,
             resultsLink: $data->resultsLink,
+            revealDelayMinutes: $data->revealDelayMinutes,
         );
 
         // The round and its puzzles in one transaction (AddCompetitionRoundWithPuzzlesHandler dispatches both inside its

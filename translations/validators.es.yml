@@ -8,6 +8,7 @@ competition_registration_closes_before_opens: "La inscripción no puede cerrarse
 
 competition_duration_too_long: "El evento no puede durar más de %limit% días. Por favor ingresa las fechas reales del evento."
 competition_round_badge_color_invalid: "Introduce un color como #1e88e5 o déjalo vacío para que se elija automáticamente."
+competition_round_reveal_delay_range: "Introduce minutos enteros de {{ min }} a {{ max }}."
 finished_at_required_for_speed: "La fecha completada es obligatoria para speed puzzling."
 duplicate_puzzle_or_url_required: "Por favor selecciona un puzzle duplicado o ingresa la URL de un puzzle."
 ean_invalid: "«%code%» no es un código EAN o UPC válido. Copia los dígitos que hay bajo el código de barras de la caja: un código por campo."

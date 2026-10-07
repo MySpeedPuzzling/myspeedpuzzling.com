@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
@@ -50,6 +51,10 @@ readonly final class AddPuzzleToCompetitionRoundHandler
     }
 
     /**
+     * The automatic reveal is checked first, before anything is created (a refused add leaves no puzzle, no row and no
+     * picture behind).
+     *
+     * @throws AutomaticRevealChangedMeanwhile
      * @throws PuzzleAlreadyInCompetitionRoundCategory
      * @throws PuzzleHiddenByHand
      * @throws PuzzleNameAlreadyPublic
@@ -63,6 +68,18 @@ readonly final class AddPuzzleToCompetitionRoundHandler
         $this->secretPuzzleHides->lockForAddingTo($message->roundId, $isNewPuzzle ? [] : [$message->puzzle]);
 
         $round = $this->competitionRoundRepository->get($message->roundId);
+
+        // A secret puzzle is a yes to the automatic reveal the organiser saw - the round's start or delay changed since
+        // (another tab, the round form, the internal API): asked again, never added for another moment. The round is
+        // locked: it stays as read here until the end of this handler.
+        if ($message->hideUntilRoundStarts) {
+            $automaticRevealAt = $round->automaticRevealAt();
+
+            if ($message->shownAutomaticRevealAt?->getTimestamp() !== $automaticRevealAt->getTimestamp()) {
+                throw new AutomaticRevealChangedMeanwhile($automaticRevealAt, $message->shownAutomaticRevealAt);
+            }
+        }
+
         $puzzleKeptSecret = false;
 
         if ($isNewPuzzle) {

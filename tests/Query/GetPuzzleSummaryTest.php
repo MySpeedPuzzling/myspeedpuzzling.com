@@ -202,7 +202,7 @@ final class GetPuzzleSummaryTest extends KernelTestCase
 
         self::assertSame([], $this->query->forPuzzle(PuzzleFixture::PUZZLE_1000_04)->usedAt);
 
-        // Revealed 10 minutes after the start, as on the event page
+        // Revealed the round's reveal delay (the default 10 minutes) after the start, as on the event page
         $this->moveRoundStart(CompetitionRoundFixture::ROUND_WJPC_FINAL, '-5 minutes');
         self::assertSame([], $this->query->forPuzzle(PuzzleFixture::PUZZLE_1000_04)->usedAt);
 

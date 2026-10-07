@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\NamePublicationNotConfirmed;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
@@ -33,6 +34,9 @@ readonly final class ChangeRoundPuzzleRevealHandler
     }
 
     /**
+     * Every check comes before anything is changed (a refused handler must not leave a change in the entity manager).
+     *
+     * @throws AutomaticRevealChangedMeanwhile
      * @throws RevealMomentAlreadyPassed
      * @throws RoundPuzzleAlreadyRevealed
      * @throws RoundPuzzleAlreadyShown
@@ -58,8 +62,19 @@ readonly final class ChangeRoundPuzzleRevealHandler
             throw new RoundPuzzleAlreadyShown();
         }
 
+        // "Automatic" is a yes to the moment the organiser saw - the round's start or delay changed since (another tab, the
+        // round form, the internal API): asked again, never saved for another moment. The round is locked: it stays as
+        // read here until the end of this handler.
+        if ($message->revealMode === RoundPuzzleReveal::Automatic) {
+            $automaticRevealAt = $roundPuzzle->round->automaticRevealAt();
+
+            if ($message->shownAutomaticRevealAt?->getTimestamp() !== $automaticRevealAt->getTimestamp()) {
+                throw new AutomaticRevealChangedMeanwhile($automaticRevealAt, $message->shownAutomaticRevealAt);
+            }
+        }
+
         // A reveal that is over already would reveal the puzzle the moment it is saved - that is "Reveal now"
-        $newRevealAt = $message->revealMode->revealAt($roundPuzzle->round->startsAt, $message->scheduledAt);
+        $newRevealAt = $message->revealMode->revealAt($roundPuzzle->round->startsAt, $roundPuzzle->round->revealDelayMinutes, $message->scheduledAt);
         if ($message->revealMode !== RoundPuzzleReveal::Manual && ($newRevealAt === null || $newRevealAt <= $now)) {
             throw new RevealMomentAlreadyPassed();
         }

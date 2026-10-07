@@ -41,6 +41,10 @@ use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Message\StartRoundStopwatch;
 use SpeedPuzzling\Web\Message\StopRoundStopwatch;
 use SpeedPuzzling\Web\Message\UnpublishRoundResults;
+use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
+use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
+use SpeedPuzzling\Web\Message\KeepRoundPuzzleHiddenEverywhere;
+use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
 use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
@@ -226,6 +230,11 @@ final class SerializedByLockMessagesTest extends TestCase
         KeepDuplicateCopy::class => 'a player\'s own times (duplicate results) - reads the rounds to link them, never writes entries or official results',
         UndoAutoRemoval::class => 'a player\'s own time restored (duplicate results) - reads the rounds to link it, never writes entries or official results',
         RemovePuzzleFromCompetitionRound::class => 'removes a puzzle from a round - entries and results are not touched',
+        ApprovePuzzleMergeRequest::class => 'merges puzzles - moves round puzzles and players\' own times between puzzles of any event (no single event to lock); never entries, teams or official results',
+        BackfillRoundPuzzleReveals::class => 'console backfill of round puzzles\' reveal - SecretPuzzleHides takes its own row locks; no entry, no result',
+        ChangeRoundPuzzleReveal::class => 'a round puzzle\' reveal - SecretPuzzleHides takes its own row locks; entries and results are not touched',
+        KeepRoundPuzzleHiddenEverywhere::class => 'a round puzzle\' site-wide hide - SecretPuzzleHides takes its own row locks; entries and results are not touched',
+        RevealRoundPuzzleNow::class => 'a round puzzle\' reveal - SecretPuzzleHides takes its own row locks; entries and results are not touched',
         UpdateWjpcPlayerId::class => 'writes only remote_id, a column nothing else writes; its handler waits for worldjigsawpuzzle.org, and the event\'s lock held across that call would hold up every registration',
     ];
 

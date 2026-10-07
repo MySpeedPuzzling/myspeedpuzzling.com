@@ -88,6 +88,20 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Seat-by-drag on phones works through Move up / Move down only (SortableJS touch drag is there, but small screens
       make it awkward) - a "Move to table…" action if organisers seat on phones.
 
+## Round reveal delay (`docs/features/competitions-management/README.md` "Automatic reveal delay")
+
+- [ ] Deploy it by the checklist in README "Deploying and rolling back": nothing pending in the next 24 hours (the
+      `+ interval '10 minutes'` form of the query), every web/api/consumer container on the new image, then the delay
+      query - re-sync each round it lists with `PATCH /internal-api/rounds/{id}` and `{}`.
+- [ ] Once deployed, tell the organiser who asked for it (she added 5 minutes to her round starts to get 15 minutes
+      before the reveal). She can put each start back to the real one and set the delay to 15. An earlier start with
+      a longer delay that keeps the moment asks for no confirmation.
+- [ ] The internal API's `"confirmReveal": true` is a blanket yes (as since PR #240): a list of revealed puzzles that
+      grew between the 409 and the resend is applied unseen. Bind it to the list like the web form does: the 409
+      answers the list's `SecretRevealPreview::hash()`, the resend sends it back (`confirmedRevealHash`).
+- [ ] API v1 competition detail does not expose a round's reveal delay or its puzzles' reveal moments - add them
+      (additive) if an API client ever needs to show when a secret puzzle comes out.
+
 ## Participant import (`docs/features/competitions-management/participant-import-preview.md`)
 
 - [ ] `.xls` / `.ods` uploads; localized header aliases ("Jméno", "Nom", …); a header row chosen by hand; remembering

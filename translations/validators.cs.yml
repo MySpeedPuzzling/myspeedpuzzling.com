@@ -8,6 +8,7 @@ competition_registration_closes_before_opens: "Registrace se nemůže uzavřít 
 
 competition_duration_too_long: "Událost nemůže trvat déle než %limit% dní. Zadejte prosím skutečné datum konání."
 competition_round_badge_color_invalid: "Zadejte barvu ve tvaru #1e88e5, nebo pole nechte prázdné a barva se vybere automaticky."
+competition_round_reveal_delay_range: "Zadejte celé minuty od {{ min }} do {{ max }}."
 finished_at_required_for_speed: "Datum doskládání je povinné pro speed puzzling."
 duplicate_puzzle_or_url_required: "Vyberte prosím duplicitní puzzle nebo zadejte odkaz na puzzle."
 ean_invalid: "„%code%“ není platný kód EAN ani UPC. Opište číslice pod čárovým kódem na krabici - jeden kód do každého pole."

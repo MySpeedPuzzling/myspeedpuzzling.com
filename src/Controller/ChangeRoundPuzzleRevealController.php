@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use DateTimeImmutable;
+use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Exceptions\NamePublicationNotConfirmed;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
@@ -14,6 +16,7 @@ use SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyShown;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
@@ -36,6 +39,7 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly CompetitionRoundPuzzleRepository $competitionRoundPuzzleRepository,
         private readonly TranslatorInterface $translator,
+        private readonly ZonedDateTimeFormatter $zonedDateTimeFormatter,
     ) {
     }
 
@@ -74,6 +78,17 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
         }
 
         $scheduledAt = null;
+        // The round's automatic reveal the page showed next to "Automatic" (a Unix timestamp) - the handler saves
+        // "Automatic" only while the round still has it. Missing or malformed (a page from before this field): chosen
+        // again on the page as it is now.
+        $shownAutomaticRevealAt = null;
+        $postedAutomaticRevealAt = (string) $request->request->get('automatic_reveal_at');
+
+        if (preg_match('/^\d{1,12}\z/', $postedAutomaticRevealAt) === 1) {
+            $shownAutomaticRevealAt = new DateTimeImmutable('@' . $postedAutomaticRevealAt);
+        } elseif ($revealMode === RoundPuzzleReveal::Automatic) {
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.invalid');
+        }
 
         if ($revealMode === RoundPuzzleReveal::Scheduled) {
             try {
@@ -95,7 +110,16 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
                 revealMode: $revealMode,
                 scheduledAt: $scheduledAt,
                 namePublicationConfirmed: $request->request->get('confirm_name_public') === '1',
+                shownAutomaticRevealAt: $shownAutomaticRevealAt,
             ));
+        } catch (AutomaticRevealChangedMeanwhile) {
+            // The handler cleared the entity manager (SecretPuzzleHides::lockRoundPuzzle()) - read the round again; the
+            // message names the moment the re-rendered page shows and sends along
+            $round = $this->competitionRoundPuzzleRepository->get($roundPuzzleId)->round;
+
+            return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.automatic_changed', [
+                '%time%' => $this->zonedDateTimeFormatter->format($round->automaticRevealAt(), $round->displayTimezone(), $round->isTimezoneAssumed()),
+            ]);
         } catch (NamePublicationNotConfirmed) {
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.name_public_needs_yes');
         } catch (RevealMomentAlreadyPassed) {
@@ -120,14 +144,16 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
     /**
      * The round's puzzles page again (422), the refused card open with the error and with what was typed - nothing is
      * lost and nothing was saved.
+     *
+     * @param array<string, string> $parameters
      */
-    private function refused(Request $request, string $roundPuzzleId, string $roundId, string $messageKey): Response
+    private function refused(Request $request, string $roundPuzzleId, string $roundId, string $messageKey, array $parameters = []): Response
     {
         $response = $this->forward(ManageRoundPuzzlesController::class, [
             'roundId' => $roundId,
             'revealError' => [
                 'roundPuzzleId' => $roundPuzzleId,
-                'message' => $this->translator->trans($messageKey),
+                'message' => $this->translator->trans($messageKey, $parameters),
                 'hideMode' => (string) $request->request->get('hide_mode'),
                 'revealMode' => (string) $request->request->get('reveal_mode'),
                 'revealAt' => (string) $request->request->get('reveal_at'),

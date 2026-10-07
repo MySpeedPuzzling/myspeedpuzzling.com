@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
@@ -35,8 +36,9 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 final class SecretPuzzleRoutesTest extends WebTestCase
 {
     use InteractsWithLiveComponents;
+    use ReadsRoundAutomaticReveal;
 
-    private const string SECRET_NAME = 'Heart of Wisconsin Secret';
+    private const string SECRET_NAME = 'Secret Puzzle Alpha';
     private const string SECRET_EAN = '4005556175512';
 
     /**
@@ -275,6 +277,7 @@ final class SecretPuzzleRoutesTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: $hideMode,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $entityManager->clear();
 

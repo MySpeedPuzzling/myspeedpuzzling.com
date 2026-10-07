@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
@@ -27,6 +28,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class ManageRoundPuzzleRevealTest extends WebTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     public function testOrganiserSeesAndControlsTheReveal(): void
     {
         $browser = self::createClient();
@@ -44,13 +47,14 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             roundId: CompetitionApiFixture::ROUND_FUTURE,
             userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
             brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
-            puzzle: 'Tropical Vibes Test',
+            puzzle: 'Secret Puzzle Delta',
             piecesCount: 500,
             puzzlePhoto: null,
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $entityManager->clear();
 
@@ -143,6 +147,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $entityManager->clear();
@@ -159,6 +164,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
         ));
 
         // Reveal now on Team Relay: the flash says the other round still holds it
@@ -211,6 +217,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $puzzleId = $this->roundPuzzle($teamRelay->toString())->puzzle->id->toString();
         $bus->dispatch(new AddPuzzleToCompetitionRound(
@@ -224,6 +231,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionRoundFixture::ROUND_CZECH_FINAL),
         ));
         $bus->dispatch(new \SpeedPuzzling\Web\Message\RevealRoundPuzzleNow($teamRelay->toString()));
 
@@ -258,14 +266,17 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
 
     public function testAConfirmationCountsOnlyForHowFarEachPuzzleComesOut(): void
     {
-        $everywhere = [['id' => 'a', 'name' => 'A', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
-        $onThisEvent = [['id' => 'a', 'name' => 'A', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-01 10:00:00')]];
-        $onThisEventLonger = [['id' => 'a', 'name' => 'A', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-02 10:00:00')]];
+        $everywhere = [['id' => 'a', 'name' => 'A', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'everywhere', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
+        $onThisEvent = [['id' => 'a', 'name' => 'A', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'event', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-01 10:00:00')]];
+        $onThisEventLonger = [['id' => 'a', 'name' => 'A', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'event', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-02 10:00:00')]];
+        $nameEverywhere = [['id' => 'a', 'name' => 'A', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'name_everywhere', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-01 10:00:00')]];
 
         self::assertNotSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($everywhere), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEvent));
         self::assertNotSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEvent), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEventLonger));
+        // Only its name everywhere is another yes than only on this event, until the same moment
+        self::assertNotSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEvent), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash($nameEverywhere));
         // The order of the list does not matter
-        $two = [...$everywhere, ['id' => 'b', 'name' => 'B', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
+        $two = [...$everywhere, ['id' => 'b', 'name' => 'B', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'everywhere', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
         self::assertSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($two), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash(array_reverse($two)));
     }
 
@@ -293,6 +304,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
 
         // Maintains another event only

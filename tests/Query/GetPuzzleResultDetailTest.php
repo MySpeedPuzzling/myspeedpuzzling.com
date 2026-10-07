@@ -106,19 +106,21 @@ final class GetPuzzleResultDetailTest extends KernelTestCase
         self::assertNull($relax[0]->gapToBest);
     }
 
-    public function testSuspiciousTimesOnlyForTheSubject(): void
+    public function testSuspiciousTimesAreListedForEverybodyButNeverTheBest(): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
             'UPDATE puzzle_solving_time SET suspicious = true WHERE id = :id',
             ['id' => PuzzleSolvingTimeFixture::TIME_06],
         );
 
-        self::assertCount(2, $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_08, null)->attempts);
-        self::assertCount(2, $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_08, PlayerFixture::PLAYER_ADMIN)->attempts);
+        foreach ([null, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_REGULAR] as $viewerId) {
+            $result = $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_08, $viewerId);
 
-        $own = $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_08, PlayerFixture::PLAYER_REGULAR);
-        self::assertCount(3, $own->attempts);
-        self::assertTrue($own->attempts[2]->suspicious);
+            self::assertCount(3, $result->attempts);
+            self::assertTrue($result->attempts[2]->suspicious);
+            self::assertNotNull($result->bestAttempt);
+            self::assertFalse($result->bestAttempt->suspicious);
+        }
     }
 
     public function testPairAttemptsAndStanding(): void

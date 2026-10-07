@@ -32,6 +32,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\ListingType;
@@ -49,6 +50,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class SecretPuzzleWritesTest extends KernelTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     private MessageBusInterface $messageBus;
     private EntityManagerInterface $entityManager;
 
@@ -216,6 +219,7 @@ final class SecretPuzzleWritesTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $this->entityManager->clear();
 
@@ -250,6 +254,7 @@ final class SecretPuzzleWritesTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::ImageOnly,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $this->entityManager->clear();
 
@@ -338,6 +343,7 @@ final class SecretPuzzleWritesTest extends KernelTestCase
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: $hideMode,
+            shownAutomaticRevealAt: self::automaticRevealOf(CompetitionApiFixture::ROUND_FUTURE),
         ));
         $this->entityManager->clear();
 

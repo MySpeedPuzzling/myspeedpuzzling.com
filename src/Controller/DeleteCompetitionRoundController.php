@@ -21,6 +21,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * @phpstan-import-type RevealedPuzzle from SecretRevealPreview
+ */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class DeleteCompetitionRoundController extends AbstractController
 {
@@ -117,7 +120,7 @@ final class DeleteCompetitionRoundController extends AbstractController
     }
 
     /**
-     * @param list<array{id: string, name: string, everywhere: bool, hiddenElsewhereUntil: null|\DateTimeImmutable}> $revealed
+     * @param list<RevealedPuzzle> $revealed
      * @param null|string $officialResultsHash the organiser's yes to losing the official results, carried along
      */
     private function askFirst(Request $request, CompetitionRound $round, array $revealed, null|string $officialResultsHash = null): Response

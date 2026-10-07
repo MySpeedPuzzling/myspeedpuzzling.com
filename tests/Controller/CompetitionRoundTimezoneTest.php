@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
+use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
@@ -29,6 +30,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class CompetitionRoundTimezoneTest extends WebTestCase
 {
+    use ReadsRoundAutomaticReveal;
+
     public function testMultiDayEventRoundRoundTripsInChosenTimezone(): void
     {
         $browser = self::createClient();
@@ -213,13 +216,14 @@ final class CompetitionRoundTimezoneTest extends WebTestCase
             roundId: $roundId,
             userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
             brand: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
-            puzzle: 'Tropical Vibes Secret',
+            puzzle: 'Secret Puzzle Charlie',
             piecesCount: 500,
             puzzlePhoto: null,
             eans: EanList::fromStored(null),
             brandCodes: BrandCodeList::fromStored(null),
             hideUntilRoundStarts: true,
             hideMode: PuzzleHideMode::Entirely,
+            shownAutomaticRevealAt: self::automaticRevealOf($roundId),
         ));
 
         $yesterday = new DateTimeImmutable('-1 day', new DateTimeZone('America/Chicago'))->format('d.m.Y H:i');
@@ -227,7 +231,7 @@ final class CompetitionRoundTimezoneTest extends WebTestCase
         $browser->request('GET', '/en/edit-event-round/' . $roundId);
         $browser->submitForm('Save Changes', ['competition_round_form[startsAt]' => $yesterday]);
         $this->assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('Tropical Vibes Secret', (string) $browser->getResponse()->getContent());
+        self::assertStringContainsString('Secret Puzzle Charlie', (string) $browser->getResponse()->getContent());
         self::assertSame('2030-10-24T15:05:00+00:00', $this->utc($this->roundNamed('Secret Round')->startsAt));
 
         // A yes for another list than the one shown does not count

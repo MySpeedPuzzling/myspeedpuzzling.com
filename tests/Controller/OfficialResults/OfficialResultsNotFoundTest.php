@@ -84,7 +84,9 @@ final class OfficialResultsNotFoundTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/manage-round-results/' . OfficialResultsFixture::ROUND_GROUP_A);
         self::assertStringContainsString('This round does not exist any more', $crawler->filter('[data-banner="gone"]')->text());
-        self::assertSame('Round deleted', json_decode((string) $crawler->filter('[data-controller="results-desk"]')->attr('data-results-desk-texts-value'), true, flags: JSON_THROW_ON_ERROR)['pill_gone']);
+        $texts = json_decode((string) $crawler->filter('[data-controller="results-desk"]')->attr('data-results-desk-texts-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($texts);
+        self::assertSame('Round deleted', $texts['pill_gone']);
 
         $crawler = $browser->request('GET', '/en/round-seating/' . OfficialResultsFixture::ROUND_GROUP_A);
         $gone = $crawler->filter('[data-round-seating-target="gone"]');

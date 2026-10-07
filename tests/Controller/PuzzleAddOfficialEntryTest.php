@@ -519,10 +519,13 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
 
     private function timesOn(string $playerId, string $puzzleId): int
     {
-        return (int) self::getContainer()->get(Connection::class)->fetchOne(
+        $count = self::getContainer()->get(Connection::class)->fetchOne(
             'SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :playerId AND puzzle_id = :puzzleId',
             ['playerId' => $playerId, 'puzzleId' => $puzzleId],
         );
+        assert(is_int($count) || is_string($count));
+
+        return (int) $count;
     }
 
     private function value(Crawler $crawler, string $field): string

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -16,21 +18,71 @@ final class ImportCompetitionParticipantsControllerTest extends WebTestCase
     private const string MANAGE_URL = '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_WJPC_2024;
     private const string IMPORT_URL = '/en/import-event-participants/' . CompetitionFixture::COMPETITION_WJPC_2024;
 
-    public function testCsvUploadIsToldToUseXlsx(): void
+    /** @var list<string> */
+    private array $files = [];
+
+    public function testCsvUploadGoesToThePreview(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $csv = tempnam(sys_get_temp_dir(), 'test_csv_');
-        assert(is_string($csv));
-        file_put_contents($csv, "name,round_names\nCsv Puzzler,Final Round\n");
+        $this->upload($browser, $this->file("name;round_names\nAlex Example;Solo, Pair\n", 'participants.csv', 'text/csv'));
 
-        $this->upload($browser, new UploadedFile($csv, 'participants.csv', 'text/csv', null, true));
-        unlink($csv);
+        self::assertResponseStatusCodeSame(303);
+        $location = (string) $browser->getResponse()->headers->get('Location');
+        self::assertMatchesRegularExpression('#^' . preg_quote(self::IMPORT_URL, '#') . '/[0-9a-f]{32}$#', $location);
+    }
 
-        $this->assertResponseRedirects(self::MANAGE_URL);
+    public function testXlsxUploadGoesToThePreview(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $spreadsheet = new Spreadsheet();
+        $spreadsheet->getActiveSheet()->fromArray([['name', 'country'], ['Alex Example', 'cz']]);
+        $path = $this->path();
+        (new Xlsx($spreadsheet))->save($path);
+
+        $this->upload($browser, new UploadedFile($path, 'participants.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true));
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertStringStartsWith(self::IMPORT_URL . '/', (string) $browser->getResponse()->headers->get('Location'));
+    }
+
+    public function testJunkIsRefusedWithAMessage(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $this->upload($browser, $this->file("PK\x03\x04" . str_repeat('garbage', 20), 'participants.xlsx', 'application/zip'));
+
+        self::assertResponseRedirects(self::MANAGE_URL, 303);
         $browser->followRedirect();
-        self::assertSelectorTextContains('.alert-danger', 'Please upload an .xlsx file – CSV is not supported yet.');
+        self::assertSelectorTextContains('.alert-danger', 'The file could not be read.');
+    }
+
+    public function testUnknownFileTypeIsRefused(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $this->upload($browser, $this->file("name\nAlex Example\n", 'participants.md', 'text/plain'));
+
+        self::assertResponseRedirects(self::MANAGE_URL, 303);
+        $browser->followRedirect();
+        self::assertSelectorTextContains('.alert-danger', 'Please upload an .xlsx workbook or a .csv, .tsv or .txt file.');
+    }
+
+    public function testNonMaintainerIsForbidden(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('POST', self::IMPORT_URL, [], [
+            'excel_import_form' => ['file' => $this->file("name\nAlex Example\n", 'participants.csv', 'text/csv')],
+        ]);
+
+        self::assertResponseStatusCodeSame(403);
     }
 
     public function testPageHelpDocumentsRoundAndTeamColumns(): void
@@ -46,6 +98,31 @@ final class ImportCompetitionParticipantsControllerTest extends WebTestCase
         self::assertContains('team_name', $columns);
         self::assertContains('team_name: <round>', $columns);
         self::assertContains('participant_id', $columns);
+    }
+
+    private function file(string $content, string $name, string $mimeType): UploadedFile
+    {
+        $path = $this->path();
+        file_put_contents($path, $content);
+
+        return new UploadedFile($path, $name, $mimeType, null, true);
+    }
+
+    private function path(): string
+    {
+        $path = (string) tempnam(sys_get_temp_dir(), 'test_import_');
+        $this->files[] = $path;
+
+        return $path;
+    }
+
+    protected function tearDown(): void
+    {
+        foreach ($this->files as $file) {
+            @unlink($file);
+        }
+
+        parent::tearDown();
     }
 
     private function upload(KernelBrowser $browser, UploadedFile $file): void

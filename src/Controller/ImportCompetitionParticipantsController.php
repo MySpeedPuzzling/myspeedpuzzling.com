@@ -4,23 +4,34 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Exceptions\ParticipantFileUnreadable;
 use SpeedPuzzling\Web\FormData\ExcelImportFormData;
 use SpeedPuzzling\Web\FormType\ExcelImportFormType;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
-use SpeedPuzzling\Web\Services\CompetitionParticipantImporter;
+use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportStash;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ParticipantFileFormat;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * Upload of a participant list: nothing is imported here. The file is kept (ParticipantImportStash) and the organiser
+ * goes on to the preview, where the columns are chosen and the import confirmed
+ * (docs/features/competitions-management/participant-import-preview.md, D2 + D9).
+ */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ImportCompetitionParticipantsController extends AbstractController
 {
+    private const string MESSAGE_PREFIX = 'competition.participants.import.';
+
     public function __construct(
-        private readonly CompetitionParticipantImporter $importer,
+        private readonly ParticipantImportStash $stash,
+        private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly TranslatorInterface $translator,
     ) {
     }
@@ -45,37 +56,72 @@ final class ImportCompetitionParticipantsController extends AbstractController
         $form = $this->createForm(ExcelImportFormType::class, $formData);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid() && $formData->file !== null) {
-            $result = $this->importer->import($competitionId, $formData->file->getPathname());
-
-            $this->addFlash('success', $this->translator->trans('competition.participants.import.summary', [
-                '%added%' => $result->added,
-                '%updated%' => $result->updated,
-                '%unchanged%' => $result->unchanged,
-                '%deleted%' => $result->softDeleted,
-            ]));
-
-            foreach ($result->warnings as $warning) {
-                $this->addFlash('warning', $warning->trans($this->translator));
-            }
-
-            foreach ($result->errors as $error) {
-                $this->addFlash('danger', $error->trans($this->translator));
-            }
-        } elseif ($formData->file !== null && self::isCsv($formData->file)) {
-            $this->addFlash('danger', $this->translator->trans('competition.participants.import_csv_not_supported'));
-        } else {
-            $this->addFlash('danger', $this->translator->trans('forms.invalid_file_upload'));
+        if ($form->isSubmitted() === false || $form->isValid() === false || $formData->file === null) {
+            return $this->backWithError($competitionId, $this->formErrorMessage($form));
         }
+
+        $file = $formData->file;
+
+        if (ParticipantFileFormat::fromFileName($file->getClientOriginalName()) === null) {
+            return $this->backWithError($competitionId, $this->translator->trans('competition.participants.import.upload.invalid_type'));
+        }
+
+        $player = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($player === null) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $stashed = $this->stash->keep($file, $competitionId, $player->playerId);
+
+        if ($stashed === null) {
+            return $this->backWithError($competitionId, $this->translator->trans('competition.participants.import.upload.failed'));
+        }
+
+        try {
+            // Read once right away: a file that is no participant list is refused here, not on the preview
+            $this->stash->sheets($stashed->token, $competitionId);
+        } catch (ParticipantFileUnreadable $e) {
+            $this->stash->discard($stashed->token, $competitionId);
+
+            return $this->backWithError($competitionId, $e->trans($this->translator));
+        }
+
+        return $this->redirectToRoute('participant_import_preview', [
+            'competitionId' => $competitionId,
+            'token' => $stashed->token,
+        ], Response::HTTP_SEE_OTHER);
+    }
+
+    private function backWithError(string $competitionId, string $message): Response
+    {
+        $this->addFlash('danger', $message);
 
         return $this->redirectToRoute('manage_competition_participants', [
             'competitionId' => $competitionId,
-        ]);
+        ], Response::HTTP_SEE_OTHER);
     }
 
-    private static function isCsv(UploadedFile $file): bool
+    /**
+     * The constraint messages of ExcelImportFormData are keys of the `messages` domain; anything else (CSRF, a partial
+     * upload, …) is told as a failed upload.
+     *
+     * @param FormInterface<ExcelImportFormData> $form
+     */
+    private function formErrorMessage(FormInterface $form): string
     {
-        return strtolower($file->getClientOriginalExtension()) === 'csv'
-            || in_array($file->getClientMimeType(), ['text/csv', 'application/csv', 'text/comma-separated-values'], true);
+        if ($form->isSubmitted() === false) {
+            return $this->translator->trans('forms.invalid_file_upload');
+        }
+
+        foreach ($form->getErrors(true) as $error) {
+            if (str_starts_with($error->getMessageTemplate(), self::MESSAGE_PREFIX)) {
+                return $this->translator->trans($error->getMessageTemplate(), [
+                    '%max%' => rtrim(ExcelImportFormData::MAX_SIZE, 'M') . ' MB',
+                ]);
+            }
+        }
+
+        return $this->translator->trans('competition.participants.import.upload.failed');
     }
 }

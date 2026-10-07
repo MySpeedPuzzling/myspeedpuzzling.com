@@ -3591,7 +3591,6 @@ qr_code:
     "import_export": "Import / Export"
     "import_title": "Importovat účastníky"
     "import_button": "Importovat"
-    "import_csv_not_supported": "Nahrajte prosím soubor .xlsx – CSV zatím není podporováno."
     "import":
       "summary": "Import dokončen: %added% přidáno, %updated% aktualizováno, %unchanged% beze změny, %deleted% odebráno."
       "empty_file": "Soubor je prázdný."

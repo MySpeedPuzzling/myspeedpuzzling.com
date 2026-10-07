@@ -15,7 +15,7 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 #[AsCommand(
     name: 'myspeedpuzzling:prune-photo-stash',
-    description: 'Delete photos kept for refused add/edit time forms that nobody came back for',
+    description: 'Delete photos kept for refused add/edit time forms and uploaded participant lists that nobody came back for',
 )]
 final class PrunePhotoStashCommand extends Command
 {
@@ -34,7 +34,7 @@ final class PrunePhotoStashCommand extends Command
         /** @var int $deleted */
         $deleted = $handledStamp->getResult();
 
-        (new SymfonyStyle($input, $output))->success("Deleted {$deleted} kept photo files.");
+        (new SymfonyStyle($input, $output))->success("Deleted {$deleted} kept files.");
 
         return Command::SUCCESS;
     }

@@ -1,0 +1,272 @@
+{# One case of the time verification queue. Expects: case (SuspiciousTimeCaseCard), tab, page, note_max_length. #}
+{% set ratio = case.ratio %}
+{% set status = case.status.value %}
+{% set group_label = case.puzzlersCount == 2 ? 'Pair' : 'Team of ' ~ case.puzzlersCount %}
+<article class="card shadow-sm mb-3" id="case-{{ case.caseId }}" data-testid="time-verification-case">
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-3">
+            <a class="flex-shrink-0 text-center" style="width: 72px;" href="{{ path('puzzle_detail', {puzzleId: case.puzzleId}) }}">
+                {% if case.puzzleImage %}
+                    <img src="{{ case.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded" style="max-width: 72px; max-height: 72px;">
+                {% else %}
+                    <i class="bi bi-puzzle text-muted fs-2"></i>
+                {% endif %}
+            </a>
+
+            <div class="flex-grow-1 min-w-0">
+                <div class="d-flex flex-wrap align-items-baseline gap-2">
+                    <span class="h4 mb-0">{{ case.seconds is not null ? case.seconds|puzzlingTime : 'no time' }}</span>
+                    {% if case.seconds %}
+                        {% set case_ppm = ppm(case.seconds, case.piecesCount, case.puzzlersCount) %}
+                        <span class="text-muted">{{ case_ppm|number_format(case_ppm < 1 ? 2 : 1) }} PPM</span>
+                    {% endif %}
+                    {% if case.tier %}
+                        <span class="badge {{ case.tier.value == 'strong' ? 'bg-danger' : 'bg-secondary' }}">{{ case.tier.value == 'strong' ? 'Strong' : 'Possible' }}</span>
+                    {% endif %}
+                    {% if case.puzzlersCount > 1 %}<span class="badge bg-info text-dark">{{ group_label }}</span>{% endif %}
+                    {% if case.firstAttempt %}<span class="badge bg-light text-dark border">First try</span>{% endif %}
+                    {% if case.unboxed %}<span class="badge bg-light text-dark border">Unboxed</span>{% endif %}
+                    {% if case.playerPrivate %}<span class="badge bg-light text-dark border">Private profile</span>{% endif %}
+                    {% if case.origin.value == 'manual' %}<span class="badge bg-light text-dark border">Flagged outside the app</span>{% endif %}
+                    {% if status != 'pending' and case.flagged %}<span class="badge bg-warning text-dark">Not counted now</span>{% endif %}
+                </div>
+
+                <div class="mt-1">
+                    {% if case.expectedSeconds is not null %}
+                        Expected about <strong>{{ case.expectedSeconds|puzzlingTime }}</strong>
+                        <span class="text-muted">({{ case.expectedSource ? case.expectedSource.value : 'no source' }})</span>
+                        {% if ratio is not null %}
+                            &bull; <strong>{{ ratio|number_format(1) }}× {{ case.isFasterThanExpected ? 'faster' : 'slower' }} than expected</strong>
+                        {% endif %}
+                    {% elseif case.reasons is empty %}
+                        <span class="text-muted">The scan never raised this time - no expectation.</span>
+                    {% else %}
+                        <span class="text-muted">No expectation of the player's own - judged by the community's pace.</span>
+                    {% endif %}
+                    {% if case.leaderboardPlace is not null %}
+                        &bull; {{ case.flagged ? 'would be' : 'is' }} <strong>#{{ case.leaderboardPlace }}</strong> of {{ case.puzzleResults }} {{ case.puzzlingType.value }} {{ case.puzzleResults == 1 ? 'result' : 'results' }} on the puzzle
+                    {% endif %}
+                </div>
+
+                <div class="fw-semibold text-break mt-1">
+                    <a href="{{ path('puzzle_detail', {puzzleId: case.puzzleId}) }}">{{ case.puzzleName }}</a>
+                </div>
+                <div class="small text-muted text-break">
+                    {{ case.manufacturerName ?? 'No brand' }} &bull; {{ case.piecesCount }} pcs
+                    {% if case.puzzleMedian %}&bull; median {{ case.puzzleMedian|puzzlingTime }}{% endif %}
+                    {% if case.puzzleFastest %}&bull; fastest {{ case.puzzleFastest|puzzlingTime }}{% endif %}
+                    {% if case.difficultyScore is not null %}&bull; difficulty {{ case.difficultyScore|number_format(2) }}{% endif %}
+                </div>
+                <div class="small mt-1">
+                    Solved {{ case.solvedAt|date('j M Y') }}, saved {{ case.trackedAt|date('j M Y H:i') }}
+                    {% if case.competitionName %}
+                        &bull; Event: {{ case.competitionName }}{% if case.roundName %} - {{ case.roundName }}{% endif %}
+                    {% endif %}
+                    {# The result detail stays closed on a private profile - the card is all a moderator gets (open point) #}
+                    {% if not case.playerPrivate %}&bull; <a href="{{ path('puzzle_result_detail', {timeId: case.timeId}) }}">Result detail</a>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if case.isEditedSinceScan %}
+            <div class="alert alert-info small mt-3 mb-0">
+                The player changed this time after the scan raised it - the reasons below are about the old entry. The next scan
+                judges the new one; nothing to decide now.
+            </div>
+        {% endif %}
+
+        <div class="row g-3 mt-1">
+            <div class="col-lg-6">
+                <h2 class="h6 mb-1">Player</h2>
+                <div class="text-break">
+                    <a href="{{ path('player_profile', {playerId: case.playerId}) }}">{{ case.playerName ?? ('#' ~ case.playerCode) }}</a>
+                    {% if case.playerName %}<span class="text-muted">#{{ case.playerCode }}</span>{% endif %}
+                </div>
+                <div class="small">
+                    {{ case.soloResults }} solo {{ case.soloResults == 1 ? 'result' : 'results' }},
+                    {{ case.groupResults }} pair/team {{ case.groupResults == 1 ? 'result' : 'results' }}
+                    {% if case.groupShare is not null %}({{ case.groupShare }} % in a group){% endif %}
+                </div>
+                {% if case.groupMembers is not empty %}
+                    <div class="small">{{ group_label }}: {{ case.groupMembers|join(', ') }}</div>
+                {% endif %}
+                <div class="small">
+                    Usual time:
+                    {% for baseline in case.baselines %}
+                        <span class="text-nowrap{% if baseline.pieces == case.piecesCount %} fw-semibold{% endif %}">{{ baseline.pieces }} pcs {{ baseline.seconds|puzzlingTime }}{% if baseline.type != 'direct' %} <span class="text-muted">({{ baseline.type }})</span>{% endif %}</span>{% if not loop.last %} &bull; {% endif %}
+                    {% else %}
+                        <span class="text-muted">none yet</span>
+                    {% endfor %}
+                </div>
+                {% if case.sameDay is not empty %}
+                    <div class="small mt-1">Also saved that day:</div>
+                    <ul class="small mb-0 ps-3">
+                        {% for other in case.sameDay %}
+                            <li class="text-break">
+                                {% if case.playerPrivate %}{{ other.puzzleName }}{% else %}<a href="{{ path('puzzle_result_detail', {timeId: other.timeId}) }}">{{ other.puzzleName }}</a>{% endif %}
+                                ({{ other.piecesCount }} pcs{% if other.puzzlingType.value != 'solo' %}, {{ other.puzzlingType.value == 'duo' ? 'pair' : 'team' }}{% endif %})
+                                {{ other.seconds is not null ? other.seconds|puzzlingTime : 'no time' }}
+                                {% if other.flagged %}<span class="badge bg-warning text-dark">Not counted</span>{% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="col-lg-6">
+                <h2 class="h6 mb-1">Why it is here</h2>
+                {% if case.reasons is empty %}
+                    <p class="small text-muted mb-1">No reasons - the time was flagged outside the app.</p>
+                {% else %}
+                    <ul class="small mb-1 ps-3">
+                        {% for reason in case.reasons %}
+                            <li>
+                                {{ include('suspicious_time/_reason.html.twig', {reason: reason}, with_context = false) }}
+                                {% if not reason.code.isShownToPlayer %}<span class="badge bg-light text-muted border">for moderators</span>{% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if case.suggestedSeconds is not null %}
+                    <div class="small">Suggested time: <strong>{{ case.suggestedSeconds|puzzlingTime }}</strong></div>
+                {% endif %}
+                {% if case.comment %}
+                    <div class="small mt-1">Comment: <em class="text-break">{{ case.comment }}</em></div>
+                {% endif %}
+                {% if case.finishedPuzzlePhoto %}
+                    <a class="d-inline-block mt-1" href="{{ case.finishedPuzzlePhoto|thumbnail('puzzle_large') }}" target="_blank" rel="noopener" data-turbo="false">
+                        <img class="rounded-2" style="max-width: 72px; max-height: 96px;" loading="lazy" alt="Finished puzzle photo" src="{{ case.finishedPuzzlePhoto|thumbnail('puzzle_small') }}">
+                    </a>
+                {% endif %}
+                <div class="small text-muted mt-1">
+                    Found {{ case.detectedAt|date('j M Y') }}{% if case.detectorVersion %}, detector v{{ case.detectorVersion }}{% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if status != 'pending' %}
+            <div class="border-top mt-3 pt-2 small">
+                {% if status == 'marked' %}
+                    Marked {{ case.markedAt ? case.markedAt|date('j M Y H:i') : '' }}
+                {% elseif status == 'trusted' %}
+                    Verified fine {{ case.decidedAt ? case.decidedAt|date('j M Y H:i') : '' }}
+                {% else %}
+                    {{ status|capitalize }} {{ case.decidedAt ? case.decidedAt|date('j M Y H:i') : '' }}
+                {% endif %}
+                {% if case.decidedByName or case.decidedByCode %}by {{ case.decidedByName ?? ('#' ~ case.decidedByCode) }}{% elseif status == 'marked' %}outside the app{% endif %}
+
+                {% if status == 'marked' %}
+                    <div>
+                        The player reads:
+                        {% if case.reasonsShown is empty and case.moderatorNote is null %}
+                            <span class="text-muted">only that the time awaits verification</span>
+                        {% endif %}
+                    </div>
+                    {% if case.reasonsShown is not empty %}
+                        <ul class="mb-1 ps-3">
+                            {% for reason in case.reasonsShown %}
+                                <li>{{ include('suspicious_time/_reason.html.twig', {reason: reason}, with_context = false) }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                    {% if case.moderatorNote %}<div>Note: <em class="text-break">{{ case.moderatorNote }}</em></div>{% endif %}
+                {% endif %}
+
+                {% if case.playerEditedAt %}
+                    <div class="mt-1"><strong>The entry changed {{ case.playerEditedAt|date('j M Y H:i') }}</strong> (the player's edit, or the puzzle or its piece count changed) - it still needs a look.</div>
+                {% endif %}
+
+                {% set current_notices = case.currentNotices %}
+                {% if current_notices is not empty %}
+                    <div class="mt-1">Told:</div>
+                    <ul class="mb-0 ps-3">
+                        {% for notice in current_notices %}
+                            <li class="text-break">
+                                {{ notice.playerName ?? ('#' ~ notice.playerCode) }}
+                                - {{ notice.via.value == 'manual_email' ? 'by hand, before the notice run existed' : notice.notifiedAt|date('j M Y') }}
+                                {% if notice.response is null %}
+                                    <span class="text-muted">- no reaction yet</span>
+                                {% elseif notice.response.value == 'says_correct' %}
+                                    - <strong>says the time is correct</strong> ({{ notice.respondedAt ? notice.respondedAt|date('j M Y') : '' }}){% if notice.responseText %}: <em>“{{ notice.responseText }}”</em>{% endif %}
+                                {% elseif notice.response.value == 'fixed' %}
+                                    - fixed it
+                                {% else %}
+                                    - left it as it is
+                                {% endif %}
+                                {% if notice.answer %}
+                                    <span class="text-muted">- answered: {{ notice.answer.value == 'trusted' ? 'counts again' : 'stays marked' }}{% if notice.answerNote %} (“{{ notice.answerNote }}”){% endif %}</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% elseif status == 'marked' %}
+                    <div class="text-muted">Nobody told yet - the next run tells the player.</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% set can_act = (status == 'pending' and not case.isEditedSinceScan) or status == 'marked' %}
+        {% if can_act %}
+            <div class="border-top mt-3 pt-3 d-flex flex-wrap gap-3 align-items-start">
+                {% if status == 'pending' %}
+                    <form method="post" action="{{ path('admin_time_verification_mark', {caseId: case.caseId}) }}" class="flex-grow-1" style="min-width: 260px;" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token('time-verification-' ~ case.caseId) }}">
+                        <input type="hidden" name="tab" value="{{ tab.value }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        <input type="hidden" name="fingerprint" value="{{ case.currentFingerprint }}">
+                        {% set shown_reasons = case.reasons|filter(reason => reason.code.isShownToPlayer) %}
+                        {% if shown_reasons is not empty %}
+                            <div class="small fw-semibold mb-1">The player reads:</div>
+                            {% for reason in shown_reasons %}
+                                <div class="form-check small">
+                                    <input class="form-check-input" type="checkbox" name="reasons[]" value="{{ reason.code.value }}" id="reason-{{ case.caseId }}-{{ reason.code.value }}" checked>
+                                    <label class="form-check-label" for="reason-{{ case.caseId }}-{{ reason.code.value }}">
+                                        {{ include('suspicious_time/_reason.html.twig', {reason: reason}, with_context = false) }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        <label class="form-label small mt-1 mb-1" for="note-{{ case.caseId }}">Note for the player (optional, shown as you type it)</label>
+                        <textarea class="form-control form-control-sm" name="note" id="note-{{ case.caseId }}" rows="2" maxlength="{{ note_max_length }}"></textarea>
+                        <button type="submit" class="btn btn-sm btn-warning mt-2">Needs verification</button>
+                    </form>
+
+                    <form method="post" action="{{ path('admin_time_verification_trust', {caseId: case.caseId}) }}" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token('time-verification-' ~ case.caseId) }}">
+                        <input type="hidden" name="tab" value="{{ tab.value }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        <input type="hidden" name="fingerprint" value="{{ case.currentFingerprint }}">
+                        <input type="hidden" name="status" value="pending">
+                        <button type="submit" class="btn btn-sm btn-outline-success">Looks fine</button>
+                    </form>
+                {% else %}
+                    {% set replied = case.openReplies is not empty or case.playerEditedAt is not null %}
+                    <form method="post" action="{{ path('admin_time_verification_trust', {caseId: case.caseId}) }}" class="flex-grow-1" style="min-width: 240px;" data-turbo="false">
+                        <input type="hidden" name="_token" value="{{ csrf_token('time-verification-' ~ case.caseId) }}">
+                        <input type="hidden" name="tab" value="{{ tab.value }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        <input type="hidden" name="fingerprint" value="{{ case.currentFingerprint }}">
+                        <input type="hidden" name="status" value="marked">
+                        <label class="form-label small mb-1" for="trust-note-{{ case.caseId }}">
+                            {{ case.openReplies is not empty ? 'Note for the player with "Your time counts again" (optional)' : 'Note (optional)' }}
+                        </label>
+                        <textarea class="form-control form-control-sm" name="note" id="trust-note-{{ case.caseId }}" rows="2" maxlength="{{ note_max_length }}"></textarea>
+                        <button type="submit" class="btn btn-sm btn-outline-success mt-2">Looks fine - unmark</button>
+                    </form>
+
+                    {% if tab.value == 'replied' and replied %}
+                        <form method="post" action="{{ path('admin_time_verification_keep', {caseId: case.caseId}) }}" class="flex-grow-1" style="min-width: 240px;" data-turbo="false">
+                            <input type="hidden" name="_token" value="{{ csrf_token('time-verification-' ~ case.caseId) }}">
+                            <input type="hidden" name="tab" value="{{ tab.value }}">
+                            <input type="hidden" name="page" value="{{ page }}">
+                            <input type="hidden" name="fingerprint" value="{{ case.currentFingerprint }}">
+                            <label class="form-label small mb-1" for="keep-note-{{ case.caseId }}">Why it stays marked - the player reads this (required)</label>
+                            <textarea class="form-control form-control-sm" name="note" id="keep-note-{{ case.caseId }}" rows="2" maxlength="{{ note_max_length }}" required></textarea>
+                            <button type="submit" class="btn btn-sm btn-warning mt-2">Keep it marked</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</article>

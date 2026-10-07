@@ -1,0 +1,130 @@
+{# The "Numbers" tab - what the detector raised and what became of it. Expects: numbers (SuspiciousTimesOverview). #}
+{% set decision_labels = {
+    marked: 'Needs verification',
+    trusted: 'Looks fine',
+    unmarked: 'Unmarked',
+    kept_after_reply: 'Kept marked after a reply',
+    corrected_automatically: 'The entry changed and passes - unmarked automatically',
+    marked_outside_app: 'Flagged outside the app',
+    unmarked_outside_app: 'Unflagged outside the app',
+    pieces_confirmed: 'Piece count is right',
+} %}
+<p class="text-muted small">
+    What the next threshold change is judged by. "Marked" counts cases marked now plus those the player fixed after the
+    mark (the mark was right); precision = marked of the decided cases.
+</p>
+
+<h2 class="h5">By detector version</h2>
+<div class="table-responsive mb-4">
+    <table class="table table-sm align-middle fs-sm" data-testid="time-verification-numbers-versions">
+        <thead>
+            <tr>
+                <th>Version</th>
+                <th>Direction</th>
+                <th class="text-end">Raised</th>
+                <th class="text-end">Pending</th>
+                <th class="text-end">Marked</th>
+                <th class="text-end">Verified fine</th>
+                <th class="text-end" title="The player fixed it, or the entry changed otherwise (a piece-count fix, a merge) - and it passes">Fixed</th>
+                <th class="text-end">Gone</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in numbers.byVersion %}
+                <tr>
+                    <td>{{ row.version is not null ? 'v' ~ row.version : 'flagged outside the app' }}</td>
+                    <td>{{ row.direction == 'fast' ? 'Too fast' : (row.direction == 'slow' ? 'Too slow' : '-') }}</td>
+                    <td class="text-end">{{ row.raised }}</td>
+                    <td class="text-end">{{ row.pending }}</td>
+                    <td class="text-end">{{ row.marked }}</td>
+                    <td class="text-end">{{ row.trusted }}</td>
+                    <td class="text-end">{{ row.corrected }}</td>
+                    <td class="text-end">{{ row.gone }}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="8" class="text-muted">Nothing raised yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h5">By reason</h2>
+<div class="table-responsive mb-4">
+    <table class="table table-sm align-middle fs-sm" data-testid="time-verification-numbers-reasons">
+        <thead>
+            <tr>
+                <th>Reason</th>
+                <th>Kind</th>
+                <th class="text-end">Cases</th>
+                <th class="text-end">Pending</th>
+                <th class="text-end">Marked</th>
+                <th class="text-end">Verified fine</th>
+                <th class="text-end">Precision</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in numbers.byReason %}
+                <tr>
+                    <td><code>{{ row.code }}</code></td>
+                    <td>{{ row.trigger ? 'trigger' : 'explanation' }}{% if not row.shown_to_player %} <span class="text-muted">(moderators only)</span>{% endif %}</td>
+                    <td class="text-end">{{ row.raised }}</td>
+                    <td class="text-end">{{ row.pending }}</td>
+                    <td class="text-end">{{ row.marked }}</td>
+                    <td class="text-end">{{ row.trusted }}</td>
+                    <td class="text-end">{{ row.precision is not null ? row.precision ~ ' %' : '-' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <h2 class="h5">What the players did</h2>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle fs-sm" data-testid="time-verification-numbers-players">
+                <thead>
+                    <tr>
+                        <th>Told</th>
+                        <th class="text-end">People</th>
+                        <th class="text-end">Fixed</th>
+                        <th class="text-end">Said correct</th>
+                        <th class="text-end">Left it</th>
+                        <th class="text-end">No reaction yet</th>
+                        <th class="text-end">Answered: counts again</th>
+                        <th class="text-end">Answered: stays marked</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in numbers.players %}
+                        <tr>
+                            <td>{{ row.via == 'manual_email' ? 'by hand' : 'by the app' }}</td>
+                            <td class="text-end">{{ row.notices }}</td>
+                            <td class="text-end">{{ row.fixed }}</td>
+                            <td class="text-end">{{ row.says_correct }}</td>
+                            <td class="text-end">{{ row.left_as_is }}</td>
+                            <td class="text-end">{{ row.no_reaction }}</td>
+                            <td class="text-end">{{ row.answered_trusted }}</td>
+                            <td class="text-end">{{ row.answered_kept }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="8" class="text-muted">Nobody told yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <h2 class="h5">Decisions</h2>
+        <table class="table table-sm align-middle fs-sm">
+            <tbody>
+                {% for kind, decisions in numbers.decisions %}
+                    <tr>
+                        <td>{{ decision_labels[kind] ?? kind }}</td>
+                        <td class="text-end">{{ decisions }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
 use SpeedPuzzling\Web\Entity\Stopwatch;
+use SpeedPuzzling\Web\Entity\SuspiciousTimeConfirmation;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
@@ -36,6 +37,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
 use SpeedPuzzling\Web\Repository\StopwatchRepository;
+use SpeedPuzzling\Web\Repository\SuspiciousTimeConfirmationRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
@@ -77,6 +79,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
         private IdLock $idLock,
         private SecretPuzzleAccess $secretPuzzleAccess,
+        private SuspiciousTimeConfirmationRepository $suspiciousTimeConfirmationRepository,
     ) {
     }
 
@@ -283,6 +286,18 @@ readonly final class AddPuzzleSolvingTimeHandler
                 puzzleId: $puzzle->id,
                 createdAt: $trackedAt,
                 via: $message->createdVia ?? SolvingTimeSource::Form,
+            ));
+        }
+
+        // The form asked about the time and the player said it is right - the scan tells the moderator
+        // (docs/features/suspicious-time-review.md, "Catch it while typing")
+        if ($message->paceConfirmedExpectedSeconds !== null) {
+            $this->suspiciousTimeConfirmationRepository->save(new SuspiciousTimeConfirmation(
+                id: Uuid::uuid7(),
+                time: $solvingTime,
+                player: $player,
+                expectedSeconds: $message->paceConfirmedExpectedSeconds,
+                confirmedAt: $trackedAt,
             ));
         }
     }

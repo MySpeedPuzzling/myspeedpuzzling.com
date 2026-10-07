@@ -41,6 +41,7 @@ use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\EanList;
@@ -84,6 +85,7 @@ final class PuzzleAddController extends AbstractController
         readonly private ClockInterface $clock,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
+        readonly private SuspiciousTimeFormCheck $suspiciousTimeFormCheck,
     ) {
     }
 
@@ -347,6 +349,38 @@ final class PuzzleAddController extends AbstractController
             }
         }
 
+        // The typed time against the player's own times (docs/features/suspicious-time-review.md, "Catch it while
+        // typing") - a raised one is saved only after "Yes, it's right". Not a time a stopwatch measured, nor a new
+        // puzzle (no history yet); a failed check judges nothing
+        // pace_confirmed = the key of the values "Yes, it's right" was chosen for - stale once the form holds others
+        $paceAnswer = $request->request->getString('pace_confirmed');
+        $paceConfirmed = false;
+        $paceCheck = null;
+
+        if (
+            $addTimeForm->isSubmitted()
+            && $stopwatchId === null
+            && $data->mode === PuzzleAddMode::SpeedPuzzling
+            && is_string($data->puzzle)
+            && Uuid::isValid($data->puzzle)
+        ) {
+            $paceCheck = $this->suspiciousTimeFormCheck->forNewResult(
+                $userProfile->playerId,
+                $userProfile->code,
+                $data->puzzle,
+                $groupPlayers,
+                $data->finishedAt,
+                SolvingTime::fromHoursMinutesSeconds($data->timeHours, $data->timeMinutes, $data->timeSeconds)->seconds,
+                $timeId->toString(),
+            );
+
+            $paceConfirmed = $paceCheck?->isConfirmedBy($paceAnswer) === true;
+
+            if ($paceCheck?->isRaised() === true && $paceConfirmed === false) {
+                $addTimeForm->addError(new FormError($this->translator->trans('suspicious_time.form.error')));
+            }
+        }
+
         $firstTry = $check->firstTry;
 
         if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
@@ -408,6 +442,8 @@ final class PuzzleAddController extends AbstractController
                         $firstTryResolution,
                         // Only an answer to a same-day twin the check found counts as "saved anyway"
                         $duplicateConfirmed && $check->duplicates?->needsConfirmation() === true,
+                        // Only an answer to a time the check raised is a confirmation
+                        $paceCheck !== null && $paceConfirmed ? SuspiciousTimeFormCheck::confirmedExpectation($paceCheck->assessment) : null,
                     ),
                     PuzzleAddMode::Relax => $this->handleRelax($data, $timeId, $userId, $groupPlayers, $teamName),
                     PuzzleAddMode::Collection => $this->handleCollection($data, $userProfile->playerId),
@@ -458,6 +494,8 @@ final class PuzzleAddController extends AbstractController
             'first_try_resolution' => $firstTryResolution->value,
             'duplicates' => $check->duplicates,
             'duplicate_confirmed' => $duplicateConfirmed,
+            'pace_check' => $paceCheck,
+            'pace_confirmed' => $paceConfirmed,
             'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId),
             'secret_puzzle_notice' => $secretPuzzleNotice,
             'time_id' => $timeId->toString(),
@@ -529,6 +567,7 @@ final class PuzzleAddController extends AbstractController
         string $teamName,
         FirstTryResolution $firstTryResolution,
         bool $duplicateConfirmed,
+        null|int $paceConfirmedExpectedSeconds,
     ): Response {
         assert($data->puzzle !== null);
 
@@ -554,6 +593,7 @@ final class PuzzleAddController extends AbstractController
                 // Finished by the same handler, in the same transaction as the result
                 stopwatchId: $stopwatchId,
                 duplicateConfirmed: $duplicateConfirmed,
+                paceConfirmedExpectedSeconds: $paceConfirmedExpectedSeconds,
             ),
         );
 

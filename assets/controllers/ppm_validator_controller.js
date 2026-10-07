@@ -6,6 +6,10 @@ import { Modal } from 'bootstrap';
  *
  * Validates solving time before form submission and shows a warning modal
  * if the PPM seems suspicious (too fast or too slow).
+ *
+ * Generic - the same numbers for everybody. When the form's live check judged the time against the player's own
+ * times (docs/features/suspicious-time-review.md, "Catch it while typing"), its notice carries a
+ * `data-pace-checked` marker and replaces this modal; players without times of their own keep it.
  */
 export default class extends Controller {
     static targets = [
@@ -84,6 +88,11 @@ export default class extends Controller {
         // If already confirmed, allow submission
         if (this.confirmedValue) {
             this.confirmedValue = false;
+            return;
+        }
+
+        // The personal check already judged this time (and asks in its notice when it is off)
+        if (this.element.querySelector('[data-pace-checked]') !== null) {
             return;
         }
 

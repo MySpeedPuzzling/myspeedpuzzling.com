@@ -1,0 +1,70 @@
+{# The "Decision log" tab - suspicious_time_decision, newest first. Expects: log (list<SuspiciousTimeDecisionLogItem>). #}
+<p class="text-muted small">
+    Every decision about a time, kept even after the time, the puzzle, the player or the moderator are gone.
+</p>
+{% if log is empty %}
+    <div class="alert alert-info">No decisions yet.</div>
+{% else %}
+    <div class="table-responsive">
+        <table class="table table-sm align-middle fs-sm" data-testid="time-verification-log">
+            <thead>
+                <tr>
+                    <th>When</th>
+                    <th>Decision</th>
+                    <th>Puzzle</th>
+                    <th class="text-end">Time</th>
+                    <th>Player</th>
+                    <th>Player reads</th>
+                    <th>By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in log %}
+                    <tr>
+                        <td class="text-nowrap">{{ item.decidedAt|date('j M Y H:i') }}</td>
+                        <td>{{ item.label }}</td>
+                        <td class="text-break">
+                            {% if item.puzzleSecret %}
+                                <span class="text-muted" data-testid="time-verification-log-secret">A puzzle kept secret until its reveal</span>
+                            {% elseif item.puzzleExists %}
+                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">{{ item.puzzleName ?? item.puzzleId }}</a>
+                            {% else %}
+                                {{ item.puzzleName ?? item.puzzleId }} <span class="text-muted">(deleted)</span>
+                            {% endif %}
+                            {% if item.piecesCount %}<span class="text-muted">· {{ item.piecesCount }} pcs</span>{% endif %}
+                        </td>
+                        <td class="text-end text-nowrap">
+                            {% if item.timeId is not null %}
+                                {{ item.seconds is not null ? item.seconds|puzzlingTime : 'no time' }}
+                                {% if not item.timeExists %}<span class="text-muted">(deleted)</span>{% endif %}
+                                {% if item.expectedSeconds is not null %}<div class="text-muted">expected {{ item.expectedSeconds|puzzlingTime }}</div>{% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="text-break">
+                            {% if item.trackerId is not null %}
+                                {% if item.trackerCode is not null %}
+                                    <a href="{{ path('player_profile', {playerId: item.trackerId}) }}">{{ item.trackerName ?? ('#' ~ item.trackerCode) }}</a>
+                                {% else %}
+                                    <span class="text-muted">(deleted)</span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for reason in item.reasonsShown %}
+                                <div>{{ include('suspicious_time/_reason.html.twig', {reason: reason}, with_context = false) }}</div>
+                            {% endfor %}
+                            {% if item.note %}<div><em class="text-break">{{ item.note }}</em></div>{% endif %}
+                        </td>
+                        <td class="text-break">
+                            {% if item.decidedByName or item.decidedByCode %}
+                                {{ item.decidedByName ?? ('#' ~ item.decidedByCode) }}
+                            {% else %}
+                                <span class="text-muted">{{ item.decision.value in ['marked_outside_app', 'unmarked_outside_app'] ? 'outside the app' : 'the app' }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

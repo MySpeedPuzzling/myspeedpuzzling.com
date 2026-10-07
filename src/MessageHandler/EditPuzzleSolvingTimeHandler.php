@@ -10,6 +10,7 @@ use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
+use SpeedPuzzling\Web\Entity\SuspiciousTimeConfirmation;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
@@ -25,6 +26,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
+use SpeedPuzzling\Web\Repository\SuspiciousTimeConfirmationRepository;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
@@ -33,6 +35,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
+use SpeedPuzzling\Web\Services\SuspiciousTimes\MarkedTimeEditRecheck;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
@@ -59,6 +62,8 @@ readonly final class EditPuzzleSolvingTimeHandler
         private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
         private PuzzleRepository $puzzleRepository,
         private SecretPuzzleAccess $secretPuzzleAccess,
+        private MarkedTimeEditRecheck $markedTimeEditRecheck,
+        private SuspiciousTimeConfirmationRepository $suspiciousTimeConfirmationRepository,
     ) {
     }
 
@@ -183,6 +188,9 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         $membersBeforeEdit = $solvingTime->memberPlayerIds();
 
+        // Time verification: the entry a mark is about, before the edit changes it (null unless flagged)
+        $markedEntryBeforeEdit = $this->markedTimeEditRecheck->entryBeforeEdit($solvingTime);
+
         // Before modify(): its PuzzleSolvingTimeModified is then about the new puzzle, the old one is told by this
         $solvingTime->moveToPuzzle($puzzle);
 
@@ -220,6 +228,11 @@ readonly final class EditPuzzleSolvingTimeHandler
         // always
         $this->solvingTimePredictor->reconstructIfPending($solvingTime);
 
+        // Time verification (docs/features/suspicious-time-review.md, "When the player edits a marked time"): a marked
+        // time whose time, puzzle or group changed is judged again - unmarked when the fix passes a detector mark,
+        // otherwise back to the moderators. Never fails the edit.
+        $this->markedTimeEditRecheck->afterEdit($solvingTime, $markedEntryBeforeEdit, $currentPlayer);
+
         // In the same transaction: the pair is a confirmed real second solve only if the edit is saved
         if ($message->duplicateConfirmed) {
             $this->resultDuplicatePreventionRepository->save(new ResultDuplicatePrevention(
@@ -230,6 +243,19 @@ readonly final class EditPuzzleSolvingTimeHandler
                 puzzleId: $solvingTime->puzzle->id,
                 createdAt: $this->clock->now(),
                 via: SolvingTimeSource::Form,
+            ));
+        }
+
+        // Time verification, the form's question (docs/features/suspicious-time-review.md, "Catch it while typing"):
+        // the edit's time was far off the tracker's own times and the editor said it is right - the scan tells the
+        // moderator
+        if ($message->paceConfirmedExpectedSeconds !== null) {
+            $this->suspiciousTimeConfirmationRepository->save(new SuspiciousTimeConfirmation(
+                id: Uuid::uuid7(),
+                time: $solvingTime,
+                player: $currentPlayer,
+                expectedSeconds: $message->paceConfirmedExpectedSeconds,
+                confirmedAt: $this->clock->now(),
             ));
         }
     }

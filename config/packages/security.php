@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Security\PatAuthenticator;
 use SpeedPuzzling\Web\Security\PatUser;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Security\SignInCodeAuthenticator;
+use SpeedPuzzling\Web\Security\SuspiciousResultsVoter;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
 use SpeedPuzzling\Web\Value\OAuth2Scope;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
@@ -239,6 +240,12 @@ return App::config([
             [
                 'path' => '^/admin/puzzle(s/|-((change|merge)-requests|approvals))',
                 'roles' => [PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS],
+            ],
+            // The time verification queue (docs/features/suspicious-time-review.md) - admins and moderators.
+            // Must stay above ^/admin as well.
+            [
+                'path' => '^/admin/time-verification',
+                'roles' => [SuspiciousResultsVoter::REVIEW_SUSPICIOUS_TIMES],
             ],
             [
                 'path' => '^/admin',

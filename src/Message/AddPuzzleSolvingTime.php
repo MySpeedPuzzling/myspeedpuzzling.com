@@ -36,6 +36,10 @@ readonly final class AddPuzzleSolvingTime
         // The player was told the same time from the same day is saved already and said it is another solve
         // (docs/features/duplicate-results.md, Layer 2) - recorded as `saved_anyway` with the result
         public bool $duplicateConfirmed = false,
+        // The form asked about the time (far off the player's own times) and the player answered "Yes, it's right"
+        // (docs/features/suspicious-time-review.md, "Catch it while typing"): the time the form compared it with -
+        // stored with the result as a SuspiciousTimeConfirmation. Null = not asked
+        public null|int $paceConfirmedExpectedSeconds = null,
     ) {
     }
 }

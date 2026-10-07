@@ -3127,7 +3127,7 @@ puzzle_intelligence:
         section_data_quality_title: "Datenqualität"
         section_data_quality_solo: "<strong>Nur Solo:</strong> Paar- und Team-Lösungen sind ausgeschlossen"
         section_data_quality_first: "<strong>Erstversuche:</strong> Nur erste Begegnungen mit jedem Puzzle zählen für Schwierigkeit und Baselines"
-        section_data_quality_suspicious: "<strong>Verdächtige ausgeschlossen:</strong> Als verdächtig markierte Zeiten werden ausgeschlossen"
+        section_data_quality_suspicious: "<strong>Wartet auf Überprüfung:</strong> Zeiten, die auf Überprüfung warten, werden ausgeschlossen"
         section_data_quality_outlier: "<strong>Ausreißerfilter:</strong> Schwierigkeitsindizes über 5,0 werden ausgeschlossen (wahrscheinlich Timer-Fehler)"
         section_data_quality_recency: "<strong>Aktualitätsgewichtung:</strong> Neuere Lösungen zählen mehr — Baselines, Skill-Stufen und Rating verwenden alle Zeitverfall, um deine aktuelle Fähigkeit widerzuspiegeln"
         section_opt_out_title: "Abmeldung"
@@ -5363,7 +5363,7 @@ photo_stash:
 review_results:
     page:
         title: "Ihre Ergebnisse prüfen"
-        intro: "Ergebnisse, die vielleicht doppelt vorhanden sind, überzählige Kopien, die wir für Sie entfernt haben, und erste Versuche zum Klären – alles, was einen Blick wert ist, an einem Ort."
+        intro: "Ergebnisse, die auf Überprüfung warten, Ergebnisse, die vielleicht doppelt vorhanden sind, überzählige Kopien, die wir für Sie entfernt haben, und erste Versuche zum Klären – alles, was einen Blick wert ist, an einem Ort."
         empty: "Nichts zu prüfen – Ihre Ergebnisse sehen gut aus."
     duplicates:
         title: "Dasselbe Ergebnis doppelt?"
@@ -5628,3 +5628,69 @@ api_usage:
         kind_column: "Art"
         player_profile: "Spielerprofil"
         per_status: "Nach Status"
+suspicious_time:
+    # The add/edit time form's notice for a typed time far off the player's own times
+    # (templates/suspicious_time/_form_notice.html.twig) - it asks, it never blames.
+    form:
+        title: "Bitte prüfen Sie die Zeit vor dem Speichern"
+        comparison: "Sie haben %entered% eingegeben – Ihre übliche Zeit liegt hier bei etwa %expected%."
+        with_others: "Haben Sie mit anderen gepuzzelt? Fügen Sie sie dem Ergebnis hinzu."
+        error: "Bitte prüfen Sie die Zeit – bestätigen Sie sie unten, wenn sie stimmt."
+        action:
+            use: "%time% übernehmen"
+            confirm: "Ja, sie stimmt"
+            undo: "Antwort ändern"
+        confirmed:
+            title: "Danke fürs Prüfen"
+            body: "%time% wird so gespeichert, wie Sie es eingegeben haben."
+    # One reason why a time awaits verification (templates/suspicious_time/_reason.html.twig) - neutral, never blaming.
+    # Times are h:mm:ss. Some are for moderators only (SuspiciousTimeReasonCode::isShownToPlayer()).
+    reason:
+        faster_than_predicted: "Das ist deutlich schneller, als wir es bei diesem Puzzle von Ihnen erwartet hätten (etwa %expected%)."
+        faster_than_usual: "Das ist deutlich schneller als Ihre übliche Zeit von %expected% bei %pieces% Teilen."
+        beyond_known_pace: "Das ist schneller als fast jede erfasste Zeit bei %pieces% Teilen."
+        slower_than_predicted: "Das ist deutlich langsamer, als wir es bei diesem Puzzle von Ihnen erwartet hätten (etwa %expected%)."
+        slower_than_usual: "Das ist deutlich langsamer als Ihre übliche Zeit von %expected% bei %pieces% Teilen."
+        below_slow_floor: "Das ist deutlich langsamer als üblich bei %pieces% Teilen – die meisten Puzzler brauchen etwa %median%."
+        hours_left_out: "Vielleicht blieb das Stundenfeld leer – %suggested%?"
+        teammates_saved_group: "Jemand hat dieses Puzzle an dem Tag als Paar- oder Teamergebnis gespeichert."
+        comment_mentions_group: "Ihre Notiz erwähnt, dass Sie mit anderen gepuzzelt haben."
+        other_edition: "Vielleicht war es die Ausgabe mit %pieces% Teilen: %name%."
+        minutes_in_hours_box: "Vielleicht sind die Minuten im Stundenfeld gelandet – %suggested%?"
+        includes_breaks: "Wenn Sie über mehrere Tage gepuzzelt haben, sollte die Zeit nur die reine Puzzlezeit enthalten."
+        often_in_group: "Puzzelt oft zu zweit oder im Team (%group_results% Ergebnisse) – die Zeit passt zu deren Gruppentempo von %group_expected%."
+        fastest_on_puzzle: "Wäre die schnellste von %results% Solo-Zeiten bei diesem Puzzle (aktuell schnellste: %fastest%)."
+        prediction_from_slow_attempt: "Die Prognose (%predicted%) stammte aus einem früheren Versuch mit %previous%, der viel zu langsam wirkt – daher wurde stattdessen die übliche Zeit der Person herangezogen."
+        new_player: "Neue Person – %results% weitere Solo-Ergebnisse."
+        confirmed_while_saving: "Beim Speichern als richtig bestätigt (das Formular erwartete etwa %expected%)."
+    # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
+    # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
+    review:
+        title: "Wartet auf Überprüfung"
+        intro: "Wir sehen uns Ergebnisse genauer an, die deutlich schneller oder langsamer sind als Ihre üblichen Zeiten – meistens ist es ein Tippfehler, etwa ein leeres Stundenfeld. Bis das geklärt ist, bleibt das Ergebnis in Ihren eigenen Ergebnissen, zählt aber nicht in Ranglisten und Statistiken. Korrigieren Sie es kurz, oder sagen Sie uns, dass die Zeit stimmt."
+        pair_result: "Paarergebnis"
+        team_result: "Teamergebnis"
+        note: "Hinweis der Moderation: %note%"
+        fix_time: "Zeit korrigieren"
+        add_people: "Personen hinzufügen, mit denen ich gepuzzelt habe"
+        change_puzzle: "Puzzle ändern"
+        change_puzzle_only_tracker: "War es ein anderes Puzzle? Nur die Person, die dieses Ergebnis gespeichert hat, kann das Puzzle ändern."
+        correct: "Die Zeit stimmt"
+        correct_message: "Gibt es etwas, das die Moderation wissen sollte? (optional)"
+        correct_send: "Senden"
+        leave: "So lassen"
+        leave_hint: "Das Ergebnis wartet weiter auf Überprüfung und zählt nicht – wir fragen nicht noch einmal danach."
+        waiting: "Danke – die Moderation sieht es sich an."
+        your_message: "Ihre Nachricht: %message%"
+        edited: "Sie haben dieses Ergebnis geändert – die Moderation sieht es sich noch einmal an."
+        left: "Sie haben es so gelassen. Sie können es jederzeit noch korrigieren."
+        kept: "Die Moderation hat es geprüft: Es wartet weiter auf Überprüfung."
+        kept_note: "Die Moderation hat es geprüft: Es wartet weiter auf Überprüfung – %note%"
+        answered_title: "Von der Moderation geprüft"
+        trusted: "Die Moderation hat es geprüft: Ihre Zeit zählt wieder."
+        suggested_time: "Vorgeschlagene Zeit aus dem Hinweis der Überprüfung: %time% – prüfen Sie sie und speichern Sie."
+    banner: "%count% Ihrer Ergebnisse muss überprüft werden.|%count% Ihrer Ergebnisse müssen überprüft werden."
+    flash:
+        replied: "Danke – die Moderation sieht es sich an."
+        already_replied: "Sie haben uns bereits mitgeteilt, dass diese Zeit stimmt – die Moderation sieht es sich an."
+        left_as_is: "In Ordnung – wir fragen nicht noch einmal nach diesem Ergebnis."

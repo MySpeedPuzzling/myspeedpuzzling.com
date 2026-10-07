@@ -2,18 +2,21 @@
 {#
     "Your results" (docs/features/duplicate-results.md, "Telling players"). No action links on purpose: mail scanners
     open links in advance, so "Review" only opens the page and every action is a POST there.
-    One line per result (sets), however many copies. Only removals (no case left) = the "we removed" wording.
+    One line per result (sets), however many copies. The wording follows `variant` (ResultReviewEmailComposer):
+    first / weekly (results to check), removed (only removals), verification / verification_answered (only times
+    awaiting verification or moderators' answers - docs/features/suspicious-time-review.md, "Where they see it").
+    Never "suspicious" in anything the player reads.
 #}
-{% set removed_only = sets is empty %}
+{% set review_parameters = {_locale: locale, from: 'rc-' ~ contactId}|merge(reviewFragment is not null ? {_fragment: reviewFragment} : {}) %}
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
     <wrapper>
         <container>
-            {{ include('emails/_header.html.twig', {preheader: (removed_only ? 'result_review.preheader_removed' : (first ? 'result_review.preheader_first' : 'result_review.preheader_weekly'))|trans}) }}
+            {{ include('emails/_header.html.twig', {preheader: ('result_review.preheader_' ~ variant)|trans({'%count%': count})}) }}
 
             <row>
                 <columns>
                     <spacer size-sm="24"></spacer>
-                    <h3>{{ (removed_only ? 'result_review.title_removed' : (first ? 'result_review.title_first' : 'result_review.title_weekly'))|trans }}</h3>
+                    <h3>{{ ('result_review.title_' ~ variant)|trans({'%count%': count}) }}</h3>
                     <spacer size-sm="8"></spacer>
                 </columns>
             </row>
@@ -21,11 +24,11 @@
             <row>
                 <columns>
                     <p>{{ 'result_review.greeting'|trans({'%playerName%': playerName ?? 'Puzzler'}) }}</p>
-                    <p>{{ (removed_only ? 'result_review.intro_removed' : (first ? 'result_review.intro_first' : 'result_review.intro_weekly'))|trans }}</p>
+                    <p>{{ ('result_review.intro_' ~ variant)|trans({'%count%': count}) }}</p>
 
                     {# Two clearly separate boxes: what we were not sure about (the player decides) and what we were
                        sure about and already fixed (undo possible) - inline styles, e-mail clients drop <style> #}
-                    {% if not removed_only %}
+                    {% if sets is not empty %}
                         <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #fff8e6; border-left: 4px solid #f0a020; border-radius: 6px;">
                             <tr>
                                 <td style="padding: 14px 16px;">
@@ -77,8 +80,58 @@
                         </table>
                     {% endif %}
 
+                    {# Times set aside until they are checked: told once per mark, like a removal #}
+                    {% if markedTimes is not empty %}
+                        <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #eef4fb; border-left: 4px solid #3b7bbf; border-radius: 6px;">
+                            <tr>
+                                <td style="padding: 14px 16px;">
+                                    <p style="margin: 0 0 6px; font-weight: bold;">{{ 'result_review.verification_heading'|trans }}</p>
+                                    <p style="margin: 0 0 10px; font-size: 14px;">{{ 'result_review.verification_text'|trans }}</p>
+                                    <ul style="margin: 0 0 10px; padding-left: 20px;">
+                                        {% for markedTime in markedTimes %}
+                                            <li style="margin-bottom: 6px;">
+                                                {{ 'result_review.case_line'|trans({
+                                                    '%puzzleName%': markedTime.puzzleName,
+                                                    '%time%': markedTime.secondsToSolve is not null ? markedTime.secondsToSolve|puzzlingTime : '-',
+                                                    '%date%': markedTime.solvedAt|format_date('medium', locale: locale),
+                                                }) }}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% if moreMarkedTimes > 0 %}
+                                        <p style="margin: 0 0 10px; font-size: 14px;">{{ 'result_review.more'|trans({'%count%': moreMarkedTimes}) }}</p>
+                                    {% endif %}
+                                    <p style="margin: 0; font-size: 14px;">{{ 'result_review.verification_action'|trans }}</p>
+                                </td>
+                            </tr>
+                        </table>
+                    {% endif %}
+
+                    {# A moderator's answer to "The time is correct" - one line each #}
+                    {% if verificationAnswers is not empty %}
+                        <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #f3f5f9; border-left: 4px solid #8a94a6; border-radius: 6px;">
+                            <tr>
+                                <td style="padding: 14px 16px;">
+                                    <p style="margin: 0 0 6px; font-weight: bold;">{{ 'result_review.verification_answers_heading'|trans }}</p>
+                                    <ul style="margin: 0; padding-left: 20px;">
+                                        {% for answer in verificationAnswers %}
+                                            {% set answer_key = answer.countsAgain ? 'result_review.verification_answer_trusted' : (answer.note is not null ? 'result_review.verification_answer_kept_note' : 'result_review.verification_answer_kept') %}
+                                            <li style="margin-bottom: 6px;">
+                                                {{ answer_key|trans({
+                                                    '%puzzleName%': answer.puzzleName,
+                                                    '%time%': answer.secondsToSolve is not null ? answer.secondsToSolve|puzzlingTime : '-',
+                                                    '%note%': answer.note ?? '',
+                                                }) }}
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                        </table>
+                    {% endif %}
+
                     <center>
-                        <button href="{{ url('review_results', {_locale: locale, from: 'rc-' ~ contactId}) }}">
+                        <button href="{{ url('review_results', review_parameters) }}">
                             {{ 'result_review.button'|trans }}
                         </button>
                     </center>

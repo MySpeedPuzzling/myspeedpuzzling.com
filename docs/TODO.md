@@ -4,6 +4,25 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Time verification (`docs/features/suspicious-time-review.md`)
+
+- [ ] Result detail of a private player's queued time: the queue card links no result detail for a private player
+      (the detail 404s for anybody the player hides from). Settled decision 1 allows a moderator to see that one time
+      while it is queued - open the detail for `REVIEW_SUSPICIOUS_TIMES` + a case in the queue, or show what is needed
+      on the card.
+- [ ] Admin funnel: `/admin/duplicate-results` ("Your results" e-mails in numbers, `GetResultReviewContactsOverview`)
+      counts every contact, but nothing tells the e-mails with verification content apart and "all resolved" knows
+      duplicate cases only - count the e-mails that carried notices (`suspicious_notice_ids`) and the reactions to
+      them (fixed / says correct / left it), or link the queue's Numbers tab.
+- [ ] Undo of an automatic duplicate removal (`result_auto_removal`, docs/features/duplicate-results.md) restores a
+      flagged time with the same id but without its `suspicious_time_case` / notices (they cascaded with the deleted
+      copy): the next scan's flag reconciliation gives it a new manual case and the notice run tells its players again,
+      although they were told about the mark before. Rare (a marked time that was also an automatically removed copy);
+      restore the case and notices from the removal snapshot, or record the restored notices as already told.
+- [ ] After a few weeks of decisions: read Numbers (precision per reason, what players did) and decide the thresholds of
+      `SuspiciousTimeClassifier::VERSION` 2 (`--dry-run` first); also whether pair/team fast times and "Needs
+      verification" from the result detail (origin `moderator`) are worth a version ("Not in v1").
+
 ## Round reveal delay (`docs/features/competitions-management/README.md` "Automatic reveal delay")
 
 - [ ] Deploy it by the checklist in README "Deploying and rolling back": nothing pending in the next 24 hours (the

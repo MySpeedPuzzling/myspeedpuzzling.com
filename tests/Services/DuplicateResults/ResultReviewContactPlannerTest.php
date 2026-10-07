@@ -12,7 +12,8 @@ use SpeedPuzzling\Web\Value\PlannedResultReviewContact;
 use SpeedPuzzling\Web\Value\ResultReviewContactType;
 
 /**
- * The contact rules of the "Your results" e-mail (docs/features/duplicate-results.md, "Contact rules").
+ * The contact rules of the "Your results" e-mail (docs/features/duplicate-results.md, "Contact rules"); verification
+ * notices go like removals (docs/features/suspicious-time-review.md, "Where they see it").
  */
 final class ResultReviewContactPlannerTest extends TestCase
 {
@@ -128,6 +129,88 @@ final class ResultReviewContactPlannerTest extends TestCase
         self::assertNotNull($this->plan($candidate('2026-09-02 09:00:00')));
     }
 
+    public function testAVerificationNoticeAloneTriggersTheFirstEmailActiveOrNot(): void
+    {
+        $active = $this->plan($this->candidate(lastActiveOn: '2026-09-30', notices: ['n1', 'n2']));
+        $dormant = $this->plan($this->candidate(lastActiveOn: null, notices: ['n1']));
+
+        self::assertNotNull($active);
+        self::assertSame(ResultReviewContactType::First, $active->type);
+        self::assertSame(ResultReviewContactPlanner::PRIORITY_FIRST_ACTIVE, $active->priority);
+        self::assertSame(['n1', 'n2'], $active->suspiciousNoticeIds);
+        self::assertSame([], $active->caseIds);
+        self::assertSame([], $active->removalIds);
+
+        self::assertNotNull($dormant);
+        self::assertSame(ResultReviewContactPlanner::PRIORITY_FIRST_DORMANT, $dormant->priority);
+        self::assertSame(['n1'], $dormant->suspiciousNoticeIds);
+    }
+
+    public function testTheFirstEmailCarriesCasesRemovalsAndNoticesTogether(): void
+    {
+        $plan = $this->plan($this->candidate(lastActiveOn: '2026-09-30', strong: ['b1'], possible: ['c1'], removals: ['r1'], notices: ['n1']));
+
+        self::assertNotNull($plan);
+        self::assertSame(['b1', 'c1'], $plan->caseIds);
+        self::assertSame(['r1'], $plan->removalIds);
+        self::assertSame(['n1'], $plan->suspiciousNoticeIds);
+    }
+
+    public function testTierCRidesAlongWithANoticeLikeWithARemoval(): void
+    {
+        $plan = $this->plan($this->candidate(lastActiveOn: '2026-10-01', possible: ['c1'], notices: ['n1']));
+
+        self::assertNotNull($plan);
+        self::assertSame(['c1'], $plan->caseIds);
+        self::assertSame(['n1'], $plan->suspiciousNoticeIds);
+    }
+
+    public function testVerificationNoticesAreToldEvenToPlayersWhoIgnoredTheLastEmail(): void
+    {
+        $plan = $this->plan($this->candidate(
+            lastActiveOn: '2026-10-01',
+            lastSentAt: '2026-09-01 09:00:00',
+            reactedAt: null,
+            lastSentWithCasesAt: '2026-09-01 09:00:00',
+            strong: ['b1'],
+            notices: ['n1'],
+        ));
+
+        self::assertNotNull($plan);
+        self::assertSame(ResultReviewContactType::Weekly, $plan->type);
+        self::assertSame(ResultReviewContactPlanner::PRIORITY_WEEKLY, $plan->priority);
+        // No new cases for somebody who ignored us - the mark is told anyway
+        self::assertSame([], $plan->caseIds);
+        self::assertSame(['n1'], $plan->suspiciousNoticeIds);
+    }
+
+    public function testLaterVerificationNoticesFollowTheRulesOfRemovals(): void
+    {
+        $candidate = fn (null|string $lastActiveOn, string $lastSentAt): ResultReviewCandidate => $this->candidate(
+            lastActiveOn: $lastActiveOn,
+            lastSentAt: $lastSentAt,
+            reactedAt: $lastSentAt,
+            notices: ['n1'],
+        );
+
+        // Only to players active in the last 3 months ...
+        self::assertNull($this->plan($candidate('2026-06-30', '2026-08-01 09:00:00')));
+        self::assertNull($this->plan($candidate(null, '2026-08-01 09:00:00')));
+        // ... at most one e-mail per 7 days
+        self::assertNull($this->plan($candidate('2026-10-01', '2026-09-26 20:00:00')));
+
+        $plan = $this->plan($candidate('2026-10-01', '2026-09-25 20:00:00'));
+        self::assertNotNull($plan);
+        self::assertSame(ResultReviewContactType::Weekly, $plan->type);
+        self::assertSame(['n1'], $plan->suspiciousNoticeIds);
+    }
+
+    public function testNothingToTellIsNoEmail(): void
+    {
+        self::assertNull($this->plan($this->candidate(lastActiveOn: '2026-10-01')));
+        self::assertNull($this->plan($this->candidate(lastActiveOn: '2026-10-01', lastSentAt: '2026-09-01 09:00:00', reactedAt: '2026-09-01 10:00:00')));
+    }
+
     private function plan(ResultReviewCandidate $candidate): null|PlannedResultReviewContact
     {
         return (new ResultReviewContactPlanner())->plan($candidate, new DateTimeImmutable(self::NOW));
@@ -137,6 +220,7 @@ final class ResultReviewContactPlannerTest extends TestCase
      * @param list<string> $strong
      * @param list<string> $possible
      * @param list<string> $removals
+     * @param list<string> $notices
      */
     private function candidate(
         null|string $lastActiveOn,
@@ -146,6 +230,7 @@ final class ResultReviewContactPlannerTest extends TestCase
         array $strong = [],
         array $possible = [],
         array $removals = [],
+        array $notices = [],
     ): ResultReviewCandidate {
         $date = static fn (null|string $value): null|DateTimeImmutable => $value !== null ? new DateTimeImmutable($value) : null;
 
@@ -158,6 +243,7 @@ final class ResultReviewContactPlannerTest extends TestCase
             strongCaseIds: $strong,
             possibleCaseIds: $possible,
             removalIds: $removals,
+            suspiciousNoticeIds: $notices,
         );
     }
 }

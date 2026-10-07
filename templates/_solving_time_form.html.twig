@@ -10,6 +10,7 @@
     {% set puzzle_change = active_puzzle is not null and can_change_puzzle|default(false) %}
     {% set puzzle_picker_open = puzzle_change and solving_time_form.puzzle.vars.errors|length > 0 %}
     {# A puzzle that can still change is read from the puzzle field by first-try-check #}
+    {# first-try-check judges a typed time against the player's own times (pace) - not one a stopwatch measured #}
 
     {% set form_start_options = {
         'attr': {
@@ -17,6 +18,7 @@
             'data-first-try-check-url-value': path('first_try_check'),
             'data-first-try-check-puzzle-value': active_puzzle is defined and active_puzzle is not null and not puzzle_change ? active_puzzle.puzzleId : '',
             'data-first-try-check-time-value': solved_puzzle is defined ? solved_puzzle.timeId : '',
+            'data-first-try-check-pace-value': active_stopwatch|default(null) is null ? 'true' : 'false',
             'data-submit-prevention-compress-images-value': 'true',
             'data-submit-prevention-compressing-text-value': 'forms.compressing_images'|trans,
             'data-submit-prevention-saving-text-value': 'forms.saving'|trans,
@@ -327,9 +329,11 @@
                         {# docs/features/first-try-integrity.md + duplicate-results.md - filled by first-try-check, or by a refused submit #}
                         <input type="hidden" name="first_try_resolution" value="{{ first_try_resolution|default('') }}" data-first-try-check-target="resolution">
                         <input type="hidden" name="duplicate_confirmed" value="{{ duplicate_confirmed|default(false) ? '1' : '' }}" data-first-try-check-target="duplicateConfirmed">
+                        {# docs/features/suspicious-time-review.md, "Catch it while typing" - "Yes, it's right": the key of the values it was given for #}
+                        <input type="hidden" name="pace_confirmed" value="{{ pace_confirmed|default(false) and pace_check|default(null) is not null ? pace_check.confirmationKey : '' }}" data-first-try-check-target="paceConfirmed">
                         <div data-first-try-check-target="notice" aria-live="polite">
-                            {%- if first_try|default(null) is not null or duplicates|default(null) is not null -%}
-                                {{ include('first_try/_notice.html.twig', {assessment: first_try|default(null), resolution: first_try_resolution|default(''), duplicates: duplicates|default(null), duplicate_confirmed: duplicate_confirmed|default(false)}) }}
+                            {%- if first_try|default(null) is not null or duplicates|default(null) is not null or pace_check|default(null) is not null -%}
+                                {{ include('first_try/_notice.html.twig', {assessment: first_try|default(null), resolution: first_try_resolution|default(''), duplicates: duplicates|default(null), duplicate_confirmed: duplicate_confirmed|default(false), pace_check: pace_check|default(null), pace_confirmed: pace_confirmed|default(false)}) }}
                             {%- endif -%}
                         </div>
                     </div>

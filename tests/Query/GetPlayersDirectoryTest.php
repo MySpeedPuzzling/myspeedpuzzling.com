@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\PlayersDirectoryPage;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\SuspiciousTimesFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\CommunityScope;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -36,6 +37,12 @@ final class GetPlayersDirectoryTest extends KernelTestCase
         PlayerFixture::PLAYER_WITH_STRIPE,
         DuplicateResultsFixture::PLAYER_TWINS,
         DuplicateResultsFixture::PLAYER_TWINS_TEAMMATE,
+        SuspiciousTimesFixture::PLAYER_STEADY,
+        SuspiciousTimesFixture::PLAYER_EDITION,
+        SuspiciousTimesFixture::PLAYER_GROUP,
+        SuspiciousTimesFixture::PLAYER_MARKED,
+        SuspiciousTimesFixture::PLAYER_FLAGGED,
+        SuspiciousTimesFixture::PLAYER_PARTNER,
     ];
 
     private GetPlayersDirectory $query;
@@ -211,7 +218,7 @@ final class GetPlayersDirectoryTest extends KernelTestCase
     public function testAToZ(): void
     {
         self::assertSame(
-            ['Admin User', 'Dana Twin', 'John Doe', 'Michael Johnson', 'Sarah Williams', 'Tom Twin'],
+            ['Admin User', 'Dana Twin', 'Eda Edition', 'Fay Flagged', 'Gina Group', 'John Doe', 'Mia Marked', 'Michael Johnson', 'Pat Partner', 'Sam Steady', 'Sarah Williams', 'Tom Twin'],
             array_map(
                 static fn (PlayersDirectoryCard $card): null|string => $card->playerName,
                 $this->search(CommunityScope::world(), sort: PlayersDirectorySort::Name)->cards,

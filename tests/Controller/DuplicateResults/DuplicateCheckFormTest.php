@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Tests\AnswersPaceCheck;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -28,6 +29,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 final class DuplicateCheckFormTest extends WebTestCase
 {
+    use AnswersPaceCheck;
+
     use QueryCountAssertions;
 
     public function testTheSameTimeFromTheSameDayIsSavedOnlyAfterAConfirmation(): void
@@ -379,10 +382,15 @@ final class DuplicateCheckFormTest extends WebTestCase
         bool $duplicateConfirmed = false,
         array $groupPlayers = [],
     ): Crawler {
+        $form = array_filter($fields, static fn(null|string $value): bool => $value !== null);
         $parameters = [
-            'puzzle_add_form' => array_filter($fields, static fn(null|string $value): bool => $value !== null),
+            'puzzle_add_form' => $form,
             'time_id' => $timeId,
             'duplicate_confirmed' => $duplicateConfirmed ? '1' : '',
+            // 5:00:00 for 3000 pieces is beyond the fixtures' known pace for a player without times of their own
+            // (suspicious_time_reference 2001-5000 solo: p999 9 PPM) - answered "Yes, it's right" here, the time
+            // check has its own tests (TimeVerificationFormTest)
+            'pace_confirmed' => self::paceConfirmationFor($form, $groupPlayers),
         ];
 
         if ($groupPlayers !== []) {
@@ -404,19 +412,25 @@ final class DuplicateCheckFormTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/edit-time/' . $timeId, server: $server);
         $this->assertResponseIsSuccessful();
 
+        $form = [
+            '_token' => $crawler->filter('input[name="edit_puzzle_solving_time_form[_token]"]')->attr('value'),
+            'mode' => 'speed_puzzling',
+            'brand' => ManufacturerFixture::MANUFACTURER_TREFL,
+            'puzzle' => FirstTryScenario::PUZZLE,
+            'timeHours' => '5',
+            'timeMinutes' => '0',
+            'timeSeconds' => $seconds,
+            'finishedAt' => $this->today(),
+            'comment' => $comment,
+        ];
+
         return $browser->request('POST', '/en/edit-time/' . $timeId, [
-            'edit_puzzle_solving_time_form' => [
-                '_token' => $crawler->filter('input[name="edit_puzzle_solving_time_form[_token]"]')->attr('value'),
-                'mode' => 'speed_puzzling',
-                'brand' => ManufacturerFixture::MANUFACTURER_TREFL,
-                'puzzle' => FirstTryScenario::PUZZLE,
-                'timeHours' => '5',
-                'timeMinutes' => '0',
-                'timeSeconds' => $seconds,
-                'finishedAt' => $this->today(),
-                'comment' => $comment,
-            ],
+            'edit_puzzle_solving_time_form' => $form,
             'duplicate_confirmed' => $duplicateConfirmed ? '1' : '',
+            // 5:00:00 for 3000 pieces is beyond the fixtures' known pace for a player without times of their own
+            // (suspicious_time_reference 2001-5000 solo: p999 9 PPM) - answered "Yes, it's right" here, the time
+            // check has its own tests (TimeVerificationFormTest)
+            'pace_confirmed' => self::paceConfirmationFor($form),
         ], server: $server);
     }
 

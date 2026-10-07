@@ -17,6 +17,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
 {
     private const string GLOBAL_RANKING = 'Global ranking / leaderboard: private players are left out for everybody - nobody is ranked differently for different viewers.';
     private const string BACKGROUND = 'Background job with no viewer (cron, sync, sitemap).';
+    private const string TIME_VERIFICATION = 'Time verification queue (admins and moderators): a private player\'s queued times are shown - only those, with the numbers the card needs (docs/features/suspicious-time-review.md, Jan 2026-10-07); the raw setting is a badge on the card.';
 
     /** Files allowed to read the raw column, besides going through PrivateProfileAccess */
     private const array RAW_COLUMN = [
@@ -38,6 +39,8 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetSpotlightPeople.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
         'Query/GetStopwatchMilestones.php' => self::GLOBAL_RANKING,
         'Query/GetSuggestedPlayers.php' => 'Players page list: public profiles only, for everybody - nobody is ranked differently for different viewers.',
+        'Query/GetSuspiciousTimeCaseDetail.php' => self::TIME_VERIFICATION,
+        'Query/GetSuspiciousTimeQueue.php' => self::TIME_VERIFICATION,
         'Services/ComparisonSubjectVisibility.php' => 'Write side with an explicit owner id: the owner\'s allow-list row is read in the same statement - handlers never see the ambient viewer.',
         'Services/PrivateProfileAccess.php' => 'The one place that decides.',
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::BACKGROUND,

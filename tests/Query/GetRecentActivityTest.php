@@ -119,13 +119,16 @@ filtered_puzzle_solving_time AS (
     FROM
         puzzle_solving_time pst, favorite_player_ids_array fpi
     WHERE
-        pst.player_id = ANY(fpi.favorite_ids)
-        OR (
-            pst.team IS NOT NULL
-            AND EXISTS (
-                SELECT 1
-                FROM jsonb_array_elements(pst.team::jsonb -> 'puzzlers') AS player_elem(player)
-                WHERE (player_elem.player ->> 'player_id')::UUID = ANY(fpi.favorite_ids)
+        pst.suspicious = false
+        AND (
+            pst.player_id = ANY(fpi.favorite_ids)
+            OR (
+                pst.team IS NOT NULL
+                AND EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements(pst.team::jsonb -> 'puzzlers') AS player_elem(player)
+                    WHERE (player_elem.player ->> 'player_id')::UUID = ANY(fpi.favorite_ids)
+                )
             )
         )
     ORDER BY pst.tracked_at DESC

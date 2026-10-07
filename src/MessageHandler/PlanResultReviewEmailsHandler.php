@@ -55,6 +55,7 @@ readonly final class PlanResultReviewEmailsHandler
                 caseIds: $plan->caseIds,
                 removalIds: $plan->removalIds,
                 plannedAt: $now,
+                suspiciousNoticeIds: $plan->suspiciousNoticeIds,
             ));
             $planned++;
         }

@@ -12,8 +12,11 @@ use SpeedPuzzling\Web\Message\SendPlannedResultReviewEmails;
 use SpeedPuzzling\Web\Query\GetResultReviewEmails;
 use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
 use SpeedPuzzling\Web\Repository\ResultReviewContactRepository;
+use SpeedPuzzling\Web\Repository\SuspiciousTimeNoticeRepository;
 use SpeedPuzzling\Web\Results\AutoRemovedResult;
 use SpeedPuzzling\Web\Results\ResultReviewEmailCase;
+use SpeedPuzzling\Web\Results\ResultReviewEmailMarkedTime;
+use SpeedPuzzling\Web\Results\ResultReviewEmailVerificationAnswer;
 use SpeedPuzzling\Web\Results\ResultReviewSendingSummary;
 use SpeedPuzzling\Web\Services\DelayedEmailQueue;
 use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewEmailComposer;
@@ -31,7 +34,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * 5 minutes of 5 e-mails send one a minute.
  *
  * The planning can be days old, so every e-mail is checked again: the switch still on, cases still open, removals
- * still not undone. What was resolved meanwhile is left out; nothing left (or Tier C alone) = skipped.
+ * still not undone, marks still in force and not reacted to, answers still untold
+ * (docs/features/suspicious-time-review.md, "Where they see it"). What was resolved meanwhile is left out; nothing
+ * left (or Tier C alone) = skipped. Every notice told records the e-mail that told it - once.
  *
  * One transaction for the run, the queued e-mails included (the Doctrine messenger transport) - a failure sends
  * nothing and the next run tries again. The planned contacts are locked for the run (FOR UPDATE SKIP LOCKED), so a
@@ -46,6 +51,7 @@ readonly final class SendPlannedResultReviewEmailsHandler
         private GetResultReviewEmails $getResultReviewEmails,
         private ResultReviewContactRepository $contactRepository,
         private ResultAutoRemovalRepository $autoRemovalRepository,
+        private SuspiciousTimeNoticeRepository $noticeRepository,
         private PlayerAccountEmail $playerAccountEmail,
         private ResultReviewEmailComposer $emailComposer,
         private DelayedEmailQueue $emailQueue,
@@ -114,8 +120,10 @@ readonly final class SendPlannedResultReviewEmailsHandler
         $cases = $this->getResultReviewEmails->openCasesOf($playerId, $contact->caseIds);
         $removals = $this->getResultReviewEmails->removalsNotUndoneOf($playerId, $contact->removalIds);
         $strongCases = array_filter($cases, static fn (ResultReviewEmailCase $case): bool => $case->triggersEmail());
+        $markedTimes = $this->getResultReviewEmails->markedTimesOf($playerId, $contact->suspiciousNoticeIds);
+        $answers = $this->getResultReviewEmails->verificationAnswersOf($playerId, $contact->suspiciousNoticeIds);
 
-        if ($strongCases === [] && $removals === []) {
+        if ($strongCases === [] && $removals === [] && $markedTimes === [] && $answers === []) {
             $contact->skip(ResultReviewContactSkipReason::NothingLeft);
 
             return false;
@@ -131,18 +139,32 @@ readonly final class SendPlannedResultReviewEmailsHandler
             first: $contact->type === ResultReviewContactType::First,
             cases: $cases,
             removals: $removals,
+            markedTimes: $markedTimes,
+            verificationAnswers: $answers,
         );
 
         $this->emailQueue->queue($email, $delaySeconds);
+
+        $markedNoticeIds = array_map(static fn (ResultReviewEmailMarkedTime $markedTime): string => $markedTime->noticeId, $markedTimes);
+        $answerNoticeIds = array_map(static fn (ResultReviewEmailVerificationAnswer $answer): string => $answer->noticeId, $answers);
 
         $contact->sent(
             caseIds: array_map(static fn (ResultReviewEmailCase $case): string => $case->caseId, $cases),
             removalIds: array_map(static fn (AutoRemovedResult $removal): string => $removal->removalId, $removals),
             now: $now,
+            suspiciousNoticeIds: array_values(array_unique([...$markedNoticeIds, ...$answerNoticeIds])),
         );
 
         foreach ($removals as $removal) {
             $this->autoRemovalRepository->get($removal->removalId)->reported($now);
+        }
+
+        foreach ($markedNoticeIds as $noticeId) {
+            $this->noticeRepository->get($noticeId)->sentInContact($contact->id);
+        }
+
+        foreach ($answerNoticeIds as $noticeId) {
+            $this->noticeRepository->get($noticeId)->answerSentInContact($contact->id);
         }
 
         return true;

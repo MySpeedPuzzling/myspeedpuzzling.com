@@ -33,6 +33,9 @@ Granting twice keeps the original date; revoking sets it back to `NULL`.
   The attribute names the *capability* (looking after the puzzle catalogue), not the role: when an area
   outside the catalogue is opened to moderators, give it its own attribute/voter instead of widening this one.
   Puzzle approvals (2026-09-25) are catalogue work and share it.
+- `SuspiciousResultsVoter` — the first area outside the catalogue: `REVIEW_SUSPICIOUS_TIMES` (the time verification
+  queue `/admin/time-verification`, [suspicious-time-review.md](suspicious-time-review.md#moderator-queue---admintime-verification)),
+  admins **and** moderators. Its own rule `^/admin/time-verification`, above `^/admin` as well.
 - `config/packages/security.php` — `^/admin/puzzle(s/|-((change|merge)-requests|approvals))` requires
   `PUZZLE_MODERATION_ACCESS` and **must stay above** the `^/admin` → `ADMIN_ACCESS` rule (first match wins).
 - The puzzle-review controllers (change, merge and approval queues) carry `#[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]`;

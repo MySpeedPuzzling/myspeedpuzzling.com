@@ -3,6 +3,8 @@
     Rendered by a refused submit and by the live check (FirstTryCheckController) alike.
     assessment: null|FirstTryAssessment, resolution: '' | 'move',
     duplicates: null|DuplicateAssessment, duplicate_confirmed: bool (docs/features/duplicate-results.md, Layer 2)
+    pace_check: null|PaceFormCheck, pace_confirmed: bool (docs/features/suspicious-time-review.md, "Catch it while
+    typing")
 #}
 {%- macro own_result(line) -%}
     {%- set date = line.date|date('d.m.Y') -%}
@@ -20,6 +22,10 @@
 {#- The same time from the same day comes first: a copy of a first try is no case for "make this my first try" -#}
 {{ include('duplicate_check/_notice.html.twig', {duplicates: duplicates|default(null), confirmed: duplicate_confirmed|default(false)}) }}
 {% set duplicate_first = duplicates|default(null) is not null and duplicates.blocks(duplicate_confirmed|default(false)) %}
+
+{#- The time against the player's own times - a typo is fixed before anything else is asked about the result -#}
+{% set pace_check = pace_check|default(null) %}
+{{ include('suspicious_time/_form_notice.html.twig', {pace: pace_check ? pace_check.assessment : null, key: pace_check ? pace_check.confirmationKey : '', confirmed: pace_confirmed|default(false)}, with_context = false) }}
 
 {% if not duplicate_first and assessment is not null and not assessment.isEmpty %}
     {% set moving = assessment.hasHolds and assessment.viewerCanMove and resolution == 'move' %}

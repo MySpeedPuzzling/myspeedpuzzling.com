@@ -363,3 +363,37 @@ The detection at save time (`DetectDuplicateResultsOnSave`) runs while the fixtu
 already holds these five cases - **open, `detected_by = save`**, the Tier A one too (only the daily detection removes
 copies). Tests that need a clean slate delete them first (`DetectDuplicateResultsHandlerTest`); dispatching
 `DetectDuplicateResults` removes `TIME_CERTAIN_B` automatically (a `result_auto_removal` row, Undo brings it back).
+
+## Suspicious Times (`SuspiciousTimesFixture`)
+
+Suspicious time review (`docs/features/suspicious-time-review.md`), on its own players and puzzles (UUID prefix
+`018d0031-`, Trefl, **not approved**, piece counts without a brand page) so no other fixture's counts change. Sam's
+baseline is at 4000 pieces on purpose: the full insights recalculation computes direct baselines only for piece
+counts some approved puzzle has (`PUZZLE_4000`), the incremental one after a save for any - at another count the two
+disagree (`PuzzleIntelligenceRecalculatorWritesTest`). Eda has 5 results on 3 puzzles: enough for the pace fallback,
+too few first tries for a baseline. Players (no user account, log in with
+`TestingLogin::asPlayer()`): `PLAYER_STEADY` (Sam Steady, `steady1`), `PLAYER_EDITION` (Eda Edition, `edition1`),
+`PLAYER_GROUP` (Gina Group, `ginagr1`), `PLAYER_MARKED` (Mia Marked, `marked1`), `PLAYER_FLAGGED` (Fay Flagged,
+`flagged1`), `PLAYER_PARTNER` (Pat Partner, `partner1`).
+
+The test database is too small for community references (`SuspiciousTimeClassifier::REFERENCE_MIN_SAMPLE` = 30 per
+piece-count range and puzzling type), so the fixture stores three in `suspicious_time_reference`: 1201-2000 solo
+(median 3.5 PPM, p999 19), 2001-5000 solo (2.8 / 9) and 2001-5000 duo (4.0 / 12). The scan keeps a stored reference
+whose range has too few results - **keep the 1201-2000 and 2001-5000 ranges below 30 results per type** (the 500-750
+solo range has more than 30 in the fixtures, so the scan computes that one from the data).
+
+| Time | What | The scan finds |
+|------|------|----------------|
+| `TIMES_STEADY_HISTORY` (5) | Sam, 4000 pcs (range 2001-5000), 9:26:40-9:36:40, first tries | clear; his `player_baseline` for 4000 ≈ 34200 s (9.5 h) |
+| `TIME_STEADY_FAST` | Sam, Harbour Lights 4000, 2:30:00 | **pending case `CASE_PENDING_FAST`** (fixture) - fast, baseline, `faster_than_usual` + `hours_left_out` 7:30:00 |
+| `TIME_STEADY_TYPO` | Sam, Quiet Orchard 520, 49:08:00, stored prediction 1:00:00 | **pending case `CASE_PENDING_SLOW`** (fixture) - slow, `slower_than_predicted` + `minutes_in_hours_box` 49:08 + `includes_breaks` |
+| `TIMES_EDITION_HISTORY` (5) | Eda, 3 Cove Study puzzles of 1600 pcs (two solved twice) at 7 PPM (3:48:34) | clear; pace 2.0, no baseline |
+| `TIME_EDITION_FAST` | Eda, Lighthouse Cove **3000** pcs, 2:40:00 | new case: fast, pace, `faster_than_usual` + `hours_left_out` + `other_edition` (`PUZZLE_LIGHTHOUSE_1600`) |
+| `TIME_GROUP_SOLO` | Gina (new player), Mountain Meadow 3000, 25:00, comment "together with my team", a `suspicious_time_confirmation` (`CONFIRMATION_GROUP_SOLO`) | new case: fast, no expectation, `beyond_known_pace` + `teammates_saved_group` + `comment_mentions_group` + `new_player` + `confirmed_while_saving` |
+| `TIME_PARTNERS_PAIR` | Pat + Fay pair, Mountain Meadow, 26:00 the same day | clear (pairs are never judged as fast) |
+| `TIME_SLOW_PAIR` | Pat + Fay pair, Marathon Mosaic 3000, 150:00:00 | new case: slow, `below_slow_floor` (duo) + `includes_breaks` |
+| `TIME_MARKED` | Mia, Silent Pier 520, 21:40, **flagged** | **marked case `CASE_MARKED`** (by `PlayerFixture::PLAYER_ADMIN`, note "Please check the hours.", reasons shown `faster_than_usual` + `hours_left_out`) with an unanswered notice `NOTICE_MARKED` (via run) |
+| `TIME_SQL_FLAGGED` | Fay + Pat pair, Garden Gate 520, 40:00, **flagged "by SQL"**, no case | the reconciliation opens a marked case (origin manual, no reasons); the notice run then tells Fay and Pat |
+
+No check rows are stored - the first scan in a test checks everything. Tests dispatch `DetectSuspiciousTimes` /
+`NotifySuspiciousTimes` and clear the entity manager between runs (rows changed by SQL are read again).

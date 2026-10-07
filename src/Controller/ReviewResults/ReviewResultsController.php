@@ -8,6 +8,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\RecordResultReviewVisit;
 use SpeedPuzzling\Web\Query\GetFirstTryTimes;
 use SpeedPuzzling\Web\Query\GetPlayerDuplicateCases;
+use SpeedPuzzling\Web\Query\GetPlayerSuspiciousTimes;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,7 +18,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * "Review your results" (docs/features/duplicate-results.md, "Review page"): results saved twice, copies removed
+ * "Review your results" (docs/features/duplicate-results.md, "Review page"): results awaiting verification first
+ * (docs/features/suspicious-time-review.md, "Where they see it"), results saved twice, copies removed
  * automatically, then the first-try conflicts and late first tries (docs/features/first-try-integrity.md) -
  * always the signed-in player's own.
  *
@@ -33,6 +35,7 @@ final class ReviewResultsController extends AbstractController
         readonly private GetPlayerDuplicateCases $getPlayerDuplicateCases,
         readonly private GetFirstTryTimes $getFirstTryTimes,
         readonly private MessageBusInterface $messageBus,
+        readonly private GetPlayerSuspiciousTimes $getPlayerSuspiciousTimes,
     ) {
     }
 
@@ -56,6 +59,8 @@ final class ReviewResultsController extends AbstractController
 
         return $this->render('review_results/index.html.twig', [
             'player_id' => $player->playerId,
+            'suspicious_times' => $this->getPlayerSuspiciousTimes->openOf($player->playerId),
+            'answered_suspicious_times' => $this->getPlayerSuspiciousTimes->recentlyAnsweredOf($player->playerId),
             'duplicates' => $this->getPlayerDuplicateCases->openOf($player->playerId),
             'auto_removals' => $this->getPlayerDuplicateCases->autoRemovalsOf($player->playerId),
             'conflicts' => $this->getFirstTryTimes->conflictsOf($player->playerId),

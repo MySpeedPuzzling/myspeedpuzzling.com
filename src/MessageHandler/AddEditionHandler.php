@@ -31,8 +31,8 @@ readonly final class AddEditionHandler
             slug: $this->generateUniqueSlug($message->name, $message->seriesId),
             shortcut: null,
             logo: null,
-            description: null,
-            link: null,
+            description: self::emptyToNull($message->description),
+            link: self::emptyToNull($message->link),
             registrationLink: $message->registrationLink,
             resultsLink: $message->resultsLink,
             location: $series->location,
@@ -45,6 +45,15 @@ readonly final class AddEditionHandler
         );
 
         $this->entityManager->persist($competition);
+    }
+
+    private static function emptyToNull(null|string $value): null|string
+    {
+        if ($value === null || trim($value) === '') {
+            return null;
+        }
+
+        return trim($value);
     }
 
     private function generateUniqueSlug(string $name, string $seriesId): string

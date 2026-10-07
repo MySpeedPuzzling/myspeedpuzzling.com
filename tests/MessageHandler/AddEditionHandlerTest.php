@@ -49,6 +49,28 @@ final class AddEditionHandlerTest extends KernelTestCase
         self::assertStringContainsString('ejj', $competition->slug);
     }
 
+    public function testEditionStoresItsInfoLinkAndDescription(): void
+    {
+        $competitionId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new AddEdition(
+            competitionId: $competitionId,
+            seriesId: CompetitionSeriesFixture::SERIES_EJJ,
+            name: 'EJJ #70 — with info',
+            dateFrom: $this->clock->now()->modify('+60 days'),
+            dateTo: $this->clock->now()->modify('+60 days'),
+            registrationLink: null,
+            resultsLink: null,
+            link: ' https://eurojj.com/70 ',
+            description: "Line one\nLine two",
+        ));
+
+        $competition = $this->competitionRepository->get($competitionId->toString());
+
+        self::assertSame('https://eurojj.com/70', $competition->link);
+        self::assertSame("Line one\nLine two", $competition->description);
+    }
+
     public function testEditionDoesNotAutoCreateRound(): void
     {
         $competitionId = Uuid::uuid7();

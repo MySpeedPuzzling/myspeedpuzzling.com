@@ -36,7 +36,7 @@ The events page shows four sections:
 - **Recurring** — all approved recurring events (sorted alphabetically)
 - **Past** — one-time events that have ended
 
-Recurring events are excluded from Live/Upcoming/Past sections. All sections only show approved competitions. External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. Online and recurring badges are displayed on event cards. Recurring series cards display the next upcoming edition date (derived from the nearest future round's `starts_at` across all editions).
+Recurring events are excluded from Live/Upcoming/Past sections. All sections only show approved competitions. External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. Online and recurring badges are displayed on event cards. An online event never prints its location (older online events still carry location "Online" in the data - no migration): the event cards, "My events", the event page header and the admin approval queue show the Online badge instead; the event page JSON-LD of an online event is a `VirtualLocation`, never a `Place`. Recurring series cards display the next upcoming edition date (derived from the nearest future round's `starts_at` across all editions).
 
 Each competition also appears in "My Competitions" for its creator/maintainers regardless of approval status.
 
@@ -94,17 +94,23 @@ CompetitionSeries ("Euro Jigsaw Jam")
 **Adding an edition:**
 - Name (e.g. "EJJ #68 — March 2026")
 - Date from / date to
+- Description and website ("Info") link (optional, the link validated as a URL of at most 250 characters; blank = none) - the same fields the full event edit form has, so a new edition needs no second edit
 - Registration link, results link (optional)
 - After creation, organizer adds rounds from the edition management page
 
 **Public series page** (`/en/series/{slug}`):
-- Series header with name, description, logo, website link, badges
-- Upcoming editions as cards (2-column grid on desktop, single column on mobile): name, date with relative time, time limit, puzzle count, participant count, registration link
+- Series header with name, description (plain text, line breaks kept), logo, website link, badges
+- Upcoming editions as cards (2-column grid on desktop, single column on mobile, `_series_edition_card.html.twig`): name, date with relative time, time limit, puzzle count, participant count, registration link, and the edition's **own** logo on the right when it has one (no series logo repeated on every card - it is in the header)
 - Past editions as cards (same layout): with results link instead of registration link
 - Each edition card links to the edition detail page
+- **No edition is ever hidden.** An edition is dated by its first round, else by its own `date_from` (shown as a date range when it has no round yet). One with neither - no date and no rounds, e.g. a draft or a duplicate - is listed **with the upcoming editions, last**, labelled "Date not set" (`edition.date_not_set`) - on this page and on the organiser's management page (`manage_competition_series`, `_series_editions_table.html.twig`, where it keeps its edit and delete buttons so it can be fixed or removed). `GetCompetitionSeries::fetchEditions()`; `SeriesEdition::isUndated()`. Such an edition is left out of the series `EventSeries` JSON-LD (`subEvent` needs a `startDate`); `subEvent` carries an edition's own logo as `image`.
 
 **Public edition detail page** (`/en/series/{seriesSlug}/{editionSlug}`):
-- Edition header with link back to series
+- Edition header with link back to series; the edition's own logo, else the series logo (the JSON-LD `image` follows the same rule)
+- Links: Info (the edition's own website link), Register, Results, Add my time - external ones with `utm_source=myspeedpuzzling` like everywhere
+- The edition's description below the header, as plain text: `{{ description|nl2br }}` (Twig escapes before adding `<br>`; never `|raw`, no linkifying) - the standalone event page shows its description the same way
+- "Date not set" when the edition has neither a date nor a round
+- Each round heading shows its category pill - Solo too
 - Puzzle grid (from the edition's round)
 - Participants component (competition-scoped)
 - Legacy URLs (`/en/edition/{competitionId}`) 301 redirect to the new slug-based URL

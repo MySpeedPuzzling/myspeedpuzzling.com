@@ -4120,6 +4120,7 @@ series:
 edition:
     edit: "Edit Edition"
     rounds_hint: "After creating the edition, you can add rounds with puzzles and time limits from the edition management page."
+    date_not_set: "Date not set"
     form:
         name: "Edition name"
         name_help: "Give each edition a unique name, e.g. \"Spring Meetup 2026\" or \"EJJ #70 — April 2026\"."
@@ -4127,6 +4128,10 @@ edition:
         minutes_limit: "Time limit (minutes)"
         registration_link: "Registration URL"
         results_link: "Results URL"
+        description: "Description"
+        description_help: "Shown on the edition page. Line breaks are kept."
+        link: "Website URL"
+        link_help: "Shown as the \"Info\" button on the edition page."
     flash:
         created: "Edition added."
         deleted: "Edition was deleted."

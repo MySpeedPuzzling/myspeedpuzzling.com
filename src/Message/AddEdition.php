@@ -17,6 +17,8 @@ readonly final class AddEdition
         public null|DateTimeImmutable $dateTo,
         public null|string $registrationLink,
         public null|string $resultsLink,
+        public null|string $link = null,
+        public null|string $description = null,
     ) {
     }
 }

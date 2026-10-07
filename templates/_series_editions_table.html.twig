@@ -46,8 +46,13 @@
                     <div class="small text-body-secondary mb-3">
                         {% if edition.startsAt %}
                             <i class="bi bi-calendar-event me-1"></i>{{ edition.startsAt|date('d.m.Y H:i', edition.timezone) }}
-                            <span class="mx-1">&middot;</span>
+                        {% elseif edition.dateFrom %}
+                            <i class="bi bi-calendar-event me-1"></i>{{ include('_event_date_range.html.twig', {date_from: edition.dateFrom, date_to: edition.dateTo}) }}
+                        {% else %}
+                            {# No round and no date - listed with the upcoming editions so it can be fixed or deleted #}
+                            <span class="text-warning-emphasis" data-edition-date-not-set><i class="bi bi-calendar-x me-1"></i>{{ 'edition.date_not_set'|trans }}</span>
                         {% endif %}
+                        <span class="mx-1">&middot;</span>
                         {% if edition.minutesLimit and edition.roundCount <= 1 %}
                             <i class="bi bi-stopwatch me-1"></i>{{ edition.minutesLimit }} min
                             <span class="mx-1">&middot;</span>

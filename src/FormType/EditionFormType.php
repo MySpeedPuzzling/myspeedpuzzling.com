@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\EditionFormData;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -40,6 +41,19 @@ final class EditionFormType extends AbstractType
             'html5' => false,
             'input' => 'datetime_immutable',
             'input_format' => 'd.m.Y',
+        ]);
+
+        $builder->add('description', TextareaType::class, [
+            'label' => 'edition.form.description',
+            'help' => 'edition.form.description_help',
+            'required' => false,
+            'attr' => ['rows' => 4],
+        ]);
+
+        $builder->add('link', UrlType::class, [
+            'label' => 'edition.form.link',
+            'help' => 'edition.form.link_help',
+            'required' => false,
         ]);
 
         $builder->add('registrationLink', UrlType::class, [

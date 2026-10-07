@@ -25,6 +25,11 @@ readonly final class SeriesEdition
         null|string $resultsLink,
         // The zone startsAt is shown in - see RoundTimezone
         public string $timezone = RoundTimezone::FALLBACK,
+        // The edition's own logo - null when it has none (the series logo stands for it then)
+        public null|string $logo = null,
+        // The edition's own dates - shown when it has no round yet (startsAt null)
+        public null|DateTimeImmutable $dateFrom = null,
+        public null|DateTimeImmutable $dateTo = null,
     ) {
         $this->registrationLink = $registrationLink !== null
             ? $registrationLink . (str_contains($registrationLink, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'
@@ -32,5 +37,13 @@ readonly final class SeriesEdition
         $this->resultsLink = $resultsLink !== null
             ? $resultsLink . (str_contains($resultsLink, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'
             : null;
+    }
+
+    /**
+     * Neither a round nor a date of its own - "Date not set" wherever the date would show.
+     */
+    public function isUndated(): bool
+    {
+        return $this->startsAt === null && $this->dateFrom === null;
     }
 }

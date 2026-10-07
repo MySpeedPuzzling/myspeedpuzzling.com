@@ -40,6 +40,28 @@ final class EventsControllerTest extends WebTestCase
     }
 
     /**
+     * Older online events still carry location "Online" - the card says it once, with the badge.
+     * The regular player maintains the event, so it is on the page twice: "My events" and the listing.
+     */
+    public function testOnlineEventCardSaysOnlineOnce(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/events');
+
+        $this->assertResponseIsSuccessful();
+        $cards = $crawler->filter('.card')->reduce(
+            static fn ($card): bool => $card->filter('h3 a[href="/en/events/euro-jigsaw-jam"]')->count() > 0,
+        );
+        self::assertCount(2, $cards);
+
+        foreach ($cards as $card) {
+            self::assertSame(1, substr_count((string) $card->textContent, 'Online'));
+        }
+    }
+
+    /**
      * Every event and series card asks the edit/delete voters about itself (Sentry
      * WEB-BZ): the page must cost the same number of queries at 10 more cards.
      */

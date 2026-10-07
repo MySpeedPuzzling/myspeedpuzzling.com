@@ -60,6 +60,8 @@ final class AddEditionController extends AbstractController
                 dateTo: $data->dateTo,
                 registrationLink: $data->registrationLink,
                 resultsLink: $data->resultsLink,
+                link: $data->link,
+                description: $data->description,
             ));
 
             $this->addFlash('success', $this->translator->trans('edition.flash.created'));

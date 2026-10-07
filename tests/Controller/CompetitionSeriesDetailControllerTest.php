@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\AddEdition;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class CompetitionSeriesDetailControllerTest extends WebTestCase
 {
@@ -45,6 +50,117 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorExists('meta[name="robots"][content="noindex, nofollow"]');
+    }
+
+    public function testUndatedEditionWithoutRoundsIsListedWithDateNotSet(): void
+    {
+        $browser = self::createClient();
+        $undatedId = self::addUndatedEdition();
+
+        $crawler = $browser->request('GET', '/en/series/euro-jigsaw-jam-series');
+
+        $this->assertResponseIsSuccessful();
+        $card = $crawler->filter(sprintf('[data-series-edition="%s"]', $undatedId));
+        self::assertCount(1, $card, 'An edition without a date and without rounds must never vanish from the series page');
+        self::assertStringContainsString('Ou La La SPC No. 17', $card->text());
+        self::assertSame('Date not set', trim($card->filter('[data-edition-date-not-set]')->text()));
+
+        // With the upcoming editions, after the dated ones
+        $upcomingCards = $crawler->filter('h2 + .row')->first()->filter('[data-series-edition]');
+        self::assertSame($undatedId, $upcomingCards->last()->attr('data-series-edition'));
+        self::assertSame(CompetitionSeriesFixture::EDITION_EJJ_69, $upcomingCards->first()->attr('data-series-edition'));
+    }
+
+    public function testJsonLdLeavesOutEditionsWithoutAStartDate(): void
+    {
+        $browser = self::createClient();
+        self::addUndatedEdition();
+
+        $browser->request('GET', '/en/series/euro-jigsaw-jam-series');
+
+        $this->assertResponseIsSuccessful();
+        $series = self::eventSeriesJsonLd((string) $browser->getResponse()->getContent());
+        self::assertIsArray($series['subEvent'] ?? null);
+        $names = [];
+        foreach ($series['subEvent'] as $subEvent) {
+            self::assertIsArray($subEvent);
+            self::assertIsString($subEvent['startDate'] ?? null, 'Every sub-event has a startDate');
+            $names[] = $subEvent['name'] ?? null;
+        }
+        self::assertContains('EJJ #69 — May 2026', $names);
+        self::assertNotContains('Ou La La SPC No. 17', $names);
+    }
+
+    public function testEditionCardShowsTheEditionsOwnLogo(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition SET logo = 'ejj-69-logo.png' WHERE id = :id",
+            ['id' => CompetitionSeriesFixture::EDITION_EJJ_69],
+        );
+
+        $crawler = $browser->request('GET', '/en/series/euro-jigsaw-jam-series');
+
+        $this->assertResponseIsSuccessful();
+        $logo = $crawler->filter(sprintf('[data-series-edition="%s"] img', CompetitionSeriesFixture::EDITION_EJJ_69));
+        self::assertCount(1, $logo);
+        self::assertStringEndsWith('/preset:puzzle_small/plain/ejj-69-logo.png', (string) $logo->attr('src'));
+        // An edition without its own logo gets none on its card - the series logo is in the page header
+        self::assertCount(0, $crawler->filter(sprintf('[data-series-edition="%s"] img', CompetitionSeriesFixture::EDITION_EJJ_68)));
+    }
+
+    public function testUndatedEditionIsListedOnTheManagementPage(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $undatedId = self::addUndatedEdition();
+
+        $crawler = $browser->request('GET', '/en/manage-series/' . CompetitionSeriesFixture::SERIES_EJJ);
+
+        $this->assertResponseIsSuccessful();
+        self::assertStringContainsString('Ou La La SPC No. 17', $crawler->filter('main')->text());
+        self::assertSame('Date not set', trim($crawler->filter('[data-edition-date-not-set]')->text()));
+        // ... with its edit and delete buttons, so the organiser can fix or remove it
+        self::assertCount(1, $crawler->filter(sprintf('a[href^="/en/edit-event/%s"]', $undatedId)));
+        self::assertCount(1, $crawler->filter(sprintf('#deleteEditionModal-%s', $undatedId)));
+    }
+
+    /**
+     * A duplicate like the one on production: no date, no rounds.
+     */
+    private static function addUndatedEdition(): string
+    {
+        $editionId = Uuid::uuid7();
+
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new AddEdition(
+            competitionId: $editionId,
+            seriesId: CompetitionSeriesFixture::SERIES_EJJ,
+            name: 'Ou La La SPC No. 17',
+            dateFrom: null,
+            dateTo: null,
+            registrationLink: null,
+            resultsLink: null,
+        ));
+
+        return $editionId->toString();
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private static function eventSeriesJsonLd(string $content): array
+    {
+        preg_match_all('/<script type="application\/ld\+json">(.*?)<\/script>/s', $content, $matches);
+
+        foreach ($matches[1] as $json) {
+            $decoded = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+            if (is_array($decoded) && ($decoded['@type'] ?? null) === 'EventSeries') {
+                return $decoded;
+            }
+        }
+
+        self::fail('The series page emits EventSeries JSON-LD');
     }
 
     public function testJsonLdImageIsTheStrippedMediumLogo(): void

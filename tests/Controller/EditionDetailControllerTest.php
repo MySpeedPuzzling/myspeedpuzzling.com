@@ -6,8 +6,14 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -310,6 +316,123 @@ final class EditionDetailControllerTest extends WebTestCase
         self::assertIsString($event['image'] ?? null);
         // The large stripped preset, never the uploaded original (may carry EXIF/GPS)
         self::assertStringEndsWith('/preset:puzzle_large/plain/ejj-logo.png', $event['image']);
+    }
+
+    public function testEditionShowsItsOwnLogo(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE competition_series SET logo = 'ejj-logo.png' WHERE id = :id",
+            ['id' => CompetitionSeriesFixture::SERIES_EJJ],
+        );
+        $connection->executeStatement(
+            "UPDATE competition SET logo = 'ejj-68-logo.png' WHERE id = :id",
+            ['id' => CompetitionSeriesFixture::EDITION_EJJ_68],
+        );
+
+        $crawler = $browser->request('GET', self::PAST_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        $images = $crawler->filter('.event-image img');
+        self::assertCount(1, $images);
+        self::assertStringEndsWith('/preset:puzzle_small/plain/ejj-68-logo.png', (string) $images->attr('src'));
+    }
+
+    public function testEditionWithoutItsOwnLogoShowsTheSeriesLogo(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition_series SET logo = 'ejj-logo.png' WHERE id = :id",
+            ['id' => CompetitionSeriesFixture::SERIES_EJJ],
+        );
+
+        $crawler = $browser->request('GET', self::PAST_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        $images = $crawler->filter('.event-image img');
+        self::assertCount(1, $images);
+        self::assertStringEndsWith('/preset:puzzle_small/plain/ejj-logo.png', (string) $images->attr('src'));
+    }
+
+    public function testEditionShowsItsInfoLinkAndItsDescriptionAsPlainText(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition SET link = :link, description = :description WHERE id = :id',
+            [
+                'id' => CompetitionSeriesFixture::EDITION_EJJ_68,
+                'link' => 'https://eurojj.com/68',
+                'description' => "Theme: forests\n<script>alert('x')</script> & <b>bold</b>",
+            ],
+        );
+
+        $crawler = $browser->request('GET', self::PAST_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        // The same utm handling as every other external link of an event
+        $info = $crawler->filter('a[href="https://eurojj.com/68?utm_source=myspeedpuzzling"]');
+        self::assertCount(1, $info);
+        self::assertSame('Info', trim($info->text()));
+
+        $description = $crawler->filter('[data-event-description]');
+        self::assertCount(1, $description);
+        // Shown as typed - the organiser's markup is text, only the line break becomes a <br>
+        self::assertSame("Theme: forests <script>alert('x')</script> & <b>bold</b>", $description->text());
+        self::assertCount(1, $description->filter('br'));
+        self::assertCount(0, $description->filter('script, b'));
+
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('Theme: forests<br />', $content);
+        self::assertStringContainsString('&lt;script&gt;alert(&#039;x&#039;)&lt;/script&gt; &amp; &lt;b&gt;bold&lt;/b&gt;', $content);
+        self::assertStringNotContainsString("<script>alert('x')</script>", $content);
+        self::assertStringNotContainsString('<b>bold</b>', $content);
+    }
+
+    public function testSoloRoundShowsItsCategory(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', self::PAST_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        $pill = $crawler->filter('[data-round-category="solo"]');
+        self::assertCount(1, $pill);
+        self::assertSame('Solo', trim($pill->text()));
+    }
+
+    public function testRoundPuzzleShowsItsPiecesCount(): void
+    {
+        $browser = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $round = $entityManager->find(CompetitionRound::class, CompetitionSeriesFixture::ROUND_EJJ_68);
+        $puzzle = $entityManager->find(Puzzle::class, PuzzleFixture::PUZZLE_500_01);
+        self::assertNotNull($round);
+        self::assertNotNull($puzzle);
+        $entityManager->persist(new CompetitionRoundPuzzle(id: Uuid::uuid7(), round: $round, puzzle: $puzzle));
+        $entityManager->flush();
+
+        $crawler = $browser->request('GET', self::PAST_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        self::assertStringContainsString('500 pieces', str_replace("\u{a0}", ' ', $crawler->filter('main')->text()));
+        self::assertStringNotContainsString('puzzle.pieces', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testEditionWithoutDateAndRoundsSaysTheDateIsNotSet(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement('DELETE FROM competition_round WHERE id = :id', ['id' => CompetitionSeriesFixture::ROUND_EJJ_68]);
+        $connection->executeStatement(
+            'UPDATE competition SET date_from = NULL, date_to = NULL WHERE id = :id',
+            ['id' => CompetitionSeriesFixture::EDITION_EJJ_68],
+        );
+
+        $browser->request('GET', self::PAST_EDITION_URL);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('[data-edition-date-not-set]', 'Date not set');
     }
 
     /**

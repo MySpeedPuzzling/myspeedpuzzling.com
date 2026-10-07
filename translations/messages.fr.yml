@@ -3852,6 +3852,7 @@ series:
 edition:
   "edit": "Modifier l'édition"
   "rounds_hint": "Après avoir créé l'édition, vous pourrez ajouter des manches avec des puzzles et des temps limites depuis la page de gestion."
+  "date_not_set": "Date à définir"
   "form":
     "name": "Nom de l'édition"
     "name_help": "Donnez à chaque édition un nom unique, par ex. \"Rencontre Printemps 2026\" ou \"EJJ #70 — Avril 2026\"."
@@ -3859,6 +3860,10 @@ edition:
     "minutes_limit": "Limite de temps (minutes)"
     "registration_link": "URL d'inscription"
     "results_link": "URL des résultats"
+    "description": "Description"
+    "description_help": "Affichée sur la page de l'édition. Les retours à la ligne sont conservés."
+    "link": "URL du site web"
+    "link_help": "Affichée sous forme de bouton « Info » sur la page de l'édition."
   "delete":
     "button": "Supprimer l'édition"
     "confirm_button": "Supprimer définitivement"

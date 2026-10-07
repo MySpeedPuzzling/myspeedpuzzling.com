@@ -3849,6 +3849,7 @@ qr_code:
 "edition":
   "edit": "Upravit edici"
   "rounds_hint": "Po vytvoření edice můžete přidat kola s puzzlemi a časovými limity ze stránky správy edice."
+  "date_not_set": "Datum zatím není určeno"
   "form":
     "name": "Název edice"
     "name_help": "Dejte každé edici unikátní název, např. \"Jarní setkání 2026\" nebo \"EJJ #70 — duben 2026\"."
@@ -3856,6 +3857,10 @@ qr_code:
     "minutes_limit": "Časový limit (minuty)"
     "registration_link": "URL registrace"
     "results_link": "URL výsledků"
+    "description": "Popis"
+    "description_help": "Zobrazí se na stránce edice. Zalomení řádků zůstanou zachována."
+    "link": "URL webu"
+    "link_help": "Zobrazí se jako tlačítko „Info“ na stránce edice."
   "delete":
     "button": "Smazat edici"
     "confirm_button": "Smazat nenávratně"

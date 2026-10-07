@@ -44,10 +44,14 @@
                                 </td>
                                 <td>{{ competition.name }}</td>
                                 <td>
-                                    {% if competition.locationCountryCode %}
-                                        <span class="shadow-custom fi fi-{{ competition.locationCountryCode.name }} me-2"></span>
+                                    {% if competition.isOnline %}
+                                        <span class="badge bg-info text-dark">Online</span>
+                                    {% else %}
+                                        {% if competition.locationCountryCode %}
+                                            <span class="shadow-custom fi fi-{{ competition.locationCountryCode.name }} me-2"></span>
+                                        {% endif %}
+                                        {{ competition.location }}
                                     {% endif %}
-                                    {{ competition.location }}
                                 </td>
                                 <td>{{ competition.addedByPlayerName ?? '—' }}</td>
                                 <td>

@@ -3851,6 +3851,7 @@ qr_code:
 "edition":
   "edit": "Ausgabe bearbeiten"
   "rounds_hint": "Nach dem Erstellen der Edition können Sie Runden mit Puzzles und Zeitlimits auf der Verwaltungsseite hinzufügen."
+  "date_not_set": "Datum noch offen"
   "form":
     "name": "Ausgabenname"
     "name_help": "Geben Sie jeder Edition einen eindeutigen Namen, z.B. \"Frühlingstreffen 2026\" oder \"EJJ #70 — April 2026\"."
@@ -3858,6 +3859,10 @@ qr_code:
     "minutes_limit": "Zeitlimit (Minuten)"
     "registration_link": "Registrierungs-URL"
     "results_link": "Ergebnis-URL"
+    "description": "Beschreibung"
+    "description_help": "Wird auf der Seite der Ausgabe angezeigt. Zeilenumbrüche bleiben erhalten."
+    "link": "Website-URL"
+    "link_help": "Erscheint auf der Seite der Ausgabe als Schaltfläche „Info“."
   "delete":
     "button": "Ausgabe löschen"
     "confirm_button": "Endgültig löschen"

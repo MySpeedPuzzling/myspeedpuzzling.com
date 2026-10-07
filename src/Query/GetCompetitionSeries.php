@@ -221,11 +221,18 @@ SQL;
     }
 
     /**
+     * An edition is dated by its first round, else by its own date_from. One with neither (no date and no
+     * rounds yet - a draft, or a duplicate) is listed with the upcoming ones, last: it must never vanish
+     * from the series page nor from the organiser's management page.
+     *
      * @return array<SeriesEdition>
      */
     private function fetchEditions(string $seriesId, bool $upcoming): array
     {
-        $comparison = $upcoming ? '>=' : '<';
+        $editionStart = 'COALESCE((SELECT MIN(cr2.starts_at) FROM competition_round cr2 WHERE cr2.competition_id = c.id), c.date_from)';
+        $dateCondition = $upcoming
+            ? "({$editionStart} >= :now OR {$editionStart} IS NULL)"
+            : "{$editionStart} < :now";
         $order = $upcoming ? 'ASC' : 'DESC';
 
         $query = <<<SQL
@@ -233,6 +240,9 @@ SELECT
     c.id AS competition_id,
     c.name,
     c.slug,
+    c.logo,
+    c.date_from,
+    c.date_to,
     c.registration_link,
     c.results_link,
     MIN(cr.starts_at) AS starts_at,
@@ -249,12 +259,9 @@ LEFT JOIN competition_round cr ON cr.competition_id = c.id
 LEFT JOIN competition_round_puzzle crp ON crp.round_id = cr.id
 LEFT JOIN competition_participant cp ON cp.competition_id = c.id AND cp.deleted_at IS NULL
 WHERE c.series_id = :seriesId
-    AND COALESCE(
-        (SELECT MIN(cr2.starts_at) FROM competition_round cr2 WHERE cr2.competition_id = c.id),
-        c.date_from
-    ) {$comparison} :now
+    AND {$dateCondition}
 GROUP BY c.id
-ORDER BY COALESCE(MIN(cr.starts_at), c.date_from) {$order}
+ORDER BY COALESCE(MIN(cr.starts_at), c.date_from) {$order} NULLS LAST, c.created_at, c.id
 SQL;
 
         $now = $this->clock->now();
@@ -271,7 +278,10 @@ SQL;
              * @var array{
              *     competition_id: string,
              *     name: string,
-             *     slug: string,
+             *     slug: null|string,
+             *     logo: null|string,
+             *     date_from: null|string,
+             *     date_to: null|string,
              *     starts_at: null|string,
              *     timezone: null|string,
              *     location_country_code: null|string,
@@ -296,6 +306,9 @@ SQL;
                 registrationLink: $row['registration_link'],
                 resultsLink: $row['results_link'],
                 timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code'], $row['series_country_code']),
+                logo: $row['logo'],
+                dateFrom: $row['date_from'] !== null ? new DateTimeImmutable($row['date_from']) : null,
+                dateTo: $row['date_to'] !== null ? new DateTimeImmutable($row['date_to']) : null,
             );
         }, $rows);
     }

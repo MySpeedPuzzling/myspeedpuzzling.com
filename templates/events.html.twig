@@ -122,11 +122,14 @@
 
                                 <div class="row">
                                     <div class="col-sm-6 col-md-12 col-xl-6">
-                                        {% if event.locationCountryCode %}
-                                            <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
-                                        {% endif %}
+                                        {# Older online events still carry location "Online" - the badge above says it once #}
+                                        {% if not event.isOnline %}
+                                            {% if event.locationCountryCode %}
+                                                <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
+                                            {% endif %}
 
-                                        {{ event.location }}
+                                            {{ event.location }}
+                                        {% endif %}
 
                                         {% if event.dateFrom %}
                                             <div class="mt-1">

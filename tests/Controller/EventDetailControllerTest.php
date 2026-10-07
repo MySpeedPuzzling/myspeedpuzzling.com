@@ -469,6 +469,45 @@ final class EventDetailControllerTest extends WebTestCase
         return new DateTimeImmutable($dateFrom)->format('Y');
     }
 
+    public function testEventShowsItsDescriptionAsPlainText(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition SET description = :description WHERE id = :id',
+            [
+                'id' => CompetitionFixture::COMPETITION_WJPC_2024,
+                'description' => "Three days in Prague\n<script>alert('x')</script>",
+            ],
+        );
+
+        $crawler = $browser->request('GET', '/en/events/wjpc-2024');
+
+        $this->assertResponseIsSuccessful();
+        $description = $crawler->filter('[data-event-description]');
+        self::assertCount(1, $description);
+        self::assertSame("Three days in Prague <script>alert('x')</script>", $description->text());
+        self::assertCount(1, $description->filter('br'));
+        self::assertCount(0, $description->filter('script'));
+        self::assertStringNotContainsString("<script>alert('x')</script>", (string) $browser->getResponse()->getContent());
+    }
+
+    public function testOnlineEventSaysOnlineOnceAndIsAVirtualLocation(): void
+    {
+        $browser = self::createClient();
+
+        // An older online event: its location is still "Online"
+        $crawler = $browser->request('GET', '/en/events/euro-jigsaw-jam');
+
+        $this->assertResponseIsSuccessful();
+        $header = $crawler->filter('main h1')->ancestors()->first();
+        self::assertSame(1, substr_count($header->text(), 'Online'));
+
+        $event = self::jsonLdOfType((string) $browser->getResponse()->getContent(), 'Event');
+        self::assertIsArray($event['location'] ?? null);
+        self::assertSame('VirtualLocation', $event['location']['@type'] ?? null);
+        self::assertSame('https://schema.org/OnlineEventAttendanceMode', $event['eventAttendanceMode'] ?? null);
+    }
+
     private static function metaDescription(Crawler $crawler): string
     {
         return (string) $crawler->filter('meta[name="description"]')->attr('content');

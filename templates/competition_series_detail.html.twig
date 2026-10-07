@@ -18,7 +18,8 @@
 {% block json_ld %}
 {{ parent() }}
 {% if series.approvedAt is not null and series.rejectedAt is null and series.slug is not null %}
-{% set jsonld_editions = upcoming_editions|merge(past_editions)|filter(edition => edition.editionSlug is not null) %}
+{# A schema.org Event needs a startDate - an edition without a round and without its own date is left out #}
+{% set jsonld_editions = upcoming_editions|merge(past_editions)|filter(edition => edition.editionSlug is not null and not edition.isUndated) %}
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
@@ -58,9 +59,14 @@
         {
             "@type": "Event",
             "name": {{ edition.name|json_ld }},
-            "url": {{ url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug})|json_ld }}
-            {%- if edition.startsAt %},
+            "url": {{ url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug})|json_ld }},
+            {%- if edition.startsAt %}
             "startDate": {{ edition.startsAt|date('Y-m-d', edition.timezone)|json_ld }}
+            {%- else %}
+            "startDate": {{ edition.dateFrom|date('Y-m-d')|json_ld }}
+            {%- endif %}
+            {%- if edition.logo %},
+            "image": {{ edition.logo|thumbnail('puzzle_large')|json_ld }}
             {%- endif %}
         }{{ loop.last ? '' : ',' }}
         {%- endfor %}
@@ -103,7 +109,8 @@
             </div>
 
             {% if series.description %}
-                <p class="mt-3">{{ series.description }}</p>
+                {# Plain text: nl2br escapes first, then keeps the organiser's line breaks #}
+                <p class="mt-3">{{ series.description|nl2br }}</p>
             {% endif %}
         </div>
 
@@ -114,48 +121,12 @@
         </div>
     </div>
 
+    {# Undated editions (no round, no date) are listed here too, last - see GetCompetitionSeries::fetchEditions() #}
     {% if upcoming_editions|length > 0 %}
         <h2 class="h5 mt-4 mb-3">{{ 'series.upcoming_editions'|trans }}</h2>
         <div class="row">
             {% for edition in upcoming_editions %}
-                <div class="mb-3 mb-md-4 col-md-6">
-                    <div class="card shadow h-100">
-                        <div class="card-body p-3">
-                            <h3 class="h5 mb-2">
-                                <a href="{{ path('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug}) }}" class="text-decoration-underline">
-                                    {{ edition.name }}
-                                </a>
-                            </h3>
-
-                            {% if edition.startsAt %}
-                                <div class="mt-1">
-                                    <i class="ci-calendar me-2 ps-1"></i>
-                                    {{ edition.startsAt|date('d.m.Y H:i', edition.timezone) }}
-                                    <small class="text-muted ps-1">({{ edition.startsAt|ago }})</small>
-                                </div>
-                            {% endif %}
-
-                            <div class="d-flex flex-wrap gap-3 mt-2 text-muted small">
-                                {% if edition.minutesLimit and edition.roundCount <= 1 %}
-                                    <span><i class="bi bi-clock me-1"></i>{{ edition.minutesLimit }} min</span>
-                                {% endif %}
-                                {% if edition.roundCount > 1 %}
-                                    <span><i class="bi bi-list-ol me-1"></i>{{ edition.roundCount }} {{ 'competition.rounds_count'|trans }}</span>
-                                {% endif %}
-                                <span><i class="bi bi-puzzle me-1"></i>{{ edition.puzzleCount }}</span>
-                                <span><i class="bi bi-people me-1"></i>{{ edition.participantCount }}</span>
-                            </div>
-
-                            {% if edition.registrationLink %}
-                                <div class="mt-2">
-                                    <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ edition.registrationLink }}">
-                                        <i class="bi bi-person-plus me-1"></i>{{ 'events.registration_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                                    </a>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
+                {{ include('_series_edition_card.html.twig', {edition: edition, series: series, past: false}) }}
             {% endfor %}
         </div>
     {% endif %}
@@ -164,44 +135,7 @@
         <h2 class="h5 mt-4 mb-3">{{ 'series.past_editions'|trans }}</h2>
         <div class="row">
             {% for edition in past_editions %}
-                <div class="mb-3 mb-md-4 col-md-6">
-                    <div class="card shadow h-100">
-                        <div class="card-body p-3">
-                            <h3 class="h5 mb-2">
-                                <a href="{{ path('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug}) }}" class="text-decoration-underline">
-                                    {{ edition.name }}
-                                </a>
-                            </h3>
-
-                            {% if edition.startsAt %}
-                                <div class="mt-1">
-                                    <i class="ci-calendar me-2 ps-1"></i>
-                                    {{ edition.startsAt|date('d.m.Y H:i', edition.timezone) }}
-                                    <small class="text-muted ps-1">({{ edition.startsAt|ago }})</small>
-                                </div>
-                            {% endif %}
-
-                            <div class="d-flex flex-wrap gap-3 mt-2 text-muted small">
-                                {% if edition.minutesLimit and edition.roundCount <= 1 %}
-                                    <span><i class="bi bi-clock me-1"></i>{{ edition.minutesLimit }} min</span>
-                                {% endif %}
-                                {% if edition.roundCount > 1 %}
-                                    <span><i class="bi bi-list-ol me-1"></i>{{ edition.roundCount }} {{ 'competition.rounds_count'|trans }}</span>
-                                {% endif %}
-                                <span><i class="bi bi-puzzle me-1"></i>{{ edition.puzzleCount }}</span>
-                                <span><i class="bi bi-people me-1"></i>{{ edition.participantCount }}</span>
-                            </div>
-
-                            {% if edition.resultsLink %}
-                                <div class="mt-2">
-                                    <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ edition.resultsLink }}">
-                                        <i class="bi bi-trophy me-1"></i>{{ 'events.results_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                                    </a>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
+                {{ include('_series_edition_card.html.twig', {edition: edition, series: series, past: true}) }}
             {% endfor %}
         </div>
     {% endif %}

@@ -3852,6 +3852,7 @@ fair_use_policy:
 "edition":
   "edit": "Editar edición"
   "rounds_hint": "Después de crear la edición, puedes añadir rondas con puzzles y límites de tiempo desde la página de gestión."
+  "date_not_set": "Fecha por definir"
   "form":
     "name": "Nombre de la edición"
     "name_help": "Dale a cada edición un nombre único, p.ej. \"Encuentro Primavera 2026\" o \"EJJ #70 — Abril 2026\"."
@@ -3859,6 +3860,10 @@ fair_use_policy:
     "minutes_limit": "Límite de tiempo (minutos)"
     "registration_link": "URL de registro"
     "results_link": "URL de resultados"
+    "description": "Descripción"
+    "description_help": "Se muestra en la página de la edición. Se conservan los saltos de línea."
+    "link": "URL del sitio web"
+    "link_help": "Se muestra como el botón «Info» en la página de la edición."
   "delete":
     "button": "Eliminar edición"
     "confirm_button": "Eliminar permanentemente"

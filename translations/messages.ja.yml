@@ -3842,6 +3842,7 @@ qr_code:
 "edition":
   "edit": "エディションを編集"
   "rounds_hint": "エディション作成後、管理ページからパズルと制限時間付きのラウンドを追加できます。"
+  "date_not_set": "日付未定"
   "form":
     "name": "エディション名"
     "name_help": "各エディションにユニークな名前を付けてください。例：「春のミートアップ 2026」や「EJJ #70 — 2026年4月」"
@@ -3849,6 +3850,10 @@ qr_code:
     "minutes_limit": "制限時間（分）"
     "registration_link": "登録URL"
     "results_link": "結果URL"
+    "description": "説明"
+    "description_help": "エディションページに表示されます。改行はそのまま反映されます。"
+    "link": "ウェブサイトURL"
+    "link_help": "エディションページの「情報」ボタンとして表示されます。"
   "flash":
     "created": "エディションを追加しました。"
     "deleted": "エディションを削除しました。"

@@ -123,6 +123,12 @@
                 </div>
             {% endif %}
 
+            {% if not event.dateFrom and rounds|length == 0 %}
+                <div class="mb-2 text-muted" data-edition-date-not-set>
+                    <i class="ci-calendar me-2 ps-1"></i>{{ 'edition.date_not_set'|trans }}
+                </div>
+            {% endif %}
+
             {% if not series.isOnline and event.location %}
                 <div class="mb-2">
                     {% if event.locationCountryCode %}
@@ -133,6 +139,11 @@
             {% endif %}
 
             <div class="d-flex flex-wrap gap-2">
+                {% if event.link %}
+                    <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
+                        <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
+                    </a>
+                {% endif %}
                 {% if event.registrationLink %}
                     <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.registrationLink }}">
                         <i class="bi bi-person-plus me-1"></i>{{ 'events.registration_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
@@ -151,12 +162,20 @@
             </div>
         </div>
 
+        {# The edition's own logo, else the series logo #}
         <div class="ms-3 flex-shrink-0 event-image">
-            {% if series.logo %}
+            {% if event.logo %}
+                <img style="max-height: 84px;" src="{{ event.logo|thumbnail('puzzle_small') }}" alt="{{ event.name }} logo" class="img-fluid">
+            {% elseif series.logo %}
                 <img style="max-height: 84px;" src="{{ series.logo|thumbnail('puzzle_small') }}" alt="{{ series.name }} logo" class="img-fluid">
             {% endif %}
         </div>
     </div>
+
+    {% if event.description %}
+        {# Plain text: nl2br escapes first, then keeps the organiser's line breaks #}
+        <p class="mt-3 mb-0" data-event-description>{{ event.description|nl2br }}</p>
+    {% endif %}
 
     {% if rounds|length > 0 %}
         {% for round in rounds %}
@@ -166,9 +185,7 @@
                         {{ round.name }}
                     </span>
 
-                    {% if round.category.value != 'solo' %}
-                        <span class="badge bg-secondary ms-1">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
-                    {% endif %}
+                    <span class="badge bg-secondary ms-1" data-round-category="{{ round.category.value }}">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
                 </h2>
 
                 <div class="text-muted small mb-3">
@@ -198,7 +215,7 @@
                                     <div class="card-body p-2">
                                         <p class="card-text small mb-0">{{ puzzle.puzzleName }}</p>
                                         <p class="card-text text-muted small">
-                                            {{ puzzle.piecesCount }} {{ 'puzzle.pieces'|trans }}
+                                            {{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}
                                             {% if puzzle.manufacturerName %}
                                                 &middot; {{ puzzle.manufacturerName }}
                                             {% endif %}

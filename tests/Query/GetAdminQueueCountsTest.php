@@ -64,17 +64,17 @@ final class GetAdminQueueCountsTest extends WebTestCase
             'oauth2-requests' => $counts->oauth2Requests,
             'duplicate-puzzle-signals' => $counts->duplicatePuzzleSignals,
         ];
-        // The fixtures leave something waiting in most queues - otherwise this test would prove nothing
-        self::assertGreaterThan(2, count(array_filter($badges, static fn (null|int $count): bool => $count > 0)));
+        // The fixtures leave something waiting in some queues and nothing in others - both colours are checked
+        self::assertNotEmpty(array_filter($badges, static fn (null|int $count): bool => $count > 0));
+        self::assertNotEmpty(array_filter($badges, static fn (null|int $count): bool => $count === 0));
 
         foreach ($badges as $key => $count) {
             $badge = $crawler->filter("[data-testid=\"queue-count-{$key}\"]");
 
-            if ($count > 0) {
-                self::assertSame((string) $count, trim($badge->text()), $key);
-            } else {
-                self::assertCount(0, $badge, $key);
-            }
+            // Every queue shows its count - an empty one a green zero, a backlog in warning colour
+            self::assertCount(1, $badge, $key);
+            self::assertSame((string) $count, trim($badge->text()), $key);
+            self::assertStringContainsString($count > 0 ? 'bg-warning' : 'bg-success', (string) $badge->attr('class'), $key);
         }
     }
 

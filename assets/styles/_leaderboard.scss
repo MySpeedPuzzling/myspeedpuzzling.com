@@ -895,3 +895,43 @@ $lb-chart-switch-width: 68px; // two buttons sharing a border (measured 63-67 px
         height: 16px;
     }
 }
+
+// Official results of a round (templates/round_results/_official.html.twig, docs/features/competitions-management/official-results.md):
+// the podium places on a medal tint, the "Q" pill of a qualified entry, the viewer's "Add to my profile" under the name
+.lb-rank-podium {
+    display: inline-block;
+    width: $lb-line;
+    height: $lb-line;
+    border-radius: 50%;
+    font-weight: 600;
+    text-align: center;
+}
+
+.lb-rank-podium-1 {
+    background: #f7e3a3;
+    color: #5c4300;
+}
+
+.lb-rank-podium-2 {
+    background: #e2e5ea;
+    color: #383d45;
+}
+
+.lb-rank-podium-3 {
+    background: #f0d2b6;
+    color: #5e3512;
+}
+
+.official-qualified-badge {
+    background: #d9f2e3;
+    color: #17633a;
+}
+
+.lb-table .official-profile-action {
+    margin: 4px 0 2px $lb-indent;
+}
+
+.round-player-times > summary {
+    padding: .5rem 0;
+    cursor: pointer;
+}

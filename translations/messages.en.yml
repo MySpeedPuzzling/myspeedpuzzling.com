@@ -169,6 +169,23 @@ round_results:
     section:
         unfinished: "Didn't finish within the time limit"
         over_limit: "Over the time limit"
+    official:
+        heading: "Official results"
+        source: "The organiser's ranking of the round."
+        caption: "Official results of %round%"
+        rank: "Rank"
+        entrant:
+            solo: "Puzzler"
+            duo: "Pair"
+            team: "Team"
+        qualified_short: "Q"
+        qualified_legend: "Qualified"
+        nothing_to_show: "No official results to show."
+        add_to_profile: "Add to my profile"
+        on_profile: "On your profile"
+        organiser_results: "Organiser's results"
+        player_times: "Times added by puzzlers (%count%)"
+        meta_description: "Official results of %round% at %event%: the organiser's ranking of %count% entrant, with times and pieces placed.|Official results of %round% at %event%: the organiser's ranking of %count% entrants, with times and pieces placed."
 
 badge:
     relax: "Relax"
@@ -853,6 +870,9 @@ events:
         event_detail_description_past: "%name% results: %results% time added by puzzlers, plus the competition puzzles and participants. Speed puzzling competition held on %date% in %location%.|%name% results: %results% times added by puzzlers, plus the competition puzzles and participants. Speed puzzling competition held on %date% in %location%."
         event_detail_description_past_online: "%name% results: %results% time added by puzzlers, plus the competition puzzles and participants. Online speed puzzling competition held on %date%.|%name% results: %results% times added by puzzlers, plus the competition puzzles and participants. Online speed puzzling competition held on %date%."
         event_detail_description_past_no_location: "%name% results: %results% time added by puzzlers, plus the competition puzzles and participants. Speed puzzling competition held on %date%.|%name% results: %results% times added by puzzlers, plus the competition puzzles and participants. Speed puzzling competition held on %date%."
+        event_detail_description_past_official: "%name% results: the official results round by round, plus the competition puzzles and participants. Speed puzzling competition held on %date% in %location%."
+        event_detail_description_past_official_online: "%name% results: the official results round by round, plus the competition puzzles and participants. Online speed puzzling competition held on %date%."
+        event_detail_description_past_official_no_location: "%name% results: the official results round by round, plus the competition puzzles and participants. Speed puzzling competition held on %date%."
     live: "Happening right now"
     upcoming: "Upcoming"
     past: "Past events"
@@ -4285,6 +4305,7 @@ series:
         edition_description: "%name% — %series% speed puzzling competition on %date%. Rounds, puzzles, participants and results on MySpeedPuzzling."
         edition_description_no_date: "%name% — %series% speed puzzling competition. Rounds, puzzles, participants and results on MySpeedPuzzling."
         edition_description_past: "%name% results: %results% time added by puzzlers, plus the rounds, puzzles and participants. %series% speed puzzling competition held on %date%.|%name% results: %results% times added by puzzlers, plus the rounds, puzzles and participants. %series% speed puzzling competition held on %date%."
+        edition_description_past_official: "%name% results: the official results round by round, plus the puzzles and participants. %series% speed puzzling competition held on %date%."
     manage: "Manage Series"
     edit_series: "Edit Series"
     add_edition: "Add Edition"

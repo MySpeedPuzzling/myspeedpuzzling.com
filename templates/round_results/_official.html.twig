@@ -1,0 +1,106 @@
+{#
+    A round whose official results the organiser published (docs/features/competitions-management/official-results.md):
+    the puzzle card(s), the organiser's ranking on top, the times puzzlers added below it - folded, with their note.
+    Rendered instead of the per-puzzle lists of round_results.html.twig; expects its context (page, round, event).
+
+    Ranks are the official places (computed over every ranked entry, rows hidden from the viewer dropped without
+    renumbering); the table number is the organiser's business and never shown here.
+#}
+{% set official = page.officialResults %}
+{% for puzzle in round.puzzles %}
+    {{ include('round_results/_puzzle_card.html.twig') }}
+{% endfor %}
+
+<section class="mt-4 mb-3" aria-labelledby="official-results-heading" data-official-results>
+    <h2 class="h5 mb-1" id="official-results-heading"><i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'round_results.official.heading'|trans }}</h2>
+    <p class="small text-muted mb-2">{{ 'round_results.official.source'|trans }}</p>
+
+    {% if official.entries is empty %}
+        <p class="text-muted">{{ 'round_results.official.nothing_to_show'|trans }}</p>
+    {% else %}
+        <div class="custom-table-wrapper lb-wrapper mb-2">
+            <table class="table custom-table lb-table official-results-table mb-0">
+                <caption class="visually-hidden">{{ 'round_results.official.caption'|trans({'%round%': round.name}) }}</caption>
+                <thead>
+                <tr>
+                    <th scope="col" class="lb-rank-head"><abbr title="{{ 'round_results.official.rank'|trans }}">#</abbr></th>
+                    <th scope="col">{{ ('round_results.official.entrant.' ~ round.category.value)|trans }}</th>
+                    <th scope="col" class="text-end">{{ 'round_results.column_result'|trans }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for entry in official.entries %}
+                    <tr class="{{ entry.isViewers ? 'table-active-player' }}" data-official-entry="{{ entry.ref.toString() }}" data-official-rank="{{ entry.rank }}">
+                        <td class="rank">
+                            <span class="lb-rank{{ entry.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ entry.rank }}">{{ entry.rank }}</span>
+                        </td>
+
+                        <td class="lb-solver">
+                            {% for entrant in entry.entrants %}
+                                {{ include('_leaderboard_player.html.twig', {player: entrant, small: entry.isTeam, show_tier: false}) }}
+                            {% endfor %}
+
+                            {% if (entry.isTeam and entry.teamName is not null) or entry.qualified %}
+                                <div class="lb-badges">
+                                    {%- if entry.isTeam and entry.teamName is not null -%}
+                                        <span class="badge rounded-pill lb-team-badge" data-official-team-name><i class="bi bi-people-fill" aria-hidden="true"></i> {{ entry.teamName }}</span>
+                                    {%- endif -%}
+                                    {%- if entry.qualified -%}
+                                        <span class="badge rounded-pill official-qualified-badge" title="{{ 'official_results.qualified'|trans }}" data-official-qualified><span aria-hidden="true">{{ 'round_results.official.qualified_short'|trans }}</span><span class="visually-hidden">{{ 'official_results.qualified'|trans }}</span></span>
+                                    {%- endif -%}
+                                </div>
+                            {% endif %}
+
+                            {% if entry.profileState is not null %}
+                                <div class="official-profile-action">
+                                    {% if entry.profileState.value == 'offer' %}
+                                        <a class="btn btn-sm btn-outline-primary" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: official.profilePuzzleId, competition: event.id, official_entry: entry.ref.toString()}) }}" data-official-add-to-profile>
+                                            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{{ 'round_results.official.add_to_profile'|trans }}
+                                        </a>
+                                    {% else %}
+                                        <span class="small text-success" data-official-on-profile><i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'round_results.official.on_profile'|trans }}</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </td>
+
+                        <td class="lb-time">
+                            <span class="lb-time-value">{{ include('official_results/_result.html.twig', {result: entry.result, pieces_count: official.piecesCount}) }}</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if official.hasQualified %}
+            <p class="small text-muted mb-0" data-official-legend>
+                <span class="badge rounded-pill official-qualified-badge" aria-hidden="true">{{ 'round_results.official.qualified_short'|trans }}</span>
+                {{ 'round_results.official.qualified_legend'|trans }}
+            </p>
+        {% endif %}
+    {% endif %}
+</section>
+
+{# What puzzlers added on their own is still here - folded, it is not the official ranking #}
+{% if page.resultsCount > 0 %}
+    <details class="round-player-times mb-4" data-round-player-times>
+        <summary class="fw-medium">{{ 'round_results.official.player_times'|trans({'%count%': page.resultsCount}) }}</summary>
+
+        <p class="small text-muted mt-2 mb-3">
+            <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ 'round_results.unofficial_note'|trans }}
+        </p>
+
+        {% for puzzle in round.puzzles %}
+            {% set puzzle_results = page.results[puzzle.puzzleId] ?? [] %}
+
+            {% if puzzle_results is not empty %}
+                {% if round.puzzles|length > 1 %}
+                    <h3 class="h6 mb-2">{{ puzzle.puzzleName }}</h3>
+                {% endif %}
+
+                {{ include('round_results/_player_times.html.twig') }}
+            {% endif %}
+        {% endfor %}
+    </details>
+{% endif %}

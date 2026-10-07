@@ -31,6 +31,8 @@ readonly final class EditionRoundDetail
         public string $timezone = RoundTimezone::FALLBACK,
         // Nobody said where the event is - $timezone is only the fallback, named without a place (timezone_name())
         public bool $timezoneAssumed = false,
+        // The organiser published the round's official results (docs/features/competitions-management/official-results.md)
+        public bool $resultsPublished = false,
     ) {
     }
 }

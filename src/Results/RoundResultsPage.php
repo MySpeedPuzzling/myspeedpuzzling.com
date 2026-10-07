@@ -32,6 +32,8 @@ readonly final class RoundResultsPage
         // one line each saying when they open
         public array $stillSecret = [],
         public null|array $difficultyTiers = null,
+        // The organiser's published official results - null keeps the page exactly as without them
+        public null|PublishedRoundResults $officialResults = null,
     ) {
     }
 

@@ -124,8 +124,29 @@ final class ResultsDeskControllerTest extends WebTestCase
         $advanceUrls = self::decode($advance, 'data-advance-qualified-urls-value');
         self::assertSame('/en/official-results/competitions/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '/advance', $advanceUrls['advance']);
 
+        // Group A is over: the seating step is drawn for the page's script, hidden - the one rule says no
+        self::assertFalse($state['round']['tablesReadiness']);
+        self::assertIsArray($state['competition']);
+        self::assertTrue($state['competition']['isPubliclyVisible']);
+        self::assertNotNull($crawler->filter('[data-seating-readiness]')->attr('hidden'));
+    }
+
+    public function testARoundAboutToStartShowsTheSeatingStep(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement("UPDATE competition_round SET starts_at = NOW() + INTERVAL '3 hours' WHERE id = :id", ['id' => OfficialResultsFixture::ROUND_GROUP_A]);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $this->browser->request('GET', self::GROUP_A);
+
+        $state = self::decode($crawler->filter('[data-controller="results-desk"]'), 'data-results-desk-state-value');
+        self::assertIsArray($state['round']);
+        self::assertTrue($state['round']['tablesReadiness']);
         // "Tables: 5 / 6" - one entry has no table yet
-        self::assertStringContainsString('Tables: 5 / 6 assigned', $crawler->filter('[data-tables-readiness]')->text());
+        $readiness = $crawler->filter('[data-seating-readiness]');
+        self::assertNull($readiness->attr('hidden'));
+        self::assertStringContainsString('Tables: 5 / 6 assigned', $readiness->text());
+        self::assertStringContainsString('recommended before the round starts', $readiness->text());
     }
 
     public function testAnUnpublishedPairRoundOffersPublishing(): void
@@ -157,7 +178,7 @@ final class ResultsDeskControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-round-tool="seating"]'));
-        self::assertCount(0, $crawler->filter('[data-tables-readiness]'));
+        self::assertCount(0, $crawler->filter('[data-seating-readiness]'));
         self::assertNotNull($crawler->filter('[data-results-desk-target="tableColumn"]')->attr('hidden'));
     }
 

@@ -74,7 +74,7 @@ class CompetitionRound implements EntityWithEvents
         // while set - publishResults() / unpublishResults()
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $resultsPublishedAt = null,
-        // The first publish - kept through unpublish/publish, so the players are told about their results only once
+        // The first publish - kept through unpublish/publish (the desk says whether players were told before)
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $resultsFirstPublishedAt = null,
         // The organiser said this round does not use table numbers - the seating step and its reminders are hidden
@@ -138,8 +138,9 @@ class CompetitionRound implements EntityWithEvents
     }
 
     /**
-     * Shows the official results on the round page. The first publish ever records OfficialRoundResultsPublished, which
-     * tells the players their result - never again for this round, also not after an unpublish and a new publish.
+     * Shows the official results on the round page. Every publish records OfficialRoundResultsPublished: the players with
+     * a finished result who were not told yet get a notification (each player once per round, ever - the notification
+     * handler's marker decides, so a publish → unpublish → publish before the worker ran still tells everybody).
      * Publishing published results changes nothing.
      */
     public function publishResults(DateTimeImmutable $publishedAt): void
@@ -149,11 +150,8 @@ class CompetitionRound implements EntityWithEvents
         }
 
         $this->resultsPublishedAt = $publishedAt;
-
-        if ($this->resultsFirstPublishedAt === null) {
-            $this->resultsFirstPublishedAt = $publishedAt;
-            $this->recordThat(new OfficialRoundResultsPublished($this->id));
-        }
+        $this->resultsFirstPublishedAt ??= $publishedAt;
+        $this->recordThat(new OfficialRoundResultsPublished($this->id));
     }
 
     public function unpublishResults(): void

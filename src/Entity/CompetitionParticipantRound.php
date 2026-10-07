@@ -21,8 +21,9 @@ use SpeedPuzzling\Web\Value\RoundEntryRef;
  */
 #[Entity]
 #[UniqueConstraint(name: 'competition_participant_round_unique', columns: ['participant_id', 'round_id'])]
-class CompetitionParticipantRound
+class CompetitionParticipantRound implements EntityWithEvents
 {
+    use HasEvents;
     use HasOfficialResult;
 
     public function __construct(

@@ -38,7 +38,8 @@ fetches that state once (clock sync + Mercure cookie, see below).
    match. With table numbers off (or online) only names. Empty input = **Recent entries** (`recentEntries()`):
    results by `enteredAt` from any device plus this device's unsent ones, newest first, one row per entry, each with its
    sync state (✓ saved / clock = not sent / ⚠ needs you). The "recommended: give every entry a table number" hint
-   shows while not everybody is seated (link to the seating page once that route exists).
+   shows while not everybody is seated and the round's seating step holds (`tablesReadiness`, the one rule of
+   [seating.md](seating.md#the-seating-step-one-rule) - a round under way or over never nags), with the seating link.
 2. **Entry card** - table, name, members/#code, "Saved: 1:23:45 · Eva · 10:42" (or "Not sent yet: …"), problems of
    this entry (conflict, refused, failing) with their actions. While the round's stopwatch runs **Finished now** comes
    first and gets the focus (no keyboard over it): elapsed = server-synced now − `startedAt`, frozen at the tap. Then

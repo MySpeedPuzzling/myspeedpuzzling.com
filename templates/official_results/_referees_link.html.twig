@@ -1,1 +1,8 @@
-<a href="{{ path('competition_referees', {competitionId: competition.id}) }}" class="btn btn-outline-primary btn-sm" data-referees-link><i class="bi bi-person-lines-fill me-1" aria-hidden="true"></i>{{ 'competition_referees.button'|trans }}</a>
+{# The way to the event's referees page (route `competition_referees`) from the organiser's results tools - shown once
+   that page exists (optional_path()). Expects: competition_id; optional: button_class ('btn-outline-secondary') #}
+{%- set referees_url = optional_path('competition_referees', {competitionId: competition_id}) -%}
+{%- if referees_url is not null -%}
+    <a href="{{ referees_url }}" class="btn {{ button_class|default('btn-outline-secondary') }}" data-results-tool="referees">
+        <i class="bi bi-person-check me-1" aria-hidden="true"></i>{{ 'results_desk.overview.referees'|trans }}
+    </a>
+{%- endif -%}

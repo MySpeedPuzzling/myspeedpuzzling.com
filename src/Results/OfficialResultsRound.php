@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
-use DateTimeImmutable;
-
 /**
  * One round as the organiser's results tools show it (results desk, results overview, advance dialog): its official
  * results progress (RoundResultsOverview) with how the event pages draw it (badge colours, the zone its start is
@@ -28,26 +26,6 @@ readonly final class OfficialResultsRound implements \JsonSerializable
     public function id(): string
     {
         return $this->overview->roundId;
-    }
-
-    /**
-     * The "Tables: x / y" readiness line (docs/features/competitions-management/results-desk.md): an in-person round
-     * that uses table numbers and has entries - unless it ended without a single table number (a past round that was
-     * never seated is history, not a to-do).
-     */
-    public function showsTablesReadiness(bool $isOnline, DateTimeImmutable $now): bool
-    {
-        if ($isOnline || $this->overview->tableNumbersOff || $this->overview->entriesTotal === 0) {
-            return false;
-        }
-
-        if ($this->overview->entriesWithTableNumber > 0) {
-            return true;
-        }
-
-        $endsAt = $this->overview->startsAt->modify(sprintf('+%d minutes', max(0, $this->overview->minutesLimit)));
-
-        return $endsAt > $now;
     }
 
     /**

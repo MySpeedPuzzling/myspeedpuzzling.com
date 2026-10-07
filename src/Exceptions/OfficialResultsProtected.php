@@ -18,6 +18,7 @@ final class OfficialResultsProtected extends ConflictHttpException
     public const string TEAM_HAS_RESULT = 'team_has_result';
     public const string PARTICIPANT_HAS_RESULT = 'participant_has_result';
     public const string ROUND_CATEGORY_LOCKED = 'round_category_locked';
+    public const string ROUND_ENTRY_HAS_RESULT = 'round_entry_has_result';
 
     public function __construct(
         readonly public string $reason,

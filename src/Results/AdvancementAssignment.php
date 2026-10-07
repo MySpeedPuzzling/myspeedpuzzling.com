@@ -16,6 +16,8 @@ readonly final class AdvancementAssignment implements \JsonSerializable
         public RoundResultEntry $entry,
         // The entry made in the target round - set once applied
         public null|string $createdEntryRef = null,
+        // Not marked qualified by the organiser - taken by "best of each country" (marked when applied)
+        public bool $byCountryRule = false,
     ) {
     }
 
@@ -30,6 +32,7 @@ readonly final class AdvancementAssignment implements \JsonSerializable
             'targetRoundId' => $this->targetRoundId,
             'entry' => $this->entry,
             'createdEntry' => $this->createdEntryRef,
+            'byCountryRule' => $this->byCountryRule,
         ];
     }
 }

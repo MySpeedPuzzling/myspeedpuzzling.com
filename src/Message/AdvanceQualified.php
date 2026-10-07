@@ -17,6 +17,11 @@ use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
  *
  * A dry run answers the exact plan (AdvancementPlan, from the HandledStamp) with its `planHash`; applying requires that
  * hash, plans again under the lock and refuses (AdvancementPlanChanged) when anything changed meanwhile.
+ *
+ * `bestOfEachCountry` (1..99, the WJPC country rule): the plan also takes the best K ranked entries of every country
+ * over ALL the source rounds, by the advancement seed (a pair/team counts for each of its members' countries; entries
+ * already marked count too). The plan lists them; applying marks them qualified in their own round, then advances -
+ * one confirmation, one transaction. Entries without a country are listed for the organiser, never taken.
  */
 readonly final class AdvanceQualified implements SerializedByLock
 {
@@ -31,6 +36,8 @@ readonly final class AdvanceQualified implements SerializedByLock
         public array $targetBySource = [],
         public bool $dryRun = true,
         public null|string $planHash = null,
+        // The country rule: at most this many per country, null = off
+        public null|int $bestOfEachCountry = null,
     ) {
     }
 

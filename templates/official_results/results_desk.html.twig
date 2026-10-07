@@ -28,6 +28,7 @@
              record: path('official_results_record', {roundId: round.id}),
              publish: path('official_results_publish', {roundId: round.id}),
              unpublish: path('official_results_unpublish', {roundId: round.id}),
+             takeOut: path('official_results_take_out', {roundId: round.id}),
          }|json_encode|e('html_attr') }}"
          data-results-desk-texts-value="{{ {
              add_result: 'results_desk.table.add_result'|trans,
@@ -88,8 +89,9 @@
              count_entries: browser_translation('results_desk.counts.entries'),
              count_results: browser_translation('results_desk.counts.results'),
              count_qualified: browser_translation('results_desk.counts.qualified'),
-             tables_readiness: 'results_desk.tables_readiness'|trans,
-             tables_readiness_hint: 'results_desk.tables_readiness_hint'|trans,
+             readiness_progress: 'seating.readiness.progress'|trans,
+             readiness_recommended: 'seating.readiness.recommended'|trans,
+             readiness_done: 'seating.readiness.done'|trans,
              leave_unsaved: 'results_desk.leave_unsaved'|trans,
              helper_title_top: 'results_desk.helper.title_top'|trans,
              helper_title_country: 'results_desk.helper.title_country'|trans,
@@ -105,6 +107,7 @@
              publish_team_names: 'results_desk.publish.team_names'|trans,
              publish_notification: 'results_desk.publish.notification'|trans,
              publish_no_new_notification: 'results_desk.publish.no_new_notification'|trans,
+             publish_not_public: 'results_desk.publish.not_public'|trans,
              publish_without_result: browser_translation('results_desk.publish.without_result'),
              publish_unsaved: browser_translation('results_desk.publish.unsaved'),
              publish_confirm: 'results_desk.publish.confirm'|trans,
@@ -116,6 +119,11 @@
              unpublished_toast: 'results_desk.unpublish.done'|trans,
              publish_offline: 'results_desk.error.offline'|trans,
              publish_failed: 'results_desk.error.generic'|trans,
+             take_out: 'results_desk.take_out.button'|trans,
+             take_out_confirm: 'results_desk.take_out.confirm'|trans,
+             take_out_done: 'results_desk.take_out.done'|trans,
+             table_taken_by: 'results_desk.table.taken_by'|trans,
+             swap_tables: 'results_desk.table.swap'|trans,
          }|json_encode|e('html_attr') }}">
 
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
@@ -223,9 +231,11 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
             <div>
                 <div class="small fw-semibold" data-results-desk-target="counts"></div>
-                <div data-results-desk-target="readiness">
-                    {{ include('official_results/_tables_readiness.html.twig', {results_round: round, is_online: competition.isOnline, now: now}) }}
-                </div>
+                {% if not competition.isOnline %}
+                    <div data-results-desk-target="readiness">
+                        {{ include('seating/_readiness.html.twig', {overview: round.overview, compact: true, force: true}) }}
+                    </div>
+                {% endif %}
             </div>
             <div class="d-flex flex-wrap align-items-center gap-1" role="group" aria-label="{{ 'results_desk.helper.group_label'|trans }}">
                 <span class="small text-body-secondary me-1">{{ 'results_desk.helper.label'|trans }}</span>

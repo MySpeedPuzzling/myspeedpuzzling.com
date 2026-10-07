@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\OfficialResults;
 
-use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
@@ -29,7 +28,6 @@ final class CompetitionResultsOverviewController extends AbstractController
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly OfficialResultsRounds $officialResultsRounds,
         private readonly MercureTopicCollector $mercureTopicCollector,
-        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -59,7 +57,6 @@ final class CompetitionResultsOverviewController extends AbstractController
         $response = $this->render('official_results/competition_results_overview.html.twig', [
             'competition' => $competition,
             'rounds' => $rounds,
-            'now' => $this->clock->now(),
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 

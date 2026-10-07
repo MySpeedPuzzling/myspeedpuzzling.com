@@ -33,6 +33,12 @@
                 <a href="{{ path('manage_competition_rounds', {competitionId: competition.id, return: overview_url, return_title: 'results_desk.overview.title'|trans}) }}" class="btn btn-outline-secondary">
                     <i class="bi bi-list-ol me-1" aria-hidden="true"></i>{{ 'competition.manage_rounds'|trans }}
                 </a>
+                {% if not competition.isOnline %}
+                    <a href="{{ path('competition_name_tags', {competitionId: competition.id}) }}" class="btn btn-outline-secondary" target="_blank" rel="noopener" data-results-tool="name-tags">
+                        <i class="bi bi-person-badge me-1" aria-hidden="true"></i>{{ 'name_tags.button'|trans }}
+                    </a>
+                {% endif %}
+                {{ include('official_results/_referees_link.html.twig', {competition_id: competition.id}) }}
             </div>
         </div>
 
@@ -86,7 +92,8 @@
                                         {% if overview.tableNumbersOff %}
                                             <span class="text-body-secondary" data-overview-field="tables">{{ 'results_desk.overview.tables_off'|trans }}</span>
                                         {% else %}
-                                            <span class="{{ overview.entriesTotal > 0 and overview.entriesWithTableNumber >= overview.entriesTotal ? 'text-success' : (overview.entriesWithTableNumber < overview.entriesTotal ? 'text-warning-emphasis') }}" data-overview-field="tables">{{ overview.entriesWithTableNumber }} / {{ overview.entriesTotal }}</span>
+                                            {# Warning colour only while the seating step is recommended (SeatingReadiness) - a past round never nags #}
+                                            <span class="{{ overview.entriesTotal > 0 and overview.entriesWithTableNumber >= overview.entriesTotal ? 'text-success' : (overview.showsTablesReadiness ? 'text-warning-emphasis') }}" data-overview-field="tables">{{ overview.entriesWithTableNumber }} / {{ overview.entriesTotal }}</span>
                                         {% endif %}
                                     </td>
                                 {% endif %}
@@ -107,6 +114,7 @@
                                             table_numbers_off: overview.tableNumbersOff,
                                             return_url: overview_url,
                                             return_title: 'results_desk.overview.title'|trans,
+                                            with_stopwatch: true,
                                         }) }}
                                     </div>
                                 </td>

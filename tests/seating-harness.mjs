@@ -19,6 +19,7 @@ const operations = {
     proposal: ({ rows, entries }) => seating.proposalAssignments(rows, byRef(entries)),
     covers: ({ rows, entries }) => seating.proposalCoversEntrants(rows, byRef(entries)),
     undo: ({ assignments, entries }) => seating.undoAssignments(assignments, seating.numbersOf(byRef(entries))),
+    withFrom: ({ assignments, entries }) => seating.withFrom(assignments, byRef(entries)),
     holder: ({ entries, number, except }) => seating.holderOf(byRef(entries), number, except)?.ref ?? null,
     parse: ({ text }) => seating.parseTableNumber(text),
     matches: ({ entry, query }) => seating.matchesQuery(entry, query),

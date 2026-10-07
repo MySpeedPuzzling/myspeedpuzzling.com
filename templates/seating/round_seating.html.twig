@@ -11,13 +11,17 @@
 {% block title %}{{ 'seating.title'|trans }} - {{ round.name }}{% endblock %}
 
 {% block content %}
+    {# The same way around as the results desk and the live entry: the event's results overview, then the round #}
     {{ include('_breadcrumb.html.twig', {items: [
         {label: 'events.title'|trans, url: path('events')},
         {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
-        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'results_desk.overview.title'|trans, url: path('competition_results_overview', {competitionId: competition.id})},
+        {label: round.name, url: path('results_desk', {roundId: round.id})},
         {label: 'seating.title'|trans},
     ]}) }}
-    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_results_overview', {competitionId: competition.id}), fallbackTitle: 'results_desk.overview.title'|trans}) }}
+
+    {% set seating_url = path('round_seating', {roundId: round.id}) %}
 
     <div class="pb-5">
         <h1 class="h2 mb-1">{{ 'seating.title'|trans }}</h1>
@@ -25,6 +29,18 @@
             {{ competition.name }} — {{ round.name }}
             <span class="badge bg-secondary align-middle ms-1">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
         </p>
+
+        <div class="d-flex flex-wrap gap-2 mb-3" data-seating-tools>
+            {{ include('official_results/_round_tool_links.html.twig', {
+                round_id: round.id,
+                is_online: competition.isOnline,
+                table_numbers_off: round.tableNumbersOff,
+                current: 'seating',
+                button_class: 'btn-sm btn-outline-primary',
+                return_url: seating_url,
+                return_title: 'seating.title'|trans,
+            }) }}
+        </div>
 
         {% if competition.isOnline %}
             <div class="alert alert-secondary" role="status">
@@ -72,6 +88,7 @@
                 toastUndone: 'seating.toast.undone'|trans,
                 toastClose: 'seating.toast.close'|trans,
                 toastNothingSaved: 'seating.toast.nothing_saved'|trans,
+                toastChangedMeanwhile: 'seating.toast.changed_meanwhile'|trans,
                 turnedOff: 'seating.off.turned_off'|trans,
                 turnedOn: 'seating.off.turned_on'|trans,
                 withData: browser_translation('seating.auto.with_data'),
@@ -112,8 +129,19 @@
                 data-round-seating-propose-value="{{ propose }}"
                 data-action="mercure:message@document->round-seating#mercureMessage visibilitychange@document->round-seating#visibilityChanged online@window->round-seating#refresh beforeunload@window->round-seating#beforeUnload turbo:before-visit@document->round-seating#beforeVisit keydown.esc@document->round-seating#escape"
             >
+                {% if rounds|length > 1 %}
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <label class="small text-body-secondary" for="seating-round">{{ 'results_desk.round_switch'|trans }}</label>
+                        <select class="form-select form-select-sm w-auto" id="seating-round" data-seating-round-switch data-action="change->round-seating#switchRound">
+                            {% for other in rounds %}
+                                <option value="{{ path('round_seating', {roundId: other.roundId}) }}" {{ other.roundId == round.id.toString ? 'selected' }}>{{ other.name }} ({{ ('competition.round.category.' ~ other.category)|trans }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+
                 {# "Tables: 180 / 200 assigned - recommended before the round starts", drawn again after every change #}
-                <div class="seating-readiness alert d-flex flex-wrap align-items-center gap-2 py-2 {{ overview.isSeated ? 'alert-light border' : 'alert-info' }}" role="status" data-round-seating-target="readiness">
+                <div class="seating-readiness alert d-flex flex-wrap align-items-center gap-2 py-2 {{ overview.isSeated ? 'alert-light border' : 'alert-info' }}" role="status" data-round-seating-target="readiness" {{ overview.showsTablesReadiness ? '' : 'hidden' }}>
                     <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
                     <span>
                         <strong data-round-seating-target="readinessProgress">{{ 'seating.readiness.progress'|trans({'%assigned%': overview.entriesWithTableNumber, '%total%': overview.entriesTotal}) }}</strong>

@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
-use SpeedPuzzling\Web\Services\SeatingReadiness;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,7 +18,6 @@ final class ManageRoundStopwatchController extends AbstractController
     public function __construct(
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
-        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -48,7 +45,6 @@ final class ManageRoundStopwatchController extends AbstractController
             'round' => $round,
             'competition' => $round->competition,
             'round_overview' => $roundOverview,
-            'show_seating_readiness' => SeatingReadiness::isShown($round->competition->isOnline, $roundOverview, $this->clock->now()),
         ]);
     }
 }

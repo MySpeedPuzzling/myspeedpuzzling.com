@@ -683,7 +683,7 @@ export default class extends Controller {
             this.tablesTarget.textContent = tables;
 
             if (this.hasReadinessTarget) {
-                this.readinessTarget.hidden = this.round.entries.withTableNumber >= this.round.entries.total || this.round.entries.total === 0;
+                this.readinessTarget.hidden = this.round.tablesReadiness !== true || this.round.entries.withTableNumber >= this.round.entries.total;
             }
         } else {
             this.tablesTarget.hidden = true;

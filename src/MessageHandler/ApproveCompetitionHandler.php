@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Message\ApproveCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Query\GetRoundsWithPublishedOfficialResults;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -26,6 +31,8 @@ readonly final class ApproveCompetitionHandler
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
         private PlayerAccountEmail $playerAccountEmail,
+        private GetRoundsWithPublishedOfficialResults $getRoundsWithPublishedOfficialResults,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -35,6 +42,11 @@ readonly final class ApproveCompetitionHandler
         $approvedBy = $this->playerRepository->get($message->approvedByPlayerId);
 
         $competition->approve($approvedBy, $this->clock->now());
+
+        // Official results published while the event was not public yet - the players are told now
+        foreach ($this->getRoundsWithPublishedOfficialResults->ofCompetition($competition->id->toString()) as $roundId) {
+            $this->messageBus->dispatch(new OfficialRoundResultsPublished(Uuid::fromString($roundId)), [new DispatchAfterCurrentBusStamp()]);
+        }
 
         $creator = $competition->addedByPlayer;
 

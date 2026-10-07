@@ -61,9 +61,18 @@ final class RoundSeatingController extends AbstractController
 
         $overview = null;
         $entries = [];
+        // The round switch: the event's rounds (online events have no seating to switch to)
+        $rounds = [];
 
         if ($competition->isOnline === false) {
-            $overview = $this->getRoundResultsOverview->forRound($round->id->toString());
+            $rounds = $this->getRoundResultsOverview->forCompetition($competition->id->toString());
+            foreach ($rounds as $candidate) {
+                if ($candidate->roundId === $round->id->toString()) {
+                    $overview = $candidate;
+                }
+            }
+
+            $overview ??= $this->getRoundResultsOverview->forRound($round->id->toString());
             $entries = $this->getRoundResultEntries->forRound($round->id->toString());
             $this->mercureTopicCollector->addTopic(OfficialResultsLiveUpdates::topic($round->id->toString()));
         }
@@ -84,6 +93,7 @@ final class RoundSeatingController extends AbstractController
             'competition' => $competition,
             'round' => $round,
             'overview' => $overview,
+            'rounds' => $rounds,
             'entries' => $entries,
             'propose' => $propose,
             'first_table' => $firstTable,

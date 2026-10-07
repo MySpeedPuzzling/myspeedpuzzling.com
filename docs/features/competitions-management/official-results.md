@@ -10,7 +10,7 @@ qualified, and at which table everybody sat. Decided 2026-10-07 ("best of both w
 
 This document is the design of record **as built for the core** (data model, write path, guards, ranking, read
 models, JSON API) and the public round page. The organiser pages (live entry, results desk, seating, name tags) build
-on it - see their own sections once they ship.
+on it - see their own documents below.
 
 - Live result entry on a phone + name tags with QR: [live-results.md](live-results.md)
 - Results desk, results overview, qualification helpers, advancing and "Seat them now": [results-desk.md](results-desk.md)
@@ -41,8 +41,11 @@ these columns empty.
   Every writer (import applier, Live participant editor, join, quick add, `AdvanceQualified`) creates a row only for
   a person not in the round yet.
 - `competition_round.results_published_at` (public while set), `results_first_published_at` (the first publish - the
-  players are told once), `table_numbers_off` (the organiser said the round does not use table numbers).
+  desk says whether players were told before), `table_numbers_off` (the organiser said the round does not use table
+  numbers).
 - `notification.target_competition_round_id` (`CASCADE`) for `NotificationType::OfficialResultPublished`.
+- `official_result_notice` (`OfficialResultNotice`: player + round unique, both `CASCADE`, `notified_at`) - "this player
+  was told about this round", the whole never-twice guarantee of the notifications (below).
 - Table numbers are unique per round **in the write path, under the participants lock** - not by an index, so a swap
   or a renumbering in one change set works.
 
@@ -59,10 +62,12 @@ the rounds, name, id. Entries without a ranked result last.
 
 ## One write path
 
-All writes take `CompetitionParticipantsLock::key($competitionId)` (`SerializedByLock`; the same key as the participant
-import and registrations), validate everything before changing anything, and check that every round/entry belongs to
-the competition the caller was authorised on (`CompetitionEditVoter`; `RecordRoundResults` also
-`CompetitionResultsEntryVoter` for the event's referees, with `resultsOnly` - live-results.md "Referees").
+Every write of round entries (results, marks, table numbers, advancing, taking out) takes
+`CompetitionParticipantsLock::key($competitionId)` (`SerializedByLock`; the same key as the participant import and
+registrations) - publishing and the table numbers usage switch change only the round row; all of them validate everything
+before changing anything and check that every round/entry belongs to the competition the caller was authorised on
+(`CompetitionEditVoter`; `RecordRoundResults` also `CompetitionResultsEntryVoter` for the event's referees, with
+`resultsOnly` - live-results.md "Referees").
 
 - **`RecordRoundResults`** (`competitionId`, `roundId`, `actingPlayerId`, list of `RoundResultChange`, `dryRun`) -
   results, table numbers, qualified marks and entrants typed in at the venue. Each change: `clientChangeId` (UUID, for
@@ -73,22 +78,47 @@ the competition the caller was authorised on (`CompetitionEditVoter`; `RecordRou
   returned). Invalid → `rejected` with a reason key (`official_results.reason.*`). Table numbers are checked after the
   whole set; a change making a number shared is refused and the set planned again. A new entry is created only when
   one of its changes goes through. Returns `RecordedRoundResults` (HandledStamp).
-- **`AssignTableNumbers`** (`competitionId`, `roundId`, `[{entry, number|null}]`) - seating in one write, validated as
-  a whole (entries of the round, listed once, 1..9999, no shared number afterwards) or refused entirely
-  (`InvalidTableNumbers` with problems). Returns the refs whose number changed.
+- **`AssignTableNumbers`** (`competitionId`, `roundId`, `[{entry, from, number|null}]`) - seating in one write,
+  validated as a whole (entries of the round, listed once, 1..9999, no shared number afterwards) or refused entirely
+  (`InvalidTableNumbers` with problems). `from` (required) is the number the device last saw: an entry whose number is
+  neither `from` nor the new one any more was changed by another organiser meanwhile → `changed_meanwhile` (with the
+  `current` number) and **nothing** of the write is applied - a renumbering is never half applied and never written over
+  somebody else's numbers; the page fetches the round again and says so. Returns the refs whose number changed.
 - **`ChangeRoundTableNumbersUsage`** (`off`) - "this round doesn't use table numbers" and back.
-- **`PublishRoundResults` / `UnpublishRoundResults`** - `published_at`; the first publish ever also sets
-  `first_published_at` and records `OfficialRoundResultsPublished` (async) → `NotifyWhenOfficialRoundResultsPublished`:
-  an in-app notification to every player linked to an entry with a **finished** result (solo: the connected
-  participant; pair/team: connected members), skipping who has it already; results unpublished before the handler
-  runs tell nobody. No e-mail.
+- **`PublishRoundResults` / `UnpublishRoundResults`** - `published_at`; the first publish also sets
+  `first_published_at`. **Every** publish records `OfficialRoundResultsPublished` (async) →
+  `NotifyWhenOfficialRoundResultsPublished`: an in-app notification (no e-mail) to every player linked to an entry with a
+  **finished** result (solo: the connected participant; pair/team: connected members) who was not told about the round
+  yet. The same event is recorded when a finished result is recorded or corrected on a published round
+  (`HasOfficialResult::recordResult()` - a referee's phone syncing late, a did-not-finish corrected) and dispatched for the
+  already published rounds when the event (`ApproveCompetitionHandler`) or its series (`ApproveCompetitionSeriesHandler`)
+  is approved. The handler tells nobody while the results are off the page or the event is not publicly visible
+  (`IsCompetitionPubliclyVisible` - the link would 404); the next publish or the approval runs it again. **Never twice**:
+  each recipient's `official_result_notice` row is claimed with `INSERT .. ON CONFLICT DO NOTHING` in the notification's
+  transaction (`OfficialResultNoticeRepository::claim()`), so a publish → unpublish → publish before the worker ran, a late
+  result and an approval running at the same moment all meet on the unique index - one of them tells the player.
 - **`AdvanceQualified`** (`sourceRoundIds[]`, `targetRoundIds[]`, `distribution` `single` | `balanced` | `by_source`,
-  `targetBySource`, `dryRun`, `planHash`) - qualified entries of the sources into the targets, same category only.
-  Solo: the person joins the target round; pair/team: a new team with the same people and name. Skipped:
-  `already_in_target` (the person / that exact set of people is there), `member_already_in_target`, `qualified_twice`.
-  `balanced` = serpentine by seed (1→T1, 2→T2, 3→T2, 4→T1, …). The dry run returns the exact plan + `planHash`
-  (assignments, skips, target entries, distribution); applying requires the hash and re-plans under the lock - any
-  difference → `AdvancementPlanChanged` (409), nothing written. Advancing twice adds nobody; unmarking never removes.
+  `targetBySource`, `bestOfEachCountry`, `dryRun`, `planHash`) - qualified entries of the sources into the targets, same
+  category only. Solo: the person joins the target round; pair/team: a new team with the same people and name. Skipped:
+  `already_in_target` (the person / that exact set of people is there), `member_already_in_target`,
+  `member_already_planned` (a person in two qualified pairs/teams goes once, with the better-seeded one - never a
+  unique-index failure, never two parallel rounds), `qualified_twice`. `balanced` = serpentine by seed (1→T1, 2→T2, 3→T2,
+  4→T1, …). The dry run returns the exact plan + `planHash` (assignments, skips, target entries, distribution, the country
+  rule); applying requires the hash and re-plans under the lock - any difference → `AdvancementPlanChanged` (409),
+  nothing written. Advancing twice adds nobody; unmarking never removes. The people of a plan are loaded in one
+  statement.
+  **The country rule** (`bestOfEachCountry` 1..99, WJPC's "the best of every country advances whatever their time"):
+  the plan also takes the best K ranked entries of every country **over all the source rounds**, by the advancement
+  seed - a pair/team counts for each of its members' countries, entries already marked count too (a country whose best
+  is in already gets nobody extra). Those not marked yet are flagged `byCountryRule` and listed in
+  `markedByCountryRule`; applying the plan marks them qualified in their own round first (one confirmation, one
+  transaction, one `planHash`), so the marks always say who advanced. Ranked entries without a country are listed
+  (`withoutCountry`) for the organiser to mark by hand - never taken. Decided over a page-side pre-selection: the seed
+  lives in PHP (`AdvancementSeeding`) and the plan is the review step organisers already confirm.
+- **`TakeEntryOutOfRound`** (`competitionId`, `roundId`, `entry`) - "Take out of this round" on the results desk, for an
+  entry put in by mistake (a wrong advance): a person's `CompetitionParticipantRound` goes (they stay in the event and its
+  other rounds); a pair/team goes with its members' places in that round. Refused (`OfficialResultsProtected`
+  `round_entry_has_result` / `team_has_result`) while the entry has a result or a qualified mark.
 
 Qualified marks are written only through `RecordRoundResults` changes, so helper pre-selections (Top N, best of each
 country) made in a page surface conflicts like any other change.
@@ -105,8 +135,10 @@ Refusals throw `OfficialResultsProtected` (409, reason `official_results.guard.*
 | Remove a person from the event (`SoftDeleteCompetitionParticipantHandler`) | refused when they hold data anywhere in the event |
 | Import (planner `SiteSnapshot::hasAnyResult()` / `teamHasOfficialResult()`) | official results count like players' times (D11): people kept, entries kept, emptied pairs/teams with data kept (warning) |
 | `LeaveCompetition`, switching identity in `JoinCompetition` | a self-joined row holding data is disconnected, not deleted |
-| Change a round's category (`EditCompetitionRoundHandler`, also internal API PATCH) | refused while any entry has a result |
-| Delete a round | internal API: 409 when it has player times **or official results**; web: a confirmation listing the official results, bound to the list (`confirmedOfficialResultsHash`, re-checked under the lock) |
+| Change a round's category (`EditCompetitionRoundHandler`, also internal API PATCH) | refused while any entry has a result or a qualified mark (`countEntriesWithOfficialDataInRound()`) |
+| Delete a round | internal API: 409 when it has player times **or official results / qualified marks**; web: a confirmation listing the official results, bound to the list (`confirmedOfficialResultsHash`, re-checked under the lock) |
+| Delete an event (internal API `DELETE /internal-api/competitions/{id}`, `refuseWhenItHasResults`) | 409 when it has player times **or official results / qualified marks** (`countEntriesWithOfficialDataInCompetition()`); the web delete asks its own way |
+| Take an entry out of its round (results desk, `TakeEntryOutOfRound`) | refused while it has a result or a qualified mark |
 | Move a person between pairs/teams (`AssignParticipantToTeamController`) | allowed; a warning that the result now belongs to the new line-up |
 
 ## Read models
@@ -117,8 +149,9 @@ Refusals throw `OfficialResultsProtected` (409, reason `official_results.guard.*
   JSON every endpoint and Mercure update uses.
 - `GetRoundResultsOverview::forCompetition()` / `forRound()` - every round with stopwatch, publication, piece count of
   a single-puzzle round, `tableNumbersOff` and the counts (entries, with table number, with result, qualified) - the
-  seating readiness line "Tables: 180 / 200 assigned". One statement.
-- `GetOfficialResultRecipients` - the notification fan-out.
+  seating readiness line "Tables: 180 / 200 assigned" - and whether that line shows now (`showsTablesReadiness`, JSON
+  `tablesReadiness`: THE rule, `SeatingReadiness`, see [seating.md](seating.md)). One statement.
+- `GetOfficialResultRecipients` - the notification fan-out (players not told about the round yet).
 
 ## Public round page (as built)
 
@@ -185,13 +218,15 @@ changes are refused with reason `results_only`, live-results.md "Referees"), wri
 | `GET rounds/{roundId}` | - | `serverNow`, `topic`, `competition`, `round`, `rounds`, `entries` |
 | `POST rounds/{roundId}/changes` | `RecordRoundResults` | `dryRun`, `outcomes`, `entries` (400 unreadable set) |
 | `POST rounds/{roundId}/publish` / `unpublish` | `PublishRoundResults` / `UnpublishRoundResults` | `round` |
-| `POST rounds/{roundId}/table-numbers` | `AssignTableNumbers` | `changed`, `entries` (422 `problems`) |
+| `POST rounds/{roundId}/table-numbers` | `AssignTableNumbers` | `changed`, `entries` (422 `problems`, `changed_meanwhile` with `current`; 400 without `from`) |
 | `POST rounds/{roundId}/table-numbers-usage` | `ChangeRoundTableNumbersUsage` | `round` |
+| `POST rounds/{roundId}/take-out` | `TakeEntryOutOfRound` | `removed`, `round` (409 `entry_protected`, 404 `entry_not_found`) |
 | `POST competitions/{competitionId}/advance` | `AdvanceQualified` | the plan (409 `plan_changed`, 422 `reason`) |
 
 Live updates: after the commit the controller publishes a **private** Mercure update on `/round-results/{roundId}`
 (`OfficialResultsLiveUpdates`; a Mercure failure is a logged warning, never a failed write): `official_results.entries`
-(the changed entries + the round), `official_results.refresh` (more than 50 entries changed - fetch the state again),
+(the changed entries + the round), `official_results.refresh` (more than 50 entries changed, or an entry taken out of
+the round - fetch the state again),
 `official_results.round` (publication / table numbers usage). A page subscribes by adding the topic with
 `MercureTopicCollector::addTopic(OfficialResultsLiveUpdates::topic($roundId))` in its controller (organisers only); the
 base layout's `mercure-hub` controller then dispatches each update as a `mercure:message` event on `document`.

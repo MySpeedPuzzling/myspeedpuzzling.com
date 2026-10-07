@@ -28,7 +28,7 @@ function runPending(steps) {
                 break;
             }
             case 'settle':
-                pending.settle({ clientChangeId: lastTaken[step.index].clientChangeId, status: step.status, current: step.current ?? null, message: step.message ?? null, enteredBy: step.enteredBy ?? null });
+                pending.settle({ clientChangeId: lastTaken[step.index].clientChangeId, status: step.status, reason: step.reason ?? null, current: step.current ?? null, message: step.message ?? null, enteredBy: step.enteredBy ?? null });
                 break;
             case 'retryInFlight':
                 pending.retryInFlight();

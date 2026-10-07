@@ -14,7 +14,7 @@ watching). Optional, but highly recommended: a referee then enters results by ta
 | Seating page of a round | `round_seating` (`/en/round-seating/{roundId}`, cs `/zasedaci-poradek-kola/{roundId}`) | `RoundSeatingController`, `templates/seating/round_seating.html.twig`, `controllers/round_seating_controller.js` (lazy) |
 | Printable lists | `round_seating_print` (`/en/print-round-seating/{roundId}`, `?list=tables` / `?list=names`) | `RoundSeatingPrintController`, `templates/seating/print.html.twig` - standalone like the table layout print |
 | Auto-assign proposal (JSON) | `official_results_seating_proposal` (GET `/{_locale}/official-results/rounds/{roundId}/seating-proposal`) | `SeatingProposalController` → `SeatingProposer` |
-| Readiness line on the stopwatch control page | `manage_round_stopwatch` | `templates/seating/_readiness.html.twig`, `SeatingReadiness::isShown()` |
+| The seating step ("Tables: x / y assigned") on every page managing a round | round list, results desk, results overview, stopwatch control page, seating page, live entry | `templates/seating/_readiness.html.twig`, `SeatingReadiness::isShown()` - see "The seating step: one rule" |
 
 All of them: `CompetitionEditVoter` on the round's competition, `noindex`, `Cache-Control: private, no-store`. The
 JSON endpoint follows `OfficialResultsApi` (401 `sign_in_required`, 403 `forbidden`, never a login redirect).
@@ -27,10 +27,17 @@ second of two semifinals in one hall).
 Desk and tablet first, usable on a phone (44 px touch targets). It is drawn by the Stimulus controller from the round's
 entries (`GetRoundResultEntries`, embedded in the page - nothing to load) and kept current from the round's private
 Mercure topic (`OfficialResultsLiveUpdates`; `official_results.entries` merged, `official_results.refresh` and a tab
-coming back after 20 s or the network coming back fetch `official_results_round_state` again).
+coming back after 20 s or the network coming back fetch `official_results_round_state` again) - and, like the results
+desk, the round's state is fetched once a minute while the tab is shown (the Mercure subscription may lapse silently).
+A state answer overtaken by a newer one, or older than entries merged while it was on its way, is dropped (and asked for
+again), so a slow GET never undoes newer numbers.
+
+Around it the page sits like the results desk and the live entry: breadcrumb Events › event › Results overview › round ›
+Seating, the round's tools (Live entry, Results desk - `official_results/_round_tool_links.html.twig`) and a round switch
+to the other rounds' seating.
 
 - **Readiness**: "Tables: 180 / 200 assigned - recommended before the round starts" ("Every entry has a table." when
-  done).
+  done) - by the one rule below; a round under way or over shows no line here either.
 - **Two lists**: "No table yet" on top (by name), then the seated entries by table number. Each row: drag handle, the
   table number input, name (flag, `#CODE`, members of a named pair/team), Move up / Move down, Swap.
 - **Typing a number** (Enter saves and goes to the next row; Escape reverts) is one `official_results_record` change
@@ -48,10 +55,14 @@ coming back after 20 s or the network coming back fetch `official_results_round_
 - **Clear all** (confirm) and **Auto-assign** (below).
 - **Find** box: table number, name, member, `#code` (accents ignored); drag and drop is off while filtering.
 - Every bulk action (swap, renumber, seat the rest, clear all, apply a proposal) is **one**
-  `official_results_assign_table_numbers` write, validated as a whole by `AssignTableNumbers` - all or nothing. A
-  refusal (422) names the entries ("Nothing was saved - fix the tables below"), and the page fetches the round again
-  (somebody may have seated an entrant meanwhile). Each success toast has **Undo** (the numbers before, as one more
-  bulk write). Signed out / offline / server errors keep the page and offer "Try again" (+ "Sign in again" in a new tab).
+  `official_results_assign_table_numbers` write, validated as a whole by `AssignTableNumbers` - all or nothing. Every
+  assignment carries `from` = the number this page showed when the action was taken (`seating.js` `withFrom()`; kept for a
+  "Try again"), so a number another organiser changed meanwhile refuses the whole write (`changed_meanwhile`): "Somebody
+  else changed table numbers meanwhile - nothing was saved", the rows name it and the page fetches the round again. Any
+  other refusal (422) names the entries ("Nothing was saved - fix the tables below") and re-fetches too. Each success
+  toast has **Undo** (the numbers before, as one more bulk write whose `from` is the number the write set - an entry
+  renumbered by somebody else since is not undone over their change). Signed out / offline / server errors keep the
+  page and offer "Try again" (+ "Sign in again" in a new tab).
 - **"This round doesn't use table numbers"** (`official_results_table_numbers_usage`, undoable from the toast): the page
   then says so and offers **Use table numbers**; the readiness line disappears everywhere.
 - **Online events**: the page only explains that seating is for in-person events.
@@ -114,13 +125,17 @@ organiser recorded them (never player profiles or codes - the list hangs at the 
   of a pair/team on a line of their own pointing to the pair's/team's table, with the pair's/team's name (unnamed:
   "with Eva Noshow"). Two columns on paper.
 
-## Readiness elsewhere
+## The seating step: one rule
 
-`SeatingReadiness::isShown()` - in-person event, the round uses table numbers, has entrants, its stopwatch never ran and
-it starts in the future or started less than 12 hours ago. Rounds that are over (every existing event) show nothing, so
-their pages stay as they were. Used on the stopwatch control page (`manage_round_stopwatch`) via
-`templates/seating/_readiness.html.twig`; the round list, the live entry and the results desk show the same line (their
-own streams - they can include the partial with a `RoundResultsOverview`).
+`SeatingReadiness::isShown()` is THE rule - in-person event, the round uses table numbers, has entrants, it has not
+started (its stopwatch never ran) and it was due to start less than 12 hours ago or later (a late start keeps it). A
+round under way, finished or past never nags - every existing event's pages stay as they were.
+`GetRoundResultsOverview` computes it into `RoundResultsOverview::$showsTablesReadiness` (JSON `tablesReadiness`, also in
+every Mercure update and state answer), and every page follows it: the round list (compact line), the results desk
+(compact, redrawn from the desk's own numbers), the results overview (the Tables column turns warning-coloured only while
+it holds), the stopwatch control page (alert with the way to the seating page), the seating page and the live entry
+(its recommendation shows only while `tablesReadiness`). One partial (`templates/seating/_readiness.html.twig`, `compact`
+or the alert) and one set of texts (`seating.readiness.progress` / `recommended` / `done`).
 
 ## Tests
 

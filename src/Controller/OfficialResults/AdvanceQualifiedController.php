@@ -23,8 +23,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Advance the qualified (AdvanceQualified): `{"sourceRoundIds": [...], "targetRoundIds": [...], "distribution":
- * "single"|"balanced"|"by_source", "targetBySource": {"<source>": "<target>"}, "dryRun": true}` → the plan with its
- * `planHash`; the same body with `"dryRun": false, "planHash": "..."` applies exactly that plan - 409 `plan_changed`
+ * "single"|"balanced"|"by_source", "targetBySource": {"<source>": "<target>"}, "bestOfEachCountry": null|1..99,
+ * "dryRun": true}` → the plan with its `planHash`; the same body with `"dryRun": false, "planHash": "..."` applies exactly that plan - 409 `plan_changed`
  * when anything changed meanwhile, 422 `invalid_advancement` with a `reason` for an impossible request.
  */
 final class AdvanceQualifiedController extends AbstractController
@@ -65,8 +65,9 @@ final class AdvanceQualifiedController extends AbstractController
         $distribution = is_string($body['distribution'] ?? null) ? AdvanceDistribution::tryFrom($body['distribution']) : null;
         $targetBySource = $body['targetBySource'] ?? [];
         $planHash = $body['planHash'] ?? null;
+        $bestOfEachCountry = $body['bestOfEachCountry'] ?? null;
 
-        if ($sourceRoundIds === null || $targetRoundIds === null || $distribution === null || !is_array($targetBySource) || !($planHash === null || is_string($planHash))) {
+        if ($sourceRoundIds === null || $targetRoundIds === null || $distribution === null || !is_array($targetBySource) || !($planHash === null || is_string($planHash)) || !($bestOfEachCountry === null || is_int($bestOfEachCountry))) {
             return OfficialResultsApi::error('invalid_advancement_request', JsonResponse::HTTP_BAD_REQUEST);
         }
 
@@ -88,6 +89,7 @@ final class AdvanceQualifiedController extends AbstractController
                 targetBySource: $map,
                 dryRun: ($body['dryRun'] ?? true) !== false,
                 planHash: $planHash,
+                bestOfEachCountry: $bestOfEachCountry,
             ));
         } catch (InvalidAdvancement $invalid) {
             return OfficialResultsApi::error('invalid_advancement', JsonResponse::HTTP_UNPROCESSABLE_ENTITY, [
@@ -104,14 +106,19 @@ final class AdvanceQualifiedController extends AbstractController
         assert($plan instanceof AdvancementPlan);
 
         if ($plan->applied) {
-            $createdByRound = [];
+            $changedByRound = [];
             foreach ($plan->assignments as $assignment) {
                 if ($assignment->createdEntryRef !== null) {
-                    $createdByRound[$assignment->targetRoundId][] = $assignment->createdEntryRef;
+                    $changedByRound[$assignment->targetRoundId][] = $assignment->createdEntryRef;
                 }
             }
 
-            foreach ($createdByRound as $roundId => $refs) {
+            // Marked qualified by the country rule, in their own rounds
+            foreach ($plan->markedByCountryRule as $marked) {
+                $changedByRound[$marked['sourceRoundId']][] = $marked['entry'];
+            }
+
+            foreach ($changedByRound as $roundId => $refs) {
                 $this->liveUpdates->entriesChanged($roundId, $refs);
             }
         }

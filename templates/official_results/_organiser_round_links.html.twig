@@ -1,0 +1,11 @@
+{# On the public round page: the event's organisers get a small way back to the round's results tools. Renders nothing
+   for anybody else (CompetitionEditVoter, checked only for signed-in visitors). Included by the public round page.
+   Expects: competition_id, round_id #}
+{%- if app.user is not null and is_granted('COMPETITION_EDIT', competition_id) -%}
+    <p class="small mb-2 d-print-none" data-organiser-round-links>
+        <i class="bi bi-shield-lock me-1 text-body-secondary" aria-hidden="true"></i>
+        <a href="{{ path('results_desk', {roundId: round_id}) }}" data-round-tool="desk">{{ 'results_desk.tools.results'|trans }}</a>
+        <span class="text-body-secondary mx-1">&middot;</span>
+        <a href="{{ path('live_results', {roundId: round_id}) }}" data-round-tool="live">{{ 'results_desk.tools.live_entry'|trans }}</a>
+    </p>
+{%- endif -%}

@@ -19,8 +19,9 @@ use SpeedPuzzling\Web\Value\RoundEntryRef;
  * A pair/team of one round - the round entry of a duo/team round, carrying its official result (HasOfficialResult).
  */
 #[Entity]
-class CompetitionTeam
+class CompetitionTeam implements EntityWithEvents
 {
+    use HasEvents;
     use HasOfficialResult;
 
     public const int NAME_MAX_LENGTH = 255;

@@ -4184,8 +4184,6 @@ results_desk:
   close: "Zavřít"
   noscript: "Výsledkový pult vyžaduje JavaScript."
   leave_unsaved: "Některé změny na této stránce ještě nejsou uloženy. Přesto odejít?"
-  tables_readiness: "Stoly: přiděleno %seated% / %total%"
-  tables_readiness_hint: "Doporučeno: přidělte každému soutěžícímu číslo stolu před začátkem kola"
   tools:
     live_entry: "Živé zadávání"
     results: "Výsledky"

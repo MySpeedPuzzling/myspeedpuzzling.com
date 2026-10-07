@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
@@ -25,12 +27,16 @@ use SpeedPuzzling\Web\Results\RoundResultEntry;
 use SpeedPuzzling\Web\Services\AdvancementSeeding;
 use SpeedPuzzling\Web\Value\AdvanceDistribution;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundEntryRef;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * Plans under the event's participants lock - always, also when applying - and writes only the plan the organiser saw
  * (`planHash`). Reads go through GetRoundResultEntries on the transaction's own connection, so the plan is the state
  * the write lands on.
+ *
+ * Nobody ends up in two target rounds or twice in one: the people already in any target round and the people already
+ * planned are skipped, best seed first - a person qualified in two pairs/teams goes with the better one.
  */
 #[AsMessageHandler]
 readonly final class AdvanceQualifiedHandler
@@ -42,8 +48,12 @@ readonly final class AdvanceQualifiedHandler
         private CompetitionParticipantRoundRepository $participantRoundRepository,
         private CompetitionTeamRepository $teamRepository,
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
+
+    // "Best of each country": at most this many per country
+    public const int MAX_PER_COUNTRY = 99;
 
     /**
      * @throws CompetitionRoundNotFound
@@ -65,10 +75,17 @@ readonly final class AdvanceQualifiedHandler
             $piecesCountBySource[$roundId] = $round->singlePuzzlePiecesCount();
         }
 
+        // "Best of each country" over all the source rounds: entries not marked qualified that the rule takes in
+        $byCountryRule = [];
+        $withoutCountry = [];
+        if ($message->bestOfEachCountry !== null) {
+            [$byCountryRule, $withoutCountry] = self::bestOfEachCountry($entriesBySource, $piecesCountBySource, $message->bestOfEachCountry);
+        }
+
         $seeded = AdvancementSeeding::seed(
             $entriesBySource,
             $piecesCountBySource,
-            static fn (RoundResultEntry $entry): bool => $entry->isQualified(),
+            static fn (RoundResultEntry $entry): bool => $entry->isQualified() || isset($byCountryRule[$entry->ref->toString()]),
         );
 
         $targetEntries = [];
@@ -95,6 +112,8 @@ readonly final class AdvanceQualifiedHandler
         $toPlace = [];
         $skipped = [];
         $seen = [];
+        // People planned into a target round so far - a person in two qualified pairs/teams goes once, with the better
+        $planned = [];
         foreach ($seeded as $seededEntry) {
             $entry = $seededEntry->entry;
             $identity = self::identity($entry);
@@ -110,6 +129,8 @@ readonly final class AdvanceQualifiedHandler
                 foreach ($entry->participantIds() as $participantId) {
                     if (isset($participantsInTargets[$participantId])) {
                         $reason = 'member_already_in_target';
+                    } elseif ($reason === null && isset($planned[$participantId])) {
+                        $reason = 'member_already_planned';
                     }
                 }
             }
@@ -117,9 +138,19 @@ readonly final class AdvanceQualifiedHandler
             $seen[$identity] = true;
 
             if ($reason !== null) {
-                $skipped[] = ['seed' => $seededEntry->seed, 'sourceRoundId' => $seededEntry->sourceRoundId, 'entry' => $entry, 'reason' => $reason];
+                $skipped[] = [
+                    'seed' => $seededEntry->seed,
+                    'sourceRoundId' => $seededEntry->sourceRoundId,
+                    'entry' => $entry,
+                    'reason' => $reason,
+                    'byCountryRule' => isset($byCountryRule[$entry->ref->toString()]),
+                ];
 
                 continue;
+            }
+
+            foreach ($entry->participantIds() as $participantId) {
+                $planned[$participantId] = true;
             }
 
             $toPlace[] = $seededEntry;
@@ -137,22 +168,38 @@ readonly final class AdvanceQualifiedHandler
                     AdvanceDistribution::BySource => self::targetMap($message)[$seededEntry->sourceRoundId],
                 },
                 entry: $seededEntry->entry,
+                byCountryRule: isset($byCountryRule[$seededEntry->entry->ref->toString()]),
             );
         }
 
-        $planHash = self::hash($message, $assignments, $skipped, $targetEntries);
+        $planHash = self::hash($message, $assignments, $skipped, $targetEntries, $byCountryRule);
 
         if ($message->dryRun === false) {
             if ($message->planHash === null || hash_equals($planHash, $message->planHash) === false) {
                 throw new AdvancementPlanChanged();
             }
 
+            // The country rule's entries are qualified now - a mark in their own round, like the organiser's own marks
+            $now = $this->clock->now();
+            foreach (array_keys($byCountryRule) as $ref) {
+                $this->roundEntry($ref)?->markQualified($now);
+            }
+
+            $participantIds = [];
+            foreach ($assignments as $assignment) {
+                foreach ($assignment->entry->participantIds() as $participantId) {
+                    $participantIds[] = $participantId;
+                }
+            }
+            $participants = $this->participantRepository->findByIds($participantIds);
+
             $assignments = array_map(fn (AdvancementAssignment $assignment): AdvancementAssignment => new AdvancementAssignment(
                 seed: $assignment->seed,
                 sourceRoundId: $assignment->sourceRoundId,
                 targetRoundId: $assignment->targetRoundId,
                 entry: $assignment->entry,
-                createdEntryRef: $this->advance($assignment->entry, $targets[$assignment->targetRoundId]),
+                createdEntryRef: $this->advance($assignment->entry, $targets[$assignment->targetRoundId], $participants),
+                byCountryRule: $assignment->byCountryRule,
             ), $assignments);
         }
 
@@ -169,6 +216,13 @@ readonly final class AdvanceQualifiedHandler
             assignments: $assignments,
             skipped: $skipped,
             targets: $summary,
+            bestOfEachCountry: $message->bestOfEachCountry,
+            markedByCountryRule: array_map(
+                static fn (string $ref, string $sourceRoundId): array => ['entry' => $ref, 'sourceRoundId' => $sourceRoundId],
+                array_keys($byCountryRule),
+                array_values($byCountryRule),
+            ),
+            withoutCountry: $withoutCountry,
         );
     }
 
@@ -216,6 +270,10 @@ readonly final class AdvanceQualifiedHandler
 
         if (count($categories) !== 1) {
             throw new InvalidAdvancement('category_mismatch');
+        }
+
+        if ($message->bestOfEachCountry !== null && ($message->bestOfEachCountry < 1 || $message->bestOfEachCountry > self::MAX_PER_COUNTRY)) {
+            throw new InvalidAdvancement('invalid_country_rule');
         }
 
         if ($message->distribution === AdvanceDistribution::Single && count($targets) !== 1) {
@@ -274,13 +332,16 @@ readonly final class AdvanceQualifiedHandler
         return intdiv($index, $targets) % 2 === 0 ? $position : $targets - 1 - $position;
     }
 
-    private function advance(RoundResultEntry $entry, CompetitionRound $target): string
+    /**
+     * @param array<string, CompetitionParticipant> $participants the people of the whole plan, loaded at once
+     */
+    private function advance(RoundResultEntry $entry, CompetitionRound $target, array $participants): string
     {
         if ($target->category === RoundCategory::Solo) {
             assert($entry->participantId !== null);
             $participantRound = new CompetitionParticipantRound(
                 Uuid::uuid7(),
-                $this->participantRepository->get($entry->participantId),
+                $participants[$entry->participantId] ?? $this->participantRepository->get($entry->participantId),
                 $target,
             );
             $this->participantRoundRepository->save($participantRound);
@@ -294,7 +355,7 @@ readonly final class AdvanceQualifiedHandler
         foreach ($entry->participantIds() as $participantId) {
             $this->participantRoundRepository->save(new CompetitionParticipantRound(
                 Uuid::uuid7(),
-                $this->participantRepository->get($participantId),
+                $participants[$participantId] ?? $this->participantRepository->get($participantId),
                 $target,
                 $team,
             ));
@@ -303,13 +364,79 @@ readonly final class AdvanceQualifiedHandler
         return $team->entryRef()->toString();
     }
 
+    private function roundEntry(string $ref): null|CompetitionParticipantRound|CompetitionTeam
+    {
+        $entryRef = RoundEntryRef::tryFromString($ref);
+
+        if ($entryRef === null) {
+            return null;
+        }
+
+        return $entryRef->isTeam()
+            ? $this->teamRepository->find($entryRef->id)
+            : $this->participantRoundRepository->find($entryRef->id);
+    }
+
+    /**
+     * "Best of each country" over all the source rounds, by the advancement seed: the best `perCountry` ranked entries
+     * of every country - a pair/team counts for each of its members' countries. Entries marked qualified count too
+     * (a country whose best is in already gets nobody extra).
+     *
+     * @param array<string, list<RoundResultEntry>> $entriesBySource
+     * @param array<string, null|int> $piecesCountBySource
+     * @return array{0: array<string, string>, 1: list<array{sourceRoundId: string, entry: RoundResultEntry}>}
+     *         [ref of an entry not marked yet that the rule takes => its source round id, ranked entries without a
+     *         country that are not marked - left to the organiser]
+     */
+    private static function bestOfEachCountry(array $entriesBySource, array $piecesCountBySource, int $perCountry): array
+    {
+        $taken = [];
+        $byCountryRule = [];
+        $withoutCountry = [];
+
+        $ranked = AdvancementSeeding::seed($entriesBySource, $piecesCountBySource, static fn (RoundResultEntry $entry): bool => $entry->rank !== null);
+
+        foreach ($ranked as $seededEntry) {
+            $entry = $seededEntry->entry;
+            $countries = array_values(array_unique(array_filter($entry->countries, static fn (string $country): bool => $country !== '')));
+
+            if ($countries === []) {
+                if ($entry->isQualified() === false) {
+                    $withoutCountry[] = ['sourceRoundId' => $seededEntry->sourceRoundId, 'entry' => $entry];
+                }
+
+                continue;
+            }
+
+            $selected = false;
+            foreach ($countries as $country) {
+                $count = $taken[$country] ?? 0;
+
+                if ($count < $perCountry) {
+                    $taken[$country] = $count + 1;
+                    $selected = true;
+                }
+            }
+
+            if ($selected && $entry->isQualified() === false) {
+                $byCountryRule[$entry->ref->toString()] = $seededEntry->sourceRoundId;
+            }
+        }
+
+        return [$byCountryRule, $withoutCountry];
+    }
+
     /**
      * @param list<AdvancementAssignment> $assignments
-     * @param list<array{seed: int, sourceRoundId: string, entry: RoundResultEntry, reason: string}> $skipped
+     * @param list<array{seed: int, sourceRoundId: string, entry: RoundResultEntry, reason: string, byCountryRule: bool}> $skipped
      * @param array<string, list<RoundResultEntry>> $targetEntries
+     * @param array<string, string> $byCountryRule
      */
-    private static function hash(AdvanceQualified $message, array $assignments, array $skipped, array $targetEntries): string
+    private static function hash(AdvanceQualified $message, array $assignments, array $skipped, array $targetEntries, array $byCountryRule): string
     {
+        $markedByRule = array_keys($byCountryRule);
+        sort($markedByRule);
+
         $targetRefs = [];
         foreach ($targetEntries as $roundId => $entries) {
             $refs = array_map(static fn (RoundResultEntry $entry): string => $entry->ref->toString() . '=' . self::identity($entry), $entries);
@@ -330,6 +457,8 @@ readonly final class AdvanceQualifiedHandler
             ], $assignments),
             'skipped' => array_map(static fn (array $skip): array => [$skip['entry']->ref->toString(), $skip['reason']], $skipped),
             'targetEntries' => $targetRefs,
+            'bestOfEachCountry' => $message->bestOfEachCountry,
+            'markedByCountryRule' => $markedByRule,
         ], JSON_THROW_ON_ERROR));
     }
 }

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\OfficialResults;
 use Doctrine\DBAL\Connection;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use SpeedPuzzling\Web\Services\Export\RoundResultsExporter;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -133,6 +134,15 @@ final class ExportRoundResultsControllerTest extends WebTestCase
         self::assertSame('Filip Pending', $sheet->getCell([3, 7])->getValue());
     }
 
+    public function testTheSheetNameNeverHasCharactersASheetCannotHave(): void
+    {
+        self::assertSame('Résultats', RoundResultsExporter::sheetTitle('Résultats'));
+        self::assertSame('Results  2026', RoundResultsExporter::sheetTitle('Results: 2026'));
+        self::assertSame('a b c d e f', RoundResultsExporter::sheetTitle('a/b\\c?d*e[f]'));
+        self::assertSame(31, mb_strlen(RoundResultsExporter::sheetTitle(str_repeat('x', 40))));
+        self::assertSame('Results', RoundResultsExporter::sheetTitle(' :/ '));
+    }
+
     /**
      * @return list<list<string>>
      */
@@ -162,7 +172,8 @@ final class ExportRoundResultsControllerTest extends WebTestCase
             unlink($file);
         }
 
-        self::assertSame(['results'], $spreadsheet->getSheetNames());
+        // The sheet is named in the organiser's language (review2-b nit)
+        self::assertSame(['Results'], $spreadsheet->getSheetNames());
 
         return $spreadsheet->getActiveSheet();
     }

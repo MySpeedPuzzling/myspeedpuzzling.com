@@ -50,8 +50,9 @@ readonly final class EditCompetitionRoundHandler
         $startsAt = $keep('startsAt') ? $round->startsAt : $message->startsAt;
         $category = $keep('category') ? $round->category : $message->category;
 
-        // Official results belong to the round's kind of entries (people or pairs/teams) - checked before anything changes
-        if ($category !== $round->category && $this->officialResultsGuard->countResultsInRound($round->id->toString()) > 0) {
+        // Official results and qualified marks belong to the round's kind of entries (people or pairs/teams) - checked
+        // before anything changes
+        if ($category !== $round->category && $this->officialResultsGuard->countEntriesWithOfficialDataInRound($round->id->toString()) > 0) {
             throw new OfficialResultsProtected(OfficialResultsProtected::ROUND_CATEGORY_LOCKED);
         }
 

@@ -72,6 +72,37 @@ readonly final class CompetitionParticipantRepository
         return $participants;
     }
 
+    /**
+     * Many participants in one statement (AdvanceQualified puts a whole qualified field into the next round).
+     *
+     * @param list<string> $participantIds
+     * @return array<string, CompetitionParticipant> lower-case id => participant; unknown ids are left out
+     */
+    public function findByIds(array $participantIds): array
+    {
+        $participantIds = array_values(array_filter($participantIds, static fn (string $id): bool => Uuid::isValid($id)));
+
+        if ($participantIds === []) {
+            return [];
+        }
+
+        /** @var list<CompetitionParticipant> $participants */
+        $participants = $this->entityManager->createQueryBuilder()
+            ->select('participant')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->where('participant.id IN (:ids)')
+            ->setParameter('ids', $participantIds)
+            ->getQuery()
+            ->getResult();
+
+        $byId = [];
+        foreach ($participants as $participant) {
+            $byId[$participant->id->toString()] = $participant;
+        }
+
+        return $byId;
+    }
+
     public function save(CompetitionParticipant $participant): void
     {
         $this->entityManager->persist($participant);

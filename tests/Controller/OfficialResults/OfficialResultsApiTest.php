@@ -236,7 +236,7 @@ final class OfficialResultsApiTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $url = '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . '/table-numbers';
 
-        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'number' => 1]]]);
+        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'from' => null, 'number' => 1]]]);
 
         self::assertResponseStatusCodeSame(422);
         $answer = $this->json();
@@ -247,13 +247,43 @@ final class OfficialResultsApiTest extends WebTestCase
             'message' => 'Another entrant of this round has this table number.',
         ]], $answer['problems']);
 
-        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'number' => 6]]]);
+        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'from' => null, 'number' => 6]]]);
 
         self::assertResponseIsSuccessful();
         $answer = $this->json();
         self::assertSame(1, $answer['changed']);
         self::assertIsArray($answer['entries']);
         self::assertSame([6], array_column($answer['entries'], 'tableNumber'));
+    }
+
+    /**
+     * review2-b m3: a bulk write built from a stale page never overwrites what another organiser set meanwhile.
+     */
+    public function testTableNumbersChangedMeanwhileRefuseTheWholeWrite(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $url = '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . '/table-numbers';
+
+        // The page saw Filip without a table and Eva at 5 - somebody gave Eva table 9 meanwhile
+        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA, 'from' => 5, 'number' => 9]]]);
+        self::assertResponseIsSuccessful();
+
+        $this->post($url, ['assignments' => [
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'from' => null, 'number' => 6],
+            ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA, 'from' => 5, 'number' => 7],
+        ]]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([[
+            'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_EVA,
+            'reason' => 'changed_meanwhile',
+            'current' => 9,
+            'message' => 'Somebody else changed this meanwhile.',
+        ]], $this->json()['problems']);
+
+        // Without `from` nothing is written at all
+        $this->post($url, ['assignments' => [['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_FILIP, 'number' => 6]]]);
+        self::assertResponseStatusCodeSame(400);
     }
 
     public function testTableNumbersCanBeSwitchedOffForARound(): void
@@ -322,6 +352,44 @@ final class OfficialResultsApiTest extends WebTestCase
             'targetRoundIds' => [CompetitionRoundFixture::ROUND_WJPC_FINAL],
             'distribution' => 'single',
         ]);
+
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testAnEntryIsTakenOutOfTheRoundOnlyWithoutOfficialData(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->browser->disableReboot();
+        $final = '/en/official-results/rounds/' . OfficialResultsFixture::ROUND_FINAL . '/take-out';
+
+        $this->post('/en/official-results/rounds/' . OfficialResultsFixture::ROUND_GROUP_A . '/take-out', ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('entry_protected', $this->json()['error']);
+        self::assertSame('This entrant has an official result or a qualified mark in this round - clear it first if they really have to leave the round.', $this->json()['message']);
+
+        $this->post($final, ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA]);
+        self::assertResponseStatusCodeSame(404);
+
+        $this->post($final, ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_FINAL_ANNA]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('participant_round:' . OfficialResultsFixture::ENTRY_FINAL_ANNA, $this->json()['removed']);
+        $round = $this->json()['round'];
+        self::assertIsArray($round);
+        self::assertIsArray($round['entries']);
+        self::assertSame(0, $round['entries']['total']);
+
+        // The other organisers' pages fetch the round again
+        $updates = self::hub()->getPublishedUpdates();
+        self::assertCount(1, $updates);
+        self::assertSame(['/round-results/' . OfficialResultsFixture::ROUND_FINAL], $updates[0]->getTopics());
+        self::assertStringContainsString('official_results.refresh', $updates[0]->getData());
+    }
+
+    public function testTakingOutNeedsTheEventsOrganiser(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+
+        $this->post('/en/official-results/rounds/' . OfficialResultsFixture::ROUND_FINAL . '/take-out', ['entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_FINAL_ANNA]);
 
         self::assertResponseStatusCodeSame(403);
     }

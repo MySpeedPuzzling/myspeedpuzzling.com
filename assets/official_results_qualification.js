@@ -130,7 +130,7 @@ export function qualificationDiff(entries, selectedRefs, keepOthers, isQualified
  *
  * @param {Array<{ref: string, tableNumber: number|null}>} targetEntries the target round as it is now
  * @param {string[]} refsInSeedOrder the plan's created entries of this round, fastest first
- * @returns {Array<{entry: string, number: number}>}
+ * @returns {Array<{entry: string, from: null, number: number}>} `from` = no table, as the target round has it now
  */
 export function seatAdvanced(targetEntries, refsInSeedOrder, slowestFirst = false) {
     const byRef = new Map(targetEntries.map((entry) => [entry.ref, entry]));
@@ -157,7 +157,7 @@ export function seatAdvanced(targetEntries, refsInSeedOrder, slowestFirst = fals
             break;
         }
 
-        assignments.push({ entry: ref, number: next });
+        assignments.push({ entry: ref, from: null, number: next });
         taken.add(next);
     }
 

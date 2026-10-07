@@ -106,9 +106,9 @@ final class OfficialResultsDeskHelpersTest extends TestCase
         ]);
 
         // x keeps 1, n3 (seated meanwhile) keeps 3, y was there before - not part of the plan
-        self::assertSame([['entry' => 'n1', 'number' => 2], ['entry' => 'n2', 'number' => 4], ['entry' => 'n4', 'number' => 5]], $fastest);
-        self::assertSame([['entry' => 'n4', 'number' => 2], ['entry' => 'n2', 'number' => 4], ['entry' => 'n1', 'number' => 5]], $slowest);
-        self::assertSame([['entry' => 'b', 'number' => 1], ['entry' => 'a', 'number' => 2]], $empty);
+        self::assertSame([['entry' => 'n1', 'from' => null, 'number' => 2], ['entry' => 'n2', 'from' => null, 'number' => 4], ['entry' => 'n4', 'from' => null, 'number' => 5]], $fastest);
+        self::assertSame([['entry' => 'n4', 'from' => null, 'number' => 2], ['entry' => 'n2', 'from' => null, 'number' => 4], ['entry' => 'n1', 'from' => null, 'number' => 5]], $slowest);
+        self::assertSame([['entry' => 'b', 'from' => null, 'number' => 1], ['entry' => 'a', 'from' => null, 'number' => 2]], $empty);
     }
 
     public function testAChangeIsSavedOnlyWhenTheServerSaysSo(): void
@@ -177,6 +177,30 @@ final class OfficialResultsDeskHelpersTest extends TestCase
 
         self::assertSame('error', self::path($wholeRequestRefused, 1, 'cells', 0, 'status'));
         self::assertSame('refused', self::path($wholeRequestRefused, 1, 'cells', 0, 'message'));
+    }
+
+    /**
+     * review2-b m6: 5 → 6 is refused while B holds 6 - "Swap them" sends both changes in one request, so the server
+     * checks the numbers after the whole set.
+     */
+    public function testASwapOfTwoTablesGoesInOneRequest(): void
+    {
+        [$swap] = $this->runInNode([
+            ['fn' => 'pending', 'steps' => [
+                ['op' => 'set', 'ref' => 'a', 'field' => 'table_number', 'to' => 6, 'server' => 5],
+                ['op' => 'take'],
+                ['op' => 'settle', 'index' => 0, 'status' => 'rejected', 'reason' => 'table_number_taken', 'message' => 'Another entrant of this round has this table number.'],
+                // What "Swap them" does: the holder gets A's old number, A's refused change goes again
+                ['op' => 'set', 'ref' => 'b', 'field' => 'table_number', 'to' => 5, 'server' => 6],
+                ['op' => 'retry', 'ref' => 'a', 'field' => 'table_number'],
+                ['op' => 'take'],
+            ]],
+        ]);
+
+        self::assertSame([
+            ['clientChangeId' => 'c1', 'entry' => 'a', 'field' => 'table_number', 'from' => 5, 'to' => 6],
+            ['clientChangeId' => 'c2', 'entry' => 'b', 'field' => 'table_number', 'from' => 6, 'to' => 5],
+        ], self::path($swap, 1, 'taken'));
     }
 
     public function testAConflictKeepsBothValuesUntilTheOrganiserDecides(): void

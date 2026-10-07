@@ -81,6 +81,16 @@ readonly final class AssignTableNumbersHandler
                 continue;
             }
 
+            // Three-way: the number this device last saw is still there (or the new one is already) - else somebody
+            // else changed it meanwhile and nothing is written over it
+            $current = $entries[$ref]->tableNumber;
+
+            if ($current !== $assignment['from'] && $current !== $number) {
+                $problems[] = ['entry' => $ref, 'reason' => 'changed_meanwhile', 'current' => $current];
+
+                continue;
+            }
+
             $numbers[$ref] = $number;
         }
 

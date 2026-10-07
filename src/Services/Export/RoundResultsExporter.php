@@ -124,13 +124,24 @@ readonly final class RoundResultsExporter
     }
 
     /**
+     * The sheet's name in the organiser's language - without the characters a sheet name may not have, at most 31 long.
+     */
+    public static function sheetTitle(string $title): string
+    {
+        $title = trim((string) preg_replace('~[:\\\\/?*\[\]]~u', ' ', $title));
+        $title = mb_substr($title, 0, 31);
+
+        return $title !== '' ? $title : 'Results';
+    }
+
+    /**
      * @param list<list<null|int|string>> $rows
      */
     private function xlsx(array $rows): string
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('results');
+        $sheet->setTitle(self::sheetTitle($this->translator->trans('results_desk.export.sheet')));
 
         foreach ($rows as $rowIndex => $values) {
             foreach ($values as $columnIndex => $value) {

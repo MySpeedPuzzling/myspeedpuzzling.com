@@ -134,21 +134,40 @@ SQL,
     }
 
     /**
-     * Entries of the round with a result (not only a qualified mark) - what a round's category change would break and
-     * what deleting the round would take away.
+     * Entries of the round with a result or a qualified mark - what a round's category change would strand (marks and
+     * results sit on the entries of the round's kind) and what deleting the round would take away.
      */
-    public function countResultsInRound(string $roundId): int
+    public function countEntriesWithOfficialDataInRound(string $roundId): int
     {
-        $count = $this->database->fetchOne(
-            <<<SQL
+        return $this->count(<<<SQL
 SELECT
     (SELECT COUNT(*) FROM competition_participant_round cpr
-        WHERE cpr.round_id = :roundId AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start))
+        WHERE cpr.round_id = :id AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL))
     + (SELECT COUNT(*) FROM competition_team ct
-        WHERE ct.round_id = :roundId AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start))
-SQL,
-            ['roundId' => $roundId],
-        );
+        WHERE ct.round_id = :id AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL))
+SQL, $roundId);
+    }
+
+    /**
+     * Entries of all the event's rounds with a result or a qualified mark - the internal API deletes only an event
+     * nobody has a result in (DeleteCompetition::$refuseWhenItHasResults).
+     */
+    public function countEntriesWithOfficialDataInCompetition(string $competitionId): int
+    {
+        return $this->count(<<<SQL
+SELECT
+    (SELECT COUNT(*) FROM competition_participant_round cpr
+        INNER JOIN competition_round cr ON cr.id = cpr.round_id
+        WHERE cr.competition_id = :id AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start OR cpr.qualified_at IS NOT NULL))
+    + (SELECT COUNT(*) FROM competition_team ct
+        INNER JOIN competition_round cr ON cr.id = ct.round_id
+        WHERE cr.competition_id = :id AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start OR ct.qualified_at IS NOT NULL))
+SQL, $competitionId);
+    }
+
+    private function count(string $sql, string $id): int
+    {
+        $count = $this->database->fetchOne($sql, ['id' => $id]);
 
         return is_numeric($count) ? (int) $count : 0;
     }

@@ -65,6 +65,17 @@ final readonly class OfficialResultsLiveUpdates
         });
     }
 
+    /**
+     * Entries left the round (taken out of it) - an entries update cannot say so: the pages fetch the round again.
+     */
+    public function refresh(string $roundId): void
+    {
+        $this->publish($roundId, static fn (): array => [
+            'type' => 'official_results.refresh',
+            'roundId' => $roundId,
+        ]);
+    }
+
     public function roundChanged(string $roundId): void
     {
         $this->publish($roundId, fn (): array => [

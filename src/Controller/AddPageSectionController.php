@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use InvalidArgumentException;
+use SpeedPuzzling\Web\Entity\CompetitionPageSection;
+use SpeedPuzzling\Web\Exceptions\PageSectionLimitReached;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPageSection;
 use SpeedPuzzling\Web\Query\GetPageSectionOwner;
@@ -67,6 +69,12 @@ final class AddPageSectionController extends AbstractController
         }
 
         [$editorRoute, $editorParameters] = $owner->editorRoute();
+
+        // A page holds at most CompetitionPageSection::MAX_PER_PAGE sections (the editor offers no more)
+        if ($ownerOverview->canAddSection() === false) {
+            return $this->limitReached($editorRoute, $editorParameters);
+        }
+
         $submission = new PageSectionSubmission(title: '', content: [], errors: []);
 
         if ($request->isMethod('POST')) {
@@ -79,14 +87,19 @@ final class AddPageSectionController extends AbstractController
             }
 
             if ($submission->isValid()) {
-                $this->messageBus->dispatch(new AddPageSection(
-                    sectionId: Uuid::uuid7(),
-                    competitionId: $owner->competitionId,
-                    seriesId: $owner->seriesId,
-                    type: $type,
-                    title: $submission->title,
-                    content: $submission->content,
-                ));
+                try {
+                    $this->messageBus->dispatch(new AddPageSection(
+                        sectionId: Uuid::uuid7(),
+                        competitionId: $owner->competitionId,
+                        seriesId: $owner->seriesId,
+                        type: $type,
+                        title: $submission->title,
+                        content: $submission->content,
+                    ));
+                } catch (PageSectionLimitReached) {
+                    // Another add of the same page took the last place meanwhile
+                    return $this->limitReached($editorRoute, $editorParameters);
+                }
 
                 $this->addFlash('success', $this->translator->trans('page_sections.flash.added'));
 
@@ -107,5 +120,17 @@ final class AddPageSectionController extends AbstractController
         $response->headers->set('Cache-Control', 'private, no-store');
 
         return $response;
+    }
+
+    /**
+     * @param array<string, string> $editorParameters
+     */
+    private function limitReached(string $editorRoute, array $editorParameters): Response
+    {
+        $this->addFlash('danger', $this->translator->trans('page_sections.error.too_many_sections', [
+            '%max%' => CompetitionPageSection::MAX_PER_PAGE,
+        ]));
+
+        return $this->redirectToRoute($editorRoute, $editorParameters, Response::HTTP_SEE_OTHER);
     }
 }

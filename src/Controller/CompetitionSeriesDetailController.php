@@ -42,8 +42,9 @@ final class CompetitionSeriesDetailController extends AbstractController
             'series' => $seriesOverview,
             'upcoming_editions' => $upcomingEditions,
             'past_editions' => $pastEditions,
-            // Organiser-written sections: queried only when one shows
-            'page_sections' => $seriesOverview->hasPageSections
+            // Organiser-written sections: queried only when one shows, and only on an approved series - nothing an organiser
+            // writes is published before the series is approved
+            'page_sections' => $seriesOverview->hasPageSections && $seriesOverview->approvedAt !== null && $seriesOverview->rejectedAt === null
                 ? $this->getCompetitionPageSections->forSeriesPage($seriesOverview->id)
                 : [],
         ]);

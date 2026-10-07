@@ -58,7 +58,41 @@
                         </div>
 
                         {% if section_type.value == 'rich_text' %}
-                            <div data-controller="wysiwyg">
+                            {# Every text of the editor is the page's language (review 2, A-F8): the toolbar is ours, with titles,
+                               the link tooltip's texts - CSS content in Quill's theme - come as values (wysiwyg_controller.js) #}
+                            <div data-controller="wysiwyg" class="page-section-editor"
+                                 data-wysiwyg-visit-url-value="{{ 'page_sections.editor.visit_url'|trans }}"
+                                 data-wysiwyg-enter-link-value="{{ 'page_sections.editor.enter_link'|trans }}"
+                                 data-wysiwyg-edit-link-value="{{ 'page_sections.editor.edit_link'|trans }}"
+                                 data-wysiwyg-remove-link-value="{{ 'page_sections.editor.remove_link'|trans }}"
+                                 data-wysiwyg-save-link-value="{{ 'page_sections.editor.save_link'|trans }}"
+                            >
+                                <div data-wysiwyg-target="toolbar" hidden>
+                                    <span class="ql-formats">
+                                        <select class="ql-header" aria-label="{{ 'page_sections.editor.text_style'|trans }}" title="{{ 'page_sections.editor.text_style'|trans }}">
+                                            <option value="2">{{ 'page_sections.editor.heading_2'|trans }}</option>
+                                            <option value="3">{{ 'page_sections.editor.heading_3'|trans }}</option>
+                                            <option value="4">{{ 'page_sections.editor.heading_4'|trans }}</option>
+                                            <option selected>{{ 'page_sections.editor.normal'|trans }}</option>
+                                        </select>
+                                    </span>
+                                    <span class="ql-formats">
+                                        {% for format in ['bold', 'italic', 'underline', 'strike'] %}
+                                            <button type="button" class="ql-{{ format }}" title="{{ ('page_sections.editor.' ~ format)|trans }}" aria-label="{{ ('page_sections.editor.' ~ format)|trans }}"></button>
+                                        {% endfor %}
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button type="button" class="ql-list" value="ordered" title="{{ 'page_sections.editor.ordered_list'|trans }}" aria-label="{{ 'page_sections.editor.ordered_list'|trans }}"></button>
+                                        <button type="button" class="ql-list" value="bullet" title="{{ 'page_sections.editor.bullet_list'|trans }}" aria-label="{{ 'page_sections.editor.bullet_list'|trans }}"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button type="button" class="ql-blockquote" title="{{ 'page_sections.editor.blockquote'|trans }}" aria-label="{{ 'page_sections.editor.blockquote'|trans }}"></button>
+                                        <button type="button" class="ql-link" title="{{ 'page_sections.editor.link'|trans }}" aria-label="{{ 'page_sections.editor.link'|trans }}"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button type="button" class="ql-clean" title="{{ 'page_sections.editor.clean'|trans }}" aria-label="{{ 'page_sections.editor.clean'|trans }}"></button>
+                                    </span>
+                                </div>
                                 {# Sanitised on write and again when a refused form comes back (PageSectionRequestParser) #}
                                 <div data-wysiwyg-target="editor" class="bg-white" style="min-height: 220px;">{{ content.html|default('')|raw }}</div>
                                 <textarea name="html" class="d-none" data-wysiwyg-target="input">{{ content.html|default('') }}</textarea>

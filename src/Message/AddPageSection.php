@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\PageSectionType;
 
-readonly final class AddPageSection
+/**
+ * Adds take turns per page, so the cap of sections per page (CompetitionPageSection::MAX_PER_PAGE) is counted exactly.
+ */
+readonly final class AddPageSection implements SerializedByLock
 {
     /**
      * @param array<string, mixed> $content
@@ -20,5 +24,10 @@ readonly final class AddPageSection
         public null|string $title,
         public array $content,
     ) {
+    }
+
+    public function lockKey(): string
+    {
+        return 'page-sections-' . strtolower($this->competitionId ?? (string) $this->seriesId);
     }
 }

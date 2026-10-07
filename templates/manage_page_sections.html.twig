@@ -2,7 +2,8 @@
 
 {# Page editor of an event, edition or series (docs/features/competitions-management/public-page.md). Expects: owner
    (Value\PageSectionOwner), owner_name, back_url, view_url, sections (list<Results\PageSection>, an edition's inherited
-   series sections last), section_types (what can be added), series_editor_url #}
+   series sections last), section_types (what can be added), series_editor_url, publicly_visible (the page shows the
+   sections only once the event/series is approved), section_limit_reached #}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
@@ -29,6 +30,12 @@
         </div>
 
         <p class="text-muted small mt-2">{{ (owner.isSeries ? 'page_sections.intro_series' : 'page_sections.intro')|trans }}</p>
+
+        {% if not publicly_visible %}
+            <div class="alert alert-warning small py-2" role="status" data-page-sections-not-public>
+                <i class="bi bi-eye-slash me-1" aria-hidden="true"></i>{{ (owner.isSeries ? 'page_sections.not_public_yet_series' : 'page_sections.not_public_yet')|trans }}
+            </div>
+        {% endif %}
 
         <div data-controller="page-sections-list"
              data-page-sections-list-url-value="{{ path('reorder_page_sections') }}"
@@ -107,6 +114,10 @@
             {% endif %}
         </div>
 
+        {% set section_limit = constant('SpeedPuzzling\\Web\\Entity\\CompetitionPageSection::MAX_PER_PAGE') %}
+        {% if own_sections|length >= section_limit %}
+            <p class="text-muted small" data-page-sections-limit-reached>{{ 'page_sections.limit_reached'|trans({'%max%': section_limit}) }}</p>
+        {% else %}
         <div class="dropdown">
             <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-plus-lg me-1"></i>{{ 'page_sections.add_section'|trans }}
@@ -121,6 +132,7 @@
                 {% endfor %}
             </ul>
         </div>
+        {% endif %}
 
         {% if inherited_sections is not empty %}
             <h2 class="h6 mt-5 mb-1">{{ 'page_sections.inherited_title'|trans }}</h2>

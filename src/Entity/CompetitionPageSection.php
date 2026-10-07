@@ -28,6 +28,8 @@ use SpeedPuzzling\Web\Value\PageSectionType;
 class CompetitionPageSection
 {
     public const int TITLE_MAX_LENGTH = 255;
+    // Sections of one page, visible and hidden together (review 2, A-F9)
+    public const int MAX_PER_PAGE = 30;
 
     /**
      * @param array<string, mixed> $content

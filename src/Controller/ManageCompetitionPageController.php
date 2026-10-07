@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Value\PageSectionOwner;
@@ -27,6 +28,7 @@ final class ManageCompetitionPageController extends AbstractController
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly GetCompetitionPageSections $getCompetitionPageSections,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
+        private readonly IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
     ) {
     }
 
@@ -58,6 +60,8 @@ final class ManageCompetitionPageController extends AbstractController
             'view_url' => $this->competitionDetailUrl->of($owner->id()),
             'sections' => $this->getCompetitionPageSections->forCompetitionEditor($owner->id()),
             'section_types' => PageSectionType::availableFor($competition->isOnline),
+            // The sections show on the public page only once the event (or its series) is approved
+            'publicly_visible' => $this->isCompetitionPubliclyVisible->check($owner->id()),
             'series_editor_url' => $seriesId !== null && $this->isGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $seriesId)
                 ? $this->generateUrl('manage_series_page', ['seriesId' => $seriesId])
                 : null,

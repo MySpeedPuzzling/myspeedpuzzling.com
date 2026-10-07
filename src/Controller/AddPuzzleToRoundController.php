@@ -83,6 +83,27 @@ final class AddPuzzleToRoundController extends AbstractController
         $form->handleRequest($request);
         $this->formPhotoStash->reportLost($form, $restoredPhotos);
 
+        // The round's automatic reveal the page named under "Hide until the round starts" (a Unix timestamp) - the
+        // handler adds a secret puzzle only while the round still has it. Missing or malformed (a page from before
+        // this field): asked again on the page as it is now.
+        $postedAutomaticRevealAt = (string) $request->request->get('automatic_reveal_at');
+        $shownAutomaticRevealAt = preg_match('/^\d{1,12}\z/', $postedAutomaticRevealAt) === 1
+            ? new DateTimeImmutable('@' . $postedAutomaticRevealAt)
+            : null;
+
+        // Said right away, whatever else the form refuses: a submit refused for another reason (a typo) re-renders the
+        // page with the round's moment as it is now, and its next save must not quietly take a moment that moved behind
+        // the organiser's back. The handler checks it again under its lock.
+        if (
+            $form->isSubmitted()
+            && $form->get('hideUntilRoundStarts')->getData() === true
+            && $shownAutomaticRevealAt?->getTimestamp() !== $round->automaticRevealAt()->getTimestamp()
+        ) {
+            $form->get('hideUntilRoundStarts')->addError(new FormError($this->translator->trans('competition.reveal.flash.automatic_changed', [
+                '%time%' => $this->zonedDateTimeFormatter->format($round->automaticRevealAt(), $round->displayTimezone(), $round->isTimezoneAssumed()),
+            ])));
+        }
+
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             assert($data->puzzle !== null);
@@ -92,14 +113,6 @@ final class AddPuzzleToRoundController extends AbstractController
             if (Uuid::isValid($data->puzzle)) {
                 $this->secretPuzzleAccess->assertVisible($data->puzzle, alsoWhileImageHidden: true);
             }
-
-            // The round's automatic reveal the page named under "Hide until the round starts" (a Unix timestamp) - the
-            // handler adds a secret puzzle only while the round still has it. Missing or malformed (a page from before
-            // this field): refused by the handler, asked again on the page as it is now.
-            $postedAutomaticRevealAt = (string) $request->request->get('automatic_reveal_at');
-            $shownAutomaticRevealAt = preg_match('/^\d{1,12}$/', $postedAutomaticRevealAt) === 1
-                ? new DateTimeImmutable('@' . $postedAutomaticRevealAt)
-                : null;
 
             try {
                 $this->messageBus->dispatch(new AddPuzzleToCompetitionRound(
@@ -116,12 +129,13 @@ final class AddPuzzleToRoundController extends AbstractController
                     hideMode: $data->hideMode,
                     shownAutomaticRevealAt: $shownAutomaticRevealAt,
                 ));
-            } catch (AutomaticRevealChangedMeanwhile $changed) {
+            } catch (AutomaticRevealChangedMeanwhile) {
                 // The handler cleared the entity manager (SecretPuzzleHides::lockForAddingTo()) - read the round again;
-                // the page comes back with the moment the round has now, everything typed and the photo kept
+                // the page comes back with the moment the round has now (the message names the same one the page
+                // sends along), everything typed and the photo kept
                 $round = $this->competitionRoundRepository->get($roundId);
                 $form->get('hideUntilRoundStarts')->addError(new FormError($this->translator->trans('competition.reveal.flash.automatic_changed', [
-                    '%time%' => $this->zonedDateTimeFormatter->format($changed->automaticRevealAt, $round->displayTimezone(), $round->isTimezoneAssumed()),
+                    '%time%' => $this->zonedDateTimeFormatter->format($round->automaticRevealAt(), $round->displayTimezone(), $round->isTimezoneAssumed()),
                 ])));
 
                 return $this->page($form, $competition, $round, $restoredPhotos, $playerId);

@@ -419,7 +419,10 @@ round with a delay **under** 10 whose puzzles already came out (start + delay pa
 again by the older release until start + 10 - not an early reveal, but it breaks "nothing public is hidden again".
 
 **What no check covers:** a round created or moved to start within the rollout minutes, with secret puzzles and a delay
-over 10, is revealed at start + 10 by the old containers. Only watching during the rollout helps.
+over 10, is revealed at start + 10 by the old containers. The same holds for a rollback: a secret puzzle added on a new
+container to a round with a delay over 10 that starts within the rollback minutes comes out at start + 10 on the older
+release's containers - the re-run of the delay query catches it only while start + 10 is still ahead. Only watching
+during the rollout or the rollback helps.
 
 ## Table Layout System
 

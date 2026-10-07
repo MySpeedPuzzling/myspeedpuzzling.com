@@ -505,6 +505,40 @@ final class RoundRevealDelayFormTest extends WebTestCase
     }
 
     /**
+     * A stale add page refused for ANOTHER reason (a typo) still says the reveal moved: otherwise the re-rendered page
+     * would quietly carry the new moment and its next save would put the puzzle out at once.
+     */
+    public function testAFormErrorOnAStaleAddPageStillSaysTheRevealMoved(): void
+    {
+        $browser = $this->organiser();
+        $roundId = $this->addRound($browser, 'Stale add page with a typo', '60');
+        $startsAt = new DateTimeImmutable('@' . (time() - 30 * 60));
+        $this->editRoundBehindThePage($roundId, 60, $startsAt);
+
+        $crawler = $browser->request('GET', $this->addPuzzleUrl($roundId));
+        $this->assertResponseIsSuccessful();
+        $form = $this->secretPuzzleForm($crawler->filter('form[name="round_puzzle_form"]')->form(), 'Typo Secret');
+        $form['round_puzzle_form[piecesCount]'] = '0';
+
+        // Meanwhile: 5 reveal minutes - over already
+        $this->editRoundBehindThePage($roundId, 5);
+        $newMoment = self::automaticRevealOf($roundId);
+
+        $refused = $browser->submit($form);
+        $this->assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The round\'s automatic reveal has changed meanwhile – it is now on ', $refused->filter('form[name="round_puzzle_form"]')->text());
+        self::assertSame((string) $newMoment->getTimestamp(), $refused->filter('input[name="automatic_reveal_at"]')->attr('value'));
+        self::assertSame(0, $this->roundPuzzleCount($roundId));
+
+        // Saved from the page as it is now (the typo fixed): the organiser was told, the moment the page names counts
+        $form = $refused->filter('form[name="round_puzzle_form"]')->form();
+        $form['round_puzzle_form[piecesCount]'] = '500';
+        $browser->submit($form);
+        $this->assertResponseRedirects($this->puzzlesUrl($roundId));
+        self::assertSame($newMoment->getTimestamp(), $this->snapshot($roundId, $this->onlyRoundPuzzleId($roundId))['hideUntil']);
+    }
+
+    /**
      * A fresh add page: the secret puzzle is hidden until exactly the moment it named. A form without that moment (a
      * page from before it was sent along) never adds a secret puzzle - a puzzle that is not secret needs none.
      */

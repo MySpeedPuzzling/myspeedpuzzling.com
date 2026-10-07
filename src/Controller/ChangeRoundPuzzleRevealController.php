@@ -84,7 +84,7 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
         $shownAutomaticRevealAt = null;
         $postedAutomaticRevealAt = (string) $request->request->get('automatic_reveal_at');
 
-        if (preg_match('/^\d{1,12}$/', $postedAutomaticRevealAt) === 1) {
+        if (preg_match('/^\d{1,12}\z/', $postedAutomaticRevealAt) === 1) {
             $shownAutomaticRevealAt = new DateTimeImmutable('@' . $postedAutomaticRevealAt);
         } elseif ($revealMode === RoundPuzzleReveal::Automatic) {
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.invalid');
@@ -112,12 +112,13 @@ final class ChangeRoundPuzzleRevealController extends AbstractController
                 namePublicationConfirmed: $request->request->get('confirm_name_public') === '1',
                 shownAutomaticRevealAt: $shownAutomaticRevealAt,
             ));
-        } catch (AutomaticRevealChangedMeanwhile $changed) {
-            // The handler cleared the entity manager (SecretPuzzleHides::lockRoundPuzzle()) - read the round again
+        } catch (AutomaticRevealChangedMeanwhile) {
+            // The handler cleared the entity manager (SecretPuzzleHides::lockRoundPuzzle()) - read the round again; the
+            // message names the moment the re-rendered page shows and sends along
             $round = $this->competitionRoundPuzzleRepository->get($roundPuzzleId)->round;
 
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.automatic_changed', [
-                '%time%' => $this->zonedDateTimeFormatter->format($changed->automaticRevealAt, $round->displayTimezone(), $round->isTimezoneAssumed()),
+                '%time%' => $this->zonedDateTimeFormatter->format($round->automaticRevealAt(), $round->displayTimezone(), $round->isTimezoneAssumed()),
             ]);
         } catch (NamePublicationNotConfirmed) {
             return $this->refused($request, $roundPuzzleId, $round->id->toString(), 'competition.reveal.flash.name_public_needs_yes');

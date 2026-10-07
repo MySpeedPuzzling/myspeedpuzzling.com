@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Event page content sections (`docs/features/competitions-management/public-page.md`)
+
+- [ ] Translate the `page_sections.*` keys (messages domain) into cs, de, es, fr, ja - English only so far.
+- [ ] Prune unreferenced `competition-pages/<owner>/` objects: uploads of a section form that was never saved, and the
+      pictures of a deleted competition/series (its sections cascade, the files stay). `GetStoredFileReferences` already
+      knows section pictures; a daily cron like `myspeedpuzzling:prune-photo-stash`, with an age threshold.
+- [ ] Contact section publishes the e-mail address in clear text - obfuscate it or offer "message the organiser" via MSP
+      chat instead.
+- [ ] If organisers ask: order/hide the page's own parts (puzzles, participants, ...) - deliberately not built
+      (the PR's `page_layout` was dropped in the port).
+
 ## Participant import (`docs/features/competitions-management/participant-import-preview.md`)
 
 - [ ] `.xls` / `.ods` uploads; localized header aliases ("Jméno", "Nom", …); a header row chosen by hand; remembering

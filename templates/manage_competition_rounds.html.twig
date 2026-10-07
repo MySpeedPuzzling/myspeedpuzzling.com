@@ -71,7 +71,7 @@
                                     <i class="bi bi-puzzle me-1"></i>{{ round.puzzleCount }} {{ 'competition.round.puzzles'|trans|lower }}
                                 </div>
 
-                                {{ include('official_results/_tables_readiness.html.twig', {results_round: results_rounds[round.id]|default(null), is_online: competition.isOnline, now: now, wrapper_class: 'mt-n2 mb-3'}) }}
+                                {{ include('seating/_readiness.html.twig', {overview: (results_rounds[round.id] ?? null) is not null ? results_rounds[round.id].overview : null, compact: true, wrapper_class: 'mt-n2 mb-3'}) }}
 
                                 <div class="d-flex flex-wrap gap-1">
                                     <a href="{{ path('manage_round_puzzles', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">

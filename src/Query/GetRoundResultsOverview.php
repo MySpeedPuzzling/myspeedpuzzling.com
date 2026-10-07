@@ -6,8 +6,10 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
+use SpeedPuzzling\Web\Services\SeatingReadiness;
 
 /**
  * The rounds of an event with their official results progress - entries, table numbers, results, qualified marks
@@ -30,6 +32,7 @@ SELECT
     cr.results_published_at,
     cr.results_first_published_at,
     cr.table_numbers_off,
+    c.is_online,
     puzzles.puzzles_count,
     puzzles.pieces_count,
     entries.total,
@@ -37,6 +40,7 @@ SELECT
     entries.with_result,
     entries.qualified
 FROM competition_round cr
+INNER JOIN competition c ON c.id = cr.competition_id
 LEFT JOIN LATERAL (
     SELECT
         COUNT(*) AS puzzles_count,
@@ -74,6 +78,7 @@ SQL;
 
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -87,7 +92,7 @@ SQL;
             ['competitionId' => $competitionId],
         );
 
-        return array_map(self::hydrate(...), $rows);
+        return array_map($this->hydrate(...), $rows);
     }
 
     /**
@@ -101,22 +106,23 @@ SQL;
             throw new CompetitionRoundNotFound();
         }
 
-        return self::hydrate($row);
+        return $this->hydrate($row);
     }
 
     /**
      * @param array<string, mixed> $row
      */
-    private static function hydrate(array $row): RoundResultsOverview
+    private function hydrate(array $row): RoundResultsOverview
     {
-        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int} $row */
+        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, is_online: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int} $row */
         $date = static fn (null|string $value): null|DateTimeImmutable => $value !== null ? new DateTimeImmutable($value) : null;
+        $startsAt = new DateTimeImmutable($row['starts_at']);
 
         return new RoundResultsOverview(
             roundId: $row['id'],
             name: $row['name'],
             category: $row['category'],
-            startsAt: new DateTimeImmutable($row['starts_at']),
+            startsAt: $startsAt,
             minutesLimit: $row['minutes_limit'],
             slug: $row['slug'],
             stopwatchStatus: $row['stopwatch_status'],
@@ -131,6 +137,15 @@ SQL;
             entriesWithTableNumber: $row['with_table_number'],
             entriesWithResult: $row['with_result'],
             entriesQualified: $row['qualified'],
+            competitionIsOnline: $row['is_online'],
+            showsTablesReadiness: SeatingReadiness::isShown(
+                $row['is_online'],
+                $row['table_numbers_off'],
+                $row['total'],
+                $row['stopwatch_status'],
+                $startsAt,
+                $this->clock->now(),
+            ),
         );
     }
 }

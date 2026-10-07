@@ -4186,8 +4186,6 @@ results_desk:
   close: "Schließen"
   noscript: "Das Ergebnisbüro benötigt JavaScript."
   leave_unsaved: "Einige Änderungen auf dieser Seite sind noch nicht gespeichert. Trotzdem verlassen?"
-  tables_readiness: "Tische: %seated% / %total% zugewiesen"
-  tables_readiness_hint: "Empfohlen: Geben Sie vor Rundenbeginn jedem Eintrag eine Tischnummer"
   tools:
     live_entry: "Live-Eingabe"
     results: "Ergebnisse"

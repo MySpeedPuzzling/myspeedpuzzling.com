@@ -4187,8 +4187,6 @@ results_desk:
   close: "Cerrar"
   noscript: "La mesa de resultados necesita JavaScript."
   leave_unsaved: "Algunos cambios de esta página aún no están guardados. ¿Salir de todos modos?"
-  tables_readiness: "Mesas: %seated% / %total% asignadas"
-  tables_readiness_hint: "Recomendado: da un número de mesa a cada participante antes de que empiece la ronda"
   tools:
     live_entry: "Entrada en vivo"
     results: "Resultados"

@@ -9,7 +9,8 @@ use DateTimeImmutable;
 /**
  * One round of an event as the official results tools need it (GetRoundResultsOverview): when it runs, its stopwatch,
  * whether its results are published, and how far result entry and seating are - "Tables: 180 / 200 assigned"
- * (entriesWithTableNumber / entriesTotal), unless the organiser switched table numbers off for the round.
+ * (entriesWithTableNumber / entriesTotal), unless the organiser switched table numbers off for the round - and whether
+ * the round's management pages show that line now (SeatingReadiness, `tablesReadiness` in the JSON).
  */
 readonly final class RoundResultsOverview implements \JsonSerializable
 {
@@ -34,6 +35,9 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         public int $entriesWithTableNumber,
         public int $entriesWithResult,
         public int $entriesQualified,
+        public bool $competitionIsOnline = false,
+        // The seating step "Tables: x / y assigned - recommended before the round starts" shows (SeatingReadiness)
+        public bool $showsTablesReadiness = false,
     ) {
     }
 
@@ -75,6 +79,7 @@ readonly final class RoundResultsOverview implements \JsonSerializable
                 'qualified' => $this->entriesQualified,
             ],
             'seated' => $this->isSeated(),
+            'tablesReadiness' => $this->showsTablesReadiness,
         ];
     }
 }

@@ -537,16 +537,16 @@ export default class extends Controller {
         }
 
         if (this.hasReadinessTarget) {
+            // The server's one rule (SeatingReadiness, `tablesReadiness`) decides whether it shows - the numbers follow
+            // what the desk shows, unsaved table numbers included
             const seated = ranked.filter((entry) => Number.isInteger(entry.tableNumber)).length;
-            const endsAt = Date.parse(this.round.startsAt) + (this.round.minutesLimit ?? 0) * 60000;
-            const shows = this.usesTableNumbers() && total > 0 && (seated > 0 || endsAt > Date.now());
+            const shows = this.usesTableNumbers() && total > 0 && this.round.tablesReadiness === true;
 
             this.readinessTarget.hidden = !shows;
 
             if (shows) {
                 const done = seated >= total;
-                this.readinessTarget.className = `small ${done ? 'text-success' : 'text-warning-emphasis'}`;
-                this.readinessTarget.innerHTML = `<i class="bi ${done ? 'bi-check-circle' : 'bi-exclamation-circle'} me-1" aria-hidden="true"></i>${escapeHtml(this.t('tables_readiness', { seated, total }))}${done ? '' : ` <span class="text-body-secondary">· ${escapeHtml(this.t('tables_readiness_hint'))}</span>`}`;
+                this.readinessTarget.innerHTML = `<div class="small ${done ? 'text-success' : 'text-warning-emphasis'}" data-seating-readiness><i class="bi ${done ? 'bi-check-circle' : 'bi-exclamation-circle'} me-1" aria-hidden="true"></i>${escapeHtml(this.t('readiness_progress', { assigned: seated, total }))} <span class="text-body-secondary">- ${escapeHtml(this.t(done ? 'readiness_done' : 'readiness_recommended'))}</span></div>`;
             }
         }
     }

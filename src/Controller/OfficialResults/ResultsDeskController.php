@@ -85,7 +85,6 @@ final class ResultsDeskController extends AbstractController
             'competition' => $competition,
             'round' => $thisRound,
             'rounds' => $rounds,
-            'now' => $this->clock->now(),
             'state' => [
                 'serverNow' => $this->clock->now()->format(\DateTimeInterface::ATOM),
                 'topic' => OfficialResultsLiveUpdates::topic($roundId),

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
@@ -21,7 +20,6 @@ final class ManageCompetitionRoundsController extends AbstractController
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly GetCompetitionRoundsForManagement $getCompetitionRoundsForManagement,
         private readonly OfficialResultsRounds $officialResultsRounds,
-        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -43,7 +41,7 @@ final class ManageCompetitionRoundsController extends AbstractController
         $competition = $this->getCompetitionEvents->byId($competitionId);
         $rounds = $this->getCompetitionRoundsForManagement->ofCompetition($competitionId);
 
-        // Official results progress per round: the "Tables: x / y" readiness line (results desk)
+        // Official results progress per round: the seating step "Tables: x / y assigned" (SeatingReadiness)
         $resultsRounds = [];
         foreach ($this->officialResultsRounds->ofRounds($competition->id, $rounds) as $resultsRound) {
             $resultsRounds[$resultsRound->id()] = $resultsRound;
@@ -53,7 +51,6 @@ final class ManageCompetitionRoundsController extends AbstractController
             'competition' => $competition,
             'rounds' => $rounds,
             'results_rounds' => $resultsRounds,
-            'now' => $this->clock->now(),
         ]);
     }
 }

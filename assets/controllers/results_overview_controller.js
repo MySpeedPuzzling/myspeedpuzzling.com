@@ -85,7 +85,7 @@ export default class extends Controller {
                 tables.className = 'text-body-secondary';
             } else {
                 tables.textContent = `${seated} / ${total}`;
-                tables.className = total > 0 && seated >= total ? 'text-success' : (seated < total ? 'text-warning-emphasis' : '');
+                tables.className = total > 0 && seated >= total ? 'text-success' : (round.tablesReadiness === true ? 'text-warning-emphasis' : '');
             }
         }
 

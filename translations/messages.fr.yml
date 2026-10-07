@@ -4187,8 +4187,6 @@ results_desk:
   close: "Fermer"
   noscript: "Le bureau des résultats nécessite JavaScript."
   leave_unsaved: "Certaines modifications de cette page ne sont pas encore enregistrées. Quitter quand même ?"
-  tables_readiness: "Tables : %seated% / %total% attribuées"
-  tables_readiness_hint: "Recommandé : donnez un numéro de table à chaque concurrent avant le début de la manche"
   tools:
     live_entry: "Saisie en direct"
     results: "Résultats"

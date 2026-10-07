@@ -4177,8 +4177,6 @@ results_desk:
   close: "閉じる"
   noscript: "結果デスクにはJavaScriptが必要です。"
   leave_unsaved: "このページには、まだ保存されていない変更があります。このまま離れますか？"
-  tables_readiness: "テーブル：%seated% / %total% 割り当て済み"
-  tables_readiness_hint: "おすすめ：ラウンド開始前に全員にテーブル番号を割り当てましょう"
   tools:
     live_entry: "ライブ入力"
     results: "結果"

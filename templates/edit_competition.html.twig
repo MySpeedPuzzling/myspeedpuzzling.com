@@ -33,6 +33,9 @@
                     <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-list-ol me-1"></i>{{ 'competition.manage_rounds'|trans }}
                     </a>
+                    <a href="{{ path('manage_competition_registration', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-ticket-perforated me-1"></i>{{ 'competition_registration.settings.button'|trans }}
+                    </a>
                     <a href="{{ path('manage_competition_participants', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}
                     </a>
@@ -121,10 +124,7 @@
                             </div>
 
                             {{ form_row(form.link) }}
-                            {{ include('_competition_registration_form_fields.html.twig') }}
-                            <div data-competition-form-target="externalRegistrationField">
-                                {{ form_row(form.registrationLink) }}
-                            </div>
+                            {{ form_row(form.registrationLink) }}
                             {{ form_row(form.resultsLink) }}
                             {{ include('_competition_logo_field.html.twig', {
                                 field: form.logo,

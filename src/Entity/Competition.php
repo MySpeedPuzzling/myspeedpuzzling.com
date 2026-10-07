@@ -19,12 +19,21 @@ use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\RegistrationAvailability;
 
 #[Entity]
 #[Table]
 #[UniqueConstraint(columns: ['series_id', 'slug'])]
 class Competition
 {
+    /**
+     * The zone the registration window was typed in (an IANA zone, like competition_round.timezone) - the settings page
+     * shows the window in it again, the event page names it. Null until the organiser saves registration settings.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $registrationTimezone = null;
+
     /**
      * @param Collection<int, Player> $maintainers
      */
@@ -170,11 +179,17 @@ class Competition
         $this->isOnline = $isOnline;
     }
 
-    public function updateRegistrationSettings(
+    /**
+     * Managed registration (docs/features/competitions-management/registration.md). The external registration link is
+     * kept as it is: hidden while registration is managed, back when it is switched off. Instants are UTC, typed in
+     * $timezone on the settings page.
+     */
+    public function changeRegistrationSettings(
         bool $registrationManaged,
         null|int $capacity,
         null|DateTimeImmutable $registrationOpensAt,
         null|DateTimeImmutable $registrationClosesAt,
+        string $timezone,
         null|string $entryFeeText,
         null|string $paymentInstructions,
     ): void {
@@ -182,30 +197,22 @@ class Competition
         $this->capacity = $capacity;
         $this->registrationOpensAt = $registrationOpensAt;
         $this->registrationClosesAt = $registrationClosesAt;
+        $this->registrationTimezone = $timezone;
         $this->entryFeeText = $entryFeeText;
         $this->paymentInstructions = $paymentInstructions;
-
-        if ($registrationManaged === true) {
-            // One source of truth for how to register
-            $this->registrationLink = null;
-        }
     }
 
-    public function isRegistrationOpen(DateTimeImmutable $now): bool
+    /**
+     * Whether a new registration can be made now - only for an event that manages registration and is publicly visible
+     * (IsCompetitionPubliclyVisible, the caller asks it).
+     */
+    public function registrationAvailability(DateTimeImmutable $now, bool $publiclyVisible): RegistrationAvailability
     {
-        if ($this->registrationManaged === false) {
-            return false;
+        if ($publiclyVisible === false) {
+            return RegistrationAvailability::NotPublic;
         }
 
-        if ($this->registrationOpensAt !== null && $now < $this->registrationOpensAt) {
-            return false;
-        }
-
-        if ($this->registrationClosesAt !== null && $now > $this->registrationClosesAt) {
-            return false;
-        }
-
-        return true;
+        return RegistrationAvailability::ofWindow($now, $this->registrationOpensAt, $this->registrationClosesAt);
     }
 
     private static function normalizeCountryCode(null|string $countryCode): null|string

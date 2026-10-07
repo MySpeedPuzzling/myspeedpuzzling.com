@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block title %}{{ 'competition_registration.settings.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition_registration.settings.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('edit_competition', {competitionId: competition.id}), fallbackTitle: 'competition.edit_event'|trans}) }}
+
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-8">
+                <h1 class="h2">{{ 'competition_registration.settings.title'|trans }}</h1>
+                <p class="text-muted">{{ competition.name }}</p>
+
+                {% for flash_message in app.flashes('success') %}
+                    <div class="alert alert-success" role="status">
+                        <i class="ci-check-circle me-2"></i>{{ flash_message }}
+                    </div>
+                {% endfor %}
+
+                <p>{{ 'competition_registration.settings.intro'|trans }}</p>
+                <p class="small text-muted">{{ 'competition_registration.settings.no_payment_processing'|trans }}</p>
+
+                {% if competition.registrationManaged %}
+                    <div class="mb-3 d-flex flex-wrap gap-2">
+                        <a href="{{ path('manage_competition_participants', {competitionId: competition.id, return: path('manage_competition_registration', {competitionId: competition.id}), return_title: 'competition_registration.settings.title'|trans}) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}
+                        </a>
+                        <a href="{{ path('competition_check_in', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-person-check me-1"></i>{{ 'competition_registration.check_in.title'|trans }}
+                        </a>
+                    </div>
+                {% endif %}
+
+                {% if not is_publicly_visible %}
+                    <div class="alert alert-info small" role="status">
+                        <i class="bi bi-info-circle me-1"></i>{{ 'competition_registration.settings.not_public'|trans }}
+                    </div>
+                {% endif %}
+
+                <div class="card shadow my-4">
+                    <div class="card-body">
+                        {{ form_start(form) }}
+                            {{ form_row(form.registrationManaged) }}
+
+                            {% if not competition.registrationManaged and counts.spotsTaken > 0 %}
+                                <div class="alert alert-light border small" data-registration-going-count="{{ counts.spotsTaken }}">
+                                    <i class="bi bi-people me-1"></i>{{ 'competition_registration.settings.going_count_warning'|trans({'%count%': counts.spotsTaken}) }}
+                                </div>
+                            {% endif %}
+                            {% if competition.registrationManaged and counts.waitlisted > 0 %}
+                                <div class="alert alert-light border small" data-registration-waitlist-count="{{ counts.waitlisted }}">
+                                    <i class="bi bi-hourglass-split me-1"></i>{{ 'competition_registration.settings.waitlist_switch_off_warning'|trans({'%count%': counts.waitlisted}) }}
+                                </div>
+                            {% endif %}
+                            {% if competition.registrationLink %}
+                                <p class="small text-muted">{{ 'competition_registration.settings.external_link_kept'|trans }}</p>
+                            {% endif %}
+
+                            {{ form_row(form.capacity) }}
+
+                            <div class="row">
+                                {% for field in [form.opensAt, form.closesAt] %}
+                                    <div class="col-md-6 mb-3">
+                                        {{ form_label(field) }}
+                                        <div class="input-group">
+                                            {{ form_widget(field, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y H:i", "dateFormat": "d.m.Y H:i", "enableTime": true, "time_24hr": true}'}}) }}
+                                            <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                                        </div>
+                                        {{ form_help(field) }}
+                                        {{ form_errors(field) }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {{ form_row(form.timezone) }}
+
+                            {{ form_row(form.entryFeeText) }}
+                            {{ form_row(form.paymentInstructions) }}
+
+                            <button type="submit" class="btn btn-primary mt-2">
+                                {{ 'competition_registration.settings.save'|trans }}
+                            </button>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

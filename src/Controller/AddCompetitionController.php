@@ -105,12 +105,6 @@ final class AddCompetitionController extends AbstractController
                 isOnline: $data->isOnline === true,
                 logo: $data->logo,
                 maintainerIds: $data->maintainers,
-                registrationManaged: $data->registrationManaged,
-                capacity: $data->registrationManaged ? $data->capacity : null,
-                registrationOpensAt: $data->registrationManaged ? $data->registrationOpensAt : null,
-                registrationClosesAt: $data->registrationManaged ? $data->registrationClosesAt : null,
-                entryFeeText: $data->registrationManaged ? $data->entryFeeText : null,
-                paymentInstructions: $data->registrationManaged ? $data->paymentInstructions : null,
             ));
 
             $this->formPhotoStash->forget($restoredPhotos, $player->playerId);

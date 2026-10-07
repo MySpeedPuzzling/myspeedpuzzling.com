@@ -71,11 +71,8 @@
                             </div>
 
                             {{ form_row(form.link) }}
-                            {{ include('_competition_registration_form_fields.html.twig') }}
                             <div data-competition-form-target="editionLinks">
-                                <div data-competition-form-target="externalRegistrationField">
-                                    {{ form_row(form.registrationLink) }}
-                                </div>
+                                {{ form_row(form.registrationLink) }}
                                 {{ form_row(form.resultsLink) }}
                             </div>
                             <div class="alert alert-light border d-flex align-items-start small mb-3" data-competition-form-target="editionLinksNote"{% if form.isRecurring.vars.data is not same as(true) %} style="display: none;"{% endif %}>

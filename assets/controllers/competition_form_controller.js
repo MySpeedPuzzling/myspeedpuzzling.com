@@ -10,9 +10,6 @@ export default class extends Controller {
         'typeSelectedFields',
         'editionLinks',
         'editionLinksNote',
-        'registrationToggle',
-        'registrationFields',
-        'externalRegistrationField',
     ];
 
     connect() {
@@ -62,22 +59,6 @@ export default class extends Controller {
 
         this.typeSelectedFieldsTargets.forEach(el => {
             el.style.display = hasSelection ? '' : 'none';
-        });
-
-        const managedCheckbox = this.element.querySelector('input[type="checkbox"][name*="registrationManaged"]');
-        const isManaged = managedCheckbox !== null && managedCheckbox.checked;
-
-        if (this.hasRegistrationToggleTarget) {
-            // Managed registration is per-event; hidden when creating a recurring series
-            this.registrationToggleTarget.style.display = hasSelection && !isRecurring ? '' : 'none';
-        }
-
-        this.registrationFieldsTargets.forEach(el => {
-            el.style.display = hasSelection && !isRecurring && isManaged ? '' : 'none';
-        });
-
-        this.externalRegistrationFieldTargets.forEach(el => {
-            el.style.display = isManaged && !isRecurring ? 'none' : '';
         });
     }
 }

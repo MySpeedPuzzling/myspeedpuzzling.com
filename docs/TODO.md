@@ -39,6 +39,8 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       (~222-225) resets it outside solo and only solo results are filtered (~263-280); the puzzle leaderboard has
       the same reset (`PuzzleTimes.php` ~245-247). A pair/team result is a first try only when it is everybody's
       (`docs/features/first-try-integrity.md`). Promised to Gav (MSP #90, follow-up F45) and Allison (MSP #107, F46).
+- [ ] Move several puzzles at once on a collection page (select, then "Move to collection"), not only one by one or
+      through multiscan. Promised to Allison (MSP #107, follow-up F50).
 
 ## Managed registration (`docs/features/competitions-management/registration.md`)
 

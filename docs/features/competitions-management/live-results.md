@@ -27,8 +27,8 @@ device's own pick wins while it is fresh (12 hours) and that round is not stoppe
 
 No site header/footer: a sticky bar with back, the round picker (a switch is a Turbo visit to the other round) and
 the **sync pill**, and below it the stopwatch ("Running 0:47:12") and "Tables: 18 / 20" (in-person rounds that use
-table numbers). The page renders from the state embedded in it (same JSON as `official_results_round_state`), then
-fetches that state once (clock sync + Mercure cookie, see below).
+table numbers). The page renders from the state embedded in it (same JSON as `official_results_round_state`, its
+live updates token included), then fetches that state once (clock sync).
 
 1. **Find** - one input "Table, name or #code" with a 123/ABC switch (numeric pad by default when the round uses
    table numbers, remembered per device - iOS's number pad has no Enter, the big first row is the tap target) and
@@ -148,19 +148,17 @@ player; an edition is a competition - series owners and maintainers stay full or
 
 ## Live updates
 
-The page subscribes with its own `EventSource` to the round's private `/round-results/{roundId}` and the public
-`/round-stopwatch/{roundId}` - **after** its state fetch: `RoundResultsStateController` and
-`RecordRoundResultsController` add the round's topic to `MercureTopicCollector`, because the Mercure subscriber
-cookie is rewritten by every response of a signed-in user and a reconnect after a Wi-Fi drop would otherwise lose the
-private topic (known limitation: other responses still drop it - a page-scoped subscriber token is the planned fix).
+The page follows the round's private `/round-results/{roundId}` and the public `/round-stopwatch/{roundId}` on one
+stream of its own, authorised by the subscriber token its state carries (`mercure`, minted after the voter - a referee
+gets their round's too) and kept by `OfficialResultsEvents` (`assets/official_results_events.js`, shared with the desk,
+seating and the overview - official-results.md "Subscribing: a token per page, never the cookie"): reopened with
+backoff after a drop, an error or the hub's write timeout (then the state is fetched again - catch-up), renewed with
+the state before the token ends, stopped while the state answers signed out / no rights (until Retry). The Mercure
+cookie is no longer involved - other responses can not take the round away from the page any more.
 Entries updates are merged by ref (own saves arrive twice, harmlessly); `refresh` refetches; the stopwatch payload
-updates the clock. After a drop the state is fetched again (catch-up), and every 60 s while visible. The clock offset
-is NTP-style (midpoint of the state request).
-
-The stream's lifecycle is `LiveEvents` (`official_results_live.js`): the browser retries a dropped stream by itself,
-but not one the hub answered with an error (401, a 502/503 while it restarts) - that one is CLOSED for good. It is
-reopened after 1 s, 2 s, 5 s, 15 s, then every minute, always through a state fetch first (catch-up, and its answer
-opens the stream again); signed out / no rights stop it until Retry.
+updates the clock; the state is also fetched every 60 s while visible and when the tab comes back. "Finished now"
+trusts the stopwatch only while the stream is live (open and not silent) or the state was fetched in the last 10 s.
+The clock offset is NTP-style (midpoint of the state request).
 
 ## Scanning (`assets/official_results_scan.js`)
 
@@ -189,7 +187,7 @@ keeps the route's shape - printed tags keep working and the in-page scanner chec
 
 ## Tests
 
-`tests/Controller/LiveResults/` (page access, state, entrant, the event's people for quick add, the Mercure cookie,
+`tests/Controller/LiveResults/` (page access, state, entrant, the event's people for quick add, the live updates token,
 event link, QR route for organisers / others / foreign / unknown / removed / an event without rounds, name tags content,
 private codes, the waitlist, 200 tags with cached codes, round filter, sort, the participants page button),
 `tests/Controller/Referees/` (who may enter results, a referee's result / refused table and qualified changes / quick
@@ -200,15 +198,15 @@ CompetitionRefereeHandlersTest.php`, `tests/Query/GetCompetitionPermissionsTest.
 `tests/live-results-harness.mjs` under node (the outbox state machine with a fake server and clock: stored before sent,
 order, batches, conflicts, refusals, auth, a 403 for one event while another goes on, a stale page, a busy server with
 and without Retry-After, a deleted round, offline backoff, server-error isolation, two tabs, lease fallback, foreign
-account, broken store; the JSON client's classification of answers; the live updates reopened after the hub closed
-them and the catch-up after a drop; search; shown values; recent list; result texts; time parser; QR URL parsing;
-round preference).
+account, broken store; the JSON client's classification of answers; search; shown values; recent list; result texts;
+time parser; QR URL parsing; round preference); the live updates stream: `tests/OfficialResultsEventsScriptsTest.php`
+and `tests/Controller/OfficialResults/LiveUpdatesSubscriptionTest.php` (official-results.md).
 
 ## Follow-ups
 
-- Mercure for the live entry is not covered by an automated browser test (the dev hub runs on another host); the
-  subscriber cookie can still lose the round's topic through another response - a page-scoped subscriber token
-  (review 2 M1) is the planned fix.
+- The live updates stream is not covered by an automated browser test (the dev hub runs on another host); the module
+  is pinned under node, and was run against the dev hub (Mercure 0.24.2) with tokens from `OfficialResultsSubscription`:
+  private + public updates on one token, nothing without it, 401 → fresh token → reopened, the hub's close before `exp`.
 - Table numbers are not edited on the live entry (only given to a quick-added entrant) - that is the seating page's job.
 - The native apps could get a QR mode in their scanner bridge.
 - Quick add has no country field (the name tag and "best of each country" need one - set it on the participants page).

@@ -185,6 +185,8 @@ round_results:
         on_profile: "On your profile"
         organiser_results: "Organiser's results"
         player_times: "Times added by puzzlers (%count%)"
+        connect: "Is your name here?"
+        connect_link: "Connect it to your profile"
         meta_description: "Official results of %round% at %event%: the organiser's ranking of %count% entrant, with times and pieces placed.|Official results of %round% at %event%: the organiser's ranking of %count% entrants, with times and pieces placed."
 
 badge:
@@ -440,7 +442,9 @@ puzzle_add:
         title: "Add Puzzle"
     official_entry:
         notice: "Filled in from the official results of %round% at %event%. Check it and save it to your profile."
-        check_group: "You save this time, so you are part of the pair/team already - if your name is among the co-puzzlers, remove it."
+        which_one: "The official results list the pair/team by name - which one of them are you?"
+        its_me: "I am %name%"
+        add_people: "{1}Add the person you puzzled with - the official results do not say who it was.|]1,Inf[Add the people you puzzled with - the official results do not say who all of them were."
     title: "Add..."
     chosen_puzzle: "Selected puzzle:"
     choose_puzzle: "Choose a puzzle"
@@ -4337,6 +4341,8 @@ live_results:
         open_their_round: "Open their round"
         camera_error: "The camera could not be started - allow it in the browser's settings, or type the table or name."
         decoder_error: "This browser cannot read QR codes - type the table or name."
+        unknown_person: "The person on this name tag is not a participant of this event (any more) - find them by name, or add them."
+        no_rounds: "This event has no rounds yet - add a round to enter results."
     recent:
         title: "Recent entries"
         empty: "Results entered on any device show up here."
@@ -4362,6 +4368,7 @@ live_results:
         waiting: "Not sent yet: %result%"
         you: "you"
         local: "Added on this device"
+        finished_now_stopped: "The round's stopwatch is not running any more - type the time."
     confirm:
         save: "Save"
         change: "Change"
@@ -4388,6 +4395,9 @@ live_results:
         submit: "Add and enter the result"
         note: "The entrant is added to this round with the first result or table number you save."
         already: "Already on the list?"
+        event_people: "In the event, not in this round yet"
+        event_people_members: "In the event - add as a member"
+        event_person: "In the event · not in this round"
         name_missing: "Type the name."
         team_missing: "Type the pair's/team's name or at least one member."
         table_taken: "Table %number% is %name%'s."
@@ -4399,6 +4409,7 @@ live_results:
         attention: "{1}1 needs you|]1,Inf[%count% need you"
         sign_in: "Sign in again"
         forbidden: "No permission"
+        reload: "Reload the page"
     banner:
         auth: "You are signed out. Nothing you entered is lost - sign in again (it opens in a new tab), then come back here."
         forbidden: "This account may not enter results of this event (any more). Nothing you entered is lost - sign in as an organiser of the event, then retry."
@@ -4406,6 +4417,10 @@ live_results:
         foreign: "{1}1 result entered under another account waits on this device - sign in as that account to send it.|]1,Inf[%count% results entered under another account wait on this device - sign in as that account to send them."
         sign_in: "Sign in"
         retry: "Retry"
+        csrf: "This page is out of date - reload it to send what you entered. Nothing is lost."
+        reload: "Reload"
+        forbidden_rounds: "{1}1 result for an event this account may not enter results of (any more) waits on this device - sign in as an organiser of that event and retry, or discard it.|]1,Inf[%count% results for events this account may not enter results of (any more) wait on this device - sign in as an organiser of those events and retry, or discard them."
+        show: "Show"
     problem:
         field_result: "Result"
         field_table: "Table number"
@@ -4419,6 +4434,10 @@ live_results:
         rejected: "Not saved: %message%"
         fix: "Fix"
         discard: "Discard"
+        discard_confirm: "Discard this result? It was never saved and will be gone."
+        discard_all: "Discard them"
+        discard_all_confirm: "{1}Discard this result? It was never saved and will be gone.|]1,Inf[Discard these %count% results? They were never saved and will be gone."
+        forbidden: "Not sent: this account may not enter results of this event (any more)."
         stuck: "The server keeps failing - trying again."
         retry_in: "next try in %seconds% s"
         retry_now: "Retry now"
@@ -4429,6 +4448,8 @@ live_results:
         sending: "Sending…"
         offline: "Offline - sent as soon as the connection is back"
         other_round: "%round%"
+        other_event: "Another event"
+        busy: "The server asked to wait - sent automatically"
         retry_all: "Retry now"
     row:
         saved: "Saved"
@@ -4447,6 +4468,8 @@ name_tags:
     show: "Show"
     print: "Print"
     count: "{0}No name tags|{1}1 name tag|]1,Inf[%count% name tags"
+    waitlist: "{1}Also the 1 person on the waitlist|]1,Inf[Also the %count% people on the waitlist"
+    first_round_note: "The table on a tag is the one of the person's first round - print again after seating a round anew."
     table: "Table"
     empty: "Nobody to print yet - add participants first."
     hint: "Print on A4 at 100 % (no \"fit to page\") and cut along the dashed lines. The QR code opens the person in the live result entry on an organiser's phone; anybody else who scans it lands on the event page."
@@ -6665,6 +6688,12 @@ official_results:
         table_number_taken: "Another entrant of this round has this table number."
         duplicate_entry: "This entrant is listed twice."
         changed_meanwhile: "Somebody else changed this meanwhile."
+        changes_unreadable: "These changes could not be read - enter them again."
+        too_many_changes: "Too many changes at once - they are sent in smaller parts."
+        change_sent_twice: "The same change was sent twice - enter it again."
+        participant_not_found: "This person is not a participant of the event (any more)."
+        participant_already_in_round: "This person is in this round already - find them on the list."
+        round_not_found: "This round does not exist any more."
     notification:
         published: "The official results of %round% at %competition% are out - see your result."
     guard:

@@ -12,6 +12,8 @@ use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Entity\RoundResultChangeReceipt;
+use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Message\RecordRoundResults;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
@@ -19,6 +21,7 @@ use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\RoundResultChangeReceiptRepository;
 use SpeedPuzzling\Web\Results\RecordedRoundResults;
 use SpeedPuzzling\Web\Results\RoundResultChangeOutcome;
 use SpeedPuzzling\Web\Value\NewRoundEntry;
@@ -34,9 +37,12 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * Plans the whole change set first - every change checked three-way against the working state of the round, table
  * numbers unique within the round after the whole set (so a swap sent as two changes works) - and only then writes,
  * so a refused change never leaves half of a set behind (docs/features/competitions-management/official-results.md).
+ * A change whose id the server took before (RoundResultChangeReceipt) is answered "unchanged" and never applied
+ * again; every change that goes through, or finds its value there already, leaves such a receipt.
  *
  * @phpstan-type EntryState array{result: RoundEntryResult, table_number: null|int, qualified: bool, enteredAt: null|DateTimeImmutable, enteredById: null|string, enteredByName: null|string}
  * @phpstan-type Plan array{outcomes: list<RoundResultChangeOutcome>, applied: list<int>, tableChanges: array<string, list<int>>, newEntries: array<string, NewRoundEntry>, state: array<string, EntryState>}
+ * @phpstan-type Context array{round: CompetitionRound, receipts: array<string, RoundResultChangeReceipt>, rowsByParticipant: array<string, CompetitionParticipantRound>}
  */
 #[AsMessageHandler]
 readonly final class RecordRoundResultsHandler
@@ -53,6 +59,7 @@ readonly final class RecordRoundResultsHandler
         private CompetitionTeamRepository $teamRepository,
         private CompetitionParticipantRepository $participantRepository,
         private PlayerRepository $playerRepository,
+        private RoundResultChangeReceiptRepository $receiptRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -70,13 +77,23 @@ readonly final class RecordRoundResultsHandler
 
         $actor = $this->playerRepository->get($message->actingPlayerId);
         $now = $this->clock->now();
-        $entries = $this->entriesOf($round);
+        $roundRows = $this->participantRoundRepository->findByRound($round);
+        $entries = $this->entriesOf($round, $roundRows);
+        $receipts = $this->receiptRepository->findByIds(array_map(
+            static fn (RoundResultChange $change): string => $change->clientChangeId,
+            $message->changes,
+        ));
+        $context = [
+            'round' => $round,
+            'receipts' => $receipts,
+            'rowsByParticipant' => self::rowsByParticipant($roundRows),
+        ];
 
         // Changes refused because their table number would be shared - planning again without them may free a number
         // somebody else takes back, so until nothing new is refused
         $excluded = [];
         do {
-            $plan = $this->plan($message, $round, $entries, $excluded, $actor, $now);
+            $plan = $this->plan($message, $context, $entries, $excluded, $actor, $now);
             $clashes = $this->tableNumberClashes($plan, $excluded);
             $excluded += $clashes;
         } while ($clashes !== []);
@@ -88,7 +105,7 @@ readonly final class RecordRoundResultsHandler
         $changed = [];
 
         foreach ($plan['newEntries'] as $ref => $newEntry) {
-            $entries[$ref] = $this->create($newEntry, $round);
+            $entries[$ref] = $this->create($newEntry, $round, $context['rowsByParticipant']);
             $changed[$ref] = true;
         }
 
@@ -108,18 +125,28 @@ readonly final class RecordRoundResultsHandler
             $changed[$ref] = true;
         }
 
+        // The ids of everything that went through or was there already - sent again, they change nothing any more
+        foreach ($plan['outcomes'] as $outcome) {
+            $taken = $outcome->status === RoundResultChangeStatus::Applied || $outcome->status === RoundResultChangeStatus::Unchanged;
+
+            if ($taken && !isset($receipts[$outcome->clientChangeId])) {
+                $this->receiptRepository->save(new RoundResultChangeReceipt(Uuid::fromString($outcome->clientChangeId), $round, $outcome->status, $now));
+            }
+        }
+
         return new RecordedRoundResults($plan['outcomes'], array_keys($changed), false);
     }
 
     /**
+     * @param list<CompetitionParticipantRound> $roundRows every person of the round
      * @return array<string, CompetitionParticipantRound|CompetitionTeam> ref => entry; people removed from the event left out
      */
-    private function entriesOf(CompetitionRound $round): array
+    private function entriesOf(CompetitionRound $round, array $roundRows): array
     {
         $entries = [];
 
         if ($round->category === RoundCategory::Solo) {
-            foreach ($this->participantRoundRepository->findByRound($round) as $participantRound) {
+            foreach ($roundRows as $participantRound) {
                 if ($participantRound->participant->isDeleted() === false) {
                     $entries[$participantRound->entryRef()->toString()] = $participantRound;
                 }
@@ -136,18 +163,34 @@ readonly final class RecordRoundResultsHandler
     }
 
     /**
+     * @param list<CompetitionParticipantRound> $roundRows
+     * @return array<string, CompetitionParticipantRound> participant id => their row in the round
+     */
+    private static function rowsByParticipant(array $roundRows): array
+    {
+        $rows = [];
+        foreach ($roundRows as $row) {
+            $rows[$row->participant->id->toString()] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param Context $context
      * @param array<string, CompetitionParticipantRound|CompetitionTeam> $entries
      * @param array<int, string> $excluded change index => reason
      * @return Plan
      */
     private function plan(
         RecordRoundResults $message,
-        CompetitionRound $round,
+        array $context,
         array $entries,
         array $excluded,
         Player $actor,
         DateTimeImmutable $now,
     ): array {
+        $round = $context['round'];
         /** @var array<string, EntryState> $state */
         $state = [];
         foreach ($entries as $ref => $entry) {
@@ -168,10 +211,25 @@ readonly final class RecordRoundResultsHandler
         $newEntries = [];
         /** @var array<string, NewRoundEntry> $pendingNew new entries seen, created only when one of their changes goes through */
         $pendingNew = [];
+        /** @var array<string, true> $claimed participants of the event the set's new entries put into the round */
+        $claimed = [];
 
         foreach ($message->changes as $index => $change) {
             $ref = $change->entryRef();
             $refString = $ref?->toString();
+            $receipt = $context['receipts'][$change->clientChangeId] ?? null;
+
+            // Sent before and taken: a replay whose answer got lost - whatever the entry holds now stays
+            if ($receipt !== null && $change->field !== null && $refString !== null) {
+                if ($receipt->round->id->equals($round->id)) {
+                    $current = isset($state[$refString]) ? self::value($state[$refString], $change->field) : null;
+                    $outcomes[] = self::outcome($change, RoundResultChangeStatus::Unchanged, null, $current, $state[$refString] ?? null);
+                } else {
+                    $outcomes[] = self::outcome($change, RoundResultChangeStatus::Rejected, 'invalid_change', null);
+                }
+
+                continue;
+            }
 
             if ($change->rejectedReason !== null || $change->field === null || $refString === null) {
                 $outcomes[] = self::outcome($change, RoundResultChangeStatus::Rejected, $change->rejectedReason ?? 'invalid_change', null);
@@ -186,7 +244,7 @@ readonly final class RecordRoundResultsHandler
                     continue;
                 }
 
-                $refusal = $this->newEntryRefusal($change->newEntry, $round);
+                $refusal = $this->newEntryRefusal($change->newEntry, $round, $context['rowsByParticipant'], $claimed);
 
                 if ($refusal !== null) {
                     $outcomes[] = self::outcome($change, RoundResultChangeStatus::Rejected, $refusal, null);
@@ -281,7 +339,12 @@ readonly final class RecordRoundResultsHandler
         return $clashes;
     }
 
-    private function newEntryRefusal(NewRoundEntry $newEntry, CompetitionRound $round): null|string
+    /**
+     * @param array<string, CompetitionParticipantRound> $rowsByParticipant
+     * @param array<string, true> $claimed participants put into the round by earlier new entries of the set - this
+     *                                     entry's are added when it is accepted
+     */
+    private function newEntryRefusal(NewRoundEntry $newEntry, CompetitionRound $round, array $rowsByParticipant, array &$claimed): null|string
     {
         $expectedKind = $round->category === RoundCategory::Solo ? NewRoundEntry::KIND_PERSON : NewRoundEntry::KIND_TEAM;
 
@@ -298,7 +361,7 @@ readonly final class RecordRoundResultsHandler
             return 'entry_id_taken';
         }
 
-        $names = array_column($newEntry->members, 'name');
+        $names = array_filter(array_column($newEntry->members, 'name'), static fn (null|string $name): bool => $name !== null);
 
         if ($newEntry->name !== null) {
             $names[] = $newEntry->name;
@@ -310,7 +373,7 @@ readonly final class RecordRoundResultsHandler
             }
         }
 
-        if ($newEntry->kind === NewRoundEntry::KIND_PERSON && $newEntry->name === null) {
+        if ($newEntry->kind === NewRoundEntry::KIND_PERSON && $newEntry->name === null && $newEntry->participantId === null) {
             return 'entry_name_missing';
         }
 
@@ -320,6 +383,47 @@ readonly final class RecordRoundResultsHandler
 
         if (count($newEntry->members) > self::MAX_TEAM_MEMBERS) {
             return 'too_many_members';
+        }
+
+        $existing = $newEntry->existingParticipantIds();
+
+        foreach ($existing as $participantId) {
+            $refusal = $this->existingParticipantRefusal($participantId, $round, $rowsByParticipant);
+
+            if ($refusal !== null) {
+                return $refusal;
+            }
+
+            if (isset($claimed[$participantId]) || count(array_keys($existing, $participantId, true)) > 1) {
+                return 'duplicate_entry';
+            }
+        }
+
+        foreach ($existing as $participantId) {
+            $claimed[$participantId] = true;
+        }
+
+        return null;
+    }
+
+    /**
+     * A participant of the event put into the round by a new entry: one of this event, not removed, and not an entry
+     * of the round already - in a pair/team round somebody of the round who is in no pair/team yet may join one.
+     *
+     * @param array<string, CompetitionParticipantRound> $rowsByParticipant
+     */
+    private function existingParticipantRefusal(string $participantId, CompetitionRound $round, array $rowsByParticipant): null|string
+    {
+        try {
+            $this->participantRepository->getActiveOfCompetition($round->competition->id->toString(), $participantId);
+        } catch (CompetitionParticipantNotFound) {
+            return 'participant_not_found';
+        }
+
+        $row = $rowsByParticipant[$participantId] ?? null;
+
+        if ($row !== null && ($round->category === RoundCategory::Solo || $row->team !== null)) {
+            return 'participant_already_in_round';
         }
 
         return null;
@@ -355,11 +459,21 @@ readonly final class RecordRoundResultsHandler
         return null;
     }
 
-    private function create(NewRoundEntry $newEntry, CompetitionRound $round): CompetitionParticipantRound|CompetitionTeam
+    /**
+     * @param array<string, CompetitionParticipantRound> $rowsByParticipant
+     */
+    private function create(NewRoundEntry $newEntry, CompetitionRound $round, array $rowsByParticipant): CompetitionParticipantRound|CompetitionTeam
     {
+        $competitionId = $round->competition->id->toString();
+
         if ($newEntry->kind === NewRoundEntry::KIND_PERSON) {
-            assert($newEntry->name !== null);
-            $participant = $this->newParticipant($newEntry->name, $newEntry->country, $round);
+            if ($newEntry->participantId !== null) {
+                $participant = $this->participantRepository->getActiveOfCompetition($competitionId, $newEntry->participantId);
+            } else {
+                assert($newEntry->name !== null);
+                $participant = $this->newParticipant($newEntry->name, $newEntry->country, $round);
+            }
+
             $participantRound = new CompetitionParticipantRound(Uuid::fromString($newEntry->clientEntryId), $participant, $round);
             $this->participantRoundRepository->save($participantRound);
 
@@ -370,7 +484,22 @@ readonly final class RecordRoundResultsHandler
         $this->teamRepository->save($team);
 
         foreach ($newEntry->members as $member) {
-            $participant = $this->newParticipant($member['name'], $member['country'], $round);
+            if ($member['participantId'] !== null) {
+                // In the round already without a pair/team (one row per person and round): that row joins this one
+                $row = $rowsByParticipant[$member['participantId']] ?? null;
+
+                if ($row !== null) {
+                    $row->assignToTeam($team);
+
+                    continue;
+                }
+
+                $participant = $this->participantRepository->getActiveOfCompetition($competitionId, $member['participantId']);
+            } else {
+                assert($member['name'] !== null);
+                $participant = $this->newParticipant($member['name'], $member['country'], $round);
+            }
+
             $this->participantRoundRepository->save(new CompetitionParticipantRound(Uuid::uuid7(), $participant, $round, $team));
         }
 

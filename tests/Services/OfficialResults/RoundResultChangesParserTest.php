@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\OfficialResults;
 
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Exceptions\UnreadableRoundResultChanges;
 use SpeedPuzzling\Web\Services\RoundResultChangesParser;
 use SpeedPuzzling\Web\Value\NewRoundEntry;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
@@ -14,6 +15,7 @@ final class RoundResultChangesParserTest extends TestCase
 {
     private const string CHANGE = '018d0099-0000-0000-0000-000000000001';
     private const string ENTRY = '018d0099-0000-0000-0000-0000000000AA';
+    private const string PARTICIPANT = '018d0099-0000-0000-0000-0000000000bb';
 
     public function testReadsEveryField(): void
     {
@@ -46,7 +48,7 @@ final class RoundResultChangesParserTest extends TestCase
                 'clientEntryId' => self::ENTRY,
                 'kind' => 'team',
                 'name' => '  Puzzle   Sharks ',
-                'members' => ['Jo  Doe', ['name' => 'Kim Example', 'country' => 'DE']],
+                'members' => ['Jo  Doe', ['name' => 'Kim Example', 'country' => 'DE'], ['participantId' => strtoupper(self::PARTICIPANT), 'name' => 'Lee Known']],
             ],
             'field' => 'table_number',
             'from' => null,
@@ -57,8 +59,27 @@ final class RoundResultChangesParserTest extends TestCase
         self::assertInstanceOf(NewRoundEntry::class, $newEntry);
         self::assertSame(NewRoundEntry::KIND_TEAM, $newEntry->kind);
         self::assertSame('Puzzle Sharks', $newEntry->name);
-        self::assertSame([['name' => 'Jo Doe', 'country' => null], ['name' => 'Kim Example', 'country' => 'de']], $newEntry->members);
+        // A participant of the event comes by id - the name sent along is only the device's label
+        self::assertSame([
+            ['name' => 'Jo Doe', 'country' => null, 'participantId' => null],
+            ['name' => 'Kim Example', 'country' => 'de', 'participantId' => null],
+            ['name' => null, 'country' => null, 'participantId' => self::PARTICIPANT],
+        ], $newEntry->members);
+        self::assertSame([self::PARTICIPANT], $newEntry->existingParticipantIds());
         self::assertSame('team:' . strtolower(self::ENTRY), $changes[0]->entryRef()?->toString());
+    }
+
+    public function testReadsAPersonOfTheEventPutIntoTheRound(): void
+    {
+        $changes = RoundResultChangesParser::parse([
+            ['clientChangeId' => self::CHANGE, 'newEntry' => ['clientEntryId' => self::ENTRY, 'kind' => 'person', 'participantId' => self::PARTICIPANT], 'field' => 'qualified', 'from' => false, 'to' => true],
+            ['clientChangeId' => '018d0099-0000-0000-0000-000000000002', 'newEntry' => ['clientEntryId' => self::ENTRY, 'kind' => 'person', 'participantId' => 'nope'], 'field' => 'qualified', 'from' => false, 'to' => true],
+            ['clientChangeId' => '018d0099-0000-0000-0000-000000000003', 'newEntry' => ['clientEntryId' => self::ENTRY, 'kind' => 'team', 'participantId' => self::PARTICIPANT], 'field' => 'qualified', 'from' => false, 'to' => true],
+        ]);
+
+        self::assertSame(self::PARTICIPANT, $changes[0]->newEntry?->participantId);
+        self::assertNull($changes[0]->newEntry->name);
+        self::assertSame([null, 'invalid_change', 'invalid_change'], array_map(static fn ($change): null|string => $change->rejectedReason, $changes));
     }
 
     public function testAChangeItCannotReadIsRefusedAlone(): void
@@ -80,24 +101,42 @@ final class RoundResultChangesParserTest extends TestCase
 
     public function testARequestWithoutChangeIdsIsUnreadable(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-
-        RoundResultChangesParser::parse([['entry' => 'team:' . self::ENTRY, 'field' => 'qualified', 'from' => false, 'to' => true]]);
+        self::assertSame('changes_unreadable', self::reasonOf([['entry' => 'team:' . self::ENTRY, 'field' => 'qualified', 'from' => false, 'to' => true]]));
     }
 
     public function testAChangeIdUsedTwiceIsUnreadable(): void
     {
         $change = ['clientChangeId' => self::CHANGE, 'entry' => 'team:' . self::ENTRY, 'field' => 'qualified', 'from' => false, 'to' => true];
 
-        $this->expectException(\InvalidArgumentException::class);
-
-        RoundResultChangesParser::parse([$change, $change]);
+        self::assertSame('change_sent_twice', self::reasonOf([$change, $change]));
     }
 
     public function testChangesAreAList(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        self::assertSame('changes_unreadable', self::reasonOf(['a' => 1]));
+    }
 
-        RoundResultChangesParser::parse(['a' => 1]);
+    public function testTooManyChangesAreUnreadable(): void
+    {
+        $changes = [];
+        for ($number = 1; $number <= RoundResultChangesParser::MAX_CHANGES + 1; $number++) {
+            $changes[] = ['clientChangeId' => sprintf('018d0099-0000-0000-0000-%012d', $number), 'entry' => 'team:' . self::ENTRY, 'field' => 'qualified', 'from' => false, 'to' => true];
+        }
+
+        self::assertSame('too_many_changes', self::reasonOf($changes));
+    }
+
+    /**
+     * The reason key a whole request is refused with - a translated text for the referee (official_results.reason.*).
+     */
+    private static function reasonOf(mixed $changes): string
+    {
+        try {
+            RoundResultChangesParser::parse($changes);
+        } catch (UnreadableRoundResultChanges $exception) {
+            return $exception->reason;
+        }
+
+        self::fail('The request was read.');
     }
 }

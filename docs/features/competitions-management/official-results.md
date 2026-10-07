@@ -66,12 +66,25 @@ the competition the caller was authorised on (`CompetitionEditVoter`).
 - **`RecordRoundResults`** (`competitionId`, `roundId`, `actingPlayerId`, list of `RoundResultChange`, `dryRun`) -
   results, table numbers, qualified marks and entrants typed in at the venue. Each change: `clientChangeId` (UUID, for
   idempotent replays), an existing entry (`participant_round:<id>` / `team:<id>`) **or** a new one (`clientEntryId` +
-  kind + name + members; created with that id, never matched by name), `field` (`result` | `table_number` |
-  `qualified`), `from` (what the device last saw), `to`. Three-way per change against the working state of the round:
-  current = `to` → `unchanged` (a replay); current = `from` → `applied`; otherwise `conflict` (current value + who/when
-  returned). Invalid → `rejected` with a reason key (`official_results.reason.*`). Table numbers are checked after the
-  whole set; a change making a number shared is refused and the set planned again. A new entry is created only when
-  one of its changes goes through. Returns `RecordedRoundResults` (HandledStamp).
+  kind + name + members; created with that id, never matched by name - but a participant of the event may be put in by
+  id: a person's `participantId`, a member's `{participantId}`; they must be of this competition, not removed, and no
+  entry of the round yet - in a pair/team round somebody in the round without a pair/team joins with their row;
+  refused: `participant_not_found` / `participant_already_in_round` / `duplicate_entry`), `field` (`result` |
+  `table_number` | `qualified`), `from` (what the device last saw), `to`. Three-way per change against the working
+  state of the round: current = `to` → `unchanged` (a replay); current = `from` → `applied`; otherwise `conflict`
+  (current value + who/when returned). Invalid → `rejected` with a reason key (`official_results.reason.*`). Table
+  numbers are checked after the whole set; a change making a number shared is refused and the set planned again. A new
+  entry is created only when one of its changes goes through. Returns `RecordedRoundResults` (HandledStamp).
+  **Change ids are kept** (`round_result_change_receipt`: id = `clientChangeId`, round, status, `received_at`) for
+  every change that is applied or found `to` there already: a change sent again with a known id is answered
+  `unchanged` with the current value and never applied again - so a replay whose answer got lost cannot bring back a
+  value corrected since (A→B, corrected B→A, replay A→B would pass the three-way check alone). A known id of another
+  round is refused. Refused and conflicting changes leave no receipt (the device sends a fix under a new id). Receipts
+  go with their round and are pruned after 90 days by `myspeedpuzzling:prune-round-result-change-receipts` (cron, see
+  `docs/TODO.md`); a phone replaying after that falls back to the three-way check. A request the server cannot read
+  as a whole (no list, more than 500 changes, a change without an id or the same id twice) is a 400 `invalid_changes`
+  with `reason` and the translated `message` - never the parser's developer text; a round that no longer exists is a
+  JSON 404 `round_not_found`.
 - **`AssignTableNumbers`** (`competitionId`, `roundId`, `[{entry, number|null}]`) - seating in one write, validated as
   a whole (entries of the round, listed once, 1..9999, no shared number afterwards) or refused entirely
   (`InvalidTableNumbers` with problems). Returns the refs whose number changed.
@@ -144,22 +157,36 @@ A round whose results are published leads its public page (`event_round_results`
   names; a linked player links to their profile (avatar, flag) only when the viewer may see them
   (`PrivateProfileAccess::sqlIsPrivate()`, the viewer themselves included) - a private player otherwise keeps just the
   organiser's name (`PublishedRoundEntrant`: `playerId` for display, `linkedPlayerId` / `linkedPlayerCode` never rendered).
-  One statement (a pair/team round brings its members as JSON), plus one for the viewer's own times in the round when a
-  row could offer "Add to my profile". Pinned: an unpublished page +0, a published one +1 (guest) / +2 (signed in)
-  (`OfficialRoundResultsPageTest`).
-- **Add to my profile**: offered to the signed-in viewer on their own entry - or, when the organiser linked them to no
-  entry of the round, on the entries nobody is linked to (team names only, the Minnesota case) - for a **finished**
-  result, in a round with **exactly one puzzle** that the viewer sees revealed (not left out by the reveal rules, picture
-  not hidden), until they have a time in the round (`competition_round_id` = the round, tracker or in the group). Then the
-  own entry - or the unlinked entry with the viewer's time - says "On your profile". Derived on every read, nothing stored.
+  One statement (a pair/team round brings its members as JSON; it also says whether the viewer is linked to any entry
+  of the round, and their name and country), plus one for the viewer's own times in the round when a row could offer
+  "Add to my profile". Pinned: an unpublished page +0, a published one +1 (guest, or a viewer with no offer) / +2 (an
+  offer) (`OfficialRoundResultsPageTest`). The meta description counts every ranked entry (`rankedCount`), whatever the
+  viewer's blocks hide.
+- **Add to my profile**: offered to the signed-in viewer on their own entry. When the organiser linked them to **no
+  entry of the round at all** (did not start and no result yet count as entries): on a **pair/team nobody is linked
+  to** (team names only, the Minnesota case), and on an **unlinked person whose name is the viewer's**
+  (`ParticipantNameKey` - case, accents, spaces and dashes do not matter - and no other country) - never on every
+  unlinked row for every visitor (an imported WJPC group is mostly unlinked). Such a viewer gets one line under the table
+  instead, "Is your name here? Connect it to your profile" → the event's join flow (`join_competition`), when some name
+  of the round is nobody's. Offered for a **finished** result, in a round with **exactly one puzzle** that the viewer
+  sees revealed (not left out by the reveal rules, picture not hidden), until they have a time in the round
+  (`competition_round_id` = the round, tracker or in the group). Then the own entry - or the unlinked entry with the
+  viewer's time - says "On your profile". Derived on every read, nothing stored. Organisers also get the round's tool
+  links on the page (`official_results/_organiser_round_links.html.twig`).
   The link is `puzzle_add` with `?competition=<id>&official_entry=<participant_round|team>:<id>`;
   `OfficialEntryTimePrefill` (GET only) re-runs the very same read model for the viewer and fills the form in only for an
   entry it offers - anything else is ignored silently: the puzzle, the time, the finished date (the round's start day in
   the round's zone), the competition, and for a pair/team the co-puzzlers (linked members by `#CODE`, the others as guest
-  names; in a pair/team nobody is linked to, the member named like the viewer is left out - else a notice asks them to
-  remove themselves) and the pair's/team's name when the form may still set it (no puzzling team of these exact people
-  yet, or an unnamed one - `PuzzlingTeam::nameIfUnnamed()`). The save is an ordinary time: first try, duplicates, secret
-  puzzles and privacy run as for any other.
+  names) and the pair's/team's name when the form may still set it (no puzzling team of these exact people yet, or an
+  unnamed one - `PuzzlingTeam::nameIfUnnamed()`; with nobody filled in, the name comes along and the save decides). A
+  pair/team result **never opens as a solo time**: `OfficialEntryTime` carries the round's category, the co-puzzler
+  picker opens in Pair/Team mode without Solo (a "pair" recorded with more people opens as a team), and when the people
+  are fewer than the category needs (pair 2, team 3, the viewer included) the form says "Add the person/people you
+  puzzled with" - a team typed by name only, a linked viewer whose partner was not recorded. In a pair/team nobody is
+  linked to, the member named like the viewer (one match) is left out; with no clear match nobody is filled in (one of
+  the names is the viewer - all of them would make a pair of three) and the form asks "Which one of them are you?" with
+  one link per name (`&official_member=<position>`, read back the same way). The save is an ordinary time: first try,
+  duplicates, secret puzzles and privacy run as for any other.
 - **Event and edition pages**: `CompetitionEvent::$hasPublishedOfficialResults` (an EXISTS in `GetCompetitionEvents::byId()`,
   the statement every competition page runs anyway) turns on the official counts in `CountCompetitionResults::forCompetition()`
   / `perRound()` - folded into their existing statements, so even an event with official results pays no extra

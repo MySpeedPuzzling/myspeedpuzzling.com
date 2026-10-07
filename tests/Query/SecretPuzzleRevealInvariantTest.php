@@ -4,18 +4,28 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use ApiPlatform\Metadata\Get;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use SpeedPuzzling\Web\Api\V1\CompetitionDetailResponseProvider;
+use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionSeries;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
+use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
+use SpeedPuzzling\Web\Query\GetAdminCompetitions;
 use SpeedPuzzling\Web\Query\GetCompetitionPuzzles;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleSummary;
+use SpeedPuzzling\Web\Query\GetRoundPuzzlesForManagement;
+use SpeedPuzzling\Web\Results\RoundPuzzleForManagement;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
@@ -102,6 +112,143 @@ final class SecretPuzzleRevealInvariantTest extends WebTestCase
         self::assertTrue($this->usedAtTheCompetition($atTheMoment, $puzzleId));
     }
 
+    /**
+     * @return iterable<string, array{int, PuzzleHideMode}>
+     */
+    public static function roundDelays(): iterable
+    {
+        yield 'when the round starts' => [0, PuzzleHideMode::Entirely];
+        yield 'the default' => [RoundPuzzleReveal::DEFAULT_DELAY_MINUTES, PuzzleHideMode::Entirely];
+        yield 'custom' => [25, PuzzleHideMode::Entirely];
+        yield 'the longest' => [RoundPuzzleReveal::MAX_DELAY_MINUTES, PuzzleHideMode::Entirely];
+        yield 'custom, picture only' => [25, PuzzleHideMode::ImageOnly];
+    }
+
+    /**
+     * The round's own delay is THE moment: the entity, the site-wide hide it writes, the SQL every page reads, the
+     * organiser's puzzles page and the internal API - one second before it nothing shows the puzzle, at it everything.
+     */
+    #[DataProvider('roundDelays')]
+    public function testAutomaticRevealFollowsTheRoundsDelayEverywhere(int $delay, PuzzleHideMode $hideMode): void
+    {
+        $this->setRoundDelay($delay);
+        $roundPuzzle = $this->addSecretPuzzle($hideMode);
+        $puzzleId = $roundPuzzle->puzzle->id->toString();
+        $roundPuzzleId = $roundPuzzle->id->toString();
+        $expected = $roundPuzzle->round->startsAt->modify(sprintf('+%d minutes', $delay));
+
+        self::assertSame($delay, $roundPuzzle->round->revealDelayMinutes);
+        self::assertSame(RoundPuzzleReveal::Automatic, $roundPuzzle->revealMode);
+        self::assertSame($expected->getTimestamp(), $roundPuzzle->round->automaticRevealAt()->getTimestamp());
+        self::assertSame($expected->getTimestamp(), $roundPuzzle->revealsAt()?->getTimestamp());
+        self::assertSame($expected->getTimestamp(), $roundPuzzle->puzzle->hideImageUntil?->getTimestamp());
+
+        if ($hideMode === PuzzleHideMode::Entirely) {
+            self::assertSame($expected->getTimestamp(), $roundPuzzle->puzzle->hideUntil?->getTimestamp());
+        } else {
+            self::assertNull($roundPuzzle->puzzle->hideUntil);
+        }
+
+        // SQL computes the same moment from the round row
+        $sqlRevealAt = $this->connection()->fetchOne(
+            sprintf(
+                'SELECT %s FROM competition_round_puzzle crp INNER JOIN competition_round cr ON cr.id = crp.round_id WHERE crp.id = :id',
+                RoundPuzzleReveal::sqlRevealAt('crp', 'cr'),
+            ),
+            ['id' => $roundPuzzleId],
+        );
+        self::assertIsString($sqlRevealAt);
+        self::assertSame($expected->getTimestamp(), new DateTimeImmutable($sqlRevealAt)->getTimestamp());
+
+        // The internal API answers the same moment
+        foreach (self::getContainer()->get(GetAdminCompetitions::class)->round(CompetitionApiFixture::ROUND_FUTURE)->puzzles as $adminPuzzle) {
+            if ($adminPuzzle->roundPuzzleId === $roundPuzzleId) {
+                self::assertNotNull($adminPuzzle->revealsAt);
+                self::assertSame($expected->getTimestamp(), new DateTimeImmutable($adminPuzzle->revealsAt)->getTimestamp());
+            }
+        }
+
+        $oneSecondBefore = new MockClock($expected->modify('-1 second'));
+        $atTheMoment = new MockClock($expected);
+
+        self::assertTrue($this->hiddenOnTheRoundsPuzzlesPage($oneSecondBefore, $roundPuzzleId));
+        self::assertFalse($this->hiddenOnTheRoundsPuzzlesPage($atTheMoment, $roundPuzzleId));
+        self::assertSame($expected->getTimestamp(), $this->revealShownOnTheRoundsPuzzlesPage($atTheMoment, $roundPuzzleId)?->getTimestamp());
+
+        if ($hideMode === PuzzleHideMode::Entirely) {
+            self::assertFalse($this->foundBySearch($oneSecondBefore));
+            self::assertFalse($this->foundByBrandPicker($oneSecondBefore, $puzzleId));
+            self::assertFalse($this->onEventPage($oneSecondBefore, $puzzleId));
+            self::assertFalse($this->amongCompetitionPuzzles($oneSecondBefore, $puzzleId));
+            self::assertFalse($this->usedAtTheCompetition($oneSecondBefore, $puzzleId));
+
+            self::assertTrue($this->foundBySearch($atTheMoment));
+            self::assertTrue($this->foundByBrandPicker($atTheMoment, $puzzleId));
+            self::assertTrue($this->onEventPage($atTheMoment, $puzzleId));
+            self::assertTrue($this->amongCompetitionPuzzles($atTheMoment, $puzzleId));
+            self::assertTrue($this->usedAtTheCompetition($atTheMoment, $puzzleId));
+        } else {
+            // The name is public, the picture and the codes are not - until the round's own moment
+            self::assertTrue($this->onEventPage($oneSecondBefore, $puzzleId));
+            self::assertSame([null, null], $this->shownCodes($oneSecondBefore, $puzzleId));
+            self::assertSame([self::SECRET_EAN, self::SECRET_BRAND_CODE], $this->shownCodes($atTheMoment, $puzzleId));
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, PuzzleHideMode, string}>
+     */
+    public static function publicPuzzlesSecretOnTheEventPageOnly(): iterable
+    {
+        yield 'entirely' => [CompetitionApiFixture::PUZZLE_HIDDEN_ENTIRELY, PuzzleHideMode::Entirely, CompetitionApiFixture::IMAGE_HIDDEN_ENTIRELY];
+        yield 'image only' => [CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE, PuzzleHideMode::ImageOnly, CompetitionApiFixture::IMAGE_HIDDEN_IMAGE];
+    }
+
+    /**
+     * A public catalogue puzzle the round keeps secret on its event pages only: nothing hides it on the rest of the site
+     * (its own hide_until / hide_image_until stay empty), so the moment GetEditionRounds computes in PHP from the round
+     * row is its ONLY guard - on the event and edition pages and in API v1. With a delay of its own (25) it must be that
+     * moment, never the default 10.
+     */
+    #[DataProvider('publicPuzzlesSecretOnTheEventPageOnly')]
+    public function testAPublicPuzzleSecretOnTheEventPageOnlyFollowsTheRoundsDelay(string $puzzleId, PuzzleHideMode $hideMode, string $image): void
+    {
+        $this->setRoundDelay(25);
+        $row = $this->connection()->fetchAssociative(
+            'SELECT crp.hides_everywhere, crp.hide_until_round_starts, crp.hide_mode, crp.reveal_mode, p.hide_until, p.hide_image_until, cr.starts_at, cr.reveal_delay_minutes
+            FROM competition_round_puzzle crp
+            INNER JOIN puzzle p ON p.id = crp.puzzle_id
+            INNER JOIN competition_round cr ON cr.id = crp.round_id
+            WHERE crp.round_id = :roundId AND crp.puzzle_id = :puzzleId',
+            ['roundId' => CompetitionApiFixture::ROUND_FUTURE, 'puzzleId' => $puzzleId],
+        );
+        self::assertIsArray($row);
+
+        // Secret on the event page only, automatic, and nothing else hides it
+        self::assertFalse($row['hides_everywhere']);
+        self::assertTrue($row['hide_until_round_starts']);
+        self::assertSame($hideMode->value, $row['hide_mode']);
+        self::assertSame(RoundPuzzleReveal::Automatic->value, $row['reveal_mode']);
+        self::assertNull($row['hide_until']);
+        self::assertNull($row['hide_image_until']);
+        self::assertSame(25, $row['reveal_delay_minutes']);
+
+        self::assertIsString($row['starts_at']);
+        $revealAt = new DateTimeImmutable($row['starts_at'] . ' UTC')->modify('+25 minutes');
+        $oneSecondBefore = new MockClock($revealAt->modify('-1 second'));
+        $atTheMoment = new MockClock($revealAt);
+
+        foreach (['event page' => $this->onEventPageAs(...), 'API v1' => $this->inApiV1As(...)] as $surface => $shown) {
+            if ($hideMode === PuzzleHideMode::Entirely) {
+                self::assertSame([false, null], $shown($oneSecondBefore, $puzzleId), "{$surface}: one second before - not listed");
+            } else {
+                self::assertSame([true, null], $shown($oneSecondBefore, $puzzleId), "{$surface}: one second before - the name, no picture");
+            }
+
+            self::assertSame([true, $image], $shown($atTheMoment, $puzzleId), "{$surface}: at the moment - out with its picture");
+        }
+    }
+
     public function testImageOnlyKeepsThePictureAndTheCodesSecretUntilTheMoment(): void
     {
         $roundPuzzle = $this->addSecretPuzzle(PuzzleHideMode::ImageOnly);
@@ -164,6 +311,47 @@ final class SecretPuzzleRevealInvariantTest extends WebTestCase
         self::assertFalse($this->foundByBrandPicker($longAfterTheRound, $puzzleId));
         self::assertFalse($this->onEventPage($longAfterTheRound, $puzzleId));
         self::assertFalse($this->amongCompetitionPuzzles($longAfterTheRound, $puzzleId));
+    }
+
+    /**
+     * The future round's reveal delay, set the way the organiser does (nothing else of the round changes). A shorter one
+     * reveals the fixture's secret puzzles earlier - said yes to here.
+     */
+    private function setRoundDelay(int $delay): void
+    {
+        $this->dispatch(new EditCompetitionRound(
+            roundId: CompetitionApiFixture::ROUND_FUTURE,
+            name: 'ignored',
+            minutesLimit: 1,
+            startsAt: new DateTimeImmutable(),
+            timezone: 'UTC',
+            badgeBackgroundColor: null,
+            badgeTextColor: null,
+            refuseToReveal: false,
+            keepFields: EditCompetitionRound::FIELDS,
+            revealDelayMinutes: $delay,
+        ));
+    }
+
+    private function hiddenOnTheRoundsPuzzlesPage(MockClock $clock, string $roundPuzzleId): bool
+    {
+        return $this->onTheRoundsPuzzlesPage($clock, $roundPuzzleId)->hidden;
+    }
+
+    private function revealShownOnTheRoundsPuzzlesPage(MockClock $clock, string $roundPuzzleId): null|DateTimeImmutable
+    {
+        return $this->onTheRoundsPuzzlesPage($clock, $roundPuzzleId)->revealsAt;
+    }
+
+    private function onTheRoundsPuzzlesPage(MockClock $clock, string $roundPuzzleId): RoundPuzzleForManagement
+    {
+        foreach (new GetRoundPuzzlesForManagement($this->connection(), $clock)->ofRound(CompetitionApiFixture::ROUND_FUTURE) as $roundPuzzle) {
+            if ($roundPuzzle->roundPuzzleId === $roundPuzzleId) {
+                return $roundPuzzle;
+            }
+        }
+
+        self::fail('The round puzzle is on its round\'s puzzles page');
     }
 
     private function addSecretPuzzle(PuzzleHideMode $hideMode): CompetitionRoundPuzzle
@@ -250,6 +438,51 @@ final class SecretPuzzleRevealInvariantTest extends WebTestCase
         }
 
         return false;
+    }
+
+    /**
+     * The event and edition pages (EventDetailController, EditionDetailController) read the rounds from GetEditionRounds.
+     *
+     * @return array{bool, null|string} listed, and the picture shown
+     */
+    private function onEventPageAs(MockClock $clock, string $puzzleId): array
+    {
+        foreach (new GetEditionRounds($this->connection(), $clock)->forCompetition(CompetitionApiFixture::COMPETITION_API) as $round) {
+            foreach ($round->puzzles as $puzzle) {
+                if ($puzzle->puzzleId === $puzzleId) {
+                    return [true, $puzzle->puzzleImage];
+                }
+            }
+        }
+
+        return [false, null];
+    }
+
+    /**
+     * GET /api/v1/competitions/{id} - its provider, with the rounds read at the clock's moment.
+     *
+     * @return array{bool, null|string} listed, and the picture shown
+     */
+    private function inApiV1As(MockClock $clock, string $puzzleId): array
+    {
+        $container = self::getContainer();
+        $provider = new CompetitionDetailResponseProvider(
+            $container->get(GetCompetitionEvents::class),
+            new GetEditionRounds($this->connection(), $clock),
+            $container->get(GetCompetitionSeries::class),
+            $container->get(IsCompetitionPubliclyVisible::class),
+        );
+        $detail = $provider->provide(new Get(), ['id' => CompetitionApiFixture::COMPETITION_API]);
+
+        foreach ($detail->rounds as $round) {
+            foreach ($round->puzzles as $puzzle) {
+                if ($puzzle->id === $puzzleId) {
+                    return [true, $puzzle->image];
+                }
+            }
+        }
+
+        return [false, null];
     }
 
     private function amongCompetitionPuzzles(MockClock $clock, string $puzzleId): bool

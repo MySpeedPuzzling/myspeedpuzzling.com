@@ -121,12 +121,49 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         self::assertEquals($roundPuzzle->round->automaticRevealAt(), $roundPuzzle->puzzle->hideImageUntil);
     }
 
+    /**
+     * "Automatic" is saved only for the automatic reveal the caller showed - another moment (the round changed after the
+     * page was loaded) or none is refused, and nothing changes. No caller is exempt.
+     */
+    public function testAutomaticIsSavedOnlyForTheMomentTheRoundHasNow(): void
+    {
+        $roundPuzzleId = $this->secretRoundPuzzle(PuzzleFixture::PUZZLE_500_03, hidesEverywhere: true);
+        $this->changeReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null);
+        $automaticRevealAt = $this->roundPuzzle($roundPuzzleId)->round->automaticRevealAt();
+        $this->entityManager->clear();
+
+        foreach ([null, $automaticRevealAt->modify('+15 minutes'), $automaticRevealAt->modify('-1 minute')] as $shown) {
+            try {
+                $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Automatic, null, shownAutomaticRevealAt: $shown));
+                self::fail('Automatic for another moment than the round has');
+            } catch (\SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile $refused) {
+                self::assertSame($automaticRevealAt->getTimestamp(), $refused->automaticRevealAt->getTimestamp());
+            }
+
+            $this->entityManager->clear();
+            $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
+            self::assertSame(RoundPuzzleReveal::Manual, $roundPuzzle->revealMode);
+            self::assertEquals(new DateTimeImmutable(CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED), $roundPuzzle->puzzle->hideUntil);
+            $this->entityManager->clear();
+        }
+
+        // Scheduled and manual reveals do not need it
+        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null));
+        $this->entityManager->clear();
+
+        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Automatic, null, shownAutomaticRevealAt: $automaticRevealAt));
+        $this->entityManager->clear();
+        $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
+        self::assertSame(RoundPuzzleReveal::Automatic, $roundPuzzle->revealMode);
+        self::assertEquals($automaticRevealAt, $roundPuzzle->puzzle->hideUntil);
+    }
+
     public function testPublishingTheNameByImageOnlyNeedsAYes(): void
     {
         $roundPuzzleId = $this->secretRoundPuzzle(PuzzleFixture::PUZZLE_500_03, hidesEverywhere: true);
 
         try {
-            $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::ImageOnly, RoundPuzzleReveal::Automatic, null));
+            $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::ImageOnly, RoundPuzzleReveal::Automatic, null, shownAutomaticRevealAt: $this->roundPuzzle($roundPuzzleId)->round->automaticRevealAt()));
             self::fail('"Image only" publishes the name for good - never without a yes');
         } catch (\SpeedPuzzling\Web\Exceptions\NamePublicationNotConfirmed) {
         }
@@ -322,7 +359,11 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         RoundPuzzleReveal $revealMode,
         null|DateTimeImmutable $scheduledAt,
     ): void {
-        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, $hideMode, $revealMode, $scheduledAt, namePublicationConfirmed: true));
+        // "Automatic" for the moment the round has now - what the organiser's page shows
+        $shownAutomaticRevealAt = $this->roundPuzzle($roundPuzzleId)->round->automaticRevealAt();
+        $this->entityManager->clear();
+
+        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, $hideMode, $revealMode, $scheduledAt, namePublicationConfirmed: true, shownAutomaticRevealAt: $shownAutomaticRevealAt));
         $this->entityManager->clear();
     }
 

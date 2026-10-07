@@ -56,6 +56,7 @@ SELECT
     crp.reveal_at,
     crp.hides_everywhere,
     cr.starts_at AS round_starts_at,
+    cr.reveal_delay_minutes AS round_reveal_delay_minutes,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     p.pieces_count,
@@ -90,6 +91,7 @@ SQL;
              *     reveal_at: null|string,
              *     hides_everywhere: bool|string,
              *     round_starts_at: string,
+             *     round_reveal_delay_minutes: int|string,
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     pieces_count: int|string,
@@ -110,6 +112,7 @@ SQL;
             $revealsAt = $hideUntilRoundStarts
                 ? $revealMode->revealAt(
                     new DateTimeImmutable($row['round_starts_at']),
+                    (int) $row['round_reveal_delay_minutes'],
                     $row['reveal_at'] !== null ? new DateTimeImmutable($row['reveal_at']) : null,
                 )
                 : null;

@@ -25,9 +25,11 @@ readonly final class EditCompetitionRound
         public null|string $badgeTextColor,
         public RoundCategory $category = RoundCategory::Solo,
         public null|string $resultsLink = null,
-        // Refuse (SecretPuzzlesWouldBeRevealed) when the new start reveals secret puzzles - the internal API without
-        // "confirmReveal"; the organiser's form asks before it dispatches (SecretRevealPreview)
-        public bool $refuseToReveal = false,
+        // Refuse (SecretPuzzlesWouldBeRevealed) when the change moves the round's automatic reveal (start + reveal delay)
+        // earlier for secret puzzles - by default, so no caller reveals anything early without asking. The internal API
+        // passes !confirmReveal; the organiser's form asks before it dispatches (SecretRevealPreview) and passes false
+        // together with $confirmedRevealHash
+        public bool $refuseToReveal = true,
         // The organiser's yes, bound to exactly the list they were shown (SecretRevealPreview::hash() - also of an empty
         // list): re-checked after the locks, a different list now is refused (SecretPuzzlesWouldBeRevealed). Null = no
         // check (the caller asked differently)
@@ -36,6 +38,9 @@ readonly final class EditCompetitionRound
         // values given for them are ignored. A partial update (the internal API's PATCH) never writes back a value it
         // read before another change of the round committed.
         public array $keepFields = [],
+        // Minutes after the start when the round's secret puzzles with an automatic reveal come out (RoundPuzzleReveal).
+        // Null = keep the round's value as it is under the handler's lock (callers that do not set it)
+        public null|int $revealDelayMinutes = null,
     ) {
     }
 }

@@ -68,7 +68,7 @@ class CompetitionRoundPuzzle implements EntityWithEvents
             return null;
         }
 
-        return $this->revealMode->revealAt($this->round->startsAt, $this->revealAt);
+        return $this->revealMode->revealAt($this->round->startsAt, $this->round->revealDelayMinutes, $this->revealAt);
     }
 
     public function isHiddenAt(DateTimeImmutable $now): bool

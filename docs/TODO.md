@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Round reveal delay (`docs/features/competitions-management/README.md` "Automatic reveal delay")
+
+- [ ] Deploy it only with no secret reveal pending in the next 24 hours (README "Deploying and rolling back", second
+      query). Once every container runs it, run the first query there: a round it lists got its delay during the
+      rollout - save it once in the round form.
+- [ ] Once deployed, tell the organiser who asked for it (she added 5 minutes to her round starts to get 15 minutes
+      before the reveal). She can put each start back to the real one and set the delay to 15. An earlier start with
+      a longer delay that keeps the moment asks for no confirmation.
+- [ ] API v1 competition detail does not expose a round's reveal delay or its puzzles' reveal moments - add them
+      (additive) if an API client ever needs to show when a secret puzzle comes out.
+
 ## Participant import (`docs/features/competitions-management/participant-import-preview.md`)
 
 - [ ] `.xls` / `.ods` uploads; localized header aliases ("Jméno", "Nom", …); a header row chosen by hand; remembering

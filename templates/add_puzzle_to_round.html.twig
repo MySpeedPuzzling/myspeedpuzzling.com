@@ -50,7 +50,10 @@
                                     'attr': {'data-action': 'change->time-form-autocomplete#toggleHideOptions'},
                                     'help': revealed_right_away
                                         ? 'competition.round_puzzle.form.hide_help_round_started'|trans({'%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed)})
-                                        : 'competition.round_puzzle.form.hide_help'|trans({'%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed)}),
+                                        : 'competition.round_puzzle.form.hide_help'|trans({
+                                            '%date%': zoned_datetime(round.automaticRevealAt, round.displayTimezone, round.timezoneAssumed),
+                                            '%after_start%': 'competition.reveal.after_start'|trans({'%count%': round.revealDelayMinutes}),
+                                        }),
                                 }) }}
 
                                 <div data-time-form-autocomplete-target="hideOptions" class="d-none ms-4 mt-2">

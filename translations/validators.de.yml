@@ -4,6 +4,7 @@ player_code: "Der Spielercode darf nur Buchstaben und Zahlen enthalten, ohne Son
 competition_date_to_before_date_from: "Das Enddatum darf nicht vor dem Startdatum liegen."
 competition_duration_too_long: "Die Veranstaltung darf nicht länger als %limit% Tage dauern. Bitte geben Sie die tatsächlichen Veranstaltungsdaten ein."
 competition_round_badge_color_invalid: "Gib eine Farbe wie #1e88e5 ein oder lass das Feld leer, dann wird automatisch eine gewählt."
+competition_round_reveal_delay_range: "Gib ganze Minuten von {{ min }} bis {{ max }} ein."
 finished_at_required_for_speed: "Datum der Fertigstellung ist für Speed Puzzling erforderlich."
 duplicate_puzzle_or_url_required: "Bitte wählen Sie ein doppeltes Puzzle aus oder geben Sie eine Puzzle-URL ein."
 ean_invalid: "„%code%“ ist kein gültiger EAN- oder UPC-Code. Übernehmen Sie die Ziffern unter dem Strichcode auf der Schachtel - ein Code pro Feld."

@@ -258,14 +258,17 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
 
     public function testAConfirmationCountsOnlyForHowFarEachPuzzleComesOut(): void
     {
-        $everywhere = [['id' => 'a', 'name' => 'A', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
-        $onThisEvent = [['id' => 'a', 'name' => 'A', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-01 10:00:00')]];
-        $onThisEventLonger = [['id' => 'a', 'name' => 'A', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-02 10:00:00')]];
+        $everywhere = [['id' => 'a', 'name' => 'A', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'everywhere', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
+        $onThisEvent = [['id' => 'a', 'name' => 'A', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'event', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-01 10:00:00')]];
+        $onThisEventLonger = [['id' => 'a', 'name' => 'A', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'event', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-02 10:00:00')]];
+        $nameEverywhere = [['id' => 'a', 'name' => 'A', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'name_everywhere', 'everywhere' => false, 'hiddenElsewhereUntil' => new \DateTimeImmutable('2030-01-01 10:00:00')]];
 
         self::assertNotSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($everywhere), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEvent));
         self::assertNotSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEvent), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEventLonger));
+        // Only its name everywhere is another yes than only on this event, until the same moment
+        self::assertNotSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($onThisEvent), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash($nameEverywhere));
         // The order of the list does not matter
-        $two = [...$everywhere, ['id' => 'b', 'name' => 'B', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
+        $two = [...$everywhere, ['id' => 'b', 'name' => 'B', 'revealsAt' => null, 'previousRevealsAt' => null, 'scope' => 'everywhere', 'everywhere' => true, 'hiddenElsewhereUntil' => null]];
         self::assertSame(\SpeedPuzzling\Web\Services\SecretRevealPreview::hash($two), \SpeedPuzzling\Web\Services\SecretRevealPreview::hash(array_reverse($two)));
     }
 

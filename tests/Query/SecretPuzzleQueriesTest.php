@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
@@ -177,6 +178,45 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($before->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
         self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024)));
         self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
+    }
+
+    /**
+     * The round row's own delay - set by SQL here, the way an older release's rows look: only the column decides.
+     */
+    #[DataProvider('customDelays')]
+    public function testRoundAndSolvedPuzzleOverviewsObeyACustomDelay(int $delay): void
+    {
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE competition_round_puzzle SET hide_until_round_starts = true, hide_mode = 'entirely', reveal_mode = 'automatic'
+             WHERE round_id = :roundId AND puzzle_id = :puzzleId",
+            ['roundId' => CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, 'puzzleId' => PuzzleFixture::PUZZLE_500_01],
+        );
+        $connection->executeStatement(
+            'UPDATE competition_round SET reveal_delay_minutes = :delay WHERE id = :roundId',
+            ['delay' => $delay, 'roundId' => CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION],
+        );
+        $round = $this->entityManager->find(\SpeedPuzzling\Web\Entity\CompetitionRound::class, CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
+        self::assertNotNull($round);
+        $revealAt = $round->startsAt->modify(sprintf('+%d minutes', $delay));
+        self::assertEquals($revealAt, $round->automaticRevealAt());
+
+        $before = new GetCompetitionPuzzles($connection, new MockClock($revealAt->modify('-1 second')));
+        $after = new GetCompetitionPuzzles($connection, new MockClock($revealAt));
+
+        self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($before->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024)));
+        self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($before->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
+        self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024)));
+        self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function customDelays(): iterable
+    {
+        yield 'when the round starts' => [0];
+        yield '25 minutes' => [25];
     }
 
     public function testCodeSearchFindsAPicturelessSecretOnlyFromItsRevealOn(): void

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Services\RoundResults\CompetitionRoundSlugGenerator;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 #[AsMessageHandler]
 readonly final class AddCompetitionRoundHandler
@@ -25,6 +26,9 @@ readonly final class AddCompetitionRoundHandler
 
     public function __invoke(AddCompetitionRound $message): void
     {
+        // Checked before anything is created - the entity's constructor checks the range too
+        RoundPuzzleReveal::assertValidDelay($message->revealDelayMinutes);
+
         $competition = $this->competitionRepository->get($message->competitionId);
 
         $round = new CompetitionRound(
@@ -42,6 +46,7 @@ readonly final class AddCompetitionRoundHandler
             ),
             resultsLink: $message->resultsLink,
             timezone: $message->timezone,
+            revealDelayMinutes: $message->revealDelayMinutes,
         );
 
         $this->competitionRoundRepository->save($round);

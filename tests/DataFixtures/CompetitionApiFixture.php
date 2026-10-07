@@ -111,7 +111,7 @@ final class CompetitionApiFixture extends Fixture implements DependentFixtureInt
             $manager->persist($puzzle);
         }
 
-        // Future round: starts in +5 days, so now < startsAt + 10min → hide rules are in effect.
+        // Future round: starts in +5 days, so now < startsAt + its reveal delay (the default) → hide rules are in effect.
         $futureRound = new CompetitionRound(
             id: Uuid::fromString(self::ROUND_FUTURE),
             competition: $competition,

@@ -128,8 +128,12 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         $this->entityManager->flush();
         $this->entityManager->clear();
 
+        // Even for the moment the round has now (shown on the page as it is)
+        $automaticRevealAt = $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION)->automaticRevealAt();
+        $this->entityManager->clear();
+
         $this->expectException(RevealMomentAlreadyPassed::class);
-        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Automatic, null));
+        $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Automatic, null, shownAutomaticRevealAt: $automaticRevealAt));
     }
 
     public function testAMovedRoundNeverHidesAPuzzleItAlreadyRevealed(): void
@@ -137,9 +141,9 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         $roundPuzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
         $puzzleId = $this->roundPuzzle($roundPuzzleId)->puzzle->id->toString();
 
-        // The round started 2 hours ago: its automatic reveal is over, the puzzle is public
+        // The round started 2 hours ago: its automatic reveal is over, the puzzle is public (the organiser said yes)
         $start = new DateTimeImmutable('-2 hours')->setTime((int) new DateTimeImmutable('-2 hours')->format('H'), 0);
-        $this->editRound($start);
+        $this->editRound($start, revealConfirmed: true);
         $revealed = $this->puzzle($puzzleId)->hideUntil;
         self::assertNotNull($revealed);
         self::assertLessThan(new DateTimeImmutable(), $revealed);
@@ -621,7 +625,10 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         $this->entityManager->clear();
     }
 
-    private function editRoundMessage(DateTimeImmutable $startsAt): EditCompetitionRound
+    /**
+     * @param bool $revealConfirmed the caller said yes to whatever the change reveals early - refused otherwise
+     */
+    private function editRoundMessage(DateTimeImmutable $startsAt, bool $revealConfirmed = false): EditCompetitionRound
     {
         $round = $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
 
@@ -634,12 +641,13 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
             badgeBackgroundColor: $round->badgeBackgroundColor,
             badgeTextColor: $round->badgeTextColor,
             category: $round->category,
+            refuseToReveal: $revealConfirmed === false,
         );
     }
 
-    private function editRound(DateTimeImmutable $startsAt): void
+    private function editRound(DateTimeImmutable $startsAt, bool $revealConfirmed = false): void
     {
-        $this->messageBus->dispatch($this->editRoundMessage($startsAt));
+        $this->messageBus->dispatch($this->editRoundMessage($startsAt, $revealConfirmed));
         $this->entityManager->clear();
     }
 

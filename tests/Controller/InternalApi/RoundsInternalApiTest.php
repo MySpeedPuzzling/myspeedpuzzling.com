@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
 use DateTimeImmutable;
+use DateTimeZone;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
@@ -17,6 +19,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -151,6 +154,22 @@ final class RoundsInternalApiTest extends WebTestCase
         $moved = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['startsAt' => '2025-01-10T10:00:00Z']);
         self::assertResponseStatusCodeSame(409);
         self::assertSame([$puzzleId], array_column(self::list($moved['revealedPuzzles']), 'puzzleId'));
+
+        // All three would let it out right away - on the whole site, the round that started already revealed it
+        foreach ([$deleted, $removed, $moved] as $refused) {
+            $item = self::list($refused['revealedPuzzles'])[0];
+            self::assertTrue($item['rightAway']);
+            self::assertNull($item['revealsAt']);
+            self::assertArrayHasKey('previousRevealsAt', $item);
+            self::assertSame('everywhere', $item['scope']);
+            self::assertTrue($item['revealedEverywhere']);
+            self::assertNull($item['stillHiddenElsewhereUntil']);
+        }
+
+        // A removal or a delete moves no moment - the puzzle leaves the round; a PATCH moves it from the round's reveal
+        self::assertNull(self::list($deleted['revealedPuzzles'])[0]['previousRevealsAt']);
+        self::assertNull(self::list($removed['revealedPuzzles'])[0]['previousRevealsAt']);
+        self::assertIsString(self::list($moved['revealedPuzzles'])[0]['previousRevealsAt']);
 
         // Nothing changed
         $round = self::round($browser, $roundId);
@@ -401,6 +420,205 @@ final class RoundsInternalApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testEveryRoundAnswerCarriesItsRevealDelay(): void
+    {
+        $browser = self::createClient();
+
+        $created = $this->createRound($browser, ['name' => 'Default Delay Round']);
+        self::assertSame(RoundPuzzleReveal::DEFAULT_DELAY_MINUTES, $created['revealDelayMinutes']);
+        // Right after minutesLimit, like the docs show it
+        $fields = array_keys($created);
+        $minutesLimitAt = array_search('minutesLimit', $fields, true);
+        self::assertIsInt($minutesLimitAt);
+        self::assertSame('revealDelayMinutes', $fields[$minutesLimitAt + 1]);
+
+        $competition = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024);
+        foreach (self::list($competition['rounds']) as $round) {
+            self::assertSame(RoundPuzzleReveal::DEFAULT_DELAY_MINUTES, $round['revealDelayMinutes'], self::string($round['name']));
+        }
+
+        $renamed = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . self::string($created['roundId']), ['name' => 'Renamed Round']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(RoundPuzzleReveal::DEFAULT_DELAY_MINUTES, $renamed['revealDelayMinutes']);
+    }
+
+    public function testCreatesARoundWithARevealDelay(): void
+    {
+        $browser = self::createClient();
+
+        $round = $this->createRound($browser, ['name' => 'Fifteen Minutes Round', 'revealDelayMinutes' => 15]);
+        $roundId = self::string($round['roundId']);
+        self::assertSame(15, $round['revealDelayMinutes']);
+        self::assertSame(15, self::round($browser, $roundId)['revealDelayMinutes']);
+        self::assertSame(15, $this->storedDelay($roundId));
+
+        // A PATCH leaving it out keeps it
+        $renamed = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['name' => 'Fifteen Minutes Final']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(15, $renamed['revealDelayMinutes']);
+
+        // Created together with its puzzles (AddCompetitionRoundWithPuzzles) it keeps the delay too
+        $withPuzzles = $this->createRound($browser, [
+            'name' => 'Pairs With Delay',
+            'category' => 'duo',
+            'revealDelayMinutes' => 25,
+            'puzzleIds' => [PuzzleFixture::PUZZLE_500_01],
+        ]);
+        self::assertSame(25, $withPuzzles['revealDelayMinutes']);
+        self::assertSame([PuzzleFixture::PUZZLE_500_01], array_column(self::list($withPuzzles['puzzles']), 'puzzleId'));
+    }
+
+    public function testTheRevealDelayIsWholeMinutesFromZeroToMax(): void
+    {
+        $browser = self::createClient();
+        $roundsBefore = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024)['roundsCount'];
+        $invalidDelays = [-1, RoundPuzzleReveal::MAX_DELAY_MINUTES + 1, 2.5, '10', null];
+
+        foreach ($invalidDelays as $invalid) {
+            $answer = self::callInternalApi($browser, 'POST', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024 . '/rounds', [
+                'name' => 'Invalid Delay Round',
+                'startsAt' => '2026-01-10T10:00:00Z',
+                'minutesLimit' => 60,
+                'revealDelayMinutes' => $invalid,
+            ]);
+
+            self::assertResponseStatusCodeSame(400, var_export($invalid, true));
+            self::assertIsArray($answer['errors']);
+            self::assertArrayHasKey('revealDelayMinutes', $answer['errors'], var_export($invalid, true));
+        }
+
+        self::assertSame($roundsBefore, self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024)['roundsCount']);
+
+        $atTheStart = $this->createRound($browser, ['name' => 'Revealed At The Start', 'revealDelayMinutes' => 0]);
+        self::assertSame(0, $atTheStart['revealDelayMinutes']);
+        $longest = $this->createRound($browser, ['name' => 'Revealed At The End', 'revealDelayMinutes' => RoundPuzzleReveal::MAX_DELAY_MINUTES]);
+        self::assertSame(RoundPuzzleReveal::MAX_DELAY_MINUTES, $longest['revealDelayMinutes']);
+
+        $roundId = self::string($atTheStart['roundId']);
+
+        foreach ($invalidDelays as $invalid) {
+            $answer = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['revealDelayMinutes' => $invalid]);
+
+            self::assertResponseStatusCodeSame(400, var_export($invalid, true));
+            self::assertIsArray($answer['errors']);
+            self::assertArrayHasKey('revealDelayMinutes', $answer['errors'], var_export($invalid, true));
+            self::assertSame(0, $this->storedDelay($roundId));
+        }
+
+        $patched = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['revealDelayMinutes' => RoundPuzzleReveal::MAX_DELAY_MINUTES]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(RoundPuzzleReveal::MAX_DELAY_MINUTES, $patched['revealDelayMinutes']);
+    }
+
+    public function testAShorterRevealDelayNeedsConfirmReveal(): void
+    {
+        $browser = self::createClient();
+        [$roundId, $puzzleId, $start] = $this->roundWithASecretPuzzle($browser);
+        $hiddenBefore = $this->hideDates($puzzleId);
+        self::assertSame([$start + 10 * 60, $start + 10 * 60], $hiddenBefore);
+
+        $refused = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['revealDelayMinutes' => 5]);
+
+        self::assertResponseStatusCodeSame(409);
+        $revealed = self::list($refused['revealedPuzzles']);
+        self::assertSame([$puzzleId], array_column($revealed, 'puzzleId'));
+        self::assertFalse($revealed[0]['rightAway']);
+        self::assertSame($start + 5 * 60, self::timestamp($revealed[0]['revealsAt']));
+        // From where it moves - the yes is for this move
+        self::assertSame($start + 10 * 60, self::timestamp($revealed[0]['previousRevealsAt']));
+        self::assertSame('everywhere', $revealed[0]['scope']);
+        self::assertTrue($revealed[0]['revealedEverywhere']);
+        self::assertNull($revealed[0]['stillHiddenElsewhereUntil']);
+
+        // Nothing changed: the round, its puzzle's reveal, the site-wide hide
+        $round = self::round($browser, $roundId);
+        self::assertSame(RoundPuzzleReveal::DEFAULT_DELAY_MINUTES, $round['revealDelayMinutes']);
+        self::assertSame($start + 10 * 60, self::timestamp(self::roundPuzzle($round, $puzzleId)['revealsAt']));
+        self::assertSame($hiddenBefore, $this->hideDates($puzzleId));
+
+        $confirmed = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['revealDelayMinutes' => 5, 'confirmReveal' => true]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(5, $confirmed['revealDelayMinutes']);
+        self::assertSame($start + 5 * 60, self::timestamp(self::roundPuzzle($confirmed, $puzzleId)['revealsAt']));
+        self::assertSame([$start + 5 * 60, $start + 5 * 60], $this->hideDates($puzzleId));
+    }
+
+    /**
+     * A public catalogue puzzle the round keeps secret on its event pages only comes out on this event only - elsewhere
+     * it was public all along (no until)
+     */
+    public function testAPublicPuzzleSecretOnTheEventPageOnlyIsRevealedOnThisEventOnly(): void
+    {
+        $browser = self::createClient();
+        $start = (new DateTimeImmutable('+30 days', new DateTimeZone('UTC')))->setTime(10, 0)->getTimestamp();
+        $roundId = self::string($this->createRound($browser, ['name' => 'Public Secret Round', 'startsAt' => self::iso($start)])['roundId']);
+        $this->addSecretly($roundId, PuzzleFixture::PUZZLE_500_03);
+        self::assertSame([null, null], $this->hideDates(PuzzleFixture::PUZZLE_500_03));
+
+        $refused = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['revealDelayMinutes' => 5]);
+
+        self::assertResponseStatusCodeSame(409);
+        $revealed = self::list($refused['revealedPuzzles']);
+        self::assertSame([PuzzleFixture::PUZZLE_500_03], array_column($revealed, 'puzzleId'));
+        self::assertSame($start + 5 * 60, self::timestamp($revealed[0]['revealsAt']));
+        self::assertSame('event', $revealed[0]['scope']);
+        self::assertFalse($revealed[0]['revealedEverywhere']);
+        self::assertNull($revealed[0]['stillHiddenElsewhereUntil']);
+    }
+
+    public function testALongerRevealDelayNeedsNoYes(): void
+    {
+        $browser = self::createClient();
+        [$roundId, $puzzleId, $start] = $this->roundWithASecretPuzzle($browser);
+
+        $round = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['revealDelayMinutes' => 45]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(45, $round['revealDelayMinutes']);
+        self::assertSame($start + 45 * 60, self::timestamp(self::roundPuzzle($round, $puzzleId)['revealsAt']));
+        // Hidden longer on the whole site too
+        self::assertSame([$start + 45 * 60, $start + 45 * 60], $this->hideDates($puzzleId));
+    }
+
+    public function testAStartMovedEarlierButStillInTheFutureNeedsConfirmReveal(): void
+    {
+        $browser = self::createClient();
+        [$roundId, $puzzleId, $start] = $this->roundWithASecretPuzzle($browser);
+        $hiddenBefore = $this->hideDates($puzzleId);
+        $anHourEarlier = $start - 3600;
+
+        // The automatic reveal would come an hour earlier - not over yet, but earlier than planned
+        $refused = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['startsAt' => self::iso($anHourEarlier)]);
+
+        self::assertResponseStatusCodeSame(409);
+        $revealed = self::list($refused['revealedPuzzles']);
+        self::assertSame([$puzzleId], array_column($revealed, 'puzzleId'));
+        self::assertFalse($revealed[0]['rightAway']);
+        self::assertSame($anHourEarlier + 10 * 60, self::timestamp($revealed[0]['revealsAt']));
+
+        $round = self::round($browser, $roundId);
+        self::assertSame($start, self::timestamp($round['startsAt']));
+        self::assertSame($start + 10 * 60, self::timestamp(self::roundPuzzle($round, $puzzleId)['revealsAt']));
+        self::assertSame($hiddenBefore, $this->hideDates($puzzleId));
+
+        // 15 minutes earlier with 15 minutes more of delay: the same moment - nothing comes out earlier, no yes needed
+        $kept = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, [
+            'startsAt' => self::iso($start - 15 * 60),
+            'revealDelayMinutes' => 25,
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertSame($start - 15 * 60, self::timestamp($kept['startsAt']));
+        self::assertSame($start + 10 * 60, self::timestamp(self::roundPuzzle($kept, $puzzleId)['revealsAt']));
+        self::assertSame($hiddenBefore, $this->hideDates($puzzleId));
+
+        $confirmed = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['startsAt' => self::iso($anHourEarlier), 'confirmReveal' => true]);
+        self::assertResponseIsSuccessful();
+        self::assertSame($anHourEarlier, self::timestamp($confirmed['startsAt']));
+        self::assertSame($anHourEarlier + 25 * 60, self::timestamp(self::roundPuzzle($confirmed, $puzzleId)['revealsAt']));
+        self::assertSame([$anHourEarlier + 25 * 60, $anHourEarlier + 25 * 60], $this->hideDates($puzzleId));
+    }
+
     /**
      * A puzzle created secret for a round in a month, also used secret in a round that started already - that one's
      * reveal is over, so only the first round keeps it secret now.
@@ -450,6 +668,71 @@ final class RoundsInternalApiTest extends WebTestCase
             hideUntilRoundStarts: true,
         ));
         $this->entityManager()->clear();
+    }
+
+    /**
+     * A round starting in a month (on a whole minute) whose new puzzle is secret on the whole site until its automatic
+     * reveal - the round's start + its delay (10 minutes).
+     *
+     * @return array{string, string, int} the round, the puzzle, the round's start (Unix time)
+     */
+    private function roundWithASecretPuzzle(KernelBrowser $browser): array
+    {
+        $start = (new DateTimeImmutable('+30 days', new DateTimeZone('UTC')))->setTime(10, 0)->getTimestamp();
+        $round = $this->createRound($browser, ['name' => 'Secret Round', 'startsAt' => self::iso($start)]);
+        $roundId = self::string($round['roundId']);
+        self::assertSame($start, self::timestamp($round['startsAt']));
+
+        return [$roundId, $this->secretPuzzleIn($roundId), $start];
+    }
+
+    /**
+     * @return array{null|int, null|int} the puzzle's site-wide hide_until and hide_image_until (Unix time)
+     */
+    private function hideDates(string $puzzleId): array
+    {
+        $puzzle = $this->puzzle($puzzleId);
+
+        return [$puzzle->hideUntil?->getTimestamp(), $puzzle->hideImageUntil?->getTimestamp()];
+    }
+
+    private function storedDelay(string $roundId): int
+    {
+        $delay = $this->connection()->fetchOne('SELECT reveal_delay_minutes FROM competition_round WHERE id = :id', ['id' => $roundId]);
+        self::assertIsInt($delay);
+
+        return $delay;
+    }
+
+    private function connection(): Connection
+    {
+        return self::getContainer()->get(Connection::class);
+    }
+
+    /**
+     * @param array<string, mixed> $round
+     *
+     * @return array<string, mixed>
+     */
+    private static function roundPuzzle(array $round, string $puzzleId): array
+    {
+        foreach (self::list($round['puzzles']) as $puzzle) {
+            if ($puzzle['puzzleId'] === $puzzleId) {
+                return $puzzle;
+            }
+        }
+
+        self::fail('Puzzle ' . $puzzleId . ' not in the round');
+    }
+
+    private static function timestamp(mixed $isoDateTime): int
+    {
+        return (new DateTimeImmutable(self::string($isoDateTime)))->getTimestamp();
+    }
+
+    private static function iso(int $timestamp): string
+    {
+        return (new DateTimeImmutable('@' . $timestamp))->format(DATE_ATOM);
     }
 
     private function puzzle(string $puzzleId): Puzzle

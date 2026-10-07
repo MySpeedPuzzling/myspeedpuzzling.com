@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
 {
@@ -146,10 +147,12 @@ final class AddPuzzleToCompetitionRoundHandlerTest extends KernelTestCase
         self::assertTrue($roundPuzzle->hideUntilRoundStarts);
         self::assertSame(PuzzleHideMode::Entirely, $roundPuzzle->hideMode);
 
-        // New puzzle is hidden platform-wide (and its picture) until the one reveal moment - 10 minutes after the start
+        // New puzzle is hidden platform-wide (and its picture) until the one reveal moment - the round's reveal delay
+        // (the default) after the start
         $puzzle = $roundPuzzle->puzzle;
         self::assertTrue($roundPuzzle->hidesEverywhere);
-        self::assertEquals($roundPuzzle->round->startsAt->modify('+10 minutes'), $roundPuzzle->revealsAt());
+        self::assertSame(RoundPuzzleReveal::DEFAULT_DELAY_MINUTES, $roundPuzzle->round->revealDelayMinutes);
+        self::assertEquals($roundPuzzle->round->startsAt->modify(sprintf('+%d minutes', RoundPuzzleReveal::DEFAULT_DELAY_MINUTES)), $roundPuzzle->revealsAt());
         self::assertEquals($roundPuzzle->revealsAt(), $puzzle->hideUntil);
         self::assertEquals($roundPuzzle->revealsAt(), $puzzle->hideImageUntil);
     }

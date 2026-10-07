@@ -4,6 +4,7 @@ player_code: "The player code must contain only letters and numbers, without spe
 competition_date_to_before_date_from: "The end date cannot be before the start date."
 competition_duration_too_long: "The event cannot be longer than %limit% days. Please enter the actual event dates."
 competition_round_badge_color_invalid: "Enter a colour like #1e88e5, or leave it empty for an automatic one."
+competition_round_reveal_delay_range: "Enter whole minutes from {{ min }} to {{ max }}."
 finished_at_required_for_speed: "Date completed is required for speed puzzling."
 duplicate_puzzle_or_url_required: "Please select a duplicate puzzle or enter a puzzle URL."
 ean_invalid: "\"%code%\" is not a valid EAN or UPC code. Copy the digits under the barcode on the box - one code per field."

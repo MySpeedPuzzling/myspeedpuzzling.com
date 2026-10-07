@@ -20,11 +20,13 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
 use SpeedPuzzling\Web\Services\ZonedDateTimeFormatter;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -33,6 +35,9 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * @phpstan-import-type RevealedPuzzle from SecretRevealPreview
+ */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class EditCompetitionRoundController extends AbstractController
 {
@@ -91,7 +96,7 @@ final class EditCompetitionRoundController extends AbstractController
             'timezone_assumed' => $round->isTimezoneNeverSaved(),
         ]);
         $form->handleRequest($request);
-        $revealedRightAway = [];
+        $revealedEarlier = [];
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -99,8 +104,14 @@ final class EditCompetitionRoundController extends AbstractController
             assert($data->minutesLimit !== null);
             assert($data->timezone !== null);
 
+            // The delay the round has after the save
+            $revealDelayMinutes = $data->revealDelayMinutes;
+            assert($revealDelayMinutes !== null);
+
             $previousStartsAt = $round->startsAt;
+            $previousAutomaticRevealAt = $round->automaticRevealAt();
             $startsAt = null;
+            $ticked = $form->has('confirmReveal') && $form->get('confirmReveal')->getData() === true;
 
             try {
                 $startsAt = $data->startsAtInstant($singleDay);
@@ -110,26 +121,18 @@ final class EditCompetitionRoundController extends AbstractController
                 ));
             }
 
-            // Saving a start that reveals secret puzzles right away (moved into the past) needs an explicit yes
+            // A start or a delay moving the automatic reveal (start + delay) earlier lets the round's secret puzzles out
+            // earlier than planned (a moment already over: right away) - only on an explicit yes
             if ($startsAt !== null) {
-                $revealedRightAway = $this->secretRevealPreview->byMovingRound($round, $startsAt);
+                $revealedEarlier = $this->secretRevealPreview->byChangingRound($round, $startsAt, $revealDelayMinutes);
                 // The yes counts only for exactly the list it was given (shown with the form, re-computed now)
-                $confirmed = $form->has('confirmReveal')
-                    && $form->get('confirmReveal')->getData() === true
-                    && $request->request->get('confirm_reveal_hash') === SecretRevealPreview::hash($revealedRightAway);
+                $confirmed = $ticked && $request->request->get('confirm_reveal_hash') === SecretRevealPreview::hash($revealedEarlier);
 
-                if ($revealedRightAway !== [] && $confirmed === false) {
-                    if ($form->has('confirmReveal')) {
-                        $form->get('confirmReveal')->addError(new FormError($this->translator->trans(
-                            'competition.reveal.form.confirm_reveal_required',
-                            ['%puzzles%' => implode(', ', array_column($revealedRightAway, 'name'))],
-                        )));
-                    } else {
-                        $form->addError(new FormError($this->translator->trans(
-                            'competition.reveal.form.confirm_reveal_required',
-                            ['%puzzles%' => implode(', ', array_column($revealedRightAway, 'name'))],
-                        )));
-                    }
+                if ($revealedEarlier !== [] && $confirmed === false) {
+                    // Ticked for another list (the start or the minutes changed since it was shown) - asked anew
+                    $this->askToConfirm($form, $revealedEarlier, $ticked
+                        ? 'competition.reveal.form.confirm_reveal_changed'
+                        : 'competition.reveal.form.confirm_reveal_required');
                 }
             }
 
@@ -147,27 +150,39 @@ final class EditCompetitionRoundController extends AbstractController
                         badgeTextColor: RoundBadgeColor::textForChosen($data->badgeBackgroundColor),
                         category: $data->category,
                         resultsLink: $data->resultsLink,
-                        // Re-checked after the handler's locks - another change in between asks again
-                        confirmedRevealHash: SecretRevealPreview::hash($revealedRightAway),
+                        // Asked above - the yes is bound to exactly that list, re-checked after the handler's locks:
+                        // another change in between asks again
+                        refuseToReveal: false,
+                        confirmedRevealHash: SecretRevealPreview::hash($revealedEarlier),
+                        revealDelayMinutes: $revealDelayMinutes,
                     ));
 
                     // The handler worked on freshly read rows - read the round again for the flash
                     $this->flashRoundUpdated(
                         $this->competitionRoundRepository->get($roundId),
-                        $previousStartsAt->getTimestamp() !== $startsAt->getTimestamp(),
+                        $previousStartsAt,
+                        $previousAutomaticRevealAt,
                         $data->timezone,
-                        $revealedRightAway,
+                        $revealedEarlier,
                     );
+
+                    // Back where the organiser came from - the round's puzzles page links to the reveal minutes
+                    $returnUrl = ReturnUrl::tryFrom($request->query->getString('return'));
+
+                    if ($returnUrl !== null) {
+                        return $this->redirect($returnUrl->path);
+                    }
 
                     return $this->redirectToRoute('manage_competition_rounds', ['competitionId' => $competitionId]);
                 } catch (SecretPuzzlesWouldBeRevealed $changed) {
-                    // Something changed between the form and the save: the new list, confirmed anew
+                    // Something changed between the form and the save: the new list, confirmed anew - "not what you
+                    // confirmed" only when there was a yes (an unticked save whose list appeared meanwhile is asked
+                    // for the first time)
                     $round = $this->competitionRoundRepository->get($roundId);
-                    $revealedRightAway = $changed->puzzles;
-                    $form->addError(new FormError($this->translator->trans(
-                        'competition.reveal.form.confirm_reveal_required',
-                        ['%puzzles%' => implode(', ', array_column($revealedRightAway, 'name'))],
-                    )));
+                    $revealedEarlier = $changed->puzzles;
+                    $this->askToConfirm($form, $revealedEarlier, $ticked
+                        ? 'competition.reveal.form.confirm_reveal_changed'
+                        : 'competition.reveal.form.confirm_reveal_required');
                 } catch (HandlerFailedException $e) {
                     $nested = $e->getPrevious() ?? $e;
 
@@ -187,16 +202,43 @@ final class EditCompetitionRoundController extends AbstractController
             }
         }
 
+        $revealConfirmationHash = SecretRevealPreview::hash($revealedEarlier);
+
         return $this->render('edit_competition_round.html.twig', [
             'form' => $form,
             'competition' => $competition,
             'round' => $round,
             'single_day' => $singleDay,
-            'revealed_right_away' => $revealedRightAway,
-            'reveal_confirmation_hash' => SecretRevealPreview::hash($revealedRightAway),
+            'revealed_earlier' => $revealedEarlier,
+            'reveal_confirmation_hash' => $revealConfirmationHash,
+            // Shown ticked again only for the very list the tick was given for - a stale tick never confirms a new list
+            'reveal_confirmation_ticked' => $form->isSubmitted()
+                && $form->has('confirmReveal')
+                && $form->get('confirmReveal')->getData() === true
+                && $request->request->get('confirm_reveal_hash') === $revealConfirmationHash,
             'timezone' => $timezone,
             'schedule_position' => $this->schedulePosition($competitionId, $roundId),
         ]);
+    }
+
+    /**
+     * Says what would come out earlier and asks for the yes - on the tick box when the form has one (the round had secret
+     * puzzles when the form was built), on the form otherwise.
+     *
+     * @param FormInterface<CompetitionRoundFormData> $form
+     * @param list<RevealedPuzzle> $revealed
+     */
+    private function askToConfirm(FormInterface $form, array $revealed, string $messageKey): void
+    {
+        $error = new FormError($this->translator->trans($messageKey, [
+            '%puzzles%' => implode(', ', array_column($revealed, 'name')),
+        ]));
+
+        if ($form->has('confirmReveal')) {
+            $form->get('confirmReveal')->addError($error);
+        } else {
+            $form->addError($error);
+        }
     }
 
     /**
@@ -214,34 +256,42 @@ final class EditCompetitionRoundController extends AbstractController
     }
 
     /**
-     * A moved round moves the automatic reveals of its secret puzzles - say when they are revealed now, and that the
-     * organiser's own reveal times did not move.
+     * The automatic reveal (start + delay) moved: say when the round's secret puzzles with it are revealed now, what came
+     * out right away, and that the organiser's own reveal times did not move (also when only the start moved).
+     *
+     * @param list<RevealedPuzzle> $revealed
      */
-    /**
-     * @param list<array{id: string, name: string, everywhere: bool, hiddenElsewhereUntil: null|DateTimeImmutable}> $revealed
-     */
-    private function flashRoundUpdated(CompetitionRound $round, bool $startMoved, string $timezone, array $revealed): void
-    {
-        if ($revealed !== []) {
+    private function flashRoundUpdated(
+        CompetitionRound $round,
+        DateTimeImmutable $previousStartsAt,
+        DateTimeImmutable $previousAutomaticRevealAt,
+        string $timezone,
+        array $revealed,
+    ): void {
+        $revealedRightAway = array_filter($revealed, static fn (array $item): bool => $item['revealsAt'] === null);
+
+        if ($revealedRightAway !== []) {
             $this->addFlash('warning', $this->translator->trans('competition.reveal.flash.round_updated_revealed', [
-                '%puzzles%' => implode(', ', array_column($revealed, 'name')),
+                '%puzzles%' => implode(', ', array_column($revealedRightAway, 'name')),
             ]));
         }
 
         $now = $this->clock->now();
+        $automaticRevealMoved = $round->automaticRevealAt()->getTimestamp() !== $previousAutomaticRevealAt->getTimestamp();
+        $startMoved = $round->startsAt->getTimestamp() !== $previousStartsAt->getTimestamp();
         $automaticRevealsAt = null;
         $ownRevealStaysPut = false;
 
-        if ($startMoved) {
+        if ($automaticRevealMoved || $startMoved) {
             foreach ($round->roundPuzzles as $roundPuzzle) {
                 if ($roundPuzzle->isHiddenAt($now) === false) {
                     continue;
                 }
 
-                if ($roundPuzzle->revealMode === RoundPuzzleReveal::Automatic) {
-                    $automaticRevealsAt = $roundPuzzle->revealsAt();
-                } else {
+                if ($roundPuzzle->revealMode !== RoundPuzzleReveal::Automatic) {
                     $ownRevealStaysPut = true;
+                } elseif ($automaticRevealMoved) {
+                    $automaticRevealsAt = $roundPuzzle->revealsAt();
                 }
             }
         }

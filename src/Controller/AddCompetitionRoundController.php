@@ -77,6 +77,7 @@ final class AddCompetitionRoundController extends AbstractController
             assert($data->name !== null);
             assert($data->minutesLimit !== null);
             assert($data->timezone !== null);
+            assert($data->revealDelayMinutes !== null);
 
             try {
                 $startsAt = $data->startsAtInstant($singleDay);
@@ -106,6 +107,7 @@ final class AddCompetitionRoundController extends AbstractController
                 badgeTextColor: RoundBadgeColor::textForChosen($data->badgeBackgroundColor),
                 category: $data->category,
                 resultsLink: $data->resultsLink,
+                revealDelayMinutes: $data->revealDelayMinutes,
             ));
 
             $this->addFlash('success', $this->translator->trans('competition.flash.round_added'));

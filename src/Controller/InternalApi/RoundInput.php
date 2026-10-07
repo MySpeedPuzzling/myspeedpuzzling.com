@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
@@ -19,6 +20,9 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * other rounds (else its country's) on a create. `startsAt` is the moment the round starts: an ISO 8601 date-time
  * with an offset is that moment, one without an offset is a wall-clock time in the round's zone (the one sent along,
  * else the round's) - refused when a daylight-saving change skips or repeats it. Stored in UTC.
+ *
+ * `revealDelayMinutes` - when the round's secret puzzles with an automatic reveal come out, whole minutes after its
+ * start (0..RoundPuzzleReveal::MAX_DELAY_MINUTES).
  */
 final class RoundInput
 {
@@ -31,6 +35,7 @@ final class RoundInput
         'badgeBackgroundColor',
         'badgeTextColor',
         'resultsLink',
+        'revealDelayMinutes',
     ];
 
     /**
@@ -95,6 +100,10 @@ final class RoundInput
 
         if ($input->has('resultsLink')) {
             $data->resultsLink = $input->string('resultsLink');
+        }
+
+        if ($input->has('revealDelayMinutes')) {
+            $data->revealDelayMinutes = $input->int('revealDelayMinutes', required: true, minimum: 0, maximum: RoundPuzzleReveal::MAX_DELAY_MINUTES);
         }
 
         return $startsAt;

@@ -153,7 +153,8 @@ final class AddPuzzleToRoundController extends AbstractController
             'form' => $form,
             'competition' => $competition,
             'round' => $round,
-            // The round already started: a secret puzzle added now is revealed at once - the form says so
+            // The round's automatic reveal (start + its reveal delay) is over: a secret puzzle added now with it is revealed
+            // at once - the form says so
             'revealed_right_away' => $round->automaticRevealAt() <= $this->clock->now(),
             'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
         ]);

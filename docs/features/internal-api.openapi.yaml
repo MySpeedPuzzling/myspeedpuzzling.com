@@ -735,9 +735,15 @@ paths:
       description: |
         The slug never changes. A category change that would put one of the round's
         puzzles into two rounds of one category of the competition is refused (409).
-        A field left out keeps its value - `startsAt` too, to the second. A new
-        start whose automatic reveal of secret puzzles would be over is refused
-        (409, `revealedPuzzles`) unless `confirmReveal` is true.
+        A field left out keeps its value - `startsAt` and `revealDelayMinutes` too.
+
+        A change that moves the round's automatic reveal (`startsAt` +
+        `revealDelayMinutes`) EARLIER is refused (409, `revealedPuzzles`) unless
+        `confirmReveal` is true. That means an earlier start, a shorter delay or both;
+        the net moment decides. It applies even when the new moment is still in the
+        future. Each listed puzzle says when it would come out (`rightAway`,
+        `revealsAt`) and how far (`scope`). A later moment needs no yes and keeps the
+        puzzles hidden longer on the whole site too.
       parameters:
         - $ref: "#/components/parameters/RoundId"
       requestBody:
@@ -1149,6 +1155,18 @@ components:
         minutesLimit:
           type: integer
           minimum: 1
+        revealDelayMinutes:
+          type: integer
+          minimum: 0
+          maximum: 240
+          default: 10
+          description: |
+            When the round's secret puzzles with an automatic reveal come out, in whole
+            minutes after `startsAt`. 0 means when the round starts. Anything later than
+            240 is an own reveal time, set in the UI. Not a whole number from 0 to 240,
+            or `null`, is a 400. Moving the automatic reveal earlier needs
+            `confirmReveal` (409 otherwise).
+          example: 15
         badgeBackgroundColor:
           type: [string, "null"]
           example: "#1e88e5"
@@ -1170,6 +1188,12 @@ components:
         startsAt: { type: string, format: date-time, example: "2026-11-14T09:00:00+00:00" }
         timezone: { type: string, example: Europe/Prague, description: The round's own zone }
         minutesLimit: { type: integer }
+        revealDelayMinutes:
+          type: integer
+          minimum: 0
+          maximum: 240
+          example: 10
+          description: Minutes after the start when the round's secret puzzles with an automatic reveal come out
         badgeBackgroundColor: { type: [string, "null"] }
         badgeTextColor: { type: [string, "null"] }
         resultsLink: { type: [string, "null"] }
@@ -1189,7 +1213,7 @@ components:
                   revealMode:
                     type: string
                     enum: [automatic, scheduled, manual]
-                    description: automatic = 10 minutes after the round starts; manual = when the organiser clicks "Reveal now"
+                    description: automatic = the round's `revealDelayMinutes` after it starts (follows its start and delay); scheduled = the organiser's own moment; manual = when the organiser clicks "Reveal now"
                   revealsAt:
                     type: [string, "null"]
                     format: date-time
@@ -1228,7 +1252,7 @@ components:
         ean: { type: [string, "null"], description: "Comma-separated when the puzzle has several" }
         identificationNumber: { type: [string, "null"], description: Brand code(s) }
         approved: { type: boolean }
-        hiddenUntil: { type: [string, "null"], format: date-time, description: The site-wide hide of the name (a secret competition puzzle, a placeholder) }
+        hiddenUntil: { type: [string, "null"], format: date-time, description: "The site-wide hide of the name (a secret competition puzzle, a placeholder)" }
         imageHiddenUntil: { type: [string, "null"], format: date-time, description: The site-wide hide of the picture }
 
     PuzzleSearchResult:
@@ -1640,17 +1664,54 @@ components:
         revealedPuzzles:
           type: array
           description: |
-            Only for a round change that would reveal secret puzzles right away -
-            what `"confirmReveal": true` would let out.
+            Only present when a round change, a round delete or a puzzle removal would
+            reveal secret puzzles earlier than planned. It lists what
+            `"confirmReveal": true` would let out. A round PATCH that moves the
+            automatic reveal earlier lists them at the new moment, or right away when
+            that moment is already over.
           items:
             type: object
+            required: [puzzleId, name, rightAway, revealsAt, previousRevealsAt, scope, revealedEverywhere, stillHiddenElsewhereUntil]
             properties:
               puzzleId: { type: string, format: uuid }
               name: { type: string }
+              rightAway:
+                type: boolean
+                description: true = out the moment the request is applied (`revealsAt` is null)
+              revealsAt:
+                type: [string, "null"]
+                format: date-time
+                description: When it would come out (UTC) - the new automatic reveal moment; null = right away
+              previousRevealsAt:
+                type: [string, "null"]
+                format: date-time
+                description: |
+                  The moment it moves from (UTC): for a round PATCH, the round's automatic
+                  reveal as it is now. Null for a removal or a deleted round (the puzzle
+                  leaves the round).
+              scope:
+                type: string
+                enum: [everywhere, name_everywhere, event]
+                description: |
+                  How far it would come out:
+                  - `everywhere`: everything the round hid, on the whole site.
+                  - `name_everywhere`: its name on the whole site; its picture stays
+                    hidden elsewhere until `stillHiddenElsewhereUntil`.
+                  - `event`: on this event only; another round keeps it hidden
+                    elsewhere until `stillHiddenElsewhereUntil` - or, when that is null,
+                    it was public elsewhere all along (a public catalogue puzzle the
+                    round keeps secret on its event pages only).
               revealedEverywhere:
                 type: boolean
-                description: false = out on this event, another round keeps it secret on the site until `stillHiddenElsewhereUntil`
-              stillHiddenElsewhereUntil: { type: [string, "null"], format: date-time }
+                description: true when `scope` is `everywhere` (it existed before `scope` and stays)
+              stillHiddenElsewhereUntil:
+                type: [string, "null"]
+                format: date-time
+                description: |
+                  For `name_everywhere` and `event`, until when the rest stays hidden
+                  elsewhere (UTC); null for `everywhere`, and for `event` when the puzzle
+                  was public elsewhere all along. `9999-12-31T00:00:00+00:00` = until a
+                  manual reveal ("Reveal now" in another round) is made.
 
   responses:
     InvalidJson:

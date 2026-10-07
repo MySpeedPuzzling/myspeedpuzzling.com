@@ -408,9 +408,11 @@ Requirement (Jan): a puzzle page's preview is its own picture - the one in `og:i
 - Guard: `PuzzleDetailControllerTest::testThePuzzlesOwnPictureIsTheOnlyPreviewCandidate` - every `<img>` from the
   image host on a puzzle page is the puzzle's own picture, or a player's avatar in the rankings. A new module showing
   other puzzles must use backgrounds too.
-- Left as they are: the avatars in the rankings (a player's picture, shown at about 30 px). If Google ever shows one,
-  the fix is a `Disallow` for `/*/plain/avatars/` in the image host's robots.txt (lily.srv), not CSS backgrounds,
-  which would load a long leaderboard's avatars all at once.
+- **Avatars are not crawlable.** The rankings' avatars stay `<img>` (CSS backgrounds would load a long leaderboard's
+  avatars all at once), so the image host's `/robots.txt` (lily.srv `apps/myspeedpuzzling/nginx-imgproxy.conf`,
+  2026-10-07) disallows `avatars/` behind every bucket path (`/*/plain/avatars/`, `/original/avatars/`,
+  `/puzzle/avatars/`) for every crawler. Twitterbot, facebookexternalhit, LinkedInBot, Slackbot and Discordbot keep
+  them: a shared player profile's `og:image` is the avatar. A new image path to the bucket needs its line there.
 - A puzzle without a picture has no `page_image` and no `ItemPage`; `og:image` stays the site logo.
 - Google's copies change only when it fetches the pages again: `PAGE_LAST_REBUILT_AT` moved to 2026-10-08.
 

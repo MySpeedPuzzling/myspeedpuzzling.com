@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetRoundResultEntries;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\MercureTopicCollector;
@@ -36,6 +37,7 @@ final class ResultsDeskController extends AbstractController
         private readonly OfficialResultsRounds $officialResultsRounds,
         private readonly MercureTopicCollector $mercureTopicCollector,
         private readonly ClockInterface $clock,
+        private readonly IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
     ) {
     }
 
@@ -91,6 +93,8 @@ final class ResultsDeskController extends AbstractController
                     'id' => $competition->id,
                     'name' => $competition->name,
                     'isOnline' => $competition->isOnline,
+                    // Publishing on an event nobody can see yet tells nobody until it is approved
+                    'isPubliclyVisible' => $this->isCompetitionPubliclyVisible->check($competitionId),
                 ],
                 'round' => $thisRound,
                 'rounds' => $rounds,

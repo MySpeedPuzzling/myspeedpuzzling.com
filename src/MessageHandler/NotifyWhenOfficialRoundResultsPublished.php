@@ -11,16 +11,24 @@ use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetOfficialResultRecipients;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
+use SpeedPuzzling\Web\Repository\OfficialResultNoticeRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * "Your official result is out" - an in-app notification, no e-mail, to every player with a finished result in the
- * round, once per round: the event is recorded only on the round's first publish, and a retry skips who has it already.
- * Results taken off the page again before this runs tell nobody (the notification would lead to an empty page).
+ * round. Each player hears about a round once, ever: the OfficialResultNotice marker is claimed in the same
+ * transaction as the notification, so runs for a republish, a late result and an approval never tell anybody twice -
+ * also when they run at the same moment.
+ *
+ * Runs whenever there may be somebody new to tell (OfficialRoundResultsPublished: every publish, a finished result
+ * recorded on a published round, the event approved). It tells nobody while the results are not on the page or the
+ * event is not publicly visible (the link would lead to an empty or missing page) - the next publish or the approval
+ * runs it again.
  */
 #[AsMessageHandler]
 readonly final class NotifyWhenOfficialRoundResultsPublished
@@ -28,6 +36,8 @@ readonly final class NotifyWhenOfficialRoundResultsPublished
     public function __construct(
         private CompetitionRoundRepository $roundRepository,
         private GetOfficialResultRecipients $getOfficialResultRecipients,
+        private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        private OfficialResultNoticeRepository $noticeRepository,
         private NotificationRepository $notificationRepository,
         private PlayerRepository $playerRepository,
         private ClockInterface $clock,
@@ -47,17 +57,21 @@ readonly final class NotifyWhenOfficialRoundResultsPublished
             return;
         }
 
-        $alreadyNotified = array_flip($this->notificationRepository->playerIdsNotifiedAboutRound($round));
+        if ($this->isCompetitionPubliclyVisible->check($round->competition->id->toString()) === false) {
+            return;
+        }
+
+        $roundId = $round->id->toString();
         $now = $this->clock->now();
 
-        foreach ($this->getOfficialResultRecipients->forRound($round->id->toString()) as $playerId) {
-            if (isset($alreadyNotified[$playerId])) {
-                continue;
-            }
-
+        foreach ($this->getOfficialResultRecipients->forRound($roundId) as $playerId) {
             try {
                 $player = $this->playerRepository->get($playerId);
             } catch (PlayerNotFound) {
+                continue;
+            }
+
+            if ($this->noticeRepository->claim($playerId, $roundId, $now) === false) {
                 continue;
             }
 

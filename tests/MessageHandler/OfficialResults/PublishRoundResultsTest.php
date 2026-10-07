@@ -6,14 +6,21 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler\OfficialResults;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
+use SpeedPuzzling\Web\Message\ApproveCompetition;
+use SpeedPuzzling\Web\Message\ApproveCompetitionSeries;
 use SpeedPuzzling\Web\Message\PublishRoundResults;
+use SpeedPuzzling\Web\Message\RecordRoundResults;
 use SpeedPuzzling\Web\Message\UnpublishRoundResults;
 use SpeedPuzzling\Web\MessageHandler\NotifyWhenOfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Query\GetNotifications;
+use SpeedPuzzling\Web\Repository\OfficialResultNoticeRepository;
 use SpeedPuzzling\Web\Results\PlayerNotification;
+use SpeedPuzzling\Web\Services\RoundResultChangesParser;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\NotificationType;
@@ -33,7 +40,7 @@ final class PublishRoundResultsTest extends KernelTestCase
         $this->database = self::getContainer()->get(Connection::class);
     }
 
-    public function testTheFirstPublishTellsThePlayersOnce(): void
+    public function testEveryPublishRunsTheNotificationAndTheFirstPublishIsKept(): void
     {
         $this->publish(OfficialResultsFixture::ROUND_GROUP_B);
 
@@ -42,14 +49,148 @@ final class PublishRoundResultsTest extends KernelTestCase
         self::assertSame($round['results_published_at'], $round['results_first_published_at']);
         self::assertCount(1, $this->publishedEvents());
 
-        // Taken off and put back: published again, nobody told again
+        // Taken off and put back: published again, the first publish kept, the notification runs again
         $this->messageBus->dispatch(new UnpublishRoundResults(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::ROUND_GROUP_B));
         self::assertNull($this->roundRow(OfficialResultsFixture::ROUND_GROUP_B)['results_published_at']);
-        self::assertNotNull($this->roundRow(OfficialResultsFixture::ROUND_GROUP_B)['results_first_published_at']);
+        self::assertSame($round['results_first_published_at'], $this->roundRow(OfficialResultsFixture::ROUND_GROUP_B)['results_first_published_at']);
 
         $this->publish(OfficialResultsFixture::ROUND_GROUP_B);
         self::assertNotNull($this->roundRow(OfficialResultsFixture::ROUND_GROUP_B)['results_published_at']);
-        self::assertCount(1, $this->publishedEvents());
+        self::assertCount(2, $this->publishedEvents());
+    }
+
+    /**
+     * review2-b M3: publish, spot a typo, unpublish before the worker ran, fix it, publish again - the first run sees
+     * the results off the page and tells nobody, the second one tells everybody, and no run ever tells anybody twice.
+     */
+    public function testAQuickUnpublishAndRepublishStillTellsEverybodyOnce(): void
+    {
+        $this->publish(OfficialResultsFixture::ROUND_GROUP_B);
+        $this->messageBus->dispatch(new UnpublishRoundResults(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::ROUND_GROUP_B));
+
+        $this->notify($this->publishedEvents()[0]);
+        self::assertSame([], $this->notifiedPlayers(OfficialResultsFixture::ROUND_GROUP_B));
+
+        $this->publish(OfficialResultsFixture::ROUND_GROUP_B);
+        [$first, $second] = $this->publishedEvents();
+        $this->notify($second);
+        $this->notify($first);
+        $this->notify($second);
+
+        self::assertSame([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE], $this->notifiedPlayers(OfficialResultsFixture::ROUND_GROUP_B));
+        self::assertSame([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE], $this->noticedPlayers(OfficialResultsFixture::ROUND_GROUP_B));
+    }
+
+    public function testRepublishedBeforeAnyRunTellsEverybodyOnce(): void
+    {
+        $this->publish(OfficialResultsFixture::ROUND_GROUP_B);
+        $this->messageBus->dispatch(new UnpublishRoundResults(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::ROUND_GROUP_B));
+        $this->publish(OfficialResultsFixture::ROUND_GROUP_B);
+
+        foreach ($this->publishedEvents() as $event) {
+            $this->notify($event);
+        }
+
+        self::assertSame([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE], $this->notifiedPlayers(OfficialResultsFixture::ROUND_GROUP_B));
+    }
+
+    /**
+     * review2-business MAJOR-3 (b): a finished result recorded after the results went public (a referee's phone
+     * syncing late) tells that player - and a correction afterwards does not tell them again.
+     */
+    public function testALateFinishedResultOnAPublishedRoundTellsThatPlayerOnce(): void
+    {
+        $this->publish(OfficialResultsFixture::ROUND_FINAL);
+        $this->notify($this->publishedEvents()[0]);
+        self::assertSame([], $this->notifiedPlayers(OfficialResultsFixture::ROUND_FINAL));
+
+        $this->recordFinalResultOfAnna(null, 4000);
+        $events = $this->publishedEvents();
+        self::assertCount(2, $events);
+        $this->notify($events[1]);
+        self::assertSame([PlayerFixture::PLAYER_ADMIN], $this->notifiedPlayers(OfficialResultsFixture::ROUND_FINAL));
+
+        // Corrected: the event runs again, nobody is told twice
+        $this->recordFinalResultOfAnna(4000, 3950);
+        $events = $this->publishedEvents();
+        self::assertCount(3, $events);
+        $this->notify($events[2]);
+        self::assertSame([PlayerFixture::PLAYER_ADMIN], $this->notifiedPlayers(OfficialResultsFixture::ROUND_FINAL));
+    }
+
+    public function testAResultOnAnUnpublishedRoundRunsNoNotification(): void
+    {
+        $this->messageBus->dispatch(new RecordRoundResults(
+            competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            roundId: OfficialResultsFixture::ROUND_GROUP_B,
+            actingPlayerId: PlayerFixture::PLAYER_WITH_STRIPE,
+            changes: RoundResultChangesParser::parse([[
+                'clientChangeId' => Uuid::uuid4()->toString(),
+                'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_B_IVAN,
+                'field' => 'result',
+                'from' => ['seconds' => 5000],
+                'to' => ['seconds' => 4999],
+            ]]),
+        ));
+
+        self::assertSame([], $this->publishedEvents());
+    }
+
+    /**
+     * review2-business MINOR-7: results published on an event nobody can see yet tell nobody (the link would 404) -
+     * the players are told when the event is approved.
+     */
+    public function testAnEventApprovedLaterTellsThePlayersOfItsPublishedRoundsThen(): void
+    {
+        $this->database->executeStatement('UPDATE competition SET approved_at = NULL WHERE id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
+
+        $this->publish(OfficialResultsFixture::ROUND_GROUP_B);
+        $this->notify($this->publishedEvents()[0]);
+        self::assertSame([], $this->notifiedPlayers(OfficialResultsFixture::ROUND_GROUP_B));
+
+        $this->messageBus->dispatch(new ApproveCompetition(OfficialResultsFixture::COMPETITION_RESULTS_CUP, PlayerFixture::PLAYER_ADMIN, notifyCreator: false));
+
+        $roundIds = array_map(static fn (OfficialRoundResultsPublished $event): string => $event->roundId->toString(), array_slice($this->publishedEvents(), 1));
+        sort($roundIds);
+        // Group A (published by the fixture) and Group B
+        self::assertSame([OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B], $roundIds);
+
+        foreach ($this->publishedEvents() as $event) {
+            $this->notify($event);
+        }
+
+        self::assertSame([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE], $this->notifiedPlayers(OfficialResultsFixture::ROUND_GROUP_B));
+        self::assertSame([PlayerFixture::PLAYER_ADMIN], $this->notifiedPlayers(OfficialResultsFixture::ROUND_GROUP_A));
+    }
+
+    public function testAnEditionTellsThePlayersWhenItsSeriesIsApproved(): void
+    {
+        $this->database->executeStatement('UPDATE competition SET series_id = :series WHERE id = :id', [
+            'series' => CompetitionSeriesFixture::SERIES_UNAPPROVED,
+            'id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+        ]);
+
+        $this->publish(OfficialResultsFixture::ROUND_GROUP_B);
+        $this->notify($this->publishedEvents()[0]);
+        self::assertSame([], $this->notifiedPlayers(OfficialResultsFixture::ROUND_GROUP_B));
+
+        $this->messageBus->dispatch(new ApproveCompetitionSeries(CompetitionSeriesFixture::SERIES_UNAPPROVED, PlayerFixture::PLAYER_ADMIN));
+
+        foreach ($this->publishedEvents() as $event) {
+            $this->notify($event);
+        }
+
+        self::assertSame([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE], $this->notifiedPlayers(OfficialResultsFixture::ROUND_GROUP_B));
+    }
+
+    public function testTheMarkerIsClaimedOnceOnly(): void
+    {
+        $repository = self::getContainer()->get(OfficialResultNoticeRepository::class);
+        $now = new \DateTimeImmutable();
+
+        self::assertTrue($repository->claim(PlayerFixture::PLAYER_REGULAR, OfficialResultsFixture::ROUND_GROUP_B, $now));
+        self::assertFalse($repository->claim(PlayerFixture::PLAYER_REGULAR, OfficialResultsFixture::ROUND_GROUP_B, $now));
+        self::assertTrue($repository->claim(PlayerFixture::PLAYER_REGULAR, OfficialResultsFixture::ROUND_GROUP_A, $now));
     }
 
     public function testPublishingAPublishedRoundChangesNothing(): void
@@ -113,6 +254,36 @@ final class PublishRoundResultsTest extends KernelTestCase
         $this->notify($this->publishedEvents()[0]);
 
         self::assertSame([], $this->notifiedPlayers(OfficialResultsFixture::ROUND_GROUP_B));
+    }
+
+    private function recordFinalResultOfAnna(null|int $fromSeconds, int $toSeconds): void
+    {
+        $this->messageBus->dispatch(new RecordRoundResults(
+            competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+            roundId: OfficialResultsFixture::ROUND_FINAL,
+            actingPlayerId: PlayerFixture::PLAYER_WITH_STRIPE,
+            changes: RoundResultChangesParser::parse([[
+                'clientChangeId' => Uuid::uuid4()->toString(),
+                'entry' => 'participant_round:' . OfficialResultsFixture::ENTRY_FINAL_ANNA,
+                'field' => 'result',
+                'from' => $fromSeconds === null ? null : ['seconds' => $fromSeconds],
+                'to' => ['seconds' => $toSeconds],
+            ]]),
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function noticedPlayers(string $roundId): array
+    {
+        /** @var list<string> $playerIds */
+        $playerIds = $this->database->fetchFirstColumn(
+            'SELECT player_id FROM official_result_notice WHERE round_id = :roundId ORDER BY player_id',
+            ['roundId' => $roundId],
+        );
+
+        return $playerIds;
     }
 
     /**

@@ -25,4 +25,16 @@ admin:
         choose_player: "Vyberte alespoň jednoho hráče."
 private_profile_viewers:
     choose_player: "Vyberte alespoň jednoho hráče."
-
+organization_fields:
+    social_links_too_many: "Přidejte nejvýše {{ limit }} odkazů."
+    social_link_invalid: "{{ value }} není webová adresa (http:// nebo https://)."
+add_editions:
+    dates_invalid: "Některé termíny nelze přečíst – vyberte je v kalendáři nebo je napište ve tvaru 05.10.2026."
+    dates_missing: "Vyberte alespoň jeden termín."
+    too_many: "Najednou nejvýše %max% termínů."
+    rule_missing: "Vyberte, jak se termíny opakují."
+    weekday_missing: "Vyberte den v týdnu."
+    nth_missing: "Vyberte týden v měsíci."
+    starting_missing: "Vyberte den, od kterého termíny začínají."
+    count_range: "Vyberte 1 až %max% termínů."
+    none_selected: "Zaškrtněte alespoň jeden termín."

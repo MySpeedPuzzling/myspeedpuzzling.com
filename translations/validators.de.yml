@@ -25,4 +25,16 @@ admin:
         choose_player: "Wählen Sie mindestens einen Spieler aus."
 private_profile_viewers:
     choose_player: "Wählen Sie mindestens einen Spieler."
-
+organization_fields:
+    social_links_too_many: "Fügen Sie höchstens {{ limit }} Links hinzu."
+    social_link_invalid: "{{ value }} ist keine Webadresse (http:// oder https://)."
+add_editions:
+    dates_invalid: "Einige Termine können nicht gelesen werden – wählen Sie sie im Kalender oder geben Sie sie so ein: 05.10.2026."
+    dates_missing: "Wählen Sie mindestens einen Termin."
+    too_many: "Höchstens %max% Termine auf einmal."
+    rule_missing: "Wählen Sie, wie sich die Termine wiederholen."
+    weekday_missing: "Wählen Sie den Wochentag."
+    nth_missing: "Wählen Sie die Woche im Monat."
+    starting_missing: "Wählen Sie den Tag, ab dem die Termine beginnen."
+    count_range: "Wählen Sie 1 bis %max% Termine."
+    none_selected: "Markieren Sie mindestens einen Termin."

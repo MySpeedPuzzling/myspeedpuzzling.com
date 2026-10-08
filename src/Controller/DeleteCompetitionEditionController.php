@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Message\DeleteCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionDeleteVoter;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -60,6 +61,13 @@ final class DeleteCompetitionEditionController extends AbstractController
         $this->messageBus->dispatch(new DeleteCompetition(competitionId: $competitionId));
 
         $this->addFlash('success', $this->translator->trans('edition.flash.deleted'));
+
+        // The events page's ⋯ menu and "You organize" return to where they were opened (docs/features/events-page/README.md)
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
+
+        if ($returnUrl !== null) {
+            return $this->redirect($returnUrl->path);
+        }
 
         return $this->redirectToRoute('manage_competition_series', ['seriesId' => $seriesId]);
     }

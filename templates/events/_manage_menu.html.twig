@@ -1,0 +1,16 @@
+{#
+    The ⋯ menu's content (owner: workstream C): the item's name and kind, then its actions.
+    Variables: item (OrganizedEvent), return_url, return_title
+#}
+{%- set pending = not item.isApproved and not item.isRejected -%}
+<div class="ev-menu">
+    <div class="ev-menu-head">
+        <span class="ev-menu-name">{{ item.reference.displayName }}</span>
+        <span class="ev-menu-kind">
+            {{- ('events_organizer.type.' ~ item.kind)|trans -}}
+            {%- if pending %} · {{ 'events_organizer.menu.waiting_suffix'|trans }}{% endif -%}
+            {%- if item.isRejected %} · {{ 'events_organizer.badge.rejected'|trans }}{% endif -%}
+        </span>
+    </div>
+    {{ include('events/_manage_items.html.twig', {item: item, return_url: return_url, return_title: return_title, layout: 'menu'}) }}
+</div>

@@ -1,2 +1,5 @@
-{# "Going" / "Following" on a Your events card (owner: workstream C). Variables: mark - foundation stub: the label #}
-<span class="ev-mark ev-mark-{{ mark }}">{{ ('events_organizer.mark.' ~ mark)|trans }}</span>
+{# "Going" / "Following" on a Your events card (owner: workstream C). Variables: mark ('going'|'following') #}
+<span class="ev-mark ev-mark-{{ mark }}">
+    {%- if mark == 'going' %}<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.2 6.3l2.4 2.4 5.2-5.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>{% endif -%}
+    {{ ('events_organizer.mark.' ~ mark)|trans }}
+</span>

@@ -1,2 +1,642 @@
 // Events page (docs/features/events-page/implementation-plan.md) - owner: workstream C - organiser tools and follow.
-// Every class is prefixed `ev-`.
+// Every class is prefixed `ev-`. Colours from the prototype, mapped to the theme's grays; text colours keep 4.5:1.
+
+$evo-ink: $gray-900;
+$evo-ink-2: $gray-700;
+$evo-muted: #646d80;
+$evo-line: $gray-300;
+$evo-sunken: $gray-200;
+$evo-coral-ink: #c9393f;
+$evo-coral-soft: #fff0f0;
+$evo-star: #a86a00;
+$evo-go: #0f7445;
+$evo-go-soft: #e6f8ef;
+$evo-sky-ink: #2463a6;
+$evo-sky-soft: #eaf3ff;
+$evo-amber-ink: #8a5a00;
+$evo-amber-soft: #fff6e0;
+$evo-shadow: 0 1px 2px rgba($gray-900, .06), 0 8px 24px rgba($gray-900, .12);
+
+// --- Star and ⋯ on rows ------------------------------------------------------------------------------------------
+
+// Above the row's stretched name link
+.ev-row-actions {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    margin-right: -10px;
+}
+
+.ev-star-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.ev-star,
+.ev-manage {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: $evo-muted;
+    line-height: 1;
+    cursor: pointer;
+    text-decoration: none;
+
+    &:hover {
+        background: $evo-sunken;
+        color: $evo-ink;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $evo-coral-ink;
+        outline-offset: -2px;
+    }
+}
+
+.ev-star-icon path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linejoin: round;
+}
+
+.ev-star[aria-pressed="true"] {
+    color: $evo-star;
+
+    .ev-star-icon path {
+        fill: currentColor;
+    }
+}
+
+.ev-star-guest[aria-expanded="true"] {
+    background: $evo-sunken;
+}
+
+.ev-manage {
+    color: $evo-ink-2;
+
+    svg {
+        fill: currentColor;
+    }
+
+    &[aria-expanded="true"] {
+        background: $evo-sunken;
+        color: $evo-ink;
+    }
+}
+
+// "Sign in to follow…" and "Please try again" under the row
+.ev-signin-note {
+    position: relative;
+    z-index: 1;
+    margin: 6px 0 0;
+    font-size: .8125rem;
+    line-height: 1.4;
+    color: $evo-ink-2;
+
+    a {
+        color: $evo-coral-ink;
+        font-weight: 500;
+    }
+}
+
+// --- "Going" / "Following" on Your events cards -------------------------------------------------------------------
+
+.ev-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 7px;
+    border-radius: 6px;
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1.6;
+    white-space: nowrap;
+    background: $evo-sunken;
+    color: $evo-ink-2;
+}
+
+.ev-mark-going {
+    background: $evo-coral-soft;
+    color: $evo-coral-ink;
+}
+
+// --- "You organize (n)" in the page header ------------------------------------------------------------------------
+
+.ev-organize-button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid $evo-line;
+    border-radius: 8px;
+    background: $white;
+    color: $evo-ink;
+    font-size: .875rem;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+        background: $evo-sunken;
+        color: $evo-ink;
+    }
+}
+
+.ev-organize-icon {
+    display: none;
+}
+
+.ev-organize-count {
+    font-size: .75rem;
+    color: $evo-muted;
+    font-variant-numeric: tabular-nums;
+}
+
+@include media-breakpoint-up(lg) {
+    .ev-organize-icon {
+        display: inline;
+    }
+}
+
+// --- Actions: the ⋯ menu ('menu') and "You organize" ('inline') ---------------------------------------------------
+
+.ev-actions {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ev-actions form {
+    margin: 0;
+}
+
+.ev-action {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: $evo-ink;
+    font: inherit;
+    font-size: .9375rem;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background: $evo-sunken;
+        color: $evo-ink;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $evo-coral-ink;
+        outline-offset: -2px;
+    }
+}
+
+summary.ev-action {
+    list-style: none;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+}
+
+.ev-action-approve {
+    color: $evo-go;
+    font-weight: 500;
+}
+
+.ev-action-danger {
+    color: $evo-coral-ink;
+}
+
+.ev-action-danger-solid,
+.ev-action-danger-solid:hover,
+.ev-action-danger-solid:focus-visible {
+    justify-content: center;
+    background: $evo-coral-ink;
+    color: $white;
+    font-weight: 500;
+}
+
+.ev-action-danger-solid:focus-visible {
+    outline-color: $evo-ink;
+    outline-offset: 2px;
+}
+
+// A summary of an opened confirmation reads as pressed
+.ev-confirm[open] > summary.ev-action {
+    background: $evo-sunken;
+}
+
+.ev-confirm-body {
+    display: grid;
+    gap: 8px;
+    padding: 6px 10px 8px;
+}
+
+.ev-confirm-text {
+    margin: 0;
+    font-size: .875rem;
+    color: $evo-ink;
+}
+
+.ev-confirm-label {
+    display: grid;
+    gap: 4px;
+    font-size: .875rem;
+    color: $evo-ink;
+
+    // 16 px: no zoom on iOS
+    textarea {
+        font-size: 1rem;
+    }
+}
+
+.ev-confirm-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+
+    .ev-action {
+        justify-content: center;
+        min-height: 44px;
+        box-shadow: inset 0 0 0 1px $evo-line;
+    }
+
+    // Without JavaScript there is no Cancel: Delete / Reject takes the row
+    .ev-action[hidden] + .ev-action {
+        grid-column: 1 / -1;
+    }
+}
+
+.ev-actions-menu {
+    display: grid;
+    gap: 2px;
+    padding: 6px;
+}
+
+// "You organize": the actions as one wrapping line of links; an opened confirmation takes its own line
+.ev-actions-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 16px;
+    margin-top: 4px;
+
+    > li:has(> .ev-confirm[open]) {
+        flex-basis: 100%;
+    }
+
+    .ev-action {
+        width: auto;
+        min-height: 40px;
+        padding: 0;
+        border-radius: 0;
+        color: $evo-coral-ink;
+        font-size: .875rem;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+
+        &:hover,
+        &:focus-visible {
+            background: none;
+            color: #a32c31;
+        }
+    }
+
+    .ev-action-approve {
+        color: $evo-go;
+    }
+
+    .ev-confirm[open] > summary.ev-action {
+        background: none;
+    }
+
+    .ev-confirm-body {
+        max-width: 420px;
+        padding: 4px 0 8px;
+    }
+
+    .ev-confirm-buttons .ev-action {
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: $evo-ink;
+    }
+
+    .ev-confirm-buttons .ev-action-danger-solid,
+    .ev-confirm-buttons .ev-action-danger-solid:hover {
+        background: $evo-coral-ink;
+        color: $white;
+        box-shadow: none;
+    }
+}
+
+// --- The ⋯ menu's layer: a popover from 992 px up, a bottom sheet below (event_manage_menu_controller.js) ----------
+
+.ev-menu-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 1045;
+    pointer-events: none;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.ev-menu-scrim {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba($gray-900, .45);
+    pointer-events: auto;
+
+    .is-sheet & {
+        display: block;
+    }
+}
+
+.ev-menu-dialog {
+    position: fixed;
+    width: 280px;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid $evo-line;
+    border-radius: 12px;
+    background: $white;
+    box-shadow: $evo-shadow;
+    pointer-events: auto;
+
+    &:focus {
+        outline: none;
+    }
+
+    .is-sheet & {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        max-width: none;
+        max-height: 85vh;
+        border: 0;
+        border-radius: 18px 18px 0 0;
+        padding: 0 10px env(safe-area-inset-bottom);
+
+        &::before {
+            content: "";
+            display: block;
+            width: 40px;
+            height: 4px;
+            margin: 10px auto 0;
+            border-radius: 4px;
+            background: $evo-line;
+        }
+
+        .ev-action {
+            min-height: 48px;
+        }
+    }
+}
+
+// × only on the phone sheet: the popover closes on a tap outside or Escape
+.ev-menu-close {
+    display: none;
+
+    .is-sheet & {
+        display: block;
+        position: absolute;
+        top: 18px;
+        right: 16px;
+        z-index: 1;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .ev-menu-dialog {
+        animation: ev-menu-pop .12s ease-out;
+    }
+
+    .is-sheet .ev-menu-dialog {
+        animation: ev-menu-rise .22s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .is-sheet .ev-menu-scrim {
+        animation: ev-menu-fade .2s ease-out;
+    }
+}
+
+@keyframes ev-menu-pop {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes ev-menu-rise {
+    from {
+        transform: translateY(100%);
+    }
+}
+
+@keyframes ev-menu-fade {
+    from {
+        opacity: 0;
+    }
+}
+
+.ev-menu-status {
+    margin: 0;
+    padding: 16px;
+    font-size: .875rem;
+    color: $evo-muted;
+}
+
+.ev-menu-error {
+    color: $evo-coral-ink;
+}
+
+.ev-menu-head {
+    display: grid;
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid $evo-line;
+    font-size: .8125rem;
+    color: $evo-muted;
+
+    .is-sheet & {
+        padding: 12px 48px 10px 8px;
+    }
+}
+
+.ev-menu-name {
+    overflow: hidden;
+    color: $evo-ink;
+    font-size: .9375rem;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// The menu as a page of its own (no JavaScript)
+.ev-menu-page {
+    max-width: 420px;
+    padding-bottom: 2rem;
+
+    .ev-menu {
+        border: 1px solid $evo-line;
+        border-radius: 12px;
+    }
+}
+
+.ev-menu-back {
+    margin-top: 1rem;
+    font-size: .875rem;
+}
+
+// --- "You organize" page ------------------------------------------------------------------------------------------
+
+.ev-organized-page {
+    max-width: 760px;
+    padding-bottom: 3rem;
+}
+
+.ev-organized-head {
+    margin-bottom: .5rem;
+}
+
+.ev-organized-title {
+    margin: 0 0 .25rem;
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 500;
+    color: $evo-ink;
+}
+
+.ev-organized-total {
+    font-size: .6em;
+    font-weight: 400;
+    color: $evo-muted;
+    font-variant-numeric: tabular-nums;
+}
+
+.ev-organized-note {
+    margin: 0;
+    font-size: .875rem;
+    color: $evo-ink-2;
+}
+
+.ev-organized-empty {
+    margin-top: 1rem;
+    padding: 16px;
+    border-radius: 12px;
+    background: $evo-sunken;
+
+    p {
+        margin-bottom: .75rem;
+    }
+}
+
+.ev-organized {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ev-organized-item {
+    padding: 14px 0;
+    border-bottom: 1px solid $evo-line;
+}
+
+.ev-organized-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ev-organized-name {
+    min-width: 0;
+    color: $evo-ink;
+    font-size: 1rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+
+    &:is(a):hover {
+        text-decoration: underline;
+    }
+}
+
+.ev-organized-sub {
+    margin-top: 2px;
+    font-size: .8125rem;
+    color: $evo-muted;
+
+    .fi {
+        margin-right: 2px;
+    }
+}
+
+.ev-organized-reason {
+    margin: 6px 0 0;
+    font-size: .8125rem;
+    color: $evo-ink-2;
+}
+
+.ev-organized-back {
+    margin-top: 1.25rem;
+    font-size: .875rem;
+}
+
+.ev-badge {
+    flex: none;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: $evo-sunken;
+    color: $evo-ink-2;
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+.ev-badge-waiting_for_approval {
+    background: $evo-amber-soft;
+    color: $evo-amber-ink;
+}
+
+.ev-badge-rejected {
+    background: $evo-coral-soft;
+    color: $evo-coral-ink;
+}
+
+.ev-badge-live {
+    background: $evo-sky-soft;
+    color: $evo-sky-ink;
+}
+
+.ev-badge-upcoming {
+    background: $evo-go-soft;
+    color: $evo-go;
+}

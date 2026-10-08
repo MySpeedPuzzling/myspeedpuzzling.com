@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'restructure.move_edition.title'|trans }} - {{ edition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {% set edition_url = series.slug and edition.slug ? path('edition_detail', {seriesSlug: series.slug, editionSlug: edition.slug}) : path('manage_competition_series', {seriesId: series.id}) %}
+
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: series.name, url: path('manage_competition_series', {seriesId: series.id})},
+        {label: edition.name, url: edition_url},
+        {label: 'restructure.move_edition.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: edition_url, fallbackTitle: edition.name}) }}
+
+    <div class="ev-restructure pb-4">
+        <h1 class="h2">{{ 'restructure.move_edition.title'|trans }}</h1>
+        <p class="text-muted mb-3">{{ 'restructure.move_edition.intro'|trans({'%edition%': edition.name, '%series%': series.name}) }}</p>
+
+        <ul class="ev-restructure-facts small text-muted">
+            <li>{{ 'restructure.move_edition.fact_stays'|trans }}</li>
+            <li>{{ 'restructure.move_edition.fact_place'|trans }}</li>
+            <li>{{ 'restructure.move_edition.fact_address'|trans }}</li>
+        </ul>
+
+        <div class="card shadow-sm my-3">
+            <div class="card-body">
+                {% if has_choices %}
+                    {{ form_start(form) }}
+                    {{ form_errors(form) }}
+                    {{ form_row(form.seriesId) }}
+                    {{ form_row(form.slug) }}
+                    <button type="submit" class="btn btn-primary ev-restructure-submit">
+                        {{ 'restructure.move_edition.submit'|trans }}
+                    </button>
+                    {{ form_end(form) }}
+                {% else %}
+                    <p class="mb-0">{{ 'restructure.move_edition.no_choices'|trans }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

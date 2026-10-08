@@ -29,6 +29,17 @@ readonly final class AdminCompetition
         public null|string $seriesId,
         public null|string $seriesName,
         public null|string $seriesSlug,
+        // The series' organization (an edition's organization is always its series')
+        public null|string $seriesOrganizationId,
+        public bool $seriesIsDraft,
+        // A one-time event's own organization - always null for an edition
+        public null|string $organizationId,
+        public null|string $organizationName,
+        public null|string $organizationSlug,
+        // The competition's own draft flag
+        public bool $isDraft,
+        // "Who can enter" - an edition without its own shows its series'
+        public null|string $eligibility,
         public null|string $tagId,
         public null|string $tagName,
         public null|string $approvedAt,
@@ -40,6 +51,14 @@ readonly final class AdminCompetition
         public null|string $addedByPlayerId,
         public null|string $addedByPlayerName,
         public int $roundsCount,
+        // The approval part of IsCompetitionPubliclyVisible (SQL_APPROVED) - an approved draft is approved
+        public bool $approved = false,
+        // Solving times linked to the competition (puzzle_solving_time.competition_id), suspicious ones included
+        public int $resultsCount = 0,
+        // Of those, the ones in no round (their puzzle is in none of its rounds of their category)
+        public int $resultsWithoutRoundCount = 0,
+        // Participants who joined (not removed)
+        public int $participantsCount = 0,
     ) {
     }
 
@@ -62,6 +81,13 @@ readonly final class AdminCompetition
      *     series_id: null|string,
      *     series_name: null|string,
      *     series_slug: null|string,
+     *     series_organization_id: null|string,
+     *     series_is_draft: null|bool,
+     *     organization_id: null|string,
+     *     organization_name: null|string,
+     *     organization_slug: null|string,
+     *     is_draft: bool,
+     *     eligibility: null|string,
      *     tag_id: null|string,
      *     tag_name: null|string,
      *     approved_at: null|string,
@@ -69,10 +95,14 @@ readonly final class AdminCompetition
      *     rejected_at: null|string,
      *     rejection_reason: null|string,
      *     publicly_visible: bool,
+     *     approved: bool,
      *     created_at: null|string,
      *     added_by_player_id: null|string,
      *     added_by_player_name: null|string,
      *     rounds_count: int,
+     *     results_count: int,
+     *     results_without_round_count: int,
+     *     participants_count: int,
      *     ...
      * } $row
      */
@@ -96,6 +126,13 @@ readonly final class AdminCompetition
             seriesId: $row['series_id'],
             seriesName: $row['series_name'],
             seriesSlug: $row['series_slug'],
+            seriesOrganizationId: $row['series_organization_id'],
+            seriesIsDraft: $row['series_is_draft'] === true,
+            organizationId: $row['organization_id'],
+            organizationName: $row['organization_name'],
+            organizationSlug: $row['organization_slug'],
+            isDraft: $row['is_draft'],
+            eligibility: $row['eligibility'],
             tagId: $row['tag_id'],
             tagName: $row['tag_name'],
             approvedAt: self::isoDateTime($row['approved_at']),
@@ -107,6 +144,10 @@ readonly final class AdminCompetition
             addedByPlayerId: $row['added_by_player_id'],
             addedByPlayerName: $row['added_by_player_name'],
             roundsCount: $row['rounds_count'],
+            approved: $row['approved'],
+            resultsCount: $row['results_count'],
+            resultsWithoutRoundCount: $row['results_without_round_count'],
+            participantsCount: $row['participants_count'],
         );
     }
 
@@ -131,18 +172,17 @@ readonly final class AdminCompetition
         return $value === null ? null : substr($value, 0, 10);
     }
 
+    /**
+     * The approval state - drafts aside (`draft` / `hiddenAsDraft` tell those). Editions are never approved one by
+     * one - their series is.
+     */
     public function status(): string
     {
         if ($this->rejectedAt !== null) {
             return 'rejected';
         }
 
-        // Editions are never approved one by one - their series is
-        if ($this->approvedAt !== null || ($this->seriesId !== null && $this->publiclyVisible)) {
-            return 'approved';
-        }
-
-        return 'pending';
+        return $this->approved ? 'approved' : 'pending';
     }
 
     /**
@@ -170,11 +210,24 @@ readonly final class AdminCompetition
                 'seriesId' => $this->seriesId,
                 'name' => $this->seriesName,
                 'slug' => $this->seriesSlug,
+                'organizationId' => $this->seriesOrganizationId,
+                'draft' => $this->seriesIsDraft,
             ],
+            // A one-time event's own organization (an edition's is its series' - series.organizationId)
+            'organizationId' => $this->organizationId,
+            'organization' => $this->organizationId === null ? null : [
+                'organizationId' => $this->organizationId,
+                'name' => $this->organizationName,
+                'slug' => $this->organizationSlug,
+            ],
+            'eligibility' => $this->eligibility,
             'logo' => $this->logo,
             'tagId' => $this->tagId,
             'tagName' => $this->tagName,
             'status' => $this->status(),
+            // Its own draft flag; hiddenAsDraft = it or its series is a draft
+            'draft' => $this->isDraft,
+            'hiddenAsDraft' => $this->isDraft || $this->seriesIsDraft,
             'approvedAt' => $this->approvedAt,
             'approvedByPlayerId' => $this->approvedByPlayerId,
             'rejectedAt' => $this->rejectedAt,
@@ -184,6 +237,9 @@ readonly final class AdminCompetition
             'addedByPlayerId' => $this->addedByPlayerId,
             'addedByPlayerName' => $this->addedByPlayerName,
             'roundsCount' => $this->roundsCount,
+            'resultsCount' => $this->resultsCount,
+            'resultsWithoutRoundCount' => $this->resultsWithoutRoundCount,
+            'participantsCount' => $this->participantsCount,
         ];
     }
 }

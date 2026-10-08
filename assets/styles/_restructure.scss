@@ -1,1 +1,24 @@
 // The restructuring pages: move an edition, move a round, turn a series into an organization (owner: workstream D)
+
+.ev-restructure {
+    max-width: 40rem;
+}
+
+.ev-restructure-facts {
+    padding-left: 1.1rem;
+    margin-bottom: 0;
+
+    li + li {
+        margin-top: .25rem;
+    }
+}
+
+// A comfortable target on a phone (44 px), full width there
+.ev-restructure-submit {
+    min-height: 44px;
+    margin-top: .5rem;
+
+    @media (max-width: 575.98px) {
+        width: 100%;
+    }
+}

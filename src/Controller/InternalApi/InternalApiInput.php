@@ -243,6 +243,57 @@ final class InternalApiInput
     }
 
     /**
+     * A list of strings, each trimmed, empty ones dropped - null when absent or null. Anything but a list of strings is
+     * an error (one entry of another type would otherwise be dropped unnoticed).
+     *
+     * @return null|list<string>
+     */
+    public function stringList(string $field): null|array
+    {
+        $values = $this->body[$field] ?? null;
+
+        if ($values === null) {
+            return null;
+        }
+
+        if (is_array($values) === false || array_is_list($values) === false) {
+            return $this->invalid($field, 'must be a list of strings.');
+        }
+
+        $strings = [];
+
+        foreach ($values as $value) {
+            if (is_string($value) === false) {
+                return $this->invalid($field, 'must be a list of strings.');
+            }
+
+            if (trim($value) !== '') {
+                $strings[] = trim($value);
+            }
+        }
+
+        return $strings;
+    }
+
+    /**
+     * One id - lower case; null when absent or null.
+     */
+    public function id(string $field, bool $required = false): null|string
+    {
+        $value = $this->body[$field] ?? null;
+
+        if ($value === null) {
+            return $required ? $this->invalid($field, 'is required.') : null;
+        }
+
+        if (is_string($value) === false || Uuid::isValid($value) === false) {
+            return $this->invalid($field, 'must be an id.');
+        }
+
+        return strtolower($value);
+    }
+
+    /**
      * A field read by one of InternalApiJsonBody's parsers - its 400 becomes this field's error.
      *
      * @template T

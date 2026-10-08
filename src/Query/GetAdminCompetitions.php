@@ -18,9 +18,10 @@ use SpeedPuzzling\Web\Results\AdminRoundPuzzle;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 /**
- * Competitions as the internal API shows them to an admin: every competition - approved, pending, rejected,
+ * Competitions as the internal API shows them to an admin: every competition - approved, pending, rejected, a draft,
  * standalone or an edition of a series - with everything the API can edit. Nothing is hidden from an admin, so
- * puzzles of a round still under embargo are listed too.
+ * puzzles of a round still under embargo are listed too. `status` is the approval state (SQL_APPROVED - an approved
+ * draft is approved), `draft` the competition's own flag, `publiclyVisible` the whole rule (drafts included).
  */
 readonly final class GetAdminCompetitions
 {
@@ -42,6 +43,13 @@ c.logo,
 c.series_id,
 cs.name AS series_name,
 cs.slug AS series_slug,
+cs.organization_id AS series_organization_id,
+cs.is_draft AS series_is_draft,
+c.organization_id,
+o.name AS organization_name,
+o.slug AS organization_slug,
+c.is_draft,
+c.eligibility,
 c.tag_id,
 tag.name AS tag_name,
 c.approved_at,
@@ -51,11 +59,15 @@ c.rejection_reason,
 c.created_at,
 c.added_by_player_id,
 added_by.name AS added_by_player_name,
-(SELECT COUNT(*) FROM competition_round cr WHERE cr.competition_id = c.id) AS rounds_count
+(SELECT COUNT(*) FROM competition_round cr WHERE cr.competition_id = c.id) AS rounds_count,
+(SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_id = c.id) AS results_count,
+(SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_id = c.id AND pst.competition_round_id IS NULL) AS results_without_round_count,
+(SELECT COUNT(*) FROM competition_participant cp WHERE cp.competition_id = c.id AND cp.deleted_at IS NULL) AS participants_count
 SQL;
 
     private const string COMPETITION_JOINS = <<<SQL
 LEFT JOIN competition_series cs ON cs.id = c.series_id
+LEFT JOIN organization o ON o.id = c.organization_id
 LEFT JOIN tag ON tag.id = c.tag_id
 LEFT JOIN player added_by ON added_by.id = c.added_by_player_id
 SQL;
@@ -77,9 +89,10 @@ SQL;
         $columns = self::COMPETITION_COLUMNS;
         $joins = self::COMPETITION_JOINS;
         $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $approved = IsCompetitionPubliclyVisible::SQL_APPROVED;
 
         $query = <<<SQL
-SELECT {$columns}, ({$visible}) AS publicly_visible
+SELECT {$columns}, ({$visible}) AS publicly_visible, ({$approved}) AS approved
 FROM competition c
 {$joins}
 WHERE {$where}
@@ -90,6 +103,26 @@ SQL;
         $rows = $this->database->fetchAllAssociative($query, [...$params, 'limit' => $limit, 'offset' => $offset]);
 
         return array_map(self::competition(...), $rows);
+    }
+
+    /**
+     * The editions of a series, by date (undated ones last) - the internal API's series detail
+     *
+     * @return list<AdminCompetition>
+     */
+    public function ofSeries(string $seriesId): array
+    {
+        return $this->listWhere('c.series_id = :id', $seriesId);
+    }
+
+    /**
+     * The one-time events of an organization, by date (undated ones last) - the internal API's organization detail
+     *
+     * @return list<AdminCompetition>
+     */
+    public function oneTimeOfOrganization(string $organizationId): array
+    {
+        return $this->listWhere('c.series_id IS NULL AND c.organization_id = :id', $organizationId);
     }
 
     public function count(null|string $search, null|string $status): int
@@ -120,9 +153,10 @@ SQL, $params);
         $columns = self::COMPETITION_COLUMNS;
         $joins = self::COMPETITION_JOINS;
         $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $approved = IsCompetitionPubliclyVisible::SQL_APPROVED;
 
         $row = $this->database->fetchAssociative(<<<SQL
-SELECT {$columns}, ({$visible}) AS publicly_visible
+SELECT {$columns}, ({$visible}) AS publicly_visible, ({$approved}) AS approved
 FROM competition c
 {$joins}
 WHERE c.id = :competitionId
@@ -161,6 +195,31 @@ SQL, ['competitionId' => $competitionId]);
         }
 
         return $this->rounds($competitionId, strtolower($roundId))[0] ?? throw new CompetitionRoundNotFound();
+    }
+
+    /**
+     * @return list<AdminCompetition>
+     */
+    private function listWhere(string $condition, string $id): array
+    {
+        if (Uuid::isValid($id) === false) {
+            return [];
+        }
+
+        $columns = self::COMPETITION_COLUMNS;
+        $joins = self::COMPETITION_JOINS;
+        $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $approved = IsCompetitionPubliclyVisible::SQL_APPROVED;
+
+        $rows = $this->database->fetchAllAssociative(<<<SQL
+SELECT {$columns}, ({$visible}) AS publicly_visible, ({$approved}) AS approved
+FROM competition c
+{$joins}
+WHERE {$condition}
+ORDER BY c.date_from NULLS LAST, c.name, c.id
+SQL, ['id' => $id]);
+
+        return array_map(self::competition(...), $rows);
     }
 
     /**
@@ -391,11 +450,14 @@ SQL;
             $params['pattern'] = '%' . addcslashes(trim($search), '%_\\') . '%';
         }
 
-        $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        // The approval state, drafts aside: an approved draft is approved (and listed under `draft` too)
+        $approved = IsCompetitionPubliclyVisible::SQL_APPROVED;
+        $notDraft = IsCompetitionPubliclyVisible::SQL_NOT_DRAFT;
         $conditions[] = match ($status) {
-            'approved' => "({$visible})",
-            'pending' => "(c.rejected_at IS NULL AND NOT ({$visible}))",
+            'approved' => $approved,
+            'pending' => "(c.rejected_at IS NULL AND NOT {$approved})",
             'rejected' => 'c.rejected_at IS NOT NULL',
+            'draft' => "(NOT {$notDraft})",
             default => 'TRUE',
         };
 
@@ -426,6 +488,13 @@ SQL;
          *     series_id: null|string,
          *     series_name: null|string,
          *     series_slug: null|string,
+         *     series_organization_id: null|string,
+         *     series_is_draft: null|bool,
+         *     organization_id: null|string,
+         *     organization_name: null|string,
+         *     organization_slug: null|string,
+         *     is_draft: bool,
+         *     eligibility: null|string,
          *     tag_id: null|string,
          *     tag_name: null|string,
          *     approved_at: null|string,
@@ -433,10 +502,14 @@ SQL;
          *     rejected_at: null|string,
          *     rejection_reason: null|string,
          *     publicly_visible: bool,
+         *     approved: bool,
          *     created_at: null|string,
          *     added_by_player_id: null|string,
          *     added_by_player_name: null|string,
          *     rounds_count: int,
+         *     results_count: int,
+         *     results_without_round_count: int,
+         *     participants_count: int,
          * } $row
          */
         return AdminCompetition::fromDatabaseRow($row);

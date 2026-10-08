@@ -13,8 +13,8 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Every competition - approved, pending or rejected, standalone or an edition of a series - newest first, optionally
- * searched by name, slug or shortcut (`q`) and narrowed by `status`.
+ * Every competition - approved, pending, rejected or a draft, standalone or an edition of a series - newest first,
+ * optionally searched by name, slug or shortcut (`q`) and narrowed by `status`.
  */
 final class ListCompetitionsController extends AbstractController
 {
@@ -22,7 +22,8 @@ final class ListCompetitionsController extends AbstractController
 
     private const int MAX_LIMIT = 100;
 
-    private const array STATUSES = ['all', 'approved', 'pending', 'rejected'];
+    // The approval state (an approved draft is approved), or `draft`: the competition or its series is a draft
+    private const array STATUSES = ['all', 'approved', 'pending', 'rejected', 'draft'];
 
     public function __construct(
         private readonly GetAdminCompetitions $getAdminCompetitions,

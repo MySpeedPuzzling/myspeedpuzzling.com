@@ -466,9 +466,9 @@ paths:
       summary: List or search competitions
       operationId: listCompetitions
       description: |
-        Every competition - approved, pending or rejected, standalone or an edition
-        of a series - newest first (by the event's date, undated ones by when they
-        were added).
+        Every competition - approved, pending, rejected or a draft, standalone or an
+        edition of a series - newest first (by the event's date, undated ones by when
+        they were added).
       parameters:
         - name: q
           in: query
@@ -479,9 +479,10 @@ paths:
         - name: status
           in: query
           required: false
+          description: The approval state (`approved` / `pending` / `rejected` - an approved draft is approved and not pending), or `draft` - the competition or its series is a draft.
           schema:
             type: string
-            enum: [all, approved, pending, rejected]
+            enum: [all, approved, pending, rejected, draft]
             default: all
         - name: limit
           in: query
@@ -515,7 +516,10 @@ paths:
       description: |
         A standalone competition (past or upcoming), added by the reviewer player,
         validated by the rules of the web form (`CompetitionFormData`). With
-        `"approve": true` it is approved right away. Rounds and puzzles follow
+        `"approve": true` it is approved right away. Under an approved organization
+        (`organizationId`) it is approved at once anyway - the reviewer player is an
+        admin (`OrganizationApprovalPolicy`). `"draft": true` creates it as a draft:
+        only its team sees it until it is published. Rounds and puzzles follow
         through their own endpoints. No e-mail is sent.
 
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
@@ -531,6 +535,13 @@ paths:
                   required: [name]
                   properties:
                     approve:
+                      type: boolean
+                      default: false
+                    organizationId:
+                      type: [string, "null"]
+                      format: uuid
+                      description: An existing organization (400 otherwise) - the one-time event is under it.
+                    draft:
                       type: boolean
                       default: false
       responses:
@@ -583,6 +594,16 @@ paths:
         changes it, and it must be free (409 otherwise); old URLs of the event get no
         redirect. The slug cannot be cleared (400). `maintainerIds` replaces the whole
         list (`null` keeps it). `"isOnline": true` clears the location; dates stay.
+        A change of the fields validates the whole record as it would be stored (a
+        stored span over 30 days must be fixed in the same PATCH); a PATCH of only
+        `organizationId` / `draft` validates nothing else.
+
+        `organizationId` moves a one-time event into an organization or out of it
+        (`null`, `AssignEventToOrganization`; a pending event under an approved
+        organization is approved at once) - an edition refuses one (409, it is its
+        series'). `draft` publishes (false) or takes it back to draft (true - 409 while
+        people joined it or results / solving times are linked to it). Both are
+        checked before anything is written, and need `INTERNAL_API_REVIEWER_PLAYER_ID`.
       parameters:
         - $ref: "#/components/parameters/CompetitionId"
       requestBody:
@@ -593,6 +614,13 @@ paths:
               unevaluatedProperties: false
               allOf:
                 - $ref: "#/components/schemas/CompetitionFields"
+                - type: object
+                  properties:
+                    organizationId:
+                      type: [string, "null"]
+                      format: uuid
+                    draft:
+                      type: boolean
       responses:
         "200":
           description: The competition after the change
@@ -840,6 +868,763 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /internal-api/competitions/{competitionId}/organization:
+    put:
+      summary: Move a one-time event into an organization or out of it
+      operationId: assignCompetitionOrganization
+      description: |
+        `AssignEventToOrganization` as the reviewer player (an admin): a pending
+        event moved under an approved organization is approved at once
+        (`OrganizationApprovalPolicy`); moving out (`null`) keeps its approval. An
+        edition refuses an organization (409) - it is its series'.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationAssignment"
+      responses:
+        "200":
+          description: The competition after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/competitions/{competitionId}/publish:
+    post:
+      summary: Publish a draft competition
+      operationId: publishCompetition
+      description: |
+        The draft flag of a one-time event or an edition goes off (`PublishCompetition`).
+        A pending one-time event enters the approval queue then; official results
+        published while it was hidden are told once it is public. An edition of a
+        draft series stays hidden until its series is published. Publishing a
+        published competition changes nothing.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      responses:
+        "204":
+          description: Published
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/competitions/{competitionId}/unpublish:
+    post:
+      summary: Take a competition back to draft
+      operationId: unpublishCompetition
+      description: |
+        `UnpublishCompetition` - only while nobody joined it and no official result or
+        solving time is linked to it (409 naming what blocks it: participants,
+        results, solving_times).
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      responses:
+        "204":
+          description: Back to draft
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/competitions/{competitionId}/move:
+    post:
+      summary: Move an edition to another series
+      operationId: moveEdition
+      description: |
+        `MoveEditionToSeries`: the edition moves with its participants, rounds,
+        results and solving times. Its slug stays unless the target series has it
+        (409 - send `slug`). Its place follows the target series where it was the
+        old series' (a place changed for the edition stays); online follows the
+        target; its organization and visibility are the target series'. Its old
+        address and its rounds' results addresses answer 301 to the new ones
+        (`event_url_redirect`). Refused (409) for a one-time event, for the series
+        it is in already, and for a draft target series while the edition has
+        participants, official results or linked solving times (a draft never holds
+        those; an empty edition may move into a draft).
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditionMove"
+      responses:
+        "200":
+          description: The edition where it is now
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/rounds/{roundId}/move:
+    post:
+      summary: Move a round to another one-time event or edition
+      operationId: moveRound
+      description: |
+        `MoveRoundToCompetition`: the round moves with its puzzles (and their reveal
+        settings), its table layout and every solving time that belongs to it -
+        linked to it, or (not linked yet) of the old competition on one of its
+        puzzles in its category. Their `competition_id` changes, their round stays;
+        both competitions' round results are reconciled. The round keeps its slug
+        (`-2`, `-3`, … when the target has it) and the wall-clock zone it is shown in.
+        Its old results address answers 301 to the new one.
+
+        Refused (409, nothing changes): the same competition, participants entered in
+        the round (round entries or pairs/teams), its stopwatch running, a puzzle of
+        the round already in a round of the same category in the target, a target
+        hidden as a draft (a draft event, or an edition of a draft series) while the
+        round has solving times (an empty round may move there), or the round moved
+        meanwhile.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoundMove"
+      responses:
+        "200":
+          description: The round where it is now (`competitionId`, `slug`, `resultsCount`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Round"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/organizations:
+    get:
+      summary: List or search organizations
+      operationId: listOrganizations
+      description: Every organization - approved, pending, rejected or a draft - by name.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Part of the name, short name or slug (accents and letter case ignored).
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          description: The approval state (an approved draft is `approved`), or `draft` - drafts, whatever their approval.
+          schema:
+            type: string
+            enum: [all, approved, pending, rejected, draft]
+            default: all
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: One page of organizations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationList"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Create an organization (approved)
+      operationId: createOrganization
+      description: |
+        Like "Add organization", created by the reviewer player and **approved at
+        once** (an admin creates it; no e-mail). `"draft": true` keeps it a draft (its
+        page answers 404 to everyone but its team). Validated by the web form's rules
+        (`OrganizationFormData`). The logo is uploaded in the UI.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/OrganizationFields"
+                - type: object
+                  required: [name]
+                  properties:
+                    draft:
+                      type: boolean
+                      default: false
+            example:
+              name: Riverbend Jigsaw Association
+              shortName: RJA
+              kind: association
+              countryCode: us
+              region: Riverbend Valley
+              website: https://riverbend-jigsaw.example
+              socialLinks:
+                - https://www.instagram.com/riverbendjigsaw
+                - https://discord.gg/riverbendjigsaw
+      responses:
+        "201":
+          description: Created - as `GET /internal-api/organizations/{organizationId}` shows it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  # One path item for GET (id or slug), PATCH and DELETE (id only)
+  /internal-api/organizations/{organizationId}:
+    get:
+      summary: One organization with its team, series and one-time events
+      operationId: getOrganization
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          description: The organization's id, or its slug (unique among organizations).
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      summary: Update the fields sent
+      operationId: updateOrganization
+      description: |
+        `EditOrganization` - only the fields sent change; `null` or `""` clears a
+        field; `socialLinks` replaces the whole list (`[]` / `null` removes every
+        link); `maintainerIds` replaces the team besides the creator (left out or
+        `null` keeps it). **A rename keeps the slug**; only an explicit `slug` changes
+        it (unique, else 409; no redirect from the old one; cannot be cleared - 400).
+        `draft` publishes (false) or takes it back to draft (true - always allowed).
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/OrganizationFields"
+                - type: object
+                  properties:
+                    draft:
+                      type: boolean
+      responses:
+        "200":
+          description: The organization after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      summary: Delete an empty organization
+      operationId: deleteOrganization
+      description: |
+        Only while no series and no one-time event is under it (409 otherwise). Its
+        follows, team and redirect rows go with it.
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/organizations/{organizationId}/approve:
+    post:
+      summary: Approve a pending organization and its pending items
+      operationId: approveOrganization
+      description: |
+        Like the admin approval queue, credited to the reviewer player - and with it
+        its pending series and one-time events (not the rejected ones). Its creator is
+        e-mailed unless that is the reviewer. Refused (409) for an approved or rejected
+        organization.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "204":
+          description: Approved
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/organizations/{organizationId}/publish:
+    post:
+      summary: Publish a draft organization
+      operationId: publishOrganization
+      description: The draft flag goes off - one still waiting for approval enters the approval queue then.
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "204":
+          description: Published
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/organizations/{organizationId}/unpublish:
+    post:
+      summary: Take an organization back to draft
+      operationId: unpublishOrganization
+      description: Always allowed - a draft organization hides only its own page, directory entry and "Organized by" links, never its series or events.
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "204":
+          description: Back to draft
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/organizations/{organizationId}/maintainers:
+    post:
+      summary: Add a player to the organization's team
+      operationId: addOrganizationMaintainer
+      description: Idempotent. The creator is on the team as its creator and never gets a maintainer row.
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [playerId]
+              properties:
+                playerId:
+                  type: string
+                  format: uuid
+      responses:
+        "204":
+          description: On the team
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/organizations/{organizationId}/maintainers/{playerId}:
+    delete:
+      summary: Remove a player from the organization's team
+      operationId: removeOrganizationMaintainer
+      description: Idempotent (a player not on the team is a 204 too). The creator is no maintainer row and stays on the team.
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+        - $ref: "#/components/parameters/PlayerId"
+      responses:
+        "204":
+          description: Not on the team
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/series:
+    get:
+      summary: List or search series
+      operationId: listSeries
+      description: Every series - approved, pending, rejected or a draft - by name.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Part of the name, slug or shortcut (accents and letter case ignored).
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          description: The approval state (an approved draft is `approved`), or `draft` - drafts, whatever their approval.
+          schema:
+            type: string
+            enum: [all, approved, pending, rejected, draft]
+            default: all
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: One page of series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeriesList"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Create a series
+      operationId: createSeries
+      description: |
+        Like "Add event" with "Recurring" ticked, added by the reviewer player and
+        validated by the form's rules (`CompetitionFormData` with `isRecurring`). Under
+        an approved organization (`organizationId`) it is approved at once - the
+        reviewer player is an admin (`OrganizationApprovalPolicy`); elsewhere
+        `"approve": true` approves it. Nobody is e-mailed. `"draft": true` creates it
+        as a draft (it and its editions hidden until it is published).
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/SeriesFields"
+                - type: object
+                  required: [name]
+                  properties:
+                    organizationId:
+                      type: [string, "null"]
+                      format: uuid
+                      description: An existing organization (400 otherwise).
+                    draft:
+                      type: boolean
+                      default: false
+                    approve:
+                      type: boolean
+                      default: false
+            example:
+              name: Copper Kettle Puzzle Night
+              organizationId: 0199b000-0000-7000-8000-000000000001
+              isOnline: false
+              location: Copper Kettle Brewing, Millbrook
+              locationCountryCode: us
+              link: https://riverbend-jigsaw.example/nights
+              eligibility: 21+
+              schedule: First Monday of the month, 7 pm
+              description: Casual puzzle nights - no results kept.
+      responses:
+        "201":
+          description: Created - as `GET /internal-api/series/{seriesId}` shows it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeriesDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  # One path item for GET (id or slug) and PATCH (id only)
+  /internal-api/series/{seriesId}:
+    get:
+      summary: One series with its editions
+      operationId: getSeries
+      parameters:
+        - name: seriesId
+          in: path
+          required: true
+          description: The series' id, or its slug (unique among series).
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeriesDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      summary: Update the fields sent
+      operationId: updateSeries
+      description: |
+        `EditCompetitionSeries` - only the fields sent change; `null` or `""` clears a
+        field; `maintainerIds` replaces the list (left out or `null` keeps it). **A
+        rename keeps the slug**; only an explicit `slug` changes it (unique among
+        series, else 409; no redirect; cannot be cleared - 400). `organizationId`
+        moves the series into an organization or out of it (`null`,
+        `AssignEventToOrganization`); `draft` publishes (false) or takes it back to
+        draft (true - 409 while an edition has participants, official results or
+        linked solving times). Both are checked before anything is written.
+      parameters:
+        - $ref: "#/components/parameters/SeriesId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              unevaluatedProperties: false
+              allOf:
+                - $ref: "#/components/schemas/SeriesFields"
+                - type: object
+                  properties:
+                    organizationId:
+                      type: [string, "null"]
+                      format: uuid
+                    draft:
+                      type: boolean
+      responses:
+        "200":
+          description: The series after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeriesDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/series/{seriesId}/publish:
+    post:
+      summary: Publish a draft series
+      operationId: publishSeries
+      description: |
+        The series' draft flag goes off - its editions keep their own flags; a series
+        still waiting for approval enters the approval queue then.
+      parameters:
+        - $ref: "#/components/parameters/SeriesId"
+      responses:
+        "204":
+          description: Published
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/series/{seriesId}/unpublish:
+    post:
+      summary: Take a series back to draft
+      operationId: unpublishSeries
+      description: Only while none of its editions has participants, official results or linked solving times (409 naming them otherwise). A draft series hides its editions too.
+      parameters:
+        - $ref: "#/components/parameters/SeriesId"
+      responses:
+        "204":
+          description: Back to draft
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/series/{seriesId}/editions:
+    post:
+      summary: Add an edition to a series
+      operationId: createEdition
+      description: |
+        Like "Add edition" (`AddEdition`), validated by the form's rules
+        (`EditionFormData`: name and both dates required, `dateTo` not before
+        `dateFrom`, links that are URLs, `eligibility` ≤ 120 characters). At the
+        series' place, online like the series, approved through its series. `slug`
+        must be free in the series and among one-time events (409) - else generated
+        from the name. `"draft": true` creates it as a draft. Its rounds follow
+        through `POST /internal-api/competitions/{competitionId}/rounds`.
+      parameters:
+        - $ref: "#/components/parameters/SeriesId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditionCreation"
+      responses:
+        "201":
+          description: Created - the edition as `GET /internal-api/competitions/{competitionId}` shows it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/series/{seriesId}/organization:
+    put:
+      summary: Move a series into an organization or out of it
+      operationId: assignSeriesOrganization
+      description: |
+        `AssignEventToOrganization` as the reviewer player (an admin): a pending series
+        moved under an approved organization is approved at once; moving out (`null`)
+        keeps its approval. Its editions belong to its organization with it.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/SeriesId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationAssignment"
+      responses:
+        "200":
+          description: The series after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeriesDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/series/{seriesId}/create-organization:
+    post:
+      summary: Turn a series into an organization
+      operationId: createOrganizationFromSeries
+      description: |
+        `CreateOrganizationFromSeries` - **approved at once** (the reviewer player is an
+        admin), created by the series' creator. Copied from the series: logo, about
+        (its description), website (its link), country and region (its location)
+        unless sent, the team (its maintainers). The series' followers follow the
+        organization; the series is attached to it (a pending series is approved by
+        the policy) - with `newSeriesName` / `newSeriesSlug` renamed, and with a new
+        slug its old address answers 301 to the organization and its editions' and
+        rounds' old addresses to where they are now. The organization may take the
+        series' old slug (`slug`) - organizations and series have separate addresses.
+        Social links and the rest follow with `PATCH /internal-api/organizations/{organizationId}`.
+        Refused (409) for a series that belongs to an organization already, and for a
+        taken slug.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
+      parameters:
+        - $ref: "#/components/parameters/SeriesId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationFromSeries"
+      responses:
+        "201":
+          description: Created - the organization as `GET /internal-api/organizations/{organizationId}` shows it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /internal-api/puzzles:
     get:
       summary: Search puzzles
@@ -1074,6 +1859,33 @@ components:
         type: string
         format: uuid
 
+    OrganizationId:
+      name: organizationId
+      in: path
+      required: true
+      description: UUID of the organization.
+      schema:
+        type: string
+        format: uuid
+
+    SeriesId:
+      name: seriesId
+      in: path
+      required: true
+      description: UUID of the series (a recurring event; its editions are competitions).
+      schema:
+        type: string
+        format: uuid
+
+    PlayerId:
+      name: playerId
+      in: path
+      required: true
+      description: UUID of the player.
+      schema:
+        type: string
+        format: uuid
+
     FeatureRequestId:
       name: featureRequestId
       in: path
@@ -1163,6 +1975,10 @@ components:
         isOnline:
           type: boolean
           description: An online event has no place - true clears `location`, like the web form. Its dates stay (optional for an online event - empty = ongoing).
+        eligibility:
+          type: [string, "null"]
+          maxLength: 120
+          description: '"Who can enter" ("Residents of the state", "21+") - an edition without its own shows its series''.'
         slug:
           type: string
           pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
@@ -1199,21 +2015,45 @@ components:
             seriesId: { type: string, format: uuid }
             name: { type: string }
             slug: { type: [string, "null"] }
+            organizationId:
+              type: [string, "null"]
+              format: uuid
+              description: The series' organization - an edition's organization is always its series'.
+            draft: { type: boolean, description: The series is a draft (it hides this edition too) }
+        organizationId:
+          type: [string, "null"]
+          format: uuid
+          description: A one-time event's own organization - always null for an edition (see `series.organizationId`).
+        organization:
+          type: [object, "null"]
+          properties:
+            organizationId: { type: string, format: uuid }
+            name: { type: string }
+            slug: { type: string }
+        eligibility: { type: [string, "null"], description: '"Who can enter" - its own; an edition without one shows its series''' }
         logo: { type: [string, "null"] }
         tagId: { type: [string, "null"] }
         tagName: { type: [string, "null"] }
         status:
           type: string
           enum: [approved, pending, rejected]
+          description: The approval state (`IsCompetitionPubliclyVisible::SQL_APPROVED`) - an approved draft is `approved`; an edition is approved through its series.
+        draft: { type: boolean, description: The competition's own draft flag }
+        hiddenAsDraft: { type: boolean, description: It or its series is a draft }
         approvedAt: { type: [string, "null"], format: date-time }
         approvedByPlayerId: { type: [string, "null"] }
         rejectedAt: { type: [string, "null"], format: date-time }
         rejectionReason: { type: [string, "null"] }
-        publiclyVisible: { type: boolean }
+        publiclyVisible:
+          type: boolean
+          description: The whole visibility rule (`IsCompetitionPubliclyVisible`) - approval and drafts.
         createdAt: { type: [string, "null"], format: date-time }
         addedByPlayerId: { type: [string, "null"] }
         addedByPlayerName: { type: [string, "null"] }
         roundsCount: { type: integer }
+        resultsCount: { type: integer, description: Solving times linked to the competition (suspicious ones included) }
+        resultsWithoutRoundCount: { type: integer, description: Of those, the ones in no round (their puzzle is in none of its rounds of their category) }
+        participantsCount: { type: integer, description: Participants who joined (not removed) }
 
     CompetitionList:
       type: object
@@ -1249,6 +2089,348 @@ components:
               description: The competition's own (tagged) puzzles.
               items:
                 $ref: "#/components/schemas/AdminPuzzle"
+
+    Maintainer:
+      type: object
+      properties:
+        playerId: { type: string, format: uuid }
+        name: { type: [string, "null"] }
+        code: { type: string }
+
+    OrganizationFields:
+      type: object
+      # No additionalProperties here - the request bodies close themselves with unevaluatedProperties: false
+      description: |
+        Validated by the web form's rules (`OrganizationFormData`): name required,
+        1-120 characters; short name ≤ 30; about ≤ 5,000; website and social links
+        http(s) URLs ≤ 255; at most 10 social links; region ≤ 120. `null` or `""`
+        clears a field. An unknown field is a 400.
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        shortName:
+          type: [string, "null"]
+          maxLength: 30
+          example: RJA
+        slug:
+          type: string
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          description: Explicit URL slug (`/en/organizations/{slug}`) - unique among organizations (409 otherwise). Left out, create generates it from the name and update keeps it. A change breaks the old URL (no redirect); it cannot be cleared.
+        about:
+          type: [string, "null"]
+          maxLength: 5000
+        website:
+          type: [string, "null"]
+          format: uri
+          maxLength: 255
+        socialLinks:
+          type: [array, "null"]
+          maxItems: 10
+          description: The other links as plain URLs (Instagram, Discord, …) - the icon comes from the host. Each trimmed, empty ones dropped, each URL once. Replaces the whole list; `[]` or `null` removes every link.
+          items:
+            type: string
+            format: uri
+        countryCode:
+          type: [string, "null"]
+          description: ISO 3166-1 alpha-2, any letter case (stored lower case).
+          example: us
+        region:
+          type: [string, "null"]
+          maxLength: 120
+          description: Free text - a state, a region or a city.
+        kind:
+          type: [string, "null"]
+          enum: [association, club, shop, venue, community, other, null]
+        maintainerIds:
+          type: [array, "null"]
+          description: The team besides its creator - replaces the list, `[]` empties it, `null` or left out keeps it.
+          items:
+            type: string
+            format: uuid
+
+    Organization:
+      type: object
+      properties:
+        organizationId: { type: string, format: uuid }
+        name: { type: string, example: Riverbend Jigsaw Association }
+        shortName: { type: [string, "null"] }
+        slug: { type: string, example: riverbend-jigsaw-association }
+        logo: { type: [string, "null"] }
+        about: { type: [string, "null"] }
+        website: { type: [string, "null"] }
+        socialLinks:
+          type: array
+          items: { type: string }
+        countryCode: { type: [string, "null"] }
+        region: { type: [string, "null"] }
+        kind: { type: [string, "null"], enum: [association, club, shop, venue, community, other, null] }
+        status:
+          type: string
+          enum: [approved, pending, rejected]
+          description: The approval state - an approved draft is `approved` with `draft` true.
+        draft: { type: boolean }
+        approvedAt: { type: [string, "null"], format: date-time }
+        approvedByPlayerId: { type: [string, "null"] }
+        rejectedAt: { type: [string, "null"], format: date-time }
+        rejectionReason: { type: [string, "null"] }
+        publiclyVisible:
+          type: boolean
+          description: Approved, not rejected, not a draft (`IsOrganizationPubliclyVisible`) - its page is indexable and in the directory.
+        createdAt: { type: string, format: date-time }
+        addedByPlayerId: { type: [string, "null"], description: Its creator - on the team with the maintainers }
+        addedByPlayerName: { type: [string, "null"] }
+        seriesCount: { type: integer }
+        eventsCount: { type: integer, description: Its one-time events }
+
+    OrganizationList:
+      type: object
+      required: [total, limit, offset, organizations]
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Organization"
+
+    OrganizationDetail:
+      allOf:
+        - $ref: "#/components/schemas/Organization"
+        - type: object
+          properties:
+            maintainers:
+              type: array
+              description: The team besides its creator.
+              items:
+                $ref: "#/components/schemas/Maintainer"
+            series:
+              type: array
+              description: Its series (their editions - `GET /internal-api/series/{seriesId}`).
+              items:
+                $ref: "#/components/schemas/Series"
+            events:
+              type: array
+              description: Its one-time events.
+              items:
+                $ref: "#/components/schemas/Competition"
+
+    OrganizationAssignment:
+      type: object
+      additionalProperties: false
+      required: [organizationId]
+      properties:
+        organizationId:
+          type: [string, "null"]
+          format: uuid
+          description: An existing organization (400 otherwise), or `null` to take the item out of its organization.
+
+    SeriesFields:
+      type: object
+      # No additionalProperties here - the request bodies close themselves with unevaluatedProperties: false
+      description: |
+        Validated by the rules of "Add event" with "Recurring" ticked
+        (`CompetitionFormData`, `isRecurring`): name required; an in-person series
+        (`isOnline` false) needs a location; links must be URLs. `null` or `""`
+        clears a field. An unknown field is a 400.
+      properties:
+        name:
+          type: string
+          maxLength: 250
+        shortcut:
+          type: [string, "null"]
+          maxLength: 250
+        description:
+          type: [string, "null"]
+        link:
+          type: [string, "null"]
+          format: uri
+        isOnline:
+          type: boolean
+          description: An online series has no place - true clears `location`.
+        location:
+          type: [string, "null"]
+          maxLength: 250
+        locationCountryCode:
+          type: [string, "null"]
+          description: ISO 3166-1 alpha-2, any letter case (stored lower case).
+        eligibility:
+          type: [string, "null"]
+          maxLength: 120
+          description: '"Who can enter" - editions without their own show it.'
+          example: 21+
+        schedule:
+          type: [string, "null"]
+          maxLength: 160
+          description: '"When it happens" - free text; each date is still its own edition.'
+          example: First Monday of the month, 7 pm
+        slug:
+          type: string
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          description: Explicit URL slug (`/en/series/{slug}`) - unique among series (409 otherwise). Left out, create generates it and update keeps it. A change breaks the old URLs (no redirect); it cannot be cleared.
+        maintainerIds:
+          type: [array, "null"]
+          description: Player ids who may manage the series - replaces the list, `[]` empties it, `null` or left out keeps it.
+          items:
+            type: string
+            format: uuid
+
+    Series:
+      type: object
+      properties:
+        seriesId: { type: string, format: uuid }
+        name: { type: string, example: Lantern Brewing Puzzle Night }
+        slug: { type: [string, "null"], example: lantern-brewing-puzzle-night }
+        shortcut: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        link: { type: [string, "null"] }
+        isOnline: { type: boolean }
+        location: { type: [string, "null"] }
+        locationCountryCode: { type: [string, "null"] }
+        logo: { type: [string, "null"] }
+        organizationId: { type: [string, "null"], format: uuid }
+        organization:
+          type: [object, "null"]
+          properties:
+            organizationId: { type: string, format: uuid }
+            name: { type: string }
+            slug: { type: string }
+        eligibility: { type: [string, "null"] }
+        schedule: { type: [string, "null"] }
+        status:
+          type: string
+          enum: [approved, pending, rejected]
+          description: The approval state - an approved draft is `approved` with `draft` true.
+        draft: { type: boolean }
+        approvedAt: { type: [string, "null"], format: date-time }
+        approvedByPlayerId: { type: [string, "null"] }
+        rejectedAt: { type: [string, "null"], format: date-time }
+        rejectionReason: { type: [string, "null"] }
+        publiclyVisible:
+          type: boolean
+          description: Approved, not rejected, not a draft (`IsSeriesPubliclyVisible`).
+        createdAt: { type: [string, "null"], format: date-time }
+        addedByPlayerId: { type: [string, "null"] }
+        addedByPlayerName: { type: [string, "null"] }
+        editionsCount: { type: integer }
+
+    SeriesList:
+      type: object
+      required: [total, limit, offset, series]
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        series:
+          type: array
+          items:
+            $ref: "#/components/schemas/Series"
+
+    SeriesDetail:
+      allOf:
+        - $ref: "#/components/schemas/Series"
+        - type: object
+          properties:
+            maintainers:
+              type: array
+              items:
+                $ref: "#/components/schemas/Maintainer"
+            editions:
+              type: array
+              description: Every edition with the competition list's fields (ids, slugs, dates, state, round / result / participant counts) - its rounds through `GET /internal-api/competitions/{competitionId}`.
+              items:
+                $ref: "#/components/schemas/Competition"
+
+    EditionCreation:
+      type: object
+      additionalProperties: false
+      required: [name, dateFrom, dateTo]
+      properties:
+        name:
+          type: string
+          maxLength: 250
+          example: Copper Kettle Puzzle Night - November
+        slug:
+          type: string
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          description: Free in the series and among one-time events (409 otherwise) - left out, generated from the name.
+        dateFrom:
+          type: string
+          description: ISO 8601 day (`2026-11-02`).
+        dateTo:
+          type: string
+          description: ISO 8601 day, not before `dateFrom`.
+        link: { type: [string, "null"], format: uri, description: "The edition's own website" }
+        registrationLink: { type: [string, "null"], format: uri }
+        resultsLink: { type: [string, "null"], format: uri }
+        description: { type: [string, "null"] }
+        eligibility:
+          type: [string, "null"]
+          maxLength: 120
+          description: '"Who can enter" - empty shows the series''.'
+        draft:
+          type: boolean
+          default: false
+
+    EditionMove:
+      type: object
+      additionalProperties: false
+      required: [seriesId]
+      properties:
+        seriesId:
+          type: string
+          format: uuid
+          description: The target series (an existing one, 400 otherwise; the series the edition is in already is a 409).
+        slug:
+          type: string
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          description: A new slug for the edition - only needed when its own is taken in the target series (409 otherwise).
+
+    RoundMove:
+      type: object
+      additionalProperties: false
+      required: [competitionId]
+      properties:
+        competitionId:
+          type: string
+          format: uuid
+          description: The target one-time event or edition (404 for an unknown one).
+
+    OrganizationFromSeries:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          example: Riverbend Jigsaw Association
+        shortName:
+          type: [string, "null"]
+          maxLength: 30
+        slug:
+          type: [string, "null"]
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          description: The organization's slug - free among organizations (409 otherwise); may be the series' current slug. Left out, generated from the name.
+        kind:
+          type: [string, "null"]
+          enum: [association, club, shop, venue, community, other, null]
+        countryCode:
+          type: [string, "null"]
+          description: ISO 3166-1 alpha-2 - left out, the series' country.
+        region:
+          type: [string, "null"]
+          maxLength: 120
+          description: Left out, the series' location.
+        newSeriesName:
+          type: [string, "null"]
+          maxLength: 250
+          description: The series' new name - left out keeps it.
+        newSeriesSlug:
+          type: [string, "null"]
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          description: The series' new slug - free among series (409 otherwise). With it, the old series address redirects to the organization and every old edition and round results address to where it is now.
 
     RoundFields:
       type: object
@@ -1919,13 +3101,13 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     Conflict:
-      description: The request conflicts with the current state (taken slug, round invariant, results in a round, secret puzzles a round change would reveal, a hidden puzzle attached unhidden, shared tag, already approved, known EAN)
+      description: The request conflicts with the current state (taken slug, round invariant, results in a round, secret puzzles a round change would reveal, a hidden puzzle attached unhidden, shared tag, already approved, known EAN, an organization on an edition, a move that cannot be made, cannot go back to draft, an organization that is not empty)
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
     NotFound:
-      description: Unknown feature request, merge request, brand, puzzle, competition or round ID
+      description: Unknown feature request, merge request, brand, puzzle, competition, round, series, organization or player ID
       content:
         application/json:
           schema:

@@ -5,6 +5,10 @@ old separate Release workflow (it only started building once every test had
 passed) is gone. Measured 2026-10-04: push to main → lily webhook ~2 min, → live
 ~2.5 min (was 7-10 min).
 
+A push to `main` touching only `docs/**`, `.claude/**` or a root `*.md` (TODO items, skills, notes) runs
+nothing - no test reads those files and the image leaves them out (`.dockerignore`). A push mixing them with
+code runs as usual. Pull requests always run.
+
 ## Jobs
 
 | job | runs on | what |

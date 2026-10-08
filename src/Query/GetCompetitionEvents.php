@@ -188,30 +188,4 @@ SQL;
             return CompetitionEvent::fromDatabaseRow($row);
         }, $data);
     }
-
-    /**
-     * @return array<CompetitionEvent>
-     */
-    public function allForPlayer(string $playerId): array
-    {
-        $query = <<<SQL
-SELECT c.*
-FROM competition c
-WHERE c.series_id IS NULL
-   AND (c.added_by_player_id = :playerId
-       OR c.id IN (SELECT competition_id FROM competition_maintainer WHERE player_id = :playerId))
-ORDER BY c.created_at DESC NULLS LAST, c.date_from DESC;
-SQL;
-
-        $data = $this->database
-            ->executeQuery($query, [
-                'playerId' => $playerId,
-            ])
-            ->fetchAllAssociative();
-
-        return array_map(static function (array $row): CompetitionEvent {
-            /** @var CompetitionEventDatabaseRow $row */
-            return CompetitionEvent::fromDatabaseRow($row);
-        }, $data);
-    }
 }

@@ -865,8 +865,6 @@ export:
 
 events:
     title: "Events"
-    heading: "Speed Puzzling Competitions & Events"
-    wjpc_hub_link: "Looking for the World Jigsaw Puzzle Championship (WJPC)? All editions, dates & results"
     meta:
         title: "Speed Puzzling Competitions & Events"
         description: "Worldwide calendar of speed puzzling competitions and events — dates, registration, puzzles, participants and results, in person and online."
@@ -883,13 +881,9 @@ events:
         event_detail_description_past_official: "%name% results: the official results round by round, plus the competition puzzles and participants. Speed puzzling competition held on %date% in %location%."
         event_detail_description_past_official_online: "%name% results: the official results round by round, plus the competition puzzles and participants. Online speed puzzling competition held on %date%."
         event_detail_description_past_official_no_location: "%name% results: the official results round by round, plus the competition puzzles and participants. Speed puzzling competition held on %date%."
-    live: "Happening right now"
-    upcoming: "Upcoming"
-    past: "Past events"
     website_link: "Info"
     results_link: "Official results"
     registration_link: "Register"
-    recurring: "Recurring events"
     competition_puzzles: "Competition puzzles"
     results_by_round: "Results by round"
     no_puzzle_text: No puzzles here… yet! Stay tuned
@@ -898,26 +892,6 @@ events:
     edition_date: "Date"
     no_editions_yet: "No editions yet."
     add_my_time: "Add my time from this event"
-    filter:
-        filters: "Filters"
-        time_period: "Time period"
-        all: "All"
-        upcoming: "Upcoming"
-        live: "Live"
-        past: "Past"
-        online_only: "Online only"
-        country: "Country"
-        all_countries: "All countries"
-    calendar:
-        show: "Show calendar"
-        hide: "Hide calendar"
-        prev_month: "Previous month"
-        next_month: "Next month"
-        clear_selection: "Clear selection"
-        no_events_on_day: "No events on this day."
-        events_count: "%count% event|%count% events"
-    more_info_for_organizers: "More info for organizers"
-    no_results: "No events found."
     no_participants_message: "No participants list available yet. Would you love to see how you compare with other competitors? Kindly ask the event organizer to upload the participants list — it makes the experience so much better for everyone!"
 
 # Events page - list (workstream A, docs/features/events-page/)
@@ -1130,6 +1104,8 @@ events_archive:
     heading: "Events in %year%"
     intro: "%count% event or edition|%count% events and editions"
     years: "Other years"
+    previous_year: "Earlier year: %year%"
+    next_year: "Later year: %year%"
     back: "Upcoming events"
 
 for_developers:
@@ -3846,7 +3822,6 @@ competition:
     add_event: "Add Event"
     edit_event: "Edit Event"
     edit: "Edit"
-    my_competitions: "My Competitions"
     pending_approval: "Pending approval"
     pending_approval_info: "This event is pending admin approval and is not yet visible to other users."
     rejected: "Rejected"
@@ -3854,8 +3829,6 @@ competition:
     rejection_reason: "Reason"
     online: "Online"
     recurring: "Recurring"
-    next_edition: "Next"
-    last_edition: "Last"
     add_event_info: "Add a new competition or event. It will be reviewed by an admin before being published."
     managed_event_info: "Interested in fully managing participant registrations and payments through MySpeedPuzzling? Contact me at <a href=\"mailto:%email%\">%email%</a>."
     submit_for_approval: "Submit for Approval"

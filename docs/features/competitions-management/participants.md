@@ -179,7 +179,7 @@ Live Component with inline editing, inspired by [Symfony UX inline edit demo](ht
 Each participant row can be edited inline (click ✏️ or click on the cell):
 
 - **Name** — text input
-- **Country** — Tom Select country autocomplete with flag icons, grouped by region (same `country-select` Stimulus controller used in Events listing, Marketplace, etc.). Wrapped in `data-live-ignore` to prevent TomSelect destruction on Live Component re-render.
+- **Country** — Tom Select country autocomplete with flag icons, grouped by region (same `country-select` Stimulus controller used in the Marketplace and elsewhere). Wrapped in `data-live-ignore` to prevent TomSelect destruction on Live Component re-render.
 - **External ID** — text input
 - **MSP Player** — inline search (min 2 characters, up to 10 results), with "clear" option to disconnect
 - **Rounds** — clickable round badges to toggle assignment. Updates `CompetitionParticipantRound` records.

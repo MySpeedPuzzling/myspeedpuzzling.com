@@ -1,25 +1,63 @@
 {% extends 'base.html.twig' %}
 
-{# One year of past events, route events_archive (owner: workstream D). Variables: archive (EventsArchivePage)
-   Foundation stub: H1 and the lines. #}
+{#
+    One year of past events, route events_archive (owner: workstream D, docs/features/events-page/README.md "SEO").
+    Variables: archive (EventsArchivePage). The same lines as the archive on the events page (events/_archive_line),
+    every year linked, no JavaScript needed.
+#}
 
 {% block title %}{{ 'events_archive.meta.title'|trans({'%year%': archive.year}) }}{% endblock %}
 
 {% block meta_description %}{{ 'events_archive.meta.description'|trans({'%year%': archive.year}) }}{% endblock %}
 
+{% block robots %}{{ include('events/_robots.html.twig') }}{% endblock %}
+
+{% block json_ld %}{{ parent() }}{{ include('events/_item_list_json_ld.html.twig', {urls: archive.itemListUrls}) }}{% endblock %}
+
 {% block content %}
-    <h1>{{ 'events_archive.heading'|trans({'%year%': archive.year}) }}</h1>
-    <p>{{ 'events_archive.intro'|trans({'%count%': archive.count}) }}</p>
-    <ul class="ev-lines">
-        {% for line in archive.lines %}
-            {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
-        {% endfor %}
-    </ul>
-    <nav>
-        <h2>{{ 'events_archive.years'|trans }}</h2>
-        {% for year in archive.years %}
-            <a href="{{ path('events_archive', {year: year}) }}" {{ year == archive.year ? 'aria-current="page"' }}>{{ year }}</a>
-        {% endfor %}
-    </nav>
-    <a href="{{ path('events') }}">{{ 'events_archive.back'|trans }}</a>
+    {% set position = archive.years|filter(y => y > archive.year)|length %}
+    {% set later_year = position > 0 ? archive.years[position - 1] : null %}
+    {% set earlier_year = archive.years[position + 1] ?? null %}
+
+    <div class="ev-archive">
+        {{ include('_breadcrumb.html.twig', {items: [
+            {label: 'events.title'|trans, url: path('events')},
+            {label: archive.year},
+        ]}) }}
+
+        <header class="ev-archive-head">
+            <h1 class="ev-archive-title">{{ 'events_archive.heading'|trans({'%year%': archive.year}) }}</h1>
+            <p class="ev-archive-intro">{{ 'events_archive.intro'|trans({'%count%': archive.count}) }}</p>
+        </header>
+
+        <nav class="ev-archive-years" aria-label="{{ 'events_archive.years'|trans }}">
+            <ul class="ev-archive-year-list">
+                {% for year in archive.years %}
+                    <li>
+                        {% if year == archive.year %}
+                            <a class="ev-archive-year" href="{{ path('events_archive', {year: year}) }}" aria-current="page">{{ year }}</a>
+                        {% else %}
+                            <a class="ev-archive-year" href="{{ path('events_archive', {year: year}) }}">{{ year }}</a>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+
+        <ul class="ev-lines ev-archive-lines">
+            {% for line in archive.lines %}
+                {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
+            {% endfor %}
+        </ul>
+
+        <div class="ev-archive-pager">
+            {% if earlier_year %}
+                <a class="ev-archive-step" href="{{ path('events_archive', {year: earlier_year}) }}" rel="prev" aria-label="{{ 'events_archive.previous_year'|trans({'%year%': earlier_year}) }}"><span aria-hidden="true">‹</span> {{ earlier_year }}</a>
+            {% endif %}
+            <a class="ev-archive-back" href="{{ path('events') }}">{{ 'events_archive.back'|trans }}</a>
+            {% if later_year %}
+                <a class="ev-archive-step" href="{{ path('events_archive', {year: later_year}) }}" rel="next" aria-label="{{ 'events_archive.next_year'|trans({'%year%': later_year}) }}">{{ later_year }} <span aria-hidden="true">›</span></a>
+            {% endif %}
+        </div>
+    </div>
 {% endblock %}

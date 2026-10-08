@@ -23,36 +23,18 @@ final class GetCompetitionSeriesTest extends KernelTestCase
         $this->query = self::getContainer()->get(GetCompetitionSeries::class);
     }
 
-    public function testAllApprovedReturnsNextEditionDate(): void
-    {
-        $series = $this->query->allApproved();
-
-        $found = null;
-        foreach ($series as $item) {
-            if ($item->id === CompetitionSeriesFixture::SERIES_EJJ) {
-                $found = $item;
-                break;
-            }
-        }
-
-        self::assertNotNull($found, 'EJJ series should be in approved list');
-        self::assertNotNull($found->nextEditionDate, 'Series with upcoming edition should have nextEditionDate');
-    }
-
-    public function testByIdDoesNotIncludeNextEditionDate(): void
+    public function testById(): void
     {
         $series = $this->query->byId(CompetitionSeriesFixture::SERIES_EJJ);
 
         self::assertSame(CompetitionSeriesFixture::SERIES_EJJ, $series->id);
-        self::assertNull($series->nextEditionDate);
     }
 
-    public function testBySlugDoesNotIncludeNextEditionDate(): void
+    public function testBySlug(): void
     {
         $series = $this->query->bySlug('euro-jigsaw-jam-series');
 
         self::assertSame(CompetitionSeriesFixture::SERIES_EJJ, $series->id);
-        self::assertNull($series->nextEditionDate);
     }
 
     public function testUpcomingEditionsOnlineReturnsRoundCount(): void
@@ -128,49 +110,5 @@ final class GetCompetitionSeriesTest extends KernelTestCase
         self::assertNotNull($upcoming[0]->dateFrom);
         self::assertSame($dateFrom->format('Y-m-d'), $upcoming[0]->dateFrom->format('Y-m-d'));
         self::assertFalse($upcoming[0]->isUndated());
-    }
-
-    public function testAllApprovedFiltersByCountry(): void
-    {
-        $czech = $this->query->allApproved(country: 'cz');
-
-        $ids = array_map(static fn($s) => $s->id, $czech);
-        self::assertContains(CompetitionSeriesFixture::SERIES_OFFLINE, $ids);
-        self::assertNotContains(CompetitionSeriesFixture::SERIES_PAST_ONLY, $ids, 'German series must not match a Czech country filter');
-        self::assertNotContains(CompetitionSeriesFixture::SERIES_EJJ, $ids, 'Online series without country must not match a country filter');
-    }
-
-    public function testAllApprovedCountryFilterIsCaseInsensitive(): void
-    {
-        $german = $this->query->allApproved(country: 'DE');
-
-        $ids = array_map(static fn($s) => $s->id, $german);
-        self::assertContains(CompetitionSeriesFixture::SERIES_PAST_ONLY, $ids);
-    }
-
-    public function testAllApprovedFiltersOnlineOnly(): void
-    {
-        $online = $this->query->allApproved(onlineOnly: true);
-
-        $ids = array_map(static fn($s) => $s->id, $online);
-        self::assertContains(CompetitionSeriesFixture::SERIES_EJJ, $ids);
-        self::assertNotContains(CompetitionSeriesFixture::SERIES_OFFLINE, $ids);
-    }
-
-    public function testAllApprovedIncludesOfflineSeries(): void
-    {
-        $all = $this->query->allApproved();
-
-        $offlineFound = false;
-        foreach ($all as $series) {
-            if ($series->id === CompetitionSeriesFixture::SERIES_OFFLINE) {
-                $offlineFound = true;
-                self::assertFalse($series->isOnline);
-                self::assertSame('Prague', $series->location);
-                break;
-            }
-        }
-
-        self::assertTrue($offlineFound, 'Offline series should be in approved list');
     }
 }

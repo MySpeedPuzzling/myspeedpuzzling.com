@@ -9,19 +9,108 @@ use DateTimeZone;
 
 /**
  * The days an occurrence (a one-time event or an edition) takes place on (docs/features/events-page/README.md,
- * "Dates"). Days are date-only values at 00:00 UTC.
+ * "Dates") - the one rule of the events page, its archive, the archive years in the sitemap and "You organize". Days
+ * are date-only values at 00:00 UTC.
  *
- * An edition is dated by its first round's start, else its date_from (else date_to) - the rule of the series page. A
- * round start is converted to the event's own zone before taking its day: an evening round in Toronto is that
- * evening's date, not the next UTC day. Its end is the later of date_to and the day of its last round, kept only when
- * after the start. A one-time event is dated by date_from/date_to.
+ * Rounds are grouped into sessions by their start day in their own zone (an evening round in Toronto is that evening's
+ * date, not the next UTC day): round days at most SESSION_GAP_DAYS apart are one session, so a Friday-Sunday
+ * championship stays one. Rounds on separate days - a monthly online competition inside one edition - are one dated
+ * occurrence per session (sessions()), each with its own days and status.
+ *
+ * One session (the common case) or no rounds: an edition is dated by its first round's day, else its date_from (else
+ * date_to); its end is the later of date_to and its last round's day, kept only when after the start. A one-time
+ * event is dated by date_from/date_to.
+ *
+ * Without rounds, a span over LONG_SPAN_DAYS is never live: while it runs it is ongoing (status()).
  */
 readonly final class OccurrenceDates
 {
+    // round days at most this far apart are one session
+    public const int SESSION_GAP_DAYS = 1;
+    // an occurrence without rounds running longer than this is ongoing, not live
+    public const int LONG_SPAN_DAYS = 31;
+
     public function __construct(
         public null|DateTimeImmutable $start,
         public null|DateTimeImmutable $end,
+        public bool $hasRounds = false,
+        // only when the occurrence has two or more sessions
+        public null|OccurrenceSession $session = null,
     ) {
+    }
+
+    /**
+     * Every dated occurrence of one competition: one, or one per session when its rounds fall on separate days.
+     *
+     * @param list<OccurrenceRound> $rounds
+     *
+     * @return non-empty-list<self>
+     */
+    public static function sessions(bool $isEdition, null|DateTimeImmutable $dateFrom, null|DateTimeImmutable $dateTo, array $rounds): array
+    {
+        $groups = self::roundGroups($rounds);
+
+        if (count($groups) >= 2) {
+            $sessions = [];
+
+            foreach ($groups as $index => $group) {
+                $first = $group[0];
+                $last = $group[count($group) - 1];
+
+                $sessions[] = new self(
+                    $first['day'],
+                    $last['day'] > $first['day'] ? $last['day'] : null,
+                    true,
+                    new OccurrenceSession(
+                        index: $index,
+                        count: count($groups),
+                        firstRoundId: $first['round']->id,
+                        label: count($group) === 1 ? $first['round']->name : null,
+                    ),
+                );
+            }
+
+            return $sessions;
+        }
+
+        if ($isEdition === false) {
+            $dates = self::ofEvent($dateFrom, $dateTo);
+
+            return [new self($dates->start, $dates->end, $rounds !== [])];
+        }
+
+        $group = $groups[0] ?? [];
+        $start = $group !== [] ? $group[0]['day'] : self::dayOf($dateFrom ?? $dateTo);
+
+        if ($start === null) {
+            return [new self(null, null, $rounds !== [])];
+        }
+
+        $end = self::dayOf($dateTo);
+
+        if ($group !== []) {
+            $lastRoundDay = $group[count($group) - 1]['day'];
+            $end = $end === null || $lastRoundDay > $end ? $lastRoundDay : $end;
+        }
+
+        return [new self($start, $end > $start ? $end : null, $rounds !== [])];
+    }
+
+    /**
+     * The one of an occurrence's sessions that stands for it where it is listed once ("You organize"): the first that
+     * is not over, else the last.
+     *
+     * @param non-empty-list<self> $sessions in date order
+     */
+    public static function current(array $sessions, DateTimeImmutable $today, bool $isEdition, bool $isOnline): self
+    {
+        foreach ($sessions as $session) {
+            if ($session->status($today, $isEdition, $isOnline) !== EventOccurrenceStatus::Past) {
+                return $session;
+            }
+        }
+
+        return $sessions[count($sessions) - 1];
     }
 
     public static function ofEvent(null|DateTimeImmutable $dateFrom, null|DateTimeImmutable $dateTo): self
@@ -30,34 +119,6 @@ readonly final class OccurrenceDates
         $end = self::dayOf($dateTo ?? $dateFrom);
 
         return new self($start, $start !== null && $end !== null && $end > $start ? $end : null);
-    }
-
-    /**
-     * @param string $zone RoundTimezone::resolve() of the first round's zone, the edition's and the series' country
-     */
-    public static function ofEdition(
-        null|DateTimeImmutable $firstRoundStartsAt,
-        null|DateTimeImmutable $lastRoundStartsAt,
-        string $zone,
-        null|DateTimeImmutable $dateFrom,
-        null|DateTimeImmutable $dateTo,
-    ): self {
-        $start = $firstRoundStartsAt !== null
-            ? self::localDay($firstRoundStartsAt, $zone)
-            : self::dayOf($dateFrom ?? $dateTo);
-
-        if ($start === null) {
-            return new self(null, null);
-        }
-
-        $end = self::dayOf($dateTo);
-
-        if ($lastRoundStartsAt !== null) {
-            $lastRoundDay = self::localDay($lastRoundStartsAt, $zone);
-            $end = $end === null || $lastRoundDay > $end ? $lastRoundDay : $end;
-        }
-
-        return new self($start, $end !== null && $end > $start ? $end : null);
     }
 
     /**
@@ -88,6 +149,18 @@ readonly final class OccurrenceDates
         return new DateTimeImmutable($now->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d'), new DateTimeZone('UTC'));
     }
 
+    /**
+     * Dated by date_from/date_to alone over more than LONG_SPAN_DAYS - "Atomic Clock", 14 months without a round
+     */
+    public function isLongSpanWithoutRounds(): bool
+    {
+        if ($this->hasRounds || $this->start === null || $this->end === null) {
+            return false;
+        }
+
+        return (int) $this->start->diff($this->end)->days > self::LONG_SPAN_DAYS;
+    }
+
     public function status(DateTimeImmutable $today, bool $isEdition, bool $isOnline): EventOccurrenceStatus
     {
         if ($this->start === null) {
@@ -104,6 +177,42 @@ readonly final class OccurrenceDates
             return EventOccurrenceStatus::Past;
         }
 
-        return $this->start <= $day ? EventOccurrenceStatus::Live : EventOccurrenceStatus::Upcoming;
+        if ($this->start > $day) {
+            return EventOccurrenceStatus::Upcoming;
+        }
+
+        return $this->isLongSpanWithoutRounds() ? EventOccurrenceStatus::Ongoing : EventOccurrenceStatus::Live;
+    }
+
+    /**
+     * The rounds grouped into sessions: by local start day, a new session after a gap of more than SESSION_GAP_DAYS.
+     *
+     * @param list<OccurrenceRound> $rounds
+     *
+     * @return list<non-empty-list<array{round: OccurrenceRound, day: DateTimeImmutable}>>
+     */
+    private static function roundGroups(array $rounds): array
+    {
+        $days = array_map(static fn (OccurrenceRound $round): array => ['round' => $round, 'day' => $round->localDay()], $rounds);
+
+        usort($days, static fn (array $a, array $b): int => $a['day'] <=> $b['day'] ?: $a['round']->startsAt <=> $b['round']->startsAt);
+
+        $groups = [];
+        $current = [];
+
+        foreach ($days as $item) {
+            if ($current !== [] && (int) $current[count($current) - 1]['day']->diff($item['day'])->days > self::SESSION_GAP_DAYS) {
+                $groups[] = $current;
+                $current = [];
+            }
+
+            $current[] = $item;
+        }
+
+        if ($current !== []) {
+            $groups[] = $current;
+        }
+
+        return $groups;
     }
 }

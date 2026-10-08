@@ -79,12 +79,38 @@ final class GetEventOccurrencesTest extends KernelTestCase
         self::assertSame(EventOccurrenceStatus::Upcoming, $session->status($this->today));
     }
 
+    /**
+     * Rounds a month or more apart: one occurrence per round day, in its own zone - 22:00 in New York is the next day
+     * in UTC
+     */
+    public function testAnEditionWithMonthlyRoundsIsOneOccurrencePerSession(): void
+    {
+        $sessions = array_values(array_filter(
+            $this->query->all(false),
+            static fn (EventOccurrence $occurrence): bool => $occurrence->competitionId === EventsPageFixture::EDITION_SPRINT_SEASON,
+        ));
+
+        self::assertCount(4, $sessions);
+        self::assertSame(
+            array_map(fn (int $days): string => $this->today->modify(sprintf('%+d days', $days))->format('Y-m-d'), array_values(EventsPageFixture::SPRINT_ROUND_DAYS)),
+            array_map(static fn (EventOccurrence $occurrence): string => (string) $occurrence->startDate?->format('Y-m-d'), $sessions),
+        );
+        self::assertSame(array_keys(EventsPageFixture::SPRINT_ROUND_DAYS), array_map(static fn (EventOccurrence $occurrence): string => (string) $occurrence->session?->firstRoundId, $sessions));
+        self::assertSame(['Sprint 1', 'Sprint 2', 'Sprint 3', 'Sprint 4'], array_map(static fn (EventOccurrence $occurrence): null|string => $occurrence->session?->label, $sessions));
+        self::assertSame(
+            [EventOccurrenceStatus::Past, EventOccurrenceStatus::Past, EventOccurrenceStatus::Upcoming, EventOccurrenceStatus::Upcoming],
+            array_map(fn (EventOccurrence $occurrence): EventOccurrenceStatus => $occurrence->status($this->today), $sessions),
+        );
+        self::assertNull($sessions[0]->endDate);
+        self::assertSame(4, $sessions[0]->roundCount);
+    }
+
     public function testStatuses(): void
     {
         $occurrences = $this->byId($this->query->all(false));
 
         $clock = $occurrences[EventsPageFixture::EDITION_CLOCK_LONG];
-        self::assertSame(EventOccurrenceStatus::Live, $clock->status($this->today));
+        self::assertSame(EventOccurrenceStatus::Ongoing, $clock->status($this->today), 'over a month without rounds');
         self::assertTrue($clock->isLongRunning());
         self::assertNull($clock->editionName(), 'named like its series');
 

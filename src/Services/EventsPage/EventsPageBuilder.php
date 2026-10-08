@@ -143,7 +143,7 @@ readonly final class EventsPageBuilder
         }
 
         // Agenda
-        $happeningNow = [];
+        $live = [];
         $upcoming = [];
         $tba = [];
         $ongoing = [];
@@ -151,7 +151,7 @@ readonly final class EventsPageBuilder
 
         foreach ($listed as $item) {
             match ($item['status']) {
-                EventOccurrenceStatus::Live => $happeningNow[] = $item,
+                EventOccurrenceStatus::Live => $live[] = $item,
                 EventOccurrenceStatus::Upcoming => $upcoming[] = $item,
                 EventOccurrenceStatus::Tba => $tba[] = $item,
                 EventOccurrenceStatus::Ongoing => $ongoing[] = $item,
@@ -222,12 +222,12 @@ readonly final class EventsPageBuilder
                 series: count(array_filter($series, static fn (EventSeriesRow $row): bool => $row->isPublic)),
             ),
             yourEvents: $this->yourEvents($listed, $viewer, $rowOf),
-            happeningNow: array_map(static fn (array $item): AgendaRow => $rowOf($item), $happeningNow),
+            live: array_map(static fn (array $item): AgendaRow => $rowOf($item), $live),
             months: $this->months($upcoming, $rowOf, $viewer, $scope, $day, $locale),
             tba: array_map(static fn (array $item): AgendaRow => $rowOf($item), $tba),
             seriesInPerson: array_values(array_filter($seriesLines, static fn (SeriesLine $line): bool => $line->isOnline === false)),
             seriesOnline: array_values(array_filter($seriesLines, static fn (SeriesLine $line): bool => $line->isOnline)),
-            ongoingOnline: array_map(static fn (array $item): AgendaRow => $rowOf($item), $ongoing),
+            ongoing: array_map(static fn (array $item): AgendaRow => $rowOf($item), $ongoing),
             archiveYears: $archiveYears,
             countryCounts: $countryCounts,
             chipCountries: $chipCountries,
@@ -239,7 +239,7 @@ readonly final class EventsPageBuilder
             scopeUpcoming: $scopeUpcoming,
             scopeLast: $scopeLast,
             index: $index,
-            itemListUrls: $this->itemListUrls([...$happeningNow, ...$upcoming, ...$tba]),
+            itemListUrls: $this->itemListUrls([...$live, ...$upcoming, ...$tba]),
             regions: $this->regions($countryCounts),
         );
     }
@@ -284,7 +284,7 @@ readonly final class EventsPageBuilder
                 continue;
             }
 
-            $url = $this->urls->occurrence($item['occurrence']);
+            $url = $this->urls->occurrencePage($item['occurrence']);
 
             if ($url !== null) {
                 $urls[] = $url;
@@ -295,7 +295,7 @@ readonly final class EventsPageBuilder
             year: $year,
             lines: $selected->lines,
             years: array_map(static fn (ArchiveYear $archiveYear): int => $archiveYear->year, $years),
-            itemListUrls: array_reverse($urls),
+            itemListUrls: array_values(array_unique(array_reverse($urls))),
             count: $selected->occurrenceCount(),
         );
     }
@@ -341,7 +341,7 @@ readonly final class EventsPageBuilder
             indexIds: [$indexId],
             isGroup: false,
             title: self::titleOf($occurrence),
-            editionName: $occurrence->editionName(),
+            editionName: $occurrence->subtitle(),
             url: $this->urls->occurrence($occurrence),
             leaf: new DateLeaf(
                 from: $occurrence->startDate,
@@ -350,7 +350,7 @@ readonly final class EventsPageBuilder
             ),
             place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
             tags: $this->tags($occurrence, $status, $going, $goingCounts[strtolower($occurrence->competitionId)] ?? 0, $now),
-            when: self::when($status, $occurrence->startDate, $longRunning, $day),
+            when: self::when($status, $occurrence->startDate, $day),
             sessions: [],
             status: $status,
             scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
@@ -434,10 +434,10 @@ readonly final class EventsPageBuilder
         };
     }
 
-    private static function when(EventOccurrenceStatus $status, null|DateTimeImmutable $start, bool $longRunning, DateTimeImmutable $day): null|WhenLabel
+    private static function when(EventOccurrenceStatus $status, null|DateTimeImmutable $start, DateTimeImmutable $day): null|WhenLabel
     {
         if ($status === EventOccurrenceStatus::Live) {
-            return new WhenLabel($longRunning ? WhenLabel::NOW : WhenLabel::HAPPENING_NOW, 0, false);
+            return new WhenLabel(WhenLabel::LIVE, 0, false);
         }
 
         if ($status !== EventOccurrenceStatus::Upcoming || $start === null) {
@@ -557,7 +557,7 @@ readonly final class EventsPageBuilder
                 indexId: $item['id'],
                 url: $this->urls->occurrence($occurrence),
                 date: $occurrence->startDate,
-                title: $occurrence->editionName() ?? $seriesName,
+                title: $occurrence->subtitle() ?? $seriesName,
             );
         }
 
@@ -582,7 +582,7 @@ readonly final class EventsPageBuilder
             leaf: new DateLeaf($first->startDate, null, self::tone($first->isOnline, EventOccurrenceStatus::Upcoming)),
             place: self::place($first->isOnline, $first->location, $first->countryCode, $locale),
             tags: $tags,
-            when: self::when(EventOccurrenceStatus::Upcoming, $first->startDate, false, $day),
+            when: self::when(EventOccurrenceStatus::Upcoming, $first->startDate, $day),
             sessions: $sessions,
             status: EventOccurrenceStatus::Upcoming,
             scopeKey: EventsScope::keyOf($first->isOnline, $first->countryCode),
@@ -611,14 +611,19 @@ readonly final class EventsPageBuilder
             $editions = $editionsBySeries[$row->id] ?? [];
             $next = null;
             $live = null;
+            $ongoing = null;
             $last = null;
+            // Sessions of one edition are one edition
+            $editionIds = [];
 
             foreach ($editions as $edition) {
                 $start = $edition['occurrence']->startDate;
+                $editionIds[$edition['occurrence']->competitionId] = true;
 
                 match ($edition['status']) {
                     EventOccurrenceStatus::Upcoming => $next = $next === null || $start < $next ? $start : $next,
                     EventOccurrenceStatus::Live => $live = $live === null || $start < $live ? $start : $live,
+                    EventOccurrenceStatus::Ongoing => $ongoing = $ongoing === null || $start < $ongoing ? $start : $ongoing,
                     EventOccurrenceStatus::Past => $last = $last === null || $start > $last ? $start : $last,
                     default => null,
                 };
@@ -627,6 +632,7 @@ readonly final class EventsPageBuilder
             $seriesNext = match (true) {
                 $next !== null => new SeriesNext(SeriesNext::NEXT, $next),
                 $live !== null => new SeriesNext(SeriesNext::LIVE, $live),
+                $ongoing !== null => new SeriesNext(SeriesNext::ONGOING, $ongoing),
                 $last !== null => new SeriesNext(SeriesNext::LAST, $last),
                 default => new SeriesNext(SeriesNext::NONE, null),
             };
@@ -640,7 +646,7 @@ readonly final class EventsPageBuilder
                 url: $this->urls->series($row->slug),
                 place: self::place($row->isOnline, $row->location, $row->countryCode, $locale),
                 isOnline: $row->isOnline,
-                editionCount: count($editions),
+                editionCount: count($editionIds),
                 next: $seriesNext,
                 followTarget: $followTarget,
                 following: $viewer !== null && $viewer->follows($followTarget),
@@ -652,7 +658,7 @@ readonly final class EventsPageBuilder
         }
 
         $rank = static fn (SeriesLine $line): int => match ($line->next->type) {
-            SeriesNext::LIVE, SeriesNext::NEXT => 0,
+            SeriesNext::LIVE, SeriesNext::NEXT, SeriesNext::ONGOING => 0,
             SeriesNext::LAST => 1,
             default => 2,
         };
@@ -779,7 +785,7 @@ readonly final class EventsPageBuilder
             place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
             scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
             visible: $scope->matches($occurrence->isOnline, $occurrence->countryCode),
-            editionName: $occurrence->editionName(),
+            editionName: $occurrence->subtitle(),
             year: (int) $start->format('Y'),
         );
     }
@@ -858,10 +864,11 @@ readonly final class EventsPageBuilder
     }
 
     /**
-     * Going (live, upcoming, TBA), followed one-time events (also ongoing ones) and the next live-or-upcoming edition of
-     * every followed series - public only, one row per occurrence (Going wins), by start, undated last.
+     * Going (live, upcoming, TBA, ongoing), followed one-time events (also ongoing ones) and the next live-or-upcoming
+     * edition of every followed series - public only, one row per competition (Going wins; of a competition with
+     * several sessions only the next one not over), by start, undated last.
      *
-     * @param list<ListedOccurrence> $listed
+     * @param list<ListedOccurrence> $listed in date order
      * @param callable(ListedOccurrence, null|string): AgendaRow $rowOf
      *
      * @return list<YourEvent>
@@ -880,12 +887,14 @@ readonly final class EventsPageBuilder
         foreach ($listed as $item) {
             $occurrence = $item['occurrence'];
             $status = $item['status'];
+            $notOver = $status->isComing() || $status === EventOccurrenceStatus::Ongoing;
 
-            if ($occurrence->isPublic === false) {
+            // The first session not over stands for its competition
+            if ($occurrence->isPublic === false || isset($picked[$occurrence->competitionId])) {
                 continue;
             }
 
-            if ($status->isComing() && $viewer->isGoing($occurrence->competitionId)) {
+            if ($notOver && $viewer->isGoing($occurrence->competitionId)) {
                 $picked[$occurrence->competitionId] = ['item' => $item, 'mark' => YourEvent::MARK_GOING];
 
                 continue;
@@ -893,7 +902,7 @@ readonly final class EventsPageBuilder
 
             if (
                 $occurrence->isEdition() === false
-                && ($status->isComing() || $status === EventOccurrenceStatus::Ongoing)
+                && $notOver
                 && $viewer->follows(FollowTarget::competition($occurrence->competitionId))
             ) {
                 $picked[$occurrence->competitionId] = ['item' => $item, 'mark' => YourEvent::MARK_FOLLOWING];
@@ -905,7 +914,7 @@ readonly final class EventsPageBuilder
 
             if (
                 $seriesId !== null
-                && ($status === EventOccurrenceStatus::Live || $status === EventOccurrenceStatus::Upcoming)
+                && $notOver
                 && $viewer->follows(FollowTarget::series($seriesId))
                 && (isset($nextOfSeries[$seriesId]) === false || $occurrence->startDate < $nextOfSeries[$seriesId]['occurrence']->startDate)
             ) {
@@ -1060,14 +1069,15 @@ readonly final class EventsPageBuilder
                 continue;
             }
 
-            $url = $this->urls->occurrence($item['occurrence']);
+            $url = $this->urls->occurrencePage($item['occurrence']);
 
             if ($url !== null) {
                 $urls[] = $url;
             }
         }
 
-        return $urls;
+        // Sessions of one event share its page
+        return array_values(array_unique($urls));
     }
 
     /**

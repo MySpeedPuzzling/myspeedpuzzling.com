@@ -1,6 +1,7 @@
-{# Series directory: in person, online, ongoing online (owner: workstream A). Variables: page; search_ids, scope_name.
-   Each line: name, place or Online, edition count, next/live/last date or "No dates yet", star + ⋯. "Ongoing online"
-   lists online one-time events without dates in the same compact form. #}
+{# Series directory: in person, online, ongoing (owner: workstream A). Variables: page; search_ids, scope_name.
+   Each line: name, place or Online, edition count, next/live/ongoing/last date or "No dates yet", star + ⋯. "Ongoing"
+   lists online one-time events without dates and, while they run, occurrences without rounds spanning more than a
+   month (OccurrenceDates::LONG_SPAN_DAYS) in the same compact form. #}
 {% set sid = search_ids ?? null %}
 {% set groups = [
     {key: 'in_person', title: 'events_page.series.in_person', lines: page.seriesInPerson},
@@ -10,7 +11,7 @@
 {% for group in groups %}
     {% set total_shown = total_shown + group.lines|filter(l => l.visible and (sid is null or l.indexId in sid))|length %}
 {% endfor %}
-{% set ongoing_shown = page.ongoingOnline|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
+{% set ongoing_shown = page.ongoing|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
 {% set total_shown = total_shown + ongoing_shown|length %}
 <section class="ev-block ev-series" aria-labelledby="ev-series-title" data-ev-section="series" {{ total_shown == 0 ? 'hidden' }}>
     <div class="ev-block-head">
@@ -37,7 +38,9 @@
                                 {%- if line.next.type == 'next' -%}
                                     {{ 'events_page.series.next'|trans({'%date%': line.next.date|events_date('MMMEd')}) }}
                                 {%- elseif line.next.type == 'live' -%}
-                                    {{ 'events_page.series.happening_now'|trans }}
+                                    <span class="live-dot" aria-hidden="true"></span>{{ 'events_page.series.live'|trans }}
+                                {%- elseif line.next.type == 'ongoing' -%}
+                                    {{ 'events_page.series.ongoing'|trans }}
                                 {%- elseif line.next.type == 'last' -%}
                                     {{ 'events_page.series.last'|trans({'%date%': line.next.date|events_date('yMMMd')}) }}
                                 {%- else -%}
@@ -58,17 +61,18 @@
         {% endif %}
     {% endfor %}
 
-    {% if page.ongoingOnline is not empty %}
+    {% if page.ongoing is not empty %}
         <div class="ev-series-group" data-ev-series-group="ongoing" {{ ongoing_shown is empty ? 'hidden' }}>
-            <h3 class="ev-subhead">{{ 'events_page.series.ongoing_online'|trans }} <span class="ev-subhead-n" data-ev-group-count>{{ ongoing_shown|length }}</span></h3>
+            <h3 class="ev-subhead">{{ 'events_page.series.ongoing_title'|trans }} <span class="ev-subhead-n" data-ev-group-count>{{ ongoing_shown|length }}</span></h3>
             <ul class="ev-series-lines">
-                {% for row in page.ongoingOnline %}
+                {% for row in page.ongoing %}
                     {% set shown = row.visible and (sid is null or row.indexIds|filter(i => i in sid)|length > 0) %}
                     <li class="ev-series-line ev-ongoing-line{{ row.isPending ? ' ev-row-pending' }}" data-ev-ids="{{ row.idsAttribute }}" data-ev-scope="{{ row.scopeKey }}" {{ shown ? '' : 'hidden' }}>
                         <div class="ev-series-main">
                             {% if row.url %}<a class="ev-series-name" href="{{ row.url }}">{{ row.title }}</a>{% else %}<span class="ev-series-name">{{ row.title }}</span>{% endif %}
-                            <span class="ev-series-sub">{{ 'events_page.series.no_fixed_dates'|trans }}</span>
-                            {#- Waiting for approval, registration, "N going" - an ongoing event takes registrations too -#}
+                            {#- A long span without rounds has its place and "Runs until …"; an online event without dates has neither -#}
+                            <span class="ev-series-sub">{{ row.from ? include('events/_place.html.twig', {place: row.place}) : 'events_page.series.no_fixed_dates'|trans }}</span>
+                            {#- Waiting for approval, registration, "Runs until …", "N going" - an ongoing event takes registrations too -#}
                             {{ include('events/_row_tags.html.twig', {tags: row.tags}) }}
                         </div>
                         <span class="ev-series-next ev-series-next-live">{{ 'events_page.series.ongoing'|trans }}</span>

@@ -14,9 +14,14 @@ use SpeedPuzzling\Web\Results\EventsPage\SeriesLine;
 use SpeedPuzzling\Web\Results\EventsPage\SeriesNext;
 use SpeedPuzzling\Web\Services\EventsPage\EventsIndexFactory;
 use SpeedPuzzling\Web\Services\EventsPage\EventsPageBuilder;
+use SpeedPuzzling\Web\Services\EventsPage\EventUrls;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
+use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
+use SpeedPuzzling\Web\Value\OccurrenceSession;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -89,6 +94,69 @@ final class EventsIndexFactoryTest extends TestCase
         self::assertSame('past', $entry['st']);
         self::assertTrue($entry['r']);
         self::assertSame('aero strasse puzzle cup soby dansko denmark 2025', $entry['x']);
+    }
+
+    public function testEverySessionOfACompetitionIsItsOwnEntryWithItsOwnId(): void
+    {
+        $competitionId = '018d0099-0000-0000-0000-000000000005';
+        $session = static fn (string $day, int $index, string $roundId, string $label): EventOccurrence => new EventOccurrence(
+            competitionId: $competitionId,
+            name: 'Virtual Competitions',
+            slug: 'virtual-competitions',
+            seriesId: '018d0099-0000-0000-0000-000000000006',
+            seriesName: 'Puzzle Racers',
+            seriesSlug: 'puzzle-racers',
+            countryCode: CountryCode::us,
+            isOnline: true,
+            startDate: new DateTimeImmutable($day, new DateTimeZone('UTC')),
+            roundCount: 2,
+            session: new OccurrenceSession($index, 2, $roundId, $label),
+        );
+
+        $september = $session('2026-09-16', 0, 'round-a', 'September 2026');
+        $october = $session('2026-10-21', 1, 'round-b', 'October 2026');
+
+        $entry = $this->factory()->occurrence(4, $october, EventOccurrenceStatus::Upcoming, '/s#round-round-b', EventsPageBuilder::place(true, null, CountryCode::us, 'en'), null, 'en');
+        self::assertSame('Virtual Competitions · October 2026', $entry['en']);
+        self::assertSame('virtual competitions puzzle racers october 2026 united states united states of america 2026 online', $entry['x']);
+
+        // Through the builder: two entries, two ids, the session's link and status each
+        $urlGenerator = new class implements UrlGeneratorInterface {
+            /**
+             * @param array<string, mixed> $parameters
+             */
+            public function generate(string $name, array $parameters = [], int $referenceType = self::ABSOLUTE_PATH): string
+            {
+                return '/' . $name;
+            }
+
+            public function setContext(RequestContext $context): void
+            {
+            }
+
+            public function getContext(): RequestContext
+            {
+                return new RequestContext();
+            }
+        };
+
+        $page = new EventsPageBuilder(new EventUrls($urlGenerator), $this->factory())->build(
+            [$september, $october],
+            [new EventSeriesRow('018d0099-0000-0000-0000-000000000006', 'Puzzle Racers', 'puzzle-racers', true, null, CountryCode::us)],
+            [],
+            null,
+            EventsScope::everywhere(),
+            new DateTimeImmutable('2026-10-07 10:00', new DateTimeZone('UTC')),
+            'en',
+            null,
+        );
+
+        $sessions = array_values(array_filter($page->index, static fn (array $entry): bool => $entry['k'] === 'd'));
+        self::assertSame([0, 1], array_column($sessions, 'id'));
+        self::assertSame(['past', 'upcoming'], array_column($sessions, 'st'));
+        self::assertSame(['/edition_detail#round-round-a', '/edition_detail#round-round-b'], array_column($sessions, 'u'));
+        self::assertSame([0], $page->archiveYears[0]->lines[0]->indexIds);
+        self::assertSame([1], $page->months[0]->rows[0]->indexIds);
     }
 
     public function testASeriesEntry(): void

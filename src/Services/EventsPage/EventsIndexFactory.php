@@ -16,13 +16,15 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The entries of the search and calendar index the events page ships (`<script type="application/json"
  * data-events-index>`, read by assets/events_index.js). One entry per occurrence shown on any view and per series
- * line; the position in the list is the entry's `id`. Keys are short on purpose:
+ * line; the position in the list is the entry's `id` - unique also for the sessions of one competition (rounds on
+ * separate days), which are separate entries. Keys are short on purpose:
  *
- * `id`, `k` (e = one-time event, d = edition, s = series), `n` (the event's or the series' name), `en` (an edition's
- * own name), `sid` (an edition's series entry), `u` (link), `f`/`t` (Y-m-d first and last day, `t` null for one day),
- * `lr` (long-running), `sc` (scope key: online / country code / ''), `c` (country code), `p` (place label), `st`
- * (EventOccurrenceStatus, null for a series), `r` (results), `w` (waiting for approval), `x` (folded search text:
- * names, location, the country's localised and English name, the year, "online").
+ * `id`, `k` (e = one-time event, d = edition, s = series), `n` (the event's or the series' name), `en` (the line under
+ * the name: an edition's own name, a session's label - EventOccurrence::subtitle()), `sid` (an edition's series
+ * entry), `u` (link), `f`/`t` (Y-m-d first and last day, `t` null for one day), `lr` (long-running), `sc`
+ * (scope key: online / country code / ''), `c` (country code), `p` (place label), `st` (EventOccurrenceStatus, null
+ * for a series), `r` (results), `w` (waiting for approval), `x` (folded search text: names, a session's label,
+ * location, the country's localised and English name, the year, "online").
  */
 readonly final class EventsIndexFactory
 {
@@ -51,7 +53,7 @@ readonly final class EventsIndexFactory
             'id' => $id,
             'k' => $isEdition ? 'd' : 'e',
             'n' => $name,
-            'en' => $occurrence->editionName(),
+            'en' => $occurrence->subtitle(),
             'sid' => $seriesIndexId,
             'u' => $url,
             'f' => $occurrence->startDate?->format('Y-m-d'),
@@ -66,6 +68,7 @@ readonly final class EventsIndexFactory
             'x' => self::searchText([
                 $occurrence->name,
                 $isEdition ? $occurrence->seriesName : null,
+                $occurrence->session?->label,
                 $occurrence->location,
                 $occurrence->countryCode?->localizedName($locale),
                 $occurrence->countryCode?->value,

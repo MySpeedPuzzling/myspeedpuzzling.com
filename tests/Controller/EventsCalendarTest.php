@@ -126,11 +126,12 @@ final class EventsCalendarTest extends WebTestCase
             self::assertNotNull($session['u']);
         }
 
-        // The long-running Clock Marathon edition is in the index as one entry, flagged for a bar
+        // The long-running Clock Marathon edition (no rounds: ongoing, not live) is in the index as one entry, flagged
+        // for a bar
         $clock = array_values(array_filter(self::index($crawler), static fn (array $entry): bool => $entry['n'] === EventsPageFixture::SERIES_CLOCK_MARATHON_NAME && $entry['k'] === 'd'));
         self::assertCount(1, $clock);
         self::assertTrue($clock[0]['lr']);
-        self::assertSame('live', $clock[0]['st']);
+        self::assertSame('ongoing', $clock[0]['st']);
     }
 
     public function testRowsTheCalendarClonesCarryTheirIds(): void

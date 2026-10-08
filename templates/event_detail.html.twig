@@ -164,7 +164,7 @@
                 <div class="d-flex flex-wrap align-items-center gap-1 mt-2" data-event-round-results>
                     <span class="small text-muted me-1"><i class="bi bi-trophy me-1"></i>{{ 'events.results_by_round'|trans }}</span>
                     {% for round in result_rounds %}
-                        <a class="btn btn-outline-primary btn-xs text-nowrap" href="{{ round_results_urls[round.id] }}">
+                        <a class="btn btn-outline-primary btn-xs text-nowrap event-round-anchor" id="round-{{ round.id }}" href="{{ round_results_urls[round.id] }}">
                             <span class="d-inline-block rounded-circle me-1 align-middle" style="width: .5rem; height: .5rem; background-color: {{ round.color }};" aria-hidden="true"></span>{{ round.name }}
                         </a>
                     {% endfor %}

@@ -44,7 +44,7 @@
     </div>
     <div class="ev-row-side">
         {% if row.when %}
-            <span class="ev-when{{ row.when.soon ? ' ev-when-soon' }}">{{ row.when.translationKey|trans({'%count%': row.when.days}) }}</span>
+            {{ include('events/_when.html.twig', {when: row.when}) }}
         {% endif %}
         {{ include('events/_row_actions.html.twig', {
             follow_target: row.followTarget,

@@ -9,12 +9,14 @@ use SpeedPuzzling\Web\Services\EventsPage\EventsPageBuilder;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\OccurrenceSession;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
  * One dated (or not yet dated) occurrence on the events page: a one-time event or an edition of a series
- * (docs/features/events-page/README.md). Dates are date-only values at 00:00 UTC (OccurrenceDates).
+ * (docs/features/events-page/README.md), or one session of one when its rounds fall on separate days (`session`). Dates
+ * are date-only values at 00:00 UTC (OccurrenceDates).
  */
 readonly final class EventOccurrence
 {
@@ -40,6 +42,8 @@ readonly final class EventOccurrence
         public null|string $registrationTimezone = null,
         public bool $hasResults = false,
         public bool $isPublic = true,
+        // one of several sessions (rounds on separate days, OccurrenceDates::sessions()); null for the common case
+        public null|OccurrenceSession $session = null,
     ) {
     }
 
@@ -50,7 +54,12 @@ readonly final class EventOccurrence
 
     public function status(DateTimeImmutable $today): EventOccurrenceStatus
     {
-        return new OccurrenceDates($this->startDate, $this->endDate)->status($today, $this->isEdition(), $this->isOnline);
+        return $this->dates()->status($today, $this->isEdition(), $this->isOnline);
+    }
+
+    public function dates(): OccurrenceDates
+    {
+        return new OccurrenceDates($this->startDate, $this->endDate, $this->roundCount > 0, $this->session);
     }
 
     public function isLongRunning(): bool
@@ -73,6 +82,32 @@ readonly final class EventOccurrence
         }
 
         return $this->name;
+    }
+
+    /**
+     * The line under the name: the edition's own name and the session's label (its round's name), as far as there
+     * are any - "Virtual Competitions · October 2026". A part repeating the name above it is left out.
+     */
+    public function subtitle(): null|string
+    {
+        $title = mb_strtolower(trim((string) ($this->isEdition() ? $this->seriesName : $this->name)));
+        $parts = [];
+
+        foreach ([$this->editionName(), $this->session?->label] as $part) {
+            if ($part === null || trim($part) === '' || mb_strtolower(trim($part)) === $title) {
+                continue;
+            }
+
+            foreach ($parts as $existing) {
+                if (mb_strtolower($existing) === mb_strtolower(trim($part))) {
+                    continue 2;
+                }
+            }
+
+            $parts[] = trim($part);
+        }
+
+        return $parts === [] ? null : implode(' · ', $parts);
     }
 
     /**

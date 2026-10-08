@@ -71,10 +71,12 @@ readonly final class OrganizedEvent
             return $this->lastEditionDate !== null ? OrganizerBadge::Past : OrganizerBadge::DateNotSet;
         }
 
-        $status = new OccurrenceDates($this->startDate, $this->endDate)->status($today, $this->kind === self::KIND_EDITION, $this->isOnline);
+        $status = new OccurrenceDates($this->startDate, $this->endDate, $this->roundCount > 0)->status($today, $this->kind === self::KIND_EDITION, $this->isOnline);
 
         return match ($status) {
             EventOccurrenceStatus::Live => OrganizerBadge::Live,
+            // A long span without rounds that is running - for its organiser it is live
+            EventOccurrenceStatus::Ongoing => $this->startDate !== null ? OrganizerBadge::Live : OrganizerBadge::DateNotSet,
             EventOccurrenceStatus::Upcoming => OrganizerBadge::Upcoming,
             EventOccurrenceStatus::Past => OrganizerBadge::Past,
             default => OrganizerBadge::DateNotSet,

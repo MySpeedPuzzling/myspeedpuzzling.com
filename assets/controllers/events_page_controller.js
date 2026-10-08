@@ -443,7 +443,7 @@ export default class extends Controller {
             }
         }
 
-        // Series directory and ongoing online
+        // Series directory and ongoing
         this.section('series', (section) => {
             let total = 0;
 

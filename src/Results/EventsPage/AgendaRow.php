@@ -8,7 +8,7 @@ use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\FollowTarget;
 
 /**
- * One row of the agenda (happening now, months, TBA, ongoing online, Your events): one occurrence, or a month roll-up
+ * One row of the agenda (Live, months, TBA, Ongoing, Your events): one occurrence (or session), or a month roll-up
  * of several editions of one series (`isGroup`, `sessions`).
  */
 readonly final class AgendaRow
@@ -23,7 +23,7 @@ readonly final class AgendaRow
         public bool $isGroup,
         // the event name; an edition's and a group's: the series name
         public string $title,
-        // an edition's own name (null when it equals the series name)
+        // the line under the name: an edition's own name and a session's label (EventOccurrence::subtitle())
         public null|string $editionName,
         public null|string $url,
         public DateLeaf $leaf,

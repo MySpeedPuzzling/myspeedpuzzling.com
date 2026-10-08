@@ -14,27 +14,15 @@ use SpeedPuzzling\Web\Results\OrganizedEvent;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
-use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
  * The items of "You organize" (docs/features/events-page/implementation-plan.md, 1.4) for the ids of
  * EventsViewerData::organizedCompetitionIds() / organizedSeriesIds(): two statements, waiting for approval and
- * rejected ones included. Dates follow the occurrence rule (OccurrenceDates).
+ * rejected ones included. Dates follow the occurrence rule (OccurrenceDates); of a competition whose rounds fall on
+ * separate days, the session not over yet (else the last) stands for it.
  */
 readonly final class GetOrganizedEvents
 {
-    private const string ROUNDS_JOIN = <<<SQL
-LEFT JOIN (
-    SELECT competition_id,
-        MIN(starts_at) AS first_starts_at,
-        MAX(starts_at) AS last_starts_at,
-        MIN(timezone) AS round_timezone,
-        COUNT(*) AS round_count
-    FROM competition_round
-    GROUP BY competition_id
-) r ON r.competition_id = c.id
-SQL;
-
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
@@ -66,7 +54,7 @@ SQL;
             return [];
         }
 
-        $rounds = self::ROUNDS_JOIN;
+        $rounds = OccurrenceRounds::SQL_JOIN;
 
         $query = <<<SQL
 SELECT c.id, c.name, c.slug, c.series_id, cs.name AS series_name, cs.slug AS series_slug,
@@ -74,7 +62,7 @@ SELECT c.id, c.name, c.slug, c.series_id, cs.name AS series_name, cs.slug AS ser
     COALESCE(c.location, cs.location) AS location,
     COALESCE(c.location_country_code, cs.location_country_code) AS country_code,
     c.location_country_code AS own_country_code, cs.location_country_code AS series_country_code,
-    c.date_from, c.date_to, r.first_starts_at, r.last_starts_at, r.round_timezone, COALESCE(r.round_count, 0) AS round_count,
+    c.date_from, c.date_to, r.rounds, COALESCE(r.round_count, 0) AS round_count,
     CASE WHEN c.series_id IS NULL THEN c.approved_at IS NOT NULL ELSE cs.approved_at IS NOT NULL END AS is_approved,
     (c.rejected_at IS NOT NULL OR cs.rejected_at IS NOT NULL) AS is_rejected,
     COALESCE(c.rejection_reason, cs.rejection_reason) AS rejection_reason
@@ -84,13 +72,15 @@ LEFT JOIN competition_series cs ON cs.id = c.series_id
 WHERE c.id IN (:ids)
 SQL;
 
+        $today = $this->clock->now();
         $items = [];
 
         /** @var array<string, null|string|int|bool> $row */
 
         foreach ($this->database->executeQuery($query, ['ids' => $ids], ['ids' => ArrayParameterType::STRING])->fetchAllAssociative() as $row) {
             $isEdition = $row['series_id'] !== null;
-            $dates = $this->dates($row, $isEdition);
+            // Rounds on separate days: the session that is next (or the last one) stands for the competition
+            $dates = OccurrenceDates::current($this->sessions($row, $isEdition), $today, $isEdition, (bool) $row['is_online']);
 
             $items[] = new OrganizedEvent(
                 kind: $isEdition ? OrganizedEvent::KIND_EDITION : OrganizedEvent::KIND_EVENT,
@@ -128,14 +118,14 @@ SQL;
             return [];
         }
 
-        $rounds = self::ROUNDS_JOIN;
+        $rounds = OccurrenceRounds::SQL_JOIN;
 
         $query = <<<SQL
 SELECT cs.id AS series_id, cs.name AS series_name, cs.slug AS series_slug, cs.is_online, cs.location,
     cs.location_country_code AS series_country_code,
     (cs.approved_at IS NOT NULL) AS is_approved, (cs.rejected_at IS NOT NULL) AS is_rejected, cs.rejection_reason,
     c.id AS edition_id, c.location_country_code AS own_country_code, c.date_from, c.date_to,
-    r.first_starts_at, r.last_starts_at, r.round_timezone
+    r.rounds, COALESCE(r.round_count, 0) AS round_count
 FROM competition_series cs
 LEFT JOIN competition c ON c.series_id = cs.id
 {$rounds}
@@ -157,19 +147,19 @@ SQL;
             }
 
             $series[$id]['count']++;
-            $dates = $this->dates($row, true);
-            $status = $dates->status($today, true, (bool) $row['is_online']);
 
-            if ($dates->start === null) {
-                continue;
-            }
-
-            if ($status === EventOccurrenceStatus::Past) {
-                if ($series[$id]['last'] === null || $dates->start > $series[$id]['last']) {
-                    $series[$id]['last'] = $dates->start;
+            foreach ($this->sessions($row, true) as $dates) {
+                if ($dates->start === null) {
+                    continue;
                 }
-            } elseif ($series[$id]['next'] === null || $dates->start < $series[$id]['next']) {
-                $series[$id]['next'] = $dates->start;
+
+                if ($dates->status($today, true, (bool) $row['is_online']) === EventOccurrenceStatus::Past) {
+                    if ($series[$id]['last'] === null || $dates->start > $series[$id]['last']) {
+                        $series[$id]['last'] = $dates->start;
+                    }
+                } elseif ($series[$id]['next'] === null || $dates->start < $series[$id]['next']) {
+                    $series[$id]['next'] = $dates->start;
+                }
             }
         }
 
@@ -203,19 +193,16 @@ SQL;
 
     /**
      * @param array<string, null|string|int|bool> $row
+     *
+     * @return non-empty-list<OccurrenceDates>
      */
-    private function dates(array $row, bool $isEdition): OccurrenceDates
+    private function sessions(array $row, bool $isEdition): array
     {
-        if ($isEdition === false) {
-            return OccurrenceDates::ofEvent(self::instant($row['date_from']), self::instant($row['date_to']));
-        }
-
-        return OccurrenceDates::ofEdition(
-            self::instant($row['first_starts_at']),
-            self::instant($row['last_starts_at']),
-            RoundTimezone::resolve(self::string($row['round_timezone']), self::string($row['own_country_code']), self::string($row['series_country_code'])),
+        return OccurrenceDates::sessions(
+            $isEdition,
             self::instant($row['date_from']),
             self::instant($row['date_to']),
+            OccurrenceRounds::fromJson($row['rounds'], self::string($row['own_country_code']), self::string($row['series_country_code'] ?? null)),
         );
     }
 

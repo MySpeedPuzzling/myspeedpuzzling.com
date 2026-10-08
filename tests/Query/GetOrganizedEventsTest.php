@@ -26,6 +26,7 @@ final class GetOrganizedEventsTest extends KernelTestCase
                 EventsPageFixture::COMPETITION_RIVERSIDE_OPEN,
                 EventsPageFixture::COMPETITION_VALLEY_CUP_LAST_YEAR,
                 EventsPageFixture::EDITION_CLOCK_LONG,
+                EventsPageFixture::EDITION_SPRINT_SEASON,
                 'not-a-uuid',
             ],
             [
@@ -34,6 +35,7 @@ final class GetOrganizedEventsTest extends KernelTestCase
                 EventsPageFixture::SERIES_OLD_MILL_REJECTED,
                 CompetitionSeriesFixture::SERIES_UNAPPROVED,
                 CompetitionSeriesFixture::SERIES_PAST_ONLY,
+                EventsPageFixture::SERIES_SPRINT_LEAGUE,
             ],
         ));
 
@@ -48,7 +50,17 @@ final class GetOrganizedEventsTest extends KernelTestCase
 
         $clock = $items[EventsPageFixture::EDITION_CLOCK_LONG];
         self::assertSame(OrganizedEvent::KIND_EDITION, $clock->kind);
-        self::assertSame(OrganizerBadge::Live, $clock->badge($today));
+        self::assertSame(OrganizerBadge::Live, $clock->badge($today), 'ongoing (no rounds) is live for its organiser');
+
+        // Rounds on separate days: the next session stands for the edition - between two, it is upcoming, not live
+        $sprint = $items[EventsPageFixture::EDITION_SPRINT_SEASON];
+        self::assertSame(OrganizerBadge::Upcoming, $sprint->badge($today));
+        self::assertSame($today->modify('+25 days')->format('Y-m-d'), $sprint->startDate?->format('Y-m-d'));
+        $sprintSeries = $items[EventsPageFixture::SERIES_SPRINT_LEAGUE];
+        self::assertSame(1, $sprintSeries->editionCount);
+        self::assertSame(OrganizerBadge::Upcoming, $sprintSeries->badge($today));
+        self::assertSame($today->modify('+25 days')->format('Y-m-d'), $sprintSeries->nextEditionDate?->format('Y-m-d'));
+        self::assertSame($today->modify('-30 days')->format('Y-m-d'), $sprintSeries->lastEditionDate?->format('Y-m-d'));
 
         $harbor = $items[EventsPageFixture::SERIES_HARBOR_NIGHTS];
         self::assertSame(OrganizedEvent::KIND_SERIES, $harbor->kind);

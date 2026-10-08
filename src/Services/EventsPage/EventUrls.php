@@ -18,7 +18,24 @@ readonly final class EventUrls
     ) {
     }
 
+    /**
+     * A session of several (rounds on separate days) links to its first round on the event page: `#round-<id>`.
+     */
     public function occurrence(EventOccurrence $occurrence): null|string
+    {
+        $url = $this->occurrencePage($occurrence);
+
+        if ($url === null || $occurrence->session === null) {
+            return $url;
+        }
+
+        return $url . '#round-' . $occurrence->session->firstRoundId;
+    }
+
+    /**
+     * The event's (or edition's) page itself - the same for every session (ItemList JSON-LD).
+     */
+    public function occurrencePage(EventOccurrence $occurrence): null|string
     {
         $reference = $occurrence->reference();
         $route = $reference->routeName();

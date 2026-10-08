@@ -25,6 +25,8 @@ use SpeedPuzzling\Web\Services\EventsPage\EventUrls;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
+use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\OccurrenceRound;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -79,9 +81,9 @@ final class EventsPageBuilderTest extends TestCase
             $this->edition('s1', 'Week C', '2026-10-20', series: 'Weekly Relay'),
         ], [$this->series('s1', 'Weekly Relay')]);
 
-        self::assertCount(2, $page->happeningNow);
-        self::assertFalse($page->happeningNow[0]->isGroup);
-        self::assertSame('Week A', $page->happeningNow[0]->editionName);
+        self::assertCount(2, $page->live);
+        self::assertFalse($page->live[0]->isGroup);
+        self::assertSame('Week A', $page->live[0]->editionName);
         self::assertCount(1, $page->months);
         self::assertFalse($page->months[0]->rows[0]->isGroup, 'one upcoming edition in the month stays a row');
     }
@@ -197,7 +199,7 @@ final class EventsPageBuilderTest extends TestCase
     {
         $page = $this->build([
             $this->event('Live', '2026-10-06', '2026-10-08'),
-            $this->event('Long', '2026-09-01', '2027-02-01'),
+            $this->event('Long', '2026-09-01', '2027-02-01', rounds: 2),
             $this->event('Tomorrow', '2026-10-08'),
             $this->event('Friday', '2026-10-09'),
             $this->event('Monday', '2026-10-12'),
@@ -209,13 +211,13 @@ final class EventsPageBuilderTest extends TestCase
 
         $when = [];
 
-        foreach ([...$page->happeningNow, ...array_merge(...array_map(static fn ($month): array => $month->rows, $page->months))] as $row) {
+        foreach ([...$page->live, ...array_merge(...array_map(static fn ($month): array => $month->rows, $page->months))] as $row) {
             $when[$row->title] = $row->when === null ? null : [$row->when->type, $row->when->days, $row->when->soon];
         }
 
         self::assertSame([
-            'Long' => [WhenLabel::NOW, 0, false],
-            'Live' => [WhenLabel::HAPPENING_NOW, 0, false],
+            'Long' => [WhenLabel::LIVE, 0, false],
+            'Live' => [WhenLabel::LIVE, 0, false],
             'Tomorrow' => [WhenLabel::TOMORROW, 1, true],
             'Friday' => [WhenLabel::THIS_WEEKEND, 2, true],
             'Monday' => [WhenLabel::IN_DAYS, 5, true],
@@ -278,7 +280,7 @@ final class EventsPageBuilderTest extends TestCase
     {
         $when = [];
 
-        foreach ([...$page->happeningNow, ...array_merge(...array_map(static fn ($month): array => $month->rows, $page->months))] as $row) {
+        foreach ([...$page->live, ...array_merge(...array_map(static fn ($month): array => $month->rows, $page->months))] as $row) {
             $when[$row->title] = $row->when === null ? null : [$row->when->type, $row->when->days, $row->when->soon];
         }
 
@@ -294,7 +296,8 @@ final class EventsPageBuilderTest extends TestCase
         $closed = $this->event('Closed', '2026-11-04', managed: true, closesAt: $now->modify('-1 day'));
         $external = $this->event('External', '2026-11-05', registrationLink: true);
         $goingThere = $this->event('Going There', '2026-11-06', registrationLink: true);
-        $longEdition = $this->edition('s1', 'Marathon', '2026-09-01', '2027-09-01', series: 'Marathon Series', public: false);
+        // With rounds - a long span without rounds is ongoing, not a live row
+        $longEdition = $this->edition('s1', 'Marathon', '2026-09-01', '2027-09-01', series: 'Marathon Series', public: false, rounds: 1);
 
         $page = $this->build(
             [$full, $notFull, $opens, $closed, $external, $goingThere, $longEdition],
@@ -337,7 +340,7 @@ final class EventsPageBuilderTest extends TestCase
 
         $rows = [];
 
-        foreach ($page->ongoingOnline as $row) {
+        foreach ($page->ongoing as $row) {
             $rows[$row->title] = $row;
         }
 
@@ -391,7 +394,8 @@ final class EventsPageBuilderTest extends TestCase
                 $this->edition('next', 'Undated', null, series: 'Next Later'),
                 $this->edition('soon', 'A', '2026-10-20', series: 'Next Sooner'),
                 $this->edition('soon', 'B', '2025-10-20', series: 'Next Sooner'),
-                $this->edition('live', 'A', '2026-10-01', '2026-12-01', series: 'Live Now'),
+                $this->edition('live', 'A', '2026-10-01', '2026-12-01', series: 'Live Now', rounds: 1),
+                $this->edition('ongoing', 'A', '2026-09-01', '2027-09-01', series: 'Ongoing Marathon'),
                 $this->edition('old', 'A', '2024-01-01', series: 'Last Old'),
                 $this->edition('recent', 'A', '2026-01-01', series: 'Last Recent'),
             ],
@@ -400,6 +404,7 @@ final class EventsPageBuilderTest extends TestCase
                 $this->series('next', 'Next Later'),
                 $this->series('soon', 'Next Sooner'),
                 $this->series('live', 'Live Now'),
+                $this->series('ongoing', 'Ongoing Marathon'),
                 $this->series('old', 'Last Old'),
                 $this->series('recent', 'Last Recent'),
                 $this->series('online', 'Online One', online: true),
@@ -408,6 +413,7 @@ final class EventsPageBuilderTest extends TestCase
 
         self::assertSame(
             [
+                ['Ongoing Marathon', SeriesNext::ONGOING, 1],
                 ['Live Now', SeriesNext::LIVE, 1],
                 ['Next Sooner', SeriesNext::NEXT, 2],
                 ['Next Later', SeriesNext::NEXT, 2],
@@ -418,13 +424,145 @@ final class EventsPageBuilderTest extends TestCase
             array_map(static fn (SeriesLine $line): array => [$line->name, $line->next->type, $line->editionCount], $page->seriesInPerson),
         );
         self::assertSame(['Online One'], array_map(static fn (SeriesLine $line): string => $line->name, $page->seriesOnline));
-        self::assertSame(7, $page->summary->series);
+        self::assertSame(8, $page->summary->series);
 
         // Series lines follow the occurrences in the index
         foreach ([...$page->seriesInPerson, ...$page->seriesOnline] as $line) {
             self::assertSame('s', $page->index[$line->indexId]['k']);
             self::assertSame($line->name, $page->index[$line->indexId]['n']);
         }
+    }
+
+    /**
+     * Prod, 2026-10: an edition with a round a month (one at 02:00 UTC = the evening before in New York) was one span
+     * from June to October, "live" all along. Each round day is a session of its own.
+     */
+    public function testRoundsOnSeparateDaysAreSessionsAndTheNextOneIsUpcoming(): void
+    {
+        $sessions = $this->editionSessions('vc', 'Virtual Competitions', ['2026-06-17 23:00', '2026-07-15 23:00', '2026-08-19 23:00', '2026-09-16 23:00', '2026-10-04 02:00', '2026-10-21 23:00'], series: 'Puzzle Racers');
+        $page = $this->build($sessions, [$this->series('vc', 'Puzzle Racers', online: true, country: CountryCode::us)]);
+
+        self::assertSame([], $page->live, 'nothing is on today');
+        self::assertCount(1, $page->months);
+        self::assertSame([2026, 10], [$page->months[0]->year, $page->months[0]->month]);
+        $row = $page->months[0]->rows[0];
+        self::assertFalse($row->isGroup);
+        self::assertSame('Puzzle Racers', $row->title);
+        self::assertSame('Virtual Competitions · Round 6', $row->editionName, 'a single-round session carries the round name');
+        self::assertSame('2026-10-21', $row->from);
+        self::assertSame('/series/puzzle-racers/virtual-competitions#round-' . $sessions[5]->session?->firstRoundId, $row->url);
+        self::assertSame([WhenLabel::IN_DAYS, 14], [$row->when?->type, $row->when?->days]);
+
+        // The series counts one edition, next on 21 Oct
+        $line = $page->seriesOnline[0];
+        self::assertSame(1, $line->editionCount);
+        self::assertSame(SeriesNext::NEXT, $line->next->type);
+        self::assertSame('2026-10-21', $line->next->date?->format('Y-m-d'));
+
+        // The five past sessions roll up in the archive; the newest is 3 Oct, the evening before 02:00 UTC
+        $archiveLine = $page->archiveYears[0]->lines[0];
+        self::assertSame(5, $archiveLine->editionCount);
+        self::assertSame('2026-06-17', $archiveLine->from->format('Y-m-d'));
+        self::assertSame('2026-10-03', $archiveLine->to?->format('Y-m-d'));
+
+        // One index entry per session, each its own status
+        $entries = array_values(array_filter($page->index, static fn (array $entry): bool => $entry['k'] === 'd'));
+        self::assertSame(['past', 'past', 'past', 'past', 'past', 'upcoming'], array_column($entries, 'st'));
+        self::assertSame('2026-10-03', $entries[4]['f']);
+        self::assertSame(['/series/puzzle-racers/virtual-competitions'], $page->itemListUrls, 'the page once, without a fragment');
+    }
+
+    public function testASessionIsLiveOnItsOwnDaysOnly(): void
+    {
+        $sessions = $this->editionSessions('vc', 'Virtual Competitions', ['2026-09-16 23:00', '2026-10-04 02:00', '2026-10-21 23:00'], series: 'Puzzle Racers');
+        $series = [$this->series('vc', 'Puzzle Racers', online: true, country: CountryCode::us)];
+
+        // 3 October (UTC) is the second session's day in New York
+        $onTheDay = $this->build($sessions, $series, today: '2026-10-03 12:00:00');
+        self::assertCount(1, $onTheDay->live);
+        self::assertSame('Virtual Competitions · Round 2', $onTheDay->live[0]->editionName);
+        self::assertSame(WhenLabel::LIVE, $onTheDay->live[0]->when?->type);
+        self::assertSame('2026-10-21', $onTheDay->months[0]->rows[0]->from, 'the next session is upcoming');
+
+        $dayAfter = $this->build($sessions, $series, today: '2026-10-04 12:00:00');
+        self::assertSame([], $dayAfter->live);
+        self::assertSame('2026-10-21', $dayAfter->months[0]->rows[0]->from);
+    }
+
+    public function testAFridayToSundayChampionshipStaysOneSession(): void
+    {
+        $sessions = $this->editionSessions('cz', 'Nationals 2026', ['2026-10-09 07:00', '2026-10-10 07:00', '2026-10-11 07:00'], series: 'Czech Nationals', online: false, zone: 'Europe/Prague');
+
+        self::assertCount(1, $sessions);
+        self::assertNull($sessions[0]->session);
+
+        $page = $this->build($sessions, [$this->series('cz', 'Czech Nationals')]);
+        $row = $page->months[0]->rows[0];
+
+        self::assertSame(['2026-10-09', '2026-10-11'], [$row->from, $row->to]);
+        self::assertSame('Nationals 2026', $row->editionName, 'no session label');
+        self::assertSame('/series/czech-nationals/nationals-2026', $row->url, 'no fragment');
+        self::assertSame(WhenLabel::THIS_WEEKEND, $row->when?->type);
+    }
+
+    public function testSessionsOfOneEditionInOneMonthAreOneRowWithAChipEach(): void
+    {
+        $sessions = $this->editionSessions('vc', 'Autumn Cup', ['2026-11-05 18:00', '2026-11-19 18:00'], series: 'Puzzle Racers');
+        $page = $this->build($sessions, [$this->series('vc', 'Puzzle Racers', online: true, country: CountryCode::us)]);
+
+        $row = $page->months[0]->rows[0];
+        self::assertTrue($row->isGroup);
+        self::assertSame(['Autumn Cup · Round 1', 'Autumn Cup · Round 2'], array_map(static fn ($session): string => $session->title, $row->sessions));
+        self::assertSame('/series/puzzle-racers/autumn-cup#round-' . $sessions[1]->session?->firstRoundId, $row->sessions[1]->url);
+        self::assertNotSame($row->sessions[0]->indexId, $row->sessions[1]->indexId);
+    }
+
+    public function testYourEventsShowOnlyTheNextSessionOfACompetition(): void
+    {
+        $sessions = $this->editionSessions('vc', 'Virtual Competitions', ['2026-09-16 23:00', '2026-10-04 02:00', '2026-10-21 23:00', '2026-11-18 23:00'], series: 'Puzzle Racers');
+        $series = [$this->series('vc', 'Puzzle Racers', online: true, country: CountryCode::us)];
+        $viewer = new EventsViewerData(goingCompetitionIds: [$sessions[0]->competitionId]);
+
+        $page = $this->build($sessions, $series, viewer: $viewer);
+        self::assertCount(1, $page->yourEvents);
+        self::assertSame('2026-10-21', $page->yourEvents[0]->row->from);
+        self::assertSame(YourEvent::MARK_GOING, $page->yourEvents[0]->mark);
+
+        $onTheDay = $this->build($sessions, $series, viewer: $viewer, today: '2026-10-03 12:00:00');
+        self::assertCount(1, $onTheDay->yourEvents);
+        self::assertSame('2026-10-03', $onTheDay->yourEvents[0]->row->from, 'the live session');
+
+        $following = $this->build($sessions, $series, viewer: new EventsViewerData(followedSeriesIds: ['vc']));
+        self::assertCount(1, $following->yourEvents);
+        self::assertSame(YourEvent::MARK_FOLLOWING, $following->yourEvents[0]->mark);
+    }
+
+    /**
+     * Prod, 2026-10: "Atomic Clock", 6 Oct 2026 to 7 Dec 2027 without a round, was "Happening now" for 14 months.
+     */
+    public function testALongSpanWithoutRoundsIsOngoingNotLive(): void
+    {
+        $atomic = $this->event('Atomic Clock', '2026-10-06', '2027-12-07');
+        $month = $this->event('Month Long', '2026-10-01', '2026-11-01');
+        $overAMonth = $this->event('Over A Month', '2026-10-01', '2026-11-02');
+        $withRounds = $this->event('League With Rounds', '2026-10-01', '2027-03-01', rounds: 1);
+        $coming = $this->event('Coming Marathon', '2026-11-10', '2027-05-01');
+
+        $page = $this->build([$atomic, $month, $overAMonth, $withRounds, $coming], [], viewer: new EventsViewerData(goingCompetitionIds: [$atomic->competitionId]));
+
+        self::assertSame(['Atomic Clock', 'Over A Month'], array_map(static fn (AgendaRow $row): string => $row->title, $page->ongoing));
+        self::assertSame(['League With Rounds', 'Month Long'], array_map(static fn (AgendaRow $row): string => $row->title, $page->live));
+        self::assertSame(['Coming Marathon'], array_map(static fn (AgendaRow $row): string => $row->title, $page->months[0]->rows), 'it is upcoming until it starts');
+
+        $row = $page->ongoing[0];
+        self::assertNull($row->when);
+        self::assertContains(RowTagType::RunsUntil, $this->tagTypes($row));
+        self::assertSame('2026-10-06', $row->from);
+
+        $entry = $page->index[$row->indexIds[0]];
+        self::assertSame(['ongoing', true, '2026-10-06', '2027-12-07'], [$entry['st'], $entry['lr'], $entry['f'], $entry['t']], 'the calendar draws its bar');
+        self::assertSame(['Atomic Clock'], array_map(static fn (YourEvent $event): string => $event->row->title, $page->yourEvents));
+        self::assertSame(3, $page->summary->upcomingDates, 'ongoing is not an upcoming date');
     }
 
     public function testItemListUrlsInAgendaOrder(): void
@@ -603,6 +741,7 @@ final class EventsPageBuilderTest extends TestCase
         null|int $capacity = null,
         null|DateTimeImmutable $opensAt = null,
         null|DateTimeImmutable $closesAt = null,
+        int $rounds = 0,
     ): EventOccurrence {
         return new EventOccurrence(
             competitionId: $this->nextId(),
@@ -617,6 +756,7 @@ final class EventsPageBuilderTest extends TestCase
             registrationManaged: $managed,
             capacity: $capacity,
             registrationOpensAt: $opensAt,
+            roundCount: $rounds,
             registrationClosesAt: $closesAt,
             hasResults: $resultsLink,
             isPublic: $public,
@@ -632,6 +772,7 @@ final class EventsPageBuilderTest extends TestCase
         bool $online = false,
         null|CountryCode $country = CountryCode::cz,
         bool $public = true,
+        int $rounds = 0,
     ): EventOccurrence {
         return new EventOccurrence(
             competitionId: $this->nextId(),
@@ -645,8 +786,43 @@ final class EventsPageBuilderTest extends TestCase
             isOnline: $online,
             startDate: self::day($from),
             endDate: self::day($to),
+            roundCount: $rounds,
             isPublic: $public,
         );
+    }
+
+    /**
+     * The occurrences GetEventOccurrences makes of one edition whose rounds start at $roundStarts (UTC instants, read in
+     * $zone): one per session.
+     *
+     * @param list<string> $roundStarts
+     *
+     * @return list<EventOccurrence>
+     */
+    private function editionSessions(string $seriesId, string $name, array $roundStarts, string $series = 'Series', bool $online = true, string $zone = 'America/New_York'): array
+    {
+        $competitionId = $this->nextId();
+        $rounds = [];
+
+        foreach ($roundStarts as $number => $startsAt) {
+            $rounds[] = new OccurrenceRound('r-' . $competitionId . '-' . ($number + 1), 'Round ' . ($number + 1), new DateTimeImmutable($startsAt, new DateTimeZone('UTC')), $zone);
+        }
+
+        return array_map(static fn (OccurrenceDates $dates): EventOccurrence => new EventOccurrence(
+            competitionId: $competitionId,
+            name: $name,
+            slug: strtolower(str_replace(' ', '-', $name)),
+            seriesId: $seriesId,
+            seriesName: $series,
+            seriesSlug: strtolower(str_replace(' ', '-', $series)),
+            countryCode: $online ? CountryCode::us : CountryCode::cz,
+            location: $online ? null : 'Town',
+            isOnline: $online,
+            startDate: $dates->start,
+            endDate: $dates->end,
+            roundCount: count($rounds),
+            session: $dates->session,
+        ), OccurrenceDates::sessions(true, null, null, $rounds));
     }
 
     private function series(string $id, string $name, bool $online = false, null|CountryCode $country = CountryCode::cz, bool $public = true): EventSeriesRow
@@ -689,7 +865,7 @@ final class EventsPageBuilderTest extends TestCase
     {
         $rows = [];
 
-        foreach ([...$page->happeningNow, ...array_merge(...array_map(static fn ($month): array => $month->rows, $page->months)), ...$page->tba] as $row) {
+        foreach ([...$page->live, ...array_merge(...array_map(static fn ($month): array => $month->rows, $page->months)), ...$page->tba] as $row) {
             $rows[$row->title] = $row;
         }
 

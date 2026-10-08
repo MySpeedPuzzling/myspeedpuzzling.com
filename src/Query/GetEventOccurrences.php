@@ -10,12 +10,12 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
-use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
  * Every occurrence of the events page in one statement (docs/features/events-page/implementation-plan.md, 1.4):
- * one-time events and editions together. Admins also get the ones waiting for approval (`isPublic` false); rejected
- * ones, and editions of a rejected series, nobody.
+ * one-time events and editions together, one per session when a competition's rounds fall on separate days
+ * (OccurrenceDates::sessions()). Admins also get the ones waiting for approval (`isPublic` false); rejected ones, and
+ * editions of a rejected series, nobody.
  */
 readonly final class GetEventOccurrences
 {
@@ -31,6 +31,7 @@ readonly final class GetEventOccurrences
     {
         $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
         $officialResults = GetPublishedRoundResults::sqlShowsOfficialResults('rr');
+        $rounds = OccurrenceRounds::SQL_JOIN;
         $where = $includeUnapproved
             ? 'c.rejected_at IS NULL AND (c.series_id IS NULL OR cs.rejected_at IS NULL)'
             : $visible;
@@ -51,9 +52,7 @@ SELECT
     CASE WHEN c.series_id IS NULL THEN c.is_online ELSE cs.is_online END AS is_online,
     c.date_from,
     c.date_to,
-    r.first_starts_at,
-    r.last_starts_at,
-    r.round_timezone,
+    r.rounds,
     COALESCE(r.round_count, 0) AS round_count,
     (c.registration_link IS NOT NULL AND c.registration_managed = false) AS has_registration_link,
     c.registration_managed,
@@ -73,15 +72,7 @@ SELECT
     ({$visible}) AS is_public
 FROM competition c
 LEFT JOIN competition_series cs ON cs.id = c.series_id
-LEFT JOIN (
-    SELECT competition_id,
-        MIN(starts_at) AS first_starts_at,
-        MAX(starts_at) AS last_starts_at,
-        MIN(timezone) AS round_timezone,
-        COUNT(*) AS round_count
-    FROM competition_round
-    GROUP BY competition_id
-) r ON r.competition_id = c.id
+{$rounds}
 WHERE {$where}
 SQL;
 
@@ -90,7 +81,7 @@ SQL;
         /** @var array<string, null|string|int|bool> $row */
 
         foreach ($this->database->executeQuery($query)->fetchAllAssociative() as $row) {
-            $occurrences[] = self::hydrate($row);
+            array_push($occurrences, ...self::hydrate($row));
         }
 
         usort($occurrences, static function (EventOccurrence $a, EventOccurrence $b): int {
@@ -106,28 +97,25 @@ SQL;
 
     /**
      * @param array<string, null|string|int|bool> $row
+     *
+     * @return non-empty-list<EventOccurrence>
      */
-    private static function hydrate(array $row): EventOccurrence
+    private static function hydrate(array $row): array
     {
         $isEdition = $row['series_id'] !== null;
         $ownCountry = self::nullableString($row['own_country_code']);
         $seriesCountry = self::nullableString($row['series_country_code']);
 
-        if ($isEdition) {
-            $dates = OccurrenceDates::ofEdition(
-                self::instant($row['first_starts_at']),
-                self::instant($row['last_starts_at']),
-                RoundTimezone::resolve(self::nullableString($row['round_timezone']), $ownCountry, $seriesCountry),
-                self::instant($row['date_from']),
-                self::instant($row['date_to']),
-            );
-        } else {
-            $dates = OccurrenceDates::ofEvent(self::instant($row['date_from']), self::instant($row['date_to']));
-        }
+        $sessions = OccurrenceDates::sessions(
+            $isEdition,
+            self::instant($row['date_from']),
+            self::instant($row['date_to']),
+            OccurrenceRounds::fromJson($row['rounds'], $ownCountry, $seriesCountry),
+        );
 
         $capacity = $row['capacity'];
 
-        return new EventOccurrence(
+        return array_map(static fn (OccurrenceDates $dates): EventOccurrence => new EventOccurrence(
             competitionId: (string) $row['id'],
             name: (string) $row['name'],
             slug: self::nullableString($row['slug']),
@@ -149,7 +137,8 @@ SQL;
             registrationTimezone: self::nullableString($row['registration_timezone']),
             hasResults: (bool) $row['has_results'],
             isPublic: (bool) $row['is_public'],
-        );
+            session: $dates->session,
+        ), $sessions);
     }
 
     private static function nullableString(mixed $value): null|string

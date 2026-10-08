@@ -34,6 +34,21 @@ final class EditCompetitionSeriesHandlerTest extends KernelTestCase
         self::assertSame('euro-jigsaw-jam-series', $series->slug);
     }
 
+    public function testWhoCanEnterAndWhenItHappensAreSaved(): void
+    {
+        $this->messageBus->dispatch($this->edit(name: 'Euro Jigsaw Jam', eligibility: '18+', schedule: 'Last Sunday of the month'));
+
+        $series = $this->series();
+        self::assertSame('18+', $series->eligibility);
+        self::assertSame('Last Sunday of the month', $series->schedule);
+
+        $this->messageBus->dispatch($this->edit(name: 'Euro Jigsaw Jam'));
+
+        $series = $this->series();
+        self::assertNull($series->eligibility);
+        self::assertNull($series->schedule);
+    }
+
     public function testAnExplicitSlugWins(): void
     {
         $this->messageBus->dispatch($this->edit(name: 'Euro Jigsaw Jam', slug: 'ejj'));
@@ -55,7 +70,7 @@ final class EditCompetitionSeriesHandlerTest extends KernelTestCase
         $this->messageBus->dispatch($this->edit(name: 'Euro Jigsaw Jam', slug: 'Not A Slug'));
     }
 
-    private function edit(string $name, null|string $slug = null): EditCompetitionSeries
+    private function edit(string $name, null|string $slug = null, null|string $eligibility = null, null|string $schedule = null): EditCompetitionSeries
     {
         $series = $this->series();
 
@@ -70,6 +85,8 @@ final class EditCompetitionSeriesHandlerTest extends KernelTestCase
             locationCountryCode: $series->locationCountryCode,
             logo: null,
             maintainerIds: [],
+            eligibility: $eligibility,
+            schedule: $schedule,
             slug: $slug,
         );
     }

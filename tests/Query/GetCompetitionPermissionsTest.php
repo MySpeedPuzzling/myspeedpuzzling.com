@@ -8,15 +8,20 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetCompetitionPermissions;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * GetCompetitionPermissions replaced a per-id maintainer query (edit voters) and
  * a per-id entity load (delete voters). Its answers are checked against both of
- * them for every player x competition/series combination.
+ * them for every player x competition/series combination - each extended with the
+ * organization rule (docs/features/organizations/README.md "Permissions": the team of
+ * an organization has the creator's rights on everything under it).
  */
 final class GetCompetitionPermissionsTest extends KernelTestCase
 {
@@ -125,6 +130,55 @@ final class GetCompetitionPermissionsTest extends KernelTestCase
         self::assertFalse($stripe->canEditSeries(CompetitionSeriesFixture::SERIES_OFFLINE));
     }
 
+    public function testTheTeamOfAnOrganizationManagesEverythingUnderIt(): void
+    {
+        $creator = $this->query()->forPlayer(PlayerFixture::PLAYER_WITH_STRIPE);
+        $maintainer = $this->query()->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $stranger = $this->query()->forPlayer(PlayerFixture::PLAYER_REGULAR);
+
+        // The organization itself: both edit it, only its creator deletes it
+        self::assertTrue($creator->canEditOrganization(OrganizationFixture::ORGANIZATION_RIVERBEND));
+        self::assertTrue($creator->canDeleteOrganization(OrganizationFixture::ORGANIZATION_RIVERBEND));
+        self::assertTrue($maintainer->canEditOrganization(OrganizationFixture::ORGANIZATION_RIVERBEND));
+        self::assertFalse($maintainer->canDeleteOrganization(OrganizationFixture::ORGANIZATION_RIVERBEND));
+        self::assertSame([OrganizationFixture::ORGANIZATION_RIVERBEND], array_values(array_intersect(
+            $maintainer->organizationIds(),
+            [OrganizationFixture::ORGANIZATION_RIVERBEND, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT],
+        )));
+
+        // Its series, their editions and its one-time events: edit + delete for both
+        foreach ([$creator, $maintainer] as $team) {
+            self::assertTrue($team->canEditSeries(OrganizationFixture::SERIES_LANTERN_NIGHTS));
+            self::assertTrue($team->canDeleteSeries(OrganizationFixture::SERIES_LANTERN_NIGHTS));
+            self::assertTrue($team->canEditCompetition(OrganizationFixture::EDITION_LANTERN_1));
+            self::assertTrue($team->canDeleteCompetition(OrganizationFixture::EDITION_LANTERN_DRAFT));
+            self::assertTrue($team->canEditCompetition(OrganizationFixture::COMPETITION_RIVERBEND_OPEN));
+            self::assertTrue($team->canDeleteCompetition(OrganizationFixture::COMPETITION_RIVERBEND_OPEN));
+            self::assertTrue($team->canEnterResults(OrganizationFixture::COMPETITION_RIVERBEND_OPEN));
+        }
+
+        // Somebody outside the team: nothing of it
+        self::assertFalse($stranger->canEditOrganization(OrganizationFixture::ORGANIZATION_RIVERBEND));
+        self::assertFalse($stranger->canEditSeries(OrganizationFixture::SERIES_LANTERN_NIGHTS));
+        self::assertFalse($stranger->canEditCompetition(OrganizationFixture::EDITION_LANTERN_1));
+        self::assertFalse($stranger->canEditCompetition(OrganizationFixture::COMPETITION_RIVERBEND_OPEN));
+        self::assertSame([], $stranger->organizationIds());
+
+        // The maintainer of Riverbend is no team member of the Harbor Puzzle Club
+        self::assertFalse($maintainer->canEditOrganization(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT));
+        self::assertFalse($maintainer->canEditSeries(OrganizationFixture::SERIES_HARBOR_CLUB_MEETS));
+    }
+
+    public function testOrganizationsCostNoExtraStatement(): void
+    {
+        $this->query()->reset();
+        $queries = $this->countQueries(function (): void {
+            $this->query()->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+        });
+
+        self::assertSame(1, $queries);
+    }
+
     public function testARefereeMayEnterResultsOfThatCompetitionAndNothingElse(): void
     {
         $this->connection->insert('competition_referee', [
@@ -169,6 +223,23 @@ final class GetCompetitionPermissionsTest extends KernelTestCase
         self::assertNotSame($first, $query->forPlayer(PlayerFixture::PLAYER_REGULAR));
     }
 
+    private function countQueries(callable $callback): int
+    {
+        $before = $this->executedQueries();
+        $callback();
+
+        return $this->executedQueries() - $before;
+    }
+
+    private function executedQueries(): int
+    {
+        /** @var DebugDataHolder $holder */
+        $holder = self::getContainer()->get('doctrine.debug_data_holder');
+        $queries = $holder->getData()['default'] ?? [];
+
+        return is_array($queries) ? count($queries) : 0;
+    }
+
     private function query(): GetCompetitionPermissions
     {
         /** @var GetCompetitionPermissions $query */
@@ -193,7 +264,26 @@ SELECT 1 FROM (
     SELECT csm.player_id FROM competition_series_maintainer csm INNER JOIN competition c ON c.series_id = csm.competition_series_id WHERE c.id = :competitionId AND csm.player_id = :playerId
 ) sub
 LIMIT 1
-SQL, ['competitionId' => $competitionId, 'playerId' => $playerId]) !== false;
+SQL, ['competitionId' => $competitionId, 'playerId' => $playerId]) !== false
+            || $this->isOnTeamOfCompetitionsOrganization($competitionId, $playerId);
+    }
+
+    /**
+     * The organization rule: a one-time event's own organization, an edition's series' - its creator or a maintainer
+     */
+    private function isOnTeamOfCompetitionsOrganization(string $competitionId, string $playerId): bool
+    {
+        $competition = self::getContainer()->get(CompetitionRepository::class)->get($competitionId);
+        $organization = $competition->organization ?? $competition->series?->organization;
+
+        return $organization !== null && $organization->isOnTeam(self::getContainer()->get(PlayerRepository::class)->get($playerId));
+    }
+
+    private function isOnTeamOfSeriesOrganization(string $seriesId, string $playerId): bool
+    {
+        $organization = self::getContainer()->get(CompetitionSeriesRepository::class)->get($seriesId)->organization;
+
+        return $organization !== null && $organization->isOnTeam(self::getContainer()->get(PlayerRepository::class)->get($playerId));
     }
 
     /**
@@ -208,7 +298,8 @@ SELECT 1 FROM (
     SELECT player_id FROM competition_series_maintainer WHERE competition_series_id = :seriesId AND player_id = :playerId
 ) sub
 LIMIT 1
-SQL, ['seriesId' => $seriesId, 'playerId' => $playerId]) !== false;
+SQL, ['seriesId' => $seriesId, 'playerId' => $playerId]) !== false
+            || $this->isOnTeamOfSeriesOrganization($seriesId, $playerId);
     }
 
     /**
@@ -219,6 +310,10 @@ SQL, ['seriesId' => $seriesId, 'playerId' => $playerId]) !== false;
         $competition = self::getContainer()->get(CompetitionRepository::class)->get($competitionId);
 
         if ($competition->addedByPlayer !== null && $competition->addedByPlayer->id->toString() === $playerId) {
+            return true;
+        }
+
+        if ($this->isOnTeamOfCompetitionsOrganization($competitionId, $playerId)) {
             return true;
         }
 
@@ -234,7 +329,7 @@ SQL, ['seriesId' => $seriesId, 'playerId' => $playerId]) !== false;
     {
         $series = self::getContainer()->get(CompetitionSeriesRepository::class)->get($seriesId);
 
-        return $series->addedByPlayer !== null
-            && $series->addedByPlayer->id->toString() === $playerId;
+        return ($series->addedByPlayer !== null && $series->addedByPlayer->id->toString() === $playerId)
+            || $this->isOnTeamOfSeriesOrganization($seriesId, $playerId);
     }
 }

@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddEdition;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
+use SpeedPuzzling\Web\Results\CompetitionSeriesOverview;
 use SpeedPuzzling\Web\Results\SeriesEdition;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -35,6 +38,69 @@ final class GetCompetitionSeriesTest extends KernelTestCase
         $series = $this->query->bySlug('euro-jigsaw-jam-series');
 
         self::assertSame(CompetitionSeriesFixture::SERIES_EJJ, $series->id);
+    }
+
+    /**
+     * docs/features/organizations/README.md: the series page's statement carries the organization (the "Organized by"
+     * byline), "Who can enter", "When it happens" and the draft flag
+     */
+    public function testTheSeriesPageReadsItsOrganizationAndExtras(): void
+    {
+        $lantern = $this->query->bySlug(OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG);
+
+        self::assertSame(OrganizationFixture::SERIES_LANTERN_NIGHTS, $lantern->id);
+        self::assertNotNull($lantern->organization);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $lantern->organization->id);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_NAME, $lantern->organization->name);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG, $lantern->organization->slug);
+        self::assertTrue($lantern->organization->isPublic);
+        self::assertSame('21+', $lantern->eligibility);
+        self::assertSame('First Monday of the month, 7 pm', $lantern->schedule);
+        self::assertFalse($lantern->isDraft);
+        self::assertTrue($lantern->isPubliclyVisible());
+        self::assertEquals($lantern, $this->query->byId(OrganizationFixture::SERIES_LANTERN_NIGHTS));
+
+        // A draft organization: the ref says it is not public
+        $harborMeets = $this->query->byId(OrganizationFixture::SERIES_HARBOR_CLUB_MEETS);
+        self::assertSame(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT, $harborMeets->organization?->id);
+        self::assertFalse($harborMeets->organization->isPublic);
+        self::assertTrue($harborMeets->isPubliclyVisible(), 'a draft organization never hides its series');
+
+        // Without an organization
+        $ejj = $this->query->byId(CompetitionSeriesFixture::SERIES_EJJ);
+        self::assertNull($ejj->organization);
+        self::assertNull($ejj->eligibility);
+        self::assertNull($ejj->schedule);
+    }
+
+    public function testADraftOrPendingSeriesIsNotPubliclyVisible(): void
+    {
+        $quietPines = $this->query->byId(OrganizationFixture::SERIES_QUIET_PINES_DRAFT);
+        self::assertTrue($quietPines->isDraft);
+        self::assertNotNull($quietPines->approvedAt);
+        self::assertFalse($quietPines->isPubliclyVisible());
+
+        self::assertFalse($this->query->byId(OrganizationFixture::SERIES_MAPLE_PENDING)->isPubliclyVisible());
+    }
+
+    /**
+     * The admin approval queue: waiting for approval and not a draft - a draft is submitted by publishing it
+     */
+    public function testTheApprovalQueueHasNoDrafts(): void
+    {
+        $ids = array_map(static fn (CompetitionSeriesOverview $series): string => $series->id, $this->query->allUnapproved());
+
+        self::assertContains(OrganizationFixture::SERIES_MAPLE_PENDING, $ids);
+        self::assertContains(CompetitionSeriesFixture::SERIES_UNAPPROVED, $ids);
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition_series SET is_draft = true WHERE id = :id',
+            ['id' => OrganizationFixture::SERIES_MAPLE_PENDING],
+        );
+
+        $ids = array_map(static fn (CompetitionSeriesOverview $series): string => $series->id, $this->query->allUnapproved());
+        self::assertNotContains(OrganizationFixture::SERIES_MAPLE_PENDING, $ids);
+        self::assertContains(CompetitionSeriesFixture::SERIES_UNAPPROVED, $ids);
     }
 
     public function testUpcomingEditionsOnlineReturnsRoundCount(): void

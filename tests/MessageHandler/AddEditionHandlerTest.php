@@ -7,6 +7,9 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
+use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
 use SpeedPuzzling\Web\Message\AddEdition;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
@@ -114,6 +117,68 @@ final class AddEditionHandlerTest extends KernelTestCase
         self::assertFalse($competition->isOnline);
         self::assertSame('Prague', $competition->location);
         self::assertSame('cz', $competition->locationCountryCode);
+    }
+
+    public function testWhoCanEnterAndDraftAreStored(): void
+    {
+        $competitionId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new AddEdition(
+            competitionId: $competitionId,
+            seriesId: CompetitionSeriesFixture::SERIES_EJJ,
+            name: 'EJJ Draft Edition',
+            dateFrom: $this->clock->now()->modify('+60 days'),
+            dateTo: $this->clock->now()->modify('+60 days'),
+            registrationLink: null,
+            resultsLink: null,
+            eligibility: ' 16+ ',
+            isDraft: true,
+        ));
+
+        $competition = $this->competitionRepository->get($competitionId->toString());
+
+        self::assertSame('16+', $competition->eligibility);
+        self::assertTrue($competition->isDraft);
+    }
+
+    public function testAnExplicitSlugIsKept(): void
+    {
+        $competitionId = Uuid::uuid7();
+
+        $this->messageBus->dispatch($this->editionWithSlug($competitionId, 'ejj-special'));
+
+        self::assertSame('ejj-special', $this->competitionRepository->get($competitionId->toString())->slug);
+    }
+
+    public function testAnExplicitSlugTakenInTheSeriesIsRefused(): void
+    {
+        $taken = $this->competitionRepository->get(CompetitionSeriesFixture::EDITION_EJJ_68)->slug;
+        self::assertNotNull($taken);
+
+        $this->expectException(CompetitionSlugTaken::class);
+
+        $this->messageBus->dispatch($this->editionWithSlug(Uuid::uuid7(), $taken));
+    }
+
+    public function testAnInvalidExplicitSlugIsRefused(): void
+    {
+        $this->expectException(InvalidCompetitionSlug::class);
+
+        $this->messageBus->dispatch($this->editionWithSlug(Uuid::uuid7(), 'Not A Slug'));
+    }
+
+    private function editionWithSlug(UuidInterface $competitionId, string $slug): AddEdition
+    {
+        return new AddEdition(
+            competitionId: $competitionId,
+            seriesId: CompetitionSeriesFixture::SERIES_EJJ,
+            name: 'EJJ Special',
+            dateFrom: $this->clock->now()->modify('+60 days'),
+            dateTo: $this->clock->now()->modify('+60 days'),
+            registrationLink: null,
+            resultsLink: null,
+            slug: $slug,
+        );
     }
 
     public function testEditionSlugIsUniqueWhenNameCollides(): void

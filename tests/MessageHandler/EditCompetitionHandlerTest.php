@@ -33,6 +33,15 @@ final class EditCompetitionHandlerTest extends KernelTestCase
         self::assertSame('unapproved-puzzle-event', $competition->slug);
     }
 
+    public function testWhoCanEnterIsSavedAndCleared(): void
+    {
+        $this->messageBus->dispatch($this->edit(name: 'Vienna Puzzle Days', eligibility: 'Residents of Vienna'));
+        self::assertSame('Residents of Vienna', $this->competition()->eligibility);
+
+        $this->messageBus->dispatch($this->edit(name: 'Vienna Puzzle Days'));
+        self::assertNull($this->competition()->eligibility);
+    }
+
     public function testAnExplicitSlugWins(): void
     {
         $this->messageBus->dispatch($this->edit(name: 'Vienna Puzzle Days', slug: 'vienna-2026'));
@@ -47,7 +56,7 @@ final class EditCompetitionHandlerTest extends KernelTestCase
         $this->messageBus->dispatch($this->edit(name: 'Unapproved Puzzle Event', slug: 'wjpc-2024'));
     }
 
-    private function edit(string $name, null|string $slug = null): EditCompetition
+    private function edit(string $name, null|string $slug = null, null|string $eligibility = null): EditCompetition
     {
         $competition = $this->competition();
 
@@ -66,6 +75,7 @@ final class EditCompetitionHandlerTest extends KernelTestCase
             isOnline: $competition->isOnline,
             logo: null,
             maintainerIds: [],
+            eligibility: $eligibility,
             slug: $slug,
         );
     }

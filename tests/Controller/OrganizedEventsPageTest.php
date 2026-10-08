@@ -90,11 +90,12 @@ final class OrganizedEventsPageTest extends WebTestCase
         $browser = self::createClient();
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
+        // A player who organises nothing else (PLAYER_WITH_FAVORITES is on organization teams - OrganizationFixture)
         $connection->insert('competition_maintainer', [
             'competition_id' => EventsPageFixture::EDITION_HARBOR_1,
-            'player_id' => PlayerFixture::PLAYER_WITH_FAVORITES,
+            'player_id' => PlayerFixture::PLAYER_PRIVATE,
         ]);
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
 
         $crawler = $browser->request('GET', '/en/events');
         self::assertSame('1', $crawler->filter('.ev-organize-button .ev-organize-count')->text());

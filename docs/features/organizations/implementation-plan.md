@@ -508,9 +508,9 @@ least 20 days ahead, past = last year). Made-up names.
 | `EDITION_VIRTUAL_PAST` (07) / `EDITION_VIRTUAL_NEXT` (08) | 15 June last year / +30 days | Past, Coming up |
 | `COMPETITION_RIVERBEND_OPEN` (09) "Riverbend Spring Open" | one-time, in person, `us`, +60..+61 days, approved, org RIVERBEND, eligibility "Residents of Riverbend Valley" | one-time card, byline, eligibility tag |
 | `COMPETITION_DRAFT_NIGHT` (10) "Birchwood Puzzle Draft Night" | one-time, in person, `cz`, +25 days, approved, **draft**, no org, created by PLAYER_WITH_STRIPE | draft one-time event (would be public when published) |
-| `ROUND_DRAFT_NIGHT` (11) + `ROUND_PUZZLE_DRAFT_NIGHT` (12) | a solo round on it with `PUZZLE_1000_03` (not used by another round) | the puzzle page must not name the draft |
+| `ROUND_DRAFT_NIGHT` (11) + `ROUND_PUZZLE_DRAFT_NIGHT` (12) | a solo round on it with `PUZZLE_3000` (no other round and no round test uses it - see "Foundation deviations") | the puzzle page must not name the draft |
 | `SERIES_QUIET_PINES_DRAFT` (13) "Quiet Pines Puzzle Series" | in person, `de`, approved, **draft**, created by PLAYER_WITH_STRIPE; `EDITION_QUIET_PINES_1` (14) +27 days (not a draft itself) | editions of a draft series |
-| `ORGANIZATION_HARBOR_CLUB_DRAFT` (15) "Harbor Puzzle Club" | club, `gb`, approved, **draft**, created by PLAYER_WITH_STRIPE; `SERIES_HARBOR_CLUB_MEETS` (16) "Harbor Club Meets" (approved, published, org = it, `gb`) with `EDITION_HARBOR_CLUB_1` (17) +33 days | a draft organization hides only itself |
+| `ORGANIZATION_HARBOR_CLUB_DRAFT` (15) "Harbor Puzzle Club" | club, `ie`, approved, **draft**, created by PLAYER_WITH_STRIPE; `SERIES_HARBOR_CLUB_MEETS` (16) "Harbor Club Meets" (approved, published, org = it, `ie`) with `EDITION_HARBOR_CLUB_1` (17) +33 days | a draft organization hides only itself |
 | `ORGANIZATION_MAPLE_PENDING` (18) "Maple Leaf Puzzlers" | community, `ca`, **pending**, created by PLAYER_WITH_FAVORITES; `SERIES_MAPLE_PENDING` (19) pending, org = it, one edition (20) +40 days | approval queue; P2 cascade |
 | `ORGANIZATION_CEDAR_PENDING_DRAFT` (21) "Cedar Grove Puzzle Guild" | pending **and draft**, created by PLAYER_WITH_FAVORITES | never in the queue |
 | `COMPETITION_WILLOW_PENDING_DRAFT` (22) "Willow Creek Draft Cup" | one-time, `at`, +45 days, pending **and draft**, created by PLAYER_WITH_STRIPE | not in the queue, not on the admin events page |
@@ -582,6 +582,46 @@ official results", `blocker.solving_times` "solving times are linked to it"). In
 Foundation done = gates green, the existing pages unchanged apart from the documented test-count changes, the skeleton
 routes answer, one commit on `feature/organizations` ("Organizations and drafts: foundation - data, visibility,
 permissions, messages, read models, skeletons").
+
+### Foundation deviations (what the foundation built differently from the text above - binding for A-D)
+
+- **Fixtures**: the Harbor Puzzle Club, its series and edition are in `ie`, not `gb` (PLAYER_WITH_STRIPE's home country
+  `gb` must keep nothing planned - `EventsListUiTest`); `ROUND_PUZZLE_DRAFT_NIGHT` uses `PUZZLE_3000`, not
+  `PUZZLE_1000_03` (`SecretPuzzleSafeguardsTest` needs `PUZZLE_1000_03` in no round). Both are corrected in 1.14 and B's
+  canary list. The Riverbend series and the Spring Open are created by PLAYER_WITH_STRIPE; approvals are by PLAYER_ADMIN.
+  `EDITION_MAPLE_PENDING_1` is a named constant; every name/slug constant is in `OrganizationFixture` and `.claude/fixtures.md`.
+- **Validators**: `organization_fields.social_links_too_many` is "Add at most {{ limit }} links." - the `Count` constraint's
+  placeholder (`%limit%` would never be replaced).
+- **Extra keys in the foundation blocks**: `organization.menu.edit` ("Edit organization", the minimal ⋯ branch) and
+  `organization.directory_title` ("Organizations", the directory skeleton).
+- **`CannotUnpublishMessage`** (`src/Services/Drafts/`) builds the `drafts_core.flash.cannot_unpublish` text from a
+  `CannotUnpublish` - the unpublish controllers use it; C reuses it for the inline "You organize" refusal.
+- **`OrganizedEvent`** also has `seriesCount`, `eventCount` (organization rows) and `isOrganization()`; `reference()` of an
+  organization is its name only (C links `organization_detail`). `badge()`: Rejected first, then Draft, then Waiting for
+  approval; an approved, published organization answers `DateNotSet` (C decides what an organization row shows).
+  `GetOrganizedEvents::byIds()` returns organizations first. `OrganizedEventsController` (C's) got the `Draft` arm in its
+  rank `match` (PHPStan) - order Rejected, Draft, Waiting, Live, Upcoming, Date not set, Past.
+- **`EventsViewerData::organizedCount()`**: "not under one of them" = not under one of the viewer's own organizations
+  (an item under somebody else's organization counts on its own).
+- **`OrganizationApprovalPolicy::approveIfUnderTrustedOrganization()`** also tells the official results of an item that is
+  public after the approval (as approving does); nothing for a draft (publishing tells them).
+- **Publish handlers** are no-ops for an item that is not a draft (no second admin e-mail). Publish/unpublish/delete
+  controllers answer a wrong CSRF token with 403, like the delete controllers. `ApproveOrganizationController` treats a
+  second approve (`OrganizationNotApprovable`) as done (redirect, no flash). The "approved" e-mail of an organization links
+  `organization_detail` in the creator's locale.
+- **`AddEditions`** slugs: unique through `CompetitionSlugGenerator::isTaken($slug, $seriesId)` (the series' editions and
+  standalone events - the rule explicit edition slugs follow) and within the batch, suffix `-2`, `-3`; an unsluggable name
+  falls back to `edition`. Editions get no `createdAt`/`addedByPlayer` (as `AddEdition`).
+- **Creators are never maintainer rows**: `AddOrganization` / `EditOrganization` skip the creator's id in the team list
+  (like `AddOrganizationMaintainer`).
+- **Edition page**: the series' draft flag comes from `CompetitionSeriesOverview::$isDraft` (the entity's `series` is a
+  lazy proxy - reading it cost a statement, `DetailPagesQueryBudgetTest`). The series page's `$canManage` also feeds
+  `show_menu`.
+- **`UnpublishCompetitionSeries`** is not detected by `SerializedByLockMessagesTest` (its handler touches no participant
+  model), so it is not listed in `NOT_LOCKED`; `UnpublishCompetition`'s lock key is pinned there.
+- **Existing tests changed by the fixtures**: see the foundation commit message (UnfollowCompetitionHandlerTest,
+  OrganizedEventsPageTest, GetEventsViewerDataTest, GetAdminQueueCountsTest, GetCompetitionPermissionsTest,
+  BlocklistQueryCoverageTest, SuspiciousTimeQueryCoverageTest).
 
 ## 2. Workstreams (parallel, after the foundation commit)
 
@@ -749,7 +789,7 @@ bullets 1-2 hold; budgets pinned; works at 360 px (cards one column, header acti
       lists names) × ORGANIZATION_HARBOR_CLUB_DRAFT; `sitemap-events.xml` × all of them; API v1 `GET /api/v1/competitions` and `/api/v1/competitions/{id}` (OAuth2 client
       credentials, `OAuth2TestHelper`) × COMPETITION_DRAFT_NIGHT; the add-time form's competition picker (`puzzle_add`
       HTML) and `?competition=<id>` pre-selection × COMPETITION_DRAFT_NIGHT and EDITION_LANTERN_DRAFT; the puzzle page of
-      `PUZZLE_1000_03` (its "used at" / tags) × COMPETITION_DRAFT_NIGHT; the marketplace event select × COMPETITION_DRAFT_NIGHT;
+      `PUZZLE_3000` (its "used at" / tags) × COMPETITION_DRAFT_NIGHT; the marketplace event select × COMPETITION_DRAFT_NIGHT;
       the players page's upcoming count. Plus direct checks: the item pages answer 404 to a guest and to PLAYER_REGULAR,
       200 to the team and admins with `noindex`; follow, join and API time POST on a draft are refused; the approval queue
       and the admin badge never list WILLOW / CEDAR. **Comment at the top: "Add every new event-listing surface here."**

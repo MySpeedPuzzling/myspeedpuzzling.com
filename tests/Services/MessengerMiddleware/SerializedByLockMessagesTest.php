@@ -66,6 +66,7 @@ use SpeedPuzzling\Web\Message\MarkParticipantPaid;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
 use SpeedPuzzling\Web\Message\UndoParticipantCheckIn;
 use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
+use SpeedPuzzling\Web\Message\UnpublishCompetition;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\ComparisonKind;
@@ -154,6 +155,8 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new UndoParticipantCheckIn($competitionId, $participantId))->lockKey());
         self::assertSame($key, (new ChangeCompetitionRegistrationSettings($competitionId, true, 10, null, null, 'Europe/Prague', null, null))->lockKey());
         self::assertSame($key, (new ApplyParticipantSheetChanges($competitionId, 'player', null, [], dryRun: true))->lockKey());
+        // Back to draft only while nobody joined - a join waits for the check (docs/features/organizations/README.md)
+        self::assertSame($key, (new UnpublishCompetition($competitionId))->lockKey());
     }
 
     /**

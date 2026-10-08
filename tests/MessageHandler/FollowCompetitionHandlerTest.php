@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\FollowCompetition;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -42,6 +43,21 @@ final class FollowCompetitionHandlerTest extends KernelTestCase
         self::assertSame(1, $this->follows(PlayerFixture::PLAYER_ADMIN, 'series_id', EventsPageFixture::SERIES_SUMMIT_LEAGUE));
     }
 
+    public function testFollowsAnOrganization(): void
+    {
+        $this->messageBus->dispatch(new FollowCompetition(PlayerFixture::PLAYER_ADMIN, 'organization:' . OrganizationFixture::ORGANIZATION_RIVERBEND));
+
+        self::assertSame(1, $this->follows(PlayerFixture::PLAYER_ADMIN, 'organization_id', OrganizationFixture::ORGANIZATION_RIVERBEND));
+    }
+
+    public function testFollowingAnOrganizationTwiceKeepsOneRow(): void
+    {
+        // PLAYER_REGULAR already follows Riverbend (fixture)
+        $this->messageBus->dispatch(new FollowCompetition(PlayerFixture::PLAYER_REGULAR, 'organization:' . OrganizationFixture::ORGANIZATION_RIVERBEND));
+
+        self::assertSame(1, $this->follows(PlayerFixture::PLAYER_REGULAR, 'organization_id', OrganizationFixture::ORGANIZATION_RIVERBEND));
+    }
+
     public function testFollowingTwiceKeepsOneRow(): void
     {
         // PLAYER_REGULAR already follows Harbor Jigsaw Nights (fixture)
@@ -64,6 +80,12 @@ final class FollowCompetitionHandlerTest extends KernelTestCase
         yield 'an unknown id' => ['competition:018d0040-0000-0000-0000-0000000000ff'];
         yield 'a malformed target' => ['competition:not-a-uuid'];
         yield 'an unknown kind' => ['player:' . PlayerFixture::PLAYER_REGULAR];
+        yield 'a draft organization' => ['organization:' . OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT];
+        yield 'an organization waiting for approval' => ['organization:' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING];
+        yield 'an organization waiting for approval and a draft' => ['organization:' . OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT];
+        yield 'an unknown organization' => ['organization:018d0042-0000-0000-0000-0000000000ff'];
+        yield 'a draft series' => ['series:' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT];
+        yield 'a draft event' => ['competition:' . OrganizationFixture::COMPETITION_DRAFT_NIGHT];
     }
 
     #[DataProvider('provideUnavailableTargets')]

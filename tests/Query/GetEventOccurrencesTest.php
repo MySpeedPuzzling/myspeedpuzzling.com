@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -238,6 +239,205 @@ final class GetEventOccurrencesTest extends KernelTestCase
 
         self::assertNull($occurrences[EventsPageFixture::COMPETITION_RIVERSIDE_OPEN]->registrationLink);
         self::assertSame('https://example.com/meadow/register?utm_source=myspeedpuzzling', $occurrences[EventsPageFixture::COMPETITION_MEADOW_TBA]->registrationLink);
+    }
+
+    /**
+     * docs/features/organizations/README.md: every row carries its organization (a one-time event's own, an edition's
+     * series'), its "Who can enter" (own, else the series') and whether it is hidden as a draft
+     */
+    public function testEveryRowCarriesItsOrganizationEligibilityAndDraftState(): void
+    {
+        $occurrences = $this->byId($this->query->all(false));
+
+        $lantern = $occurrences[OrganizationFixture::EDITION_LANTERN_1];
+        self::assertNotNull($lantern->organization);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $lantern->organization->id);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_NAME, $lantern->organization->name);
+        self::assertSame('RJA', $lantern->organization->shortName);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG, $lantern->organization->slug);
+        self::assertTrue($lantern->organization->isPublic);
+        self::assertSame('21+', $lantern->eligibility, 'the series\' eligibility');
+        self::assertFalse($lantern->isDraft);
+
+        $open = $occurrences[OrganizationFixture::COMPETITION_RIVERBEND_OPEN];
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $open->organization?->id, 'a one-time event\'s own organization');
+        self::assertSame('Residents of Riverbend Valley', $open->eligibility);
+
+        self::assertSame('Residents of Riverbend Valley', $occurrences[OrganizationFixture::EDITION_VIRTUAL_NEXT]->eligibility);
+
+        // A draft organization never hides its series: the edition is public, its organization is not
+        $harborMeet = $occurrences[OrganizationFixture::EDITION_HARBOR_CLUB_1];
+        self::assertTrue($harborMeet->isPublic);
+        self::assertSame(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT, $harborMeet->organization?->id);
+        self::assertFalse($harborMeet->organization->isPublic);
+
+        $riverside = $occurrences[EventsPageFixture::COMPETITION_RIVERSIDE_OPEN];
+        self::assertNull($riverside->organization);
+        self::assertNull($riverside->eligibility);
+        self::assertFalse($riverside->isDraft);
+    }
+
+    public function testAnEditionsOwnEligibilityWinsOverItsSeries(): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition SET eligibility = :eligibility WHERE id = :id',
+            ['eligibility' => 'Members only', 'id' => OrganizationFixture::EDITION_LANTERN_2],
+        );
+
+        $occurrences = $this->byId($this->query->all(false));
+
+        self::assertSame('Members only', $occurrences[OrganizationFixture::EDITION_LANTERN_2]->eligibility);
+        self::assertSame('21+', $occurrences[OrganizationFixture::EDITION_LANTERN_1]->eligibility);
+    }
+
+    /**
+     * A draft is on no public list - and on the admins' events page neither; one waiting for approval is (for admins)
+     */
+    public function testDraftsAreNowhereNotEvenForAdmins(): void
+    {
+        $drafts = [
+            OrganizationFixture::COMPETITION_DRAFT_NIGHT,
+            OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT,
+            OrganizationFixture::COMPETITION_DRAFT_PAST,
+            OrganizationFixture::EDITION_LANTERN_DRAFT,
+            // its series is a draft
+            OrganizationFixture::EDITION_QUIET_PINES_1,
+        ];
+
+        $public = $this->byId($this->query->all(false));
+        $admin = $this->byId($this->query->all(true));
+
+        foreach ($drafts as $id) {
+            self::assertArrayNotHasKey($id, $public, $id);
+            self::assertArrayNotHasKey($id, $admin, $id);
+        }
+
+        self::assertArrayHasKey(OrganizationFixture::EDITION_MAPLE_PENDING_1, $admin);
+        self::assertFalse($admin[OrganizationFixture::EDITION_MAPLE_PENDING_1]->isPublic);
+        self::assertArrayNotHasKey(OrganizationFixture::EDITION_MAPLE_PENDING_1, $public);
+
+        // Published, the same rows are there
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition SET is_draft = false WHERE id IN (:a, :b)',
+            ['a' => OrganizationFixture::COMPETITION_DRAFT_NIGHT, 'b' => OrganizationFixture::EDITION_LANTERN_DRAFT],
+        );
+        $published = $this->byId($this->query->all(false));
+        self::assertArrayHasKey(OrganizationFixture::COMPETITION_DRAFT_NIGHT, $published);
+        self::assertArrayHasKey(OrganizationFixture::EDITION_LANTERN_DRAFT, $published);
+    }
+
+    public function testForSeriesListsDraftEditionsOnlyForItsTeam(): void
+    {
+        $public = $this->ids($this->query->forSeries(OrganizationFixture::SERIES_LANTERN_NIGHTS));
+        $team = $this->byId($this->query->forSeries(OrganizationFixture::SERIES_LANTERN_NIGHTS, includeDrafts: true));
+
+        self::assertEqualsCanonicalizing([OrganizationFixture::EDITION_LANTERN_1, OrganizationFixture::EDITION_LANTERN_2], $public);
+        self::assertEqualsCanonicalizing(
+            [OrganizationFixture::EDITION_LANTERN_1, OrganizationFixture::EDITION_LANTERN_2, OrganizationFixture::EDITION_LANTERN_DRAFT],
+            array_keys($team),
+        );
+        self::assertTrue($team[OrganizationFixture::EDITION_LANTERN_DRAFT]->isDraft);
+        self::assertFalse($team[OrganizationFixture::EDITION_LANTERN_1]->isDraft);
+
+        // An edition of a draft series is no draft itself, but hidden with its series
+        $quietPines = $this->query->forSeries(OrganizationFixture::SERIES_QUIET_PINES_DRAFT);
+        self::assertSame([OrganizationFixture::EDITION_QUIET_PINES_1], $this->ids($quietPines));
+        self::assertTrue($quietPines[0]->isDraft);
+        self::assertFalse($quietPines[0]->isPublic);
+    }
+
+    /**
+     * The organization page: its series' editions and its one-time events - public ones, or for its team its drafts and
+     * the ones waiting for approval too
+     */
+    public function testForOrganization(): void
+    {
+        $public = $this->query->forOrganization(OrganizationFixture::ORGANIZATION_RIVERBEND);
+        $riverbendPublic = [
+            OrganizationFixture::EDITION_LANTERN_1,
+            OrganizationFixture::EDITION_LANTERN_2,
+            OrganizationFixture::EDITION_VIRTUAL_PAST,
+            OrganizationFixture::EDITION_VIRTUAL_NEXT,
+            OrganizationFixture::COMPETITION_RIVERBEND_OPEN,
+        ];
+
+        self::assertEqualsCanonicalizing($riverbendPublic, $this->ids($public));
+        self::assertEqualsCanonicalizing(
+            [...$riverbendPublic, OrganizationFixture::EDITION_LANTERN_DRAFT],
+            $this->ids($this->query->forOrganization(OrganizationFixture::ORGANIZATION_RIVERBEND, includeDrafts: true)),
+        );
+
+        // The organization's own rounds aggregate gives what the whole site's gives
+        $fromAll = array_values(array_filter(
+            $this->query->all(false),
+            static fn (EventOccurrence $occurrence): bool => in_array($occurrence->competitionId, $riverbendPublic, true),
+        ));
+        self::assertEquals($fromAll, $public);
+
+        // Waiting for approval: only its team sees it
+        self::assertSame([], $this->query->forOrganization(OrganizationFixture::ORGANIZATION_MAPLE_PENDING));
+        $mapleTeam = $this->query->forOrganization(OrganizationFixture::ORGANIZATION_MAPLE_PENDING, includeDrafts: true);
+        self::assertSame([OrganizationFixture::EDITION_MAPLE_PENDING_1], $this->ids($mapleTeam));
+        self::assertFalse($mapleTeam[0]->isPublic);
+
+        // A draft organization's published series stays public
+        self::assertSame(
+            [OrganizationFixture::EDITION_HARBOR_CLUB_1],
+            $this->ids($this->query->forOrganization(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT)),
+        );
+
+        self::assertSame([], $this->query->forOrganization('not-a-uuid'));
+        self::assertSame([], $this->query->forOrganization(OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT, includeDrafts: true));
+    }
+
+    public function testForOrganizationListsADraftOneTimeEventOnlyForItsTeam(): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition SET organization_id = :organizationId WHERE id = :id',
+            ['organizationId' => OrganizationFixture::ORGANIZATION_RIVERBEND, 'id' => OrganizationFixture::COMPETITION_DRAFT_NIGHT],
+        );
+
+        self::assertNotContains(OrganizationFixture::COMPETITION_DRAFT_NIGHT, $this->ids($this->query->forOrganization(OrganizationFixture::ORGANIZATION_RIVERBEND)));
+
+        $team = $this->byId($this->query->forOrganization(OrganizationFixture::ORGANIZATION_RIVERBEND, includeDrafts: true));
+        self::assertArrayHasKey(OrganizationFixture::COMPETITION_DRAFT_NIGHT, $team);
+        self::assertTrue($team[OrganizationFixture::COMPETITION_DRAFT_NIGHT]->isDraft);
+        self::assertSame(1, $team[OrganizationFixture::COMPETITION_DRAFT_NIGHT]->roundCount);
+    }
+
+    /**
+     * The organizations directory's next dates: the public occurrences of the organizations asked for
+     */
+    public function testForOrganizations(): void
+    {
+        $occurrences = $this->query->forOrganizations([OrganizationFixture::ORGANIZATION_RIVERBEND, strtoupper(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT)]);
+
+        self::assertEqualsCanonicalizing([
+            OrganizationFixture::EDITION_LANTERN_1,
+            OrganizationFixture::EDITION_LANTERN_2,
+            OrganizationFixture::EDITION_VIRTUAL_PAST,
+            OrganizationFixture::EDITION_VIRTUAL_NEXT,
+            OrganizationFixture::COMPETITION_RIVERBEND_OPEN,
+            OrganizationFixture::EDITION_HARBOR_CLUB_1,
+        ], $this->ids($occurrences));
+
+        foreach ($occurrences as $occurrence) {
+            self::assertTrue($occurrence->isPublic);
+        }
+
+        self::assertSame([], $this->query->forOrganizations([OrganizationFixture::ORGANIZATION_MAPLE_PENDING]));
+        self::assertSame([], $this->query->forOrganizations([]));
+        self::assertSame([], $this->query->forOrganizations(['not-a-uuid']));
+    }
+
+    /**
+     * @param list<EventOccurrence> $occurrences
+     *
+     * @return list<string>
+     */
+    private function ids(array $occurrences): array
+    {
+        return array_map(static fn (EventOccurrence $occurrence): string => $occurrence->competitionId, $occurrences);
     }
 
     /**

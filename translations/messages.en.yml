@@ -7715,6 +7715,5 @@ participants_sheet_people:
     card_round_team: "%round%: %team%"
     card_no_pair: "In %round%, no pair yet"
     card_no_team: "In %round%, no team yet"
-    changed_meanwhile: "Changed meanwhile to %value%"
     editor_changed_meanwhile: "Changed meanwhile to \"%value%\" - your text is not saved yet."
 # end participants_sheet_people

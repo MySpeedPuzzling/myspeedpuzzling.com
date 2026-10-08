@@ -13,7 +13,7 @@ import { nextAction } from '../assets/participants_sheet/grid_keys.js';
 import { SheetModel } from '../assets/participants_sheet/sheet_model.js';
 import { newTeamRow, invertGroups, wireGroups } from '../assets/participants_sheet/sheet_changes.js';
 
-const SUITES = ['tsv', 'keys', 'model', 'changes', 'queue', 'undo', 'live', 'grid', 'people', 'controller', 'perf'];
+const SUITES = ['tsv', 'keys', 'model', 'changes', 'queue', 'undo', 'live', 'grid', 'toasts', 'people', 'controller', 'perf'];
 
 async function runSuite(name) {
     if (!SUITES.includes(name)) {

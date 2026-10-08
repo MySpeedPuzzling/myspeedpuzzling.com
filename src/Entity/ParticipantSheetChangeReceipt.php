@@ -25,6 +25,10 @@ use Ramsey\Uuid\UuidInterface;
  *
  * `outcomes` is the answer's group list as it was given, `versionBefore` / `versionAfter` the sheet state versions
  * around the write. Kept 90 days (`myspeedpuzzling:prune-round-result-change-receipts`), gone with the event.
+ *
+ * The receipts are the sheet's change trail too: who sent the change set (`actingPlayer`, gone with their account) and
+ * what it asked for (`changes` - the request's groups as SheetChangesParser read them, SheetChangeGroup::toArray()), so
+ * "who changed what" can be answered for 90 days - the raw material of the change log D11 leaves for later.
  */
 #[Entity]
 #[Index(columns: ['received_at'])]
@@ -32,6 +36,7 @@ class ParticipantSheetChangeReceipt
 {
     /**
      * @param list<array<string, mixed>> $outcomes
+     * @param list<array{id: string, changes: list<array<string, null|string|int>>}> $changes
      */
     public function __construct(
         // The page's changesetId
@@ -55,6 +60,15 @@ class ParticipantSheetChangeReceipt
         #[Immutable]
         #[Column(length: 64)]
         public string $versionAfter,
+        // Who sent it - null once their account is gone
+        #[Immutable]
+        #[ManyToOne]
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|Player $actingPlayer = null,
+        // The request's groups as received (after parsing): ids, ops, from/to - whatever the outcome
+        #[Immutable]
+        #[Column(type: Types::JSON)]
+        public array $changes = [],
     ) {
     }
 }

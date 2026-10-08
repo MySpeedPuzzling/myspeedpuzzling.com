@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\ParticipantsSheet;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Query\GetParticipantsSheetState;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetVersion;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -309,12 +310,54 @@ final class ParticipantsSheetStateTest extends WebTestCase
         self::assertTrue($competition['registrationManaged']);
         self::assertSame(8, $competition['capacity']);
 
-        self::assertSame(['status' => 'waitlisted', 'registeredAt' => '2026-09-01T10:00:00+00:00', 'paidAt' => null, 'checkedInAt' => null], $this->person(OfficialResultsFixture::PARTICIPANT_IVAN)['registration']);
-        self::assertSame(['status' => 'paid', 'registeredAt' => null, 'paidAt' => '2026-09-02T10:00:00+00:00', 'checkedInAt' => '2026-09-03T08:00:00+00:00'], $this->person(OfficialResultsFixture::PARTICIPANT_ANNA)['registration']);
+        self::assertSame(['status' => 'waitlisted', 'registeredAt' => '2026-09-01T10:00:00+00:00', 'paidAt' => null, 'checkedInAt' => null, 'waitlistPosition' => 1], $this->person(OfficialResultsFixture::PARTICIPANT_IVAN)['registration']);
+        self::assertSame(['status' => 'paid', 'registeredAt' => null, 'paidAt' => '2026-09-02T10:00:00+00:00', 'checkedInAt' => '2026-09-03T08:00:00+00:00', 'waitlistPosition' => null], $this->person(OfficialResultsFixture::PARTICIPANT_ANNA)['registration']);
         // A row without a status holds a spot
         $ben = $this->person(OfficialResultsFixture::PARTICIPANT_BEN)['registration'];
         self::assertIsArray($ben);
         self::assertSame('reserved', $ben['status']);
+    }
+
+    /**
+     * E-2: every waitlisted person's place in the line, counted by the server with GetEventAttendance's rule (the line
+     * the waitlisted player sees): registered first comes first (none = first of all), the id decides within the same
+     * second. Removed people and people holding a spot have none.
+     * A registration action's answer (one person) counts over the whole line too.
+     */
+    public function testEveryWaitlistedPersonHasTheirPlaceInTheLine(): void
+    {
+        $this->database()->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
+        $waitlist = static fn (string $participantId, null|string $registeredAt, bool $removed = false): string => sprintf(
+            "UPDATE competition_participant SET registration_status = 'waitlisted', registered_at = %s, deleted_at = %s WHERE id = '%s'",
+            $registeredAt !== null ? "'" . $registeredAt . "'" : 'NULL',
+            $removed ? 'NOW()' : 'NULL',
+            $participantId,
+        );
+        $this->database()->executeStatement($waitlist(OfficialResultsFixture::PARTICIPANT_IVAN, '2026-09-01 10:00:00'));
+        $this->database()->executeStatement($waitlist(OfficialResultsFixture::PARTICIPANT_BEN, '2026-09-01 10:00:00'));
+        $this->database()->executeStatement($waitlist(OfficialResultsFixture::PARTICIPANT_GINA, '2026-09-01 09:59:59'));
+        $this->database()->executeStatement($waitlist(OfficialResultsFixture::PARTICIPANT_FILIP, null));
+        $this->database()->executeStatement($waitlist(OfficialResultsFixture::PARTICIPANT_EVA, '2026-08-01 10:00:00', removed: true));
+        TestingLogin::asPlayer($this->browser, self::ORGANISER);
+
+        $positions = [];
+        foreach (self::objects($this->state()['people']) as $person) {
+            $registration = $person['registration'];
+            self::assertIsArray($registration);
+            self::assertIsString($person['id']);
+            $positions[$person['id']] = $registration['waitlistPosition'];
+        }
+
+        // The same moment: the lower id first (Ben's id sorts before Ivan's)
+        self::assertSame(1, $positions[OfficialResultsFixture::PARTICIPANT_FILIP]);
+        self::assertSame(2, $positions[OfficialResultsFixture::PARTICIPANT_GINA]);
+        self::assertSame(3, $positions[OfficialResultsFixture::PARTICIPANT_BEN]);
+        self::assertSame(4, $positions[OfficialResultsFixture::PARTICIPANT_IVAN]);
+        self::assertNull($positions[OfficialResultsFixture::PARTICIPANT_EVA], 'Removed');
+        self::assertNull($positions[OfficialResultsFixture::PARTICIPANT_ANNA], 'Holds a spot');
+
+        $ivan = self::getContainer()->get(GetParticipantsSheetState::class)->person(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::PARTICIPANT_IVAN, self::ORGANISER);
+        self::assertSame(4, $ivan->registration?->waitlistPosition);
     }
 
     /**

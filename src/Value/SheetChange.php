@@ -85,6 +85,27 @@ readonly final class SheetChange
         return new self(SheetChangeOp::TeamSize, roundId: $roundId, from: $from, to: $to);
     }
 
+    /**
+     * The change in the wire format SheetChangesParser reads (ids canonical, values as parsed) - the change trail of a
+     * change set's receipt (ParticipantSheetChangeReceipt::$changes); parsed again, it is this change.
+     *
+     * @return array<string, null|string|int>
+     */
+    public function toArray(): array
+    {
+        return match ($this->op) {
+            SheetChangeOp::NewParticipant => ['op' => $this->op->value, 'id' => $this->id, 'name' => $this->name, 'country' => $this->country, 'externalId' => $this->externalId],
+            SheetChangeOp::Field => ['op' => $this->op->value, 'participant' => $this->participantId, 'field' => $this->field?->value, 'from' => $this->from, 'to' => $this->to],
+            SheetChangeOp::Player => ['op' => $this->op->value, 'participant' => $this->participantId, 'from' => $this->from, 'to' => $this->to],
+            SheetChangeOp::Place => ['op' => $this->op->value, 'participant' => $this->participantId, 'round' => $this->roundId, 'from' => $this->from, 'to' => $this->to],
+            SheetChangeOp::NewTeam => ['op' => $this->op->value, 'id' => $this->id, 'round' => $this->roundId, 'name' => $this->name],
+            SheetChangeOp::RenameTeam => ['op' => $this->op->value, 'team' => $this->teamId, 'from' => $this->from, 'to' => $this->to],
+            SheetChangeOp::DeleteTeam => ['op' => $this->op->value, 'team' => $this->teamId],
+            SheetChangeOp::Remove, SheetChangeOp::Restore => ['op' => $this->op->value, 'participant' => $this->participantId],
+            SheetChangeOp::TeamSize => ['op' => $this->op->value, 'round' => $this->roundId, 'from' => $this->from, 'to' => $this->to],
+        };
+    }
+
     public static function teamPlace(string $teamId): string
     {
         return self::TEAM_PREFIX . $teamId;

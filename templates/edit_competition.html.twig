@@ -37,7 +37,7 @@
                         <i class="bi bi-ticket-perforated me-1"></i>{{ 'competition_registration.settings.button'|trans }}
                     </a>
                     <a href="{{ path('participants_sheet', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
-                        <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}
+                        <i class="bi bi-people me-1"></i>{{ 'participants_sheet.title'|trans }}
                     </a>
                     <a href="{{ path('competition_results_overview', {'competitionId': competition.id}) }}" class="btn btn-outline-primary" data-results-overview-link>
                         <i class="bi bi-clipboard-data me-1"></i>{{ 'results_desk.overview.button'|trans }}

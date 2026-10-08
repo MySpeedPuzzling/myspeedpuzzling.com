@@ -43,7 +43,11 @@ final class RoundTeamSizeTest extends WebTestCase
         self::assertCount(1, $input);
         self::assertSame('2', $input->attr('min'));
         self::assertSame('20', $input->attr('max'));
-        self::assertStringContainsString('Members per team', $crawler->filter('label[for="' . $input->attr('id') . '"]')->text());
+        self::assertStringContainsString('Members per team (team rounds only)', $crawler->filter('label[for="' . $input->attr('id') . '"]')->text());
+        // A new round is a solo round until the organiser picks another category - the field shows for team rounds only
+        self::assertSame('hidden', $crawler->filter('[data-round-team-size-target="field"]')->attr('hidden'));
+        self::assertCount(1, $crawler->filter('[data-controller="round-team-size"] [data-round-team-size-target="field"] input[name="' . self::FIELD . '"]'));
+        self::assertNull($input->attr('placeholder'), 'Nothing to suggest for a round without teams');
 
         $relay = $this->addRound($browser, 'Team Relay', 'team', '4');
         self::assertSame(4, $this->teamSize($relay));
@@ -54,6 +58,10 @@ final class RoundTeamSizeTest extends WebTestCase
 
         $open = $this->addRound($browser, 'Open Teams', 'team', '');
         self::assertNull($this->teamSize($open));
+
+        // A number left in the field hidden for a solo round - out of range too - neither blocks the form nor is stored
+        $solo = $this->addRound($browser, 'Solo Heat', 'solo', '50');
+        self::assertNull($this->teamSize($solo));
     }
 
     public function testASizeOutsideTwoToTwentyIsRefused(): void
@@ -68,7 +76,11 @@ final class RoundTeamSizeTest extends WebTestCase
         }
     }
 
-    public function testTheEditFormIsPrefilledWithTheMostCommonSizeAndAnEmptyFieldTakesTheSizeAway(): void
+    /**
+     * BR14: the most common size is a suggestion (the field's placeholder), never a value - an untouched form stores
+     * nothing; a typed size is stored, an emptied field takes it away.
+     */
+    public function testTheEditFormSuggestsTheMostCommonSizeAndStoresOnlyATypedOne(): void
     {
         $browser = $this->organiser();
         $roundId = $this->addRound($browser, 'Team Relay', 'team', '');
@@ -81,12 +93,24 @@ final class RoundTeamSizeTest extends WebTestCase
 
         $crawler = $browser->request('GET', $this->editUrl($roundId));
         self::assertResponseIsSuccessful();
-        self::assertSame('4', $crawler->filter('input[name="' . self::FIELD . '"]')->attr('value'));
-        self::assertNull($this->teamSize($roundId), 'Only shown - stored when the organiser saves');
+        $input = $crawler->filter('input[name="' . self::FIELD . '"]');
+        self::assertSame('', (string) $input->attr('value'));
+        self::assertSame('e.g. 4 (the most common size)', $input->attr('placeholder'));
+        // A team round: shown
+        self::assertNull($crawler->filter('[data-round-team-size-target="field"]')->attr('hidden'));
 
         $browser->submitForm('Save Changes');
         self::assertResponseRedirects(self::ROUNDS_URL);
+        self::assertNull($this->teamSize($roundId), 'An untouched field stores nothing');
+
+        $browser->request('GET', $this->editUrl($roundId));
+        $browser->submitForm('Save Changes', [self::FIELD => '4']);
         self::assertSame(4, $this->teamSize($roundId));
+
+        // Stored: the field shows it, nothing to suggest
+        $crawler = $browser->request('GET', $this->editUrl($roundId));
+        self::assertSame('4', $crawler->filter('input[name="' . self::FIELD . '"]')->attr('value'));
+        self::assertNull($crawler->filter('input[name="' . self::FIELD . '"]')->attr('placeholder'));
 
         $browser->request('GET', $this->editUrl($roundId));
         $browser->submitForm('Save Changes', [self::FIELD => '5']);
@@ -99,9 +123,9 @@ final class RoundTeamSizeTest extends WebTestCase
     }
 
     /**
-     * Review A-r13: the guess never makes the untouched form invalid - teams of 25 offer 20, teams of one offer nothing.
+     * Review A-r13: the suggestion stays within what the form accepts - teams of 25 suggest 20, teams of one nothing.
      */
-    public function testTheGuessStaysWithinWhatTheFormAccepts(): void
+    public function testTheSuggestionStaysWithinWhatTheFormAccepts(): void
     {
         $browser = $this->organiser();
         $big = $this->addRound($browser, 'Big Teams', 'team', '');
@@ -109,10 +133,10 @@ final class RoundTeamSizeTest extends WebTestCase
         $this->team($big, 'Mob', 25);
 
         $crawler = $browser->request('GET', $this->editUrl($big));
-        self::assertSame('20', $crawler->filter('input[name="' . self::FIELD . '"]')->attr('value'));
+        self::assertSame('e.g. 20 (the most common size)', $crawler->filter('input[name="' . self::FIELD . '"]')->attr('placeholder'));
         $browser->submitForm('Save Changes');
         self::assertResponseRedirects(self::ROUNDS_URL);
-        self::assertSame(20, $this->teamSize($big));
+        self::assertNull($this->teamSize($big));
 
         $singles = $this->addRound($browser, 'Single Teams', 'team', '');
         $this->team($singles, 'Lone', 1);
@@ -121,6 +145,30 @@ final class RoundTeamSizeTest extends WebTestCase
 
         $crawler = $browser->request('GET', $this->editUrl($singles));
         self::assertSame('', (string) $crawler->filter('input[name="' . self::FIELD . '"]')->attr('value'));
+        self::assertNull($crawler->filter('input[name="' . self::FIELD . '"]')->attr('placeholder'));
+    }
+
+    /**
+     * BR14: only team rounds have an expected team size - a round changed to solo or pairs loses it, and a size left in
+     * the (hidden) field of another category neither keeps the form from saving nor is stored.
+     */
+    public function testARoundChangedAwayFromTeamLosesItsSize(): void
+    {
+        $browser = $this->organiser();
+        $roundId = $this->addRound($browser, 'Team Relay', 'team', '4');
+        self::assertSame(4, $this->teamSize($roundId));
+
+        $browser->request('GET', $this->editUrl($roundId));
+        $browser->submitForm('Save Changes', ['competition_round_form[category]' => 'duo', self::FIELD => '4']);
+        self::assertResponseRedirects(self::ROUNDS_URL);
+        self::assertNull($this->teamSize($roundId));
+
+        // A solo round's form shows no field, and a value sent for it - out of range too - is ignored
+        $crawler = $browser->request('GET', $this->editUrl($roundId));
+        self::assertSame('hidden', $crawler->filter('[data-round-team-size-target="field"]')->attr('hidden'));
+        $browser->submitForm('Save Changes', ['competition_round_form[category]' => 'solo', self::FIELD => '50']);
+        self::assertResponseRedirects(self::ROUNDS_URL);
+        self::assertNull($this->teamSize($roundId));
     }
 
     public function testTheInternalApiSetsKeepsAndClearsTheSize(): void
@@ -156,6 +204,13 @@ final class RoundTeamSizeTest extends WebTestCase
         $cleared = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['teamSize' => null]);
         self::assertResponseIsSuccessful();
         self::assertNull($cleared['teamSize']);
+
+        // A team round made a pair round loses its size (a pair always has 2)
+        self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['teamSize' => 5]);
+        $pairs = self::callInternalApi($browser, 'PATCH', '/internal-api/rounds/' . $roundId, ['category' => 'duo']);
+        self::assertResponseIsSuccessful();
+        self::assertNull($pairs['teamSize']);
+        self::assertNull($this->teamSize($roundId));
 
         // A solo round has no team size, whatever is sent
         $solo = self::callInternalApi($browser, 'POST', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024 . '/rounds', [

@@ -18,7 +18,7 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Registration status / paid / checked-in as optional columns of the participants spreadsheet's People tab
       (participants-spreadsheet.md D10) - the import reads nothing from the export's registration columns today.
 - [ ] Notify maintainers about a new registration, a cancelled *paid* registration (refund talk) and a listed name
-      picked on a managed event ("connected by …" on the participants page - review 2 A-F10, documented trade-off);
+      picked on a managed event ("connected by …" in the participants sheet - review 2 A-F10, documented trade-off);
       optional daily digest.
 - [ ] Payment deadline / automatic release of unpaid spots; a response deadline for a spot offered from the waitlist.
 - [ ] A verified e-mail before registering (throwaway accounts can fill a capacity).
@@ -135,7 +135,7 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] A team renamed in the file (all its members under a new name) is planned as move + delete, not as a rename.
 - [ ] Clearing field values (country, external id) from empty cells in full sync - empty cells never clear today (D14).
 - [ ] A connected player the file wants to change for a participant who has one is refused with a row message (never
-      taken over) - offer a way to change it on purpose (participants page or an explicit mapping). External ids are
+      taken over) - offer a way to change it on purpose (the participants sheet's profile column, or an explicit mapping). External ids are
       updated unless another participant of the event has the file's one.
 - [ ] Code page guess: names that defeat the neighbour rule (Norwegian "Øystein", French "Anaïs" next to vowels) can tip
       a small Western file to Windows-1250 - the Encoding select fixes it; watch for reports.

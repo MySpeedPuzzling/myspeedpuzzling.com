@@ -11,10 +11,10 @@
     {{ include('_breadcrumb.html.twig', {items: [
         {label: 'events.title'|trans, url: path('events')},
         {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
-        {label: 'competition.manage_participants'|trans, url: participants_url},
+        {label: 'participants_sheet.title'|trans, url: participants_url},
         {label: (prefix ~ 'title')|trans},
     ]}) }}
-    {{ include('_return_back_button.html.twig', {fallbackUrl: participants_url, fallbackTitle: 'competition.manage_participants'|trans}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: participants_url, fallbackTitle: 'participants_sheet.title'|trans}) }}
 
     <div class="pb-4">
         <h1 class="h2">{{ competition.name }}</h1>

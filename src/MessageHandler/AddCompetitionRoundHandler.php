@@ -28,9 +28,13 @@ readonly final class AddCompetitionRoundHandler
 
     public function __invoke(AddCompetitionRound $message): void
     {
+        // Meaningful for team rounds only - a pair always has 2, a solo round none (expectedTeamSize()): whatever was
+        // sent for another category is ignored
+        $teamSize = $message->category === RoundCategory::Team ? $message->teamSize : null;
+
         // Checked before anything is created - the entity's constructor checks the range too
         RoundPuzzleReveal::assertValidDelay($message->revealDelayMinutes);
-        if (ParticipantRules::isValidTeamSize($message->teamSize) === false) {
+        if (ParticipantRules::isValidTeamSize($teamSize) === false) {
             throw new \InvalidArgumentException('A team size is 2 to 20 people.');
         }
 
@@ -52,8 +56,7 @@ readonly final class AddCompetitionRoundHandler
             resultsLink: $message->resultsLink,
             timezone: $message->timezone,
             revealDelayMinutes: $message->revealDelayMinutes,
-            // Meaningful for team rounds only - a pair always has 2, a solo round none (expectedTeamSize())
-            teamSize: $message->category === RoundCategory::Team ? $message->teamSize : null,
+            teamSize: $teamSize,
         );
 
         $this->competitionRoundRepository->save($round);

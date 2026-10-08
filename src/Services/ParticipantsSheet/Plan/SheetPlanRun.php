@@ -788,7 +788,8 @@ final class SheetPlanRun
         }
 
         if ($round['category'] !== RoundCategory::Team) {
-            return $this->refused($change, $index, 'not_a_team_round', ['round' => $round['name']]);
+            // A pair round has pairs - "a pair always has 2" (cause `pairs`), not "no pairs or teams"
+            return $this->refused($change, $index, 'not_a_team_round', ['round' => $round['name']], $round['category'] === RoundCategory::Duo ? 'pairs' : null);
         }
 
         $to = is_int($change->to) ? $change->to : null;
@@ -1218,6 +1219,9 @@ final class SheetPlanRun
                     'changed' => true,
                     'id' => $id,
                     'source' => ParticipantSource::Manual->value,
+                    // Added by the organiser on an event managing registration: holds a spot, above the capacity too
+                    // (registration.md - like the retired participants page's "Add" did)
+                    'reserve' => $this->registrationManaged,
                 ];
 
                 if ($person['note'] !== null) {

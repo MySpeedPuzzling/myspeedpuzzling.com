@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Results\ParticipantImportPlan;
 use SpeedPuzzling\Web\Results\ParticipantImportResult;
 use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantImportOperations;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Value\RegistrationStatus;
 
 /**
  * Writes what ParticipantImportPlanner (an import) or SheetChangesPlanner (the participants sheet) planned - through
@@ -124,6 +125,12 @@ readonly final class ParticipantImportApplier
                     competition: $competition,
                     source: isset($operation['source']) ? ParticipantSource::from($operation['source']) : ParticipantSource::Imported,
                 );
+
+                // The sheet's new rows on an event managing registration hold a spot (registration.md)
+                if (($operation['reserve'] ?? false) === true) {
+                    $participant->register(RegistrationStatus::Reserved, $now);
+                }
+
                 $this->entityManager->persist($participant);
             } else {
                 $participant = $existing[$operation['key']];

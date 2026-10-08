@@ -14,13 +14,14 @@ namespace SpeedPuzzling\Web\Services\ParticipantImport\Plan;
  * twice can never create anything twice.
  *
  * The optional keys exist for the sheet only - the import never sets them, so its writes stay as they were:
- * `id` / `source` of a new participant, `disconnect` (the player link cleared), `organizerNote` (present = set to that
- * value, null clears), `leaveWaitlist` (a restored row of an event that does not manage registration), `id` of a new team.
+ * `id` / `source` of a new participant, `reserve` (a new participant of an event managing registration holds a spot -
+ * reserved, registered now), `disconnect` (the player link cleared), `organizerNote` (present = set to that value, null
+ * clears), `leaveWaitlist` (a restored row of an event that does not manage registration), `id` of a new team.
  */
 readonly final class ParticipantImportOperations
 {
     /**
-     * @param list<array{key: string, name: string, country: null|string, externalId: null|string, connectPlayerId: null|string, markAsImported: bool, restore: bool, softDelete: bool, changed: bool, id?: string, source?: string, disconnect?: bool, organizerNote?: null|string, leaveWaitlist?: bool}> $participants
+     * @param list<array{key: string, name: string, country: null|string, externalId: null|string, connectPlayerId: null|string, markAsImported: bool, restore: bool, softDelete: bool, changed: bool, id?: string, source?: string, reserve?: bool, disconnect?: bool, organizerNote?: null|string, leaveWaitlist?: bool}> $participants
      *        created (key "new:…") or changed (key = participant id) participants; values are the state after the write,
      *        `changed` = a value the organiser sees changes (not only markAsImported())
      * @param list<array{key: string, roundId: string, name: null|string, id?: string}> $newTeams

@@ -3,7 +3,9 @@
    Shared by the round list, the results overview and the results desk (docs/features/competitions-management/results-desk.md).
    Expects: round_id, is_online; optional: table_numbers_off (false), current ('live' | 'desk' | 'seating' - left out),
    button_class ('btn-sm btn-outline-primary'), return_url + return_title (passed on as ?return=), with_stopwatch (false -
-   also the round's stopwatch control page, for the results overview) #}
+   also the round's stopwatch control page, for the results overview), competition_id (also "Participants": the round's
+   tab of the participants sheet - organisers only, and every page including this partial is one: COMPETITION_EDIT. The
+   live entry, the one tool referees open, does not include it; the round list has its own link) #}
 {%- set tool_query = return_url|default(null) is not null ? {return: return_url, return_title: return_title|default('')} : {} -%}
 {%- set tool_button = button_class|default('btn-sm btn-outline-primary') -%}
 {%- if current|default(null) != 'live' -%}
@@ -20,6 +22,11 @@
     <a href="{{ path('round_seating', {roundId: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="seating">
         <i class="bi bi-123 me-1" aria-hidden="true"></i>{{ 'results_desk.tools.seating'|trans }}
         {%- if table_numbers_off|default(false) %} <span class="badge text-bg-light border ms-1" data-round-tool-not-used>{{ 'results_desk.tools.seating_not_used'|trans }}</span>{% endif -%}
+    </a>
+{%- endif -%}
+{%- if competition_id|default(null) is not null -%}
+    <a href="{{ path('participants_sheet', {competitionId: competition_id, tab: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="participants">
+        <i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'participants_sheet.title'|trans }}
     </a>
 {%- endif -%}
 {%- if with_stopwatch|default(false) -%}

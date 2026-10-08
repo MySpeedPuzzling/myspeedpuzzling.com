@@ -141,7 +141,8 @@ final class WaitlistInResultsToolsTest extends WebTestCase
             $note = $crawler->filter('[data-round-waitlist-note]');
             self::assertCount(1, $note, $page);
             self::assertStringContainsString('One person on the waitlist is in this round - give them a spot to include them.', $note->text());
-            self::assertSame('/en/participants-sheet/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $note->filter('a')->attr('href'));
+            // The People tab of the participants sheet, filtered to the waitlist (BR17)
+            self::assertSame('/en/participants-sheet/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '?tab=people&filter=waitlist', $note->filter('a')->attr('href'));
         }
     }
 

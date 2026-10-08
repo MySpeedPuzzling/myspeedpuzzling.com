@@ -14,9 +14,9 @@ Decided 2026-10-07 (RESULTS-SPEC §4, §5): "focus on quick action, verify and c
 | `competition_name_tags` | `GET /en/name-tags/{competitionId}` (localized, cs `/jmenovky-ucastniku/{competitionId}`) | organisers | standalone A4 print page; `?round=<roundId>`, `?sort=name|table`, `?waitlist=1` (offered only while somebody is on the waitlist) |
 | `competition_referees` | `GET/POST /en/manage-event-referees/{competitionId}` (localized) | organisers (`CompetitionEditVoter`) | the referees page: list, add by player search, remove (`competition_referee_remove`, POST + CSRF), the link for referees with copy button and QR (`competition_referees_qr_code`, SVG, `private, max-age=86400`) |
 
-All of them answer `Cache-Control: private, no-store` and `X-Robots-Tag: noindex, nofollow`. The participants page
-has a "Name tags" button (in-person events only) in one row with its other tools (registration, check-in); the round
-list links `live_results` (results desk stream). The name tags sheet shows one tag per row on a phone (the A4 sheet
+All of them answer `Cache-Control: private, no-store` and `X-Robots-Tag: noindex, nofollow`. The participants
+sheet's Tools menu has "Name tags" (in-person events only) next to its other tools (registration settings, check-in);
+the round list links `live_results` (results desk stream). The name tags sheet shows one tag per row on a phone (the A4 sheet
 of two 90 mm columns would widen the page).
 
 **Current round** (`LiveResultsCurrentRound`): the round whose stopwatch runs (the latest started if several run -
@@ -60,7 +60,7 @@ live updates token included), then fetches that state once (clock sync).
    (refused on the device when another entry has it). While typing, "Already on the list?" shows the round's matching
    entries, and below them the **event's people who are no entry of this round** (`GetLiveResultsEventPeople`, embedded
    in the page: another group, a forgotten import row, the individual rounds' people in a pairs round - people going
-   to the event only: somebody of the waitlist who turns up gets a spot on the participants page first). Picking one of
+   to the event only: somebody of the waitlist who turns up gets a spot in the participants sheet's People tab first). Picking one of
    them puts that participant into the round (solo: `newEntry.participantId`; a pair/team: the member field gets them,
    `members[].participantId`) - never a second person of the same name, so their link, country and notifications stay.
    The entrant is a `newEntry` with a device-made id: created on the server by its first saved change (the table
@@ -202,7 +202,8 @@ keeps the route's shape - printed tags keep working and the in-page scanner chec
 
 `tests/Controller/LiveResults/` (page access, state, entrant, the event's people for quick add, the live updates token,
 event link, QR route for organisers / others / foreign / unknown / removed / an event without rounds, name tags content,
-private codes, the waitlist, 200 tags with cached codes, round filter, sort, the participants page button),
+private codes, the waitlist, 200 tags with cached codes, round filter, sort; the participants sheet's Tools entry is
+pinned by `tests/Controller/ParticipantsSheet/ParticipantsSheetPageTest.php`),
 `tests/Controller/Referees/` (who may enter results, a referee's result / refused table and qualified changes / quick
 add, every organiser-only page and endpoint refused to a referee, event link and QR route for a referee, the referees
 page: access, add, organiser/duplicate notes, 422, remove, CSRF, series maintainers), `tests/MessageHandler/
@@ -222,4 +223,4 @@ and `tests/Controller/OfficialResults/LiveUpdatesSubscriptionTest.php` (official
   private + public updates on one token, nothing without it, 401 → fresh token → reopened, the hub's close before `exp`.
 - Table numbers are not edited on the live entry (only given to a quick-added entrant) - that is the seating page's job.
 - The native apps could get a QR mode in their scanner bridge.
-- Quick add has no country field (the name tag and "best of each country" need one - set it on the participants page).
+- Quick add has no country field (the name tag and "best of each country" need one - set it in the participants sheet).

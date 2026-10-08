@@ -1174,8 +1174,9 @@ components:
           description: |
             Team rounds: how many people a team is expected to have - a hint for the
             participants sheet ("3/4 - incomplete"), never a limit. Ignored for solo and
-            pair rounds (a pair always has 2). `null` takes it away; left out on a PATCH,
-            the round keeps its value. Not a whole number from 2 to 20 is a 400.
+            pair rounds (a pair always has 2) - a round changed to one loses it. `null`
+            takes it away; left out on a PATCH, the round keeps its value. For a team
+            round, not a whole number from 2 to 20 is a 400.
           example: 4
         badgeBackgroundColor:
           type: [string, "null"]

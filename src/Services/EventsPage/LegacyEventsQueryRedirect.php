@@ -12,14 +12,15 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * The old events page's query parameters, redirected (301) to the new page's state
+ * The old events page's query parameters, redirected to the new page's state
  * (docs/features/events-page/README.md, "URL parameters and redirects"):
  *
- * - `?timePeriod=past` without a scope → `events_archive` of the newest year with a past public occurrence;
+ * - `?timePeriod=past` without a scope → `events_archive` of the newest year with a past public occurrence (302: the
+ *   newest year changes, a cached 301 would keep sending people to an old year);
  * - `?country=cz&timePeriod=past` (or `onlineOnly`) → the same URL without `timePeriod` (the scope view shows its past);
  * - any other `timePeriod` value is dropped;
  * - `?showCalendar=1` → `?view=calendar`, other `showCalendar` values are dropped;
- * - every other parameter is kept.
+ * - every other parameter is kept; these redirects are 301, the new URL means the same forever.
  *
  * Null = nothing to redirect, the page renders. The archive year costs one statement, only on that redirect.
  */
@@ -55,7 +56,7 @@ readonly final class LegacyEventsQueryRedirect
                 if ($newestYear !== null) {
                     return new RedirectResponse(
                         $this->urlGenerator->generate('events_archive', ['year' => $newestYear]),
-                        Response::HTTP_MOVED_PERMANENTLY,
+                        Response::HTTP_FOUND,
                     );
                 }
             }

@@ -21,7 +21,7 @@ final class EventsLegacyRedirectTest extends WebTestCase
 
         $browser->request('GET', '/en/events?timePeriod=past');
 
-        self::assertResponseStatusCodeSame(301);
+        self::assertResponseStatusCodeSame(302);
         self::assertResponseRedirects('/en/events/archive/' . $newestYear);
 
         $browser->followRedirect();
@@ -35,7 +35,7 @@ final class EventsLegacyRedirectTest extends WebTestCase
 
         $browser->request('GET', '/de/veranstaltungen?timePeriod=past&country=');
 
-        self::assertResponseStatusCodeSame(301);
+        self::assertResponseStatusCodeSame(302);
         self::assertResponseRedirects('/de/veranstaltungen/archiv/' . $newestYear);
     }
 

@@ -213,7 +213,7 @@ routes the viewer may use (voters `COMPETITION_EDIT`, `COMPETITION_DELETE`, `COM
 
 Old parameters: `?timePeriod=past` → `events_archive` of the newest archive year; `?country=cz&timePeriod=past` →
 `?country=cz` (the country view shows that country's past); any other `timePeriod` value is dropped;
-`?showCalendar=1` → `?view=calendar`. Redirects are 301 and keep the other parameters. The browser keeps the URL in
+`?showCalendar=1` → `?view=calendar`. Redirects are 301 and keep the other parameters, except the one to the newest archive year: 302, because that year changes. The browser keeps the URL in
 step with the state (`history.replaceState`), and the server renders the same state on load (no flash).
 
 ## SEO

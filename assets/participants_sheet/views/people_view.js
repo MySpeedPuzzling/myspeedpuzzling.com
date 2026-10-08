@@ -375,8 +375,14 @@ export class PeopleView {
             return;
         }
 
-        if (target?.personId) {
-            this.reveal({ target: { key: `person:${target.personId}:${target.col ?? 'name'}` } });
+        if (target?.personId && this.model.person(target.personId) !== null) {
+            // A jump from another tab: the filter and search let go of the person when they hide them
+            if (!this.grid.rows.includes(target.personId)) {
+                this.setFilter(this.model.isRemoved(target.personId) ? 'removed' : 'all', { query: '' });
+            }
+
+            const col = target.col && this.grid.colIndex(target.col) !== -1 ? target.col : 'name';
+            this.grid.focusCell(target.personId, col);
 
             return;
         }
@@ -438,7 +444,7 @@ export class PeopleView {
         const columns = offeredFor(COLUMN_OPTIONS, this.competition).map((option) => {
             const checked = option.fixed || this.columnOn(option.key);
 
-            return `<li><button type="button" class="dropdown-item sheet-columns-item" role="menuitemcheckbox" aria-checked="${checked ? 'true' : 'false'}" data-column="${escapeHtml(option.key)}"${option.fixed ? ' disabled' : ''}><i class="bi bi-check-lg" aria-hidden="true"></i> ${escapeHtml(this.say(`column_${option.key}`))}</button></li>`;
+            return `<li role="none"><button type="button" class="dropdown-item sheet-columns-item" role="menuitemcheckbox" aria-checked="${checked ? 'true' : 'false'}" data-column="${escapeHtml(option.key)}"${option.fixed ? ' disabled' : ''}><i class="bi bi-check-lg" aria-hidden="true"></i> ${escapeHtml(this.say(`column_${option.key}`))}</button></li>`;
         }).join('');
 
         return `<div class="sheet-people-toolbar" data-people-toolbar>

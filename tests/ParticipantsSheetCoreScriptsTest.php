@@ -23,9 +23,11 @@ use Symfony\Component\Process\Process;
  * - undo: only what went through is undone, a refused undo is reported, Keep mine is a step, a deleted pair's table
  *   number comes back, people removed meanwhile are left out;
  * - live: the sheet topic's version, result updates, version polling, the tab coming back, our own echo;
- * - grid / people / controller (jsdom - a dev dependency in package-lock.json): an editor's `from` is what it showed when
- *   it opened (review B1), the "Changed meanwhile" notice, Tab never unlinks a profile, a refused checkbox snaps back,
- *   typed text survives a rebuilt grid, the setup checklist, ⌘ on a Mac, a view that failed to load;
+ * - grid / toasts / people / controller (jsdom - a dev dependency in package-lock.json): an editor's `from` is what it
+ *   showed when it opened (review B1), the "Changed meanwhile" notice, Tab never unlinks a profile, a refused checkbox
+ *   snaps back, typed text survives a rebuilt grid, a list of people highlights only the one exact match that moves
+ *   nobody (D-m2), every refusal and "nothing happened" shown as a toast (BR1), the setup checklist (BR15), the Help
+ *   dialog's task help (BR7), ⌘ on a Mac, a view that failed to load;
  * - perf: a bulk action over 1,000 people is one model rebuild and one re-render, its answer too.
  */
 final class ParticipantsSheetCoreScriptsTest extends TestCase
@@ -35,7 +37,7 @@ final class ParticipantsSheetCoreScriptsTest extends TestCase
      */
     public static function suites(): iterable
     {
-        foreach (['tsv', 'keys', 'model', 'changes', 'queue', 'undo', 'live', 'grid', 'people', 'controller', 'perf'] as $suite) {
+        foreach (['tsv', 'keys', 'model', 'changes', 'queue', 'undo', 'live', 'grid', 'toasts', 'people', 'controller', 'perf'] as $suite) {
             yield $suite => [$suite];
         }
     }

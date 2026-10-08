@@ -139,7 +139,7 @@ export class SheetUndo {
             if (groups.length === 0 && results.length === 0) {
                 if (skipped.length > 0) {
                     // Everything left to take back concerns people removed meanwhile - said, and the step is gone
-                    return { label: step.label, kind, groups: [], inverse: [], errors: [], results: [], inverseResults: [], skipped };
+                    return { label: step.label, kind, origin: step.origin ?? null, groups: [], inverse: [], errors: [], results: [], inverseResults: [], skipped };
                 }
 
                 // Nothing of the step went through - nothing to take back; the next step is the one
@@ -149,6 +149,8 @@ export class SheetUndo {
             const action = {
                 label: step.label,
                 kind,
+                // The tab the step was made on (the controller's act() notes it) - its undo is said with "Show" there
+                origin: step.origin ?? null,
                 groups,
                 inverse: invertGroups(groups, model, this.newId),
                 errors: [],

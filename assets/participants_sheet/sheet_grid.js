@@ -25,6 +25,11 @@
  *   an open edit like a blur.
  * - List columns: the highlighted option is taken by Enter (or a click); Tab, arrows and a blur never take an option
  *   flagged `action: true` nor any option of a column with `commitOnBlur: false` (a profile search hit, "Unlink").
+ *   A list whose options say whether they match exactly (`exact`) and move somebody (`moves`) - the round tabs' people
+ *   - highlights a suggestion only when it is the one exact match and moves nobody; otherwise Enter keeps the typed text
+ *   in the editor and shows the list (a partial match, a name two people share or a move is always chosen explicitly).
+ * - What the organiser would not see otherwise - a typed value dropped when the editor closed, typing into a cell that
+ *   can't be changed, an empty paste - goes to `notify` (a toast pointing at the cell; the page says it once).
  *
  * Views pass texts in (`texts.t(key, params)` / `texts.tc(key, count, params)` - the core texts JSON); no user-facing
  * string lives here.
@@ -44,6 +49,14 @@ export function escapeHtml(text) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+/**
+ * A list that highlights only an exact match (review D-m2): the column says so (`autoHighlight: 'exact'`), or its
+ * options carry the flags (`exact` / `moves` on any of them - the round tabs' people).
+ */
+export function exactRule(options, column) {
+    return column?.autoHighlight === 'exact' || (options ?? []).some((option) => option !== null && typeof option === 'object' && ('exact' in option || 'moves' in option));
 }
 
 const MARKER_ICONS = {
@@ -81,7 +94,10 @@ export function markerHtml(marker) {
  * @property {number} [width]          px
  * @property {string} [headerHtml]     trusted header content instead of the label
  * @property {'panel'} [space]         Space opens the row's panel (the person editor) instead of typing a space
- * @property {boolean} [autoHighlight] list columns: the first suggestion is highlighted (Enter picks it) - default true
+ * @property {boolean|'exact'} [autoHighlight] list columns: the first suggestion is highlighted (Enter picks it) -
+ *                                   default true; false = never (free text: Enter keeps what was typed); 'exact' = only
+ *                                   the one option flagged `exact: true` that is not `moves: true` - also what a list
+ *                                   whose options carry `exact` / `moves` gets without saying it (see suggestionToHighlight)
  * @property {boolean} [commitOnBlur] list columns: false = Tab / arrows / a blur never take an option (only Enter or
  *                                   a click) - default true; options flagged `action: true` never in any column
  * @property {string} [className]
@@ -131,6 +147,8 @@ export class SheetGrid {
      * @param {function(): void} [options.undo]
      * @param {function(): void} [options.redo]
      * @param {function(string): void} [options.announce]
+     * @param {function(string, {kind: string, anchor?: {row: string, col: string}}): void} [options.notify]  visible
+     *        feedback (the page's toast, which also says it) - without it the grid only announces
      */
     constructor(options) {
         this.options = options;
@@ -696,7 +714,7 @@ export class SheetGrid {
             return;
         }
 
-        if (this.mode === 'edit' && this.handleListKeys(event)) {
+        if (this.mode === 'edit' && (this.handleListKeys(event) || (event.target === this.editor && this.enterWithoutChoice(event)))) {
             return;
         }
 
@@ -815,7 +833,8 @@ export class SheetGrid {
                 this.options.openPanel?.(this.active.row);
                 break;
             case 'readonly':
-                this.announce(this.texts.t('grid_readonly', { column: this.columns[col]?.label ?? '' }));
+                // Typing into a cell that can't be changed: shown next to it, not only said
+                this.notify(this.texts.t('grid_readonly', { column: this.columns[col]?.label ?? '' }), { kind: 'info', anchor: { ...this.active } });
                 break;
             case 'fillDown':
                 this.options.fill?.('down', this.selectedRange(), { ...this.active });
@@ -1243,8 +1262,8 @@ export class SheetGrid {
     }
 
     /**
-     * The open edit committed like a blur (a click elsewhere, the grid going away): a refused value is dropped with its
-     * reason said aloud.
+     * The open edit committed like a blur (a click elsewhere, the grid going away): a refused value is dropped - shown
+     * next to its cell with the reason ("“Xyz” was not saved: …"), not only said, since the editor is gone.
      */
     commitOpenEdit() {
         if (this.mode !== 'edit' || this.committingOnBlur) {
@@ -1254,10 +1273,13 @@ export class SheetGrid {
         this.committingOnBlur = true;
 
         try {
+            const { row, col } = this.editing;
+            const typed = this.editor.value.trim();
+
             if (!this.commitEditWithoutFocus()) {
-                const message = this.editorError.textContent;
+                const reason = this.editorError.textContent;
                 this.stopEdit();
-                this.announce(message);
+                this.notify(this.texts.t(typed === '' ? 'grid_dropped_empty' : 'grid_dropped', { value: typed, reason }), { kind: 'warning', anchor: { row, col } });
             }
         } finally {
             this.committingOnBlur = false;
@@ -1301,6 +1323,7 @@ export class SheetGrid {
 
         clearTimeout(this.list.timer);
         const run = () => {
+            this.list.pending = false;
             const request = ++this.list.request;
             const { row, col } = this.editing ?? {};
 
@@ -1335,6 +1358,7 @@ export class SheetGrid {
         if (immediately) {
             run();
         } else {
+            this.list.pending = true;
             this.list.timer = setTimeout(run, SUGGEST_DELAY_MS);
         }
     }
@@ -1342,7 +1366,9 @@ export class SheetGrid {
     /** @param {Array|{options: Array, hint?: string}} answer the view's suggestions, with an optional hint line */
     renderList(answer) {
         const options = Array.isArray(answer) ? answer : (answer?.options ?? []);
-        const hint = Array.isArray(answer) ? '' : (answer?.hint ?? '');
+        const chooseHint = this.list.chooseHint === true && options.length > 0;
+        this.list.chooseHint = false;
+        const hint = chooseHint ? this.texts.t('grid_choose_option') : (Array.isArray(answer) ? '' : (answer?.hint ?? ''));
         const column = this.columns[this.colIndex(this.editing?.col)];
         this.list.options = options;
         this.list.open = true;
@@ -1356,11 +1382,85 @@ export class SheetGrid {
             this.editor.removeAttribute('aria-activedescendant');
         } else {
             this.showListStatus(hint);
-            // A "create" option is never picked by Enter alone - a typo must not create anything (D9) - and an empty
-            // editor + Enter clears the cell instead of taking the first suggestion
-            this.highlight(column?.autoHighlight === false || options[0]?.create || this.editor.value.trim() === '' ? -1 : 0);
+            this.highlight(this.suggestionToHighlight(options, column));
             this.announce(this.texts.tc('grid_suggestions', options.length));
         }
+
+        if (this.editing !== null && exactRule(options, column)) {
+            // Remembered for the edit: Enter with nothing highlighted keeps the text even after Esc closed the list
+            this.editing.exactRule = true;
+        }
+    }
+
+    /**
+     * The suggestion Enter takes without the organiser choosing one (-1 = none). Never with an empty editor (Enter
+     * clears the cell), on a free-text column (`autoHighlight: false`) or a "create" option (a typo must not create
+     * anything - D9). A list whose options say `exact` / `moves` (review D-m2): only the one exact match that moves
+     * nobody - a partial match, one of several people with the name or somebody of another pair is always chosen
+     * explicitly (arrows, a click). Other lists: the first one.
+     */
+    suggestionToHighlight(options, column) {
+        if (options.length === 0 || column?.autoHighlight === false || this.editor.value.trim() === '') {
+            return -1;
+        }
+
+        if (exactRule(options, column)) {
+            const exact = options.map((option, index) => ({ option, index })).filter(({ option }) => option.exact === true && !option.create && option.action !== true);
+
+            return exact.length === 1 && exact[0].option.moves !== true ? exact[0].index : -1;
+        }
+
+        return options[0]?.create ? -1 : 0;
+    }
+
+    /**
+     * Enter on a list that takes only an exact match (D-m2) while nothing is highlighted and something is typed: the
+     * text stays in the editor and the list shows (again), with a word on how to choose - never a partial match picked,
+     * never the typed text committed as it is. Returns true when Enter was taken here.
+     */
+    enterWithoutChoice(event) {
+        if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || this.composing) {
+            return false;
+        }
+
+        const column = this.columns[this.colIndex(this.editing?.col)];
+
+        if (this.editing?.kind !== 'list' || column?.autoHighlight === false || this.editor.value.trim() === '') {
+            return false;
+        }
+
+        if (this.list.pending) {
+            // Typed faster than the suggestions came (they wait for a pause): they come now, so Enter decides on what
+            // the text matches - a list that does not need a choice keeps working as before (the typed text goes)
+            this.openList(true);
+
+            if (!(this.editing.exactRule === true || column?.autoHighlight === 'exact')) {
+                this.closeList();
+
+                return false;
+            }
+        }
+
+        if (!(this.editing.exactRule === true || column?.autoHighlight === 'exact')) {
+            return false;
+        }
+
+        if (this.list.open && (this.list.active >= 0 || this.list.options.length === 0)) {
+            // A chosen option goes as usual; no options at all: the view says why the text does not do
+            return false;
+        }
+
+        event.preventDefault();
+
+        if (this.list.open && this.listbox.hidden === false) {
+            this.showListStatus(this.texts.t('grid_choose_option'));
+        } else {
+            // Closed by Esc (or not there yet): back, with the hint once it came
+            this.list.chooseHint = true;
+            this.openList(true);
+        }
+
+        return true;
     }
 
     showListStatus(text) {
@@ -1398,6 +1498,8 @@ export class SheetGrid {
     closeList() {
         clearTimeout(this.list.timer);
         this.list.request++;
+        this.list.pending = false;
+        this.list.chooseHint = false;
         this.list.open = false;
         this.list.options = [];
         this.list.active = -1;
@@ -1491,7 +1593,7 @@ export class SheetGrid {
         event.preventDefault();
 
         if (rows.length === 0) {
-            this.announce(this.texts.t('grid_nothing_to_paste'));
+            this.notify(this.texts.t('grid_nothing_to_paste'), { kind: 'info', anchor: { ...this.active } });
 
             return;
         }
@@ -1815,6 +1917,19 @@ export class SheetGrid {
     announce(text) {
         if (text) {
             this.options.announce?.(text);
+        }
+    }
+
+    /** Shown (the page's toast pointing at `anchor`, said once) - or only said when the page gives no notify. */
+    notify(text, options) {
+        if (!text) {
+            return;
+        }
+
+        if (typeof this.options.notify === 'function') {
+            this.options.notify(text, options);
+        } else {
+            this.announce(text);
         }
     }
 

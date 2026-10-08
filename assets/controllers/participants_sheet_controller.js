@@ -8,6 +8,7 @@ import { SheetUndo } from '../participants_sheet/sheet_undo.js';
 import { SheetLive } from '../participants_sheet/sheet_live.js';
 import { SheetGrid, escapeHtml } from '../participants_sheet/sheet_grid.js';
 import { PreviewDialog } from '../participants_sheet/preview_dialog.js';
+import { SheetToasts } from '../participants_sheet/sheet_toasts.js';
 import createPeopleView from '../participants_sheet/views/people_view.js';
 
 const PHONE_QUERY = '(max-width: 767.98px)';
@@ -17,6 +18,9 @@ const REFUSAL_MARK_MS = 8000;
 const REFUSAL_MARKS_MAX = 200;
 // A view module that could not be loaded (a chunk while offline) - never remembered as missing, tried again
 export const MODULE_FAILED = Symbol('module failed');
+// The task help of the Help dialog (BR7) - each a title and a text (`help_task_<key>_title`, `help_task_<key>`)
+export const HELP_TASKS = ['saving', 'names', 'pairs', 'results', 'undo', 'leave'];
+export const HELP_KEYS = ['move', 'edit', 'type', 'commit', 'cancel', 'tab', 'space', 'list', 'select', 'select_column', 'copy', 'fill', 'clear', 'undo', 'leave', 'ime'];
 
 /** A dynamic import of a module that is not in the build at all (a later stream's view) - not a network failure. */
 export function isMissingModule(error) {
@@ -286,6 +290,27 @@ export default class extends Controller {
         this.element.append(this.liveRegion);
         this.cleanups.push(() => this.liveRegion.remove());
 
+        // Visible feedback (notify()): next to the save status - an overlay, the grid never moves
+        this.toastRegion = document.createElement('div');
+
+        if (this.hasStatusTarget) {
+            this.statusTarget.after(this.toastRegion);
+        } else {
+            this.element.prepend(this.toastRegion);
+        }
+
+        this.toasts = new SheetToasts({
+            region: this.toastRegion,
+            texts: core,
+            resolveAnchor: (anchor) => this.anchorElement(anchor),
+            isPhone: () => this.phone === true,
+            returnFocus: () => this.view?.focus?.(null),
+        });
+        this.cleanups.push(() => {
+            this.toasts.destroy();
+            this.toastRegion.remove();
+        });
+
         this.banner.addEventListener('click', (event) => {
             if (event.target.closest('[data-sheet-retry]')) {
                 this.queue.retryNow();
@@ -293,6 +318,68 @@ export default class extends Controller {
             }
         });
         this.problemsPanel.addEventListener('click', (event) => this.onProblemClick(event));
+    }
+
+    /**
+     * Visible feedback for what a sighted organiser would otherwise not see (BR1) - a refused change, "nothing to
+     * undo", a typed value dropped, a problem on another tab: a toast in the status area (desktop: pointing at
+     * `anchor` - a grid cell `{row, col}` or an element; phones: at the bottom), and the same text said once in the live
+     * region. Views call it as `context.notify?.(text, {kind, anchor})` - never together with announce() for the same
+     * text.
+     *
+     * @param {string} text
+     * @param {{kind?: 'error'|'warning'|'info', anchor?: {row: string, col: string}|Element|null, actions?: Array<{label: string, run: function(): void}>}} [options]
+     *        errors and warnings stay ~8 s, information ~4 s (or until closed); `actions` = buttons ("Show")
+     * @returns {{id: string, dismiss: function(): void}|null}
+     */
+    notify(text, { kind = 'info', anchor = null, actions = [] } = {}) {
+        if (!text || !this.toasts) {
+            return null;
+        }
+
+        this.announce(String(text));
+
+        return this.toasts.show(String(text), { kind, anchor, actions });
+    }
+
+    /** What a toast points at: a cell of one of the page's grids (`{row, col}`), or an element. */
+    anchorElement(anchor) {
+        if (anchor?.nodeType === 1) {
+            return anchor.isConnected ? anchor : null;
+        }
+
+        if (anchor && typeof anchor === 'object' && anchor.row !== undefined && anchor.col !== undefined) {
+            for (const grid of this.grids ?? []) {
+                const cell = grid.destroyed ? null : grid.cellElement(anchor.row, anchor.col);
+
+                if (cell) {
+                    return cell;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** Where the organiser acted: the focused element of an open dialog, else the active cell of the view's grid. */
+    actingAnchor() {
+        const active = document.activeElement;
+
+        if (active && active !== document.body && active.closest?.('dialog[open]')) {
+            return active;
+        }
+
+        for (const grid of this.grids ?? []) {
+            if (!grid.destroyed && this.viewRoot?.contains(grid.table) && grid.active?.row != null) {
+                const cell = grid.cellElement(grid.active.row, grid.active.col);
+
+                if (cell) {
+                    return cell;
+                }
+            }
+        }
+
+        return active && active !== this.viewRoot && this.viewRoot?.contains(active) ? active : null;
     }
 
     announce(text) {
@@ -539,6 +626,7 @@ export default class extends Controller {
             csrfToken: this.csrfTokenValue,
             act: (action, options) => this.act(action, options),
             announce: (text) => this.announce(text),
+            notify: (text, options) => this.notify(text, options),
             switchTab: (tab, focus = null) => this.showTab(tab, { focus }),
             openPersonEditor: (personId, options) => this.openPersonEditor(personId, options),
             createGrid: (options) => this.createGrid(options),
@@ -554,6 +642,7 @@ export default class extends Controller {
         const grid = new SheetGrid({
             texts: this.texts.core,
             announce: (text) => this.announce(text),
+            notify: (text, options) => this.notify(text, options),
             undo: () => this.undo(),
             redo: () => this.redo(),
             ...options,
@@ -640,8 +729,11 @@ export default class extends Controller {
         const factory = await this.loadModule(PERSON_EDITOR_MODULE);
 
         if (factory === MODULE_FAILED) {
-            // Said; the caller falls back like without an editor (tried again next time)
-            this.announce(this.texts.core.t('view_load_failed'));
+            // Shown with "Try again"; the caller falls back like without an editor (tried again next time)
+            this.notify(this.texts.core.t('editor_load_failed'), {
+                kind: 'error',
+                actions: [{ label: this.texts.core.t('view_load_retry'), run: () => this.openPersonEditor(personId, options) }],
+            });
 
             return false;
         }
@@ -666,23 +758,29 @@ export default class extends Controller {
      * results changes (`action.results`, RecordRoundResults) go to their round's pending cells.
      *
      * @param {object} action
-     * @param {{origin?: string, quiet?: boolean}} [options] origin = the tab it was made on (the problems panel jumps
-     *        there); quiet = the caller shows a refusal itself
+     * @param {{origin?: string, quiet?: boolean, anchor?: {row: string, col: string}|Element}} [options] origin = the
+     *        tab it was made on (the problems panel and "Show" jump there); quiet = the caller shows a refusal itself;
+     *        anchor = where a refusal's message points (default: the focused element of a dialog, else the active cell)
      * @returns {{performed: boolean, errors: Array}}
      */
-    act(action, { origin = this.currentTab, quiet = false } = {}) {
+    act(action, { origin = this.currentTab, quiet = false, anchor = undefined } = {}) {
         const errors = action.errors ?? [];
 
         // `quiet`: the caller shows the refusal itself (an editor's error, read out by its role=alert); otherwise it is
-        // read out and marked on its cells for a moment (a checkbox click that was refused is not just silently undone)
+        // shown (a toast pointing at the cell, said once) and marked on its cells for a moment - a checkbox click that
+        // was refused is never just silently undone
         if (errors.length > 0 && !quiet) {
-            this.announce(this.errorText(errors[0]));
+            const more = errors.length > 1 ? ` ${this.texts.core.tc('notify_more_refused', errors.length - 1)}` : '';
+            this.notify(`${this.errorText(errors[0])}${more}`, { kind: 'error', anchor: anchor === undefined ? this.actingAnchor() : anchor });
             this.markRefusals(errors);
         }
 
         if (isEmpty(action)) {
             return { performed: false, errors };
         }
+
+        // The tab of the step - its undo says where it happened ("Undone on Pairs · Show")
+        action.origin = origin;
 
         // One model rebuild and one re-render for the whole action (a bulk action of 1,000 groups)
         this.model.batch(() => {
@@ -761,7 +859,8 @@ export default class extends Controller {
         const core = this.texts.core;
 
         if (action === null) {
-            this.announce(core.t(`${kind}_nothing`));
+            // Ctrl+Z with nothing to take back: said visibly too, it is not just ignored
+            this.notify(core.t(`${kind}_nothing`), { kind: 'info' });
             this.renderUndo();
 
             return;
@@ -772,14 +871,40 @@ export default class extends Controller {
         const skippedText = skipped.length > 0 ? core.t('undo_skipped_removed', { names: skipped.join(', ') }) : '';
 
         if (isEmpty(action)) {
-            this.announce(skippedText || core.t(`${kind}_nothing`));
+            this.notify(skippedText || core.t(`${kind}_nothing`), { kind: 'info' });
             this.renderUndo();
 
             return;
         }
 
-        this.act(action);
-        this.announce([core.t(`${kind}_done`, { action: this.labelOf(action.label) }), skippedText].filter(Boolean).join(' '));
+        const origin = action.origin !== undefined && action.origin !== null ? this.knownTab(action.origin) : this.currentTab;
+        this.act(action, { origin });
+        const done = core.t(`${kind}_done`, { action: this.labelOf(action.label) });
+
+        if (origin !== this.currentTab) {
+            // Taken back on another tab: nothing changes on screen - said visibly, with the way there
+            const change = action.groups[0]?.changes[0] ?? null;
+            const target = change !== null ? changeTarget(change, this.model) : null;
+            this.notify([core.t(`${kind}_done_elsewhere`, { action: this.labelOf(action.label), tab: this.tabName(origin) }), skippedText].filter(Boolean).join(' '), {
+                kind: 'info',
+                actions: [{ label: core.t('notify_show'), run: () => this.showTab(origin, target !== null ? { reveal: { kind: 'sheet', change, group: action.groups[0], target } } : {}) }],
+            });
+        } else if (skippedText !== '') {
+            this.notify([done, skippedText].join(' '), { kind: 'info' });
+        } else {
+            // The change is on screen - read out only
+            this.announce(done);
+        }
+    }
+
+    /** A tab's name in words: "People" or the round's name. */
+    tabName(tab) {
+        return tab === 'people' ? this.texts.core.t('tab_people') : (this.model.round(tab)?.name ?? this.texts.core.t('tab_people'));
+    }
+
+    /** The tab a problem belongs on: a results cell's round, else the tab its change was made on. */
+    problemTab(problem) {
+        return this.knownTab(problem.kind === 'results' ? problem.roundId : (problem.group?.origin ?? 'people'));
     }
 
     labelOf(label) {
@@ -850,13 +975,17 @@ export default class extends Controller {
         }
     }
 
-    /** The setup checklist (no rounds or nobody on the list yet) goes once the event has both - people change live. */
+    /**
+     * The setup checklist goes once the event is set up (BR15): it has a round, and somebody on its list or a pair/team
+     * (an event of team names only, without members, is set up too) - live, people and teams change on the page.
+     */
     renderChecklist() {
         if (!this.hasChecklistTarget) {
             return;
         }
 
-        const done = this.model.rounds().length > 0 && this.model.people().length > 0;
+        const rounds = this.model.rounds();
+        const done = rounds.length > 0 && (this.model.people().length > 0 || rounds.some((round) => this.model.teamsOf(round.id).length > 0));
 
         if (this.checklistTarget.hidden !== done) {
             this.checklistTarget.hidden = done;
@@ -872,8 +1001,7 @@ export default class extends Controller {
                 const refused = this.undoStack.outcome(event.group.id, event.outcome.status);
 
                 if (refused !== null) {
-                    // undo_refused / redo_refused, or undo_unsaved / redo_unsaved (what it took back was never saved)
-                    this.announce(this.texts.core.t(`${refused}${refused.endsWith('_unsaved') ? '' : '_refused'}`));
+                    this.notifyRefusedReversal(refused, event.group);
                 }
 
                 this.view?.onOutcome?.(event);
@@ -885,6 +1013,7 @@ export default class extends Controller {
                 break;
             case 'problems':
                 this.renderProblems();
+                this.notifyProblemsElsewhere();
                 break;
             case 'state':
                 if (event.kind === 'ok') {
@@ -898,6 +1027,54 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * An undo/redo the server did not take: "Can't undo - it was changed meanwhile" (an error), or "That change was not
+     * saved - nothing to undo" (what it took back was never saved); made on another tab: with "Show".
+     */
+    notifyRefusedReversal(refused, group) {
+        const core = this.texts.core;
+        const unsaved = refused.endsWith('_unsaved');
+        const origin = this.knownTab(group?.origin ?? this.currentTab);
+        // The problem the refusal left (if it is still there when "Show" is pressed) is where the view jumps
+        const reveal = () => {
+            const problem = this.queue.problems().find((candidate) => candidate.group?.id === group?.id) ?? null;
+            this.showTab(origin, problem !== null ? { reveal: problem } : {});
+        };
+        const actions = origin !== this.currentTab ? [{ label: core.t('notify_show'), run: reveal }] : [];
+
+        this.notify(core.t(`${refused}${unsaved ? '' : '_refused'}`), { kind: unsaved ? 'info' : 'error', actions });
+    }
+
+    /**
+     * Changes the server refused or found changed meanwhile show on their cells and in the problems panel - a problem
+     * of another tab is not on screen, so it is said with "Show" (once per problem; undo/redo say theirs themselves).
+     */
+    notifyProblemsElsewhere() {
+        const core = this.texts.core;
+        const problems = this.queue.problems();
+        const seen = this.seenProblems ?? new Set();
+        this.seenProblems = new Set(problems.map((problem) => problem.id));
+        const elsewhere = problems.filter((problem) => !seen.has(problem.id)
+            && !(problem.group && this.undoStack.reversals.has(problem.group.id))
+            && this.problemTab(problem) !== this.currentTab);
+
+        if (elsewhere.length === 0) {
+            return;
+        }
+
+        const first = elsewhere[0];
+        const tab = this.problemTab(first);
+        const state = core.t(first.status === 'conflict' ? 'marker_conflict' : 'marker_refused');
+        const text = elsewhere.length === 1
+            ? core.t('notify_problem_elsewhere', { tab: this.tabName(tab), problem: `${state}: ${this.describeProblem(first)}${first.message ? ` - ${first.message}` : ''}` })
+            : core.tc('notify_problems_elsewhere', elsewhere.length);
+
+        this.notify(text, {
+            kind: elsewhere.some((problem) => problem.status !== 'conflict') ? 'error' : 'warning',
+            actions: [{ label: core.t('notify_show'), run: () => this.showTab(tab, { reveal: first }) }],
+        });
+    }
+
     /** Every live update after the model took it ("another organiser changed the sheet" is onForeignChange's). */
     onLiveMessage() {}
 
@@ -906,12 +1083,17 @@ export default class extends Controller {
         this.undoFrame = requestAnimationFrame(() => this.renderUndo());
     }
 
-    /** Server warnings (never refusals): announced, and marked on the person's / team's cell for a while. */
+    /**
+     * Server warnings (never refusals): shown (a warning toast at the person's / pair's name when it is on screen) and
+     * marked on that cell for a while.
+     */
     showWarnings(warnings) {
         const messages = [...new Set(warnings.map((warning) => warning.message).filter(Boolean))];
 
         if (messages.length > 0) {
-            this.announce(messages.slice(0, 3).join(' '));
+            const first = warnings.find((warning) => warning.message);
+            const row = first?.participantId ?? first?.teamId ?? null;
+            this.notify(messages.slice(0, 3).join(' '), { kind: 'warning', anchor: row !== null ? { row, col: 'name' } : null });
         }
 
         for (const warning of warnings) {
@@ -1196,8 +1378,7 @@ export default class extends Controller {
                 break;
             case 'show':
                 if (problem !== null) {
-                    const tab = problem.kind === 'results' ? problem.roundId : (problem.group?.origin ?? 'people');
-                    this.showTab(tab, { reveal: problem });
+                    this.showTab(this.problemTab(problem), { reveal: problem });
                 }
                 break;
             case 'keep': {
@@ -1222,11 +1403,18 @@ export default class extends Controller {
 
     // ---------------------------------------------------------------- help
 
+    /**
+     * The Help dialog: how to do the common tasks (BR7 - pasting people, pairs/teams and results, undo, leaving the grid,
+     * saving) and the keyboard shortcuts.
+     */
     showHelp() {
         const core = this.texts.core;
 
         if (!this.helpDialog) {
-            const rows = ['move', 'edit', 'type', 'commit', 'cancel', 'tab', 'space', 'list', 'select', 'select_column', 'copy', 'fill', 'clear', 'undo', 'leave', 'ime']
+            const tasks = HELP_TASKS
+                .map((key) => `<section class="sheet-help-task"><h4 class="h6 mb-1">${escapeHtml(core.t(`help_task_${key}_title`))}</h4><p class="small mb-0">${escapeHtml(core.t(`help_task_${key}`))}</p></section>`)
+                .join('');
+            const rows = HELP_KEYS
                 .map((key) => `<tr><th scope="row"><kbd>${escapeHtml(core.t(`help_keys_${key}`))}</kbd></th><td>${escapeHtml(core.t(`help_does_${key}`))}</td></tr>`)
                 .join('');
             const dialog = document.createElement('dialog');
@@ -1234,9 +1422,10 @@ export default class extends Controller {
             dialog.setAttribute('aria-labelledby', 'sheet-help-title');
             dialog.innerHTML = `<div class="sheet-help-head"><h2 class="h5 mb-0" id="sheet-help-title">${escapeHtml(core.t('help_title'))}</h2><button type="button" class="btn-close" data-help-close aria-label="${escapeHtml(core.t('help_close'))}"></button></div>
                 <div class="sheet-help-body">
-                    <table class="table table-sm align-middle mb-3"><caption class="visually-hidden">${escapeHtml(core.t('help_title'))}</caption><tbody>${rows}</tbody></table>
-                    <p class="small mb-1">${escapeHtml(core.t('help_saving'))}</p>
-                    <p class="small mb-1">${escapeHtml(core.t('help_undo_note'))}</p>
+                    <h3 class="h6 text-uppercase text-body-secondary mb-2" id="sheet-help-tasks">${escapeHtml(core.t('help_tasks_title'))}</h3>
+                    <div class="sheet-help-tasks mb-4" role="group" aria-labelledby="sheet-help-tasks">${tasks}</div>
+                    <h3 class="h6 text-uppercase text-body-secondary mb-2" id="sheet-help-keys">${escapeHtml(core.t('help_keys_title'))}</h3>
+                    <table class="table table-sm align-middle mb-3" aria-labelledby="sheet-help-keys"><tbody>${rows}</tbody></table>
                     <p class="small mb-0">${escapeHtml(core.t('help_mac'))}</p>
                 </div>`;
             dialog.addEventListener('click', (event) => {

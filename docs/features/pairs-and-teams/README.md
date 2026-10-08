@@ -139,8 +139,9 @@ word - TomSelect empties its box when it loses focus, and the server never sees 
   re-render); the picker splits the same way (`typedPeople()`): the search offers "Add 3 people: Anna, Ben,
   Clara", several people in Pair mode switch to Team, Undo removes them again.
 - **A submit is stopped** (`guardSubmit()`, a capture listener on the surrounding form - the one place the picker
-  touches the form) while text typed into the search was not added (remembered from TomSelect's `type` event, since
-  the box is already empty by the time Save is tapped), or Pair/Team holds nobody. The card shows the typed text
+  touches the form) while text typed into the search was not added (remembered from TomSelect's `type` event), or
+  Pair/Team holds nobody. TomSelect empties its box on blur; the picker puts the text back so it stays visible,
+  focuses the box itself when it is clicked (TomSelect never does for a box holding text) and reopens "Add …". The card shows the typed text
   with "Add …" (a part matching a known player's name is that player) and "Clear the text"; the player saves again.
 - Guests saved combined before this: `myspeedpuzzling:split-combined-guests` (dry run unless `--write`) moves their
   results to the pair/team they really are; the emptied team goes with `cleanup-empty-puzzling-teams`.

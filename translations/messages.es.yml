@@ -7471,6 +7471,7 @@ participants_sheet_people:
     "tomorrow": "Mañana"
     "this_weekend": "Este fin de semana"
     "in_days": "En %count% día|En %count% días"
+    "today": "Hoy"
   "tag":
     "waiting_for_approval": "Pendiente de aprobación"
     "going": "Voy"
@@ -7603,6 +7604,68 @@ participants_sheet_people:
     "going": "Voy"
     "following": "Siguiendo"
 
+"event_detail":
+  "crumbs": "Ruta de navegación"
+  "facts":
+    "recurring": "Recurrente"
+    "rounds": "%count% ronda|%count% rondas"
+    "runs_until": "Hasta el %date%"
+  "follow":
+    "series": "Seguir la serie"
+    "series_following": "Siguiendo la serie"
+    "event": "Seguir"
+    "event_following": "Siguiendo"
+  "going":
+    "registration": "Inscripción"
+  "time":
+    "in_zone": "%time% %zone%"
+    "yours": "%time%, %zone% (tu hora)"
+    "yours_next_day": "%time% del día siguiente, %zone% (tu hora)"
+    "yours_previous_day": "%time% del día anterior, %zone% (tu hora)"
+  "side":
+    "part_of": "Parte de"
+    "dates": "Fechas"
+    "place": "Lugar"
+    "website": "Sitio web"
+    "times_online": "Las horas están en %zone%. Junto a cada ronda verás también tu propia hora."
+    "times_in_person": "Las horas están en %zone%, donde se celebra el evento."
+"series_page":
+  "facts":
+    "editions": "%count% edición|%count% ediciones"
+    "since": "desde %date%"
+    "coming": "%count% próxima|%count% próximas"
+    "next": "próxima %date%"
+    "live_now": "en directo ahora"
+  "next": "Próxima fecha"
+  "upcoming": "Próximos"
+  "ongoing": "En curso"
+  "date_not_set": "Fecha sin definir"
+  "no_upcoming": "Todavía no hay fechas próximas."
+  "past": "Pasadas"
+  "years": "Años"
+  "side":
+    "about": "Sobre la serie"
+    "editions": "Ediciones"
+    "since": "Desde"
+    "next": "Próxima"
+    "following_note": "Verás la próxima fecha de esta serie en «Tus eventos», en la página de eventos."
+"event_rounds":
+  "title": "Rondas"
+  "next_round": "Próxima ronda:"
+  "show_earlier": "Mostrar %count% ronda anterior|Mostrar %count% rondas anteriores"
+  "hide_earlier": "Ocultar rondas anteriores"
+  "minutes": "%count% min"
+  "not_announced": "Puzzles aún sin anunciar"
+  "picture_hidden": "La imagen se revela al empezar la ronda"
+  "official_results": "Resultados oficiales"
+  "add_my_time": "Añadir mi tiempo"
+  "more_puzzles": "Más puzzles de este evento"
+  "taking_part": "Participación"
+  "facts":
+    "next": "Próxima %date%"
+    "with_results": "%count% ronda con resultados|%count% rondas con resultados"
+  "side":
+    "next_round": "Próxima ronda"
 "events_archive":
   "meta":
     "title": "Eventos de speed puzzling %year%: resultados y archivo"

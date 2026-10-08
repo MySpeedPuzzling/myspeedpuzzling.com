@@ -7470,6 +7470,7 @@ participants_sheet_people:
     "tomorrow": "Morgen"
     "this_weekend": "Dieses Wochenende"
     "in_days": "In %count% Tag|In %count% Tagen"
+    "today": "Heute"
   "tag":
     "waiting_for_approval": "Genehmigung ausstehend"
     "going": "Dabei"
@@ -7602,6 +7603,68 @@ participants_sheet_people:
     "going": "Dabei"
     "following": "Folge ich"
 
+"event_detail":
+  "crumbs": "Navigationspfad"
+  "facts":
+    "recurring": "Wiederkehrend"
+    "rounds": "%count% Runde|%count% Runden"
+    "runs_until": "Läuft bis %date%"
+  "follow":
+    "series": "Serie folgen"
+    "series_following": "Sie folgen der Serie"
+    "event": "Folgen"
+    "event_following": "Folge ich"
+  "going":
+    "registration": "Anmeldung"
+  "time":
+    "in_zone": "%time% %zone%"
+    "yours": "%time%, %zone% (Ihre Zeit)"
+    "yours_next_day": "%time% am Folgetag, %zone% (Ihre Zeit)"
+    "yours_previous_day": "%time% am Vortag, %zone% (Ihre Zeit)"
+  "side":
+    "part_of": "Teil von"
+    "dates": "Termine"
+    "place": "Ort"
+    "website": "Website"
+    "times_online": "Die Zeiten sind in %zone% angegeben. Ihre eigene Uhrzeit steht bei jeder Runde daneben."
+    "times_in_person": "Die Zeiten sind in %zone% angegeben, wo die Veranstaltung stattfindet."
+"series_page":
+  "facts":
+    "editions": "%count% Ausgabe|%count% Ausgaben"
+    "since": "seit %date%"
+    "coming": "%count% bevorstehend|%count% bevorstehend"
+    "next": "nächster Termin %date%"
+    "live_now": "jetzt live"
+  "next": "Nächster Termin"
+  "upcoming": "Kommend"
+  "ongoing": "Laufend"
+  "date_not_set": "Datum noch offen"
+  "no_upcoming": "Noch keine kommenden Termine."
+  "past": "Vergangen"
+  "years": "Jahre"
+  "side":
+    "about": "Über die Serie"
+    "editions": "Ausgaben"
+    "since": "Seit"
+    "next": "Nächster Termin"
+    "following_note": "Den nächsten Termin dieser Serie sehen Sie unter „Ihre Veranstaltungen“ auf der Veranstaltungsseite."
+"event_rounds":
+  "title": "Runden"
+  "next_round": "Nächste Runde:"
+  "show_earlier": "%count% frühere Runde anzeigen|%count% frühere Runden anzeigen"
+  "hide_earlier": "Frühere Runden ausblenden"
+  "minutes": "%count% Min."
+  "not_announced": "Puzzles noch nicht bekannt gegeben"
+  "picture_hidden": "Bild wird zum Rundenbeginn enthüllt"
+  "official_results": "Offizielle Ergebnisse"
+  "add_my_time": "Meine Zeit hinzufügen"
+  "more_puzzles": "Weitere Puzzles dieser Veranstaltung"
+  "taking_part": "Teilnahme"
+  "facts":
+    "next": "Nächste %date%"
+    "with_results": "%count% Runde mit Ergebnissen|%count% Runden mit Ergebnissen"
+  "side":
+    "next_round": "Nächste Runde"
 "events_archive":
   "meta":
     "title": "Speed-Puzzle-Veranstaltungen %year% - Ergebnisse und Archiv"

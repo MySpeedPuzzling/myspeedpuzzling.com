@@ -7472,6 +7472,7 @@ participants_sheet_people:
     "tomorrow": "Demain"
     "this_weekend": "Ce week-end"
     "in_days": "Dans %count% jour|Dans %count% jours"
+    "today": "Aujourd'hui"
   "tag":
     "waiting_for_approval": "En attente d'approbation"
     "going": "J'y vais"
@@ -7604,6 +7605,68 @@ participants_sheet_people:
     "going": "J'y vais"
     "following": "Suivi"
 
+"event_detail":
+  "crumbs": "Fil d'Ariane"
+  "facts":
+    "recurring": "Récurrent"
+    "rounds": "%count% manche|%count% manches"
+    "runs_until": "Jusqu'au %date%"
+  "follow":
+    "series": "Suivre la série"
+    "series_following": "Vous suivez la série"
+    "event": "Suivre"
+    "event_following": "Suivi"
+  "going":
+    "registration": "Inscription"
+  "time":
+    "in_zone": "%time% %zone%"
+    "yours": "%time%, %zone% (votre heure)"
+    "yours_next_day": "%time% le lendemain, %zone% (votre heure)"
+    "yours_previous_day": "%time% la veille, %zone% (votre heure)"
+  "side":
+    "part_of": "Fait partie de"
+    "dates": "Dates"
+    "place": "Lieu"
+    "website": "Site web"
+    "times_online": "Les heures sont en %zone%. Votre propre heure est indiquée à côté de chaque manche."
+    "times_in_person": "Les heures sont en %zone%, là où se déroule l'événement."
+"series_page":
+  "facts":
+    "editions": "%count% édition|%count% éditions"
+    "since": "depuis %date%"
+    "coming": "%count% à venir|%count% à venir"
+    "next": "prochaine %date%"
+    "live_now": "en direct maintenant"
+  "next": "Prochaine date"
+  "upcoming": "À venir"
+  "ongoing": "En cours"
+  "date_not_set": "Date non fixée"
+  "no_upcoming": "Aucune date à venir pour l'instant."
+  "past": "Passées"
+  "years": "Années"
+  "side":
+    "about": "À propos de la série"
+    "editions": "Éditions"
+    "since": "Depuis"
+    "next": "Prochaine"
+    "following_note": "Vous verrez la prochaine date de cette série dans « Vos événements » sur la page des événements."
+"event_rounds":
+  "title": "Manches"
+  "next_round": "Prochaine manche :"
+  "show_earlier": "Afficher %count% manche précédente|Afficher %count% manches précédentes"
+  "hide_earlier": "Masquer les manches précédentes"
+  "minutes": "%count% min"
+  "not_announced": "Puzzles pas encore annoncés"
+  "picture_hidden": "Image révélée au début de la manche"
+  "official_results": "Résultats officiels"
+  "add_my_time": "Ajouter mon temps"
+  "more_puzzles": "Autres puzzles de cet événement"
+  "taking_part": "Participation"
+  "facts":
+    "next": "Prochaine %date%"
+    "with_results": "%count% manche avec résultats|%count% manches avec résultats"
+  "side":
+    "next_round": "Prochaine manche"
 "events_archive":
   "meta":
     "title": "Événements de speed puzzle %year% - résultats et archives"

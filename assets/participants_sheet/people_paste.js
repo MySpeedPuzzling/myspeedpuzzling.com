@@ -139,7 +139,8 @@ export function looksLikeNoName(name, readCountry = () => undefined) {
 }
 
 /**
- * People of the list whose name is close to `key` (1-2 edits, both keys at least 6 characters) - "Did you mean …?".
+ * People of the list whose name is close to `key` (1-2 edits, both keys at least 6 characters) - "Did you mean …?" -
+ * the closest first ("Sheet Persn 04" → Sheet Person 04 before Sheet Person 01).
  *
  * @param {string} key a name key
  * @param {Array<{key: string, length: number, ids: string[]}>} known the list's name keys
@@ -152,19 +153,22 @@ export function closeNames(key, known) {
         return [];
     }
 
-    const ids = [];
+    const close = [];
 
     for (const candidate of known) {
         if (candidate.length < CLOSE_MIN_LENGTH || Math.abs(candidate.length - length) > CLOSE_MAX_EDITS || candidate.key === key) {
             continue;
         }
 
-        if (boundedDistance(key, candidate.key) <= CLOSE_MAX_EDITS) {
-            ids.push(...candidate.ids);
+        const distance = boundedDistance(key, candidate.key);
+
+        if (distance <= CLOSE_MAX_EDITS) {
+            close.push({ distance, ids: candidate.ids });
         }
     }
 
-    return ids;
+    // Stable: equally close names keep the list's order
+    return close.sort((a, b) => a.distance - b.distance).flatMap((candidate) => candidate.ids);
 }
 
 /**

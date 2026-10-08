@@ -191,6 +191,12 @@ export default function (test) {
         assert.equal(boundedDistance('žluťak', 'zlutak'), 2, 'code points, not bytes');
         assert.deepEqual(closeNames('jodax', [{ key: 'jodox', length: 5, ids: ['x'] }]), [], 'short keys are never close');
         assert.deepEqual(closeNames('robinexample', [{ key: 'robinexampel', length: 12, ids: ['a'] }, { key: 'robinexample', length: 12, ids: ['same'] }]), ['a']);
+        // The closest first
+        assert.deepEqual(closeNames('sheet persn 04', [
+            { key: 'sheet person 01', length: 15, ids: ['p01'] },
+            { key: 'sheet person 02', length: 15, ids: ['p02'] },
+            { key: 'sheet person 04', length: 15, ids: ['p04'] },
+        ]), ['p04', 'p01', 'p02']);
         assert.equal(looksLikeNoName('Bo', () => 'bo'), HINT_COUNTRY);
         assert.equal(looksLikeNoName('Bo', () => undefined), null);
         assert.equal(looksLikeNoName('Bo Li', () => 'bo'), null);

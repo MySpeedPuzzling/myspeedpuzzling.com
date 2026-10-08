@@ -5659,6 +5659,10 @@ favorite_puzzlers:
   "name_label": "Nombre"
   "name_help": "Visible para todos junto a tus resultados. Cualquier miembro puede cambiarlo más adelante."
   "leaving_time": "Dejarás de formar parte de este tiempo."
+  "favorite": "En favoritos"
+  "hide_team": "Ocultar «%name%» de las sugerencias"
+  "team_hidden": "«%name%» ya no aparece en tus sugerencias (Parejas y equipos → Archivados)."
+  "hide_failed": "No ha funcionado. Inténtalo de nuevo."
   "add_several": "Añadir a los %count%: %names%"
   "pending":
     "text": "«%text%» aún no está añadido: añádelo y vuelve a guardar."

@@ -6212,6 +6212,10 @@ copuzzler_picker:
     name_label: "Name"
     name_help: "Visible to everyone next to your results. Any member can change it later."
     leaving_time: "You will no longer be part of this time."
+    favorite: "In favorites"
+    hide_team: "Hide “%name%” from suggestions"
+    team_hidden: "“%name%” is hidden from your suggestions (Pairs & teams → Archived)."
+    hide_failed: "That didn't work. Please try again."
     add_several: "Add %count% people: %names%"
     pending:
         text: "“%text%” is not added yet - add it, then save again."

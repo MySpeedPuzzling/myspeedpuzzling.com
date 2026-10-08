@@ -5656,6 +5656,10 @@ favorite_puzzlers:
   "name_label": "Název"
   "name_help": "Viditelný pro všechny u vašich výsledků. Kterýkoli člen ho může později změnit."
   "leaving_time": "Už nebudete součástí tohoto času."
+  "favorite": "V oblíbených"
+  "hide_team": "Skrýt „%name%“ z návrhů"
+  "team_hidden": "„%name%“ už se v návrzích nezobrazí (Dvojice a týmy → Archivováno)."
+  "hide_failed": "Nepovedlo se. Zkuste to prosím znovu."
   "add_several": "Přidat všechny (%count%): %names%"
   "pending":
     "text": "„%text%“ zatím není přidané - přidejte to a pak znovu uložte."

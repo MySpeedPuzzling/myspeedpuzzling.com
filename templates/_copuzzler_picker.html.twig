@@ -18,6 +18,8 @@
      data-controller="copuzzler-picker"
      data-copuzzler-picker-suggestions-url-value="{{ path('my_co_puzzlers') }}"
      data-copuzzler-picker-search-url-value="{{ path('player_search_autocomplete', {format: 'co-puzzler'}) }}"
+     data-copuzzler-picker-archive-url-value="{{ path('my_co_puzzlers_archive') }}"
+     data-copuzzler-picker-archive-token-value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ArchiveCoPuzzlerTeamController::CSRF_TOKEN_ID')) }}"
      data-copuzzler-picker-locale-value="{{ app.request.locale }}"
      data-copuzzler-picker-max-value="15"
      data-copuzzler-picker-recent-days-value="{{ constant('SpeedPuzzling\\Web\\Query\\GetCoPuzzlers::RECENT_DAYS') }}"
@@ -53,6 +55,10 @@
          searchFailed: 'copuzzler_picker.search_failed'|trans,
          noResults: 'copuzzler_picker.no_results'|trans,
          leavingTime: 'copuzzler_picker.leaving_time'|trans,
+         favorite: 'copuzzler_picker.favorite'|trans,
+         hideTeam: 'copuzzler_picker.hide_team'|trans,
+         teamHidden: 'copuzzler_picker.team_hidden'|trans,
+         hideFailed: 'copuzzler_picker.hide_failed'|trans,
      }|json_encode }}">
 
     <div class="copuzzler-switch shadow" role="radiogroup" aria-label="{{ 'copuzzler_picker.switch_label'|trans }}">

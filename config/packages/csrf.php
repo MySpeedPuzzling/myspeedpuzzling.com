@@ -64,6 +64,9 @@ return App::config([
                 // Selecting several puzzles on a collection page (docs/features/collections/bulk-actions.md): the bar's
                 // token is rendered on every collection page a member opens
                 'collection_selection',
+                // The × hiding a team in the co-puzzler picker (ArchiveCoPuzzlerTeamController): rendered on every
+                // add-time form
+                'copuzzler_archive',
             ],
         ],
     ],

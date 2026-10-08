@@ -321,11 +321,8 @@ final class PairsAndTeamsControllerTest extends WebTestCase
         self::assertStringContainsString('2× together', $archived->text());
         self::assertCount(1, $archived->filter('[data-testid="team-results"]'));
 
-        // The add-time picker offers neither the pair nor - it being a pair - the person
-        $browser->request('GET', '/en/my-co-puzzlers.json');
-        $content = (string) $browser->getResponse()->getContent();
-        self::assertStringNotContainsString($this->fixturePairId(), $content);
-        self::assertStringNotContainsString(PlayerFixture::PLAYER_REGULAR, $content);
+        // The add-time picker offers neither the pair nor - it being a pair - the person, but still knows both
+        self::assertSame([true, true], $this->pickerFlags($browser));
 
         $browser->request('GET', '/en/teams/' . $this->fixturePairId());
         $this->assertResponseIsSuccessful();
@@ -338,8 +335,24 @@ final class PairsAndTeamsControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-testid="regular-teams"] .pairs-and-teams-card'));
         self::assertCount(0, $crawler->filter('[data-testid="archived-teams"]'));
 
+        self::assertSame([false, false], $this->pickerFlags($browser));
+    }
+
+    /**
+     * @return array{bool, bool} the fixture pair's `archived`, its other member's `setAside` in the picker's suggestions
+     */
+    private function pickerFlags(KernelBrowser $browser): array
+    {
         $browser->request('GET', '/en/my-co-puzzlers.json');
-        self::assertStringContainsString($this->fixturePairId(), (string) $browser->getResponse()->getContent());
+
+        /** @var array{teams: list<array{id: string, archived: bool}>, people: list<array{key: string, setAside: bool}>} $payload */
+        $payload = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        $pair = array_values(array_filter($payload['teams'], fn(array $team): bool => $team['id'] === $this->fixturePairId()));
+        $person = array_values(array_filter($payload['people'], static fn(array $person): bool => $person['key'] === PlayerFixture::PLAYER_REGULAR));
+        self::assertCount(1, $pair);
+        self::assertCount(1, $person);
+
+        return [$pair[0]['archived'], $person[0]['setAside']];
     }
 
     public function testNobodyPickedIsToldSoWithoutAnError(): void

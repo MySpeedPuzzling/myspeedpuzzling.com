@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Message\AddPlayerToFavorites;
+use SpeedPuzzling\Web\Message\PreparePuzzlingTeam;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -15,6 +17,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * The Solo / Pair / Team picker of the add/edit time form (docs/features/pairs-and-teams/README.md) -
@@ -238,6 +241,122 @@ SQL,
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringNotContainsString(PlayerFixture::PLAYER_PRIVATE, $content);
         self::assertStringNotContainsString('PLAYER2', $content);
+    }
+
+    /**
+     * A player archived their pair with somebody who is also in one of their teams and among their favorites: the
+     * pair leaves the shortcuts, the person never leaves the picker - the team names them, the search finds them,
+     * and a favorite is offered all the same (it happened: the archived partner vanished from the whole form).
+     */
+    public function testArchivingAPairNeverMakesThePersonDisappear(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $bus->dispatch(new PreparePuzzlingTeam(PlayerFixture::PLAYER_PRIVATE, ['#player1', 'Eva'], null));
+        $pairId = self::getContainer()->get(Connection::class)->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_12]);
+        self::assertIsString($pairId);
+
+        // The × on a suggestion
+        self::assertSame(['archived' => true], $this->archiveFromPicker($browser, $pairId, true));
+
+        $payload = $this->suggestions($browser);
+        self::assertTrue($this->teamIn($payload, $pairId)['archived'], 'Known, so a pair put together by hand is still recognised');
+        self::assertTrue($this->personIn($payload, PlayerFixture::PLAYER_REGULAR)['setAside']);
+
+        $peopleKeys = array_column($payload['people'], 'key');
+
+        foreach ($payload['teams'] as $team) {
+            foreach ($team['members'] as $memberKey) {
+                self::assertContains($memberKey, $peopleKeys, 'Every member of every team is among the people - a team names them all');
+            }
+        }
+
+        // Following somebody says "offer them"
+        $bus->dispatch(new AddPlayerToFavorites(PlayerFixture::PLAYER_PRIVATE_USER_ID, PlayerFixture::PLAYER_REGULAR));
+        $regular = $this->personIn($this->suggestions($browser), PlayerFixture::PLAYER_REGULAR);
+        self::assertTrue($regular['favorite']);
+        self::assertFalse($regular['setAside']);
+
+        // Undo
+        self::assertSame(['archived' => false], $this->archiveFromPicker($browser, $pairId, false));
+        self::assertFalse($this->teamIn($this->suggestions($browser), $pairId)['archived']);
+    }
+
+    public function testOnlyAMemberMayHideATeamFromThePicker(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $pairId = self::getContainer()->get(Connection::class)->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_12]);
+        self::assertIsString($pairId);
+
+        $browser->request('POST', '/en/my-co-puzzlers/archive', ['_token' => 'csrf-token', 'teamId' => $pairId], server: ['HTTP_ORIGIN' => 'http://localhost']);
+        $this->assertResponseStatusCodeSame(403);
+
+        $browser->request('POST', '/en/my-co-puzzlers/archive', ['_token' => 'csrf-token', 'teamId' => 'nope'], server: ['HTTP_ORIGIN' => 'http://localhost']);
+        $this->assertResponseStatusCodeSame(404);
+
+        // Another site's page cannot do it for them
+        $browser->request('POST', '/en/my-co-puzzlers/archive', ['_token' => 'csrf-token', 'teamId' => $pairId], server: ['HTTP_ORIGIN' => 'https://evil.example']);
+        $this->assertResponseStatusCodeSame(403);
+        self::assertSame(0, self::getContainer()->get(Connection::class)->fetchOne('SELECT COUNT(*) FROM puzzling_team_archive'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function archiveFromPicker(KernelBrowser $browser, string $teamId, bool $archive): array
+    {
+        $browser->request('POST', '/en/my-co-puzzlers/archive', [
+            '_token' => 'csrf-token',
+            'teamId' => $teamId,
+            'archive' => $archive ? '1' : '0',
+        ], server: ['HTTP_ORIGIN' => 'http://localhost']);
+        $this->assertResponseIsSuccessful();
+
+        /** @var array<string, mixed> $answer */
+        $answer = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+
+        return $answer;
+    }
+
+    /**
+     * @return array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool, setAside: bool}>}
+     */
+    private function suggestions(KernelBrowser $browser): array
+    {
+        $browser->request('GET', '/en/my-co-puzzlers.json');
+        $this->assertResponseIsSuccessful();
+
+        /** @var array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool, setAside: bool}>} $payload */
+        $payload = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+
+        return $payload;
+    }
+
+    /**
+     * @param array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool, setAside: bool}>} $payload
+     * @return array{id: string, archived: bool, members: list<string>}
+     */
+    private function teamIn(array $payload, string $teamId): array
+    {
+        $teams = array_values(array_filter($payload['teams'], static fn(array $team): bool => $team['id'] === $teamId));
+        self::assertCount(1, $teams);
+
+        return $teams[0];
+    }
+
+    /**
+     * @param array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool, setAside: bool}>} $payload
+     * @return array{key: string, favorite: bool, setAside: bool}
+     */
+    private function personIn(array $payload, string $key): array
+    {
+        $people = array_values(array_filter($payload['people'], static fn(array $person): bool => $person['key'] === $key));
+        self::assertCount(1, $people);
+
+        return $people[0];
     }
 
     public function testPlayerSearchAnswersInThePickersShape(): void

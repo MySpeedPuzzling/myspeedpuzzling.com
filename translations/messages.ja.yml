@@ -5649,6 +5649,10 @@ favorite_puzzlers:
   "name_label": "名前"
   "name_help": "結果の横に表示され、誰でも見ることができます。メンバーなら誰でも後から変更できます。"
   "leaving_time": "あなたはこのタイムのメンバーではなくなります。"
+  "favorite": "お気に入り"
+  "hide_team": "「%name%」を候補から非表示にする"
+  "team_hidden": "「%name%」は候補に表示されなくなりました（ペアとチーム → アーカイブ済み）。"
+  "hide_failed": "うまくいきませんでした。もう一度お試しください。"
   "add_several": "%count%人を追加: %names%"
   "pending":
     "text": "「%text%」はまだ追加されていません。追加してから、もう一度保存してください。"

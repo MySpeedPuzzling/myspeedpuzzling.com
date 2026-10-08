@@ -192,6 +192,57 @@
   &--team &__meta {
     margin-left: 0;
   }
+
+  // A team names every member - wrapped, never cut off
+  &--team &__title,
+  &--team &__meta {
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+// A team offered + its × (hide it from the suggestions): two buttons side by side, the × in the card's corner
+.copuzzler-team {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+
+  .copuzzler-option--team {
+    padding-right: 2.4rem;
+  }
+
+  &__hide {
+    position: absolute;
+    top: 0;
+    right: 0;
+    // Small glyph, full-size tap target
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: $gray-600;
+    font-size: .7rem;
+
+    &:hover,
+    &:focus-visible {
+      color: $danger;
+    }
+  }
+}
+
+.copuzzler-team-notice {
+  flex: 1 0 100%;
+  font-size: .875rem;
+  color: $gray-700;
+}
+
+.copuzzler-favorite {
+  flex: 0 0 auto;
+  margin-left: .3rem;
+  font-size: .75rem;
+  color: $warning;
 }
 
 .copuzzler-avatar {

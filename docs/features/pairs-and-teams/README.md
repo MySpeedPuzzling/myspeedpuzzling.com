@@ -212,10 +212,20 @@ the card opens instantly with skeleton chips. Edit form, 422 re-render and `?tea
   `player_search_autocomplete?format=co-puzzler`. Guests and the player themselves are never offered.
 - **Cards show every member**: names on the manage page wrap (`text-break`), never `text-truncate` - a cut-off
   list hid who is in a big team.
-- **Archive**: `puzzling_team_archive (team, player)`; `GetCoPuzzlers` flags `archived` per viewer,
-  `MyCoPuzzlersController` drops archived teams (and an archived pair's person) from the picker payload, the
+- **Archive**: `puzzling_team_archive (team, player)`; `GetCoPuzzlers` flags `archived` per viewer, the
   manage page folds them under "Archived". `PuzzlingTeamResolver::resolve(..., usedByPlayerId:)` deletes the
   archive row inside the lookup statement.
+  - **The picker leaves archived things out of what it offers, never out of what it knows** (2026-10-08): the
+    `my_co_puzzlers` payload keeps every team (`archived`) and every person (`setAside` = the partner of an archived
+    pair). Before, an archived pair took its person out of the payload altogether - a puzzler's favorite vanished from
+    the shortcuts, from the search's local results and from the names of her other teams (and tapping such a team
+    added it without her). Now archived teams are not offered but still recognised when put together by hand, a
+    set-aside person is not offered in the shortcut row but every team names them and the search finds them, and **a
+    favorite is never set aside** - following somebody says "offer them". `pickTeam()` adds all of a team or nobody.
+  - **× on a team suggestion** (Team mode): archives it for the player right in the form -
+    `ArchiveCoPuzzlerTeamController` (`POST /{_locale}/my-co-puzzlers/archive`, stateless CSRF `copuzzler_archive`,
+    JSON only, `archive=0` = Undo), "“…” is hidden from your suggestions (Pairs & teams → Archived). Undo".
+  - Favorites carry a star in the people row and in the search's options.
 - **Cleanup**: `myspeedpuzzling:cleanup-empty-puzzling-teams` removes teams with no result, no name, no preparer,
   older than a day. Manual; nothing depends on it.
 - **API**: result rows carry `team_id` + `team_name` (nullable, read-only, appended). Nothing renamed.

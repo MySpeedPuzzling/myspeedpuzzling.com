@@ -1,0 +1,810 @@
+// The admin overview of duplicate results (templates/admin/duplicate_results.html.twig + its two partials,
+// docs/features/duplicate-results.md, "Admin overview"): a long, mostly read-only page. At a glance on top, the one
+// worklist (possible duplicate puzzles) next, then numbers and lists - calm, readable at 375 px. Same visual language
+// as the time verification queue (_time-verification.scss): small uppercase labels, gray-100 panels, dark text.
+
+// Bars: one blue, light to dark (validated as an ordinal ramp against white) - the dark step is what should shrink
+$dr-bar-strong: #1c5cab;
+$dr-bar-light: #86b6ef;
+$dr-bar-single: #2a78d6;
+$dr-meter-track: #cde2fb;
+
+.dr-section {
+  margin-top: 3rem;
+  scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
+}
+
+// Small uppercase titles: the at-a-glance cards, the funnel, the side facts
+.dr-label {
+  margin-bottom: .25rem;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  letter-spacing: .04em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: $gray-700;
+}
+
+// "How it works" - folded, the page itself says what each number means
+.dr-help {
+  > summary {
+    width: fit-content;
+    color: $gray-800;
+    cursor: pointer;
+  }
+
+  &[open] {
+    padding: .75rem 1rem;
+    border-radius: $border-radius;
+    background-color: $gray-100;
+  }
+
+  dt {
+    font-weight: $font-weight-medium;
+    color: $gray-800;
+  }
+}
+
+// "On this page" - one scrolling row on a phone
+.dr-nav {
+  display: flex;
+  gap: .5rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  white-space: nowrap;
+
+  > a {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    padding: .3125rem .75rem;
+    border: 1px solid $gray-300;
+    border-radius: 2rem;
+    color: $gray-800;
+    font-size: $font-size-sm;
+
+    &:hover,
+    &:focus-visible {
+      border-color: $gray-500;
+      background-color: $gray-100;
+    }
+  }
+}
+
+// At a glance - one card per question
+.dr-stat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: .875rem 1rem;
+  border: 1px solid $gray-300;
+  border-radius: $border-radius-lg;
+  background-color: $white;
+
+  // Something waits for the admin - the same warning colour as the queue count in the key menu
+  &.dr-stat-attention {
+    border-color: rgba($warning, .8);
+    box-shadow: inset 4px 0 0 $warning;
+    background-color: rgba($warning, .08);
+  }
+
+  &.dr-stat-calm {
+    box-shadow: inset 4px 0 0 $success;
+  }
+
+  .dr-stat-figure {
+    font-size: $h3-font-size;
+    font-weight: $font-weight-medium;
+    line-height: 1.15;
+    color: $gray-900;
+    font-variant-numeric: tabular-nums;
+
+    @include media-breakpoint-up(md) {
+      font-size: $h2-font-size;
+    }
+  }
+
+  .dr-stat-text {
+    margin: .125rem 0 0;
+    font-size: $font-size-sm;
+    color: $gray-800;
+    line-height: 1.35;
+  }
+
+  .dr-stat-more {
+    margin: auto 0 0;
+    padding-top: .5rem;
+    font-size: $font-size-xs;
+    color: $gray-700;
+
+    // Small text on a tinted card - dark and underlined, not the light brand colour
+    a {
+      color: $gray-900;
+      font-weight: $font-weight-medium;
+      text-decoration: underline;
+      text-underline-offset: .2em;
+    }
+  }
+}
+
+// Numbers: a value stands out, a zero recedes (still readable: gray-700 on white is 7:1)
+.dr-value {
+  font-weight: $font-weight-medium;
+  color: $gray-900;
+}
+
+.dr-zero {
+  color: $gray-700;
+}
+
+.dr-share {
+  margin-left: .125rem;
+  font-size: .85em;
+  color: $gray-700;
+}
+
+// The tier as a letter - not colour alone, the label follows it
+.dr-tier {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  margin-right: .125rem;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  line-height: 1;
+}
+
+.dr-tier-a {
+  background-color: $gray-800;
+  color: $white;
+}
+
+.dr-tier-b {
+  background-color: $gray-300;
+  color: $gray-900;
+}
+
+.dr-tier-c {
+  border: 1px solid $gray-400;
+  background-color: $white;
+  color: $gray-900;
+}
+
+// Tier/kind × status: grouped headers, the "Open" column tinted - it is what waits on players
+.dr-matrix {
+  thead th {
+    font-weight: $font-weight-medium;
+    white-space: nowrap;
+  }
+
+  thead .dr-group {
+    border-bottom-color: $gray-400;
+  }
+
+  .dr-col-open {
+    background-color: $gray-100;
+  }
+
+  .dr-matrix-group th {
+    padding-top: .875rem;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: $gray-700;
+  }
+
+  tbody th[scope="row"] {
+    min-width: 9rem;
+
+    @include media-breakpoint-up(md) {
+      min-width: 13rem;
+    }
+  }
+
+  tfoot th,
+  tfoot td {
+    border-top: 2px solid $gray-400;
+    border-bottom: 0;
+    font-weight: $font-weight-medium;
+  }
+}
+
+// One line per column header, so a scrolling table keeps a short head
+.dr-head-nowrap thead th {
+  white-space: nowrap;
+}
+
+// The first column stays put while a wide table scrolls on a phone
+.dr-sticky-first > :not(caption) > tr > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: $white;
+
+  @include media-breakpoint-down(md) {
+    box-shadow: inset -1px 0 0 $gray-300;
+  }
+}
+
+.dr-sticky-first > :not(caption) > tr > .dr-col-open:first-child {
+  background-color: $gray-100;
+}
+
+// Bars inside tables - the number is always printed next to them, the bar only shows the shape
+.dr-bars .dr-bar-col {
+  width: 40%;
+  min-width: 6rem;
+}
+
+.dr-bar {
+  display: flex;
+  gap: 2px;
+  min-width: 4px;
+  height: .75rem;
+
+  > span {
+    flex-basis: 0;
+    min-width: 2px;
+    height: 100%;
+  }
+
+  > span:last-child {
+    border-radius: 0 4px 4px 0;
+  }
+}
+
+.dr-bar-strong {
+  background-color: $dr-bar-strong;
+}
+
+.dr-bar-light {
+  background-color: $dr-bar-light;
+}
+
+.dr-bar-single {
+  flex-grow: 1;
+  background-color: $dr-bar-single;
+}
+
+.dr-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem 1rem;
+  color: $gray-800;
+
+  > span {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+  }
+}
+
+.dr-swatch {
+  display: inline-block;
+  width: .75rem;
+  height: .75rem;
+  border-radius: 2px;
+}
+
+.dr-swatch-strong {
+  background-color: $dr-bar-strong;
+}
+
+.dr-swatch-light {
+  background-color: $dr-bar-light;
+}
+
+// A share of a whole: precision per tier, the e-mail funnel
+.dr-meter {
+  display: inline-block;
+  overflow: hidden;
+  width: 3.5rem;
+  height: .5rem;
+  margin-left: .375rem;
+  border-radius: 4px;
+  background-color: $dr-meter-track;
+  vertical-align: middle;
+
+  > span {
+    display: block;
+    height: 100%;
+    background-color: $dr-bar-single;
+  }
+}
+
+.dr-meter-wide {
+  display: block;
+  width: 100%;
+  height: .625rem;
+  margin: .25rem 0 0;
+}
+
+// The e-mail funnel - each step against the e-mails sent
+.dr-funnel {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dr-funnel-step + .dr-funnel-step {
+  margin-top: .75rem;
+}
+
+.dr-funnel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 1rem;
+}
+
+.dr-funnel-label {
+  font-weight: $font-weight-medium;
+  color: $gray-900;
+}
+
+.dr-funnel-value {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-medium;
+  color: $gray-900;
+  font-variant-numeric: tabular-nums;
+}
+
+.dr-funnel-note {
+  margin-top: .125rem;
+  font-size: $font-size-xs;
+  color: $gray-700;
+}
+
+// Short facts: a term and its number on one line
+.dr-facts {
+  margin-bottom: .5rem;
+  padding: .75rem 1rem;
+  border-radius: $border-radius;
+  background-color: $gray-100;
+  font-size: $font-size-sm;
+
+  > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0 1rem;
+  }
+
+  > div + div {
+    margin-top: .375rem;
+    padding-top: .375rem;
+    border-top: 1px solid $gray-300;
+  }
+
+  dt {
+    font-weight: $font-weight-normal;
+    color: $gray-800;
+  }
+
+  dd {
+    margin-bottom: 0;
+    font-weight: $font-weight-medium;
+    color: $gray-900;
+    text-align: right;
+  }
+}
+
+// Something to look at in the mail log - dark text, the icon carries the colour
+.dr-warn > .bi {
+  color: darken($warning, 15%);
+}
+
+// Calm empty states instead of blue alerts
+.dr-empty {
+  margin-bottom: 0;
+  padding: .75rem 1rem;
+  border-radius: $border-radius;
+  background-color: $gray-100;
+  color: $gray-800;
+  font-size: $font-size-sm;
+
+  &.dr-empty-calm > .bi {
+    color: darken($success, 20%);
+  }
+}
+
+// The case list's tabs: one scrolling row on a phone
+.dr-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+
+  .nav-link {
+    padding-right: .75rem;
+    padding-left: .75rem;
+  }
+}
+
+.dr-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: .75rem;
+
+  > div:not(.dr-filter-actions) {
+    flex: 1 1 10rem;
+    max-width: 18rem;
+  }
+
+  .form-label {
+    color: $gray-800;
+  }
+}
+
+.dr-filter-actions {
+  display: flex;
+  gap: .25rem;
+}
+
+.dr-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-top: 1rem;
+}
+
+.dr-icon-link {
+  color: $gray-700;
+
+  &:hover,
+  &:focus-visible {
+    color: $gray-900;
+  }
+}
+
+.dr-by {
+  color: $gray-700;
+}
+
+.dr-difference {
+  border: 1px solid $gray-300;
+  background-color: $gray-100;
+  color: $gray-900;
+  font-weight: $font-weight-normal;
+}
+
+.dr-undone {
+  font-weight: $font-weight-medium;
+  color: $gray-900;
+
+  > .bi {
+    color: darken($warning, 15%);
+  }
+}
+
+.dr-id {
+  font-size: .8em;
+  color: $gray-700;
+}
+
+// The case list and the removals: a table from md up, one compact block per row below - every cell carries its
+// label on the left (data-label), the person is the block's title
+.dr-stack {
+  vertical-align: top;
+
+  thead th {
+    font-weight: $font-weight-medium;
+    white-space: nowrap;
+  }
+
+  // The second line of a cell: below it in the table, after it on a phone
+  .dr-stack-more {
+    display: block;
+    font-size: $font-size-xs;
+  }
+
+  @include media-breakpoint-down(md) {
+    thead {
+      @include visually-hidden();
+    }
+
+    > tbody,
+    > tbody > tr {
+      display: block;
+    }
+
+    > tbody > tr {
+      padding: .625rem 0;
+      border-bottom: 1px solid $gray-300;
+    }
+
+    > :not(caption) > * > * {
+      position: relative;
+      display: block;
+      padding: .125rem 0 .125rem 5.25rem;
+      border-bottom-width: 0;
+      text-align: left !important;
+      white-space: normal !important;
+    }
+
+    > :not(caption) > * > *::before {
+      content: attr(data-label);
+      position: absolute;
+      top: .25rem;
+      left: 0;
+      width: 4.75rem;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+      letter-spacing: .03em;
+      line-height: 1.5;
+      text-transform: uppercase;
+      color: $gray-700;
+    }
+
+    > :not(caption) > * > .dr-stack-title {
+      padding-left: 0;
+      padding-bottom: .25rem;
+      font-size: $font-size-base;
+
+      &::before {
+        content: none;
+      }
+    }
+
+    .dr-stack-more {
+      display: inline;
+      font-size: inherit;
+
+      &::before {
+        content: " · ";
+      }
+    }
+  }
+}
+
+// Possible duplicate puzzles: why it was raised, the two records, the facts, the decision. Side by side from lg -
+// the records on the left, the rest in a column on the right - so a card stays short
+.dr-signal-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "why" "compare" "facts" "decide";
+  gap: 1rem;
+
+  @include media-breakpoint-down(sm) {
+    padding: .875rem .75rem;
+  }
+
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: minmax(0, 1fr) 19rem;
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: "compare why" "compare facts" "compare decide";
+    column-gap: 2rem;
+  }
+}
+
+.dr-signal-why {
+  grid-area: why;
+}
+
+.dr-signal-compare {
+  grid-area: compare;
+  align-self: start;
+}
+
+.dr-signal-facts {
+  grid-area: facts;
+}
+
+.dr-decide.dr-signal-decide {
+  grid-area: decide;
+  align-self: start;
+  margin-top: 0;
+
+  @include media-breakpoint-up(lg) {
+    padding-top: .75rem;
+  }
+}
+
+.dr-decide-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+// What each button does - one line each, below both buttons
+.dr-decide-help {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: $font-size-xs;
+  color: $gray-700;
+
+  > li + li {
+    margin-top: .125rem;
+  }
+}
+
+.dr-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .375rem;
+}
+
+.dr-points {
+  margin-right: .25rem;
+  font-weight: $font-weight-medium;
+  color: $gray-900;
+  font-variant-numeric: tabular-nums;
+}
+
+.dr-reason {
+  border: 1px solid $gray-300;
+  background-color: $gray-100;
+  color: $gray-900;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-normal;
+  white-space: normal;
+  text-align: left;
+}
+
+// A hint that the two are different puzzles - yellow with an icon, dark text
+.dr-reason-counter {
+  border-color: rgba($warning, .9);
+  background-color: rgba($warning, .22);
+  color: $gray-900;
+
+  > .bi {
+    color: darken($warning, 25%);
+  }
+}
+
+.dr-points-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: .125rem 1.5rem;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// The two records side by side, field by field - what they share is tinted and marked "same"
+.dr-compare {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+
+  .dr-compare-label-col {
+    width: 4.75rem;
+
+    @include media-breakpoint-up(sm) {
+      width: 9.5rem;
+    }
+  }
+
+  th,
+  td {
+    padding: .3125rem .5rem;
+    vertical-align: top;
+    overflow-wrap: break-word;
+  }
+
+  thead th {
+    padding-bottom: .625rem;
+    font-weight: $font-weight-medium;
+  }
+
+  tbody th {
+    font-weight: $font-weight-normal;
+    color: $gray-700;
+  }
+
+  tbody tr {
+    border-top: 1px solid $gray-300;
+  }
+
+  tr.dr-match {
+    background-color: rgba($success, .12);
+  }
+
+  // A phone: 13 digits of an EAN fit one line next to each other
+  @include media-breakpoint-down(sm) {
+    font-size: $font-size-xs * 1.0833;
+
+    th,
+    td {
+      padding-right: .25rem;
+      padding-left: .25rem;
+    }
+  }
+}
+
+.dr-compare-puzzle {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+
+  @include media-breakpoint-up(sm) {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.dr-thumb {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: $border-radius;
+  background-color: $gray-100;
+  color: $gray-600;
+  font-size: 1.25rem;
+
+  @include media-breakpoint-up(sm) {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 1.5rem;
+  }
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: $border-radius;
+    object-fit: contain;
+  }
+}
+
+.dr-same {
+  display: inline-block;
+  margin-left: .25rem;
+  padding: 0 .3125rem;
+  border-radius: $border-radius-sm;
+  background-color: darken($success, 28%);
+  color: $white;
+  font-size: .6875rem;
+  font-weight: $font-weight-medium;
+  letter-spacing: .03em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.dr-evidence {
+  color: $gray-800;
+}
+
+// The decision at the bottom of a card - each button says what happens
+.dr-decide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid $gray-300;
+}
+
+// Strong / weak - the list shown is the pressed one
+.dr-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: .375rem;
+
+  .btn.active {
+    border-color: $gray-800;
+    background-color: $gray-800;
+    color: $white;
+    pointer-events: none;
+  }
+}

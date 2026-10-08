@@ -1,16 +1,20 @@
 {% extends 'base.html.twig' %}
 
+{# Duplicate results in numbers (docs/features/duplicate-results.md, "Admin overview"). Admins only, literal English,
+   not translated - and never "suspicious" in anything a person reads. Reading order: is everything fine (at a glance),
+   what needs me (possible duplicate puzzles), then the numbers, the e-mails and the lists. #}
+
 {% block title %}Duplicate results{% endblock %}
 
 {% macro gap(seconds) %}
     {%- if seconds < 60 -%}
         {{ seconds }} s
     {%- elseif seconds < 3600 -%}
-        {{ (seconds / 60)|round(0, 'floor') }} min {{ seconds % 60 }} s
+        {{ (seconds / 60)|round(0, 'floor') }} min{% if seconds % 60 > 0 %} {{ seconds % 60 }} s{% endif %}
     {%- elseif seconds < 86400 -%}
         {{ (seconds / 3600)|round(1) }} h
     {%- else -%}
-        {{ (seconds / 86400)|round(0, 'floor') }} days
+        {% set days = (seconds / 86400)|round(0, 'floor') %}{{ days }} {{ days == 1 ? 'day' : 'days' }}
     {%- endif -%}
 {% endmacro %}
 
@@ -18,34 +22,41 @@
     <a href="{{ path('player_profile', {playerId: person.id}) }}">{{ person.name ?? ('#' ~ person.code) }}</a>
 {% endmacro %}
 
-{% macro matrix_table(title, matrix, rows, statuses) %}
-    <h2 class="h5">{{ title }}</h2>
-    <div class="table-responsive">
-        <table class="table table-sm align-middle">
-            <thead>
-                <tr>
-                    <th></th>
-                    {% for status in statuses %}
-                        <th class="text-end"><code>{{ status.value }}</code></th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                    <tr>
-                        <th><code>{{ row.value }}</code></th>
-                        {% for status in statuses %}
-                            <td class="text-end">{{ matrix[row.value][status.value] ?? 0 }}</td>
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+{# "42 %" of a whole, "-" without one #}
+{% macro percent(part, whole) %}
+    {%- if whole > 0 %}{{ (part / whole * 100)|round }} %{% else %}-{% endif -%}
+{% endmacro %}
+
+{% macro count(value) %}
+    <span class="{{ value > 0 ? 'dr-value' : 'dr-zero' }}">{{ value|number_format(0, '.', ' ') }}</span>
+{% endmacro %}
+
+{# Previous / Page X of Y / Next, like the time verification queue; page_key = the query parameter of this list #}
+{% macro pagination(page, pages, label, route_parameters, page_key, fragment) %}
+    {% if pages > 1 %}
+        <nav class="dr-pagination" aria-label="{{ label }}">
+            {% if page > 1 %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results', route_parameters|merge({(page_key): page - 1})) }}#{{ fragment }}">
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i> Previous
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+            <span class="small">Page {{ page }} of {{ pages }}</span>
+            {% if page < pages %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results', route_parameters|merge({(page_key): page + 1})) }}#{{ fragment }}">
+                    Next <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+        </nav>
+    {% endif %}
 {% endmacro %}
 
 {% block content %}
     {% import _self as helpers %}
+
     {% set difference_labels = {
         finished_at: 'finish date',
         group: 'group',
@@ -56,261 +67,510 @@
         photo: 'photo',
     } %}
 
-    <h1 class="h3 mb-2">Duplicate results</h1>
-    <p class="text-muted small mb-4">
-        Results saved twice, judged per person (a teammate copy is a case for each member).
-        Tier A = certain (re-sent form), B = strong, C = possible - see <code>docs/features/duplicate-results.md</code>.
-        Detection runs daily; this page reads only the stored cases.
+    {# Cases per status, summed over the tiers - the "All cases" row and the counts on the tabs #}
+    {% set status_totals = {} %}
+    {% for status in statuses %}
+        {% set status_totals = status_totals|merge({(status.value): tiers|reduce((carry, tier_option) => carry + (by_tier[tier_option.value][status.value] ?? 0), 0)}) %}
+    {% endfor %}
+    {% set all_cases = status_totals|reduce((carry, cases) => carry + cases, 0) %}
+
+    {% set strong_signals = open_signal_counts.strong %}
+    {% set emails_sent = contacts.by_type|reduce((carry, row) => carry + row.sent, 0) %}
+    {% set emails_visited = contacts.by_type|reduce((carry, row) => carry + row.visited, 0) %}
+    {% set emails_reacted = contacts.by_type|reduce((carry, row) => carry + row.reacted, 0) %}
+    {% set emails_planned = contacts.by_type|reduce((carry, row) => carry + row.planned, 0) %}
+
+    <h1 class="h3 mb-1">Duplicate results</h1>
+    <p class="mb-2">
+        Results saved twice. Players decide about their own copies on their "Review your results" page - this page
+        shows how that goes. The one thing to do here: puzzles entered twice in the catalogue.
     </p>
 
-    <div class="row g-3 mb-4">
-        {% for label, value in {
-            'Open cases': totals.openCases,
-            'Players affected': totals.playersAffected,
-            'Resolved (30 days)': totals.resolvedLast30Days,
-            'Confirmed real': totals.confirmedReal,
-            'Removed automatically': totals.autoRemoved,
-            'Undone': totals.autoRemovalsUndone,
-        } %}
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="card card-body shadow-sm h-100 text-center">
-                    <div class="h3 mb-1">{{ value|number_format(0, '.', ' ') }}</div>
-                    <div class="fs-sm text-muted">{{ label }}</div>
+    <details class="dr-help small mb-3" data-testid="duplicate-results-help">
+        <summary class="fw-medium">How it works</summary>
+        <dl class="row gx-3 mt-2 mb-0">
+            <dt class="col-sm-3 col-lg-2">Case</dt>
+            <dd class="col-sm-9 col-lg-10">Two results of one person with the same puzzle and the same time. Judged per person: a pair result saved by both members is a case for each of them. The monthly trend and "Saved again after" count pairs of results instead.</dd>
+            <dt class="col-sm-3 col-lg-2">A - Certain</dt>
+            <dd class="col-sm-9 col-lg-10">The same form sent twice - identical, saved at most 10 s apart. The newer copy is removed automatically; the player is told and can undo it.</dd>
+            <dt class="col-sm-3 col-lg-2">B - Strong</dt>
+            <dd class="col-sm-9 col-lg-10">The player is asked (review page, banner, e-mail) with the older copy preselected.</dd>
+            <dt class="col-sm-3 col-lg-2">C - Possible</dt>
+            <dd class="col-sm-9 col-lg-10">The player is asked on the review page only, in neutral words, nothing preselected.</dd>
+            <dt class="col-sm-3 col-lg-2">Resolved</dt>
+            <dd class="col-sm-9 col-lg-10">A copy is gone: the player deleted it, or it was removed automatically.</dd>
+            <dt class="col-sm-3 col-lg-2">Confirmed real</dt>
+            <dd class="col-sm-9 col-lg-10">Both results stay: the player said they are two solves, or undid the automatic removal.</dd>
+            <dt class="col-sm-3 col-lg-2">Gone</dt>
+            <dd class="col-sm-9 col-lg-10">The two results no longer match - a copy was edited, deleted or merged away elsewhere.</dd>
+            <dt class="col-sm-3 col-lg-2">Where it comes from</dt>
+            <dd class="col-sm-9 col-lg-10 mb-0">Found when a result is saved and by the daily <code>myspeedpuzzling:detect-duplicate-results</code>; this page only reads what they stored. Design: <code>docs/features/duplicate-results.md</code>.</dd>
+        </dl>
+    </details>
+
+    <nav class="dr-nav mb-4" aria-label="On this page">
+        <a href="#puzzle-signals">Duplicate puzzles <span class="badge {{ strong_signals > 0 ? 'bg-warning text-dark' : 'bg-success text-dark' }}">{{ strong_signals }}</span></a>
+        <a href="#numbers">Numbers</a>
+        <a href="#contacts">E-mails</a>
+        <a href="#cases">Cases</a>
+        <a href="#removed-automatically">Removed automatically</a>
+    </nav>
+
+    <section class="mb-5" aria-labelledby="glance-title">
+        <h2 class="visually-hidden" id="glance-title">At a glance</h2>
+        <div class="row g-3">
+            <div class="col-6 col-xl-3">
+                <div class="dr-stat {{ strong_signals > 0 ? 'dr-stat-attention' : 'dr-stat-calm' }}">
+                    <h3 class="dr-label">Needs you</h3>
+                    <div class="dr-stat-figure" data-testid="duplicate-signals-waiting">{{ strong_signals|number_format(0, '.', ' ') }}</div>
+                    <p class="dr-stat-text">
+                        {% if strong_signals > 0 %}
+                            possible duplicate {{ strong_signals == 1 ? 'puzzle' : 'puzzles' }} to merge or dismiss
+                        {% else %}
+                            <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>no duplicate puzzles waiting
+                        {% endif %}
+                    </p>
+                    <p class="dr-stat-more">
+                        <a href="#puzzle-signals">{{ strong_signals > 0 ? 'Review them' : 'Go to the list' }}</a>
+                        {% if open_signal_counts.weak > 0 %}· {{ open_signal_counts.weak|number_format(0, '.', ' ') }} weak{% endif %}
+                    </p>
                 </div>
             </div>
-        {% endfor %}
-    </div>
+            <div class="col-6 col-xl-3">
+                <div class="dr-stat">
+                    <h3 class="dr-label">With the players</h3>
+                    <div class="dr-stat-figure" data-testid="duplicate-open-cases">{{ totals.openCases|number_format(0, '.', ' ') }}</div>
+                    <p class="dr-stat-text">
+                        open {{ totals.openCases == 1 ? 'case' : 'cases' }} of
+                        <span data-testid="duplicate-players-affected">{{ totals.playersAffected|number_format(0, '.', ' ') }}</span>
+                        {{ totals.playersAffected == 1 ? 'player' : 'players' }}
+                    </p>
+                    <p class="dr-stat-more">{{ totals.resolvedLast30Days|number_format(0, '.', ' ') }} resolved in the last 30 days</p>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="dr-stat">
+                    <h3 class="dr-label">Removed automatically</h3>
+                    <div class="dr-stat-figure">{{ totals.autoRemoved|number_format(0, '.', ' ') }}</div>
+                    <p class="dr-stat-text">{{ totals.autoRemoved == 1 ? 'copy' : 'copies' }} of a form sent twice</p>
+                    <p class="dr-stat-more">
+                        {{ totals.autoRemovalsUndone|number_format(0, '.', ' ') }} undone
+                        {% if totals.autoRemoved > 0 %}({{ helpers.percent(totals.autoRemovalsUndone, totals.autoRemoved) }}){% endif %}
+                        - the lower, the better
+                    </p>
+                </div>
+            </div>
+            <div class="col-6 col-xl-3">
+                <div class="dr-stat">
+                    <h3 class="dr-label">"Your results" <span class="text-nowrap">e-mails</span></h3>
+                    <div class="dr-stat-figure">{{ emails_sent|number_format(0, '.', ' ') }}</div>
+                    <p class="dr-stat-text">sent{% if emails_planned > 0 %}, {{ emails_planned|number_format(0, '.', ' ') }} more planned{% endif %}</p>
+                    <p class="dr-stat-more">
+                        {% if emails_sent > 0 %}
+                            {{ helpers.percent(emails_reacted, emails_sent) }} reacted · {{ helpers.percent(emails_visited, emails_sent) }} opened the page
+                        {% else %}
+                            nothing sent yet
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-6">{{ helpers.matrix_table('Tier × status', by_tier, tiers, statuses) }}</div>
-        <div class="col-lg-6">{{ helpers.matrix_table('Kind × status', by_kind, kinds, statuses) }}</div>
-    </div>
+    {{ include('admin/_duplicate_puzzle_signals.html.twig') }}
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-4">
-            <h2 class="h5">New twins per month</h2>
-            <p class="text-muted fs-sm">By when the later copy was saved, pairs of results (last 12 months).</p>
-            {% if trend is empty %}
-                <p class="text-muted">No twins yet.</p>
-            {% else %}
-                <table class="table table-sm align-middle">
-                    <thead>
-                        <tr>
-                            <th>Month</th>
-                            <th class="text-end">Twins</th>
-                            <th class="text-end">Saved within 2 min</th>
-                        </tr>
-                    </thead>
+    <section id="numbers" class="dr-section" aria-labelledby="numbers-title">
+        <h2 class="h4" id="numbers-title">Cases in numbers</h2>
+        <p class="mb-3">
+            Every case stored so far, by how sure the detection is and by what kind of twin it is. The columns are
+            the tabs of the case list below.
+        </p>
+
+        <p class="small d-md-none mb-1"><i class="bi bi-arrow-left-right me-1" aria-hidden="true"></i>Swipe the table for every status.</p>
+        <div class="table-responsive mb-4">
+            <table class="table table-sm align-middle fs-sm dr-matrix dr-sticky-first" data-testid="duplicate-cases-matrix">
+                <caption class="visually-hidden">Cases by tier and kind, per status</caption>
+                {# The columns are the tabs of the case list: a tab of one status is one column, the others a group #}
+                {% set matrix_statuses = [] %}
+                {% for tab_option in tabs %}
+                    {% set matrix_statuses = matrix_statuses|merge(tab_option.statuses|map(status => status.value)) %}
+                {% endfor %}
+                <thead>
+                    <tr>
+                        <td rowspan="2"></td>
+                        {% for tab_option in tabs %}
+                            {% if tab_option.statuses|length == 1 %}
+                                <th scope="col" rowspan="2" class="text-end align-bottom{{ tab_option.value == 'open' ? ' dr-col-open' : '' }}">{{ tab_option.label }}</th>
+                            {% else %}
+                                <th scope="colgroup" colspan="{{ tab_option.statuses|length }}" class="text-center dr-group">{{ tab_option.label }}</th>
+                            {% endif %}
+                        {% endfor %}
+                        <th scope="col" rowspan="2" class="text-end align-bottom">All</th>
+                    </tr>
+                    <tr>
+                        {% for tab_option in tabs|filter(tab_option => tab_option.statuses|length > 1) %}
+                            {% for status in tab_option.statuses %}
+                                <th scope="col" class="text-end">{{ status.label }}</th>
+                            {% endfor %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                {% for group in [
+                    {title: 'By tier', rows: tiers, matrix: by_tier},
+                    {title: 'By kind', rows: kinds, matrix: by_kind},
+                ] %}
                     <tbody>
-                        {% for month in trend %}
+                        <tr class="dr-matrix-group">
+                            <th scope="rowgroup" colspan="{{ matrix_statuses|length + 2 }}">{{ group.title }}</th>
+                        </tr>
+                        {% for row in group.rows %}
+                            {% set row_total = matrix_statuses|reduce((carry, status) => carry + (group.matrix[row.value][status] ?? 0), 0) %}
                             <tr>
-                                <td>{{ month.month }}</td>
-                                <td class="text-end">{{ month.twins }}</td>
-                                <td class="text-end">{{ month.saved_within_two_minutes }}</td>
+                                <th scope="row" class="fw-normal">
+                                    {% if group.title == 'By tier' %}
+                                        <span class="dr-tier dr-tier-{{ row.letter|lower }}">{{ row.letter }}</span> {{ row.label }}
+                                    {% else %}
+                                        {{ row.label }}
+                                    {% endif %}
+                                </th>
+                                {% for status in matrix_statuses %}
+                                    <td class="text-end{{ status == 'open' ? ' dr-col-open' : '' }}">{{ helpers.count(group.matrix[row.value][status] ?? 0) }}</td>
+                                {% endfor %}
+                                <td class="text-end">{{ helpers.count(row_total) }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
-                </table>
-            {% endif %}
-        </div>
-
-        <div class="col-lg-4">
-            <h2 class="h5">Saved again after</h2>
-            <p class="text-muted fs-sm">Pairs of results, all cases.</p>
-            <table class="table table-sm align-middle">
-                <tbody>
-                    {% for label, twins in gap_classes %}
-                        <tr>
-                            <td>{{ label }}</td>
-                            <td class="text-end">{{ twins }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="col-lg-4">
-            <h2 class="h5">Confirmed real, per tier</h2>
-            <p class="text-muted fs-sm">Of the decided cases, how many were two solves - the real precision of each tier.</p>
-            <table class="table table-sm align-middle">
-                <thead>
+                {% endfor %}
+                <tfoot>
                     <tr>
-                        <th>Tier</th>
-                        <th class="text-end">Decided</th>
-                        <th class="text-end">Confirmed real</th>
+                        <th scope="row">All cases</th>
+                        {% for status in matrix_statuses %}
+                            <td class="text-end{{ status == 'open' ? ' dr-col-open' : '' }}">{{ helpers.count(status_totals[status] ?? 0) }}</td>
+                        {% endfor %}
+                        <td class="text-end">{{ helpers.count(all_cases) }}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    {% for tier_option in tiers %}
-                        {% set share = confirmed_real_share[tier_option.value] %}
-                        <tr>
-                            <td>{{ tier_option.letter }} - <code>{{ tier_option.value }}</code></td>
-                            <td class="text-end">{{ share.decided }}</td>
-                            <td class="text-end">
-                                {{ share.confirmed_real }}
-                                {% if share.percent is not null %}<small class="text-muted">({{ share.percent }} %)</small>{% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
+                </tfoot>
             </table>
         </div>
-    </div>
 
-    <h2 class="h5" id="cases">Cases</h2>
+        <div class="row g-4 g-lg-5">
+            <div class="col-lg-6">
+                <h3 class="h5 mb-1">New twins per month</h3>
+                <p class="small mb-2">
+                    Pairs of results saved twice, by the month the later copy was saved (last 12 months). The success
+                    measure: twins saved within 2 minutes - mostly a form sent again - should fall to about 0.
+                </p>
+                {% if trend is empty %}
+                    <p class="dr-empty">No twins yet.</p>
+                {% else %}
+                    {% set trend_max = max(trend|map(month => month.twins)) %}
+                    <div class="dr-legend small mb-2" aria-hidden="true">
+                        <span><span class="dr-swatch dr-swatch-strong"></span>Saved within 2 min</span>
+                        <span><span class="dr-swatch dr-swatch-light"></span>Saved later</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle fs-sm dr-bars" data-testid="duplicate-trend">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Month</th>
+                                    <th scope="col" class="text-end">Twins</th>
+                                    <th scope="col" class="text-end">Within 2 min</th>
+                                    <th scope="col" class="dr-bar-col"><span class="visually-hidden">Chart</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for month in trend|reverse %}
+                                    {% set is_current = month.month == 'now'|date('Y-m') %}
+                                    <tr>
+                                        <th scope="row" class="fw-normal text-nowrap">
+                                            {{ (month.month ~ '-01')|date('M Y') }}
+                                            {% if is_current %}<span class="text-body small">(so far)</span>{% endif %}
+                                        </th>
+                                        <td class="text-end">{{ helpers.count(month.twins) }}</td>
+                                        <td class="text-end">{{ helpers.count(month.saved_within_two_minutes) }}</td>
+                                        <td class="dr-bar-col" aria-hidden="true">
+                                            <div class="dr-bar" style="width: {{ trend_max > 0 ? (month.twins / trend_max * 100)|round(1) : 0 }}%">
+                                                {% if month.saved_within_two_minutes > 0 %}
+                                                    <span class="dr-bar-strong" style="flex-grow: {{ month.saved_within_two_minutes }}"></span>
+                                                {% endif %}
+                                                {% if month.twins - month.saved_within_two_minutes > 0 %}
+                                                    <span class="dr-bar-light" style="flex-grow: {{ month.twins - month.saved_within_two_minutes }}"></span>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
 
-    <ul class="nav nav-tabs mb-3">
-        {% for tab_option in tabs %}
-            <li class="nav-item">
-                <a class="nav-link {% if tab_option == tab %}active{% endif %}"
-                   href="{{ path('admin_duplicate_results', {tab: tab_option.value, tier: tier ? tier.value : null, kind: kind ? kind.value : null}) }}#cases">
-                    {{ tab_option.label }}
-                </a>
-            </li>
-        {% endfor %}
-    </ul>
+            <div class="col-lg-6">
+                <h3 class="h5 mb-1">Saved again after</h3>
+                <p class="small mb-2">
+                    How long after the first copy the second one was saved - pairs of results, all cases. Tier A
+                    (removed automatically) needs 10 s or less.
+                </p>
+                {% set gap_total = gap_classes|reduce((carry, twins) => carry + twins, 0) %}
+                {% set gap_max = max(gap_classes) %}
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm align-middle fs-sm dr-bars" data-testid="duplicate-gap-classes">
+                        <thead>
+                            <tr>
+                                <th scope="col">Saved again after</th>
+                                <th scope="col" class="text-end">Twins</th>
+                                <th scope="col" class="text-end">Share</th>
+                                <th scope="col" class="dr-bar-col"><span class="visually-hidden">Chart</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for label, twins in gap_classes %}
+                                <tr>
+                                    <th scope="row" class="fw-normal text-nowrap">{{ label }}</th>
+                                    <td class="text-end">{{ helpers.count(twins) }}</td>
+                                    <td class="text-end text-nowrap">{{ helpers.percent(twins, gap_total) }}</td>
+                                    <td class="dr-bar-col" aria-hidden="true">
+                                        {% if twins > 0 %}
+                                            <div class="dr-bar" style="width: {{ (twins / gap_max * 100)|round(1) }}%"><span class="dr-bar-single"></span></div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
 
-    <form method="get" action="{{ path('admin_duplicate_results') }}#cases" class="d-flex flex-wrap gap-2 mb-3" data-turbo="false">
-        <input type="hidden" name="tab" value="{{ tab.value }}">
-        <select name="tier" class="form-select form-select-sm w-auto">
-            <option value="">All tiers</option>
-            {% for tier_option in tiers %}
-                <option value="{{ tier_option.value }}" {% if tier_option == tier %}selected{% endif %}>{{ tier_option.letter }} - {{ tier_option.value }}</option>
+                <h3 class="h5 mb-1">How often the tier is right</h3>
+                <p class="small mb-2">
+                    Of the cases already decided, the share that really was saved twice (a copy deleted or removed
+                    automatically) - the rest the player confirmed as two solves. For tier A this is 100 % minus the
+                    undo rate.
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle fs-sm dr-bars" data-testid="duplicate-precision">
+                        <thead>
+                            <tr>
+                                <th scope="col">Tier</th>
+                                <th scope="col" class="text-end">Decided</th>
+                                <th scope="col" class="text-end">Saved twice</th>
+                                <th scope="col" class="text-end">Both real</th>
+                                <th scope="col" class="text-end">Right</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tier_option in tiers %}
+                                {% set share = confirmed_real_share[tier_option.value] %}
+                                {% set saved_twice = share.decided - share.confirmed_real %}
+                                <tr>
+                                    <th scope="row" class="fw-normal text-nowrap"><span class="dr-tier dr-tier-{{ tier_option.letter|lower }}">{{ tier_option.letter }}</span> {{ tier_option.label }}</th>
+                                    <td class="text-end">{{ helpers.count(share.decided) }}</td>
+                                    <td class="text-end">{{ helpers.count(saved_twice) }}</td>
+                                    <td class="text-end">{{ helpers.count(share.confirmed_real) }}</td>
+                                    <td class="text-end text-nowrap">
+                                        {% if share.decided > 0 %}
+                                            <span class="fw-medium">{{ helpers.percent(saved_twice, share.decided) }}</span>
+                                            <span class="dr-meter" aria-hidden="true"><span style="width: {{ (saved_twice / share.decided * 100)|round(1) }}%"></span></span>
+                                        {% else %}
+                                            <span class="dr-zero">not decided yet</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{ include('admin/_duplicate_results_contacts.html.twig', {contacts: contacts}) }}
+
+    <section id="cases" class="dr-section" aria-labelledby="cases-title">
+        <h2 class="h4" id="cases-title">Cases</h2>
+        <p class="mb-3">Every stored case, one per person, newest first. Read only - players decide about their own results.</p>
+
+        <ul class="nav nav-tabs dr-tabs mb-3">
+            {# The counts follow one filter (the tables have tier × status and kind × status); with both, only the list knows #}
+            {% set tab_counts_by_status = (tier and kind) ? null : (tier ? (by_tier[tier.value] ?? {}) : (kind ? (by_kind[kind.value] ?? {}) : status_totals)) %}
+            {% for tab_option in tabs %}
+                {% set tab_count = tab_counts_by_status is null ? null : tab_option.statuses|reduce((carry, status) => carry + (tab_counts_by_status[status.value] ?? 0), 0) %}
+                <li class="nav-item">
+                    <a class="nav-link {% if tab_option == tab %}active{% endif %}"
+                       {% if tab_option == tab %}aria-current="page"{% endif %}
+                       href="{{ path('admin_duplicate_results', {tab: tab_option.value, tier: tier ? tier.value : null, kind: kind ? kind.value : null}) }}#cases">
+                        {{ tab_option.label }}
+                        {% if tab_count is not null %}<span class="badge bg-secondary text-dark ms-1">{{ tab_count|number_format(0, '.', ' ') }}</span>{% endif %}
+                    </a>
+                </li>
             {% endfor %}
-        </select>
-        <select name="kind" class="form-select form-select-sm w-auto">
-            <option value="">All kinds</option>
-            {% for kind_option in kinds %}
-                <option value="{{ kind_option.value }}" {% if kind_option == kind %}selected{% endif %}>{{ kind_option.value }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
-    </form>
+        </ul>
 
-    <p class="text-muted fs-sm">{{ cases_total|number_format(0, '.', ' ') }} {{ cases_total == 1 ? 'case' : 'cases' }}</p>
+        <form method="get" action="{{ path('admin_duplicate_results') }}#cases" class="dr-filter mb-3" data-turbo="false">
+            <input type="hidden" name="tab" value="{{ tab.value }}">
+            <div>
+                <label class="form-label small mb-1" for="cases-tier">Tier</label>
+                <select name="tier" id="cases-tier" class="form-select form-select-sm">
+                    <option value="">All tiers</option>
+                    {% for tier_option in tiers %}
+                        <option value="{{ tier_option.value }}" {% if tier_option == tier %}selected{% endif %}>{{ tier_option.letter }} - {{ tier_option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label small mb-1" for="cases-kind">Kind</label>
+                <select name="kind" id="cases-kind" class="form-select form-select-sm">
+                    <option value="">All kinds</option>
+                    {% for kind_option in kinds %}
+                        <option value="{{ kind_option.value }}" {% if kind_option == kind %}selected{% endif %}>{{ kind_option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="dr-filter-actions">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Show cases</button>
+                {% if tier or kind %}
+                    <a class="btn btn-sm btn-link" href="{{ path('admin_duplicate_results', {tab: tab.value}) }}#cases">Clear filters</a>
+                {% endif %}
+            </div>
+        </form>
 
-    {% if cases is empty %}
-        <div class="alert alert-info">No cases here.</div>
-    {% else %}
-        <div class="table-responsive">
-            <table class="table table-sm align-middle fs-sm">
+        <p class="small mb-2" data-testid="duplicate-cases-count">
+            <span class="fw-medium">{{ cases_total|number_format(0, '.', ' ') }} {{ cases_total == 1 ? 'case' : 'cases' }}</span>
+            {%- if tier or kind %} matching the filters{% endif %}
+            {%- if pages > 1 %} · page {{ page }} of {{ pages }}{% endif %}
+        </p>
+
+        {% if cases is empty %}
+            <p class="dr-empty">No cases here.</p>
+        {% else %}
+            <table class="table table-sm fs-sm dr-stack dr-cases" data-testid="admin-duplicate-cases">
+                <caption class="visually-hidden">{{ tab.label }} cases</caption>
                 <thead>
                     <tr>
-                        <th>Person</th>
-                        <th>Puzzle</th>
-                        <th class="text-end">Time</th>
-                        <th>Day(s)</th>
-                        <th>Copies (saved, tracker)</th>
-                        <th class="text-end">Gap</th>
-                        <th>Differs</th>
-                        <th>Tier / kind</th>
-                        <th>Detected</th>
-                        <th>Status</th>
+                        <th scope="col">Person</th>
+                        <th scope="col">Puzzle</th>
+                        <th scope="col">Both copies saved</th>
+                        <th scope="col" class="text-end">Apart</th>
+                        <th scope="col">What differs</th>
+                        <th scope="col">Tier · kind</th>
+                        <th scope="col">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for case in cases %}
                         <tr>
-                            <td>
-                                <a href="{{ path('player_profile', {playerId: case.playerId}) }}">{{ case.playerName ?? ('#' ~ case.playerCode) }}</a>
-                                <a href="{{ path('admin_moderation_history', {playerId: case.playerId}) }}" class="ms-1 text-muted" title="Moderation history"><i class="ci-time"></i></a>
+                            <td class="dr-stack-title">
+                                <a href="{{ path('player_profile', {playerId: case.playerId}) }}" class="fw-medium">{{ case.playerName ?? ('#' ~ case.playerCode) }}</a>
+                                <a href="{{ path('admin_moderation_history', {playerId: case.playerId}) }}" class="dr-icon-link ms-1">
+                                    <i class="bi bi-clock-history" aria-hidden="true"></i><span class="visually-hidden">Moderation history of {{ case.playerName ?? ('#' ~ case.playerCode) }}</span>
+                                </a>
                                 {% if case.others is not empty %}
-                                    <div class="text-muted">
+                                    <div class="small">
                                         with {% for other in case.others %}{{ helpers.person(other) }}{% if not loop.last %}, {% endif %}{% endfor %}
                                     </div>
                                 {% endif %}
                             </td>
-                            <td><a href="{{ path('puzzle_detail', {puzzleId: case.puzzleId}) }}">{{ case.puzzleName }}</a></td>
-                            <td class="text-end text-nowrap">{{ case.seconds|puzzlingTime }}</td>
-                            <td class="text-nowrap">
-                                {{ case.dayA|date('d.m.Y') }}
-                                {% if case.dayB != case.dayA %}<br>{{ case.dayB|date('d.m.Y') }}{% endif %}
+                            <td data-label="Puzzle">
+                                <a href="{{ path('puzzle_detail', {puzzleId: case.puzzleId}) }}">{{ case.puzzleName }}</a>
+                                <div class="small text-nowrap">
+                                    {{ case.seconds|puzzlingTime }} ·
+                                    {% if case.dayB != case.dayA %}
+                                        {{ case.dayA|date('d.m.') }} and {{ case.dayB|date('d.m.Y') }}
+                                    {% else %}
+                                        {{ case.dayA|date('d.m.Y') }}
+                                    {% endif %}
+                                </div>
                             </td>
-                            <td class="text-nowrap">
-                                {{ case.trackedAtA|date('d.m.Y H:i:s') }} {{ helpers.person(case.trackerA) }}<br>
-                                {{ case.trackedAtB|date('d.m.Y H:i:s') }} {{ helpers.person(case.trackerB) }}
-                            </td>
-                            <td class="text-end text-nowrap">{{ helpers.gap(case.gapSeconds) }}</td>
-                            <td>
-                                {% for difference in case.differences %}
-                                    <span class="badge bg-light text-dark border">{{ difference_labels[difference] ?? difference }}</span>
-                                {% else %}
-                                    <span class="text-muted">identical</span>
+                            <td data-label="Saved">
+                                {% for copy in [{at: case.trackedAtA, tracker: case.trackerA}, {at: case.trackedAtB, tracker: case.trackerB}] %}
+                                    <div class="text-nowrap">
+                                        {{ copy.at|date('d.m.Y H:i:s') }}
+                                        {% if copy.tracker.id != case.playerId %}<span class="dr-by">by {{ helpers.person(copy.tracker) }}</span>{% endif %}
+                                    </div>
                                 {% endfor %}
                             </td>
-                            <td class="text-nowrap">{{ case.tier.letter }} · <code>{{ case.kind.value }}</code></td>
-                            <td class="text-nowrap">{{ case.detectedAt|date('d.m.Y') }}</td>
-                            <td class="text-nowrap">
-                                <code>{{ case.status.value }}</code>
-                                {% if case.resolvedAt %}<div class="text-muted">{{ case.resolvedAt|date('d.m.Y') }}</div>{% endif %}
+                            <td data-label="Apart" class="text-end text-nowrap">{{ helpers.gap(case.gapSeconds) }}</td>
+                            <td data-label="Differs">
+                                {% for difference in case.differences %}
+                                    <span class="badge dr-difference">{{ difference_labels[difference] ?? difference }}</span>
+                                {% else %}
+                                    <span class="dr-zero">identical</span>
+                                {% endfor %}
+                            </td>
+                            <td data-label="Tier · kind">
+                                <span class="dr-tier dr-tier-{{ case.tier.letter|lower }}">{{ case.tier.letter }}</span> {{ case.tier.label }}
+                                <span class="dr-stack-more">{{ case.kind.label }}</span>
+                            </td>
+                            <td data-label="Status">
+                                <span class="fw-medium">{{ case.status.label }}</span>
+                                <span class="dr-stack-more text-nowrap">
+                                    {%- if case.resolvedAt -%}
+                                        {{ case.resolvedAt|date('d.m.Y') }}, found {{ case.detectedAt|date('d.m.Y') }}
+                                    {%- else -%}
+                                        since {{ case.detectedAt|date('d.m.Y') }}
+                                    {%- endif -%}
+                                </span>
                             </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
 
-        {% if pages > 1 %}
-            <nav aria-label="Cases pages">
-                <ul class="pagination pagination-sm">
-                    {% for page_number in 1..pages %}
-                        <li class="page-item {% if page_number == page %}active{% endif %}">
-                            <a class="page-link" href="{{ path('admin_duplicate_results', {tab: tab.value, tier: tier ? tier.value : null, kind: kind ? kind.value : null, page: page_number}) }}#cases">{{ page_number }}</a>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </nav>
-        {% endif %}
-    {% endif %}
-
-    <section class="mt-5">
-        <h2 class="h5" id="removed-automatically">Removed automatically</h2>
-        <p class="text-muted fs-sm">
-            Tier A copies removed by the daily detection (newest {{ auto_removals|length }}). The older copy stays; links to
-            the removed id redirect to it. "Undone" = the player brought the copy back - the undo rate is the quality measure.
-        </p>
-
-        {% if auto_removals is empty %}
-            <div class="alert alert-info">Nothing removed automatically yet.</div>
-        {% else %}
-            <div class="table-responsive">
-                <table class="table table-sm align-middle fs-sm" data-testid="admin-auto-removals">
-                    <thead>
-                        <tr>
-                            <th>Tracker</th>
-                            <th>Puzzle</th>
-                            <th class="text-end">Time</th>
-                            <th>Day</th>
-                            <th>Saved</th>
-                            <th>Removed id</th>
-                            <th>Kept id</th>
-                            <th>Removed</th>
-                            <th>Undone</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for removal in auto_removals %}
-                            <tr>
-                                <td>
-                                    <a href="{{ path('player_profile', {playerId: removal.playerId}) }}">{{ removal.playerName ?? ('#' ~ removal.playerCode) }}</a>
-                                    {% if removal.isGroup %}<span class="badge bg-light text-dark border">group</span>{% endif %}
-                                </td>
-                                <td><a href="{{ path('puzzle_detail', {puzzleId: removal.puzzleId}) }}">{{ removal.puzzleName }}</a></td>
-                                <td class="text-end text-nowrap">{{ removal.seconds is not null ? removal.seconds|puzzlingTime : '-' }}</td>
-                                <td class="text-nowrap">{{ removal.solvedAt|date('d.m.Y') }}</td>
-                                <td class="text-nowrap">{{ removal.savedAt|date('d.m.Y H:i:s') }}</td>
-                                <td><code>{{ removal.removedTimeId }}</code></td>
-                                <td><a href="{{ path('added_time_recap', {timeId: removal.keptTimeId}) }}"><code>{{ removal.keptTimeId }}</code></a></td>
-                                <td class="text-nowrap">{{ removal.removedAt|date('d.m.Y H:i') }}</td>
-                                <td class="text-nowrap">{{ removal.undoneAt ? 'yes, ' ~ removal.undoneAt|date('d.m.Y') : 'no' }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            {{ helpers.pagination(page, pages, 'Cases pages', {tab: tab.value, tier: tier ? tier.value : null, kind: kind ? kind.value : null}, 'page', 'cases') }}
         {% endif %}
     </section>
 
-    {{ include('admin/_duplicate_results_contacts.html.twig', {contacts: contacts}) }}
-    {{ include('admin/_duplicate_puzzle_signals.html.twig') }}
+    <section id="removed-automatically" class="dr-section" aria-labelledby="removed-automatically-title">
+        <h2 class="h4" id="removed-automatically-title">Removed automatically</h2>
+        <p class="mb-3">
+            Tier A copies - the same form sent twice - removed by the detection. The older copy stays and links to the
+            removed one lead to it. The player can undo it, so the undo rate is the quality measure{% if totals.autoRemoved > 0 %}:
+            <span class="fw-medium">{{ totals.autoRemovalsUndone|number_format(0, '.', ' ') }} of {{ totals.autoRemoved|number_format(0, '.', ' ') }} undone ({{ helpers.percent(totals.autoRemovalsUndone, totals.autoRemoved) }})</span>{% if totals.autoRemoved > auto_removals|length %}; the newest {{ auto_removals|length }} are listed{% endif %}{% endif %}.
+        </p>
+
+        {% if auto_removals is empty %}
+            <p class="dr-empty">Nothing removed automatically yet.</p>
+        {% else %}
+            <table class="table table-sm fs-sm dr-stack" data-testid="admin-auto-removals">
+                <caption class="visually-hidden">Copies removed automatically</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Saved by</th>
+                        <th scope="col">Puzzle</th>
+                        <th scope="col">Copy saved</th>
+                        <th scope="col">Removed</th>
+                        <th scope="col">Undone</th>
+                        <th scope="col">Results</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for removal in auto_removals %}
+                        <tr>
+                            <td class="dr-stack-title">
+                                <a href="{{ path('player_profile', {playerId: removal.playerId}) }}" class="fw-medium">{{ removal.playerName ?? ('#' ~ removal.playerCode) }}</a>
+                                {% if removal.isGroup %}<span class="badge dr-difference ms-1">pair/team</span>{% endif %}
+                            </td>
+                            <td data-label="Puzzle">
+                                <a href="{{ path('puzzle_detail', {puzzleId: removal.puzzleId}) }}">{{ removal.puzzleName }}</a>
+                                <div class="small text-nowrap">{{ removal.seconds is not null ? removal.seconds|puzzlingTime : 'no time' }} · {{ removal.solvedAt|date('d.m.Y') }}</div>
+                            </td>
+                            <td data-label="Copy saved" class="text-nowrap">{{ removal.savedAt|date('d.m.Y H:i:s') }}</td>
+                            <td data-label="Removed" class="text-nowrap">{{ removal.removedAt|date('d.m.Y H:i') }}</td>
+                            <td data-label="Undone" class="text-nowrap">
+                                {% if removal.undoneAt %}
+                                    <span class="dr-undone"><i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>Undone {{ removal.undoneAt|date('d.m.Y') }}</span>
+                                {% else %}
+                                    <span class="dr-zero">no</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Results" class="small">
+                                <div><a href="{{ path('added_time_recap', {timeId: removal.keptTimeId}) }}">Kept copy</a> <code class="dr-id" title="{{ removal.keptTimeId }}">…{{ removal.keptTimeId|slice(-8) }}</code></div>
+                                <div>Removed copy <code class="dr-id" title="{{ removal.removedTimeId }}">…{{ removal.removedTimeId|slice(-8) }}</code></div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </section>
 {% endblock %}

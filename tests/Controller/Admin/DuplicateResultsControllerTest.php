@@ -23,11 +23,11 @@ final class DuplicateResultsControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         // The Tier A copy was removed automatically: Dana Twin has three open cases left, her teammate one
-        self::assertSame('4', $crawler->filter('.card .h3')->first()->text());
-        self::assertSame('2', $crawler->filter('.card .h3')->eq(1)->text());
-        self::assertCount(4, $crawler->filter('#cases ~ .table-responsive tbody tr'));
+        self::assertSame('4', trim($crawler->filter('[data-testid="duplicate-open-cases"]')->text()));
+        self::assertSame('2', trim($crawler->filter('[data-testid="duplicate-players-affected"]')->text()));
+        self::assertCount(4, $crawler->filter('[data-testid="admin-duplicate-cases"] tbody tr'));
         self::assertCount(1, $crawler->filter('[data-testid="admin-auto-removals"] tbody tr'));
-        self::assertStringContainsString('Twins Puzzle', $crawler->filter('#cases ~ .table-responsive')->text());
+        self::assertStringContainsString('Twins Puzzle', $crawler->filter('[data-testid="admin-duplicate-cases"]')->text());
     }
 
     public function testTheContactsFunnelShowsTheCaps(): void
@@ -51,7 +51,7 @@ final class DuplicateResultsControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/admin/duplicate-results?tier=strong&kind=teammate_copy');
 
         $this->assertResponseIsSuccessful();
-        self::assertCount(2, $crawler->filter('#cases ~ .table-responsive tbody tr'));
+        self::assertCount(2, $crawler->filter('[data-testid="admin-duplicate-cases"] tbody tr'));
 
         $crawler = $browser->request('GET', '/admin/duplicate-results?tab=gone');
 

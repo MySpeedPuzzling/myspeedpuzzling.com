@@ -19,6 +19,21 @@ enum DuplicateCaseStatus: string
     case Gone = 'gone';
 
     /**
+     * English, for the admin overview (/admin/duplicate-results) only.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Open => 'Open',
+            self::CopyDeleted => 'Copy deleted',
+            self::BothReal => 'Both real',
+            self::AutoRemoved => 'Removed automatically',
+            self::Undone => 'Removal undone',
+            self::Gone => 'Gone',
+        };
+    }
+
+    /**
      * One copy is gone because somebody decided it was a duplicate.
      *
      * @return list<self>

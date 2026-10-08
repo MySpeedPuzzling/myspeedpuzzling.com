@@ -66,14 +66,15 @@ final class DuplicatePuzzleSignalsControllerTest extends WebTestCase
         self::assertMatchesRegularExpression('/similar name 0\.6\d/', $this->cardOf($section, PuzzleFixture::PUZZLE_1500_01)->text());
 
         $toggle = $section->filter('[data-test="signal-strength"] a');
-        self::assertSame('Show weak signals (' . $weakSignals . ')', trim($toggle->text()));
+        self::assertSame('Weak signals (' . $weakSignals . ')', trim($toggle->text()));
 
         $section = $browser->request('GET', (string) $toggle->attr('href'))->filter('#puzzle-signals');
 
         $this->assertResponseIsSuccessful();
         self::assertStringContainsString('parts of one set', $this->cardOf($section, PuzzleFixture::PUZZLE_500_04)->text());
         self::assertCount(0, $section->filter('a[href="/en/puzzle/' . PuzzleFixture::PUZZLE_1000_04 . '"]'));
-        self::assertStringContainsString('Back to strong signals', $section->filter('[data-test="signal-strength"]')->text());
+        // The other list is the one link of the switch
+        self::assertStringStartsWith('Strong signals (', trim($section->filter('[data-test="signal-strength"] a')->text()));
     }
 
     public function testProposeMergeOpensTheMergeRequest(): void

@@ -19,4 +19,18 @@ enum DuplicateKind: string
     case SoloAndGroup = 'solo_and_group';
     // Different days, but saved within an hour of each other - mostly a wrong date
     case SavedWithinHour = 'saved_within_hour';
+
+    /**
+     * English, for the admin overview (/admin/duplicate-results) only - players read the translated texts.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::SameTracker => 'Solo, saved twice',
+            self::SameTrackerGroup => 'Pair/team, saved twice by one member',
+            self::TeammateCopy => 'Pair/team, saved by two members',
+            self::SoloAndGroup => 'Solo and pair/team',
+            self::SavedWithinHour => 'Other day, saved within an hour',
+        };
+    }
 }

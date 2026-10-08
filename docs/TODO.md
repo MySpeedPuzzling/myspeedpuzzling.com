@@ -469,6 +469,9 @@ Plan: [`features/duplicate-results.md`](features/duplicate-results.md).
       crons live in lily.srv) - after the first day
       watch bounces/complaints, the reaction rate and the folder at Gmail / iCloud / Seznam (admin "Contacts"); lower
       `RESULT_REVIEW_EMAILS_PER_RUN` or raise `RESULT_REVIEW_EMAIL_SPACING_SECONDS` on the box if it goes badly
+- [ ] Admin overview: prevented saves (re-sends caught, "saved anyway" after the warning) next to the monthly trend -
+      the doc's success measure; no query reads `result_duplicate_prevention` yet (left out of the 2026-10-08 redesign,
+      which was presentation only)
 
 ## Live activity feed (Hub + Recent activity)
 

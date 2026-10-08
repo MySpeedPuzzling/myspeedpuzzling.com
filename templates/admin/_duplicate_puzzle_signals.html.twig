@@ -1,100 +1,213 @@
-{# Catalogue signal (docs/features/duplicate-results.md, Layer 4) - its own partial on the duplicate results page #}
-<section id="puzzle-signals" class="mt-5">
-    <h2 class="h5">Possible duplicate puzzles</h2>
-    <p class="text-muted fs-sm">
-        The same person saved the same time on the same day on two puzzles with the same piece count - one puzzle
-        entered twice, or the puzzles of one box or event logged with one time. Not a duplicate result: once the
-        puzzles are merged, the detection finds the twins. Open {{ puzzle_signal_counts.open }} · merge proposed
-        {{ puzzle_signal_counts.merge_proposed }} · dismissed {{ puzzle_signal_counts.dismissed }}.
+{# Catalogue signal (docs/features/duplicate-results.md, Layer 4) - its own partial on the duplicate results page and the
+   only place there that asks the admin to act: Propose merge or Dismiss. Each card compares the two puzzle records
+   field by field, so what they share stands out. #}
+{% set strong_count = open_signal_counts.strong %}
+{% set weak_count = open_signal_counts.weak %}
+{% set listed_count = weak_signals ? weak_count : strong_count %}
+
+<section id="puzzle-signals" class="dr-section mt-0" aria-labelledby="puzzle-signals-title">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+        <h2 class="h4 mb-0" id="puzzle-signals-title">Possible duplicate puzzles</h2>
+        <span class="badge {{ strong_count > 0 ? 'bg-warning text-dark' : 'bg-success text-dark' }}">{{ strong_count|number_format(0, '.', ' ') }} strong waiting</span>
+    </div>
+    <p class="mb-2">
+        The same person saved the same time on the same day on two puzzles with the same piece count. Usually one
+        puzzle entered twice - <strong>propose a merge</strong>. Sometimes the puzzles of one box or event logged with
+        one time - <strong>dismiss</strong>. Once two puzzles are merged, their results saved twice turn up as cases.
     </p>
-    <p class="text-muted fs-sm">
-        Scored by what else the two records share - same EAN +50, same catalogue number +40, similar name up to +50
-        (one name inside the other +30), same brand +10, not approved +15, at most 20 results +15, added just before
-        the results +5, added within a minute of each other +10. Weak = under 35 points, or a counter-hint: many results
-        each with names not alike, or parts of one set (numbered, or one series with different titles).
-    </p>
-    <p class="fs-sm" data-test="signal-strength">
+
+    <details class="dr-help small mb-3">
+        <summary class="fw-medium">How the points work</summary>
+        <p class="mt-2 mb-2">What else the two records share:</p>
+        <ul class="dr-points-list mb-2">
+            <li><span>same EAN</span> +50</li>
+            <li><span>same catalogue number</span> +40</li>
+            <li><span>similar name</span> up to +50</li>
+            <li><span>one name inside the other</span> +30</li>
+            <li><span>same brand</span> +10</li>
+            <li><span>not approved</span> +15</li>
+            <li><span>at most 20 results</span> +15</li>
+            <li><span>added just before the results</span> +5</li>
+            <li><span>added within a minute of each other</span> +10</li>
+        </ul>
+        <p class="mb-2">
+            <strong>Weak</strong> = under 35 points, or a counter-hint
+            (<i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> in yellow): many results each with
+            names not alike, or parts of one set (numbered, or one series with different titles). Weak signals are
+            mostly different puzzles, but a few real duplicates that share only the brand hide there.
+        </p>
+        <p class="mb-0">
+            Handled so far: {{ puzzle_signal_counts.merge_proposed|number_format(0, '.', ' ') }} merge {{ puzzle_signal_counts.merge_proposed == 1 ? 'proposal' : 'proposals' }},
+            {{ puzzle_signal_counts.dismissed|number_format(0, '.', ' ') }} dismissed. A dismissed pair is never raised again.
+        </p>
+    </details>
+
+    <div class="dr-switch mb-2" data-test="signal-strength" role="group" aria-label="Which signals to list">
         {% if weak_signals %}
-            Weak signals ({{ open_signal_counts.weak }}) ·
-            <a href="{{ path('admin_duplicate_results') }}#puzzle-signals">Back to strong signals ({{ open_signal_counts.strong }})</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results') }}#puzzle-signals">Strong signals ({{ strong_count|number_format(0, '.', ' ') }})</a>
+            <span class="btn btn-sm btn-secondary active" aria-current="true">Weak signals ({{ weak_count|number_format(0, '.', ' ') }})</span>
         {% else %}
-            Strong signals ({{ open_signal_counts.strong }}) ·
-            <a href="{{ path('admin_duplicate_results', {weak_signals: 1}) }}#puzzle-signals">Show weak signals ({{ open_signal_counts.weak }})</a>
+            <span class="btn btn-sm btn-secondary active" aria-current="true">Strong signals ({{ strong_count|number_format(0, '.', ' ') }})</span>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results', {weak_signals: 1}) }}#puzzle-signals">Weak signals ({{ weak_count|number_format(0, '.', ' ') }})</a>
+        {% endif %}
+    </div>
+    <p class="small mb-3">
+        {% if weak_signals %}
+            Under 35 points or with a counter-hint - mostly different puzzles. Highest score first.
+        {% else %}
+            Most likely one puzzle entered twice. Highest score first, then the most matching results.
         {% endif %}
     </p>
 
     {% if puzzle_signals is empty %}
-        <div class="alert alert-info">{{ weak_signals ? 'No weak signals.' : 'No open signals.' }}</div>
+        <p class="dr-empty dr-empty-calm">
+            <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ weak_signals ? 'No weak signals.' : 'No open signals.' }}
+        </p>
     {% else %}
         {% for signal in puzzle_signals %}
-            <div class="card card-body shadow-sm mb-3 fs-sm">
-                <div class="row g-2">
-                    {% for puzzle in [signal.puzzleA, signal.puzzleB] %}
-                        <div class="col-6">
-                            <div class="d-flex flex-column flex-sm-row gap-2">
-                                {% if puzzle.image is not null %}
-                                    <img src="{{ puzzle.image|thumbnail('puzzle_small') }}" alt="" class="rounded-2 flex-shrink-0" style="width: 60px; height: 60px; object-fit: contain;">
-                                {% endif %}
-                                <div class="text-break">
-                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="fw-semibold">{{ puzzle.name }}</a>
-                                    <div>{{ puzzle.manufacturerName }} · {{ puzzle.piecesCount }} pcs</div>
-                                    {% for ean in puzzle_eans(puzzle.ean) %}<div class="text-muted">EAN {{ ean }}</div>{% endfor %}
-                                    {% for brand_code in puzzle_brand_codes(puzzle.identificationNumber) %}<div class="text-muted">{{ brand_code }}</div>{% endfor %}
-                                    <div>
+            {% set puzzles = [signal.puzzleA, signal.puzzleB] %}
+            {% set eans = puzzles|map(puzzle => puzzle_eans(puzzle.ean)) %}
+            {% set codes = puzzles|map(puzzle => puzzle_brand_codes(puzzle.identificationNumber)) %}
+            {% set shared_eans = eans[0]|filter(ean => ean in eans[1]) %}
+            {% set shared_codes = codes[0]|filter(code => code in codes[1]) %}
+            {% set title_id = 'signal-' ~ signal.signalId %}
+            <article class="card shadow-sm mb-3 dr-signal" aria-labelledby="{{ title_id }}">
+                <div class="card-body dr-signal-body">
+                    <h3 class="visually-hidden" id="{{ title_id }}">{{ signal.puzzleA.name }} and {{ signal.puzzleB.name }}</h3>
+
+                    <div class="dr-reasons dr-signal-why" data-test="signal-reasons">
+                        <span class="dr-points">{{ signal.score }} points</span>
+                        {% for reason in signal.reasons %}
+                            {% if reason.isCounterEvidence() %}
+                                <span class="badge dr-reason dr-reason-counter"><i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i><span class="visually-hidden">Counter-hint: </span>{{ reason.label }}</span>
+                            {% else %}
+                                <span class="badge dr-reason">{{ reason.label }}{% if reason.value == 'similar_name' %} {{ signal.nameSimilarity|number_format(2) }}{% endif %}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <table class="dr-compare dr-signal-compare">
+                        <caption class="visually-hidden">The two puzzle records side by side</caption>
+                        <colgroup>
+                            <col class="dr-compare-label-col">
+                            <col>
+                            <col>
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <td></td>
+                                {% for puzzle in puzzles %}
+                                    <th scope="col">
+                                        <div class="dr-compare-puzzle">
+                                            <span class="dr-thumb">
+                                                {% if puzzle.image is not null %}
+                                                    <img src="{{ puzzle.image|thumbnail('puzzle_small') }}" alt="" loading="lazy">
+                                                {% else %}
+                                                    <i class="bi bi-puzzle" aria-hidden="true"></i>
+                                                {% endif %}
+                                            </span>
+                                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="text-break">{{ puzzle.name }}</a>
+                                        </div>
+                                    </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set same_brand = signal.puzzleA.manufacturerName == signal.puzzleB.manufacturerName %}
+                            <tr class="{{ same_brand ? 'dr-match' : '' }}">
+                                <th scope="row">Brand{% if same_brand %} <span class="dr-same">same</span>{% endif %}</th>
+                                {% for puzzle in puzzles %}<td>{{ puzzle.manufacturerName }}</td>{% endfor %}
+                            </tr>
+                            <tr class="{{ shared_eans is not empty ? 'dr-match' : '' }}">
+                                <th scope="row">EAN{% if shared_eans is not empty %} <span class="dr-same">same</span>{% endif %}</th>
+                                {% for puzzle_eans_list in eans %}
+                                    <td>
+                                        {% for ean in puzzle_eans_list %}<div class="{{ ean in shared_eans ? 'fw-medium' : '' }}">{{ ean }}</div>{% else %}<span class="dr-zero">none</span>{% endfor %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            <tr class="{{ shared_codes is not empty ? 'dr-match' : '' }}">
+                                <th scope="row">Brand code{% if shared_codes is not empty %} <span class="dr-same">same</span>{% endif %}</th>
+                                {% for puzzle_codes_list in codes %}
+                                    <td>
+                                        {% for brand_code in puzzle_codes_list %}<div class="{{ brand_code in shared_codes ? 'fw-medium' : '' }}">{{ brand_code }}</div>{% else %}<span class="dr-zero">none</span>{% endfor %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <th scope="row">Catalogue</th>
+                                {% for puzzle in puzzles %}
+                                    <td>
                                         {% if puzzle.approved %}
-                                            <span class="badge bg-success">approved</span>
+                                            approved
                                         {% else %}
                                             <span class="badge bg-warning text-dark">not approved</span>
                                         {% endif %}
-                                        <span class="text-muted">{{ puzzle.results }} {{ puzzle.results == 1 ? 'result' : 'results' }}</span>
-                                    </div>
-                                </div>
-                            </div>
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                <th scope="row">Results</th>
+                                {% for puzzle in puzzles %}<td>{{ puzzle.results|number_format(0, '.', ' ') }}</td>{% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p class="dr-evidence dr-signal-facts small mb-0">
+                        Both {{ signal.puzzleA.piecesCount }} pieces ·
+                        {{ signal.matchingResults }} matching {{ signal.matchingResults == 1 ? 'result' : 'results' }} by {{ signal.matchingPeople }} {{ signal.matchingPeople == 1 ? 'person' : 'people' }},
+                        e.g.
+                        {% if signal.examplePlayerCode is not null %}
+                            <a href="{{ path('player_profile', {playerId: signal.examplePlayerId}) }}">{{ signal.examplePlayerName ?? ('#' ~ signal.examplePlayerCode) }}</a>
+                        {% else %}
+                            a deleted player
+                        {% endif %}
+                        {{ signal.exampleSeconds|puzzlingTime }} on {{ signal.exampleDay|date('d.m.Y') }} ·
+                        found {{ signal.detectedAt|date('d.m.Y') }}
+                    </p>
+
+                    <div class="dr-decide dr-signal-decide">
+                        <div class="dr-decide-buttons">
+                            <form method="post" action="{{ path('admin_duplicate_puzzle_signal_propose_merge', {signalId: signal.signalId}) }}" data-turbo="false">
+                                <input type="hidden" name="_token" value="{{ csrf_token('duplicate-puzzle-signal-' ~ signal.signalId) }}">
+                                <button type="submit" class="btn btn-sm btn-primary" aria-describedby="merge-help-{{ signal.signalId }}">
+                                    Propose merge<span class="visually-hidden"> of {{ signal.puzzleA.name }} and {{ signal.puzzleB.name }}</span>
+                                </button>
+                            </form>
+                            <form method="post" action="{{ path('admin_duplicate_puzzle_signal_dismiss', {signalId: signal.signalId}) }}" data-turbo="false">
+                                <input type="hidden" name="_token" value="{{ csrf_token('duplicate-puzzle-signal-' ~ signal.signalId) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" aria-describedby="dismiss-help-{{ signal.signalId }}">
+                                    Dismiss<span class="visually-hidden"> {{ signal.puzzleA.name }} and {{ signal.puzzleB.name }}</span>
+                                </button>
+                            </form>
                         </div>
-                    {% endfor %}
+                        <ul class="dr-decide-help">
+                            <li id="merge-help-{{ signal.signalId }}"><span class="fw-medium">Merge</span> opens a merge request in the merge review.</li>
+                            <li id="dismiss-help-{{ signal.signalId }}"><span class="fw-medium">Dismiss</span> = two different puzzles, never raised again.</li>
+                        </ul>
+                    </div>
                 </div>
-
-                <div class="d-flex flex-wrap align-items-center gap-1 mt-2" data-test="signal-reasons">
-                    <span class="fw-semibold me-1">{{ signal.score }} points</span>
-                    {% for reason in signal.reasons %}
-                        <span class="badge {{ reason.isCounterEvidence() ? 'bg-warning text-dark' : 'bg-secondary' }}">{{ reason.label }}{% if reason.value == 'similar_name' %} {{ signal.nameSimilarity|number_format(2) }}{% endif %}</span>
-                    {% endfor %}
-                </div>
-
-                <div class="text-muted mt-2">
-                    {{ signal.matchingResults }} matching results by {{ signal.matchingPeople }} {{ signal.matchingPeople == 1 ? 'person' : 'people' }} ·
-                    e.g.
-                    {% if signal.examplePlayerCode is not null %}
-                        <a href="{{ path('player_profile', {playerId: signal.examplePlayerId}) }}">{{ signal.examplePlayerName ?? ('#' ~ signal.examplePlayerCode) }}</a>
-                    {% else %}
-                        a deleted player
-                    {% endif %}
-                    {{ signal.exampleSeconds|puzzlingTime }} on {{ signal.exampleDay|date('d.m.Y') }} ·
-                    detected {{ signal.detectedAt|date('d.m.Y') }}
-                </div>
-
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                    <form method="post" action="{{ path('admin_duplicate_puzzle_signal_propose_merge', {signalId: signal.signalId}) }}" data-turbo="false">
-                        <input type="hidden" name="_token" value="{{ csrf_token('duplicate-puzzle-signal-' ~ signal.signalId) }}">
-                        <button type="submit" class="btn btn-sm btn-primary">Propose merge</button>
-                    </form>
-                    <form method="post" action="{{ path('admin_duplicate_puzzle_signal_dismiss', {signalId: signal.signalId}) }}" data-turbo="false">
-                        <input type="hidden" name="_token" value="{{ csrf_token('duplicate-puzzle-signal-' ~ signal.signalId) }}">
-                        <button type="submit" class="btn btn-sm btn-outline-secondary">Dismiss</button>
-                    </form>
-                </div>
-            </div>
+            </article>
         {% endfor %}
 
+        {% set signals_route_parameters = weak_signals ? {weak_signals: 1} : {} %}
         {% if signals_pages > 1 %}
-            <nav aria-label="Possible duplicate puzzles pages">
-                <ul class="pagination pagination-sm flex-wrap">
-                    {% for page_number in 1..signals_pages %}
-                        <li class="page-item {% if page_number == signals_page %}active{% endif %}">
-                            <a class="page-link" href="{{ path('admin_duplicate_results', {signals_page: page_number}|merge(weak_signals ? {weak_signals: 1} : {})) }}#puzzle-signals">{{ page_number }}</a>
-                        </li>
-                    {% endfor %}
-                </ul>
+            <nav class="dr-pagination" aria-label="Possible duplicate puzzles pages">
+                {% if signals_page > 1 %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results', signals_route_parameters|merge({signals_page: signals_page - 1})) }}#puzzle-signals">
+                        <i class="bi bi-chevron-left" aria-hidden="true"></i> Previous
+                    </a>
+                {% else %}
+                    <span></span>
+                {% endif %}
+                <span class="small">Page {{ signals_page }} of {{ signals_pages }} · {{ listed_count|number_format(0, '.', ' ') }} signals</span>
+                {% if signals_page < signals_pages %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results', signals_route_parameters|merge({signals_page: signals_page + 1})) }}#puzzle-signals">
+                        Next <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    </a>
+                {% else %}
+                    <span></span>
+                {% endif %}
             </nav>
         {% endif %}
     {% endif %}

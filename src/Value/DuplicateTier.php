@@ -24,4 +24,16 @@ enum DuplicateTier: string
             self::Possible => 'C',
         };
     }
+
+    /**
+     * English, for the admin overview (/admin/duplicate-results) only.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::Certain => 'Certain',
+            self::Strong => 'Strong',
+            self::Possible => 'Possible',
+        };
+    }
 }

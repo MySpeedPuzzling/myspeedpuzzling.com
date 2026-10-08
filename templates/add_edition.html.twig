@@ -5,6 +5,8 @@
 {% block title %}{{ 'series.add_edition'|trans }} - {{ series.name }}{% endblock %}
 
 {% block content %}
+    {#- The ?return= of the page goes on to "Add several dates" -#}
+    {%- set back_query = app.request.query.has('return') ? {return: app.request.query.getString('return'), return_title: app.request.query.getString('return_title')} : {} -%}
     {{ include('_breadcrumb.html.twig', {items: [
         {label: 'events.title'|trans, url: path('events')},
         {label: series.name, url: path('manage_competition_series', {seriesId: series.id})},
@@ -17,6 +19,12 @@
             <div class="col-lg-8">
                 <h1 class="h2">{{ 'series.add_edition'|trans }}</h1>
                 <p class="text-muted">{{ series.name }}</p>
+
+                {# Several dates at once (docs/features/organizations/README.md "Add several dates") #}
+                <p class="ev-add-editions-hint">
+                    <a href="{{ path('add_editions', {seriesId: series.id}|merge(back_query)) }}" data-add-editions-link>{{ 'organizer_tools.add_editions.link'|trans }}</a>
+                    <span class="text-muted">{{ 'organizer_tools.add_editions.link_hint'|trans }}</span>
+                </p>
 
                 <div class="card shadow my-4">
                     <div class="card-body">
@@ -41,13 +49,18 @@
                         </div>
 
                         {{ form_row(form.description) }}
+                        {{ form_row(form.eligibility) }}
                         {{ form_row(form.link) }}
                         {{ form_row(form.registrationLink) }}
                         {{ form_row(form.resultsLink) }}
 
-                        <button type="submit" class="btn btn-primary mt-3">
-                            {{ 'series.add_edition'|trans }}
-                        </button>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                {{ 'series.add_edition'|trans }}
+                            </button>
+                            {{ form_widget(form.saveDraft, {attr: {class: 'btn btn-outline-secondary'}}) }}
+                        </div>
+                        <p class="form-text mt-2 mb-0">{{ 'organizer_tools.form.save_draft_help'|trans }}</p>
 
                         {{ form_end(form) }}
                     </div>

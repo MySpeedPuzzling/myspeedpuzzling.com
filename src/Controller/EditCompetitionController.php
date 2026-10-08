@@ -5,16 +5,23 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
+use SpeedPuzzling\Web\Exceptions\OrganizationNotManaged;
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
 use SpeedPuzzling\Web\FormType\CompetitionFormType;
+use SpeedPuzzling\Web\Message\AssignEventToOrganization;
 use SpeedPuzzling\Web\Message\EditCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Results\OrganizationRef;
+use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionUrlField;
+use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\OrganizationItemKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -22,6 +29,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * Edit an event or an edition. docs/features/organizations/README.md "Forms": a one-time event has the "Organization"
+ * select (changing it moves the event - AssignEventToOrganization after the edit), an edition shows its series'
+ * organization read-only (it has none of its own); both have "Who can enter".
+ */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class EditCompetitionController extends AbstractController
 {
@@ -33,6 +45,7 @@ final class EditCompetitionController extends AbstractController
         private readonly CompetitionUrlField $urlField,
         private readonly FormPhotoStash $formPhotoStash,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        private readonly OrganizationSelectChoices $organizationSelectChoices,
     ) {
     }
 
@@ -57,11 +70,31 @@ final class EditCompetitionController extends AbstractController
         $seriesId = $competition->series?->id->toString();
         $seriesSlug = $competition->series?->slug;
 
+        // An edition's organization is its series' - shown read-only (read before any message clears the entity manager)
+        $seriesOrganization = $competition->series?->organization;
+        $seriesOrganizationRef = $seriesOrganization !== null ? new OrganizationRef(
+            id: $seriesOrganization->id->toString(),
+            name: $seriesOrganization->name,
+            shortName: $seriesOrganization->shortName,
+            slug: $seriesOrganization->slug,
+            isPublic: $seriesOrganization->isPubliclyVisible(),
+        ) : null;
+
         $formData = CompetitionFormData::fromCompetition($competition);
         $formData->slug = $competition->slug;
-        $form = $this->createForm(CompetitionFormType::class, $formData, ['url_field' => true]);
-        // A logo chosen for a refused submit (e.g. a taken URL) comes back (FormPhotoStash) - editors have a player profile
+        $currentOrganizationId = $formData->organizationId;
+        // Editors have a player profile
         $playerId = $this->retrieveLoggedUserProfile->getProfile()?->playerId;
+        // An edition belongs to its series' organization - no select of its own
+        $organizationChoices = $seriesId === null && $playerId !== null
+            ? $this->organizationSelectChoices->forPlayer($playerId, $this->isGranted(AdminAccessVoter::ADMIN_ACCESS), $currentOrganizationId)
+            : [];
+
+        $form = $this->createForm(CompetitionFormType::class, $formData, [
+            'url_field' => true,
+            'organization_choices' => $organizationChoices !== [] ? $organizationChoices : null,
+        ]);
+        // A logo chosen for a refused submit (e.g. a taken URL) comes back (FormPhotoStash)
         $restoredPhotos = $playerId !== null ? $this->formPhotoStash->restore($request, $form, $playerId) : [];
         $form->handleRequest($request);
         $this->formPhotoStash->reportLost($form, $restoredPhotos);
@@ -89,7 +122,6 @@ final class EditCompetitionController extends AbstractController
                         isOnline: $data->isOnline === true,
                         logo: $data->logo,
                         maintainerIds: $data->maintainers,
-                        // CompetitionFormData::fromCompetition() holds the stored value until the form shows the field
                         eligibility: $data->eligibility,
                         slug: $slug,
                     ));
@@ -98,12 +130,25 @@ final class EditCompetitionController extends AbstractController
                         $this->formPhotoStash->forget($restoredPhotos, $playerId);
                     }
 
+                    // Into another organization or out of one - the select offers only the player's organizations
+                    if ($form->has('organizationId') && $playerId !== null && $data->organizationId !== $currentOrganizationId) {
+                        $this->messageBus->dispatch(new AssignEventToOrganization(
+                            kind: OrganizationItemKind::Competition,
+                            itemId: $competitionId,
+                            organizationId: $data->organizationId,
+                            actingPlayerId: $playerId,
+                        ));
+                    }
+
                     $this->addFlash('success', $this->translator->trans('competition.flash.updated'));
 
                     return $this->redirectToRoute('edit_competition', ['competitionId' => $competitionId]);
                 } catch (CompetitionSlugTaken) {
                     // Taken by another save since the check above
                     $this->urlField->markTaken($form->get('slug'));
+                } catch (OrganizationNotManaged) {
+                    // Left the organization's team since the form was opened - the other changes are saved
+                    $form->get('organizationId')->addError(new FormError($this->translator->trans('organizer_tools.form.organization_not_managed')));
                 }
             }
         }
@@ -121,6 +166,7 @@ final class EditCompetitionController extends AbstractController
             'kept_photos' => $playerId !== null ? $this->formPhotoStash->keep($form, $restoredPhotos, $playerId) : [],
             'competition' => $competitionEvent,
             'slug_prefix' => $slugPrefix,
+            'series_organization' => $seriesOrganizationRef,
         ]);
     }
 }

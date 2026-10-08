@@ -1,0 +1,54 @@
+{#
+    One item of "You organize" (owner: workstream C): name (linked to its page), status badge, kind and dates/place,
+    the rejection reason, its actions inline. An organization shows "N series · N events" and no badge while it is
+    approved and published (it has no dates of its own).
+    Variables: item (OrganizedEvent), today, return_title, locale
+#}
+{%- set badge = item.badge(today) -%}
+{%- set country = item.countryCode ? item.countryCode.localizedName(locale) : null -%}
+{%- set city = item.location is not empty and (country is null or (country|lower) not in (item.location|lower)) ? item.location : null -%}
+<li class="ev-organized-item{% if item.isOrganization %} ev-organized-item-organization{% endif %}" data-organized-id="{{ item.id }}" data-organized-kind="{{ item.kind }}">
+    <div class="ev-organized-top">
+        {% if item.isOrganization %}
+            {% if item.slug %}
+                <a class="ev-organized-name" href="{{ path('organization_detail', {slug: item.slug}) }}">{{ item.name }}</a>
+            {% else %}
+                <span class="ev-organized-name">{{ item.name }}</span>
+            {% endif %}
+        {% else %}
+            {%- set reference = item.reference -%}
+            {% if reference.routeName %}
+                <a class="ev-organized-name" href="{{ path(reference.routeName, reference.routeParameters) }}">{{ reference.displayName }}</a>
+            {% else %}
+                <span class="ev-organized-name">{{ reference.displayName }}</span>
+            {% endif %}
+        {% endif %}
+        {% if not (item.isOrganization and badge.value == 'date_not_set') %}
+            <span class="ev-badge ev-badge-{{ badge.value }}">{{ badge.translationKey|trans }}</span>
+        {% endif %}
+    </div>
+    <div class="ev-organized-sub">
+        {%- if item.isOrganization -%}
+            {{- 'organizer_tools.type.organization'|trans -}}
+            {{- ' · ' }}{{ 'organizer_tools.organize.series_count'|trans({'%count%': item.seriesCount}) -}}
+            {{- ' · ' }}{{ 'organizer_tools.organize.event_count'|trans({'%count%': item.eventCount}) -}}
+        {%- else -%}
+            {{- ('events_organizer.type.' ~ item.kind)|trans -}}
+            {%- if item.isSeries -%}
+                {%- if item.nextEditionDate %} · {{ 'events_organizer.organize.next'|trans({'%date%': item.nextEditionDate|events_date('yMMMEd')}) }}
+                {%- elseif item.lastEditionDate %} · {{ 'events_organizer.organize.last'|trans({'%date%': item.lastEditionDate|events_date('yMMMd')}) }}
+                {%- else %} · {{ 'events_organizer.organize.no_dates'|trans }}{% endif -%}
+                {{- ' · ' }}{{ 'events_organizer.organize.editions'|trans({'%count%': item.editionCount}) -}}
+            {%- elseif item.startDate -%}
+                {{- ' · ' }}{{ events_date_range(item.startDate, item.endDate, 'yMMMd') -}}
+            {%- endif -%}
+        {%- endif -%}
+        {%- if item.isOnline %} · {{ 'events_organizer.organize.online'|trans }}
+        {%- elseif city or country %} · {% if item.countryCode %}<span class="fi fi-{{ item.countryCode.name }}" aria-hidden="true"></span> {% endif %}{{ [city, country]|filter(part => part is not null)|join(', ') }}{% endif -%}
+    </div>
+    {% if item.isRejected and item.rejectionReason %}
+        <p class="ev-organized-reason">{{ 'events_organizer.organize.reason'|trans({'%reason%': item.rejectionReason}) }}</p>
+    {% endif %}
+    {{ include('events/_manage_items.html.twig', {item: item, return_url: path('organized_events'), return_title: return_title, layout: 'inline'}) }}
+    {% if nested is defined %}{{ nested }}{% endif %}
+</li>

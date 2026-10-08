@@ -109,6 +109,6 @@ final class EventsAdminReturnTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/event-actions/' . $kind . '/' . $id, server: ['HTTP_TURBO_FRAME' => 'event-manage-menu']);
         self::assertResponseIsSuccessful();
 
-        return (string) $crawler->filter('details.ev-confirm form input[name="_token"]')->attr('value');
+        return (string) $crawler->filter('details[data-delete] form input[name="_token"]')->attr('value');
     }
 }

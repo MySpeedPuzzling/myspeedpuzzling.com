@@ -76,7 +76,7 @@ final class OrganizedEventsPageTest extends WebTestCase
         self::assertSame('You organize', $query['return_title'] ?? null);
 
         // The creator deletes it, confirmed in place, back to this page
-        $delete = $item->filter('details.ev-confirm form');
+        $delete = $item->filter('details[data-delete] form');
         self::assertSame('/en/delete-event/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE, $delete->attr('action'));
         self::assertSame('/en/you-organize', $delete->filter('input[name="return"]')->attr('value'));
         self::assertStringContainsString('cannot be undone', $delete->text());
@@ -108,7 +108,7 @@ final class OrganizedEventsPageTest extends WebTestCase
         self::assertStringStartsWith('Edition', $item->filter('.ev-organized-sub')->text());
         self::assertSame('Upcoming', $item->filter('.ev-badge')->text());
         // A maintainer, not the owner: no Delete
-        self::assertCount(0, $item->filter('details.ev-confirm'));
+        self::assertCount(0, $item->filter('details[data-delete]'));
         self::assertGreaterThan(0, $item->filter('a.ev-action')->count());
     }
 

@@ -26,3 +26,13 @@ private_profile_viewers:
 organization_fields:
     social_links_too_many: "Add at most {{ limit }} links."
     social_link_invalid: "\"{{ value }}\" is not a web address (http:// or https://)."
+add_editions:
+    dates_invalid: "Some of the dates can't be read - pick them in the calendar or type them like 05.10.2026."
+    dates_missing: "Pick at least one date."
+    too_many: "At most %max% dates at once."
+    rule_missing: "Choose how the dates repeat."
+    weekday_missing: "Choose the day of the week."
+    nth_missing: "Choose the week of the month."
+    starting_missing: "Choose the day the dates start from."
+    count_range: "Choose 1 to %max% dates."
+    none_selected: "Check at least one date."

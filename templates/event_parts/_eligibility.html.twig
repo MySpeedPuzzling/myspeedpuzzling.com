@@ -1,7 +1,9 @@
 {#
     "Who can enter: …" in the byline of the series, edition and event pages (owner: workstream C,
-    docs/features/organizations/README.md "Who can enter") - HOOK of the foundation, renders nothing yet.
+    docs/features/organizations/README.md "Who can enter"): the organiser's own words, as typed.
 
-    Variables: eligibility (null|string) - an edition passes its own, else its series'. Text:
-    'organization.byline.who_can_enter' with %text%.
+    Variables: eligibility (null|string) - an edition passes its own, else its series'.
 #}
+{%- if eligibility is not empty -%}
+    <span class="ev-detail-by ev-detail-eligibility" data-eligibility>{{ 'organization.byline.who_can_enter'|trans({'%text%': eligibility}) }}</span>
+{%- endif -%}

@@ -552,3 +552,129 @@ summary.ev-action {
     background: $evo-go-soft;
     color: $evo-go;
 }
+
+// --- Organizations and drafts (docs/features/organizations/README.md - workstream C) ------------------------------
+
+// A draft: seen only by its team - a dashed outline sets it apart from the plain grey of Past / Date not set
+.ev-badge-draft {
+    padding: 0 6px;
+    border: 1px dashed $evo-muted;
+    background: $white;
+    color: $evo-ink-2;
+}
+
+// "+ Add event", "+ Add organization", "All organizations" under the page title
+.ev-organized-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-top: .75rem;
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+    }
+}
+
+.ev-organized-directory {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    font-size: .875rem;
+}
+
+.ev-organized-empty-hint {
+    font-size: .875rem;
+    color: $evo-ink-2;
+}
+
+// An organization's own row reads as the head of its group
+.ev-organized-item-organization > .ev-organized-top .ev-organized-name {
+    font-size: 1.0625rem;
+    font-weight: 600;
+}
+
+// The series and events of an organization, under it
+.ev-organized-nested {
+    margin: 8px 0 0 4px;
+    padding-left: 14px;
+    border-left: 2px solid $evo-line;
+
+    > .ev-organized-item {
+        padding: 10px 0;
+
+        &:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+    }
+
+    @include media-breakpoint-up(md) {
+        margin-left: 8px;
+        padding-left: 18px;
+    }
+}
+
+// Publish: the one action a draft is waiting for
+.ev-action-publish {
+    color: $evo-go;
+    font-weight: 500;
+}
+
+.ev-actions-inline .ev-action-publish {
+    color: $evo-go;
+}
+
+// Unpublish's confirmation button (not destructive: the item can be published again)
+.ev-action-solid,
+.ev-action-solid:hover,
+.ev-action-solid:focus-visible {
+    justify-content: center;
+    background: $evo-ink;
+    color: $white;
+    font-weight: 500;
+}
+
+.ev-actions-inline .ev-confirm-buttons .ev-action-solid,
+.ev-actions-inline .ev-confirm-buttons .ev-action-solid:hover {
+    background: $evo-ink;
+    color: $white;
+    box-shadow: none;
+}
+
+// "Can't go back to draft: …" - in the ⋯ menu instead of Unpublish
+.ev-action-note {
+    margin: 0;
+    padding: 8px 10px;
+    font-size: .8125rem;
+    color: $evo-muted;
+}
+
+// The byline of the series, edition and event pages: Organized by · Who can enter · When it happens
+.ev-detail-byline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .125rem .5rem;
+    margin: .25rem 0 0;
+    color: $evo-ink-2;
+    font-size: .9375rem;
+
+    > * + *::before {
+        content: "·";
+        margin-right: .5rem;
+        color: $evo-muted;
+    }
+}
+
+.ev-detail-by {
+    overflow-wrap: anywhere;
+}
+
+// "Add several dates at once" on the add-edition form
+.ev-add-editions-hint {
+    margin: .25rem 0 0;
+    font-size: .9375rem;
+}

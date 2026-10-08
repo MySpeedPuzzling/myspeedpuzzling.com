@@ -91,6 +91,10 @@
                                     <a href="{{ path('round_stopwatch', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-stopwatch me-1"></i>{{ 'competition.stopwatch.title'|trans }}
                                     </a>
+                                    {# docs/features/organizations/README.md "Restructuring tools" #}
+                                    <a href="{{ path('move_competition_round', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary" data-move-round-link>
+                                        <i class="bi bi-arrow-left-right me-1"></i>{{ 'organizer_tools.menu.move_round'|trans }}
+                                    </a>
                                     {{ include('official_results/_round_tool_links.html.twig', {
                                         round_id: round.id,
                                         is_online: competition.isOnline,

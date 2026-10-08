@@ -49,6 +49,9 @@
                                 {{ form_errors(form.slug) }}
                             </div>
                             {{ form_row(form.description) }}
+                            {% if form.organizationId is defined %}
+                                {{ form_row(form.organizationId) }}
+                            {% endif %}
                             <div class="required" data-action="change->competition-form#toggle">
                                 {{ form_row(form.isOnline) }}
                             </div>
@@ -63,6 +66,8 @@
                                 {{ form_row(form.locationCountryCode) }}
                             </div>
 
+                            {{ form_row(form.eligibility) }}
+                            {{ form_row(form.schedule) }}
                             {{ form_row(form.link) }}
                             {{ include('_competition_logo_field.html.twig', {
                                 field: form.logo,

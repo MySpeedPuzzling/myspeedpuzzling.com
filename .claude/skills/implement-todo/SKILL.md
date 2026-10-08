@@ -111,7 +111,8 @@ Already done or obsolete? Check it, tick it (or delete it) with the reason, and 
 
 1. `git fetch`, then:
    - `git branch --show-current` must be `main`
-   - `git log --oneline origin/main..main` must show only your commits
+   - `git log --oneline origin/main..main` must show only your commits - and `TODO: …` commits, which the
+     msp-mailer's `todo-add` makes when it could not push; they ride along with yours
    - behind `origin/main` → `git pull --ff-only` and rerun the affected tests
 2. Commit only your own paths, written out literally - zsh does not split a `$FILES` variable into words:
    `git add -- a b c && git commit -F - -- a b c`. The message says what and why, and ends with the attribution line.
@@ -133,9 +134,16 @@ Already done or obsolete? Check it, tick it (or delete it) with the reason, and 
 - `docs/TODO.md`: tick the item (`[x]`, date, link to the doc) - that also removes the claim mark. Loose ends found
   on the way go in as new unticked items in the right section. The tick rides in the same commit as the change.
 - Feature doc, and the `CLAUDE.md` feature entry when the behaviour changed in a way the next session must know.
-- **Player promises:** draft the replies with the `msp-mailer` skill -
-  `msp-mail reply <their thread ref> --resolves F… --context "…"` (plus `--again` when Jan mailed them in the last 14
-  days, with the reason in the context). Short, plain, in their language; Jan approves and sends.
+- **Player promises** - an item naming `MSP #…` / `follow-up F…` (the msp-mailer adds those with `todo-add` when a
+  reply promises a change), only once it is **deployed**: draft the delivery mail with the `msp-mailer` skill, one
+  per follow-up the item names:
+  1. `msp-mail followup show F…` - still open? (Already done or cancelled → nothing to draft, say so.) It names the
+     conversation; `msp-mail thread "<anchor>"` gives its last message ref and what Jan wrote them last.
+  2. `msp-mail reply <last message ref> --resolves F… --context "<item, commit, what was verified>"` - plus
+     `--again` when Jan mailed them in the last 14 days, with the reason in the context. Short, plain, in their
+     language: what they can do now and where to find it, nothing about how it was built. Several items shipped
+     for one person → one mail resolving all their F-ids.
+  3. The draft id goes into the report; Jan approves and sends.
 - Cron rows in `~/www/lily.srv` yourself when the change needs one.
 - Memory only for a lesson that is not obvious from the code or the docs.
 - **Report to Jan:**

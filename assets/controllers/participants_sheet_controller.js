@@ -506,11 +506,12 @@ export default class extends Controller {
         }
     }
 
+    /** Opens the person editor (stream E) - resolves to false when there is none (the caller falls back). */
     async openPersonEditor(personId) {
         const factory = await this.loadModule(PERSON_EDITOR_MODULE);
 
         if (factory === null || this.model === undefined) {
-            return;
+            return false;
         }
 
         if (!this.personEditor) {
@@ -518,6 +519,8 @@ export default class extends Controller {
         }
 
         this.personEditor.open?.(personId);
+
+        return true;
     }
 
     // ---------------------------------------------------------------- acting

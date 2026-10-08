@@ -1,1 +1,529 @@
-// Participants spreadsheet - round (docs/features/competitions-management/participants-spreadsheet.md)
+// Participants spreadsheet - stream round (docs/features/competitions-management/participants-spreadsheet.md §4 (C), §5,
+// §8, §11b): the round tabs' toolbar (problem filters, members per team, sort, results columns, the round's tools), the
+// pair/team grid's columns, the "without a pair" tray below the grid, the menus and pickers (a native <dialog>; a bottom
+// sheet / full screen on phones) and the phone cards. Sizes and problems carry an icon and words - never colour alone;
+// 44 px targets on phones, no horizontal page scroll at 375 px.
+
+// ---------------------------------------------------------------- toolbar
+
+.sheet-round-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem .75rem;
+    padding: .375rem .5rem;
+    font-size: $font-size-sm;
+}
+
+.sheet-round-summary {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem;
+    color: $gray-700;
+
+    strong {
+        color: $gray-900;
+    }
+}
+
+.sheet-round-filters {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+}
+
+.sheet-round-filter {
+    border: 1px solid $sheet-line;
+    border-radius: 1rem;
+    background-color: $white;
+    color: $sheet-warning-text;
+    font-weight: $font-weight-medium;
+
+    &:hover {
+        background-color: rgba($warning, .12);
+    }
+
+    &.active,
+    &[aria-pressed='true'] {
+        border-color: $warning;
+        background-color: rgba($warning, .2);
+        box-shadow: inset 0 0 0 1px $warning;
+    }
+}
+
+.sheet-round-size-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+}
+
+.sheet-round-size {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    margin: 0;
+    white-space: nowrap;
+
+    .form-select {
+        width: auto;
+        min-width: 6.5rem;
+    }
+}
+
+.sheet-round-hint {
+    color: $gray-600;
+}
+
+.sheet-round-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+    margin-left: auto;
+
+    .btn[aria-pressed='true'] {
+        border-color: $sheet-focus;
+        background-color: rgba($sheet-focus, .1);
+        color: shade-color($sheet-focus, 25%);
+    }
+}
+
+// ---------------------------------------------------------------- the grid's columns
+
+.sheet-view-round {
+    // The tray below the grid stays in view: the scroller leaves it its height
+    .sheet-scroller {
+        max-height: calc(100dvh - var(--sheet-scroller-top, 10rem) - var(--sheet-round-tray-h, 0px) - 1.25rem);
+    }
+
+    .sheet-grid {
+        .sheet-col-table {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sheet-col-extra {
+            color: $gray-600;
+        }
+
+        .sheet-col-result,
+        .sheet-col-rank {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sheet-col-actions {
+            text-align: center;
+        }
+
+        tbody td.sheet-col-actions {
+            color: $gray-700;
+        }
+    }
+
+    .sheet-row-local > :first-child {
+        box-shadow: inset 3px 0 0 rgba($sheet-focus, .5), 1px 0 0 $sheet-line;
+    }
+
+    .sheet-row-waitlisted td {
+        background-color: rgba($warning, .06);
+    }
+}
+
+// ---------------------------------------------------------------- the tray ("In the round without a pair")
+
+.sheet-round-tray {
+    margin: .5rem;
+    padding: .5rem .75rem .75rem;
+    border: 1px dashed $sheet-line;
+    border-radius: $border-radius;
+    background-color: $gray-100;
+
+    .sheet-round-tray-title {
+        margin-bottom: .5rem;
+        font-size: .875rem;
+    }
+
+    .sheet-chips {
+        max-height: 8.5rem;
+        overflow-y: auto;
+    }
+}
+
+.sheet-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin: 0 0 .5rem;
+    padding: 0;
+}
+
+.sheet-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    min-height: 2rem;
+    padding: .125rem .75rem;
+    border: 1px solid $sheet-line;
+    border-radius: 1rem;
+    background-color: $white;
+    color: $gray-900;
+    font-size: $font-size-sm;
+
+    &:hover {
+        border-color: $sheet-focus;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+        outline-offset: 1px;
+    }
+
+    .sheet-badge {
+        margin-left: .25rem;
+    }
+
+    &.sheet-chip-large {
+        min-height: 2.75rem;
+        padding: .25rem .875rem;
+        font-size: 1rem;
+    }
+}
+
+// ---------------------------------------------------------------- menus and pickers
+
+.sheet-round-dialog {
+    width: min(22rem, calc(100vw - 1rem));
+    max-height: min(32rem, calc(100dvh - 1rem));
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid $sheet-line;
+    border-radius: $border-radius-lg;
+    box-shadow: 0 .75rem 2rem rgba($black, .2);
+
+    &[open] {
+        display: flex;
+        flex-direction: column;
+    }
+
+    &::backdrop {
+        background-color: rgba($black, .15);
+    }
+
+    &.is-anchored {
+        position: fixed;
+        margin: 0;
+    }
+
+    &.is-picker {
+        width: min(26rem, calc(100vw - 1rem));
+    }
+
+    // Phones: a bottom sheet; a picker takes the whole screen (the keyboard needs room)
+    &.is-sheet {
+        width: 100vw;
+        max-width: 100vw;
+        max-height: 85dvh;
+        margin: auto 0 0;
+        border-radius: $border-radius-lg $border-radius-lg 0 0;
+
+        &::backdrop {
+            background-color: rgba($black, .4);
+        }
+
+        &.is-picker {
+            height: 100dvh;
+            max-height: 100dvh;
+            margin: 0;
+            border-radius: 0;
+        }
+    }
+}
+
+.sheet-round-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .75rem 1rem .5rem;
+    border-bottom: 1px solid $sheet-line;
+
+    h2 {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .btn-close {
+        flex: none;
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
+}
+
+.sheet-round-dialog-description {
+    padding: .5rem 1rem 0;
+    color: $gray-700;
+}
+
+.sheet-round-dialog-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    padding: .5rem 1rem 1rem;
+    overflow-y: auto;
+}
+
+.sheet-round-dialog-menu {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+    padding: 0;
+}
+
+.sheet-round-dialog-item {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: .5rem .75rem;
+    border: 0;
+    border-radius: $border-radius;
+    background: transparent;
+    color: $gray-900;
+    text-align: left;
+
+    .bi {
+        margin-right: .375rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+        background-color: $gray-100;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+        outline-offset: -2px;
+    }
+
+    &.is-danger {
+        color: $sheet-danger-text;
+    }
+
+    &[aria-disabled='true'] {
+        color: $gray-600;
+        cursor: not-allowed;
+    }
+
+    .sheet-round-dialog-reason {
+        color: $sheet-warning-text;
+    }
+}
+
+.sheet-round-dialog-input,
+.sheet-round-dialog-extra,
+.sheet-round-dialog-form .form-control {
+    font-size: 1rem;
+}
+
+.sheet-round-dialog-options {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: .5rem 0 0;
+    padding: 0;
+    overflow-y: auto;
+}
+
+.sheet-round-dialog-option {
+    min-height: 2.75rem;
+    padding: .5rem .75rem;
+    border-radius: $border-radius;
+    cursor: pointer;
+
+    &.is-active,
+    &:hover {
+        background-color: rgba($sheet-focus, .12);
+    }
+
+    &.is-active {
+        box-shadow: inset 3px 0 0 $sheet-focus;
+    }
+
+    &.is-create {
+        color: shade-color($sheet-focus, 25%);
+        font-weight: $font-weight-semibold;
+    }
+}
+
+.sheet-round-dialog-hint:empty {
+    display: none;
+}
+
+// ---------------------------------------------------------------- phone cards
+
+.sheet-view-cards {
+    padding: .5rem .75rem 1rem;
+}
+
+.sheet-cards-head {
+    margin-bottom: .75rem;
+}
+
+.sheet-cards-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+    color: $gray-700;
+    font-size: $font-size-sm;
+}
+
+.sheet-cards-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.sheet-cards-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .375rem;
+    min-height: 2.75rem;
+}
+
+.sheet-cards-tray {
+    margin-bottom: .75rem;
+    padding: .75rem;
+    border: 1px dashed $sheet-line;
+    border-radius: $border-radius;
+    background-color: $gray-100;
+}
+
+.sheet-cards {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    margin: 0 0 .75rem;
+    padding: 0;
+
+    &[data-empty]::after {
+        content: attr(data-empty);
+        color: $gray-600;
+        font-size: $font-size-sm;
+    }
+}
+
+.sheet-card {
+    min-width: 0;
+    padding: .625rem .75rem;
+    border: 1px solid $sheet-line;
+    border-radius: $border-radius;
+    background-color: $white;
+}
+
+.sheet-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+}
+
+.sheet-card-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: $font-weight-semibold;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.sheet-card-table {
+    color: $gray-700;
+    font-variant-numeric: tabular-nums;
+}
+
+.sheet-card-menu {
+    flex: none;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    margin: -.5rem -.5rem 0 0;
+    border: 0;
+    border-radius: $border-radius;
+    background: transparent;
+    color: $gray-700;
+    font-size: 1.25rem;
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+    }
+}
+
+.sheet-card-out {
+    flex: none;
+    min-height: 2.75rem;
+
+    &[aria-disabled='true'] {
+        opacity: .65;
+    }
+}
+
+.sheet-card-size {
+    margin-top: .125rem;
+}
+
+.sheet-member-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin: 0 0 .5rem;
+    padding: 0;
+}
+
+.sheet-member-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    max-width: 100%;
+    min-height: 2.75rem;
+    padding-left: .75rem;
+    border: 1px solid $sheet-line;
+    border-radius: 1.375rem;
+    background-color: $gray-100;
+
+    > span:not(.sheet-badge, .sheet-marker, .fi) {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+.sheet-member-remove {
+    flex: none;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: $gray-700;
+
+    &:hover {
+        background-color: $gray-200;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+        outline-offset: -2px;
+    }
+}
+
+.sheet-card-result {
+    margin-top: .5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.sheet-cards-foot {
+    margin-top: .25rem;
+}

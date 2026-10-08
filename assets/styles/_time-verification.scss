@@ -1,0 +1,326 @@
+// The time verification queue (templates/admin/suspicious_times/, docs/features/suspicious-time-review.md, "Moderator
+// queue"): moderators going through many cases, mostly on a desktop, at 375 px too. Calm cards, one place for the
+// numbers, the decision at the bottom of every card.
+
+// Work queues on the left, the records on the right; one scrolling row on a phone instead of five wrapped ones
+.tv-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+
+  .nav-link {
+    padding-right: .75rem;
+    padding-left: .75rem;
+  }
+}
+
+// Section titles of a tab ("Puzzles first", "Other times")
+.tv-section-title {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin-bottom: .75rem;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: $gray-700;
+}
+
+// The time against what was expected - the first thing to read on every card
+.tv-figures {
+  display: grid;
+  // Two side by side on a phone - the entered and the expected time belong next to each other
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem 1rem;
+  margin: 0;
+
+  @include media-breakpoint-up(sm) {
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    column-gap: 1.5rem;
+  }
+
+  dt {
+    margin-bottom: .125rem;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: $gray-700;
+  }
+
+  dd {
+    margin-bottom: 0;
+    font-size: $font-size-sm;
+  }
+
+  .tv-figure {
+    font-size: $font-size-xl * .8;
+    font-weight: $font-weight-medium;
+    line-height: 1.2;
+    color: $gray-900;
+    font-variant-numeric: tabular-nums;
+
+    @include media-breakpoint-up(sm) {
+      font-size: $h4-font-size;
+    }
+  }
+
+  // A sentence instead of a number
+  .tv-figures-span {
+    grid-column: span 2;
+  }
+}
+
+.tv-thumb {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: $border-radius;
+  background-color: $gray-100;
+  color: $gray-600;
+  font-size: 1.5rem;
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: $border-radius;
+    object-fit: contain;
+  }
+}
+
+.tv-case {
+  // A case decided inside a puzzle card - a quieter card in the card
+  &.tv-case-nested {
+    border-color: $gray-300;
+    box-shadow: none;
+  }
+
+  .tv-subtitle {
+    margin-bottom: .5rem;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: $gray-700;
+  }
+
+  // What the player and the puzzle usually do - supporting facts, set apart from the reasons
+  .tv-context {
+    height: 100%;
+    padding: .75rem 1rem;
+    border-radius: $border-radius;
+    background-color: $gray-100;
+    font-size: $font-size-sm;
+  }
+
+  .tv-reasons {
+    margin-bottom: 0;
+    padding-left: 0;
+    list-style: none;
+
+    > li + li {
+      margin-top: .375rem;
+    }
+  }
+
+  // Reasons only moderators see
+  .tv-hint {
+    display: flex;
+    gap: .5rem;
+    color: $gray-700;
+
+    > .bi {
+      flex-shrink: 0;
+      margin-top: .2rem;
+    }
+  }
+
+  .tv-quote {
+    margin: 0;
+    padding: .375rem .75rem;
+    border-left: 3px solid $gray-400;
+    font-style: italic;
+  }
+
+  // The player's own words on a reply - the thing to answer
+  .tv-reply {
+    margin: .375rem 0 0;
+    padding: .5rem .75rem;
+    border-left: 3px solid $info;
+    border-radius: 0 $border-radius $border-radius 0;
+    background-color: rgba($info, .1);
+    color: $gray-900;
+  }
+}
+
+// The decision at the bottom of a card
+.tv-decide {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid $gray-300;
+}
+
+.tv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 1.5rem;
+}
+
+.tv-actions > .tv-action {
+  flex: 0 1 18rem;
+}
+
+.tv-action {
+  .form-text {
+    margin-top: .25rem;
+    color: $gray-700;
+  }
+}
+
+// Cartzilla's warning and success buttons carry white text below 2:1 contrast - the decisions read dark on them
+.btn.tv-decision {
+  --#{$prefix}btn-color: #{$gray-900};
+  --#{$prefix}btn-hover-color: #{$gray-900};
+  --#{$prefix}btn-active-color: #{$gray-900};
+  --#{$prefix}btn-disabled-color: #{$gray-900};
+  font-weight: $font-weight-medium;
+}
+
+// "Add a note" - closed by default, most decisions need none
+.tv-note > summary {
+  display: block;
+  width: fit-content;
+  margin-bottom: .5rem;
+  list-style: none;
+  color: $gray-800;
+  font-size: $font-size-sm;
+  text-decoration: underline dotted;
+  text-underline-offset: .2em;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  .bi {
+    display: inline-block;
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition: transform .15s ease-in-out;
+    }
+  }
+}
+
+.tv-note[open] > summary {
+  margin-bottom: .25rem;
+
+  .bi {
+    transform: rotate(45deg);
+  }
+}
+
+// A decision taken - who, when and what the player reads
+.tv-status {
+  margin: 1rem 0 0;
+  padding: .75rem 1rem;
+  border-radius: $border-radius;
+  background-color: $gray-100;
+  font-size: $font-size-sm;
+
+  > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .125rem 1rem;
+
+    @include media-breakpoint-up(md) {
+      grid-template-columns: 11rem minmax(0, 1fr);
+    }
+  }
+
+  > div + div {
+    margin-top: .5rem;
+  }
+
+  dt {
+    font-weight: $font-weight-medium;
+    color: $gray-800;
+  }
+
+  dd {
+    margin-bottom: 0;
+  }
+}
+
+// A puzzle whose players are off the same way
+.tv-puzzle {
+  border-color: rgba($warning, .7);
+
+  > .card-header {
+    border-bottom-color: rgba($warning, .35);
+    background-color: rgba($warning, .1);
+  }
+}
+
+.tv-option {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: .875rem 1rem;
+  border: 1px solid $gray-300;
+  border-radius: $border-radius;
+  background-color: $white;
+  font-size: $font-size-sm;
+
+  .tv-option-title {
+    display: flex;
+    gap: .5rem;
+    align-items: baseline;
+    margin-bottom: .375rem;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $gray-900;
+  }
+
+  .tv-option-action {
+    margin-top: auto;
+    padding-top: .75rem;
+  }
+}
+
+.tv-threshold-input {
+  width: 6.5rem;
+}
+
+// The overview of a puzzle card's times: names wrap between words only
+.tv-times-player {
+  min-width: 6.5rem;
+}
+
+// Bullets back for the lists of reasons and answers (the theme's reboot takes them away)
+.tv-list {
+  margin-bottom: 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+
+  > li + li {
+    margin-top: .25rem;
+  }
+}
+
+// Columns of the wide tables that would otherwise be squeezed to a word per line on a phone - the table scrolls instead
+.tv-col-sm {
+  min-width: 7rem;
+}
+
+.tv-col-md {
+  min-width: 9rem;
+}
+
+.tv-col-lg {
+  min-width: 13rem;
+}

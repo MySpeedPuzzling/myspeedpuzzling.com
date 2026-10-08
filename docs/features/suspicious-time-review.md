@@ -269,6 +269,14 @@ Page title "Time verification". **Tabs**: **Too fast** · **Too slow** (pending 
   fastest, its other editions); the player (results count, baselines per piece count, pair/team share, other results
   that day); the comment, the finished photo, competition / round; the reasons (moderator-only hints included), the
   suggested time; who was told and what they answered.
+- **Layout (2026-10-08 redesign, `assets/styles/_time-verification.scss`)**: work queues (Too fast, Too slow, Player
+  replied) left, records right, one scrolling row of tabs on a phone; a closed "How deciding works" panel. A card reads
+  top down: whose time on what → the figures (entered + PPM, expected + source in words, how far off, place on the
+  puzzle; a pair/team or new player: what most pairs/teams/puzzlers take and how many times slower) → "Why it is here"
+  (the reasons the player may read are the checkboxes themselves, moderator-only hints follow with an eye-slash) and a
+  grey panel with the player's and the puzzle's numbers → the decision bar (Needs verification / Looks fine, side by
+  side, each with one line saying what happens; the note is folded). A puzzle card offers its choices as option boxes,
+  a compact table of its times with short reason labels (`SuspiciousTimeReasonCode::moderatorLabel()`), then the cases.
 
 **Actions** (POST + CSRF, each a Messenger handler writing the decision log; serialized per case - the handlers read
 the case under its row lock (`SuspiciousTimeCaseRepository::getForUpdate()`), the scan and an edit's re-check take the

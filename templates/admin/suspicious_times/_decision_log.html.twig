@@ -1,7 +1,15 @@
 {# The "Decision log" tab - suspicious_time_decision, newest first. Expects: log (list<SuspiciousTimeDecisionLogItem>). #}
-<p class="text-muted small">
-    Every decision about a time, kept even after the time, the puzzle, the player or the moderator are gone.
-</p>
+{% set decision_icons = {
+    marked: 'bi-hourglass-split text-warning',
+    kept_after_reply: 'bi-hourglass-split text-warning',
+    marked_outside_app: 'bi-hourglass-split text-warning',
+    trusted: 'bi-check-lg text-success',
+    unmarked: 'bi-check-lg text-success',
+    unmarked_after_edit: 'bi-pencil-square text-muted',
+    corrected_automatically: 'bi-pencil-square text-muted',
+    slow_threshold_set: 'bi-hourglass-bottom text-info',
+    slow_threshold_removed: 'bi-hourglass-bottom text-muted',
+} %}
 {% if log is empty %}
     <div class="alert alert-info">No decisions yet.</div>
 {% else %}
@@ -9,20 +17,20 @@
         <table class="table table-sm align-middle fs-sm" data-testid="time-verification-log">
             <thead>
                 <tr>
-                    <th>When</th>
-                    <th>Decision</th>
-                    <th>Puzzle</th>
-                    <th class="text-end">Time</th>
-                    <th>Player</th>
-                    <th>Player reads</th>
-                    <th>By</th>
+                    <th scope="col">When</th>
+                    <th scope="col" class="tv-col-md">Decision</th>
+                    <th scope="col" class="tv-col-md">Puzzle</th>
+                    <th scope="col" class="text-end">Time</th>
+                    <th scope="col" class="tv-col-sm">Player</th>
+                    <th scope="col" class="tv-col-lg">Player reads</th>
+                    <th scope="col" class="tv-col-sm">By</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in log %}
                     <tr>
-                        <td class="text-nowrap">{{ item.decidedAt|date('j M Y H:i') }}</td>
-                        <td>{{ item.label }}</td>
+                        <td class="text-nowrap">{{ item.decidedAt|date('j M Y') }}<div class="text-muted">{{ item.decidedAt|date('H:i') }}</div></td>
+                        <td><span class="d-inline-flex gap-2"><i class="bi {{ decision_icons[item.decision.value] ?? 'bi-dot text-muted' }}" aria-hidden="true"></i><span>{{ item.label }}</span></span></td>
                         <td class="text-break">
                             {% if item.puzzleSecret %}
                                 <span class="text-muted" data-testid="time-verification-log-secret">A puzzle kept secret until its reveal</span>

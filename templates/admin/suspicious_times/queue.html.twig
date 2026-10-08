@@ -6,75 +6,116 @@
 {% block title %}Time verification{% endblock %}
 
 {% block content %}
-    <h1 class="h3 mb-2">Time verification</h1>
-    <p class="text-muted small mb-3">
-        Times the scan found far off what the player usually does - much faster (hours box left empty, a pair or team
-        saved as solo, another edition) or much slower (minutes typed into the hours box, days counted). A time marked
-        <strong>Needs verification</strong> stops counting anywhere but in the player's own results, and the player is
-        told once with the next run - so a slip can still be undone before then. <strong>Looks fine</strong> means this
-        entry is never raised again. Skipping stores nothing.
+    {% set tab_intros = {
+        fast: 'Much faster than the player usually is - most often the hours box left empty, a pair or team saved as solo, or another edition of the puzzle. Strong first, then the times leading their puzzle.',
+        slow: 'Much slower than the player usually is - most often minutes typed into the hours box, or days counted instead of the time spent puzzling. Strong first, then the furthest off.',
+        replied: 'Marked times the player answered: they say the time is correct, or the entry changed (their edit, a piece-count fix, a merge). Oldest first - your note goes to the player with the answer.',
+        marked: 'Times marked Needs verification: they count nowhere but in the player\'s own results. Newest first.',
+        trusted: 'Times a moderator verified as fine - never raised again. Newest first.',
+        log: 'Every decision about a time, kept even after the time, the puzzle, the player or the moderator are gone.',
+        numbers: 'What the scan raised and what became of it - what the next threshold change is judged by.',
+    } %}
+
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-1">
+        <h1 class="h3 mb-0">Time verification</h1>
+    </div>
+    <p class="mb-2">
+        Times far off what the player usually does. The scan only raises them - you decide, one card at a time.
     </p>
 
-    <ul class="nav nav-tabs mb-3" role="tablist">
+    <details class="mb-3 small" data-testid="time-verification-help">
+        <summary class="fw-medium">How deciding works</summary>
+        <dl class="row mt-2 mb-0 gx-3">
+            <dt class="col-sm-3 col-lg-2"><i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>Needs verification</dt>
+            <dd class="col-sm-9 col-lg-10">The time stops counting anywhere but in the player's own results. Untick the reasons the player should not read, add a note if it helps. The player is told once, with the next run - until then a slip can still be undone on the Needs verification tab.</dd>
+            <dt class="col-sm-3 col-lg-2"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Looks fine</dt>
+            <dd class="col-sm-9 col-lg-10">The time counts as before and this entry is never raised again.</dd>
+            <dt class="col-sm-3 col-lg-2"><i class="bi bi-arrow-down me-1" aria-hidden="true"></i>Not sure</dt>
+            <dd class="col-sm-9 col-lg-10">Skip it - nothing is stored, the time stays in the queue.</dd>
+            <dt class="col-sm-3 col-lg-2">Strong / Possible</dt>
+            <dd class="col-sm-9 col-lg-10">How sure the scan is: Strong is very far off, or comes with a likely mistake (an empty hours box, another edition, a group).</dd>
+            <dt class="col-sm-3 col-lg-2">Expected time</dt>
+            <dd class="col-sm-9 col-lg-10">From the player's own times: the prediction for this puzzle, else their usual time for the piece count (baseline), else their pace on other puzzles. Only a player without times of their own is judged by the community's pace.</dd>
+            <dt class="col-sm-3 col-lg-2"><i class="bi bi-eye-slash me-1" aria-hidden="true"></i>Only moderators</dt>
+            <dd class="col-sm-9 col-lg-10 mb-0">Hints the player never reads, whatever you tick.</dd>
+        </dl>
+    </details>
+
+    <ul class="nav nav-tabs tv-tabs mb-3" role="tablist">
         {% for tab_option in tabs %}
             {% set tab_count = counts.of(tab_option) %}
-            <li class="nav-item">
+            {% set is_work_queue = tab_option.value in ['fast', 'slow', 'replied'] %}
+            <li class="nav-item{% if tab_option.value == 'marked' %} ms-lg-auto{% endif %}">
                 <a class="nav-link {% if tab_option == tab %}active{% endif %}"
                    {% if tab_option == tab %}aria-current="page"{% endif %}
                    href="{{ path('admin_time_verification', {tab: tab_option.value}) }}">
                     {{ tab_option.label }}
-                    {% if tab_count is not null %}<span class="badge {{ tab_count > 0 and tab_option.value in ['fast', 'slow', 'replied'] ? 'bg-warning text-dark' : 'bg-secondary' }} ms-1">{{ tab_count|number_format(0, '.', ' ') }}</span>{% endif %}
+                    {% if tab_count is not null %}<span class="badge {{ tab_count > 0 and is_work_queue ? 'bg-warning text-dark' : 'bg-secondary' }} ms-1">{{ tab_count|number_format(0, '.', ' ') }}</span>{% endif %}
                 </a>
             </li>
         {% endfor %}
     </ul>
+
+    <p class="small mb-3">{{ tab_intros[tab.value] }}</p>
 
     {% if tab.value == 'numbers' %}
         {{ include('admin/suspicious_times/_numbers.html.twig') }}
     {% elseif tab.value == 'log' %}
         {{ include('admin/suspicious_times/_decision_log.html.twig') }}
     {% else %}
-        {% if tab.value in ['fast', 'slow'] %}
-            <p class="text-muted small">
-                Strong before possible; {{ tab.value == 'fast'
-                    ? 'then the times leading their puzzle, bigger leaderboards first'
-                    : 'then the times furthest off' }}.
-                {% if puzzle_cards is not empty %}Puzzles where several players are off the same way come first - a wrong piece count or a hard puzzle may settle them all at once; otherwise decide their times right there.{% endif %}
-            </p>
-
-            {% for card in puzzle_cards %}
-                {{ include('admin/suspicious_times/_puzzle_card.html.twig') }}
-            {% endfor %}
-        {% elseif tab.value == 'replied' %}
-            <p class="text-muted small">
-                Marked times whose player says the time is correct, or whose entry changed (the player's edit, a
-                piece-count fix, a merge) and still needs a look. Oldest first. Your note goes to the player with the
-                answer.
-            </p>
+        {% if puzzle_cards is not empty %}
+            <section aria-labelledby="tv-puzzles-title" class="mb-4">
+                <h2 class="tv-section-title" id="tv-puzzles-title">
+                    <span>Puzzles first</span>
+                    <span class="badge bg-secondary">{{ puzzle_cards|length }}</span>
+                </h2>
+                <p class="small mb-3">
+                    Several players are off the same way on these puzzles - a wrong piece count or a hard puzzle may
+                    settle all their times at once. If it is neither, decide each time right in the card.
+                </p>
+                {% for card in puzzle_cards %}
+                    {{ include('admin/suspicious_times/_puzzle_card.html.twig') }}
+                {% endfor %}
+            </section>
         {% endif %}
 
         {% if cases is empty and puzzle_cards is empty %}
-            <div class="alert alert-info">Nothing here.</div>
+            <div class="alert alert-success d-flex gap-2 align-items-center">
+                <i class="bi bi-check2-circle fs-4" aria-hidden="true"></i>
+                <span>Nothing here.</span>
+            </div>
         {% endif %}
 
-        {% for case in cases %}
-            {{ include('admin/suspicious_times/_case_card.html.twig') }}
-        {% endfor %}
+        {% if cases is not empty %}
+            <section aria-labelledby="tv-cases-title">
+                {% if puzzle_cards is not empty %}
+                    <h2 class="tv-section-title" id="tv-cases-title">
+                        <span>Other times</span>
+                        <span class="badge bg-secondary">{{ total|number_format(0, '.', ' ') }}</span>
+                    </h2>
+                {% else %}
+                    <h2 class="visually-hidden" id="tv-cases-title">{{ tab.label }}</h2>
+                {% endif %}
+                {% for case in cases %}
+                    {{ include('admin/suspicious_times/_case_card.html.twig') }}
+                {% endfor %}
+            </section>
+        {% endif %}
     {% endif %}
 
     {% if pages > 1 %}
         <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Pages">
             {% if page > 1 %}
                 <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_time_verification', {tab: tab.value, page: page - 1}) }}">
-                    <i class="bi bi-chevron-left"></i> Previous
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i> Previous
                 </a>
             {% else %}
                 <span></span>
             {% endif %}
-            <span class="small text-muted">Page {{ page }} of {{ pages }}</span>
+            <span class="small">Page {{ page }} of {{ pages }}</span>
             {% if page < pages %}
                 <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_time_verification', {tab: tab.value, page: page + 1}) }}">
-                    Next <i class="bi bi-chevron-right"></i>
+                    Next <i class="bi bi-chevron-right" aria-hidden="true"></i>
                 </a>
             {% else %}
                 <span></span>

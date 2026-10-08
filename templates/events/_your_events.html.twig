@@ -1,15 +1,38 @@
-{# "Your events" strip (owner: workstream A). Variables: page #}
+{# "Your events" strip (owner: workstream A). Variables: page; searching from the page.
+   Signed in, scope Everywhere, no search. Cards are `.ev-your-event`, never `.ev-row` - they share index ids with
+   their agenda rows, and the calendar clones `.ev-row[data-ev-ids~="N"]`. #}
 {% if page.yourEvents is not empty %}
-    <section class="ev-your-events" {{ page.scope.isEverywhere ? '' : 'hidden' }}>
-        <h2>{{ 'events_page.your_events.title'|trans }}</h2>
-        <ul>
+    <section class="ev-block ev-your-events" aria-labelledby="ev-your-events-title" data-ev-section="your" {{ page.scope.isEverywhere and not (searching ?? false) ? '' : 'hidden' }}>
+        <div class="ev-block-head">
+            <h2 class="ev-block-title" id="ev-your-events-title">{{ 'events_page.your_events.title'|trans }}</h2>
+            <span class="ev-block-n">{{ page.yourEvents|length }}</span>
+        </div>
+        <ul class="ev-your-list">
             {% for your_event in page.yourEvents %}
                 {% set row = your_event.row %}
-                <li class="ev-your-event" data-ev-ids="{{ row.idsAttribute }}">
+                <li class="ev-your-event ev-your-event-{{ your_event.mark }}" data-ev-ids="{{ row.idsAttribute }}">
                     {{ include('events/_date_leaf.html.twig', {leaf: row.leaf}) }}
-                    {% if row.url %}<a href="{{ row.url }}">{{ row.title }}</a>{% else %}{{ row.title }}{% endif %}
-                    {% if row.editionName %}<span>{{ row.editionName }}</span>{% endif %}
-                    {{ include('events/_your_event_mark.html.twig', {mark: your_event.mark}) }}
+                    <div class="ev-your-body">
+                        {% if row.url %}
+                            <a class="ev-your-name" href="{{ row.url }}">{{ row.title }}</a>
+                        {% else %}
+                            <span class="ev-your-name">{{ row.title }}</span>
+                        {% endif %}
+                        {% if row.editionName %}<span class="ev-your-edition">{{ row.editionName }}</span>{% endif %}
+                        <span class="ev-your-meta">
+                            {%- if row.when -%}
+                                <span class="ev-when{{ row.when.soon ? ' ev-when-soon' }}">{{ row.when.translationKey|trans({'%count%': row.when.days}) }}</span>
+                            {%- elseif row.leaf.from -%}
+                                {{ row.leaf.from|format_date(pattern: 'd LLL yyyy', timezone: 'UTC') }}
+                            {%- else -%}
+                                {{ 'events_page.agenda.tba'|trans }}
+                            {%- endif %}
+                            · {{ include('events/_your_event_mark.html.twig', {mark: your_event.mark}) }}
+                        </span>
+                    </div>
+                    {% if row.logo %}
+                        <img class="ev-your-logo" src="{{ row.logo|thumbnail('puzzle_small') }}" alt="" width="40" height="40" loading="lazy">
+                    {% endif %}
                 </li>
             {% endfor %}
         </ul>

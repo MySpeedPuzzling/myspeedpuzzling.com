@@ -1,6 +1,8 @@
 {% extends 'base.html.twig' %}
 
-{# The events page (docs/features/events-page/README.md). Owner: workstream A - structure fixed by the implementation plan, 1.7 #}
+{# The events page (docs/features/events-page/README.md). Owner: workstream A - structure fixed by the implementation plan, 1.7
+   search_ids: the index ids matching `?q=` (null without a query) - the page renders already filtered, as the browser
+   filters it (EventsSearchTwigExtension), so a reload or a link with a query never flashes the whole list. #}
 
 {% block title %}{{ 'events.meta.title'|trans }}{% endblock %}
 
@@ -11,8 +13,44 @@
 {% block json_ld %}{{ parent() }}{{ include('events/_item_list_json_ld.html.twig', {urls: page.itemListUrls}) }}{% endblock %}
 
 {% block content %}
-<div class="ev-page"
+{% set search_ids = events_search_ids(page.index, query) %}
+{% set searching = search_ids is not null %}
+{# Nothing in scope matches: one "Nothing found" instead of empty sections #}
+{% set search_nothing = searching and search_ids|filter(id => page.scope.isEverywhere or page.index[id].sc == page.scope.key)|length == 0 %}
+{% set scope_country = page.scope.countryCode %}
+{% set scope_name = scope_country ? scope_country.localizedName(app.request.locale) : (page.scope.isOnline ? 'events_page.scope.online'|trans : '') %}
+{% set js_messages = {} %}
+{% for name, key in {
+    online: 'events_page.place.online',
+    results: 'events_page.tag.results',
+    everywhere: 'events_page.scope.everywhere',
+    scopeOnline: 'events_page.scope.online',
+    upcoming: 'events_page.agenda.upcoming',
+    upcomingIn: 'events_page.agenda.upcoming_in',
+    datesCount: 'events_page.agenda.dates_count',
+    eventsCount: 'events_page.agenda.events_count',
+    withoutDate: 'events_page.agenda.without_date',
+    noUpcomingIn: 'events_page.agenda.no_upcoming_in',
+    noUpcomingOnline: 'events_page.agenda.no_upcoming_online',
+    noneIn: 'events_page.empty.none_in',
+    lastOne: 'events_page.empty.last_one',
+    noneYet: 'events_page.empty.none_yet',
+    noDates: 'events_page.summary.dates',
+    knowOne: 'events_page.empty.know_one',
+    archiveTitle: 'events_page.archive.title',
+    showAll: 'events_page.archive.show_all',
+    pastIn: 'events_page.archive.past_in',
+    archiveNone: 'events_page.archive.none',
+    editionsIn: 'events_page.archive.editions_in',
+    pastLimited: 'events_page.search.past_limited',
+    nothing: 'events_page.search.nothing',
+    searchResults: 'events_page.search.results',
+} %}
+    {% set js_messages = js_messages|merge({(name): browser_translation(key)}) %}
+{% endfor %}
+<div class="ev-page{{ searching ? ' is-searching' }}"
      data-controller="events-page"
+     data-action="events-calendar:day->events-page#jumpToDay"
      data-events-page-scope-value="{{ page.scope.key }}"
      data-events-page-view-value="{{ view.value }}"
      data-events-page-query-value="{{ query }}"
@@ -23,6 +61,7 @@
          online: 'events_page.place.online'|trans,
          results: 'events_page.tag.results'|trans,
          everywhere: 'events_page.scope.everywhere'|trans,
+         t: js_messages,
      }|json_encode }}"
 >
     {{ include('events/_header.html.twig') }}
@@ -46,6 +85,7 @@
     </div>
     {{ include('events/_country_sheet.html.twig') }}
     {{ include('events/_manage_menu_host.html.twig') }}
+    <p class="visually-hidden" role="status" aria-live="polite" data-events-page-target="announcer"></p>
     <template data-events-archive-line-template>{{ include('events/_archive_line.html.twig', {line: null, template: true}) }}</template>
     <script type="application/json" data-events-index>{{ page.index|json_ld }}</script>
 </div>

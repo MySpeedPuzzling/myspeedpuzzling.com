@@ -1,2 +1,1326 @@
 // Events page (docs/features/events-page/implementation-plan.md) - owner: workstream A - list page UI.
-// Every class is prefixed `ev-`.
+// Every class is prefixed `ev-`. Phone first: the page must be compact and easy at 360-390 px; from 992 px (lg) a
+// side column holds the countries and the mini calendar.
+
+// The theme's colours, plus the few the prototype needs that Bootstrap does not name. Text colours keep 4.5:1 on
+// white; the date leaf's bands keep 4.5:1 for white text.
+$ev-ink: $gray-900;
+$ev-ink-2: $gray-700;
+$ev-muted: #646d80;
+$ev-line: $gray-300;
+$ev-sunken: $gray-200;
+$ev-coral-ink: #c9393f;
+$ev-coral-soft: #fff0f0;
+$ev-sky-ink: #2463a6;
+$ev-sky-soft: #eaf3ff;
+$ev-amber-ink: #8a5a00;
+$ev-amber-soft: #fff6e0;
+$ev-go: #0f7445;
+$ev-go-soft: #e6f8ef;
+$ev-band-muted: #5d6679;
+$ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px));
+
+// A link stretched over its whole row; whatever else is clickable in the row sits above it
+@mixin ev-stretched-link {
+    text-decoration: none;
+
+    &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+    }
+
+    &:focus-visible {
+        outline: none;
+    }
+
+    &:focus-visible::after {
+        outline: 3px solid $ev-sky-ink;
+        outline-offset: -3px;
+        border-radius: 8px;
+    }
+}
+
+// 36 px to look at, 44 px to hit
+@mixin ev-hit-area($vertical: 4px) {
+    position: relative;
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset: (-$vertical) 0;
+    }
+}
+
+.ev-page {
+    --ev-toolbar-height: 0px;
+
+    a:focus-visible,
+    button:focus-visible {
+        outline: 3px solid $ev-sky-ink;
+        outline-offset: 2px;
+        border-radius: 6px;
+    }
+
+    .fi {
+        border-radius: 2px;
+        flex: none;
+    }
+}
+
+// ---- header ----------------------------------------------------------------------------------------------------------
+
+.ev-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .75rem;
+    margin-bottom: .25rem;
+}
+
+.ev-header-text {
+    flex: 1 1 10rem;
+    min-width: 0;
+}
+
+.ev-title {
+    font-size: 1.625rem;
+    font-weight: 500;
+    margin: 0;
+    color: $ev-ink;
+
+    @include media-breakpoint-up(lg) {
+        font-size: 2rem;
+    }
+}
+
+.ev-summary {
+    margin: .125rem 0 0;
+    font-size: .8125rem;
+    color: $ev-muted;
+}
+
+.ev-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .5rem .75rem;
+}
+
+.ev-guide-link {
+    display: none;
+    font-size: .875rem;
+    color: $ev-coral-ink;
+
+    @include media-breakpoint-up(lg) {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+    }
+}
+
+.ev-add {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    min-height: 40px;
+    white-space: nowrap;
+}
+
+// ---- toolbar (sticky under the site header) -------------------------------------------------------------------------
+
+.ev-toolbar {
+    position: sticky;
+    top: var(--header-height, 101px);
+    // Under the site header (.sticky-top) and its menus, over the page
+    z-index: $zindex-sticky - 10;
+    margin: 0 -1rem;
+    padding: .5rem 1rem .625rem;
+    background: rgba($white, .94);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid transparent;
+    transition: transform .2s ease, opacity .2s ease, border-color .2s ease;
+
+    &.is-stuck {
+        border-bottom-color: $ev-line;
+    }
+
+    // Phones: slides away while scrolling down, back on the first scroll up (events_page_controller.js)
+    &.is-away {
+        transform: translateY(-100%);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    @include media-breakpoint-up(lg) {
+        display: grid;
+        grid-template-columns: minmax(15rem, 21rem) minmax(0, 1fr);
+        gap: .875rem;
+        align-items: center;
+        padding-top: .625rem;
+    }
+}
+
+.ev-search {
+    position: relative;
+}
+
+.ev-search-input {
+    width: 100%;
+    min-height: 44px;
+    padding: .5rem 2.75rem .5rem 2.5rem;
+    border: 1px solid $ev-line;
+    border-radius: 10px;
+    background: $ev-sunken;
+    color: $ev-ink;
+    // 16 px: iOS zooms into anything smaller
+    font-size: 16px;
+    appearance: none;
+
+    &::placeholder {
+        color: $ev-muted;
+    }
+
+    &::-webkit-search-cancel-button {
+        display: none;
+    }
+
+    &:focus {
+        outline: none;
+        background: $white;
+        border-color: $primary;
+        box-shadow: 0 0 0 3px rgba($primary, .25);
+    }
+}
+
+.ev-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $ev-muted;
+    pointer-events: none;
+}
+
+.ev-search-clear {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: $ev-muted;
+
+    &:hover {
+        color: $ev-ink;
+    }
+}
+
+.ev-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    padding-top: .5rem;
+
+    @include media-breakpoint-up(lg) {
+        padding-top: 0;
+    }
+}
+
+.ev-view-switch {
+    flex: none;
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid $ev-line;
+    border-radius: 999px;
+    background: $ev-sunken;
+}
+
+.ev-view-option {
+    @include ev-hit-area(4px);
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 .75rem;
+    border-radius: 999px;
+    color: $ev-ink-2;
+    font-size: .875rem;
+    white-space: nowrap;
+
+    &:hover {
+        color: $ev-ink;
+    }
+
+    &[aria-current="true"] {
+        background: $white;
+        color: $ev-ink;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba($black, .1);
+    }
+}
+
+// One scrolling row on phones, running to the screen's edge
+.ev-chips {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    gap: .5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: -4px -1rem -4px 0;
+    padding: 4px 1rem 4px 0;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    @include media-breakpoint-up(lg) {
+        flex-wrap: wrap;
+        overflow: visible;
+        margin-right: 0;
+        padding-right: 0;
+    }
+}
+
+.ev-chip {
+    @include ev-hit-area(4px);
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    min-height: 36px;
+    padding: 0 .75rem;
+    border: 1px solid $ev-line;
+    border-radius: 999px;
+    background: $white;
+    color: $ev-ink-2;
+    font-size: .875rem;
+    white-space: nowrap;
+
+    &:hover {
+        border-color: $gray-500;
+        color: $ev-ink;
+    }
+
+    &[aria-current="true"] {
+        background: $ev-ink;
+        border-color: $ev-ink;
+        color: $white;
+
+        .ev-chip-n {
+            color: inherit;
+            opacity: .8;
+        }
+    }
+}
+
+.ev-chip-n {
+    font-size: .75rem;
+    color: $ev-muted;
+    font-variant-numeric: tabular-nums;
+}
+
+.ev-chip-more {
+    border-style: dashed;
+}
+
+// From 992 px the side column lists the countries - the toolbar keeps Everywhere, your country and Online
+@include media-breakpoint-up(lg) {
+    .ev-chips .ev-chip-country,
+    .ev-chips .ev-chip-more {
+        display: none;
+    }
+}
+
+// ---- page body -------------------------------------------------------------------------------------------------------
+
+.ev-body {
+    padding-bottom: 2rem;
+
+    @include media-breakpoint-up(lg) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 2.5rem;
+        align-items: start;
+    }
+}
+
+.ev-main {
+    min-width: 0;
+}
+
+.ev-list-view {
+    display: flex;
+    flex-direction: column;
+}
+
+// While searching: Upcoming, Past, Series - the order of the prototype
+.ev-list-view > [data-ev-section="your"] { order: 0; }
+.ev-list-view > .ev-agenda { order: 1; }
+.ev-list-view > .ev-search-past,
+.ev-list-view > .ev-search-nothing { order: 2; }
+.ev-list-view > .ev-series { order: 3; }
+.ev-list-view > .ev-archive { order: 4; }
+.ev-list-view > .ev-foot { order: 5; }
+
+.ev-rail {
+    display: none;
+
+    @include media-breakpoint-up(lg) {
+        display: block;
+        position: sticky;
+        top: calc(#{$ev-sticky-top} + .75rem);
+        margin-top: 1.25rem;
+    }
+}
+
+.ev-block {
+    margin-top: 1.375rem;
+}
+
+.ev-block-head {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+    margin-bottom: .5rem;
+}
+
+.ev-block-title {
+    margin: 0;
+    font-size: .8125rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: $ev-ink;
+}
+
+.ev-block-n {
+    font-size: .8125rem;
+    color: $ev-muted;
+}
+
+.ev-rows,
+.ev-lines,
+.ev-series-lines,
+.ev-your-list,
+.ev-tags,
+.ev-rail-list,
+.ev-sheet-group ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.ev-note {
+    margin: .5rem 0 0;
+    font-size: .875rem;
+    color: $ev-muted;
+}
+
+// ---- your events ----------------------------------------------------------------------------------------------------
+
+.ev-your-list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(15rem, 1fr);
+    gap: .625rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 1rem;
+    margin: 0 -1rem;
+    padding: 0 1rem 2px;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    @include media-breakpoint-up(lg) {
+        margin: 0;
+        padding: 0 0 2px;
+        scroll-padding: 0;
+    }
+}
+
+.ev-your-event {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .625rem .75rem;
+    border: 1px solid $ev-line;
+    border-radius: 12px;
+    background: linear-gradient(180deg, $ev-coral-soft, $white 70%);
+    scroll-snap-align: start;
+
+    .ev-leaf {
+        flex: none;
+    }
+}
+
+.ev-your-event-following {
+    background: linear-gradient(180deg, $ev-sunken, $white 70%);
+}
+
+.ev-your-body {
+    min-width: 0;
+}
+
+.ev-your-name {
+    @include ev-stretched-link;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: $ev-ink;
+    font-size: .875rem;
+    font-weight: 500;
+    line-height: 1.3;
+
+    &:hover {
+        color: $ev-coral-ink;
+    }
+}
+
+.ev-your-edition,
+.ev-your-meta {
+    display: block;
+    font-size: .75rem;
+    line-height: 1.35;
+}
+
+.ev-your-edition {
+    color: $ev-ink-2;
+}
+
+.ev-your-meta {
+    margin-top: .125rem;
+    color: $ev-muted;
+
+    .ev-when {
+        text-align: left;
+    }
+}
+
+.ev-your-logo {
+    flex: none;
+    margin-left: auto;
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+// ---- agenda ---------------------------------------------------------------------------------------------------------
+
+// Sticky under the toolbar; moves up only once the toolbar has finished sliding away
+.ev-month-header {
+    position: sticky;
+    top: $ev-sticky-top;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    margin: 0;
+    padding: .75rem 0 .375rem;
+    border-bottom: 1px solid $ev-line;
+    background: $white;
+    color: $ev-muted;
+    font-size: .8125rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    transition: top .2s ease;
+
+    > span:first-child {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.ev-month-n {
+    flex: none;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.ev-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    gap: .75rem;
+    align-items: center;
+    min-height: 64px;
+    padding: .75rem 0;
+    border-bottom: 1px solid $ev-line;
+
+    &:hover .ev-row-name {
+        color: $ev-coral-ink;
+    }
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: 64px minmax(0, 1fr) auto;
+        gap: 1rem;
+        padding: .875rem .5rem;
+        border-radius: 8px;
+
+        &:hover {
+            background: $gray-100;
+        }
+    }
+}
+
+.ev-row-pending {
+    .ev-leaf {
+        opacity: .65;
+    }
+}
+
+.ev-row-body {
+    min-width: 0;
+}
+
+.ev-row-name {
+    @include ev-stretched-link;
+    display: block;
+    color: $ev-ink;
+    font-weight: 500;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.ev-row-edition {
+    margin-top: 1px;
+    color: $ev-ink-2;
+    font-size: .875rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.ev-row-meta {
+    display: flex;
+    min-width: 0;
+    margin-top: .125rem;
+    color: $ev-muted;
+    font-size: .8125rem;
+
+    @include media-breakpoint-up(lg) {
+        font-size: .875rem;
+    }
+}
+
+.ev-place {
+    display: inline-flex;
+    align-items: baseline;
+    min-width: 0;
+    max-width: 100%;
+    white-space: nowrap;
+
+    .ev-flag {
+        align-self: center;
+        margin-right: .3125rem;
+    }
+}
+
+.ev-place-city {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ev-place-country {
+    flex: none;
+}
+
+// When above the star and ⋯ on phones, beside them from 992 px
+.ev-row-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: .125rem;
+    align-self: stretch;
+
+    @include media-breakpoint-up(lg) {
+        flex-direction: row;
+        align-items: center;
+        gap: .5rem;
+    }
+}
+
+.ev-when {
+    color: $ev-ink-2;
+    font-size: .75rem;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.ev-when-soon {
+    color: $ev-coral-ink;
+    font-weight: 500;
+}
+
+.ev-row-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    margin-right: -.5rem;
+
+    &:empty {
+        display: none;
+    }
+}
+
+// Month roll-up: a chip per session, each opening its edition
+.ev-sessions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem;
+    margin-top: .375rem;
+}
+
+.ev-sessions-n {
+    margin-right: .125rem;
+    color: $ev-muted;
+    font-size: .8125rem;
+}
+
+.ev-session {
+    @include ev-hit-area(6px);
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 .625rem;
+    border-radius: 999px;
+    background: $ev-sunken;
+    color: $ev-ink;
+    font-size: .8125rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+
+    &:hover {
+        color: $ev-ink;
+        box-shadow: inset 0 0 0 1px currentColor;
+    }
+
+    .ev-row-online & {
+        background: $ev-sky-soft;
+        color: $ev-sky-ink;
+    }
+}
+
+.ev-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin-top: .375rem;
+}
+
+.ev-tag {
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: $ev-sunken;
+    color: $ev-ink-2;
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+.ev-tag-going {
+    background: $ev-coral-soft;
+    color: $ev-coral-ink;
+}
+
+.ev-tag-recurring {
+    background: $ev-sky-soft;
+    color: $ev-sky-ink;
+}
+
+.ev-tag-registration,
+.ev-tag-registration_opens {
+    background: $white;
+    box-shadow: inset 0 0 0 1px $ev-line;
+}
+
+.ev-tag-registration_open {
+    background: $ev-go-soft;
+    color: $ev-go;
+}
+
+.ev-tag-registration_closed,
+.ev-tag-runs_until,
+.ev-tag-going_count {
+    font-weight: 400;
+}
+
+.ev-tag-full_waitlist,
+.ev-tag-results,
+.ev-tag-waiting_for_approval {
+    background: $ev-amber-soft;
+    color: $ev-amber-ink;
+}
+
+// The date leaf: weekday band, day, month
+.ev-leaf {
+    width: 56px;
+    overflow: hidden;
+    border: 1px solid $ev-line;
+    border-radius: 10px;
+    background: $white;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+
+    @include media-breakpoint-up(lg) {
+        width: 64px;
+    }
+}
+
+.ev-leaf-band {
+    display: block;
+    padding: 2px 0;
+    background: $ev-coral-ink;
+    color: $white;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+
+    &.ev-leaf-long {
+        font-size: 9px;
+        letter-spacing: .01em;
+    }
+}
+
+.ev-leaf-online .ev-leaf-band {
+    background: $ev-sky-ink;
+}
+
+.ev-leaf-muted .ev-leaf-band {
+    background: $ev-band-muted;
+}
+
+.ev-leaf-day {
+    display: block;
+    padding-top: 3px;
+    color: $ev-ink;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -.02em;
+    white-space: nowrap;
+
+    &.ev-leaf-long {
+        font-size: 15px;
+    }
+}
+
+.ev-leaf-month {
+    display: block;
+    padding-bottom: 3px;
+    color: $ev-muted;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+
+    &.ev-leaf-long {
+        font-size: 9px;
+        letter-spacing: 0;
+    }
+}
+
+.ev-empty {
+    padding: 1.5rem .625rem .5rem;
+    text-align: center;
+}
+
+.ev-empty-title {
+    margin: 0;
+    color: $ev-ink;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.ev-empty-text {
+    margin: .375rem 0 .75rem;
+    font-size: .875rem;
+}
+
+.ev-callout {
+    margin: .875rem 0 0;
+    padding: .75rem .875rem;
+    border: 1px dashed $gray-400;
+    border-radius: 12px;
+    background: $ev-sunken;
+    font-size: .875rem;
+
+    b {
+        color: $ev-ink;
+        font-weight: 500;
+    }
+
+    a {
+        color: $ev-coral-ink;
+        text-decoration: underline;
+    }
+}
+
+// The calendar's day pick and a jump from it light rows up for a moment
+.ev-flash {
+    animation: ev-flash 1.4s ease-out;
+}
+
+.ev-session.ev-flash {
+    animation-name: ev-ring;
+}
+
+@keyframes ev-flash {
+    from { background-color: $ev-amber-soft; }
+    to { background-color: transparent; }
+}
+
+@keyframes ev-ring {
+    from { box-shadow: 0 0 0 3px $ev-amber-ink; }
+    to { box-shadow: 0 0 0 3px transparent; }
+}
+
+// ---- series directory -----------------------------------------------------------------------------------------------
+
+.ev-subhead {
+    margin: .875rem 0 0;
+    color: $ev-muted;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.ev-subhead-n {
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.ev-series-lines {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        column-gap: 1.75rem;
+    }
+}
+
+.ev-series-line {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: .5rem;
+    align-items: center;
+    min-height: 56px;
+    padding: .375rem 0;
+    border-bottom: 1px solid $ev-line;
+    font-size: .875rem;
+
+    &:hover .ev-series-name {
+        color: $ev-coral-ink;
+    }
+
+    .ev-tag {
+        display: inline-block;
+        margin-top: .125rem;
+    }
+}
+
+.ev-series-main {
+    min-width: 0;
+}
+
+.ev-series-name {
+    @include ev-stretched-link;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: $ev-ink;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.ev-series-sub {
+    display: flex;
+    gap: .3em;
+    min-width: 0;
+    color: $ev-muted;
+    font-size: .75rem;
+    white-space: nowrap;
+}
+
+.ev-series-count {
+    flex: none;
+}
+
+.ev-series-next {
+    color: $ev-muted;
+    font-size: .75rem;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.ev-series-next-next,
+.ev-series-next-live {
+    color: $ev-sky-ink;
+}
+
+// ---- archive and past lines -----------------------------------------------------------------------------------------
+
+.ev-years {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-bottom: .375rem;
+}
+
+// Phones: the date beside two lines (name, place); from 768 px one line
+.ev-line {
+    position: relative;
+    display: grid;
+    grid-template-columns: 4.25rem minmax(0, 1fr);
+    grid-template-areas: "date main" "date place";
+    column-gap: .625rem;
+    align-items: center;
+    min-height: 44px;
+    padding: .5rem 0;
+    border-bottom: 1px solid $ev-line;
+    font-size: .875rem;
+
+    &:hover .ev-line-title {
+        color: $ev-coral-ink;
+    }
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+        grid-template-areas: "date main place";
+    }
+}
+
+.ev-line-date {
+    grid-area: date;
+    color: $ev-muted;
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+}
+
+.ev-line-main {
+    grid-area: main;
+    display: flex;
+    align-items: baseline;
+    gap: .375rem;
+    min-width: 0;
+    color: $ev-ink;
+
+    .ev-tag {
+        flex: none;
+    }
+}
+
+.ev-line-title {
+    @include ev-stretched-link;
+    min-width: 0;
+    overflow: hidden;
+    color: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ev-line-place {
+    grid-area: place;
+    min-width: 0;
+    overflow: hidden;
+    color: $ev-muted;
+    font-size: .8125rem;
+    white-space: nowrap;
+
+    @include media-breakpoint-up(md) {
+        max-width: 14rem;
+        text-align: right;
+    }
+}
+
+.ev-more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: $ev-coral-ink;
+    font-size: .875rem;
+}
+
+// ---- footer card ----------------------------------------------------------------------------------------------------
+
+.ev-foot {
+    margin-top: 1.75rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background: $ev-sunken;
+    font-size: .875rem;
+}
+
+.ev-foot-title {
+    margin: 0 0 .25rem;
+    color: $ev-ink;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.ev-foot-text {
+    margin: 0 0 .5rem;
+}
+
+.ev-foot-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem 1rem;
+}
+
+.ev-foot-guide {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: $ev-coral-ink;
+}
+
+// ---- desktop rail ---------------------------------------------------------------------------------------------------
+
+.ev-rail-card {
+    margin-bottom: .875rem;
+    padding: .875rem 1rem;
+    border: 1px solid $ev-line;
+    border-radius: 12px;
+}
+
+.ev-rail-title {
+    margin: 0 0 .5rem;
+    color: $ev-ink;
+    font-size: .8125rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.ev-rail-country {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 36px;
+    padding: .25rem .375rem;
+    border-radius: 6px;
+    color: $ev-ink-2;
+    font-size: .875rem;
+
+    &:hover,
+    &[aria-current="true"] {
+        background: $ev-sunken;
+        color: $ev-ink;
+    }
+
+    &[aria-current="true"] {
+        font-weight: 500;
+    }
+}
+
+.ev-rail-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ev-rail-n {
+    margin-left: auto;
+    color: $ev-muted;
+    font-variant-numeric: tabular-nums;
+}
+
+.ev-rail-more {
+    color: $ev-coral-ink;
+}
+
+// ---- country sheet: a bottom sheet on phones, a centred dialog from 992 px ------------------------------------------
+
+html.ev-sheet-open {
+    overflow: hidden;
+}
+
+.ev-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: $zindex-modal + 5;
+    display: none;
+    align-items: flex-end;
+    background: rgba(20, 24, 33, .45);
+
+    // Without JavaScript the "All countries" link opens it through :target
+    &.is-open,
+    &:target {
+        display: flex;
+    }
+
+    @include media-breakpoint-up(lg) {
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+.ev-sheet-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 85vh;
+    max-height: 85dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: 18px 18px 0 0;
+    background: $white;
+    box-shadow: 0 8px 24px rgba($black, .2);
+
+    &:focus {
+        outline: none;
+    }
+
+    @include media-breakpoint-up(lg) {
+        width: 440px;
+        max-height: 80vh;
+        border-radius: 16px;
+    }
+}
+
+.ev-sheet-head {
+    display: grid;
+    gap: .5rem;
+    padding: .625rem 1rem .75rem;
+    border-bottom: 1px solid $ev-line;
+}
+
+.ev-sheet-grab {
+    justify-self: center;
+    width: 40px;
+    height: 4px;
+    border-radius: 4px;
+    background: $ev-line;
+
+    @include media-breakpoint-up(lg) {
+        display: none;
+    }
+}
+
+.ev-sheet-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ev-sheet-title {
+    margin: 0;
+    color: $ev-ink;
+    font-size: 1.0625rem;
+    font-weight: 500;
+}
+
+.ev-sheet-done {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 .25rem;
+    color: $ev-coral-ink;
+    font-weight: 500;
+}
+
+.ev-sheet-list {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: .25rem 1rem 1rem;
+}
+
+.ev-sheet-region {
+    margin: .875rem 0 .25rem;
+    color: $ev-muted;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.ev-sheet-option {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+    min-height: 48px;
+    padding: .5rem .125rem;
+    border-bottom: 1px solid $ev-line;
+    color: $ev-ink;
+
+    &:hover {
+        color: $ev-coral-ink;
+    }
+
+    &[aria-current="true"] {
+        font-weight: 500;
+    }
+}
+
+.ev-sheet-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ev-sheet-counts {
+    flex: none;
+    margin-left: auto;
+    color: $ev-muted;
+    font-size: .75rem;
+    white-space: nowrap;
+
+    b {
+        color: $ev-go;
+        font-weight: 500;
+    }
+}
+
+.ev-sheet-note {
+    margin-top: .875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ev-toolbar,
+    .ev-month-header {
+        transition: none;
+    }
+
+    .ev-flash,
+    .ev-session.ev-flash {
+        animation: none;
+        outline: 3px solid $ev-amber-ink;
+        outline-offset: -3px;
+    }
+}

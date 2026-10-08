@@ -1,10 +1,23 @@
-{# Desktop side column: countries with upcoming dates (owner: workstream A). Variables: page, view, query #}
-<section class="ev-rail-countries">
-    <h2>{{ 'events_page.rail.countries'|trans }}</h2>
-    <ul>
+{# Desktop side column: countries with upcoming dates (owner: workstream A). Variables: page, view, query
+   From 992 px the toolbar keeps only Everywhere, your country and Online - the countries are here. #}
+{% set keep = (view.value == 'calendar' ? {view: 'calendar'}|merge(month ? {month: month} : {}) : {})|merge(query ? {q: query} : {}) %}
+<section class="ev-rail-card ev-rail-countries" aria-labelledby="ev-rail-countries-title">
+    <h2 class="ev-rail-title" id="ev-rail-countries-title">{{ 'events_page.rail.countries'|trans }}</h2>
+    <ul class="ev-rail-list">
+        <li>
+            <a class="ev-rail-country" href="{{ path('events', keep) }}" data-ev-scope="all" data-action="events-page#chooseScope" aria-current="{{ page.scope.key == 'all' ? 'true' : 'false' }}">
+                {{ 'events_page.scope.everywhere'|trans }} <span class="ev-rail-n">{{ page.everywhereUpcoming }}</span>
+            </a>
+        </li>
         {% for country in page.countryCounts|filter(country => country.upcoming > 0) %}
-            <li><a href="{{ path('events', {country: country.code.name}) }}"><span class="fi fi-{{ country.code.name }}" aria-hidden="true"></span> {{ country.name }}</a> {{ country.upcoming }}</li>
+            <li>
+                <a class="ev-rail-country" href="{{ path('events', {country: country.code.name}|merge(keep)) }}" data-ev-scope="{{ country.code.name }}" data-action="events-page#chooseScope" aria-current="{{ page.scope.key == country.code.name ? 'true' : 'false' }}">
+                    <span class="fi fi-{{ country.code.name }}" aria-hidden="true"></span> <span class="ev-rail-name">{{ country.name }}</span> <span class="ev-rail-n">{{ country.upcoming }}</span>
+                </a>
+            </li>
         {% endfor %}
+        <li>
+            <a class="ev-rail-country ev-rail-more" href="#ev-sheet" aria-haspopup="dialog" aria-controls="ev-sheet" data-action="events-page#openSheet">{{ 'events_page.scope.more_countries'|trans }}</a>
+        </li>
     </ul>
-    <button type="button" data-ev-open-sheet aria-haspopup="dialog">{{ 'events_page.scope.more_countries'|trans }}</button>
 </section>

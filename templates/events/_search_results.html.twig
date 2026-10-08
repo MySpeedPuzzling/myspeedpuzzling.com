@@ -1,8 +1,43 @@
-{# Search results, filled in the browser from the index (owner: workstream A). Variables: page #}
-<section class="ev-search-results" data-ev-search-results hidden>
-    <section data-ev-search="upcoming"><h2>{{ 'events_page.search.upcoming'|trans }}</h2><ul class="ev-rows"></ul></section>
-    <section data-ev-search="past"><h2>{{ 'events_page.search.past'|trans }}</h2><ul class="ev-lines"></ul></section>
-    <section data-ev-search="series"><h2>{{ 'events_page.search.series'|trans }}</h2><ul class="ev-series-lines"></ul></section>
-    <section data-ev-search="ongoing"><h2>{{ 'events_page.series.ongoing_online'|trans }}</h2><ul class="ev-rows"></ul></section>
-    <p data-ev-search="nothing" hidden>{{ 'events_page.search.nothing_hint'|trans }}</p>
+{# Search results that are not rows already on the page (owner: workstream A). Variables: page; search_ids, searching.
+   While searching, the agenda and the series directory filter their own rows in place (Upcoming, Series, Ongoing
+   online); this adds Past - the newest 30 matching past occurrences, editions one by one, with the
+   year - and "Nothing found". The browser renders the same lines from the index (events_page_controller.js). #}
+{% set sid = search_ids ?? null %}
+{% set limit = 30 %}
+{% set past_hits = sid is null ? [] : page.index|filter(e => e.st == 'past' and not e.w and e.id in sid and (page.scope.key == 'all' or e.sc == page.scope.key))|reverse %}
+<section class="ev-block ev-search-past" aria-labelledby="ev-search-past-title" data-ev-section="search-past" data-events-page-target="searchPast" {{ (searching ?? false) and not (search_nothing ?? false) ? '' : 'hidden' }}>
+    <div class="ev-block-head">
+        <h2 class="ev-block-title" id="ev-search-past-title">{{ 'events_page.search.past'|trans }}</h2>
+        <span class="ev-block-n" data-ev-search-past-count>{{ past_hits|length }}</span>
+    </div>
+    <ul class="ev-lines" data-ev-search-lines>
+        {% for entry in past_hits|slice(0, limit) %}
+            {% set from = date(entry.f ~ 'T00:00:00+00:00') %}
+            <li class="ev-line" data-ev-ids="{{ entry.id }}" data-ev-scope="{{ entry.sc }}">
+                <span class="ev-line-date">
+                    {{- from|format_date(pattern: 'd LLL', timezone: 'UTC') -}}
+                    {%- if entry.t %}–{{ date(entry.t ~ 'T00:00:00+00:00')|format_date(pattern: 'd LLL', timezone: 'UTC') }}{% endif %} {{ from|date('Y', 'UTC') -}}
+                </span>
+                <span class="ev-line-main">
+                    {% set title = entry.en ? entry.n ~ ' · ' ~ entry.en : entry.n %}
+                    {% if entry.u %}<a class="ev-line-title" href="{{ entry.u }}">{{ title }}</a>{% else %}<span class="ev-line-title">{{ title }}</span>{% endif %}
+                    {% if entry.r %}<span class="ev-tag ev-tag-results">{{ 'events_page.tag.results'|trans }}</span>{% endif %}
+                </span>
+                <span class="ev-line-place">
+                    {%- if entry.sc == 'online' -%}
+                        <span class="ev-place ev-place-online">{{ 'events_page.place.online'|trans }}</span>
+                    {%- else -%}
+                        <span class="ev-place">{% if entry.c %}<span class="fi fi-{{ entry.c }} ev-flag" aria-hidden="true"></span>{% endif %}<span class="ev-place-city">{{ entry.p }}</span></span>
+                    {%- endif -%}
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+    <p class="ev-note" data-ev-search-limited {{ past_hits|length > limit ? '' : 'hidden' }}>{{ 'events_page.search.past_limited'|trans({'%shown%': limit, '%count%': past_hits|length}) }}</p>
+    <p class="ev-note" data-ev-search-none {{ past_hits is empty ? '' : 'hidden' }}>{{ 'events_page.search.no_past'|trans }}</p>
 </section>
+<div class="ev-empty ev-search-nothing" data-events-page-target="searchNothing" {{ search_nothing ?? false ? '' : 'hidden' }}>
+    <p class="ev-empty-title" data-ev-nothing-title>{{ 'events_page.search.nothing'|trans({'%query%': query}) }}</p>
+    <p class="ev-empty-text">{{ 'events_page.search.nothing_hint'|trans }}</p>
+    <a class="btn btn-sm btn-outline-primary ev-add" href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ 'events_page.add_event'|trans }}</a>
+</div>

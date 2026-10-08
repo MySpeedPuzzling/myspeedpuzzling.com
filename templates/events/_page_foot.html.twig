@@ -1,7 +1,9 @@
 {# "Organising a puzzle event?" (owner: workstream A). Variables: page #}
-<aside class="ev-foot">
-    <h2>{{ 'events_page.foot.title'|trans }}</h2>
-    <p>{{ 'events_page.foot.text'|trans }}</p>
-    <a href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}">+ {{ 'events_page.add_event'|trans }}</a>
-    <a href="{{ path('for_organizers') }}">{{ 'events_page.guide'|trans }}</a>
+<aside class="ev-foot" data-ev-section="foot" {{ searching ?? false ? 'hidden' }}>
+    <h2 class="ev-foot-title">{{ 'events_page.foot.title'|trans }}</h2>
+    <p class="ev-foot-text">{{ 'events_page.foot.text'|trans }}</p>
+    <div class="ev-foot-actions">
+        <a class="btn btn-sm btn-primary ev-add" href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ 'events_page.add_event'|trans }}</a>
+        <a class="ev-foot-guide" href="{{ path('for_organizers') }}">{{ 'events_page.guide'|trans }}</a>
+    </div>
 </aside>

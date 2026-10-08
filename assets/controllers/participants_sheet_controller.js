@@ -640,9 +640,10 @@ export default class extends Controller {
         const factory = await this.loadModule(PERSON_EDITOR_MODULE);
 
         if (factory === MODULE_FAILED) {
+            // Said; the caller falls back like without an editor (tried again next time)
             this.announce(this.texts.core.t('view_load_failed'));
 
-            return;
+            return false;
         }
 
         if (factory === null || this.model === undefined) {

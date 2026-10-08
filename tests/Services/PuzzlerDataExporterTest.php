@@ -66,6 +66,46 @@ final class PuzzlerDataExporterTest extends TestCase
         $this->assertSame('Test Puzzle', $decoded[0]['puzzle_name']);
     }
 
+    public function testPpmIsTheLastColumnPerPerson(): void
+    {
+        $data = $this->createSampleData();
+
+        /** @var array<int, array<string, mixed>> $decoded */
+        $decoded = json_decode($this->exporter->export($data, ExportFormat::Json), true);
+        // 1000 pieces in 3661 s
+        self::assertSame(16.39, $decoded[0]['ppm']);
+
+        $csv = $this->exporter->export($data, ExportFormat::Csv);
+        $header = explode("\n", $csv)[0];
+        self::assertStringEndsWith('"puzzle_total_solved","ppm"', trim($header));
+
+        $pair = new ExportableSolvingTime(
+            timeId: '018d0000-0000-0000-0000-000000000003',
+            puzzleId: '018d0000-0000-0000-0000-000000000002',
+            puzzleName: 'Test Puzzle',
+            brandName: 'Test Brand',
+            piecesCount: 1000,
+            secondsToSolve: 3000,
+            timeFormatted: '00:50:00',
+            finishedAt: null,
+            trackedAt: new DateTimeImmutable('2024-01-15 10:00:00'),
+            type: 'duo',
+            firstAttempt: false,
+            unboxed: false,
+            playersCount: 2,
+            teamMembers: 'A, B',
+            finishedPuzzlePhotoUrl: null,
+            comment: null,
+            puzzleFastestTime: null,
+            puzzleFastestTimeFormatted: '',
+            puzzleAverageTime: null,
+            puzzleAverageTimeFormatted: '',
+            playerRank: null,
+            puzzleTotalSolved: 1,
+        );
+        self::assertSame(10.0, $pair->ppm);
+    }
+
     public function testCsvExportContainsHeaders(): void
     {
         $data = $this->createSampleData();

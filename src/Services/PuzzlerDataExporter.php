@@ -39,6 +39,8 @@ readonly final class PuzzlerDataExporter
         'puzzle_average_time_formatted',
         'player_rank',
         'puzzle_total_solved',
+        // new columns go at the end: people's scripts read the CSV by column position
+        'ppm',
     ];
 
     /**

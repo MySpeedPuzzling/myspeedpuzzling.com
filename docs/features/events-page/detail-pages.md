@@ -257,6 +257,11 @@ participants                          (the CompetitionParticipants component, un
 - The visitor's time is plain text after the event's time, never instead of it.
 - 44 px targets, visible focus (`ev-` focus ring), contrast of the events page tokens (≥ 4.5:1), checked at 320/360/390
   px in all 6 locales.
+- **No theme colour that fails on white** inside `.ev-page` / `.ev-detail` (`_event-parts.scss`, scoped - the site's
+  `$primary` stays): links, `btn-primary` / `btn-outline-primary` and `.text-primary` are `$ev-coral-ink` #c9393f
+  (5.1:1 on white, 4.6:1 on the coral wash; `$primary` #fe696a is 2.8:1), success / danger / warning texts, pills and
+  buttons (the puzzles' "Solved" / "For sale" pills, the registration card) and the participants table get the darker
+  `$ev-go` / `$ev-danger-ink` / ink text. Round badges pick black or white by APCA (`RoundBadgeColor`).
 
 ## Every kind of event
 

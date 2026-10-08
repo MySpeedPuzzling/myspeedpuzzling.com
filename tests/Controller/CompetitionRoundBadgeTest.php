@@ -174,11 +174,11 @@ final class CompetitionRoundBadgeTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/manage-event-rounds/' . CompetitionFixture::COMPETITION_WJPC_2024);
         $this->assertResponseIsSuccessful();
 
-        // Stored with white text, which the event pages never use on this blue (black reads better)
+        // Computed, never the stored text colour - white reads best on this blue (APCA)
         $badge = $this->badgeOf($crawler, 'Qualification Round');
         self::assertStringContainsString('background-color: #007bff', (string) $badge->attr('style'));
         self::assertStringContainsString('color: ' . RoundBadgeColor::text('#007bff'), (string) $badge->attr('style'));
-        self::assertSame('#000000', RoundBadgeColor::text('#007bff'));
+        self::assertSame('#ffffff', RoundBadgeColor::text('#007bff'));
 
         // Solo rounds say so too, like pair and team rounds
         $categories = $crawler->filter('[data-round-category]')->each(static fn (Crawler $node): string => $node->text());

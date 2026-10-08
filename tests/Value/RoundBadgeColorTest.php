@@ -72,12 +72,49 @@ final class RoundBadgeColorTest extends TestCase
      */
     public static function provideTextColors(): iterable
     {
-        // The combinations production had with white text, all below 4.5:1
-        yield 'form default coral' => ['#fe696a', '#000000'];
+        // APCA: white on saturated mid-tones, where WCAG 2's ratio picked black
+        yield 'mid blue' => ['#3d6cf2', '#ffffff'];
+        yield 'bootstrap blue' => ['#007bff', '#ffffff'];
+        yield 'form default coral' => ['#fe696a', '#ffffff'];
+        yield 'palette red' => ['#e6194b', '#ffffff'];
+        // Yellows and pastels stay black
         yield 'bootstrap warning yellow' => ['#ffc107', '#000000'];
-        yield 'palette green' => ['#3cb44b', '#000000'];
+        yield 'palette yellow' => ['#ffe119', '#000000'];
+        yield 'palette pink' => ['#fabebe', '#000000'];
         yield 'navy' => ['#000075', '#ffffff'];
         yield 'maroon' => ['#800000', '#ffffff'];
         yield 'palette purple' => ['#911eb4', '#ffffff'];
+    }
+
+    public function testEveryPaletteColourHasStrongContrastWithItsTextColour(): void
+    {
+        foreach (RoundBadgeColor::PALETTE as $color) {
+            $text = RoundBadgeColor::text($color);
+            $contrast = RoundBadgeColor::apcaContrast(
+                RoundBadgeColor::apcaLuminance($text),
+                RoundBadgeColor::apcaLuminance($color),
+            );
+
+            self::assertGreaterThanOrEqual(60, abs($contrast), sprintf('%s with %s text: Lc %.1f', $color, $text, $contrast));
+            self::assertGreaterThanOrEqual(4.5, self::wcagRatio($color, $text), sprintf('%s with %s text by WCAG 2', $color, $text));
+        }
+    }
+
+    private static function wcagRatio(string $background, string $text): float
+    {
+        $luminance = static function (string $hex): float {
+            $channel = static function (string $component): float {
+                $value = hexdec($component) / 255;
+
+                return $value <= 0.04045 ? $value / 12.92 : (($value + 0.055) / 1.055) ** 2.4;
+            };
+
+            return 0.2126 * $channel(substr($hex, 1, 2)) + 0.7152 * $channel(substr($hex, 3, 2)) + 0.0722 * $channel(substr($hex, 5, 2));
+        };
+
+        $lighter = max($luminance($background), $luminance($text));
+        $darker = min($luminance($background), $luminance($text));
+
+        return ($lighter + 0.05) / ($darker + 0.05);
     }
 }

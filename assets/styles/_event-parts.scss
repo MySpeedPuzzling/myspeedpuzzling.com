@@ -12,6 +12,7 @@ $ev-line: $gray-300;
 $ev-sunken: $gray-200;
 $ev-coral-ink: #c9393f;
 $ev-coral-soft: #fff0f0;
+$ev-danger-ink: #c8213f;
 $ev-sky-ink: #2463a6;
 $ev-sky-soft: #eaf3ff;
 $ev-amber-ink: #8a5a00;
@@ -21,6 +22,97 @@ $ev-go-soft: #e6f8ef;
 $ev-band-muted: #5d6679;
 $ev-star: #a86a00;
 $ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px));
+
+// Coral text on these pages: the theme's $primary (#fe696a) reaches only 2.8:1 on white, as text and as the
+// background of white text. On the events page and the series, edition and event pages (everything inside them -
+// links, outline and solid primary buttons, page sections, participants) it is $ev-coral-ink: 5.1:1 on white,
+// 4.6:1 on the coral wash. Scoped on purpose: the site's primary stays.
+.ev-page,
+.ev-detail {
+    --#{$prefix}link-color: #{$ev-coral-ink};
+    --#{$prefix}link-hover-color: #{darken($ev-coral-ink, 8%)};
+
+    .text-primary {
+        color: $ev-coral-ink !important;
+    }
+
+    .btn-outline-primary {
+        --#{$prefix}btn-color: #{$ev-coral-ink};
+        --#{$prefix}btn-border-color: #{$ev-coral-ink};
+        --#{$prefix}btn-hover-bg: #{$ev-coral-ink};
+        --#{$prefix}btn-hover-border-color: #{$ev-coral-ink};
+        --#{$prefix}btn-active-bg: #{darken($ev-coral-ink, 6%)};
+        --#{$prefix}btn-active-border-color: #{darken($ev-coral-ink, 6%)};
+        --#{$prefix}btn-disabled-color: #{$ev-coral-ink};
+        --#{$prefix}btn-disabled-border-color: #{$ev-coral-ink};
+    }
+
+    // The theme's success, danger and warning fail on white too (the puzzles' "Solved" / "For sale" pills 1.9:1 and
+    // 3.5:1, the registration card's buttons and notes 1.9-3.5:1, the participants' names 4.4:1)
+    .text-success {
+        color: $ev-go !important;
+    }
+
+    .border-success {
+        border-color: $ev-go !important;
+    }
+
+    .text-danger {
+        color: $ev-danger-ink !important;
+    }
+
+    .border-danger {
+        border-color: $ev-danger-ink !important;
+    }
+
+    .alert-success {
+        color: $ev-go;
+    }
+
+    .btn-outline-danger {
+        --#{$prefix}btn-color: #{$ev-danger-ink};
+        --#{$prefix}btn-border-color: #{$ev-danger-ink};
+        --#{$prefix}btn-hover-bg: #{$ev-danger-ink};
+        --#{$prefix}btn-hover-border-color: #{$ev-danger-ink};
+        --#{$prefix}btn-active-bg: #{darken($ev-danger-ink, 6%)};
+        --#{$prefix}btn-active-border-color: #{darken($ev-danger-ink, 6%)};
+    }
+
+    .btn-danger {
+        --#{$prefix}btn-bg: #{$ev-danger-ink};
+        --#{$prefix}btn-border-color: #{$ev-danger-ink};
+        --#{$prefix}btn-hover-bg: #{darken($ev-danger-ink, 6%)};
+        --#{$prefix}btn-hover-border-color: #{darken($ev-danger-ink, 6%)};
+    }
+
+    .btn-warning {
+        --#{$prefix}btn-color: #{$ev-ink};
+        --#{$prefix}btn-hover-color: #{$ev-ink};
+        --#{$prefix}btn-active-color: #{$ev-ink};
+    }
+
+    // The participants table: #777 names (4.4:1) and white on a $primary header (2.8:1)
+    .custom-table-wrapper .table {
+        td a {
+            color: $ev-muted;
+        }
+
+        th {
+            background: $ev-coral-ink;
+        }
+    }
+
+    .btn-primary {
+        --#{$prefix}btn-bg: #{$ev-coral-ink};
+        --#{$prefix}btn-border-color: #{$ev-coral-ink};
+        --#{$prefix}btn-hover-bg: #{darken($ev-coral-ink, 6%)};
+        --#{$prefix}btn-hover-border-color: #{darken($ev-coral-ink, 6%)};
+        --#{$prefix}btn-active-bg: #{darken($ev-coral-ink, 8%)};
+        --#{$prefix}btn-active-border-color: #{darken($ev-coral-ink, 8%)};
+        --#{$prefix}btn-disabled-bg: #{$ev-coral-ink};
+        --#{$prefix}btn-disabled-border-color: #{$ev-coral-ink};
+    }
+}
 
 // A link stretched over its whole row; whatever else is clickable in the row sits above it
 @mixin ev-stretched-link {

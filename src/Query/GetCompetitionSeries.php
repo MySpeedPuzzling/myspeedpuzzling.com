@@ -70,139 +70,23 @@ SQL;
     }
 
     /**
+     * The admin approval queue.
+     *
      * @return array<CompetitionSeriesOverview>
      */
-    public function allApproved(null|string $country = null, bool $onlineOnly = false): array
+    public function allUnapproved(): array
     {
-        $now = $this->clock->now();
-        $params = ['now' => $now->format('Y-m-d H:i:s')];
-
-        $where = 'cs.approved_at IS NOT NULL';
-        $where .= $this->filterConditions($country, $onlineOnly, $params);
-
         $query = <<<SQL
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
-    COALESCE(
-        (
-            SELECT MIN(COALESCE(cr.starts_at, c.date_from))
-            FROM competition c
-            LEFT JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) >= :now
-        ),
-        (
-            SELECT MAX(COALESCE(cr.starts_at, c.date_from))
-            FROM competition c
-            LEFT JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) < :now
-        )
-    ) AS next_edition_date
-FROM competition_series cs
-WHERE {$where}
-ORDER BY cs.name
-SQL;
-
-        $rows = $this->database
-            ->executeQuery($query, $params)
-            ->fetchAllAssociative();
-
-        return array_map($this->mapRow(...), $rows);
-    }
-
-    /**
-     * @return array<CompetitionSeriesOverview>
-     */
-    public function allUnapproved(null|string $country = null, bool $onlineOnly = false): array
-    {
-        $now = $this->clock->now();
-        $params = ['now' => $now->format('Y-m-d H:i:s')];
-
-        $where = 'cs.approved_at IS NULL AND cs.rejected_at IS NULL';
-        $where .= $this->filterConditions($country, $onlineOnly, $params);
-
-        $query = <<<SQL
-SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
-    p.name AS added_by_player_name,
-    COALESCE(
-        (
-            SELECT MIN(COALESCE(cr.starts_at, c.date_from))
-            FROM competition c
-            LEFT JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) >= :now
-        ),
-        (
-            SELECT MAX(COALESCE(cr.starts_at, c.date_from))
-            FROM competition c
-            LEFT JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) < :now
-        )
-    ) AS next_edition_date
+    p.name AS added_by_player_name
 FROM competition_series cs
 LEFT JOIN player p ON p.id = cs.added_by_player_id
-WHERE {$where}
+WHERE cs.approved_at IS NULL AND cs.rejected_at IS NULL
 ORDER BY cs.created_at DESC NULLS LAST
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query, $params)
-            ->fetchAllAssociative();
-
-        return array_map($this->mapRow(...), $rows);
-    }
-
-    /**
-     * @param array<string, string> $params
-     */
-    private function filterConditions(null|string $country, bool $onlineOnly, array &$params): string
-    {
-        $conditions = '';
-
-        if ($country !== null) {
-            // Historic rows carry uppercase ISO codes while the UI submits lowercase.
-            $conditions .= ' AND LOWER(cs.location_country_code) = LOWER(:country)';
-            $params['country'] = $country;
-        }
-
-        if ($onlineOnly) {
-            $conditions .= ' AND cs.is_online = true';
-        }
-
-        return $conditions;
-    }
-
-    /**
-     * @return array<CompetitionSeriesOverview>
-     */
-    public function allForPlayer(string $playerId): array
-    {
-        $now = $this->clock->now();
-
-        $query = <<<SQL
-SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
-    COALESCE(
-        (
-            SELECT MIN(COALESCE(cr.starts_at, c.date_from))
-            FROM competition c
-            LEFT JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) >= :now
-        ),
-        (
-            SELECT MAX(COALESCE(cr.starts_at, c.date_from))
-            FROM competition c
-            LEFT JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) < :now
-        )
-    ) AS next_edition_date
-FROM competition_series cs
-WHERE cs.added_by_player_id = :playerId
-    OR cs.id IN (SELECT competition_series_id FROM competition_series_maintainer WHERE player_id = :playerId)
-ORDER BY cs.created_at DESC NULLS LAST
-SQL;
-
-        $rows = $this->database
-            ->executeQuery($query, [
-                'playerId' => $playerId,
-                'now' => $now->format('Y-m-d H:i:s'),
-            ])
+            ->executeQuery($query)
             ->fetchAllAssociative();
 
         return array_map($this->mapRow(...), $rows);
@@ -338,7 +222,6 @@ SQL;
          *     added_by_player_id: null|string,
          *     approved_at: null|string,
          *     rejected_at: null|string,
-         *     next_edition_date?: null|string,
          *     added_by_player_name?: null|string,
          *     has_page_sections?: bool,
          * } $row
@@ -348,10 +231,6 @@ SQL;
         if (is_string($isOnline)) {
             $isOnline = $isOnline === 't' || $isOnline === '1' || $isOnline === 'true';
         }
-
-        $nextEditionDate = isset($row['next_edition_date'])
-            ? new DateTimeImmutable($row['next_edition_date'])
-            : null;
 
         return new CompetitionSeriesOverview(
             id: $row['id'],
@@ -364,7 +243,6 @@ SQL;
             location: $row['location'],
             locationCountryCode: $row['location_country_code'] !== null ? CountryCode::fromCode($row['location_country_code']) : null,
             addedByPlayerId: $row['added_by_player_id'],
-            nextEditionDate: $nextEditionDate,
             approvedAt: $row['approved_at'] !== null ? new DateTimeImmutable($row['approved_at']) : null,
             rejectedAt: $row['rejected_at'] !== null ? new DateTimeImmutable($row['rejected_at']) : null,
             addedByPlayerName: $row['added_by_player_name'] ?? null,

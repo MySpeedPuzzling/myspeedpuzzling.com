@@ -1,2 +1,10 @@
-{# The robots meta of the events page (owner: workstream D). Foundation stub: index, follow #}
-<meta name="robots" content="index, follow">
+{#
+    The robots meta of the events pages (owner: workstream D, docs/features/events-page/README.md "SEO"): the bare URL
+    is indexable, any query string (scope, view, month, search) is a state of the same page - `noindex, follow`.
+    Canonical and hreflang come from base.html.twig, which drops the query string.
+#}
+{% if app.request.query.count > 0 %}
+    <meta name="robots" content="noindex, follow">
+{% else %}
+    <meta name="robots" content="index, follow">
+{% endif %}

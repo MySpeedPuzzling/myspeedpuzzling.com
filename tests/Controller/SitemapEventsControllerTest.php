@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\GetCompetitionSlugsForSitemap;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -57,5 +59,32 @@ final class SitemapEventsControllerTest extends WebTestCase
         self::assertStringNotContainsString('/berlin-puzzle-cup', $content);
         self::assertStringNotContainsString('/ejj-69-may-2026</loc>', $content);
         self::assertStringContainsString('/en/series/euro-jigsaw-jam-series/ejj-68-february-2026</loc>', $content);
+    }
+
+    public function testListsTheArchiveYearsInEveryLocale(): void
+    {
+        $browser = self::createClient();
+        $lastYear = (int) self::getContainer()->get(ClockInterface::class)->now()->format('Y') - 1;
+
+        $browser->request('GET', '/sitemap-events.xml');
+
+        $this->assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+
+        foreach ([$lastYear, $lastYear - 1] as $year) {
+            self::assertStringContainsString('/eventy/archiv/' . $year . '</loc>', $content);
+            self::assertStringContainsString('/en/events/archive/' . $year . '</loc>', $content);
+            self::assertStringContainsString('/es/eventos/archivo/' . $year . '</loc>', $content);
+            self::assertStringContainsString('/ja/' . rawurlencode('イベント') . '/' . rawurlencode('アーカイブ') . '/' . $year . '</loc>', $content);
+            self::assertStringContainsString('/fr/evenements/archives/' . $year . '</loc>', $content);
+            self::assertStringContainsString('/de/veranstaltungen/archiv/' . $year . '</loc>', $content);
+        }
+
+        // Exactly the years the archive page answers for - no future year, no year without past events
+        preg_match_all('#/en/events/archive/(\d{4})</loc>#', $content, $matches);
+        $years = array_map(intval(...), $matches[1]);
+        self::assertSame(self::getContainer()->get(GetCompetitionSlugsForSitemap::class)->archiveYears(), $years);
+        self::assertNotContains($lastYear + 2, $years);
+        self::assertNotContains(1999, $years);
     }
 }

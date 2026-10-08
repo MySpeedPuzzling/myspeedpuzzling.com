@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
+use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class GetCompetitionSlugsForSitemap
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -122,5 +129,85 @@ SQL;
             ->fetchAllAssociative();
 
         return $rows;
+    }
+
+    /**
+     * Years of the events archive (`events_archive`), newest first: the start years of past publicly visible
+     * occurrences - one-time events and series editions. Dated exactly like the events page (GetEventOccurrences):
+     * the dates go through OccurrenceDates in PHP, because an edition's day is its first round's start in the event's
+     * own zone (RoundTimezone::resolve(), a country's default zone - not known to SQL). One statement over every
+     * dated competition, so the sitemap and the legacy `?timePeriod=past` redirect list exactly the years the archive
+     * page answers 200 for.
+     *
+     * @return list<int>
+     */
+    public function archiveYears(): array
+    {
+        $visibility = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
+        $query = <<<SQL
+SELECT
+    c.series_id,
+    c.date_from,
+    c.date_to,
+    c.location_country_code AS own_country_code,
+    cs.location_country_code AS series_country_code,
+    r.first_starts_at,
+    r.last_starts_at,
+    r.round_timezone
+FROM competition c
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+LEFT JOIN (
+    SELECT competition_id,
+        MIN(starts_at) AS first_starts_at,
+        MAX(starts_at) AS last_starts_at,
+        MIN(timezone) AS round_timezone
+    FROM competition_round
+    GROUP BY competition_id
+) r ON r.competition_id = c.id
+WHERE {$visibility}
+    AND (c.date_from IS NOT NULL OR c.date_to IS NOT NULL OR (c.series_id IS NOT NULL AND r.first_starts_at IS NOT NULL))
+SQL;
+
+        $today = OccurrenceDates::today($this->clock->now());
+        $years = [];
+
+        /** @var array{series_id: null|string, date_from: null|string, date_to: null|string, own_country_code: null|string, series_country_code: null|string, first_starts_at: null|string, last_starts_at: null|string, round_timezone: null|string} $row */
+        foreach ($this->database->executeQuery($query)->fetchAllAssociative() as $row) {
+            $isEdition = $row['series_id'] !== null;
+
+            $dates = $isEdition
+                ? OccurrenceDates::ofEdition(
+                    self::instant($row['first_starts_at']),
+                    self::instant($row['last_starts_at']),
+                    RoundTimezone::resolve($row['round_timezone'], $row['own_country_code'], $row['series_country_code']),
+                    self::instant($row['date_from']),
+                    self::instant($row['date_to']),
+                )
+                : OccurrenceDates::ofEvent(self::instant($row['date_from']), self::instant($row['date_to']));
+
+            if ($dates->start === null || $dates->status($today, $isEdition, false) !== EventOccurrenceStatus::Past) {
+                continue;
+            }
+
+            $years[(int) $dates->start->format('Y')] = true;
+        }
+
+        $years = array_keys($years);
+        rsort($years);
+
+        return $years;
+    }
+
+    /**
+     * A stored timestamp (UTC, without zone)
+     */
+    private static function instant(null|string $value): null|DateTimeImmutable
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return new DateTimeImmutable($value, new DateTimeZone('UTC'));
     }
 }

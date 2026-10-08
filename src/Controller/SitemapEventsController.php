@@ -59,6 +59,13 @@ final class SitemapEventsController extends AbstractController
             ]));
         }
 
+        // One page per year of past events (docs/features/events-page/README.md, "SEO")
+        foreach ($this->getCompetitionSlugsForSitemap->archiveYears() as $year) {
+            array_push($entries, ...$this->localizedEntries('events_archive', [
+                'year' => $year,
+            ]));
+        }
+
         return $this->urlsetResponse($entries);
     }
 }

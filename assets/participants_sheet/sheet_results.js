@@ -9,7 +9,8 @@
  * - a time: `1:23:45`, `58:12`, digits right-aligned as h:mm:ss (`12345` = 1:23:45) - parseResultTime() of
  *   official_results_time.js, the live entry's and the desk's own parser;
  * - pieces placed (did not finish): `479p`, `479 p`, `479 pcs`, `479 pieces`, `479/500`, plus the words of the page's
- *   language (`piecesWords`) - 1 .. pieces of the round's puzzle - 1 (a finished puzzle gets a time);
+ *   language (`piecesWords`) - 1 .. pieces of the round's puzzle - 1 (a finished puzzle gets a time); `479/1000` in a
+ *   round whose puzzle has 500 pieces is refused (`pieces_total` - the total must be the round's);
  * - did not start: `DNS`, `-` (any dash) or the words of the page's language (`didNotStartWords`);
  * - empty: no result.
  *
@@ -46,7 +47,7 @@ function escapeRegExp(text) {
  *
  * @param {string} input
  * @param {{piecesCount?: number|null, piecesWords?: string[], didNotStartWords?: string[]}} [options]
- * @returns {{kind: 'empty'} | {kind: 'result', result: object} | {kind: 'error', reason: 'invalid'|'out_of_range'|'pieces_range', max?: number}}
+ * @returns {{kind: 'empty'} | {kind: 'result', result: object} | {kind: 'error', reason: 'invalid'|'out_of_range'|'pieces_range'|'pieces_total', max?: number, total?: number}}
  */
 export function parseResultInput(input, { piecesCount = null, piecesWords = [], didNotStartWords = [] } = {}) {
     const text = String(input ?? '').trim();
@@ -68,7 +69,14 @@ export function parseResultInput(input, { piecesCount = null, piecesWords = [], 
 
     if (placed !== null || ofTotal !== null) {
         const pieces = parseInt((placed ?? ofTotal)[1], 10);
-        const total = piecesCount ?? (ofTotal !== null ? parseInt(ofTotal[2], 10) : null);
+        const typedTotal = ofTotal !== null ? parseInt(ofTotal[2], 10) : null;
+
+        if (piecesCount !== null && typedTotal !== null && typedTotal !== piecesCount) {
+            // "499/1000" in a 500-piece round: another puzzle's count - never read as 499 of this one
+            return { kind: 'error', reason: 'pieces_total', total: piecesCount };
+        }
+
+        const total = piecesCount ?? typedTotal;
         const max = total !== null ? total - 1 : MAX_PIECES_PLACED;
 
         if (pieces < 1 || pieces > max) {
@@ -85,6 +93,20 @@ export function parseResultInput(input, { piecesCount = null, piecesWords = [], 
     }
 
     return { kind: 'error', reason: time.error === 'out_of_range' ? 'out_of_range' : 'invalid' };
+}
+
+/**
+ * A result typed after a kind was picked from the Alt+Down list: "Didn't finish" reads bare digits as pieces placed
+ * (`479` = 479 pieces, not 4:79), "Finished" reads them as a time (the cell's own grammar).
+ */
+export function parseResultAs(kind, input, options = {}) {
+    const text = String(input ?? '').trim();
+
+    if (kind === 'unfinished' && /^\d{1,6}$/.test(text)) {
+        return parseResultInput(`${text}p`, options);
+    }
+
+    return parseResultInput(text, options);
 }
 
 /** The result a parsed input means: the result, null for "no result", undefined for an error. */
@@ -141,7 +163,7 @@ export function resultText(result, piecesCount, texts) {
  * "No result" - or why the input is not a result.
  *
  * @param {{finished: string, didNotFinish: string, didNotStart: string, noResult: string, invalid: string,
- *          outOfRange: string, piecesRange: string}} texts with %time% / %placed% / %max%
+ *          outOfRange: string, piecesRange: string, piecesTotal?: string}} texts with %time% / %placed% / %max% / %total%
  */
 export function resultPreview(parsed, texts) {
     switch (parsed.kind) {
@@ -150,6 +172,10 @@ export function resultPreview(parsed, texts) {
         case 'error':
             if (parsed.reason === 'pieces_range') {
                 return texts.piecesRange.replace('%max%', String(parsed.max ?? ''));
+            }
+
+            if (parsed.reason === 'pieces_total') {
+                return (texts.piecesTotal ?? texts.invalid).replace('%total%', String(parsed.total ?? ''));
             }
 
             return parsed.reason === 'out_of_range' ? texts.outOfRange : texts.invalid;

@@ -1190,44 +1190,100 @@ people (headless Chromium 124): the desktop grid renders in 220 ms (970 ms at 4�
 ### The round tabs (stream D: `views/team_round_view.js`, `views/solo_round_view.js`, `views/round_cards_view.js`)
 
 Shared pieces: `round/round_common.js` (O1 labels, where a person is in a round, the people/team pickers' options with
-`+ Add "Jo Do" as a new participant`, size texts (O7), row order, member slots, the round's results entries, when the
-results columns show, the `RoundResultsCells` helper of both grids and the `RoundDialog` menu/picker - a native modal
-`<dialog>`, a bottom sheet / full-screen search on phones), `sheet_results.js` (the result grammar, table numbers, the
-"Swap them" write, ranks) and `round_paste.js` (pastes); pinned by `tests/ParticipantsSheetRoundScriptsTest.php` →
-`tests/participants-sheet-round-harness.mjs` → `tests/participants-sheet-round/{results,paste,common}.mjs`.
+`+ Add "Jo Do" as a new participant`, size texts (O7), row order and order by rank, member slots, the round's results
+entries, when the results columns show, the `RoundResultsCells` helper of both grids, the `RoundDialog` menu/picker - a
+native modal `<dialog>`, a bottom sheet / full-screen search on phones -, `feedback()`, `takeTeamOutAction()`, the
+results paste preview and `matchPreview()`), `sheet_results.js` (the result grammar, table numbers, the "Swap them"
+write, ranks) and `round_paste.js` (pastes); pinned by `tests/ParticipantsSheetRoundScriptsTest.php` →
+`tests/participants-sheet-round-harness.mjs` → `tests/participants-sheet-round/{results,paste,common,views}.mjs`
+(`views` = the three views on the real grid, model, preview dialog and RoundDialog in jsdom, review D's reproductions
+included); every text by `tests/ParticipantsSheetRoundTextsTest.php` (round texts, and the core texts the views read).
 
 - **Pair/team tab**: Table (`list` cell: 1..9999, a number another entry holds offers "Swap them" = one
   AssignTableNumbers write, undone as two RecordRoundResults table changes) or a plain `#` (online / table numbers off),
   Name, Member 1…N (N = max(expected size, largest pair/team)), `+`, Size in words, Result / Rank / Qualified (shown
-  once the round started or holds results, else behind "Results columns" - remembered per round in localStorage), ⋯
+  once the round started or holds results, else behind "Results columns" - remembered per round in localStorage; the
+  organiser's choice wins, but without one the columns appear when the round starts or its first result arrives), ⋯
   (Enter, double click or the context menu: rename, delete, take the whole pair/team out - disabled with the reason
-  while it holds a result). Members keep their column while the organiser works (`memberSlots`); rows keep their
-  order until "Sort". The new row: a name (Enter = the next name, Tab = its members) or a person creates the pair/team;
-  Enter in a member cell goes on with the same pair/team while it is short of people (always in a team round without a
-  set size), then to the new row. The tray below the grid ("In the round without a pair (5)"): chip → Pair with… /
-  Add to… / New pair / Not in this round, plus "Add people to this round". Toolbar: problem filters, members per team,
-  Sort, Results columns, Live entry / Results desk / Seating.
+  while it holds a result; "take out" is one group whose undo creates the pair/team again with its table number).
+  Members keep their column while the organiser works (`memberSlots`); rows keep their order until "Sort". The new
+  row: a name (Enter = the next name, Tab = its members) or a person creates the pair/team; Enter in a member cell goes
+  on with the same pair/team while it is short of people (always in a team round without a set size), then to the new
+  row. The tray below the grid ("In the round without a pair (5)"): chip → Pair with… / Add to… / New pair / Not in
+  this round, plus "Add people to this round".
+- **Member cells and pickers** (review D-m2): every person option says `exact` (the only person called exactly what
+  was typed) and `moves` (picking them takes them out of another pair/team); member columns are `autoHighlight:
+  'exact'`. Enter alone takes only the one exact match that moves nobody - a partial match, one of several namesakes,
+  somebody of another pair/team or `+ Add … as a new participant` is always chosen with the arrows or a click (the
+  grid keeps the text and shows the list); a typed name committed without an option (Tab, a blur) never moves anybody
+  ("Kim Example is in Table 2 · Corners - pick them from the list to move them here"). RoundDialog pickers follow the
+  same rule (team options are `exact` for the one pair/team of that name) and say how to pick when Enter found nothing.
+- **Toolbar** (both grids): the round, counts and "N qualified" (BR6); problem filters (pair/team tab) or the waitlist
+  filter (solo tab) - an active filter and "Show all" stay while it matches nothing, and the row being worked on (the
+  focused / edited row, pairs/teams or people added meanwhile) stays until the filter changes (review D-M2, People's
+  rule); members per team (team rounds); Sort (table, then name); **Sort by rank** (`aria-pressed`, while the results
+  columns show: ranked entries first, then table and name - the rows follow the ranks, never while an editor is open);
+  Results columns; Live entry / Results desk / Seating; and while the round's results are published (`rounds[].
+  resultsPublished`, kept current by `model.updateRound`) a line "Results published - changes are public and notify
+  linked players." (also on the phone cards).
 - **Solo tab**: Table, Name (read-only - Enter/Space opens the person editor, else People at the person; Delete takes
   them out of the round), Country, Result / Rank / Qualified, ⋯; the new row puts a person (or a new one) into the
   round; people on the waitlist are listed, their results cells say why they cannot be edited.
 - **Results cells** (both): `from` = what the cell showed when its editor opened (`openEditor()` of
-  official_results_pending_changes.js, through the grid's `editStart`/`seenValue`); a value saved meanwhile (a live
-  update while the editor is open) turns the editor's list into "Saved meanwhile by Eva: 1:20:00 · Keep mine / Take
-  theirs" and Enter is refused until one is picked; the parsed value shows under the editor while typing; Alt+↓ lists
-  Finished / Didn't finish / Did not start / No result.
-- **Paste**: `Team ⇥ member ⇥ member` rows (new row or wider than the row) or positional (onto existing rows), `name ⇥
-  result` (most second cells readable as results, none of them a person's name) or one column onto Result - always
-  previewed with the server's dry run above 10 cells or with anything to decide; rows the dry run refuses are not
-  sent; one undo step.
-- **Phone** (`round_cards_view.js`, < 768 px): the counts, the tray first, a card per pair/team (member chips with ✕,
-  "+ Add partner" full-screen search, ⋯ Rename / Delete / Take out, the result read-only + Live entry), "+ New pair"
-  (a name and/or the first person); solo rounds = the people with their result, "Add people to this round", "Take out".
+  official_results_pending_changes.js, remembered by the grid's `editStart`, read back by a side-effect-free
+  `seenValue`); a value saved meanwhile (a live update while the editor is open) turns the editor's list into "Saved
+  meanwhile by Eva: 1:20:00 · Keep mine / Take theirs" and Enter is refused until one is picked; the parsed value shows
+  under the editor while typing; Alt+↓ lists Finished / Didn't finish / Did not start / No result (picked "Didn't
+  finish", typed digits are pieces placed: `479` = 479 pieces); `479/1000` in a round whose puzzle has 500 pieces is
+  refused (the total must be the round's).
+- **Paste** (`round_paste.js`; a one-line hint under each grid says how - BR7): everything is planned, dry-run checked
+  and finally built on a **snapshot** of the page taken when the organiser pasted (`snapshotModel()`, review D-m4) - a
+  live change while the preview is open comes back from the server as a conflict, never overwritten.
+  - *Rows of pairs/teams* (`Team ⇥ member ⇥ member`, onto the new row or wider than the row) or positional (onto
+    existing rows). A name of several pairs/teams, or a person's name several people share, is **never** picked for the
+    organiser (review D-M1): the round decides when exactly one combination of the namesakes is a pair/team of it
+    (`Corners ⇥ Kim ⇥ Jo Do` where Corners = Kim + one of the Jos), else the preview's choice starts at "Choose…" (the
+    pair/team holding a pasted person, the namesake already in that pair/team or paired with the row's people listed
+    first) and Confirm waits until every one is chosen. A first row of column headings is left out (D-m8); rows naming
+    the same people again - a partner column lists every pair twice - are one pair, counted once, without the "on
+    another line" warning (BR8). A name nobody has is offered as a new participant, **not** ticked when a close name
+    exists ("Did you mean Kim Example?" - a typo, swapped words, a middle name) or it looks like a country code, a
+    number or an e-mail (BR9).
+  - *Names into a solo tab* (BR3): a column of names (anything that is not `name ⇥ result`) puts those people into the
+    round - matched by name key to the event's active people, namesakes chosen, people in it already left as they are,
+    removed people named ("restore them on the People tab first"), new people offered as above; only the first column
+    is read (said when there were more); one confirm, one undo step (a group per person).
+  - *Results* (both tabs): `who ⇥ result` (most second cells readable as results, none of them a person's name) or one
+    column onto Result. `who` = a pair's/team's or member's name, a person's name, `#code` of a linked player, or a
+    table number - only when every number of the column is a table of this round (an id column never is - BR5). A
+    blank result is left out ("a paste never clears a saved result", D-m3); rows that cannot get one say why - on the
+    waitlist, not saved yet, below the list, not in this round, "No pair, team or person in this round has this name"
+    (D-m7); any number of changes (the save queue sends 500 a request). In a round of team names only (or none yet),
+    unknown names are offered as new pairs/teams, ticked per name (BR16): Confirm creates them and then records the
+    results - **two undo steps** (an undo can delete a pair/team only after its result is gone, and an undo sends its
+    groups before its results, so Ctrl+Z takes the results back first and the teams with the next one).
+  - The preview (`matchPreview()`, rows and names): the server's dry run runs again whenever a choice or a tick changes
+    (the latest answer counts - a row refused under one choice is checked again under the next); Confirm waits while a
+    choice is "Choose…" or a check runs; rows the dry run refuses are not sent; one undo step. Small pastes (≤ 10
+    cells, nothing to decide, no headings or repeated rows) go without a preview.
+- **Feedback** (BR1): every refusal or "nothing happened" of the round views and phone cards goes through `feedback()`
+  → the core's `context.notify(text, {kind, anchor})` (a toast next to the cell or the button, said once), or only the
+  live region where there is no notify. Refusals come from the core's group checks (`checkGroup`: a pair/team holding
+  a result keeps a going member, with the cause - review D-m9), worded with the round's own pair/team label; a success
+  is read out only when something was done.
+- **Phone** (`round_cards_view.js`, < 768 px): the counts (and "N qualified", "Results published …"), the tray first, a
+  card per pair/team (member chips with ✕, "+ Add partner" full-screen search, ⋯ Rename / Delete / Take out, the result
+  read-only + Live entry), "+ New pair" (a name and/or the first person); solo rounds = the people with their result,
+  "Add people to this round", "Take out". A rename sends the name shown when its sheet opened (D-m6). A fetched state
+  (`delta.all`) keeps the order of every view current (D-m1).
 
 Core additions made for the round tabs: `SheetGrid` - `content.kind` (a cell's own kind: the solo name cells are
 actions, its new row types), `editStart(row, col)`, `suggest(…, {explicit})` (Alt+↓), a `create` option or an empty
 editor is never auto-highlighted, the focus stays in the grid when the focused row goes; `SheetSaveQueue.enqueueResults`
 clears the marker of a results cell changed back before it was sent; the controller's `openPersonEditor()` resolves
-to whether an editor opened.
+to whether an editor opened. The final fix round needed nothing more of the core than what its fixer built (`notify`,
+the `exact`/`moves` highlight rule): the round code only reads `model.scratch()` for its snapshot and drives the
+preview dialog through its public `update()`, `selection()` and change events.
 
 ### Measured (2026-10-08, standalone harness, headless Chromium 124, invented WJPC-sized event)
 

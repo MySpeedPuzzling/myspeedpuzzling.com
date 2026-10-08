@@ -12,7 +12,13 @@
  * - Results / rank / qualified (O3) like the pair/team tab (round/round_common.js RoundResultsCells): RecordRoundResults only,
  *   "Table 6 is Ben's · Swap them", "Saved meanwhile by Eva · Keep mine / Take theirs"; people on the waitlist are
  *   ignored by the results tools (official-results rule) - their cells say so.
- * - Paste: results (`name ⇥ result` matched only to people of this round, or one column onto Result).
+ * - Paste: a column of names puts those people into the round (BR3 - matched by name to the event's people, a choice
+ *   for namesakes, new participants offered; previewed with the server's dry run, one undo step); results
+ *   (`name ⇥ result`, `#code ⇥ result`, `table ⇥ result` matched only to people of this round, or one column onto
+ *   Result). A one-line hint under the grid says how (BR7).
+ * - Toolbar: the waitlist filter (it stays with "Show all" while it matches nobody, the row worked on stays - D-M2),
+ *   "Results published …", "N qualified", Sort, Sort by rank, Results columns, the round's tools (BR6).
+ * - Refusals and "nothing happened" are shown (feedback() → the core's notify(), BR1).
  */
 
 import { escapeHtml } from '../sheet_grid.js';
@@ -20,13 +26,18 @@ import { buildAction, combine, isEmpty, setPlace } from '../sheet_changes.js';
 import { IN, OUT, cleanName } from '../sheet_model.js';
 import { newClientId } from '../../official_results_api.js';
 import {
+    feedback,
     flagHtml,
     focusKey,
     keepOrder,
+    matchPreview,
     nameCollator,
+    newPersonLine,
     pageStorage,
     personOptions,
     previewResults,
+    qualifiedCount,
+    rankOrder,
     resultsColumnsShown,
     RoundDialog,
     roundEntries,
@@ -34,11 +45,23 @@ import {
     RoundResultsCells,
     safeColor,
     sortedPeopleIds,
+    storedResultsColumns,
     storeResultsColumns,
     usesTables,
 } from '../round/round_common.js';
 import { officialEdits, resultEditText, roundRanks } from '../sheet_results.js';
-import { looksLikeResults, matchPerson, planResultsPaste } from '../round_paste.js';
+import {
+    CHOOSE,
+    SKIP,
+    buildSoloPasteAction,
+    headerWordSet,
+    looksLikeResults,
+    matchPerson,
+    planResultsPaste,
+    planSoloPaste,
+    snapshotModel,
+    undecidedSoloChoices,
+} from '../round_paste.js';
 
 export const NEW_ROW = '__new';
 const RESULT_COLUMNS = ['result', 'rank', 'qualified'];
@@ -60,6 +83,10 @@ export class SoloRoundView {
         this.grid = null;
         this.order = [];
         this.filter = null;
+        // Rows the filter does not hide until it changes (D-M2)
+        this.held = new Set();
+        this.rankSort = false;
+        this.resortTimer = null;
         this.editor = null;
         this.ranks = new Map();
         this.listeners = [];
@@ -75,6 +102,11 @@ export class SoloRoundView {
         return this.texts.tc(key, count, params);
     }
 
+    /** A refusal or "nothing happened", shown next to `anchor` (a cell or an element) - BR1. */
+    say(text, { kind = 'error', anchor = null } = {}) {
+        feedback(this.context, text, { kind, anchor });
+    }
+
     // ---------------------------------------------------------------- the view interface
 
     render() {
@@ -84,17 +116,34 @@ export class SoloRoundView {
         this.toolbar.className = 'sheet-round-toolbar';
         this.gridRoot = document.createElement('div');
         this.gridRoot.className = 'sheet-grid-host';
-        root.replaceChildren(this.toolbar, this.gridRoot);
+        // How to paste, visible under the grid (BR7)
+        this.hint = document.createElement('p');
+        this.hint.className = 'sheet-round-paste-hint small';
+        this.hint.innerHTML = `<i class="bi bi-clipboard" aria-hidden="true"></i> ${escapeHtml(this.t('paste_hint_solo'))}`;
+        root.replaceChildren(this.toolbar, this.gridRoot, this.hint);
         this.on(this.toolbar, 'click', (event) => this.onToolbarClick(event));
+
+        if (typeof ResizeObserver !== 'undefined') {
+            const observer = new ResizeObserver(() => this.fitHint());
+            observer.observe(this.hint);
+            this.listeners.push(() => observer.disconnect());
+        }
 
         this.showResults = resultsColumnsShown(this.model, this.roundId, this.storage);
         this.order = sortedPeopleIds(this.model, this.roundId, this.collator);
         this.buildGrid();
         this.renderToolbar();
+        this.fitHint();
+    }
+
+    /** The grid's scroller leaves room for the hint below it. */
+    fitHint() {
+        this.context.root.style.setProperty('--sheet-round-tray-h', `${this.hint?.offsetHeight ?? 0}px`);
     }
 
     buildGrid() {
         this.columns = this.buildColumns();
+        this.builtKey = this.columnsKey();
         this.ranks = this.computeRanks();
         this.grid = this.context.createGrid({
             container: this.gridRoot,
@@ -105,18 +154,25 @@ export class SoloRoundView {
             rowLabel: (row) => (row === NEW_ROW ? this.t('solo_new_row') : this.model.person(row)?.name ?? ''),
             rowClass: (row) => this.rowClass(row),
             editValue: (row, col) => this.editValue(row, col),
-            // What the organiser saw when an edit began is the `from` of its save (the core calls one of the two)
+            // What the organiser saw when an edit began is the `from` of its save: remembered when the edit starts,
+            // read back without side effects
             editStart: (row, col) => this.editStart(row, col),
-            seenValue: (row, col) => this.editStart(row, col),
+            seenValue: (row, col) => this.editorFor(row, col)?.seen ?? null,
             suggest: (row, col, query, info) => this.suggest(row, col, query, info),
             commit: (row, col, input) => this.commit(row, col, input),
             toggle: (cells, value) => this.toggle(cells, value),
             clear: (cells) => this.clear(cells),
             paste: (anchor, rows) => this.paste(anchor, rows),
-            fill: () => this.context.announce(this.t('fill_not_here')),
+            fill: (direction, range, active) => this.say(this.t('fill_not_here'), { kind: 'warning', anchor: active ?? this.grid?.active ?? null }),
             activate: (row, col) => this.activate(row, col),
             openPanel: (row) => this.openPerson(row),
         });
+    }
+
+    columnsKey() {
+        const round = this.model.round(this.roundId);
+
+        return [usesTables(this.model, round), this.showResults, round?.name ?? ''].join('|');
     }
 
     rebuild() {
@@ -157,19 +213,17 @@ export class SoloRoundView {
             return;
         }
 
-        if (delta.all) {
-            this.scheduleRebuild();
-            this.renderToolbar();
-
-            return;
-        }
-
-        if (this.tablesUsed !== usesTables(this.model, round) || this.roundName !== round.name) {
-            this.scheduleRebuild();
-        }
-
+        // The order first - a fetched state (delta.all) brings people too (review D-m1)
         const inRound = this.model.peopleIn(this.roundId).map((person) => person.id);
+        const known = new Set(this.order);
         this.order = keepOrder(this.order, inRound);
+        this.holdWorkedOn(inRound.filter((id) => !known.has(id) && this.model.place(id, this.roundId)?.local === true));
+        this.autoShowResults();
+
+        if (this.columnsKey() !== this.builtKey) {
+            this.scheduleRebuild();
+        }
+
         const keys = this.rowKeys();
         const rowsChanged = keys.length !== this.grid.rows.length || keys.some((key, index) => this.grid.rows[index] !== key);
 
@@ -178,21 +232,46 @@ export class SoloRoundView {
         }
 
         const ours = new Set(inRound);
-        this.grid.updateRows([...delta.people].filter((id) => ours.has(id)));
+        const people = delta.all ? ours : delta.people;
+        this.grid.updateRows([...people].filter((id) => ours.has(id)));
 
-        if (delta.rounds.has(this.roundId)) {
-            this.updateRanks();
+        if ((delta.all || delta.rounds.has(this.roundId) || delta.people.size > 0) && this.updateRanks() && this.rankSort) {
+            this.scheduleResort();
         }
 
         if (rowsChanged && !this.tablesUsed) {
             keys.forEach((key) => this.grid.updateCell(key, 'table'));
         }
 
-        if (rowsChanged || delta.rounds.has(this.roundId) || delta.people.size > 0) {
+        if (delta.all || rowsChanged || delta.rounds.has(this.roundId) || delta.people.size > 0) {
             this.renderToolbar();
         }
 
-        this.refreshOpenEditor(delta.people);
+        this.refreshOpenEditor(people);
+    }
+
+    /** While the filter is on, the row being worked on and people added meanwhile stay (D-M2). */
+    holdWorkedOn(newIds = []) {
+        if (this.filter === null || this.grid === null) {
+            return;
+        }
+
+        for (const id of [this.grid.active?.row, this.grid.editing?.row, ...newIds]) {
+            if (id && id !== NEW_ROW) {
+                this.held.add(id);
+            }
+        }
+    }
+
+    /** The results columns appear when the round starts or its first result arrives - unless the organiser chose. */
+    autoShowResults() {
+        if (this.showResults || storedResultsColumns(this.storage, this.roundId) !== null) {
+            return;
+        }
+
+        if (resultsColumnsShown(this.model, this.roundId, null)) {
+            this.showResults = true;
+        }
     }
 
     focus(target = null) {
@@ -235,11 +314,13 @@ export class SoloRoundView {
 
     destroy() {
         clearTimeout(this.rebuildTimer);
+        clearTimeout(this.resortTimer);
         this.dialog?.close();
         this.listeners.forEach((remove) => remove());
         this.listeners = [];
         this.grid?.destroy();
         this.grid = null;
+        this.context.root.style.removeProperty('--sheet-round-tray-h');
     }
 
     on(target, type, handler, options) {
@@ -257,7 +338,7 @@ export class SoloRoundView {
             this.tablesUsed
                 ? { key: 'table', label: this.t('col_table'), kind: 'list', width: 84, autoHighlight: false, className: 'sheet-col-table' }
                 : { key: 'table', label: this.t('col_index'), kind: 'readonly', width: 56, className: 'sheet-col-table' },
-            { key: 'name', label: this.t('col_person'), kind: 'list', width: 240, space: 'panel' },
+            { key: 'name', label: this.t('col_person'), kind: 'list', width: 240, space: 'panel', autoHighlight: 'exact' },
             { key: 'country', label: this.t('col_country'), kind: 'readonly', width: 170 },
         ];
 
@@ -286,7 +367,7 @@ export class SoloRoundView {
         let ids = this.order.filter((id) => ours.has(id));
 
         if (this.filter === 'waitlist') {
-            ids = ids.filter((id) => this.model.isWaitlisted(id));
+            ids = ids.filter((id) => this.model.isWaitlisted(id) || this.held.has(id));
         }
 
         this.indexByRow = new Map(ids.map((id, index) => [id, index + 1]));
@@ -347,23 +428,69 @@ export class SoloRoundView {
         return this.model.entryRef(personId, this.roundId) === null ? this.t('result_not_ready') : '';
     }
 
-    computeRanks() {
-        return roundRanks(roundEntries(this.model, this.roundId, this.results.pending(), this.texts));
+    entries() {
+        return roundEntries(this.model, this.roundId, this.results.pending(), this.texts);
     }
 
-    updateRanks() {
-        if (!this.showResults) {
-            return;
-        }
+    computeRanks() {
+        return roundRanks(this.entries());
+    }
 
+    /** Ranks again: the rank cells that say something else. Returns whether any rank changed. */
+    updateRanks() {
         const previous = this.ranks;
         this.ranks = this.computeRanks();
         const byPlace = new Map([...this.model.peopleIn(this.roundId)].map((person) => [this.model.place(person.id, this.roundId)?.id, person.id]));
+        let changed = false;
 
         for (const id of new Set([...this.ranks.keys(), ...previous.keys()])) {
-            if (this.ranks.get(id) !== previous.get(id) && byPlace.has(id)) {
-                this.grid.updateCell(byPlace.get(id), 'rank');
+            if (this.ranks.get(id) !== previous.get(id)) {
+                changed = true;
+
+                if (this.showResults && byPlace.has(id)) {
+                    this.grid.updateCell(byPlace.get(id), 'rank');
+                }
             }
+        }
+
+        return changed;
+    }
+
+    /** "Sort by rank" (BR6): ranked people first, the rest by table and name. */
+    rankedOrder() {
+        const fallback = sortedPeopleIds(this.model, this.roundId, this.collator);
+        const ranked = rankOrder(this.entries(), fallback, (entry) => entry.personId);
+        // People on the waitlist have no entry - after everybody else
+        const placed = new Set(ranked);
+
+        return [...ranked, ...fallback.filter((id) => !placed.has(id))];
+    }
+
+    scheduleResort() {
+        clearTimeout(this.resortTimer);
+        this.resortTimer = setTimeout(() => {
+            this.resortTimer = null;
+
+            if (this.grid === null || !this.rankSort) {
+                return;
+            }
+
+            if (this.grid.isEditing()) {
+                this.scheduleResort();
+
+                return;
+            }
+
+            this.order = this.rankedOrder();
+            this.applyOrder();
+        }, this.grid?.isEditing() ? 300 : 0);
+    }
+
+    applyOrder() {
+        this.grid.setRows(this.rowKeys());
+
+        if (!this.tablesUsed) {
+            this.grid.rows.forEach((key) => this.grid.updateCell(key, 'table'));
         }
     }
 
@@ -518,21 +645,43 @@ export class SoloRoundView {
         return roundRefusalText(this.context, this.model, this.texts, error);
     }
 
-    perform(action) {
+    /** An editor's commit: a refusal of everything comes back as the editor's error, a part refused is shown. */
+    perform(action, anchor = null) {
         const blocked = action.groups.length === 0 && (action.results ?? []).length === 0 && action.errors.length > 0;
-        const outcome = this.context.act(action, { quiet: blocked });
+        const outcome = this.context.act(action, { quiet: true });
 
         if (blocked) {
             return { error: this.reasonText(outcome.errors[0]) };
         }
 
+        if (outcome.errors.length > 0) {
+            this.say(this.reasonText(outcome.errors[0]), { anchor });
+        }
+
         return undefined;
+    }
+
+    /** A menu's / the toolbar's action: a refusal shown next to `anchor`, `success` read out only when done. */
+    run(action, { success = '', anchor = null } = {}) {
+        const outcome = this.context.act(action, { quiet: true });
+
+        if (outcome.errors.length > 0) {
+            this.say(this.reasonText(outcome.errors[0]), { anchor });
+        }
+
+        if (outcome.performed && success) {
+            this.context.announce(success);
+        }
+
+        return outcome.performed === true;
     }
 
     commit(row, col, input) {
         if (row === NEW_ROW) {
             return col === 'name' ? this.commitNewPerson(input) : undefined;
         }
+
+        this.holdWorkedOn([row]);
 
         if (col === 'table' || col === 'result') {
             const entry = this.entryOf(row);
@@ -558,7 +707,7 @@ export class SoloRoundView {
                 return undefined;
             }
 
-            return this.perform(answer.action);
+            return this.perform(answer.action, { row, col });
         }
 
         return undefined;
@@ -603,12 +752,13 @@ export class SoloRoundView {
             action = setPlace(this.model, personId, this.roundId, IN, { label: { key: 'round_in' }, ...this.options() });
         }
 
-        const error = this.perform(action);
+        const error = this.perform(action, { row: NEW_ROW, col: 'name' });
 
         if (error) {
             return error;
         }
 
+        this.holdWorkedOn([option?.create ? null : action.groups[0]?.changes[0]?.participant].filter(Boolean));
         this.context.announce(this.t(option?.create ? 'added_new_to_round' : 'added_to_round', { name }));
 
         // Enter: the next person goes into the new row again
@@ -616,6 +766,7 @@ export class SoloRoundView {
     }
 
     toggle(cells, value) {
+        this.holdWorkedOn(cells.map((cell) => cell.row));
         const entries = cells.filter((cell) => cell.col === 'qualified' && cell.row !== NEW_ROW).map((cell) => this.entryOf(cell.row)).filter((entry) => entry !== null && entry.ref !== null);
         const action = this.results.qualifiedAction(entries, value);
 
@@ -656,12 +807,15 @@ export class SoloRoundView {
             results.length > 0 ? officialEdits(results) : null,
         );
 
-        if (!isEmpty(action) || action.errors.length > 0) {
-            this.context.act(action, { quiet: true });
+        this.holdWorkedOn(cells.map((cell) => cell.row));
 
-            if (action.errors.length > 0) {
-                this.context.announce(this.reasonText(action.errors[0]));
-            } else if (out.length > 0) {
+        if (!isEmpty(action) || action.errors.length > 0) {
+            const outcome = this.context.act(action, { quiet: true });
+
+            if (outcome.errors.length > 0) {
+                const refused = outcome.errors[0].change?.participant ?? null;
+                this.say(this.reasonText(outcome.errors[0]), { anchor: refused ? { row: refused, col: 'name' } : null });
+            } else if (out.length > 0 && outcome.performed) {
                 this.context.announce(this.tc('taken_out_people', out.length));
             }
         }
@@ -717,15 +871,14 @@ export class SoloRoundView {
                     this.grid.focusActive();
                 }
             },
-            onDisabled: (item) => this.context.announce(item.reason),
+            onDisabled: (item) => this.say(item.reason, { anchor: { row: personId, col: 'actions' } }),
         }).open();
         const choice = await this.dialog.result;
 
         if (choice?.value === 'open') {
             this.openPerson(personId);
         } else if (choice?.value === 'out') {
-            const error = this.perform(setPlace(this.model, personId, this.roundId, OUT, { label: { key: 'round_out' }, ...this.options() }));
-            this.context.announce(error ? error.error : this.t('taken_out_person', { name: person.name }));
+            this.run(setPlace(this.model, personId, this.roundId, OUT, { label: { key: 'round_out' }, ...this.options() }), { success: this.t('taken_out_person', { name: person.name }), anchor: { row: personId, col: 'name' } });
         }
     }
 
@@ -740,6 +893,7 @@ export class SoloRoundView {
 
         const people = this.model.peopleIn(this.roundId);
         const waitlisted = people.filter((person) => this.model.isWaitlisted(person.id)).length;
+        const qualified = qualifiedCount(this.entries());
         const urls = round.urls ?? {};
         const links = [
             [urls.liveEntry, 'link_live_entry', 'bi-broadcast'],
@@ -748,20 +902,23 @@ export class SoloRoundView {
         ].filter(([url]) => typeof url === 'string' && url !== '')
             .map(([url, key, icon]) => `<a class="btn btn-sm btn-link" href="${escapeHtml(url)}" target="_blank" rel="noopener"><i class="bi ${icon}" aria-hidden="true"></i> ${escapeHtml(this.t(key))}<span class="visually-hidden"> ${escapeHtml(this.t('new_tab'))}</span></a>`)
             .join('');
-        const filter = waitlisted > 0
-            ? `<div class="sheet-round-filters" role="group" aria-label="${escapeHtml(this.t('filters_label'))}"><button type="button" class="btn btn-sm sheet-round-filter${this.filter === 'waitlist' ? ' active' : ''}" data-filter="waitlist" aria-pressed="${this.filter === 'waitlist' ? 'true' : 'false'}"><i class="bi bi-hourglass-split" aria-hidden="true"></i> ${escapeHtml(this.tc('filter_waitlist', waitlisted))}</button></div>`
+        // The filter stays - with "Show all" - while it matches nobody (D-M2)
+        const filter = waitlisted > 0 || this.filter === 'waitlist'
+            ? `<div class="sheet-round-filters" role="group" aria-label="${escapeHtml(this.t('filters_label'))}"><button type="button" class="btn btn-sm sheet-round-filter${this.filter === 'waitlist' ? ' active' : ''}" data-filter="waitlist" aria-pressed="${this.filter === 'waitlist' ? 'true' : 'false'}"><i class="bi bi-hourglass-split" aria-hidden="true"></i> ${escapeHtml(this.tc('filter_waitlist', waitlisted))}</button>${this.filter !== null ? `<button type="button" class="btn btn-sm btn-link" data-filter="">${escapeHtml(this.t('filter_clear'))}</button>` : ''}</div>`
             : '';
         const html = `<div class="sheet-round-summary">
                 <span class="sheet-round-swatch" style="background-color:${escapeHtml(safeColor(round.color))}" aria-hidden="true"></span>
                 <strong>${escapeHtml(round.name)}</strong>
-                <span>${escapeHtml(this.core.tc('tab_count_people', people.length))}</span>
+                <span>${escapeHtml(this.core.tc('tab_count_people', people.length))}${qualified > 0 ? ` · ${escapeHtml(this.tc('qualified_count', qualified))}` : ''}</span>
             </div>
             ${filter}
             <div class="sheet-round-actions">
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-sort title="${escapeHtml(this.t('sort_hint'))}"><i class="bi bi-sort-numeric-down" aria-hidden="true"></i> ${escapeHtml(this.t('sort'))}</button>
+                ${this.showResults ? `<button type="button" class="btn btn-sm btn-outline-secondary" data-rank-sort aria-pressed="${this.rankSort ? 'true' : 'false'}"><i class="bi bi-trophy" aria-hidden="true"></i> ${escapeHtml(this.t('sort_by_rank'))}</button>` : ''}
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-results aria-pressed="${this.showResults ? 'true' : 'false'}"><i class="bi bi-stopwatch" aria-hidden="true"></i> ${escapeHtml(this.t('results_columns'))}</button>
                 ${links}
-            </div>`;
+            </div>
+            ${round.resultsPublished === true ? `<p class="sheet-round-published small mb-0"><i class="bi bi-broadcast-pin" aria-hidden="true"></i> ${escapeHtml(this.t('results_published'))}</p>` : ''}`;
 
         if (this.toolbar.dataset.html !== html) {
             const focused = this.toolbar.contains(document.activeElement) ? focusKey(document.activeElement) : null;
@@ -778,7 +935,9 @@ export class SoloRoundView {
         const filter = event.target.closest('[data-filter]');
 
         if (filter) {
-            this.filter = this.filter === filter.dataset.filter ? null : filter.dataset.filter;
+            const key = filter.dataset.filter || null;
+            this.filter = this.filter === key ? null : key;
+            this.held = new Set();
             this.grid.setRows(this.rowKeys());
             this.renderToolbar();
             this.context.announce(this.filter === null ? this.t('filter_cleared') : this.tc('filter_shown', this.grid.rows.length - 1));
@@ -787,14 +946,21 @@ export class SoloRoundView {
         }
 
         if (event.target.closest('[data-sort]')) {
+            this.rankSort = false;
             this.order = sortedPeopleIds(this.model, this.roundId, this.collator);
-            this.grid.setRows(this.rowKeys());
-
-            if (!this.tablesUsed) {
-                this.grid.rows.forEach((key) => this.grid.updateCell(key, 'table'));
-            }
-
+            this.applyOrder();
+            this.renderToolbar();
             this.context.announce(this.t('sorted'));
+
+            return;
+        }
+
+        if (event.target.closest('[data-rank-sort]')) {
+            this.rankSort = !this.rankSort;
+            this.order = this.rankSort ? this.rankedOrder() : sortedPeopleIds(this.model, this.roundId, this.collator);
+            this.applyOrder();
+            this.renderToolbar();
+            this.context.announce(this.t(this.rankSort ? 'sorted_by_rank' : 'sorted'));
 
             return;
         }
@@ -806,6 +972,11 @@ export class SoloRoundView {
 
     toggleResults(shown) {
         this.showResults = shown;
+
+        if (!shown) {
+            this.rankSort = false;
+        }
+
         storeResultsColumns(this.storage, this.roundId, shown);
         this.rebuild();
         this.renderToolbar();
@@ -817,7 +988,7 @@ export class SoloRoundView {
     paste(anchor, block) {
         if (RESULT_COLUMNS.includes(anchor.col)) {
             if (anchor.col !== 'result' || block.some((row) => row.length > 1)) {
-                this.context.announce(this.t('paste_results_column'));
+                this.say(this.t('paste_results_column'), { kind: 'warning', anchor });
 
                 return;
             }
@@ -833,20 +1004,179 @@ export class SoloRoundView {
             return;
         }
 
-        this.context.announce(this.t('solo_paste_hint'));
+        if (anchor.col === 'actions') {
+            this.say(this.t('solo_paste_hint'), { kind: 'warning', anchor });
+
+            return;
+        }
+
+        if (anchor.col === 'country') {
+            // Countries are the People tab's
+            this.say(this.t('paste_country_people'), { kind: 'warning', anchor });
+
+            return;
+        }
+
+        // A column of names: those people into this round (BR3)
+        this.pasteNames(block, anchor);
+    }
+
+    headerWords() {
+        return headerWordSet([...this.columns.map((column) => column.label), ...this.t('paste_header_words').split(',')]);
+    }
+
+    async pasteNames(block, anchor) {
+        const snapshot = snapshotModel(this.model);
+        const plan = planSoloPaste(snapshot, this.roundId, block, { headerWords: this.headerWords(), countryCodes: this.context.countryCodes ?? null });
+
+        if (plan.lines.length === 0) {
+            this.say(this.t('paste_nothing'), { kind: 'info', anchor });
+
+            return;
+        }
+
+        const action = await matchPreview(this.context, {
+            title: this.t('paste_names_title'),
+            intro: this.t('paste_names_intro'),
+            build: (selection, skip) => buildSoloPasteAction(snapshot, this.roundId, plan, selection, { countries: this.context.countryCodes, skip }),
+            describe: (selection, notes) => ({ lines: this.namePreviewLines(snapshot, plan, notes), counts: this.namePasteCounts(plan) }),
+            undecided: (selection) => undecidedSoloChoices(plan, selection),
+            confirmLabel: (count) => this.tc('paste_names_confirm', count),
+            refusalText: (error) => roundRefusalText(this.context, snapshot, this.texts, error),
+            returnFocus: () => this.grid?.focusActive({ scroll: false }),
+            texts: {
+                checking: this.t('paste_checking'),
+                unchecked: this.t('paste_unchecked'),
+                notPossible: this.t('paste_not_possible'),
+                choose: (count) => this.tc('paste_choose_first', count),
+            },
+        });
+
+        if (action === null) {
+            this.context.announce(this.t('paste_cancelled'));
+
+            return;
+        }
+
+        if (isEmpty(action)) {
+            this.say(this.t('paste_nothing'), { kind: 'info', anchor });
+
+            return;
+        }
+
+        this.run(action, { success: this.tc('pasted_into_round', action.groups.length), anchor });
+    }
+
+    namePasteCounts(plan) {
+        const counts = [];
+        const add = (count, key, tone = null) => {
+            if (count > 0) {
+                counts.push({ text: this.tc(key, count), tone });
+            }
+        };
+        add(plan.counts.into, 'count_into_round');
+        add(plan.counts.newPeople, 'count_new_people', 'warning');
+        add(plan.counts.ambiguous, 'count_to_choose', 'warning');
+        add(plan.counts.already, 'count_already_in');
+        add(plan.counts.skipped, 'count_skipped', 'danger');
+
+        return counts;
+    }
+
+    namePreviewLines(model, plan, notes) {
+        const lines = [];
+
+        if (plan.header !== null) {
+            lines.push({ id: plan.header.id, text: plan.header.text, status: 'skip', note: this.t('paste_header_skipped') });
+        }
+
+        if (plan.ignoredColumns) {
+            lines.push({ id: 'columns', text: this.t('paste_names_columns_ignored'), status: 'skip' });
+        }
+
+        const rowNumber = new Map(plan.lines.map((line) => [line.id, line.index + 1]));
+        const where = (personId) => {
+            const person = model.person(personId);
+            const country = person?.country ? (this.context.countries[person.country] ?? person.country.toUpperCase()) : '';
+
+            return [person?.name ?? '', country, this.t(model.placeValue(personId, this.roundId) === OUT ? 'where_out' : 'where_in')].filter(Boolean).join(' · ');
+        };
+
+        for (const line of plan.lines) {
+            const note = notes.get(line.id) ?? null;
+            let entry;
+
+            switch (line.status) {
+                case 'one':
+                    entry = { id: line.id, text: line.name, status: 'change', note: this.t('paste_into_round') };
+                    break;
+                case 'in':
+                    entry = { id: line.id, text: line.name, status: 'same', note: this.t('paste_in_round_already') };
+                    break;
+                case 'several':
+                    entry = {
+                        id: line.id,
+                        text: line.name,
+                        status: 'warning',
+                        note: this.t('paste_person_ambiguous'),
+                        choices: {
+                            label: this.t('paste_which_person'),
+                            options: [
+                                { value: CHOOSE, label: this.t('paste_choose') },
+                                ...line.ids.map((id) => ({ value: id, label: where(id) })),
+                                { value: SKIP, label: this.t('paste_leave_out') },
+                            ],
+                            value: CHOOSE,
+                        },
+                    };
+                    break;
+                case 'removed':
+                    entry = { id: line.id, text: line.name, status: 'skip', note: this.t('paste_person_removed') };
+                    break;
+                case 'duplicate':
+                    entry = { id: line.id, text: line.name, status: 'skip', note: this.t('paste_listed_earlier', { row: rowNumber.get(line.sameAs) ?? '' }) };
+                    break;
+                default:
+                    // A new name: its line with the tick below
+                    continue;
+            }
+
+            if (note !== null) {
+                entry = { ...entry, status: note.status, note: [entry.note, note.note].filter(Boolean).join(' · ') };
+            }
+
+            lines.push(entry);
+        }
+
+        for (const name of plan.newNames) {
+            const entry = newPersonLine(this.texts, name);
+            const note = name.lines.map((lineId) => notes.get(lineId)).find(Boolean) ?? null;
+            lines.push(note === null ? entry : { ...entry, status: note.status, note: [entry.note, note.note].join(' · ') });
+        }
+
+        return lines;
     }
 
     async pasteResults(block, mode, anchor) {
         const entries = roundEntries(this.model, this.roundId, this.results.pending(), this.texts);
         const startRow = this.grid.rows.indexOf(anchor.row);
+        // Positional: a row that cannot get a result says why - on the waitlist, not saved yet (D-m7)
         const targets = mode === 'positional'
             ? block.map((row, index) => {
                 const key = this.grid.rows[startRow + index];
 
-                return key === undefined || key === NEW_ROW ? null : (this.entryOf(key)?.ref ?? null);
+                if (key === undefined || key === NEW_ROW) {
+                    return null;
+                }
+
+                if (this.model.isWaitlisted(key)) {
+                    return { skip: 'waitlisted' };
+                }
+
+                return this.entryOf(key)?.ref ?? { skip: 'no_entry' };
             })
             : [];
-        const plan = planResultsPaste(this.model, this.roundId, entries, block, { mode, targets, parse: this.results.parseOptions() });
+        const plan = planResultsPaste(this.model, this.roundId, entries, block, { mode, targets, parse: this.results.parseOptions(), tables: this.tablesUsed, headerWords: this.headerWords() });
         await previewResults(this, plan, entries);
     }
 }

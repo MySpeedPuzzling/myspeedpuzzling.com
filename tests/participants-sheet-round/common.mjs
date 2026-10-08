@@ -6,6 +6,11 @@ import { SheetModel } from '../../assets/participants_sheet/sheet_model.js';
 import { PendingChanges } from '../../assets/official_results_pending_changes.js';
 import {
     CREATE,
+    newPersonLine,
+    qualifiedCount,
+    rankOrder,
+    storedResultsColumns,
+    takeTeamOutAction,
     keepOrder,
     memberSlots,
     nameCollator,
@@ -206,5 +211,81 @@ export default function (test) {
         const options = personOptions(m, ROUND_PAIRS, 'jo do', texts, { countries: { ca: 'Canada' } });
         assert.deepEqual(options.map((option) => option.personId), ['p-jo', 'p-jo2']);
         assert.match(options[1].detail, /^Canada · where_out$/);
+    });
+
+    test('D-m2: options say when Enter alone may take them - the one exact name that moves nobody', () => {
+        const m = model();
+        // A partial match is no exact match
+        assert.deepEqual(personOptions(m, ROUND_PAIRS, 'Kim Ex', texts).filter((o) => !o.create).map((o) => [o.personId, o.exact, o.moves]), [['p-kim', false, true]]);
+        // Kim typed in full: exact, but she is in Corners - picking her moves her
+        const kim = personOptions(m, ROUND_PAIRS, 'Kim Example', texts, { teamId: 't-corners2' }).find((o) => o.personId === 'p-kim');
+        assert.equal(kim.exact, true);
+        assert.equal(kim.moves, true);
+        // Jo is in the tray: exact, moves nobody
+        const jo = personOptions(m, ROUND_PAIRS, 'jo do', texts, { teamId: 't-corners2' })[0];
+        assert.deepEqual([jo.personId, jo.exact, jo.moves], ['p-jo', true, false]);
+        // Within her own pair she moves nobody either
+        assert.equal(personOptions(m, ROUND_PAIRS, 'Kim Example', texts, { teamId: 't-corners' })[0].moves, false);
+        // Two people called that: neither is exact
+        const twins = model(smallState({ people: [...smallState().people, person('p-jo2', 'Jo Do')] }));
+        assert.deepEqual(personOptions(twins, ROUND_PAIRS, 'jo do', texts).map((o) => o.exact), [false, false]);
+    });
+
+    test('pair/team picker: exact only for the one pair/team called what was typed', () => {
+        const m = model();
+        assert.deepEqual(teamOptions(m, ROUND_PAIRS, 'Corners', texts).map((o) => o.exact), [false, false]);
+        assert.deepEqual(teamOptions(m, ROUND_TEAMS, 'edge', texts).map((o) => [o.teamId, o.exact]), [['t-edge', true]]);
+        assert.deepEqual(teamOptions(m, ROUND_TEAMS, '', texts).map((o) => o.exact), [false, false]);
+    });
+
+    test('BR6: the qualified count and the order by rank (ties and the unranked by table and name)', () => {
+        const state = smallState();
+        state.teams = state.teams.map((t) => (t.id === 't-edge' ? { ...t, result: { seconds: 4000 }, qualified: true } : t));
+        const m = model(state);
+        const entries = roundEntries(m, ROUND_TEAMS, null);
+        assert.equal(qualifiedCount(entries), 1);
+        // Edge 4000 s, Flat 5000 s
+        assert.deepEqual(rankOrder(entries, ['t-flat', 't-edge'], (entry) => entry.id), ['t-edge', 't-flat']);
+        const pending = new PendingChanges();
+        pending.set('team:t-flat', 'result', { seconds: 3000 }, { seconds: 5000 });
+        pending.set('team:t-flat', 'qualified', true, false);
+        const shown = roundEntries(m, ROUND_TEAMS, pending);
+        assert.deepEqual(rankOrder(shown, ['t-edge', 't-flat'], (entry) => entry.id), ['t-flat', 't-edge']);
+        assert.equal(qualifiedCount(shown), 2);
+        // Nobody ranked: the fallback order
+        assert.deepEqual(rankOrder(roundEntries(m, ROUND_PAIRS, null), ['t-empty', 't-corners', 't-corners2'], (entry) => entry.id), ['t-empty', 't-corners', 't-corners2']);
+    });
+
+    test('D-m5: taking a whole pair out of the round is one group and its undo gives the table number back', () => {
+        const m = model();
+        const action = takeTeamOutAction(m, ROUND_PAIRS, 't-corners');
+        assert.equal(action.groups.length, 1);
+        assert.deepEqual(action.groups[0].changes.map((change) => change.op === 'place' ? `${change.participant}:${change.from}→${change.to}` : change.op), ['deleteTeam', 'p-kim:in→out', 'p-pat:in→out']);
+        assert.deepEqual(action.inverseResults, [{ roundId: ROUND_PAIRS, ref: 'team:t-corners', field: 'table_number', from: null, to: 2, inverseOf: action.groups[0].id }]);
+        // Its people back in the round, the pair created again with the same id and its people in it
+        assert.deepEqual(action.inverse[0].changes.map((change) => change.op === 'place' ? `${change.participant}:${change.from}→${change.to}` : `${change.op}:${change.id}`), [
+            'p-pat:out→in', 'p-kim:out→in', 'newTeam:t-corners', 'p-kim:in→team:t-corners', 'p-pat:in→team:t-corners',
+        ]);
+        // Without a table number: nothing to give back
+        assert.equal(takeTeamOutAction(m, ROUND_PAIRS, 't-corners2').inverseResults, undefined);
+    });
+
+    test('the organiser\'s own choice of the results columns, and none', () => {
+        const storage = memoryStorage();
+        assert.equal(storedResultsColumns(storage, ROUND_PAIRS), null);
+        storeResultsColumns(storage, ROUND_PAIRS, false);
+        assert.equal(storedResultsColumns(storage, ROUND_PAIRS), false);
+    });
+
+    test('BR9: a new name\'s preview line says "Did you mean …?" / what it looks like, and is unticked then', () => {
+        assert.deepEqual(newPersonLine(texts, { key: 'kim exampel', name: 'Kim Exampel', close: [{ name: 'Kim Example' }], suspicious: null, tick: false }), {
+            id: 'nkim exampel',
+            text: 'Kim Exampel',
+            status: 'warning',
+            note: 'paste_new_person_note · paste_did_you_mean:Kim Example',
+            tick: { label: 'paste_add_new_person:Kim Exampel', checked: false },
+        });
+        assert.equal(newPersonLine(texts, { key: 'us', name: 'US', close: [], suspicious: 'country', tick: false }).note, 'paste_new_person_note · paste_looks_like_country');
+        assert.equal(newPersonLine(texts, { key: 'zed', name: 'Zed', close: [], suspicious: null, tick: true }).tick.checked, true);
     });
 }

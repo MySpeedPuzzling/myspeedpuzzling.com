@@ -6,6 +6,7 @@ import {
     enteredLabel,
     officialEdit,
     officialEdits,
+    parseResultAs,
     parseResultInput,
     parseTableNumber,
     parsedValue,
@@ -199,5 +200,22 @@ export default function (test) {
     test('"entered by Eva · 10:42" in the round\'s time zone', () => {
         assert.equal(enteredLabel('Eva', '2026-10-08T08:42:00+00:00', { locale: 'en-GB', timeZone: 'Europe/Prague', template: 'entered by %name% · %time%' }), 'entered by Eva · 10:42');
         assert.equal(enteredLabel(null, null), '');
+    });
+
+    test('pieces placed of another total are refused: 499/1000 in a 500-piece round is not 499 of this puzzle', () => {
+        assert.deepEqual(parseResultInput('499/1000', { piecesCount: 500 }), { kind: 'error', reason: 'pieces_total', total: 500 });
+        assert.deepEqual(parseResultInput('499 / 500', { piecesCount: 500 }), { kind: 'result', result: { piecesPlaced: 499 } });
+        // A round without one puzzle takes the typed total
+        assert.deepEqual(parseResultInput('499/1000'), { kind: 'result', result: { piecesPlaced: 499 } });
+        assert.equal(resultPreview(parseResultInput('499/1000', { piecesCount: 500 }), { ...PREVIEW, piecesTotal: 'this puzzle has %total%' }), 'this puzzle has 500');
+    });
+
+    test('a kind picked from the Alt+Down list reads digits its way: "Didn\'t finish" + 479 = 479 pieces placed', () => {
+        assert.deepEqual(parseResultAs('unfinished', '479', { piecesCount: 500 }), { kind: 'result', result: { piecesPlaced: 479 } });
+        assert.deepEqual(parseResultAs('unfinished', '479p', { piecesCount: 500 }), { kind: 'result', result: { piecesPlaced: 479 } });
+        assert.deepEqual(parseResultAs('unfinished', '500', { piecesCount: 500 }), { kind: 'error', reason: 'pieces_range', max: 499 });
+        // "Finished" keeps the cell's own grammar: digits right-aligned as h:mm:ss
+        assert.deepEqual(parseResultAs('finished', '123', { piecesCount: 500 }), { kind: 'result', result: { seconds: 83 } });
+        assert.deepEqual(parseResultAs(null, '479', { piecesCount: 500 }), { kind: 'error', reason: 'invalid' });
     });
 }

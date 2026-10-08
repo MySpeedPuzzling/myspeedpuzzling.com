@@ -89,6 +89,25 @@
     }
 }
 
+// "Results published - changes are public and notify linked players" (BR6): a full line of the toolbar, an icon and
+// words - never colour alone
+.sheet-round-published {
+    flex-basis: 100%;
+    margin: 0;
+    padding: .25rem .5rem;
+    border-left: 3px solid $warning;
+    border-radius: $border-radius-sm;
+    background-color: rgba($warning, .12);
+    color: $sheet-warning-text;
+    font-weight: $font-weight-medium;
+}
+
+// The one-line paste hint under a round grid (BR7)
+.sheet-round-paste-hint {
+    margin: .375rem .5rem 0;
+    color: $gray-700;
+}
+
 // ---------------------------------------------------------------- the grid's columns
 
 .sheet-view-round {

@@ -40,6 +40,8 @@ readonly final class CollectionSelectionResponder
         string $toast,
         bool $removeCards,
         null|string $openUrl = null,
+        // The cards change in place (a lend badge): load the page again, the message comes as a flash
+        bool $refreshPage = false,
     ): Response {
         if ($outcome->alreadyThere > 0) {
             $toast .= ' ' . $this->translator->trans('collection_selection.done.already_there', ['%count%' => $outcome->alreadyThere]);
@@ -52,6 +54,15 @@ readonly final class CollectionSelectionResponder
         if ($request->headers->get('Turbo-Frame') === 'modal-frame') {
             $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
+            if ($refreshPage) {
+                $this->flash($toast);
+
+                return new Response(
+                    $this->twig->render('_modal_close_stream.html.twig') . '<turbo-stream action="refresh"></turbo-stream>',
+                    headers: ['Content-Type' => TurboBundle::STREAM_MEDIA_TYPE],
+                );
+            }
+
             return new Response($this->twig->render('collections/_selected_stream.html.twig', [
                 'removed_puzzle_ids' => $removeCards ? $selection->puzzleIds : [],
                 'remaining_count' => $this->getCollectionItems->countByCollectionAndPlayer($selection->collectionId, $playerId),
@@ -60,13 +71,19 @@ readonly final class CollectionSelectionResponder
             ]), headers: ['Content-Type' => TurboBundle::STREAM_MEDIA_TYPE]);
         }
 
-        $session = $this->requestStack->getSession();
-        if ($session instanceof FlashBagAwareSessionInterface) {
-            $session->getFlashBag()->add('success', $toast);
-        }
+        $this->flash($toast);
 
         return new RedirectResponse($selection->collectionId === null
             ? $this->urlGenerator->generate('system_collection_detail', ['playerId' => $playerId])
             : $this->urlGenerator->generate('collection_detail', ['collectionId' => $selection->collectionId]));
+    }
+
+    private function flash(string $message): void
+    {
+        $session = $this->requestStack->getSession();
+
+        if ($session instanceof FlashBagAwareSessionInterface) {
+            $session->getFlashBag()->add('success', $message);
+        }
     }
 }

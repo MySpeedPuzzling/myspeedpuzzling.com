@@ -7677,6 +7677,11 @@ participants_sheet_people:
 
 # Select several puzzles on a collection page (docs/features/collections/bulk-actions.md)
 collection_selection:
+    lend: "Půjčit…"
+    lend_title: "Půjčit 1 puzzle|Půjčit %count% puzzle|Půjčit %count% puzzle"
+    lend_submit: "Půjčit 1 puzzle|Půjčit %count% puzzle|Půjčit %count% puzzle"
+    lend_already_lent: "1 z vybraných puzzle už je půjčené a zůstane, jak je.|%count% z vybraných puzzle už jsou půjčená a zůstanou, jak jsou.|%count% z vybraných puzzle už je půjčeno a zůstanou, jak jsou."
+    nothing_to_lend: "Všechna vybraná puzzle už jsou půjčená."
     select_puzzle: "Vybrat %name%"
     bar_label: "Vybrané puzzle"
     selected_count: "1 vybráno|%count% vybrány|%count% vybráno"
@@ -7699,6 +7704,8 @@ collection_selection:
     remove_submit: "Odebrat 1 puzzle|Odebrat %count% puzzle|Odebrat %count% puzzle"
     nothing_selected: "Není vybráno žádné puzzle - zaškrtni aspoň jedno."
     done:
+        lent: "1 puzzle půjčeno: %name%.|%count% puzzle půjčena: %name%.|%count% puzzle půjčeno: %name%."
+        already_lent: "1 už bylo půjčené.|%count% už byla půjčená.|%count% už bylo půjčeno."
         moved: "1 puzzle přesunuto do %collection%.|%count% puzzle přesunuta do %collection%.|%count% puzzle přesunuto do %collection%."
         copied: "1 puzzle zkopírováno do %collection%.|%count% puzzle zkopírována do %collection%.|%count% puzzle zkopírováno do %collection%."
         removed: "1 puzzle odebráno z %collection%.|%count% puzzle odebrána z %collection%.|%count% puzzle odebráno z %collection%."

@@ -7670,6 +7670,11 @@ participants_sheet_people:
 
 # Select several puzzles on a collection page (docs/features/collections/bulk-actions.md)
 collection_selection:
+    lend: "貸し出す…"
+    lend_title: "%count%件のパズルを貸し出す"
+    lend_submit: "%count%件を貸し出す"
+    lend_already_lent: "選択したパズルのうち%count%件はすでに貸し出し中のため、そのままです。"
+    nothing_to_lend: "選択したパズルはすべて貸し出し中です。"
     select_puzzle: "%name%を選択"
     bar_label: "選択したパズル"
     selected_count: "%count%件選択中"
@@ -7692,6 +7697,8 @@ collection_selection:
     remove_submit: "%count%件を削除"
     nothing_selected: "パズルが選択されていません。1件以上チェックしてください。"
     done:
+        lent: "%count%件のパズルを%name%さんに貸し出しました。"
+        already_lent: "%count%件はすでに貸し出し中でした。"
         moved: "%count%件のパズルを%collection%に移動しました。"
         copied: "%count%件のパズルを%collection%にコピーしました。"
         removed: "%count%件のパズルを%collection%から削除しました。"

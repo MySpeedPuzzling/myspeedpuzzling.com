@@ -8032,6 +8032,11 @@ participants_sheet_people:
 
 # Select several puzzles on a collection page (docs/features/collections/bulk-actions.md)
 collection_selection:
+    lend: "Lend to…"
+    lend_title: "Lend 1 puzzle|Lend %count% puzzles"
+    lend_submit: "Lend 1 puzzle|Lend %count% puzzles"
+    lend_already_lent: "1 of the selected puzzles is already lent out and stays as it is.|%count% of the selected puzzles are already lent out and stay as they are."
+    nothing_to_lend: "All the selected puzzles are already lent out."
     select_puzzle: "Select %name%"
     bar_label: "Selected puzzles"
     selected_count: "1 selected|%count% selected"
@@ -8054,6 +8059,8 @@ collection_selection:
     remove_submit: "Remove 1 puzzle|Remove %count% puzzles"
     nothing_selected: "No puzzles selected - tick at least one."
     done:
+        lent: "1 puzzle lent to %name%.|%count% puzzles lent to %name%."
+        already_lent: "1 was already lent out.|%count% were already lent out."
         moved: "1 puzzle moved to %collection%.|%count% puzzles moved to %collection%."
         copied: "1 puzzle copied to %collection%.|%count% puzzles copied to %collection%."
         removed: "1 puzzle removed from %collection%.|%count% puzzles removed from %collection%."

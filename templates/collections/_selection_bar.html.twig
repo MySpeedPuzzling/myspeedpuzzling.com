@@ -31,12 +31,16 @@
                     formaction="{{ path('collection_selected_move', {collectionId: route_collection_id, mode: 'copy'}) }}">
                 <i class="bi bi-copy me-1"></i>{{ 'collection_selection.copy'|trans }}
             </button>
+            <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap d-none d-sm-inline-block"
+                    formaction="{{ path('collection_selected_lend', {collectionId: route_collection_id}) }}">
+                <i class="bi bi-box-arrow-right me-1"></i>{{ 'collection_selection.lend'|trans }}
+            </button>
             <button type="submit" class="btn btn-sm btn-outline-danger text-nowrap d-none d-sm-inline-block"
                     formaction="{{ path('collection_selected_remove', {collectionId: route_collection_id}) }}">
                 <i class="ci-trash me-1"></i>{{ 'collection_selection.remove'|trans }}
             </button>
 
-            {# Phones: Select all, Copy and Remove behind ⋯ #}
+            {# Phones: Select all, Copy, Lend and Remove behind ⋯ #}
             <div class="dropup d-sm-none">
                 <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="dropdown"
                         aria-expanded="false" aria-label="{{ 'collection_selection.more_actions'|trans }}">
@@ -52,6 +56,12 @@
                         <button type="submit" class="dropdown-item"
                                 formaction="{{ path('collection_selected_move', {collectionId: route_collection_id, mode: 'copy'}) }}">
                             <i class="bi bi-copy me-1"></i>{{ 'collection_selection.copy'|trans }}
+                        </button>
+                    </li>
+                    <li>
+                        <button type="submit" class="dropdown-item"
+                                formaction="{{ path('collection_selected_lend', {collectionId: route_collection_id}) }}">
+                            <i class="bi bi-box-arrow-right me-1"></i>{{ 'collection_selection.lend'|trans }}
                         </button>
                     </li>
                     <li>

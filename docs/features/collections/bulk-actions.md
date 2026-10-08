@@ -6,8 +6,8 @@ multiscan's "Scan into collection" only adds and refuses a batch with a puzzle a
 
 ## Decisions (Jan, 2026-10-08)
 
-- Actions: **Move to…**, **Copy to…** (keep it here too - a puzzle may sit in several collections) and **Remove from
-  this collection** (asks to confirm).
+- Actions: **Move to…**, **Copy to…** (keep it here too - a puzzle may sit in several collections), **Lend to…**
+  (added after Jan's first try, 2026-10-08) and **Remove from this collection** (asks to confirm).
 - **Members only**, on their own collection pages (custom and system). Free players keep the one-by-one actions.
 - Checkboxes on the cards, the floating bar appears with the first tick - no separate "Select" mode button.
 - **One request, one message, one transaction** for any selection, set-based inside (not a handler per puzzle).
@@ -28,7 +28,9 @@ multiscan's "Scan into collection" only adds and refuses a batch with a puzzle a
 ## How it works
 
 - **Page** (`collections/detail.html.twig`, `can_select` = owner with an active membership): every card gets a
-  checkbox (`_puzzle_library_item.html.twig`, `selectable`), the list gets `collections/_selection_bar.html.twig`.
+  checkbox over its image's top left corner (`_puzzle_library_item.html.twig`, `selectable`), the list gets
+  `collections/_selection_bar.html.twig`. The comparison launcher pill is hidden while anything is selected (it sat
+  under the bar).
   `collection_selection_controller.js`:
   - first tick shows the bar ("N selected", plural from `browser_translation()`); while anything is selected a tap on
     a card toggles it instead of following its links, and the card menus are hidden (one action at a time);
@@ -36,11 +38,20 @@ multiscan's "Scan into collection" only adds and refuses a batch with a puzzle a
   - "Select all" picks the cards the filters show; selected cards hidden by a later filter stay selected;
   - the bar is a form: Move / Copy / Remove post `puzzleIds[]` (+ stateless CSRF `collection_selection`) into
     `modal-frame`; after a successful modal submit (`data-collection-selection-form`) the selection is cleared.
-  - Phones: the bar spans the screen; Select all, Copy and Remove sit behind ⋯.
+  - Phones: the bar spans the screen; Select all, Copy, Lend and Remove sit behind ⋯.
+  - **The bar is a form outside the modal frame** that targets it. Turbo fires that submission's fetch events on the
+    form, never on the frame, so `dynamic_modal_controller.js` listens on the document for a request carrying
+    `Turbo-Frame: modal-frame` from a form outside the frame - without that the modal never opened (the first release
+    shipped so, 2026-10-08).
 - **Modal**: `MoveSelectedPuzzlesController` (`collection_selected_move`, mode `move|copy`) renders the target picker
   (`CollectionPuzzleActionFormType` without the comment; typing a name creates a collection) carrying the ids as hidden
   inputs; `RemoveSelectedPuzzlesController` (`collection_selected_remove`) asks to confirm. Both refuse non-members
   (403) and another player's collection (404).
+- **Lend**: `LendSelectedPuzzlesController` (`collection_selected_lend`): one person for the whole selection (the
+  single lend's `LendPuzzleFormType` + favorites select), puzzles already lent out are left out up front
+  (`MultiscanEligibility`) and named in the modal; dispatches the multiscan's `LendPuzzlesToPlayer`. The lent badge
+  changes every card, so the answer closes the modal and refreshes the page (`<turbo-stream action="refresh">`) with
+  the message as a flash.
 - **Write**: `MovePuzzlesToCollection` / `CopyPuzzlesToCollection` / `RemovePuzzlesFromCollection` - two statements
   (`CollectionItemRepository::findByCollectionPlayerAndPuzzles()`: the selection's source items with their puzzles,
   then which of them the target holds), changes in memory, one flush. Each answers a `SelectedPuzzlesOutcome`

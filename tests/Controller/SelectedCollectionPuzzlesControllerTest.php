@@ -21,6 +21,7 @@ final class SelectedCollectionPuzzlesControllerTest extends WebTestCase
     private const string PUBLIC_PAGE = '/en/collection/' . CollectionFixture::COLLECTION_PUBLIC;
     private const string MOVE = '/en/collections/' . CollectionFixture::COLLECTION_PUBLIC . '/selected/move';
     private const string COPY = '/en/collections/' . CollectionFixture::COLLECTION_PUBLIC . '/selected/copy';
+    private const string LEND = '/en/collections/' . CollectionFixture::COLLECTION_PUBLIC . '/selected/lend';
     private const string REMOVE = '/en/collections/' . CollectionFixture::COLLECTION_PUBLIC . '/selected/remove';
     private const string CHECKBOX = '[data-collection-selection-target="checkbox"]';
     private const array FRAME = ['HTTP_TURBO_FRAME' => 'modal-frame', 'HTTP_ORIGIN' => 'http://localhost'];
@@ -108,6 +109,31 @@ final class SelectedCollectionPuzzlesControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('1 puzzle removed from', (string) $browser->getResponse()->getContent());
         self::assertSame(0, $this->countIn(CollectionFixture::COLLECTION_PUBLIC, PuzzleFixture::PUZZLE_500_04));
+    }
+
+    public function testLendHandsTheSelectionToOnePersonAndLeavesWhatIsAlreadyLent(): void
+    {
+        $browser = $this->member();
+        // PUZZLE_2000 is lent out already (LENT_01)
+        $selection = ['_token' => 'csrf-token', 'puzzleIds' => [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_2000]];
+
+        $browser->request('POST', self::LEND, $selection, server: self::FRAME);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.modal-title', 'Lend 1 puzzle');
+
+        $browser->request('POST', self::LEND, $selection + [
+            'lend_puzzle_form' => ['borrowerCode' => '#player1', 'notes' => 'Bring them back', '_token' => 'csrf-token'],
+        ], server: self::FRAME);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('action="refresh"', (string) $browser->getResponse()->getContent());
+
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+        self::assertSame(1, $connection->fetchOne(
+            'SELECT COUNT(*) FROM lent_puzzle WHERE puzzle_id = :puzzle AND owner_player_id = :owner AND current_holder_player_id = :holder',
+            ['puzzle' => PuzzleFixture::PUZZLE_500_01, 'owner' => PlayerFixture::PLAYER_WITH_STRIPE, 'holder' => PlayerFixture::PLAYER_REGULAR],
+        ));
     }
 
     public function testWithoutTurboItGoesBackToTheCollectionWithAFlash(): void

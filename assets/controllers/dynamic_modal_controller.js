@@ -81,6 +81,12 @@ export default class extends Controller {
         this.frameTarget.addEventListener('turbo:before-fetch-response', this.handleBeforeFetchResponse);
         this.frameTarget.addEventListener('turbo:fetch-request-error', this.handleFetchError);
 
+        // A form outside the frame that targets it (data-turbo-frame="modal-frame", e.g. the collection selection bar):
+        // Turbo fires the fetch events on that form, never on the frame
+        document.addEventListener('turbo:before-fetch-request', this.handleExternalFormFetch);
+        document.addEventListener('turbo:before-fetch-response', this.handleExternalFormResponse);
+        document.addEventListener('turbo:fetch-request-error', this.handleExternalFormError);
+
         // Open modal when content arrives
         this.frameTarget.addEventListener('turbo:frame-load', this.handleFrameLoad);
 
@@ -117,6 +123,9 @@ export default class extends Controller {
         this.frameTarget.removeEventListener('turbo:before-fetch-request', this.handleBeforeFetch);
         this.frameTarget.removeEventListener('turbo:before-fetch-response', this.handleBeforeFetchResponse);
         this.frameTarget.removeEventListener('turbo:fetch-request-error', this.handleFetchError);
+        document.removeEventListener('turbo:before-fetch-request', this.handleExternalFormFetch);
+        document.removeEventListener('turbo:before-fetch-response', this.handleExternalFormResponse);
+        document.removeEventListener('turbo:fetch-request-error', this.handleExternalFormError);
         this.frameTarget.removeEventListener('turbo:frame-load', this.handleFrameLoad);
         this.frameTarget.removeEventListener('turbo:frame-missing', this.handleFrameMissing);
         this.observer?.disconnect();
@@ -154,6 +163,37 @@ export default class extends Controller {
 
         clearTimeout(this.loadingTimer);
         this.loadingTimer = setTimeout(this.showLoading, LOADING_DELAY_MS);
+    };
+
+    externalForm = null;
+
+    handleExternalFormFetch = (event) => {
+        const form = event.target;
+
+        if (!(form instanceof HTMLFormElement) || this.frameTarget.contains(form)) {
+            return;
+        }
+
+        if (event.detail?.fetchOptions?.headers?.['Turbo-Frame'] !== this.frameTarget.id) {
+            return;
+        }
+
+        this.externalForm = form;
+        this.handleBeforeFetch();
+    };
+
+    handleExternalFormResponse = (event) => {
+        if (event.target === this.externalForm) {
+            this.externalForm = null;
+            this.handleBeforeFetchResponse();
+        }
+    };
+
+    handleExternalFormError = (event) => {
+        if (event.target === this.externalForm) {
+            this.externalForm = null;
+            this.handleFetchError();
+        }
     };
 
     handleBeforeFetchResponse = () => {

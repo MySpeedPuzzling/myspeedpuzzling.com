@@ -28,8 +28,18 @@ export default class extends Controller {
     }
 
     checkboxTargetDisconnected() {
-        // A card removed by a Turbo Stream (moved, removed) - recount once the DOM settled
-        queueMicrotask(() => this.update());
+        // A card removed by a Turbo Stream (moved, removed) - recount once the DOM settled, the filters' "Total found"
+        // too (collection_filter_controller.js only counts when a filter changes)
+        queueMicrotask(() => {
+            this.update();
+
+            const visibleCount = this.element.querySelector('[data-collection-filter-target~="visibleCount"]');
+
+            if (visibleCount !== null) {
+                const cards = this.element.querySelectorAll('[data-collection-filter-target~="item"]');
+                visibleCount.textContent = String([...cards].filter((card) => card.style.display !== 'none').length);
+            }
+        });
     }
 
     toggle(event) {

@@ -1,13 +1,17 @@
 // Selecting several puzzles on your own collection page (docs/features/collections/bulk-actions.md)
 
 .collection-select-check {
+    // Over the image's top left corner; the label is a 36 px tap target around the 1.25 rem box
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
-    // A 44 px tap target around the 1.25 rem checkbox, without widening the card much
-    width: 32px;
-    min-height: 44px;
-    margin: -0.25rem 0.25rem -0.25rem -0.25rem;
+    width: 36px;
+    height: 36px;
+    margin: 0;
     cursor: pointer;
 
     .form-check-input {
@@ -15,6 +19,8 @@
         height: 1.25rem;
         margin: 0;
         cursor: pointer;
+        border: 2px solid $white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     }
 }
 
@@ -31,6 +37,11 @@
             visibility: hidden;
         }
     }
+}
+
+// The comparison launcher would sit under the bar - it steps aside while selecting
+body:has(.collection-selecting) .comparison-launcher {
+    display: none;
 }
 
 .collection-item-selected > .card {

@@ -351,12 +351,12 @@
             </div>
         {% endif %}
 
-        {% set hiddenRowsCount = this.hiddenRowsCount %}
+        {% set rowsBelowCount = this.rowsBelowCount %}
 
         {# The table never scrolls sideways: the name column takes what rank and time leave and names truncate.
            A row opens the result detail (date, PPM, every attempt, chart) in the modal, loaded on demand
            (docs/features/puzzle-leaderboard-chart.md, docs/features/puzzle-result-detail.md) #}
-        <div class="custom-table-wrapper lb-wrapper mt-2 {{ hiddenRowsCount > 0 ? 'mb-3' : 'mb-5' }}">
+        <div class="custom-table-wrapper lb-wrapper mt-2 {{ rowsBelowCount > 0 ? 'mb-3' : 'mb-5' }}">
             <table class="table custom-table table-hover lb-table mb-0">
                 <thead>
                 <tr>
@@ -368,8 +368,8 @@
 
                 <tbody>
                 {# Only the top rows are rendered (PuzzleTimes::DEFAULT_LIMIT), the rest comes with the buttons below the table.
-                   A viewer further down sees their own row with its neighbours, after a "⋯ N more" row that runs "Show more" -
-                   a row counting hidden rows invites a tap, so it must do something. #}
+                   A viewer further down sees their own row with its neighbours, after a "⋯ N more" row that reveals exactly
+                   the rows it counts (revealGap) - the buttons under the table continue after the viewer's rows instead. #}
                 {%~ for timeId, aggregated_solver in this.visibleTimes %}
                     {%~ if this.gapsBefore[timeId] is defined %}
                         <tr class="leaderboard-gap">
@@ -378,9 +378,9 @@
                                     type="button"
                                     class="btn btn-link btn-sm w-100 py-2 text-decoration-none"
                                     data-action="live#action"
-                                    data-live-action-param="showMore"
+                                    data-live-action-param="revealGap"
                                     data-loading="addAttribute(disabled)"
-                                    title="{{ 'puzzle_times.leaderboard.show_more'|trans({'%count%': this.showMoreCount}) }}"
+                                    title="{{ 'puzzle_times.leaderboard.show_more'|trans({'%count%': this.gapsBefore[timeId]}) }}"
                                 >
                                     ⋯ {{ 'puzzle_times.leaderboard.hidden_rows'|trans({'%count%': this.gapsBefore[timeId]}) }}
                                 </button>
@@ -448,7 +448,7 @@
             </table>
         </div>
 
-        {% if hiddenRowsCount > 0 %}
+        {% if rowsBelowCount > 0 %}
             {# Buttons, not links: pages 2..N of one puzzle would be near-duplicate URLs wasting crawl budget #}
             <div class="d-flex flex-wrap justify-content-center gap-2 mb-5" data-nosnippet>
                 <button

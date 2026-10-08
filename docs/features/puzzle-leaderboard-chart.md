@@ -306,17 +306,21 @@ the reasoning of 2026-09-30.)*
   gap row: 1 … 100, **⋯ 497 more**, 598, 599, **600 (you)**, 601, 602. Rows are joined without a gap when the neighbourhood touches
   the top rows (e.g. you are 102nd), and a viewer inside the top 100 also sees the two rows below them. "Jump to me" always has a
   target. Like Duolingo's leagues: the people right around you are the ones you race.
-- The gap row counts the rows it hides and is a button running the same "Show more" action as the button under the table – a
-  row saying "497 more" invites a tap, so it must do something. After one tap it reads "⋯ 397 more"; once the top rows reach the
-  neighbourhood it disappears.
+- **Two buttons, two things** (changed 2026-10-09 after a player's feedback – both used to run "Show more", which filled the
+  gap first and only then went on after the viewer's rows):
+  - the gap row counts the rows it hides and reveals **all of them** (`revealGap()`, title "Show 497 more"): the ranking then
+    runs without a break down to the viewer. A big gap is many rows at once – no more than "Show all" renders;
+  - "Show 100 more" under the table continues **after the last row shown** – after the viewer's rows while they stand apart
+    from the top rows (`PuzzleTimes::$belowOwnRow`, starting at the two neighbours), after the top rows otherwise. Shown only
+    while rows remain after the last one, together with "Show all"; a gap above the viewer stays for its own row.
 - The revealed rows belong to one list – the tab and its filters (`PuzzleTimes::$pagedList`): another tab or filter starts from
-  the top 100 again, the same list keeps them whatever a request carries. Never reset the limit in a filter's `onUpdated` hook:
+  the top 100 and the two neighbours again, the same list keeps them whatever a request carries. Never reset the limit in a filter's `onUpdated` hook:
   Live re-sends the members' country select (`""` for "All countries" while the prop is null) with every request, so such a
   hook ran every time and undid each "Show more" after the first one (fixed 2026-10-09: stuck at 200 rows, the gap row did
   nothing). `PuzzleTimesLeaderboardLimitTest` drives the table from the puzzle page the way the browser does
   (`tests/LiveComponentBrowserRequests.php`).
-- No separate "load rows around me" control: ±2 rows answer "who is right around me"; "Show more" / "Show all" remain for
-  everything else.
+- No separate "load rows around me" control: ±2 rows answer "who is right around me"; the gap row, "Show more" and "Show all"
+  reveal everything else.
 - **Position line** in the viewer's own card, for every signed-in player (it only restates the public table):
   *"Rank 600 of 1718 · faster than 65% of puzzlers · 00:02:36 from the top 500"*.
   - Rank: the same tie rule as the table (equal time = rank of the row above); it used to be the position, which could disagree.
@@ -360,6 +364,7 @@ it).
 1. **Switch to the distribution above 50 rows** – kept. *Replaced 2026-10-02: from 20 rows, by the member's choice.*
 2. **No toggle** between the two views – kept. *Replaced 2026-10-02: a remembered switch, see "Chart switch".*
 3. **±2 neighbours** – kept; the gap row now says how many rows it hides ("⋯ 497 more") and runs "Show more" when tapped.
+   *Changed 2026-10-09: the gap row reveals all of its rows, "Show more" continues after the viewer's rows.*
 4. **"faster than X %"** stays everywhere: "Top 97 %" would be ambiguous (faster than 97 %, or the slowest 3 %?).
 5. **Median + You on the bar-per-row chart** – yes: horizontal dashed median, "You" above the viewer's bar, same summary.
 6. **First attempts / repeats split in the distribution** – Jan asked to see it, then: "i love the first tries in histogram,
@@ -425,5 +430,6 @@ One row = rank · player · time, and **the table never scrolls sideways** (320 
   boards, unknown value, non-members and guests, no query of its own.
 - `tests/MessageHandler/ChangeLeaderboardChartViewHandlerTest.php` – stored and read through the viewer's profile only.
 - `tests/Component/PuzzleTimesLeaderboardLimitTest.php` – neighbourhood far down / right below the top rows / inside the top
-  rows, tied ranks in the neighbourhood, the position line (#1, small board, far down), the "⋯ N more" gap row (count, tap =
-  "Show more", count after a tap, gone once the rows join) and its Czech plural forms.
+  rows, tied ranks in the neighbourhood, the position line (#1, small board, far down), the "⋯ N more" gap row (count, a tap
+  reveals all of its rows) and its Czech plural forms, "Show more" after the viewer's rows leaving the gap, the browser-shaped
+  run from the puzzle page (re-sent country select included).

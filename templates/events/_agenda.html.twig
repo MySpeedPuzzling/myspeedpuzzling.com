@@ -45,7 +45,7 @@
         {% set shown_rows = month.rows|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
         <section class="ev-group ev-month" data-ev-group="month" data-ev-month="{{ month.firstDay|date('Y-m', 'UTC') }}" {{ shown_rows is empty ? 'hidden' }}>
             <h3 class="ev-month-header">
-                <span><span data-ev-scope-prefix>{{ scope_prefix }}</span>{{ month.firstDay|format_date(pattern: 'LLLL yyyy', timezone: 'UTC') }}</span>
+                <span><span data-ev-scope-prefix>{{ scope_prefix }}</span>{{ month.firstDay|events_date('yMMMM') }}</span>
                 <span class="ev-month-n" data-ev-group-count>{{ 'events_page.agenda.dates_count'|trans({'%count%': shown_rows|filter(r => not r.isPending)|reduce((carry, r) => carry + r.datesCount, 0)}) }}</span>
             </h3>
             <ul class="ev-rows">
@@ -68,7 +68,7 @@
         <p class="ev-empty-text">
             <span data-ev-empty-last>
                 {%- if page.scopeLast -%}
-                    {{ 'events_page.empty.last_one'|trans({'%name%': page.scopeLast.title, '%month%': page.scopeLast.from|format_date(pattern: 'LLLL yyyy', timezone: 'UTC')}) }}
+                    {{ 'events_page.empty.last_one'|trans({'%name%': page.scopeLast.title, '%month%': page.scopeLast.from|events_date('yMMMM')}) }}
                 {%- else -%}
                     {{ 'events_page.empty.none_yet'|trans }}
                 {%- endif -%}

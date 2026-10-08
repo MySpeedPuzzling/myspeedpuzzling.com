@@ -70,7 +70,8 @@ abstract class AbstractEventFollowController extends AbstractController
         } catch (FollowTargetNotAvailable) {
             return $this->failure($wantsJson, $returnUrl, 'events_organizer.follow.not_available', Response::HTTP_NOT_FOUND, 'danger');
         } catch (UniqueConstraintViolationException) {
-            // A double tap raced past the lock - it is followed, the same outcome
+            // The SerializedByLock lock normally keeps a double tap from inserting twice; when the lock fails open
+            // the unique index catches the second insert - it is followed either way, the same outcome
         } catch (HandlerFailedException $exception) {
             if ($this->isDuplicate($exception) === false) {
                 throw $exception;

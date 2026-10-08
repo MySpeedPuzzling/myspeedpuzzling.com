@@ -226,6 +226,65 @@ final class EventsPageBuilderTest extends TestCase
         ], $when);
     }
 
+    public function testOnASaturdayNextWeekendIsNotThisWeekend(): void
+    {
+        $page = $this->build([
+            $this->event('Sunday', '2026-10-11'),
+            $this->event('Next Friday', '2026-10-16'),
+            $this->event('Next Saturday', '2026-10-17'),
+        ], [], today: '2026-10-10 10:00:00');
+
+        self::assertSame([
+            'Sunday' => [WhenLabel::TOMORROW, 1, true],
+            'Next Friday' => [WhenLabel::IN_DAYS, 6, true],
+            'Next Saturday' => [WhenLabel::IN_DAYS, 7, true],
+        ], $this->whenLabels($page));
+    }
+
+    public function testOnASundayNextWeekendIsNotThisWeekend(): void
+    {
+        $page = $this->build([
+            $this->event('Monday', '2026-10-12'),
+            $this->event('Next Friday', '2026-10-16'),
+            $this->event('Next Sunday', '2026-10-18'),
+        ], [], today: '2026-10-11 10:00:00');
+
+        self::assertSame([
+            'Monday' => [WhenLabel::TOMORROW, 1, true],
+            'Next Friday' => [WhenLabel::IN_DAYS, 5, true],
+            'Next Sunday' => [WhenLabel::IN_DAYS, 7, true],
+        ], $this->whenLabels($page));
+    }
+
+    public function testOnAMondayTheComingFridayToSundayIsThisWeekend(): void
+    {
+        $page = $this->build([
+            $this->event('Friday', '2026-10-16'),
+            $this->event('Sunday', '2026-10-18'),
+            $this->event('Next Monday', '2026-10-19'),
+        ], [], today: '2026-10-12 10:00:00');
+
+        self::assertSame([
+            'Friday' => [WhenLabel::THIS_WEEKEND, 4, true],
+            'Sunday' => [WhenLabel::THIS_WEEKEND, 6, true],
+            'Next Monday' => [WhenLabel::IN_DAYS, 7, true],
+        ], $this->whenLabels($page));
+    }
+
+    /**
+     * @return array<string, null|array{string, int, bool}>
+     */
+    private function whenLabels(EventsPage $page): array
+    {
+        $when = [];
+
+        foreach ([...$page->happeningNow, ...array_merge(...array_map(static fn ($month): array => $month->rows, $page->months))] as $row) {
+            $when[$row->title] = $row->when === null ? null : [$row->when->type, $row->when->days, $row->when->soon];
+        }
+
+        return $when;
+    }
+
     public function testTagsInOrderAndRegistrationStates(): void
     {
         $now = new DateTimeImmutable(self::TODAY, new DateTimeZone('UTC'));
@@ -262,6 +321,29 @@ final class EventsPageBuilderTest extends TestCase
         self::assertEquals(new DateTimeImmutable('2027-09-01', new DateTimeZone('UTC')), $rows['Marathon Series']->tags[3]->date);
         self::assertNull($rows['Marathon Series']->leaf->to, 'a long-running leaf shows its first day only');
         self::assertSame($rows['Marathon Series']->from, $rows['Marathon Series']->to);
+    }
+
+    public function testOngoingOnlineEventsCarryTheirRegistrationAndGoingCount(): void
+    {
+        $now = new DateTimeImmutable(self::TODAY, new DateTimeZone('UTC'));
+        $relay = $this->event('Endless Relay', null, online: true, registrationLink: true);
+        $fullRelay = $this->event('Full Relay', null, online: true, managed: true, capacity: 3, opensAt: $now->modify('-5 days'));
+
+        $page = $this->build(
+            [$relay, $fullRelay],
+            [],
+            goingCounts: [$relay->competitionId => 5, $fullRelay->competitionId => 3],
+        );
+
+        $rows = [];
+
+        foreach ($page->ongoingOnline as $row) {
+            $rows[$row->title] = $row;
+        }
+
+        self::assertSame([RowTagType::Registration, RowTagType::GoingCount], $this->tagTypes($rows['Endless Relay']));
+        self::assertSame(5, $rows['Endless Relay']->tags[1]->count);
+        self::assertSame([RowTagType::FullWaitlist, RowTagType::GoingCount], $this->tagTypes($rows['Full Relay']));
     }
 
     public function testYourEvents(): void
@@ -446,6 +528,7 @@ final class EventsPageBuilderTest extends TestCase
         null|EventsViewerData $viewer = null,
         null|EventsScope $scope = null,
         null|CountryCode $homeCountry = null,
+        string $today = self::TODAY,
     ): EventsPage {
         usort($occurrences, static fn (EventOccurrence $a, EventOccurrence $b): int => [$a->startDate === null, $a->startDate, $a->name] <=> [$b->startDate === null, $b->startDate, $b->name]);
 
@@ -455,7 +538,7 @@ final class EventsPageBuilderTest extends TestCase
             $goingCounts,
             $viewer,
             $scope ?? EventsScope::everywhere(),
-            new DateTimeImmutable(self::TODAY, new DateTimeZone('UTC')),
+            new DateTimeImmutable($today, new DateTimeZone('UTC')),
             'en',
             $homeCountry,
         );

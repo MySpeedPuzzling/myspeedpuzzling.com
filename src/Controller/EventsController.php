@@ -75,7 +75,8 @@ final class EventsController extends AbstractController
         foreach ($occurrences as $occurrence) {
             $status = $occurrence->status($today);
 
-            if ($status === EventOccurrenceStatus::Live || $status === EventOccurrenceStatus::Upcoming || $status === EventOccurrenceStatus::Tba) {
+            // Ongoing online events take registrations too: "N going", Full/waitlist
+            if ($status->isComing() || $status === EventOccurrenceStatus::Ongoing) {
                 $comingIds[] = $occurrence->competitionId;
             }
         }
@@ -100,6 +101,8 @@ final class EventsController extends AbstractController
 
         return $this->render('events.html.twig', [
             'page' => $page,
+            // The calendars' "today" - from the clock, like the page's statuses
+            'today' => $today->format('Y-m-d'),
             'view' => $view,
             'month' => $view === EventsView::Calendar && is_string($month) && preg_match('/^(19|20)\d{2}-(0[1-9]|1[0-2])$/', $month) === 1 ? $month : null,
             'query' => is_string($query) ? mb_substr(trim($query), 0, self::QUERY_MAX_LENGTH) : '',

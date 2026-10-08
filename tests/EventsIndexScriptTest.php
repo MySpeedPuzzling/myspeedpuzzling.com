@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests;
 
 use PHPUnit\Framework\TestCase;
+use DateTimeImmutable;
+use DateTimeZone;
+use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
 use SpeedPuzzling\Web\Value\SearchText;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -115,9 +119,81 @@ final class EventsIndexScriptTest extends TestCase
     }
 
     /**
+     * Server and browser write the same dates in all six languages (EventsPageDates, formatDate()/formatDayRange()) -
+     * the skeletons both sides use; weekday ones are server-only (ICU versions differ on their commas)
+     */
+    public function testServerAndBrowserWriteTheSameDates(): void
+    {
+        $translator = new class implements TranslatorInterface {
+            /**
+             * @param array<string, mixed> $parameters
+             */
+            public function trans(string $id, array $parameters = [], null|string $domain = null, null|string $locale = null): string
+            {
+                return $id;
+            }
+
+            public function getLocale(): string
+            {
+                return 'en';
+            }
+        };
+        $dates = new EventsPageDates($translator);
+        $utc = new DateTimeZone('UTC');
+
+        $cases = [];
+
+        foreach (['en', 'cs', 'de', 'es', 'fr', 'ja'] as $lang) {
+            foreach (['yMMMM', 'yMMM', 'MMMd', 'yMMMd', 'MMM'] as $skeleton) {
+                $cases[] = ['from' => '2026-10-12', 'lang' => $lang, 'skeleton' => $skeleton];
+            }
+
+            foreach (
+                [
+                ['2026-10-10', '2026-10-11', 'MMMd'],
+                ['2025-10-10', '2025-10-11', 'yMMMd'],
+                ['2025-10-30', '2025-11-02', 'yMMMd'],
+                ['2025-10-30', '2025-11-02', 'MMMd'],
+                ['2025-12-30', '2026-01-02', 'yMMMd'],
+                ['2025-03-03', '2025-06-24', 'MMM'],
+                ['2025-03-03', '2025-06-24', 'yMMM'],
+                ['2025-03-03', '2025-03-24', 'MMM'],
+                ] as [$from, $to, $skeleton]
+            ) {
+                $cases[] = ['from' => $from, 'to' => $to, 'lang' => $lang, 'skeleton' => $skeleton];
+            }
+        }
+
+        $expected = array_map(static function (array $case) use ($dates, $utc): string {
+            $from = new DateTimeImmutable($case['from'], $utc);
+
+            return isset($case['to'])
+                ? $dates->range($from, new DateTimeImmutable($case['to'], $utc), $case['skeleton'], $case['lang'])
+                : $dates->format($from, $case['skeleton'], $case['lang']);
+        }, $cases);
+
+        self::assertSame($expected, $this->runInNode(['dates' => $cases])['dates']);
+
+        // And they read like the language writes them
+        self::assertSame(
+            ['October 2026', '10–11 Oct', 'Oktober 2026', '10.–11. Okt.', 'říjen 2026', '30. 10. – 2. 11. 2025', '2026年10月', '2025年10月10日–11日'],
+            [
+                $dates->format(new DateTimeImmutable('2026-10-01', $utc), 'yMMMM', 'en'),
+                $dates->range(new DateTimeImmutable('2026-10-10', $utc), new DateTimeImmutable('2026-10-11', $utc), 'MMMd', 'en'),
+                $dates->format(new DateTimeImmutable('2026-10-01', $utc), 'yMMMM', 'de'),
+                $dates->range(new DateTimeImmutable('2026-10-10', $utc), new DateTimeImmutable('2026-10-11', $utc), 'MMMd', 'de'),
+                $dates->format(new DateTimeImmutable('2026-10-01', $utc), 'yMMMM', 'cs'),
+                $dates->range(new DateTimeImmutable('2025-10-30', $utc), new DateTimeImmutable('2025-11-02', $utc), 'yMMMd', 'cs'),
+                $dates->format(new DateTimeImmutable('2026-10-01', $utc), 'yMMMM', 'ja'),
+                $dates->range(new DateTimeImmutable('2025-10-10', $utc), new DateTimeImmutable('2025-10-11', $utc), 'yMMMd', 'ja'),
+            ],
+        );
+    }
+
+    /**
      * @param array<string, list<array<string, mixed>>> $input
      *
-     * @return array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>}
+     * @return array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>}
      */
     private function runInNode(array $input): array
     {
@@ -126,10 +202,10 @@ final class EventsIndexScriptTest extends TestCase
         self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
 
         $process = new Process([$node, __DIR__ . '/events-index-harness.mjs']);
-        $process->setInput(json_encode($input + ['scopes' => [], 'queries' => [], 'days' => [], 'months' => [], 'formatted' => []], JSON_THROW_ON_ERROR));
+        $process->setInput(json_encode($input + ['scopes' => [], 'queries' => [], 'days' => [], 'months' => [], 'formatted' => [], 'dates' => []], JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>} $results */
+        /** @var array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>} $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
         return $results;

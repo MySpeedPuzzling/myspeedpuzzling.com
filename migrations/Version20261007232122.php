@@ -14,7 +14,7 @@ final class Version20261007232122 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return '';
+        return 'Events page: followed_competition - players follow a one-time event or a whole series';
     }
 
     public function up(Schema $schema): void

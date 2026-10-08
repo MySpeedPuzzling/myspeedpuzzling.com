@@ -1,9 +1,10 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
-import { fillArchiveLine, readEventsIndex } from '../events_index.js';
+import { dateLocale, fillArchiveLine, formatDate, readEventsIndex } from '../events_index.js';
 import {
     buildMonth,
     calendarEntries,
+    emptyMonthDirection,
     formatIso,
     idsOnDay,
     monthKey,
@@ -40,9 +41,8 @@ export default class extends Controller {
     connect() {
         this.page = this.element.closest('.ev-page');
         this.index = readEventsIndex(this.page ?? document);
-        // English pages read "12 Nov 2027" like the server's date patterns, not the US "Nov 12, 2027"
-        const lang = document.documentElement.lang || undefined;
-        this.locale = lang === 'en' ? 'en-GB' : lang;
+        // The server's date locale (EventsPageDates): English pages read "12 Nov 2027", not the US "Nov 12, 2027"
+        this.locale = dateLocale(document.documentElement.lang);
 
         const data = this.page?.dataset ?? {};
 
@@ -268,7 +268,7 @@ export default class extends Controller {
     }
 
     monthTitle() {
-        return formatIso(`${monthKey(this.month)}-01`, this.locale, { month: 'long', year: 'numeric' });
+        return formatDate(`${monthKey(this.month)}-01`, this.locale, 'yMMMM');
     }
 
     renderGrids() {
@@ -411,8 +411,8 @@ export default class extends Controller {
     }
 
     runText(run) {
-        const until = formatIso(run.entry.t || run.entry.f, this.locale, { day: 'numeric', month: 'short', year: 'numeric' });
-        const from = formatIso(run.entry.f, this.locale, { day: 'numeric', month: 'short' });
+        const until = formatDate(run.entry.t || run.entry.f, this.locale, 'yMMMd');
+        const from = formatDate(run.entry.f, this.locale, 'MMMd');
         const message = {
             all_month: this.messagesValue.runAllMonth,
             until: this.messagesValue.runUntil,
@@ -500,7 +500,13 @@ export default class extends Controller {
         const box = element('div', 'ev-cal-empty');
         const title = String(this.state.query.trim() !== '' ? this.messagesValue.emptyMatching : this.messagesValue.empty)
             .replace('%month%', this.monthTitle());
-        const hint = this.state.scope && this.state.scope !== 'all' ? this.messagesValue.emptyHintScope : this.messagesValue.emptyHint;
+        // Towards the side that has matches; "Everywhere" while a country or Online is picked
+        const direction = emptyMonthDirection(this.entries(), this.month);
+        const scoped = Boolean(this.state.scope && this.state.scope !== 'all');
+        const hint = {
+            next: scoped ? this.messagesValue.emptyHintScope : this.messagesValue.emptyHint,
+            previous: scoped ? this.messagesValue.emptyHintScopePrevious : this.messagesValue.emptyHintPrevious,
+        }[direction] ?? (scoped ? this.messagesValue.emptyHintScopeNone : this.messagesValue.emptyHintNone);
 
         box.append(element('p', 'ev-cal-empty-title', title));
 

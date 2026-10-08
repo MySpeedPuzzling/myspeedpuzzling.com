@@ -1,12 +1,12 @@
 {# The date block of a row (owner: workstream A). Variables: leaf (DateLeaf)
-   Weekday band, day(s), month(s) - ICU names in the page's language. A band, day or month string longer than a short
+   Weekday band, day number(s), month(s) - the locale's stand-alone weekday and month abbreviations (`E`, `MMM`). A band, day or month string longer than a short
    English one gets the `-long` size, so "SA.–SO.", "SAM.–DIM." or "10–11" still fit 56 px. The row says the date in
    words for screen readers, so the leaf is hidden from them. #}
 {% if leaf.from %}
     {% set to = leaf.to %}
-    {% set band = leaf.from|format_date(pattern: 'EEE', timezone: 'UTC') ~ (to ? '–' ~ to|format_date(pattern: 'EEE', timezone: 'UTC')) %}
-    {% set day = leaf.from|format_date(pattern: 'd', timezone: 'UTC') ~ (to ? '–' ~ to|format_date(pattern: 'd', timezone: 'UTC')) %}
-    {% set month_text = leaf.from|format_date(pattern: 'LLL', timezone: 'UTC') ~ (to and to|date('Y-m', 'UTC') != leaf.from|date('Y-m', 'UTC') ? '–' ~ to|format_date(pattern: 'LLL', timezone: 'UTC')) %}
+    {% set band = leaf.from|events_date('E') ~ (to ? '–' ~ to|events_date('E')) %}
+    {% set day = leaf.from|date('j', false) ~ (to ? '–' ~ to|date('j', false)) %}
+    {% set month_text = leaf.from|events_date('MMM') ~ (to and to|date('Y-m', false) != leaf.from|date('Y-m', false) ? '–' ~ to|events_date('MMM')) %}
 {% else %}
     {% set band = 'events_page.leaf.tba'|trans %}
     {% set day = '?' %}

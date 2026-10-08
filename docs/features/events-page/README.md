@@ -81,10 +81,10 @@ counts, and "More countries…") and, in the list view, a **mini calendar** whos
   only sign of the country. Online occurrences say "Online".
 - **Tags**: Waiting for approval (admins only) · ✓ Going · Recurring (editions) · registration state · Results (past)
   · Runs until … · "41 going".
-- **When**: "Happening now", "Now" (long-running), "Tomorrow", "This weekend" (within 6 days, Fri–Sun), "In 16 days"
+- **When**: "Happening now", "Now" (long-running), "Tomorrow", "This weekend" (a Fri–Sun of the current Monday-first week, so never next week's), "In 16 days"
   (up to 30 days; coral when ≤ 14).
 - **☆** follows the event (an edition's star follows its series). Guests get "Sign in to follow events and series."
-  under the row. No star on past rows.
+  under the row. No star on past rows, nor on rows waiting for approval (admins only).
 - **⋯** only on rows the viewer can manage (and on every row for admins).
 
 **Month roll-up**: several upcoming editions of one series in the same month are **one row**: the series name,
@@ -105,7 +105,16 @@ An edition is dated by its first round's `starts_at`, else its `date_from` (the 
 series page). A round start is converted to the **event's own zone** (`RoundTimezone::resolve()`: the round's zone,
 else the event's or the series' country) before taking its day - an evening round in Toronto is that evening's date,
 not the next UTC day. The guest HTML is the same for everybody, so it cannot use the viewer's zone. A one-time event is
-dated by `date_from`/`date_to` as before. "Today" is the server's UTC date, as the old listing.
+dated by `date_from`/`date_to` as before. "Today" is the server's UTC date, as the old listing - the calendars take it
+from the controller's clock too.
+
+**Written in the page's language.** Every date on the events pages comes from an ICU skeleton (`yMMMM` month headers,
+`MMMd` / `yMMMd` days, `MMMEd` next editions, `E` / `MMM` leaf parts), never a hand-written pattern:
+`EventsPageDates` (Twig `|events_date('yMMMd')`, `events_date_range(from, to, 'MMMd')`) on the server,
+`formatDate()` / `formatDayRange()` of `assets/events_index.js` in the browser - "October 2026", "Oktober 2026",
+"říjen 2026", "2026年10月". English pages use en-GB ("12 Oct 2026"). A range writes what both days share once, on the
+side the locale puts it ("10–11 Oct", "10.–11. 10.", "2025年10月10日–11日"). `EventsIndexScriptTest` pins that both
+sides write the same text in all 6 locales.
 
 | Status | Rule |
 |---|---|
@@ -165,7 +174,9 @@ are buttons; a day highlights its rows below the grid ("Saturday 10 October is h
 Multi-day occurrences mark every day; long-running ones get a bar under the grid ("from 3 Oct, until 7 Dec 2027")
 instead. Below the grid: the month's rows (agenda rows for live/upcoming, archive lines for past). Desktop shows a
 bigger grid with up to 2 names per cell and "+2 more". The calendar honours scope and search, works for every month
-with data (past ones from the index), and keeps the month in the URL (`?view=calendar&month=2026-11`).
+with data (past ones from the index), and keeps the month in the URL (`?view=calendar&month=2026-11`). An empty month
+points to the side with matches ("Try the next month" / "Try an earlier month", plus "or Everywhere" in a scope), or
+says other months have nothing either.
 
 ## Follow
 

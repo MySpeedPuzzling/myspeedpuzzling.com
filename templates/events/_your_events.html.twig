@@ -23,7 +23,7 @@
                             {%- if row.when -%}
                                 <span class="ev-when{{ row.when.soon ? ' ev-when-soon' }}">{{ row.when.translationKey|trans({'%count%': row.when.days}) }}</span>
                             {%- elseif row.leaf.from -%}
-                                {{ row.leaf.from|format_date(pattern: 'd LLL yyyy', timezone: 'UTC') }}
+                                {{ row.leaf.from|events_date('yMMMd') }}
                             {%- else -%}
                                 {{ 'events_page.agenda.tba'|trans }}
                             {%- endif %}

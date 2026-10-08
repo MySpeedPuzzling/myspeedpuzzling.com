@@ -86,6 +86,20 @@ final class EventFollowStarTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.ev-line .ev-star'));
     }
 
+    public function testNoStarOnRowsWaitingForApproval(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/events');
+
+        $pending = $crawler->filter('.ev-row-pending');
+        self::assertGreaterThan(0, $pending->count(), 'admins see items waiting for approval');
+        $pending->each(static function (Crawler $row): void {
+            self::assertCount(0, $row->filter('.ev-star'), $row->text());
+        });
+    }
+
     public function testTheManageButtonOnlyOnRowsTheViewerManages(): void
     {
         $browser = self::createClient();

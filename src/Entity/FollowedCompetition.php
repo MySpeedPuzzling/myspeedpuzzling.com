@@ -15,7 +15,6 @@ use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
-use SpeedPuzzling\Web\Value\FollowTarget;
 
 /**
  * A player follows a one-time event or a whole series (docs/features/events-page/README.md, "Follow"). Exactly one
@@ -68,16 +67,5 @@ class FollowedCompetition
     {
         $this->competition = null;
         $this->series = $series;
-    }
-
-    public function target(): FollowTarget
-    {
-        if ($this->series !== null) {
-            return FollowTarget::series($this->series->id->toString());
-        }
-
-        assert($this->competition !== null);
-
-        return FollowTarget::competition($this->competition->id->toString());
     }
 }

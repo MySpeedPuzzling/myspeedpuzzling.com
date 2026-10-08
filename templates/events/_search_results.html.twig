@@ -15,8 +15,7 @@
             {% set from = date(entry.f ~ 'T00:00:00+00:00') %}
             <li class="ev-line" data-ev-ids="{{ entry.id }}" data-ev-scope="{{ entry.sc }}">
                 <span class="ev-line-date">
-                    {{- from|format_date(pattern: 'd LLL', timezone: 'UTC') -}}
-                    {%- if entry.t %}–{{ date(entry.t ~ 'T00:00:00+00:00')|format_date(pattern: 'd LLL', timezone: 'UTC') }}{% endif %} {{ from|date('Y', 'UTC') -}}
+                    {{- events_date_range(from, entry.t ? date(entry.t ~ 'T00:00:00+00:00') : null, 'yMMMd') -}}
                 </span>
                 <span class="ev-line-main">
                     {% set title = entry.en ? entry.n ~ ' · ' ~ entry.en : entry.n %}

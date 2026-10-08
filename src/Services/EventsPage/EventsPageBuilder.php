@@ -450,8 +450,9 @@ readonly final class EventsPageBuilder
             return new WhenLabel(WhenLabel::TOMORROW, 1, true);
         }
 
-        // Friday, Saturday, Sunday
-        if ($days <= 6 && (int) $start->format('N') >= 5) {
+        // Friday, Saturday or Sunday of the current (ISO, Monday-first) week - on a Saturday, next Friday is not
+        // "this weekend"
+        if ($days <= 7 - (int) $day->format('N') && (int) $start->format('N') >= 5) {
             return new WhenLabel(WhenLabel::THIS_WEEKEND, $days, true);
         }
 

@@ -16,12 +16,13 @@
 {% else %}
     <li class="ev-line{{ line.isRollUp ? ' ev-line-rollup' }}" data-ev-ids="{{ line.idsAttribute }}" data-ev-scope="{{ line.scopeKey }}" {{ line.visible ? '' : 'hidden' }}>
         <span class="ev-line-date">
+            {#- Like fillArchiveLine() / formatDayRange() in assets/events_index.js -#}
+            {%- set with_year = with_year|default(false) -%}
             {%- if line.isRollUp -%}
-                {{ line.from|format_date(pattern: 'LLL', timezone: 'UTC') }}{% if line.monthTo != line.monthFrom %}–{{ line.to|format_date(pattern: 'LLL', timezone: 'UTC') }}{% endif %}
+                {{ events_date_range(line.from, line.to, with_year ? 'yMMM' : 'MMM') }}
             {%- else -%}
-                {{ line.from|format_date(pattern: 'd LLL', timezone: 'UTC') }}{% if line.to %}–{{ line.to|format_date(pattern: 'd LLL', timezone: 'UTC') }}{% endif %}
+                {{ events_date_range(line.from, line.to, with_year ? 'yMMMd' : 'MMMd') }}
             {%- endif -%}
-            {%- if with_year|default(false) %} {{ line.year }}{% endif -%}
         </span>
         {% set title = line.isRollUp
             ? 'events_page.archive.editions_in'|trans({'%series%': line.title, '%count%': line.editionCount, '%year%': line.year})

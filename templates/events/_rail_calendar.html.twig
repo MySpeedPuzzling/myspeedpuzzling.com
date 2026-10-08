@@ -1,10 +1,10 @@
 {#
-    The desktop mini calendar in the list view's side column (owner: workstream B). Variables: page, view, month
+    The desktop mini calendar in the list view's side column (owner: workstream B). Variables: page, view, today (Y-m-d, the controller's clock), month
     One dot a day (in person wins over online over past), its own ‹ ›; a day dispatches `events-calendar:day` with the
     index ids of that day's occurrences in the selected scope, and the list scrolls to them (events_page_controller.js).
     Drawn by events_calendar_controller.js; without JavaScript there is nothing to show.
 #}
-{% set calendar_today = 'now'|date('Y-m-d', 'UTC') %}
+{% set calendar_today = today %}
 <section class="ev-rail-calendar"
          aria-labelledby="ev-rail-calendar-title"
          data-controller="events-calendar"
@@ -19,7 +19,7 @@
         <button type="button" class="ev-rail-cal-nav" data-action="events-calendar#previous" aria-label="{{ 'events_calendar.prev_month'|trans }}">
             <i class="bi bi-chevron-left" aria-hidden="true"></i>
         </button>
-        <h2 class="ev-rail-cal-title" id="ev-rail-calendar-title" data-events-calendar-target="title" aria-live="polite">{{ (calendar_today|slice(0, 7) ~ '-01')|format_date(pattern: 'LLLL yyyy', timezone: 'UTC') }}</h2>
+        <h2 class="ev-rail-cal-title" id="ev-rail-calendar-title" data-events-calendar-target="title" aria-live="polite">{{ date(calendar_today|slice(0, 7) ~ '-01T00:00:00+00:00')|events_date('yMMMM') }}</h2>
         <button type="button" class="ev-rail-cal-nav" data-action="events-calendar#next" aria-label="{{ 'events_calendar.next_month'|trans }}">
             <i class="bi bi-chevron-right" aria-hidden="true"></i>
         </button>

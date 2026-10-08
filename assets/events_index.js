@@ -160,30 +160,164 @@ export function fillArchiveLine(templateRoot, entry, { locale, withYear = false,
 }
 
 /**
- * "3 Mar", "10 Oct – 11 Oct", with the year when asked - in the page's language, read in UTC like the server writes
- * the days.
+ * An archive line's day(s): "3 Mar", "10–11 Oct", "30 Oct – 2 Nov 2025", "2025年10月10日–11日" - in the page's
+ * language, like the server writes them (EventsPageDates::range() with MMMd / yMMMd).
  */
 export function formatDays(entry, locale, withYear = false) {
     if (!entry?.f) {
         return '';
     }
 
-    const options = { day: 'numeric', month: 'short', timeZone: 'UTC' };
+    return formatDayRange(entry.f, entry.t || null, locale, withYear ? 'yMMMd' : 'MMMd');
+}
 
-    if (withYear) {
-        options.year = 'numeric';
+// The ICU skeletons of EventsPageDates as Intl.DateTimeFormat options - same skeleton, same text on both sides
+const SKELETONS = {
+    yMMMM: { year: 'numeric', month: 'long' },
+    yMMM: { year: 'numeric', month: 'short' },
+    MMM: { month: 'short' },
+    MMMd: { month: 'short', day: 'numeric' },
+    yMMMd: { year: 'numeric', month: 'short', day: 'numeric' },
+};
+
+const FIELDS = { year: 'y', relatedYear: 'y', month: 'M', day: 'd', weekday: 'E' };
+
+/**
+ * The locale the events pages write dates in (EventsPageDates::dateLocale()): the page's, English as en-GB.
+ */
+export function dateLocale(lang) {
+    const locale = String(lang || '').replace('_', '-');
+
+    return locale === 'en' ? 'en-GB' : (locale || undefined);
+}
+
+function dateParts(iso, locale, skeleton) {
+    const options = SKELETONS[skeleton] ?? SKELETONS.yMMMd;
+
+    return new Intl.DateTimeFormat(locale || undefined, { ...options, timeZone: 'UTC' })
+        .formatToParts(new Date(`${iso}T00:00:00Z`))
+        .map((part) => ({ value: part.value, field: FIELDS[part.type] ?? (part.type === 'literal' ? null : part.type) }));
+}
+
+const joinParts = (parts) => parts.map((part) => part.value).join('').trim();
+
+/**
+ * One day (or month) from an ICU skeleton of SKELETONS, read in UTC: formatDate('2026-10-01', 'cs', 'yMMMM') = "říjen
+ * 2026"
+ */
+export function formatDate(iso, locale, skeleton) {
+    try {
+        return joinParts(dateParts(iso, locale, skeleton));
+    } catch {
+        return String(iso);
+    }
+}
+
+/**
+ * Two days (or months) as one compact range - EventsPageDates::range(), rule for rule: what they share is written once,
+ * on the side the locale puts it. Only the fields of the skeleton count.
+ */
+export function formatDayRange(fromIso, toIso, locale, skeleton) {
+    try {
+        const from = dateParts(fromIso, locale, skeleton);
+        const full = joinParts(from);
+
+        if (!toIso) {
+            return full;
+        }
+
+        const fields = from.map((part) => part.field).filter((field) => field !== null);
+        const has = (field) => fields.includes(field);
+        const sameYear = fromIso.slice(0, 4) === toIso.slice(0, 4);
+        const sameMonth = fromIso.slice(0, 7) === toIso.slice(0, 7);
+        const sameDay = fromIso.slice(0, 10) === toIso.slice(0, 10);
+
+        if ((sameDay || !has('d')) && (sameMonth || !has('M')) && (sameYear || !has('y'))) {
+            return full;
+        }
+
+        const to = dateParts(toIso, locale, skeleton);
+        const fullTo = joinParts(to);
+
+        if (!has('E')) {
+            const first = fields[0];
+            const last = fields[fields.length - 1];
+
+            if (has('d') && sameMonth) {
+                if (first === 'd') {
+                    return `${joinParts(segment(from, 'd'))}–${fullTo}`;
+                }
+
+                if (last === 'd') {
+                    return `${full}–${joinParts(segment(to, 'd'))}`;
+                }
+            }
+
+            if (has('y') && sameYear) {
+                if (last === 'y') {
+                    return joined(joinParts(without(from, 'y')), fullTo);
+                }
+
+                if (first === 'y') {
+                    return joined(full, joinParts(without(to, 'y')));
+                }
+            }
+        }
+
+        return joined(full, fullTo);
+    } catch {
+        return toIso ? `${fromIso} – ${toIso}` : String(fromIso);
+    }
+}
+
+const joined = (from, to) => (/[\s\p{Zs}]/u.test(from + to) ? `${from} – ${to}` : `${from}–${to}`);
+
+// A field with the literals that follow it, up to the next field
+function segment(parts, field) {
+    const start = parts.findIndex((part) => part.field === field);
+    const result = [];
+
+    for (let i = start; i >= 0 && i < parts.length; i++) {
+        if (i > start && parts[i].field !== null) {
+            break;
+        }
+
+        result.push(parts[i]);
     }
 
-    const format = new Intl.DateTimeFormat(locale || undefined, options);
-    const from = new Date(`${entry.f}T00:00:00Z`);
+    return result;
+}
 
-    if (!entry.t || entry.t === entry.f) {
-        return format.format(from);
+// The parts without their last (or first) field and the literals between it and the rest; a dot closing the field
+// before stays ("d. M." of "d. M. y")
+function without(parts, field) {
+    const indexes = parts.map((part, index) => (part.field !== null ? index : -1)).filter((index) => index >= 0);
+    const lastIndex = indexes[indexes.length - 1];
+
+    if (parts[lastIndex]?.field === field) {
+        const kept = parts.slice(0, lastIndex);
+        let dot = '';
+
+        while (kept.length > 0 && kept[kept.length - 1].field === null) {
+            dot = kept.pop().value.startsWith('.') ? '.' : '';
+        }
+
+        return [...kept, ...(dot ? [{ value: dot, field: null }] : []), ...parts.slice(lastIndex + 1)];
     }
 
-    const to = new Date(`${entry.t}T00:00:00Z`);
+    const firstIndex = indexes[0];
 
-    return typeof format.formatRange === 'function' ? format.formatRange(from, to) : `${format.format(from)} – ${format.format(to)}`;
+    if (parts[firstIndex]?.field === field) {
+        const rest = parts.slice(firstIndex + 1);
+
+        while (rest.length > 0 && rest[0].field === null) {
+            rest.shift();
+        }
+
+        return [...parts.slice(0, firstIndex), ...rest];
+    }
+
+    return parts;
 }
 
 function isoDate(year, month0, day) {

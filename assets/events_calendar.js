@@ -131,6 +131,21 @@ export function runTextKind(run) {
 }
 
 /**
+ * Where an empty month should send the visitor: `next` when a matching entry comes later, else `previous` when one was
+ * earlier, null when nothing matches anywhere (the entries are already narrowed by scope and search).
+ */
+export function emptyMonthDirection(entries, { year, month0 }) {
+    const first = isoDay(year, month0, 1);
+    const last = isoDay(year, month0, new Date(Date.UTC(year, month0 + 1, 0)).getUTCDate());
+
+    if (entries.some((entry) => entry.f > last)) {
+        return 'next';
+    }
+
+    return entries.some((entry) => (entry.t || entry.f) < first) ? 'previous' : null;
+}
+
+/**
  * The weekday names of a Monday-first week in the page's language (`short`: "Mon", "Mo", "lun.", "月").
  */
 export function weekdayNames(locale, width = 'short') {

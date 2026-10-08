@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import {
     buildMonth,
     calendarEntries,
+    emptyMonthDirection,
     idsOnDay,
     monthKey,
     parseMonth,
@@ -36,4 +37,5 @@ process.stdout.write(JSON.stringify({
     parsed: input.parsed.map((value) => parseMonth(value)),
     strongest: input.strongest.map((kinds) => strongestKind(kinds)),
     weekdays: input.weekdays.map(({ locale }) => weekdayNames(locale, 'short')),
+    directions: (input.directions ?? []).map(({ index, scope, query, month }) => emptyMonthDirection(calendarEntries(index, { scope, query }), parseMonth(month))),
 }));

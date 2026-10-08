@@ -48,13 +48,12 @@
                         <div class="ev-organized-sub">
                             {{- ('events_organizer.type.' ~ item.kind)|trans -}}
                             {%- if item.isSeries -%}
-                                {%- if item.nextEditionDate %} · {{ 'events_organizer.organize.next'|trans({'%date%': item.nextEditionDate|format_date(pattern: 'EEE d LLL yyyy', locale: locale, timezone: 'UTC')}) }}
-                                {%- elseif item.lastEditionDate %} · {{ 'events_organizer.organize.last'|trans({'%date%': item.lastEditionDate|format_date(pattern: 'd LLL yyyy', locale: locale, timezone: 'UTC')}) }}
+                                {%- if item.nextEditionDate %} · {{ 'events_organizer.organize.next'|trans({'%date%': item.nextEditionDate|events_date('yMMMEd')}) }}
+                                {%- elseif item.lastEditionDate %} · {{ 'events_organizer.organize.last'|trans({'%date%': item.lastEditionDate|events_date('yMMMd')}) }}
                                 {%- else %} · {{ 'events_organizer.organize.no_dates'|trans }}{% endif -%}
                                 {{- ' · ' }}{{ 'events_organizer.organize.editions'|trans({'%count%': item.editionCount}) -}}
                             {%- elseif item.startDate -%}
-                                {{- ' · ' }}{{ item.startDate|format_date(pattern: 'd LLL yyyy', locale: locale, timezone: 'UTC') -}}
-                                {%- if item.endDate %} – {{ item.endDate|format_date(pattern: 'd LLL yyyy', locale: locale, timezone: 'UTC') }}{% endif -%}
+                                {{- ' · ' }}{{ events_date_range(item.startDate, item.endDate, 'yMMMd') -}}
                             {%- endif -%}
                             {%- if item.isOnline %} · {{ 'events_organizer.organize.online'|trans }}
                             {%- elseif city or country %} · {% if item.countryCode %}<span class="fi fi-{{ item.countryCode.name }}" aria-hidden="true"></span> {% endif %}{{ [city, country]|filter(part => part is not null)|join(', ') }}{% endif -%}

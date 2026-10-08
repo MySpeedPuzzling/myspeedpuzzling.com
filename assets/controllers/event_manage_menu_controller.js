@@ -19,6 +19,8 @@ const FRAME_ID = 'event-manage-menu';
 const POPOVER_MEDIA = '(min-width: 992px)';
 const GAP = 4;
 const EDGE = 12;
+// A menu squeezed between the button and the viewport's edge still shows a few actions (and scrolls)
+const MIN_HEIGHT = 120;
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
 export default class extends Controller {
@@ -229,9 +231,9 @@ export default class extends Controller {
     }
 
     /**
-     * Popover: under the ⋯ button, its right edge on the button's right edge; over it when there is no room below -
-     * always inside the viewport. Placed again on scroll and whenever its height changes (a confirmation opens). The
-     * sheet is CSS.
+     * Popover: under the ⋯ button, its right edge on the button's right edge; above the button when there is more room
+     * there - never over the button itself: when neither side fits the whole menu, it gets the bigger side and scrolls.
+     * Placed again on scroll and whenever its height changes (a confirmation opens). The sheet is CSS.
      */
     place() {
         const style = this.dialog.style;
@@ -239,6 +241,7 @@ export default class extends Controller {
         if (this.isSheet()) {
             style.top = '';
             style.left = '';
+            style.maxHeight = '';
             return;
         }
 
@@ -246,18 +249,27 @@ export default class extends Controller {
         const viewportWidth = document.documentElement.clientWidth;
         const viewportHeight = window.innerHeight;
         const width = this.dialog.offsetWidth;
-        const height = this.dialog.offsetHeight;
+        // The whole menu's height, whatever max-height an earlier placement gave it (borders included)
+        const height = this.dialog.scrollHeight + (this.dialog.offsetHeight - this.dialog.clientHeight);
         const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
 
-        let left = anchor.right - width;
-        let top = anchor.bottom + GAP;
+        const roomBelow = viewportHeight - EDGE - (anchor.bottom + GAP);
+        const roomAbove = anchor.top - GAP - EDGE;
+        const below = height <= roomBelow || roomBelow >= roomAbove;
+        const room = Math.max(MIN_HEIGHT, below ? roomBelow : roomAbove);
+        const shown = Math.min(height, room);
 
-        if (top + height > viewportHeight - EDGE && anchor.top - GAP - height >= EDGE) {
-            top = anchor.top - GAP - height;
-        }
+        let left = anchor.right - width;
+        let top = below ? anchor.bottom + GAP : anchor.top - GAP - shown;
 
         left = clamp(left, EDGE, Math.max(EDGE, viewportWidth - width - EDGE));
-        top = clamp(top, EDGE, Math.max(EDGE, viewportHeight - height - EDGE));
+        top = clamp(top, EDGE, Math.max(EDGE, viewportHeight - shown - EDGE));
+
+        const maxHeight = height > room ? `${room}px` : '';
+
+        if (style.maxHeight !== maxHeight) {
+            style.maxHeight = maxHeight;
+        }
 
         style.top = `${top}px`;
         style.left = `${left}px`;

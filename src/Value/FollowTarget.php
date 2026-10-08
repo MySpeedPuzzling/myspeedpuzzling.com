@@ -52,9 +52,4 @@ readonly final class FollowTarget
     {
         return $this->kind === FollowTargetKind::Series;
     }
-
-    public function equals(self $other): bool
-    {
-        return $this->kind === $other->kind && $this->id === $other->id;
-    }
 }

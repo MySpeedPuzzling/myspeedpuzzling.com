@@ -35,11 +35,11 @@
                             </div>
                             <span class="ev-series-next ev-series-next-{{ line.next.type }}">
                                 {%- if line.next.type == 'next' -%}
-                                    {{ 'events_page.series.next'|trans({'%date%': line.next.date|format_date(pattern: 'EEE d LLL', timezone: 'UTC')}) }}
+                                    {{ 'events_page.series.next'|trans({'%date%': line.next.date|events_date('MMMEd')}) }}
                                 {%- elseif line.next.type == 'live' -%}
                                     {{ 'events_page.series.happening_now'|trans }}
                                 {%- elseif line.next.type == 'last' -%}
-                                    {{ 'events_page.series.last'|trans({'%date%': line.next.date|format_date(pattern: 'd LLL yyyy', timezone: 'UTC')}) }}
+                                    {{ 'events_page.series.last'|trans({'%date%': line.next.date|events_date('yMMMd')}) }}
                                 {%- else -%}
                                     {{ 'events_page.series.no_dates'|trans }}
                                 {%- endif -%}
@@ -48,7 +48,7 @@
                                 follow_target: line.followTarget,
                                 follow_name: line.name,
                                 following: line.following,
-                                show_star: true,
+                                show_star: not line.isPending,
                                 manage: line.manage,
                             }) }}
                         </li>
@@ -68,14 +68,15 @@
                         <div class="ev-series-main">
                             {% if row.url %}<a class="ev-series-name" href="{{ row.url }}">{{ row.title }}</a>{% else %}<span class="ev-series-name">{{ row.title }}</span>{% endif %}
                             <span class="ev-series-sub">{{ 'events_page.series.no_fixed_dates'|trans }}</span>
-                            {% if row.isPending %}<span class="ev-tag ev-tag-waiting_for_approval">{{ 'events_page.tag.waiting_for_approval'|trans }}</span>{% endif %}
+                            {#- Waiting for approval, registration, "N going" - an ongoing event takes registrations too -#}
+                            {{ include('events/_row_tags.html.twig', {tags: row.tags}) }}
                         </div>
                         <span class="ev-series-next ev-series-next-live">{{ 'events_page.series.ongoing'|trans }}</span>
                         {{ include('events/_row_actions.html.twig', {
                             follow_target: row.followTarget,
                             follow_name: row.followName,
                             following: row.following,
-                            show_star: row.followTarget is not null,
+                            show_star: row.followTarget is not null and not row.isPending,
                             manage: row.manage,
                         }) }}
                     </li>

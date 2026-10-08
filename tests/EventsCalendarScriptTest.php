@@ -129,6 +129,27 @@ final class EventsCalendarScriptTest extends TestCase
         self::assertSame(['in_person', 'online', 'past', null], $results['strongest']);
     }
 
+    public function testAnEmptyMonthPointsToTheSideWithMatches(): void
+    {
+        $index = [
+            self::entry(0, '2026-03-14', null, 'cz', 'past', 'valley cup'),
+            self::entry(1, '2026-12-05', null, 'de', 'upcoming', 'river open'),
+        ];
+
+        $directions = $this->runInNode(['directions' => [
+            ['index' => $index, 'scope' => 'all', 'query' => '', 'month' => '2026-10'],
+            // Only an earlier match: back, not "next month"
+            ['index' => $index, 'scope' => 'all', 'query' => 'valley', 'month' => '2026-10'],
+            ['index' => $index, 'scope' => 'cz', 'query' => '', 'month' => '2026-10'],
+            ['index' => $index, 'scope' => 'de', 'query' => '', 'month' => '2026-10'],
+            // Nothing anywhere
+            ['index' => $index, 'scope' => 'all', 'query' => 'nowhere', 'month' => '2026-10'],
+            ['index' => $index, 'scope' => 'online', 'query' => '', 'month' => '2026-10'],
+        ]])['directions'];
+
+        self::assertSame(['next', 'previous', 'previous', 'next', null, null], $directions);
+    }
+
     public function testWeekdaysAreLocalisedAndStartOnMonday(): void
     {
         $weekdays = $this->runInNode(['weekdays' => [['locale' => 'en-GB'], ['locale' => 'cs']]])['weekdays'];
@@ -160,7 +181,7 @@ final class EventsCalendarScriptTest extends TestCase
     /**
      * @param array<string, list<mixed>> $input
      *
-     * @return array{months: list<array{lead: int, dayCount: int, days: array<string, array{ids: list<int>, kinds: list<string>, today: bool}>, runs: list<array{id: int, kind: string, text: string}>, items: list<int>}>, dayIds: list<list<int>>, shifted: list<string>, parsed: list<null|array{year: int, month0: int}>, strongest: list<null|string>, weekdays: list<list<string>>}
+     * @return array{months: list<array{lead: int, dayCount: int, days: array<string, array{ids: list<int>, kinds: list<string>, today: bool}>, runs: list<array{id: int, kind: string, text: string}>, items: list<int>}>, dayIds: list<list<int>>, shifted: list<string>, parsed: list<null|array{year: int, month0: int}>, strongest: list<null|string>, weekdays: list<list<string>>, directions: list<null|string>}
      */
     private function runInNode(array $input): array
     {
@@ -169,10 +190,10 @@ final class EventsCalendarScriptTest extends TestCase
         self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
 
         $process = new Process([$node, __DIR__ . '/events-calendar-harness.mjs']);
-        $process->setInput(json_encode($input + ['months' => [], 'dayIds' => [], 'shifted' => [], 'parsed' => [], 'strongest' => [], 'weekdays' => []], JSON_THROW_ON_ERROR));
+        $process->setInput(json_encode($input + ['months' => [], 'dayIds' => [], 'shifted' => [], 'parsed' => [], 'strongest' => [], 'weekdays' => [], 'directions' => []], JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var array{months: list<array{lead: int, dayCount: int, days: array<string, array{ids: list<int>, kinds: list<string>, today: bool}>, runs: list<array{id: int, kind: string, text: string}>, items: list<int>}>, dayIds: list<list<int>>, shifted: list<string>, parsed: list<null|array{year: int, month0: int}>, strongest: list<null|string>, weekdays: list<list<string>>} $results */
+        /** @var array{months: list<array{lead: int, dayCount: int, days: array<string, array{ids: list<int>, kinds: list<string>, today: bool}>, runs: list<array{id: int, kind: string, text: string}>, items: list<int>}>, dayIds: list<list<int>>, shifted: list<string>, parsed: list<null|array{year: int, month0: int}>, strongest: list<null|string>, weekdays: list<list<string>>, directions: list<null|string>} $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
         return $results;

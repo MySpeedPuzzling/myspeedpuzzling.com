@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { readEventsIndex, scopeMatches, createQueryMatcher, fillArchiveLine } from '../events_index.js';
+import { readEventsIndex, scopeMatches, createQueryMatcher, fillArchiveLine, dateLocale, formatDate, formatDayRange, formatDays } from '../events_index.js';
 import { guessCountry } from '../country_guess.js';
 import { foldSearchText } from '../search_fold.js';
 import { chooseTranslation } from '../translation_choice.js';
@@ -49,7 +49,9 @@ export default class extends Controller {
     connect() {
         this.index = readEventsIndex(this.element);
         this.byId = new Map(this.index.map((entry) => [entry.id, entry]));
-        this.locale = document.documentElement.lang || 'en';
+        // The server's date locale (EventsPageDates): English pages read "12 Oct 2026"
+        this.lang = document.documentElement.lang || 'en';
+        this.locale = dateLocale(this.lang);
         this.lineTemplate = this.element.querySelector('template[data-events-archive-line-template]');
         this.archiveUrls = this.readArchiveUrls();
         this.newestYear = this.pastYears()[0] ?? null;
@@ -745,7 +747,7 @@ export default class extends Controller {
             }
         }
 
-        const month = last ? this.format(last.f, { month: 'long', year: 'numeric' }) : '';
+        const month = last ? formatDate(last.f, this.locale, 'yMMMM') : '';
         this.setText(empty.querySelector('[data-ev-empty-last]'), last ? this.t('lastOne', { name: last.n, month }) : this.t('noneYet'));
     }
 
@@ -964,9 +966,7 @@ export default class extends Controller {
                 link?.removeAttribute('href');
             }
 
-            const fromMonth = this.format(first.f, { month: 'short' });
-            const toMonth = this.format(entry.f, { month: 'short' });
-            this.setText(date, first.f.slice(0, 7) === entry.f.slice(0, 7) ? fromMonth : `${fromMonth}–${toMonth}`);
+            this.setText(date, formatDayRange(first.f, entry.f, this.locale, withYear ? 'yMMM' : 'MMM'));
 
             const results = slot('results');
 
@@ -976,13 +976,7 @@ export default class extends Controller {
                 results.textContent = any ? (this.messagesValue.results ?? '') : '';
             }
         } else {
-            let text = this.dayMonth(entry.f) + (entry.t && entry.t !== entry.f ? `–${this.dayMonth(entry.t)}` : '');
-
-            if (withYear) {
-                text += ` ${entry.f.slice(0, 4)}`;
-            }
-
-            this.setText(date, text);
+            this.setText(date, formatDays(entry, this.locale, withYear));
         }
 
         // The place with its flag, like the server's lines
@@ -1167,7 +1161,7 @@ export default class extends Controller {
         }
 
         let text = typeof params.count === 'number'
-            ? (chooseTranslation(message.message, params.count, message.locale || this.locale) ?? message.message)
+            ? (chooseTranslation(message.message, params.count, message.locale || this.lang) ?? message.message)
             : message.message;
 
         Object.entries(params).forEach(([key, value]) => {
@@ -1227,28 +1221,6 @@ export default class extends Controller {
         paragraph.textContent = text;
 
         return paragraph;
-    }
-
-    format(isoDay, options) {
-        try {
-            return new Intl.DateTimeFormat(this.locale, { ...options, timeZone: 'UTC' }).format(new Date(`${isoDay}T00:00:00Z`));
-        } catch {
-            return isoDay;
-        }
-    }
-
-    // ICU `d LLL`, as the server writes the archive lines ("3 Mar", "3 3月")
-    dayMonth(isoDay) {
-        const date = new Date(`${isoDay}T00:00:00Z`);
-
-        try {
-            const day = new Intl.DateTimeFormat(this.locale, { day: 'numeric', timeZone: 'UTC' })
-                .formatToParts(date).find((part) => part.type === 'day')?.value ?? String(date.getUTCDate());
-
-            return `${day} ${new Intl.DateTimeFormat(this.locale, { month: 'short', timeZone: 'UTC' }).format(date)}`;
-        } catch {
-            return isoDay;
-        }
     }
 
     headerHeight() {

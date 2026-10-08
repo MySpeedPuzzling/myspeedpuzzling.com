@@ -1,9 +1,10 @@
 /**
  * The People tab on a phone (< 768 px - contract O13, D4; docs/features/competitions-management/participants-spreadsheet.md
- * §8): no grid - a search and a filter select at the top, the registration counters of a managed event, "+ Add a person"
- * (a name field + Add), and one card per person (name, flag, "Solo · Pairs: Pinecones · Teams", problems in words: "In
- * Pairs, no pair yet", "On the waitlist", "Same name as …"). A tap opens the person editor full screen, with previous/next
- * through the list as filtered.
+ * §8): no grid - a search, a filter select and a round select ("In Group A" / "Not in Group A") at the top, the
+ * registration counters of a managed event, "+ Add a person" (a name field + Add), and one card per person (name, flag,
+ * "Solo · Pairs: Pinecones · Teams", problems in words: "In Pairs, no pair yet", "On the waitlist", "Same name as …").
+ * A tap opens the person editor full screen, with previous/next through the list as filtered. `?filter=<key>` in the
+ * page URL opens the list with that filter on (like the desktop grid).
  *
  * A long list stays fast: cards are rendered in chunks of 50 ("Show 50 more"), an update re-renders only the cards of
  * the people it names (the list when who is shown changed). Native controls, 44 px targets, no sideways scroll.
@@ -13,7 +14,19 @@ import { escapeHtml } from '../sheet_grid.js';
 import { addPerson } from '../sheet_changes.js';
 import { parsePlace } from '../sheet_model.js';
 import { performRegistrationAction, registrationStatus } from '../registration_actions.js';
-import { FILTERS, filterCounts, offeredFor, reasonFor, registrationSummaryHtml, visiblePeople } from './people_view.js';
+import {
+    FILTERS,
+    HIDDEN_WHEN_EMPTY,
+    filterCounts,
+    notify,
+    offeredFor,
+    parseRoundFilter,
+    reasonFor,
+    registrationSummaryHtml,
+    replaceKeepingFocus,
+    takeUrlFilter,
+    visiblePeople,
+} from './people_view.js';
 
 export const CHUNK = 50;
 const SEARCH_DELAY_MS = 150;
@@ -28,9 +41,9 @@ export class PeopleListView {
         this.model = context.model;
         this.core = context.texts.core;
         this.people = context.texts.people;
-        this.competition = this.model.competition ?? {};
         this.filter = 'all';
         this.query = '';
+        this.roundFilter = '';
         this.limit = CHUNK;
         this.held = new Set();
         this.ids = [];
@@ -53,13 +66,30 @@ export class PeopleListView {
         return this.core.t(key, params);
     }
 
+    /** The event as the model has it now (a fetched state may switch the managed registration). */
+    get competition() {
+        return this.model.competition ?? {};
+    }
+
     get managed() {
         return this.competition.registrationManaged === true;
+    }
+
+    offeredFilters() {
+        return offeredFor(FILTERS, this.competition, this.model.rounds());
     }
 
     // ---------------------------------------------------------------- the view interface
 
     render() {
+        const fromUrl = takeUrlFilter();
+
+        if (fromUrl !== null && parseRoundFilter(fromUrl) !== null) {
+            this.roundFilter = this.model.round(parseRoundFilter(fromUrl).roundId) !== null ? fromUrl : '';
+        } else if (fromUrl !== null) {
+            this.filter = this.offeredFilters().some((item) => item.key === fromUrl) ? fromUrl : 'all';
+        }
+
         const root = this.context.root;
         root.classList.add('sheet-view', 'sheet-view-people-list');
         root.innerHTML = `<div class="sheet-plist">
@@ -67,6 +97,7 @@ export class PeopleListView {
                     <input type="search" class="form-control" data-plist-search autocomplete="off" spellcheck="false" enterkeyhint="search"
                            placeholder="${escapeHtml(this.say('search_placeholder'))}" aria-label="${escapeHtml(this.say('search_label'))}">
                     <select class="form-select" data-plist-filter aria-label="${escapeHtml(this.say('filters_label'))}"></select>
+                    <select class="form-select sheet-plist-round" data-plist-round aria-label="${escapeHtml(this.say('round_filter_label'))}" hidden></select>
                 </div>
                 <div class="sheet-people-registration" data-plist-registration${this.managed ? '' : ' hidden'}></div>
                 <form class="sheet-plist-add" data-plist-add novalidate>
@@ -83,6 +114,7 @@ export class PeopleListView {
 
         this.searchInput = root.querySelector('[data-plist-search]');
         this.filterSelect = root.querySelector('[data-plist-filter]');
+        this.roundSelect = root.querySelector('[data-plist-round]');
         this.registrationElement = root.querySelector('[data-plist-registration]');
         this.list = root.querySelector('[data-plist-list]');
         this.more = root.querySelector('[data-plist-more]');
@@ -94,6 +126,7 @@ export class PeopleListView {
             this.searchTimer = setTimeout(() => this.setFilter(this.filter, this.searchInput.value), SEARCH_DELAY_MS);
         });
         this.listen(this.filterSelect, 'change', () => this.setFilter(this.filterSelect.value, this.query));
+        this.listen(this.roundSelect, 'change', () => this.setFilter(this.filter, this.query, this.roundSelect.value));
         this.listen(root.querySelector('[data-plist-add]'), 'submit', (event) => {
             event.preventDefault();
             this.add();
@@ -116,7 +149,7 @@ export class PeopleListView {
             const button = event.target.closest('[data-promote]');
 
             if (button) {
-                performRegistrationAction(this.context, button.dataset.promote, 'promote');
+                performRegistrationAction(this.context, button.dataset.promote, 'promote', { anchor: button });
             }
         });
         this.listen(this.more, 'click', () => {
@@ -133,6 +166,15 @@ export class PeopleListView {
         this.ids = this.visibleIds();
         this.renderControls();
         this.renderList();
+
+        // A fetched state can change the event itself (managed registration, the capacity) and nothing else
+        if (typeof this.context.queue?.subscribe === 'function') {
+            this.cleanups.push(this.context.queue.subscribe((event) => {
+                if (event?.type === 'state') {
+                    this.renderControls();
+                }
+            }));
+        }
     }
 
     update(delta) {
@@ -184,7 +226,7 @@ export class PeopleListView {
     destroy() {
         clearTimeout(this.searchTimer);
         cancelAnimationFrame(this.frame);
-        this.cleanups.forEach((cleanup) => cleanup());
+        this.cleanups.forEach((cleanup) => cleanup?.());
         this.cleanups = [];
         this.context.root.replaceChildren();
     }
@@ -197,12 +239,13 @@ export class PeopleListView {
     // ---------------------------------------------------------------- filter, search, list
 
     visibleIds() {
-        return visiblePeople(this.model, this.filter, this.query, this.held);
+        return visiblePeople(this.model, this.filter, this.query, this.held, this.roundFilter);
     }
 
-    setFilter(filter, query) {
-        this.filter = offeredFor(FILTERS, this.competition).some((item) => item.key === filter) ? filter : 'all';
+    setFilter(filter, query, roundFilter = this.roundFilter) {
+        this.filter = this.offeredFilters().some((item) => item.key === filter) ? filter : 'all';
         this.query = String(query ?? '');
+        this.roundFilter = parseRoundFilter(roundFilter) !== null && this.model.round(parseRoundFilter(roundFilter).roundId) !== null ? roundFilter : '';
         this.held = new Set(this.openId ? [this.openId] : []);
         this.limit = CHUNK;
         this.ids = this.visibleIds();
@@ -212,10 +255,18 @@ export class PeopleListView {
     }
 
     renderControls() {
-        const filters = offeredFor(FILTERS, this.competition);
-        const counts = filterCounts(this.model, filters, this.query);
+        const filters = this.offeredFilters();
+
+        if (!filters.some((item) => item.key === this.filter)) {
+            // Not offered any more (registration management switched off): everybody again
+            this.setFilter('all', this.query);
+
+            return;
+        }
+
+        const counts = filterCounts(this.model, filters, this.query, this.roundFilter);
         const html = filters
-            .filter(({ key }) => key === 'all' || key === this.filter || counts[key] > 0 || !['joined', 'duplicates', 'removed', 'checked_in'].includes(key))
+            .filter(({ key }) => key === 'all' || key === this.filter || counts[key] > 0 || !HIDDEN_WHEN_EMPTY.includes(key))
             .map(({ key }) => `<option value="${escapeHtml(key)}"${key === this.filter ? ' selected' : ''}>${escapeHtml(this.say('filter_option', { filter: this.say(`filter_${key}`), count: counts[key] }))}</option>`)
             .join('');
 
@@ -224,13 +275,26 @@ export class PeopleListView {
             this.filterSelect.dataset.html = html;
         }
 
+        const rounds = this.model.rounds();
+        const roundsHtml = rounds.length === 0 ? '' : [
+            `<option value="">${escapeHtml(this.say('round_filter_any'))}</option>`,
+            ...rounds.map((round) => `<option value="in:${escapeHtml(round.id)}"${this.roundFilter === `in:${round.id}` ? ' selected' : ''}>${escapeHtml(this.say('round_filter_in', { round: round.name }))}</option><option value="out:${escapeHtml(round.id)}"${this.roundFilter === `out:${round.id}` ? ' selected' : ''}>${escapeHtml(this.say('round_filter_out', { round: round.name }))}</option>`),
+        ].join('');
+
+        if (this.roundSelect.dataset.html !== roundsHtml && document.activeElement !== this.roundSelect) {
+            this.roundSelect.innerHTML = roundsHtml;
+            this.roundSelect.dataset.html = roundsHtml;
+        }
+
+        this.roundSelect.hidden = rounds.length === 0;
+        this.registrationElement.hidden = !this.managed;
+
         if (this.managed) {
             const summary = registrationSummaryHtml(this.model, this.competition, (key, params) => this.say(key, params), (key, count, params) => this.sayCount(key, count, params));
-
-            if (this.registrationElement.dataset.html !== summary) {
-                this.registrationElement.innerHTML = summary;
-                this.registrationElement.dataset.html = summary;
-            }
+            replaceKeepingFocus(this.registrationElement, summary);
+        } else if (this.registrationElement.dataset.html) {
+            this.registrationElement.innerHTML = '';
+            this.registrationElement.dataset.html = '';
         }
     }
 
@@ -356,7 +420,7 @@ export class PeopleListView {
 
         if (!outcome.performed) {
             this.held.delete(action.personId);
-            this.context.announce(reasonFor(this.context, action.errors[0]));
+            notify(this.context, reasonFor(this.context, action.errors[0]), { anchor: input });
 
             return;
         }

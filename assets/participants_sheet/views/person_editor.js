@@ -13,9 +13,11 @@
  *   "+ New pair" - with "with Kim Example" under it), the registration of a managed event (status and the actions its
  *   state allows), Remove from event / Restore.
  * - Every field saves like a cell edit (the same sheet_changes.js builders and context.act(); text on change / blur /
- *   Enter) and shows its marker next to it: saving, changed meanwhile (Keep mine / Use theirs), not saved (the reason).
- *   A text field's change is sent with `from` = the value shown when the organiser started typing - somebody else's
- *   change meanwhile comes back as a conflict instead of being overwritten.
+ *   Enter) and shows its marker next to it: saving, changed meanwhile (Keep mine / Use theirs), not saved (the reason -
+ *   also shown as a toast, `context.notify`). A text field's change is sent with `from` = the value shown when the
+ *   organiser started typing; a round's switch or pair/team picker with `from` = the place the control SHOWS
+ *   (`data-shown`, written with every render of it - review M2: a tap on a phone gives no focus, and a value remembered
+ *   at a focus goes stale) - somebody else's change meanwhile comes back as a conflict instead of being overwritten.
  * - It follows live updates (update(delta)) without wiping what is being typed: a section holding the focus waits until
  *   the focus leaves it.
  */
@@ -34,7 +36,7 @@ import {
 } from '../sheet_changes.js';
 import { parsePlace } from '../sheet_model.js';
 import { allowedActions, paidBefore, performRegistrationAction, registrationStatus, waitlistPositions } from '../registration_actions.js';
-import { formatDate, reasonFor, searchPlayers, teamLabelText } from './people_view.js';
+import { formatDate, notify, reasonFor, searchPlayers, teamLabelText } from './people_view.js';
 
 const PHONE_QUERY = '(max-width: 767.98px)';
 const TEXT_FIELDS = ['name', 'externalId', 'note'];
@@ -57,7 +59,6 @@ export class PersonEditor {
         this.options = {};
         this.dialog = null;
         this.seen = {};
-        this.seenPlace = {};
         this.dirty = new Set();
         this.errors = {};
         this.stale = new Set();
@@ -83,6 +84,11 @@ export class PersonEditor {
 
     get managed() {
         return this.model.competition?.registrationManaged === true;
+    }
+
+    /** Shown and read out (a refusal next to its control - `anchor`). */
+    notify(text, anchor = null) {
+        notify(this.context, text, { kind: 'error', anchor });
     }
 
     // ---------------------------------------------------------------- the editor interface
@@ -194,6 +200,15 @@ export class PersonEditor {
             }
         });
 
+        // A fetched state may change the event itself (registration management) and nothing about the person
+        if (typeof this.context.queue?.subscribe === 'function') {
+            this.cleanups.push(this.context.queue.subscribe((event) => {
+                if (event?.type === 'state') {
+                    this.update();
+                }
+            }));
+        }
+
         const media = window.matchMedia(PHONE_QUERY);
         this.listen(media, 'change', () => {
             // Desktop panel ↔ phone dialog: opened again in the other form, on the same person
@@ -244,7 +259,6 @@ export class PersonEditor {
     show(personId) {
         this.personId = personId;
         this.seen = {};
-        this.seenPlace = {};
         this.dirty = new Set();
         this.errors = {};
         this.stale = new Set();
@@ -550,7 +564,8 @@ export class PersonEditor {
 
     roundHtml(person, round) {
         const id = `${this.id}-round-${round.id}`;
-        const place = parsePlace(this.model.placeValue(person.id, round.id));
+        const shown = this.model.placeValue(person.id, round.id);
+        const place = parsePlace(shown);
         const inRound = place.kind !== 'out';
         const removed = person.removedAt !== null;
         const disabled = removed ? ' disabled' : '';
@@ -581,7 +596,7 @@ export class PersonEditor {
 
             picker = `<div class="sheet-person-team">
                     <label class="visually-hidden" for="${id}-team">${escapeHtml(this.say(duo ? 'editor_pair_in' : 'editor_team_in', { round: round.name }))}</label>
-                    <select class="form-select form-select-sm" id="${id}-team" data-round-team="${escapeHtml(round.id)}" data-focus-key="team-${escapeHtml(round.id)}"${disabled}>${options.join('')}</select>
+                    <select class="form-select form-select-sm" id="${id}-team" data-round-team="${escapeHtml(round.id)}" data-shown="${escapeHtml(shown)}" data-focus-key="team-${escapeHtml(round.id)}"${disabled}>${options.join('')}</select>
                     ${withText ? `<div class="small ${place.kind === 'in' ? 'sheet-attention' : 'text-body-secondary'}">${place.kind === 'in' ? '<i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ' : ''}${escapeHtml(withText)}${escapeHtml(sizeText)}</div>` : ''}
                 </div>`;
         }
@@ -590,7 +605,7 @@ export class PersonEditor {
 
         return `<div class="sheet-person-round" data-round="${escapeHtml(round.id)}">
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" id="${id}" data-round-switch="${escapeHtml(round.id)}" data-focus-key="round-${escapeHtml(round.id)}"${inRound ? ' checked' : ''}${disabled}>
+                    <input class="form-check-input" type="checkbox" role="switch" id="${id}" data-round-switch="${escapeHtml(round.id)}" data-shown="${escapeHtml(shown)}" data-focus-key="round-${escapeHtml(round.id)}"${inRound ? ' checked' : ''}${disabled}>
                     <label class="form-check-label" for="${id}">${swatch} ${escapeHtml(round.name)} <span class="text-body-secondary small">${escapeHtml(kind)}</span></label>
                 </div>
                 ${picker}
@@ -607,11 +622,12 @@ export class PersonEditor {
         }
 
         const registration = person.registration;
+        const removed = person.removedAt !== null;
         const position = status === 'waitlisted' ? waitlistPositions(this.model.people()).get(person.id) : null;
         const label = status === 'waitlisted' && position ? this.say('status_waitlisted_position', { position }) : this.say(`status_${status}`);
         const facts = [];
 
-        if (status === 'paid' && registration.paidAt) {
+        if (status === 'paid' && registration.paidAt && !removed) {
             facts.push(this.say('editor_paid_on', { date: formatDate(registration.paidAt, this.context.locale, false) }));
         }
 
@@ -625,11 +641,18 @@ export class PersonEditor {
             facts.push(this.say('editor_checked_in_at', { date: formatDate(registration.checkedInAt, this.context.locale, true) }));
         }
 
-        const actions = allowedActions(person, { checkIn: this.model.competition?.isOnline !== true }).map((action) => `<button type="button" class="btn btn-sm ${action === 'markPaid' || action === 'promoteAndMarkPaid' || action === 'promote' || action === 'checkIn' ? 'btn-outline-success' : 'btn-outline-secondary'}" data-registration="${escapeHtml(action)}" data-focus-key="reg-${escapeHtml(action)}" aria-describedby="${this.id}-reg-${escapeHtml(action)}">${escapeHtml(this.say(`reg_${action}`))}</button><span class="visually-hidden" id="${this.id}-reg-${escapeHtml(action)}">${escapeHtml(this.say(`reg_${action}_help`))}</span>`).join('');
+        const actions = allowedActions(person, { checkIn: this.model.competition?.isOnline !== true }).map((action) => `<button type="button" class="btn btn-sm ${action === 'markPaid' || action === 'promoteAndMarkPaid' || action === 'promote' || action === 'checkIn' ? 'btn-outline-success sheet-btn-success' : 'btn-outline-secondary'}" data-registration="${escapeHtml(action)}" data-focus-key="reg-${escapeHtml(action)}" aria-describedby="${this.id}-reg-${escapeHtml(action)}">${escapeHtml(this.say(`reg_${action}`))}</button><span class="visually-hidden" id="${this.id}-reg-${escapeHtml(action)}">${escapeHtml(this.say(`reg_${action}_help`))}</span>`).join('');
         const help = allowedActions(person, { checkIn: this.model.competition?.isOnline !== true }).filter((action) => action === 'markPaid' || action === 'promoteAndMarkPaid' || action === 'promote').map((action) => this.say(`reg_${action}_help`));
 
+        // A cancelled registration (removed from the event) has no status any more - only the payment's record
+        const chip = removed ? '' : `<span class="sheet-reg sheet-reg-${escapeHtml(status)}">${escapeHtml(label)}</span>`;
+
+        if (removed && facts.length === 0) {
+            return '';
+        }
+
         return `<h3 class="form-label">${escapeHtml(this.say('col_registration'))}</h3>
-            <p class="mb-1"><span class="sheet-reg sheet-reg-${escapeHtml(status)}">${escapeHtml(label)}</span>${facts.length > 0 ? ` <span class="small text-body-secondary">${escapeHtml(facts.join(' · '))}</span>` : ''}</p>
+            <p class="mb-1">${chip}${facts.length > 0 ? ` <span class="small text-body-secondary">${escapeHtml(facts.join(' · '))}</span>` : ''}</p>
             ${actions ? `<div class="sheet-person-actions">${actions}</div>` : ''}
             ${help.length > 0 ? `<p class="form-text mb-0">${escapeHtml([...new Set(help)].join(' '))}</p>` : ''}
             ${this.markerHtml(`person:${person.id}:registration`)}`;
@@ -770,7 +793,7 @@ export class PersonEditor {
 
                 if (error !== null) {
                     target.value = person.country ?? '';
-                    this.context.announce(error);
+                    this.notify(error, target);
                 }
             }
 
@@ -788,7 +811,7 @@ export class PersonEditor {
             const value = target.value;
 
             if (value === NEW_TEAM) {
-                const action = newTeamRow(this.model, roundId, { members: [person.id] }, this.placeOptions(roundId));
+                const action = newTeamRow(this.model, roundId, { members: [person.id] }, this.placeOptions(roundId, target));
                 this.roundOutcome(roundId, this.perform(action), target);
 
                 if (action.groups.length > 0) {
@@ -797,37 +820,44 @@ export class PersonEditor {
             } else if (value === 'in') {
                 this.setRound(roundId, 'in', target);
             } else {
-                this.roundOutcome(roundId, this.perform(putInTeam(this.model, roundId, value.slice('team:'.length), person.id, this.placeOptions(roundId))), target);
+                this.roundOutcome(roundId, this.perform(putInTeam(this.model, roundId, value.slice('team:'.length), person.id, this.placeOptions(roundId, target))), target);
             }
         }
     }
 
     setRound(roundId, to, control) {
         const person = this.model.person(this.personId);
-        const error = this.perform(setPlace(this.model, person.id, roundId, to, this.placeOptions(roundId)));
+        const error = this.perform(setPlace(this.model, person.id, roundId, to, this.placeOptions(roundId, control)));
         this.roundOutcome(roundId, error, control);
     }
 
-    /** `from` of a place change = the place shown when the control got the focus. */
-    placeOptions(roundId) {
-        return roundId in this.seenPlace ? { ...this.builderOptions(), from: this.seenPlace[roundId] } : this.builderOptions();
+    /**
+     * `from` of a place change = the place the control SHOWS (its `data-shown`, written whenever it is rendered - a
+     * section with a focused picker waits, so a picker shows - and sends - what the organiser looked at). Without a
+     * control: what the model shows.
+     */
+    placeOptions(roundId, control = null) {
+        const shown = control?.dataset?.shown;
+
+        return shown !== undefined ? { ...this.builderOptions(), from: shown } : this.builderOptions();
     }
 
-    /** A refused round change: the control goes back, the reason stays under the round. */
+    /** A refused round change: the control goes back, the reason stays under the round (and is shown). */
     roundOutcome(roundId, error, control) {
         this.errors[`place:${roundId}`] = error ?? undefined;
-        this.seenPlace[roundId] = this.model.placeValue(this.personId, roundId);
 
         if (error !== null && error !== undefined) {
-            this.context.announce(error);
+            this.notify(error, control);
         }
 
-        // Re-rendered at once (the control's own state included) - the focus stays on the same control
+        // Re-rendered at once (the control's own state and `data-shown` included) - the focus stays on the same control
         const section = this.body.querySelector('[data-section="rounds"]');
-        section.__html = null;
         const key = control?.dataset.focusKey ?? null;
-        section.innerHTML = this.roundsHtml(this.model.person(this.personId));
-        section.__html = section.innerHTML;
+        const html = this.roundsHtml(this.model.person(this.personId));
+        section.innerHTML = html;
+        // The source string, as renderSection() compares it (never the browser's innerHTML)
+        section.__html = html;
+        this.stale.delete('rounds');
 
         if (key !== null) {
             section.querySelector(`[data-focus-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
@@ -919,7 +949,7 @@ export class PersonEditor {
             const error = this.perform(linkProfile(this.model, person.id, null, this.builderOptions()));
 
             if (error !== null) {
-                this.context.announce(error);
+                this.notify(error, target.closest('[data-unlink]'));
             } else {
                 this.context.announce(this.say('editor_unlinked'));
                 this.body.querySelector('[data-player-search]').hidden = false;
@@ -940,7 +970,7 @@ export class PersonEditor {
         const registration = target.closest('[data-registration]');
 
         if (registration) {
-            performRegistrationAction(this.context, person.id, registration.dataset.registration);
+            performRegistrationAction(this.context, person.id, registration.dataset.registration, { anchor: registration });
 
             return;
         }
@@ -951,6 +981,8 @@ export class PersonEditor {
 
             if (action.groups.length > 0) {
                 this.context.announce(this.sayCount('removed_count', 1));
+            } else if (this.errors.removed) {
+                this.notify(this.errors.removed, target.closest('[data-remove]'));
             }
 
             this.renderSection('remove', this.removeHtml(this.model.person(person.id)));
@@ -965,6 +997,8 @@ export class PersonEditor {
 
             if (action.groups.length > 0) {
                 this.context.announce(this.sayCount('restored_count', 1));
+            } else if (this.errors.removed) {
+                this.notify(this.errors.removed, target.closest('[data-restore]'));
             }
 
             this.renderSection('remove', this.removeHtml(this.model.person(person.id)));
@@ -1020,9 +1054,6 @@ export class PersonEditor {
 
         if (field && !this.dirty.has(field.dataset.field)) {
             this.seen[field.dataset.field] = person[field.dataset.field] ?? null;
-        } else if (target.matches?.('[data-round-switch], [data-round-team]')) {
-            const roundId = target.dataset.roundSwitch ?? target.dataset.roundTeam;
-            this.seenPlace[roundId] = this.model.placeValue(person.id, roundId);
         } else if (target.matches?.('[data-player-input]')) {
             this.seen.player = person.player?.id ?? null;
         }
@@ -1163,7 +1194,7 @@ export class PersonEditor {
 
         if (error !== null) {
             this.body.querySelector('[data-player-hint]').textContent = error;
-            this.context.announce(error);
+            this.notify(error, input);
 
             return;
         }

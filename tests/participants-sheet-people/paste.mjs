@@ -5,17 +5,28 @@ import { SheetModel } from '../../assets/participants_sheet/sheet_model.js';
 import { wireGroups } from '../../assets/participants_sheet/sheet_changes.js';
 import { parseClipboardText } from '../../assets/participants_sheet/tsv.js';
 import {
+    HINT_CLOSE,
+    HINT_COUNTRY,
+    HINT_EMAIL,
+    HINT_NUMBER,
+    INTO_ALREADY,
+    INTO_AMBIGUOUS,
+    INTO_PUT,
     LINE_DUPLICATE,
     LINE_EXISTING,
     LINE_HEADER,
     LINE_INVALID,
     LINE_NEW,
     LINE_REMOVED,
+    boundedDistance,
+    closeNames,
     lineOfError,
+    looksLikeNoName,
     namePasteAction,
+    placementOf,
     planNamePaste,
 } from '../../assets/participants_sheet/people_paste.js';
-import { ids, smallState } from '../participants-sheet-core/fixture.mjs';
+import { ids, person, place, smallState } from '../participants-sheet-core/fixture.mjs';
 
 const COUNTRIES = { cz: 'Czechia', us: 'United States', ca: 'Canada' };
 
@@ -137,9 +148,98 @@ export default function (test) {
 
     test('unticking a new name leaves it out; the ticks of the preview decide', () => {
         const m = model();
-        const p = plan(m, 'A One\nB Two\nC Three\n');
+        const p = plan(m, 'A One\nB Two\nC Quinn\n');
         const { action } = namePasteAction(m, p, { l1: false }, { newId: ids() });
-        assert.deepEqual(action.groups.map((group) => group.changes[0].name), ['A One', 'C Three']);
+        assert.deepEqual(action.groups.map((group) => group.changes[0].name), ['A One', 'C Quinn']);
+    });
+
+    test('BR9: a new name close to somebody on the list is offered unticked - "Did you mean …?" (1-2 edits, keys of 6+)', () => {
+        const m = model();
+        // Kim Example is on the list, Ola Fictive was removed - both count; Jo Do is too short to compare
+        const p = plan(m, 'Kim Exampel\nOla Fictiv\nJo Da\nKim Westwood\nRobin Sampler\n');
+        assert.deepEqual(p.lines.map((line) => [line.name, line.status, line.hint?.kind ?? null, line.hint?.ids ?? null, line.tick]), [
+            ['Kim Exampel', LINE_NEW, HINT_CLOSE, ['p-kim'], false],
+            ['Ola Fictiv', LINE_NEW, HINT_CLOSE, ['p-ola'], false],
+            ['Jo Da', LINE_NEW, null, null, true],
+            ['Kim Westwood', LINE_NEW, null, null, true],
+            ['Robin Sampler', LINE_NEW, null, null, true],
+        ]);
+        // Not ticked = not added, unless the organiser ticks it
+        assert.deepEqual(namePasteAction(m, p, {}, { newId: ids() }).action.groups.map((group) => group.changes[0].name), ['Jo Da', 'Kim Westwood', 'Robin Sampler']);
+        assert.deepEqual(namePasteAction(m, p, { l0: true }, { newId: ids() }).action.groups.map((group) => group.changes[0].name), ['Kim Exampel', 'Jo Da', 'Kim Westwood', 'Robin Sampler']);
+    });
+
+    test('BR9: a value that is a country code, a number or an e-mail address is offered unticked', () => {
+        const m = model();
+        const p = plan(m, 'CZ\tRobin Example\n12:34\nrobin@example.com\n#12\nZed Example\nAtl\n');
+        assert.deepEqual(p.lines.map((line) => [line.name, line.hint?.kind ?? null, line.tick]), [
+            ['CZ', HINT_COUNTRY, false],
+            ['12:34', HINT_NUMBER, false],
+            ['robin@example.com', HINT_EMAIL, false],
+            ['#12', HINT_NUMBER, false],
+            ['Zed Example', null, true],
+            // Three letters nobody knows as a country - a name
+            ['Atl', null, true],
+        ]);
+    });
+
+    test('the close-name rule: bounded edit distance, no comparison below 6 characters', () => {
+        assert.equal(boundedDistance('kimexample', 'kimexampel'), 2);
+        assert.equal(boundedDistance('kimexample', 'kimexample'), 0);
+        assert.equal(boundedDistance('abcdefgh', 'xyzdefgh'), 3, 'more than 2 = 3');
+        assert.equal(boundedDistance('abc', 'abcdef'), 3, 'lengths too far apart');
+        assert.equal(boundedDistance('žluťak', 'zlutak'), 2, 'code points, not bytes');
+        assert.deepEqual(closeNames('jodax', [{ key: 'jodox', length: 5, ids: ['x'] }]), [], 'short keys are never close');
+        assert.deepEqual(closeNames('robinexample', [{ key: 'robinexampel', length: 12, ids: ['a'] }, { key: 'robinexample', length: 12, ids: ['same'] }]), ['a']);
+        // The closest first
+        assert.deepEqual(closeNames('sheet persn 04', [
+            { key: 'sheet person 01', length: 15, ids: ['p01'] },
+            { key: 'sheet person 02', length: 15, ids: ['p02'] },
+            { key: 'sheet person 04', length: 15, ids: ['p04'] },
+        ]), ['p04', 'p01', 'p02']);
+        assert.equal(looksLikeNoName('Bo', () => 'bo'), HINT_COUNTRY);
+        assert.equal(looksLikeNoName('Bo', () => undefined), null);
+        assert.equal(looksLikeNoName('Bo Li', () => 'bo'), null);
+    });
+
+    test('BR3: "and put them into" a solo round - new people placed in their own group, people on the list put in too, one undo step', () => {
+        const state = smallState();
+        // Lee is in Solo already, a second "Max Demo" makes that name ambiguous
+        state.places.push(place('e-lee-solo', 'p-lee', 'r-solo'));
+        state.people.push(person('p-max2', 'Max Demo'));
+        const m = new SheetModel(state, { now: () => 0 });
+        const p = plan(m, 'Robin Example\tcz\nKim Example\nAna Example\nLee Mock\nMax Demo\nOla Fictive\n');
+        assert.deepEqual(p.lines.map((line) => placementOf(m, line, 'r-solo')), [INTO_PUT, INTO_ALREADY, INTO_PUT, INTO_ALREADY, INTO_AMBIGUOUS, INTO_PUT]);
+        assert.equal(placementOf(m, p.lines[0], null), null);
+
+        const { action, placed, peopleIds, lineOfPerson } = namePasteAction(m, p, { l5: true }, { newId: ids(), countries: new Set(Object.keys(COUNTRIES)), roundId: 'r-solo' });
+        assert.deepEqual(wireGroups(action.groups).map((group) => group.changes), [
+            [{ op: 'newParticipant', id: 'id1', name: 'Robin Example', country: 'cz', externalId: null }, { op: 'place', participant: 'id1', round: 'r-solo', from: 'out', to: 'in' }],
+            [{ op: 'place', participant: 'p-ana', round: 'r-solo', from: 'out', to: 'in' }],
+            [{ op: 'restore', participant: 'p-ola' }, { op: 'place', participant: 'p-ola', round: 'r-solo', from: 'out', to: 'in' }],
+        ]);
+        assert.deepEqual(placed, ['id1', 'p-ana', 'p-ola']);
+        assert.deepEqual(peopleIds, ['id1', 'p-ola']);
+        assert.equal(lineOfPerson.get('p-ana'), 'l2');
+        // The undo takes everything back: Ola removed again, Ana out, Robin removed
+        assert.deepEqual(wireGroups(action.inverse).map((group) => group.changes.map((change) => [change.op, change.participant, change.to ?? null])), [
+            [['place', 'p-ola', 'out'], ['remove', 'p-ola', null]],
+            [['place', 'p-ana', 'out']],
+            [['place', 'id1', 'out'], ['remove', 'id1', null]],
+        ]);
+
+        // Without a round: only the new person (the ticks decide), nobody on the list moves
+        assert.deepEqual(namePasteAction(m, p, {}, { newId: ids() }).action.groups.map((group) => group.changes.map((change) => change.op)), [['newParticipant']]);
+        // A line refused by the dry run is skipped whatever its tick
+        assert.equal(namePasteAction(m, p, {}, { newId: ids(), roundId: 'r-solo', skip: new Set(['l2']) }).placed.includes('p-ana'), false);
+    });
+
+    test('a refusal of a placement points at its line (people of the paste by id)', () => {
+        const m = model();
+        const p = plan(m, 'Ana Example\n');
+        const { lineOfPerson } = namePasteAction(m, p, {}, { newId: ids(), roundId: 'r-solo' });
+        assert.equal(lineOfError({ reason: 'participant_removed', change: { op: 'place', participant: 'p-ana', round: 'r-solo' } }, p, lineOfPerson), 'l0');
+        assert.equal(lineOfError({ reason: 'participant_removed', change: { op: 'place', participant: 'p-ana', round: 'r-solo' } }, p), 'l0');
     });
 
     test('a refusal made in the browser points at its line', () => {

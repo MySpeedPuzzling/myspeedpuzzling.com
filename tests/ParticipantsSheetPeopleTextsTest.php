@@ -26,9 +26,9 @@ final class ParticipantsSheetPeopleTextsTest extends KernelTestCase
 
     // Keys built from a prefix in the JS (`filter_${key}`...) - each listed value must exist
     private const array DYNAMIC = [
-        'filter_' => ['all', 'no_round', 'joined', 'waitlist', 'not_paid', 'checked_in', 'not_checked_in', 'duplicates', 'removed'],
-        'column_' => ['name', 'country', 'player', 'rounds', 'externalId', 'source', 'joined', 'registration', 'paid', 'checkedIn', 'note'],
-        'col_' => ['externalId', 'source', 'joined', 'registration', 'paid', 'checkedIn', 'note'],
+        'filter_' => ['all', 'no_round', 'no_solo', 'multi_solo', 'joined', 'waitlist', 'not_paid', 'paid', 'checked_in', 'not_checked_in', 'duplicates', 'removed'],
+        'column_' => ['name', 'country', 'player', 'rounds', 'externalId', 'source', 'joined', 'registration', 'registered', 'paid', 'checkedIn', 'note'],
+        'col_' => ['externalId', 'source', 'joined', 'registration', 'registered', 'paid', 'checkedIn', 'note'],
         'source_' => ['self_joined', 'imported', 'manual'],
         'status_' => ['reserved', 'paid', 'waitlisted'],
         'reg_' => ['markPaid', 'unmarkPaid', 'promote', 'promoteAndMarkPaid', 'checkIn', 'undoCheckIn', 'markPaid_help', 'unmarkPaid_help', 'promote_help', 'promoteAndMarkPaid_help', 'checkIn_help', 'undoCheckIn_help'],
@@ -37,6 +37,13 @@ final class ParticipantsSheetPeopleTextsTest extends KernelTestCase
         'make_team_line_from_tray_' => ['pair', 'team'],
         'make_team_size_' => ['pair', 'team'],
         'paste_change_' => ['externalId', 'note'],
+        'paste_looks_' => ['country', 'number', 'email'],
+        'sort_done_' => ['asc', 'desc'],
+        'bulk_reg_title_' => ['markPaid', 'checkIn'],
+        'bulk_reg_confirm_' => ['markPaid', 'checkIn'],
+        'bulk_reg_done_' => ['markPaid', 'checkIn'],
+        'bulk_reg_none_' => ['markPaid', 'checkIn'],
+        'bulk_reg_stopped_' => ['auth', 'forbidden'],
     ];
 
     // Chosen in a ternary - not found by the scan

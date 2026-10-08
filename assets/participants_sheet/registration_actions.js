@@ -14,8 +14,12 @@
  * - Check in: rows holding a spot, not checked in yet (in-person events only - nobody walks in to an online one);
  *   Undo check-in: a checked-in row.
  *
- * Pure except sendRegistrationAction() (network through official_results_api.js) - pinned by
- * tests/participants-sheet-people-harness.mjs.
+ * Several people at once (the bulk bar's Mark paid / Check in): bulkRegistrationPlan() says who the action applies to and
+ * how many e-mails it sends, runRegistrationBulk() sends one request after the other through the same endpoint (never a
+ * parallel storm), stopping when the organiser is signed out or may not change the event any more.
+ *
+ * Pure except sendRegistrationAction() / performRegistrationAction() / runRegistrationBulk() (network through
+ * official_results_api.js) - pinned by tests/participants-sheet-people-harness.mjs.
  */
 
 import { officialResultsRequest } from '../official_results_api.js';
@@ -45,7 +49,8 @@ export function holdsSpot(person) {
 
 /**
  * "Paid on {date}, before the registration was cancelled": the organiser's record of a payment kept on a row that is
- * not paid now (cancelled and maybe registered again) - the date, else null.
+ * not paid now - cancelled (removed from the event, the status may still say paid) and maybe registered again - the
+ * date, else null.
  */
 export function paidBefore(person) {
     const registration = person?.registration ?? null;
@@ -54,7 +59,7 @@ export function paidBefore(person) {
         return null;
     }
 
-    return registrationStatus(person) === PAID ? null : registration.paidAt;
+    return registrationStatus(person) === PAID && (person.removedAt ?? null) === null ? null : registration.paidAt;
 }
 
 /**
@@ -105,14 +110,41 @@ function waitlistOrder(a, b) {
     return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);
 }
 
+/** The server's own place in the line (`registration.waitlistPosition`, 1-based, its FIFO order) - null without one. */
+function serverPosition(person) {
+    const position = person.registration?.waitlistPosition;
+
+    return Number.isInteger(position) && position > 0 ? position : null;
+}
+
 /**
- * Map personId → position on the waitlist (1 = first in line), active people only.
+ * Map personId → position on the waitlist (1 = first in line), active people only. The server's order
+ * (`registration.waitlistPosition` - it compares the registration times to the microsecond, the state only sends them
+ * to the second) when the rows carry it, the browser's FIFO otherwise (rows without one after those with one);
+ * numbered again from 1, so a person who got a spot meanwhile closes the gap at once.
  *
  * @param {object[]} people state rows
  */
 export function waitlistPositions(people) {
     const waiting = people.filter((person) => registrationStatus(person) === WAITLISTED && (person.removedAt ?? null) === null);
-    waiting.sort(waitlistOrder);
+    waiting.sort((a, b) => {
+        const positionA = serverPosition(a);
+        const positionB = serverPosition(b);
+
+        if (positionA !== positionB) {
+            if (positionA === null) {
+                return 1;
+            }
+
+            if (positionB === null) {
+                return -1;
+            }
+
+            return positionA - positionB;
+        }
+
+        return waitlistOrder(a, b);
+    });
 
     return new Map(waiting.map((person, index) => [person.id, index + 1]));
 }
@@ -173,8 +205,8 @@ export function firstInLine(people, capacity = null) {
 }
 
 /**
- * The filters of the People tab that read the registration: waitlist, not paid (holding a spot, not paid), checked in,
- * not checked in (holding a spot).
+ * The filters of the People tab that read the registration (the old status filter: Reserved / Paid / Waitlist):
+ * waitlist, not paid (holding a spot, not paid), paid, checked in, not checked in (holding a spot).
  */
 export function matchesRegistrationFilter(person, filter) {
     const status = registrationStatus(person);
@@ -184,6 +216,8 @@ export function matchesRegistrationFilter(person, filter) {
             return status === WAITLISTED;
         case 'not_paid':
             return status === RESERVED;
+        case 'paid':
+            return status === PAID;
         case 'checked_in':
             return status !== null && Boolean(person.registration.checkedInAt);
         case 'not_checked_in':
@@ -235,20 +269,101 @@ export function applyRegistrationAnswer(model, answer) {
 }
 
 export const REGISTRATION_MARK_MS = 20000;
+// How long an action waits for the organiser's own edits of that person to be saved first
+export const WAIT_FOR_SAVES_MS = 15000;
 const inFlight = new WeakMap();
 
+/** The organiser's edits of a person still on their way to the server (a new person not saved yet included). */
+export function hasPendingFor(model, personId) {
+    return (model.pending ?? []).some((group) => group.changes.some((change) => change.participant === personId || (change.op === 'newParticipant' && change.id === personId)));
+}
+
 /**
- * A registration action from the sheet (the grid's menu, the first-in-line hint, the person editor): the cell shows
- * "Saving" (marker `person:<id>:registration`), the answer's row is merged, the result is said aloud; a refusal stays on
- * the cell with the server's reason for a while. One action per person at a time.
+ * Resolves true once nothing of the organiser's own about the person waits to be saved (sent at once - the queue's
+ * debounce is not waited for), false when it still waits after `timeoutMs` (offline, a server error being retried): a
+ * registration change must never reach the server before the person it is about (a person added on the page) or
+ * overtake an edit of them.
+ */
+export function waitForSaves(context, personId, { timeoutMs = WAIT_FOR_SAVES_MS, schedule = (task, ms) => setTimeout(task, ms), cancel = (id) => clearTimeout(id) } = {}) {
+    const { model } = context;
+
+    if (!hasPendingFor(model, personId)) {
+        return Promise.resolve(true);
+    }
+
+    context.queue?.flushNow?.();
+
+    return new Promise((resolve) => {
+        const stops = [];
+        let timer = null;
+        const finish = (value) => {
+            stops.forEach((stop) => stop?.());
+            stops.length = 0;
+            cancel(timer);
+            resolve(value);
+        };
+        const check = () => {
+            if (!hasPendingFor(model, personId)) {
+                finish(true);
+            }
+        };
+
+        // A confirmed group may change nothing the views read (no model delta): the queue's outcome tells it too
+        stops.push(model.subscribe(check));
+
+        if (typeof context.queue?.subscribe === 'function') {
+            stops.push(context.queue.subscribe(check));
+        }
+
+        timer = schedule(() => finish(!hasPendingFor(model, personId)), timeoutMs);
+    });
+}
+
+/** A refusal's words when the server said nothing itself (no answer, signed out, no rights, busy). */
+export function failureText(answer, say) {
+    if (answer.kind === 'auth') {
+        return say('reg_failed_auth');
+    }
+
+    if (answer.kind === 'forbidden') {
+        return say('reg_failed_forbidden');
+    }
+
+    if (answer.kind === 'server' && answer.busy === true) {
+        return say('reg_failed_busy');
+    }
+
+    if (answer.kind === 'offline' || answer.kind === 'server') {
+        return say('reg_failed_offline');
+    }
+
+    return say('reg_failed');
+}
+
+/** Shown (a toast when the page has one - `context.notify`) and read out; only read out on a page without toasts. */
+function tell(context, text, options) {
+    if (typeof context.notify === 'function') {
+        context.notify(text, options);
+    } else {
+        context.announce(text);
+    }
+}
+
+/**
+ * A registration action from the sheet (the grid's menu, the first-in-line hint, the person editor, the bulk bar): the
+ * cell shows "Saving" (marker `person:<id>:registration`) - first while the organiser's own edits of that person are
+ * saved -, the answer's row is merged, the result is said; a refusal stays on the cell with the server's reason for a
+ * while and is shown (`context.notify`). One action per person at a time.
  *
- * @param {object} context the view context (model, urls, csrfToken, texts, announce)
+ * @param {object} context the view context (model, queue, urls, csrfToken, texts, announce, notify?)
  * @param {string} personId
  * @param {string} action
- * @param {{request?: function, schedule?: function}} [options]
- * @returns {Promise<object>} the sendRegistrationAction() answer ({ok: false, kind: 'busy'} while one is on its way)
+ * @param {{request?: function, schedule?: function, cancel?: function, quiet?: boolean, anchor?: object|null}} [options]
+ *        quiet = nothing said or shown (the bulk bar sums up itself); anchor = where a refusal's toast points
+ * @returns {Promise<object>} the sendRegistrationAction() answer ({ok: false, kind: 'busy'} while one is on its way,
+ *          {ok: false, kind: 'unsaved'} when the person's edits could not be saved first)
  */
-export async function performRegistrationAction(context, personId, action, { request = officialResultsRequest, schedule = (task, ms) => setTimeout(task, ms) } = {}) {
+export async function performRegistrationAction(context, personId, action, { request = officialResultsRequest, schedule = (task, ms) => setTimeout(task, ms), cancel = (id) => clearTimeout(id), quiet = false, anchor = null } = {}) {
     const { model } = context;
     const say = (key, params) => context.texts.people.t(key, params);
     const busy = inFlight.get(model) ?? new Set();
@@ -259,31 +374,36 @@ export async function performRegistrationAction(context, personId, action, { req
     }
 
     const key = `person:${personId}:registration`;
-    const name = model.person(personId)?.name ?? '';
     busy.add(personId);
     model.marks.set(key, { state: 'saving' }, { people: [personId] });
 
     let answer;
 
     try {
-        answer = await sendRegistrationAction({ url: context.urls.registration, csrfToken: context.csrfToken, request }, personId, action);
+        if (await waitForSaves(context, personId, { schedule, cancel })) {
+            answer = await sendRegistrationAction({ url: context.urls.registration, csrfToken: context.csrfToken, request }, personId, action);
+        } else {
+            answer = { ok: false, kind: 'unsaved', error: null, message: say('reg_failed_unsaved', { name: model.person(personId)?.name ?? '' }) };
+        }
     } finally {
         busy.delete(personId);
     }
 
+    // The name as shown when the answer came (a rename meanwhile included)
+    const name = model.person(personId)?.name ?? '';
+
     if (answer.ok) {
         model.marks.set(key, null);
         applyRegistrationAnswer(model, answer);
-        context.announce(say(`reg_done_${action}`, { name }));
+
+        if (!quiet) {
+            context.announce(say(`reg_done_${action}`, { name }));
+        }
 
         return answer;
     }
 
-    let message = answer.message;
-
-    if (message === null) {
-        message = say(answer.kind === 'auth' ? 'reg_failed_auth' : (answer.kind === 'offline' || answer.kind === 'server' ? 'reg_failed_offline' : 'reg_failed'));
-    }
+    const message = answer.message ?? failureText(answer, say);
 
     model.marks.set(key, { state: 'refused', message }, { people: [personId] });
     schedule(() => {
@@ -291,7 +411,86 @@ export async function performRegistrationAction(context, personId, action, { req
             model.marks.set(key, null);
         }
     }, REGISTRATION_MARK_MS);
-    context.announce(`${name}: ${message}`);
+
+    if (!quiet) {
+        tell(context, `${name}: ${message}`, anchor ? { kind: 'error', anchor } : { kind: 'error' });
+    }
 
     return { ...answer, message };
+}
+
+// ---------------------------------------------------------------- several people at once (the bulk bar)
+
+/** The actions the bulk bar offers for the selected people of a managed event. */
+export const BULK_ACTIONS = ['markPaid', 'checkIn'];
+
+/**
+ * Who of `people` the action applies to (their registration allows it now), who is left out, and how many e-mails it
+ * sends: Mark paid sends the payment confirmation to every person linked to a MySpeedPuzzling account (the mailer skips
+ * the others), Check in sends none.
+ *
+ * @param {object[]} people
+ * @param {string} action markPaid | checkIn
+ * @param {{checkIn?: boolean}} [options] checkIn = false for an online event
+ * @returns {{eligible: string[], skipped: string[], emails: number}}
+ */
+export function bulkRegistrationPlan(people, action, { checkIn = true } = {}) {
+    const eligible = [];
+    const skipped = [];
+    let emails = 0;
+
+    for (const person of people) {
+        if (BULK_ACTIONS.includes(action) && allowedActions(person, { checkIn }).includes(action)) {
+            eligible.push(person.id);
+
+            if (action === 'markPaid' && person.player !== null && person.player !== undefined) {
+                emails++;
+            }
+        } else {
+            skipped.push(person.id);
+        }
+    }
+
+    return { eligible, skipped, emails };
+}
+
+/**
+ * One request after the other (performRegistrationAction(), quiet) for `personIds`; `onProgress(done, total)` after each
+ * answer. Stops for good when the organiser is signed out or may not change the event any more (the rest would be
+ * refused the same way), or when `control.stopped` is set (the organiser's Stop).
+ *
+ * @returns {Promise<{done: string[], failed: Array<{id: string, message: string}>, stopped: null|'auth'|'forbidden'|'user', notSent: string[], stopMessage: string|null}>}
+ */
+export async function runRegistrationBulk(context, personIds, action, { onProgress = () => {}, control = { stopped: false }, ...options } = {}) {
+    const result = { done: [], failed: [], stopped: null, notSent: [], stopMessage: null };
+
+    for (let index = 0; index < personIds.length; index++) {
+        if (control.stopped) {
+            result.stopped = 'user';
+            result.notSent = personIds.slice(index);
+
+            break;
+        }
+
+        const id = personIds[index];
+        const answer = await performRegistrationAction(context, id, action, { ...options, quiet: true });
+
+        if (answer.ok) {
+            result.done.push(id);
+        } else {
+            result.failed.push({ id, message: answer.message ?? '' });
+        }
+
+        onProgress(index + 1, personIds.length);
+
+        if (!answer.ok && (answer.kind === 'auth' || answer.kind === 'forbidden')) {
+            result.stopped = answer.kind;
+            result.stopMessage = answer.message ?? null;
+            result.notSent = personIds.slice(index + 1);
+
+            break;
+        }
+    }
+
+    return result;
 }

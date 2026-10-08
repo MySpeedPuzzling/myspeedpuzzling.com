@@ -69,6 +69,8 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       members only (`docs/features/collections/bulk-actions.md` "Other lists").
 - [ ] Profile results sort 'Slowest' should order puzzles by the player's best (fastest) time per puzzle, not by their
       slowest attempt (usually the first try). Promised to Šárka (MSP #194, follow-up F60).
+- [ ] A player setting to hide other puzzlers' skill tiers / rating shields across the site (ladder, leaderboards,
+      profiles) - today ranking opt-out hides only your own. Promised to Martine (MSP #125, follow-up F66).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

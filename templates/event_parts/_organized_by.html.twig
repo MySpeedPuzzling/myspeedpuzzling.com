@@ -1,0 +1,8 @@
+{#
+    "Organized by <organization>" in the byline of the series, edition and event pages (owner: workstream A,
+    docs/features/organizations/README.md "Organized by") - HOOK of the foundation, renders nothing yet.
+
+    Variables: organization (null|OrganizationRef) - shown when organization.isPublic, or to its team
+    (is_granted('ORGANIZATION_EDIT', organization.id) - ask the voter only for a non-public organization, so public pages
+    pay no statement). Text: 'organization.byline.organized_by' with %name% = the link to organization_detail.
+#}

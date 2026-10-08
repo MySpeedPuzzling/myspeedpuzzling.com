@@ -8,12 +8,15 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Exceptions\FollowTargetNotAvailable;
+use SpeedPuzzling\Web\Exceptions\OrganizationNotFound;
 use SpeedPuzzling\Web\Message\FollowCompetition;
 use SpeedPuzzling\Web\Message\UnfollowCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
+use SpeedPuzzling\Web\Repository\OrganizationRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\FollowTarget;
+use SpeedPuzzling\Web\Value\FollowTargetKind;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -40,6 +43,7 @@ abstract class AbstractEventFollowController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private CompetitionRepository $competitionRepository,
         readonly private CompetitionSeriesRepository $competitionSeriesRepository,
+        readonly private OrganizationRepository $organizationRepository,
     ) {
     }
 
@@ -113,10 +117,12 @@ abstract class AbstractEventFollowController extends AbstractController
     private function nameOf(FollowTarget $target): string
     {
         try {
-            return $target->isSeries()
-                ? $this->competitionSeriesRepository->get($target->id)->name
-                : $this->competitionRepository->get($target->id)->name;
-        } catch (CompetitionNotFound | CompetitionSeriesNotFound) {
+            return match ($target->kind) {
+                FollowTargetKind::Series => $this->competitionSeriesRepository->get($target->id)->name,
+                FollowTargetKind::Organization => $this->organizationRepository->get($target->id)->name,
+                FollowTargetKind::Competition => $this->competitionRepository->get($target->id)->name,
+            };
+        } catch (CompetitionNotFound | CompetitionSeriesNotFound | OrganizationNotFound) {
             return '';
         }
     }

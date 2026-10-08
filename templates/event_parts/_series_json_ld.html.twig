@@ -4,7 +4,7 @@
     rounds fall on separate days, linking `#round-<id>`), undated editions left out. Every value goes through `json_ld`.
     Variables: the page's (series, page).
 #}
-{% if series.approvedAt is not null and series.rejectedAt is null and series.slug is not null %}
+{% if series_publicly_visible and series.slug is not null %}
 {# A schema.org Event needs a startDate - an edition without a round and without its own date is left out #}
 <script type="application/ld+json">
 {

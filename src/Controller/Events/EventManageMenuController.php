@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetOrganizedEvents;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
+use SpeedPuzzling\Web\Security\OrganizationEditVoter;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,7 +41,7 @@ final class EventManageMenuController extends AbstractController
         path: '/{_locale}/event-actions/{kind}/{id}',
         name: 'event_manage_menu',
         requirements: [
-            'kind' => 'competition|series',
+            'kind' => 'competition|series|organization',
             'id' => FirstTryConflictsController::ID_REQUIREMENT,
         ],
         methods: ['GET'],
@@ -48,16 +49,18 @@ final class EventManageMenuController extends AbstractController
     public function __invoke(Request $request, string $kind, string $id): Response
     {
         $id = strtolower($id);
-        $isSeries = $kind === 'series';
 
-        $this->denyAccessUnlessGranted(
-            $isSeries ? CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT : CompetitionEditVoter::COMPETITION_EDIT,
-            $id,
-        );
+        $this->denyAccessUnlessGranted(match ($kind) {
+            'series' => CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT,
+            'organization' => OrganizationEditVoter::ORGANIZATION_EDIT,
+            default => CompetitionEditVoter::COMPETITION_EDIT,
+        }, $id);
 
-        $items = $isSeries
-            ? $this->getOrganizedEvents->byIds([], [$id])
-            : $this->getOrganizedEvents->byIds([$id], []);
+        $items = match ($kind) {
+            'series' => $this->getOrganizedEvents->byIds([], [$id]),
+            'organization' => $this->getOrganizedEvents->byIds([], [], [$id]),
+            default => $this->getOrganizedEvents->byIds([$id], []),
+        };
 
         $item = $items[0] ?? throw new NotFoundHttpException();
 

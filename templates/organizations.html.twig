@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The organizations directory (docs/features/organizations/README.md "Directory") - SKELETON of the foundation, owner:
+    workstream A. Variables: organizations (list<OrganizationDirectoryRow>, publicly visible only).
+#}
+
+{% block title %}{{ 'organization.directory_title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="ev-organizations">
+        <h1>{{ 'organization.directory_title'|trans }}</h1>
+        <ul>
+            {% for organization in organizations %}
+                <li><a href="{{ path('organization_detail', {slug: organization.slug}) }}">{{ organization.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}

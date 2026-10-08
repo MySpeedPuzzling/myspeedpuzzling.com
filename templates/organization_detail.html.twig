@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The organization page (docs/features/organizations/README.md "Organization page") - SKELETON of the foundation, owner:
+    workstream A (header, About, Coming up, What we run, Past, SEO, JSON-LD). Variables: organization (OrganizationDetail),
+    draft_state (null|DraftState - only its team ever gets a draft's page).
+#}
+
+{% block title %}{{ organization.name }}{% endblock %}
+
+{% block robots %}
+    {# Indexable only while publicly visible - pending, rejected (reachable at the URL, P12) and drafts are not #}
+    {% if not organization.isPublic %}
+        <meta name="robots" content="noindex, nofollow">
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="ev-detail ev-organization">
+        {{ include('event_parts/_draft_banner.html.twig', {draft_state: draft_state}) }}
+        <h1 class="ev-detail-name" data-organization-id="{{ organization.id }}">{{ organization.name }}</h1>
+        {% if organization.about %}
+            <p class="ev-detail-description">{{ organization.about|nl2br }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

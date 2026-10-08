@@ -17,6 +17,7 @@ use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\CompetitionReference;
+use SpeedPuzzling\Web\Results\DraftState;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
 use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
@@ -152,6 +153,12 @@ final class EventDetailController extends AbstractController
             'page_sections' => $competitionEvent->hasPageSections && $isPubliclyVisible
                 ? $this->getCompetitionPageSections->forCompetitionPage($competitionId)
                 : [],
+            // The byline (docs/features/organizations/README.md): "Organized by", "Who can enter"
+            'organization' => $competitionEvent->organization,
+            'eligibility' => $competitionEvent->eligibility,
+            'draft_state' => $competitionEvent->isDraft
+                ? new DraftState(DraftState::KIND_COMPETITION, $competitionId, $competitionEvent->name, true)
+                : null,
         ]);
     }
 }

@@ -967,8 +967,10 @@ events_page:
         today: "Today"
     tag:
         waiting_for_approval: "Waiting for approval"
+        draft: "Draft"
         going: "Going"
         recurring: "Recurring"
+        eligibility: "Who can enter"
         registration: "Registration"
         registration_open: "Registration open"
         registration_opens: "Opens %date%"
@@ -1054,6 +1056,7 @@ events_organizer:
         edition: "Edition"
         series: "Series"
     badge:
+        draft: "Draft"
         waiting_for_approval: "Waiting for approval"
         rejected: "Rejected"
         live: "Live"
@@ -8138,3 +8141,33 @@ puzzle_selection:
             message: "Puzzles you lent out are back with you, puzzles you borrowed go back to their owners."
             submit: "Mark 1 as returned|Mark %count% as returned"
             done: "1 puzzle returned.|%count% puzzles returned."
+organization:
+    kind:
+        association: "Association or federation"
+        club: "Club"
+        shop: "Shop or brand"
+        venue: "Venue"
+        community: "Community"
+        other: "Other"
+    byline:
+        organized_by: "Organized by %name%"
+        who_can_enter: "Who can enter: %text%"
+        when_it_happens: "When it happens: %text%"
+    flash:
+        approved: "The organization is approved."
+        rejected: "The organization is rejected."
+        deleted: "The organization is deleted."
+        not_empty: "The organization still has series or events - move them to another organization or out of it first."
+    menu:
+        edit: "Edit organization"
+    directory_title: "Organizations"
+drafts_core:
+    flash:
+        published: "Published - everyone can see it now."
+        published_waiting: "Published - everyone can see it once an admin approves it."
+        unpublished: "Back to draft - only you and your team can see it."
+        cannot_unpublish: "It cannot go back to draft: %reasons%."
+    blocker:
+        participants: "people have joined it"
+        results: "it has official results"
+        solving_times: "solving times are linked to it"

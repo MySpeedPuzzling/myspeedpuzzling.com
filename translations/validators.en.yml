@@ -23,3 +23,6 @@ admin:
         choose_player: "Choose at least one player."
 private_profile_viewers:
     choose_player: "Choose at least one player."
+organization_fields:
+    social_links_too_many: "Add at most {{ limit }} links."
+    social_link_invalid: "\"{{ value }}\" is not a web address (http:// or https://)."

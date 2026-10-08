@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Results\CompetitionReference;
+use SpeedPuzzling\Web\Results\DraftState;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
 use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
@@ -165,6 +166,21 @@ final class EditionDetailController extends AbstractController
             'page_sections' => $competitionEvent->hasPageSections && $isPubliclyVisible
                 ? $this->getCompetitionPageSections->forCompetitionPage($competitionId)
                 : [],
+            // The byline (docs/features/organizations/README.md): an edition is organized by its series' organization,
+            // "Who can enter" is its own, else its series'
+            'organization' => $seriesOverview->organization,
+            'eligibility' => $competitionEvent->eligibility ?? $seriesOverview->eligibility,
+            // The edition is a draft and/or its series is one (P7)
+            'draft_state' => $competition->isDraft || $seriesOverview->isDraft
+                ? new DraftState(
+                    kind: DraftState::KIND_COMPETITION,
+                    id: $competitionId,
+                    name: $competitionEvent->name,
+                    isDraft: $competition->isDraft,
+                    seriesId: $seriesOverview->isDraft ? $seriesOverview->id : null,
+                    seriesName: $seriesOverview->isDraft ? $seriesOverview->name : null,
+                )
+                : null,
         ]);
     }
 }

@@ -108,6 +108,12 @@
 @import "series-page";
 @import "event-rounds";
 
+// Organizations and drafts (docs/features/organizations/README.md) - one file per workstream
+@import "organization-page";
+@import "drafts";
+@import "add-editions";
+@import "restructure";
+
 // Participants spreadsheet (docs/features/competitions-management/participants-spreadsheet.md)
 @import "participants_sheet/sheet";
 

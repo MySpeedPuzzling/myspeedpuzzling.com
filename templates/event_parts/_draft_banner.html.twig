@@ -1,0 +1,9 @@
+{#
+    The draft banner of the organization, series, edition and event pages (owner: workstream B,
+    docs/features/organizations/README.md "Drafts") - HOOK of the foundation, renders nothing yet.
+
+    Variables: draft_state (null|DraftState): `isDraft` = the item itself is a draft ("Draft: only you and your team can
+    see this page." + Publish), `seriesId` / `seriesName` = an edition whose series is a draft ("This series is a draft…"
+    + Publish series); `kind` = 'organization'|'series'|'competition' picks the publish route
+    (publish_organization / publish_competition_series / publish_competition).
+#}

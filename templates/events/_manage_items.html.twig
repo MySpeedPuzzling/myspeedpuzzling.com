@@ -14,7 +14,15 @@
 {%- set approval = null -%}
 {%- set links = [] -%}
 {%- set delete = null -%}
-{%- if item.isSeries -%}
+{%- if item.isOrganization -%}
+    {#- Minimal organization branch of the foundation - workstream C completes it (Add event, Publish/Unpublish, Delete,
+        Approve/Reject; docs/features/organizations/README.md "The ⋯ menu") -#}
+    {%- if is_granted('ORGANIZATION_EDIT', item.id) -%}
+        {%- set links = [
+            {label: 'organization.menu.edit', url: path('edit_organization', {organizationId: item.id}|merge(back))},
+        ] -%}
+    {%- endif -%}
+{%- elseif item.isSeries -%}
     {%- if is_admin and pending -%}
         {%- set approval = {
             approve_url: path('admin_approve_competition_series', {seriesId: item.id}),

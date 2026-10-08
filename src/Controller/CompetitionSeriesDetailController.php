@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEventGoingCounts;
 use SpeedPuzzling\Web\Query\GetEventOccurrences;
 use SpeedPuzzling\Web\Query\GetEventsViewerData;
+use SpeedPuzzling\Web\Results\DraftState;
 use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
@@ -55,10 +56,15 @@ final class CompetitionSeriesDetailController extends AbstractController
     {
         $series = $this->getCompetitionSeries->bySlug($slug);
         $now = $this->clock->now();
-        $occurrences = $this->getEventOccurrences->forSeries($series->id);
 
         $profile = $this->retrieveLoggedUserProfile->getProfile();
         $viewer = $profile !== null ? $this->getEventsViewerData->forPlayer($profile->playerId) : null;
+        // Its team (and admins) see its draft editions too, tagged (docs/features/organizations/README.md, P6)
+        $canManage = $viewer !== null && (
+            $this->isGranted('ADMIN_ACCESS')
+            || $this->isGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $series->id)
+        );
+        $occurrences = $this->getEventOccurrences->forSeries($series->id, includeDrafts: $canManage);
 
         $page = $this->seriesPageBuilder->build(
             series: $series,
@@ -72,17 +78,24 @@ final class CompetitionSeriesDetailController extends AbstractController
         return $this->render('competition_series_detail.html.twig', [
             'series' => $series,
             'page' => $page,
-            // Organiser-written sections: queried only when one shows, and only on an approved series - nothing an organiser
-            // writes is published before the series is approved
-            'page_sections' => $series->hasPageSections && $series->approvedAt !== null && $series->rejectedAt === null
+            // Organiser-written sections: queried only when one shows, and only on a public series - nothing an organiser
+            // writes is published before the series is approved and published
+            'page_sections' => $series->hasPageSections && $series->isPubliclyVisible()
                 ? $this->getCompetitionPageSections->forSeriesPage($series->id)
                 : [],
+            'series_publicly_visible' => $series->isPubliclyVisible(),
+            // The byline (docs/features/organizations/README.md): "Organized by", "Who can enter", "When it happens"
+            'organization' => $series->organization,
+            'eligibility' => $series->eligibility,
+            'schedule' => $series->schedule,
+            'draft_state' => $series->isDraft
+                ? new DraftState(DraftState::KIND_SERIES, $series->id, $series->name, true)
+                : null,
             'manage' => new ManageRef(ManageRef::KIND_SERIES, $series->id, $series->name),
             // The ⋯ menu's host: only for viewers with a ⋯ on the page - the series' organisers and admins, or an
             // organiser of one of its editions (their row ⋯)
             'show_menu' => $viewer !== null && (
-                $this->isGranted('ADMIN_ACCESS')
-                || $this->isGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $series->id)
+                $canManage
                 || array_intersect(
                     array_map(static fn (EventOccurrence $occurrence): string => strtolower($occurrence->competitionId), $occurrences),
                     $viewer->organizedCompetitionIds(),

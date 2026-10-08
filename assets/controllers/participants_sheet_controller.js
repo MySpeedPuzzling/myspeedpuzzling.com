@@ -478,7 +478,7 @@ export default class extends Controller {
             const selectedTab = this.tabsList.querySelector('[aria-selected="true"]');
 
             if (selectedTab && typeof selectedTab.scrollIntoView === 'function') {
-                selectedTab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                selectedTab.scrollIntoView({ block: 'nearest', inline: 'center' });
                 this.tabsScrolledTo = this.currentTab;
             }
         }

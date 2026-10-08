@@ -36,8 +36,9 @@
 
         <div class="participants-sheet-bar">
             <div class="participants-sheet-bar__row">
-                <a href="{{ competition.editUrl }}" class="btn btn-sm btn-link participants-sheet-bar__back" aria-label="{{ 'participants_sheet.page.back_label'|trans }}" data-participants-sheet-back>
-                    <i class="bi bi-arrow-left" aria-hidden="true"></i><span class="participants-sheet-bar__label">{{ 'participants_sheet.page.back'|trans }}</span>
+                {# Back where the organiser came from (a validated `?return=`, the controller's back_url), else the event #}
+                <a href="{{ back_url }}" class="btn btn-sm btn-link participants-sheet-bar__back" aria-label="{{ back_title is not null ? 'back_to'|trans ~ ' ' ~ back_title : 'participants_sheet.page.back_label'|trans }}" data-participants-sheet-back>
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i><span class="participants-sheet-bar__label">{{ back_title ?? 'participants_sheet.page.back'|trans }}</span>
                 </a>
 
                 <h1 class="participants-sheet-bar__title">

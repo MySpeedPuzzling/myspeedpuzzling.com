@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\ParticipantsSheet;
 
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
+use SpeedPuzzling\Web\Exceptions\ParticipantImportPreviewStale;
 use SpeedPuzzling\Web\Exceptions\SheetChangesetIdTaken;
 use SpeedPuzzling\Web\Exceptions\UnreadableSheetChanges;
 use SpeedPuzzling\Web\Message\ApplyParticipantSheetChanges;
@@ -21,6 +23,7 @@ use SpeedPuzzling\Web\Value\SheetChangeStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
@@ -68,13 +71,16 @@ final class ApplyParticipantSheetChangesController extends AbstractController
             return $playerId;
         }
 
-        $body = OfficialResultsApi::body($request);
-
-        if ($body instanceof JsonResponse) {
-            return $body;
+        try {
+            $body = json_decode($request->getContent(), associative: true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return OfficialResultsApi::error('invalid_json', JsonResponse::HTTP_BAD_REQUEST, [
+                'message' => $this->translator->trans('participants_sheet_server.invalid.not_a_list'),
+            ]);
         }
 
         try {
+            // Any JSON - a list or a number is an unreadable change set like any other (not_a_list), with its text
             $changeSet = SheetChangesParser::parse($body);
         } catch (UnreadableSheetChanges $exception) {
             // The organiser reads `message` - always the translated reason, never the parser's developer text
@@ -96,6 +102,18 @@ final class ApplyParticipantSheetChangesController extends AbstractController
             return OfficialResultsApi::error('changeset_id_taken', JsonResponse::HTTP_CONFLICT, [
                 'message' => $this->translator->trans('participants_sheet_server.changeset_id_taken'),
             ]);
+        } catch (ParticipantImportPreviewStale) {
+            // Something the change set names vanished outside the event's lock (a player deleting their account, ...):
+            // nothing was written - sent again, it is planned against what is there now
+            return $this->changedMeanwhile();
+        } catch (HandlerFailedException $exception) {
+            // The same between the read and the write: a player deleted after the plan checked them (the transaction
+            // rolled back, nothing was written)
+            if (!$exception->getPrevious() instanceof ForeignKeyConstraintViolationException) {
+                throw $exception;
+            }
+
+            return $this->changedMeanwhile();
         }
 
         $applied = $envelope->last(HandledStamp::class)?->getResult();
@@ -127,11 +145,7 @@ final class ApplyParticipantSheetChangesController extends AbstractController
                 'index' => $change->index,
                 'status' => $change->status->value,
                 'reason' => $change->reason,
-                'message' => match (true) {
-                    $change->reason !== null => $this->message('participants_sheet_server.reason.' . $change->reason, $change->parameters),
-                    $change->status === SheetChangeStatus::Skipped => $this->message('participants_sheet_server.skipped', []),
-                    default => null,
-                },
+                'message' => $this->changeMessage($change),
                 'current' => $change->current,
             ], $group->changes),
             'warnings' => array_map(fn (SheetWarning $warning): array => [
@@ -143,6 +157,28 @@ final class ApplyParticipantSheetChangesController extends AbstractController
             ], $group->warnings),
             'deletedTeams' => $group->deletedTeams,
         ];
+    }
+
+    /**
+     * The organiser's text: the reason's (one code, several causes - SheetChangeOutcome::messageKey()), "not saved" for a
+     * change skipped with its group, none for one that went through.
+     */
+    private function changeMessage(SheetChangeOutcome $change): null|string
+    {
+        $key = $change->messageKey();
+
+        if ($key !== null) {
+            return $this->message($key, $change->parameters);
+        }
+
+        return $change->status === SheetChangeStatus::Skipped ? $this->message('participants_sheet_server.skipped', []) : null;
+    }
+
+    private function changedMeanwhile(): JsonResponse
+    {
+        return OfficialResultsApi::error('changed_meanwhile', JsonResponse::HTTP_CONFLICT, [
+            'message' => $this->translator->trans('participants_sheet_server.changed_meanwhile'),
+        ]);
     }
 
     /**

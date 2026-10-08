@@ -33,11 +33,16 @@ use SpeedPuzzling\Web\Value\SheetChangeStatus;
  *   its own group left): the value is `to` already → unchanged; it is `from` → applied; else → conflict.
  * - A group is all or nothing: one conflict or refusal and the working state goes back to what it was before the
  *   group; the changes that went through are reported `skipped`. Groups are independent of each other.
- * - The rules are the import's (ParticipantRules, SiteSnapshot): a player linked to one active participant at most, no
- *   person taken out of a round - or the event - while they hold a result there (official data, or their player's own
- *   time), no pair/team with official data deleted or emptied.
+ * - The rules are the import's (ParticipantRules, SiteSnapshot): a player linked to one active participant at most, an
+ *   external id one participant's, no person taken out of a round - or the event - while they hold a result there
+ *   (their own entry's official data, or a time their player - linked now or when the change set started - added to
+ *   their profile), no pair/team with official data deleted.
+ * - A pair's/team's result belongs to its line-up: a member may leave it (warning `team_result_line_up_changed`) while
+ *   it keeps at least one member taking part - not removed, not on the waitlist of a managed event; a group taking the
+ *   last one away is refused (`team_has_result`).
  * - A pair/team without a name and without official data that a group empties (at least one active member before the
- *   group, none after, not by removing people) is deleted with it - a named one stays as a team made in advance.
+ *   group, none after, not by removing people) is deleted with it - a named one stays as a team made in advance. A
+ *   pair/team the change set creates and leaves without a name and without anybody is never created.
  * - At the end the NET difference between the event before and after all groups becomes the operations: a person taken
  *   out of a round and put back is no change at all, never a delete and an insert of the same entry.
  *
@@ -54,6 +59,15 @@ final class SheetPlanRun
 {
     public const int NAME_MAX_LENGTH = 255;
     public const int EXTERNAL_ID_MAX_LENGTH = 255;
+
+    /** SheetChangeOutcome::$cause - the linked player's own time keeps the person (has_result_in_round/_event) */
+    public const string CAUSE_OWN_TIME = 'own_time';
+
+    /** SheetChangeOutcome::$cause - a pair/team with a result would be left without anybody (team_has_result) */
+    public const string CAUSE_EMPTIED = 'emptied';
+
+    /** SheetChangeOutcome::$cause - only people on the waitlist would be left in a pair/team with a result */
+    public const string CAUSE_WAITLISTED_ONLY = 'waitlisted_only';
 
     /** @var array<string, Person> participant id => person, every participant of the event incl. removed ones */
     private array $people = [];
@@ -78,6 +92,9 @@ final class SheetPlanRun
 
     /** @var array<string, int> team id => active members when the current group started (recorded on its first touch) */
     private array $activeAtGroupStart = [];
+
+    /** @var array<string, int> team id => members taking part (goingMembers()) when the current group started */
+    private array $goingAtGroupStart = [];
 
     /** @var array<string, int> team id => index of the change of the current group that last took a member out of it */
     private array $lostMember = [];
@@ -160,6 +177,7 @@ final class SheetPlanRun
     {
         $before = $this->state();
         $this->activeAtGroupStart = [];
+        $this->goingAtGroupStart = [];
         $this->lostMember = [];
         $this->touchedTeams = [];
         $this->removedInGroup = [];
@@ -173,25 +191,39 @@ final class SheetPlanRun
         $deletedTeams = [];
 
         if (!self::failed($outcomes)) {
-            // Pairs/teams the group emptied (people before it, none after it): one with official data must keep at least
-            // one person - the group is refused; one without a name is deleted with it
+            // Pairs/teams the group took people out of
             foreach ($this->lostMember as $teamId => $index) {
                 $team = $this->teams[$teamId];
 
-                if ($team['deleted'] || ($this->activeAtGroupStart[$teamId] ?? 0) === 0 || $this->activeMembers($teamId) > 0) {
+                if ($team['deleted']) {
                     continue;
                 }
 
+                $activeBefore = $this->activeAtGroupStart[$teamId] ?? 0;
+                $active = $this->activeMembers($teamId);
+
+                // A result belongs to its line-up: one with official data keeps somebody who takes part - the group took
+                // the last one away (only people on the waitlist left, or nobody at all) → refused
                 if ($this->site->teamHasOfficialResult($teamId)) {
-                    $outcomes[$index] = $this->refused($group->changes[$index], $index, 'team_has_result', [
-                        'team' => $this->teamLabel($teamId),
-                        'round' => $this->rounds[$team['roundId']]['name'],
-                    ]);
+                    $emptied = $activeBefore > 0 && $active === 0;
+                    $lastGoingLeft = ($this->goingAtGroupStart[$teamId] ?? 0) > 0 && $this->goingMembers($teamId) === 0;
+
+                    if ($emptied || $lastGoingLeft) {
+                        $outcomes[$index] = $this->refused($group->changes[$index], $index, 'team_has_result', [
+                            'team' => $this->teamLabel($teamId),
+                            'round' => $this->rounds[$team['roundId']]['name'],
+                        ], $active > 0 ? self::CAUSE_WAITLISTED_ONLY : self::CAUSE_EMPTIED);
+                    }
 
                     continue;
                 }
 
-                // Named = made in advance, it stays; emptied by removing people from the event, it stays too (D10)
+                if ($activeBefore === 0 || $active > 0) {
+                    continue;
+                }
+
+                // Emptied (people before the group, none after it). Named = made in advance, it stays; emptied by
+                // removing people from the event, it stays too (D10)
                 if ($team['name'] === null && !$this->emptiedByRemoval($teamId)) {
                     $this->deleteTeam($teamId);
                     $deletedTeams[] = $teamId;
@@ -215,6 +247,7 @@ final class SheetPlanRun
                     // What the server holds - the group is not applied, so what was there before it
                     $this->current($group->changes[$index]),
                     $outcome->parameters,
+                    $outcome->cause,
                 );
             }
 
@@ -303,6 +336,10 @@ final class SheetPlanRun
 
         if ($externalId !== null && mb_strlen($externalId) > self::EXTERNAL_ID_MAX_LENGTH) {
             return $this->refused($change, $index, 'external_id_too_long', ['max' => self::EXTERNAL_ID_MAX_LENGTH]);
+        }
+
+        if ($externalId !== null && ($taken = $this->externalIdTaken($externalId, $id, $change, $index)) !== null) {
+            return $taken;
         }
 
         $this->people[$id] = [
@@ -414,6 +451,10 @@ final class SheetPlanRun
             return $this->outcome($change, $index, SheetChangeStatus::Conflict, 'changed_meanwhile');
         }
 
+        if ($field === SheetChangeField::ExternalId && $to !== null && ($taken = $this->externalIdTaken($to, $id, $change, $index)) !== null) {
+            return $taken;
+        }
+
         match ($field) {
             SheetChangeField::Name => $person['name'] = (string) $to,
             SheetChangeField::Country => $person['country'] = $to,
@@ -523,11 +564,15 @@ final class SheetPlanRun
             return $this->outcome($change, $index, SheetChangeStatus::Conflict, 'changed_meanwhile');
         }
 
-        if ($to === SheetChange::OUT && $this->holdsResultInRound($id, $roundId)) {
+        // Their own result keeps them in the round; a pair's/team's result does not - a member may leave while the
+        // pair/team keeps somebody (the emptying guard at the end of the group)
+        $keptBy = $to === SheetChange::OUT ? $this->keptInRoundBy($id, $roundId) : null;
+
+        if ($keptBy !== null) {
             return $this->refused($change, $index, 'has_result_in_round', [
                 'name' => $person['name'],
                 'round' => $round['name'],
-            ]);
+            ], self::cause($keptBy));
         }
 
         $currentTeam = SheetChange::teamOfPlace($current);
@@ -679,8 +724,13 @@ final class SheetPlanRun
             return $this->outcome($change, $index, SheetChangeStatus::Unchanged);
         }
 
-        if ($this->holdsResultInEvent($id)) {
-            return $this->refused($change, $index, 'has_result_in_event', ['name' => $person['name']]);
+        $keptBy = $this->keptInEventBy($id);
+
+        if ($keptBy !== null) {
+            return $this->refused($change, $index, 'has_result_in_event', [
+                'name' => $person['name'],
+                'round' => $this->rounds[$keptBy['roundId']]['name'],
+            ], self::cause($keptBy['by']));
         }
 
         $this->recordTeamsOf($id);
@@ -833,6 +883,7 @@ final class SheetPlanRun
     private function recordActive(string $teamId): void
     {
         $this->activeAtGroupStart[$teamId] ??= $this->activeMembers($teamId);
+        $this->goingAtGroupStart[$teamId] ??= $this->goingMembers($teamId);
         $this->touchedTeams[$teamId] = true;
     }
 
@@ -858,6 +909,25 @@ final class SheetPlanRun
         return $count;
     }
 
+    /**
+     * Members taking part: not removed, and not on the waitlist of an event that manages registration (they are placed
+     * for when they get a spot - the results tools leave them out, O8).
+     */
+    private function goingMembers(string $teamId): int
+    {
+        $count = 0;
+
+        foreach (array_keys($this->members[$teamId] ?? []) as $participantId) {
+            $person = $this->people[$participantId];
+
+            if ($person['deleted'] === false && ($person['waitlisted'] === false || $this->registrationManaged === false)) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
     private function emptiedByRemoval(string $teamId): bool
     {
         foreach (array_keys($this->members[$teamId] ?? []) as $participantId) {
@@ -870,35 +940,89 @@ final class SheetPlanRun
     }
 
     /**
-     * Official data in the round (their own entry's, or their pair's/team's as the working state has it) or their
-     * player's own time there (D11).
+     * What keeps the person in the round (ParticipantRules::keptInRoundBy()): their player's own time there - of the
+     * player linked now and of the one linked when the change set started, so unlinking first in the same change set
+     * does not get around it (an unlink saved earlier does: the time is not theirs any more) - or their own entry's
+     * official data. Null when nothing does.
      */
-    private function holdsResultInRound(string $participantId, string $roundId): bool
+    private function keptInRoundBy(string $participantId, string $roundId): null|string
     {
         $entry = $this->entries[$participantId][$roundId] ?? null;
 
-        return ParticipantRules::holdsResultInRound(
+        return ParticipantRules::keptInRoundBy(
             $this->site,
-            $this->people[$participantId]['playerId'],
+            $this->playersOf($participantId),
             $roundId,
             $entry !== null && $entry['present'] && $entry['ownData'],
-            $entry !== null && $entry['present'] ? $entry['team'] : null,
         );
     }
 
-    private function holdsResultInEvent(string $participantId): bool
+    /**
+     * What keeps the person in the event, and the first round (in round order) it is in: their player's own time
+     * (checked first - nobody but the player takes it away), else official data of their own entry or of their
+     * pair/team. Null when nothing does.
+     *
+     * @return null|array{by: string, roundId: string}
+     */
+    private function keptInEventBy(string $participantId): null|array
     {
-        if ($this->site->hasResult($this->people[$participantId]['playerId'])) {
-            return true;
-        }
+        $playerIds = $this->playersOf($participantId);
+        $official = null;
 
-        foreach ($this->entries[$participantId] ?? [] as $entry) {
-            if ($entry['present'] && ParticipantRules::holdsOfficialData($this->site, $entry['ownData'], $entry['team'])) {
-                return true;
+        foreach (array_keys($this->rounds) as $roundId) {
+            foreach ($playerIds as $playerId) {
+                if ($this->site->hasResult($playerId, $roundId)) {
+                    return ['by' => ParticipantRules::KEPT_BY_OWN_TIME, 'roundId' => $roundId];
+                }
+            }
+
+            $entry = $this->entries[$participantId][$roundId] ?? null;
+
+            if ($official === null && $entry !== null && $entry['present'] && ParticipantRules::holdsOfficialData($this->site, $entry['ownData'], $entry['team'])) {
+                $official = ['by' => ParticipantRules::KEPT_BY_OFFICIAL_DATA, 'roundId' => $roundId];
             }
         }
 
-        return false;
+        return $official;
+    }
+
+    /**
+     * The players whose own times keep the person: linked now, and linked when the change set started.
+     *
+     * @return list<string>
+     */
+    private function playersOf(string $participantId): array
+    {
+        return array_values(array_unique(array_filter([
+            $this->people[$participantId]['playerId'],
+            $this->start['people'][$participantId]['playerId'] ?? null,
+        ], is_string(...))));
+    }
+
+    /**
+     * The refusal when another participant of the event (removed ones too) has the external id already - one rule with
+     * the import (ParticipantRules::externalIdTakenBy()).
+     */
+    private function externalIdTaken(string $externalId, string $participantId, SheetChange $change, int $index): null|SheetChangeOutcome
+    {
+        $other = ParticipantRules::externalIdTakenBy($externalId, $participantId, $this->people);
+
+        if ($other === null) {
+            return null;
+        }
+
+        return $this->refused($change, $index, 'external_id_taken', [
+            'id' => $externalId,
+            'other' => $this->people[$other]['name'],
+        ]);
+    }
+
+    /**
+     * The message variant of a guard refusal: own time has its own text, official data the code's.
+     */
+    private static function cause(string $keptBy): null|string
+    {
+        return $keptBy === ParticipantRules::KEPT_BY_OWN_TIME ? self::CAUSE_OWN_TIME : null;
     }
 
     /**
@@ -1031,10 +1155,11 @@ final class SheetPlanRun
 
     /**
      * @param array<string, null|string|int> $parameters
+     * @param null|string $cause SheetChangeOutcome::$cause
      */
-    private function refused(SheetChange $change, int $index, string $reason, array $parameters = []): SheetChangeOutcome
+    private function refused(SheetChange $change, int $index, string $reason, array $parameters = [], null|string $cause = null): SheetChangeOutcome
     {
-        return new SheetChangeOutcome($index, SheetChangeStatus::Refused, $reason, $this->current($change), $parameters);
+        return new SheetChangeOutcome($index, SheetChangeStatus::Refused, $reason, $this->current($change), $parameters, $cause);
     }
 
     /**
@@ -1174,7 +1299,10 @@ final class SheetPlanRun
 
         foreach ($this->teams as $teamId => $team) {
             if ($team['new']) {
-                if ($team['deleted'] === false) {
+                // Left without a name and without anybody by the change set: nothing to keep - never created
+                $leftEmpty = $team['name'] === null && ($this->members[$teamId] ?? []) === [];
+
+                if ($team['deleted'] === false && $leftEmpty === false) {
                     $newTeams[] = ['key' => 'n:' . $teamId, 'roundId' => $team['roundId'], 'name' => $team['name'], 'id' => $teamId];
                 }
 

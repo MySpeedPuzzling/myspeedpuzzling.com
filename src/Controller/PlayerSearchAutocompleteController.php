@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\SearchPlayers;
-use SpeedPuzzling\Web\Results\PlayerIdentification;
+use SpeedPuzzling\Web\Services\CoPuzzlerSearchRows;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +19,7 @@ final class PlayerSearchAutocompleteController extends AbstractController
     public function __construct(
         private readonly SearchPlayers $searchPlayers,
         private readonly ImageThumbnailTwigExtension $imageThumbnail,
+        private readonly CoPuzzlerSearchRows $coPuzzlerSearchRows,
     ) {
     }
 
@@ -39,18 +40,7 @@ final class PlayerSearchAutocompleteController extends AbstractController
         // The co-puzzler picker draws its own chips and submits player codes, so it wants the plain
         // fields - in the shape of MyCoPuzzlersController's people - rather than ready-made HTML
         if ($request->query->getString('format') === 'co-puzzler') {
-            return new JsonResponse(array_map(fn(PlayerIdentification $player): array => [
-                'key' => $player->playerId,
-                'value' => '#' . strtoupper($player->playerCode),
-                'label' => $player->playerName ?? '#' . strtoupper($player->playerCode),
-                'code' => strtoupper($player->playerCode),
-                'guest' => false,
-                'country' => $player->playerCountry?->name,
-                'avatar' => $player->playerAvatar !== null ? $this->imageThumbnail->thumbnailUrl($player->playerAvatar, 'puzzle_small') : null,
-                // A private player found by their exact code, hidden from this viewer: a co-puzzler may be added by
-                // code, the compare page does not offer them (docs/features/player-comparison.md "Visibility")
-                'hidden' => $player->isPrivate,
-            ], $players));
+            return new JsonResponse($this->coPuzzlerSearchRows->of($players));
         }
 
         $results = [];

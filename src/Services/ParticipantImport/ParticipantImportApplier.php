@@ -227,7 +227,7 @@ readonly final class ParticipantImportApplier
             $this->participantRoundRepository->delete($entries[$entryId]);
         }
 
-        // Teams deleted - members incl. hidden removed ones let go first, like DeleteCompetitionTeamHandler
+        // Teams deleted - every member let go first, removed people too (they keep their place in the round, WEB-D5)
         foreach ($operations->deletedTeams as $teamId) {
             $team = $teams[$teamId];
 

@@ -6,11 +6,17 @@ namespace SpeedPuzzling\Web\Tests\Controller\ParticipantsSheet;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Controller\ParticipantsSheet\ParticipantsSheetRegistrationController;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Message\MarkParticipantPaid;
+use SpeedPuzzling\Web\Query\GetCompetitionParticipantsForManagement;
+use SpeedPuzzling\Web\Query\GetParticipantsSheetState;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetVersion;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Services\OfficialResultsApi;
+use SpeedPuzzling\Web\Services\ParticipantsSheetLiveUpdates;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -18,7 +24,9 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The managed registration actions of the participants spreadsheet (contract §4.3, O5): the existing messages with
@@ -205,6 +213,57 @@ final class ParticipantsSheetRegistrationTest extends WebTestCase
             self::assertResponseStatusCodeSame(400);
             self::assertSame('invalid_request', $this->json()['error']);
         }
+    }
+
+    /**
+     * The event deleted between the action and reading the person's row back: the page is told the event is gone (JSON
+     * 404), never Symfony's HTML error page it would retry forever.
+     */
+    public function testAnEventDeletedMeanwhileIsAJson404(): void
+    {
+        $this->browser->disableReboot();
+        $this->manage(capacity: 5);
+        $this->join(PlayerFixture::PLAYER_REGULAR);
+        $participantId = $this->participantIdOf(PlayerFixture::PLAYER_REGULAR);
+        $container = $this->browser->getContainer();
+        $database = $this->database();
+
+        // The action goes through - and the event with its participants is gone right after it
+        $controller = new ParticipantsSheetRegistrationController(
+            $container->get(CompetitionRepository::class),
+            $container->get(GetCompetitionParticipantsForManagement::class),
+            $container->get(GetParticipantsSheetState::class),
+            $container->get(GetParticipantsSheetVersion::class),
+            $container->get(OfficialResultsApi::class),
+            new class ($database, $participantId) implements MessageBusInterface {
+                public function __construct(
+                    private readonly Connection $database,
+                    private readonly string $participantId,
+                ) {
+                }
+
+                public function dispatch(object $message, array $stamps = []): Envelope
+                {
+                    $this->database->executeStatement('DELETE FROM competition_participant WHERE id = :id', ['id' => $this->participantId]);
+
+                    return new Envelope($message);
+                }
+            },
+            $container->get(ParticipantsSheetLiveUpdates::class),
+            $container->get(TranslatorInterface::class),
+        );
+        $controller->setContainer($container);
+        $container->set(ParticipantsSheetRegistrationController::class, $controller);
+        $this->signInAs(PlayerFixture::PLAYER_ADMIN);
+
+        $this->post(['participant' => $participantId, 'action' => 'markPaid']);
+
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame([
+            'error' => 'competition_not_found',
+            'message' => 'This event does not exist any more.',
+        ], $this->json());
+        self::assertResponseHeaderSame('X-Robots-Tag', 'noindex, nofollow');
     }
 
     public function testTheOfficialResultsApiRulesApply(): void

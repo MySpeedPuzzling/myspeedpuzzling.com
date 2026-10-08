@@ -117,13 +117,25 @@ final class ParticipantsSheetRegistrationController extends AbstractController
             return $this->refusal('participant_removed', JsonResponse::HTTP_CONFLICT);
         }
 
+        // Read after the commit, outside the event's lock: somebody else's change may be in it already - a page merges
+        // `person` and lets its live updates / version check fetch the rest, it never adopts this as its known version
         $version = $this->getParticipantsSheetVersion->ofCompetition($competitionId);
+
+        try {
+            $person = $this->getParticipantsSheetState->person($competitionId, $participantId, $actingPlayerId);
+        } catch (CompetitionParticipantNotFound) {
+            // Participants are only ever removed softly - the row vanishes with its event, deleted meanwhile
+            return OfficialResultsApi::error('competition_not_found', JsonResponse::HTTP_NOT_FOUND, [
+                'message' => $this->translator->trans('official_results.reason.competition_not_found'),
+            ]);
+        }
+
         $this->liveUpdates->changed($competitionId, $version);
 
         return OfficialResultsApi::json([
             'ok' => true,
             'version' => $version,
-            'person' => $this->getParticipantsSheetState->person($competitionId, $participantId, $actingPlayerId),
+            'person' => $person,
         ]);
     }
 

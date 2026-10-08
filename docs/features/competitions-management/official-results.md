@@ -38,8 +38,8 @@ object for it (wire format below). In a pair/team round the team carries the res
 these columns empty.
 
 - `competition_participant_round` has a unique `(participant_id, round_id)` (production 2026-10-07: 0 duplicates).
-  Every writer (import applier, Live participant editor, join, quick add, `AdvanceQualified`) creates a row only for
-  a person not in the round yet.
+  Every writer (import applier - the import and the participants sheet, join, quick add, `AdvanceQualified`) creates
+  a row only for a person not in the round yet.
 - `competition_round.results_published_at` (public while set), `results_first_published_at` (the first publish - the
   desk says whether players were told before), `table_numbers_off` (the organiser said the round does not use table
   numbers).
@@ -88,7 +88,8 @@ before changing anything and check that every round/entry belongs to the competi
   value corrected since (A→B, corrected B→A, replay A→B would pass the three-way check alone). A known id of another
   round is refused. Refused and conflicting changes leave no receipt (the device sends a fix under a new id). Receipts
   go with their round and are pruned after 90 days by `myspeedpuzzling:prune-round-result-change-receipts` (cron, see
-  `docs/TODO.md`); a phone replaying after that falls back to the three-way check. A request the server cannot read
+  `docs/TODO.md` - the same run prunes the participants sheet's change set receipts, `participant_sheet_change_receipt`);
+  a phone replaying after that falls back to the three-way check. A request the server cannot read
   as a whole (no list, more than 500 changes, a change without an id or the same id twice) is a 400 `invalid_changes`
   with `reason` and the translated `message` - never the parser's developer text; a round that no longer exists is a
   JSON 404 `round_not_found`.
@@ -145,16 +146,17 @@ Refusals throw `OfficialResultsProtected` (409, reason `official_results.guard.*
 
 | Change | Rule |
 |---|---|
-| Delete a pair/team (`DeleteCompetitionTeamHandler`, teams page) | refused while it has a result or qualified mark |
-| Take a person out of a round (Live participant editor, `EditCompetitionParticipantHandler`) | refused when they hold data in that round; nothing of the save is written |
-| Remove a person from the event (`SoftDeleteCompetitionParticipantHandler`) | refused when they hold data anywhere in the event |
+| Delete a pair/team (participants sheet, `ApplyParticipantSheetChanges` op `deleteTeam`) | refused while it has a result or qualified mark (`team_has_result`) |
+| Take a person out of a round (participants sheet, op `place` → `out`) | refused when their own entry holds data in that round, or their linked player - linked now or when the change set started - added an own time there (`has_result_in_round`, a text per cause); the whole group is refused, nothing of it is written |
+| A member leaves a pair/team holding data (participants sheet, op `place` → out, without a pair/team, another pair/team) | allowed with the warning `team_result_line_up_changed` while the pair/team keeps at least one member taking part (not removed, not on the waitlist of a managed event); a group leaving it with nobody taking part is refused (`team_has_result`) |
+| Remove a person from the event (participants sheet, op `remove`) | refused when they hold data anywhere in the event - their own, their pair's/team's, or their player's own time (`has_result_in_event`) |
 | Import (planner `SiteSnapshot::hasAnyResult()` / `teamHasOfficialResult()`) | official results count like players' times (D11): people kept, entries kept, emptied pairs/teams with data kept (warning) |
 | `LeaveCompetition`, switching identity in `JoinCompetition` | a self-joined row holding data is disconnected, not deleted |
 | Change a round's category (`EditCompetitionRoundHandler`, also internal API PATCH) | refused while any entry has a result or a qualified mark (`countEntriesWithOfficialDataInRound()`) |
 | Delete a round | internal API: 409 when it has player times **or official results / qualified marks**; web: a confirmation listing the official results, bound to the list (`confirmedOfficialResultsHash`, re-checked under the lock) |
 | Delete an event (internal API `DELETE /internal-api/competitions/{id}`, `refuseWhenItHasResults`) | 409 when it has player times **or official results / qualified marks** (`countEntriesWithOfficialDataInCompetition()`); the web delete asks its own way |
 | Take an entry out of its round (results desk, `TakeEntryOutOfRound`) | refused while it has a result or a qualified mark |
-| Move a person between pairs/teams (`AssignParticipantToTeamController`) | allowed; a warning that the result now belongs to the new line-up |
+| Move a person between pairs/teams (participants sheet, op `place` `team:A` → `team:B`) | allowed; a warning that the result now belongs to the new line-up - the pair/team left behind keeps somebody taking part (row above) |
 
 Every change in this table takes the event's `CompetitionParticipantsLock` like the result writes do (`SerializedByLock`,
 competitionId resolved from the authorised entity and re-checked by the handler), and its guard reads the database under

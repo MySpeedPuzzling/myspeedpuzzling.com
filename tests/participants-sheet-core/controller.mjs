@@ -110,6 +110,8 @@ export default function (test) {
     }));
 
     test('a breakpoint switch that resolves to the same module keeps the view (and an open edit)', page({}, async ({ controller }) => {
+        // As when the phone list is not in the build: the phone falls back to the same People grid
+        controller.modules.set('people_list_view', null);
         const view = controller.view;
         view.grid.focusCell('p-ana', 'name');
         key(view.grid.cellElement('p-ana', 'name'), 'Enter');
@@ -120,6 +122,19 @@ export default function (test) {
         assert.equal(controller.view, view, 'no phone people list yet - the same grid stays');
         assert.equal(view.grid.isEditing(), true);
         assert.equal(view.grid.editor.value, 'Ana Typing');
+    }));
+
+    test('a breakpoint switch to another module saves the open edit before the grid goes', page({}, async ({ controller }) => {
+        const grid = controller.view.grid;
+        grid.focusCell('p-ana', 'name');
+        key(grid.cellElement('p-ana', 'name'), 'Enter');
+        grid.editor.value = 'Ana Switching';
+        controller.modules.set('people_list_view', () => ({ render() {}, update() {}, destroy() {}, focus() {} }));
+        controller.media.matches = true;
+        controller.onBreakpoint();
+        await tick(5);
+        assert.equal(grid.destroyed, true);
+        assert.equal(controller.model.person('p-ana').name, 'Ana Switching');
     }));
 
     test('a view that failed to load (offline) is not remembered as missing: "Try again" loads it', page({}, async ({ controller }) => {

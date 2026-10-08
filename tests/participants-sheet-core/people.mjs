@@ -22,7 +22,9 @@ async function setup({ state = smallState(), fetchAnswer = null } = {}) {
     const view = new PeopleView({
         root,
         model,
-        texts: { core: TEXTS },
+        texts: { core: TEXTS, people: TEXTS, round: TEXTS },
+        queue: { preview: async () => ({ kind: 'offline' }), problems: () => [] },
+        errorText: (error) => error.reason,
         countries: { us: 'United States', ca: 'Canada', cz: 'Czechia' },
         countryCodes: new Set(['us', 'ca', 'cz']),
         locale: 'en',

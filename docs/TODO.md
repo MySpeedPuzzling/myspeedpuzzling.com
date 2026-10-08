@@ -67,6 +67,8 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Rename the default ("system") collection - Allison asked in the same mail (MSP #107), answered "noted", not promised.
 - [ ] Select several puzzles on the other lists too (wishlist, sell/swap, unsolved) - the collection page's
       `collection_selection_controller.js` + bar are the pattern (`docs/features/collections/bulk-actions.md`).
+- [ ] Profile results sort 'Slowest' should order puzzles by the player's best (fastest) time per puzzle, not by their
+      slowest attempt (usually the first try). Promised to Šárka (MSP #194, follow-up F60).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

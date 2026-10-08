@@ -42,7 +42,8 @@ final class StartConversationController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/new/{recipientId}',
+        path: '/{_locale}/messages/new/{recipientId}',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'start_conversation',
         methods: ['GET', 'POST'],
     )]

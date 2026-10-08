@@ -23,7 +23,8 @@ final class ConversationsListController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages',
+        path: '/{_locale}/messages',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'conversations_list',
         methods: ['GET'],
     )]

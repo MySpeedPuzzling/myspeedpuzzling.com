@@ -20,7 +20,8 @@ final class BlockedUsersController extends AbstractController
     }
 
     #[Route(
-        path: '/en/blocked-users',
+        path: '/{_locale}/blocked-users',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'blocked_users',
         methods: ['GET'],
     )]

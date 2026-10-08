@@ -23,7 +23,8 @@ final class ConversationsListTabController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/tab-content',
+        path: '/{_locale}/messages/tab-content',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'conversations_list_tab',
         methods: ['GET'],
         priority: 1,

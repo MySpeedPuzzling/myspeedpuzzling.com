@@ -32,7 +32,7 @@
                         </ul>
 
                         <center>
-                            <button href="{{ url('conversations_list') }}">
+                            <button href="{{ url('conversations_list', {_locale: locale}) }}">
                                 {{ 'unread_messages.view_messages'|trans }}
                             </button>
                         </center>
@@ -50,7 +50,7 @@
                         <p class="small-print">{{ 'unread_messages.pending_requests_context'|trans }}</p>
 
                         <center>
-                            <button href="{{ url('conversations_list', {tab: 'requests'}) }}">
+                            <button href="{{ url('conversations_list', {_locale: locale, tab: 'requests'}) }}">
                                 {{ 'unread_messages.view_requests'|trans }}
                             </button>
                         </center>

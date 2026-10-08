@@ -27,7 +27,8 @@ final class UnblockUserController extends AbstractController
     }
 
     #[Route(
-        path: '/en/unblock-user/{playerId}',
+        path: '/{_locale}/unblock-user/{playerId}',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'unblock_user',
         methods: ['POST'],
     )]

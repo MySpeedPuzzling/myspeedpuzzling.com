@@ -27,7 +27,8 @@ final class BlockUserController extends AbstractController
     }
 
     #[Route(
-        path: '/en/block-user/{playerId}',
+        path: '/{_locale}/block-user/{playerId}',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'block_user',
         methods: ['POST'],
     )]

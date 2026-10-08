@@ -25,7 +25,8 @@ final class AcceptConversationController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/{conversationId}/accept',
+        path: '/{_locale}/messages/{conversationId}/accept',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'accept_conversation',
         methods: ['POST'],
     )]

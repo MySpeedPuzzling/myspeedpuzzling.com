@@ -27,7 +27,8 @@ final class TypingIndicatorController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/{conversationId}/typing',
+        path: '/{_locale}/messages/{conversationId}/typing',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'typing_indicator',
         methods: ['POST'],
     )]

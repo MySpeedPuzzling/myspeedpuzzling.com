@@ -40,4 +40,17 @@ final class ConversationsListControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
     }
+
+    public function testPageStaysInTheVisitorsLanguage(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/cs/messages');
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('cs', $crawler->filter('html')->attr('lang'));
+        self::assertGreaterThan(0, $crawler->filter('a[href^="/cs/messages/"]')->count());
+    }
 }

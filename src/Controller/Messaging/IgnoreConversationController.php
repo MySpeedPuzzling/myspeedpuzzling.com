@@ -25,7 +25,8 @@ final class IgnoreConversationController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/{conversationId}/ignore',
+        path: '/{_locale}/messages/{conversationId}/ignore',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'ignore_conversation',
         methods: ['POST'],
     )]

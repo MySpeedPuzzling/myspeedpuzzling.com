@@ -33,7 +33,8 @@ final class ConversationDetailController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/{conversationId}',
+        path: '/{_locale}/messages/{conversationId}',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'conversation_detail',
         methods: ['GET'],
     )]

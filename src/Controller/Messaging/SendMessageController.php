@@ -28,7 +28,8 @@ final class SendMessageController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/{conversationId}/send',
+        path: '/{_locale}/messages/{conversationId}/send',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'send_message',
         methods: ['POST'],
     )]

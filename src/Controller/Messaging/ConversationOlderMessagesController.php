@@ -25,7 +25,8 @@ final class ConversationOlderMessagesController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/{conversationId}/older-messages',
+        path: '/{_locale}/messages/{conversationId}/older-messages',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'conversation_older_messages',
         methods: ['GET'],
     )]

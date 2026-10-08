@@ -52,7 +52,8 @@ final class StartMarketplaceConversationController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/new/offer/{sellSwapListItemId}',
+        path: '/{_locale}/messages/new/offer/{sellSwapListItemId}',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'start_marketplace_conversation',
         methods: ['GET', 'POST'],
     )]

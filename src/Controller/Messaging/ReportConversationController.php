@@ -25,7 +25,8 @@ final class ReportConversationController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/{conversationId}/report',
+        path: '/{_locale}/messages/{conversationId}/report',
+        requirements: ['_locale' => 'en|cs|es|ja|fr|de'],
         name: 'report_conversation',
         methods: ['POST'],
     )]

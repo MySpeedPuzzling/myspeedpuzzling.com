@@ -184,6 +184,7 @@ final class PlayerSolvedPuzzles
     public function resetFilters(): void
     {
         $this->manufacturer = null;
+        $this->team = null;
         $this->piecesCountRange = null;
         $this->piecesMin = null;
         $this->piecesMax = null;
@@ -219,7 +220,8 @@ final class PlayerSolvedPuzzles
         $this->piecesMin = $piecesRange?->minPieces;
         $this->piecesMax = $piecesRange?->maxPieces;
 
-        if ($this->category !== 'solo') {
+        // Members-only filters of every tab (solo, pairs, teams) - their switches are disabled for everybody else
+        if ($this->hasMembership() === false) {
             $this->onlyFirstTries = false;
             $this->onlyUnboxed = false;
         }
@@ -251,23 +253,14 @@ final class PlayerSolvedPuzzles
             $this->sortBy = 'fastest';
         }
 
-        // Apply filters
-        $soloSolvedPuzzles = $this->applyFilters($this->allSoloPuzzles);
-        $duoSolvedPuzzles = $this->applyFilters($this->allDuoPuzzles);
-        $teamSolvedPuzzles = $this->applyFilters($this->allTeamPuzzles);
+        // Apply filters - the pair/team filter narrows only the pair and team lists, solo results belong to none
+        $soloSolvedPuzzles = $this->applyFilters($this->allSoloPuzzles, withTeamFilter: false);
+        $duoSolvedPuzzles = $this->applyFilters($this->allDuoPuzzles, withTeamFilter: true);
+        $teamSolvedPuzzles = $this->applyFilters($this->allTeamPuzzles, withTeamFilter: true);
 
-        // Group solo puzzles
+        // Group solo puzzles; first tries / unboxed keep the puzzles with such an attempt, and it leads the row
         $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles, withReordering: false);
-
-        // Only apply first tries filter if user has membership (members exclusive filter)
-        if ($this->onlyFirstTries === true && $this->hasMembership()) {
-            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloSolvedPuzzlesGrouped);
-        }
-
-        // Only apply unboxed filter if user has membership (members exclusive filter)
-        if ($this->onlyUnboxed === true && $this->hasMembership()) {
-            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterOutNonUnboxedGrouped($soloSolvedPuzzlesGrouped);
-        }
+        $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterGroupedByAttempt($soloSolvedPuzzlesGrouped, $this->onlyFirstTries, $this->onlyUnboxed);
 
         // Apply sorting
         $soloSolvedPuzzlesGrouped = $this->applySortingGrouped($soloSolvedPuzzlesGrouped);
@@ -275,18 +268,27 @@ final class PlayerSolvedPuzzles
         $teamSolvedPuzzles = $this->applySorting($teamSolvedPuzzles);
 
         $this->soloSolvedPuzzles = $soloSolvedPuzzlesGrouped;
-        // One row per puzzle and pair/team: the row opens the result detail, which shows exactly those people
-        $this->duoSolvedPuzzles = $this->puzzlesSorter->groupPuzzlesByTeam($duoSolvedPuzzles);
-        $this->teamSolvedPuzzles = $this->puzzlesSorter->groupPuzzlesByTeam($teamSolvedPuzzles);
-        $this->duoPuzzlesCount = count(array_unique(array_map(static fn(SolvedPuzzle $puzzle): string => $puzzle->puzzleId, $duoSolvedPuzzles)));
-        $this->teamPuzzlesCount = count(array_unique(array_map(static fn(SolvedPuzzle $puzzle): string => $puzzle->puzzleId, $teamSolvedPuzzles)));
+        // One row per puzzle and pair/team: the row opens the result detail, which shows exactly those people. A pair's
+        // first try is everybody's (docs/features/first-try-integrity.md), so its own flag is all the filter reads
+        $this->duoSolvedPuzzles = $this->puzzlesSorter->groupPuzzlesByTeam($duoSolvedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed);
+        $this->teamSolvedPuzzles = $this->puzzlesSorter->groupPuzzlesByTeam($teamSolvedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed);
+        $this->duoPuzzlesCount = self::distinctPuzzlesCount($this->duoSolvedPuzzles);
+        $this->teamPuzzlesCount = self::distinctPuzzlesCount($this->teamSolvedPuzzles);
+    }
+
+    /**
+     * @param array<string, non-empty-array<SolvedPuzzle>> $groupedPuzzles
+     */
+    private static function distinctPuzzlesCount(array $groupedPuzzles): int
+    {
+        return count(array_unique(array_map(static fn(array $group): string => $group[array_key_first($group)]->puzzleId, $groupedPuzzles)));
     }
 
     /**
      * @param array<SolvedPuzzle> $puzzles
      * @return array<SolvedPuzzle>
      */
-    private function applyFilters(array $puzzles): array
+    private function applyFilters(array $puzzles, bool $withTeamFilter): array
     {
         $isMember = $this->hasMembership();
         $piecesRange = PiecesRange::parse($this->piecesCountRange);
@@ -294,7 +296,7 @@ final class PlayerSolvedPuzzles
         // A puzzle comes back once per result - its names are folded once
         $searchableTexts = [];
 
-        return array_filter($puzzles, function (SolvedPuzzle $puzzle) use ($isMember, $piecesRange, $search, &$searchableTexts): bool {
+        return array_filter($puzzles, function (SolvedPuzzle $puzzle) use ($isMember, $piecesRange, $search, $withTeamFilter, &$searchableTexts): bool {
             // FREE FILTERS - available to everyone
 
             // Manufacturer filter
@@ -302,8 +304,8 @@ final class PlayerSolvedPuzzles
                 return false;
             }
 
-            // Pair/team filter - a solo result belongs to none
-            if ($this->team !== null && $this->team !== '' && $puzzle->teamId !== $this->team) {
+            // Pair/team filter
+            if ($withTeamFilter && $this->team !== null && $this->team !== '' && $puzzle->teamId !== $this->team) {
                 return false;
             }
 

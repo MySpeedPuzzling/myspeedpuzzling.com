@@ -165,6 +165,14 @@ the card opens instantly with skeleton chips. Edit form, 422 re-render and `?tea
   members-only. Every group row on the site links here.
 - **Filters**: profile solved-puzzles lists get a "with…" select (`?team=<id>`); puzzle detail pair / team tabs
   get a "My pairs / teams only" switch.
+  - The "with…" select narrows the Pair and Team tabs only - the Solo tab keeps every solo result (a member's
+    profile opened from a team page used to look as if they had no solo results); "Reset" clears it too.
+  - "Only first tries" / "Only unboxed" (members) work on every tab of the profile and the puzzle leaderboard and
+    stay on across tabs (2026-10-08, asked by two players). A pair/team result's own `first_attempt` flag is the
+    filter - it means everybody's first try (`first-try-integrity.md`). A row (puzzle + exact people on a profile,
+    the people on a leaderboard) is kept when one attempt matches, and that attempt leads and places it, as on Solo;
+    with both switches on it must be one attempt that is both (`PuzzlesSorter::filterGroupedByAttempt()`,
+    `groupPuzzlesByTeam()`).
 
 ## Guests, archive, cleanup (2026-09-21)
 

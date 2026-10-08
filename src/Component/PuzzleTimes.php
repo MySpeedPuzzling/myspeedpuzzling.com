@@ -242,45 +242,14 @@ final class PuzzleTimes
             $this->category = 'solo';
         }
 
-        if ($this->category !== 'solo') {
-            $this->onlyFirstTries = false;
-            $this->onlyUnboxed = false;
-        }
+        $rawSoloAttempts = $this->getPuzzleSolvers->soloByPuzzleId($this->puzzleId);
+        $soloPuzzleSolversGrouped = $this->leaderboardRows($rawSoloAttempts);
 
-        $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($this->puzzleId);
-        $rawSoloAttempts = $soloPuzzleSolvers;
+        $rawDuoAttempts = $this->getPuzzleSolvers->duoByPuzzleId($this->puzzleId);
+        $duoPuzzleSolversGrouped = $this->leaderboardRows($rawDuoAttempts);
 
-        if ($this->onlyFirstTries === true) {
-            $soloPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($soloPuzzleSolvers);
-        } elseif ($this->onlyUnboxed === true) {
-            // Unboxed attempt must lead each player group - otherwise a faster
-            // non-unboxed attempt becomes the visible row and the unboxed time
-            // stays hidden under the "show more" toggle
-            $soloPuzzleSolvers = $this->puzzlesSorter->sortByUnboxed($soloPuzzleSolvers);
-        } else {
-            $soloPuzzleSolvers = $this->puzzlesSorter->sortByFastest($soloPuzzleSolvers);
-        }
-
-        $soloPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers);
-
-        // Apply filters: when both are checked, use combined filter (AND logic)
-        if ($this->onlyFirstTries === true && $this->onlyUnboxed === true) {
-            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterByFirstAttemptAndUnboxedGrouped($soloPuzzleSolversGrouped);
-        } elseif ($this->onlyFirstTries === true) {
-            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloPuzzleSolversGrouped);
-        } elseif ($this->onlyUnboxed === true) {
-            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonUnboxedGrouped($soloPuzzleSolversGrouped);
-        }
-
-        $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($this->puzzleId);
-        $rawDuoAttempts = $duoPuzzleSolvers;
-        $duoPuzzleSolvers = $this->puzzlesSorter->sortByFastest($duoPuzzleSolvers);
-        $duoPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($duoPuzzleSolvers);
-
-        $teamPuzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($this->puzzleId);
-        $rawTeamAttempts = $teamPuzzleSolvers;
-        $teamPuzzleSolvers = $this->puzzlesSorter->sortByFastest($teamPuzzleSolvers);
-        $teamPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($teamPuzzleSolvers);
+        $rawTeamAttempts = $this->getPuzzleSolvers->teamByPuzzleId($this->puzzleId);
+        $teamPuzzleSolversGrouped = $this->leaderboardRows($rawTeamAttempts);
 
         // Filter out private profiles (unless they belong to the logged user)
         $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutPrivateProfiles($soloPuzzleSolversGrouped, $loggedPlayerId);
@@ -468,6 +437,32 @@ final class PuzzleTimes
         }
 
         $this->sliceVisibleRows();
+    }
+
+    /**
+     * One row per player or pair/team, led by its fastest time. Under the first tries / unboxed filter - solo, pairs
+     * and teams alike - only rows with such an attempt are left, led by it: otherwise a faster other attempt becomes
+     * the visible row and the first try / unboxed time stays hidden under the "show more" toggle
+     *
+     * @template T of PuzzleSolver|PuzzleSolversGroup
+     * @param array<T> $attempts
+     * @return array<string, non-empty-array<T>>
+     */
+    private function leaderboardRows(array $attempts): array
+    {
+        if ($this->onlyFirstTries === true) {
+            $attempts = $this->puzzlesSorter->sortByFirstTry($attempts);
+        } elseif ($this->onlyUnboxed === true) {
+            $attempts = $this->puzzlesSorter->sortByUnboxed($attempts);
+        } else {
+            $attempts = $this->puzzlesSorter->sortByFastest($attempts);
+        }
+
+        return $this->puzzlesSorter->filterGroupedByAttempt(
+            $this->puzzlesSorter->groupPlayers($attempts),
+            $this->onlyFirstTries,
+            $this->onlyUnboxed,
+        );
     }
 
     /**

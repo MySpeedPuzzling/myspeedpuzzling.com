@@ -166,6 +166,48 @@ final class PuzzlesSorterTest extends TestCase
         self::assertSame(['faster', 'slower'], self::groupHeads($sorted));
     }
 
+    public function testPairRowsUnderTheFirstTryFilterAreLedAndPlacedByTheFirstTry(): void
+    {
+        $sorter = new PuzzlesSorter();
+
+        // Already in the list's order (fastest first): pair A's retry beats its first try, pair B has only a first try
+        $sorted = [
+            self::createSolvedPuzzle('a-retry', 1000, teamId: 'pair-a'),
+            self::createSolvedPuzzle('a-other-puzzle', 1500, puzzleId: 'puzzle-2', teamId: 'pair-a'),
+            self::createSolvedPuzzle('b-first', 1800, firstAttempt: true, teamId: 'pair-b'),
+            self::createSolvedPuzzle('a-first', 2000, firstAttempt: true, teamId: 'pair-a'),
+        ];
+
+        self::assertSame(['a-retry', 'a-other-puzzle', 'b-first'], self::groupHeads($sorter->groupPuzzlesByTeam($sorted)));
+
+        $grouped = $sorter->groupPuzzlesByTeam($sorted, onlyFirstTries: true);
+
+        self::assertSame(['b-first', 'a-first'], self::groupHeads($grouped));
+        // The retry stays in its row (the attempts count), behind the first try
+        self::assertSame(['a-first', 'a-retry'], self::timeIds($grouped['puzzle-1|pair-a']));
+    }
+
+    public function testBothFiltersNeedOneAttemptThatIsBoth(): void
+    {
+        $sorter = new PuzzlesSorter();
+
+        $sorted = [
+            self::createSolvedPuzzle('a-unboxed-retry', 1000, unboxed: true, teamId: 'pair-a'),
+            self::createSolvedPuzzle('b-both', 1200, unboxed: true, firstAttempt: true, teamId: 'pair-b'),
+            self::createSolvedPuzzle('a-boxed-first', 2000, firstAttempt: true, teamId: 'pair-a'),
+        ];
+
+        self::assertSame(['b-both'], self::groupHeads($sorter->groupPuzzlesByTeam($sorted, onlyFirstTries: true, onlyUnboxed: true)));
+
+        $solo = [
+            'puzzle-1' => [self::createSolvedPuzzle('unboxed-retry', 1000, unboxed: true), self::createSolvedPuzzle('boxed-first', 2000, firstAttempt: true)],
+            'puzzle-2' => [self::createSolvedPuzzle('both', 1500, unboxed: true, puzzleId: 'puzzle-2', firstAttempt: true)],
+        ];
+
+        self::assertSame(['both'], self::groupHeads($sorter->filterGroupedByAttempt($solo, onlyFirstTries: true, onlyUnboxed: true)));
+        self::assertSame(['unboxed-retry', 'both'], self::groupHeads($sorter->filterGroupedByAttempt($solo, onlyFirstTries: false, onlyUnboxed: true)));
+    }
+
     /**
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return list<string>

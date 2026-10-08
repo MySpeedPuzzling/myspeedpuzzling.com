@@ -237,7 +237,7 @@
             </div>
         {% endif %}
 
-        {% if this.activeFiltersCount > 0 or this.availableCountries|length > 1 or (this.category == 'solo' and this.times|length > 1) %}
+        {% if this.activeFiltersCount > 0 or this.availableCountries|length > 1 or this.times|length > 1 %}
             <div class="dropdown position-relative">
                 {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
                     <button
@@ -253,7 +253,8 @@
                     </button>
 
                     <div class="dropdown-menu dropdown-menu-end filters px-3 py-0" aria-labelledby="filtersDropdown">
-                        {% if this.category == 'solo' and (this.times|length > 1 or this.onlyFirstTries or this.onlyUnboxed) %}
+                        {# First tries / unboxed on every tab - a pair's or team's first try is everybody's #}
+                        {% if this.times|length > 1 or this.onlyFirstTries or this.onlyUnboxed %}
                             <div class="form-check form-switch my-3">
                                 <input
                                     data-model="onlyFirstTries"

@@ -1,17 +1,42 @@
 {#
-    The series page's past (owner: workstream A): one archive line per past session, by year, newest first. Without
-    JavaScript every year shows under its own heading (series_archive_controller.js adds the year chips).
+    The series page's past (owner: workstream A, docs/features/events-page/detail-pages.md "Series page"): one archive
+    line per past session (never rolled up - this page is the roll-up), with its Results tag, by year, newest year and
+    line first.
+
+    Without JavaScript every year shows under its own heading with all its lines. series_archive_controller.js (lazy)
+    shows the year chips (two years or more: buttons with aria-pressed + aria-controls), keeps the newest year open,
+    shows its first PREVIEW lines and "Show all 2026 (14)".
     Variables: page (SeriesPage)
 #}
+{% set preview = 5 %}
 {% if page.pastYears is not empty %}
-    <section class="ev-detail-section" aria-labelledby="series-past-title" data-series-past>
-        <h2 class="ev-detail-section-title" id="series-past-title">{{ 'series_page.past'|trans }}</h2>
+    <section class="ev-detail-section ev-series-past" aria-labelledby="series-past-title" data-series-past
+             data-controller="series-archive" data-series-archive-preview-value="{{ preview }}">
+        <h2 class="ev-detail-section-title" id="series-past-title">
+            {{- 'series_page.past'|trans }} <span class="ev-section-n">{{ page.pastCount }}</span>
+        </h2>
+        {% if page.pastYears|length > 1 %}
+            <div class="ev-years ev-series-years" role="group" aria-label="{{ 'series_page.years'|trans }}" data-series-archive-target="chips" hidden>
+                {% for year in page.pastYears %}
+                    <button type="button" class="ev-chip" data-year="{{ year.year }}" aria-controls="series-past-{{ year.year }}"
+                            aria-pressed="{{ loop.first ? 'true' : 'false' }}"
+                            data-series-archive-target="chip" data-action="series-archive#choose">
+                        {{- year.year }} <span class="ev-chip-n">{{ year.lines|length }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+        {% endif %}
         {% for year in page.pastYears %}
-            <section data-year="{{ year.year }}">
-                <h3 class="ev-month-header"><span>{{ year.year }}</span></h3>
+            <section class="ev-series-year" id="series-past-{{ year.year }}" data-year="{{ year.year }}" aria-labelledby="series-past-{{ year.year }}-title" data-series-archive-target="year">
+                <h3 class="ev-month-header" id="series-past-{{ year.year }}-title" data-series-archive-target="heading"><span>{{ year.year }}</span><span class="ev-month-n">{{ 'events_page.agenda.dates_count'|trans({'%count%': year.lines|length}) }}</span></h3>
                 <ol class="ev-lines">
                     {% for line in year.lines %}{{ include('event_parts/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}{% endfor %}
                 </ol>
+                {% if year.lines|length > preview %}
+                    <button type="button" class="ev-more ev-series-show-all" hidden data-series-archive-target="more" data-action="series-archive#showAll">
+                        {{- 'events_page.archive.show_all'|trans({'%year%': year.year, '%count%': year.lines|length}) -}}
+                    </button>
+                {% endif %}
             </section>
         {% endfor %}
     </section>

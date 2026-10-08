@@ -21,7 +21,9 @@
 {% endblock %}
 
 {% block content %}
-    {#- The series page (docs/features/events-page/detail-pages.md "Series page"): A owns the sections below the header -#}
+    {#- The series page (docs/features/events-page/detail-pages.md "Series page", owner: workstream A): the shared header
+        (Follow series, Website, ⋯), then on phones the facts strip, the Next card, Upcoming by month (+ Ongoing, Date not
+        set), the organiser's sections, the Past by year; from 992 px the facts move to the side column. -#}
     <div class="ev-detail ev-detail-series"
         {%- if series.isOnline %} data-controller="event-local-time" data-event-local-time-messages-value="{{ {
             yours: 'event_detail.time.yours'|trans,
@@ -39,6 +41,7 @@
             {% block facts %}
                 {{- include('event_parts/_place.html.twig', {place: page.facts.place}) -}}
                 <span class="ev-detail-fact">{{ 'event_detail.facts.recurring'|trans }}</span>
+                {%- if page.facts.nextIsLive %}<span class="ev-detail-fact ev-when-live">{{ include('event_parts/_live.html.twig') }}</span>{% endif -%}
             {% endblock %}
             {% block actions %}
                 {{ include('event_parts/_follow_action.html.twig', {follow_target: page.followTarget, following: page.following, kind: 'series', follow_name: series.name}) }}

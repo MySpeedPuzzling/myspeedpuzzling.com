@@ -1,42 +1,65 @@
 {#
-    The series page's Next card: the first live session, else the first upcoming one (owner: workstream A).
-    Variables: page (SeriesPage), attendance-free: page.next.isGoing says "You're going"
+    The series page's Next card (owner: workstream A, docs/features/events-page/detail-pages.md "Series page"): the first
+    live session, else the first upcoming one - never a long span. Leaf, the "Next" eyebrow (the section's H2), the
+    session's name linking its page (a session: `#round-<id>`), place or Online with the start time in the event's zone
+    (online: the visitor's own time after it, filled in the browser), the countdown - or the full date beyond 30 days -
+    the tags, then "I'm going!" / "✓ You're going!" / "Registration" and the external "Registration ↗".
+    No attendance statement on this page: page.next.isGoing comes from the viewer's rows.
+    Variables: page (SeriesPage)
 #}
 {% if page.next %}
     {% set next = page.next %}
     {% set row = next.row %}
-    <section class="ev-next" aria-labelledby="series-next-title" data-series-edition="{{ next.competitionId }}">
-        <h2 class="ev-next-eyebrow" id="series-next-title">{{ 'series_page.next'|trans }}</h2>
-        <div class="ev-next-body">
-            {{ include('event_parts/_date_leaf.html.twig', {leaf: row.leaf}) }}
-            <div class="ev-next-main">
-                {% if row.url %}<a class="ev-next-title" href="{{ row.url }}">{{ row.title }}</a>{% else %}<span class="ev-next-title">{{ row.title }}</span>{% endif %}
-                <div class="ev-row-meta">
-                    {{- include('event_parts/_place.html.twig', {place: row.place}) -}}
-                    {%- if row.time %}{{ include('event_parts/_event_time.html.twig', {time: row.time, online: row.place.isOnline}) }}{% endif -%}
-                </div>
-                {% if row.when %}
-                    {{ include('event_parts/_when.html.twig', {when: row.when}) }}
-                {% elseif row.leaf.from %}
-                    <span class="ev-when">{{ row.leaf.from|events_date('yMMMMEEEEd') }}</span>
-                {% endif %}
-                {{ include('event_parts/_row_tags.html.twig', {tags: row.tags}) }}
+    {% set page_url = row.url ? row.url|split('#')|first : null %}
+    <section class="ev-next{{ row.place.isOnline ? ' ev-next-online' }}{{ row.status.value == 'live' ? ' ev-next-live' }}" aria-labelledby="series-next-title" data-series-edition="{{ next.competitionId }}" data-series-next>
+        {{ include('event_parts/_date_leaf.html.twig', {leaf: row.leaf}) }}
+        <div class="ev-next-main">
+            <h2 class="ev-next-eyebrow" id="series-next-title">{{ 'series_page.next'|trans }}</h2>
+            {% if row.leaf.from %}
+                <span class="visually-hidden">
+                    {{- row.leaf.from|events_date('yMMMMEEEEd') -}}
+                    {%- if row.leaf.to %} – {{ row.leaf.to|events_date('yMMMMEEEEd') }}{% endif -%}
+                : </span>
+            {% endif %}
+            {% if row.url %}
+                <a class="ev-next-title" href="{{ row.url }}">{{ row.title }}</a>
+            {% else %}
+                <span class="ev-next-title">{{ row.title }}</span>
+            {% endif %}
+            <div class="ev-row-meta ev-next-meta">
+                {{- include('event_parts/_place.html.twig', {place: row.place}) -}}
+                {%- if row.time %}{{ include('event_parts/_event_time.html.twig', {time: row.time, online: row.place.isOnline}) }}{% endif -%}
             </div>
+            <p class="ev-next-when">
+                {%- if row.when -%}
+                    {{ include('event_parts/_when.html.twig', {when: row.when}) }}
+                {%- elseif row.leaf.from -%}
+                    <span class="ev-when">{{ row.leaf.from|events_date('yMMMMEEEEd') }}</span>
+                {%- endif -%}
+            </p>
+            {#- "✓ You're going!" is the button below - not a second time as a tag -#}
+            {{ include('event_parts/_row_tags.html.twig', {tags: next.isGoing ? row.tags|filter(tag => tag.type.value != 'going') : row.tags}) }}
+        </div>
+        <div class="ev-next-side">
             {% if row.logo %}<img class="ev-row-logo" src="{{ row.logo|thumbnail('puzzle_small') }}" alt="" loading="lazy">{% endif %}
+            {{ include('event_parts/_row_actions.html.twig', {follow_target: null, follow_name: null, following: false, show_star: false, manage: row.manage}) }}
         </div>
-        <div class="ev-next-actions">
-            {% if next.isPublic and not next.registrationManaged %}
-                {% if next.isGoing %}
-                    <span class="ev-action-button ev-action-going"><span aria-hidden="true">✓ </span>{{ 'competition.join.you_are_going'|trans }}</span>
-                {% else %}
-                    <a class="ev-action-button ev-action-primary" href="{{ path('join_competition', {competitionId: next.competitionId}) }}">{{ 'competition.join.im_going'|trans }}</a>
+        {% set going_action = next.isPublic and page_url is not null %}
+        {% if going_action or next.registrationLink %}
+            <div class="ev-next-actions">
+                {% if going_action %}
+                    {% if next.registrationManaged %}
+                        <a class="ev-action-button ev-action-primary" href="{{ page_url }}#registration">{{ 'event_detail.going.registration'|trans }}</a>
+                    {% elseif next.isGoing %}
+                        <a class="ev-action-button ev-action-going" href="{{ page_url }}#taking-part"><span aria-hidden="true">✓ </span>{{ 'competition.join.you_are_going'|trans }}</a>
+                    {% else %}
+                        <a class="ev-action-button ev-action-primary" href="{{ path('join_competition', {competitionId: next.competitionId}) }}">{{ 'competition.join.im_going'|trans }}</a>
+                    {% endif %}
                 {% endif %}
-            {% elseif next.registrationManaged and row.url %}
-                <a class="ev-action-button ev-action-primary" href="{{ row.url|split('#')|first }}#registration">{{ 'event_detail.going.registration'|trans }}</a>
-            {% endif %}
-            {% if next.registrationLink %}
-                <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ next.registrationLink }}">{{ 'events.registration_link'|trans }}<span aria-hidden="true"> ↗</span></a>
-            {% endif %}
-        </div>
+                {% if next.registrationLink %}
+                    <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ next.registrationLink }}">{{ 'events.registration_link'|trans }}<span aria-hidden="true"> ↗</span></a>
+                {% endif %}
+            </div>
+        {% endif %}
     </section>
 {% endif %}

@@ -49,6 +49,11 @@ final class OfficialResultsNavigationTest extends WebTestCase
         self::assertCount(1, $tools->filter('[data-round-tool="live"]'));
         self::assertSame('Results desk', trim($tools->filter('[data-round-tool="desk"]')->text()));
         self::assertCount(0, $tools->filter('[data-round-tool="seating"]'));
+        // BR17: the round's people - its tab of the participants sheet, back to the seating
+        self::assertStringStartsWith(
+            '/en/participants-sheet/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '?tab=' . OfficialResultsFixture::ROUND_GROUP_A . '&return=',
+            (string) $tools->filter('[data-round-tool="participants"]')->attr('href'),
+        );
 
         // The round switch goes to the other rounds' seating
         $options = $crawler->filter('[data-seating-round-switch] option');
@@ -80,6 +85,10 @@ final class OfficialResultsNavigationTest extends WebTestCase
         self::assertSame('/en/live-results/' . OfficialResultsFixture::ROUND_GROUP_A, explode('?', (string) $tools->filter('[data-round-tool="live"]')->attr('href'))[0]);
         self::assertCount(1, $tools->filter('[data-round-tool="desk"]'));
         self::assertCount(1, $tools->filter('[data-round-tool="seating"]'));
+        self::assertSame(
+            '/en/participants-sheet/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '?tab=' . OfficialResultsFixture::ROUND_GROUP_A,
+            $tools->filter('[data-round-tool="participants"]')->attr('href'),
+        );
     }
 
     public function testThePublicRoundPageLinksTheResultsDeskForOrganisersOnly(): void

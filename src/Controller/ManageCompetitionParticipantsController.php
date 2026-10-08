@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Value\ReturnQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -29,10 +31,11 @@ final class ManageCompetitionParticipantsController extends AbstractController
         ],
         name: 'manage_competition_participants',
     )]
-    public function __invoke(string $competitionId): RedirectResponse
+    public function __invoke(Request $request, string $competitionId): RedirectResponse
     {
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
-        return $this->redirectToRoute('participants_sheet', ['competitionId' => $competitionId]);
+        // A validated `?return=` goes along - the sheet's back link goes where the old page's went
+        return $this->redirectToRoute('participants_sheet', ['competitionId' => $competitionId] + ReturnQuery::from($request));
     }
 }

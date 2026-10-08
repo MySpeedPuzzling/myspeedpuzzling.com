@@ -44,6 +44,19 @@ final class ManageCompetitionParticipantsControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    public function testAValidatedReturnAddressGoesAlong(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_UNAPPROVED . '?return=/en/series/x&return_title=My%20series');
+        self::assertResponseRedirects('/en/participants-sheet/' . CompetitionFixture::COMPETITION_UNAPPROVED . '?return=/en/series/x&return_title=My%20series', 302);
+
+        // Another site's address is dropped - its title with it
+        $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_UNAPPROVED . '?return=//evil.example&return_title=Evil');
+        self::assertResponseRedirects('/en/participants-sheet/' . CompetitionFixture::COMPETITION_UNAPPROVED, 302);
+    }
+
     public function testAnonymousUserIsRedirectedToLogin(): void
     {
         $browser = self::createClient();

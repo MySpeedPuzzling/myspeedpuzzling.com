@@ -71,6 +71,7 @@ final class PruneRoundResultChangeReceiptsHandlerTest extends KernelTestCase
             'outcomes' => '[]',
             'version_before' => str_repeat('a', 64),
             'version_after' => str_repeat('b', 64),
+            'changes' => '[]',
         ]);
 
         return $id;

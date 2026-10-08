@@ -39,6 +39,21 @@ final class ManageRoundTeamsControllerTest extends WebTestCase
         self::assertSame(CompetitionSeriesFixture::ROUND_OFFLINE_TEAM, $crawler->filter('[data-controller="participants-sheet"]')->attr('data-participants-sheet-tab-value'));
     }
 
+    public function testAValidatedReturnAddressGoesAlong(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', self::OLD_URL . '?return=/en/manage-event-rounds/x&return_title=Rounds');
+        self::assertResponseRedirects('/en/participants-sheet/' . CompetitionSeriesFixture::EDITION_OFFLINE_1 . '?tab=' . CompetitionSeriesFixture::ROUND_OFFLINE_TEAM . '&return=/en/manage-event-rounds/x&return_title=Rounds', 302);
+
+        $crawler = $browser->followRedirect();
+        self::assertSame('/en/manage-event-rounds/x', $crawler->filter('[data-participants-sheet-back]')->attr('href'));
+
+        $browser->request('GET', self::OLD_URL . '?return=https://evil.example/&return_title=Evil');
+        self::assertResponseRedirects('/en/participants-sheet/' . CompetitionSeriesFixture::EDITION_OFFLINE_1 . '?tab=' . CompetitionSeriesFixture::ROUND_OFFLINE_TEAM, 302);
+    }
+
     public function testSomebodyWhoDoesNotOrganiseTheEventIsRefused(): void
     {
         $browser = self::createClient();

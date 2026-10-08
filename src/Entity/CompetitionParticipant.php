@@ -142,7 +142,7 @@ class CompetitionParticipant
      * A new registration to an event with managed registration (docs/features/competitions-management/registration.md):
      * reserved, or waitlisted when the event is full. A registration made again after cancelling starts fresh - not paid,
      * not checked in, at the end of the queue - but keeps when it was paid before: the organiser's record of a payment
-     * they hold is never wiped by the player (the participants page shows it, "Mark paid" confirms it again).
+     * they hold is never wiped by the player (the participants sheet shows it, "Mark paid" confirms it again).
      */
     public function register(RegistrationStatus $status, DateTimeImmutable $registeredAt): void
     {

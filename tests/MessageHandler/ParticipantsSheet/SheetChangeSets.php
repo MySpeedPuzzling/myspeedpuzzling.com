@@ -28,6 +28,7 @@ trait SheetChangeSets
         bool $dryRun = false,
         null|string $changesetId = null,
         string $competitionId = OfficialResultsFixture::COMPETITION_RESULTS_CUP,
+        string $actingPlayerId = PlayerFixture::PLAYER_WITH_STRIPE,
     ): AppliedParticipantSheetChanges {
         $parsed = SheetChangesParser::parse([
             'changesetId' => $changesetId ?? Uuid::uuid7()->toString(),
@@ -38,7 +39,7 @@ trait SheetChangeSets
         $messageBus = self::getContainer()->get(MessageBusInterface::class);
         $envelope = $messageBus->dispatch(new ApplyParticipantSheetChanges(
             competitionId: $competitionId,
-            actingPlayerId: PlayerFixture::PLAYER_WITH_STRIPE,
+            actingPlayerId: $actingPlayerId,
             changesetId: $parsed['changesetId'],
             groups: $parsed['groups'],
             dryRun: $parsed['dryRun'],

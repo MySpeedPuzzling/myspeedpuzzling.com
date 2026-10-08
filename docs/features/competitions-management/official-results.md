@@ -88,8 +88,10 @@ before changing anything and check that every round/entry belongs to the competi
   value corrected since (A→B, corrected B→A, replay A→B would pass the three-way check alone). A known id of another
   round is refused. Refused and conflicting changes leave no receipt (the device sends a fix under a new id). Receipts
   go with their round and are pruned after 90 days by `myspeedpuzzling:prune-round-result-change-receipts` (cron, see
-  `docs/TODO.md` - the same run prunes the participants sheet's change set receipts, `participant_sheet_change_receipt`);
-  a phone replaying after that falls back to the three-way check. A request the server cannot read
+  `docs/TODO.md` - the same run prunes the participants sheet's change set receipts, `participant_sheet_change_receipt`,
+  which are also the sheet's change trail: who sent each change set (`acting_player_id`, cleared with their account) and
+  its groups as received (`changes`) - "who changed what" for 90 days, the raw material of the change log
+  participants-spreadsheet.md D11 leaves for later); a phone replaying after that falls back to the three-way check. A request the server cannot read
   as a whole (no list, more than 500 changes, a change without an id or the same id twice) is a 400 `invalid_changes`
   with `reason` and the translated `message` - never the parser's developer text; a round that no longer exists is a
   JSON 404 `round_not_found`.

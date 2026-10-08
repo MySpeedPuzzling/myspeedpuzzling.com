@@ -27,7 +27,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * (GetParticipantsSheetState), so the first paint needs no request; the `participants-sheet` Stimulus controller
  * renders the tabs and the grid from it and saves through the sheet's JSON endpoints.
  *
- * Replaced the participants page and the round teams page (D12) - both redirect here.
+ * Replaced the old participants page and the round teams page (D12) - both redirect here, a validated `?return=`
+ * passed on (ReturnQuery).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ParticipantsSheetController extends AbstractController
@@ -83,6 +84,8 @@ final class ParticipantsSheetController extends AbstractController
             'state' => $state,
             'back_url' => $returnUrl->path ?? $state->competition->editUrl,
             'back_title' => $returnUrl !== null && $returnTitle !== '' ? $returnTitle : null,
+            // Without a return address the link goes to the event's edit page - it says so ("Edit event")
+            'back_to_edit' => $returnUrl === null,
             // In a <script type="application/json">: `<`, `>`, `&`, quotes escaped - a name can never close the tag
             'state_json' => json_encode($state, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR),
             'tab' => $tab,

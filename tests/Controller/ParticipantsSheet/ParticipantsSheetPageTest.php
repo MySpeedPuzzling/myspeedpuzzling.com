@@ -140,8 +140,15 @@ final class ParticipantsSheetPageTest extends WebTestCase
             $crawler = $this->browser->request('GET', self::RESULTS_CUP . '?' . http_build_query(['return' => $hostile, 'return_title' => 'Phishing']));
             $back = $crawler->filter('[data-participants-sheet-back]');
             self::assertSame('/en/edit-event/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $back->attr('href'), $hostile);
-            self::assertSame('Event', trim($back->text()));
+            self::assertSame('Edit event', trim($back->text()));
+            self::assertSame('Back to editing the event', $back->attr('aria-label'));
         }
+
+        // A return address without its title: just "Back"
+        $crawler = $this->browser->request('GET', self::RESULTS_CUP . '?' . http_build_query(['return' => '/en/manage-event-rounds/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP]));
+        $back = $crawler->filter('[data-participants-sheet-back]');
+        self::assertSame('/en/manage-event-rounds/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $back->attr('href'));
+        self::assertSame('Back', trim($back->text()));
     }
 
     public function testThePagesLinkingTheSheetSayWhereToComeBack(): void
@@ -327,10 +334,37 @@ final class ParticipantsSheetPageTest extends WebTestCase
         $checklist = $crawler->filter('[data-participants-sheet-checklist]');
         self::assertCount(1, $checklist);
         self::assertSame('checklist', $checklist->attr('data-participants-sheet-target'));
-        self::assertStringContainsString('1 round(s) configured', $checklist->text());
-        self::assertCount(1, $checklist->filter('.bi-check-circle-fill'), 'Rounds are done, the list is not');
+        self::assertStringContainsString('1 round set up', $checklist->text());
+        self::assertStringContainsString('Participants added', $checklist->text());
+        self::assertCount(1, $checklist->filter('[data-participants-sheet-checklist-item="rounds"] .bi-check-circle-fill'), 'Rounds are done');
+        self::assertCount(1, $checklist->filter('[data-participants-sheet-checklist-item="people"] .bi-circle'), 'The list is not');
         self::assertCount(1, $checklist->filter('a[href^="/en/manage-event-rounds/' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024 . '"]'));
         self::assertCount(1, $checklist->filter('[data-bs-target="#participants-sheet-import"]'));
+
+        // A new event: no rounds at all - plural forms
+        $crawler = $this->browser->request('GET', '/en/participants-sheet/' . CompetitionFixture::COMPETITION_UNAPPROVED);
+        self::assertStringContainsString('No rounds yet', $crawler->filter('[data-participants-sheet-checklist]')->text());
+    }
+
+    /**
+     * BR15: a names-only night (a Minnesota-style event: named teams, nobody listed by name) is set up - the checklist
+     * does not nag it about participants.
+     */
+    public function testTheSetupChecklistLeavesANamesOnlyEventAlone(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+        $roundId = $database->fetchOne('SELECT id FROM competition_round WHERE competition_id = :competition LIMIT 1', ['competition' => CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024]);
+        self::assertIsString($roundId);
+        $database->executeStatement("UPDATE competition_round SET category = 'team' WHERE id = :round", ['round' => $roundId]);
+        $database->executeStatement(
+            "INSERT INTO competition_team (id, round_id, name) VALUES ('0192f000-0000-7000-8000-00000000c0de', :round, 'Corner Pieces')",
+            ['round' => $roundId],
+        );
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
+        $this->browser->request('GET', '/en/participants-sheet/' . CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[data-participants-sheet-checklist]');
     }
 
     /**

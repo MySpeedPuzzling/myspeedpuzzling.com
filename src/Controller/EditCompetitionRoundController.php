@@ -93,13 +93,14 @@ final class EditCompetitionRoundController extends AbstractController
         ) !== [];
 
         // Shows the round in the zone it was typed in, as the organiser typed it - a team round without an expected team
-        // size pre-filled with the most common size of its teams (D5)
-        $formData = CompetitionRoundFormData::fromCompetitionRound($round, $this->guessedTeamSize($round));
+        // size suggests the most common size of its teams as the field's placeholder (D5, never stored by itself)
+        $formData = CompetitionRoundFormData::fromCompetitionRound($round);
         $form = $this->createForm(CompetitionRoundFormType::class, $formData, [
             'single_day' => $singleDay !== null,
             'timezone_offset_at' => $round->startsAt,
             'reveal_confirmation' => $hasSecretPuzzles,
             'timezone_assumed' => $round->isTimezoneNeverSaved(),
+            'team_size_guess' => $this->guessedTeamSize($round),
         ]);
         $form->handleRequest($request);
         $revealedEarlier = [];
@@ -162,7 +163,7 @@ final class EditCompetitionRoundController extends AbstractController
                         refuseToReveal: false,
                         confirmedRevealHash: SecretRevealPreview::hash($revealedEarlier),
                         revealDelayMinutes: $revealDelayMinutes,
-                        // An emptied field takes the expected size away; ignored for solo and pair rounds
+                        // An empty field (untouched or emptied) means no expected size; solo and pair rounds have none
                         teamSize: $data->teamSize,
                         clearTeamSize: $data->teamSize === null,
                     ));

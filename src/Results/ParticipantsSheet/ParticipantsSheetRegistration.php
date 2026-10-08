@@ -19,11 +19,14 @@ readonly final class ParticipantsSheetRegistration implements \JsonSerializable
         // Kept after a cancelled registration too - "paid on …, before the registration was cancelled"
         public null|DateTimeImmutable $paidAt,
         public null|DateTimeImmutable $checkedInAt,
+        // 1-based place in the event's waitlist (GetEventAttendance's order: registered_at, none first, then id) - only
+        // while waitlisted and not removed, null otherwise
+        public null|int $waitlistPosition = null,
     ) {
     }
 
     /**
-     * @return array{status: string, registeredAt: null|string, paidAt: null|string, checkedInAt: null|string}
+     * @return array{status: string, registeredAt: null|string, paidAt: null|string, checkedInAt: null|string, waitlistPosition: null|int}
      */
     public function jsonSerialize(): array
     {
@@ -32,6 +35,7 @@ readonly final class ParticipantsSheetRegistration implements \JsonSerializable
             'registeredAt' => $this->registeredAt?->format(DateTimeImmutable::ATOM),
             'paidAt' => $this->paidAt?->format(DateTimeImmutable::ATOM),
             'checkedInAt' => $this->checkedInAt?->format(DateTimeImmutable::ATOM),
+            'waitlistPosition' => $this->waitlistPosition,
         ];
     }
 }

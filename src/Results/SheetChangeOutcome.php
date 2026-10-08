@@ -15,7 +15,8 @@ use SpeedPuzzling\Web\Value\SheetChangeStatus;
  * other ops). `cause` tells apart what refused a change when one code has several causes - it picks the organiser's text
  * (`participants_sheet_server.reason.<reason>_<cause>`), the code stays: `own_time` (has_result_in_round/_event - the
  * linked player's own time, which nobody but the player can take away), `emptied` / `waitlisted_only` (team_has_result -
- * a group would leave the pair/team with nobody / with people on the waitlist only); null = the code's own text.
+ * a group would leave the pair/team with nobody / with people on the waitlist only), `pairs` (not_a_team_round - a team
+ * size for a pair round); null = the code's own text.
  */
 readonly final class SheetChangeOutcome
 {

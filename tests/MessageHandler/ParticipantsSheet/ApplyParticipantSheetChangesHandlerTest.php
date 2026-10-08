@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\SheetChangesetIdTaken;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetVersion;
+use SpeedPuzzling\Web\Services\ParticipantsSheet\SheetChangesParser;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture as Cup;
@@ -127,6 +128,33 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
         // The same change in a new change set (its answer got lost and the receipt was pruned) creates nobody twice
         self::assertSame(['unchanged'], self::changeStatuses($this->applySheetChanges([$group])));
         self::assertSame(1, $this->database->fetchOne("SELECT COUNT(*) FROM competition_participant WHERE name = 'Jo Doe'"));
+    }
+
+    /**
+     * BR19: somebody the organiser adds in the sheet to an event managing registration holds a spot - reserved and
+     * registered now, above the capacity too (registration.md, like the participants page's "Add" did). An event without
+     * management gets no registration at all.
+     */
+    public function testANewParticipantOfAnEventManagingRegistrationHoldsASpot(): void
+    {
+        $unmanaged = Uuid::uuid7()->toString();
+        $this->applySheetChanges([self::sheetGroup(['op' => 'newParticipant', 'id' => $unmanaged, 'name' => 'Pat Unmanaged'])]);
+        self::assertNull(self::participantRow($this->database, $unmanaged)['registration_status']);
+        self::assertNull(self::participantRow($this->database, $unmanaged)['registered_at']);
+
+        // Managed and full: one spot, taken already
+        $this->database->executeStatement('UPDATE competition SET registration_managed = true, capacity = 1 WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]);
+
+        $before = new DateTimeImmutable('-1 minute');
+        $managed = Uuid::uuid7()->toString();
+        $applied = $this->applySheetChanges([self::sheetGroup(['op' => 'newParticipant', 'id' => $managed, 'name' => 'Kim Managed'])]);
+
+        self::assertSame(['applied'], self::groupStatuses($applied));
+        $kim = self::participantRow($this->database, $managed);
+        self::assertSame(RegistrationStatus::Reserved->value, $kim['registration_status']);
+        self::assertIsString($kim['registered_at']);
+        self::assertGreaterThanOrEqual($before, new DateTimeImmutable($kim['registered_at']));
+        self::assertNull($kim['paid_at']);
     }
 
     public function testANewParticipantNamedLikeSomebodyOnTheListIsWarnedAbout(): void
@@ -687,12 +715,18 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
             self::sheetGroup(['op' => 'teamSize', 'round' => $roundId, 'from' => null, 'to' => 5]),
             self::sheetGroup(['op' => 'teamSize', 'round' => $roundId, 'from' => 4, 'to' => 21]),
             self::sheetGroup(['op' => 'teamSize', 'round' => CompetitionSeriesFixture::ROUND_OFFLINE_TEAM, 'from' => null, 'to' => 3]),
+            // A pair always has 2 - a solo round has no pairs or teams at all
+            self::sheetGroup(['op' => 'teamSize', 'round' => Cup::ROUND_PAIRS_FINAL, 'from' => null, 'to' => 3]),
+            self::sheetGroup(['op' => 'teamSize', 'round' => Cup::ROUND_GROUP_A, 'from' => null, 'to' => 3]),
         ]);
 
-        self::assertSame(['applied', 'conflict', 'refused', 'refused'], self::groupStatuses($applied));
+        self::assertSame(['applied', 'conflict', 'refused', 'refused', 'refused', 'refused'], self::groupStatuses($applied));
         self::assertSame(4, $applied->groups[1]->changes[0]->current);
         self::assertSame(['refused:invalid_team_size'], self::changeStatuses($applied, 2));
         self::assertSame(['refused:round_not_found'], self::changeStatuses($applied, 3));
+        self::assertSame('participants_sheet_server.reason.not_a_team_round_pairs', $applied->groups[4]->changes[0]->messageKey());
+        self::assertSame('participants_sheet_server.reason.not_a_team_round', $applied->groups[5]->changes[0]->messageKey());
+        self::assertSame(['round' => 'Group A'], $applied->groups[5]->changes[0]->parameters);
         self::assertSame(4, $this->database->fetchOne('SELECT team_size FROM competition_round WHERE id = :id', ['id' => $roundId]));
         self::assertNull($this->database->fetchOne('SELECT team_size FROM competition_round WHERE id = :id', ['id' => CompetitionSeriesFixture::ROUND_OFFLINE_TEAM]));
     }
@@ -809,6 +843,62 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
         self::assertIsArray($receipt);
         self::assertSame(Cup::COMPETITION_RESULTS_CUP, $receipt['competition_id']);
         self::assertSame($first->versionAfter, $receipt['version_after']);
+    }
+
+    /**
+     * BR10: the receipt is the sheet's change trail - who sent the change set and what it asked for, refused groups too
+     * (kept 90 days with the receipt, the raw material of D11's change log). An account deleted later leaves the trail
+     * without a name.
+     */
+    public function testTheReceiptKeepsWhoSentWhat(): void
+    {
+        $organiser = new Player(Uuid::uuid7(), 'TR' . bin2hex(random_bytes(3)), 'trail|' . bin2hex(random_bytes(4)), null, new DateTimeImmutable());
+        $this->entityManager->persist($organiser);
+        $this->entityManager->flush();
+
+        $changesetId = Uuid::uuid7()->toString();
+        $teamId = Uuid::uuid7()->toString();
+        $newPersonId = Uuid::uuid7()->toString();
+        $groups = [
+            ['id' => 'rename', 'changes' => [self::fieldChange(Cup::PARTICIPANT_IVAN, 'name', 'Ivan Last', 'Ivan Trail')]],
+            ['id' => 'pair', 'changes' => [
+                ['op' => 'newTeam', 'id' => strtoupper($teamId), 'round' => Cup::ROUND_PAIRS_FINAL, 'name' => 'Trail Pair'],
+                ['op' => 'newParticipant', 'id' => $newPersonId, 'name' => 'Jo Trail', 'country' => null, 'externalId' => null],
+                self::placeChange($newPersonId, Cup::ROUND_PAIRS_FINAL, 'out', 'team:' . $teamId),
+            ]],
+            // Refused (Ben holds a result in Group A) - asked for all the same
+            ['id' => 'refused', 'changes' => [self::placeChange(Cup::PARTICIPANT_BEN, Cup::ROUND_GROUP_A, 'in', 'out')]],
+        ];
+
+        $applied = $this->applySheetChanges($groups, changesetId: $changesetId, actingPlayerId: $organiser->id->toString());
+        self::assertSame(['applied', 'applied', 'refused'], self::groupStatuses($applied));
+
+        $receipt = $this->database->fetchAssociative('SELECT acting_player_id, changes FROM participant_sheet_change_receipt WHERE id = :id', ['id' => $changesetId]);
+        self::assertIsArray($receipt);
+        self::assertSame($organiser->id->toString(), $receipt['acting_player_id']);
+        self::assertIsString($receipt['changes']);
+
+        // As the server read them: ids canonical (the page's upper-case team id lower-cased), every field of the op
+        $stored = json_decode($receipt['changes'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame([
+            ['id' => 'rename', 'changes' => [['op' => 'field', 'participant' => Cup::PARTICIPANT_IVAN, 'field' => 'name', 'from' => 'Ivan Last', 'to' => 'Ivan Trail']]],
+            ['id' => 'pair', 'changes' => [
+                ['op' => 'newTeam', 'id' => $teamId, 'round' => Cup::ROUND_PAIRS_FINAL, 'name' => 'Trail Pair'],
+                ['op' => 'newParticipant', 'id' => $newPersonId, 'name' => 'Jo Trail', 'country' => null, 'externalId' => null],
+                ['op' => 'place', 'participant' => $newPersonId, 'round' => Cup::ROUND_PAIRS_FINAL, 'from' => 'out', 'to' => 'team:' . $teamId],
+            ]],
+            ['id' => 'refused', 'changes' => [['op' => 'place', 'participant' => Cup::PARTICIPANT_BEN, 'round' => Cup::ROUND_GROUP_A, 'from' => 'in', 'to' => 'out']]],
+        ], $stored);
+
+        // The trail is the wire format: read again, it is the same change set
+        $reparsed = SheetChangesParser::parse(['changesetId' => $changesetId, 'groups' => $stored]);
+        self::assertEquals(
+            SheetChangesParser::parse(['changesetId' => $changesetId, 'groups' => $groups])['groups'],
+            $reparsed['groups'],
+        );
+
+        $this->database->executeStatement('DELETE FROM player WHERE id = :id', ['id' => $organiser->id->toString()]);
+        self::assertNull($this->database->fetchOne('SELECT acting_player_id FROM participant_sheet_change_receipt WHERE id = :id', ['id' => $changesetId]));
     }
 
     public function testAChangeSetIdOfAnotherEventIsRefused(): void

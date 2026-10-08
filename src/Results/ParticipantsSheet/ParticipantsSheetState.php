@@ -53,6 +53,15 @@ readonly final class ParticipantsSheetState implements \JsonSerializable
     }
 
     /**
+     * The setup checklist applies: the event has no rounds yet, or nobody on its list and no pairs/teams either - an
+     * event of named pairs/teams without their people (a names-only night) is set up and never nagged.
+     */
+    public function needsSetup(): bool
+    {
+        return $this->rounds === [] || ($this->activePeopleCount() === 0 && $this->teams === []);
+    }
+
+    /**
      * @return array{
      *     serverNow: string,
      *     version: string,

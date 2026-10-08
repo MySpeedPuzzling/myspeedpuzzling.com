@@ -25,6 +25,7 @@
             {{ include('official_results/_round_tool_links.html.twig', {
                 round_id: round.id,
                 is_online: competition.isOnline,
+                competition_id: competition.id,
                 table_numbers_off: round.tableNumbersOff,
                 button_class: 'btn-outline-primary',
             }) }}

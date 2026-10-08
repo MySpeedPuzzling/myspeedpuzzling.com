@@ -245,45 +245,58 @@ SQL,
      * Every participant of the event (removed ones too) by name - or the one asked for. `$registrationManaged` null =
      * read it with the people.
      *
+     * A waitlisted person's place in the line is counted over the whole event's waitlist (a window over every row of
+     * the event, the one asked for picked afterwards) by GetEventAttendance's rule: first come first served by
+     * `registered_at` (none = first), then id - the line the waitlisted player sees on the event page.
+     *
      * @return list<ParticipantsSheetPerson>
      */
     private function people(string $competitionId, null|string $participantId, null|bool $registrationManaged, null|string $viewerPlayerId): array
     {
-        $onlyOne = $participantId !== null ? 'AND cp.id = :participantId' : '';
+        $onlyOne = $participantId !== null ? 'WHERE sheet_person.id = :participantId' : '';
         $parameters = ['competitionId' => $competitionId];
 
         if ($participantId !== null) {
             $parameters['participantId'] = $participantId;
         }
 
+        $waitlisted = RegistrationStatus::Waitlisted->value;
+
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
-SELECT
-    cp.id,
-    cp.name,
-    cp.country,
-    cp.external_id,
-    cp.organizer_note,
-    cp.source,
-    cp.deleted_at,
-    cp.connected_at,
-    cp.registration_status,
-    cp.registered_at,
-    cp.paid_at,
-    cp.checked_in_at,
-    c.registration_managed,
-    p.id AS player_id,
-    p.name AS player_name,
-    p.code AS player_code,
-    p.country AS player_country,
-    p.avatar AS player_avatar,
-    {$this->privateProfileAccess->sqlIsPrivate('p')} AS player_is_private
-FROM competition_participant cp
-INNER JOIN competition c ON c.id = cp.competition_id
-LEFT JOIN player p ON p.id = cp.player_id
-WHERE cp.competition_id = :competitionId
-    {$onlyOne}
-ORDER BY cp.name, cp.id
+SELECT sheet_person.*
+FROM (
+    SELECT
+        cp.id,
+        cp.name,
+        cp.country,
+        cp.external_id,
+        cp.organizer_note,
+        cp.source,
+        cp.deleted_at,
+        cp.connected_at,
+        cp.registration_status,
+        cp.registered_at,
+        cp.paid_at,
+        cp.checked_in_at,
+        CASE WHEN cp.deleted_at IS NULL AND cp.registration_status = '{$waitlisted}' THEN ROW_NUMBER() OVER (
+            PARTITION BY cp.deleted_at IS NULL AND cp.registration_status IS NOT DISTINCT FROM '{$waitlisted}'
+            ORDER BY COALESCE(cp.registered_at, '-infinity'), cp.id
+        ) END AS waitlist_position,
+        c.registration_managed,
+        p.id AS player_id,
+        p.name AS player_name,
+        p.code AS player_code,
+        p.country AS player_country,
+        p.avatar AS player_avatar,
+        {$this->privateProfileAccess->sqlIsPrivate('p')} AS player_is_private
+    FROM competition_participant cp
+    INNER JOIN competition c ON c.id = cp.competition_id
+    LEFT JOIN player p ON p.id = cp.player_id
+    WHERE cp.competition_id = :competitionId
+) AS sheet_person
+{$onlyOne}
+ORDER BY sheet_person.name, sheet_person.id
 SQL,
             $parameters,
         );
@@ -301,7 +314,7 @@ SQL,
 
         $people = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, name: string, country: null|string, external_id: null|string, organizer_note: null|string, source: string, deleted_at: null|string, connected_at: null|string, registration_status: null|string, registered_at: null|string, paid_at: null|string, checked_in_at: null|string, registration_managed: bool, player_id: null|string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool} $row */
+            /** @var array{id: string, name: string, country: null|string, external_id: null|string, organizer_note: null|string, source: string, deleted_at: null|string, connected_at: null|string, registration_status: null|string, registered_at: null|string, paid_at: null|string, checked_in_at: null|string, waitlist_position: null|int|string, registration_managed: bool, player_id: null|string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool} $row */
             $playerId = $row['player_id'] !== null ? strtolower($row['player_id']) : null;
             $managed = $registrationManaged ?? $row['registration_managed'];
 
@@ -328,6 +341,7 @@ SQL,
                     registeredAt: self::date($row['registered_at']),
                     paidAt: self::date($row['paid_at']),
                     checkedInAt: self::date($row['checked_in_at']),
+                    waitlistPosition: $row['waitlist_position'] !== null ? (int) $row['waitlist_position'] : null,
                 ) : null,
                 playerResultRounds: $playerId !== null ? ($resultRounds[$playerId] ?? []) : [],
             );

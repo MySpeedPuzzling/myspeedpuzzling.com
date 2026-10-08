@@ -1,24 +1,27 @@
-{# The setup checklist of the old participants page, above the grid while the event has no rounds or nobody on its
-   list (participants.md "Organizer Checklist"). Expects: competition, state, active_people, urls #}
+{# The setup checklist of the old participants page, above the grid while the event has no rounds, or nobody on its list
+   and no pairs/teams either (ParticipantsSheetState::needsSetup() - a names-only event of pairs/teams is set up).
+   The participants-sheet controller hides it live once both are done; the lines carry
+   `data-participants-sheet-checklist-item` ("rounds", "people") and their icon `data-participants-sheet-checklist-icon`
+   for ticking them live. Expects: competition, state, active_people #}
 <div class="participants-sheet__checklist alert alert-light border m-2 mb-0" data-participants-sheet-target="checklist" data-participants-sheet-checklist>
-    <strong class="d-block mb-2">{{ 'competition.participants.setup_checklist'|trans }}</strong>
+    <strong class="d-block mb-2">{{ 'participants_sheet.checklist.title'|trans }}</strong>
     <ul class="list-unstyled d-flex flex-column gap-1 small mb-0">
-        <li>
+        <li data-participants-sheet-checklist-item="rounds">
             {% if state.rounds is not empty %}
-                <i class="bi bi-check-circle-fill text-success me-1" aria-hidden="true"></i>
+                <i class="bi bi-check-circle-fill text-success me-1" aria-hidden="true" data-participants-sheet-checklist-icon></i>
             {% else %}
-                <i class="bi bi-circle text-muted me-1" aria-hidden="true"></i>
+                <i class="bi bi-circle text-muted me-1" aria-hidden="true" data-participants-sheet-checklist-icon></i>
             {% endif %}
-            {{ 'competition.participants.checklist_rounds'|trans({'%count%': state.rounds|length}) }}
+            {{ 'participants_sheet.checklist.rounds'|trans({'%count%': state.rounds|length}) }}
             <a href="{{ path('manage_competition_rounds', {competitionId: competition.id, return: path('participants_sheet', {competitionId: competition.id}), return_title: 'participants_sheet.title'|trans}) }}" class="ms-1">{{ 'competition.manage_rounds'|trans }}</a>
         </li>
-        <li>
-            {% if active_people > 0 %}
-                <i class="bi bi-check-circle-fill text-success me-1" aria-hidden="true"></i>
+        <li data-participants-sheet-checklist-item="people">
+            {% if active_people > 0 or state.teams is not empty %}
+                <i class="bi bi-check-circle-fill text-success me-1" aria-hidden="true" data-participants-sheet-checklist-icon></i>
             {% else %}
-                <i class="bi bi-circle text-muted me-1" aria-hidden="true"></i>
+                <i class="bi bi-circle text-muted me-1" aria-hidden="true" data-participants-sheet-checklist-icon></i>
             {% endif %}
-            {{ 'competition.participants.checklist_participants'|trans }}
+            {{ 'participants_sheet.checklist.participants'|trans }}
             <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline" data-bs-toggle="modal" data-bs-target="#participants-sheet-import">{{ 'participants_sheet.checklist.import'|trans }}</button>
             <span class="text-body-secondary">{{ 'participants_sheet.checklist.or_type'|trans }}</span>
         </li>

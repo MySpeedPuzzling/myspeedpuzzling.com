@@ -165,7 +165,7 @@ final class ApplyParticipantSheetChangesControllerTest extends WebTestCase
             'index' => 0,
             'status' => 'refused',
             'reason' => 'has_result_in_round',
-            'message' => "Ben Steady's result in Group A is recorded - clear it on the results desk first to take Ben Steady out.",
+            'message' => "Ben Steady's result in Group A is recorded - clear it in this round's Result column or on the Results desk first to take Ben Steady out.",
             'current' => 'in',
         ], $refused['changes'][0]);
 
@@ -194,7 +194,7 @@ final class ApplyParticipantSheetChangesControllerTest extends WebTestCase
 
         self::assertSame('refused', $skipped['status']);
         self::assertSame('team_has_result', $skipped['changes'][0]['reason']);
-        self::assertSame('The result of Puzzle Sharks in Pairs is recorded - clear it on the results desk first to delete the pair/team.', $skipped['changes'][0]['message']);
+        self::assertSame("The result of Puzzle Sharks in Pairs is recorded - clear it in this round's Result column or on the Results desk first to delete the pair/team.", $skipped['changes'][0]['message']);
         self::assertSame('skipped', $skipped['changes'][1]['status']);
         self::assertSame('Not saved - another part of the same change could not be saved.', $skipped['changes'][1]['message']);
 
@@ -247,11 +247,11 @@ final class ApplyParticipantSheetChangesControllerTest extends WebTestCase
         self::assertSame([
             ['has_result_in_round: Anna Fast added their own time to Final on MySpeedPuzzling - they stay in the round.'],
             ['has_result_in_event: Anna Fast added their own time to Final on MySpeedPuzzling - they stay in the event.'],
-            ['has_result_in_event: Ben Steady has a recorded result in Group A - clear it on the results desk first to remove Ben Steady from the event.'],
+            ["has_result_in_event: Ben Steady has a recorded result in Group A - clear it in Group A's Result column or on the Results desk first to remove Ben Steady from the event."],
             // Dan is on the waitlist of the managed event - nobody taking part would be left in Corner Pieces
             ['team_has_result: The result of Corner Pieces in Pairs is recorded - keep at least one person in it who is not on the waitlist.'],
-            ['team_has_result: The result of Edge Hunters in Pairs is recorded - keep at least one person in the pair/team, or clear the result on the results desk first.'],
-            ['external_id_taken: The external id R-1 belongs to Ivan Last already.'],
+            ["team_has_result: The result of Edge Hunters in Pairs is recorded - keep at least one person in the pair/team, or clear the result in this round's Result column or on the Results desk first."],
+            ['external_id_taken: The External ID R-1 belongs to Ivan Last already.'],
         ], $messages);
     }
 

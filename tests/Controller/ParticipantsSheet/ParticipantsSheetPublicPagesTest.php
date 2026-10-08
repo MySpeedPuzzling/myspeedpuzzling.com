@@ -68,6 +68,9 @@ final class ParticipantsSheetPublicPagesTest extends WebTestCase
                 'outcomes' => '[{"id": "g1", "status": "applied", "changes": [], "warnings": [], "deletedTeams": []}]',
                 'version_before' => str_repeat('a', 64),
                 'version_after' => str_repeat('b', 64),
+                // The change trail: who and what
+                'acting_player_id' => PlayerFixture::PLAYER_WITH_STRIPE,
+                'changes' => '[{"id": "g1", "changes": [{"op": "remove", "participant": "' . OfficialResultsFixture::PARTICIPANT_IVAN . '"}]}]',
             ]);
         }
 

@@ -120,8 +120,11 @@ a.ev-next-title {
 .ev-next-meta {
     flex-wrap: wrap;
     row-gap: .125rem;
+    column-gap: .5rem;
 
+    // The gap spaces it, so a time wrapped onto its own line starts flush left
     .ev-time {
+        margin-left: 0;
         white-space: normal;
     }
 }

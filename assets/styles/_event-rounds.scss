@@ -370,3 +370,24 @@ a.ev-round-puzzle-name {
 .ev-taking-part {
     scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
 }
+
+// The participants list right under Taking part: the component's own empty state and "Connect" button keep page-sized
+// margins (mt-5 + py-4, about 90 px of nothing) - here it follows its section like every other block
+.ev-participants {
+    margin-top: 1.5rem;
+
+    > .text-center {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    > p.mt-5 {
+        margin-top: 0 !important;
+    }
+
+    > .text-center p {
+        max-width: 40rem;
+        margin-inline: auto;
+    }
+}

@@ -79,7 +79,7 @@
                     participants - nothing at all without them -#}
                 {% if page_sections is not empty %}{{ include('_page_sections.html.twig', {sections: page_sections}) }}{% endif %}
 
-                <twig:CompetitionParticipants competitionId="{{ event.id }}" />
+                <twig:CompetitionParticipants competitionId="{{ event.id }}" class="ev-participants" />
             </div>
             {{ include('event_parts/_detail_side.html.twig') }}
         </div>

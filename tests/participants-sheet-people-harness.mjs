@@ -1,6 +1,7 @@
-// Runs the People tab's pure modules (assets/participants_sheet/people_paste.js, registration_actions.js and the pure
-// helpers of views/people_view.js - stream E) under node for tests/ParticipantsSheetPeopleScriptsTest.php: the cases
-// come on stdin as JSON, one result per case is printed.
+// Runs the People tab's modules (assets/participants_sheet/people_paste.js, registration_actions.js, the pure helpers
+// of views/people_view.js and - suite `view`, in jsdom - the People grid, the person editor and the phone list on the
+// real model, grid and preview dialog) under node for tests/ParticipantsSheetPeopleScriptsTest.php: the cases come on
+// stdin as JSON, one result per case is printed.
 //
 // - {"suite": "<name>"} runs tests/participants-sheet-people/<name>.mjs (node:assert tests) and answers
 //   {"suite", "passed", "failures": [{"name", "message"}]};
@@ -15,7 +16,7 @@ import { namePasteAction, planNamePaste } from '../assets/participants_sheet/peo
 import { allowedActions, firstInLine, registrationCounts, waitlistPositions } from '../assets/participants_sheet/registration_actions.js';
 import { parseClipboardText } from '../assets/participants_sheet/tsv.js';
 
-const SUITES = ['paste', 'registration', 'filters'];
+const SUITES = ['paste', 'registration', 'filters', 'view'];
 
 async function runSuite(name) {
     if (!SUITES.includes(name)) {

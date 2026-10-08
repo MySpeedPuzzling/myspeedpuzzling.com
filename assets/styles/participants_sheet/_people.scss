@@ -93,8 +93,64 @@ $people-panel-width: 24rem;
     font-variant-numeric: tabular-nums;
 }
 
+.sheet-people-round {
+    flex: 0 1 14rem;
+    width: auto;
+    min-width: 9rem;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
 .sheet-people-columns {
     margin-left: auto;
+}
+
+// A sortable header: the whole label is the button (aria-sort on its cell says the order)
+.sheet-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+
+    .bi {
+        flex: none;
+        color: $gray-600;
+        font-size: .8125em;
+    }
+
+    &:hover .bi,
+    th[aria-sort] & .bi {
+        color: $gray-900;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+        outline-offset: 1px;
+    }
+}
+
+// A green action button that is readable: dark green on white, white on a darker green when pressed (E-3 - the theme's
+// light green with white text is not)
+.sheet-btn-success {
+    --#{$prefix}btn-color: #{shade-color($success, 60%)};
+    --#{$prefix}btn-border-color: #{shade-color($success, 35%)};
+    --#{$prefix}btn-hover-color: #{$white};
+    --#{$prefix}btn-hover-bg: #{shade-color($success, 45%)};
+    --#{$prefix}btn-hover-border-color: #{shade-color($success, 45%)};
+    --#{$prefix}btn-active-color: #{$white};
+    --#{$prefix}btn-active-bg: #{shade-color($success, 55%)};
+    --#{$prefix}btn-active-border-color: #{shade-color($success, 55%)};
+    --#{$prefix}btn-disabled-color: #{shade-color($success, 40%)};
+    --#{$prefix}btn-disabled-border-color: #{shade-color($success, 20%)};
+    background-color: $white;
 }
 
 .sheet-columns-item {
@@ -157,6 +213,19 @@ $people-panel-width: 24rem;
     .btn {
         margin-left: auto;
     }
+}
+
+.sheet-first-in-line-mail {
+    color: shade-color($success, 60%);
+}
+
+.sheet-counters:focus {
+    outline: none;
+}
+
+.sheet-counters:focus-visible {
+    outline: 2px solid $sheet-focus;
+    outline-offset: 2px;
 }
 
 // ---------------------------------------------------------------- the grid's People columns
@@ -524,6 +593,14 @@ $people-panel-width: 24rem;
     }
 }
 
+// Phones: every button of a field's note is a 44 px target (Keep mine / Use theirs / OK / Unlink)
+.sheet-person.is-modal {
+    .sheet-person-mark .btn,
+    .sheet-person-player .btn {
+        min-height: 2.75rem;
+    }
+}
+
 .sheet-person-mark {
     display: flex;
     flex-wrap: wrap;
@@ -714,6 +791,42 @@ $people-panel-width: 24rem;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 11rem);
     gap: .5rem;
+}
+
+.sheet-plist-round {
+    grid-column: 1 / -1;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// ---------------------------------------------------------------- previews and dialogs of the People tab
+
+// "And put them into ▾ Group A" in the names preview (BR3)
+.sheet-paste-round {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    margin-bottom: .75rem;
+
+    .form-select {
+        width: auto;
+        min-width: 12rem;
+        max-width: 100%;
+        min-height: 2.75rem;
+        font-size: 1rem;
+
+        @include media-breakpoint-up(md) {
+            min-height: 0;
+            font-size: $font-size-sm;
+        }
+    }
+}
+
+.sheet-run-progress:empty {
+    display: none;
 }
 
 .sheet-plist-add {

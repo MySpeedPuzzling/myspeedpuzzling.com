@@ -4,25 +4,34 @@
  *
  * - a selection column (Shift+click ranges, the header box = every shown row) and the **bulk bar** for the selected
  *   people: in / out of a solo round, "Make a pair/team" in a pair/team round (a preview with the server's dry run when it
- *   moves anybody or the size is off), Remove from event, Restore - each one undo step;
- * - **filters** with counts (All, Not in any round, Joined by themselves, the registration filters of a managed event,
- *   Duplicate names, Removed) and a **search** (name, external id, MSP name, #code - folded); a filter never hides a row
- *   that has the focus or is open in the person editor until the filter changes;
+ *   moves anybody or the size is off), Mark paid / Check in on a managed event (a confirmation saying how many e-mails go
+ *   out, then one request after the other with progress), Remove from event, Restore - each one undo step;
+ * - **filters** with counts (All, Not in any round, In no solo round, In 2+ solo rounds, Joined by themselves, the
+ *   registration filters of a managed event, Duplicate names, Removed), a **round select** ("In Group A" / "Not in
+ *   Group A") and a **search** (name, external id, MSP name, #code - folded); a filter never hides a row that has the
+ *   focus or is open in the person editor until the filter changes; `?filter=<key>` in the page URL opens the tab with
+ *   that filter on (the waitlist note links `?tab=people&filter=waitlist`);
+ * - **sortable headers** (name, country, external ID, registered, joined - a click toggles A→Z / Z→A, `aria-sort`,
+ *   remembered per event in this browser); while the organiser works in the grid the rows keep their places (an edited
+ *   name never jumps away) - only new rows are put where the sort says;
  * - the **Columns menu** (D10, remembered per event in this browser): name, country, MSP profile, rounds shown by
  *   default; external id, source, joined (MSP), the registration columns of a managed event, the private note hidden;
  * - name, country, MSP profile (O9: "Linked to a MySpeedPuzzling profile" when the viewer may not see it), a checkbox
  *   per solo round, a read-only pair/team label per pair/team round (Enter or a double click opens that round's tab at the
  *   person), external id, note (`field: note`, private to the organisers), the registration (Enter/Space opens the
- *   actions its state allows - registration_actions.js), paid, checked in, the row actions (Edit, Remove / Restore);
+ *   actions its state allows - registration_actions.js), registered, paid, checked in, the row actions (Edit, Remove /
+ *   Restore);
  * - markers in text: "Joined by themselves", "On the waitlist", same names, "No round yet", removed rows struck through;
  * - the new-person row at the bottom (type a name, Enter, the next name) and **adding people by paste** (people_paste.js:
  *   a block pasted onto the new row - or reaching past the end of the list - is read as `name ⇥ country ⇥ external id`
- *   per line, previewed and added with one Confirm);
+ *   per line, previewed - names that look like a mistake unticked, "and put them into ▾ a solo round" - and added with
+ *   one Confirm); pasting over names (renames) is always previewed;
  * - counters above the grid for a managed event ("Spots taken 180 / 200 · Waitlist 12") and the first-in-line hint.
  *
  * Every edit is an action of sheet_changes.js handed to `context.act()`; registration changes go only through the
  * registration endpoint. update(delta) re-renders only the rows the delta names (plus the rows whose same-name or
- * waitlist marker moved because of them) - never the whole grid on an edit.
+ * waitlist marker moved because of them) - never the whole grid on an edit. A refusal or a "nothing happened" is shown,
+ * not only read out (`context.notify`, through notify()).
  *
  * Texts: `this.t()` = the core texts (C's keys), `this.say()` / `this.sayCount()` = the People texts
  * (_texts_people.html.twig).
@@ -46,15 +55,32 @@ import {
 import { readBoolean, trimCell } from '../tsv.js';
 import { foldSearchText } from '../../search_fold.js';
 import { nameKey, parsePlace } from '../sheet_model.js';
-import { LINE_DUPLICATE, LINE_EXISTING, LINE_HEADER, LINE_INVALID, LINE_NEW, LINE_REMOVED, lineOfError, namePasteAction, planNamePaste } from '../people_paste.js';
+import {
+    HINT_CLOSE,
+    INTO_ALREADY,
+    INTO_AMBIGUOUS,
+    INTO_PUT,
+    LINE_DUPLICATE,
+    LINE_EXISTING,
+    LINE_HEADER,
+    LINE_INVALID,
+    LINE_NEW,
+    LINE_REMOVED,
+    lineOfError,
+    namePasteAction,
+    placementOf,
+    planNamePaste,
+} from '../people_paste.js';
 import {
     allowedActions,
+    bulkRegistrationPlan,
     firstInLine,
     matchesRegistrationFilter,
     paidBefore,
     performRegistrationAction,
     registrationCounts,
     registrationStatus,
+    runRegistrationBulk,
     waitlistPositions,
 } from '../registration_actions.js';
 
@@ -64,6 +90,8 @@ export const PREVIEW_ABOVE_ROWS = 10;
 // Removing more than this share of the active people (and at least LARGE_REMOVAL_MIN) asks for the typed number (§6)
 export const LARGE_REMOVAL_SHARE = 0.25;
 export const LARGE_REMOVAL_MIN = 10;
+// The result count of a search is read out once the typing pauses, not after every letter
+export const SEARCH_ANNOUNCE_MS = 700;
 const UNLINK = '__unlink';
 const OPEN = '__open';
 const NO_COUNTRY = '__none';
@@ -72,18 +100,28 @@ const ACTIONS = 'actions';
 const NAME_WIDTH = 240;
 const SELECT_WIDTH = 44;
 
-/** The People filters in the order the toolbar shows them; `managed` ones only for a managed event. */
+/**
+ * The People filters in the order the toolbar shows them; `managed` ones only for a managed event, `inPerson` ones not
+ * for an online one; `soloRounds` = how many solo rounds the event needs for it to mean something (`mixed`: and a
+ * round of another kind - else "In no solo round" is "Not in any round").
+ */
 export const FILTERS = [
     { key: 'all' },
     { key: 'no_round' },
+    { key: 'no_solo', soloRounds: 1, mixed: true },
+    { key: 'multi_solo', soloRounds: 2 },
     { key: 'joined' },
     { key: 'waitlist', managed: true },
     { key: 'not_paid', managed: true },
+    { key: 'paid', managed: true },
     { key: 'checked_in', managed: true, inPerson: true },
     { key: 'not_checked_in', managed: true, inPerson: true },
     { key: 'duplicates' },
     { key: 'removed' },
 ];
+
+// Optional filters that would show nobody stay out of the way (All and the active one are always there)
+export const HIDDEN_WHEN_EMPTY = ['joined', 'multi_solo', 'duplicates', 'removed', 'checked_in'];
 
 /**
  * The columns of the Columns menu (D10): `rounds` = every round column; `name` is always shown. Registration columns
@@ -98,14 +136,23 @@ export const COLUMN_OPTIONS = [
     { key: 'source', on: false },
     { key: 'joined', on: false },
     { key: 'registration', on: true, managed: true },
+    { key: 'registered', on: false, managed: true },
     { key: 'paid', on: false, managed: true },
     { key: 'checkedIn', on: false, managed: true, inPerson: true },
     { key: 'note', on: false },
 ];
 
-/** The filters and columns an event offers. */
-export function offeredFor(list, competition) {
-    return list.filter((item) => (!item.managed || competition?.registrationManaged === true) && (!item.inPerson || competition?.isOnline !== true));
+/** The columns a header click sorts by (BR4). */
+export const SORTABLE = ['name', 'country', 'externalId', 'registered', 'joined'];
+
+/** The filters and columns an event offers (`rounds` = the event's rounds, for the solo-round filters). */
+export function offeredFor(list, competition, rounds = []) {
+    const solo = rounds.filter((round) => round.category === 'solo').length;
+    const other = rounds.length - solo;
+
+    return list.filter((item) => (!item.managed || competition?.registrationManaged === true)
+        && (!item.inPerson || competition?.isOnline !== true)
+        && (!item.soloRounds || (solo >= item.soloRounds && (!item.mixed || other > 0))));
 }
 
 const searchTexts = new WeakMap();
@@ -136,6 +183,19 @@ export function matchesSearch(person, query) {
     return folded.split(/\s+/).every((word) => text.includes(word));
 }
 
+/** How many solo rounds the person is in. */
+export function soloRoundCount(model, personId) {
+    let count = 0;
+
+    for (const roundId of model.placesOf(personId).keys()) {
+        if (model.round(roundId)?.category === 'solo') {
+            count++;
+        }
+    }
+
+    return count;
+}
+
 /**
  * A person under a filter (contract §5 stream E). `duplicateKeys` = the name keys shared by 2+ active people.
  */
@@ -153,12 +213,17 @@ export function matchesFilter(model, person, filter, duplicateKeys = null) {
     switch (filter) {
         case 'no_round':
             return model.placesOf(person.id).size === 0;
+        case 'no_solo':
+            return soloRoundCount(model, person.id) === 0;
+        case 'multi_solo':
+            return soloRoundCount(model, person.id) >= 2;
         case 'joined':
             return person.source === 'self_joined';
         case 'duplicates':
             return (duplicateKeys ?? new Set(model.duplicateNames().keys())).has(nameKey(person.name));
         case 'waitlist':
         case 'not_paid':
+        case 'paid':
         case 'checked_in':
         case 'not_checked_in':
             return matchesRegistrationFilter(person, filter);
@@ -167,10 +232,28 @@ export function matchesFilter(model, person, filter, duplicateKeys = null) {
     }
 }
 
-/** Counts per filter key (search applied). */
-export function filterCounts(model, filters, query = '') {
+/** `in:<roundId>` / `out:<roundId>` (the round select) → {roundId, inRound}, else null (any round). */
+export function parseRoundFilter(value) {
+    const match = /^(in|out):(.+)$/.exec(String(value ?? ''));
+
+    return match ? { roundId: match[2], inRound: match[1] === 'in' } : null;
+}
+
+/** A person under the round select: in the round (any place - solo, a pair/team, without one yet) or not in it. */
+export function matchesRoundFilter(model, person, roundFilter) {
+    const parsed = parseRoundFilter(roundFilter);
+
+    if (parsed === null || model.round(parsed.roundId) === null) {
+        return true;
+    }
+
+    return (model.placeValue(person.id, parsed.roundId) !== 'out') === parsed.inRound;
+}
+
+/** Counts per filter key (search and the round select applied). */
+export function filterCounts(model, filters, query = '', roundFilter = '') {
     const duplicateKeys = new Set(model.duplicateNames().keys());
-    const people = model.people({ includeRemoved: true }).filter((person) => matchesSearch(person, query));
+    const people = model.people({ includeRemoved: true }).filter((person) => matchesSearch(person, query) && matchesRoundFilter(model, person, roundFilter));
     const counts = {};
 
     for (const { key } of filters) {
@@ -180,13 +263,110 @@ export function filterCounts(model, filters, query = '') {
     return counts;
 }
 
-/** The ids a filter + search shows, in the people order (state order, people added on the page at the end). */
-export function visiblePeople(model, filter, query = '', held = null) {
+/** The ids a filter + search + round select shows, in the people order (state order, people added on the page at the end). */
+export function visiblePeople(model, filter, query = '', held = null, roundFilter = '') {
     const duplicateKeys = new Set(model.duplicateNames().keys());
 
     return model.people({ includeRemoved: true })
-        .filter((person) => (held?.has(person.id) ?? false) || (matchesFilter(model, person, filter, duplicateKeys) && matchesSearch(person, query)))
+        .filter((person) => (held?.has(person.id) ?? false)
+            || (matchesFilter(model, person, filter, duplicateKeys) && matchesSearch(person, query) && matchesRoundFilter(model, person, roundFilter)))
         .map((person) => person.id);
+}
+
+/**
+ * The people in a column's order (BR4): name, country (its name in the page's language), external ID (numbers as
+ * numbers), registered (when they registered), joined (when they joined by themselves). Empty values go last both
+ * ways; equal ones keep the list's order.
+ *
+ * @param {object[]} people
+ * @param {{key: string, dir: 'asc'|'desc'}|null} sort
+ * @param {{countries?: Object<string, string>, locale?: string}} [options]
+ * @returns {object[]}
+ */
+export function sortPeople(people, sort, { countries = {}, locale = undefined } = {}) {
+    if (!sort || !SORTABLE.includes(sort.key)) {
+        return people.slice();
+    }
+
+    let collator;
+
+    try {
+        collator = new Intl.Collator(locale || undefined, { sensitivity: 'base', numeric: true });
+    } catch (e) {
+        collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+    }
+
+    const valueOf = {
+        name: (person) => person.name ?? '',
+        country: (person) => (person.country ? String(countries[person.country] ?? person.country) : null),
+        externalId: (person) => person.externalId ?? null,
+        registered: (person) => timeOf(person.registration?.registeredAt),
+        joined: (person) => (person.source === 'self_joined' ? timeOf(person.connectedAt) : null),
+    }[sort.key];
+    const direction = sort.dir === 'desc' ? -1 : 1;
+    const rows = people.map((person, index) => ({ person, index, value: valueOf(person) }));
+
+    rows.sort((a, b) => {
+        const emptyA = a.value === null || a.value === '';
+        const emptyB = b.value === null || b.value === '';
+
+        if (emptyA || emptyB) {
+            return emptyA === emptyB ? a.index - b.index : (emptyA ? 1 : -1);
+        }
+
+        const order = typeof a.value === 'number' ? a.value - b.value : collator.compare(a.value, b.value);
+
+        return order !== 0 ? order * direction : a.index - b.index;
+    });
+
+    return rows.map((row) => row.person);
+}
+
+function timeOf(value) {
+    const time = value ? Date.parse(value) : Number.NaN;
+
+    return Number.isNaN(time) ? null : time;
+}
+
+/**
+ * The rows while the organiser works in the grid: the ones shown already keep their order (an edited name or a live
+ * change never moves the row they are on), rows new to the list go where `sorted` puts them (after the row they follow
+ * there).
+ *
+ * @param {string[]} sorted the rows in their sorted order
+ * @param {string[]} previous the rows shown now
+ */
+export function keepOrder(sorted, previous) {
+    const wanted = new Set(sorted);
+    const result = previous.filter((id) => wanted.has(id));
+
+    if (result.length === sorted.length) {
+        return result;
+    }
+
+    const placed = new Set(result);
+
+    sorted.forEach((id, index) => {
+        if (placed.has(id)) {
+            return;
+        }
+
+        let at = 0;
+
+        for (let before = index - 1; before >= 0; before--) {
+            const position = result.indexOf(sorted[before]);
+
+            if (position !== -1) {
+                at = position + 1;
+                break;
+            }
+        }
+
+        result.splice(at, 0, id);
+        placed.add(id);
+    });
+
+    return result;
 }
 
 /** Stored per event, in this browser only (localStorage may be missing or throw - the defaults then). */
@@ -209,11 +389,75 @@ export function writeColumnPrefs(storage, competitionId, prefs) {
     }
 }
 
-function browserStorage() {
+/** The People sort, per event in this browser ({key, dir} or null). */
+export function readSortPref(storage, competitionId) {
+    try {
+        const raw = storage?.getItem(`participants-sheet:people-sort:${competitionId}`);
+        const value = raw ? JSON.parse(raw) : null;
+
+        return value && SORTABLE.includes(value.key) && (value.dir === 'asc' || value.dir === 'desc') ? { key: value.key, dir: value.dir } : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+export function writeSortPref(storage, competitionId, sort) {
+    try {
+        if (sort === null) {
+            storage?.removeItem(`participants-sheet:people-sort:${competitionId}`);
+        } else {
+            storage?.setItem(`participants-sheet:people-sort:${competitionId}`, JSON.stringify(sort));
+        }
+    } catch (e) {
+        // The sort lasts for this page view
+    }
+}
+
+export function browserStorage() {
     try {
         return typeof window !== 'undefined' ? window.localStorage : null;
     } catch (e) {
         return null;
+    }
+}
+
+/**
+ * `?filter=<key>` of the page URL (a link to the People tab with a filter on - e.g. the waitlist note's
+ * `?tab=people&filter=waitlist`): read once and taken out of the URL, so the next visit of the tab starts from All.
+ * A FILTERS key, or `in:<roundId>` / `out:<roundId>` for the round select; null without one.
+ */
+export function takeUrlFilter() {
+    try {
+        const url = new URL(window.location.href);
+        const value = url.searchParams.get('filter');
+
+        if (value === null) {
+            return null;
+        }
+
+        url.searchParams.delete('filter');
+        window.history.replaceState(window.history.state, '', url.toString());
+
+        return value;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * A refusal or a "nothing happened" shown to the organiser, not only read out: `context.notify` (the page's toast -
+ * it reads the text out too) when the page has one, else the live region. `anchor` = the cell ({row, col}) or the
+ * element it is about.
+ */
+export function notify(context, text, { kind = 'error', anchor = null } = {}) {
+    if (!text) {
+        return;
+    }
+
+    if (typeof context.notify === 'function') {
+        context.notify(text, anchor ? { kind, anchor } : { kind });
+    } else {
+        context.announce(text);
     }
 }
 
@@ -232,16 +476,35 @@ export class PeopleView {
         this.searchController = null;
         this.filter = 'all';
         this.query = '';
+        this.roundFilter = '';
         this.selected = new Set();
         this.held = new Set();
         this.panelPersonId = null;
         this.menu = null;
         this.cleanups = [];
         this.chromeFrame = null;
-        this.competition = this.model.competition ?? {};
+        this.announceTimer = null;
         this.columnPrefs = readColumnPrefs(browserStorage(), this.competition.id ?? '');
+        this.sort = readSortPref(browserStorage(), this.competition.id ?? '');
         this.duplicateIds = new Set();
         this.positions = new Map();
+        this.competitionKey = this.competitionSignature();
+    }
+
+    /** The event as the model has it now (a fetched state may switch the managed registration, the capacity...). */
+    get competition() {
+        return this.model.competition ?? {};
+    }
+
+    competitionSignature() {
+        const competition = this.competition;
+
+        return `${competition.registrationManaged === true}|${competition.isOnline === true}|${competition.capacity ?? ''}`;
+    }
+
+    /** Shown or refused - see notify(). */
+    notify(text, options) {
+        notify(this.context, text, options);
     }
 
     t(key, params) {
@@ -264,6 +527,14 @@ export class PeopleView {
     // ---------------------------------------------------------------- the view interface
 
     render() {
+        const fromUrl = takeUrlFilter();
+
+        if (fromUrl !== null && parseRoundFilter(fromUrl) !== null) {
+            this.roundFilter = this.model.round(parseRoundFilter(fromUrl).roundId) !== null ? fromUrl : '';
+        } else if (fromUrl !== null) {
+            this.filter = this.offeredFilters().some((item) => item.key === fromUrl) ? fromUrl : 'all';
+        }
+
         this.context.root.classList.add('sheet-view', 'sheet-view-people');
         this.host = document.createElement('div');
         this.host.className = 'sheet-people';
@@ -276,6 +547,7 @@ export class PeopleView {
         this.toolbar = this.host.querySelector('[data-people-toolbar]');
         this.searchInput = this.host.querySelector('[data-people-search]');
         this.filtersElement = this.host.querySelector('[data-people-filters]');
+        this.roundSelect = this.host.querySelector('[data-people-round]');
         this.registrationElement = this.host.querySelector('[data-people-registration]');
         this.bulkElement = this.host.querySelector('[data-people-bulk]');
         this.columnsMenu = this.host.querySelector('[data-people-columns]');
@@ -283,9 +555,63 @@ export class PeopleView {
         this.wireChrome();
         this.buildGrid();
         this.renderChrome();
+
+        // A fetched state can change the event itself (managed registration, online, the capacity) and nothing else
+        if (typeof this.context.queue?.subscribe === 'function') {
+            this.cleanups.push(this.context.queue.subscribe((event) => {
+                if (event?.type === 'state') {
+                    this.checkCompetition();
+                }
+            }));
+        }
     }
 
-    buildGrid() {
+    /**
+     * The event changed (registration management switched, online, the capacity): its columns, filters and counters
+     * follow. Returns true when the grid was built again (nothing more to update).
+     */
+    checkCompetition() {
+        const key = this.competitionSignature();
+
+        if (key === this.competitionKey || !this.host) {
+            return false;
+        }
+
+        const [managedBefore, onlineBefore] = this.competitionKey.split('|');
+        this.competitionKey = key;
+        const [managed, online] = key.split('|');
+        this.columnsMenu.innerHTML = this.columnsMenuHtml();
+        this.registrationElement.hidden = !this.managed;
+
+        if (!this.managed) {
+            this.registrationElement.innerHTML = '';
+            this.registrationElement.dataset.html = '';
+        }
+
+        if (!this.offeredFilters().some((item) => item.key === this.filter)) {
+            this.filter = 'all';
+            this.held = new Set(this.panelPersonId ? [this.panelPersonId] : []);
+        }
+
+        const rebuild = managed !== managedBefore || online !== onlineBefore;
+
+        if (rebuild) {
+            // Registration columns came or went
+            this.rebuildGrid();
+        }
+
+        this.renderChrome();
+        this.grid?.fitHeight();
+
+        return rebuild;
+    }
+
+    offeredFilters() {
+        return offeredFor(FILTERS, this.competition, this.model.rounds());
+    }
+
+    /** `previousRows` = the rows of the grid this one replaces while the organiser works in it (they keep their places). */
+    buildGrid(previousRows = null) {
         this.columns = this.buildColumns();
         this.rememberRounds();
         this.refreshMarkerSets();
@@ -293,7 +619,7 @@ export class PeopleView {
             container: this.gridRoot,
             label: this.t('people_grid_label'),
             columns: this.columns,
-            rows: this.rowKeys(),
+            rows: previousRows !== null ? this.rowKeys({ previous: previousRows }) : this.rowKeys({ fresh: true }),
             cell: (row, col) => this.cell(row, col),
             rowLabel: (row) => (row === NEW_ROW ? this.t('people_new_row') : this.model.person(row)?.name ?? ''),
             rowClass: (row) => this.rowClass(row),
@@ -309,6 +635,7 @@ export class PeopleView {
             openPanel: (row) => this.openEditor(row),
         });
         this.syncSelectAll();
+        this.syncSortHeaders();
     }
 
     /**
@@ -319,8 +646,9 @@ export class PeopleView {
         const active = this.grid ? { ...this.grid.active } : null;
         const focused = this.gridRoot.contains(document.activeElement);
         const edit = this.grid?.editState?.() ?? null;
+        const previousRows = focused || edit !== null ? (this.grid?.rows ?? null) : null;
         this.grid?.destroy({ keepEdit: true });
-        this.buildGrid();
+        this.buildGrid(previousRows);
 
         if (edit !== null && this.grid.resumeEdit(edit)) {
             this.noticeChangedMeanwhile();
@@ -348,7 +676,16 @@ export class PeopleView {
             return;
         }
 
+        if (this.checkCompetition()) {
+            return;
+        }
+
         if (delta.all || this.roundsChanged()) {
+            if (this.roundFilter !== '' && this.model.round(parseRoundFilter(this.roundFilter)?.roundId) === null) {
+                // Its round is gone
+                this.roundFilter = '';
+            }
+
             this.rebuildGrid();
             this.scheduleChrome();
 
@@ -394,7 +731,7 @@ export class PeopleView {
         if (target?.personId && this.model.person(target.personId) !== null) {
             // A jump from another tab: the filter and search let go of the person when they hide them
             if (!this.grid.rows.includes(target.personId)) {
-                this.setFilter(this.model.isRemoved(target.personId) ? 'removed' : 'all', { query: '' });
+                this.setFilter(this.model.isRemoved(target.personId) ? 'removed' : 'all', { query: '', roundFilter: '' });
             }
 
             const col = target.col && this.grid.colIndex(target.col) !== -1 ? target.col : 'name';
@@ -425,7 +762,7 @@ export class PeopleView {
         }
 
         if (!this.grid.rows.includes(id)) {
-            this.setFilter(this.model.isRemoved(id) ? 'removed' : 'all', { query: '' });
+            this.setFilter(this.model.isRemoved(id) ? 'removed' : 'all', { query: '', roundFilter: '' });
         }
 
         if (this.grid.colIndex(col) === -1) {
@@ -443,6 +780,7 @@ export class PeopleView {
         this.searchController?.abort();
         this.closeMenu(false);
         cancelAnimationFrame(this.chromeFrame);
+        clearTimeout(this.announceTimer);
         this.cleanups.forEach((cleanup) => cleanup());
         this.cleanups = [];
         this.grid?.destroy();
@@ -456,25 +794,28 @@ export class PeopleView {
 
     // ---------------------------------------------------------------- chrome: toolbar, counters, bulk bar
 
-    chromeHtml() {
-        const columns = offeredFor(COLUMN_OPTIONS, this.competition).map((option) => {
+    columnsMenuHtml() {
+        return offeredFor(COLUMN_OPTIONS, this.competition).map((option) => {
             const checked = option.fixed || this.columnOn(option.key);
 
             return `<li role="none"><button type="button" class="dropdown-item sheet-columns-item" role="menuitemcheckbox" aria-checked="${checked ? 'true' : 'false'}" data-column="${escapeHtml(option.key)}"${option.fixed ? ' disabled' : ''}><i class="bi bi-check-lg" aria-hidden="true"></i> ${escapeHtml(this.say(`column_${option.key}`))}</button></li>`;
         }).join('');
+    }
 
+    chromeHtml() {
         return `<div class="sheet-people-toolbar" data-people-toolbar>
                 <div class="sheet-people-search">
                     <i class="bi bi-search" aria-hidden="true"></i>
                     <input type="search" class="form-control form-control-sm" data-people-search autocomplete="off" spellcheck="false"
                            placeholder="${escapeHtml(this.say('search_placeholder'))}" aria-label="${escapeHtml(this.say('search_label'))}">
                 </div>
+                <select class="form-select form-select-sm sheet-people-round" data-people-round aria-label="${escapeHtml(this.say('round_filter_label'))}" hidden></select>
                 <div class="sheet-people-filters" role="group" aria-label="${escapeHtml(this.say('filters_label'))}" data-people-filters></div>
                 <div class="dropdown sheet-people-columns">
                     <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
                         <i class="bi bi-layout-three-columns" aria-hidden="true"></i> ${escapeHtml(this.say('columns_button'))}
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end" role="menu" aria-label="${escapeHtml(this.say('columns_label'))}" data-people-columns>${columns}</ul>
+                    <ul class="dropdown-menu dropdown-menu-end" role="menu" aria-label="${escapeHtml(this.say('columns_label'))}" data-people-columns>${this.columnsMenuHtml()}</ul>
                 </div>
             </div>
             <div class="sheet-people-registration" data-people-registration${this.managed ? '' : ' hidden'}></div>
@@ -483,7 +824,10 @@ export class PeopleView {
 
     wireChrome() {
         this.listen(this.searchInput, 'input', () => {
-            this.setFilter(this.filter, { query: this.searchInput.value });
+            this.setFilter(this.filter, { query: this.searchInput.value, announce: 'later' });
+        });
+        this.listen(this.roundSelect, 'change', () => {
+            this.setFilter(this.filter, { roundFilter: this.roundSelect.value });
         });
         this.listen(this.searchInput, 'keydown', (event) => {
             // Down from the search goes to the first row shown
@@ -516,6 +860,15 @@ export class PeopleView {
         });
         this.listen(this.bulkElement, 'click', (event) => this.onBulkClick(event));
         this.listen(this.gridRoot, 'click', (event) => {
+            const sort = event.target.closest?.('[data-sort]');
+
+            if (sort) {
+                event.preventDefault();
+                this.toggleSort(sort.dataset.sort);
+
+                return;
+            }
+
             const action = event.target.closest('[data-row-action]');
 
             if (action) {
@@ -527,9 +880,15 @@ export class PeopleView {
                 }
             }
         });
-        // The header's "select every shown row" box: the grid never treats its click as a column selection
+        // The header's "select every shown row" box and the sort buttons: the grid never treats their click as a column
+        // selection, nor their keys as the grid's (Enter / Space press the button, Tab moves on)
         this.listen(this.gridRoot, 'pointerdown', (event) => {
-            if (event.target.closest?.('.sheet-select-all')) {
+            if (event.target.closest?.('.sheet-select-all, .sheet-sort')) {
+                event.stopPropagation();
+            }
+        }, true);
+        this.listen(this.gridRoot, 'keydown', (event) => {
+            if (event.target.closest?.('.sheet-sort')) {
                 event.stopPropagation();
             }
         }, true);
@@ -551,17 +910,19 @@ export class PeopleView {
         }
 
         this.renderFilters();
+        this.renderRoundSelect();
         this.renderRegistration();
         this.renderBulkBar();
         this.syncSelectAll();
     }
 
     renderFilters() {
-        const counts = filterCounts(this.model, offeredFor(FILTERS, this.competition), this.query);
-        const html = offeredFor(FILTERS, this.competition).map(({ key }) => {
+        const filters = this.offeredFilters();
+        const counts = filterCounts(this.model, filters, this.query, this.roundFilter);
+        const html = filters.map(({ key }) => {
             const pressed = key === this.filter;
             // Optional filters that would show nobody stay out of the way (All and the active one are always there)
-            const hidden = !pressed && key !== 'all' && counts[key] === 0 && ['joined', 'duplicates', 'removed', 'checked_in'].includes(key);
+            const hidden = !pressed && key !== 'all' && counts[key] === 0 && HIDDEN_WHEN_EMPTY.includes(key);
 
             return `<button type="button" class="btn btn-sm sheet-filter${pressed ? ' active' : ''}" data-filter="${escapeHtml(key)}" aria-pressed="${pressed ? 'true' : 'false'}"${hidden ? ' hidden' : ''}>${escapeHtml(this.say(`filter_${key}`))} <span class="sheet-filter-count">${counts[key]}</span><span class="visually-hidden"> (${escapeHtml(this.sayCount('people_count', counts[key]))})</span></button>`;
         }).join('');
@@ -577,30 +938,46 @@ export class PeopleView {
         }
     }
 
+    /** "Round: any / In Group A / Not in Group A …" - only with rounds. */
+    renderRoundSelect() {
+        const rounds = this.model.rounds();
+        const html = rounds.length === 0 ? '' : [
+            `<option value="">${escapeHtml(this.say('round_filter_any'))}</option>`,
+            ...rounds.map((round) => `<option value="in:${escapeHtml(round.id)}">${escapeHtml(this.say('round_filter_in', { round: round.name }))}</option><option value="out:${escapeHtml(round.id)}">${escapeHtml(this.say('round_filter_out', { round: round.name }))}</option>`),
+        ].join('');
+
+        if (this.roundSelect.dataset.html !== html && document.activeElement !== this.roundSelect) {
+            this.roundSelect.innerHTML = html;
+            this.roundSelect.dataset.html = html;
+        }
+
+        this.roundSelect.hidden = rounds.length === 0;
+
+        if (this.roundSelect.value !== this.roundFilter && document.activeElement !== this.roundSelect) {
+            this.roundSelect.value = this.roundFilter;
+        }
+    }
+
     renderRegistration() {
         if (!this.managed) {
             return;
         }
 
         const html = registrationSummaryHtml(this.model, this.competition, (key, params) => this.say(key, params), (key, count, params) => this.sayCount(key, count, params));
-
-        if (this.registrationElement.dataset.html !== html) {
-            const before = this.registrationElement.offsetHeight;
-            this.registrationElement.innerHTML = html;
-            this.registrationElement.dataset.html = html;
-
-            if (this.registrationElement.offsetHeight !== before) {
-                this.grid?.fitHeight();
-            }
-        }
+        replaceKeepingFocus(this.registrationElement, html, () => this.grid?.fitHeight());
     }
 
     // ---------------------------------------------------------------- filters and search
 
-    setFilter(filter, { query = this.query } = {}) {
-        const offered = offeredFor(FILTERS, this.competition).some((item) => item.key === filter);
+    /**
+     * A filter, the search or the round select changed: the rows again, in the sort's order. `announce: 'later'` (typing
+     * in the search) reads the count out once the typing pauses.
+     */
+    setFilter(filter, { query = this.query, roundFilter = this.roundFilter, announce = 'now' } = {}) {
+        const offered = this.offeredFilters().some((item) => item.key === filter);
         this.filter = offered ? filter : 'all';
         this.query = String(query ?? '');
+        this.roundFilter = parseRoundFilter(roundFilter) !== null && this.model.round(parseRoundFilter(roundFilter).roundId) !== null ? roundFilter : '';
 
         if (this.searchInput && this.searchInput.value !== this.query) {
             this.searchInput.value = this.query;
@@ -609,10 +986,62 @@ export class PeopleView {
         // A new filter starts over: only the person open in the editor stays shown whatever the filter says
         this.held = new Set(this.panelPersonId ? [this.panelPersonId] : []);
 
-        this.grid?.setRows(this.rowKeys());
+        this.grid?.setRows(this.rowKeys({ fresh: true }));
 
         this.renderChrome();
-        this.context.announce(this.sayCount('shown_count', this.visibleIds().length));
+        clearTimeout(this.announceTimer);
+        const say = () => this.context.announce(this.sayCount('shown_count', this.visibleIds().length));
+
+        if (announce === 'later') {
+            this.announceTimer = setTimeout(say, SEARCH_ANNOUNCE_MS);
+        } else {
+            say();
+        }
+    }
+
+    /** A sortable header clicked: by that column A→Z, again Z→A (remembered for the event in this browser). */
+    toggleSort(key) {
+        if (!SORTABLE.includes(key)) {
+            return;
+        }
+
+        this.sort = this.sort?.key === key ? { key, dir: this.sort.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' };
+        writeSortPref(browserStorage(), this.competition.id ?? '', this.sort);
+        this.grid?.setRows(this.rowKeys({ fresh: true }));
+        this.syncSortHeaders();
+        const column = this.columns.find((candidate) => candidate.key === key)?.label ?? key;
+        this.context.announce(this.say(`sort_done_${this.sort.dir}`, { column }));
+    }
+
+    /** `aria-sort` on the sorted column's header and the buttons' icons (no rebuild of the grid). */
+    syncSortHeaders() {
+        const head = this.gridRoot?.querySelector('thead tr');
+
+        if (!head || !this.columns) {
+            return;
+        }
+
+        this.columns.forEach((column, index) => {
+            const th = head.cells[index];
+
+            if (!th || !SORTABLE.includes(column.key)) {
+                return;
+            }
+
+            const dir = this.sort?.key === column.key ? this.sort.dir : null;
+
+            if (dir === null) {
+                th.removeAttribute('aria-sort');
+            } else {
+                th.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
+            }
+
+            const icon = th.querySelector('.sheet-sort .bi');
+
+            if (icon) {
+                icon.className = `bi ${sortIcon(dir)}`;
+            }
+        });
     }
 
     /** The row with the focus (or an edit) stays until the filter changes (§ "never hides a row with focus"). */
@@ -628,8 +1057,24 @@ export class PeopleView {
         }
     }
 
+    /** Who the filter, the search and the round select show, in the sort's order. */
     visibleIds() {
-        return visiblePeople(this.model, this.filter, this.query, this.held);
+        const ids = visiblePeople(this.model, this.filter, this.query, this.held, this.roundFilter);
+
+        if (!this.sortActive()) {
+            return ids;
+        }
+
+        return sortPeople(ids.map((id) => this.model.person(id)), this.sort, { countries: this.context.countries, locale: this.context.locale }).map((person) => person.id);
+    }
+
+    /** A stored sort by a column the event does not offer (registered on an event without management) is no sort. */
+    sortActive() {
+        if (this.sort === null) {
+            return false;
+        }
+
+        return this.sort.key !== 'registered' || this.managed;
     }
 
     // ---------------------------------------------------------------- columns and rows
@@ -665,11 +1110,11 @@ export class PeopleView {
                 className: 'sheet-col-select',
                 headerHtml: `<input type="checkbox" class="form-check-input sheet-select-all" tabindex="-1" aria-label="${escapeHtml(this.say('select_all_shown'))}" title="${escapeHtml(this.say('select_all_shown'))}">`,
             },
-            { key: 'name', label: this.t('people_col_name'), kind: 'text', width: NAME_WIDTH, space: 'panel', className: 'sheet-col-name' },
+            this.sortable({ key: 'name', label: this.t('people_col_name'), kind: 'text', width: NAME_WIDTH, space: 'panel', className: 'sheet-col-name' }),
         ];
 
         if (this.columnOn('country')) {
-            columns.push({ key: 'country', label: this.t('people_col_country'), kind: 'list', width: 180 });
+            columns.push(this.sortable({ key: 'country', label: this.t('people_col_country'), kind: 'list', width: 180 }));
         }
 
         if (this.columnOn('player')) {
@@ -695,8 +1140,9 @@ export class PeopleView {
         const optional = [
             ['externalId', { kind: 'text', width: 150 }],
             ['source', { kind: 'readonly', width: 170 }],
-            ['joined', { kind: 'readonly', width: 160 }],
+            ['joined', { kind: 'readonly', width: 170 }],
             ['registration', { kind: 'action', width: 170 }],
+            ['registered', { kind: 'readonly', width: 170 }],
             ['paid', { kind: 'readonly', width: 190 }],
             ['checkedIn', { kind: 'readonly', width: 150 }],
             ['note', { kind: 'text', width: 240, title: this.say('col_note_title') }],
@@ -705,14 +1151,14 @@ export class PeopleView {
         for (const [key, column] of optional) {
             if (this.columnOn(key)) {
                 const label = this.say(`col_${key}`);
-                columns.push({
+                columns.push(this.sortable({
                     key,
                     label,
                     ...column,
                     headerHtml: column.title
                         ? `<span title="${escapeHtml(column.title)}"><i class="bi bi-lock me-1" aria-hidden="true"></i>${escapeHtml(label)}<span class="visually-hidden"> (${escapeHtml(column.title)})</span></span>`
                         : undefined,
-                });
+                }));
             }
         }
 
@@ -721,8 +1167,32 @@ export class PeopleView {
         return columns;
     }
 
-    rowKeys() {
-        const keys = this.visibleIds();
+    /**
+     * The grid's rows: who is shown, in the sort's order - while the organiser works in the grid (the focus in it, an
+     * open edit) the rows shown already keep their places (`fresh` = a filter or sort change: everything in order).
+     */
+    /** A sortable column's header: a button (a click or Enter / Space toggles the order) - `aria-sort` on its cell. */
+    sortable(column) {
+        if (!SORTABLE.includes(column.key)) {
+            return column;
+        }
+
+        const dir = this.sort?.key === column.key ? this.sort.dir : null;
+
+        return {
+            ...column,
+            headerHtml: `<button type="button" class="sheet-sort" data-sort="${escapeHtml(column.key)}" title="${escapeHtml(this.say('sort_by', { column: column.label }))}">${escapeHtml(column.label)} <i class="bi ${sortIcon(dir)}" aria-hidden="true"></i></button>`,
+        };
+    }
+
+    rowKeys({ fresh = false, previous = null } = {}) {
+        let keys = this.visibleIds();
+
+        if (previous !== null) {
+            keys = keepOrder(keys, previous.filter((row) => row !== NEW_ROW));
+        } else if (!fresh && this.grid && (this.grid.isEditing() || this.gridRoot.contains(document.activeElement))) {
+            keys = keepOrder(keys, this.grid.rows.filter((row) => row !== NEW_ROW));
+        }
 
         // Nobody is added to the removed people
         return this.filter === 'removed' ? keys : [...keys, NEW_ROW];
@@ -867,6 +1337,8 @@ export class PeopleView {
                 return { text: person.source === 'self_joined' && person.connectedAt ? formatDate(person.connectedAt, this.context.locale, true) : '' };
             case 'registration':
                 return this.registrationCell(person);
+            case 'registered':
+                return { text: person.registration?.registeredAt ? formatDate(person.registration.registeredAt, this.context.locale, true) : '' };
             case 'paid':
                 return this.paidCell(person);
             case 'checkedIn':
@@ -1017,9 +1489,17 @@ export class PeopleView {
             return { text: '', readonly: true, marker };
         }
 
-        const label = this.statusLabel(person);
         const before = paidBefore(person);
         const beforeText = before ? this.say('paid_before', { date: formatDate(before, this.context.locale, false) }) : '';
+
+        if (person.removedAt !== null) {
+            // Cancelled: no status any more - only a payment's record ("paid on …, before the registration was cancelled")
+            return beforeText
+                ? { text: beforeText, html: `<span class="sheet-muted">${escapeHtml(beforeText)}</span>`, marker, copy: '' }
+                : { text: '', readonly: true, marker };
+        }
+
+        const label = this.statusLabel(person);
 
         return {
             text: [label, beforeText].filter(Boolean).join(' - '),
@@ -1049,7 +1529,7 @@ export class PeopleView {
 
         const status = registrationStatus(person);
 
-        if (status === 'paid' && person.registration.paidAt) {
+        if (status === 'paid' && person.registration.paidAt && person.removedAt === null) {
             return { text: formatDate(person.registration.paidAt, this.context.locale, false) };
         }
 
@@ -1417,7 +1897,7 @@ export class PeopleView {
 
         for (const [col, rows] of byColumn) {
             if (col === 'name') {
-                this.context.announce(this.t('people_name_required'));
+                this.notify(this.t('people_name_required'), { anchor: { row: rows[0], col } });
             } else if (col === SELECT) {
                 this.setSelected(rows, false);
             } else if (col === 'country' || col === 'externalId' || col === 'note') {
@@ -1427,7 +1907,7 @@ export class PeopleView {
             } else if (col.startsWith('round:') && this.model.round(col.slice(6))?.category === 'solo') {
                 actions.push(setInRound(this.model, rows, col.slice(6), false, this.options()));
             } else if (col.startsWith('round:')) {
-                this.context.announce(this.t('people_team_in_round_tab'));
+                this.notify(this.t('people_team_in_round_tab'), { kind: 'warning', anchor: { row: rows[0], col } });
             }
         }
 
@@ -1450,7 +1930,7 @@ export class PeopleView {
         const cols = range.cols.filter((col) => col === 'country' || this.isSoloColumn(col));
 
         if (cols.length === 0) {
-            this.context.announce(this.t('people_fill_columns'));
+            this.notify(this.t('people_fill_columns'), { kind: 'warning', anchor: active ? { row: active.row, col: active.col } : null });
 
             return;
         }
@@ -1614,6 +2094,15 @@ export class PeopleView {
             parts.push(`<div class="dropup"><button type="button" class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">${escapeHtml(this.say('bulk_make_team'))}</button><ul class="dropdown-menu">${items}</ul></div>`);
         }
 
+        if (active.length > 0 && this.managed) {
+            // Registration of several people at once (BR13) - a confirmation says who and how many e-mails go out
+            parts.push(`<button type="button" class="btn btn-sm btn-light" data-bulk="markPaid">${escapeHtml(this.say('bulk_reg_markPaid'))}</button>`);
+
+            if (this.competition.isOnline !== true) {
+                parts.push(`<button type="button" class="btn btn-sm btn-light" data-bulk="checkIn">${escapeHtml(this.say('bulk_reg_checkIn'))}</button>`);
+            }
+        }
+
         if (active.length > 0) {
             parts.push(`<button type="button" class="btn btn-sm btn-outline-light" data-bulk="remove">${escapeHtml(this.say('bulk_remove'))}</button>`);
         }
@@ -1660,6 +2149,10 @@ export class PeopleView {
             case 'remove':
                 this.removeWithCheck(ids);
                 break;
+            case 'markPaid':
+            case 'checkIn':
+                this.bulkRegistration(ids, button.dataset.bulk);
+                break;
             case 'restore':
                 this.restore(this.selectedPeople().filter((person) => person.removedAt !== null).map((person) => person.id));
                 break;
@@ -1696,20 +2189,22 @@ export class PeopleView {
         if (outcome.performed) {
             this.context.announce(this.sayCount(inRound ? 'bulk_solo_in_done' : 'bulk_solo_out_done', action.groups.length, { round: round?.name ?? '' }));
         } else if (action.errors.length === 0) {
-            this.context.announce(this.say('bulk_nothing'));
+            this.notify(this.say('bulk_nothing'), { kind: 'warning' });
         }
 
         this.announceRefused(action.errors);
     }
 
-    /** Client refusals of a bulk action: how many and the reason of the first. */
+    /** Client refusals of a bulk action: how many and the reason of the first - shown, not only read out. */
     announceRefused(errors) {
         if (errors.length === 0) {
             return;
         }
 
-        const first = this.model.person(errors[0].change.participant ?? errors[0].change.id)?.name ?? '';
-        this.context.announce(this.sayCount('bulk_refused', errors.length, { name: first, reason: reasonFor(this.context, errors[0]) }));
+        const personId = errors[0].change.participant ?? errors[0].change.id;
+        const first = this.model.person(personId)?.name ?? '';
+        const anchor = this.grid?.rows.includes(personId) ? { row: personId, col: 'name' } : null;
+        this.notify(this.sayCount('bulk_refused', errors.length, { name: first, reason: reasonFor(this.context, errors[0]) }), { anchor });
     }
 
     /**
@@ -1776,6 +2271,7 @@ export class PeopleView {
             lines.unshift({ id: 'size', text: this.say(`make_team_size_${kind}`, { count: ids.length, expected }), status: 'warning' });
         }
 
+        let blocked = false;
         const dialog = this.context.preview({
             title: this.say(`make_${kind}_title`, { round: round.name }),
             intro: this.say('make_team_intro'),
@@ -1783,12 +2279,14 @@ export class PeopleView {
             lines,
             loading: true,
             confirmLabel: this.say(`make_${kind}_confirm`),
+            // What the server refused stays refused: the dialog cannot be confirmed
+            onConfirm: () => (blocked ? { error: this.say('make_team_blocked') } : undefined),
             returnFocus: () => this.grid?.focusActive({ scroll: false }),
         });
+        holdConfirm(dialog, () => blocked);
 
         const answer = await this.context.queue.preview(action.groups);
         const extra = [];
-        let blocked = false;
 
         if (answer.kind === 'ok') {
             for (const group of answer.data?.groups ?? []) {
@@ -1824,6 +2322,10 @@ export class PeopleView {
         return teamLabelText(this.model, teamId, (key, params) => this.t(key, params), (key, params) => this.say(key, params));
     }
 
+    /**
+     * Remove from the event. The large-removal check counts who would really go (the built action's groups - people the
+     * sheet refuses, e.g. with a recorded result, are not counted and are said).
+     */
     async removeWithCheck(ids) {
         const active = ids.filter((id) => !this.model.isRemoved(id));
 
@@ -1831,16 +2333,24 @@ export class PeopleView {
             return;
         }
 
+        let action = removePeople(this.model, active, this.options());
+        const count = action.groups.length;
         const total = this.model.people().length;
 
-        if (active.length >= LARGE_REMOVAL_MIN && active.length > total * LARGE_REMOVAL_SHARE) {
+        if (count === 0) {
+            this.announceRefused(action.errors);
+
+            return;
+        }
+
+        if (count >= LARGE_REMOVAL_MIN && count > total * LARGE_REMOVAL_SHARE) {
             const confirmed = await confirmTyped({
                 host: this.context.root,
-                title: this.sayCount('remove_many_title', active.length),
-                text: this.say('remove_many_text', { count: active.length, total }),
-                prompt: this.say('remove_many_prompt', { count: active.length }),
-                expected: String(active.length),
-                confirmLabel: this.sayCount('remove_many_confirm', active.length),
+                title: this.sayCount('remove_many_title', count),
+                text: this.say('remove_many_text', { count, total }),
+                prompt: this.say('remove_many_prompt', { count }),
+                expected: String(count),
+                confirmLabel: this.sayCount('remove_many_confirm', count),
                 cancelLabel: this.t('preview_cancel'),
                 closeLabel: this.t('preview_close'),
             });
@@ -1851,9 +2361,12 @@ export class PeopleView {
 
                 return;
             }
+
+            // Built again from what the page shows now (a live change during the dialog); the refused ones said below
+            const rebuilt = removePeople(this.model, action.groups.map((group) => group.changes[0].participant), this.options());
+            action = { ...rebuilt, errors: [...action.errors, ...rebuilt.errors] };
         }
 
-        const action = removePeople(this.model, active, this.options());
         const outcome = this.context.act(action, { quiet: true });
 
         if (outcome.performed) {
@@ -1913,7 +2426,7 @@ export class PeopleView {
         const actions = allowedActions(person, { checkIn: this.competition.isOnline !== true });
 
         if (actions.length === 0) {
-            this.context.announce(this.say('registration_no_actions', { name: person.name }));
+            this.notify(this.say('registration_no_actions', { name: person.name }), { kind: 'warning', anchor: { row: personId, col: 'registration' } });
 
             return;
         }
@@ -1927,7 +2440,83 @@ export class PeopleView {
     }
 
     registrationAction(personId, action) {
-        return performRegistrationAction(this.context, personId, action);
+        const anchor = this.grid?.rows.includes(personId) && this.grid.colIndex('registration') !== -1 ? { row: personId, col: 'registration' } : null;
+
+        return performRegistrationAction(this.context, personId, action, { anchor });
+    }
+
+    /**
+     * Mark paid / Check in for the selected people (BR13): who it applies to, how many e-mails go out (Mark paid sends
+     * one per person linked to a MySpeedPuzzling account, Check in none) - confirmed, then sent one by one through the
+     * registration endpoint with progress in the dialog (Stop stops after the request on its way), summed up in one
+     * message. Signed out or no rights any more: stopped, the rest not sent.
+     */
+    async bulkRegistration(ids, action) {
+        const people = ids.map((id) => this.model.person(id)).filter(Boolean);
+        const plan = bulkRegistrationPlan(people, action, { checkIn: this.competition.isOnline !== true });
+
+        if (plan.eligible.length === 0) {
+            this.notify(this.say(`bulk_reg_none_${action}`), { kind: 'warning' });
+
+            return null;
+        }
+
+        let emails;
+
+        if (action !== 'markPaid') {
+            emails = this.say('bulk_reg_no_emails');
+        } else if (plan.emails === 0) {
+            emails = this.say('bulk_reg_no_email_linked');
+        } else {
+            emails = this.sayCount('bulk_reg_emails', plan.emails);
+        }
+
+        const result = await runInDialog({
+            host: this.context.root,
+            title: this.sayCount(`bulk_reg_title_${action}`, plan.eligible.length),
+            lines: [emails, ...(plan.skipped.length > 0 ? [this.sayCount('bulk_reg_skipped', plan.skipped.length)] : [])],
+            confirmLabel: this.sayCount(`bulk_reg_confirm_${action}`, plan.eligible.length),
+            cancelLabel: this.t('preview_cancel'),
+            closeLabel: this.t('preview_close'),
+            stopLabel: this.say('bulk_reg_stop'),
+            progress: (done, total) => this.say('bulk_reg_progress', { done, count: total }),
+            run: (control, onProgress) => runRegistrationBulk(this.context, plan.eligible, action, { control, onProgress }),
+        });
+
+        if (result === null) {
+            this.context.announce(this.say('make_team_cancelled'));
+            this.grid?.focusActive({ scroll: false });
+
+            return null;
+        }
+
+        this.notify(this.bulkRegistrationSummary(action, result), { kind: result.failed.length > 0 || result.stopped !== null ? 'error' : 'info' });
+
+        return result;
+    }
+
+    /** "12 people marked paid. 2 not changed, e.g. Kim Example - … Stopped - you were signed out. 5 were not sent." */
+    bulkRegistrationSummary(action, result) {
+        const parts = [];
+
+        if (result.done.length > 0) {
+            parts.push(this.sayCount(`bulk_reg_done_${action}`, result.done.length));
+        }
+
+        const refused = result.failed.filter((failure) => result.stopped === null || result.stopped === 'user' || failure !== result.failed.at(-1));
+
+        if (refused.length > 0) {
+            parts.push(this.sayCount('bulk_reg_failed', refused.length, { name: this.model.person(refused[0].id)?.name ?? '', reason: refused[0].message }));
+        }
+
+        if (result.stopped === 'user') {
+            parts.push(this.sayCount('bulk_reg_stopped_by_you', result.notSent.length));
+        } else if (result.stopped !== null) {
+            // Signed out / no rights any more: the one that met it and the rest
+            parts.push(this.sayCount(`bulk_reg_stopped_${result.stopped}`, result.notSent.length + 1));
+        }
+
+        return parts.join(' ');
     }
 
     /**
@@ -2008,7 +2597,8 @@ export class PeopleView {
         }
 
         this.context.openPersonEditor(personId, {
-            list: () => this.visibleIds(),
+            // Previous / next walk the rows as shown (filtered, sorted)
+            list: () => (this.grid ? this.grid.rows.filter((row) => row !== NEW_ROW) : this.visibleIds()),
             onShow: (id) => this.panelShows(id),
             returnFocus: (id) => {
                 if (this.grid === null) {
@@ -2050,9 +2640,14 @@ export class PeopleView {
      * notes. A block pasted onto the new-person row - or the part of a block in the name column that reaches past the
      * end of the list - adds people (`name ⇥ country ⇥ external id`, people_paste.js). Nothing invalid is dropped
      * silently: unknown countries, unreadable checkboxes, profiles and pair/team cells are listed. More than a few rows -
-     * or anything left out, or new people - are previewed first (the server's dry run included).
+     * or anything left out, new people, or a name changed (renames, BR12) - are previewed first (the server's dry run
+     * included). The selection column takes no values: a block pasted there lands on the names (review M1).
      */
     paste(anchor, block, selected) {
+        if (anchor.col === SELECT) {
+            anchor = { row: anchor.row, col: 'name' };
+        }
+
         const rows = this.grid.rows;
         const people = rows.filter((row) => row !== NEW_ROW);
         let names = [];
@@ -2069,7 +2664,7 @@ export class PeopleView {
 
         if (this.filter === 'removed' && names.length > 0) {
             // The removed people's list adds nobody - said, nothing applied
-            this.context.announce(this.say('paste_no_add_removed'));
+            this.notify(this.say('paste_no_add_removed'), { anchor });
 
             return;
         }
@@ -2084,12 +2679,13 @@ export class PeopleView {
         }
 
         if (plan.changes === 0 && plan.problems.length === 0) {
-            this.context.announce(this.t('people_paste_nothing'));
+            this.notify(this.t('people_paste_nothing'), { kind: 'warning', anchor });
 
             return;
         }
 
-        if (plan.rows <= PREVIEW_ABOVE_ROWS && plan.problems.length === 0) {
+        // Renames always go through the preview, whatever the size (BR12) - a paste one row off renames everybody
+        if (plan.rows <= PREVIEW_ABOVE_ROWS && plan.problems.length === 0 && plan.renames === 0) {
             this.performMany(plan.actions, { key: 'paste' });
             this.context.announce(this.texts.tc('people_pasted', plan.changes));
 
@@ -2128,6 +2724,7 @@ export class PeopleView {
         const fields = { name: [], country: [], externalId: [], note: [] };
         const rounds = new Map();
         let beyond = 0;
+        let onSelection = 0;
         const touchedRows = new Set();
 
         for (const { row, col, value } of cells) {
@@ -2139,6 +2736,15 @@ export class PeopleView {
             const person = this.model.person(row);
 
             if (person === null || col === null) {
+                continue;
+            }
+
+            if (col === SELECT) {
+                // Never written: the selection is not data (listed, so the paste is previewed - review M1)
+                if (trimCell(value) !== '') {
+                    onSelection++;
+                }
+
                 continue;
             }
 
@@ -2185,8 +2791,10 @@ export class PeopleView {
             }
         }
 
+        const renames = setFields(this.model, 'name', fields.name, this.options());
         const actions = [
-            ...Object.entries(fields).map(([field, values]) => setFields(this.model, field, values, this.options())),
+            renames,
+            ...['country', 'externalId', 'note'].map((field) => setFields(this.model, field, fields[field], this.options())),
             ...[...rounds].flatMap(([roundId, lists]) => [
                 setInRound(this.model, lists.in, roundId, true, this.options()),
                 setInRound(this.model, lists.out, roundId, false, this.options()),
@@ -2203,70 +2811,82 @@ export class PeopleView {
             problems.push({ text: this.texts.tc('people_paste_beyond', beyond), note: this.t('people_paste_beyond_note'), status: 'skip' });
         }
 
+        if (onSelection > 0) {
+            problems.push({ text: this.sayCount('paste_select_skipped', onSelection), note: this.say('paste_select_skipped_note'), status: 'skip' });
+        }
+
         return {
             actions,
             problems,
             rows: touchedRows.size,
             changes: actions.reduce((sum, action) => sum + action.groups.length, 0),
+            renames: renames.groups.length,
         };
     }
 
     /**
      * The preview of a paste: the edits of existing rows (a line per change) and/or the people a list of names adds
-     * (a line per name: new - ticked, already on the list, removed earlier - "restore?" unticked, twice in the paste,
-     * not possible). The server's dry run checks it all before anything is applied; one Confirm, one undo step.
+     * (a line per name: new - ticked, unless it looks like a mistake (a close name - "Did you mean …?", a country code,
+     * a number, an e-mail - unticked with the reason, BR9); already on the list, removed earlier - "restore?" unticked,
+     * twice in the paste, not possible). For names, "And put them into ▾" offers the solo rounds (BR3): the new and
+     * restored people go into it, and so do the people already on the list. The server's dry run checks it all before
+     * anything is applied (again when the round changes); one Confirm, one undo step.
      */
     async previewPaste(plan, namePlan) {
         const edits = combine({ key: 'paste' }, ...plan.actions);
         const editLines = edits.groups.map((group) => ({ id: group.id, ...this.describeGroup(group), status: 'change' }));
         const errorLines = plan.problems.map((problem, index) => ({ id: `p${index}`, ...problem }));
-        const nameLines = namePlan ? namePlan.lines.map((line) => this.nameLine(line)) : [];
-        // Everything that could go, checked at once: the edits and every name (ticked or not)
-        const candidates = namePlan ? namePasteAction(this.model, namePlan, Object.fromEntries(namePlan.lines.map((line) => [line.id, true])), this.options()) : null;
-        const dryGroups = [...edits.groups, ...(candidates?.action.groups ?? [])];
-        const refusedLines = new Map();
+        const soloRounds = namePlan ? this.model.rounds().filter((round) => round.category === 'solo') : [];
+        const allTicked = namePlan ? Object.fromEntries(namePlan.lines.map((line) => [line.id, true])) : {};
+        let roundId = null;
         let refusedEdits = new Set();
+        let refusedLines = new Map();
+        let checks = 0;
+        let dialog = null;
 
-        if (candidates !== null) {
-            for (const error of candidates.action.errors) {
-                const lineId = lineOfError(error, namePlan);
-
-                if (lineId !== null) {
-                    refusedLines.set(lineId, reasonFor(this.context, error));
-                }
-            }
-        }
-
-        const counts = () => this.pasteCounts(editLines.length - refusedEdits.size, namePlan, refusedLines, plan.problems.length);
+        // The lines' ticks as the organiser left them (the plan's defaults until they touch one)
+        const ticksNow = () => (namePlan ? Object.fromEntries(namePlan.lines.map((line) => [line.id, dialog !== null && line.id in dialog.ticks ? dialog.ticks[line.id] : line.tick])) : {});
+        const namesAction = (ticks) => namePasteAction(this.model, namePlan, ticks, { ...this.options(), roundId, skip: new Set(refusedLines.keys()) });
+        const confirmLabel = () => this.texts.tc('people_paste_confirm', editLines.length - refusedEdits.size + (namePlan ? namesAction(ticksNow()).action.groups.length : 0));
+        const round = () => (roundId ? this.model.round(roundId) : null);
+        const counts = () => this.pasteCounts(editLines.length - refusedEdits.size, namePlan, refusedLines, plan.problems.length, round(), namePlan ? namesAction(ticksNow()).placed.length : 0);
         const linesNow = () => [
             ...errorLines,
             ...editLines.map((line) => (refusedEdits.has(line.id) ? { ...line, status: 'error', note: line.refusal } : line)),
-            ...nameLines.map((line) => (refusedLines.has(line.id) ? { ...line, status: 'error', note: refusedLines.get(line.id), tick: undefined } : line)),
+            ...(namePlan ? namePlan.lines : []).map((line) => (refusedLines.has(line.id)
+                ? { ...this.nameLine(line, round()), status: 'error', note: refusedLines.get(line.id), tick: undefined }
+                : this.nameLine(line, round()))),
         ];
-        const confirmCount = () => editLines.length - refusedEdits.size + (namePlan ? namePlan.lines.filter((line) => line.tick && !refusedLines.has(line.id)).length : 0);
-        const dialog = this.context.preview({
-            title: namePlan ? this.say('paste_names_title') : this.t('people_paste_title'),
-            intro: namePlan ? this.say('paste_names_intro') : this.t('people_paste_intro'),
-            counts: counts(),
-            lines: linesNow(),
-            loading: dryGroups.length > 0,
-            confirmLabel: this.texts.tc('people_paste_confirm', confirmCount()),
-            returnFocus: () => this.grid?.focusActive({ scroll: false }),
-        });
 
-        // The Confirm button counts what the ticks say
-        const ticked = () => editLines.length - refusedEdits.size + (namePlan ? namePlan.lines.filter((line) => !refusedLines.has(line.id) && (line.id in dialog.ticks ? dialog.ticks[line.id] : line.tick)).length : 0);
-        dialog.dialog?.addEventListener('change', (event) => {
-            if (event.target.closest('[data-tick]')) {
-                const label = this.texts.tc('people_paste_confirm', ticked());
-                dialog.options.confirmLabel = label;
-                dialog.dialog.querySelector('[data-preview-confirm]').textContent = label;
+        // The server's rules (results, profiles linked elsewhere) before anything is applied - everything that could
+        // go: the edits and every name (ticked or not), into the chosen round
+        const check = async () => {
+            const run = ++checks;
+            const candidates = namePlan ? namePasteAction(this.model, namePlan, allTicked, { ...this.options(), roundId }) : null;
+            const lineRefusals = new Map();
+
+            for (const error of candidates?.action.errors ?? []) {
+                const lineId = lineOfError(error, namePlan, candidates.lineOfPerson);
+
+                if (lineId !== null) {
+                    lineRefusals.set(lineId, reasonFor(this.context, error));
+                }
             }
-        });
 
-        if (dryGroups.length > 0) {
-            // The server's rules (results, profiles linked elsewhere) before anything is applied
-            const answer = await this.context.queue.preview(dryGroups);
+            const dryGroups = [...edits.groups, ...(candidates?.action.groups ?? [])];
+            let answer = { kind: 'ok', data: { groups: [] } };
+
+            if (dryGroups.length > 0) {
+                dialog.update({ loading: true });
+                answer = await this.context.queue.preview(dryGroups);
+            }
+
+            if (run !== checks || dialog.settled) {
+                // A newer check (another round chosen) or the dialog went
+                return;
+            }
+
+            const editRefusals = new Set();
 
             if (answer.kind === 'ok') {
                 for (const group of answer.data?.groups ?? []) {
@@ -2280,22 +2900,68 @@ export class PeopleView {
 
                     if (editLine) {
                         editLine.refusal = message;
-                        refusedEdits = new Set([...refusedEdits, group.id]);
+                        editRefusals.add(group.id);
                     } else if (candidates?.lineOfGroup.has(group.id)) {
-                        refusedLines.set(candidates.lineOfGroup.get(group.id), message);
+                        lineRefusals.set(candidates.lineOfGroup.get(group.id), message);
                     }
                 }
             }
 
+            refusedEdits = editRefusals;
+            refusedLines = lineRefusals;
             dialog.update({
                 loading: false,
                 lines: linesNow(),
                 counts: counts(),
-                confirmLabel: this.texts.tc('people_paste_confirm', ticked()),
+                confirmLabel: confirmLabel(),
                 message: answer.kind === 'ok' ? '' : this.t('people_paste_unchecked'),
+            });
+        };
+
+        dialog = this.context.preview({
+            title: namePlan ? this.say('paste_names_title') : this.t('people_paste_title'),
+            intro: namePlan ? this.say('paste_names_intro') : this.t('people_paste_intro'),
+            counts: counts(),
+            lines: linesNow(),
+            loading: true,
+            confirmLabel: confirmLabel(),
+            returnFocus: () => this.grid?.focusActive({ scroll: false }),
+        });
+
+        // The Confirm button counts what the ticks say
+        dialog.dialog?.addEventListener('change', (event) => {
+            if (event.target.closest('[data-tick]')) {
+                const label = confirmLabel();
+                dialog.options.confirmLabel = label;
+                dialog.dialog.querySelector('[data-preview-confirm]').textContent = label;
+            }
+        });
+
+        if (soloRounds.length > 0 && dialog.dialog) {
+            // "And put them into ▾ Group A" (BR3) - outside the lines, which are drawn again on every check
+            const id = `${dialog.id ?? 'sheet-preview'}-round`;
+            const choice = document.createElement('div');
+            choice.className = 'sheet-paste-round';
+            choice.innerHTML = `<label class="form-label mb-0" for="${escapeHtml(id)}">${escapeHtml(this.say('paste_round_label'))}</label>
+                <select class="form-select form-select-sm" id="${escapeHtml(id)}" data-paste-round>
+                    <option value="">${escapeHtml(this.say('paste_round_none'))}</option>
+                    ${soloRounds.map((candidate) => `<option value="${escapeHtml(candidate.id)}">${escapeHtml(candidate.name)}</option>`).join('')}
+                </select>`;
+            const intro = dialog.dialog.querySelector('[data-preview-intro]');
+
+            if (intro) {
+                intro.after(choice);
+            } else {
+                dialog.dialog.querySelector('[data-preview-lines]')?.before(choice);
+            }
+
+            choice.querySelector('select').addEventListener('change', (event) => {
+                roundId = event.target.value || null;
+                check();
             });
         }
 
+        await check();
         const selection = await dialog.result;
 
         if (selection === null) {
@@ -2310,13 +2976,7 @@ export class PeopleView {
         let added = null;
 
         if (namePlan !== null) {
-            const ticks = { ...Object.fromEntries(namePlan.lines.map((line) => [line.id, line.tick])), ...selection.ticks };
-
-            for (const lineId of refusedLines.keys()) {
-                ticks[lineId] = false;
-            }
-
-            added = namePasteAction(this.model, namePlan, ticks, this.options());
+            added = namesAction({ ...Object.fromEntries(namePlan.lines.map((line) => [line.id, line.tick])), ...selection.ticks });
             added.peopleIds.forEach((id) => this.held.add(id));
         }
 
@@ -2325,7 +2985,7 @@ export class PeopleView {
         action.errors = [];
 
         if (isEmpty(action)) {
-            this.context.announce(this.t('people_paste_nothing'));
+            this.notify(this.t('people_paste_nothing'), { kind: 'warning' });
 
             return;
         }
@@ -2337,15 +2997,19 @@ export class PeopleView {
             parts.push(this.texts.tc('people_pasted', keptEdits.length));
         }
 
-        if (added !== null && added.action.groups.length > 0) {
-            parts.push(this.sayCount('paste_names_done', added.action.groups.length));
+        if (added !== null && added.peopleIds.length > 0) {
+            parts.push(this.sayCount('paste_names_done', added.peopleIds.length));
+        }
+
+        if (added !== null && added.placed.length > 0) {
+            parts.push(this.sayCount('paste_round_done', added.placed.length, { round: round()?.name ?? '' }));
         }
 
         this.context.announce(parts.join(' '));
     }
 
-    /** A line of the names preview. */
-    nameLine(line) {
+    /** A line of the names preview (`round` = the round they go into, or null). */
+    nameLine(line, round = null) {
         const details = [];
 
         if (line.country) {
@@ -2360,19 +3024,42 @@ export class PeopleView {
             details.push(this.t('people_paste_unknown_country', { value: line.countryText }));
         }
 
-        const detail = details.join(' · ');
         const named = (ids) => ids.map((id) => this.model.person(id)?.name ?? '').filter(Boolean).join(', ');
+        const placement = placementOf(this.model, line, round?.id ?? null);
+        const into = round && placement === INTO_PUT ? this.say('paste_line_into', { round: round.name }) : '';
 
         switch (line.status) {
-            case LINE_NEW:
-                return { id: line.id, text: line.name, note: detail, status: line.countryText ? 'warning' : 'new', tick: { label: this.say('paste_tick_add'), checked: true } };
+            case LINE_NEW: {
+                if (line.hint) {
+                    const hint = line.hint.kind === HINT_CLOSE
+                        ? this.say('paste_close', { name: named(line.hint.ids.slice(0, 2)) })
+                        : this.say(`paste_looks_${line.hint.kind}`);
+
+                    return { id: line.id, text: line.name, note: [hint, ...details, into].filter(Boolean).join(' · '), status: 'warning', tick: { label: this.say('paste_tick_add'), checked: false } };
+                }
+
+                return { id: line.id, text: line.name, note: [...details, into].filter(Boolean).join(' · '), status: line.countryText ? 'warning' : 'new', tick: { label: this.say('paste_tick_add'), checked: true } };
+            }
             case LINE_EXISTING: {
                 const as = named(line.matches);
+                const known = as && as !== line.name ? this.say('paste_existing_as', { name: as }) : this.say('paste_existing');
 
-                return { id: line.id, text: line.name, note: as && as !== line.name ? this.say('paste_existing_as', { name: as }) : this.say('paste_existing'), status: 'same' };
+                if (placement === INTO_PUT) {
+                    return { id: line.id, text: line.name, note: this.say('paste_existing_into', { round: round.name, name: as }), status: 'change' };
+                }
+
+                if (placement === INTO_ALREADY) {
+                    return { id: line.id, text: line.name, note: this.say('paste_existing_already', { round: round.name }), status: 'same' };
+                }
+
+                if (placement === INTO_AMBIGUOUS) {
+                    return { id: line.id, text: line.name, note: this.say('paste_existing_ambiguous', { round: round.name, name: as }), status: 'warning' };
+                }
+
+                return { id: line.id, text: line.name, note: known, status: 'same' };
             }
             case LINE_REMOVED:
-                return { id: line.id, text: line.name, note: this.say('paste_removed', { name: named(line.matches.slice(0, 1)) }), status: 'warning', tick: { label: this.say('paste_tick_restore'), checked: false } };
+                return { id: line.id, text: line.name, note: [this.say('paste_removed', { name: named(line.matches.slice(0, 1)) }), into].filter(Boolean).join(' · '), status: 'warning', tick: { label: this.say('paste_tick_restore'), checked: false } };
             case LINE_DUPLICATE:
                 return { id: line.id, text: line.name, note: this.say('paste_duplicate'), status: 'skip' };
             case LINE_HEADER:
@@ -2383,7 +3070,7 @@ export class PeopleView {
         }
     }
 
-    pasteCounts(changes, namePlan, refusedLines, problems) {
+    pasteCounts(changes, namePlan, refusedLines, problems, round = null, placed = 0) {
         const counts = [];
 
         if (changes > 0 || namePlan === null) {
@@ -2391,8 +3078,13 @@ export class PeopleView {
         }
 
         if (namePlan !== null) {
-            const newOnes = namePlan.lines.filter((line) => line.status === LINE_NEW && !refusedLines.has(line.id)).length;
+            const newOnes = namePlan.lines.filter((line) => line.status === LINE_NEW && !line.hint && !refusedLines.has(line.id)).length;
+            const unsure = namePlan.lines.filter((line) => line.status === LINE_NEW && line.hint && !refusedLines.has(line.id)).length;
             counts.push({ text: this.sayCount('paste_count_new', newOnes) });
+
+            if (unsure > 0) {
+                counts.push({ text: this.sayCount('paste_count_unsure', unsure), tone: 'warning' });
+            }
 
             if (namePlan.counts.existing > 0) {
                 counts.push({ text: this.sayCount('paste_count_existing', namePlan.counts.existing) });
@@ -2404,6 +3096,10 @@ export class PeopleView {
 
             if (namePlan.counts.duplicate > 0) {
                 counts.push({ text: this.sayCount('paste_count_duplicate', namePlan.counts.duplicate) });
+            }
+
+            if (round !== null && placed > 0) {
+                counts.push({ text: this.sayCount('paste_count_into', placed, { round: round.name }) });
             }
         }
 
@@ -2612,10 +3308,167 @@ export function registrationSummaryHtml(model, competition, say, sayCount) {
         const text = counts.capacity === null
             ? say('first_in_line_no_capacity', { name: first.name })
             : sayCount('first_in_line', counts.free, { name: first.name });
-        hint = `<div class="sheet-first-in-line" role="status"><i class="bi bi-arrow-up-circle" aria-hidden="true"></i> <span>${escapeHtml(text)}</span> <button type="button" class="btn btn-sm btn-success" data-promote="${escapeHtml(first.id)}">${escapeHtml(say('first_in_line_action'))}</button></div>`;
+        // The button says what it does: the person gets an e-mail (E-3: a readable button, not white on light green)
+        hint = `<div class="sheet-first-in-line" role="status"><i class="bi bi-arrow-up-circle" aria-hidden="true"></i> <span>${escapeHtml(text)} <small class="sheet-first-in-line-mail" id="sheet-first-in-line-mail">${escapeHtml(say('first_in_line_email'))}</small></span> <button type="button" class="btn btn-sm btn-outline-success sheet-btn-success" data-promote="${escapeHtml(first.id)}" aria-describedby="sheet-first-in-line-mail">${escapeHtml(say('first_in_line_action'))}</button></div>`;
     }
 
-    return `<p class="sheet-counters${counts.over ? ' is-over' : ''}">${items.map((item) => `<span>${escapeHtml(item)}</span>`).join('<span aria-hidden="true"> · </span>')}${counts.over ? ` <span class="sheet-counters-over"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${escapeHtml(say('counter_over'))}</span>` : ''}</p>${hint}`;
+    return `<p class="sheet-counters${counts.over ? ' is-over' : ''}" tabindex="-1" data-counters>${items.map((item) => `<span>${escapeHtml(item)}</span>`).join('<span aria-hidden="true"> · </span>')}${counts.over ? ` <span class="sheet-counters-over"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${escapeHtml(say('counter_over'))}</span>` : ''}</p>${hint}`;
+}
+
+/**
+ * New markup for the counters and the first-in-line hint: a focus inside stays there - on the next first-in-line's
+ * button when the organiser just gave a spot, else on the counters (never lost to the page). `onResize` when the height
+ * changed (the grid fits itself again).
+ */
+export function replaceKeepingFocus(element, html, onResize = () => {}) {
+    if (element.dataset.html === html) {
+        return;
+    }
+
+    const hadFocus = element.contains(document.activeElement);
+    const before = element.offsetHeight;
+    element.innerHTML = html;
+    element.dataset.html = html;
+
+    if (hadFocus) {
+        (element.querySelector('[data-promote]') ?? element.querySelector('[data-counters]'))?.focus({ preventScroll: true });
+    }
+
+    if (element.offsetHeight !== before) {
+        onResize();
+    }
+}
+
+/** The sort icon of a header: none, A→Z, Z→A. */
+export function sortIcon(dir) {
+    if (dir === 'asc') {
+        return 'bi-sort-down-alt';
+    }
+
+    if (dir === 'desc') {
+        return 'bi-sort-up-alt';
+    }
+
+    return 'bi-arrow-down-up';
+}
+
+/**
+ * A preview whose dry run refused: its Confirm cannot be pressed while `isBlocked()` says so - also after the dialog
+ * draws itself again (a message, a tick); the caller's `onConfirm` guard says why if it is tried anyway.
+ */
+export function holdConfirm(dialog, isBlocked) {
+    if (!dialog?.dialog || typeof dialog.render !== 'function') {
+        return;
+    }
+
+    const apply = () => {
+        const button = dialog.dialog?.querySelector('[data-preview-confirm]');
+
+        if (button && isBlocked()) {
+            button.disabled = true;
+        }
+    };
+    const render = dialog.render.bind(dialog);
+    dialog.render = (...args) => {
+        render(...args);
+        apply();
+    };
+    apply();
+}
+
+/**
+ * A confirmation that then runs the work inside it (the bulk Mark paid / Check in, BR13): the lines say what will happen
+ * (how many e-mails go out), Confirm starts `run(control, onProgress)` - the dialog stays, shows "3 of 12 done…" and
+ * Cancel becomes Stop (`control.stopped`); it closes with the run's result. Resolves null when cancelled before it
+ * started.
+ */
+export function runInDialog({ host, title, lines, confirmLabel, cancelLabel, closeLabel, stopLabel, progress, run }) {
+    return new Promise((resolve) => {
+        const id = `sheet-run-${Math.random().toString(36).slice(2)}`;
+        const dialog = document.createElement('dialog');
+        dialog.className = 'sheet-preview sheet-confirm sheet-run';
+        dialog.setAttribute('aria-labelledby', `${id}-title`);
+        dialog.setAttribute('aria-describedby', `${id}-text`);
+        dialog.innerHTML = `<form method="dialog" class="sheet-preview-form" novalidate>
+                <div class="sheet-preview-head"><h2 class="h5 mb-0" id="${id}-title">${escapeHtml(title)}</h2><button type="button" class="btn-close" data-run-cancel aria-label="${escapeHtml(closeLabel)}"></button></div>
+                <div class="sheet-preview-body" id="${id}-text">
+                    ${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join('')}
+                    <p class="sheet-run-progress fw-semibold" data-run-progress role="status" aria-live="polite"></p>
+                </div>
+                <div class="sheet-preview-foot"><div class="d-flex gap-2 justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary" data-run-cancel>${escapeHtml(cancelLabel)}</button>
+                    <button type="submit" class="btn btn-primary" data-run-ok>${escapeHtml(confirmLabel)}</button>
+                </div></div>
+            </form>`;
+        const returnTo = document.activeElement;
+        const control = { stopped: false };
+        let running = false;
+        let settled = false;
+        const finish = (value) => {
+            if (settled) {
+                return;
+            }
+
+            settled = true;
+            dialog.close();
+            dialog.remove();
+
+            if (returnTo?.isConnected && !returnTo.hidden) {
+                returnTo.focus({ preventScroll: true });
+            }
+
+            resolve(value);
+        };
+        const cancel = () => {
+            if (running) {
+                control.stopped = true;
+                dialog.querySelectorAll('[data-run-cancel]').forEach((button) => {
+                    button.disabled = true;
+                });
+            } else {
+                finish(null);
+            }
+        };
+        const progressElement = dialog.querySelector('[data-run-progress]');
+        dialog.querySelectorAll('[data-run-cancel]').forEach((button) => button.addEventListener('click', cancel));
+        dialog.addEventListener('cancel', (event) => {
+            event.preventDefault();
+            cancel();
+        });
+        dialog.querySelector('form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (running) {
+                return;
+            }
+
+            running = true;
+            const ok = dialog.querySelector('[data-run-ok]');
+            ok.disabled = true;
+            const stop = dialog.querySelector('.sheet-preview-foot [data-run-cancel]');
+            stop.textContent = stopLabel;
+            stop.focus();
+            let result;
+
+            try {
+                result = await run(control, (done, total) => {
+                    progressElement.textContent = progress(done, total);
+                });
+            } finally {
+                running = false;
+            }
+
+            finish(result);
+        });
+        (host.closest?.('[data-controller~="participants-sheet"]') ?? document.body).append(dialog);
+        dialog.showModal();
+        dialog.querySelector('[data-run-ok]').focus();
+    });
+}
+
+/** A typed number as digits: full-width digits (a Japanese keyboard: "１２") and spaces read like "12". */
+export function typedNumber(value) {
+    return String(value ?? '').normalize('NFKC').replace(/\s+/gu, '');
 }
 
 /**
@@ -2628,10 +3481,11 @@ export function confirmTyped({ host, title, text, prompt, expected, confirmLabel
         const dialog = document.createElement('dialog');
         dialog.className = 'sheet-preview sheet-confirm';
         dialog.setAttribute('aria-labelledby', `${id}-title`);
+        dialog.setAttribute('aria-describedby', `${id}-text`);
         dialog.innerHTML = `<form method="dialog" class="sheet-preview-form" novalidate>
                 <div class="sheet-preview-head"><h2 class="h5 mb-0" id="${id}-title">${escapeHtml(title)}</h2><button type="button" class="btn-close" data-confirm-cancel aria-label="${escapeHtml(closeLabel)}"></button></div>
                 <div class="sheet-preview-body">
-                    <p>${escapeHtml(text)}</p>
+                    <p id="${id}-text">${escapeHtml(text)}</p>
                     <label class="form-label" for="${id}-input">${escapeHtml(prompt)}</label>
                     <input type="text" inputmode="numeric" class="form-control" id="${id}-input" autocomplete="off" data-confirm-input>
                 </div>
@@ -2660,7 +3514,7 @@ export function confirmTyped({ host, title, text, prompt, expected, confirmLabel
         const input = dialog.querySelector('[data-confirm-input]');
         const ok = dialog.querySelector('[data-confirm-ok]');
         input.addEventListener('input', () => {
-            ok.disabled = input.value.trim() !== expected;
+            ok.disabled = typedNumber(input.value) !== expected;
         });
         dialog.querySelectorAll('[data-confirm-cancel]').forEach((button) => button.addEventListener('click', () => finish(false)));
         dialog.addEventListener('cancel', (event) => {
@@ -2670,7 +3524,7 @@ export function confirmTyped({ host, title, text, prompt, expected, confirmLabel
         dialog.querySelector('form').addEventListener('submit', (event) => {
             event.preventDefault();
 
-            if (input.value.trim() === expected) {
+            if (typedNumber(input.value) === expected) {
                 finish(true);
             }
         });

@@ -19,7 +19,11 @@ use Symfony\Component\Process\Process;
  * - registration: the actions each registration state allows, the waitlist order (FIFO by registeredAt, id), the
  *   counters and the first-in-line hint, the endpoint call, merging its answer (never the version);
  * - filters: the People filters and the search, rows held while focused or open in the editor, the Columns menu's
- *   storage, team labels (O1), the registration summary.
+ *   storage, team labels (O1), the registration summary, sorting (rows kept in place while worked on), the round select;
+ * - view (jsdom, the real model, grid and preview dialog): review E's reproductions (a paste on the selection column,
+ *   the editor's round switch after another organiser's change, the event changing under the view, the NITs) and the
+ *   business review's People items - names pasted into a solo round, doubtful names unticked, renames previewed,
+ *   sortable headers, bulk Mark paid / Check in sent one by one, `?filter=`, refusals shown through `context.notify`.
  */
 final class ParticipantsSheetPeopleScriptsTest extends TestCase
 {
@@ -28,7 +32,7 @@ final class ParticipantsSheetPeopleScriptsTest extends TestCase
      */
     public static function suites(): iterable
     {
-        foreach (['paste', 'registration', 'filters'] as $suite) {
+        foreach (['paste', 'registration', 'filters', 'view'] as $suite) {
             yield $suite => [$suite];
         }
     }

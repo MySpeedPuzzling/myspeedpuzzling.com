@@ -294,6 +294,31 @@ A fixed number of statements per page, pinned by a query-budget test; adding edi
   runs it already); the event page no longer runs `GetCompetitionPuzzles::roundPuzzleOverviews()` when it has rounds
   (their puzzles are in the timeline). Ceilings in the plan.
 
+## As built (2026-10-08)
+
+Where the build differs from the text above (details in the plan's "Foundation deviations" and "Answers"):
+
+- **Zone names** are ICU's localised generic names on both sides ("22:00 Eastern Time", "Central European Time"), not
+  "New York Time" / "Czechia Time"; hours are two-digit ("04:00"), 24 h in every locale.
+- **No "how often"** fact on the series page (Answers 3) - facts are editions, since, coming, next.
+- **JSON-LD** lives in two partials, `event_parts/_event_json_ld.html.twig` (event and edition page) and
+  `event_parts/_series_json_ld.html.twig`. The `Event` is emitted for a publicly visible page whose timeline has a start
+  (`RoundsTimeline::$start`/`$end`, date-only); with two or more sessions it adds a `subEvent` per session named
+  "{title} · {the session's one round, else its dates}", `url` = the page `#round-<first round id>`, `endDate` only for a
+  session of several days, the page's attendance mode and location. A series `subEvent` is a public dated session
+  (`SeriesPageBuilder`), named "{edition} · {round}" for a session of several, with `endDate` and the attendance mode.
+  Every other field is unchanged. Pinned by `DetailPagesJsonLdTest` (parses, sessions, no `subEvent` for a weekend
+  championship, `</script>` in a name, nothing on non-public pages).
+- **Page sections** sit between Upcoming and Past (series) and after Taking part and the marketplace card, before the
+  participants (event, edition) - pinned by `PageSectionsOnPagesTest`, also documented in
+  [public-page.md](../competitions-management/public-page.md).
+- **Removed**: `_series_edition_card.html.twig`, the `puzzle_rounds` / `round_results_urls` pills of
+  `_puzzle_item.html.twig`, `GetCompetitionPuzzles::roundPuzzleOverviews()` (the secret-puzzle rules of round puzzles are
+  tested on `GetEditionRounds`), `.event-round-anchor` (the `.ev-round` row carries the scroll margin), and the keys
+  `events.results_by_round`, `competition.online`, `competition.recurring` in all 6 locales. Kept for the manage pages:
+  `_event_date_range.html.twig`, `GetCompetitionSeries::upcomingEditions()` / `pastEditions()`,
+  `series.upcoming_editions` / `series.past_editions`.
+
 ## Not in this change
 
 - Format chips / an "Organisation" level for series running several formats (Jan, waiting for organisers' answers).

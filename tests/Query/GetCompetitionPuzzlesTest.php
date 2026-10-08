@@ -11,7 +11,6 @@ use SpeedPuzzling\Web\Results\CompetitionPuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
-use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -122,45 +121,7 @@ final class GetCompetitionPuzzlesTest extends KernelTestCase
     {
         self::assertSame([], $this->query->forCompetitions([]));
         self::assertSame([], $this->query->forCompetitions(['not-a-uuid']));
-        self::assertSame([], $this->query->roundPuzzleOverviews('not-a-uuid'));
         self::assertSame([], $this->query->solvedPuzzleOverviews('not-a-uuid', 10));
-    }
-
-    public function testRoundPuzzleOverviewsInScheduleOrderEachOnce(): void
-    {
-        // A puzzle in two rounds is listed once, at its first round
-        $this->database->executeStatement(
-            'INSERT INTO competition_round_puzzle (id, round_id, puzzle_id, hide_until_round_starts) VALUES (:id, :roundId, :puzzleId, false)',
-            ['id' => Uuid::uuid7()->toString(), 'roundId' => CompetitionRoundFixture::ROUND_WJPC_FINAL, 'puzzleId' => PuzzleFixture::PUZZLE_500_01],
-        );
-
-        $ids = array_map(
-            static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
-            $this->query->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024),
-        );
-
-        self::assertCount(4, $ids);
-        self::assertEqualsCanonicalizing([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02], array_slice($ids, 0, 2), 'Qualification round first');
-        self::assertEqualsCanonicalizing([PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_02], array_slice($ids, 2, 2));
-    }
-
-    public function testRoundPuzzleOverviewsKeepSecretPuzzlesSecret(): void
-    {
-        $overviews = [];
-        foreach ($this->query->roundPuzzleOverviews(CompetitionApiFixture::COMPETITION_API) as $puzzle) {
-            $overviews[$puzzle->puzzleId] = $puzzle;
-        }
-
-        self::assertArrayNotHasKey(CompetitionApiFixture::PUZZLE_HIDDEN_ENTIRELY, $overviews);
-        self::assertArrayNotHasKey(CompetitionApiFixture::PUZZLE_PLATFORM_HIDDEN, $overviews);
-        self::assertArrayHasKey(CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE, $overviews);
-        self::assertNull($overviews[CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE]->puzzleImage);
-        self::assertArrayHasKey(CompetitionApiFixture::PUZZLE_PLATFORM_IMAGE_HIDDEN, $overviews);
-        self::assertNull($overviews[CompetitionApiFixture::PUZZLE_PLATFORM_IMAGE_HIDDEN]->puzzleImage);
-        self::assertArrayHasKey(CompetitionApiFixture::PUZZLE_VISIBLE, $overviews);
-        self::assertSame(CompetitionApiFixture::IMAGE_VISIBLE, $overviews[CompetitionApiFixture::PUZZLE_VISIBLE]->puzzleImage);
-        // The past round comes first in the schedule
-        self::assertSame(CompetitionApiFixture::PUZZLE_PAST, array_key_first($overviews));
     }
 
     public function testSolvedPuzzleOverviewsMostLoggedFirst(): void

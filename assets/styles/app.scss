@@ -1866,11 +1866,6 @@ $live-dot-red: #e0262d;
     --live-dot-ring-end: #{rgba(#fff, 0)};
 }
 
-// A round on an event page the events page links to (`#round-<id>`): clear of the sticky header
-.event-round-anchor {
-    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
-}
-
 @keyframes live-dot-pulse {
     0% { opacity: 1; box-shadow: 0 0 0 0 var(--live-dot-ring); }
     50% { opacity: .45; }

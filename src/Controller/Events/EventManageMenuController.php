@@ -62,6 +62,8 @@ final class EventManageMenuController extends AbstractController
         $item = $items[0] ?? throw new NotFoundHttpException();
 
         $returnUrl = ReturnUrl::tryFrom($request->query->getString('return'))->path ?? $this->generateUrl('events');
+        // Deleting the page the menu was opened on returns to its parent - the deleted page would answer 404
+        $deleteReturn = ReturnUrl::tryFrom($request->query->getString('delete_return'))->path ?? $returnUrl;
         $returnTitle = mb_substr(trim($request->query->getString('return_title')), 0, self::RETURN_TITLE_MAX_LENGTH);
 
         if ($returnTitle === '') {
@@ -75,6 +77,7 @@ final class EventManageMenuController extends AbstractController
             'frame_id' => self::FRAME_ID,
             'return_url' => $returnUrl,
             'return_title' => $returnTitle,
+            'delete_return' => $deleteReturn,
         ]);
 
         // Carries session CSRF tokens of the delete forms: never cached, never shared

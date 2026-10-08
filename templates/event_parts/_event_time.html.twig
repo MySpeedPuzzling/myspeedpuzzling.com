@@ -1,0 +1,16 @@
+{#
+    A start time in the event's zone, the zone named (owner: foundation, docs/features/events-page/detail-pages.md
+    "Times and time zones"). Variables: time (EventTime), online (bool)
+
+    "22:00 Eastern Time" from event_detail.time.in_zone - both values escaped before they go in. Online events get an
+    empty, hidden [data-local-time] slot that event_local_time_controller.js fills with the visitor's own time (only
+    when it differs); in-person events never get one. The server HTML is the same for everyone.
+#}
+{%- set parts = event_time_parts(time) -%}
+<span class="ev-time">
+    {{- 'event_detail.time.in_zone'|trans({
+        '%time%': '<time datetime="' ~ time.isoInstant|e ~ '" data-event-time data-event-zone="' ~ time.zone|e ~ '">' ~ parts.time|e ~ '</time>',
+        '%zone%': '<span class="ev-time-zone" data-round-zone>' ~ parts.zone|e ~ '</span>',
+    })|raw -}}
+    {%- if online %}<span class="ev-time-yours" data-local-time hidden></span>{% endif -%}
+</span>

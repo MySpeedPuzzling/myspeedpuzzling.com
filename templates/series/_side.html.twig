@@ -1,0 +1,28 @@
+{#
+    The series page's side column from 992 px (owner: workstream A): "About" - editions, since, next, place or Online,
+    website - and, for a follower, where the next date shows up. The phones' facts strip says the same in one line.
+    Variables: page (SeriesPage), series
+#}
+{% set facts = page.facts %}
+<aside class="ev-detail-side ev-series-side" aria-labelledby="series-side-title">
+    <div class="ev-side-card">
+        <h2 class="ev-side-title" id="series-side-title">{{ 'series_page.side.about'|trans }}</h2>
+        <dl class="ev-side-facts">
+            <dt>{{ 'series_page.side.editions'|trans }}</dt><dd>{{ facts.editionCount }}</dd>
+            {% if facts.since %}<dt>{{ 'series_page.side.since'|trans }}</dt><dd>{{ facts.since|events_date('yMMMM') }}</dd>{% endif %}
+            {% if facts.nextIsLive %}
+                <dt>{{ 'series_page.side.next'|trans }}</dt><dd class="ev-series-fact-live">{{ include('event_parts/_live.html.twig') }}</dd>
+            {% elseif facts.next %}
+                <dt>{{ 'series_page.side.next'|trans }}</dt><dd>{{ facts.next|events_date('yMMMEd') }}</dd>
+            {% endif %}
+            {% set place = include('event_parts/_place.html.twig', {place: facts.place})|trim %}
+            {% if place %}<dt>{{ 'event_detail.side.place'|trans }}</dt><dd>{{ place|raw }}</dd>{% endif %}
+            {% if facts.website %}<dt>{{ 'event_detail.side.website'|trans }}</dt><dd><a href="{{ facts.website }}" target="_blank" rel="noopener noreferrer">{{ 'events.website_link'|trans }}<span aria-hidden="true"> ↗</span></a></dd>{% endif %}
+        </dl>
+    </div>
+    {% if page.following %}
+        <div class="ev-side-card ev-series-following">
+            <p class="ev-side-note">{{ 'series_page.side.following_note'|trans }}</p>
+        </div>
+    {% endif %}
+</aside>

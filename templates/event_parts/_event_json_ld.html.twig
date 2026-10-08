@@ -1,0 +1,118 @@
+{#
+    The Event JSON-LD of the edition and one-time event pages (docs/features/events-page/detail-pages.md "SEO").
+    Emitted for a publicly visible page with a start date. The dates come from the rounds timeline (OccurrenceDates
+    over every round - an edition dated only by its rounds gets its Event too); a competition with two or more sessions
+    adds a `subEvent` per session, linking its first round (`#round-<id>`). Every value goes through `json_ld`.
+    Variables: the page's (event, event_title, is_publicly_visible, timeline, series - null on the event page),
+    meta_description (the page's, trimmed).
+#}
+{% set is_edition = series is defined and series is not null %}
+{% if is_edition %}
+    {% set jsonld_ready = is_publicly_visible and timeline.start is not null and series.slug is not null and event.slug is not null %}
+{% else %}
+    {% set jsonld_ready = is_publicly_visible and timeline.start is not null and event.slug is not null %}
+{% endif %}
+{% if jsonld_ready %}
+{% set page_url = is_edition
+    ? url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': event.slug})
+    : url('event_detail', {'slug': event.slug}) %}
+{% set jsonld_name = is_edition ? event_title.name : event.name %}
+{% set jsonld_online = is_edition ? series.isOnline : event.isOnline %}
+{% set jsonld_image = is_edition ? (event.logo ?? series.logo) : event.logo %}
+{% set attendance_mode = jsonld_online ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode' %}
+{% set virtual_url = event.registrationLink ?? event.resultsLink ?? page_url %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": {{ jsonld_name|json_ld }},
+    "url": {{ page_url|json_ld }},
+    "startDate": {{ timeline.start|date('Y-m-d', false)|json_ld }},
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": {{ attendance_mode|json_ld }}
+    {%- if timeline.end %},
+    "endDate": {{ timeline.end|date('Y-m-d', false)|json_ld }}
+    {%- endif %}
+    {%- if jsonld_online %},
+    "location": {
+        "@type": "VirtualLocation",
+        "url": {{ virtual_url|json_ld }}
+    }
+    {%- elseif event.location %},
+    "location": {
+        "@type": "Place",
+        "name": {{ event.location|json_ld }},
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": {{ event.location|json_ld }}
+            {%- if event.locationCountryCode %},
+            "addressCountry": {{ event.locationCountryCode.name|upper|json_ld }}
+            {%- endif %}
+        }
+    }
+    {%- endif %}
+    {%- if jsonld_image %},
+    {# The large metadata-stripped preset (1200 px JPEG; Google wants event images >= 720 px wide) - never
+       the uploaded original, older uploads may still carry EXIF/GPS #}
+    "image": {{ jsonld_image|thumbnail('puzzle_large')|json_ld }}
+    {%- endif %}
+    {%- if is_edition %}
+    {%- if event.description %},
+    "description": {{ event.description|json_ld }}
+    {%- endif %},
+    "organizer": {
+        "@type": "Organization",
+        "name": {{ series.name|json_ld }}
+    }
+    {%- else %}
+    {# description is a Google-recommended Event property - always emit,
+       falling back to the same text as the meta description. organizer is
+       deliberately NOT emitted: added_by_player is the submitter (often an
+       admin), not the organizer - see docs/features/seo/TODO.md #14. #}
+    ,"description": {{ (event.description ? event.description|striptags : meta_description)|json_ld }}
+    {%- endif %}
+    {%- if event.registrationLink %},
+    "offers": {
+        "@type": "Offer",
+        "url": {{ event.registrationLink|json_ld }}
+    }
+    {%- endif %}
+    {%- if timeline.sessions|length >= 2 %},
+    {# One Event per session (rounds on separate days): named by its one round, else by its dates #}
+    "subEvent": [
+        {%- for session in timeline.sessions %}
+        {
+            "@type": "Event",
+            "name": {{ (jsonld_name ~ ' · ' ~ (session.session.label ?? events_date_range(session.start, session.end, 'yMMMd')))|json_ld }},
+            "url": {{ (page_url ~ '#round-' ~ session.session.firstRoundId)|json_ld }},
+            "startDate": {{ session.start|date('Y-m-d', false)|json_ld }}
+            {%- if session.end %},
+            "endDate": {{ session.end|date('Y-m-d', false)|json_ld }}
+            {%- endif %},
+            "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": {{ attendance_mode|json_ld }}
+            {%- if jsonld_online %},
+            "location": {
+                "@type": "VirtualLocation",
+                "url": {{ virtual_url|json_ld }}
+            }
+            {%- elseif event.location %},
+            "location": {
+                "@type": "Place",
+                "name": {{ event.location|json_ld }},
+                "address": {
+                    "@type": "PostalAddress",
+                    "addressLocality": {{ event.location|json_ld }}
+                    {%- if event.locationCountryCode %},
+                    "addressCountry": {{ event.locationCountryCode.name|upper|json_ld }}
+                    {%- endif %}
+                }
+            }
+            {%- endif %}
+        }{{ loop.last ? '' : ',' }}
+        {%- endfor %}
+    ]
+    {%- endif %}
+}
+</script>
+{% endif %}

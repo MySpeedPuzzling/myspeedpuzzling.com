@@ -1,0 +1,18 @@
+{#
+    The series page's facts as a strip under the header on phones (owner: workstream A; hidden from 992 px, where the side
+    column has them): editions · since · coming · next (or "live now"). No "how often" (detail-pages-plan.md, Answers 3).
+    Nothing for a series without editions. Variables: page (SeriesPage)
+#}
+{% set facts = page.facts %}
+{% if facts.editionCount > 0 %}
+    <ul class="ev-facts-strip ev-series-facts" data-series-facts>
+        <li data-series-fact="editions">{{ 'series_page.facts.editions'|trans({'%count%': facts.editionCount}) }}</li>
+        {% if facts.since %}<li data-series-fact="since">{{ 'series_page.facts.since'|trans({'%date%': facts.since|events_date('yMMM')}) }}</li>{% endif %}
+        {% if facts.comingCount > 0 %}<li data-series-fact="coming">{{ 'series_page.facts.coming'|trans({'%count%': facts.comingCount}) }}</li>{% endif %}
+        {% if facts.nextIsLive %}
+            <li data-series-fact="next" class="ev-series-fact-live"><span class="live-dot" aria-hidden="true"></span>{{ 'series_page.facts.live_now'|trans }}</li>
+        {% elseif facts.next %}
+            <li data-series-fact="next">{{ 'series_page.facts.next'|trans({'%date%': facts.next|events_date('MMMEd')}) }}</li>
+        {% endif %}
+    </ul>
+{% endif %}

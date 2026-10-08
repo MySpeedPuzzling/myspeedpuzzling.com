@@ -4,6 +4,10 @@ The design of record for the redesigned `/en/events` (route `events`, all 6 loca
 The proposal with the working prototype (real data, guest/player/admin, phone/desktop):
 https://claude.ai/artifact/KfoHM99HN7LQGd3D6iQ4aD. The build contract is [implementation-plan.md](implementation-plan.md).
 
+The series, edition and one-time event pages reuse this page's parts (date leaf, agenda row, tags, when label, archive
+line, follow star, ⋯ menu, place - moved to `templates/event_parts/` and `assets/styles/_event-parts.scss`): see
+[detail-pages.md](detail-pages.md). A change to a shared part changes those pages too.
+
 ## Goal
 
 The old page was 149 full cards in one list (13 upcoming, 136 "Past events"), 448 KB of HTML, with the filters, the

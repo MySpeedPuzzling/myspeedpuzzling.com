@@ -1,6 +1,8 @@
 {# One agenda row (owner: workstream A). Variables: row (AgendaRow); search_ids from the page (null without a query).
    No id attributes - the calendar clones rows. One link per row: the name, stretched over the row; the session chips,
-   the star and the ⋯ sit above it. No star on a row waiting for approval (admins only). #}
+   the star and the ⋯ sit above it. No star on a row waiting for approval (admins only).
+   Optional: series_rows (bool, the series page: `data-series-edition` = the competition id on the row), show_logo (bool,
+   the occurrence's own logo in the side column). The events page passes neither. #}
 {% set shown = row.visible and ((search_ids ?? null) is null or row.indexIds|filter(id => id in search_ids)|length > 0) %}
 <li class="ev-row{{ row.isGroup ? ' ev-row-group' }}{{ row.isPending ? ' ev-row-pending' }}{{ row.place.isOnline ? ' ev-row-online' }}"
     data-ev-ids="{{ row.idsAttribute }}"
@@ -8,8 +10,9 @@
     data-ev-from="{{ row.from }}"
     data-ev-to="{{ row.to }}"
     data-ev-status="{{ row.status.value }}"
+    {%- if series_rows|default(false) and row.manage %} data-series-edition="{{ row.manage.id }}"{% endif %}
     {{ shown ? '' : 'hidden' }}>
-    {{ include('events/_date_leaf.html.twig', {leaf: row.leaf}) }}
+    {{ include('event_parts/_date_leaf.html.twig', {leaf: row.leaf}) }}
     <div class="ev-row-body">
         {% if row.leaf.from %}
             <span class="visually-hidden">
@@ -24,7 +27,9 @@
         {% endif %}
         {% if row.editionName %}<div class="ev-row-edition">{{ row.editionName }}</div>{% endif %}
         <div class="ev-row-meta">
-            {{ include('events/_place.html.twig', {place: row.place}) }}
+            {{ include('event_parts/_place.html.twig', {place: row.place}) }}
+            {%- if row.time %}{{ include('event_parts/_event_time.html.twig', {time: row.time, online: row.place.isOnline}) }}{% endif %}
+            {%- if row.status.value == 'notset' %}<span class="ev-row-tba" data-edition-date-not-set>{{ 'edition.date_not_set'|trans }}</span>{% endif %}
         </div>
         {% if row.isGroup %}
             <div class="ev-sessions">
@@ -40,13 +45,14 @@
                 {% endfor %}
             </div>
         {% endif %}
-        {{ include('events/_row_tags.html.twig', {tags: row.tags}) }}
+        {{ include('event_parts/_row_tags.html.twig', {tags: row.tags}) }}
     </div>
     <div class="ev-row-side">
+        {% if row.logo and show_logo|default(false) %}<img class="ev-row-logo" src="{{ row.logo|thumbnail('puzzle_small') }}" alt="" loading="lazy">{% endif %}
         {% if row.when %}
-            {{ include('events/_when.html.twig', {when: row.when}) }}
+            {{ include('event_parts/_when.html.twig', {when: row.when}) }}
         {% endif %}
-        {{ include('events/_row_actions.html.twig', {
+        {{ include('event_parts/_row_actions.html.twig', {
             follow_target: row.followTarget,
             follow_name: row.followName,
             following: row.following,

@@ -1,0 +1,292 @@
+// The series, edition and event pages - the page root, the shared header, the two columns, the facts strip, the side
+// card and the zoned times (docs/features/events-page/detail-pages.md). Owner: foundation. Built on _event-parts.scss;
+// the series page's sections are in _series-page.scss (A), the rounds timeline in _event-rounds.scss (B).
+
+.ev-detail {
+    color: $ev-ink;
+}
+
+// ---- breadcrumb ------------------------------------------------------------------------------------------------------
+
+.ev-crumbs {
+    margin-bottom: .5rem;
+    font-size: .8125rem;
+
+    ol {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    li + li::before {
+        content: "›";
+        padding: 0 .375rem;
+        color: $ev-muted;
+    }
+
+    a {
+        @include ev-hit-area(12px);
+        color: $ev-ink-2;
+        text-decoration: none;
+
+        &:hover {
+            color: $ev-coral-ink;
+            text-decoration: underline;
+        }
+    }
+}
+
+// ---- header ----------------------------------------------------------------------------------------------------------
+
+.ev-detail-header {
+    display: flex;
+    gap: .875rem;
+    align-items: flex-start;
+}
+
+.ev-detail-logo {
+    flex: none;
+    width: 56px;
+    height: 56px;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    @include media-breakpoint-up(lg) {
+        width: 64px;
+        height: 64px;
+    }
+}
+
+.ev-detail-head {
+    min-width: 0;
+    flex: 1;
+}
+
+.ev-detail-name {
+    margin: 0;
+    color: $ev-ink;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+
+    @include media-breakpoint-up(lg) {
+        font-size: 1.875rem;
+    }
+}
+
+.ev-detail-facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .25rem .5rem;
+    margin: .375rem 0 0;
+    color: $ev-ink-2;
+    font-size: .875rem;
+
+    > * + *::before {
+        content: "·";
+        margin-right: .5rem;
+        color: $ev-muted;
+    }
+
+    .ev-place-online {
+        color: $ev-sky-ink;
+        font-weight: 500;
+    }
+}
+
+.ev-detail-fact {
+    white-space: nowrap;
+}
+
+.ev-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .75rem;
+
+    &:empty {
+        display: none;
+    }
+
+    .ev-signin-note {
+        flex-basis: 100%;
+        margin: 0;
+    }
+}
+
+// The header's buttons: 40 px to look at, 44 px to hit
+.ev-action-button {
+    @include ev-hit-area(2px);
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 .875rem;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px $ev-line;
+    color: $ev-ink;
+    font-size: .875rem;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+        background: $gray-100;
+        color: $ev-ink;
+    }
+}
+
+.ev-action-primary {
+    background: $ev-coral-ink;
+    box-shadow: none;
+    color: $white;
+
+    &:hover {
+        background: darken($ev-coral-ink, 6%);
+        color: $white;
+    }
+}
+
+.ev-action-going {
+    background: $ev-coral-soft;
+    box-shadow: none;
+    color: $ev-coral-ink;
+}
+
+.ev-detail-description {
+    margin: .875rem 0 0;
+    color: $ev-ink-2;
+    font-size: .9375rem;
+}
+
+// ---- body: main + side column from 992 px ----------------------------------------------------------------------------
+
+.ev-detail-body {
+    margin-top: 1.25rem;
+
+    @include media-breakpoint-up(lg) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px;
+        gap: 2rem;
+        align-items: start;
+    }
+}
+
+.ev-detail-main {
+    min-width: 0;
+}
+
+.ev-detail-section {
+    margin-top: 1.5rem;
+
+    &:first-child {
+        margin-top: 0;
+    }
+}
+
+.ev-detail-section-title {
+    margin: 0 0 .5rem;
+    color: $ev-ink;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+// The facts as a strip on phones; the side column has them from 992 px
+.ev-facts-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .5rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    color: $ev-ink-2;
+    font-size: .8125rem;
+    list-style: none;
+
+    li + li::before {
+        content: "·";
+        margin-right: .5rem;
+        color: $ev-muted;
+    }
+
+    @include media-breakpoint-up(lg) {
+        display: none;
+    }
+}
+
+.ev-detail-side {
+    display: none;
+
+    @include media-breakpoint-up(lg) {
+        display: block;
+        position: sticky;
+        top: calc(var(--header-height, 101px) + 1rem);
+    }
+}
+
+.ev-side-card {
+    padding: 1rem;
+    border: 1px solid $ev-line;
+    border-radius: 12px;
+    background: $white;
+    font-size: .875rem;
+}
+
+.ev-side-title {
+    margin: 0 0 .5rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.ev-side-facts {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .375rem .75rem;
+    margin: 0;
+
+    dt {
+        color: $ev-muted;
+        font-weight: 400;
+    }
+
+    dd {
+        margin: 0;
+        min-width: 0;
+    }
+}
+
+.ev-side-note {
+    margin: .75rem 0 0;
+    color: $ev-muted;
+    font-size: .8125rem;
+}
+
+// ---- times: the event's zone named, the visitor's own after it (online events) ---------------------------------------
+
+.ev-time {
+    white-space: nowrap;
+
+    .ev-row-meta &,
+    .ev-detail-facts & {
+        margin-left: .5rem;
+    }
+}
+
+.ev-time-yours {
+    white-space: normal;
+
+    &::before {
+        content: " · ";
+    }
+}
+
+.ev-row-tba {
+    margin-left: .5rem;
+}

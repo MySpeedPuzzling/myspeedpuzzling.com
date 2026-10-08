@@ -58,6 +58,8 @@ final class PuzzleStatisticsFixture extends Fixture implements DependentFixtureI
         return [
             PuzzleFixture::class,
             PuzzleSolvingTimeFixture::class,
+            // its round result counts like any other
+            EventDetailFixture::class,
         ];
     }
 }

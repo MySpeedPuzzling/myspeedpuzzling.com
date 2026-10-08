@@ -3,7 +3,7 @@ import { Controller } from '@hotwired/stimulus';
 
 /**
  * The ⋯ menus of the events page (docs/features/events-page/README.md, "The ⋯ menu"). Sits on the page's menu host
- * (templates/events/_manage_menu_host.html.twig); a tap on a ⋯ link (templates/events/_manage_button.html.twig,
+ * (templates/event_parts/_manage_menu_host.html.twig); a tap on a ⋯ link (templates/event_parts/_manage_button.html.twig,
  * [data-ev-manage-menu]) opens that row's menu instead of following the link to the menu's own page:
  *   - from 992 px up a popover under the button, right-aligned to it and kept inside the viewport,
  *   - below that a full-width bottom sheet over a scrim.

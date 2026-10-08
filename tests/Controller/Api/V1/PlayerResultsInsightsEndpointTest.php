@@ -26,7 +26,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * existing fields and the private-profile short-circuit are untouched
  * (PlayerResultsEndpointTest).
  *
- * Fixtures (.claude/fixtures.md): PLAYER_REGULAR (not a member) has 17 solo
+ * Fixtures (.claude/fixtures.md): PLAYER_REGULAR (not a member) has 18 solo
  * results, among them TIME_08 - PUZZLE_500_02 in 1700 s; PLAYER_WITH_STRIPE is
  * a member with 11 solo results; PLAYER_PRIVATE has a private profile.
  *
@@ -65,10 +65,10 @@ final class PlayerResultsInsightsEndpointTest extends WebTestCase
         $raw = $this->decodeJson($browser);
         $this->assertSame(PlayerFixture::PLAYER_REGULAR, $raw['player_id'] ?? null);
         $this->assertSame('solo', $raw['type'] ?? null);
-        $this->assertSame(17, $raw['count'] ?? null);
+        $this->assertSame(18, $raw['count'] ?? null);
         $rawResults = $raw['results'] ?? null;
         $this->assertIsArray($rawResults);
-        $this->assertCount(17, $rawResults);
+        $this->assertCount(18, $rawResults);
 
         foreach ($rawResults as $rawResult) {
             // The original keys, then what was added since - always at the end, never renamed
@@ -147,7 +147,7 @@ final class PlayerResultsInsightsEndpointTest extends WebTestCase
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR));
         $this->assertResponseIsSuccessful();
         $response = $this->decode($browser);
-        $this->assertSame(17, $response['count']);
+        $this->assertSame(18, $response['count']);
 
         foreach ($response['results'] as $result) {
             $this->assertNull($result['difficulty']);
@@ -214,7 +214,7 @@ final class PlayerResultsInsightsEndpointTest extends WebTestCase
         $this->startCountingQueries($browser);
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_REGULAR));
         $this->assertResponseIsSuccessful();
-        $this->assertSame(17, $this->decode($browser)['count']);
+        $this->assertSame(18, $this->decode($browser)['count']);
         $this->assertQueryCountAtMost($browser, 10, 'member authorization-code token (statistics, profile, difficulty)');
         $atSeventeen = $this->queryCount($browser);
 
@@ -223,7 +223,7 @@ final class PlayerResultsInsightsEndpointTest extends WebTestCase
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE));
         $this->assertResponseIsSuccessful();
         $this->assertSame(11, $this->decode($browser)['count']);
-        $this->assertSame($atSeventeen, $this->queryCount($browser), 'The same number of queries for 11 results as for 17');
+        $this->assertSame($atSeventeen, $this->queryCount($browser), 'The same number of queries for 11 results as for 18');
     }
 
     private function path(string $playerId): string

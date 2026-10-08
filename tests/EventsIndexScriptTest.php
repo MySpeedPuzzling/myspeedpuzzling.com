@@ -191,9 +191,97 @@ final class EventsIndexScriptTest extends TestCase
     }
 
     /**
+     * The detail pages' times (detail-pages.md "Times and time zones"): the browser writes a start time like the server
+     * (EventsPageDates::time()) in all six languages - fixed instants only, never the fixtures' moving dates
+     */
+    public function testServerAndBrowserWriteTheSameTimes(): void
+    {
+        $dates = new EventsPageDates(self::translator());
+        $cases = [];
+
+        foreach (['en', 'cs', 'de', 'es', 'fr', 'ja'] as $lang) {
+            foreach ([['2026-06-17T02:00:00Z', 'America/New_York'], ['2026-06-17T02:05:00Z', 'Europe/Prague'], ['2026-12-31T23:30:00Z', 'Asia/Tokyo']] as [$instant, $zone]) {
+                $cases[] = ['instant' => $instant, 'zone' => $zone, 'lang' => $lang];
+            }
+        }
+
+        $expected = array_map(
+            static fn (array $case): string => $dates->time(new DateTimeImmutable($case['instant']), $case['zone'], $case['lang']),
+            $cases,
+        );
+
+        self::assertSame($expected, $this->runInNode(['times' => $cases])['times']);
+        self::assertSame(['22:00', '04:05', '08:30'], array_slice($expected, 0, 3));
+    }
+
+    public function testTheVisitorsOwnTime(): void
+    {
+        // 22:00 on 16 June in New York
+        $instant = '2026-06-17T02:00:00Z';
+
+        $results = $this->runInNode(['visitor' => [
+            ['instant' => $instant, 'eventZone' => 'America/New_York', 'lang' => 'en', 'visitorZone' => 'America/New_York'],
+            ['instant' => $instant, 'eventZone' => 'America/New_York', 'lang' => 'en', 'visitorZone' => 'Europe/Prague'],
+            ['instant' => $instant, 'eventZone' => 'America/New_York', 'lang' => 'en', 'visitorZone' => 'America/Los_Angeles'],
+            ['instant' => $instant, 'eventZone' => 'America/New_York', 'lang' => 'en', 'visitorZone' => 'Asia/Tokyo'],
+            ['instant' => $instant, 'eventZone' => 'America/New_York', 'lang' => 'en', 'visitorZone' => 'Not/A_Zone'],
+            ['instant' => $instant, 'eventZone' => 'America/New_York', 'lang' => 'en', 'visitorZone' => ''],
+            // 01:00 in Prague is 19:00 the day before in New York
+            ['instant' => '2026-06-16T23:00:00Z', 'eventZone' => 'Europe/Prague', 'lang' => 'en', 'visitorZone' => 'America/New_York'],
+        ]])['visitor'];
+
+        self::assertNull($results[0], 'the same zone - nothing added');
+        self::assertSame(['time' => '04:00', 'zone' => 'Central European Time', 'dayShift' => 1], $results[1]);
+        self::assertSame(['time' => '19:00', 'zone' => 'Pacific Time', 'dayShift' => 0], $results[2]);
+        self::assertNotNull($results[3]);
+        self::assertSame(1, $results[3]['dayShift']);
+        self::assertSame('11:00', $results[3]['time']);
+        self::assertNull($results[4], 'an invalid zone');
+        self::assertNull($results[5], 'no zone');
+        self::assertSame(['time' => '19:00', 'zone' => 'Eastern Time', 'dayShift' => -1], $results[6]);
+    }
+
+    public function testZoneLabels(): void
+    {
+        $results = $this->runInNode(['zones' => [
+            ['zone' => 'Europe/Prague', 'lang' => 'en', 'instant' => '2026-06-17T02:00:00Z'],
+            ['zone' => 'America/New_York', 'lang' => 'en', 'instant' => '2026-06-17T02:00:00Z'],
+            ['zone' => 'Europe/Prague', 'lang' => 'de', 'instant' => '2026-06-17T02:00:00Z'],
+            // No generic name of its own: the zone id's last segment, not an offset
+            ['zone' => 'Etc/GMT-3', 'lang' => 'en', 'instant' => '2026-06-17T02:00:00Z'],
+            ['zone' => 'Nowhere/Port_Town', 'lang' => 'en', 'instant' => '2026-06-17T02:00:00Z'],
+        ]])['zones'];
+
+        $dates = new EventsPageDates(self::translator());
+
+        self::assertSame(['Central European Time', 'Eastern Time'], array_slice($results, 0, 2));
+        // The same names as the server's (ICU)
+        self::assertSame([$dates->zoneName('Europe/Prague', 'en'), $dates->zoneName('America/New_York', 'en'), $dates->zoneName('Europe/Prague', 'de')], array_slice($results, 0, 3));
+        self::assertSame(['GMT-3', 'Port Town'], array_slice($results, 3, 2));
+    }
+
+    private static function translator(): TranslatorInterface
+    {
+        return new class implements TranslatorInterface {
+            /**
+             * @param array<string, mixed> $parameters
+             */
+            public function trans(string $id, array $parameters = [], null|string $domain = null, null|string $locale = null): string
+            {
+                return $id;
+            }
+
+            public function getLocale(): string
+            {
+                return 'en';
+            }
+        };
+    }
+
+    /**
      * @param array<string, list<array<string, mixed>>> $input
      *
-     * @return array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>}
+     * @return array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>, times: list<string>, zones: list<string>, visitor: list<null|array{time: string, zone: string, dayShift: int}>}
      */
     private function runInNode(array $input): array
     {
@@ -202,10 +290,10 @@ final class EventsIndexScriptTest extends TestCase
         self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
 
         $process = new Process([$node, __DIR__ . '/events-index-harness.mjs']);
-        $process->setInput(json_encode($input + ['scopes' => [], 'queries' => [], 'days' => [], 'months' => [], 'formatted' => [], 'dates' => []], JSON_THROW_ON_ERROR));
+        $process->setInput(json_encode($input + ['scopes' => [], 'queries' => [], 'days' => [], 'months' => [], 'formatted' => [], 'dates' => [], 'times' => [], 'zones' => [], 'visitor' => []], JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>} $results */
+        /** @var array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>, times: list<string>, zones: list<string>, visitor: list<null|array{time: string, zone: string, dayShift: int}>} $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
         return $results;

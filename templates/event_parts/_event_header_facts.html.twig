@@ -1,0 +1,21 @@
+{#
+    The facts line of the edition and event pages' header (owner: workstream B, docs/features/events-page/detail-pages.md
+    "The shared header"): Online or the place, the dates (a day, a range, "Date not set", or "Runs until …" while a span
+    of more than 31 days without rounds runs), "Live" while a round runs, "Recurring" (editions), "N rounds" (2+).
+    Each fact is one child of .ev-detail-facts, which draws the dots between them.
+    Variables: event_place (Place), timeline (RoundsTimeline), event_title (EventTitle), recurring (bool)
+#}
+{{- include('event_parts/_place.html.twig', {place: event_place}) }}
+{% if timeline.start %}
+    {#- RoundsTimeline::$runsUntilEnd - decided on the controller's clock -#}
+    {% if timeline.runsUntilEnd %}
+        <span class="ev-detail-fact">{{ 'event_detail.facts.runs_until'|trans({'%date%': timeline.end|events_date('yMMMd')}) }}</span>
+    {% else %}
+        <span class="ev-detail-fact">{{ events_date_range(timeline.start, timeline.end, 'yMMMd') }}</span>
+    {% endif %}
+{% else %}
+    <span class="ev-detail-fact" data-edition-date-not-set>{{ 'edition.date_not_set'|trans }}</span>
+{% endif %}
+{% if timeline.isLive %}<span class="ev-detail-fact ev-when-live">{{ include('event_parts/_live.html.twig') }}</span>{% endif %}
+{% if recurring %}<span class="ev-detail-fact">{{ 'event_detail.facts.recurring'|trans }}</span>{% endif %}
+{% if timeline.rounds|length >= 2 %}<span class="ev-detail-fact">{{ 'event_detail.facts.rounds'|trans({'%count%': timeline.rounds|length}) }}</span>{% endif %}

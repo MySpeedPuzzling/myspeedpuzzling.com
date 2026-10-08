@@ -97,10 +97,16 @@
 @import "results-desk";
 
 // Events page (docs/features/events-page/)
+@import "event-parts";
 @import "events-page";
 @import "events-calendar";
 @import "events-organizer";
 @import "events-archive";
+
+// Series, edition and event pages (docs/features/events-page/detail-pages.md)
+@import "event-detail";
+@import "series-page";
+@import "event-rounds";
 
 // Participants spreadsheet (docs/features/competitions-management/participants-spreadsheet.md)
 @import "participants_sheet/sheet";
@@ -1858,11 +1864,6 @@ $live-dot-red: #e0262d;
     --live-dot-color: #fff;
     --live-dot-ring: #{rgba(#fff, .7)};
     --live-dot-ring-end: #{rgba(#fff, 0)};
-}
-
-// A round on an event page the events page links to (`#round-<id>`): clear of the sticky header
-.event-round-anchor {
-    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
 }
 
 @keyframes live-dot-pulse {

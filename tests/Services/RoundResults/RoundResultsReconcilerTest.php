@@ -35,8 +35,9 @@ final class RoundResultsReconcilerTest extends KernelTestCase
 
         $result = $this->reconciler->reconcile();
 
-        // TIME_09-11 are on the qualification puzzle, TIME_19-20 on a final round puzzle
-        self::assertSame(5, $result['linked']);
+        // TIME_09-11 are on the qualification puzzle, TIME_19-20 on a final round puzzle, EventDetailFixture::TIME_SPRINT_1
+        // on Sprint 1's
+        self::assertSame(6, $result['linked']);
         self::assertSame(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, $this->roundOf(PuzzleSolvingTimeFixture::TIME_09));
         self::assertSame(CompetitionRoundFixture::ROUND_WJPC_FINAL, $this->roundOf(PuzzleSolvingTimeFixture::TIME_19));
     }

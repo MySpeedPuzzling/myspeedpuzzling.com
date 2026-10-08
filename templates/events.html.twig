@@ -84,9 +84,9 @@
         </aside>
     </div>
     {{ include('events/_country_sheet.html.twig') }}
-    {{ include('events/_manage_menu_host.html.twig') }}
+    {{ include('event_parts/_manage_menu_host.html.twig', {show_menu: page.organizedCount > 0 or is_granted('ADMIN_ACCESS')}) }}
     <p class="visually-hidden" role="status" aria-live="polite" data-events-page-target="announcer"></p>
-    <template data-events-archive-line-template>{{ include('events/_archive_line.html.twig', {line: null, template: true}) }}</template>
+    <template data-events-archive-line-template>{{ include('event_parts/_archive_line.html.twig', {line: null, template: true}) }}</template>
     <script type="application/json" data-events-index>{{ page.index|json_ld }}</script>
 </div>
 {% endblock %}

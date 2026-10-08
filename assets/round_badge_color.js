@@ -25,24 +25,42 @@ export function chosenColor(color, roundFormDefault) {
     return chosen === normalizeColor(roundFormDefault) ? null : chosen;
 }
 
-function luminance(hex) {
-    const channel = (component) => {
-        const value = parseInt(component, 16) / 255;
+// APCA screen luminance of a #rrggbb colour: plain 2.4 power per channel, no linear toe
+export function apcaLuminance(hex) {
+    const channel = (component) => (parseInt(component, 16) / 255) ** 2.4;
 
-        return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-    };
-
-    return 0.2126 * channel(hex.substring(1, 3))
-        + 0.7152 * channel(hex.substring(3, 5))
-        + 0.0722 * channel(hex.substring(5, 7));
+    return 0.2126729 * channel(hex.substring(1, 3))
+        + 0.7151522 * channel(hex.substring(3, 5))
+        + 0.0721750 * channel(hex.substring(5, 7));
 }
 
-// Black or white, whichever contrasts more with the background (WCAG relative luminance)
+function softClampBlack(luminance) {
+    return luminance > 0.022 ? luminance : luminance + (0.022 - luminance) ** 1.414;
+}
+
+// APCA lightness contrast Lc of text on a background (SAPC/APCA 0.0.98G-4g), both given as APCA luminance
+export function apcaContrast(textLuminance, backgroundLuminance) {
+    const text = softClampBlack(textLuminance);
+    const background = softClampBlack(backgroundLuminance);
+
+    if (Math.abs(background - text) < 0.0005) {
+        return 0;
+    }
+
+    if (background > text) {
+        const contrast = (background ** 0.56 - text ** 0.57) * 1.14;
+
+        return contrast < 0.1 ? 0 : (contrast - 0.027) * 100;
+    }
+
+    const contrast = (background ** 0.65 - text ** 0.62) * 1.14;
+
+    return contrast > -0.1 ? 0 : (contrast + 0.027) * 100;
+}
+
+// Black or white, whichever reads better on the background by APCA (the larger absolute Lc)
 export function textColor(background) {
-    const value = luminance(normalizeColor(background) ?? '#000000');
+    const value = apcaLuminance(normalizeColor(background) ?? '#000000');
 
-    const contrastWithBlack = (value + 0.05) / 0.05;
-    const contrastWithWhite = 1.05 / (value + 0.05);
-
-    return contrastWithBlack >= contrastWithWhite ? '#000000' : '#ffffff';
+    return Math.abs(apcaContrast(0, value)) >= Math.abs(apcaContrast(1, value)) ? '#000000' : '#ffffff';
 }

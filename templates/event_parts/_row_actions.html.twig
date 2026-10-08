@@ -6,7 +6,7 @@
 {%- set menu = manage is not null and is_granted('IS_AUTHENTICATED_REMEMBERED') and is_granted(manage.kind == 'series' ? 'COMPETITION_SERIES_EDIT' : 'COMPETITION_EDIT', manage.id) -%}
 {% if star or menu %}
     <span class="ev-row-actions">
-        {%- if star %}{{ include('events/_follow_star.html.twig', {follow_target: follow_target, follow_name: follow_name, following: following}) }}{% endif -%}
-        {%- if menu %}{{ include('events/_manage_button.html.twig', {manage: manage}) }}{% endif -%}
+        {%- if star %}{{ include('event_parts/_follow_star.html.twig', {follow_target: follow_target, follow_name: follow_name, following: following}) }}{% endif -%}
+        {%- if menu %}{{ include('event_parts/_manage_button.html.twig', {manage: manage}) }}{% endif -%}
     </span>
 {% endif %}

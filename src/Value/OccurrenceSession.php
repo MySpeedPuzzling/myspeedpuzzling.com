@@ -20,6 +20,8 @@ readonly final class OccurrenceSession
         public string $firstRoundId,
         // the round's name when the session has a single round, else null
         public null|string $label,
+        // one of its rounds has results (OccurrenceRound::$hasResults) - its own Results tag
+        public bool $hasResults = false,
     ) {
     }
 }

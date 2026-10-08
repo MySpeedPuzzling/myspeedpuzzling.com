@@ -714,7 +714,6 @@
   "results_link": "公式結果"
   "registration_link": "登録"
   "competition_puzzles": "競技パズル"
-  "results_by_round": "ラウンド別の結果"
   "no_puzzle_text": "パズルはまだありません...お楽しみに"
   "upcoming_editions": "今後のエディション"
   "past_editions": "過去のエディション"
@@ -3336,8 +3335,6 @@ qr_code:
   "pending_approval_info": "このイベントは管理者の承認待ちで、まだ他のユーザーには表示されていません。"
   "rejected_info": "このイベントは承認されませんでした。"
   "rejection_reason": "理由"
-  "online": "オンライン"
-  "recurring": "定期開催"
   "add_event_info": "新しいコンペティションまたはイベントを追加します。公開前に管理者による審査があります。"
   "managed_event_info": "MySpeedPuzzlingを通じて参加者の登録と支払いを完全に管理することに興味がありますか？<a href=\"mailto:%email%\">%email%</a> までご連絡ください。"
   "submit_for_approval": "承認のために送信"
@@ -7464,6 +7461,7 @@ participants_sheet_people:
     "tomorrow": "明日"
     "this_weekend": "今週末"
     "in_days": "%count%日後"
+    "today": "今日"
   "tag":
     "waiting_for_approval": "承認待ち"
     "going": "参加予定"
@@ -7596,6 +7594,68 @@ participants_sheet_people:
     "going": "参加予定"
     "following": "フォロー中"
 
+"event_detail":
+  "crumbs": "パンくずリスト"
+  "facts":
+    "recurring": "定期開催"
+    "rounds": "%count%ラウンド"
+    "runs_until": "%date%まで開催"
+  "follow":
+    "series": "シリーズをフォロー"
+    "series_following": "シリーズをフォロー中"
+    "event": "フォロー"
+    "event_following": "フォロー中"
+  "going":
+    "registration": "登録"
+  "time":
+    "in_zone": "%time%（%zone%）"
+    "yours": "%time%、%zone%（あなたの時刻）"
+    "yours_next_day": "翌日%time%、%zone%（あなたの時刻）"
+    "yours_previous_day": "前日%time%、%zone%（あなたの時刻）"
+  "side":
+    "part_of": "所属シリーズ"
+    "dates": "日程"
+    "place": "会場"
+    "website": "ウェブサイト"
+    "times_online": "時刻は%zone%です。各ラウンドの横にあなたの時刻も表示されます。"
+    "times_in_person": "時刻は開催地の%zone%です。"
+"series_page":
+  "facts":
+    "editions": "エディション%count%件"
+    "since": "%date%から"
+    "coming": "今後の日程%count%件"
+    "next": "次回%date%"
+    "live_now": "開催中"
+  "next": "次回"
+  "upcoming": "今後"
+  "ongoing": "継続中"
+  "date_not_set": "日程未定"
+  "no_upcoming": "今後の日程はまだありません。"
+  "past": "過去"
+  "years": "年"
+  "side":
+    "about": "シリーズについて"
+    "editions": "エディション"
+    "since": "開始"
+    "next": "次回"
+    "following_note": "このシリーズの次回日程は、イベントページの「あなたのイベント」に表示されます。"
+"event_rounds":
+  "title": "ラウンド"
+  "next_round": "次のラウンド："
+  "show_earlier": "以前のラウンドを表示（%count%件）"
+  "hide_earlier": "以前のラウンドを隠す"
+  "minutes": "%count%分"
+  "not_announced": "パズルはまだ発表されていません"
+  "picture_hidden": "画像はラウンド開始時に公開されます"
+  "official_results": "公式結果"
+  "add_my_time": "自分のタイムを追加"
+  "more_puzzles": "このイベントのその他のパズル"
+  "taking_part": "参加"
+  "facts":
+    "next": "次回%date%"
+    "with_results": "結果のあるラウンド%count%件"
+  "side":
+    "next_round": "次のラウンド"
 "events_archive":
   "meta":
     "title": "%year%年のスピードパズルイベント - 結果とアーカイブ"

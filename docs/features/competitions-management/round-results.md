@@ -201,6 +201,13 @@ Rows reuse the `PuzzleSolver` / `PuzzleSolversGroup` DTOs and `PuzzleTimes` row 
 
 Phase 1a adds a **Results** link (and the round's official results link) next to that round badge on each puzzle card, and to each round on the edition page.
 
+**Since the detail pages redesign** ([../events-page/detail-pages.md](../events-page/detail-pages.md)) both pages show
+the rounds as one timeline (`event_parts/_rounds_timeline.html.twig`, `RoundsTimelineBuilder`): each round row is the
+`#round-<id>` anchor and links **Results** (or **Official results** once published) - only on a publicly visible page,
+for a round with a slug and something to show (`CountCompetitionResults::perRound()`, now on the edition page too). The
+round pills on the event page's puzzle cards and its "Results by round" row are gone: a round's puzzles sit in their
+round.
+
 ## Phases
 
 ### Phase 1a — result pages (aim: during WJPC 2026, ends Sept 20)

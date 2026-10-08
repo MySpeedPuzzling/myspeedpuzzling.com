@@ -165,7 +165,7 @@ final class SellSwapEndpointTest extends WebTestCase
         $item = $this->itemOf($items, PuzzleFixture::PUZZLE_500_01);
         $this->assertInsightsGated($item, difficulty: true, prediction: true, solves: true);
         $this->assertSame('challenging', $this->difficultyOf($item)['level']);
-        $this->assertSame(11, $this->statisticsOf($item)['solved_times']);
+        $this->assertSame(12, $this->statisticsOf($item)['solved_times']);
         $this->assertTrue($this->predictionOf($item)['is_personalized']);
         $this->assertSame(2100, $this->predictionOf($item)['last_time_seconds']);
         $this->assertSame(1, $this->solvesOf($item)['solo']['count']);

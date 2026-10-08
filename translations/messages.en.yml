@@ -885,7 +885,6 @@ events:
     results_link: "Official results"
     registration_link: "Register"
     competition_puzzles: "Competition puzzles"
-    results_by_round: "Results by round"
     no_puzzle_text: No puzzles here… yet! Stay tuned
     upcoming_editions: "Upcoming editions"
     past_editions: "Past editions"
@@ -965,6 +964,7 @@ events_page:
         tomorrow: "Tomorrow"
         this_weekend: "This weekend"
         in_days: "In %count% day|In %count% days"
+        today: "Today"
     tag:
         waiting_for_approval: "Waiting for approval"
         going: "Going"
@@ -1110,6 +1110,74 @@ events_archive:
     previous_year: "Earlier year: %year%"
     next_year: "Later year: %year%"
     back: "Upcoming events"
+
+# Event, edition and series pages - shared (foundation, docs/features/events-page/detail-pages.md)
+event_detail:
+    crumbs: "Breadcrumb"
+    facts:
+        recurring: "Recurring"
+        rounds: "%count% round|%count% rounds"
+        runs_until: "Runs until %date%"
+    follow:
+        series: "Follow series"
+        series_following: "Following series"
+        event: "Follow"
+        event_following: "Following"
+    going:
+        registration: "Registration"
+    time:
+        in_zone: "%time% %zone%"
+        yours: "%time%, %zone% (yours)"
+        yours_next_day: "%time% next day, %zone% (yours)"
+        yours_previous_day: "%time% previous day, %zone% (yours)"
+    side:
+        part_of: "Part of"
+        dates: "Dates"
+        place: "Place"
+        website: "Website"
+        times_online: "Times are in %zone%. Your own time is shown next to each round."
+        times_in_person: "Times are in %zone%, where the event takes place."
+
+# Series page (workstream A)
+series_page:
+    facts:
+        editions: "%count% edition|%count% editions"
+        since: "since %date%"
+        coming: "%count% upcoming date|%count% upcoming dates"
+        next: "next %date%"
+        live_now: "live now"
+    next: "Next"
+    upcoming: "Upcoming"
+    ongoing: "Ongoing"
+    date_not_set: "Date not set"
+    no_upcoming: "No upcoming dates yet."
+    past: "Past"
+    years: "Years"
+    side:
+        about: "About"
+        editions: "Editions"
+        since: "Since"
+        next: "Next"
+        following_note: "You get the next date of this series under “Your events” on the events page."
+
+# Edition and event pages - rounds timeline (workstream B)
+event_rounds:
+    title: "Rounds"
+    next_round: "Next round:"
+    show_earlier: "Show %count% earlier round|Show %count% earlier rounds"
+    hide_earlier: "Hide earlier rounds"
+    minutes: "%count% min"
+    not_announced: "Puzzles not announced yet"
+    picture_hidden: "Picture revealed when the round starts"
+    official_results: "Official results"
+    add_my_time: "Add my time"
+    more_puzzles: "More puzzles of this event"
+    taking_part: "Taking part"
+    facts:
+        next: "Next %date%"
+        with_results: "%count% round with results|%count% rounds with results"
+    side:
+        next_round: "Next round"
 
 for_developers:
     meta:
@@ -3828,8 +3896,6 @@ competition:
     pending_approval_info: "This event is pending admin approval and is not yet visible to other users."
     rejected_info: "This event was not approved."
     rejection_reason: "Reason"
-    online: "Online"
-    recurring: "Recurring"
     add_event_info: "Add a new competition or event. It will be reviewed by an admin before being published."
     managed_event_info: "Interested in fully managing participant registrations and payments through MySpeedPuzzling? Contact me at <a href=\"mailto:%email%\">%email%</a>."
     submit_for_approval: "Submit for Approval"

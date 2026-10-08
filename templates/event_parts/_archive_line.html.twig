@@ -31,6 +31,6 @@
             {% if line.url %}<a class="ev-line-title" href="{{ line.url }}">{{ title }}</a>{% else %}<span class="ev-line-title">{{ title }}</span>{% endif %}
             {% if line.hasResults %}<span class="ev-tag ev-tag-results">{{ 'events_page.tag.results'|trans }}</span>{% endif %}
         </span>
-        <span class="ev-line-place">{{ include('events/_place.html.twig', {place: line.place}) }}</span>
+        <span class="ev-line-place">{{ include('event_parts/_place.html.twig', {place: line.place}) }}</span>
     </li>
 {% endif %}

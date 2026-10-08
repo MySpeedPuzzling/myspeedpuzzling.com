@@ -1,6 +1,6 @@
 {#
     The ⋯ menu's content (owner: workstream C): the item's name and kind, then its actions.
-    Variables: item (OrganizedEvent), return_url, return_title
+    Variables: item (OrganizedEvent), return_url, return_title, delete_return (optional)
 #}
 {%- set pending = not item.isApproved and not item.isRejected -%}
 <div class="ev-menu">
@@ -12,5 +12,5 @@
             {%- if item.isRejected %} · {{ 'events_organizer.badge.rejected'|trans }}{% endif -%}
         </span>
     </div>
-    {{ include('events/_manage_items.html.twig', {item: item, return_url: return_url, return_title: return_title, layout: 'menu'}) }}
+    {{ include('events/_manage_items.html.twig', {item: item, return_url: return_url, return_title: return_title, delete_return: delete_return|default(null), layout: 'menu'}) }}
 </div>

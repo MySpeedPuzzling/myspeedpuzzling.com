@@ -13,14 +13,19 @@ use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Query\GetEventOffers;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
-use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Results\CompetitionReference;
+use SpeedPuzzling\Web\Results\EditionRoundDetail;
+use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
+use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
+use SpeedPuzzling\Web\Services\EventDetail\RoundsTimelineBuilder;
+use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
 use SpeedPuzzling\Web\Services\EventJustJoinedFlash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EventTitle;
+use SpeedPuzzling\Web\Value\FollowTarget;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,7 +42,6 @@ final class EditionDetailController extends AbstractController
         readonly private GetEditionRounds $getEditionRounds,
         readonly private GetEventAttendance $getEventAttendance,
         readonly private GetEventOffers $getEventOffers,
-        readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -45,6 +49,8 @@ final class EditionDetailController extends AbstractController
         readonly private CountCompetitionResults $countCompetitionResults,
         readonly private GetCompetitionPageSections $getCompetitionPageSections,
         readonly private ClockInterface $clock,
+        readonly private EventPagePuzzles $eventPagePuzzles,
+        readonly private RoundsTimelineBuilder $roundsTimelineBuilder,
     ) {
     }
 
@@ -73,26 +79,52 @@ final class EditionDetailController extends AbstractController
         $competitionEvent = $this->getCompetitionEvents->byId($competitionId);
         $seriesOverview = $this->getCompetitionSeries->byId($competition->series->id->toString());
 
-        $rounds = $this->getEditionRounds->forCompetition($competitionId);
-        $eventTitle = EventTitle::forCompetition($competitionEvent, $seriesOverview->name, $rounds, $this->clock->now());
+        $rounds = array_values($this->getEditionRounds->forCompetition($competitionId));
+        $now = $this->clock->now();
+        $eventTitle = EventTitle::forCompetition($competitionEvent, $seriesOverview->name, $rounds, $now);
 
-        $puzzles = [];
-        if ($competitionEvent->tagId !== null) {
-            $puzzles = $this->getPuzzleOverview->byTagId($competitionEvent->tagId);
-        }
+        // Puzzles outside the rounds (tagged, else - without rounds - the ones people logged times for)
+        $puzzles = $this->eventPagePuzzles->resolve($competitionEvent, $rounds);
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
 
         // An edition of an unapproved or rejected series (or a rejected edition) is reachable at its URL,
-        // but it is not public: no index, no "Add my time" (the add-time picker would not offer it)
+        // but it is not public: no index, no "Add my time" (the add-time picker would not offer it), no round results links
         $isPubliclyVisible = $this->isCompetitionPubliclyVisible->check($competitionId);
 
         // "Add my time from this event" deep link: signed-in, the edition is publicly visible and it has
         // already started.
         $canAddTime = $loggedPlayer !== null
-            && $competitionEvent->startsAfter($this->clock->now()) === false
+            && $competitionEvent->startsAfter($now) === false
             && $isPubliclyVisible;
+
+        // Round results links: only on a public page, only for rounds with something to show
+        $resultsPerRound = $isPubliclyVisible && array_any($rounds, static fn (EditionRoundDetail $round): bool => $round->slug !== null)
+            ? $this->countCompetitionResults->perRound($competitionId, $competitionEvent->hasPublishedOfficialResults)
+            : [];
+
+        $reference = new CompetitionReference(
+            name: $competitionEvent->name,
+            slug: $competitionEvent->slug,
+            seriesName: $seriesOverview->name,
+            seriesSlug: $seriesOverview->slug,
+        );
+
+        $timeline = $this->roundsTimelineBuilder->build(
+            event: $reference,
+            competitionId: $competitionId,
+            rounds: $rounds,
+            isOnline: $seriesOverview->isOnline,
+            isPublic: $isPubliclyVisible,
+            resultsPerRound: $resultsPerRound,
+            canAddTime: $canAddTime,
+            dateFrom: $competitionEvent->dateFrom,
+            dateTo: $competitionEvent->dateTo,
+            now: $now,
+        );
+
+        $attendance = $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible);
 
         // Marketplace card: one query on a marketplace event, none anywhere else (docs/features/marketplace/11-events.md)
         $eventOffers = $this->getEventOffers->forEventPage($competitionEvent, $isPubliclyVisible, $loggedPlayer?->playerId);
@@ -104,15 +136,28 @@ final class EditionDetailController extends AbstractController
             // Only a past edition's meta description quotes the number of results
             'results_count' => $eventTitle->isPast ? $this->countCompetitionResults->forCompetition($competitionId, $competitionEvent->hasPublishedOfficialResults) : 0,
             'is_publicly_visible' => $isPubliclyVisible,
+            'online' => $seriesOverview->isOnline,
+            'event_place' => EventRowFactory::place(
+                $seriesOverview->isOnline,
+                $competitionEvent->location ?? $seriesOverview->location,
+                $competitionEvent->locationCountryCode ?? $seriesOverview->locationCountryCode,
+                $request->getLocale(),
+            ),
             'rounds' => $rounds,
+            'timeline' => $timeline,
             'puzzles' => $puzzles,
-            'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList(array_values(array_map(
-                static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,
-                $puzzles,
-            ))),
+            'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList(EventPagePuzzles::difficultyIds($rounds, $puzzles)),
             'puzzle_statuses' => $puzzleStatuses,
             'can_add_time' => $canAddTime,
-            'attendance' => $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible),
+            'attendance' => $attendance,
+            // An edition's star follows its series - only on a public page
+            'follow_target' => $isPubliclyVisible ? FollowTarget::series($seriesOverview->id) : null,
+            'following' => $attendance->isFollowing,
+            'manage' => new ManageRef(ManageRef::KIND_COMPETITION, $competitionId, $reference->displayName()),
+            // Deleting the edition from its ⋯ returns to the series page
+            'delete_return' => $seriesOverview->slug !== null
+                ? $this->generateUrl('competition_series_detail', ['slug' => $seriesOverview->slug])
+                : $this->generateUrl('events'),
             'event_offers' => $eventOffers,
             'event_offers_just_joined' => $eventOffers !== null && EventJustJoinedFlash::take($request, $competitionId),
             // Organiser-written sections: queried only when one shows - a page without them runs what it ran before. Only

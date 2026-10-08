@@ -293,6 +293,22 @@ PLAYER_REGULAR organises 3 items ("You organize (3)"): `COMPETITION_UNAPPROVED`,
 Garden Swap; it is going to WJPC 2024 and Puzzle Swap Fair. Admins also see `COMPETITION_UNAPPROVED` and
 `SERIES_UNAPPROVED` (+ its edition) on the events page, tagged "Waiting for approval".
 
+### Event detail pages (`EventDetailFixture`, ids `018d0041-…`)
+
+The series, edition and event pages (docs/features/events-page/detail-pages-plan.md 1.8), on top of `EventsPageFixture`.
+Made-up names.
+
+| Const | What | Purpose |
+|---|---|---|
+| `ROUND_PUZZLE_SPRINT_1` | `PUZZLE_500_01` on `ROUND_SPRINT_1` | a past round with a puzzle |
+| `ROUND_PUZZLE_SPRINT_2` | `PUZZLE_500_02` on `ROUND_SPRINT_2` | a past round without results |
+| `ROUND_PUZZLE_SPRINT_3_SECRET` | `PUZZLE_500_03` on `ROUND_SPRINT_3` (the next round), hidden entirely until the round starts, automatic reveal | "Puzzles not announced yet" - the puzzle nowhere in the Season One HTML |
+| `TIME_SPRINT_1` | PLAYER_REGULAR, solo, `PUZZLE_500_01`, competition `EDITION_SPRINT_SEASON`, round `ROUND_SPRINT_1`, not suspicious | results on Sprint 1 only: per-session Results on the series page, the round results link on Season One |
+| `COMPETITION_HILLTOP_WEEKEND` "Hilltop Puzzle Weekend" | one-time, in person, `cz`, Friday-Sunday about five weeks ahead (`next friday +4 weeks`), approved, slug `hilltop-puzzle-weekend`, created by PLAYER_ADMIN | a multi-day championship: one session, no second time, no `subEvent`; counts as an upcoming in-person event on the events page |
+| `ROUND_HILLTOP_FRI/SAT/SUN` | "Friday Sprint" 18:00 solo, "Saturday Pairs" 10:00 duo, "Sunday Final" 10:00 solo, Europe/Prague, slugs `friday-sprint` / `saturday-pairs` / `sunday-final`; `ROUND_PUZZLE_HILLTOP_SAT` = `PUZZLE_500_04` on Saturday, picture hidden until it starts | in-person times; "Picture revealed when the round starts" |
+
+PLAYER_REGULAR now has one more solo time (`TIME_SPRINT_1`); `PuzzleStatisticsFixture` runs after this fixture.
+
 ### Official results (`OfficialResultsFixture`, ids `018d0020-…`)
 
 `COMPETITION_RESULTS_CUP` "Results Cup" (slug `results-cup`) - a past (-10 days), approved, in-person event in Brno, CZ,

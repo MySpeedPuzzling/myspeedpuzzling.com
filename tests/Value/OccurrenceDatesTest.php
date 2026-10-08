@@ -201,6 +201,39 @@ final class OccurrenceDatesTest extends TestCase
         self::assertSame(EventOccurrenceStatus::Live, $league[0]->status($today, true, false));
     }
 
+    public function testEverySessionKnowsItsFirstRound(): void
+    {
+        $sessions = OccurrenceDates::sessions(null, null, [
+            self::round('a', 'May sprint', '2026-05-13 02:00'),
+            self::round('b', 'June sprint', '2026-06-10 02:00'),
+            self::round('c', 'June relay', '2026-06-10 04:00'),
+        ]);
+
+        self::assertSame(['a', 'b'], array_map(static fn (OccurrenceDates $dates): null|string => $dates->firstRound?->id, $sessions));
+    }
+
+    public function testOneSessionKnowsItsFirstRoundAndNoRoundsNone(): void
+    {
+        $one = OccurrenceDates::sessions(self::day('2026-10-09'), self::day('2026-10-11'), [
+            self::round('sat', 'Semi-final', '2026-10-10 08:00', 'Europe/Prague'),
+            self::round('fri', 'Qualification', '2026-10-09 16:00', 'Europe/Prague'),
+        ]);
+
+        self::assertCount(1, $one);
+        self::assertSame('fri', $one[0]->firstRound?->id);
+        self::assertNull(OccurrenceDates::sessions(self::day('2026-10-09'), null, [])[0]->firstRound);
+    }
+
+    public function testASessionHasResultsWhenOneOfItsRoundsHas(): void
+    {
+        $sessions = OccurrenceDates::sessions(null, null, [
+            new OccurrenceRound('a', 'May', new DateTimeImmutable('2026-05-13 02:00', new DateTimeZone('UTC')), 'America/New_York', hasResults: true),
+            new OccurrenceRound('b', 'June', new DateTimeImmutable('2026-06-10 02:00', new DateTimeZone('UTC')), 'America/New_York'),
+        ]);
+
+        self::assertSame([true, false], array_map(static fn (OccurrenceDates $dates): bool => (bool) $dates->session?->hasResults, $sessions));
+    }
+
     private static function round(string $id, string $name, string $startsAtUtc, string $zone = 'America/New_York'): OccurrenceRound
     {
         return new OccurrenceRound($id, $name, new DateTimeImmutable($startsAtUtc, new DateTimeZone('UTC')), $zone);

@@ -1,0 +1,36 @@
+{#
+    One puzzle inside its round (owner: workstream B, docs/features/events-page/detail-pages.md "Rounds timeline"): a
+    44 px thumbnail, the name linking the puzzle (the link covers the item - a 44 px target), pieces · brand, the
+    difficulty icon for members, the viewer's badges. Variables: puzzle (EditionRoundPuzzle); the page's
+    difficulty_data, puzzle_statuses.
+
+    Secret puzzles keep GetEditionRounds' rules: one hidden entirely never gets here; a hidden picture (imageHidden -
+    the read model nulled the image) gets a neutral tile, "Picture revealed when the round starts" and no link, so the
+    puzzle page cannot show the box early.
+#}
+{%- from '_difficulty_icon.html.twig' import icon as difficulty_icon -%}
+<li class="ev-round-puzzle{{ puzzle.imageHidden ? ' ev-round-puzzle-secret' }}" data-round-puzzle="{{ puzzle.puzzleId }}">
+    {% if puzzle.imageHidden %}
+        <span class="ev-round-puzzle-tile" aria-hidden="true"><i class="bi bi-eye-slash"></i></span>
+    {% elseif puzzle.puzzleImage %}
+        <img class="ev-round-puzzle-thumb" src="{{ puzzle.puzzleImage|thumbnail('puzzle_small') }}" alt="" width="44" height="44" loading="lazy">
+    {% else %}
+        <span class="ev-round-puzzle-tile" aria-hidden="true"><i class="bi bi-puzzle"></i></span>
+    {% endif %}
+    <span class="ev-round-puzzle-text">
+        {% if puzzle.imageHidden %}
+            <span class="ev-round-puzzle-name">{{ puzzle.puzzleName }}</span>
+        {% else %}
+            <a class="ev-round-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}</a>
+        {% endif %}
+        <span class="ev-round-puzzle-meta">
+            {%- if logged_user.profile is not null and logged_user.profile.activeMembership %}{{ difficulty_icon(difficulty_data[puzzle.puzzleId].difficultyTier ?? null, false, 16) }} {% endif -%}
+            {{- 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}{% if puzzle.manufacturerName %} · {{ puzzle.manufacturerName }}{% endif -%}
+            {%- if puzzle.imageHidden %} · <span class="ev-round-puzzle-secret-note">{{ 'event_rounds.picture_hidden'|trans }}</span>{% endif -%}
+        </span>
+        {%- if not puzzle.imageHidden -%}
+            {%- set badges = include('puzzle/_badges.html.twig', {puzzle_id: puzzle.puzzleId})|trim -%}
+            {%- if badges is not empty %}<span class="ev-round-puzzle-badges">{{ badges|raw }}</span>{% endif -%}
+        {%- endif %}
+    </span>
+</li>

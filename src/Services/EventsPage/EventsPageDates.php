@@ -9,6 +9,7 @@ use DateTimeInterface;
 use DateTimeZone;
 use IntlDateFormatter;
 use IntlDatePatternGenerator;
+use IntlTimeZone;
 use Symfony\Contracts\Service\ResetInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -20,6 +21,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * assets/events_index.js formatDate()/formatDayRange() write the same with Intl.DateTimeFormat and the same
  * options, so the browser's lines match the server's (EventsIndexScriptTest compares both).
+ *
+ * Times of the detail pages (docs/features/events-page/detail-pages.md): time() = skeleton `jm` with two-digit hours in
+ * the event's zone ("22:00", "04:00", 24 hours in English too - en_GB), zoneName() = the zone's localised generic name ("Eastern Time",
+ * "Mitteleuropäische Zeit") - the same ICU names the browser gives with `timeZoneName: 'longGeneric'`
+ * (formatTime()/zoneLabel() in assets/events_index.js).
  */
 final class EventsPageDates implements ResetInterface
 {
@@ -28,6 +34,12 @@ final class EventsPageDates implements ResetInterface
 
     /** @var array<string, IntlDateFormatter> locale|pattern => formatter */
     private array $formatters = [];
+
+    /** @var array<string, IntlDateFormatter> locale|zone => formatter */
+    private array $timeFormatters = [];
+
+    /** @var array<string, string> locale|zone => name */
+    private array $zoneNames = [];
 
     public function __construct(
         readonly private TranslatorInterface $translator,
@@ -109,10 +121,59 @@ final class EventsPageDates implements ResetInterface
         return self::joined($full, $fullTo);
     }
 
+    /**
+     * The instant's wall time in $zone: "22:00", "04:00" - 24 hours in all six languages (en: en_GB)
+     */
+    public function time(DateTimeInterface $instant, string $zone, null|string $locale = null): string
+    {
+        $locale = self::dateLocale($locale ?? $this->translator->getLocale());
+        $key = $locale . '|' . $zone;
+
+        if (isset($this->timeFormatters[$key]) === false) {
+            $this->timeFormatters[$key] = new IntlDateFormatter(
+                $locale,
+                IntlDateFormatter::NONE,
+                IntlDateFormatter::NONE,
+                $zone,
+                IntlDateFormatter::GREGORIAN,
+                // Two-digit hours ("04:00") - the browser's `hour: '2-digit'`; Intl's numeric hour would drop the zero
+                // that ICU's pattern keeps in some locales and not in others
+                (string) preg_replace('/(?<!H)H(?!H)/', 'HH', $this->pattern('jm', $locale)),
+            );
+        }
+
+        $formatted = $this->timeFormatters[$key]->format($instant);
+
+        if ($formatted === false) {
+            return DateTimeImmutable::createFromInterface($instant)->setTimezone(new DateTimeZone($zone))->format('H:i');
+        }
+
+        return (string) preg_replace('/^[\s\p{Zs}]+|[\s\p{Zs}]+$/u', '', $formatted);
+    }
+
+    /**
+     * The zone's localised generic name ("Eastern Time", "Central European Time", "středoevropský čas") - the zone id
+     * when ICU has none
+     */
+    public function zoneName(string $zone, null|string $locale = null): string
+    {
+        $locale = self::dateLocale($locale ?? $this->translator->getLocale());
+        $key = $locale . '|' . $zone;
+
+        if (isset($this->zoneNames[$key]) === false) {
+            $name = IntlTimeZone::createTimeZone($zone)->getDisplayName(false, IntlTimeZone::DISPLAY_LONG_GENERIC, $locale);
+            $this->zoneNames[$key] = $name !== '' ? $name : str_replace('_', ' ', $zone);
+        }
+
+        return $this->zoneNames[$key];
+    }
+
     public function reset(): void
     {
         $this->patterns = [];
         $this->formatters = [];
+        $this->timeFormatters = [];
+        $this->zoneNames = [];
     }
 
     private function pattern(string $skeleton, string $locale): string

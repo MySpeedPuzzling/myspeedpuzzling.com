@@ -439,11 +439,12 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
     public function testSolveCountRangeCoversNeverBeforeAndBetween(): void
     {
         // PLAYER_REGULAR (all types counted, incl. the duo / team rows she owns and the untimed
-        // relax row): 3× on 500_01, 500_02, 500_03 and 1000_02; 1× on 1000_01, 1000_03, 1500_01,
-        // 2000, 300, INTEL_A and INTEL_B - 11 solved puzzles
+        // relax row): 4× on 500_01 (one in a Sprint round, EventDetailFixture), 3× on 500_02, 500_03 and 1000_02; 1× on
+        // 1000_01, 1000_03, 1500_01, 2000, 300, INTEL_A and INTEL_B - 11 solved puzzles
         $playerId = PlayerFixture::PLAYER_REGULAR;
         $all = $this->pickAll(['source' => 'any', 'lent' => '1'], $playerId);
-        $threeTimes = [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleFixture::PUZZLE_1000_02];
+        $fourTimes = [PuzzleFixture::PUZZLE_500_01];
+        $threeTimes = [PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleFixture::PUZZLE_1000_02];
         $once = [
             PuzzleFixture::PUZZLE_1000_01,
             PuzzleFixture::PUZZLE_1000_03,
@@ -454,17 +455,18 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
             PuzzleIntelligenceFixture::INTEL_PUZZLE_B,
         ];
 
-        self::assertEqualsCanonicalizing($threeTimes, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '3'], $playerId)));
+        self::assertEqualsCanonicalizing([...$fourTimes, ...$threeTimes], self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '3'], $playerId)));
         self::assertEqualsCanonicalizing($threeTimes, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '3', 'solved_max' => '3'], $playerId)));
         self::assertEqualsCanonicalizing($once, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '1', 'solved_max' => '1'], $playerId)));
-        self::assertEqualsCanonicalizing([...$threeTimes, ...$once], self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '1'], $playerId)));
+        self::assertEqualsCanonicalizing([...$fourTimes, ...$threeTimes, ...$once], self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '1'], $playerId)));
         self::assertTrue($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '2', 'solved_max' => '2'], $playerId)->isEmpty(), 'Nobody solved anything exactly twice');
-        self::assertTrue($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '4'], $playerId)->isEmpty());
+        self::assertEqualsCanonicalizing($fourTimes, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '4'], $playerId)));
+        self::assertTrue($this->pickAll(['source' => 'any', 'lent' => '1', 'solved_min' => '5'], $playerId)->isEmpty());
 
-        // "at most 2" = everything but the four 3× puzzles (never-solved included)
+        // "at most 2" = everything but the 3× and 4× puzzles (never-solved included)
         $atMostTwo = $this->pickAll(['source' => 'any', 'lent' => '1', 'solved_max' => '2'], $playerId);
         self::assertSame($all->totalMatching - 4, $atMostTwo->totalMatching);
-        self::assertSame([], array_intersect($threeTimes, self::ids($atMostTwo)));
+        self::assertSame([], array_intersect([...$fourTimes, ...$threeTimes], self::ids($atMostTwo)));
 
         // The named shapes are the same ranges spelled short
         self::assertSame(

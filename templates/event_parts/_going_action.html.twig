@@ -1,0 +1,15 @@
+{#
+    The header's "I'm going" (owner: foundation): not past and registration not managed - "I'm going!"
+    (join_competition) or "✓ You're going!" linking down to Taking part; managed registration - "Registration" linking
+    down to the registration card. Nothing once the event is over or on a page that is not public (Taking part keeps
+    the full block). Variables: competition_id, attendance (EventAttendance), is_past, is_public
+#}
+{% if not is_past and is_public %}
+    {% if attendance.registration is not null %}
+        <a class="ev-action-button ev-action-primary" href="#registration">{{ 'event_detail.going.registration'|trans }}</a>
+    {% elseif attendance.isGoing %}
+        <a class="ev-action-button ev-action-going" href="#taking-part"><span aria-hidden="true">✓ </span>{{ 'competition.join.you_are_going'|trans }}</a>
+    {% else %}
+        <a class="ev-action-button ev-action-primary" href="{{ path('join_competition', {competitionId: competition_id}) }}">{{ 'competition.join.im_going'|trans }}</a>
+    {% endif %}
+{% endif %}

@@ -590,9 +590,9 @@ final class PuzzleSearchEndpointTest extends WebTestCase
 
         // community statistics, always split by discipline, from the precomputed puzzle_statistics row
         $statistics = $puzzle['statistics'];
-        // PUZZLE_500_01: eleven solo solves of several players (20-50 min), nothing in duo / team
-        $this->assertSame(11, $statistics['solved_times']);
-        $this->assertSame(11, $statistics['solo']['count']);
+        // PUZZLE_500_01: twelve solo solves of several players (20-50 min), nothing in duo / team
+        $this->assertSame(12, $statistics['solved_times']);
+        $this->assertSame(12, $statistics['solo']['count']);
         $this->assertSame(1200, $statistics['solo']['fastest_seconds']);
         $this->assertSame(3000, $statistics['solo']['slowest_seconds']);
         $this->assertIsInt($statistics['solo']['average_seconds']);

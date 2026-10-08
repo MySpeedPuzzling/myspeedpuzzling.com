@@ -1,0 +1,47 @@
+{#
+    The series page's upcoming list (owner: workstream A, docs/features/events-page/detail-pages.md "Series page"): the
+    other live and upcoming sessions by month (the Next one is not repeated), then Ongoing (long spans running now:
+    "Runs until …", never Live, never Next), then Date not set (editions without a date and without rounds, last - never
+    hidden). Rows are the events page's (event_parts/_row.html.twig): no star (the header's follows the series), the
+    edition's ⋯ for its organisers. A series without editions says so (organisers get "Add edition" right there); a
+    series with nothing coming says that.
+    Variables: page (SeriesPage), series
+#}
+{% if page.isEmpty %}
+    <section class="ev-detail-section ev-series-empty" aria-labelledby="series-upcoming-title" data-series-empty>
+        <h2 class="visually-hidden" id="series-upcoming-title">{{ 'series_page.upcoming'|trans }}</h2>
+        <p class="ev-series-empty-text">{{ 'events.no_editions_yet'|trans }}</p>
+        {% if is_granted('IS_AUTHENTICATED_REMEMBERED') and is_granted('COMPETITION_SERIES_EDIT', series.id) %}
+            <a class="ev-action-button" href="{{ path('add_edition', {seriesId: series.id, return: app.request.requestUri, return_title: series.name}) }}">{{ 'events_organizer.menu.add_edition'|trans }}</a>
+        {% endif %}
+    </section>
+{% elseif page.months is not empty or page.ongoing is not empty or page.dateNotSet is not empty or page.next is null %}
+    {% set upcoming_count = page.upcomingCount %}
+    <section class="ev-detail-section ev-series-upcoming" aria-labelledby="series-upcoming-title" data-series-upcoming>
+        <h2 class="ev-detail-section-title" id="series-upcoming-title">
+            {{- 'series_page.upcoming'|trans -}}
+            {%- if upcoming_count > 0 %} <span class="ev-section-n">{{ upcoming_count }}</span>{% endif -%}
+        </h2>
+        {% if page.months is empty and page.next is null %}
+            <p class="ev-series-none" data-series-no-upcoming>{{ 'series_page.no_upcoming'|trans }}</p>
+        {% endif %}
+        {% for month in page.months %}
+            <h3 class="ev-month-header"><span>{{ month.firstDay|events_date('yMMMM') }}</span><span class="ev-month-n">{{ 'events_page.agenda.dates_count'|trans({'%count%': month.rows|length}) }}</span></h3>
+            <ol class="ev-rows">
+                {% for row in month.rows %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+            </ol>
+        {% endfor %}
+        {% if page.ongoing is not empty %}
+            <h3 class="ev-month-header" data-series-ongoing><span>{{ 'series_page.ongoing'|trans }}</span><span class="ev-month-n">{{ page.ongoing|length }}</span></h3>
+            <ol class="ev-rows">
+                {% for row in page.ongoing %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+            </ol>
+        {% endif %}
+        {% if page.dateNotSet is not empty %}
+            <h3 class="ev-month-header" data-series-date-not-set><span>{{ 'series_page.date_not_set'|trans }}</span><span class="ev-month-n">{{ page.dateNotSet|length }}</span></h3>
+            <ol class="ev-rows">
+                {% for row in page.dateNotSet %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+            </ol>
+        {% endif %}
+    </section>
+{% endif %}

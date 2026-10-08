@@ -326,7 +326,10 @@ final class OfficialRoundResultsPageTest extends WebTestCase
         // A past event with official results: "Results" in the title, the official description, the round's button
         self::assertSame('Results Cup 2026 Results – MySpeedPuzzling', $crawler->filter('title')->text());
         self::assertStringContainsString('the official results round by round', (string) $crawler->filter('meta[name="description"]')->attr('content'));
-        self::assertSame(['Group A'], $crawler->filter('[data-event-round-results] a')->each(static fn (Crawler $link): string => trim($link->text())));
+        // The round's own link on the rounds timeline (detail-pages.md) - "Official results", in Group A's row
+        $links = $crawler->filter('[data-round-results-link]');
+        self::assertSame(['Official results'], $links->each(static fn (Crawler $link): string => trim($link->text())));
+        self::assertStringContainsString('Group A', $links->ancestors()->filter('.ev-round')->first()->text());
     }
 
     public function testOfficialResultsCostTheEventPageNoStatement(): void
@@ -336,14 +339,14 @@ final class OfficialRoundResultsPageTest extends WebTestCase
 
         $this->startCountingQueries($browser);
         $browser->request('GET', self::EVENT_URL);
-        $this->assertSelectorExists('[data-event-round-results]');
+        $this->assertSelectorExists('[data-round-results-link]');
         $withOfficialResults = $this->queryCount($browser);
 
         $this->database()->executeStatement('UPDATE competition_round SET results_published_at = NULL WHERE competition_id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
 
         $this->startCountingQueries($browser);
         $browser->request('GET', self::EVENT_URL);
-        $this->assertSelectorNotExists('[data-event-round-results]');
+        $this->assertSelectorNotExists('[data-round-results-link]');
         self::assertSame($withOfficialResults, $this->queryCount($browser));
         // Not a word about official results in any statement but the event's own row
         self::assertCount(1, array_filter(

@@ -17,133 +17,56 @@
 
 {% block json_ld %}
 {{ parent() }}
-{% if series.approvedAt is not null and series.rejectedAt is null and series.slug is not null %}
-{# A schema.org Event needs a startDate - an edition without a round and without its own date is left out #}
-{% set jsonld_editions = upcoming_editions|merge(past_editions)|filter(edition => edition.editionSlug is not null and not edition.isUndated) %}
-<script type="application/ld+json">
-{
-    "@context": "https://schema.org",
-    "@type": "EventSeries",
-    "name": {{ series.name|json_ld }},
-    "url": {{ url('competition_series_detail', {'slug': series.slug})|json_ld }}
-    {%- if series.description %},
-    "description": {{ series.description|json_ld }}
-    {%- endif %}
-    {%- if series.logo %},
-    {# The large metadata-stripped preset (1200 px JPEG; Google wants event images >= 720 px wide) - never
-       the uploaded original, older uploads may still carry EXIF/GPS #}
-    "image": {{ series.logo|thumbnail('puzzle_large')|json_ld }}
-    {%- endif %}
-    {%- if not series.isOnline and series.location %},
-    "location": {
-        "@type": "Place",
-        "name": {{ series.location|json_ld }},
-        "address": {
-            "@type": "PostalAddress",
-            "addressLocality": {{ series.location|json_ld }}
-            {%- if series.locationCountryCode %},
-            "addressCountry": {{ series.locationCountryCode.name|upper|json_ld }}
-            {%- endif %}
-        }
-    }
-    {%- endif %}
-    {%- if series.addedByPlayerName %},
-    "organizer": {
-        "@type": "Person",
-        "name": {{ series.addedByPlayerName|json_ld }}
-    }
-    {%- endif %}
-    {%- if jsonld_editions|length > 0 %},
-    "subEvent": [
-        {%- for edition in jsonld_editions %}
-        {
-            "@type": "Event",
-            "name": {{ edition.name|json_ld }},
-            "url": {{ url('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug})|json_ld }},
-            {%- if edition.startsAt %}
-            "startDate": {{ edition.startsAt|date('Y-m-d', edition.timezone)|json_ld }}
-            {%- else %}
-            "startDate": {{ edition.dateFrom|date('Y-m-d')|json_ld }}
-            {%- endif %}
-            {%- if edition.logo %},
-            "image": {{ edition.logo|thumbnail('puzzle_large')|json_ld }}
-            {%- endif %}
-        }{{ loop.last ? '' : ',' }}
-        {%- endfor %}
-    ]
-    {%- endif %}
-}
-</script>
-{% endif %}
+{{ include('event_parts/_series_json_ld.html.twig') }}
 {% endblock %}
 
 {% block content %}
-    {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
-
-    <div class="d-flex">
-        <div class="flex-fill">
-            <h1 class="h4 mb-2">
-                {{ series.name }}
-            </h1>
-
-            <div class="row">
-                <div class="col-sm-6">
-                    {% if series.isOnline %}
-                        <span class="badge bg-info text-dark">{{ 'competition.online'|trans }}</span>
-                    {% else %}
-                        {% if series.locationCountryCode %}
-                            <span class="shadow-custom fi fi-{{ series.locationCountryCode.name }} me-2"></span>
-                        {% endif %}
-                        {{ series.location }}
-                    {% endif %}
-                    <span class="badge bg-secondary ms-1">{{ 'competition.recurring'|trans }}</span>
-                </div>
-
+    {#- The series page (docs/features/events-page/detail-pages.md "Series page", owner: workstream A): the shared header
+        (Follow series, Website, ⋯), then on phones the facts strip, the Next card, Upcoming by month (+ Ongoing, Date not
+        set), the organiser's sections, the Past by year; from 992 px the facts move to the side column. -#}
+    <div class="ev-detail ev-detail-series"
+        {%- if series.isOnline %} data-controller="event-local-time" data-event-local-time-messages-value="{{ {
+            yours: 'event_detail.time.yours'|trans,
+            yours_next_day: 'event_detail.time.yours_next_day'|trans,
+            yours_previous_day: 'event_detail.time.yours_previous_day'|trans,
+        }|json_encode }}"{% endif %}>
+        {% embed 'event_parts/_detail_header.html.twig' with {
+            crumbs: [{label: 'events.title'|trans, url: path('events')}],
+            logo: series.logo,
+            name: series.name,
+            description: series.description,
+            return_fallback_url: path('events'),
+            return_fallback_title: 'events.title'|trans,
+        } %}
+            {% block facts %}
+                {{- include('event_parts/_place.html.twig', {place: page.facts.place}) -}}
+                <span class="ev-detail-fact">{{ 'event_detail.facts.recurring'|trans }}</span>
+                {%- if page.facts.nextIsLive %}<span class="ev-detail-fact ev-when-live">{{ include('event_parts/_live.html.twig') }}</span>{% endif -%}
+            {% endblock %}
+            {% block actions %}
+                {{ include('event_parts/_follow_action.html.twig', {follow_target: page.followTarget, following: page.following, kind: 'series', follow_name: series.name}) }}
                 {% if series.link %}
-                    <div class="col-sm-6 mt-2 mt-sm-0">
-                        <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ series.link }}">
-                            <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                        </a>
-                    </div>
+                    <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ series.link }}">{{ 'events.website_link'|trans }}<span aria-hidden="true"> ↗</span></a>
                 {% endif %}
+                {% if is_granted('IS_AUTHENTICATED_REMEMBERED') and is_granted('COMPETITION_SERIES_EDIT', series.id) %}
+                    {{ include('event_parts/_manage_button.html.twig', {manage: manage, return_title: series.name, delete_return: path('events')}) }}
+                {% endif %}
+            {% endblock %}
+        {% endembed %}
+
+        <div class="ev-detail-body">
+            <div class="ev-detail-main">
+                {{ include('series/_facts_strip.html.twig') }}
+                {{ include('series/_next.html.twig') }}
+                {{ include('series/_upcoming.html.twig') }}
+                {#- Organiser-written sections (docs/features/competitions-management/public-page.md): between Upcoming and
+                    Past - nothing at all without them -#}
+                {% if page_sections is not empty %}{{ include('_page_sections.html.twig', {sections: page_sections}) }}{% endif %}
+                {{ include('series/_past.html.twig') }}
             </div>
-
-            {% if series.description %}
-                {# Plain text: nl2br escapes first, then keeps the organiser's line breaks #}
-                <p class="mt-3">{{ series.description|nl2br }}</p>
-            {% endif %}
+            {{ include('series/_side.html.twig') }}
         </div>
 
-        <div class="ms-3 flex-shrink-0 event-image">
-            {% if series.logo %}
-                <img style="max-height: 84px;" src="{{ series.logo|thumbnail('puzzle_small') }}" alt="{{ series.name }} logo" class="img-fluid">
-            {% endif %}
-        </div>
+        {{ include('event_parts/_manage_menu_host.html.twig', {show_menu: show_menu}) }}
     </div>
-
-    {#~ Organiser-written sections (docs/features/competitions-management/public-page.md) - the ~ keep a series page
-       without any byte for byte as before #}
-    {%~ if page_sections is not empty %}{{ include('_page_sections.html.twig', {sections: page_sections}) }}{% endif %}
-    {# Undated editions (no round, no date) are listed here too, last - see GetCompetitionSeries::fetchEditions() #}
-    {% if upcoming_editions|length > 0 %}
-        <h2 class="h5 mt-4 mb-3">{{ 'series.upcoming_editions'|trans }}</h2>
-        <div class="row">
-            {% for edition in upcoming_editions %}
-                {{ include('_series_edition_card.html.twig', {edition: edition, series: series, past: false}) }}
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    {% if past_editions|length > 0 %}
-        <h2 class="h5 mt-4 mb-3">{{ 'series.past_editions'|trans }}</h2>
-        <div class="row">
-            {% for edition in past_editions %}
-                {{ include('_series_edition_card.html.twig', {edition: edition, series: series, past: true}) }}
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    {% if upcoming_editions|length == 0 and past_editions|length == 0 %}
-        <p class="text-muted mt-4">{{ 'series.no_editions'|trans }}</p>
-    {% endif %}
 {% endblock %}

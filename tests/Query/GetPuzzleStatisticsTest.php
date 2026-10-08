@@ -52,7 +52,7 @@ final class GetPuzzleStatisticsTest extends KernelTestCase
 
         // PUZZLE_500_01: solo only, 1200-3000 s
         $puzzle = $statistics[PuzzleFixture::PUZZLE_500_01];
-        self::assertSame(11, $puzzle->solvedTimes);
+        self::assertSame(12, $puzzle->solvedTimes);
         self::assertSame(1200, $puzzle->solo->fastestSeconds);
         self::assertSame(3000, $puzzle->solo->slowestSeconds);
         self::assertSame(0, $puzzle->duo->count);

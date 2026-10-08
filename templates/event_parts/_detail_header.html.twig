@@ -1,0 +1,29 @@
+{#
+    The shared header of the series, edition and event pages (owner: foundation, docs/features/events-page/
+    detail-pages.md "The shared header"). Used with embed:
+
+    {% embed 'event_parts/_detail_header.html.twig' with {crumbs, logo, name, description, return_fallback_url, return_fallback_title} %}
+        {% block facts %}…{% endblock %}
+        {% block actions %}…{% endblock %}
+    {% endembed %}
+
+    The ?return= back button only when the URL carries one; the breadcrumb always. The logo is decorative (the H1 follows).
+    H1 = the organiser's name. Description: plain text, line breaks kept (nl2br escapes first).
+#}
+{% if app.request.query.has('return') %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: return_fallback_url, fallbackTitle: return_fallback_title}) }}
+{% endif %}
+{{ include('event_parts/_crumbs.html.twig', {items: crumbs}) }}
+<header class="ev-detail-header">
+    {% if logo %}
+        <div class="ev-detail-logo event-image"><img src="{{ logo|thumbnail('puzzle_small') }}" alt=""></div>
+    {% endif %}
+    <div class="ev-detail-head">
+        <h1 class="ev-detail-name">{{ name }}</h1>
+        <p class="ev-detail-facts">{% block facts %}{% endblock %}</p>
+        <div class="ev-detail-actions">{% block actions %}{% endblock %}</div>
+    </div>
+</header>
+{% if description %}
+    <p class="ev-detail-description" data-event-description>{{ description|nl2br }}</p>
+{% endif %}

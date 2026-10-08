@@ -12,13 +12,15 @@ never handles payments - a page may only *describe* how to pay.
 
 ## What a page shows
 
-One slot, right after the description:
+One slot, after the agenda - since the detail pages redesign
+([../events-page/detail-pages.md](../events-page/detail-pages.md), "Conflicts" 1; before it the slot sat right after the
+description):
 
-| Page | Sections |
-|------|----------|
-| Standalone event (`event_detail`) | its own |
-| Edition (`edition_detail`) | its own, then its series' (inherited) |
-| Series (`competition_series_detail`) | its own |
+| Page | Sections | Where |
+|------|----------|-------|
+| Standalone event (`event_detail`) | its own | after Taking part and the marketplace card, before the participants |
+| Edition (`edition_detail`) | its own, then its series' (inherited) | the same |
+| Series (`competition_series_detail`) | its own | between Upcoming and Past |
 
 **Only on a publicly visible page** (review 2, A-F7): an event or edition shows its sections only when
 `IsCompetitionPubliclyVisible` says so (an edition also needs its series approved), a series only when it is approved and
@@ -28,8 +30,8 @@ public yet says so ("Visitors see these sections only once the event is approved
 
 Each list in `position` order. Hidden sections are not shown. A **venue** shows only on an in-person page (an online
 event never offers one; a series venue is left out of an online edition's page). Everything else on the page - header,
-"Results by round", puzzles or rounds, "I'm going", marketplace card, participants - stays exactly where main has it.
-There is no ordering or hiding of those system parts (the PR's `page_layout` was dropped before it shipped: it re-plumbed
+rounds timeline, puzzles, Taking part, marketplace card, participants - is laid out by the page itself (detail-pages.md);
+`PageSectionsOnPagesTest` pins where the slot sits. There is no ordering or hiding of those system parts (the PR's `page_layout` was dropped before it shipped: it re-plumbed
 the whole page for every competition, and nothing needed it yet).
 
 **Zero cost without sections.** `GetCompetitionEvents::byId()` and `GetCompetitionSeries::byId()/bySlug()` carry

@@ -18,11 +18,11 @@ final class EventTitleTest extends TestCase
 
     public function testPastEventWithoutYearInNameGetsTheYear(): void
     {
-        $title = EventTitle::forCompetition($this->competition('Festival Des Jeux', '2026-09-26', '2026-09-26'), null, [], $this->today());
+        $title = EventTitle::forCompetition($this->competition('Festival of Little Pieces', '2026-09-26', '2026-09-26'), null, [], $this->today());
 
         self::assertTrue($title->isPast);
         self::assertSame('2026', $title->year);
-        self::assertSame('Festival Des Jeux 2026', $title->label());
+        self::assertSame('Festival of Little Pieces 2026', $title->label());
     }
 
     public function testNameThatCarriesTheYearIsNotRepeated(): void
@@ -57,10 +57,10 @@ final class EventTitleTest extends TestCase
 
     public function testUpcomingEventIsNotPast(): void
     {
-        $title = EventTitle::forCompetition($this->competition('Danish Puzzle Marathon', '2026-10-24', '2026-10-24'), null, [], $this->today());
+        $title = EventTitle::forCompetition($this->competition('Northern Puzzle Marathon', '2026-10-24', '2026-10-24'), null, [], $this->today());
 
         self::assertFalse($title->isPast);
-        self::assertSame('Danish Puzzle Marathon 2026', $title->label());
+        self::assertSame('Northern Puzzle Marathon 2026', $title->label());
     }
 
     public function testEventEndingTodayIsNotPastYet(): void
@@ -83,28 +83,28 @@ final class EventTitleTest extends TestCase
 
     public function testUndatedEventIsNeitherPastNorGivenAYear(): void
     {
-        $title = EventTitle::forCompetition($this->competition('Puzzle Discord France', null, null), null, [], $this->today());
+        $title = EventTitle::forCompetition($this->competition('Puzzle Chat Club', null, null), null, [], $this->today());
 
         self::assertFalse($title->isPast);
         self::assertNull($title->year);
         self::assertNull($title->startsAt);
-        self::assertSame('Puzzle Discord France', $title->label());
+        self::assertSame('Puzzle Chat Club', $title->label());
     }
 
     public function testEditionGetsItsSeriesInFront(): void
     {
-        $title = EventTitle::forCompetition($this->competition('#21 - May 2026', '2026-05-31', '2026-05-31'), 'Piece-off', [], $this->today());
+        $title = EventTitle::forCompetition($this->competition('#21 - May 2026', '2026-05-31', '2026-05-31'), 'Piece-by-piece', [], $this->today());
 
-        self::assertSame('Piece-off · #21 - May 2026', $title->name);
-        self::assertSame('Piece-off · #21 - May 2026', $title->label());
+        self::assertSame('Piece-by-piece · #21 - May 2026', $title->name);
+        self::assertSame('Piece-by-piece · #21 - May 2026', $title->label());
     }
 
     public function testEditionNamedAfterItsSeriesIsNotPrefixedTwice(): void
     {
-        $title = EventTitle::forCompetition($this->competition('Puzzly #11', '2026-07-16', '2026-07-16'), 'puzzly', [], $this->today());
+        $title = EventTitle::forCompetition($this->competition('Pinwheel #11', '2026-07-16', '2026-07-16'), 'pinwheel', [], $this->today());
 
-        self::assertSame('Puzzly #11', $title->name);
-        self::assertSame('Puzzly #11 2026', $title->label());
+        self::assertSame('Pinwheel #11', $title->name);
+        self::assertSame('Pinwheel #11 2026', $title->label());
     }
 
     public function testUndatedEditionIsDatedByItsRounds(): void
@@ -114,22 +114,22 @@ final class EventTitleTest extends TestCase
             $this->round('2026-06-14 05:15:00'),
         ];
 
-        $upcoming = EventTitle::forCompetition($this->competition('Ou La La SPC No. 19', null, null), 'Ou La La Puzzles', $rounds, $this->today());
+        $upcoming = EventTitle::forCompetition($this->competition('Pinecone Speed Cup No. 19', null, null), 'Pinecone Puzzles', $rounds, $this->today());
 
         self::assertFalse($upcoming->isPast, 'The last round is still to come');
         self::assertSame('2026', $upcoming->year);
         self::assertSame('2026-06-14', $upcoming->startsAt?->format('Y-m-d'), 'Starts with its earliest round');
-        self::assertSame('Ou La La Puzzles · Ou La La SPC No. 19 2026', $upcoming->label());
+        self::assertSame('Pinecone Puzzles · Pinecone Speed Cup No. 19 2026', $upcoming->label());
 
-        $past = EventTitle::forCompetition($this->competition('Virtual Competitions', null, null), 'NC Jigsaw Puzzle Association', [$this->round('2026-09-16 22:45:00')], $this->today());
+        $past = EventTitle::forCompetition($this->competition('Virtual Competitions', null, null), 'Northfield Jigsaw Association', [$this->round('2026-09-16 22:45:00')], $this->today());
 
         self::assertTrue($past->isPast);
     }
 
     public function testSaysResultsOnlyOnceOverAndWithResults(): void
     {
-        $past = EventTitle::forCompetition($this->competition('Festival Des Jeux', '2026-09-26', '2026-09-26'), null, [], $this->today());
-        $upcoming = EventTitle::forCompetition($this->competition('Danish Puzzle Marathon', '2026-10-24', '2026-10-24'), null, [], $this->today());
+        $past = EventTitle::forCompetition($this->competition('Festival of Little Pieces', '2026-09-26', '2026-09-26'), null, [], $this->today());
+        $upcoming = EventTitle::forCompetition($this->competition('Northern Puzzle Marathon', '2026-10-24', '2026-10-24'), null, [], $this->today());
 
         self::assertTrue($past->saysResults(1));
         // Over, but nobody added a result here - named like an upcoming event

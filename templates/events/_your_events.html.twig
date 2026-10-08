@@ -11,7 +11,7 @@
             {% for your_event in page.yourEvents %}
                 {% set row = your_event.row %}
                 <li class="ev-your-event ev-your-event-{{ your_event.mark }}" data-ev-ids="{{ row.idsAttribute }}">
-                    {{ include('events/_date_leaf.html.twig', {leaf: row.leaf}) }}
+                    {{ include('event_parts/_date_leaf.html.twig', {leaf: row.leaf}) }}
                     <div class="ev-your-body">
                         {% if row.url %}
                             <a class="ev-your-name" href="{{ row.url }}">{{ row.title }}</a>
@@ -21,7 +21,7 @@
                         {% if row.editionName %}<span class="ev-your-edition">{{ row.editionName }}</span>{% endif %}
                         <span class="ev-your-meta">
                             {%- if row.when -%}
-                                {{ include('events/_when.html.twig', {when: row.when}) }}
+                                {{ include('event_parts/_when.html.twig', {when: row.when}) }}
                             {%- elseif row.leaf.from -%}
                                 {{ row.leaf.from|events_date('yMMMd') }}
                             {%- else -%}

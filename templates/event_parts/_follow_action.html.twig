@@ -1,0 +1,15 @@
+{#
+    The header's labelled follow star (owner: foundation): an edition follows its series ("Follow series" / "Following
+    series"), a one-time event itself ("Follow" / "Following"), a series itself. Nothing without a target (not public,
+    a past event). Variables: follow_target (?FollowTarget), following (bool), kind ('series'|'event'), follow_name
+#}
+{% if follow_target is not null %}
+    {{ include('event_parts/_follow_star.html.twig', {
+        follow_target: follow_target,
+        follow_name: follow_name,
+        following: following,
+        labelled: true,
+        text_follow: (kind == 'series' ? 'event_detail.follow.series' : 'event_detail.follow.event')|trans,
+        text_following: (kind == 'series' ? 'event_detail.follow.series_following' : 'event_detail.follow.event_following')|trans,
+    }) }}
+{% endif %}

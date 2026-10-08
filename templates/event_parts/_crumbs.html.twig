@@ -1,0 +1,9 @@
+{# The detail pages' breadcrumb (owner: foundation): links only - the H1 is the current page.
+   Variables: items (list<{label, url}>) #}
+<nav class="ev-crumbs" aria-label="{{ 'event_detail.crumbs'|trans }}">
+    <ol>
+        {%- for item in items %}
+            <li><a href="{{ item.url }}">{{ item.label }}</a></li>
+        {%- endfor %}
+    </ol>
+</nav>

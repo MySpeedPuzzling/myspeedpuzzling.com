@@ -52,170 +52,53 @@
 
 {% block json_ld %}
 {{ parent() }}
-{% if event.approvedAt is not null and event.rejectedAt is null and event.dateFrom is not null and event.slug is not null %}
-<script type="application/ld+json">
-{
-    "@context": "https://schema.org",
-    "@type": "Event",
-    "name": {{ event.name|json_ld }},
-    "url": {{ url('event_detail', {'slug': event.slug})|json_ld }},
-    "startDate": {{ event.dateFrom|date('Y-m-d')|json_ld }},
-    "eventStatus": "https://schema.org/EventScheduled",
-    "eventAttendanceMode": {{ (event.isOnline ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode')|json_ld }}
-    {%- if event.dateTo %},
-    "endDate": {{ event.dateTo|date('Y-m-d')|json_ld }}
-    {%- endif %}
-    {%- if event.isOnline %},
-    "location": {
-        "@type": "VirtualLocation",
-        "url": {{ (event.registrationLink ?? event.resultsLink ?? url('event_detail', {'slug': event.slug}))|json_ld }}
-    }
-    {%- elseif event.location %},
-    "location": {
-        "@type": "Place",
-        "name": {{ event.location|json_ld }},
-        "address": {
-            "@type": "PostalAddress",
-            "addressLocality": {{ event.location|json_ld }}
-            {%- if event.locationCountryCode %},
-            "addressCountry": {{ event.locationCountryCode.name|upper|json_ld }}
-            {%- endif %}
-        }
-    }
-    {%- endif %}
-    {%- if event.logo %},
-    {# The large metadata-stripped preset (1200 px JPEG; Google wants event images >= 720 px wide) - never
-       the uploaded original, older uploads may still carry EXIF/GPS #}
-    "image": {{ event.logo|thumbnail('puzzle_large')|json_ld }}
-    {%- endif %}
-    {# description is a Google-recommended Event property - always emit,
-       falling back to the same text as the meta description. organizer is
-       deliberately NOT emitted: added_by_player is the submitter (often an
-       admin), not the organizer - see docs/features/seo/TODO.md #14. #}
-    ,"description": {{ (event.description ? event.description|striptags : block('meta_description')|trim)|json_ld }}
-    {%- if event.registrationLink %},
-    "offers": {
-        "@type": "Offer",
-        "url": {{ event.registrationLink|json_ld }}
-    }
-    {%- endif %}
-}
-</script>
-{% endif %}
+{{ include('event_parts/_event_json_ld.html.twig', {meta_description: block('meta_description')|trim, series: null}) }}
 {% endblock %}
 
 {% block content %}
-    {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
+    {#- The event page (docs/features/events-page/detail-pages.md "Edition page and one-time event page"): B owns the
+        sections below the header, C the JSON-LD -#}
+    <div class="ev-detail ev-detail-event"
+        {%- if online %} data-controller="event-local-time" data-event-local-time-messages-value="{{ {
+            yours: 'event_detail.time.yours'|trans,
+            yours_next_day: 'event_detail.time.yours_next_day'|trans,
+            yours_previous_day: 'event_detail.time.yours_previous_day'|trans,
+        }|json_encode }}"{% endif %}>
+        {% embed 'event_parts/_detail_header.html.twig' with {
+            crumbs: [{label: 'events.title'|trans, url: path('events')}],
+            logo: event.logo,
+            name: event.name,
+            description: event.description,
+            return_fallback_url: path('events'),
+            return_fallback_title: 'events.title'|trans,
+        } %}
+            {% block facts %}{{ include('event_parts/_event_header_facts.html.twig', {recurring: false}) }}{% endblock %}
+            {% block actions %}{{ include('event_parts/_event_header_actions.html.twig', {follow_kind: 'event', follow_name: event.name}) }}{% endblock %}
+        {% endembed %}
 
-    <div class="d-flex">
-        <div class="flex-fill">
-            <h1 class="h4 mb-2">
-                {{ event.name }}
-            </h1>
+        <div class="ev-detail-body">
+            <div class="ev-detail-main">
+                {{ include('event_parts/_facts_strip_event.html.twig') }}
+                {{ include('event_parts/_rounds_timeline.html.twig', {timeline: timeline, event: event, online: online}) }}
+                {{ include('event_parts/_more_puzzles.html.twig') }}
+                {{ include('event_parts/_taking_part.html.twig') }}
 
-            <div class="row">
-                <div class="col-sm-6">
-                    {# Older online events still carry location "Online" - the badge says it once #}
-                    {% if event.isOnline %}
-                        <span class="badge bg-info text-dark">{{ 'competition.online'|trans }}</span>
-                    {% else %}
-                        {% if event.locationCountryCode %}
-                            <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
-                        {% endif %}
-
-                        {{ event.location }}
-                    {% endif %}
-
-                    {% if event.dateFrom %}
-                        <div class="mt-1">
-                            <i class="ci-calendar me-2 ps-1"></i>
-                            {{ include('_event_date_range.html.twig', {date_from: event.dateFrom, date_to: event.dateTo}) }}
-                            <small class="text-muted ps-1">({{ event.dateFrom|ago }})</small>
-                        </div>
-                    {% endif %}
-                </div>
-
-                {% if event.link or event.registrationLink or event.resultsLink %}
-                    <div class="col-sm-6 mt-2 mt-sm-0">
-                        {% if event.link %}
-                            <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
-                                <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                            </a>
-                        {% endif %}
-
-                        {% if event.registrationLink %}
-                            <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.registrationLink }}">
-                                <i class="bi bi-person-plus me-1"></i>{{ 'events.registration_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                            </a>
-                        {% endif %}
-
-                        {% if event.resultsLink %}
-                            <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.resultsLink }}">
-                                <i class="bi bi-trophy me-1"></i>{{ 'events.results_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                            </a>
-                        {% endif %}
-                    </div>
-                {% endif %}
-            </div>
-
-            {# One compact row of the rounds whose results page has something to show, in schedule order -
-               the puzzle cards link their own round too, this is the overview for whoever came for results #}
-            {% if result_rounds|length > 0 %}
-                <div class="d-flex flex-wrap align-items-center gap-1 mt-2" data-event-round-results>
-                    <span class="small text-muted me-1"><i class="bi bi-trophy me-1"></i>{{ 'events.results_by_round'|trans }}</span>
-                    {% for round in result_rounds %}
-                        <a class="btn btn-outline-primary btn-xs text-nowrap" href="{{ round_results_urls[round.id] }}">
-                            <span class="d-inline-block rounded-circle me-1 align-middle" style="width: .5rem; height: .5rem; background-color: {{ round.color }};" aria-hidden="true"></span>{{ round.name }}
-                        </a>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="ms-3 flex-shrink-0 event-image">
-            {% if event.logo %}
-                <img style="max-height: 84px;" src="{{ event.logo|thumbnail('puzzle_small') }}" alt="{{ event.name }} logo" class="img-fluid">
-            {% endif %}
-        </div>
-    </div>
-
-    {% if event.description %}
-        {# Plain text: nl2br escapes first, then keeps the organiser's line breaks #}
-        <p class="mt-3 mb-0" data-event-description>{{ event.description|nl2br }}</p>
-    {% endif %}{# Organiser-written sections (competitions-management/public-page.md) - on this line, so a page without any renders byte for byte as before #}{% if page_sections is not empty %}{{ include('_page_sections.html.twig', {sections: page_sections}) }}{% endif %}
-
-    {#- The events page links a session of this event (rounds on separate days) to #round-<id>: one empty anchor per round, where its puzzles start -#}
-    {% for round in rounds %}<span class="event-round-anchor d-block" id="round-{{ round.id }}"></span>{% endfor %}
-    <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
-
-    {% if puzzles|length > 0 %}
-        <div class="row g-2 g-md-3">
-            {% for puzzle in puzzles %}
-                {{ include('_puzzle_item.html.twig', {
-                    'search': '',
+                {{ include('_event_offers.html.twig', {
+                    offers: event_offers,
+                    competition_id: event.id,
+                    attendance: attendance,
+                    just_joined: event_offers_just_joined,
                 }) }}
-            {% endfor %}
+
+                {#- Organiser-written sections (competitions-management/public-page.md): after the marketplace card, before the
+                    participants - nothing at all without them -#}
+                {% if page_sections is not empty %}{{ include('_page_sections.html.twig', {sections: page_sections}) }}{% endif %}
+
+                <twig:CompetitionParticipants competitionId="{{ event.id }}" class="ev-participants" />
+            </div>
+            {{ include('event_parts/_detail_side.html.twig') }}
         </div>
-    {% else %}
-        <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
-    {% endif %}
 
-    <div class="mt-4 mb-3">
-        {{ include('_event_attendance.html.twig', {competition_id: event.id, attendance: attendance}) }}
-        {% if can_add_time %}
-            <a href="{{ path('puzzle_add', {competition: event.id}) }}" class="btn btn-sm btn-outline-primary ms-1 text-wrap">
-                <i class="bi bi-stopwatch me-1"></i>{{ 'events.add_my_time'|trans }}
-            </a>
-        {% endif %}
+        {{ include('event_parts/_manage_menu_host.html.twig', {show_menu: is_granted('IS_AUTHENTICATED_REMEMBERED') and (is_granted('COMPETITION_EDIT', event.id) or is_granted('ADMIN_ACCESS'))}) }}
     </div>
-
-    {{ include('_event_offers.html.twig', {
-        offers: event_offers,
-        competition_id: event.id,
-        attendance: attendance,
-        just_joined: event_offers_just_joined,
-    }) }}
-
-    <twig:CompetitionParticipants competitionId="{{ event.id }}" />
-
 {% endblock %}

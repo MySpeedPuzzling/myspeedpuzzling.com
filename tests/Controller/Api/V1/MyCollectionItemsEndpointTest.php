@@ -156,10 +156,10 @@ final class MyCollectionItemsEndpointTest extends WebTestCase
         $this->assertSame(self::EMPTY_SOLVES_GROUP, $solves['duo']);
         $this->assertSame(self::EMPTY_SOLVES_GROUP, $solves['team']);
 
-        // PUZZLE_500_01: three solo solves (1800, a 1850 competition time, 1750) - competition times are the player's own results too
+        // PUZZLE_500_01: four solo solves (1800, a 1850 competition time, 1750, EventDetailFixture's 1800 in a Sprint round) - competition times are the player's own results too
         $solves = $this->item($this->decode($browser), PuzzleFixture::PUZZLE_500_01)['solves'];
         $this->assertNotNull($solves);
-        $this->assertSame(3, $solves['solo']['count']);
+        $this->assertSame(4, $solves['solo']['count']);
         $this->assertSame(1750, $solves['solo']['best_time_seconds']);
         $this->assertSame(1750, $solves['solo']['last_time_seconds']);
     }

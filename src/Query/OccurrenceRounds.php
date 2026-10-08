@@ -14,6 +14,11 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * occurrences - the events page (GetEventOccurrences), the archive years of the sitemap and "You organize". One LEFT
  * JOIN aliased `r` on `c` (competition): `r.rounds` (a JSON list in start order, NULL without rounds) and
  * `r.round_count`.
+ *
+ * SQL_JOIN_WITH_RESULTS (GetEventOccurrences only - the events page and the series page) adds each round's
+ * `has_results`: a time logged in it (not suspicious) or published official results - so a session of several gets its
+ * own Results tag (docs/features/events-page/detail-pages.md, conflict 5). The sitemap's years and "You organize" do
+ * not need it and keep the lighter join.
  */
 final class OccurrenceRounds
 {
@@ -26,6 +31,35 @@ LEFT JOIN (
     GROUP BY competition_id
 ) r ON r.competition_id = c.id
 SQL;
+
+    public const string SQL_JOIN_WITH_RESULTS = <<<SQL
+LEFT JOIN (
+    SELECT cr_j.competition_id,
+        json_agg(json_build_object(
+            'id', cr_j.id,
+            'name', cr_j.name,
+            'starts_at', cr_j.starts_at,
+            'timezone', cr_j.timezone,
+            'has_results', (
+                EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr_j.id AND pst.suspicious = false)
+                OR %s
+            )
+        ) ORDER BY cr_j.starts_at, cr_j.id) AS rounds,
+        COUNT(*) AS round_count
+    FROM competition_round cr_j
+    %s
+    GROUP BY cr_j.competition_id
+) r ON r.competition_id = c.id
+SQL;
+
+    /**
+     * @param string $roundsWhere a WHERE on `cr_j` (competition_round) inside the aggregate - the series page passes
+     *     its own competitions so it does not aggregate every round on the site; empty = all rounds (the events page)
+     */
+    public static function sqlJoinWithResults(string $roundsWhere = ''): string
+    {
+        return sprintf(self::SQL_JOIN_WITH_RESULTS, GetPublishedRoundResults::sqlShowsOfficialResults('cr_j'), $roundsWhere);
+    }
 
     /**
      * @param null|string ...$countryCodes the event's own, then its series' country - RoundTimezone::resolve()
@@ -51,13 +85,15 @@ SQL;
                 continue;
             }
 
-            $zone = $item['timezone'] ?? null;
+            $zone = is_string($item['timezone'] ?? null) ? $item['timezone'] : null;
 
             $rounds[] = new OccurrenceRound(
                 id: is_string($item['id'] ?? null) ? $item['id'] : '',
                 name: is_string($item['name'] ?? null) ? $item['name'] : '',
                 startsAt: new DateTimeImmutable($item['starts_at'], new DateTimeZone('UTC')),
-                zone: RoundTimezone::resolve(is_string($zone) ? $zone : null, ...$countryCodes),
+                zone: RoundTimezone::resolve($zone, ...$countryCodes),
+                zoneAssumed: RoundTimezone::isAssumed($zone, ...$countryCodes),
+                hasResults: ($item['has_results'] ?? false) === true,
             );
         }
 

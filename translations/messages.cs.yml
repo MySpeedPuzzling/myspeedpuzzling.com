@@ -812,7 +812,6 @@ comparison:
   "results_link": "Oficiální výsledky"
   "registration_link": "Registrace"
   "competition_puzzles": "Soutěžní puzzle"
-  "results_by_round": "Výsledky podle kol"
   "no_puzzle_text": "Zatím tu žádné puzzle nejsou… Zůstaňte naladěni.</strong>"
   "upcoming_editions": "Nadcházející edice"
   "past_editions": "Minulé edice"
@@ -3343,8 +3342,6 @@ qr_code:
   "pending_approval_info": "Tato událost čeká na schválení administrátorem a zatím není viditelná pro ostatní uživatele."
   "rejected_info": "Tato událost nebyla schválena."
   "rejection_reason": "Důvod"
-  "online": "Online"
-  "recurring": "Pravidelná"
   "add_event_info": "Přidejte novou soutěž nebo událost. Bude zkontrolována administrátorem před zveřejněním."
   "managed_event_info": "Máte zájem o kompletní správu registrací účastníků a plateb přes MySpeedPuzzling? Kontaktujte mě na <a href=\"mailto:%email%\">%email%</a>."
   "submit_for_approval": "Odeslat ke schválení"
@@ -7471,6 +7468,7 @@ participants_sheet_people:
     "tomorrow": "Zítra"
     "this_weekend": "Tento víkend"
     "in_days": "Za %count% den|Za %count% dny|Za %count% dní"
+    "today": "Dnes"
   "tag":
     "waiting_for_approval": "Čeká na schválení"
     "going": "Jdu"
@@ -7603,6 +7601,68 @@ participants_sheet_people:
     "going": "Jdu"
     "following": "Sleduji"
 
+"event_detail":
+  "crumbs": "Drobečková navigace"
+  "facts":
+    "recurring": "Pravidelné"
+    "rounds": "%count% kolo|%count% kola|%count% kol"
+    "runs_until": "Probíhá do %date%"
+  "follow":
+    "series": "Sledovat sérii"
+    "series_following": "Sledujete sérii"
+    "event": "Sledovat"
+    "event_following": "Sledujete"
+  "going":
+    "registration": "Registrace"
+  "time":
+    "in_zone": "%time% %zone%"
+    "yours": "%time%, %zone% (váš čas)"
+    "yours_next_day": "%time% následující den, %zone% (váš čas)"
+    "yours_previous_day": "%time% předchozí den, %zone% (váš čas)"
+  "side":
+    "part_of": "Součást"
+    "dates": "Termíny"
+    "place": "Místo"
+    "website": "Web"
+    "times_online": "Časy jsou v pásmu %zone%. U každého kola vidíte i svůj vlastní čas."
+    "times_in_person": "Časy jsou v pásmu %zone%, kde se událost koná."
+"series_page":
+  "facts":
+    "editions": "%count% edice|%count% edice|%count% edic"
+    "since": "od %date%"
+    "coming": "%count% nadcházející termín|%count% nadcházející termíny|%count% nadcházejících termínů"
+    "next": "další %date%"
+    "live_now": "právě probíhá"
+  "next": "Nejbližší termín"
+  "upcoming": "Nadcházející"
+  "ongoing": "Probíhající"
+  "date_not_set": "Datum nestanoveno"
+  "no_upcoming": "Zatím žádné nadcházející termíny."
+  "past": "Minulé"
+  "years": "Roky"
+  "side":
+    "about": "O sérii"
+    "editions": "Edice"
+    "since": "Od"
+    "next": "Další"
+    "following_note": "Další termín této série uvidíte v části „Vaše události“ na stránce událostí."
+"event_rounds":
+  "title": "Kola"
+  "next_round": "Další kolo:"
+  "show_earlier": "Zobrazit %count% dřívější kolo|Zobrazit %count% dřívější kola|Zobrazit %count% dřívějších kol"
+  "hide_earlier": "Skrýt dřívější kola"
+  "minutes": "%count% min"
+  "not_announced": "Puzzle zatím nebyla oznámena"
+  "picture_hidden": "Obrázek se odhalí na začátku kola"
+  "official_results": "Oficiální výsledky"
+  "add_my_time": "Přidat můj čas"
+  "more_puzzles": "Další puzzle této události"
+  "taking_part": "Účast"
+  "facts":
+    "next": "Další %date%"
+    "with_results": "%count% kolo s výsledky|%count% kola s výsledky|%count% kol s výsledky"
+  "side":
+    "next_round": "Další kolo"
 "events_archive":
   "meta":
     "title": "Speed puzzling události %year% – výsledky a archiv"

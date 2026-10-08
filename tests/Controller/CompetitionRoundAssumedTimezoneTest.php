@@ -58,7 +58,7 @@ final class CompetitionRoundAssumedTimezoneTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/series/euro-jigsaw-jam-series/ejj-68-february-2026');
         $this->assertResponseIsSuccessful();
 
-        self::assertSame('(Central European Time)', $crawler->filter('[data-round-zone]')->first()->text());
+        self::assertSame('Central European Time', $crawler->filter('[data-round-zone]')->first()->text());
     }
 
     public function testEditFormSaysTheZoneWasNeverSaved(): void

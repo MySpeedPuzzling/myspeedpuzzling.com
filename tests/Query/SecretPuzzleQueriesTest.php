@@ -162,7 +162,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         self::assertContains('wjpc-2024', $usedAt($revealAt));
     }
 
-    public function testTheEventPagesRoundAndSolvedPuzzlesObeyTheRoundsReveal(): void
+    public function testTheEventPagesSolvedPuzzlesObeyTheRoundsReveal(): void
     {
         // The Qualification round's own puzzle (with three linked results) turned secret on the event page
         $connection = self::getContainer()->get(Connection::class);
@@ -178,9 +178,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         $before = new GetCompetitionPuzzles($connection, new MockClock($revealAt->modify('-1 second')));
         $after = new GetCompetitionPuzzles($connection, new MockClock($revealAt));
 
-        self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($before->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024)));
         self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($before->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
-        self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024)));
         self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
     }
 
@@ -188,7 +186,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
      * The round row's own delay - set by SQL here, the way an older release's rows look: only the column decides.
      */
     #[DataProvider('customDelays')]
-    public function testRoundAndSolvedPuzzleOverviewsObeyACustomDelay(int $delay): void
+    public function testSolvedPuzzleOverviewsObeyACustomDelay(int $delay): void
     {
         $connection = self::getContainer()->get(Connection::class);
         $connection->executeStatement(
@@ -208,9 +206,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         $before = new GetCompetitionPuzzles($connection, new MockClock($revealAt->modify('-1 second')));
         $after = new GetCompetitionPuzzles($connection, new MockClock($revealAt));
 
-        self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($before->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024)));
         self::assertNotContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($before->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
-        self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->roundPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024)));
         self::assertContains(PuzzleFixture::PUZZLE_500_01, self::overviewIds($after->solvedPuzzleOverviews(CompetitionFixture::COMPETITION_WJPC_2024, 50)));
     }
 

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetEventOccurrences;
 use SpeedPuzzling\Web\Results\EventOccurrence;
@@ -92,7 +93,7 @@ final class GetEventOccurrencesTest extends KernelTestCase
 
         self::assertCount(4, $sessions);
         self::assertSame(
-            array_map(fn (int $days): string => $this->today->modify(sprintf('%+d days', $days))->format('Y-m-d'), array_values(EventsPageFixture::SPRINT_ROUND_DAYS)),
+            EventsPageFixture::storedSprintRoundDays(self::getContainer()->get(Connection::class)),
             array_map(static fn (EventOccurrence $occurrence): string => (string) $occurrence->startDate?->format('Y-m-d'), $sessions),
         );
         self::assertSame(array_keys(EventsPageFixture::SPRINT_ROUND_DAYS), array_map(static fn (EventOccurrence $occurrence): string => (string) $occurrence->session?->firstRoundId, $sessions));

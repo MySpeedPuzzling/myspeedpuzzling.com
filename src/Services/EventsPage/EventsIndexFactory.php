@@ -19,12 +19,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * line; the position in the list is the entry's `id` - unique also for the sessions of one competition (rounds on
  * separate days), which are separate entries. Keys are short on purpose:
  *
- * `id`, `k` (e = one-time event, d = edition, s = series), `n` (the event's or the series' name), `en` (the line under
- * the name: an edition's own name, a session's label - EventOccurrence::subtitle()), `sid` (an edition's series
- * entry), `u` (link), `f`/`t` (Y-m-d first and last day, `t` null for one day), `lr` (long-running), `sc`
- * (scope key: online / country code / ''), `c` (country code), `p` (place label), `st` (EventOccurrenceStatus, null
- * for a series), `r` (results), `w` (waiting for approval), `x` (folded search text: names, a session's label,
- * location, the country's localised and English name, the year, "online").
+ * `id`, `k` (e = one-time event, d = edition, s = series), `n` (the event's or the series' name), `en` (an edition's
+ * own name), `sl` (a session's label: its one round's name), `cm` (the competition: sessions of one share it, null
+ * for a series), `sid` (an edition's series entry), `u` (link), `f`/`t` (Y-m-d first and last day, `t` null for one
+ * day), `lr` (long-running), `sc` (scope key: online / country code / ''), `c` (country code), `p` (place label), `st`
+ * (EventOccurrenceStatus, null for a series), `r` (results), `w` (waiting for approval), `x` (folded search text:
+ * names, a session's label, location, the country's localised and English name, the year, "online").
  */
 readonly final class EventsIndexFactory
 {
@@ -53,7 +53,9 @@ readonly final class EventsIndexFactory
             'id' => $id,
             'k' => $isEdition ? 'd' : 'e',
             'n' => $name,
-            'en' => $occurrence->subtitle(),
+            'en' => $occurrence->editionName(),
+            'sl' => $occurrence->sessionLabel(),
+            'cm' => $occurrence->competitionId,
             'sid' => $seriesIndexId,
             'u' => $url,
             'f' => $occurrence->startDate?->format('Y-m-d'),
@@ -68,7 +70,7 @@ readonly final class EventsIndexFactory
             'x' => self::searchText([
                 $occurrence->name,
                 $isEdition ? $occurrence->seriesName : null,
-                $occurrence->session?->label,
+                $occurrence->sessionLabel(),
                 $occurrence->location,
                 $occurrence->countryCode?->localizedName($locale),
                 $occurrence->countryCode?->value,
@@ -88,6 +90,8 @@ readonly final class EventsIndexFactory
             'k' => 's',
             'n' => $series->name,
             'en' => null,
+            'sl' => null,
+            'cm' => null,
             'sid' => null,
             'u' => $line->url,
             'f' => null,

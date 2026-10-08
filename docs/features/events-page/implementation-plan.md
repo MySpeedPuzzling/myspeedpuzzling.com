@@ -230,14 +230,14 @@ View models (`src/Results/EventsPage/`, readonly):
 
 | Class | Fields |
 |---|---|
-| `EventsPage` | `summary: EventsSummary`, `yourEvents: list<YourEvent>`, `happeningNow: list<AgendaRow>`, `months: list<AgendaMonth>`, `tba: list<AgendaRow>`, `seriesInPerson: list<SeriesLine>`, `seriesOnline: list<SeriesLine>`, `ongoingOnline: list<AgendaRow>`, `archiveYears: list<ArchiveYear>` (all public past, newest first), `countryCounts: list<CountryCount>` (sheet: every country with an in-person occurrence), `chipCountries: list<CountryCount>` (≤ 6 with upcoming, + the active scope's country when not among them), `homeCountry: ?CountryCount` (with zeros when nothing there), `onlineUpcoming: int`, `everywhereUpcoming: int`, `organizedCount: int`, `scope: EventsScope`, `scopeUpcoming: int`, `scopeLast: ?ArchiveLine` (empty state), `index: list<array>`, `itemListUrls: list<string>`, `regions: list<CountryRegionGroup>` |
+| `EventsPage` | `summary: EventsSummary`, `yourEvents: list<YourEvent>`, `live: list<AgendaRow>`, `months: list<AgendaMonth>`, `tba: list<AgendaRow>`, `seriesInPerson: list<SeriesLine>`, `seriesOnline: list<SeriesLine>`, `ongoing: list<AgendaRow>` (undated online events + long spans running now), `archiveYears: list<ArchiveYear>` (all public past, newest first), `countryCounts: list<CountryCount>` (sheet: every country with an in-person occurrence), `chipCountries: list<CountryCount>` (≤ 6 with upcoming, + the active scope's country when not among them), `homeCountry: ?CountryCount` (with zeros when nothing there), `onlineUpcoming: int`, `everywhereUpcoming: int`, `organizedCount: int`, `scope: EventsScope`, `scopeUpcoming: int`, `scopeLast: ?ArchiveLine` (empty state), `index: list<array>`, `itemListUrls: list<string>`, `regions: list<CountryRegionGroup>` |
 | `EventsSummary` | `upcomingDates`, `countries` (in person), `hasOnline`, `series` (public) |
 | `AgendaRow` | `indexIds: list<int>`, `isGroup`, `title`, `editionName: ?string`, `url: ?string`, `leaf: DateLeaf`, `place: Place`, `tags: list<RowTag>`, `when: ?WhenLabel`, `sessions: list<SessionChip>` (group only), `status: EventOccurrenceStatus`, `scopeKey: string` (`online` / country code / `''`), `from: ?string`, `to: ?string` (`Y-m-d`; long-running: `to` = `from`), `followTarget: ?FollowTarget`, `followName: string`, `following: bool`, `manage: ?ManageRef`, `isPending`, `visible: bool` (in the request's scope), `logo: ?string` (Your events only) |
 | `AgendaMonth` | `year`, `month`, `firstDay: DateTimeImmutable`, `rows: list<AgendaRow>`, `visibleCount: int` |
 | `DateLeaf` | `from: ?DateTimeImmutable`, `to: ?DateTimeImmutable` (null: one day, long-running or group), `tone: 'in_person'\|'online'\|'muted'` |
 | `Place` | `city: ?string` (null when the location contains the country name, folded compare), `country: ?string` (localised), `countryCode: ?CountryCode`, `isOnline` |
 | `RowTag` | `type: RowTagType` enum (`WaitingForApproval`, `Going`, `Recurring`, `Registration`, `RegistrationOpen`, `RegistrationOpens`, `RegistrationClosed`, `FullWaitlist`, `Results`, `RunsUntil`, `GoingCount`), `date: ?DateTimeImmutable`, `count: ?int` |
-| `WhenLabel` | `type: 'happening_now'\|'now'\|'tomorrow'\|'this_weekend'\|'in_days'`, `days: int`, `soon: bool` |
+| `WhenLabel` | `type: 'live'\|'tomorrow'\|'this_weekend'\|'in_days'`, `days: int`, `soon: bool` |
 | `SessionChip` | `indexId`, `url`, `date: DateTimeImmutable`, `title` |
 | `SeriesLine` | `indexId`, `seriesId`, `name`, `url`, `place: Place`, `isOnline`, `editionCount`, `next: SeriesNext`, `followTarget`, `following`, `manage: ?ManageRef`, `isPending`, `scopeKey`, `visible` |
 | `SeriesNext` | `type: 'next'\|'live'\|'last'\|'none'`, `date: ?DateTimeImmutable` |
@@ -254,11 +254,12 @@ Builder rules (each one has a unit test):
 - Only public occurrences/series are counted (summary, chips, sheet, months' counts). Pending ones (admins) are
   rows with the `WaitingForApproval` tag and `isPending`, never counted, never in "Your events", never in the archive.
 - Online occurrences count under Online only (README "Scope").
-- Happening now = live, by start. Months = upcoming, by start; **roll-up**: ≥ 2 upcoming editions of one series in
+- Live = live, by start. Months = upcoming, by start; **roll-up**: ≥ 2 upcoming editions of one series in
   one calendar month → one group row at the first one's position (leaf = first date, sessions = all, follow =
-  series, manage = series, tags: Going when the viewer goes to any, Recurring). TBA = tba, by name. Ongoing online =
-  ongoing, by name. `DateNotSet` editions only count in their series' edition count.
-- When labels: live → `happening_now` (`now` when long-running); n = days to start: 1 → tomorrow; n ≤ 6 and start
+  series, manage = series, tags: Going when the viewer goes to any, Recurring). TBA = tba, by name. Ongoing =
+  ongoing (undated online events, long spans running now), by name; a long span running now counts as upcoming in the
+  scope, country and summary counts. `DateNotSet` editions only count in their series' edition count.
+- When labels: live → `live` (shown as "Live" with the pulsing `.live-dot`); n = days to start: 1 → tomorrow; n ≤ 6 and start
   is Fri/Sat/Sun → this_weekend; n ≤ 30 → in_days (soon when ≤ 14); else none.
 - Tags in this order: WaitingForApproval, Going (viewer), Recurring (edition), registration (managed: Open / Opens
   `date` / Closed, and FullWaitlist when spots taken ≥ capacity while Open; external link only: Registration; none
@@ -445,7 +446,7 @@ events_page:
         dates_count: "%count% date|%count% dates"
         events_count: "%count% event|%count% events"
         without_date: "%count% without a date|%count% without a date"
-        happening_now: "Happening now"
+        live: "Live"
         tba: "Date to be announced"
         no_upcoming_in: "No upcoming dates in %scope% yet."
         no_upcoming_online: "No upcoming dates online yet."
@@ -459,8 +460,7 @@ events_page:
         know_one: "Know about an event?"
         add_it: "Add it to the calendar"
     when:
-        happening_now: "Happening now"
-        now: "Now"
+        live: "Live"
         tomorrow: "Tomorrow"
         this_weekend: "This weekend"
         in_days: "In %count% day|In %count% days"
@@ -487,12 +487,12 @@ events_page:
         title: "Series"
         in_person: "In person"
         online: "Online"
-        ongoing_online: "Ongoing online"
+        ongoing_title: "Ongoing"
         editions: "%count% edition|%count% editions"
         no_editions: "no editions yet"
         next: "Next: %date%"
         last: "Last: %date%"
-        happening_now: "Happening now"
+        live: "Live"
         no_dates: "No dates yet"
         no_fixed_dates: "Online · no fixed dates"
         ongoing: "Ongoing"
@@ -618,7 +618,7 @@ are anchored so they hold for weeks after the test DB is built (the cache keeps 
 | `EDITION_CLOCK_LONG` (17) "Lakeside Clock Marathon" | −30 days to +400 days | live + long-running; edition name equals series name |
 | `COMPETITION_RIVERSIDE_OPEN` (31) "Riverside Puzzle Open" | in person, Hamburg, `de`, +20..+21 days, managed registration open since −10 days, capacity 2; participants `PARTICIPANT_RIVERSIDE_A` (connected PLAYER_WITH_FAVORITES), `_B` (unlinked), `_WAITLISTED` (waitlisted) | Full · waitlist, going count 2 |
 | `COMPETITION_MEADOW_TBA` (32) "Meadow Puzzle Championship" | in person, `ro`, no dates, external registration link | Date to be announced + "Registration" |
-| `COMPETITION_ENDLESS_RELAY` (33) "Endless Online Puzzle Relay" | online, no dates | Ongoing online |
+| `COMPETITION_ENDLESS_RELAY` (33) "Endless Online Puzzle Relay" | online, no dates | Ongoing |
 | `COMPETITION_VALLEY_CUP_LAST_YEAR` (34) "Valley Speed Puzzle Cup" | in person, `cz`, 14 March last year, results link | archive, Results tag |
 | `COMPETITION_VALLEY_CUP_TWO_YEARS_AGO` (35) | the same, two years ago, no results | second archive year |
 | `COMPETITION_GARDEN_SWAP_REJECTED` (36) "Garden Swap Evening" | in person, `cz`, +50 days, created by PLAYER_REGULAR, rejected with reason "A swap meet without timed rounds." | "You organize" shows Rejected + reason; never listed |
@@ -686,9 +686,10 @@ Contracts that differ from the text above, or that the text left open. Everythin
    folded part once).
 2. **`build()` / `buildArchive()` take the request's instant as `$today`** (the controller passes `$clock->now()`):
    its UTC date is "today", the instant decides registration windows (opens at 22:30 is not "open" at 10:00).
-3. **`src/Value/OccurrenceDates`** is the one dating rule (README "Dates"): `ofEvent()`, `ofEdition()` (first round in
-   `RoundTimezone::resolve()`), `status()`, `today()`, `localDay()`. `GetEventOccurrences`, `GetOrganizedEvents` and
-   `OrganizedEvent::badge()` use it; D's `archiveYears()` SQL must date the same way.
+3. **`src/Value/OccurrenceDates`** is the one dating rule (README "Dates"): `sessions()` (rounds in their
+   `RoundTimezone::resolve()` zone, grouped into sessions; one-time events and editions alike), `current()`,
+   `status()`, `today()`, `localDay()`. `GetEventOccurrences`, `GetOrganizedEvents`, `OrganizedEvent::badge()` and
+   `GetCompetitionSlugsForSitemap::archiveYears()` use it, fed by the shared rounds join `OccurrenceRounds`.
 4. **Extra members** (additions only): `EventOccurrence::registrationZone()`; `AgendaRow::idsAttribute()`,
    `datesCount()`; `ArchiveLine` + `editionName`, `year`, `isRollUp()`, `idsAttribute()`; `ArchiveYear::occurrenceCount()`;
    `EventsScope::keyOf(bool $isOnline, ?CountryCode)` (static, the scope key of an item) and `isOnline()`;
@@ -753,16 +754,16 @@ Builds:
 - Country sheet: `role="dialog" aria-modal="true"`, bottom sheet on phones, centred 440 px on desktop, search
   (folded), grouped by `page.regions` (region names from `CountryRegion::translationKey()`), counts line, focus moves
   in and back, Escape and backdrop close.
-- Your events strip (cards: leaf, title, edition, mark; logo when present), Happening now, months (sticky header
+- Your events strip (cards: leaf, title, edition, mark; logo when present), Live, months (sticky header
   "Czechia · November 2026" with "3 dates"), month roll-up rows with session chips, TBA group, empty states and the
-  home callout, Series directory (two columns on desktop), Ongoing online, archive (year chips as links to
+  home callout, Series directory (two columns on desktop), Ongoing, archive (year chips as links to
   `events_archive`, newest year's 5 lines + "Show all 2026 (58)", other years rendered from the index in place;
   country/online scope: "Past · Country" with all years), footer card, desktop rail Countries card.
 - `events_page_controller.js` (values `scope`, `view`, `query`, `month`, `home`, `signedIn`, `messages`): owns the
   state; reads the index (`readEventsIndex`); on every change shows/hides rows, series lines, months, groups and
   recounts headers (`chooseTranslation`), renders search results and past lines with `fillArchiveLine()` into
   `_search_results` containers (Upcoming rows = the existing rows filtered; Past = newest 30 index entries; Series;
-  Ongoing online), keeps the URL in step (`history.replaceState(history.state, '', url)`: `country`, `onlineOnly`,
+  Ongoing), keeps the URL in step (`history.replaceState(history.state, '', url)`: `country`, `onlineOnly`,
   `view`, `q`, `month`), and dispatches **`events-page:state`** (detail `{scope, query, view}`) on its element on
   connect and after every change. Listens to **`events-calendar:day`** (detail `{day: 'YYYY-MM-DD'|null, ids:
   number[]}`) from the rail calendar: scrolls to the first matching row and flashes them, opening the archive year
@@ -777,9 +778,9 @@ Builds:
 - Measuring: `window.gtag?.('event', 'events_scope' | 'events_view' | 'events_search', {value})` on user changes only
   (debounced 1 s for search) - see section 6.
 
-Tests (`EventsListUiTest`): summary text; Harbor sessions as one row with 3 chips; Clock edition in Happening now with
+Tests (`EventsListUiTest`): summary text; Harbor sessions as one row with 3 chips; Clock edition under Ongoing with
 "Runs until"; Meadow under "Date to be announced" with "Registration"; Riverside "Full · waitlist" and "2 going";
-Relay under Ongoing online; Summit "No dates yet"; Old Mill absent; `?country=ca` hides Harbor (online); `?onlineOnly=1`
+Relay under Ongoing; Summit "No dates yet"; Old Mill absent; `?country=ca` hides Harbor (online); `?onlineOnly=1`
 shows it; Your events order and marks for PLAYER_REGULAR; home callout for a player whose country has nothing;
 archive preview limited to 5 lines with "Show all"; rows carry the data attributes of the contract.
 

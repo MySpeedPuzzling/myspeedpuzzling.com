@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetOrganizedEvents;
 use SpeedPuzzling\Web\Results\OrganizedEvent;
@@ -55,12 +56,13 @@ final class GetOrganizedEventsTest extends KernelTestCase
         // Rounds on separate days: the next session stands for the edition - between two, it is upcoming, not live
         $sprint = $items[EventsPageFixture::EDITION_SPRINT_SEASON];
         self::assertSame(OrganizerBadge::Upcoming, $sprint->badge($today));
-        self::assertSame($today->modify('+25 days')->format('Y-m-d'), $sprint->startDate?->format('Y-m-d'));
+        $roundDays = EventsPageFixture::storedSprintRoundDays(self::getContainer()->get(Connection::class));
+        self::assertSame($roundDays[2], $sprint->startDate?->format('Y-m-d'));
         $sprintSeries = $items[EventsPageFixture::SERIES_SPRINT_LEAGUE];
         self::assertSame(1, $sprintSeries->editionCount);
         self::assertSame(OrganizerBadge::Upcoming, $sprintSeries->badge($today));
-        self::assertSame($today->modify('+25 days')->format('Y-m-d'), $sprintSeries->nextEditionDate?->format('Y-m-d'));
-        self::assertSame($today->modify('-30 days')->format('Y-m-d'), $sprintSeries->lastEditionDate?->format('Y-m-d'));
+        self::assertSame($roundDays[2], $sprintSeries->nextEditionDate?->format('Y-m-d'));
+        self::assertSame($roundDays[1], $sprintSeries->lastEditionDate?->format('Y-m-d'));
 
         $harbor = $items[EventsPageFixture::SERIES_HARBOR_NIGHTS];
         self::assertSame(OrganizedEvent::KIND_SERIES, $harbor->kind);

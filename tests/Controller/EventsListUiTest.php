@@ -67,7 +67,12 @@ final class EventsListUiTest extends WebTestCase
      */
     public function testAnEditionWithMonthlyRoundsShowsItsNextSessionNotLive(): void
     {
-        $crawler = $this->page(self::createClient(), '/en/events');
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $roundDays = EventsPageFixture::storedSprintRoundDays($connection);
+        // The day the fixtures were built, so "In 25 days" holds whenever the test runs
+        self::getContainer()->set(ClockInterface::class, new MockClock(EventsPageFixture::builtOn($connection)->setTime(12, 0)));
+        $crawler = $this->page($browser, '/en/events');
 
         $sprint = $this->rows($crawler, '.ev-agenda .ev-row', EventsPageFixture::SERIES_SPRINT_LEAGUE_NAME);
         self::assertCount(2, $sprint, 'the two coming sessions, each in its month');
@@ -77,7 +82,7 @@ final class EventsListUiTest extends WebTestCase
         self::assertSame(EventsPageFixture::EDITION_SPRINT_SEASON_NAME . ' · Sprint 3', $next->filter('.ev-row-edition')->text());
         self::assertStringEndsWith('/season-one#round-' . EventsPageFixture::ROUND_SPRINT_3, (string) $next->filter('a.ev-row-name')->attr('href'));
         self::assertSame('In 25 days', $next->filter('.ev-when')->text());
-        self::assertSame(new DateTimeImmutable('+25 days', new DateTimeZone('UTC'))->format('Y-m-d'), $next->attr('data-ev-from'));
+        self::assertSame($roundDays[2], $next->attr('data-ev-from'));
 
         $line = $this->rows($crawler, '[data-ev-series-group="online"] .ev-series-line', EventsPageFixture::SERIES_SPRINT_LEAGUE_NAME);
         self::assertStringContainsString('1 edition', $line->text());
@@ -90,8 +95,9 @@ final class EventsListUiTest extends WebTestCase
     public function testASessionOnItsDayIsLiveWithThePulsingDot(): void
     {
         $browser = self::createClient();
-        // The third round's evening in New York (+25 days)
-        self::getContainer()->set(ClockInterface::class, new MockClock(new DateTimeImmutable('+25 days 18:00', new DateTimeZone('UTC'))));
+        // The third round's day in New York, 18:00 UTC
+        $day = EventsPageFixture::storedSprintRoundDays(self::getContainer()->get(Connection::class))[2];
+        self::getContainer()->set(ClockInterface::class, new MockClock(new DateTimeImmutable($day . ' 18:00', new DateTimeZone('UTC'))));
         $crawler = $this->page($browser, '/en/events');
 
         $header = $crawler->filter('[data-ev-group="now"] .ev-month-header');

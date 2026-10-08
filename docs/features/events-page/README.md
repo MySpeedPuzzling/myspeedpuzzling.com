@@ -112,17 +112,21 @@ JSON list of every round inside the same single statement).
 - A round's day is its start in the **event's own zone** (`RoundTimezone::resolve()`: the round's zone, else the
   event's or the series' country) - an evening round in Toronto is that evening's date, not the next UTC day. The
   guest HTML is the same for everybody, so it cannot use the viewer's zone.
-- **Sessions.** Round days at most 1 day apart are one session (a Friday-Sunday championship stays one). Two or more
-  sessions - a monthly online competition inside one edition or one-time event - make **one dated occurrence per
-  session**: start = its first round's day, end = its last round's day, its own status; `date_from`/`date_to` are not
-  used. The row keeps the series/edition naming and adds the round's name when the session has a single round; it
-  links `#round-<first round id>` (edition page: the round blocks; event page: the "Results by round" buttons). Index
-  entries are positional, so every session has its own `id`. (Prod 2026-10: "Virtual Competitions", a round a month
-  June-October, was one span listed as live for four months.)
-- **One session** (the common case) or no rounds: an edition is dated by its first round's day, else its `date_from`,
-  its end the later of `date_to` and its last round's day; a one-time event by `date_from`/`date_to`.
-- **A span over 31 days without any round is never live**: while it runs it is *ongoing* (prod 2026-10: "Atomic Clock",
-  6 Oct 2026 - 7 Dec 2027). "You organize" shows it as Live.
+- **Sessions.** Round days at most 2 days apart are one session (a Friday-Sunday championship stays one, even
+  without a Saturday round), and so is every round inside a declared span (`date_from`..`date_to`) of at most 7 days.
+  Two or more sessions - a monthly online competition inside one edition or one-time event - make **one dated
+  occurrence per session**: start = its first round's day, end = its last round's day, its own status;
+  `date_from`/`date_to` are not used. The row keeps the series/edition naming and adds the round's name when the
+  session has a single round; it links `#round-<first round id>` (edition page: the round blocks; event page: an empty
+  anchor per round above its puzzles). Index entries are positional, so every session has its own `id`; `cm` names
+  the competition. (Seen in production, 2026-10: an edition with a round a month was one span listed as live for
+  months.)
+- **One session** (the common case) or no rounds - one-time events and editions alike: dated by the first round's
+  day, else `date_from` (else `date_to`); the end is the later of `date_to` and the last round's day.
+- **A span over 31 days its rounds do not define is never live** - no rounds, or `date_to` more than 31 days after
+  the last round (one opening round of a 14-month event): while it runs it is *ongoing*. It counts as "upcoming" in
+  the summary, the chips and the country counts (something is on there), but is not an upcoming *date* in the month
+  headers. "You organize" shows it as Live.
 
 "Today" is the server's UTC date, as the old listing - the calendars take it from the controller's clock too.
 
@@ -136,11 +140,11 @@ sides write the same text in all 6 locales.
 
 | Status | Rule |
 |---|---|
-| live | start ≤ today ≤ end (end = last day, else start), except a span over 31 days without rounds |
+| live | start ≤ today ≤ end (end = last day, else start), except a long span its rounds do not define |
 | upcoming | start > today |
 | past | end < today |
 | tba | one-time, in person, no date |
-| ongoing | one-time, online, no date; or no rounds, over 31 days, start ≤ today ≤ end |
+| ongoing | one-time, online, no date; or a long span its rounds do not define, start ≤ today ≤ end |
 | date_not_set | edition without date and without rounds |
 
 ## Every kind of event
@@ -151,7 +155,7 @@ sides write the same text in all 6 locales.
 | One-time, in person, no date | "Date to be announced" at the end of the agenda, counted per country (sheet: "date TBA"). | `event_detail` |
 | One-time, online, dated | Agenda and archive, counts under Online. | `event_detail` |
 | One-time, online, no date | "Ongoing" in the series directory. | `event_detail` |
-| Any occurrence without rounds over more than 31 days | Upcoming in the agenda until it starts, then "Ongoing" in the series directory (place, "Runs until …") - never Live, not in a month; a bar in the calendar; Past in the archive. | its own page |
+| Any occurrence over more than 31 days its rounds do not define | Upcoming in the agenda until it starts, then "Ongoing" in the series directory (place, "Runs until …") - never Live, not in a month; a bar in the calendar; Past in the archive. | its own page |
 | Rounds on separate days (a round a month) | One dated occurrence per **session**: its own days, status, row ("Season One · October 2026" when the session has one round), month roll-up, archive line, calendar dots and index entry. "Your events" shows only the next session not over. Going count, star and ⋯ belong to the competition. | its page `#round-<first round id>` |
 | Series in person | Series directory "In person"; its editions count under the series' country. | `competition_series_detail` |
 | Series online | Series directory "Online"; its editions count under Online, even when the series has a country. | `competition_series_detail` |
@@ -160,7 +164,7 @@ sides write the same text in all 6 locales.
 | Edition, long-running (> 14 days) | "Runs until …" tag; a bar under the calendar grid instead of a dot on every day. | `edition_detail` |
 | Edition, date not set | Not in the agenda or calendar (the series page lists it last). Counted in the series' edition count. | series page |
 | Several editions in one month | One row with a chip per date. | name: series; chip: edition |
-| Past editions | Archive and country views: one line per series and year ("Harbor Jigsaw Nights · 5 editions in 2026"); a single edition stays its own line. Search lists matching editions one by one. | series page (single: its page) |
+| Past editions | Archive and country views: one line per series and year ("Harbor Jigsaw Nights · 5 editions in 2026" - editions, never sessions); a single edition stays its own line, and so do the sessions of one edition (or one-time event), from its first to its last day. The year chip and "Show all 2026 (N)" count events held (editions and one-time events, sessions once) - like the directory's edition counts; month headers count dates. Search lists matching sessions one by one. | series page (single: its page) |
 | Waiting for approval | Only admins see it in the list ("Waiting for approval" tag, Approve/Reject in ⋯); its creator sees it under "You organize". Never counted. | its own page |
 | Rejected | Nobody sees it in the list; its creator sees it under "You organize" with the reason. | - |
 | Series without editions | Series directory, "No dates yet". | series page |
@@ -172,7 +176,8 @@ An occurrence without the slugs its route needs (`CompetitionReference::routeNam
 - **Online occurrences count under Online only**, never under a country - an online series whose country is Canada
   is not in the Canada view. This deliberately differs from the old filter, which matched the
   country column alone.
-- Chips show only countries with upcoming dates (live + upcoming, in person, public), by count then name. The home
+- Chips show only countries with upcoming dates (live + upcoming + long spans running now, in person, public), by
+  count then name. The home
   chip is the one chip that may show 0: tapping it gives the honest empty state with the last past event and
   "+ Add event", plus the callout "Nothing planned in Czechia yet. Know about an event? Add it to the calendar."
 - The **country sheet** (bottom sheet on phones, centred dialog on desktop) lists every country with at least one

@@ -80,7 +80,7 @@ SQL;
         foreach ($this->database->executeQuery($query, ['ids' => $ids], ['ids' => ArrayParameterType::STRING])->fetchAllAssociative() as $row) {
             $isEdition = $row['series_id'] !== null;
             // Rounds on separate days: the session that is next (or the last one) stands for the competition
-            $dates = OccurrenceDates::current($this->sessions($row, $isEdition), $today, $isEdition, (bool) $row['is_online']);
+            $dates = OccurrenceDates::current($this->sessions($row), $today, $isEdition, (bool) $row['is_online']);
 
             $items[] = new OrganizedEvent(
                 kind: $isEdition ? OrganizedEvent::KIND_EDITION : OrganizedEvent::KIND_EVENT,
@@ -96,6 +96,7 @@ SQL;
                 startDate: $dates->start,
                 endDate: $dates->end,
                 roundCount: is_numeric($row['round_count']) ? (int) $row['round_count'] : 0,
+                lastRoundDay: $dates->lastRoundDay,
                 isApproved: (bool) $row['is_approved'],
                 rejectionReason: self::string($row['rejection_reason']),
                 isRejected: (bool) $row['is_rejected'],
@@ -148,7 +149,7 @@ SQL;
 
             $series[$id]['count']++;
 
-            foreach ($this->sessions($row, true) as $dates) {
+            foreach ($this->sessions($row) as $dates) {
                 if ($dates->start === null) {
                     continue;
                 }
@@ -196,10 +197,9 @@ SQL;
      *
      * @return non-empty-list<OccurrenceDates>
      */
-    private function sessions(array $row, bool $isEdition): array
+    private function sessions(array $row): array
     {
         return OccurrenceDates::sessions(
-            $isEdition,
             self::instant($row['date_from']),
             self::instant($row['date_to']),
             OccurrenceRounds::fromJson($row['rounds'], self::string($row['own_country_code']), self::string($row['series_country_code'] ?? null)),

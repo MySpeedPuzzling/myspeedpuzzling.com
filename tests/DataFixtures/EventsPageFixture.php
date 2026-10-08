@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\DataFixtures;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\DBAL\Connection;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Psr\Clock\ClockInterface;
@@ -105,6 +106,34 @@ final class EventsPageFixture extends Fixture implements DependentFixtureInterfa
     public function __construct(
         private readonly ClockInterface $clock,
     ) {
+    }
+
+    /**
+     * The Moonlight Sprint League round days as stored (Y-m-d in New York, round order) - tests compare with these
+     * instead of "+25 days" from the clock, which moves on after the test database was built.
+     *
+     * @return list<string>
+     */
+    public static function storedSprintRoundDays(Connection $connection): array
+    {
+        /** @var list<string> $startsAt */
+        $startsAt = $connection->fetchFirstColumn(
+            'SELECT starts_at FROM competition_round WHERE competition_id = :id ORDER BY starts_at',
+            ['id' => self::EDITION_SPRINT_SEASON],
+        );
+
+        return array_map(
+            static fn (string $instant): string => new DateTimeImmutable($instant, new DateTimeZone('UTC'))->setTimezone(new DateTimeZone('America/New_York'))->format('Y-m-d'),
+            $startsAt,
+        );
+    }
+
+    /**
+     * The day the test database was built ("today" of this fixture): the first Sprint round is 60 days before it
+     */
+    public static function builtOn(Connection $connection): DateTimeImmutable
+    {
+        return new DateTimeImmutable(self::storedSprintRoundDays($connection)[0], new DateTimeZone('UTC'))->modify('+60 days');
     }
 
     public function load(ObjectManager $manager): void

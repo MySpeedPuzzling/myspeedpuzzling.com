@@ -363,6 +363,9 @@ export default class extends Controller {
             let dates = 0;
             let anyShown = false;
             let tbaCount = 0;
+            // A long span running now (an "Ongoing" line under Series) is something on - never "nothing planned"
+            const runningShown = [...this.element.querySelectorAll('.ev-ongoing-line[data-ev-running]')]
+                .filter((line) => inScope(line.dataset.evScope) && matches(this.rowIds(line))).length;
 
             agenda.querySelectorAll('[data-ev-group]').forEach((group) => {
                 const kind = group.dataset.evGroup;
@@ -411,7 +414,7 @@ export default class extends Controller {
             const noUpcoming = agenda.querySelector('[data-ev-no-upcoming]');
 
             if (noUpcoming) {
-                noUpcoming.hidden = searching || datedShown > 0 || !anyShown;
+                noUpcoming.hidden = searching || datedShown > 0 || runningShown > 0 || !anyShown;
 
                 if (!noUpcoming.hidden) {
                     noUpcoming.textContent = scope === 'online'
@@ -429,7 +432,7 @@ export default class extends Controller {
             const empty = agenda.querySelector('[data-ev-empty]');
 
             if (empty) {
-                empty.hidden = searching || anyShown;
+                empty.hidden = searching || anyShown || runningShown > 0;
 
                 if (!empty.hidden) {
                     this.fillEmptyState(empty, scope, scopeName);
@@ -780,38 +783,45 @@ export default class extends Controller {
     }
 
     // EventsPageBuilder::archiveYears() for one year: several editions of one series are one line placed at its newest
-    // edition, lines newest first; each line belongs to the scope of its (newest) occurrence
+    // edition, lines newest first; each line belongs to the scope of its (newest) occurrence. The sessions of one
+    // edition or one-time event (same `cm`) are one line too; `editions` counts competitions, never sessions.
     archiveLines(entries) {
-        const bySeries = new Map();
+        const keyOf = (entry) => (entry.k === 'd' && entry.sid !== null && entry.sid !== undefined ? `s${entry.sid}` : `c${entry.cm ?? entry.id}`);
+        const byKey = new Map();
 
         entries.forEach((entry) => {
-            if (entry.k === 'd' && entry.sid !== null && entry.sid !== undefined) {
-                bySeries.set(entry.sid, [...(bySeries.get(entry.sid) ?? []), entry]);
-            }
+            byKey.set(keyOf(entry), [...(byKey.get(keyOf(entry)) ?? []), entry]);
         });
 
         const lines = [];
         const rolledUp = new Set();
 
         entries.forEach((entry) => {
-            const editions = entry.k === 'd' ? bySeries.get(entry.sid) : null;
+            const key = keyOf(entry);
+            const grouped = byKey.get(key);
 
-            if (editions && editions.length >= 2) {
-                if (!rolledUp.has(entry.sid)) {
-                    rolledUp.add(entry.sid);
-                    const sorted = [...editions].sort((a, b) => (a.f < b.f ? -1 : a.f > b.f ? 1 : 0));
+            if (grouped.length >= 2) {
+                if (!rolledUp.has(key)) {
+                    rolledUp.add(key);
+                    const sorted = [...grouped].sort((a, b) => (a.f < b.f ? -1 : a.f > b.f ? 1 : 0));
                     const newest = sorted[sorted.length - 1];
-                    lines.push({ entries: sorted, newest, sort: newest.f, title: newest.n, scope: newest.sc ?? '' });
+                    const editions = new Set(sorted.map((item) => item.cm ?? item.id)).size;
+                    lines.push({ entries: sorted, newest, editions, sort: newest.f, title: newest.n, scope: newest.sc ?? '' });
                 }
 
                 return;
             }
 
-            lines.push({ entries: [entry], newest: entry, sort: entry.f, title: entry.n, scope: entry.sc ?? '' });
+            lines.push({ entries: [entry], newest: entry, editions: 1, sort: entry.f, title: entry.n, scope: entry.sc ?? '' });
         });
 
         return lines.sort((a, b) => (a.sort < b.sort ? 1 : a.sort > b.sort ? -1 : 0)
             || foldSearchText(a.title).localeCompare(foldSearchText(b.title)));
+    }
+
+    // The events held in a year: competitions, the sessions of one counted once (ArchiveYear::occurrenceCount())
+    editionsOf(lines) {
+        return lines.reduce((sum, line) => sum + (line.editions ?? 1), 0);
     }
 
     renderArchive(scope, scopeName) {
@@ -850,7 +860,7 @@ export default class extends Controller {
                     chip.setAttribute('aria-current', year === this.archiveOpen.year ? 'true' : 'false');
                     const count = document.createElement('span');
                     count.className = 'ev-chip-n';
-                    count.textContent = String(byYear.get(year).length);
+                    count.textContent = String(this.editionsOf(this.archiveLines(byYear.get(year))));
                     chip.append(document.createTextNode(`${year} `), count);
                     nav.append(chip);
                 });
@@ -871,7 +881,7 @@ export default class extends Controller {
                         more.href = this.archiveUrls[`y${open}`] ?? '#';
                         more.dataset.evShowAll = '';
                         more.dataset.action = 'events-page#showAllYear';
-                        more.textContent = this.t('showAll', { year: open, count: byYear.get(open).length });
+                        more.textContent = this.t('showAll', { year: open, count: this.editionsOf(lines) });
                         nodes.push(more);
                     }
                 }
@@ -896,7 +906,7 @@ export default class extends Controller {
                 label.textContent = `${scopeName} · ${year}`;
                 const count = document.createElement('span');
                 count.className = 'ev-month-n';
-                count.textContent = this.t('eventsCount', { count: lines.reduce((sum, line) => sum + line.entries.length, 0) });
+                count.textContent = this.t('eventsCount', { count: this.editionsOf(lines) });
                 header.append(label, count);
                 const list = document.createElement('ul');
                 list.className = 'ev-lines';
@@ -949,15 +959,36 @@ export default class extends Controller {
             onlineLabel: this.messagesValue.online ?? '',
         });
         const slot = (name) => element.querySelector(`[data-slot="${name}"]`);
-        const rollUp = line.entries.length > 1;
+        const rollUp = (line.editions ?? 1) > 1;
         const date = slot('date');
 
-        if (rollUp) {
+        if (!rollUp && line.entries.length > 1) {
+            // The sessions of one edition: its name and edition name, its page, its first to last day of the year
+            const first = line.entries[0];
+            element.setAttribute('data-ev-ids', line.entries.map((item) => item.id).sort((a, b) => a - b).join(' '));
+            this.setText(slot('title'), [entry.n, entry.en].filter(Boolean).join(' · '));
+            const link = slot('link');
+
+            if (entry.u) {
+                link?.setAttribute('href', String(entry.u).split('#')[0]);
+            }
+
+            const last = entry.t || entry.f;
+            this.setText(date, formatDayRange(first.f, last > first.f ? last : null, this.locale, withYear ? 'yMMMd' : 'MMMd'));
+
+            const results = slot('results');
+
+            if (results) {
+                const any = line.entries.some((item) => item.r);
+                results.hidden = !any;
+                results.textContent = any ? (this.messagesValue.results ?? '') : '';
+            }
+        } else if (rollUp) {
             const first = line.entries[0];
             element.classList.add('ev-line-rollup');
             element.setAttribute('data-ev-ids', line.entries.map((item) => item.id).sort((a, b) => a - b).join(' '));
             const series = this.byId.get(entry.sid);
-            this.setText(slot('title'), this.t('editionsIn', { series: entry.n, count: line.entries.length, year }));
+            this.setText(slot('title'), this.t('editionsIn', { series: entry.n, count: line.editions, year }));
             const link = slot('link');
 
             if (series?.u) {
@@ -1012,6 +1043,7 @@ export default class extends Controller {
         ids.forEach((id) => {
             const selector = [
                 `.ev-agenda .ev-row[data-ev-ids~="${id}"]`,
+                `.ev-series .ev-ongoing-line[data-ev-ids~="${id}"]`,
                 `.ev-archive .ev-line[data-ev-ids~="${id}"]`,
             ].join(', ');
 

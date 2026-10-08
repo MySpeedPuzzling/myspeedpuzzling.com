@@ -1,6 +1,6 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
-import { dateLocale, fillArchiveLine, formatDate, readEventsIndex } from '../events_index.js';
+import { dateLocale, entryTitle, fillArchiveLine, formatDate, readEventsIndex } from '../events_index.js';
 import {
     buildMonth,
     calendarEntries,
@@ -517,14 +517,14 @@ export default class extends Controller {
         return box;
     }
 
-    // The agenda's row of an index entry (a month roll-up row carries every session's id). Not "Your events" cards
-    // (`.ev-your-event`) and never an earlier clone.
+    // The agenda's row of an index entry (a month roll-up row carries every session's id), or its "Ongoing" line (a long
+    // span while it runs). Not "Your events" cards (`.ev-your-event`) and never an earlier clone.
     findRow(id) {
         if (!this.page) {
             return null;
         }
 
-        for (const row of this.page.querySelectorAll(`.ev-row[data-ev-ids~="${Number(id)}"]`)) {
+        for (const row of this.page.querySelectorAll(`.ev-row[data-ev-ids~="${Number(id)}"], .ev-ongoing-line[data-ev-ids~="${Number(id)}"]`)) {
             if (!this.element.contains(row) && !row.closest('[data-ev-calendar]')) {
                 return row;
             }
@@ -597,7 +597,7 @@ function element(tag, className, text) {
 }
 
 function titleOf(entry) {
-    return entry.en ? `${entry.n} · ${entry.en}` : String(entry.n ?? '');
+    return entryTitle(entry);
 }
 
 function entryKindClass(entry) {

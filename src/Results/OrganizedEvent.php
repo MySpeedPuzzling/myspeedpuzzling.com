@@ -37,6 +37,8 @@ readonly final class OrganizedEvent
         public null|DateTimeImmutable $startDate = null,
         public null|DateTimeImmutable $endDate = null,
         public int $roundCount = 0,
+        // the day of the last round dating it (OccurrenceDates::$lastRoundDay)
+        public null|DateTimeImmutable $lastRoundDay = null,
         public bool $isApproved = false,
         public null|string $rejectionReason = null,
         public bool $isRejected = false,
@@ -71,7 +73,7 @@ readonly final class OrganizedEvent
             return $this->lastEditionDate !== null ? OrganizerBadge::Past : OrganizerBadge::DateNotSet;
         }
 
-        $status = new OccurrenceDates($this->startDate, $this->endDate, $this->roundCount > 0)->status($today, $this->kind === self::KIND_EDITION, $this->isOnline);
+        $status = new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay)->status($today, $this->kind === self::KIND_EDITION, $this->isOnline);
 
         return match ($status) {
             EventOccurrenceStatus::Live => OrganizerBadge::Live,

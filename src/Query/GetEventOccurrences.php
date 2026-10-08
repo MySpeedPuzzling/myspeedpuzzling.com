@@ -102,12 +102,10 @@ SQL;
      */
     private static function hydrate(array $row): array
     {
-        $isEdition = $row['series_id'] !== null;
         $ownCountry = self::nullableString($row['own_country_code']);
         $seriesCountry = self::nullableString($row['series_country_code']);
 
         $sessions = OccurrenceDates::sessions(
-            $isEdition,
             self::instant($row['date_from']),
             self::instant($row['date_to']),
             OccurrenceRounds::fromJson($row['rounds'], $ownCountry, $seriesCountry),
@@ -138,6 +136,7 @@ SQL;
             hasResults: (bool) $row['has_results'],
             isPublic: (bool) $row['is_public'],
             session: $dates->session,
+            lastRoundDay: $dates->lastRoundDay,
         ), $sessions);
     }
 

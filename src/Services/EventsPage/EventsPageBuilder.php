@@ -171,11 +171,11 @@ readonly final class EventsPageBuilder
         $publicPast = array_values(array_filter($past, static fn (array $item): bool => $item['occurrence']->isPublic));
         $archiveYears = $this->archiveYears($publicPast, $scope, $locale);
 
-        // Counts (public only)
+        // Counts (public only): live, upcoming and long spans running now (ongoing with dates) - a scope with one of
+        // those is never "nothing planned"
         $publicComing = array_values(array_filter(
             $listed,
-            static fn (array $item): bool => $item['occurrence']->isPublic
-                && ($item['status'] === EventOccurrenceStatus::Live || $item['status'] === EventOccurrenceStatus::Upcoming),
+            static fn (array $item): bool => $item['occurrence']->isPublic && self::isOn($item['occurrence'], $item['status']),
         ));
 
         $everywhereUpcoming = count($publicComing);
@@ -724,12 +724,11 @@ readonly final class EventsPageBuilder
         $years = [];
 
         foreach ($byYear as $year => $items) {
-            $editionsBySeries = [];
+            // A series' editions, or the sessions of one one-time event, are one line
+            $grouped = [];
 
             foreach ($items as $item) {
-                if ($item['occurrence']->seriesId !== null) {
-                    $editionsBySeries[$item['occurrence']->seriesId][] = $item;
-                }
+                $grouped[self::archiveKey($item['occurrence'])][] = $item;
             }
 
             /** @var list<array{line: ArchiveLine, sort: DateTimeImmutable}> $lines */
@@ -738,12 +737,12 @@ readonly final class EventsPageBuilder
 
             foreach ($items as $item) {
                 $occurrence = $item['occurrence'];
-                $seriesId = $occurrence->seriesId;
+                $key = self::archiveKey($occurrence);
 
-                if ($seriesId !== null && count($editionsBySeries[$seriesId]) >= 2) {
-                    if (isset($rolledUp[$seriesId]) === false) {
-                        $rolledUp[$seriesId] = true;
-                        $lines[] = $this->rollUpLine($editionsBySeries[$seriesId], $year, $scope, $locale);
+                if (count($grouped[$key]) >= 2) {
+                    if (isset($rolledUp[$key]) === false) {
+                        $rolledUp[$key] = true;
+                        $lines[] = $this->rollUpLine($grouped[$key], $year, $scope, $locale);
                     }
 
                     continue;
@@ -761,6 +760,11 @@ readonly final class EventsPageBuilder
         }
 
         return $years;
+    }
+
+    private static function archiveKey(EventOccurrence $occurrence): string
+    {
+        return $occurrence->seriesId !== null ? 's:' . $occurrence->seriesId : 'c:' . $occurrence->competitionId;
     }
 
     /**
@@ -791,6 +795,10 @@ readonly final class EventsPageBuilder
     }
 
     /**
+     * Several editions of a series in one year: "Harbor Jigsaw Nights · 5 editions in 2026", counting editions, not
+     * sessions. The sessions of a single edition (or one-time event) are its own line instead, from its first to its
+     * last day of the year, linking its page.
+     *
      * @param non-empty-list<ListedOccurrence> $items
      *
      * @return array{line: ArchiveLine, sort: DateTimeImmutable}
@@ -800,6 +808,7 @@ readonly final class EventsPageBuilder
         $first = null;
         $newest = null;
         $hasResults = false;
+        $competitions = [];
 
         foreach ($items as $item) {
             $start = $item['occurrence']->startDate;
@@ -814,6 +823,7 @@ readonly final class EventsPageBuilder
             }
 
             $hasResults = $hasResults || $item['occurrence']->hasResults;
+            $competitions[$item['occurrence']->competitionId] = true;
         }
 
         $occurrence = $newest['occurrence'];
@@ -821,6 +831,31 @@ readonly final class EventsPageBuilder
         assert($last !== null);
         $ids = array_map(static fn (array $item): int => $item['id'], $items);
         sort($ids);
+        $editionCount = count($competitions);
+
+        if ($editionCount === 1) {
+            $to = $occurrence->endDate ?? $last;
+
+            return [
+                'line' => new ArchiveLine(
+                    indexIds: $ids,
+                    title: self::titleOf($occurrence),
+                    url: $this->urls->occurrencePage($occurrence),
+                    from: $first,
+                    to: $to > $first ? $to : null,
+                    editionCount: 1,
+                    monthFrom: (int) $first->format('n'),
+                    monthTo: (int) $to->format('n'),
+                    hasResults: $hasResults,
+                    place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
+                    scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
+                    visible: $scope->matches($occurrence->isOnline, $occurrence->countryCode),
+                    editionName: $occurrence->editionName(),
+                    year: $year,
+                ),
+                'sort' => $last,
+            ];
+        }
 
         return [
             'line' => new ArchiveLine(
@@ -829,7 +864,7 @@ readonly final class EventsPageBuilder
                 url: $this->urls->series($occurrence->seriesSlug),
                 from: $first,
                 to: $last,
-                editionCount: count($items),
+                editionCount: $editionCount,
                 monthFrom: (int) $first->format('n'),
                 monthTo: (int) $last->format('n'),
                 hasResults: $hasResults,
@@ -947,7 +982,8 @@ readonly final class EventsPageBuilder
     }
 
     /**
-     * Every country with an in-person public occurrence: upcoming (live + upcoming), TBA, past - by upcoming, then name.
+     * Every country with an in-person public occurrence: upcoming (live, upcoming, a long span running), TBA, past - by
+     * upcoming, then name.
      *
      * @param list<ListedOccurrence> $listed
      *
@@ -968,8 +1004,13 @@ readonly final class EventsPageBuilder
 
             $counts[$country->name] ??= ['code' => $country, 'upcoming' => 0, 'tba' => 0, 'past' => 0];
 
+            if (self::isOn($occurrence, $item['status'])) {
+                $counts[$country->name]['upcoming']++;
+
+                continue;
+            }
+
             match ($item['status']) {
-                EventOccurrenceStatus::Live, EventOccurrenceStatus::Upcoming => $counts[$country->name]['upcoming']++,
                 EventOccurrenceStatus::Tba => $counts[$country->name]['tba']++,
                 EventOccurrenceStatus::Past => $counts[$country->name]['past']++,
                 default => null,
@@ -1092,6 +1133,16 @@ readonly final class EventsPageBuilder
     private static function byUpcomingThenName(CountryCount $a, CountryCount $b): int
     {
         return $b->upcoming <=> $a->upcoming ?: strcmp(SearchText::fold($a->name), SearchText::fold($b->name));
+    }
+
+    /**
+     * Live, upcoming, or a long span running now - what the counts call "upcoming"
+     */
+    private static function isOn(EventOccurrence $occurrence, EventOccurrenceStatus $status): bool
+    {
+        return $status === EventOccurrenceStatus::Live
+            || $status === EventOccurrenceStatus::Upcoming
+            || ($status === EventOccurrenceStatus::Ongoing && $occurrence->startDate !== null);
     }
 
     private static function titleOf(EventOccurrence $occurrence): string

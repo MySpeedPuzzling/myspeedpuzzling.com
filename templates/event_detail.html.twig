@@ -164,7 +164,7 @@
                 <div class="d-flex flex-wrap align-items-center gap-1 mt-2" data-event-round-results>
                     <span class="small text-muted me-1"><i class="bi bi-trophy me-1"></i>{{ 'events.results_by_round'|trans }}</span>
                     {% for round in result_rounds %}
-                        <a class="btn btn-outline-primary btn-xs text-nowrap event-round-anchor" id="round-{{ round.id }}" href="{{ round_results_urls[round.id] }}">
+                        <a class="btn btn-outline-primary btn-xs text-nowrap" href="{{ round_results_urls[round.id] }}">
                             <span class="d-inline-block rounded-circle me-1 align-middle" style="width: .5rem; height: .5rem; background-color: {{ round.color }};" aria-hidden="true"></span>{{ round.name }}
                         </a>
                     {% endfor %}
@@ -184,6 +184,8 @@
         <p class="mt-3 mb-0" data-event-description>{{ event.description|nl2br }}</p>
     {% endif %}{# Organiser-written sections (competitions-management/public-page.md) - on this line, so a page without any renders byte for byte as before #}{% if page_sections is not empty %}{{ include('_page_sections.html.twig', {sections: page_sections}) }}{% endif %}
 
+    {#- The events page links a session of this event (rounds on separate days) to #round-<id>: one empty anchor per round, where its puzzles start -#}
+    {% for round in rounds %}<span class="event-round-anchor d-block" id="round-{{ round.id }}"></span>{% endfor %}
     <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
 
     {% if puzzles|length > 0 %}

@@ -169,6 +169,8 @@ final class EventDetailController extends AbstractController
             'puzzles' => $puzzles,
             'puzzle_rounds' => $puzzleRounds,
             'round_results_urls' => $roundResultsUrls,
+            // An anchor per round: the events page links a session (rounds on separate days) to #round-<id>
+            'rounds' => $rounds,
             'result_rounds' => $resultRounds,
             'difficulty_data' => $this->getPuzzleDifficulty->forPuzzleList(array_map(
                 static fn (PuzzleOverview $puzzle): string => $puzzle->puzzleId,

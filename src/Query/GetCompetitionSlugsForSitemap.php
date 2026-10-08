@@ -168,7 +168,6 @@ SQL;
             $isEdition = $row['series_id'] !== null;
 
             $sessions = OccurrenceDates::sessions(
-                $isEdition,
                 self::instant($row['date_from']),
                 self::instant($row['date_to']),
                 OccurrenceRounds::fromJson($row['rounds'], $row['own_country_code'], $row['series_country_code']),

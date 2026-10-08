@@ -67,7 +67,7 @@
             <ul class="ev-series-lines">
                 {% for row in page.ongoing %}
                     {% set shown = row.visible and (sid is null or row.indexIds|filter(i => i in sid)|length > 0) %}
-                    <li class="ev-series-line ev-ongoing-line{{ row.isPending ? ' ev-row-pending' }}" data-ev-ids="{{ row.idsAttribute }}" data-ev-scope="{{ row.scopeKey }}" {{ shown ? '' : 'hidden' }}>
+                    <li class="ev-series-line ev-ongoing-line{{ row.isPending ? ' ev-row-pending' }}" data-ev-ids="{{ row.idsAttribute }}" data-ev-scope="{{ row.scopeKey }}" {{ row.from ? 'data-ev-running' }} {{ shown ? '' : 'hidden' }}>
                         <div class="ev-series-main">
                             {% if row.url %}<a class="ev-series-name" href="{{ row.url }}">{{ row.title }}</a>{% else %}<span class="ev-series-name">{{ row.title }}</span>{% endif %}
                             {#- A long span without rounds has its place and "Runs until …"; an online event without dates has neither -#}

@@ -5,6 +5,8 @@
 {% set scope_country = page.scope.countryCode %}
 {% set scope_prefix = scope_name ? scope_name ~ ' · ' : '' %}
 {% set now_rows = page.live|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
+{# A long span running now (an "Ongoing" line under Series) counts as something on - never "nothing planned" #}
+{% set running_rows = page.ongoing|filter(r => r.from and r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
 {% set tba_rows = page.tba|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
 {% set month_dates = 0 %}
 {% set month_rows_shown = 0 %}
@@ -55,13 +57,13 @@
     {% endfor %}
 
     {# Something live or without a date, nothing dated ahead #}
-    <p class="ev-note" data-ev-no-upcoming {{ not searching and month_rows_shown == 0 and (now_rows is not empty or tba_rows is not empty) ? '' : 'hidden' }}>
+    <p class="ev-note" data-ev-no-upcoming {{ not searching and month_rows_shown == 0 and running_rows is empty and (now_rows is not empty or tba_rows is not empty) ? '' : 'hidden' }}>
         {{- page.scope.isOnline ? 'events_page.agenda.no_upcoming_online'|trans : (scope_country ? 'events_page.agenda.no_upcoming_in'|trans({'%scope%': scope_name}) : 'events_page.summary.dates'|trans({'%count%': 0})) -}}
     </p>
     <p class="ev-note" data-ev-no-match {{ searching and now_rows is empty and month_rows_shown == 0 and tba_rows is empty ? '' : 'hidden' }}>{{ 'events_page.search.no_upcoming'|trans }}</p>
 
     {# Nothing coming at all in this scope: the honest empty state #}
-    <div class="ev-empty" data-ev-empty {{ not searching and now_rows is empty and month_rows_shown == 0 and tba_rows is empty ? '' : 'hidden' }}>
+    <div class="ev-empty" data-ev-empty {{ not searching and now_rows is empty and month_rows_shown == 0 and tba_rows is empty and running_rows is empty ? '' : 'hidden' }}>
         <p class="ev-empty-title" data-ev-empty-title>
             {{- page.scope.isEverywhere ? 'events_page.summary.dates'|trans({'%count%': 0}) : 'events_page.empty.none_in'|trans({'%scope%': scope_name}) -}}
         </p>

@@ -44,6 +44,8 @@ readonly final class EventOccurrence
         public bool $isPublic = true,
         // one of several sessions (rounds on separate days, OccurrenceDates::sessions()); null for the common case
         public null|OccurrenceSession $session = null,
+        // the day of the last round dating it (OccurrenceDates::$lastRoundDay); null without rounds
+        public null|DateTimeImmutable $lastRoundDay = null,
     ) {
     }
 
@@ -59,7 +61,7 @@ readonly final class EventOccurrence
 
     public function dates(): OccurrenceDates
     {
-        return new OccurrenceDates($this->startDate, $this->endDate, $this->roundCount > 0, $this->session);
+        return new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay, $this->session);
     }
 
     public function isLongRunning(): bool
@@ -85,27 +87,32 @@ readonly final class EventOccurrence
     }
 
     /**
-     * The line under the name: the edition's own name and the session's label (its round's name), as far as there
-     * are any - "Virtual Competitions · October 2026". A part repeating the name above it is left out.
+     * The session's label (its one round's name) - null when it only repeats the name or the edition's name
+     */
+    public function sessionLabel(): null|string
+    {
+        $label = trim((string) $this->session?->label);
+
+        if ($label === '') {
+            return null;
+        }
+
+        foreach ([$this->isEdition() ? $this->seriesName : $this->name, $this->editionName()] as $name) {
+            if ($name !== null && mb_strtolower(trim($name)) === mb_strtolower($label)) {
+                return null;
+            }
+        }
+
+        return $label;
+    }
+
+    /**
+     * The line under the name: the edition's own name and the session's label, as far as there are any -
+     * "Season One · Sprint 3".
      */
     public function subtitle(): null|string
     {
-        $title = mb_strtolower(trim((string) ($this->isEdition() ? $this->seriesName : $this->name)));
-        $parts = [];
-
-        foreach ([$this->editionName(), $this->session?->label] as $part) {
-            if ($part === null || trim($part) === '' || mb_strtolower(trim($part)) === $title) {
-                continue;
-            }
-
-            foreach ($parts as $existing) {
-                if (mb_strtolower($existing) === mb_strtolower(trim($part))) {
-                    continue 2;
-                }
-            }
-
-            $parts[] = trim($part);
-        }
+        $parts = array_values(array_filter([$this->editionName(), $this->sessionLabel()], static fn (null|string $part): bool => $part !== null));
 
         return $parts === [] ? null : implode(' · ', $parts);
     }

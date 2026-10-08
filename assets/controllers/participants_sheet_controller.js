@@ -507,6 +507,7 @@ export default class extends Controller {
     }
 
     /**
+     * Opens the person editor (stream E) - resolves to false when there is none (the caller falls back).
      * `options` (handed to the editor as they are): `list` = a function giving the ids previous/next walk through (the
      * view's filtered, sorted rows), `returnFocus(personId)` = where the focus goes when the editor closes.
      */
@@ -514,7 +515,7 @@ export default class extends Controller {
         const factory = await this.loadModule(PERSON_EDITOR_MODULE);
 
         if (factory === null || this.model === undefined) {
-            return;
+            return false;
         }
 
         if (!this.personEditor) {
@@ -522,6 +523,8 @@ export default class extends Controller {
         }
 
         this.personEditor.open?.(personId, options);
+
+        return true;
     }
 
     // ---------------------------------------------------------------- acting

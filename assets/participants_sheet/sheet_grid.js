@@ -83,6 +83,8 @@ export function markerHtml(marker) {
  * @property {boolean} [checked]       checkbox cells
  * @property {string} [label]          checkbox cells: the accessible name ("Solo, Kim Example")
  * @property {boolean} [readonly]      this cell cannot be edited (the column's kind otherwise)
+ * @property {'text'|'list'|'readonly'|'action'} [kind]  this cell's own kind instead of the column's (e.g. the name
+ *                                     cells of a round's people open the person - `action` - while the new row's types)
  * @property {{state: string, text: string, title?: string}|null} [marker]
  * @property {string} [className]
  * @property {string} [copy]           what Ctrl+C copies (default: text, TRUE/FALSE for checkboxes)
@@ -100,7 +102,9 @@ export class SheetGrid {
      * @param {function(string): string} [options.rowLabel]                    the row's name for accessible labels
      * @param {function(string): string} [options.rowClass]
      * @param {function(string, string): string} [options.editValue]          the text an edit (Enter/F2) starts with
-     * @param {function(string, string, string): (Array|Promise<Array>)} [options.suggest]   list columns
+     * @param {function(string, string, {replace: boolean}): void} [options.editStart]  an edit of the cell begins
+     * @param {function(string, string, string, {explicit: boolean}): (Array|Promise<Array>)} [options.suggest]   list
+     *        columns; `explicit` = the list was asked for (Alt+Down), not opened by typing
      * @param {function(string, string, {text: string, option: object|null}, {fill: boolean, cells: Array}): ({error?: string, focus?: object|function}|void)} options.commit
  *        `error` keeps the editor open with the reason; `focus` = {row, col} keys (or a function of the planned move
  *        {row, col} indexes) where the focus goes instead of the planned move
@@ -238,17 +242,11 @@ export class SheetGrid {
     }
 
     cellKind(rowKey, column) {
-        const content = this.content(rowKey, column.key);
-
-        if (content.readonly && column.kind !== 'action') {
-            return 'readonly';
-        }
-
-        return column.kind;
+        return kindOf(column, this.content(rowKey, column.key));
     }
 
     cellAttributes(rowKey, column, content) {
-        const kind = content.readonly && column.kind !== 'action' ? 'readonly' : column.kind;
+        const kind = kindOf(column, content);
         // Short markup: a 400 x 18 sheet is 7,000 cells (the column is data-c, its index)
         const classes = [`sheet-kind-${kind}`];
 
@@ -310,6 +308,8 @@ export class SheetGrid {
      */
     setRows(keys) {
         const wanted = new Set(keys);
+        // Asked before any row goes: a removed focused cell takes the focus with it (to <body>)
+        const hadFocus = this.table.contains(document.activeElement);
 
         for (const [key, tr] of this.rowElements) {
             if (!wanted.has(key)) {
@@ -348,7 +348,6 @@ export class SheetGrid {
 
         if (!this.rowIndex.has(this.active.row)) {
             // The focused row went: the row now at its place takes the focus (without stealing it from elsewhere)
-            const hadFocus = this.table.contains(document.activeElement);
             this.active = { row: this.rows[Math.min(activeIndex, this.rows.length - 1)] ?? null, col: this.active.col };
             this.setTabStop();
 
@@ -833,6 +832,8 @@ export class SheetGrid {
         }
 
         const cell = this.cellElement(rowKey, column.key);
+        // The view learns what the organiser saw when the edit began (the `from` of its save - official results)
+        this.options.editStart?.(rowKey, column.key, { replace });
         const value = replace ? '' : (this.options.editValue?.(rowKey, column.key) ?? this.content(rowKey, column.key).text ?? '');
 
         this.mode = 'edit';
@@ -1035,7 +1036,7 @@ export class SheetGrid {
             let answer;
 
             try {
-                answer = this.options.suggest(row, col, this.editor.value);
+                answer = this.options.suggest(row, col, this.editor.value, { explicit: immediately === true });
             } catch (e) {
                 answer = [];
             }
@@ -1080,7 +1081,9 @@ export class SheetGrid {
             this.editor.removeAttribute('aria-activedescendant');
         } else {
             this.showListStatus(hint);
-            this.highlight(column?.autoHighlight === false ? -1 : 0);
+            // A "create" option is never picked by Enter alone - a typo must not create anything (D9) - and an empty
+            // editor + Enter clears the cell instead of taking the first suggestion
+            this.highlight(column?.autoHighlight === false || options[0]?.create || this.editor.value.trim() === '' ? -1 : 0);
             this.announce(this.texts.tc('grid_suggestions', options.length));
         }
     }
@@ -1458,6 +1461,15 @@ export class SheetGrid {
         this.listeners = [];
         this.options.container.replaceChildren();
     }
+}
+
+/** A cell's kind: its own (`content.kind`), readonly when the view says so (action cells stay actions), else the column's. */
+function kindOf(column, content) {
+    if (content.kind) {
+        return content.kind;
+    }
+
+    return content.readonly && column.kind !== 'action' ? 'readonly' : column.kind;
 }
 
 function pickKeyEvent(event) {

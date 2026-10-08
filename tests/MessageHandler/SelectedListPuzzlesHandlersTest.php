@@ -141,7 +141,7 @@ final class SelectedListPuzzlesHandlersTest extends KernelTestCase
         $outcome = $this->dispatch(new RemovePuzzlesFromWishList(PlayerFixture::PLAYER_WITH_STRIPE, [PuzzleFixture::PUZZLE_4000]));
 
         self::assertSame(0, $outcome->changed);
-        self::assertSame(1, (int) $this->connection->fetchOne(
+        self::assertSame(1, $this->connection->fetchOne(
             'SELECT COUNT(*) FROM wish_list_item WHERE player_id = :player AND puzzle_id = :puzzle',
             ['player' => PlayerFixture::PLAYER_REGULAR, 'puzzle' => PuzzleFixture::PUZZLE_4000],
         ));

@@ -93,7 +93,7 @@ final class SelectedListPuzzlesControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('action="refresh"', (string) $browser->getResponse()->getContent());
         // 500_01 was in the collection already
-        self::assertSame(1, (int) $this->connection()->fetchOne(
+        self::assertSame(1, $this->countRows(
             'SELECT COUNT(*) FROM collection_item WHERE player_id = :player AND collection_id = :collection AND puzzle_id = :puzzle',
             ['player' => PlayerFixture::PLAYER_WITH_STRIPE, 'collection' => CollectionFixture::COLLECTION_PUBLIC, 'puzzle' => PuzzleFixture::PUZZLE_9000],
         ));
@@ -148,11 +148,11 @@ final class SelectedListPuzzlesControllerTest extends WebTestCase
         ], server: self::FRAME);
         self::assertResponseIsSuccessful();
 
-        self::assertSame(1, (int) $this->connection()->fetchOne(
+        self::assertSame(1, $this->countRows(
             'SELECT COUNT(*) FROM lent_puzzle WHERE puzzle_id = :puzzle AND owner_player_id = :owner',
             ['puzzle' => PuzzleFixture::PUZZLE_500_04, 'owner' => PlayerFixture::PLAYER_WITH_STRIPE],
         ));
-        self::assertSame(0, (int) $this->connection()->fetchOne(
+        self::assertSame(0, $this->countRows(
             'SELECT COUNT(*) FROM lent_puzzle WHERE puzzle_id = :puzzle AND owner_player_id = :owner',
             ['puzzle' => PuzzleFixture::PUZZLE_1500_02, 'owner' => PlayerFixture::PLAYER_WITH_STRIPE],
         ));
@@ -171,7 +171,7 @@ final class SelectedListPuzzlesControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('action="refresh"', (string) $browser->getResponse()->getContent());
-        self::assertSame(0, (int) $this->connection()->fetchOne(
+        self::assertSame(0, $this->countRows(
             'SELECT COUNT(*) FROM lent_puzzle WHERE puzzle_id IN (:a, :b)',
             ['a' => PuzzleFixture::PUZZLE_2000, 'b' => PuzzleFixture::PUZZLE_3000],
         ));
@@ -187,7 +187,7 @@ final class SelectedListPuzzlesControllerTest extends WebTestCase
             'confirm' => '1',
         ], server: self::FRAME);
         self::assertResponseStatusCodeSame(403);
-        self::assertSame(1, (int) $this->connection()->fetchOne(
+        self::assertSame(1, $this->countRows(
             'SELECT COUNT(*) FROM wish_list_item WHERE player_id = :player AND puzzle_id = :puzzle',
             ['player' => PlayerFixture::PLAYER_REGULAR, 'puzzle' => PuzzleFixture::PUZZLE_4000],
         ));
@@ -231,9 +231,20 @@ final class SelectedListPuzzlesControllerTest extends WebTestCase
         return $connection;
     }
 
+    /**
+     * @param array<string, string> $params
+     */
+    private function countRows(string $sql, array $params): int
+    {
+        $count = $this->connection()->fetchOne($sql, $params);
+        assert(is_int($count));
+
+        return $count;
+    }
+
     private function rows(string $table, string $puzzleId): int
     {
-        return (int) $this->connection()->fetchOne(
+        return $this->countRows(
             "SELECT COUNT(*) FROM {$table} WHERE player_id = :player AND puzzle_id = :puzzle",
             ['player' => PlayerFixture::PLAYER_WITH_STRIPE, 'puzzle' => $puzzleId],
         );

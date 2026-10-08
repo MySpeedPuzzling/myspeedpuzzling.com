@@ -24,10 +24,9 @@
     }
 }
 
+// No room is made for the bar under the last cards: it would grow the page by its height on the first tick (the page
+// jumped) - the footer follows every list, so at the page's end the bar covers the footer, never a card
 .collection-selecting {
-    // Room for the bar under the last cards
-    padding-bottom: 5rem;
-
     [data-collection-filter-target~="item"] {
         cursor: pointer;
         user-select: none;

@@ -33,7 +33,7 @@ import {
     tableHolder,
     wordList,
 } from '../sheet_results.js';
-import { CHOOSE, SKIP, chosenResultChanges, newTeamsOfResults } from '../round_paste.js';
+import { SKIP, chosenResultChanges, newTeamsOfResults } from '../round_paste.js';
 
 export const CREATE = '__create';
 export const OPTION_LIMIT = 30;

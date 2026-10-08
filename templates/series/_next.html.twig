@@ -1,0 +1,42 @@
+{#
+    The series page's Next card: the first live session, else the first upcoming one (owner: workstream A).
+    Variables: page (SeriesPage), attendance-free: page.next.isGoing says "You're going"
+#}
+{% if page.next %}
+    {% set next = page.next %}
+    {% set row = next.row %}
+    <section class="ev-next" aria-labelledby="series-next-title" data-series-edition="{{ next.competitionId }}">
+        <h2 class="ev-next-eyebrow" id="series-next-title">{{ 'series_page.next'|trans }}</h2>
+        <div class="ev-next-body">
+            {{ include('event_parts/_date_leaf.html.twig', {leaf: row.leaf}) }}
+            <div class="ev-next-main">
+                {% if row.url %}<a class="ev-next-title" href="{{ row.url }}">{{ row.title }}</a>{% else %}<span class="ev-next-title">{{ row.title }}</span>{% endif %}
+                <div class="ev-row-meta">
+                    {{- include('event_parts/_place.html.twig', {place: row.place}) -}}
+                    {%- if row.time %}{{ include('event_parts/_event_time.html.twig', {time: row.time, online: row.place.isOnline}) }}{% endif -%}
+                </div>
+                {% if row.when %}
+                    {{ include('event_parts/_when.html.twig', {when: row.when}) }}
+                {% elseif row.leaf.from %}
+                    <span class="ev-when">{{ row.leaf.from|events_date('yMMMMEEEEd') }}</span>
+                {% endif %}
+                {{ include('event_parts/_row_tags.html.twig', {tags: row.tags}) }}
+            </div>
+            {% if row.logo %}<img class="ev-row-logo" src="{{ row.logo|thumbnail('puzzle_small') }}" alt="" loading="lazy">{% endif %}
+        </div>
+        <div class="ev-next-actions">
+            {% if next.isPublic and not next.registrationManaged %}
+                {% if next.isGoing %}
+                    <span class="ev-action-button ev-action-going"><span aria-hidden="true">✓ </span>{{ 'competition.join.you_are_going'|trans }}</span>
+                {% else %}
+                    <a class="ev-action-button ev-action-primary" href="{{ path('join_competition', {competitionId: next.competitionId}) }}">{{ 'competition.join.im_going'|trans }}</a>
+                {% endif %}
+            {% elseif next.registrationManaged and row.url %}
+                <a class="ev-action-button ev-action-primary" href="{{ row.url|split('#')|first }}#registration">{{ 'event_detail.going.registration'|trans }}</a>
+            {% endif %}
+            {% if next.registrationLink %}
+                <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ next.registrationLink }}">{{ 'events.registration_link'|trans }}<span aria-hidden="true"> ↗</span></a>
+            {% endif %}
+        </div>
+    </section>
+{% endif %}

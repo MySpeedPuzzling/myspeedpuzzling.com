@@ -97,10 +97,16 @@
 @import "results-desk";
 
 // Events page (docs/features/events-page/)
+@import "event-parts";
 @import "events-page";
 @import "events-calendar";
 @import "events-organizer";
 @import "events-archive";
+
+// Series, edition and event pages (docs/features/events-page/detail-pages.md)
+@import "event-detail";
+@import "series-page";
+@import "event-rounds";
 
 // Participants spreadsheet (docs/features/competitions-management/participants-spreadsheet.md)
 @import "participants_sheet/sheet";

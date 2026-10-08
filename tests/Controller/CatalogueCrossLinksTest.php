@@ -197,10 +197,10 @@ final class CatalogueCrossLinksTest extends WebTestCase
         $crawler = $browser->request('GET', '/puzzle/500-dilku');
         self::assertContains('/puzzle/znacka/ravensburger', self::cardBrandLinks($crawler));
 
-        // An event page listing its tagged puzzles
+        // An event page listing its tagged puzzles (one outside its rounds - a round's puzzles sit in the round)
         self::getContainer()->get(Connection::class)->executeStatement(
             'INSERT INTO tag_puzzle (tag_id, puzzle_id) VALUES (:tagId, :puzzleId)',
-            ['tagId' => TagFixture::TAG_WJPC, 'puzzleId' => PuzzleFixture::PUZZLE_500_01],
+            ['tagId' => TagFixture::TAG_WJPC, 'puzzleId' => PuzzleFixture::PUZZLE_1000_05],
         );
         $crawler = $browser->request('GET', '/en/events/wjpc-2024');
         $this->assertResponseIsSuccessful();

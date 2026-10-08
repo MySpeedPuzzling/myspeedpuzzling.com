@@ -33,12 +33,12 @@ use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
-use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\SearchText;
 
 /**
  * Turns the occurrences and series into everything the events page renders (docs/features/events-page/
- * implementation-plan.md, 1.5 - each rule has a test in EventsPageBuilderTest). Pure apart from EventUrls.
+ * implementation-plan.md, 1.5 - each rule has a test in EventsPageBuilderTest). Pure apart from EventUrls. One row and
+ * one archive line are EventRowFactory's (shared with the series page).
  *
  * Every row of every scope is built - `visible` tells the request's scope; the browser switches scopes and searches
  * over the index. Only public items are counted; ones waiting for approval (admins only) are rows with a tag, never
@@ -56,10 +56,15 @@ readonly final class EventsPageBuilder
     // no "when" label beyond
     public const int RELATIVE_DAYS = 30;
 
+    private EventRowFactory $rows;
+
     public function __construct(
         private EventUrls $urls,
         private EventsIndexFactory $indexFactory,
+        // the row rules (shared with the series page); built from the URLs when not given - the unit tests' way
+        null|EventRowFactory $rows = null,
     ) {
+        $this->rows = $rows ?? new EventRowFactory($urls);
     }
 
     /**
@@ -165,7 +170,7 @@ readonly final class EventsPageBuilder
 
         $rowOf = function (array $item, null|string $logo = null) use ($goingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
             /** @var ListedOccurrence $item */
-            return $this->row($item['occurrence'], $item['status'], $item['id'], $goingCounts, $viewer, $scope, $now, $day, $locale, $logo);
+            return $this->rows->row($item['occurrence'], $item['status'], $item['id'], $goingCounts, $viewer, $scope, $now, $day, $locale, $logo);
         };
 
         $publicPast = array_values(array_filter($past, static fn (array $item): bool => $item['occurrence']->isPublic));
@@ -298,169 +303,6 @@ readonly final class EventsPageBuilder
             itemListUrls: array_values(array_unique(array_reverse($urls))),
             count: $selected->occurrenceCount(),
         );
-    }
-
-    /**
-     * @param array<string, int> $goingCounts
-     */
-    private function row(
-        EventOccurrence $occurrence,
-        EventOccurrenceStatus $status,
-        int $indexId,
-        array $goingCounts,
-        null|EventsViewerData $viewer,
-        EventsScope $scope,
-        DateTimeImmutable $now,
-        DateTimeImmutable $day,
-        string $locale,
-        null|string $logo,
-    ): AgendaRow {
-        $isEdition = $occurrence->isEdition();
-        $longRunning = $occurrence->isLongRunning();
-        $isPast = $status === EventOccurrenceStatus::Past;
-        $going = $viewer?->isGoing($occurrence->competitionId) ?? false;
-
-        $followTarget = null;
-
-        if ($isEdition) {
-            $followTarget = FollowTarget::series((string) $occurrence->seriesId);
-        } elseif ($isPast === false) {
-            $followTarget = FollowTarget::competition($occurrence->competitionId);
-        }
-
-        $from = $occurrence->startDate?->format('Y-m-d');
-        $to = null;
-
-        if ($longRunning) {
-            $to = $from;
-        } elseif ($occurrence->endDate !== null) {
-            $to = $occurrence->endDate->format('Y-m-d');
-        }
-
-        return new AgendaRow(
-            indexIds: [$indexId],
-            isGroup: false,
-            title: self::titleOf($occurrence),
-            editionName: $occurrence->subtitle(),
-            url: $this->urls->occurrence($occurrence),
-            leaf: new DateLeaf(
-                from: $occurrence->startDate,
-                to: $longRunning ? null : $occurrence->endDate,
-                tone: self::tone($occurrence->isOnline, $status),
-            ),
-            place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
-            tags: $this->tags($occurrence, $status, $going, $goingCounts[strtolower($occurrence->competitionId)] ?? 0, $now),
-            when: self::when($status, $occurrence->startDate, $day),
-            sessions: [],
-            status: $status,
-            scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
-            from: $from,
-            to: $to,
-            followTarget: $followTarget,
-            followName: $isEdition ? (string) $occurrence->seriesName : $occurrence->name,
-            following: $followTarget !== null && $viewer !== null && $viewer->follows($followTarget),
-            manage: new ManageRef(ManageRef::KIND_COMPETITION, $occurrence->competitionId, $occurrence->reference()->displayName()),
-            isPending: $occurrence->isPublic === false,
-            visible: $scope->matches($occurrence->isOnline, $occurrence->countryCode),
-            logo: $logo,
-        );
-    }
-
-    /**
-     * WaitingForApproval, Going, Recurring, registration, Results, RunsUntil, GoingCount - in this order.
-     *
-     * @return list<RowTag>
-     */
-    private function tags(EventOccurrence $occurrence, EventOccurrenceStatus $status, bool $going, int $goingCount, DateTimeImmutable $now): array
-    {
-        $isPast = $status === EventOccurrenceStatus::Past;
-        $tags = [];
-
-        if ($occurrence->isPublic === false) {
-            $tags[] = new RowTag(RowTagType::WaitingForApproval);
-        }
-
-        if ($going) {
-            $tags[] = new RowTag(RowTagType::Going);
-        }
-
-        if ($occurrence->isEdition()) {
-            $tags[] = new RowTag(RowTagType::Recurring);
-        }
-
-        if ($isPast === false && $going === false) {
-            $registration = $this->registrationTag($occurrence, $goingCount, $now);
-
-            if ($registration !== null) {
-                $tags[] = $registration;
-            }
-        }
-
-        if ($isPast && $occurrence->hasResults) {
-            $tags[] = new RowTag(RowTagType::Results);
-        }
-
-        if ($isPast === false && $occurrence->isLongRunning()) {
-            $tags[] = new RowTag(RowTagType::RunsUntil, date: $occurrence->endDate);
-        }
-
-        if ($isPast === false && $goingCount > 0) {
-            $tags[] = new RowTag(RowTagType::GoingCount, count: $goingCount);
-        }
-
-        return $tags;
-    }
-
-    private function registrationTag(EventOccurrence $occurrence, int $goingCount, DateTimeImmutable $now): null|RowTag
-    {
-        $availability = $occurrence->registrationAvailability($now);
-
-        if ($availability === null) {
-            return $occurrence->hasRegistrationLink ? new RowTag(RowTagType::Registration) : null;
-        }
-
-        return match ($availability) {
-            RegistrationAvailability::NotYetOpen => new RowTag(
-                RowTagType::RegistrationOpens,
-                date: $occurrence->registrationOpensAt !== null
-                    ? OccurrenceDates::localDay($occurrence->registrationOpensAt, $occurrence->registrationZone())
-                    : null,
-            ),
-            RegistrationAvailability::Open => $occurrence->capacity !== null && $goingCount >= $occurrence->capacity
-                ? new RowTag(RowTagType::FullWaitlist)
-                : new RowTag(RowTagType::RegistrationOpen),
-            RegistrationAvailability::Closed => new RowTag(RowTagType::RegistrationClosed),
-            RegistrationAvailability::NotPublic => null,
-        };
-    }
-
-    private static function when(EventOccurrenceStatus $status, null|DateTimeImmutable $start, DateTimeImmutable $day): null|WhenLabel
-    {
-        if ($status === EventOccurrenceStatus::Live) {
-            return new WhenLabel(WhenLabel::LIVE, 0, false);
-        }
-
-        if ($status !== EventOccurrenceStatus::Upcoming || $start === null) {
-            return null;
-        }
-
-        $days = (int) $day->diff($start)->days;
-
-        if ($days === 1) {
-            return new WhenLabel(WhenLabel::TOMORROW, 1, true);
-        }
-
-        // Friday, Saturday or Sunday of the current (ISO, Monday-first) week - on a Saturday, next Friday is not
-        // "this weekend"
-        if ($days <= 7 - (int) $day->format('N') && (int) $start->format('N') >= 5) {
-            return new WhenLabel(WhenLabel::THIS_WEEKEND, $days, true);
-        }
-
-        if ($days <= self::RELATIVE_DAYS) {
-            return new WhenLabel(WhenLabel::IN_DAYS, $days, $days <= self::SOON_DAYS);
-        }
-
-        return null;
     }
 
     /**
@@ -772,26 +614,7 @@ readonly final class EventsPageBuilder
      */
     private function singleArchiveLine(array $item, EventsScope $scope, string $locale): ArchiveLine
     {
-        $occurrence = $item['occurrence'];
-        $start = $occurrence->startDate;
-        assert($start !== null);
-
-        return new ArchiveLine(
-            indexIds: [$item['id']],
-            title: self::titleOf($occurrence),
-            url: $this->urls->occurrence($occurrence),
-            from: $start,
-            to: $occurrence->endDate,
-            editionCount: 1,
-            monthFrom: (int) $start->format('n'),
-            monthTo: (int) ($occurrence->endDate ?? $start)->format('n'),
-            hasResults: $occurrence->hasResults,
-            place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
-            scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
-            visible: $scope->matches($occurrence->isOnline, $occurrence->countryCode),
-            editionName: $occurrence->subtitle(),
-            year: (int) $start->format('Y'),
-        );
+        return $this->rows->archiveLine($item['occurrence'], $item['id'], $scope, $locale);
     }
 
     /**
@@ -1147,7 +970,7 @@ readonly final class EventsPageBuilder
 
     private static function titleOf(EventOccurrence $occurrence): string
     {
-        return $occurrence->isEdition() ? (string) $occurrence->seriesName : $occurrence->name;
+        return EventRowFactory::titleOf($occurrence);
     }
 
     /**
@@ -1155,40 +978,20 @@ readonly final class EventsPageBuilder
      */
     private static function tone(bool $isOnline, EventOccurrenceStatus $status): string
     {
-        if ($status !== EventOccurrenceStatus::Live && $status !== EventOccurrenceStatus::Upcoming) {
-            return DateLeaf::TONE_MUTED;
-        }
+        return EventRowFactory::tone($isOnline, $status);
+    }
 
-        return $isOnline ? DateLeaf::TONE_ONLINE : DateLeaf::TONE_IN_PERSON;
+    private static function when(EventOccurrenceStatus $status, null|DateTimeImmutable $start, DateTimeImmutable $day): null|WhenLabel
+    {
+        return EventRowFactory::when($status, $start, $day);
     }
 
     /**
      * The city is left out when the location already holds the country's name (localised or English) - then the
-     * country shows alone.
+     * country shows alone (EventRowFactory::place()).
      */
     public static function place(bool $isOnline, null|string $location, null|CountryCode $country, string $locale): Place
     {
-        if ($isOnline) {
-            return new Place(null, null, null, true);
-        }
-
-        $countryName = $country?->localizedName($locale);
-        $city = $location !== null && trim($location) !== '' ? trim($location) : null;
-
-        if ($city !== null && $country !== null) {
-            $folded = SearchText::fold($city);
-
-            foreach (array_unique([(string) $countryName, $country->value]) as $name) {
-                $foldedName = SearchText::fold($name);
-
-                if ($foldedName !== '' && str_contains($folded, $foldedName)) {
-                    $city = null;
-
-                    break;
-                }
-            }
-        }
-
-        return new Place($city, $countryName, $country, false);
+        return EventRowFactory::place($isOnline, $location, $country, $locale);
     }
 }

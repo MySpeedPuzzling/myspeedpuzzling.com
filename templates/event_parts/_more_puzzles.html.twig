@@ -1,0 +1,20 @@
+{#
+    Puzzles outside the rounds (owner: workstream B): the full cards for tagged extras ("More puzzles of this event"),
+    or - without rounds - the only puzzle list ("Competition puzzles"), or the event page's "no puzzles yet" text.
+    Variables: the page's puzzles, timeline, difficulty_data, puzzle_statuses; series (edition page only)
+#}
+{% if puzzles is not empty %}
+    <section class="ev-detail-section" aria-labelledby="event-puzzles-title" data-event-puzzles>
+        <h2 class="ev-detail-section-title" id="event-puzzles-title">{{ (timeline.hasRounds ? 'event_rounds.more_puzzles' : 'events.competition_puzzles')|trans }}</h2>
+        <div class="row g-2 g-md-3">
+            {% for puzzle in puzzles %}
+                {{ include('_puzzle_item.html.twig', {'search': ''}) }}
+            {% endfor %}
+        </div>
+    </section>
+{% elseif not timeline.hasRounds and (series ?? null) is null %}
+    <section class="ev-detail-section" aria-labelledby="event-puzzles-title" data-event-puzzles>
+        <h2 class="ev-detail-section-title" id="event-puzzles-title">{{ 'events.competition_puzzles'|trans }}</h2>
+        <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
+    </section>
+{% endif %}

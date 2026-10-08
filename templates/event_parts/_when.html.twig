@@ -1,0 +1,5 @@
+{# The "when" of a row (WhenLabel): "Live" with the pulsing dot (event_parts/_live.html.twig), "Today" (rounds only),
+   "Tomorrow", "This weekend", "In 16 days". Variables: when. #}
+<span class="ev-when{{ when.soon ? ' ev-when-soon' }}{{ when.live ? ' ev-when-live' }}">
+    {%- if when.live %}{{ include('event_parts/_live.html.twig') }}{% else %}{{ when.translationKey|trans({'%count%': when.days}) }}{% endif -%}
+</span>

@@ -1,0 +1,38 @@
+// The series page's sections - the Next card, upcoming by month, past by year, the facts strip and the side column
+// (docs/features/events-page/detail-pages.md "Series page"). Owner: workstream A. Imported after _event-detail.scss.
+
+.ev-next {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border: 1px solid $ev-line;
+    border-radius: 12px;
+}
+
+.ev-next-eyebrow {
+    margin: 0 0 .5rem;
+    color: $ev-coral-ink;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.ev-next-body {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+    gap: .75rem;
+    align-items: center;
+}
+
+.ev-next-title {
+    color: $ev-ink;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.ev-next-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: .75rem;
+}

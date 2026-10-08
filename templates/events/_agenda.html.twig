@@ -38,7 +38,7 @@
                 <span class="ev-month-n" data-ev-group-count>{{ 'events_page.agenda.dates_count'|trans({'%count%': now_dates}) }}</span>
             </h3>
             <ul class="ev-rows">
-                {% for row in page.live %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+                {% for row in page.live %}{{ include('event_parts/_row.html.twig', {row: row}) }}{% endfor %}
             </ul>
         </section>
     {% endif %}
@@ -51,7 +51,7 @@
                 <span class="ev-month-n" data-ev-group-count>{{ 'events_page.agenda.dates_count'|trans({'%count%': shown_rows|filter(r => not r.isPending)|reduce((carry, r) => carry + r.datesCount, 0)}) }}</span>
             </h3>
             <ul class="ev-rows">
-                {% for row in month.rows %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+                {% for row in month.rows %}{{ include('event_parts/_row.html.twig', {row: row}) }}{% endfor %}
             </ul>
         </section>
     {% endfor %}
@@ -87,7 +87,7 @@
                 <span class="ev-month-n" data-ev-group-count>{{ 'events_page.agenda.events_count'|trans({'%count%': tba_count}) }}</span>
             </h3>
             <ul class="ev-rows">
-                {% for row in page.tba %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+                {% for row in page.tba %}{{ include('event_parts/_row.html.twig', {row: row}) }}{% endfor %}
             </ul>
         </section>
     {% endif %}

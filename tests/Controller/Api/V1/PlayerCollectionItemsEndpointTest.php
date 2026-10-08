@@ -112,9 +112,9 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         $browser->request('GET', $this->path(PlayerFixture::PLAYER_WITH_STRIPE, CollectionFixture::COLLECTION_PUBLIC));
         $this->assertResponseIsSuccessful();
         $item = $this->item($this->decode($browser), PuzzleFixture::PUZZLE_500_01);
-        // PUZZLE_500_01: eleven solo solves of several players
-        $this->assertSame(11, $item['statistics']['solved_times']);
-        $this->assertSame(11, $item['statistics']['solo']['count']);
+        // PUZZLE_500_01: twelve solo solves of several players
+        $this->assertSame(12, $item['statistics']['solved_times']);
+        $this->assertSame(12, $item['statistics']['solo']['count']);
         $this->assertSame(1200, $item['statistics']['solo']['fastest_seconds']);
         $this->assertNull($item['difficulty']);
         $this->assertNull($item['prediction']);

@@ -133,15 +133,14 @@ final class EventDetailControllerTest extends WebTestCase
         $browser->request('GET', '/en/events/wjpc-2024');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists(sprintf('#puzzle-list-item-%s use[href$="#diff-hard"]', PuzzleFixture::PUZZLE_500_01));
+        // The puzzle is in a round: a compact item there, with its difficulty for members
+        $this->assertSelectorExists(sprintf('[data-round-puzzle="%s"] use[href$="#diff-hard"]', PuzzleFixture::PUZZLE_500_01));
     }
 
-    public function testEventPuzzlesShowTheirRoundLatestFirst(): void
+    public function testTaggedPuzzlesOfARoundShowInTheirRound(): void
     {
         $browser = self::createClient();
 
-        // Final Round (+32 days) puzzle is tagged first, Qualification Round (+30 days) puzzle second -
-        // the page lists the latest round first, whatever the tagging order
         $connection = self::getContainer()->get(Connection::class);
         foreach ([PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_500_01] as $puzzleId) {
             $connection->executeStatement(
@@ -153,18 +152,12 @@ final class EventDetailControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/events/wjpc-2024');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01, 'Qualification Round');
-        $this->assertSelectorTextContains('#puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_01, 'Final Round');
-        // Each round badge links to that round's results
-        $this->assertSelectorExists('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01 . ' a[href="/en/events/wjpc-2024/results/qualification-round"]');
-
-        $order = $crawler->filter('[id^="puzzle-list-item-"]')->each(
-            static fn ($item): string => (string) $item->attr('id'),
-        );
-        self::assertSame([
-            'puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_01,
-            'puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01,
-        ], $order);
+        // Each in its round (the timeline), not again as a card below
+        $this->assertSelectorExists(sprintf('#round-%s [data-round-puzzle="%s"]', CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleFixture::PUZZLE_500_01));
+        $this->assertSelectorExists(sprintf('#round-%s [data-round-puzzle="%s"]', CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_1000_01));
+        // Each round links to its results
+        $this->assertSelectorExists(sprintf('#round-%s a[href="/en/events/wjpc-2024/results/qualification-round"]', CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION));
+        self::assertCount(0, $crawler->filter('[id^="puzzle-list-item-"]'));
     }
 
     public function testRoundChipsAreShownWhenParticipantsAreAssignedToRounds(): void
@@ -346,20 +339,15 @@ final class EventDetailControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/events/wjpc-2024');
 
         $this->assertResponseIsSuccessful();
-        $order = $crawler->filter('[id^="puzzle-list-item-"]')->each(
-            static fn (Crawler $item): string => (string) $item->attr('id'),
-        );
-        self::assertCount(4, $order);
-        // Latest round first, as for tagged puzzles
         self::assertEqualsCanonicalizing(
-            ['puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_01, 'puzzle-list-item-' . PuzzleFixture::PUZZLE_1000_02],
-            array_slice($order, 0, 2),
+            [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02],
+            $crawler->filter(sprintf('#round-%s [data-round-puzzle]', CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION))->each(static fn (Crawler $item): string => (string) $item->attr('data-round-puzzle')),
         );
         self::assertEqualsCanonicalizing(
-            ['puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01, 'puzzle-list-item-' . PuzzleFixture::PUZZLE_500_02],
-            array_slice($order, 2, 2),
+            [PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_02],
+            $crawler->filter(sprintf('#round-%s [data-round-puzzle]', CompetitionRoundFixture::ROUND_WJPC_FINAL))->each(static fn (Crawler $item): string => (string) $item->attr('data-round-puzzle')),
         );
-        $this->assertSelectorTextContains('#puzzle-list-item-' . PuzzleFixture::PUZZLE_500_01, 'Qualification Round');
+        $this->assertSelectorNotExists('[id^="puzzle-list-item-"]');
         $this->assertSelectorTextNotContains('main', 'No puzzles here');
     }
 
@@ -407,9 +395,9 @@ final class EventDetailControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         self::assertSame(
             ['/en/events/wjpc-2024/results/qualification-round', '/en/events/wjpc-2024/results/final-round'],
-            $crawler->filter('[data-event-round-results] a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
+            $crawler->filter('[data-round-results-link]')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
-        $this->assertSelectorTextContains('[data-event-round-results] a', 'Qualification Round');
+        $this->assertSelectorExists(sprintf('#round-%s [data-round-results-link]', CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION));
     }
 
     public function testRoundWithoutResultsIsNotListed(): void
@@ -425,7 +413,7 @@ final class EventDetailControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         self::assertSame(
             ['/en/events/wjpc-2024/results/qualification-round'],
-            $crawler->filter('[data-event-round-results] a')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
+            $crawler->filter('[data-round-results-link]')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
     }
 
@@ -441,7 +429,7 @@ final class EventDetailControllerTest extends WebTestCase
         $browser->request('GET', '/en/events/wjpc-2024');
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorNotExists('[data-event-round-results]');
+        $this->assertSelectorNotExists('[data-round-results-link]');
         $this->assertSelectorNotExists('a[href^="/en/events/wjpc-2024/results/"]');
     }
 

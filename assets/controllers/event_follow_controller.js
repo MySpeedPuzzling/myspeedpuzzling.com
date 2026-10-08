@@ -2,7 +2,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * The follow star of the events page (docs/features/events-page/README.md, "Follow"; templates/events/_follow_star.html.twig).
+ * The follow star of the events page and the detail pages' headers (docs/features/events-page/README.md, "Follow";
+ * templates/event_parts/_follow_star.html.twig) - the labelled variant (`.ev-star-labelled`) flips its visible text.
  *
  * Signed in (on the star's <form>): the submit is sent with fetch (Accept: application/json) instead of a full page
  * post, and every star of the same target on the page flips at once - optimistically, put back when the answer is not
@@ -15,10 +16,10 @@ import { Controller } from '@hotwired/stimulus';
 const NOTE_CLASS = 'ev-follow-note';
 const pending = new Set();
 
-const rowOf = (element) => element.closest('.ev-row, .ev-series-line, li') ?? element.parentElement;
+const rowOf = (element) => element.closest('.ev-row, .ev-series-line, .ev-detail-actions, li') ?? element.parentElement;
 
-// Under the row's text, not in the narrow column of the star
-const noteHostOf = (row) => row.querySelector('.ev-row-body, .ev-series-main') ?? row;
+// Under the row's text, not in the narrow column of the star; on a detail page under the header's actions
+const noteHostOf = (row) => (row.matches('.ev-detail-actions') ? row : row.querySelector('.ev-row-body, .ev-series-main') ?? row);
 
 const currentUrl = () => window.location.pathname + window.location.search;
 
@@ -111,8 +112,18 @@ export default class extends Controller {
             }
 
             star.setAttribute('aria-pressed', following ? 'true' : 'false');
-            star.setAttribute('aria-label', following ? star.dataset.labelFollowing : star.dataset.labelFollow);
             star.title = following ? star.dataset.titleFollowing : star.dataset.titleFollow;
+
+            // The icon-only star is named by its aria-label; the labelled one by its visible text
+            if (star.dataset.labelFollow !== undefined) {
+                star.setAttribute('aria-label', following ? star.dataset.labelFollowing : star.dataset.labelFollow);
+            }
+
+            const text = star.querySelector('[data-follow-text]');
+
+            if (text !== null) {
+                text.textContent = following ? star.dataset.textFollowing : star.dataset.textFollow;
+            }
 
             const form = star.closest('form');
 

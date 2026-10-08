@@ -1,0 +1,22 @@
+{#
+    The series page's side column from 992 px (owner: workstream A): "About" and, for a follower, where the next date
+    shows up. Variables: page (SeriesPage), series
+#}
+{% set facts = page.facts %}
+<aside class="ev-detail-side">
+    <div class="ev-side-card">
+        <h2 class="ev-side-title">{{ 'series_page.side.about'|trans }}</h2>
+        <dl class="ev-side-facts">
+            <dt>{{ 'series_page.side.editions'|trans }}</dt><dd>{{ facts.editionCount }}</dd>
+            {% if facts.since %}<dt>{{ 'series_page.side.since'|trans }}</dt><dd>{{ facts.since|events_date('yMMM') }}</dd>{% endif %}
+            {% if facts.nextIsLive %}
+                <dt>{{ 'series_page.side.next'|trans }}</dt><dd>{{ include('event_parts/_live.html.twig') }}</dd>
+            {% elseif facts.next %}
+                <dt>{{ 'series_page.side.next'|trans }}</dt><dd>{{ facts.next|events_date('yMMMEd') }}</dd>
+            {% endif %}
+            <dt>{{ 'event_detail.side.place'|trans }}</dt><dd>{{ include('event_parts/_place.html.twig', {place: facts.place}) }}</dd>
+            {% if facts.website %}<dt>{{ 'event_detail.side.website'|trans }}</dt><dd><a href="{{ facts.website }}" target="_blank" rel="noopener noreferrer">{{ 'events.website_link'|trans }}<span aria-hidden="true"> ↗</span></a></dd>{% endif %}
+        </dl>
+        {% if page.following %}<p class="ev-side-note">{{ 'series_page.side.following_note'|trans }}</p>{% endif %}
+    </div>
+</aside>

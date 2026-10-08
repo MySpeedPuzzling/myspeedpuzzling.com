@@ -1,0 +1,71 @@
+// The rounds timeline of the edition and event pages, round puzzles, More puzzles and Taking part
+// (docs/features/events-page/detail-pages.md "Rounds timeline"). Owner: workstream B. Imported after _event-detail.scss.
+
+.ev-rounds {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ev-round {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: .75rem;
+    padding: .75rem 0;
+    border-bottom: 1px solid $ev-line;
+    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: 64px minmax(0, 1fr);
+    }
+}
+
+.ev-round-head,
+.ev-round-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem .625rem;
+    font-size: .875rem;
+}
+
+.ev-round-puzzles {
+    margin: .5rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ev-round-puzzle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    min-height: 44px;
+    font-size: .875rem;
+}
+
+.ev-round-puzzle-thumb,
+.ev-round-puzzle-tile {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.ev-round-puzzle-tile {
+    display: inline-block;
+    background: $ev-sunken;
+}
+
+.ev-round-note {
+    margin: .375rem 0 0;
+    color: $ev-muted;
+    font-size: .875rem;
+}
+
+.ev-rounds-earlier > summary {
+    padding: .5rem 0;
+    color: $ev-ink-2;
+    font-size: .875rem;
+    cursor: pointer;
+}

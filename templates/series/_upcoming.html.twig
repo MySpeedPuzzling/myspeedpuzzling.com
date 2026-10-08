@@ -1,0 +1,34 @@
+{#
+    The series page's upcoming list (owner: workstream A): live and upcoming sessions by month (the Next one is not
+    repeated), Ongoing (long spans running now), Date not set (editions without a date and without rounds, last).
+    Variables: page (SeriesPage), series
+#}
+{% set has_rows = page.months is not empty or page.ongoing is not empty or page.dateNotSet is not empty %}
+{% if page.isEmpty %}
+    <p class="ev-empty-text" data-series-empty>{{ 'series.no_editions'|trans }}</p>
+{% elseif has_rows or page.next is null %}
+    <section class="ev-detail-section" aria-labelledby="series-upcoming-title" data-series-upcoming>
+        <h2 class="ev-detail-section-title" id="series-upcoming-title">{{ 'series_page.upcoming'|trans }}</h2>
+        {% if not has_rows and page.next is null %}
+            <p class="ev-empty-text">{{ 'series_page.no_upcoming'|trans }}</p>
+        {% endif %}
+        {% for month in page.months %}
+            <h3 class="ev-month-header"><span>{{ month.firstDay|events_date('yMMMM') }}</span><span class="ev-month-n">{{ 'events_page.agenda.dates_count'|trans({'%count%': month.rows|length}) }}</span></h3>
+            <ol class="ev-rows">
+                {% for row in month.rows %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+            </ol>
+        {% endfor %}
+        {% if page.ongoing is not empty %}
+            <h3 class="ev-month-header"><span>{{ 'series_page.ongoing'|trans }}</span></h3>
+            <ol class="ev-rows">
+                {% for row in page.ongoing %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+            </ol>
+        {% endif %}
+        {% if page.dateNotSet is not empty %}
+            <h3 class="ev-month-header"><span>{{ 'series_page.date_not_set'|trans }}</span></h3>
+            <ol class="ev-rows">
+                {% for row in page.dateNotSet %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+            </ol>
+        {% endif %}
+    </section>
+{% endif %}

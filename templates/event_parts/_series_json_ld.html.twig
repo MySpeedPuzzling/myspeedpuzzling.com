@@ -1,0 +1,58 @@
+{#
+    The EventSeries JSON-LD of the series page (owner: workstream C, docs/features/events-page/detail-pages.md "SEO").
+    Moved from the page template; `subEvent` = page.subEvents - one per public dated session (SeriesPageBuilder), undated
+    editions left out. Variables: the page's (series, page).
+#}
+{% if series.approvedAt is not null and series.rejectedAt is null and series.slug is not null %}
+{# A schema.org Event needs a startDate - an edition without a round and without its own date is left out #}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "EventSeries",
+    "name": {{ series.name|json_ld }},
+    "url": {{ url('competition_series_detail', {'slug': series.slug})|json_ld }}
+    {%- if series.description %},
+    "description": {{ series.description|json_ld }}
+    {%- endif %}
+    {%- if series.logo %},
+    {# The large metadata-stripped preset (1200 px JPEG; Google wants event images >= 720 px wide) - never
+       the uploaded original, older uploads may still carry EXIF/GPS #}
+    "image": {{ series.logo|thumbnail('puzzle_large')|json_ld }}
+    {%- endif %}
+    {%- if not series.isOnline and series.location %},
+    "location": {
+        "@type": "Place",
+        "name": {{ series.location|json_ld }},
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": {{ series.location|json_ld }}
+            {%- if series.locationCountryCode %},
+            "addressCountry": {{ series.locationCountryCode.name|upper|json_ld }}
+            {%- endif %}
+        }
+    }
+    {%- endif %}
+    {%- if series.addedByPlayerName %},
+    "organizer": {
+        "@type": "Person",
+        "name": {{ series.addedByPlayerName|json_ld }}
+    }
+    {%- endif %}
+    {%- if page.subEvents|length > 0 %},
+    "subEvent": [
+        {%- for sub_event in page.subEvents %}
+        {
+            "@type": "Event",
+            "name": {{ sub_event.name|json_ld }},
+            "url": {{ absolute_url(sub_event.path)|json_ld }},
+            "startDate": {{ sub_event.startDate|date('Y-m-d', false)|json_ld }}
+            {%- if sub_event.image %},
+            "image": {{ sub_event.image|thumbnail('puzzle_large')|json_ld }}
+            {%- endif %}
+        }{{ loop.last ? '' : ',' }}
+        {%- endfor %}
+    ]
+    {%- endif %}
+}
+</script>
+{% endif %}

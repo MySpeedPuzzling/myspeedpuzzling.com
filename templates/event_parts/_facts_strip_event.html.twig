@@ -1,0 +1,12 @@
+{#
+    The edition and event pages' facts as a strip under the header on phones (hidden from 992 px) - owner: workstream B.
+    Variables: the page's timeline
+#}
+{% set next = timeline.rounds|filter(item => item.round.id == timeline.nextRoundId)|first %}
+{% if next %}
+    <ul class="ev-facts-strip" data-event-facts>
+        {% if next %}
+            <li>{{ 'series_page.facts.next'|trans({'%date%': next.leaf.from|events_date('MMMEd')}) }} · {{ event_time(next.time) }}</li>
+        {% endif %}
+    </ul>
+{% endif %}

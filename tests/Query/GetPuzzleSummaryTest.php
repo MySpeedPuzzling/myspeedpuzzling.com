@@ -106,13 +106,15 @@ final class GetPuzzleSummaryTest extends KernelTestCase
 
     public function testCompetitionsFromRoundsAreListedOldestFirst(): void
     {
-        // PUZZLE_500_01 is in a WJPC 2024 round (in 30 days) and a Czech Nationals 2024 round (in 60 days)
+        // PUZZLE_500_01 is in a Moonlight Sprint League round (60 days ago, EventDetailFixture), a WJPC 2024 round (in 30
+        // days) and a Czech Nationals 2024 round (in 60 days)
         $usedAt = $this->query->forPuzzle(PuzzleFixture::PUZZLE_500_01)->usedAt;
 
-        self::assertSame(['WJPC 2024', 'Czech National Championship 2024'], $this->displayNames($usedAt));
-        self::assertSame('event_detail', $usedAt[0]->routeName());
-        self::assertSame(['slug' => 'wjpc-2024'], $usedAt[0]->routeParameters());
-        self::assertSame(['slug' => 'czech-nationals-2024'], $usedAt[1]->routeParameters());
+        self::assertSame(['Moonlight Sprint League · Season One', 'WJPC 2024', 'Czech National Championship 2024'], $this->displayNames($usedAt));
+        self::assertSame('edition_detail', $usedAt[0]->routeName());
+        self::assertSame('event_detail', $usedAt[1]->routeName());
+        self::assertSame(['slug' => 'wjpc-2024'], $usedAt[1]->routeParameters());
+        self::assertSame(['slug' => 'czech-nationals-2024'], $usedAt[2]->routeParameters());
     }
 
     public function testCompetitionOfATagIsListed(): void
@@ -130,7 +132,7 @@ final class GetPuzzleSummaryTest extends KernelTestCase
 
         $usedAt = $this->query->forPuzzle(PuzzleFixture::PUZZLE_500_01)->usedAt;
 
-        self::assertSame(['WJPC 2024', 'Czech National Championship 2024'], $this->displayNames($usedAt));
+        self::assertSame(['Moonlight Sprint League · Season One', 'WJPC 2024', 'Czech National Championship 2024'], $this->displayNames($usedAt));
     }
 
     public function testCompetitionsThatAreNotPubliclyVisibleAreLeftOut(): void
@@ -182,10 +184,10 @@ final class GetPuzzleSummaryTest extends KernelTestCase
 
         $usedAt = $this->query->forPuzzle(PuzzleFixture::PUZZLE_500_01)->usedAt;
 
-        self::assertSame(['WJPC 2024', 'Czech National Championship 2024', 'Puzzle Meetup Prague'], $this->displayNames($usedAt));
-        self::assertTrue($usedAt[2]->isSeries);
-        self::assertSame('competition_series_detail', $usedAt[2]->routeName());
-        self::assertSame(['slug' => 'puzzle-meetup-prague'], $usedAt[2]->routeParameters());
+        self::assertSame(['Moonlight Sprint League · Season One', 'WJPC 2024', 'Czech National Championship 2024', 'Puzzle Meetup Prague'], $this->displayNames($usedAt));
+        self::assertTrue($usedAt[3]->isSeries);
+        self::assertSame('competition_series_detail', $usedAt[3]->routeName());
+        self::assertSame(['slug' => 'puzzle-meetup-prague'], $usedAt[3]->routeParameters());
     }
 
     public function testRoundPuzzleHiddenUntilItsRoundStartsStaysOutUntilRevealed(): void

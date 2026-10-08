@@ -1,8 +1,9 @@
 // Runs assets/events_index.js (the events page index helpers) for what tests/EventsIndexScriptTest.php hands over on
-// stdin - scope checks, typed queries against entries, day and month checks, dates - and prints the results as JSON.
+// stdin - scope checks, typed queries against entries, day and month checks, dates, the detail pages' times - and prints
+// the results as JSON.
 
 import { readFileSync } from 'node:fs';
-import { createQueryMatcher, occursOn, overlapsMonth, scopeMatches, formatDays, formatDate, formatDayRange, dateLocale } from '../assets/events_index.js';
+import { createQueryMatcher, occursOn, overlapsMonth, scopeMatches, formatDays, formatDate, formatDayRange, dateLocale, formatTime, zoneLabel, visitorTime } from '../assets/events_index.js';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 
@@ -15,4 +16,7 @@ process.stdout.write(JSON.stringify({
     dates: (input.dates ?? []).map(({ from, to, lang, skeleton }) => (to === undefined
         ? formatDate(from, dateLocale(lang), skeleton)
         : formatDayRange(from, to, dateLocale(lang), skeleton))),
+    times: (input.times ?? []).map(({ instant, zone, lang }) => formatTime(instant, zone, dateLocale(lang))),
+    zones: (input.zones ?? []).map(({ zone, lang, instant }) => zoneLabel(zone, dateLocale(lang), instant)),
+    visitor: (input.visitor ?? []).map(({ instant, eventZone, lang, visitorZone }) => visitorTime(instant, eventZone, dateLocale(lang), visitorZone)),
 }));

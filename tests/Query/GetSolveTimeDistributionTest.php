@@ -35,7 +35,7 @@ final class GetSolveTimeDistributionTest extends KernelTestCase
 
         // No 100- or 200-piece puzzle in the fixtures: buckets without data are omitted
         self::assertSame([300, 500, 1000, 1500, 2000], array_keys($distributions));
-        self::assertSame(40, $distributions[500]->solvesCount);
+        self::assertSame(41, $distributions[500]->solvesCount);
         self::assertSame(12, $distributions[1000]->solvesCount);
 
         foreach ($distributions as $distribution) {

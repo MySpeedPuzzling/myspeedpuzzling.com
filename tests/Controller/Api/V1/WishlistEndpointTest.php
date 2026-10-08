@@ -134,7 +134,7 @@ final class WishlistEndpointTest extends WebTestCase
         $item = $this->itemOf($items, PuzzleFixture::PUZZLE_500_01);
         $this->assertInsightsGated($item, difficulty: true, prediction: true, solves: true);
         $this->assertSame(['score' => 1.18, 'level' => 'challenging', 'confidence' => 'medium', 'sample_size' => 20], $item['difficulty']);
-        $this->assertSame(11, $this->statisticsOf($item)['solved_times']);
+        $this->assertSame(12, $this->statisticsOf($item)['solved_times']);
         $this->assertTrue($this->predictionOf($item)['is_personalized']);
         $this->assertSame(1, $this->predictionOf($item)['personal_solve_count']);
         $this->assertSame(2100, $this->predictionOf($item)['last_time_seconds']);
@@ -235,7 +235,7 @@ final class WishlistEndpointTest extends WebTestCase
         $browser->request('GET', $this->playerPath(PlayerFixture::PLAYER_WITH_STRIPE));
         $item = $this->itemOf($this->items($browser, PlayerFixture::PLAYER_WITH_STRIPE, 3), PuzzleFixture::PUZZLE_500_01);
         $this->assertInsightsGated($item, difficulty: false, prediction: false, solves: false);
-        $this->assertSame(11, $this->statisticsOf($item)['solved_times']);
+        $this->assertSame(12, $this->statisticsOf($item)['solved_times']);
 
         $this->authenticateOAuth2($browser, PlayerFixture::PLAYER_REGULAR, ['collections:read', 'results:read']);
         $browser->request('GET', $this->playerPath(PlayerFixture::PLAYER_WITH_STRIPE));

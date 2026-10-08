@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -87,5 +89,34 @@ final class GetEventAttendanceTest extends KernelTestCase
         $attendance = $this->query->forPlayer(CompetitionSeriesFixture::EDITION_EJJ_69, PlayerFixture::PLAYER_REGULAR);
 
         self::assertFalse($attendance->isGoing);
+    }
+
+    public function testFollowingTheSeriesFollowsItsEditions(): void
+    {
+        $edition = self::getContainer()->get(GetCompetitionEvents::class)->byId(EventsPageFixture::EDITION_HARBOR_1);
+
+        // PLAYER_REGULAR follows Harbor Jigsaw Nights
+        self::assertTrue($this->query->forEvent($edition, PlayerFixture::PLAYER_REGULAR, true)->isFollowing);
+        self::assertFalse($this->query->forEvent($edition, PlayerFixture::PLAYER_WITH_FAVORITES, true)->isFollowing);
+        self::assertFalse($this->query->forEvent($edition, null, true)->isFollowing);
+    }
+
+    public function testFollowingAOneTimeEvent(): void
+    {
+        $meadow = self::getContainer()->get(GetCompetitionEvents::class)->byId(EventsPageFixture::COMPETITION_MEADOW_TBA);
+
+        self::assertTrue($this->query->forEvent($meadow, PlayerFixture::PLAYER_REGULAR, true)->isFollowing);
+        self::assertFalse($this->query->forEvent($meadow, PlayerFixture::PLAYER_ADMIN, true)->isFollowing);
+    }
+
+    public function testTheRegistrationStatementSaysWhoFollows(): void
+    {
+        $riverside = self::getContainer()->get(GetCompetitionEvents::class)->byId(EventsPageFixture::COMPETITION_RIVERSIDE_OPEN);
+
+        // Managed registration: one statement for the card and the follow flag - for a visitor too
+        self::assertTrue($this->query->forEvent($riverside, PlayerFixture::PLAYER_WITH_FAVORITES, true)->isFollowing);
+        self::assertNotNull($this->query->forEvent($riverside, null, true)->registration);
+        self::assertFalse($this->query->forEvent($riverside, null, true)->isFollowing);
+        self::assertFalse($this->query->forEvent($riverside, PlayerFixture::PLAYER_REGULAR, true)->isFollowing);
     }
 }

@@ -26,6 +26,7 @@ final class RoundRevealMomentComputedOnlyHereTest extends TestCase
 {
     private const array ALLOWED = [
         'src/Value/RoundPuzzleReveal.php' => 'The one place: PHP and SQL of the reveal moment.',
+        'src/Services/EventDetail/RoundsTimelineBuilder.php' => 'The rounds timeline: a round is over once its time limit has run (past/live/next) - no reveal moment; the round puzzles come from GetEditionRounds, revealed by RoundPuzzleReveal.',
     ];
 
     /**

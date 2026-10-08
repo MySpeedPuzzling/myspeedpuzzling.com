@@ -25,7 +25,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * (public) and difficulty (token owner member), at a fixed query cost whatever
  * the list size. The existing fields are untouched (MyResultsEndpointTest).
  *
- * Fixtures (.claude/fixtures.md): PLAYER_REGULAR (not a member) has 17 solo
+ * Fixtures (.claude/fixtures.md): PLAYER_REGULAR (not a member) has 18 solo
  * results, among them TIME_08 - PUZZLE_500_02 in 1700 s - and two duo results;
  * PLAYER_WITH_STRIPE and PLAYER_ADMIN are members.
  *
@@ -66,10 +66,10 @@ final class MyResultsInsightsEndpointTest extends WebTestCase
         $raw = $this->decodeJson($browser);
         $this->assertSame(PlayerFixture::PLAYER_REGULAR, $raw['player_id'] ?? null);
         $this->assertSame('solo', $raw['type'] ?? null);
-        $this->assertSame(17, $raw['count'] ?? null);
+        $this->assertSame(18, $raw['count'] ?? null);
         $rawResults = $raw['results'] ?? null;
         $this->assertIsArray($rawResults);
-        $this->assertCount(17, $rawResults);
+        $this->assertCount(18, $rawResults);
 
         foreach ($rawResults as $rawResult) {
             // The original keys, then what was added since - always at the end, never renamed

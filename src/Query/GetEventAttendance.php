@@ -21,6 +21,9 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  *
  * An event that manages registration (docs/features/competitions-management/registration.md) reads its registration
  * card in that one statement instead - for visitors too, the card shows the spots taken.
+ *
+ * Both statements also say whether the viewer follows the event or its series (`isFollowing`, the header's star of the
+ * detail pages, docs/features/events-page/detail-pages.md) - no statement of its own.
  */
 readonly final class GetEventAttendance
 {
@@ -62,10 +65,11 @@ SELECT
         WHERE competition_id = :competitionId
         AND player_id IS NULL
         AND {$going}
-    ) AS has_not_connected_participants
+    ) AS has_not_connected_participants,
+    {$this->sqlIsFollowing()} AS is_following
 SQL;
 
-        /** @var array{is_going: bool, has_not_connected_participants: bool} $row */
+        /** @var array{is_going: bool, has_not_connected_participants: bool, is_following: bool} $row */
         $row = $this->database
             ->executeQuery($query, [
                 'competitionId' => $competitionId,
@@ -76,6 +80,7 @@ SQL;
         return new EventAttendance(
             isGoing: $row['is_going'],
             canChangeParticipant: $row['is_going'] && $row['has_not_connected_participants'],
+            isFollowing: $row['is_following'],
         );
     }
 
@@ -119,7 +124,8 @@ SELECT
             AND ahead.deleted_at IS NULL
             AND ahead.registration_status = '{$waitlisted}'
             AND (COALESCE(ahead.registered_at, '-infinity'), ahead.id) <= (COALESCE(mine.registered_at, '-infinity'), mine.id)
-    ) END AS waitlist_position
+    ) END AS waitlist_position,
+    {$this->sqlIsFollowing()} AS is_following
 FROM (SELECT 1) AS viewer
 LEFT JOIN LATERAL (
     SELECT cp.id, cp.registration_status, cp.source, cp.registered_at
@@ -142,6 +148,7 @@ SQL;
          *     player_status: null|string,
          *     player_source: null|string,
          *     waitlist_position: null|int|string,
+         *     is_following: bool,
          * } $row
          */
         $row = $this->database
@@ -186,7 +193,27 @@ SQL;
             isGoing: $isGoing,
             canChangeParticipant: $connected && $row['has_not_connected_participants'],
             registration: $registration,
+            isFollowing: $row['is_following'],
         );
+    }
+
+    /**
+     * The viewer follows the competition, or its series (an edition's star follows the series). A visitor's
+     * `:playerId` is null - never true.
+     */
+    private function sqlIsFollowing(): string
+    {
+        return <<<SQL
+EXISTS (
+        SELECT 1
+        FROM followed_competition fc
+        WHERE fc.player_id = :playerId
+            AND (
+                fc.competition_id = :competitionId
+                OR fc.series_id = (SELECT f_c.series_id FROM competition f_c WHERE f_c.id = :competitionId)
+            )
+    )
+SQL;
     }
 
     /**

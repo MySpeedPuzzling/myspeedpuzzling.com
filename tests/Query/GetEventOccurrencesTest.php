@@ -166,6 +166,67 @@ final class GetEventOccurrencesTest extends KernelTestCase
     }
 
     /**
+     * The series page's rows (detail-pages-plan.md 1.2): every session of the Sprint League, each with its first round
+     * and its own Results - only Sprint 1 has a result
+     */
+    public function testForSeriesListsEverySessionWithItsOwnResults(): void
+    {
+        $sessions = $this->query->forSeries(EventsPageFixture::SERIES_SPRINT_LEAGUE);
+
+        self::assertCount(4, $sessions);
+        self::assertSame(array_keys(EventsPageFixture::SPRINT_ROUND_DAYS), array_map(static fn (EventOccurrence $occurrence): string => (string) $occurrence->firstRound?->id, $sessions));
+        self::assertSame([true, false, false, false], array_map(static fn (EventOccurrence $occurrence): bool => $occurrence->hasResults, $sessions));
+        self::assertSame('America/New_York', $sessions[2]->firstRound?->zone);
+        self::assertFalse($sessions[2]->firstRound->zoneAssumed);
+
+        // The events page reads the same rows
+        $onEventsPage = array_values(array_filter(
+            $this->query->all(false),
+            static fn (EventOccurrence $occurrence): bool => $occurrence->competitionId === EventsPageFixture::EDITION_SPRINT_SEASON,
+        ));
+        self::assertSame([true, false, false, false], array_map(static fn (EventOccurrence $occurrence): bool => $occurrence->hasResults, $onEventsPage));
+    }
+
+    public function testForSeriesIncludesTheUndatedEdition(): void
+    {
+        $ids = array_map(static fn (EventOccurrence $occurrence): string => $occurrence->competitionId, $this->query->forSeries(EventsPageFixture::SERIES_HARBOR_NIGHTS));
+
+        self::assertEqualsCanonicalizing([
+            EventsPageFixture::EDITION_HARBOR_1,
+            EventsPageFixture::EDITION_HARBOR_2,
+            EventsPageFixture::EDITION_HARBOR_3,
+            EventsPageFixture::EDITION_HARBOR_PAST_A,
+            EventsPageFixture::EDITION_HARBOR_PAST_B,
+            EventsPageFixture::EDITION_HARBOR_UNDATED,
+        ], $ids);
+        self::assertSame(EventsPageFixture::EDITION_HARBOR_UNDATED, $ids[count($ids) - 1], 'undated last');
+    }
+
+    public function testForSeriesListsTheEditionsOfASeriesNotPublic(): void
+    {
+        // Waiting for approval: its own page lists its editions, not public
+        $unapproved = $this->query->forSeries(CompetitionSeriesFixture::SERIES_UNAPPROVED);
+        self::assertSame([CompetitionSeriesFixture::EDITION_UNAPPROVED_1], array_map(static fn (EventOccurrence $occurrence): string => $occurrence->competitionId, $unapproved));
+        self::assertFalse($unapproved[0]->isPublic);
+
+        // Rejected series: its page still lists its edition - the events page never
+        $oldMill = $this->query->forSeries(EventsPageFixture::SERIES_OLD_MILL_REJECTED);
+        self::assertSame([EventsPageFixture::EDITION_OLD_MILL], array_map(static fn (EventOccurrence $occurrence): string => $occurrence->competitionId, $oldMill));
+        self::assertFalse($oldMill[0]->isPublic);
+
+        self::assertSame([], $this->query->forSeries('not-a-uuid'));
+        self::assertSame([], $this->query->forSeries(EventsPageFixture::SERIES_SUMMIT_LEAGUE));
+    }
+
+    public function testTheRegistrationLinkShowsOnlyWhileRegistrationIsNotManaged(): void
+    {
+        $occurrences = $this->byId($this->query->all(false));
+
+        self::assertNull($occurrences[EventsPageFixture::COMPETITION_RIVERSIDE_OPEN]->registrationLink);
+        self::assertSame('https://example.com/meadow/register?utm_source=myspeedpuzzling', $occurrences[EventsPageFixture::COMPETITION_MEADOW_TBA]->registrationLink);
+    }
+
+    /**
      * @param list<EventOccurrence> $occurrences
      *
      * @return array<string, EventOccurrence>

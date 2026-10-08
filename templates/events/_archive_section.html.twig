@@ -26,7 +26,7 @@
                 </nav>
                 <ul class="ev-lines ev-archive-lines">
                     {% for line in newest.lines|slice(0, preview) %}
-                        {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
+                        {{ include('event_parts/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
                     {% endfor %}
                 </ul>
                 {% if newest.lines|length > preview %}
@@ -51,7 +51,7 @@
                         </h3>
                         <ul class="ev-lines">
                             {% for line in lines %}
-                                {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
+                                {{ include('event_parts/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
                             {% endfor %}
                         </ul>
                     </section>

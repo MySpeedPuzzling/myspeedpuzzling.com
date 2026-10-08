@@ -65,8 +65,8 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         self::assertStringContainsString('Ou La La SPC No. 17', $card->text());
         self::assertSame('Date not set', trim($card->filter('[data-edition-date-not-set]')->text()));
 
-        // With the upcoming editions, after the dated ones
-        $upcomingCards = $crawler->filter('h2 + .row')->first()->filter('[data-series-edition]');
+        // With the upcoming editions - the Next card first, the undated one last
+        $upcomingCards = $crawler->filter('[data-series-edition]');
         self::assertSame($undatedId, $upcomingCards->last()->attr('data-series-edition'));
         self::assertSame(CompetitionSeriesFixture::EDITION_EJJ_69, $upcomingCards->first()->attr('data-series-edition'));
     }
@@ -87,7 +87,8 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
             self::assertIsString($subEvent['startDate'] ?? null, 'Every sub-event has a startDate');
             $names[] = $subEvent['name'] ?? null;
         }
-        self::assertContains('EJJ #69 — May 2026', $names);
+        // One sub-event per session, named like the event (series · edition)
+        self::assertContains('Euro Jigsaw Jam · EJJ #69 — May 2026', $names);
         self::assertNotContains('Ou La La SPC No. 17', $names);
     }
 

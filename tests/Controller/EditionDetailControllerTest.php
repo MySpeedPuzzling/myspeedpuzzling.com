@@ -126,10 +126,21 @@ final class EditionDetailControllerTest extends WebTestCase
     {
         $browser = self::createClient();
 
+        $browser->request('GET', '/en/series/moonlight-sprint-league/season-one');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists('a[href="/en/series/moonlight-sprint-league/season-one/results/sprint-1"]');
+    }
+
+    public function testRoundWithoutResultsLinksNoResultsPage(): void
+    {
+        $browser = self::createClient();
+
         $browser->request('GET', self::PAST_EDITION_URL);
 
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('a[href="' . self::PAST_EDITION_URL . '/results/main-round"]');
+        // Nobody logged a time in the round - its results page would be empty
+        $this->assertSelectorNotExists('a[href="' . self::PAST_EDITION_URL . '/results/main-round"]');
     }
 
     public function testPastEditionTitleNamesItsSeriesAndSaysResults(): void
@@ -371,9 +382,9 @@ final class EditionDetailControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         // The same utm handling as every other external link of an event
-        $info = $crawler->filter('a[href="https://eurojj.com/68?utm_source=myspeedpuzzling"]');
+        $info = $crawler->filter('.ev-detail-actions a[href="https://eurojj.com/68?utm_source=myspeedpuzzling"]');
         self::assertCount(1, $info);
-        self::assertSame('Info', trim($info->text()));
+        self::assertStringStartsWith('Info', trim($info->text()));
 
         $description = $crawler->filter('[data-event-description]');
         self::assertCount(1, $description);

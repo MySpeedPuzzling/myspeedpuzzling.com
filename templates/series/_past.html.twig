@@ -1,0 +1,18 @@
+{#
+    The series page's past (owner: workstream A): one archive line per past session, by year, newest first. Without
+    JavaScript every year shows under its own heading (series_archive_controller.js adds the year chips).
+    Variables: page (SeriesPage)
+#}
+{% if page.pastYears is not empty %}
+    <section class="ev-detail-section" aria-labelledby="series-past-title" data-series-past>
+        <h2 class="ev-detail-section-title" id="series-past-title">{{ 'series_page.past'|trans }}</h2>
+        {% for year in page.pastYears %}
+            <section data-year="{{ year.year }}">
+                <h3 class="ev-month-header"><span>{{ year.year }}</span></h3>
+                <ol class="ev-lines">
+                    {% for line in year.lines %}{{ include('event_parts/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}{% endfor %}
+                </ol>
+            </section>
+        {% endfor %}
+    </section>
+{% endif %}

@@ -29,7 +29,7 @@
                             <div class="ev-series-main">
                                 {% if line.url %}<a class="ev-series-name" href="{{ line.url }}">{{ line.name }}</a>{% else %}<span class="ev-series-name">{{ line.name }}</span>{% endif %}
                                 <span class="ev-series-sub">
-                                    {{- include('events/_place.html.twig', {place: line.place}) -}}
+                                    {{- include('event_parts/_place.html.twig', {place: line.place}) -}}
                                     <span class="ev-series-count">· {{ line.editionCount > 0 ? 'events_page.series.editions'|trans({'%count%': line.editionCount}) : 'events_page.series.no_editions'|trans }}</span>
                                 </span>
                                 {% if line.isPending %}<span class="ev-tag ev-tag-waiting_for_approval">{{ 'events_page.tag.waiting_for_approval'|trans }}</span>{% endif %}
@@ -47,7 +47,7 @@
                                     {{ 'events_page.series.no_dates'|trans }}
                                 {%- endif -%}
                             </span>
-                            {{ include('events/_row_actions.html.twig', {
+                            {{ include('event_parts/_row_actions.html.twig', {
                                 follow_target: line.followTarget,
                                 follow_name: line.name,
                                 following: line.following,
@@ -71,12 +71,12 @@
                         <div class="ev-series-main">
                             {% if row.url %}<a class="ev-series-name" href="{{ row.url }}">{{ row.title }}</a>{% else %}<span class="ev-series-name">{{ row.title }}</span>{% endif %}
                             {#- A long span without rounds has its place and "Runs until …"; an online event without dates has neither -#}
-                            <span class="ev-series-sub">{{ row.from ? include('events/_place.html.twig', {place: row.place}) : 'events_page.series.no_fixed_dates'|trans }}</span>
+                            <span class="ev-series-sub">{{ row.from ? include('event_parts/_place.html.twig', {place: row.place}) : 'events_page.series.no_fixed_dates'|trans }}</span>
                             {#- Waiting for approval, registration, "Runs until …", "N going" - an ongoing event takes registrations too -#}
-                            {{ include('events/_row_tags.html.twig', {tags: row.tags}) }}
+                            {{ include('event_parts/_row_tags.html.twig', {tags: row.tags}) }}
                         </div>
                         <span class="ev-series-next ev-series-next-live">{{ 'events_page.series.ongoing'|trans }}</span>
-                        {{ include('events/_row_actions.html.twig', {
+                        {{ include('event_parts/_row_actions.html.twig', {
                             follow_target: row.followTarget,
                             follow_name: row.followName,
                             following: row.following,

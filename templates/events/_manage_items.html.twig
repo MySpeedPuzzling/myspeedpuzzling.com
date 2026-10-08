@@ -5,7 +5,8 @@
     return/return_title back to the page they were opened from. Delete and Reject are confirmed in place
     (<details> + inline_confirm_controller.js - also works without JavaScript); Delete posts the existing per-id token.
 
-    Variables: item (OrganizedEvent), return_url, return_title, layout ('menu'|'inline')
+    Variables: item (OrganizedEvent), return_url, return_title, layout ('menu'|'inline'), delete_return (optional: where
+    Delete returns - the parent of a detail page, which answers 404 once deleted; else return_url)
 #}
 {%- set back = {return: return_url, return_title: return_title} -%}
 {%- set pending = not item.isApproved and not item.isRejected -%}
@@ -109,7 +110,7 @@
                 <summary class="ev-action ev-action-danger" data-inline-confirm-target="summary">{{ delete.label|trans }}</summary>
                 <form class="ev-confirm-body" method="post" action="{{ delete.url }}" data-turbo-frame="_top">
                     <input type="hidden" name="_token" value="{{ delete.token }}">
-                    <input type="hidden" name="return" value="{{ return_url }}">
+                    <input type="hidden" name="return" value="{{ delete_return|default(null) ?: return_url }}">
                     <p class="ev-confirm-text">{{ 'events_organizer.menu.delete_confirm'|trans({'%name%': name}) }}</p>
                     <div class="ev-confirm-buttons">
                         <button type="button" class="ev-action" data-action="inline-confirm#cancel" data-inline-confirm-target="cancel" hidden>{{ 'events_organizer.menu.cancel'|trans }}</button>

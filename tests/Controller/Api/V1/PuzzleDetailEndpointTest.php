@@ -304,8 +304,8 @@ final class PuzzleDetailEndpointTest extends WebTestCase
         $browser->request('GET', self::ENDPOINT . PuzzleFixture::PUZZLE_500_01);
         $this->assertResponseIsSuccessful();
         $statistics = $this->decode($browser)['statistics'];
-        $this->assertSame(11, $statistics['solved_times']);
-        $this->assertSame(11, $statistics['solo']['count']);
+        $this->assertSame(12, $statistics['solved_times']);
+        $this->assertSame(12, $statistics['solo']['count']);
         $this->assertSame(1200, $statistics['solo']['fastest_seconds']);
         $this->assertSame(3000, $statistics['solo']['slowest_seconds']);
         $this->assertSame(self::EMPTY_STATISTICS_GROUP, $statistics['duo']);

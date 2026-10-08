@@ -1,0 +1,27 @@
+{#
+    The side column of the edition and event pages from 992 px (owner: workstream B): Part of (edition), the dates, the
+    place or Online, the website, and how times are shown. Variables: the page's event, timeline, event_place, online;
+    series (edition page only)
+#}
+<aside class="ev-detail-side">
+    <div class="ev-side-card">
+        <dl class="ev-side-facts">
+            {% if (series ?? null) is not null %}
+                <dt>{{ 'event_detail.side.part_of'|trans }}</dt>
+                <dd>{% if series.slug %}<a href="{{ path('competition_series_detail', {slug: series.slug}) }}">{{ series.name }}</a>{% else %}{{ series.name }}{% endif %}</dd>
+            {% endif %}
+            <dt>{{ 'event_detail.side.dates'|trans }}</dt>
+            <dd>{% if timeline.start %}{{ events_date_range(timeline.start, timeline.end, 'yMMMd') }}{% else %}{{ 'edition.date_not_set'|trans }}{% endif %}</dd>
+            <dt>{{ 'event_detail.side.place'|trans }}</dt>
+            <dd>{{ include('event_parts/_place.html.twig', {place: event_place}) }}</dd>
+            {% if event.link %}
+                <dt>{{ 'event_detail.side.website'|trans }}</dt>
+                <dd><a href="{{ event.link }}" target="_blank" rel="noopener noreferrer">{{ 'events.website_link'|trans }}<span aria-hidden="true"> ↗</span></a></dd>
+            {% endif %}
+        </dl>
+        {% if timeline.hasRounds and timeline.zone %}
+            {% set zone_name = event_time_parts((timeline.rounds|first).time).zone %}
+            <p class="ev-side-note">{{ (online ? 'event_detail.side.times_online' : 'event_detail.side.times_in_person')|trans({'%zone%': zone_name}) }}</p>
+        {% endif %}
+    </div>
+</aside>

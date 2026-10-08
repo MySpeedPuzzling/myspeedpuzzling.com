@@ -16,6 +16,8 @@ readonly final class EventAttendance
         public bool $canChangeParticipant,
         // Only for an event that manages registration - the block then is the registration card
         public null|EventRegistration $registration = null,
+        // The viewer follows the event, or the series of an edition - the header's labelled star
+        public bool $isFollowing = false,
     ) {
     }
 

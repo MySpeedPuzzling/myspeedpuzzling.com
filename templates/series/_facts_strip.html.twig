@@ -1,0 +1,17 @@
+{#
+    The series page's facts as a strip under the header on phones (hidden from 992 px, the side column has them) -
+    owner: workstream A. Variables: page (SeriesPage)
+#}
+{% set facts = page.facts %}
+{% if facts.editionCount > 0 %}
+    <ul class="ev-facts-strip" data-series-facts>
+        <li>{{ 'series_page.facts.editions'|trans({'%count%': facts.editionCount}) }}</li>
+        {% if facts.since %}<li>{{ 'series_page.facts.since'|trans({'%date%': facts.since|events_date('yMMM')}) }}</li>{% endif %}
+        {% if facts.comingCount > 0 %}<li>{{ 'series_page.facts.coming'|trans({'%count%': facts.comingCount}) }}</li>{% endif %}
+        {% if facts.nextIsLive %}
+            <li>{{ 'series_page.facts.live_now'|trans }}</li>
+        {% elseif facts.next %}
+            <li>{{ 'series_page.facts.next'|trans({'%date%': facts.next|events_date('MMMEd')}) }}</li>
+        {% endif %}
+    </ul>
+{% endif %}

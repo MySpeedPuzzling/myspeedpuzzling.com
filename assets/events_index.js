@@ -279,6 +279,78 @@ export function formatDayRange(fromIso, toIso, locale, skeleton) {
     }
 }
 
+/**
+ * A start time in the event's zone, like the server writes it (EventsPageDates::time(), skeleton `jm`, two-digit hours):
+ * "22:00", "04:00". `locale` is a dateLocale() - English pages read 24 hours (en-GB). Empty for an invalid instant or zone.
+ */
+export function formatTime(instantIso, zone, locale) {
+    try {
+        return new Intl.DateTimeFormat(locale || undefined, { hour: '2-digit', minute: '2-digit', timeZone: zone }).format(new Date(instantIso));
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * The zone's localised generic name, like the server's (EventsPageDates::zoneName()): "Central European Time",
+ * "Eastern Time"; without one the zone id's last segment ("Kolkata").
+ */
+export function zoneLabel(zone, locale, instantIso = undefined) {
+    const fallback = String(zone || '').split('/').pop().replace(/_/g, ' ');
+
+    try {
+        const part = new Intl.DateTimeFormat(locale || undefined, { timeZone: zone, timeZoneName: 'longGeneric' })
+            .formatToParts(instantIso ? new Date(instantIso) : new Date())
+            .find((item) => item.type === 'timeZoneName');
+
+        // Without a name of its own Intl gives an offset ("GMT+05:30") - the city says more
+        return part && !/^(GMT|UTC)([+\-−]|$)/.test(part.value) ? part.value : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+// The wall date ("2026-06-16") and time ("22:00") of an instant in a zone
+function wallClock(instant, zone, locale) {
+    const parts = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: zone })
+        .formatToParts(instant);
+    const value = (type) => parts.find((part) => part.type === type)?.value ?? '';
+
+    return { date: `${value('year')}-${value('month')}-${value('day')}`, time: `${value('hour')}:${value('minute')}`, text: formatTime(instant.toISOString(), zone, locale) };
+}
+
+/**
+ * The visitor's own time for an event's start (online events, event_local_time_controller.js): null when the visitor's
+ * zone is unknown or invalid, or gives the same wall date and time as the event's zone; else
+ * `{time, zone, dayShift}` - `dayShift` is the visitor's calendar day minus the event's (-1, 0, 1).
+ */
+export function visitorTime(instantIso, eventZone, locale, visitorZone) {
+    if (!instantIso || !eventZone || !visitorZone) {
+        return null;
+    }
+
+    try {
+        const instant = new Date(instantIso);
+
+        if (Number.isNaN(instant.getTime())) {
+            return null;
+        }
+
+        const event = wallClock(instant, eventZone, locale);
+        const visitor = wallClock(instant, visitorZone, locale);
+
+        if (event.date === visitor.date && event.time === visitor.time) {
+            return null;
+        }
+
+        const days = Math.round((Date.parse(`${visitor.date}T00:00:00Z`) - Date.parse(`${event.date}T00:00:00Z`)) / 86400000);
+
+        return { time: visitor.text, zone: zoneLabel(visitorZone, locale, instantIso), dayShift: Math.max(-1, Math.min(1, days)) };
+    } catch {
+        return null;
+    }
+}
+
 const joined = (from, to) => (/[\s\p{Zs}]/u.test(from + to) ? `${from} – ${to}` : `${from}–${to}`);
 
 // A field with the literals that follow it, up to the next field

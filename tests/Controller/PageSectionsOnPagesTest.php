@@ -62,18 +62,22 @@ final class PageSectionsOnPagesTest extends WebTestCase
      */
     public static function provideUntouchedPages(): iterable
     {
-        yield 'event with rounds' => ['/en/events/wjpc-2024', false, 16];
-        yield 'event' => [self::EVENT_URL, false, 13];
-        yield 'online event' => ['/en/events/euro-jigsaw-jam', false, 10];
+        // The redesigned detail pages (docs/features/events-page/detail-pages-plan.md 1.10): an event page no longer reads
+        // its round puzzles a second time (they are in the timeline) - one less; an edition with a slugged round counts its
+        // results per round (+1, the event page did already); the series page reads its occurrences in one statement
+        // (guest -1) and a signed-in viewer's going/follow rows (+1)
+        yield 'event with rounds' => ['/en/events/wjpc-2024', false, 15];
+        yield 'event' => [self::EVENT_URL, false, 12];
+        yield 'online event' => ['/en/events/euro-jigsaw-jam', false, 9];
         yield 'edition' => [self::EDITION_URL, false, 12];
-        yield 'online edition' => ['/en/series/euro-jigsaw-jam-series/ejj-68-february-2026', false, 11];
-        yield 'series' => [self::SERIES_URL, false, 4];
+        yield 'online edition' => ['/en/series/euro-jigsaw-jam-series/ejj-68-february-2026', false, 12];
+        yield 'series' => [self::SERIES_URL, false, 3];
         yield 'event, signed in' => [self::EVENT_URL, true, 19];
-        yield 'edition, signed in' => [self::EDITION_URL, true, 18];
-        yield 'series, signed in' => [self::SERIES_URL, true, 8];
+        yield 'edition, signed in' => [self::EDITION_URL, true, 19];
+        yield 'series, signed in' => [self::SERIES_URL, true, 9];
     }
 
-    public function testSectionsShowRightAfterTheDescriptionForOneMoreStatement(): void
+    public function testSectionsShowAfterTakingPartForOneMoreStatement(): void
     {
         $browser = self::createClient();
         $this->add(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, null, PageSectionType::RichText, 'House rules', [
@@ -90,7 +94,7 @@ final class PageSectionsOnPagesTest extends WebTestCase
         $crawler = $browser->request('GET', self::EVENT_URL);
 
         self::assertResponseIsSuccessful();
-        self::assertSame(13 + 1, $this->queryCount($browser));
+        self::assertSame(12 + 1, $this->queryCount($browser));
 
         $sections = $crawler->filter('[data-page-sections] > [data-page-section]');
         self::assertSame(['rich_text', 'faq'], $sections->each(static fn ($section): string => (string) $section->attr('data-page-section')));
@@ -103,10 +107,10 @@ final class PageSectionsOnPagesTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.page-section-rich-text ul > li'));
         self::assertSame('Is there parking?', $crawler->filter('[data-page-section="faq"] summary')->text());
 
-        // Right after the description, before the puzzles
+        // After the puzzles, Taking part and the marketplace card, before the participants (detail-pages.md, conflict 1)
         $html = (string) $browser->getResponse()->getContent();
-        self::assertLessThan(strpos($html, 'data-page-sections'), strpos($html, 'data-event-description'));
-        self::assertLessThan(strpos($html, 'Competition puzzles'), strpos($html, 'data-page-sections'));
+        self::assertLessThan(strpos($html, 'id="taking-part"'), strpos($html, 'data-event-description'));
+        self::assertLessThan(strpos($html, 'data-page-sections'), strpos($html, 'id="taking-part"'));
     }
 
     public function testAnEditionShowsItsOwnSectionsThenTheSeriesOnes(): void

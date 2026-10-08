@@ -46,7 +46,7 @@
 
         <ul class="ev-lines ev-archive-lines">
             {% for line in archive.lines %}
-                {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
+                {{ include('event_parts/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
             {% endfor %}
         </ul>
 

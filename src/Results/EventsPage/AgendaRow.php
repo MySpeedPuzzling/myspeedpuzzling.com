@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results\EventsPage;
 
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
+use SpeedPuzzling\Web\Value\EventTime;
 use SpeedPuzzling\Web\Value\FollowTarget;
 
 /**
@@ -44,8 +45,10 @@ readonly final class AgendaRow
         public bool $isPending,
         // in the request's scope
         public bool $visible,
-        // Your events only
+        // Your events, and the series page's rows (`show_logo`)
         public null|string $logo = null,
+        // the series page: the start of the occurrence's first round in its zone (EventRowFactory, RowContext::SeriesPage)
+        public null|EventTime $time = null,
     ) {
     }
 

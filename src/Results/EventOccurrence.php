@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Services\EventsPage\EventsPageBuilder;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\OccurrenceRound;
 use SpeedPuzzling\Web\Value\OccurrenceSession;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RoundTimezone;
@@ -46,6 +47,10 @@ readonly final class EventOccurrence
         public null|OccurrenceSession $session = null,
         // the day of the last round dating it (OccurrenceDates::$lastRoundDay); null without rounds
         public null|DateTimeImmutable $lastRoundDay = null,
+        // the first round of the occurrence or session (OccurrenceDates::$firstRound) - its start time; null without rounds
+        public null|OccurrenceRound $firstRound = null,
+        // the external registration link, only while registration is not managed here
+        public null|string $registrationLink = null,
     ) {
     }
 
@@ -61,7 +66,7 @@ readonly final class EventOccurrence
 
     public function dates(): OccurrenceDates
     {
-        return new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay, $this->session);
+        return new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay, $this->session, $this->firstRound);
     }
 
     public function isLongRunning(): bool

@@ -40,6 +40,8 @@ readonly final class OccurrenceDates
         public null|DateTimeImmutable $lastRoundDay = null,
         // only when the occurrence has two or more sessions
         public null|OccurrenceSession $session = null,
+        // the first round of the occurrence (or of the session) - its start time; null without rounds
+        public null|OccurrenceRound $firstRound = null,
     ) {
     }
 
@@ -70,7 +72,9 @@ readonly final class OccurrenceDates
                         count: count($groups),
                         firstRoundId: $first['round']->id,
                         label: count($group) === 1 ? $first['round']->name : null,
+                        hasResults: array_any($group, static fn (array $item): bool => $item['round']->hasResults),
                     ),
+                    $first['round'],
                 );
             }
 
@@ -91,7 +95,7 @@ readonly final class OccurrenceDates
             $end = $lastRoundDay;
         }
 
-        return [new self($start, $end !== null && $end > $start ? $end : null, $lastRoundDay)];
+        return [new self($start, $end !== null && $end > $start ? $end : null, $lastRoundDay, null, $group !== [] ? $group[0]['round'] : null)];
     }
 
     /**

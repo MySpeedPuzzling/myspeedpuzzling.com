@@ -10,6 +10,15 @@
  *
  * The controller performs what undo()/redo() return exactly like an action (model.applyLocal + queue) and reports every
  * group's outcome with outcome(). Pure - pinned by tests/participants-sheet-core-harness.mjs.
+ *
+ * - "Keep mine" (a conflict sent again over the other value) is a step of its own (the controller records it), so
+ *   Ctrl+Z takes it back instead of skipping to an older step;
+ * - an undo of a step that was still on its way and then turned out not saved says so ("…was not saved - nothing to
+ *   undo"), not "somebody changed it";
+ * - results changes of a step (`inverseResults`) tied to a sheet group (`inverseOf` - a deleted pair's table number)
+ *   are undone only when that group went through;
+ * - a place change of somebody removed from the event since then is left out of the undo (the server would refuse
+ *   the whole group) and reported in `skipped` - e.g. the members of a deleted pair are put back only if still active.
  */
 
 import { newClientId } from '../official_results_api.js';
@@ -29,6 +38,8 @@ export class SheetUndo {
         this.statuses = new Map();
         // group id of an undo/redo group → 'undo' | 'redo' (its refusal is "Can't undo/redo")
         this.reversals = new Map();
+        // group id of an undo/redo group → the group it takes back
+        this.forwardOf = new Map();
     }
 
     /**
@@ -60,13 +71,15 @@ export class SheetUndo {
             dropped.groups.forEach((group) => {
                 this.statuses.delete(group.id);
                 this.reversals.delete(group.id);
+                this.forwardOf.delete(group.id);
             });
         }
     }
 
     /**
      * The server's answer about a group. Returns 'undo' / 'redo' when the group was an undo/redo the server did not
-     * apply (the controller says "Can't undo - somebody changed it meanwhile"), else null.
+     * apply (the controller says "Can't undo - somebody changed it meanwhile"), 'undo_unsaved' / 'redo_unsaved' when
+     * what it took back was itself never saved ("…was not saved - nothing to undo"), else null.
      */
     outcome(groupId, status) {
         if (!this.statuses.has(groupId)) {
@@ -76,7 +89,13 @@ export class SheetUndo {
         this.statuses.set(groupId, status);
         const reversal = this.reversals.get(groupId) ?? null;
 
-        return reversal !== null && (status === 'conflict' || status === 'refused') ? reversal : null;
+        if (reversal === null || (status !== 'conflict' && status !== 'refused')) {
+            return null;
+        }
+
+        const forward = this.statuses.get(this.forwardOf.get(groupId)) ?? null;
+
+        return forward === 'conflict' || forward === 'refused' ? `${reversal}_unsaved` : reversal;
     }
 
     canUndo() {
@@ -110,12 +129,19 @@ export class SheetUndo {
     reverse(stack, model, kind) {
         while (stack.length > 0) {
             const step = stack.pop();
+            const skipped = [];
             const groups = step.inverse
-                .filter((group) => UNDOABLE.has(this.statuses.get(group.inverseOf) ?? 'applied'))
-                .map((group) => ({ id: this.newId(), changes: group.changes }));
-            const results = step.inverseResults ?? [];
+                .filter((group) => this.wentThrough(group.inverseOf))
+                .map((group) => ({ id: this.newId(), inverseOf: group.inverseOf, changes: this.applicable(group.changes, model, skipped) }))
+                .filter((group) => group.changes.length > 0);
+            const results = (step.inverseResults ?? []).filter((change) => change.inverseOf === undefined || this.wentThrough(change.inverseOf));
 
             if (groups.length === 0 && results.length === 0) {
+                if (skipped.length > 0) {
+                    // Everything left to take back concerns people removed meanwhile - said, and the step is gone
+                    return { label: step.label, kind, groups: [], inverse: [], errors: [], results: [], inverseResults: [], skipped };
+                }
+
                 // Nothing of the step went through - nothing to take back; the next step is the one
                 continue;
             }
@@ -127,7 +153,8 @@ export class SheetUndo {
                 inverse: invertGroups(groups, model, this.newId),
                 errors: [],
                 results,
-                inverseResults: step.results ?? [],
+                inverseResults: (step.results ?? []).filter((change) => change.inverseOf === undefined || this.wentThrough(change.inverseOf)),
+                skipped,
             };
 
             return action;
@@ -136,12 +163,48 @@ export class SheetUndo {
         return null;
     }
 
+    wentThrough(groupId) {
+        return UNDOABLE.has(this.statuses.get(groupId) ?? 'applied');
+    }
+
+    /**
+     * The changes of an undo group the server can apply now: a place change of somebody removed from the event since
+     * (and not restored by this very group) is left out - `skipped` says whom.
+     */
+    applicable(changes, model, skipped) {
+        const restored = new Set();
+
+        return changes.filter((change) => {
+            if (change.op === 'restore') {
+                restored.add(change.participant);
+            }
+
+            if (change.op === 'place' && !restored.has(change.participant) && model.isRemoved(change.participant)) {
+                skipped.push(change);
+
+                return false;
+            }
+
+            return true;
+        });
+    }
+
     /**
      * The undo/redo action was performed: it becomes the step of the other stack.
      */
     done(action) {
+        if (!hasContent(action)) {
+            return;
+        }
+
         this.track(action);
-        action.groups.forEach((group) => this.reversals.set(group.id, action.kind));
+        action.groups.forEach((group) => {
+            this.reversals.set(group.id, action.kind);
+
+            if (group.inverseOf !== undefined) {
+                this.forwardOf.set(group.id, group.inverseOf);
+            }
+        });
         this.push(action.kind === 'undo' ? this.redoStack : this.undoStack, action);
     }
 
@@ -150,6 +213,7 @@ export class SheetUndo {
         this.redoStack = [];
         this.statuses.clear();
         this.reversals.clear();
+        this.forwardOf.clear();
     }
 }
 

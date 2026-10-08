@@ -184,10 +184,15 @@ export default function (test) {
         assert.deepEqual(m.place('p-pat', ROUND_SOLO).result, { piecesPlaced: 400 });
         assert.equal(m.place('p-pat', ROUND_SOLO).table, 7);
         assert.deepEqual(m.team('t-flat').result, { seconds: 5000 }, 'older result ignored');
-        assert.equal(m.team('t-flat').table, 3, 'table numbers always follow');
+        assert.equal(m.team('t-flat').table, null, 'an update about an older result is an old message - its table number neither');
         assert.ok(delta.people.has('p-pat'));
-        assert.ok(delta.people.has('p-t4'), 'members of the team re-render');
+        assert.equal(delta.teams.has('t-flat'), false, 'the old message changed nothing');
         assert.equal(m.resultsGeneration, generation + 1);
+
+        const newer = m.mergeEntries([{ ref: 'team:t-flat', tableNumber: 5, result: { seconds: 4800 }, qualified: true, enteredAt: '2026-10-08T09:00:00+00:00', enteredBy: { name: 'Bo' } }]);
+        assert.equal(m.team('t-flat').table, 5);
+        assert.equal(m.team('t-flat').qualified, true);
+        assert.ok(newer.delta.people.has('p-t4'), 'members of the team re-render');
     });
 
     test('round overviews update publication and table numbers usage', () => {
@@ -199,14 +204,14 @@ export default function (test) {
         m.updateRound({ id: 'unknown', resultsPublished: true });
     });
 
-    test('a profile picked shows its name until the next state; unlinking clears it', () => {
+    test('a profile picked shows its name until the next state; unlinking clears it, the own-time guard stays until the next state', () => {
         const m = model();
         m.applyLocal('g1', [{ op: 'player', participant: 'p-ana', from: null, to: 'pl-ana', _player: { id: 'pl-ana', name: 'Ana E.', code: 'ANA1' } }]);
         assert.equal(m.person('p-ana').player.name, 'Ana E.');
         assert.equal(m.person('p-ana').player.visible, true);
         m.applyLocal('g2', [{ op: 'player', participant: 'p-kim', from: 'pl-kim', to: null }]);
         assert.equal(m.person('p-kim').player, null);
-        assert.deepEqual(m.person('p-kim').playerResultRounds, []);
+        assert.deepEqual(m.person('p-kim').playerResultRounds, [ROUND_SOLO], 'the server checks the changeset against the player Kim had when it started');
     });
 
     test('a new person and a new place get local ids (no entry ref until the server named them)', () => {
@@ -272,6 +277,82 @@ export default function (test) {
         const edit = performance.now() - editStarted;
         assert.ok(loaded < 500, `load ${loaded} ms`);
         assert.ok(edit < 150, `edit ${edit} ms`);
+    });
+
+    test('a listener that throws (a view bug) is logged; the other listeners still hear every change', () => {
+        const m = model();
+        const heard = [];
+        const logged = [];
+        const original = console.error;
+        console.error = (error) => logged.push(error.message);
+
+        try {
+            m.subscribe(() => {
+                throw new Error('a view bug');
+            });
+            m.subscribe((delta) => heard.push([...delta.people]));
+            m.applyLocal('g1', [{ op: 'field', participant: 'p-ana', field: 'name', from: 'Ana Example', to: 'Ana One' }]);
+            m.applyLocal('g2', [{ op: 'field', participant: 'p-jo', field: 'name', from: 'Jo Do', to: 'Jo Two' }]);
+            m.revert('g1');
+        } finally {
+            console.error = original;
+        }
+
+        assert.deepEqual(logged, ['a view bug', 'a view bug', 'a view bug']);
+        assert.deepEqual(heard, [['p-ana'], ['p-jo'], ['p-ana']]);
+        assert.deepEqual(m.pending.map((group) => group.id), ['g2'], 'the revert completed');
+    });
+
+    test('bulk: applyLocalMany / confirmMany / revertMany rebuild once and tell once; batch() merges every delta into one', () => {
+        const m = model();
+        const deltas = [];
+        m.subscribe((delta) => deltas.push(delta));
+        const groups = ['p-ana', 'p-jo', 'p-lee'].map((id, index) => ({ id: `g${index}`, changes: [{ op: 'place', participant: id, round: ROUND_SOLO, from: 'out', to: 'in' }] }));
+        m.applyLocalMany(groups);
+        assert.equal(deltas.length, 1);
+        assert.deepEqual([...deltas[0].people].sort(), ['p-ana', 'p-jo', 'p-lee']);
+        assert.equal(m.peopleIn(ROUND_SOLO).length, 5);
+
+        m.confirmMany([{ groupId: 'g0' }, { groupId: 'g2' }]);
+        assert.equal(deltas.length, 1, 'confirmed as shown - nothing to re-render');
+        m.revertMany(['g1']);
+        assert.equal(deltas.length, 2);
+        assert.deepEqual(m.pending, []);
+        assert.deepEqual(m.peopleIn(ROUND_SOLO).map((p) => p.id).sort(), ['p-ana', 'p-kim', 'p-lee', 'p-pat']);
+        assert.equal(m.revertMany(['nope']).people.size, 0);
+
+        deltas.length = 0;
+        m.batch(() => {
+            m.applyLocal('b1', [{ op: 'field', participant: 'p-ana', field: 'country', from: null, to: 'cz' }]);
+            m.marks.setMany([
+                { key: 'person:p-jo:name', mark: { state: 'saving' }, entities: { people: ['p-jo'] } },
+                { key: 'team:t-edge:name', mark: { state: 'saving' }, entities: { teams: ['t-edge'] } },
+            ]);
+            m.batch(() => m.applyLocal('b2', [{ op: 'field', participant: 'p-lee', field: 'country', from: null, to: 'cz' }]));
+        });
+        assert.equal(deltas.length, 1, 'told once, by the outermost batch');
+        assert.deepEqual([...deltas[0].people].sort(), ['p-ana', 'p-jo', 'p-lee']);
+        assert.deepEqual([...deltas[0].teams], ['t-edge']);
+    });
+
+    test('a profile hidden from the organiser (O9) shows as linked only, even when picked from the search', () => {
+        const m = model();
+        m.applyLocal('g1', [{ op: 'player', participant: 'p-ana', from: null, to: 'pl-x', _player: { id: 'pl-x', visible: false, name: null } }]);
+        assert.deepEqual(m.person('p-ana').player, { id: 'pl-x', visible: false, name: null, code: null, country: null, avatar: null, profileUrl: null });
+    });
+
+    test('the copy-on-write state takes a trial back exactly (begin / rollback)', () => {
+        const m = model();
+        const working = m.scratch();
+        const before = JSON.stringify([[...working.people], [...working.places], [...working.teams], [...working.rounds], working.order]);
+        working.begin();
+        working.apply({ op: 'newParticipant', id: 'p-new', name: 'New', country: null, externalId: null }, 0);
+        working.apply({ op: 'place', participant: 'p-new', round: ROUND_PAIRS, from: 'out', to: 'team:t-edge' }, 0);
+        working.apply({ op: 'deleteTeam', team: 't-corners' }, 0);
+        working.apply({ op: 'teamSize', round: ROUND_TEAMS, from: null, to: 5 }, 0);
+        working.apply({ op: 'remove', participant: 'p-jo' }, 0);
+        working.rollback();
+        assert.equal(JSON.stringify([[...working.people], [...working.places], [...working.teams], [...working.rounds], working.order]), before);
     });
 }
 

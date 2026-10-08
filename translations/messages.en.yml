@@ -7035,6 +7035,7 @@ participants_sheet_core:
         waiting: "1 waiting|%count% waiting"
         offline: "1 waiting - offline|%count% waiting - offline"
         attention: "1 needs you|%count% need you"
+        attention_offline: "1 needs you · offline|%count% need you · offline"
         sign_in: "Sign in again"
         reload: "Reload the page"
         hint_saved: "Every change is saved."
@@ -7099,12 +7100,17 @@ participants_sheet_core:
         done: "Undone: %action%"
         nothing: "Nothing to undo."
         refused: "Can't undo - somebody changed it meanwhile."
+        unsaved: "That change was not saved - nothing to undo."
+        label_mac: "Undo: %action% (⌘Z)"
+        skipped_removed: "Left as it is for %names% - removed from the event meanwhile."
     redo:
         label: "Redo: %action% (Ctrl+Shift+Z)"
         label_none: "Nothing to redo"
         done: "Redone: %action%"
         nothing: "Nothing to redo."
         refused: "Can't redo - somebody changed it meanwhile."
+        unsaved: "That undo was not saved - nothing to redo."
+        label_mac: "Redo: %action% (⇧⌘Z)"
     action:
         edit: "the last change"
         field: "the edit"
@@ -7126,6 +7132,7 @@ participants_sheet_core:
         paste: "the paste"
         clear: "clearing the cells"
         fill: "the fill"
+        keep_mine: "keeping your value"
     grid:
         select_column: "Select the column %column%"
         readonly: "%column% can't be changed here."
@@ -7138,6 +7145,16 @@ participants_sheet_core:
         copied: "Copied 1 cell|Copied %count% cells"
         cut: "Cut 1 cell|Cut %count% cells"
         nothing_to_paste: "There is nothing to paste."
+        notice_keys: "Tab to choose, Esc to go on typing."
+    editor:
+        changed_meanwhile: "Changed meanwhile to %value%."
+        keep_mine: "Keep mine"
+        use_theirs: "Use theirs"
+    view:
+        load_failed: "This part of the sheet could not be loaded - check the connection."
+        load_retry: "Try again"
+    reason:
+        too_many_changes: "Too many changes at once - make them in smaller steps."
     preview:
         close: "Close"
         cancel: "Cancel"

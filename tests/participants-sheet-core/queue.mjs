@@ -2,8 +2,8 @@
 // protocol (contract §3.2), retries and auth/forbidden/gone like the results desk, conflicts and refusals as problems.
 import assert from 'node:assert/strict';
 import { SheetModel } from '../../assets/participants_sheet/sheet_model.js';
-import { setField, setInRound, newTeamRow } from '../../assets/participants_sheet/sheet_changes.js';
-import { SheetSaveQueue, DEBOUNCE_MS } from '../../assets/participants_sheet/sheet_save_queue.js';
+import { setField, setInRound, newTeamRow, linkProfile, resultsAction } from '../../assets/participants_sheet/sheet_changes.js';
+import { SheetSaveQueue, DEBOUNCE_MS, PREVIEW_TIMEOUT_MS } from '../../assets/participants_sheet/sheet_save_queue.js';
 import { ROUND_PAIRS, ROUND_SOLO, appliedAnswer, clock, fakeServer, ids, smallState } from './fixture.mjs';
 
 const URLS = {
@@ -132,7 +132,7 @@ export default function (test) {
         act(setInRound(model, ['p-ana', 'p-jo'], ROUND_SOLO, true));
         await time.advance(DEBOUNCE_MS);
         await server.reply({ kind: 'offline' });
-        assert.deepEqual(queue.status(), { state: 'offline', waiting: 2, attention: 0 });
+        assert.deepEqual(queue.status(), { state: 'offline', waiting: 2, attention: 0, offline: true });
         assert.equal(model.marks.get(`place:p-ana:${ROUND_SOLO}`).state, 'waiting');
         assert.equal(model.placeValue('p-ana', ROUND_SOLO), 'in', 'still shown');
         // a new edit while offline does not change the changeset that was sent
@@ -194,7 +194,7 @@ export default function (test) {
         assert.equal(problem.current, 'Ana Elsewhere');
         assert.equal(problem.target.key, 'person:p-ana:name');
         assert.equal(model.marks.get('person:p-ana:name').state, 'conflict');
-        assert.deepEqual(queue.status(), { state: 'attention', waiting: 0, attention: 1 });
+        assert.deepEqual(queue.status(), { state: 'attention', waiting: 0, attention: 1, offline: false });
         assert.equal(queue.hasUnsaved(), true, 'an undecided conflict counts as unsaved');
         assert.ok(events.some((event) => event.type === 'outcome' && event.outcome.status === 'conflict'));
 
@@ -413,5 +413,166 @@ export default function (test) {
         assert.equal(await fetch, 'closed');
         await time.advance(60000);
         assert.equal(server.calls.length <= 1, true);
+    });
+
+    test('minor 2: a result typed for a pair a later sheet group creates never overtakes that group', async () => {
+        const { time, server, queue, act, model } = setup();
+        const actAll = (action) => {
+            act(action);
+            const rounds = new Set();
+
+            for (const change of action.results ?? []) {
+                queue.results(change.roundId).set(change.ref, change.field, change.to, change.from);
+                rounds.add(change.roundId);
+            }
+
+            rounds.forEach((roundId) => queue.enqueueResults(roundId));
+        };
+        actAll(resultsAction([{ roundId: ROUND_PAIRS, ref: 'team:t-corners', field: 'result', from: null, to: { seconds: 3000 } }]));
+        actAll(newTeamRow(model, ROUND_PAIRS, { id: 't-new', name: 'Pinecones', members: ['p-jo', 'p-ana'] }, { newId: ids('g') }));
+        actAll(resultsAction([{ roundId: ROUND_PAIRS, ref: 'team:t-new', field: 'result', from: null, to: { seconds: 3300 } }]));
+        assert.deepEqual(queue.items.map((item) => item.kind), ['results', 'sheet', 'results']);
+
+        await time.advance(DEBOUNCE_MS);
+        assert.deepEqual(server.calls[0].body.changes.map((change) => change.entry), ['team:t-corners'], 'only what was queued before the pair is created');
+        await server.reply({ kind: 'ok', status: 200, data: { outcomes: [{ clientChangeId: server.calls[0].body.changes[0].clientChangeId, status: 'applied' }], entries: [] } });
+        await time.advance(0);
+        assert.equal(server.calls[1].url, URLS.changes, 'then the group creating the pair');
+        await server.reply(appliedAnswer(server.calls[1]));
+        await time.advance(0);
+        assert.deepEqual(server.calls[2].body.changes.map((change) => change.entry), ['team:t-new'], 'then its result');
+    });
+
+    test('minor 4: a view throwing while an answer settles never leaves the other groups pending', async () => {
+        const { time, server, queue, act, model } = setup();
+        act(setField(model, 'p-ana', 'name', 'Ana One', { newId: ids('a') }));
+        act(setField(model, 'p-jo', 'name', 'Jo Two', { newId: ids('b') }));
+        let armed = true;
+        const original = console.error;
+        const logged = [];
+        console.error = (error) => logged.push(error.message);
+        model.subscribe(() => {
+            if (armed) {
+                armed = false;
+                throw new Error('a view bug');
+            }
+        });
+        queue.subscribe(() => {
+            throw new Error('a listener bug');
+        });
+
+        try {
+            await time.advance(DEBOUNCE_MS);
+            await server.reply(appliedAnswer(server.calls[0]));
+            await time.advance(60000);
+        } finally {
+            console.error = original;
+        }
+
+        assert.deepEqual(model.pending, [], 'both groups folded in');
+        assert.equal(model.version, 'v2');
+        assert.equal(queue.items.length, 0);
+        assert.equal(queue.status().state, 'saved');
+        assert.ok(logged.includes('a view bug') && logged.includes('a listener bug'));
+    });
+
+    test('minor 8: a changeset the server refused as a whole (400) reverts every group and answers each as refused', async () => {
+        const { time, server, queue, act, model, events } = setup();
+        act(setInRound(model, ['p-ana', 'p-jo'], ROUND_SOLO, true));
+        await time.advance(DEBOUNCE_MS);
+        await server.reply({ kind: 'client', status: 400, data: { error: 'invalid_changes', reason: 'too_many_changes', message: 'Too many.' } });
+        const outcomes = events.filter((event) => event.type === 'outcome');
+        assert.equal(outcomes.length, 2);
+        assert.ok(outcomes.every((event) => event.outcome.status === 'refused' && event.outcome.changes[0].reason === 'too_many_changes'));
+        assert.deepEqual(model.pending, []);
+        assert.equal(model.placeValue('p-ana', ROUND_SOLO), 'out');
+        await time.advance(5000);
+        assert.equal(server.calls.length, 1, 'no state fetch, nothing sent again');
+    });
+
+    test('nit: a dry run waiting behind a save that is being retried answers "could not check" after 15 s', async () => {
+        const { time, server, queue, act, model } = setup();
+        act(setField(model, 'p-ana', 'name', 'Ana One'));
+        await time.advance(DEBOUNCE_MS);
+        await server.reply({ kind: 'offline' });
+        let answer = null;
+        queue.preview([{ id: 'p1', changes: [{ op: 'field', participant: 'p-jo', field: 'name', from: 'Jo Do', to: 'Jo X' }] }]).then((value) => {
+            answer = value;
+        });
+        await time.advance(PREVIEW_TIMEOUT_MS - 1);
+        assert.equal(answer, null);
+        await time.advance(1);
+        assert.deepEqual(answer, { kind: 'offline' });
+        assert.equal(queue.items.some((item) => item.kind === 'preview'), false, 'never sent later');
+        queue.online();
+        await time.advance(0);
+        assert.ok(server.calls.every((call) => call.body?.dryRun !== true));
+    });
+
+    test('nit: "send now" (a dry run, a fetch) does not make later edits skip the debounce', async () => {
+        const { time, server, queue, act, model } = setup();
+        const fetched = queue.refetch();
+        await time.advance(0);
+        await server.reply({ kind: 'ok', status: 200, data: smallState() });
+        assert.equal(await fetched, 'ok');
+        act(setField(model, 'p-ana', 'name', 'Ana One'));
+        await time.advance(DEBOUNCE_MS - 1);
+        assert.equal(server.calls.length, 1, 'the edit waits for the debounce');
+        await time.advance(1);
+        assert.equal(server.calls.length, 2);
+    });
+
+    test('minor 3: problems while offline - the status says both', async () => {
+        const { time, server, queue, act, model } = setup();
+        act(setField(model, 'p-ana', 'name', 'Ana One'));
+        await time.advance(DEBOUNCE_MS);
+        await server.reply(conflictAnswer(server.calls[0], { current: 'Ana Elsewhere', versionBefore: 'v1' }));
+        act(setField(model, 'p-jo', 'name', 'Jo Two'));
+        await time.advance(DEBOUNCE_MS);
+        await server.reply({ kind: 'offline' });
+        assert.deepEqual(queue.status(), { state: 'attention', waiting: 1, attention: 1, offline: true });
+    });
+
+    test('our own saves\' versions are known (their echo is not another organiser); a linked profile fetches the state', async () => {
+        const { time, server, queue, act, model } = setup();
+        act(linkProfile(model, 'p-ana', { id: 'pl-ana', name: 'Ana E.' }));
+        await time.advance(DEBOUNCE_MS);
+        await server.reply(appliedAnswer(server.calls[0], { versionBefore: 'v1', versionAfter: 'v2' }));
+        assert.equal(queue.isOwnVersion('v2'), true);
+        assert.equal(queue.isOwnVersion('v9'), false);
+        await time.advance(1500);
+        assert.equal(server.calls[1].url, URLS.state, 'whose own times guard the rounds now, and how the profile may be shown');
+    });
+
+    test('Keep mine as an action: not performed by the queue, the caller makes it an undo step', async () => {
+        const { time, server, queue, act, model } = setup();
+        const action = act(setField(model, 'p-ana', 'name', 'Ana One'));
+        action.groups[0].label = action.label;
+        await time.advance(DEBOUNCE_MS);
+        await server.reply(conflictAnswer(server.calls[0], { current: 'Ana Elsewhere', versionBefore: 'v1' }));
+        model.replaceState(smallState({ version: 'v2', people: smallState().people.map((p) => (p.id === 'p-ana' ? { ...p, name: 'Ana Elsewhere' } : p)) }));
+        const [problem] = queue.problems();
+        const keep = queue.keepMineAction(problem.id);
+        assert.deepEqual(keep.label, { key: 'field', field: 'name' });
+        assert.deepEqual(keep.groups[0].changes, [{ op: 'field', participant: 'p-ana', field: 'name', from: 'Ana Elsewhere', to: 'Ana One' }]);
+        assert.deepEqual(keep.inverse[0].changes, [{ op: 'field', participant: 'p-ana', field: 'name', from: 'Ana One', to: 'Ana Elsewhere' }]);
+        assert.equal(model.person('p-ana').name, 'Ana Elsewhere', 'not applied by the queue');
+        assert.equal(queue.problems().length, 0);
+    });
+
+    test('minor 5: a bulk action and its answer re-render the views once each (marks included)', async () => {
+        const { time, server, queue, model } = setup();
+        const deltas = [];
+        model.subscribe((delta) => deltas.push(delta));
+        const action = setInRound(model, ['p-ana', 'p-jo', 'p-lee', 'p-max'], ROUND_SOLO, true);
+        model.batch(() => {
+            model.applyLocalMany(action.groups);
+            queue.enqueueGroups(action.groups);
+        });
+        assert.equal(deltas.length, 1);
+        await time.advance(DEBOUNCE_MS);
+        deltas.length = 0;
+        await server.reply(appliedAnswer(server.calls[0]));
+        assert.equal(deltas.length, 1, 'confirmed, markers cleared: one re-render');
     });
 }

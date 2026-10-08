@@ -2,9 +2,9 @@
 // undone, a refused undo is reported, a new edit forks the history.
 import assert from 'node:assert/strict';
 import { SheetModel } from '../../assets/participants_sheet/sheet_model.js';
-import { addPerson, resultsAction, setField, setInRound, wireChange } from '../../assets/participants_sheet/sheet_changes.js';
+import { addPerson, combine, deleteTeam, removePeople, resultsAction, setField, setInRound, wireChange } from '../../assets/participants_sheet/sheet_changes.js';
 import { SheetUndo } from '../../assets/participants_sheet/sheet_undo.js';
-import { ROUND_SOLO, ids, smallState } from './fixture.mjs';
+import { ROUND_PAIRS, ROUND_SOLO, ids, smallState } from './fixture.mjs';
 
 function setup() {
     const model = new SheetModel(smallState(), { now: () => 0 });
@@ -124,5 +124,90 @@ export default function (test) {
         undo.record(setField(model, 'p-ana', 'name', 'Ana Example'));
         assert.equal(undo.canUndo(), false);
         assert.equal(undo.undo(model), null);
+    });
+
+    test('M3: a step of combined results changes is undone as itself - never skipped for the step before it', () => {
+        const { model, undo, perform } = setup();
+        const rename = perform(setField(model, 'p-kim', 'name', 'Kim Renamed', { newId: ids('g') }));
+        undo.record(rename);
+        undo.outcome('g1', 'applied');
+        const paste = combine({ key: 'paste' },
+            resultsAction([{ roundId: ROUND_PAIRS, ref: 'team:t-corners', field: 'result', from: null, to: { seconds: 3000 } }]),
+            resultsAction([{ roundId: ROUND_PAIRS, ref: 'team:t-corners2', field: 'result', from: null, to: { seconds: 3100 } }]));
+        undo.record(paste);
+        const back = undo.undo(model);
+        assert.deepEqual(back.label, { key: 'paste' });
+        assert.deepEqual(back.groups, []);
+        assert.deepEqual(back.results.map((change) => [change.ref, change.from, change.to]), [
+            ['team:t-corners2', { seconds: 3100 }, null],
+            ['team:t-corners', { seconds: 3000 }, null],
+        ]);
+        undo.done(back);
+        assert.equal(undo.peekUndo().label.field, 'name', 'the rename is the next step');
+    });
+
+    test('minor 6: undoing a step still on its way that then turns out not saved says so - not "somebody changed it"', () => {
+        const { model, undo, perform } = setup();
+        const action = perform(setField(model, 'p-ana', 'name', 'Ana One', { newId: ids('g') }));
+        undo.record(action);
+        const back = perform(undo.undo(model));
+        undo.done(back);
+        assert.equal(undo.outcome('g1', 'conflict'), null);
+        assert.equal(undo.outcome(back.groups[0].id, 'conflict'), 'undo_unsaved');
+
+        const other = setup();
+        const saved = other.perform(setField(other.model, 'p-ana', 'name', 'Ana Two', { newId: ids('h') }));
+        other.undo.record(saved);
+        const undone = other.perform(other.undo.undo(other.model));
+        other.undo.done(undone);
+        other.undo.outcome('h1', 'applied');
+        assert.equal(other.undo.outcome(undone.groups[0].id, 'conflict'), 'undo', 'saved, then changed by somebody: "Can\'t undo"');
+    });
+
+    test('minor 6: "Keep mine" is a step of its own - Ctrl+Z takes it back instead of skipping to an older step', () => {
+        const { model, undo, perform } = setup();
+        const older = perform(setField(model, 'p-jo', 'country', 'cz', { newId: ids('o') }));
+        undo.record(older);
+        undo.outcome('o1', 'applied');
+        const mine = perform(setField(model, 'p-ana', 'name', 'Ana One', { newId: ids('m') }));
+        undo.record(mine);
+        undo.outcome('m1', 'conflict');
+        // the controller performs queue.keepMineAction() like any action: shown, queued, recorded
+        const keep = perform({ label: { key: 'field', field: 'name' }, groups: [{ id: 'k1', changes: [{ op: 'field', participant: 'p-ana', field: 'name', from: 'Ana Elsewhere', to: 'Ana One' }] }], inverse: [{ id: 'k1-inv', inverseOf: 'k1', changes: [{ op: 'field', participant: 'p-ana', field: 'name', from: 'Ana One', to: 'Ana Elsewhere' }] }], errors: [] });
+        undo.record(keep);
+        const back = undo.undo(model);
+        assert.deepEqual(back.groups[0].changes.map(wireChange), [{ op: 'field', participant: 'p-ana', field: 'name', from: 'Ana One', to: 'Ana Elsewhere' }]);
+    });
+
+    test('minor 6: undoing a pair\'s deletion gives its table number back after creating it; members removed meanwhile are left out and named', () => {
+        const { model, undo, perform } = setup();
+        const remove = perform(deleteTeam(model, 't-corners', { newId: ids('d') }));
+        undo.record(remove);
+        undo.outcome('d1', 'applied');
+        const back = undo.undo(model);
+        assert.deepEqual(back.groups[0].changes.map(wireChange).map((change) => change.op), ['newTeam', 'place', 'place']);
+        assert.deepEqual(back.results, [{ roundId: ROUND_PAIRS, ref: 'team:t-corners', field: 'table_number', from: null, to: 2, inverseOf: 'd1' }]);
+        assert.deepEqual(back.skipped, []);
+
+        // Pat removed from the event since the deletion: only Kim is put back, Pat is named
+        const other = setup();
+        const deletion = other.perform(deleteTeam(other.model, 't-corners', { newId: ids('e') }));
+        other.undo.record(deletion);
+        other.undo.outcome('e1', 'applied');
+        const gone = other.perform(removePeople(other.model, ['p-pat'], { newId: ids('r') }));
+        assert.equal(gone.groups.length, 1);
+        const partial = other.undo.undo(other.model);
+        assert.deepEqual(partial.groups[0].changes.map(wireChange), [
+            { op: 'newTeam', id: 't-corners', round: ROUND_PAIRS, name: 'Corners' },
+            { op: 'place', participant: 'p-kim', round: ROUND_PAIRS, from: 'in', to: 'team:t-corners' },
+        ]);
+        assert.deepEqual(partial.skipped.map((change) => change.participant), ['p-pat']);
+
+        // The deletion never went through: nothing to undo - the table number is not "given back" either
+        const third = setup();
+        const refused = third.perform(deleteTeam(third.model, 't-corners', { newId: ids('f') }));
+        third.undo.record(refused);
+        third.undo.outcome('f1', 'refused');
+        assert.equal(third.undo.undo(third.model), null);
     });
 }

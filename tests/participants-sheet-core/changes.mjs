@@ -3,9 +3,11 @@
 import assert from 'node:assert/strict';
 import { SheetModel } from '../../assets/participants_sheet/sheet_model.js';
 import {
+    MAX_CHANGES_PER_GROUP,
     addPerson,
     buildAction,
     checkChange,
+    checkGroup,
     clearMember,
     combine,
     deleteTeam,
@@ -90,7 +92,7 @@ export default function (test) {
     test('the results guard and the connect rule are checked on what the page knows', () => {
         const m = model();
         assert.deepEqual(setPlace(m, 'p-kim', ROUND_SOLO, 'out').errors.map((e) => e.reason), ['has_result_in_round']);
-        assert.deepEqual(setPlace(m, 'p-t4', ROUND_TEAMS, 'out').errors.map((e) => e.reason), ['has_result_in_round'], 'the team holds a result');
+        assert.equal(setPlace(m, 'p-t4', ROUND_TEAMS, 'out').errors.length, 0, 'the team holds a result, Flat keeps three going members');
         assert.equal(setPlace(m, 'p-pat', ROUND_SOLO, 'out').errors.length, 0);
         assert.deepEqual(removePeople(m, ['p-kim', 'p-jo']).errors.map((e) => e.reason), ['has_result_in_event']);
         assert.equal(removePeople(m, ['p-kim', 'p-jo']).groups.length, 1, 'the others go on');
@@ -227,5 +229,132 @@ export default function (test) {
         ]);
         assert.equal(action.results.length, 1);
         assert.deepEqual(action.inverseResults, [{ roundId: ROUND_SOLO, ref: 'participant_round:e-pat-solo', field: 'result', from: { seconds: 61 }, to: null }]);
+    });
+
+    test('B1: every builder takes `options.from` (what the editor showed when it opened) as the change\'s `from`', () => {
+        const m = model();
+        // Somebody else's values arrived meanwhile - the model shows them, the organiser's editor showed the old ones
+        m.applyLocalMany([{ id: 'theirs', changes: [
+            { op: 'field', participant: 'p-kim', field: 'name', from: 'Kim Example', to: 'Kimberly Example' },
+            { op: 'field', participant: 'p-kim', field: 'country', from: 'us', to: 'ca' },
+            { op: 'player', participant: 'p-pat', from: null, to: 'pl-pat' },
+            { op: 'place', participant: 'p-jo', round: ROUND_PAIRS, from: 'in', to: 'team:t-empty' },
+            { op: 'renameTeam', team: 't-edge', from: 'Edge', to: 'Edges' },
+            { op: 'teamSize', round: ROUND_TEAMS, from: null, to: 4 },
+            { op: 'place', participant: 'p-ana', round: ROUND_SOLO, from: 'out', to: 'in' },
+        ] }]);
+
+        assert.deepEqual(changesOf(setField(m, 'p-kim', 'name', 'Kim Two', { from: 'Kim Example' })), [[{ op: 'field', participant: 'p-kim', field: 'name', from: 'Kim Example', to: 'Kim Two' }]]);
+        assert.deepEqual(changesOf(setFields(m, 'country', [{ personId: 'p-kim', value: 'cz', from: 'us' }, { personId: 'p-pat', value: 'cz' }])), [
+            [{ op: 'field', participant: 'p-kim', field: 'country', from: 'us', to: 'cz' }],
+            [{ op: 'field', participant: 'p-pat', field: 'country', from: 'ca', to: 'cz' }],
+        ], 'per item; the others what the model shows');
+        assert.deepEqual(changesOf(linkProfile(m, 'p-pat', { id: 'pl-other', name: 'O' }, { from: null })), [[{ op: 'player', participant: 'p-pat', from: null, to: 'pl-other' }]]);
+        assert.deepEqual(changesOf(linkProfile(m, 'p-pat', null, { from: 'pl-pat' })), [[{ op: 'player', participant: 'p-pat', from: 'pl-pat', to: null }]]);
+        assert.deepEqual(changesOf(setPlace(m, 'p-jo', ROUND_PAIRS, 'out', { from: 'in' })), [[{ op: 'place', participant: 'p-jo', round: ROUND_PAIRS, from: 'in', to: 'out' }]]);
+        assert.deepEqual(changesOf(setInRound(m, ['p-ana', 'p-pat'], ROUND_SOLO, false, { from: new Map([['p-ana', 'in']]) })), [
+            [{ op: 'place', participant: 'p-ana', round: ROUND_SOLO, from: 'in', to: 'out' }],
+            [{ op: 'place', participant: 'p-pat', round: ROUND_SOLO, from: 'in', to: 'out' }],
+        ]);
+        assert.deepEqual(changesOf(putInTeam(m, ROUND_PAIRS, 't-corners2', 'p-jo', { from: 'in' })), [[{ op: 'place', participant: 'p-jo', round: ROUND_PAIRS, from: 'in', to: 'team:t-corners2' }]]);
+        assert.deepEqual(changesOf(clearMember(m, ROUND_PAIRS, 'p-jo', { from: 'team:t-corners' })), [[{ op: 'place', participant: 'p-jo', round: ROUND_PAIRS, from: 'team:t-corners', to: 'in' }]]);
+        assert.deepEqual(changesOf(renameTeam(m, 't-edge', 'Edge Two', { from: 'Edge' })), [[{ op: 'renameTeam', team: 't-edge', from: 'Edge', to: 'Edge Two' }]]);
+        assert.deepEqual(changesOf(setTeamSize(m, ROUND_TEAMS, 3, { from: null })), [[{ op: 'teamSize', round: ROUND_TEAMS, from: null, to: 3 }]]);
+        const row = newTeamRow(m, ROUND_PAIRS, { name: 'Owls', members: ['p-jo'] }, { newId: ids('n'), from: (personId) => (personId === 'p-jo' ? 'in' : undefined) });
+        assert.equal(changesOf(row)[0][1].from, 'in', 'where the member was when picked');
+        assert.equal(setField(m, 'p-kim', 'name', 'Kim Two', { from: 'Kim Example' }).inverse[0].changes[0].to, 'Kim Example', 'undo restores what the organiser saw');
+    });
+
+    test('B1: a value equal to what the editor showed when it opened is no change - no group, no undo step', () => {
+        const m = model();
+        m.applyLocalMany([{ id: 'theirs', changes: [{ op: 'field', participant: 'p-kim', field: 'name', from: 'Kim Example', to: 'Kimberly Example' }] }]);
+        assert.equal(setField(m, 'p-kim', 'name', '  Kim  Example ', { from: 'Kim Example' }).groups.length, 0);
+        assert.equal(setField(m, 'p-kim', 'name', 'Kimberly Example', { from: 'Kim Example' }).groups.length, 0, 'typed what they have: agreed');
+        assert.equal(setFields(m, 'name', [{ personId: 'p-kim', value: 'Kim Example', from: 'Kim Example' }]).groups.length, 0);
+        assert.equal(linkProfile(m, 'p-kim', null, { from: null }).groups.length, 0);
+        assert.equal(setPlace(m, 'p-kim', ROUND_SOLO, 'out', { from: 'out' }).groups.length, 0);
+        assert.equal(renameTeam(m, 't-edge', 'Edge', { from: 'Edge' }).groups.length, 0);
+        assert.equal(setTeamSize(m, ROUND_TEAMS, null, { from: null }).groups.length, 0);
+    });
+
+    test('a member may leave a pair/team holding a result while it keeps a going member - never empty it (waitlisted members do not count)', () => {
+        const state = smallState();
+        state.competition = { ...state.competition, registrationManaged: true };
+        // Flat (a result) = t4..t7; Corners2 gets a result, Lee + Max (Max on the waitlist)
+        state.people = state.people.map((p) => (p.id === 'p-max' ? { ...p, registration: { status: 'waitlisted' } } : p));
+        state.teams = state.teams.map((t) => (t.id === 't-corners2' ? { ...t, result: { seconds: 900 } } : t));
+        const m = new SheetModel(state, { now: () => 0 });
+
+        assert.equal(setPlace(m, 'p-t4', ROUND_TEAMS, 'in').errors.length, 0, 'to the tray');
+        assert.equal(setPlace(m, 'p-t4', ROUND_TEAMS, 'team:t-edge').errors.length, 0, 'to another team');
+        assert.equal(setPlace(m, 'p-t4', ROUND_TEAMS, 'out').errors.length, 0, 'out of the round');
+        const three = buildAction(m, [['p-t4', 'p-t5', 'p-t6'].map((id) => ({ op: 'place', participant: id, round: ROUND_TEAMS, from: `team:t-flat`, to: 'in' }))]);
+        assert.equal(three.errors.length, 0, 'Tom keeps it');
+        const all = buildAction(m, [['p-t4', 'p-t5', 'p-t6', 'p-t7'].map((id) => ({ op: 'place', participant: id, round: ROUND_TEAMS, from: `team:t-flat`, to: 'in' }))]);
+        assert.deepEqual(all.errors.map((e) => [e.reason, e.change.participant]), [['team_has_result', 'p-t7']], 'the last going member');
+        assert.equal(buildAction(m, [[
+            { op: 'place', participant: 'p-t4', round: ROUND_TEAMS, from: 'team:t-flat', to: 'in' },
+            { op: 'place', participant: 'p-t5', round: ROUND_TEAMS, from: 'team:t-flat', to: 'in' },
+            { op: 'place', participant: 'p-t6', round: ROUND_TEAMS, from: 'team:t-flat', to: 'in' },
+            { op: 'place', participant: 'p-t7', round: ROUND_TEAMS, from: 'team:t-flat', to: 'in' },
+            { op: 'place', participant: 'p-t1', round: ROUND_TEAMS, from: 'team:t-edge', to: 'team:t-flat' },
+        ]]).errors.length, 0, 'the group as a whole decides (a new line-up in one go)');
+
+        assert.deepEqual(setPlace(m, 'p-lee', ROUND_PAIRS, 'in').errors.map((e) => e.reason), ['team_has_result'], 'Max is on the waitlist - not a going member');
+        assert.equal(setPlace(m, 'p-max', ROUND_PAIRS, 'in').errors.length, 0, 'the waitlisted one may go');
+        assert.deepEqual(setPlace(m, 'p-kim', ROUND_SOLO, 'out').errors.map((e) => e.reason), ['has_result_in_round'], 'an own result still holds');
+        assert.deepEqual(removePeople(m, ['p-t4']).errors.map((e) => e.reason), ['has_result_in_event'], 'removal unchanged');
+    });
+
+    test('an external id another active participant of the event has is refused (external_id_taken)', () => {
+        const state = smallState();
+        state.people = state.people.map((p) => (p.id === 'p-ana' ? { ...p, externalId: 'A-1' } : (p.id === 'p-ola' ? { ...p, externalId: 'O-1' } : p)));
+        const m = new SheetModel(state, { now: () => 0 });
+        assert.deepEqual(setField(m, 'p-jo', 'externalId', ' A-1 ').errors.map((e) => e.reason), ['external_id_taken']);
+        assert.equal(setField(m, 'p-jo', 'externalId', 'O-1').errors.length, 0, 'a removed participant\'s id is free');
+        assert.equal(setField(m, 'p-jo', 'externalId', 'a-1').errors.length, 0, 'compared exactly, like the import');
+        assert.deepEqual(addPerson(m, { name: 'Ny', externalId: 'A-1' }).errors.map((e) => e.reason), ['external_id_taken']);
+        assert.equal(checkChange({ op: 'field', participant: 'p-ana', field: 'externalId', from: 'A-1', to: 'A-1' }, m), null, 'their own');
+    });
+
+    test('a group of more than MAX_CHANGES_PER_GROUP changes never leaves the browser; checkGroup leaves the state as it was', () => {
+        const m = model();
+        const changes = Array.from({ length: MAX_CHANGES_PER_GROUP + 1 }, (_, index) => ({ op: 'newParticipant', id: `n${index}`, name: `N ${index}`, country: null, externalId: null }));
+        const action = buildAction(m, [changes]);
+        assert.deepEqual(action.errors.map((e) => e.reason), ['too_many_changes']);
+        assert.equal(action.groups.length, 0);
+
+        const working = m.scratch();
+        const before = JSON.stringify([[...working.people.keys()], [...working.places.keys()], [...working.teams.keys()], working.order]);
+        const refused = checkGroup([
+            { op: 'newParticipant', id: 'x1', name: 'X', country: null, externalId: null },
+            { op: 'place', participant: 'x1', round: ROUND_SOLO, from: 'out', to: 'in' },
+            { op: 'field', participant: 'x1', field: 'name', from: 'X', to: ' ' },
+        ], working, { now: 0 });
+        assert.equal(refused.reason, 'name_blank');
+        assert.equal(JSON.stringify([[...working.people.keys()], [...working.places.keys()], [...working.teams.keys()], working.order]), before, 'rolled back');
+        assert.equal(working.journal, null);
+    });
+
+    test('a new person\'s country is lower-cased like any other country', () => {
+        const m = model();
+        assert.equal(addPerson(m, { name: 'Ny', country: ' CZ ' }).groups[0].changes[0].country, 'cz');
+        assert.equal(newTeamRow(m, ROUND_PAIRS, { members: [{ name: 'Jo New', country: 'DE' }] }).groups[0].changes[0].country, 'de');
+    });
+
+    test('a deleted pair\'s undo gives its table number back, tied to the group that deletes it; combine keeps results undo', () => {
+        const m = model();
+        const action = deleteTeam(m, 't-corners', { newId: ids('d') });
+        assert.deepEqual(action.inverseResults, [{ roundId: ROUND_PAIRS, ref: 'team:t-corners', field: 'table_number', from: null, to: 2, inverseOf: 'd1' }]);
+        assert.equal(deleteTeam(m, 't-corners2').inverseResults, undefined, 'no table, nothing to give back');
+
+        const joined = combine({ key: 'paste' },
+            resultsAction([{ roundId: ROUND_PAIRS, ref: 'team:t-corners', field: 'result', from: null, to: { seconds: 3000 } }]),
+            resultsAction([{ roundId: ROUND_PAIRS, ref: 'team:t-corners2', field: 'result', from: null, to: { seconds: 3100 } }]));
+        assert.equal(joined.results.length, 2);
+        assert.deepEqual(joined.inverseResults.map((change) => [change.ref, change.from, change.to]), [
+            ['team:t-corners2', { seconds: 3100 }, null],
+            ['team:t-corners', { seconds: 3000 }, null],
+        ]);
     });
 }

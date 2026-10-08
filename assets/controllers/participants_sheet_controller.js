@@ -2,7 +2,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { chooseTranslation } from '../translation_choice.js';
 import { SheetModel } from '../participants_sheet/sheet_model.js';
-import { isEmpty } from '../participants_sheet/sheet_changes.js';
+import { changeTarget, isEmpty } from '../participants_sheet/sheet_changes.js';
 import { SheetSaveQueue } from '../participants_sheet/sheet_save_queue.js';
 import { SheetUndo } from '../participants_sheet/sheet_undo.js';
 import { SheetLive } from '../participants_sheet/sheet_live.js';
@@ -12,6 +12,23 @@ import createPeopleView from '../participants_sheet/views/people_view.js';
 
 const PHONE_QUERY = '(max-width: 767.98px)';
 const WARNING_MARK_MS = 20000;
+// A change refused in the browser is marked on its cell this long (besides being read out)
+const REFUSAL_MARK_MS = 8000;
+const REFUSAL_MARKS_MAX = 200;
+// A view module that could not be loaded (a chunk while offline) - never remembered as missing, tried again
+export const MODULE_FAILED = Symbol('module failed');
+
+/** A dynamic import of a module that is not in the build at all (a later stream's view) - not a network failure. */
+export function isMissingModule(error) {
+    return error?.code === 'MODULE_NOT_FOUND' || error?.code === 'ERR_MODULE_NOT_FOUND' || /Cannot find module/i.test(String(error?.message ?? ''));
+}
+
+/** macOS / iOS: shortcuts are said with ⌘. */
+export function isApplePlatform(nav = globalThis.navigator) {
+    const platform = nav?.userAgentData?.platform ?? nav?.platform ?? '';
+
+    return /Mac|iPhone|iPad|iPod|macOS/i.test(String(platform));
+}
 
 /**
  * Which view module shows a tab - `assets/participants_sheet/views/<name>.js`, loaded when first needed (the round
@@ -72,7 +89,7 @@ export function makeTexts(source) {
  * on phones (< 768 px). Views are plugged in by name (VIEW_MODULES); every edit goes through act().
  */
 export default class extends Controller {
-    static targets = ['tabs', 'status', 'undo', 'redo', 'main', 'help'];
+    static targets = ['tabs', 'status', 'undo', 'redo', 'main', 'help', 'checklist'];
 
     static values = {
         urls: Object,
@@ -99,6 +116,8 @@ export default class extends Controller {
         this.mountToken = 0;
         this.warningTimers = new Map();
         this.problemsOpen = true;
+        this.grids = new Set();
+        this.mac = isApplePlatform();
 
         const state = this.readState();
 
@@ -122,11 +141,15 @@ export default class extends Controller {
             urls: this.urlsValue,
             isVisible: () => document.visibilityState === 'visible',
             onMessage: (data) => this.onLiveMessage(data),
+            onForeignChange: () => this.announce(this.texts.core.t('live_changed_elsewhere')),
         });
 
         this.buildChrome();
         this.cleanups.push(this.model.subscribe((delta) => this.onModelChange(delta)));
         this.cleanups.push(this.queue.subscribe((event) => this.onQueueEvent(event)));
+        // Before the leave guards (listeners run in order): an open edit is saved first, so the guard sees it
+        this.listen(window, 'beforeunload', () => this.commitOpenEdits());
+        this.listen(document, 'turbo:before-visit', () => this.commitOpenEdits());
         this.cleanups.push(this.queue.installLeaveGuards({
             window,
             document,
@@ -135,7 +158,14 @@ export default class extends Controller {
         }));
 
         this.listen(document, 'visibilitychange', () => this.live.visibilityChanged());
-        this.listen(window, 'online', () => this.live.online());
+        this.listen(window, 'online', () => {
+            this.live.online();
+
+            // A view that could not be loaded while offline is tried again
+            if (this.viewName === MODULE_FAILED) {
+                this.showTab(this.currentTab, { replaceUrl: false });
+            }
+        });
         this.listen(this.element, 'keydown', (event) => this.onKeyDown(event));
         this.media = window.matchMedia(PHONE_QUERY);
         this.phone = this.media.matches;
@@ -149,24 +179,54 @@ export default class extends Controller {
         this.renderTabs();
         this.renderStatus();
         this.renderUndo();
+        this.renderChecklist();
         this.showTab(this.currentTab, { replaceUrl: false });
         this.live.start();
     }
 
     disconnect() {
         this.mountToken++;
+
+        if (this.queue) {
+            // The page goes away: an open edit is saved like a blur and sent now (best effort - one request in flight)
+            this.commitOpenEdits();
+            this.view?.destroy();
+            this.view = null;
+            this.personEditor?.destroy?.();
+            this.queue.flushNow();
+            this.queue.flush();
+        }
+
         this.view?.destroy();
         this.view = null;
-        this.personEditor?.destroy?.();
+        this.personEditor = null;
         this.live?.close();
         this.queue?.destroy();
         this.cleanups?.forEach((cleanup) => cleanup());
         this.cleanups = [];
         this.warningTimers?.forEach((timer) => clearTimeout(timer));
+        this.warningTimers?.clear();
+        this.refusalTimers?.forEach((timer) => clearTimeout(timer));
+        this.refusalTimers?.clear();
+        clearTimeout(this.announceTimer);
+        this.announceTimer = null;
         this.helpDialog?.close();
         this.helpDialog?.remove();
+        this.helpDialog = null;
+        this.helpReturn = null;
         this.chrome?.remove();
+        this.grids?.clear();
         cancelAnimationFrame(this.tabsFrame);
+        cancelAnimationFrame(this.undoFrame);
+    }
+
+    /** Every open edit of a grid of this page committed (the page leaving, a reload). */
+    commitOpenEdits() {
+        for (const grid of [...(this.grids ?? [])]) {
+            if (!grid.destroyed && grid.isEditing()) {
+                grid.commitOpenEdit();
+            }
+        }
     }
 
     listen(target, type, handler, options) {
@@ -244,6 +304,7 @@ export default class extends Controller {
         this.liveRegion.textContent = '';
         clearTimeout(this.announceTimer);
         this.announceTimer = setTimeout(() => {
+            this.announceTimer = null;
             this.liveRegion.textContent = text;
         }, 60);
     }
@@ -357,22 +418,36 @@ export default class extends Controller {
         return { kind: 'round', round, modules: VIEW_MODULES[round?.category] ?? VIEW_MODULES.team };
     }
 
+    /**
+     * A view module by name: its factory, null when it is not in the build (a later stream's view - the tab falls back),
+     * MODULE_FAILED when it could not be loaded now (a chunk while offline) - never remembered, tried again next time.
+     */
     async loadModule(name) {
-        if (!this.modules.has(name)) {
-            let factory = null;
-
-            try {
-                const module = await import(`../participants_sheet/views/${name}.js`);
-                factory = typeof module.default === 'function' ? module.default : null;
-            } catch (e) {
-                // Not built yet (a later stream) - the tab falls back
-                factory = null;
-            }
-
-            this.modules.set(name, factory);
+        if (this.modules.has(name)) {
+            return this.modules.get(name);
         }
 
-        return this.modules.get(name);
+        try {
+            const module = await this.importView(name);
+            const factory = typeof module.default === 'function' ? module.default : null;
+            this.modules.set(name, factory);
+
+            return factory;
+        } catch (error) {
+            if (isMissingModule(error)) {
+                this.modules.set(name, null);
+
+                return null;
+            }
+
+            console.error(error);
+
+            return MODULE_FAILED;
+        }
+    }
+
+    importView(name) {
+        return import(`../participants_sheet/views/${name}.js`);
     }
 
     /**
@@ -403,22 +478,40 @@ export default class extends Controller {
         let factory = await this.loadModule(name);
         let used = name;
 
-        if (factory === null && this.phone) {
-            factory = await this.loadModule(descriptor.modules.desktop);
-            used = descriptor.modules.desktop;
+        if ((factory === null || factory === MODULE_FAILED) && this.phone) {
+            const fallback = await this.loadModule(descriptor.modules.desktop);
+
+            if (fallback !== null || factory === null) {
+                factory = fallback;
+                used = descriptor.modules.desktop;
+            }
         }
 
         if (token !== this.mountToken || this.model === undefined) {
             return;
         }
 
-        if (changed || used !== this.viewName) {
+        const viewName = factory === MODULE_FAILED ? MODULE_FAILED : (factory !== null ? used : null);
+
+        if (changed || viewName !== this.viewName || viewName === MODULE_FAILED) {
+            // The focus was in the view (a breakpoint switch, a retry): the new view gets it back
+            const hadFocus = this.viewRoot.contains(document.activeElement);
             this.view?.destroy();
             this.viewRoot.replaceChildren();
             this.viewRoot.className = 'sheet-view-root';
-            this.view = factory !== null ? factory(this.viewContext(descriptor)) : this.placeholderView(descriptor);
-            this.viewName = factory !== null ? used : null;
+
+            if (factory === MODULE_FAILED) {
+                this.view = this.failedView(descriptor);
+            } else {
+                this.view = factory !== null ? factory(this.viewContext(descriptor)) : this.placeholderView(descriptor);
+            }
+
+            this.viewName = viewName;
             this.view.render();
+
+            if (hadFocus && reveal === null && focus === null) {
+                this.view.focus?.(null);
+            }
         }
 
         // A tab activated by the organiser keeps the focus on the tab (APG tabs); a jump from a cell lands on a cell
@@ -448,16 +541,47 @@ export default class extends Controller {
             announce: (text) => this.announce(text),
             switchTab: (tab, focus = null) => this.showTab(tab, { focus }),
             openPersonEditor: (personId) => this.openPersonEditor(personId),
-            createGrid: (options) => new SheetGrid({
-                texts: this.texts.core,
-                announce: (text) => this.announce(text),
-                undo: () => this.undo(),
-                redo: () => this.redo(),
-                ...options,
-            }),
+            createGrid: (options) => this.createGrid(options),
             preview: (options) => new PreviewDialog({ host: this.element, texts: this.texts.core, ...options }).open(),
             reasonText: (code) => this.reasonText(code),
             markerFor: (key) => this.markerFor(key),
+        };
+    }
+
+    /** A grid of a view - known to the page, so the page can save its open edit before it goes. */
+    createGrid(options) {
+        const grid = new SheetGrid({
+            texts: this.texts.core,
+            announce: (text) => this.announce(text),
+            undo: () => this.undo(),
+            redo: () => this.redo(),
+            ...options,
+        });
+        const destroy = grid.destroy.bind(grid);
+        grid.destroy = (...args) => {
+            destroy(...args);
+            this.grids?.delete(grid);
+        };
+        this.grids.add(grid);
+
+        return grid;
+    }
+
+    /** A view that could not be loaded now (offline): said, with "Try again" (also tried again when back online). */
+    failedView(descriptor) {
+        const root = this.viewRoot;
+        const core = this.texts.core;
+
+        return {
+            render: () => {
+                root.innerHTML = `<div class="sheet-placeholder-view" role="status"><p>${escapeHtml(core.t('view_load_failed'))}</p><button type="button" class="btn btn-sm btn-outline-secondary" data-sheet-view-retry>${escapeHtml(core.t('view_load_retry'))}</button></div>`;
+                root.querySelector('[data-sheet-view-retry]')?.addEventListener('click', () => this.showTab(this.currentTab, { replaceUrl: false }));
+            },
+            update: () => {},
+            focus: () => root.querySelector('[data-sheet-view-retry]')?.focus(),
+            reveal: () => false,
+            destroy: () => root.replaceChildren(),
+            descriptor,
         };
     }
 
@@ -496,18 +620,24 @@ export default class extends Controller {
         };
     }
 
+    /** Phone ↔ desktop: the view is rebuilt only when another module shows the tab now (an open edit is committed). */
     onBreakpoint() {
         const phone = this.media.matches;
 
         if (phone !== this.phone) {
             this.phone = phone;
-            this.viewName = '__changed';
             this.showTab(this.currentTab, { replaceUrl: false });
         }
     }
 
     async openPersonEditor(personId) {
         const factory = await this.loadModule(PERSON_EDITOR_MODULE);
+
+        if (factory === MODULE_FAILED) {
+            this.announce(this.texts.core.t('view_load_failed'));
+
+            return;
+        }
 
         if (factory === null || this.model === undefined) {
             return;
@@ -534,30 +664,36 @@ export default class extends Controller {
     act(action, { origin = this.currentTab, quiet = false } = {}) {
         const errors = action.errors ?? [];
 
-        // `quiet`: the caller shows the refusal itself (an editor's error, read out by its role=alert)
+        // `quiet`: the caller shows the refusal itself (an editor's error, read out by its role=alert); otherwise it is
+        // read out and marked on its cells for a moment (a checkbox click that was refused is not just silently undone)
         if (errors.length > 0 && !quiet) {
             this.announce(this.reasonText(errors[0].reason));
+            this.markRefusals(errors);
         }
 
         if (isEmpty(action)) {
             return { performed: false, errors };
         }
 
-        for (const group of action.groups) {
-            group.origin = origin;
-            this.model.applyLocal(group.id, group.changes);
-        }
+        // One model rebuild and one re-render for the whole action (a bulk action of 1,000 groups)
+        this.model.batch(() => {
+            for (const group of action.groups) {
+                group.origin = origin;
+                group.label = action.label ?? null;
+            }
 
-        this.queue.enqueueGroups(action.groups);
+            this.model.applyLocalMany(action.groups);
+            this.queue.enqueueGroups(action.groups);
 
-        const rounds = new Set();
+            const rounds = new Set();
 
-        for (const change of action.results ?? []) {
-            this.queue.results(change.roundId).set(change.ref, change.field, change.to, change.from);
-            rounds.add(change.roundId);
-        }
+            for (const change of action.results ?? []) {
+                this.queue.results(change.roundId).set(change.ref, change.field, change.to, change.from);
+                rounds.add(change.roundId);
+            }
 
-        rounds.forEach((roundId) => this.queue.enqueueResults(roundId));
+            rounds.forEach((roundId) => this.queue.enqueueResults(roundId));
+        });
 
         if (action.kind === 'undo' || action.kind === 'redo') {
             this.undoStack.done(action);
@@ -570,32 +706,71 @@ export default class extends Controller {
         return { performed: true, errors };
     }
 
-    undo() {
-        const action = this.undoStack.undo(this.model);
+    /** Client refusals marked on their cells ("Not saved" + the reason as the title) for a few seconds. */
+    markRefusals(errors) {
+        this.refusalTimers ??= new Map();
+        const marks = [];
 
-        if (action === null) {
-            this.announce(this.texts.core.t('undo_nothing'));
-            this.renderUndo();
+        for (const error of errors.slice(0, REFUSAL_MARKS_MAX)) {
+            if (!error?.change) {
+                continue;
+            }
 
-            return;
+            const target = changeTarget(error.change, this.model);
+            const current = this.model.marks.get(target.key);
+
+            if (current !== null && current.state !== 'refused') {
+                continue;
+            }
+
+            marks.push({ key: target.key, mark: { state: 'refused', message: this.reasonText(error.reason), transient: true }, entities: target });
         }
 
-        this.act(action);
-        this.announce(this.texts.core.t('undo_done', { action: this.labelOf(action.label) }));
+        this.model.marks.setMany(marks);
+
+        for (const { key } of marks) {
+            clearTimeout(this.refusalTimers.get(key));
+            this.refusalTimers.set(key, setTimeout(() => {
+                this.refusalTimers.delete(key);
+
+                if (this.model.marks.get(key)?.transient === true) {
+                    this.model.marks.set(key, null);
+                }
+            }, REFUSAL_MARK_MS));
+        }
+    }
+
+    undo() {
+        this.reverse(this.undoStack.undo(this.model), 'undo');
     }
 
     redo() {
-        const action = this.undoStack.redo(this.model);
+        this.reverse(this.undoStack.redo(this.model), 'redo');
+    }
+
+    reverse(action, kind) {
+        const core = this.texts.core;
 
         if (action === null) {
-            this.announce(this.texts.core.t('redo_nothing'));
+            this.announce(core.t(`${kind}_nothing`));
+            this.renderUndo();
+
+            return;
+        }
+
+        // People removed from the event meanwhile are left as they are - said
+        const skipped = [...new Set((action.skipped ?? []).map((change) => this.model.person(change.participant)?.name).filter(Boolean))];
+        const skippedText = skipped.length > 0 ? core.t('undo_skipped_removed', { names: skipped.join(', ') }) : '';
+
+        if (isEmpty(action)) {
+            this.announce(skippedText || core.t(`${kind}_nothing`));
             this.renderUndo();
 
             return;
         }
 
         this.act(action);
-        this.announce(this.texts.core.t('redo_done', { action: this.labelOf(action.label) }));
+        this.announce([core.t(`${kind}_done`, { action: this.labelOf(action.label) }), skippedText].filter(Boolean).join(' '));
     }
 
     labelOf(label) {
@@ -604,26 +779,30 @@ export default class extends Controller {
         return this.texts.core.has(key) ? this.texts.core.t(key) : this.texts.core.t('action_edit');
     }
 
+    /** Undo/redo buttons: enabled, titled with what they take back - the shortcut said with ⌘ on a Mac. */
     renderUndo() {
         const core = this.texts.core;
+        const suffix = this.mac ? '_mac' : '';
 
         for (const [target, has, step, key] of [
-            [this.hasUndoTarget ? this.undoTarget : null, this.undoStack.canUndo(), this.undoStack.peekUndo(), 'undo_label'],
-            [this.hasRedoTarget ? this.redoTarget : null, this.undoStack.canRedo(), this.undoStack.peekRedo(), 'redo_label'],
+            [this.hasUndoTarget ? this.undoTarget : null, this.undoStack.canUndo(), this.undoStack.peekUndo(), `undo_label${suffix}`],
+            [this.hasRedoTarget ? this.redoTarget : null, this.undoStack.canRedo(), this.undoStack.peekRedo(), `redo_label${suffix}`],
         ]) {
             if (target === null) {
                 continue;
             }
 
             target.disabled = !has;
-            const label = has ? core.t(key, { action: this.labelOf(step?.label) }) : core.t(`${key}_none`);
+            const label = has ? core.t(key, { action: this.labelOf(step?.label) }) : core.t(`${key.replace('_mac', '')}_none`);
             target.setAttribute('title', label);
             target.setAttribute('aria-label', label);
         }
     }
 
     onKeyDown(event) {
-        if (event.defaultPrevented) {
+        // Inside a dialog (a preview, the help, the person editor - a modal one holds the focus) the page behind it is
+        // not undone
+        if (event.defaultPrevented || event.target.closest?.('dialog')) {
             return;
         }
 
@@ -658,6 +837,20 @@ export default class extends Controller {
 
         if (delta.rows || delta.rounds.size > 0 || delta.teams.size > 0 || delta.all) {
             this.scheduleTabs();
+            this.renderChecklist();
+        }
+    }
+
+    /** The setup checklist (no rounds or nobody on the list yet) goes once the event has both - people change live. */
+    renderChecklist() {
+        if (!this.hasChecklistTarget) {
+            return;
+        }
+
+        const done = this.model.rounds().length > 0 && this.model.people().length > 0;
+
+        if (this.checklistTarget.hidden !== done) {
+            this.checklistTarget.hidden = done;
         }
     }
 
@@ -670,11 +863,12 @@ export default class extends Controller {
                 const refused = this.undoStack.outcome(event.group.id, event.outcome.status);
 
                 if (refused !== null) {
-                    this.announce(this.texts.core.t(refused === 'undo' ? 'undo_refused' : 'redo_refused'));
+                    // undo_refused / redo_refused, or undo_unsaved / redo_unsaved (what it took back was never saved)
+                    this.announce(this.texts.core.t(`${refused}${refused.endsWith('_unsaved') ? '' : '_refused'}`));
                 }
 
                 this.view?.onOutcome?.(event);
-                this.renderUndo();
+                this.scheduleUndo();
                 break;
             }
             case 'warnings':
@@ -695,10 +889,12 @@ export default class extends Controller {
         }
     }
 
-    onLiveMessage(data) {
-        if (data.type === 'participants_sheet.changed' && data.version !== this.model.version) {
-            this.announce(this.texts.core.t('live_changed_elsewhere'));
-        }
+    /** Every live update after the model took it ("another organiser changed the sheet" is onForeignChange's). */
+    onLiveMessage() {}
+
+    scheduleUndo() {
+        cancelAnimationFrame(this.undoFrame);
+        this.undoFrame = requestAnimationFrame(() => this.renderUndo());
     }
 
     /** Server warnings (never refusals): announced, and marked on the person's / team's cell for a while. */
@@ -762,7 +958,8 @@ export default class extends Controller {
             saving: { icon: 'bi-arrow-repeat', text: core.t('status_saving') },
             waiting: { icon: 'bi-hourglass-split', text: core.tc('status_waiting', status.waiting) },
             offline: { icon: 'bi-wifi-off', text: core.tc('status_offline', status.waiting) },
-            attention: { icon: 'bi-exclamation-triangle', text: core.tc('status_attention', status.attention) },
+            // Problems while offline: both are said ("1 needs you · offline")
+            attention: { icon: 'bi-exclamation-triangle', text: core.tc(status.offline ? 'status_attention_offline' : 'status_attention', status.attention) },
             auth: { icon: 'bi-person-lock', text: core.t('status_sign_in') },
             forbidden: { icon: 'bi-shield-lock', text: core.t('status_reload') },
             gone: { icon: 'bi-x-octagon', text: core.t('status_reload') },
@@ -782,12 +979,14 @@ export default class extends Controller {
             this.statusButton.title = core.t(`status_hint_${status.state}`);
         }
 
-        if (this.lastStatusState !== status.state) {
-            const previous = this.lastStatusState;
-            this.lastStatusState = status.state;
+        const said = `${status.state}${status.offline ? ':offline' : ''}`;
+
+        if (this.lastStatusState !== said) {
+            const previous = this.lastStatusState ?? '';
+            this.lastStatusState = said;
 
             // Announced when something needs the organiser - and when it is fine again after that
-            if (['offline', 'waiting', 'attention', 'auth', 'forbidden', 'gone'].includes(status.state) || (status.state === 'saved' && ['offline', 'waiting', 'auth'].includes(previous))) {
+            if (['offline', 'waiting', 'attention', 'auth', 'forbidden', 'gone'].includes(status.state) || (status.state === 'saved' && /^(offline|waiting|auth)|:offline$/.test(previous))) {
                 this.announce(shown.text);
             }
         }
@@ -810,7 +1009,7 @@ export default class extends Controller {
             html = `<div class="alert alert-danger mb-2" role="alert"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>${escapeHtml(core.t('banner_forbidden'))}</div>`;
         } else if (status.state === 'gone') {
             html = `<div class="alert alert-danger mb-2" role="alert"><i class="bi bi-x-octagon me-1" aria-hidden="true"></i>${escapeHtml(core.t('banner_gone'))}</div>`;
-        } else if (status.state === 'offline') {
+        } else if (status.state === 'offline' || status.offline) {
             html = `<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 mb-2" role="status"><span class="me-auto"><i class="bi bi-wifi-off me-1" aria-hidden="true"></i>${escapeHtml(core.t('banner_offline'))}</span><button type="button" class="btn btn-sm btn-outline-secondary" data-sheet-retry>${escapeHtml(core.t('banner_try_now'))}</button></div>`;
         }
 
@@ -978,9 +1177,15 @@ export default class extends Controller {
                     this.showTab(tab, { reveal: problem });
                 }
                 break;
-            case 'keep':
-                this.queue.keepMine(id);
+            case 'keep': {
+                // Sent again over the other value as an edit of its own: Ctrl+Z takes it back
+                const action = this.queue.keepMineAction(id);
+
+                if (action !== null) {
+                    this.act(action, { origin: action.groups[0]?.origin ?? this.currentTab });
+                }
                 break;
+            }
             case 'theirs':
             case 'dismiss':
                 this.queue.dismiss(id);

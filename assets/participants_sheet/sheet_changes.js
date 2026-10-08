@@ -8,7 +8,10 @@
  *   several groups when its parts are independent (a bulk "Solo: in" over 40 rows = 40 groups, one refused row does not
  *   block the others);
  * - every change carries `from` = the value the organiser saw (what the model shows, the organiser's own pending values
- *   included), so somebody else's change in between comes back as a conflict instead of being overwritten;
+ *   included), so somebody else's change in between comes back as a conflict instead of being overwritten. An editor
+ *   that was open while the model changed passes what it showed when it OPENED as `options.from` (SheetGrid's
+ *   `seenValue` → `commit(…, {seen})`): never the model's value at commit time, which may be somebody else's change
+ *   that arrived meanwhile and would be reverted silently. A value equal to that `from` is no change at all;
  * - `inverse` is computed against the model before the action, change by change on a scratch state, so composite
  *   actions undo exactly (a deleted team is created again with the same id and its members put back; a pair/team the
  *   server deletes automatically when emptied is created again first);
@@ -24,6 +27,7 @@ import { newClientId } from '../official_results_api.js';
 import {
     IN,
     OUT,
+    isGoing,
     EXTERNAL_ID_MAX_LENGTH,
     NAME_MAX_LENGTH,
     NOTE_MAX_LENGTH,
@@ -46,6 +50,36 @@ export const FIELDS = ['name', 'country', 'externalId', 'note'];
 export const MAX_GROUPS = 1000;
 export const MAX_CHANGES = 5000;
 export const MAX_CHANGES_PER_GROUP = 500;
+
+/**
+ * The `from` of a change: `options.from` when the caller passes what the organiser saw (an editor opened before the
+ * model changed), else the model's value. `options.from` is one value, or - for builders over several people - a Map
+ * or a function personId → value (undefined = the model's).
+ */
+export function fromFor(options, key, modelValue) {
+    const given = options?.from;
+
+    if (given === undefined) {
+        return modelValue;
+    }
+
+    let value = given;
+
+    if (given instanceof Map) {
+        value = given.has(key) ? given.get(key) : undefined;
+    } else if (typeof given === 'function') {
+        value = given(key);
+    }
+
+    return value === undefined ? modelValue : value;
+}
+
+/** Options without `from` - passed on to buildAction, which knows nothing of it. */
+function actionOptions(options) {
+    const { from, ...rest } = options ?? {};
+
+    return rest;
+}
 
 /** The change as the server reads it - display hints (`_…`) left out. */
 export function wireChange(change) {
@@ -138,7 +172,13 @@ export function checkChange(change, state, { countries = null } = {}) {
                 return 'invalid_country';
             }
 
-            return textLength(cleanOptionalText(change.externalId) ?? '') > EXTERNAL_ID_MAX_LENGTH ? 'external_id_too_long' : null;
+            const externalId = cleanOptionalText(change.externalId);
+
+            if (textLength(externalId ?? '') > EXTERNAL_ID_MAX_LENGTH) {
+                return 'external_id_too_long';
+            }
+
+            return externalId !== null && externalIdTaken(state, externalId, change.id) ? 'external_id_taken' : null;
         }
 
         case 'field': {
@@ -162,7 +202,12 @@ export function checkChange(change, state, { countries = null } = {}) {
                 case 'country':
                     return value === null || knownCountry(value, countries) ? null : 'invalid_country';
                 case 'externalId':
-                    return textLength(value ?? '') > EXTERNAL_ID_MAX_LENGTH ? 'external_id_too_long' : null;
+                    if (textLength(value ?? '') > EXTERNAL_ID_MAX_LENGTH) {
+                        return 'external_id_too_long';
+                    }
+
+                    // Another active participant of the event has it (the import's rule, ParticipantRules)
+                    return value !== null && externalIdTaken(state, value, change.participant) ? 'external_id_taken' : null;
                 case 'note':
                     return textLength(value ?? '') > NOTE_MAX_LENGTH ? 'note_too_long' : null;
                 default:
@@ -211,7 +256,10 @@ export function checkChange(change, state, { countries = null } = {}) {
                 }
             }
 
-            if (target.kind === OUT && parsePlace(change.from).kind !== OUT && holdsDataInRound(state, change.participant, change.round)) {
+            // Out of the round: refused when the person's own data is in it (their solo entry's result or qualified mark,
+            // their linked player's own time). A pair's/team's result does not hold its members - leaving it is allowed
+            // while it keeps a going member (checkGroup(): `team_has_result` when a group would leave it without one)
+            if (target.kind === OUT && parsePlace(change.from).kind !== OUT && ownDataInRound(state, change.participant, change.round)) {
                 return 'has_result_in_round';
             }
 
@@ -300,6 +348,21 @@ function peopleOf(state) {
 
 function linkedElsewhere(state, playerId, personId) {
     return peopleOf(state).some((other) => other.id !== personId && other.removedAt === null && other.player?.id === playerId);
+}
+
+function externalIdTaken(state, externalId, personId) {
+    return peopleOf(state).some((other) => other.id !== personId && other.removedAt === null && (other.externalId ?? null) === externalId);
+}
+
+/** The person's own data in the round - not their pair's/team's (a member may leave a team holding a result). */
+function ownDataInRound(state, personId, roundId) {
+    const place = state.place(personId, roundId);
+
+    if (place !== null && hasOfficialData(place)) {
+        return true;
+    }
+
+    return (state.person(personId)?.playerResultRounds ?? []).includes(roundId);
 }
 
 function holdsDataInRound(state, personId, roundId) {
@@ -394,14 +457,10 @@ export function invertGroups(groups, model, newId = newClientId) {
 
     for (const group of groups) {
         const parts = [];
-        const teamsBefore = new Map([...working.teams].map(([id, team]) => [id, team]));
-        const deleted = working.applyGroup(group.changes, now, (change, before) => {
+        working.applyGroup(group.changes, now, (change, before) => {
             parts.push(invertChange(change, before));
         });
-        const recreated = deleted
-            .map((teamId) => teamsBefore.get(teamId))
-            .filter(Boolean)
-            .map((team) => ({ op: 'newTeam', id: team.id, round: team.roundId, name: team.name }));
+        const recreated = working.lastAutoDeleted.map((team) => ({ op: 'newTeam', id: team.id, round: team.roundId, name: team.name }));
         const changes = [...recreated, ...parts.reverse().flat()];
 
         if (changes.length > 0) {
@@ -433,20 +492,7 @@ export function buildAction(model, groupsOfChanges, { label = null, newId = newC
             continue;
         }
 
-        // Checked change by change against the state the change applies to (earlier changes of the group included)
-        const trial = new Working(working);
-        let refused = null;
-
-        for (const change of changes) {
-            const reason = checkChange(change, trial, { countries });
-
-            if (reason !== null) {
-                refused = { reason, change };
-                break;
-            }
-
-            trial.apply(change, now);
-        }
+        const refused = checkGroup(changes, working, { countries, now });
 
         if (refused !== null) {
             errors.push(refused);
@@ -460,7 +506,90 @@ export function buildAction(model, groupsOfChanges, { label = null, newId = newC
     return { label, groups, inverse: invertGroups(groups, model, newId), errors };
 }
 
-/** Actions joined into one undo step (a paste touching several columns). */
+/** One place change taking the last going member out of a pair/team that holds official data. */
+function leavesTeamWithoutGoingMember(change, working) {
+    if (change.op !== 'place') {
+        return false;
+    }
+
+    const teamId = working.place(change.participant, change.round)?.teamId ?? null;
+
+    if (teamId === null || parsePlace(change.to).teamId === teamId || !hasOfficialData(working.team(teamId))) {
+        return false;
+    }
+
+    return working.goingMemberCount(teamId) - (isGoing(working.person(change.participant)) ? 1 : 0) <= 0;
+}
+
+/**
+ * The client checks of one group (atomic on the server): every change against the state it applies to (the earlier
+ * changes of the group included), then the rules about the group as a whole - a pair/team holding official data must
+ * keep a going member (`team_has_result`), at most MAX_CHANGES_PER_GROUP changes (`too_many_changes`). `working` is
+ * left exactly as it was (the trial is rolled back).
+ *
+ * @param {Array<object>} changes
+ * @param {Working} working
+ * @param {{countries?: Set<string>|null, now?: number}} [options]
+ * @returns {{reason: string, change: object}|null}
+ */
+export function checkGroup(changes, working, { countries = null, now = Date.now() } = {}) {
+    if (changes.length > MAX_CHANGES_PER_GROUP) {
+        return { reason: 'too_many_changes', change: changes[0] };
+    }
+
+    if (changes.length === 1) {
+        // One change (a bulk action is hundreds of these): checked without a trial
+        const [change] = changes;
+        const reason = checkChange(change, working, { countries });
+
+        if (reason !== null) {
+            return { reason, change };
+        }
+
+        return leavesTeamWithoutGoingMember(change, working) ? { reason: 'team_has_result', change } : null;
+    }
+
+    working.begin();
+    let refused = null;
+    // teamId → the change that took a member out of it (the last one)
+    const left = new Map();
+
+    try {
+        for (const change of changes) {
+            const reason = checkChange(change, working, { countries });
+
+            if (reason !== null) {
+                refused = { reason, change };
+                break;
+            }
+
+            if (change.op === 'place') {
+                const teamId = working.place(change.participant, change.round)?.teamId ?? null;
+
+                if (teamId !== null && parsePlace(change.to).teamId !== teamId) {
+                    left.set(teamId, change);
+                }
+            }
+
+            working.apply(change, now);
+        }
+
+        if (refused === null) {
+            for (const [teamId, change] of left) {
+                if (hasOfficialData(working.team(teamId)) && working.goingMemberCount(teamId) === 0) {
+                    refused = { reason: 'team_has_result', change };
+                    break;
+                }
+            }
+        }
+    } finally {
+        working.rollback();
+    }
+
+    return refused;
+}
+
+/** Actions joined into one undo step (a paste touching several columns) - sheet groups and results changes alike. */
 export function combine(label, ...actions) {
     const list = actions.filter(Boolean);
 
@@ -470,6 +599,7 @@ export function combine(label, ...actions) {
         inverse: list.slice().reverse().flatMap((action) => action.inverse),
         errors: list.flatMap((action) => action.errors),
         results: list.flatMap((action) => action.results ?? []),
+        inverseResults: list.slice().reverse().flatMap((action) => action.inverseResults ?? []),
     };
 }
 
@@ -478,57 +608,70 @@ export function isEmpty(action) {
 }
 
 // ---------------------------------------------------------------- builders: people
+//
+// Every builder takes `options` = {newId?, countries?, label?, from?}: `from` = what the organiser saw when the edit
+// started (fromFor()) - the `from` sent instead of the model's value; the client checks still run on the model.
 
 /**
- * Name / country / external id / note of a person. A value equal to what is shown = an empty action.
+ * Name / country / external id / note of a person. A value equal to what is shown (or to `options.from`, what the
+ * editor showed when it opened) = an empty action.
  */
 export function setField(model, personId, field, value, options = {}) {
     const person = model.person(personId);
 
     if (person === null) {
-        return buildAction(model, [], options);
+        return buildAction(model, [], actionOptions(options));
     }
 
     const to = cleanFieldValue(field, value);
+    const from = fromFor(options, personId, person[field] ?? null);
 
-    if (to === (person[field] ?? null)) {
-        return buildAction(model, [], options);
+    if (to === (person[field] ?? null) || to === from) {
+        return buildAction(model, [], actionOptions(options));
     }
 
-    return buildAction(model, [[{ op: 'field', participant: personId, field, from: person[field] ?? null, to }]], { label: { key: 'field', field }, ...options });
+    return buildAction(model, [[{ op: 'field', participant: personId, field, from, to }]], { label: { key: 'field', field }, ...actionOptions(options) });
 }
 
 /**
  * One field of several people (fill down, paste of a column) - a group per person, one undo step.
  *
- * @param {Array<{personId: string, value: *}>} values
+ * @param {Array<{personId: string, value: *, from?: *}>} values `from` = what the organiser saw (an open editor's row)
  */
 export function setFields(model, field, values, options = {}) {
     const groups = [];
 
-    for (const { personId, value } of values) {
+    for (const { personId, value, from: seen } of values) {
         const person = model.person(personId);
-        const to = cleanFieldValue(field, value);
 
-        if (person !== null && to !== (person[field] ?? null)) {
-            groups.push([{ op: 'field', participant: personId, field, from: person[field] ?? null, to }]);
+        if (person === null) {
+            continue;
+        }
+
+        const to = cleanFieldValue(field, value);
+        const from = seen !== undefined ? seen : fromFor(options, personId, person[field] ?? null);
+
+        if (to !== (person[field] ?? null) && to !== from) {
+            groups.push([{ op: 'field', participant: personId, field, from, to }]);
         }
     }
 
-    return buildAction(model, groups, { label: { key: 'field', field }, ...options });
+    return buildAction(model, groups, { label: { key: 'field', field }, ...actionOptions(options) });
 }
 
 /**
- * Link a person to an MSP profile (`player` = {id, name, code, avatar, country, profileUrl} from the player search) or
- * unlink it (null).
+ * Link a person to an MSP profile (`player` = {id, name, code, avatar, country, profileUrl, visible?} from the player
+ * search - `visible: false` for a profile hidden from this organiser, O9) or unlink it (null). `options.from` = the
+ * player id the cell showed (or null).
  */
 export function linkProfile(model, personId, player, options = {}) {
     const person = model.person(personId);
-    const from = person?.player?.id ?? null;
+    const shown = person?.player?.id ?? null;
+    const from = fromFor(options, personId, shown);
     const to = player === null ? null : player.id;
 
-    if (person === null || from === to) {
-        return buildAction(model, [], options);
+    if (person === null || shown === to || from === to) {
+        return buildAction(model, [], actionOptions(options));
     }
 
     const change = { op: 'player', participant: personId, from, to };
@@ -537,7 +680,7 @@ export function linkProfile(model, personId, player, options = {}) {
         change._player = { visible: true, ...player };
     }
 
-    return buildAction(model, [[change]], { label: { key: to === null ? 'unlink' : 'link' }, ...options });
+    return buildAction(model, [[change]], { label: { key: to === null ? 'unlink' : 'link' }, ...actionOptions(options) });
 }
 
 /**
@@ -547,15 +690,17 @@ export function addPerson(model, person, options = {}) {
     const newId = options.newId ?? newClientId;
     const change = newPersonChange(person, newId);
 
-    return { ...buildAction(model, [[change]], { label: { key: 'add_person' }, ...options }), personId: change.id };
+    return { ...buildAction(model, [[change]], { label: { key: 'add_person' }, ...actionOptions(options) }), personId: change.id };
 }
 
 function newPersonChange(person, newId) {
+    const country = person.country === null || person.country === undefined || String(person.country).trim() === '' ? null : String(person.country).trim().toLowerCase();
+
     return {
         op: 'newParticipant',
         id: person.id ?? newId(),
         name: cleanName(person.name),
-        country: person.country ?? null,
+        country,
         externalId: cleanOptionalText(person.externalId ?? null),
     };
 }
@@ -566,7 +711,7 @@ export function removePeople(model, personIds, options = {}) {
         .filter((id) => model.person(id) !== null && !model.isRemoved(id))
         .map((id) => [{ op: 'remove', participant: id }]);
 
-    return buildAction(model, groups, { label: { key: 'remove', count: groups.length }, ...options });
+    return buildAction(model, groups, { label: { key: 'remove', count: groups.length }, ...actionOptions(options) });
 }
 
 export function restorePeople(model, personIds, options = {}) {
@@ -574,47 +719,52 @@ export function restorePeople(model, personIds, options = {}) {
         .filter((id) => model.isRemoved(id))
         .map((id) => [{ op: 'restore', participant: id }]);
 
-    return buildAction(model, groups, { label: { key: 'restore', count: groups.length }, ...options });
+    return buildAction(model, groups, { label: { key: 'restore', count: groups.length }, ...actionOptions(options) });
 }
 
 // ---------------------------------------------------------------- builders: rounds
 
 /**
- * A person's place in a round: `out` | `in` | `team:<id>`.
+ * A person's place in a round: `out` | `in` | `team:<id>`. `options.from` = the place the organiser saw.
  */
 export function setPlace(model, personId, roundId, to, options = {}) {
-    const from = model.placeValue(personId, roundId);
+    const shown = model.placeValue(personId, roundId);
+    const from = fromFor(options, personId, shown);
 
-    if (from === to) {
-        return buildAction(model, [], options);
+    if (shown === to || from === to) {
+        return buildAction(model, [], actionOptions(options));
     }
 
-    return buildAction(model, [[{ op: 'place', participant: personId, round: roundId, from, to }]], { label: { key: 'place', to: parsePlace(to).kind }, ...options });
+    return buildAction(model, [[{ op: 'place', participant: personId, round: roundId, from, to }]], { label: { key: 'place', to: parsePlace(to).kind }, ...actionOptions(options) });
 }
 
 /**
  * Several people in / out of a (solo) round - a group per person, one undo step. Taking out keeps a person who is
  * already in a pair/team of a team round out of this helper's reach: `in` never moves anybody out of a team.
+ * `options.from` = the place each person showed (a value for all, or a Map / function by person id).
  */
 export function setInRound(model, personIds, roundId, inRound, options = {}) {
     const groups = [];
 
     for (const personId of personIds) {
-        const from = model.placeValue(personId, roundId);
+        const shown = model.placeValue(personId, roundId);
+        const from = fromFor(options, personId, shown);
 
-        if (inRound && from === OUT) {
+        if (inRound && from === OUT && shown === OUT) {
             groups.push([{ op: 'place', participant: personId, round: roundId, from, to: IN }]);
-        } else if (!inRound && from !== OUT) {
+        } else if (!inRound && from !== OUT && shown !== OUT) {
             groups.push([{ op: 'place', participant: personId, round: roundId, from, to: OUT }]);
         }
     }
 
-    return buildAction(model, groups, { label: { key: inRound ? 'round_in' : 'round_out', count: groups.length }, ...options });
+    return buildAction(model, groups, { label: { key: inRound ? 'round_in' : 'round_out', count: groups.length }, ...actionOptions(options) });
 }
 
 /**
  * "Type a pair into the new row": a new pair/team with its name and members in one group - members are people of the
- * event (ids, moved here from wherever they are in the round) or new people ({name, country}, D9).
+ * event (ids, moved here from wherever they are in the round) or new people ({name, country}, D9). `options.from` =
+ * where each member was when the organiser picked them (a Map / function by person id - "moves from Table 12
+ * Pinecones").
  *
  * @param {{id?: string, name?: string|null, members?: Array<string|{name: string, country?: string|null, id?: string}>}} row
  */
@@ -626,10 +776,11 @@ export function newTeamRow(model, roundId, row, options = {}) {
     const name = cleanTeamName(row.name ?? null);
 
     if (name === null && members.length === 0) {
-        return { ...buildAction(model, [], options), teamId: null };
+        return { ...buildAction(model, [], actionOptions(options)), teamId: null };
     }
 
     const memberIds = [];
+    const created = new Set();
 
     for (const member of members) {
         if (typeof member === 'string') {
@@ -638,84 +789,108 @@ export function newTeamRow(model, roundId, row, options = {}) {
             const change = newPersonChange(member, newId);
             changes.push(change);
             memberIds.push(change.id);
+            created.add(change.id);
         }
     }
 
     changes.push({ op: 'newTeam', id: teamId, round: roundId, name });
 
     for (const personId of [...new Set(memberIds)]) {
-        changes.push({ op: 'place', participant: personId, round: roundId, from: model.placeValue(personId, roundId), to: teamPlace(teamId) });
+        const from = created.has(personId) ? OUT : fromFor(options, personId, model.placeValue(personId, roundId));
+        changes.push({ op: 'place', participant: personId, round: roundId, from, to: teamPlace(teamId) });
     }
 
-    return { ...buildAction(model, [changes], { label: { key: 'new_team' }, ...options }), teamId };
+    return { ...buildAction(model, [changes], { label: { key: 'new_team' }, ...actionOptions(options) }), teamId };
 }
 
 /**
  * Put a person (an id, or a new person {name, country}) into a pair/team - moving them from wherever they are in the
- * round ("moves from Table 12 Pinecones").
+ * round ("moves from Table 12 Pinecones"). `options.from` = the place the organiser saw for that person.
  */
 export function putInTeam(model, roundId, teamId, member, options = {}) {
     const newId = options.newId ?? newClientId;
     const changes = [];
     let personId = member;
+    let from;
 
     if (typeof member !== 'string') {
         const change = newPersonChange(member, newId);
         changes.push(change);
         personId = change.id;
+        from = OUT;
+    } else {
+        from = fromFor(options, personId, model.placeValue(personId, roundId));
     }
 
-    const from = model.placeValue(personId, roundId);
-
-    if (from === teamPlace(teamId)) {
-        return buildAction(model, [], options);
+    if (from === teamPlace(teamId) || model.placeValue(personId, roundId) === teamPlace(teamId)) {
+        return buildAction(model, [], actionOptions(options));
     }
 
     changes.push({ op: 'place', participant: personId, round: roundId, from, to: teamPlace(teamId) });
 
-    return { ...buildAction(model, [changes], { label: { key: 'put_in_team' }, ...options }), personId };
+    return { ...buildAction(model, [changes], { label: { key: 'put_in_team' }, ...actionOptions(options) }), personId };
 }
 
-/** Clear a member cell: the person stays in the round without a pair/team (the tray). */
+/** Clear a member cell: the person stays in the round without a pair/team (the tray). `options.from` = the pair/team shown. */
 export function clearMember(model, roundId, personId, options = {}) {
-    if (parsePlace(model.placeValue(personId, roundId)).kind !== 'team') {
-        return buildAction(model, [], options);
+    const from = fromFor(options, personId, model.placeValue(personId, roundId));
+
+    if (parsePlace(from).kind !== 'team') {
+        return buildAction(model, [], actionOptions(options));
     }
 
-    return setPlace(model, personId, roundId, IN, { label: { key: 'clear_member' }, ...options });
+    return setPlace(model, personId, roundId, IN, { label: { key: 'clear_member' }, ...options, from });
 }
 
+/** `options.from` = the name the organiser saw. */
 export function renameTeam(model, teamId, name, options = {}) {
     const team = model.team(teamId);
     const to = cleanTeamName(name);
+    const from = team === null ? null : fromFor(options, teamId, team.name);
 
-    if (team === null || to === team.name) {
-        return buildAction(model, [], options);
+    if (team === null || to === team.name || to === from) {
+        return buildAction(model, [], actionOptions(options));
     }
 
-    return buildAction(model, [[{ op: 'renameTeam', team: teamId, from: team.name, to }]], { label: { key: 'rename_team' }, ...options });
+    return buildAction(model, [[{ op: 'renameTeam', team: teamId, from, to }]], { label: { key: 'rename_team' }, ...actionOptions(options) });
 }
 
-/** Delete a pair/team: its members stay in the round without one. */
+/**
+ * Delete a pair/team: its members stay in the round without one. Its table number goes with it (it lives on the
+ * entry) - the undo creates the pair again and gives the number back (`inverseResults`, sent after the group that
+ * creates it - the save queue never lets a results change overtake a sheet group queued before it).
+ */
 export function deleteTeam(model, teamId, options = {}) {
-    if (model.team(teamId) === null) {
-        return buildAction(model, [], options);
+    const team = model.team(teamId);
+
+    if (team === null) {
+        return buildAction(model, [], actionOptions(options));
     }
 
-    return buildAction(model, [[{ op: 'deleteTeam', team: teamId }]], { label: { key: 'delete_team' }, ...options });
+    const action = buildAction(model, [[{ op: 'deleteTeam', team: teamId }]], { label: { key: 'delete_team' }, ...actionOptions(options) });
+
+    if (action.groups.length === 0 || team.table === null || team.table === undefined) {
+        return action;
+    }
+
+    return {
+        ...action,
+        inverseResults: [{ roundId: team.roundId, ref: `team:${teamId}`, field: 'table_number', from: null, to: team.table, inverseOf: action.groups[0].id }],
+    };
 }
 
-/** The expected size of a team round (null = not set). */
+/** The expected size of a team round (null = not set). `options.from` = the size shown. */
 export function setTeamSize(model, roundId, size, options = {}) {
     const round = model.round(roundId);
-    const from = round?.teamSize ?? null;
+    const shown = round?.teamSize ?? null;
+    const from = round === null ? null : fromFor(options, roundId, shown);
     const to = size === null || size === '' ? null : Number(size);
 
-    if (round === null || from === to) {
-        return buildAction(model, [], options);
+    if (round === null || shown === to || from === to) {
+        return buildAction(model, [], actionOptions(options));
     }
 
-    return buildAction(model, [[{ op: 'teamSize', round: roundId, from, to }]], { label: { key: 'team_size' }, ...options });
+    return buildAction(model, [[{ op: 'teamSize', round: roundId, from, to }]], { label: { key: 'team_size' }, ...actionOptions(options) });
 }
 
 // ---------------------------------------------------------------- results (RecordRoundResults, contract O3)

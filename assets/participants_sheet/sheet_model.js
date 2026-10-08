@@ -90,7 +90,7 @@ function same(a, b) {
     return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
-function emptyDelta() {
+export function emptyDelta() {
     return { people: new Set(), teams: new Set(), rounds: new Set(), rows: false, all: false };
 }
 
@@ -106,6 +106,76 @@ export class Working {
         this.teams = new Map(source.teams);
         this.rounds = new Map(source.rounds);
         this.order = source.order.slice();
+        this.journal = null;
+        this.journalOrders = null;
+        // The pairs/teams the last applyGroup() deleted automatically, as they were before (inverses create them again)
+        this.lastAutoDeleted = [];
+    }
+
+    /**
+     * Starts recording every write, so a trial (the client checks of a group) can be taken back with rollback() - no
+     * copy of the whole state per group (a bulk action of 1,000 groups would copy 1,000 x 4,000 records).
+     */
+    begin() {
+        this.journal = [];
+        // A Map a record was erased from: its key order before (restored exactly - teams are listed in that order)
+        this.journalOrders = new Map();
+    }
+
+    /** Takes back every write since begin() - records, and the order of every Map, exactly as they were. */
+    rollback() {
+        const journal = this.journal ?? [];
+        const orders = this.journalOrders ?? new Map();
+        this.journal = null;
+        this.journalOrders = null;
+
+        for (let index = journal.length - 1; index >= 0; index--) {
+            const [map, key, had, value] = journal[index];
+
+            if (map === 'order') {
+                this.order.length = key;
+            } else if (had) {
+                this[map].set(key, value);
+            } else {
+                this[map].delete(key);
+            }
+        }
+
+        for (const [map, keys] of orders) {
+            this[map] = new Map(keys.filter((key) => this[map].has(key)).map((key) => [key, this[map].get(key)]));
+        }
+    }
+
+    /** Keeps every write since begin(). */
+    commit() {
+        this.journal = null;
+        this.journalOrders = null;
+    }
+
+    write(map, key, value) {
+        this.journal?.push([map, key, this[map].has(key), this[map].get(key)]);
+        this[map].set(key, value);
+    }
+
+    erase(map, key) {
+        if (!this[map].has(key)) {
+            return;
+        }
+
+        if (this.journal) {
+            if (!this.journalOrders.has(map)) {
+                this.journalOrders.set(map, [...this[map].keys()]);
+            }
+
+            this.journal.push([map, key, true, this[map].get(key)]);
+        }
+
+        this[map].delete(key);
+    }
+
+    appendToOrder(id) {
+        this.journal?.push(['order', this.order.length]);
+        this.order.push(id);
     }
 
     person(id) {
@@ -151,7 +221,7 @@ export class Working {
         switch (change.op) {
             case 'newParticipant': {
                 if (!this.people.has(change.id)) {
-                    this.people.set(change.id, {
+                    this.write('people', change.id, {
                         id: change.id,
                         name: cleanName(change.name),
                         country: change.country ?? null,
@@ -165,7 +235,7 @@ export class Working {
                         playerResultRounds: [],
                         local: true,
                     });
-                    this.order.push(change.id);
+                    this.appendToOrder(change.id);
                 }
 
                 return;
@@ -186,7 +256,7 @@ export class Working {
                     value = cleanOptionalText(value);
                 }
 
-                this.people.set(person.id, { ...person, [change.field]: value });
+                this.write('people', person.id, { ...person, [change.field]: value });
 
                 return;
             }
@@ -198,18 +268,21 @@ export class Working {
                     return;
                 }
 
+                // `playerResultRounds` (the own-time guard) stays as it was until the next state says whose times count:
+                // the server checks a changeset against the player the person had when it started too (contract §3.1)
                 if (change.to === null) {
-                    this.people.set(person.id, { ...person, player: null, connectedAt: null, playerResultRounds: [] });
+                    this.write('people', person.id, { ...person, player: null, connectedAt: null });
                 } else {
-                    // `_player` = what the organiser picked (name, code, avatar) - shown until the next state says more
+                    // `_player` = what the organiser picked (name, code, avatar) - shown until the next state says more;
+                    // a profile hidden from this organiser (O9: blocked, private) shows as "Linked to a profile" only
                     const shown = change._player && change._player.id === change.to ? change._player : null;
-                    this.people.set(person.id, {
+                    const visible = shown !== null && shown.visible !== false;
+                    this.write('people', person.id, {
                         ...person,
-                        player: shown !== null
+                        player: visible
                             ? { visible: true, name: null, code: null, country: null, avatar: null, profileUrl: null, ...shown, id: change.to }
                             : { id: change.to, visible: false, name: null, code: null, country: null, avatar: null, profileUrl: null },
                         connectedAt: person.player?.id === change.to ? person.connectedAt : new Date(now).toISOString(),
-                        playerResultRounds: person.player?.id === change.to ? person.playerResultRounds : [],
                     });
                 }
 
@@ -222,7 +295,7 @@ export class Working {
                 const target = parsePlace(change.to);
 
                 if (target.kind === OUT) {
-                    this.places.delete(key);
+                    this.erase('places', key);
 
                     return;
                 }
@@ -230,7 +303,7 @@ export class Working {
                 const teamId = target.kind === 'team' ? target.teamId : null;
 
                 if (current === null) {
-                    this.places.set(key, {
+                    this.write('places', key, {
                         id: `local:${change.participant}:${change.round}`,
                         participantId: change.participant,
                         roundId: change.round,
@@ -243,7 +316,7 @@ export class Working {
                         local: true,
                     });
                 } else if (current.teamId !== teamId) {
-                    this.places.set(key, { ...current, teamId });
+                    this.write('places', key, { ...current, teamId });
                 }
 
                 return;
@@ -251,7 +324,7 @@ export class Working {
 
             case 'newTeam': {
                 if (!this.teams.has(change.id)) {
-                    this.teams.set(change.id, {
+                    this.write('teams', change.id, {
                         id: change.id,
                         roundId: change.round,
                         name: cleanTeamName(change.name),
@@ -271,7 +344,7 @@ export class Working {
                 const team = this.team(change.team);
 
                 if (team !== null) {
-                    this.teams.set(team.id, { ...team, name: cleanTeamName(change.to) });
+                    this.write('teams', team.id, { ...team, name: cleanTeamName(change.to) });
                 }
 
                 return;
@@ -280,10 +353,10 @@ export class Working {
             case 'deleteTeam': {
                 // Members stay in the round without a pair/team, the team goes (PR #244 order)
                 for (const place of this.placesInTeam(change.team)) {
-                    this.places.set(placeKey(place.participantId, place.roundId), { ...place, teamId: null });
+                    this.write('places', placeKey(place.participantId, place.roundId), { ...place, teamId: null });
                 }
 
-                this.teams.delete(change.team);
+                this.erase('teams', change.team);
 
                 return;
             }
@@ -292,7 +365,7 @@ export class Working {
                 const person = this.person(change.participant);
 
                 if (person !== null && person.removedAt === null) {
-                    this.people.set(person.id, { ...person, removedAt: new Date(now).toISOString() });
+                    this.write('people', person.id, { ...person, removedAt: new Date(now).toISOString() });
                 }
 
                 return;
@@ -302,7 +375,7 @@ export class Working {
                 const person = this.person(change.participant);
 
                 if (person !== null && person.removedAt !== null) {
-                    this.people.set(person.id, { ...person, removedAt: null });
+                    this.write('people', person.id, { ...person, removedAt: null });
                 }
 
                 return;
@@ -312,7 +385,7 @@ export class Working {
                 const round = this.rounds.get(change.round);
 
                 if (round !== undefined) {
-                    this.rounds.set(round.id, { ...round, teamSize: change.to ?? null });
+                    this.write('rounds', round.id, { ...round, teamSize: change.to ?? null });
                 }
 
                 return;
@@ -330,6 +403,7 @@ export class Working {
      */
     autoDelete(teamIdsBefore, removedPeople) {
         const deleted = [];
+        this.lastAutoDeleted = [];
 
         for (const [teamId, hadActive] of teamIdsBefore) {
             const team = this.team(teamId);
@@ -349,6 +423,7 @@ export class Working {
                 continue;
             }
 
+            this.lastAutoDeleted.push(team);
             this.apply({ op: 'deleteTeam', team: teamId });
             deleted.push(teamId);
         }
@@ -361,6 +436,22 @@ export class Working {
 
         for (const place of this.places.values()) {
             if (place.teamId === teamId && this.person(place.participantId)?.removedAt === null) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Members who are going: not removed, not on the waitlist of a managed event - the ones a pair's/team's result
+     * belongs to (the emptying guard of a team holding official data, contract §3.1 `team_has_result`).
+     */
+    goingMemberCount(teamId) {
+        let count = 0;
+
+        for (const place of this.places.values()) {
+            if (place.teamId === teamId && isGoing(this.person(place.participantId))) {
                 count++;
             }
         }
@@ -398,6 +489,11 @@ export class Working {
     }
 }
 
+/** Active and not on the waitlist (a waitlisted person may be placed - O8 - but a result never belongs to them). */
+export function isGoing(person) {
+    return person !== null && person !== undefined && person.removedAt === null && person.registration?.status !== 'waitlisted';
+}
+
 export function hasOfficialData(entry) {
     return entry !== null && entry !== undefined && ((entry.result !== null && entry.result !== undefined) || entry.qualified === true);
 }
@@ -408,9 +504,23 @@ export function hasOfficialData(entry) {
  * entities they belong to, so a view re-renders only the cells whose marker changed. Kept by the save queue.
  */
 export class SheetMarks {
-    constructor(onChange = () => {}) {
+    /**
+     * @param {function(object): void} [onChange] called with the delta of every change
+     * @param {function(function(): void): void} [batch] runs a function with the deltas it causes emitted once
+     */
+    constructor(onChange = () => {}, batch = (fn) => fn()) {
         this.marks = new Map();
         this.onChange = onChange;
+        this.batch = batch;
+    }
+
+    /** Several markers at once - views re-render once (a bulk action marks hundreds of cells). */
+    setMany(entries) {
+        this.batch(() => {
+            for (const { key, mark, entities } of entries) {
+                this.set(key, mark, entities ?? {});
+            }
+        });
     }
 
     /**
@@ -483,7 +593,9 @@ export class SheetModel {
         this.now = now;
         this.listeners = new Set();
         this.pending = [];
-        this.marks = new SheetMarks((delta) => this.emit(delta));
+        this.batchDepth = 0;
+        this.batched = null;
+        this.marks = new SheetMarks((delta) => this.emit(delta), (fn) => this.batch(fn));
         this.resultsGeneration = 0;
         this.setBase(state);
         this.rebuild();
@@ -561,13 +673,47 @@ export class SheetModel {
         return () => this.listeners.delete(listener);
     }
 
+    /**
+     * Every listener hears every delta: one that throws (a view's bug) is logged and the others still run - a model
+     * change half told would leave views showing what is not there.
+     */
     emit(delta) {
         if (delta.people.size === 0 && delta.teams.size === 0 && delta.rounds.size === 0 && !delta.rows && !delta.all) {
             return;
         }
 
-        for (const listener of this.listeners) {
-            listener(delta);
+        if (this.batchDepth > 0) {
+            this.batched = mergeDelta(this.batched ?? emptyDelta(), delta);
+
+            return;
+        }
+
+        for (const listener of [...this.listeners]) {
+            try {
+                listener(delta);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    }
+
+    /**
+     * Runs `fn` with every delta it causes (model changes, markers) told once at the end, merged - a bulk action, a
+     * save answer of 1,000 groups re-render the views once. Nested batches are told by the outermost one.
+     */
+    batch(fn) {
+        this.batchDepth++;
+
+        try {
+            return fn();
+        } finally {
+            this.batchDepth--;
+
+            if (this.batchDepth === 0 && this.batched !== null) {
+                const delta = this.batched;
+                this.batched = null;
+                this.emit(delta);
+            }
         }
     }
 
@@ -967,8 +1113,27 @@ export class SheetModel {
      * The organiser's group, shown at once. Returns the delta (also emitted).
      */
     applyLocal(groupId, changes) {
+        return this.applyLocalMany([{ id: groupId, changes }]);
+    }
+
+    /**
+     * Several groups of one action shown at once: one rebuild, one delta (a bulk action of 1,000 groups costs one
+     * replay, not 1,000).
+     *
+     * @param {Array<{id: string, changes: Array<object>}>} groups
+     */
+    applyLocalMany(groups) {
+        if (groups.length === 0) {
+            return emptyDelta();
+        }
+
         const before = this.current;
-        this.pending.push({ id: groupId, changes, at: this.now() });
+        const at = this.now();
+
+        for (const group of groups) {
+            this.pending.push({ id: group.id, changes: group.changes, at });
+        }
+
         this.rebuild();
 
         return this.emitDiff(before);
@@ -987,24 +1152,44 @@ export class SheetModel {
      * deleted automatically (`deletedTeams` - the server's word, not the browser's guess).
      */
     confirm(groupId, deletedTeams = []) {
+        return this.confirmMany([{ groupId, deletedTeams }]);
+    }
+
+    /**
+     * Several answered groups folded into the base in the order given (the order they were sent): one rebuild, one
+     * delta.
+     *
+     * @param {Array<{groupId: string, deletedTeams?: string[]}>} answers
+     */
+    confirmMany(answers) {
+        if (answers.length === 0) {
+            return emptyDelta();
+        }
+
         const before = this.current;
-        const index = this.pending.findIndex((group) => group.id === groupId);
         const working = new Working(this.base);
+        const positions = new Map(this.pending.map((group, index) => [group.id, index]));
+        const confirmed = new Set();
 
-        if (index !== -1) {
-            const [group] = this.pending.splice(index, 1);
+        for (const { groupId, deletedTeams = [] } of answers) {
+            const index = positions.get(groupId);
 
-            for (const change of group.changes) {
-                working.apply(change, group.at);
+            if (index !== undefined && !confirmed.has(groupId)) {
+                confirmed.add(groupId);
+
+                for (const change of this.pending[index].changes) {
+                    working.apply(change, this.pending[index].at);
+                }
+            }
+
+            for (const teamId of deletedTeams ?? []) {
+                if (working.teams.has(teamId)) {
+                    working.apply({ op: 'deleteTeam', team: teamId });
+                }
             }
         }
 
-        for (const teamId of deletedTeams) {
-            if (working.teams.has(teamId)) {
-                working.apply({ op: 'deleteTeam', team: teamId });
-            }
-        }
-
+        this.pending = this.pending.filter((group) => !confirmed.has(group.id));
         this.base = working;
         this.rebuild();
 
@@ -1015,14 +1200,20 @@ export class SheetModel {
      * The server refused the group or found a conflict: nothing of it was applied - the organiser's values go.
      */
     revert(groupId) {
-        const index = this.pending.findIndex((group) => group.id === groupId);
+        return this.revertMany([groupId]);
+    }
 
-        if (index === -1) {
+    /** Several groups reverted: one rebuild, one delta. */
+    revertMany(groupIds) {
+        const ids = new Set(groupIds);
+        const remaining = this.pending.filter((group) => !ids.has(group.id));
+
+        if (remaining.length === this.pending.length) {
             return emptyDelta();
         }
 
         const before = this.current;
-        this.pending.splice(index, 1);
+        this.pending = remaining;
         this.rebuild();
 
         return this.emitDiff(before);
@@ -1183,15 +1374,29 @@ function newer(current, incoming) {
     return current.enteredAt && incoming.enteredAt && Date.parse(incoming.enteredAt) < Date.parse(current.enteredAt);
 }
 
-/** An entry's official fields from a live update - an older result never replaces a newer one. */
+/**
+ * An entry's official fields from a live update. An update about an older result than the page holds is an old message
+ * (it arrived late): none of its fields - result, table number, qualified mark - replaces what the page knows.
+ */
 function mergeOfficial(entry, incoming) {
-    let next = { ...entry, table: incoming.table, qualified: incoming.qualified };
-
-    if (!newer(entry, incoming)) {
-        next = { ...next, result: incoming.result, enteredAt: incoming.enteredAt, enteredBy: incoming.enteredBy };
+    if (newer(entry, incoming)) {
+        return entry;
     }
 
+    const next = { ...entry, table: incoming.table, qualified: incoming.qualified, result: incoming.result, enteredAt: incoming.enteredAt, enteredBy: incoming.enteredBy };
+
     return same(officialFields(next), officialFields(entry)) ? entry : next;
+}
+
+/** Two deltas as one (a batch). */
+export function mergeDelta(into, delta) {
+    delta.people.forEach((id) => into.people.add(id));
+    delta.teams.forEach((id) => into.teams.add(id));
+    delta.rounds.forEach((id) => into.rounds.add(id));
+    into.rows = into.rows || delta.rows;
+    into.all = into.all || delta.all;
+
+    return into;
 }
 
 /** What differs between two working states, as a delta. */

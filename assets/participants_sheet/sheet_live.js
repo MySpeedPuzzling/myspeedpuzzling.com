@@ -6,8 +6,10 @@
  *   topic `/competition-participants/{id}` (`participants_sheet.changed` + version) and every round's
  *   `/round-results/{roundId}` (`official_results.entries` / `.refresh` / `.round` from the live entry, the desk, seating);
  * - `participants_sheet.changed` with a version the page does not know → the state is fetched and merged (the save
- *   queue's `refetch()`, so a fetch never races one of our own saves); our own writes announce the version we already
- *   know - nothing to fetch;
+ *   queue's `refetch()`, so a fetch never races one of our own saves) and `onForeignChange()` is called (the controller
+ *   says "another organiser changed the sheet"); our own writes announce a version we know - adopted already, or the
+ *   answer of the save on its way brings it - nothing to fetch; a late echo of an earlier save of ours
+ *   (queue.isOwnVersion()) is fetched but never said;
  * - `official_results.entries` → merged into the model by ref (an unknown ref = an entry the page does not know: fetch);
  *   `.refresh` → fetch; `.round` → the round's publication / table numbers usage;
  * - safety nets: `GET urls.version` every 30 s while the page is visible (and nothing of ours is on its way), a full
@@ -36,7 +38,8 @@ export class SheetLive {
      * @param {function(function(), number): *} [options.schedule]
      * @param {function(*): void} [options.cancel]
      * @param {function(): number} [options.now]
-     * @param {function(object): void} [options.onMessage] every update after it was handled (the controller announces)
+     * @param {function(object): void} [options.onMessage] every update after it was handled
+     * @param {function(object): void} [options.onForeignChange] somebody else changed the sheet (not our own echo)
      */
     constructor({
         model,
@@ -49,6 +52,7 @@ export class SheetLive {
         cancel = (timer) => clearTimeout(timer),
         now = () => Date.now(),
         onMessage = () => {},
+        onForeignChange = () => {},
     }) {
         this.model = model;
         this.queue = queue;
@@ -59,6 +63,7 @@ export class SheetLive {
         this.cancel = cancel;
         this.now = now;
         this.onMessageHandled = onMessage;
+        this.onForeignChange = onForeignChange;
         this.pollTimer = null;
         this.polling = false;
         this.hiddenSince = null;
@@ -78,6 +83,7 @@ export class SheetLive {
 
                 if (awaited !== this.model.version) {
                     this.queue.refetch();
+                    this.tellForeign({ version: awaited });
                 }
             }
 
@@ -123,7 +129,9 @@ export class SheetLive {
                         // Our own save may be this very version - its answer (on its way) tells; checked once it arrived
                         this.awaitedVersion = data.version;
                     } else {
+                        // A late echo of an earlier save of ours fetches too (cheap, always right), but is not news
                         this.queue.refetch();
+                        this.tellForeign(data);
                     }
                 }
                 break;
@@ -188,6 +196,7 @@ export class SheetLive {
             }
 
             if (answer.kind === 'ok' && typeof answer.data?.version === 'string' && answer.data.version !== this.model.version && this.queue.inFlight === null) {
+                this.tellForeign({ version: answer.data.version });
                 await this.queue.refetch();
             } else if (answer.kind === 'auth' || answer.kind === 'forbidden') {
                 // The save queue learns it too - the pill says "Sign in again" / "Reload the page"
@@ -198,6 +207,15 @@ export class SheetLive {
         } finally {
             this.polling = false;
         }
+    }
+
+    /** "Another organiser changed the sheet" - never for the echo of one of our own saves. */
+    tellForeign(data) {
+        if (typeof this.queue.isOwnVersion === 'function' && this.queue.isOwnVersion(data.version)) {
+            return;
+        }
+
+        this.onForeignChange(data);
     }
 
     /** The document's visibility changed (the controller listens). */

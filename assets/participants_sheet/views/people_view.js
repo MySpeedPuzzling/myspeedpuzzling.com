@@ -8,8 +8,12 @@
  * registration columns, the Columns menu). Every edit is an action of sheet_changes.js handed to `context.act()`.
  *
  * Profile cell (O9): the linked profile's name, #CODE and link when the viewer may see it (`player.visible`), else
- * "Linked to a MySpeedPuzzling profile"; link / unlink through a typeahead over `urls.playerSearch`
- * (`player_search_autocomplete?format=co-puzzler`).
+ * "Linked to a MySpeedPuzzling profile"; link / unlink through a typeahead over `urls.playerSearch` (the sheet's own
+ * search - hidden players included, flagged `hidden`). Only Enter or a click picks a profile or "Unlink" (Tab and a
+ * blur never do - `commitOnBlur: false`).
+ *
+ * Every edit sends what its editor showed when it opened as `from` (`seenValue` → `commit(…, {seen})`); a change that
+ * arrives while a cell is being edited is shown next to the editor - "Changed meanwhile to X · Keep mine / Use theirs".
  */
 
 import { SheetGrid, escapeHtml } from '../sheet_grid.js';
@@ -69,6 +73,7 @@ export class PeopleView {
             rowLabel: (row) => (row === NEW_ROW ? this.t('people_new_row') : this.model.person(row)?.name ?? ''),
             rowClass: (row) => this.rowClass(row),
             editValue: (row, col) => this.editValue(row, col),
+            seenValue: (row, col) => this.seenValue(row, col),
             suggest: (row, col, query) => this.suggest(row, col, query),
             commit: (row, col, input, info) => this.commit(row, col, input, info),
             toggle: (cells, value) => this.toggle(cells, value),
@@ -89,16 +94,24 @@ export class PeopleView {
      * or went; every row of a round only when its expected size changed.
      */
     update(delta) {
-        if (this.grid === null) {
+        if (this.grid === null || this.grid.destroying) {
             return;
         }
 
         if (delta.all || this.roundsChanged()) {
-            // Rounds came, went or were renamed: new columns - the focused cell is focused again
+            // Rounds came, went or were renamed: new columns - the focused cell is focused again, an open edit goes on
+            // with what was typed (and what the cell showed when it opened)
             const active = { ...this.grid.active };
             const focused = this.gridRoot.contains(document.activeElement);
-            this.grid.destroy();
+            const edit = this.grid.editState();
+            this.grid.destroy({ keepEdit: true });
             this.render();
+
+            if (edit !== null && this.grid.resumeEdit(edit)) {
+                this.checkEditor();
+
+                return;
+            }
 
             if (focused) {
                 this.grid.focusCell(active.row, active.col);
@@ -129,6 +142,59 @@ export class PeopleView {
         }
 
         this.grid.updateRows([...rows]);
+        this.checkEditor();
+    }
+
+    /**
+     * The cell being edited changed meanwhile (another organiser, a refused save of an earlier value): said next to the
+     * editor - Keep mine sends the edit over the new value knowingly, Use theirs closes the editor. Enter without a
+     * choice sends it over what the editor showed when it opened - the server answers with a conflict.
+     */
+    checkEditor() {
+        const edit = this.grid?.editState();
+
+        if (!edit || edit.row === NEW_ROW) {
+            return;
+        }
+
+        const current = this.seenValue(edit.row, edit.col);
+
+        if (current === undefined || sameValue(current, edit.seen)) {
+            this.grid.editorNotice(null);
+
+            return;
+        }
+
+        this.grid.editorNotice({
+            text: this.t('editor_changed_meanwhile', { value: this.describeValue(edit.row, edit.col, current) }),
+            actions: [
+                { label: this.t('editor_keep_mine'), run: () => this.grid?.commitWithSeen(this.seenValue(edit.row, edit.col)) },
+                { label: this.t('editor_use_theirs'), run: () => this.grid?.cancelEdit(true) },
+            ],
+        });
+    }
+
+    /** A cell's value as the organiser reads it (the notice "Changed meanwhile to …"). */
+    describeValue(row, col, value) {
+        if (value === null || value === undefined || value === '') {
+            return col === 'country' ? this.t('people_no_country') : this.t('value_empty');
+        }
+
+        if (col === 'country') {
+            return this.context.countries[value] ?? String(value).toUpperCase();
+        }
+
+        if (col === 'player') {
+            const player = this.model.person(row)?.player;
+
+            if (player?.id !== value || player.visible !== true) {
+                return this.t('people_profile_hidden');
+            }
+
+            return [player.name, player.code ? `#${String(player.code).toUpperCase()}` : ''].filter(Boolean).join(' ');
+        }
+
+        return String(value);
     }
 
     focus(target = null) {
@@ -175,7 +241,8 @@ export class PeopleView {
         const columns = [
             { key: 'name', label: this.t('people_col_name'), kind: 'text', width: 240, space: 'panel' },
             { key: 'country', label: this.t('people_col_country'), kind: 'list', width: 180 },
-            { key: 'player', label: this.t('people_col_profile'), kind: 'list', width: 240 },
+            // A profile is picked by Enter or a click only: Tab or a click elsewhere never links a search hit or unlinks
+            { key: 'player', label: this.t('people_col_profile'), kind: 'list', width: 240, autoHighlight: false, commitOnBlur: false },
         ];
 
         for (const round of this.model.rounds()) {
@@ -376,6 +443,36 @@ export class PeopleView {
         };
     }
 
+    /**
+     * What a cell shows as a change compares it (`from`): name, country code, linked player id, place in a round.
+     * Undefined for the new-person row (nothing to compare).
+     */
+    seenValue(row, col) {
+        const person = row === NEW_ROW ? null : this.model.person(row);
+
+        if (person === null) {
+            return undefined;
+        }
+
+        if (col === 'name') {
+            return person.name;
+        }
+
+        if (col === 'country') {
+            return person.country ?? null;
+        }
+
+        if (col === 'player') {
+            return person.player?.id ?? null;
+        }
+
+        if (col.startsWith('round:')) {
+            return this.model.placeValue(row, col.slice('round:'.length));
+        }
+
+        return undefined;
+    }
+
     editValue(row, col) {
         const person = this.model.person(row);
 
@@ -446,10 +543,10 @@ export class PeopleView {
         // Open / Unlink while nothing is typed (Enter, F2, Alt+Down on the cell); a search shows players only
         if (person?.player && query.trim() === '') {
             if (person.player.visible && person.player.profileUrl) {
-                options.push({ value: OPEN, label: this.t('people_profile_open'), className: 'sheet-option-action' });
+                options.push({ value: OPEN, label: this.t('people_profile_open'), className: 'sheet-option-action', action: true });
             }
 
-            options.push({ value: UNLINK, label: this.t('people_profile_unlink'), className: 'sheet-option-action' });
+            options.push({ value: UNLINK, label: this.t('people_profile_unlink'), className: 'sheet-option-action', action: true });
         }
 
         const text = query.trim();
@@ -479,12 +576,17 @@ export class PeopleView {
         for (const player of Array.isArray(players) ? players : []) {
             const elsewhere = this.model.people().find((other) => other.id !== person?.id && other.player?.id === player.key);
             const country = player.country ? (this.context.countries[player.country] ?? '') : '';
+            // A profile hidden from this organiser (they block it, it is private to them - O9) can be linked; the cell
+            // then says "Linked to a MySpeedPuzzling profile" like the state does
+            const hidden = player.hidden === true;
             options.push({
                 value: player.key,
                 label: player.label,
                 detail: [player.code ? `#${player.code}` : '', country, elsewhere ? this.t('people_profile_linked_to', { name: elsewhere.name }) : ''].filter(Boolean).join(' · '),
                 html: `${player.country ? `<span class="fi fi-${escapeHtml(player.country)} shadow-custom" aria-hidden="true"></span> ` : ''}${escapeHtml(player.label)}`,
-                player: { id: player.key, visible: true, name: player.label, code: player.code ?? null, country: player.country ?? null, avatar: player.avatar ?? null, profileUrl: null },
+                player: hidden
+                    ? { id: player.key, visible: false, name: null, code: null, country: null, avatar: null, profileUrl: null }
+                    : { id: player.key, visible: true, name: player.label, code: player.code ?? null, country: player.country ?? null, avatar: player.avatar ?? null, profileUrl: null },
             });
         }
 
@@ -517,13 +619,16 @@ export class PeopleView {
         }
 
         const rows = info.fill ? [...new Set(info.cells.filter((cell) => cell.col === col && cell.row !== NEW_ROW).map((cell) => cell.row))] : [row];
+        // `from` of the edited cell = what its editor showed when it opened; the other rows of a fill: what they show
+        const seen = info.seen;
+        const values = (value) => rows.map((personId) => ({ personId, value, from: personId === row ? seen : undefined }));
 
         if (col === 'name') {
             if (info.fill && rows.length > 1) {
-                return this.perform(setFields(this.model, 'name', rows.map((personId) => ({ personId, value: input.text })), this.options()));
+                return this.perform(setFields(this.model, 'name', values(input.text), this.options()));
             }
 
-            return this.perform(setField(this.model, row, 'name', input.text, this.options()));
+            return this.perform(setField(this.model, row, 'name', input.text, { ...this.options(), from: seen }));
         }
 
         if (col === 'country') {
@@ -533,7 +638,7 @@ export class PeopleView {
                 return { error: this.t('people_country_pick') };
             }
 
-            return this.perform(setFields(this.model, 'country', rows.map((personId) => ({ personId, value: code })), this.options()));
+            return this.perform(setFields(this.model, 'country', values(code), this.options()));
         }
 
         if (col === 'player') {
@@ -546,11 +651,11 @@ export class PeopleView {
             }
 
             if (option?.value === UNLINK) {
-                return this.perform(linkProfile(this.model, row, null, this.options()));
+                return this.perform(linkProfile(this.model, row, null, { ...this.options(), from: info.seen }));
             }
 
             if (option?.player) {
-                return this.perform(linkProfile(this.model, row, option.player, this.options()));
+                return this.perform(linkProfile(this.model, row, option.player, { ...this.options(), from: info.seen }));
             }
 
             if (input.text.trim() === '') {
@@ -975,6 +1080,10 @@ export class PeopleView {
     countryLabel(code) {
         return code ? (this.context.countries[code] ?? code.toUpperCase()) : this.t('people_no_country');
     }
+}
+
+function sameValue(a, b) {
+    return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
 /** Round colours come from the server as #hex; anything else is not put into a style attribute. */

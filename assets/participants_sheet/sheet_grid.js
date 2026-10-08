@@ -18,6 +18,13 @@
  * - Cells show the view's state markers (saving / waiting / conflict / refused / warning) as an icon **and** text,
  *   never colour alone; sticky header and first column with scroll-padding so the focused cell is never hidden under
  *   them (WCAG 2.4.11).
+ * - What an editor showed when it OPENED (`seenValue(row, col)`) comes back with its commit as `seen` - the view sends it
+ *   as `from`, so a live change that arrived while the cell was being edited is a conflict, never silently reverted.
+ *   The view may show that change next to the editor (`editorNotice()` - "Changed meanwhile to X · Keep mine / Use
+ *   theirs"). Typed text survives a rebuild of the grid (`editState()` / `resumeEdit()`); destroying the grid commits
+ *   an open edit like a blur.
+ * - List columns: the highlighted option is taken by Enter (or a click); Tab, arrows and a blur never take an option
+ *   flagged `action: true` nor any option of a column with `commitOnBlur: false` (a profile search hit, "Unlink").
  *
  * Views pass texts in (`texts.t(key, params)` / `texts.tc(key, count, params)` - the core texts JSON); no user-facing
  * string lives here.
@@ -75,6 +82,8 @@ export function markerHtml(marker) {
  * @property {string} [headerHtml]     trusted header content instead of the label
  * @property {'panel'} [space]         Space opens the row's panel (the person editor) instead of typing a space
  * @property {boolean} [autoHighlight] list columns: the first suggestion is highlighted (Enter picks it) - default true
+ * @property {boolean} [commitOnBlur] list columns: false = Tab / arrows / a blur never take an option (only Enter or
+ *                                   a click) - default true; options flagged `action: true` never in any column
  * @property {string} [className]
  *
  * @typedef {object} CellContent
@@ -100,10 +109,13 @@ export class SheetGrid {
      * @param {function(string): string} [options.rowLabel]                    the row's name for accessible labels
      * @param {function(string): string} [options.rowClass]
      * @param {function(string, string): string} [options.editValue]          the text an edit (Enter/F2) starts with
+     * @param {function(string, string): *} [options.seenValue]                what the cell shows when an editor opens
+     *        (the value its change's `from` must be) - handed back to commit() as `seen`
      * @param {function(string, string, string): (Array|Promise<Array>)} [options.suggest]   list columns
-     * @param {function(string, string, {text: string, option: object|null}, {fill: boolean, cells: Array}): ({error?: string, focus?: object|function}|void)} options.commit
+     * @param {function(string, string, {text: string, option: object|null}, {fill: boolean, cells: Array, seen: *}): ({error?: string, focus?: object|function}|void)} options.commit
  *        `error` keeps the editor open with the reason; `focus` = {row, col} keys (or a function of the planned move
- *        {row, col} indexes) where the focus goes instead of the planned move
+ *        {row, col} indexes) where the focus goes instead of the planned move. `seen` = seenValue() when the editor
+ *        opened (undefined for fills and pastes - no editor)
      * @param {function(Array<{row: string, col: string}>, boolean|null): void} [options.toggle]  checkbox cells (null = flip)
      * @param {function(Array<{row: string, col: string}>): void} [options.clear]
      * @param {function({row: string, col: string}, string[][], Array<{row: string, col: string}>): void} [options.paste]
@@ -184,6 +196,12 @@ export class SheetGrid {
         this.listStatus.className = 'sheet-listbox-status';
         this.listStatus.setAttribute('aria-live', 'polite');
         this.listStatus.hidden = true;
+        this.notice = document.createElement('div');
+        this.notice.className = 'sheet-editor-notice';
+        this.notice.id = `${this.id}-notice`;
+        this.notice.setAttribute('aria-live', 'polite');
+        this.notice.hidden = true;
+        this.noticeActions = [];
 
         this.proxy = document.createElement('textarea');
         this.proxy.className = 'sheet-clipboard';
@@ -191,7 +209,7 @@ export class SheetGrid {
         this.proxy.hidden = true;
         this.proxy.setAttribute('aria-hidden', 'true');
 
-        this.scroller.append(this.editor, this.editorError, this.listbox, this.listStatus, this.proxy);
+        this.scroller.append(this.editor, this.editorError, this.notice, this.listbox, this.listStatus, this.proxy);
         container.append(this.scroller);
 
         this.renderHeader();
@@ -286,7 +304,8 @@ export class SheetGrid {
         const tag = colIndex === 0 ? 'th' : 'td';
         const scope = colIndex === 0 ? ' scope="row"' : '';
 
-        return `<${tag}${scope} class="${classes}" data-c="${colIndex}"${readonly}>${this.cellInner(rowKey, column, content)}</${tag}>`;
+        // APG: a grid supporting selection says it of every cell
+        return `<${tag}${scope} class="${classes}" data-c="${colIndex}" aria-selected="false"${readonly}>${this.cellInner(rowKey, column, content)}</${tag}>`;
     }
 
     /** The sticky header's height and first column's width as scroll padding, the scroller's height to the viewport. */
@@ -412,6 +431,12 @@ export class SheetGrid {
 
         const inner = this.cellInner(rowKey, column, content);
 
+        if (column.kind === 'checkbox' && !content.readonly) {
+            // A click toggles the box at once; a change the view refused (or did differently) puts it back - always,
+            // even when the markup did not change
+            this.syncCheckbox(cell, content);
+        }
+
         if (cell.__inner === inner) {
             return;
         }
@@ -434,6 +459,14 @@ export class SheetGrid {
 
         cell.__inner = inner;
         this.stats.lastCellMs = performance.now() - started;
+    }
+
+    syncCheckbox(cell, content) {
+        const checkbox = cell.querySelector('input.sheet-check');
+
+        if (checkbox !== null && checkbox.checked !== (content.checked === true)) {
+            checkbox.checked = content.checked === true;
+        }
     }
 
     // ---------------------------------------------------------------- positions
@@ -602,7 +635,7 @@ export class SheetGrid {
 
         for (const cell of this.selectedCells) {
             if (!next.has(cell)) {
-                cell.removeAttribute('aria-selected');
+                cell.setAttribute('aria-selected', 'false');
                 cell.classList.remove('is-selected');
             }
         }
@@ -667,6 +700,15 @@ export class SheetGrid {
             return;
         }
 
+        // A notice next to the editor: Tab goes to its buttons (like a form), the edit stays open
+        if (this.mode === 'edit' && event.target === this.editor && event.key === 'Tab' && !event.shiftKey && !event.isComposing && !this.composing
+            && !this.notice.hidden && this.noticeActions.length > 0 && (!this.list.open || this.listbox.hidden)) {
+            event.preventDefault();
+            this.focusNotice(0);
+
+            return;
+        }
+
         if (this.mode === 'nav' && event.target === this.editor) {
             return;
         }
@@ -714,7 +756,7 @@ export class SheetGrid {
         return false;
     }
 
-    handle(answer) {
+    handle(answer, event = null) {
         const { row, col } = this.activeIndexes();
 
         switch (answer.action) {
@@ -746,7 +788,7 @@ export class SheetGrid {
                 this.startEdit(answer.replace);
                 break;
             case 'commit':
-                this.commitEdit(answer.move, answer.fill);
+                this.commitEdit(answer.move, answer.fill, undefined, event?.key === 'Enter' ? 'enter' : 'key');
                 break;
             case 'cancel':
                 this.cancelEdit(true);
@@ -818,7 +860,11 @@ export class SheetGrid {
 
     // ---------------------------------------------------------------- editing
 
-    startEdit(replace) {
+    /**
+     * Opens the editor on the active cell. `preset` = {text, seen, editKind?} resumes an edit (a rebuilt grid) instead
+     * of starting one: the typed text and what the cell showed when the edit first opened.
+     */
+    startEdit(replace, preset = null) {
         const rowKey = this.active.row;
         const column = this.columns[this.colIndex(this.active.col)];
 
@@ -833,11 +879,13 @@ export class SheetGrid {
         }
 
         const cell = this.cellElement(rowKey, column.key);
-        const value = replace ? '' : (this.options.editValue?.(rowKey, column.key) ?? this.content(rowKey, column.key).text ?? '');
+        const value = preset !== null ? String(preset.text ?? '') : (replace ? '' : (this.options.editValue?.(rowKey, column.key) ?? this.content(rowKey, column.key).text ?? ''));
+        // What the organiser saw - the `from` of the change this edit makes, whatever arrives while it is open
+        const seen = preset !== null ? preset.seen : this.options.seenValue?.(rowKey, column.key);
 
         this.mode = 'edit';
-        this.editKind = replace ? 'type' : 'keep';
-        this.editing = { row: rowKey, col: column.key, kind, original: value };
+        this.editKind = preset?.editKind ?? (replace ? 'type' : 'keep');
+        this.editing = { row: rowKey, col: column.key, kind, original: value, seen };
         cell.dataset.editing = 'true';
         cell.classList.add('is-editing');
 
@@ -848,6 +896,7 @@ export class SheetGrid {
         editor.removeAttribute('aria-invalid');
         editor.removeAttribute('aria-describedby');
         this.editorError.hidden = true;
+        this.clearNotice();
 
         if (kind === 'list') {
             editor.setAttribute('role', 'combobox');
@@ -865,11 +914,12 @@ export class SheetGrid {
         // Focused inside the keydown: the typed character (a dead key, AltGr, an IME) lands in the editor
         editor.focus({ preventScroll: true });
 
-        if (!replace) {
-            editor.setSelectionRange(value.length, value.length);
+        if (!replace || preset !== null) {
+            const caret = preset?.caret ?? value.length;
+            editor.setSelectionRange(caret, caret);
         }
 
-        if (kind === 'list' && !replace) {
+        if (kind === 'list' && !replace && (preset === null || preset.listOpen)) {
             this.openList(false);
         }
     }
@@ -885,33 +935,169 @@ export class SheetGrid {
         Object.assign(this.editorError.style, { top: `${top + cellRect.height}px`, left: `${left}px`, maxWidth: `${Math.max(width, 260)}px` });
         Object.assign(this.listbox.style, { top: `${top + cellRect.height}px`, left: `${left}px`, minWidth: `${width}px` });
         Object.assign(this.listStatus.style, { top: `${top + cellRect.height}px`, left: `${left}px`, minWidth: `${width}px` });
+        Object.assign(this.notice.style, { top: `${top + cellRect.height}px`, left: `${left}px`, maxWidth: `${Math.max(width, 320)}px` });
+        this.stackBelowEditor();
+    }
+
+    /** The notice and the error under the editor, one below the other when both show. */
+    stackBelowEditor() {
+        if (!this.notice.hidden && !this.editorError.hidden) {
+            this.editorError.style.top = `${this.notice.offsetTop + this.notice.offsetHeight}px`;
+        } else if (!this.notice.hidden && this.list.open && !this.listbox.hidden) {
+            this.listbox.style.top = `${this.notice.offsetTop + this.notice.offsetHeight}px`;
+        }
+    }
+
+    describeEditor() {
+        const ids = [];
+
+        if (!this.editorError.hidden) {
+            ids.push(this.editorError.id);
+        }
+
+        if (!this.notice.hidden) {
+            ids.push(this.notice.id);
+        }
+
+        if (ids.length > 0) {
+            this.editor.setAttribute('aria-describedby', ids.join(' '));
+        } else {
+            this.editor.removeAttribute('aria-describedby');
+        }
     }
 
     showError(message) {
         this.editorError.textContent = message;
         this.editorError.hidden = false;
         this.editor.setAttribute('aria-invalid', 'true');
-        this.editor.setAttribute('aria-describedby', this.editorError.id);
+        this.describeEditor();
 
         if (this.list.open) {
             // The error sits where the list was
             this.closeList();
         }
+
+        this.stackBelowEditor();
+    }
+
+    /**
+     * A note next to the open editor - "Changed meanwhile to Canada · Keep mine / Use theirs" - or none (null). Read
+     * out politely and named in the editor's aria-describedby; Tab from the editor goes to its buttons (Esc back).
+     * Nothing happens when no editor is open.
+     *
+     * @param {{text: string, actions?: Array<{label: string, run: function(): void}>}|null} notice
+     */
+    editorNotice(notice) {
+        if (notice === null || notice === undefined || this.mode !== 'edit') {
+            this.clearNotice();
+
+            return;
+        }
+
+        const actions = notice.actions ?? [];
+        const keys = actions.length > 0 ? ` <span class="visually-hidden">${escapeHtml(this.texts.t('grid_notice_keys'))}</span>` : '';
+        const html = `<span class="sheet-editor-notice-text">${escapeHtml(notice.text)}${keys}</span>${actions.map((action, index) => `<button type="button" class="btn btn-sm btn-link sheet-editor-notice-action" data-notice-action="${index}">${escapeHtml(action.label)}</button>`).join('')}`;
+        this.noticeActions = actions;
+
+        if (this.notice.__html !== html) {
+            this.notice.innerHTML = html;
+            this.notice.__html = html;
+        }
+
+        if (this.notice.hidden) {
+            this.notice.hidden = false;
+            const cell = this.editing ? this.cellElement(this.editing.row, this.editing.col) : null;
+
+            if (cell !== null) {
+                this.positionEditor(cell, this.editing.kind === 'list');
+            }
+        }
+
+        this.describeEditor();
+        this.stackBelowEditor();
+    }
+
+    clearNotice() {
+        if (this.notice.hidden && this.noticeActions.length === 0) {
+            return;
+        }
+
+        this.notice.hidden = true;
+        this.notice.replaceChildren();
+        this.notice.__html = '';
+        this.noticeActions = [];
+        this.describeEditor();
+    }
+
+    /** The organiser has seen what changed meanwhile: their edit's `from` is now that value (until they commit). */
+    acknowledgeSeen(value) {
+        if (this.editing !== null) {
+            this.editing.seen = value;
+        }
+
+        this.clearNotice();
+    }
+
+    /** "Keep mine": the open edit goes over the value the organiser has now seen (`from` = it). */
+    commitWithSeen(value) {
+        if (this.mode !== 'edit' || this.editing === null) {
+            return false;
+        }
+
+        this.acknowledgeSeen(value);
+
+        return this.commitEdit(null, false, undefined, 'enter');
+    }
+
+    /** The open edit as it is - what a rebuilt grid resumes (resumeEdit()); null when nothing is being edited. */
+    editState() {
+        if (this.mode !== 'edit' || this.editing === null) {
+            return null;
+        }
+
+        return {
+            row: this.editing.row,
+            col: this.editing.col,
+            text: this.editor.value,
+            seen: this.editing.seen,
+            editKind: this.editKind,
+            caret: this.editor.selectionStart ?? this.editor.value.length,
+            listOpen: this.list.open,
+        };
+    }
+
+    /** Opens the editor again with an edit of a grid this one replaced. Returns false when its cell is not here. */
+    resumeEdit(state) {
+        if (!state || !this.rowIndex.has(state.row) || this.colIndex(state.col) === -1) {
+            return false;
+        }
+
+        if (this.mode === 'edit') {
+            this.cancelEdit(false);
+        }
+
+        this.active = { row: state.row, col: state.col };
+        this.anchor = { ...this.active };
+        this.setSelection(null);
+        this.focusActive();
+        this.startEdit(false, state);
+
+        return this.mode === 'edit';
     }
 
     /**
      * The open edit goes to the view. `move` = {row, col} indexes to go to afterwards (null = stay). Returns false when
      * the view refused the value (the editor stays, with the reason).
      */
-    commitEdit(move = null, fill = false, option = undefined) {
+    commitEdit(move = null, fill = false, option = undefined, via = 'blur') {
         if (this.mode !== 'edit' || this.editing === null) {
             return true;
         }
 
-        const { row, col } = this.editing;
-        const chosen = option !== undefined ? option : (this.list.open && this.list.active >= 0 ? this.list.options[this.list.active] : null);
+        const { row, col, seen } = this.editing;
+        const chosen = option !== undefined ? option : this.highlightedOption(via);
         const started = performance.now();
-        const answer = this.options.commit(row, col, { text: this.editor.value, option: chosen ?? null }, { fill, cells: fill ? this.selectedKeys() : [{ row, col }] });
+        const answer = this.options.commit(row, col, { text: this.editor.value, option: chosen ?? null }, { fill, cells: fill ? this.selectedKeys() : [{ row, col }], seen });
 
         if (answer && typeof answer.error === 'string') {
             this.showError(answer.error);
@@ -941,6 +1127,26 @@ export class SheetGrid {
         return true;
     }
 
+    /**
+     * The option an edit commits with: the highlighted one - by Enter always, by Tab / arrows / a blur only when the
+     * column takes options that way (`commitOnBlur`) and the option is no action (Open the profile, Unlink).
+     */
+    highlightedOption(via) {
+        if (!this.list.open || this.list.active < 0) {
+            return null;
+        }
+
+        const option = this.list.options[this.list.active] ?? null;
+
+        if (option === null || via === 'enter') {
+            return option;
+        }
+
+        const column = this.columns[this.colIndex(this.editing?.col)];
+
+        return option.action === true || column?.commitOnBlur === false ? null : option;
+    }
+
     cancelEdit(refocus) {
         if (this.mode !== 'edit') {
             return;
@@ -960,6 +1166,7 @@ export class SheetGrid {
         this.editing = null;
         this.composing = false;
         this.closeList();
+        this.clearNotice();
         this.editor.hidden = true;
         this.editorError.hidden = true;
 
@@ -972,26 +1179,39 @@ export class SheetGrid {
     }
 
     onEditorBlur() {
+        if (this.mode !== 'edit' || this.committingOnBlur || this.focusingNotice) {
+            return;
+        }
+
+        this.commitOpenEdit();
+    }
+
+    /**
+     * The open edit committed like a blur (a click elsewhere, the grid going away): a refused value is dropped with its
+     * reason said aloud.
+     */
+    commitOpenEdit() {
         if (this.mode !== 'edit' || this.committingOnBlur) {
             return;
         }
 
         this.committingOnBlur = true;
 
-        // Leaving the editor (a click elsewhere) commits; a refused value is dropped with its reason said aloud
-        if (!this.commitEditWithoutFocus()) {
-            const message = this.editorError.textContent;
-            this.stopEdit();
-            this.announce(message);
+        try {
+            if (!this.commitEditWithoutFocus()) {
+                const message = this.editorError.textContent;
+                this.stopEdit();
+                this.announce(message);
+            }
+        } finally {
+            this.committingOnBlur = false;
         }
-
-        this.committingOnBlur = false;
     }
 
     commitEditWithoutFocus() {
-        const { row, col } = this.editing;
-        const chosen = this.list.open && this.list.active >= 0 ? this.list.options[this.list.active] : null;
-        const answer = this.options.commit(row, col, { text: this.editor.value, option: chosen }, { fill: false, cells: [{ row, col }] });
+        const { row, col, seen } = this.editing;
+        const chosen = this.highlightedOption('blur');
+        const answer = this.options.commit(row, col, { text: this.editor.value, option: chosen }, { fill: false, cells: [{ row, col }], seen });
 
         if (answer && typeof answer.error === 'string') {
             this.editorError.textContent = answer.error;
@@ -1233,7 +1453,7 @@ export class SheetGrid {
             const index = Number(header.dataset.c);
 
             if (this.columns[index] !== undefined && this.rows.length > 0) {
-                if (this.mode === 'edit' && !this.commitEdit(null)) {
+                if (this.mode === 'edit' && !this.commitEdit(null, false, undefined, 'blur')) {
                     return;
                 }
 
@@ -1256,7 +1476,7 @@ export class SheetGrid {
                 return;
             }
 
-            if (!this.commitEdit(null)) {
+            if (!this.commitEdit(null, false, undefined, 'blur')) {
                 event.preventDefault();
 
                 return;
@@ -1329,14 +1549,26 @@ export class SheetGrid {
         }
 
         const value = event.target.checked;
+        let cells = [position];
 
         // A click on a checkbox inside a range changes the whole range (Sheets); otherwise only that cell
         if (this.selection !== null && this.selectedKeys().some((cell) => cell.row === position.row && cell.col === position.col)) {
+            cells = this.selectedKeys();
             this.toggleCells(value);
         } else {
             this.active = position;
             this.setTabStop();
             this.options.toggle?.([position], value);
+        }
+
+        // The box shows what the view made of the click: a refused change puts the tick back
+        for (const cell of cells) {
+            const column = this.columns[this.colIndex(cell.col)];
+            const element = this.cellElement(cell.row, cell.col);
+
+            if (column?.kind === 'checkbox' && element !== null) {
+                this.syncCheckbox(element, this.content(cell.row, cell.col));
+            }
         }
     }
 
@@ -1353,6 +1585,75 @@ export class SheetGrid {
             this.anchor = { ...position };
             this.setTabStop();
         }
+    }
+
+    focusNotice(index) {
+        const buttons = [...this.notice.querySelectorAll('[data-notice-action]')];
+        const button = buttons[Math.max(0, Math.min(index, buttons.length - 1))];
+
+        if (button === undefined) {
+            return;
+        }
+
+        this.focusingNotice = true;
+
+        try {
+            button.focus({ preventScroll: true });
+        } finally {
+            this.focusingNotice = false;
+        }
+    }
+
+    backToEditor() {
+        this.focusingNotice = true;
+
+        try {
+            this.editor.focus({ preventScroll: true });
+        } finally {
+            this.focusingNotice = false;
+        }
+    }
+
+    onNoticeKeyDown(event) {
+        const buttons = [...this.notice.querySelectorAll('[data-notice-action]')];
+        const index = buttons.indexOf(event.target.closest?.('[data-notice-action]'));
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            this.backToEditor();
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            const next = index + (event.shiftKey ? -1 : 1);
+
+            if (next < 0 || next >= buttons.length) {
+                this.backToEditor();
+            } else {
+                this.focusNotice(next);
+            }
+        }
+    }
+
+    runNoticeAction(index) {
+        const action = this.noticeActions[index];
+
+        if (action !== undefined) {
+            action.run();
+        }
+    }
+
+    /** Focus left the notice for somewhere else than the editor: like leaving the editor - the edit is committed. */
+    onNoticeFocusOut() {
+        setTimeout(() => {
+            if (this.destroyed || this.mode !== 'edit') {
+                return;
+            }
+
+            const active = document.activeElement;
+
+            if (active !== this.editor && !this.notice.contains(active)) {
+                this.commitOpenEdit();
+            }
+        }, 0);
     }
 
     // ---------------------------------------------------------------- wiring
@@ -1379,9 +1680,20 @@ export class SheetGrid {
             const option = event.target.closest('[role="option"]');
 
             if (option !== null) {
-                this.commitEdit(null, false, this.list.options[Number(option.dataset.index)] ?? null);
+                this.commitEdit(null, false, this.list.options[Number(option.dataset.index)] ?? null, 'click');
             }
         });
+        // The notice's buttons: a mouse press keeps the focus in the editor (a blur would commit)
+        this.on(this.notice, 'mousedown', (event) => event.preventDefault());
+        this.on(this.notice, 'click', (event) => {
+            const button = event.target.closest('[data-notice-action]');
+
+            if (button !== null) {
+                this.runNoticeAction(Number(button.dataset.noticeAction));
+            }
+        });
+        this.on(this.notice, 'keydown', (event) => this.onNoticeKeyDown(event));
+        this.on(this.notice, 'focusout', () => this.onNoticeFocusOut());
         this.on(this.table, 'pointerdown', (event) => this.onPointerDown(event));
         this.on(this.table, 'pointermove', (event) => this.onPointerMove(event));
         this.on(this.table, 'dblclick', (event) => this.onDoubleClick(event));
@@ -1450,7 +1762,25 @@ export class SheetGrid {
         return this.mode === 'edit';
     }
 
-    destroy() {
+    /**
+     * Removes the grid. An open edit is committed first, like a blur - typed text is never lost when a view goes (a tab
+     * switch, the breakpoint, the page leaving); `keepEdit: true` when the caller resumes it in a new grid (editState()).
+     */
+    destroy({ keepEdit = false } = {}) {
+        if (this.destroyed || this.destroying) {
+            return;
+        }
+
+        this.destroying = true;
+
+        if (!keepEdit && this.mode === 'edit') {
+            try {
+                this.commitOpenEdit();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
         this.destroyed = true;
         clearTimeout(this.proxyTimer);
         clearTimeout(this.list.timer);

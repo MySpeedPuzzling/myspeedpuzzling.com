@@ -315,7 +315,7 @@
                         <div class="col-sm mb-3" data-puzzle-add-form-target="dateFieldSection">
                             {{ form_label(solving_time_form.finishedAt, null, {'label_attr': {'data-puzzle-add-form-target': 'dateLabel'}}) }}
                             <div class="input-group">
-                                {{ form_widget(solving_time_form.finishedAt, {'attr': {'data-first-try-check-target': 'date', 'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "maxDate": "today"}'}}) }}
+                                {{ form_widget(solving_time_form.finishedAt, {'attr': {'data-first-try-check-target': 'date', 'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y", "maxDate": "today"}'}}) }}
                                 <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
                             </div>
                             {{ form_help(solving_time_form.finishedAt) }}

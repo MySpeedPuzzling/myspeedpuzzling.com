@@ -1,42 +1,47 @@
 import { Controller } from '@hotwired/stimulus';
+import { pickerOptions } from '../datepicker_locale.js';
 
+// The page language's month and weekday names, loaded only on a page that needs them (English is flatpickr's own)
+const L10N = {
+    cs: () => import('flatpickr/dist/esm/l10n/cs.js').then((module) => module.Czech),
+    de: () => import('flatpickr/dist/esm/l10n/de.js').then((module) => module.German),
+    es: () => import('flatpickr/dist/esm/l10n/es.js').then((module) => module.Spanish),
+    fr: () => import('flatpickr/dist/esm/l10n/fr.js').then((module) => module.French),
+    ja: () => import('flatpickr/dist/esm/l10n/ja.js').then((module) => module.Japanese),
+};
+
+/*
+ * Every `.date-picker` input gets a flatpickr with its `data-datepicker-options`. The first day of the week is the
+ * visitor's and a field with `altInput` shows the day with its weekday ("Mon, 5 Oct 2026") - assets/datepicker_locale.js.
+ */
 export default class extends Controller {
     async connect() {
-        let picker = document.querySelectorAll('.date-picker');
+        const pickers = document.querySelectorAll('.date-picker');
 
-        if (picker.length === 0) return;
+        if (pickers.length === 0) return;
 
-        const [{ default: flatpickr }, rangePluginModule, l10nModule] = await Promise.all([
+        const pageLang = document.documentElement.lang;
+        const [{ default: flatpickr }, l10n] = await Promise.all([
             import('flatpickr'),
-            import('flatpickr/dist/plugins/rangePlugin'),
-            import('flatpickr/dist/l10n'),
+            L10N[pageLang] ? L10N[pageLang]() : Promise.resolve({}),
         ]);
 
         await import('flatpickr/dist/flatpickr.min.css');
 
-        const rangePlugin = rangePluginModule.default;
-        const lang = document.documentElement.lang;
+        // A shown-date input of an earlier run carries the field's classes (.date-picker too) - it is no field itself
+        const shownInputs = new Set([...pickers].map((picker) => picker._flatpickr?.altInput).filter(Boolean));
 
-        if (lang === 'cs') {
-            flatpickr.localize(flatpickr.l10ns.cs);
-        } else {
-            flatpickr.localize(flatpickr.l10ns.en);
-            flatpickr.l10ns.default.firstDayOfWeek = 1;
+        for (const picker of pickers) {
+            if (shownInputs.has(picker)) continue;
+
+            const userOptions = picker.dataset.datepickerOptions !== undefined ? JSON.parse(picker.dataset.datepickerOptions) : {};
+
+            flatpickr(picker, pickerOptions(userOptions, {
+                pageLang,
+                visitorLocale: navigator.language,
+                l10n,
+                defaultFormat: flatpickr.formatDate,
+            }));
         }
-
-        for (let i = 0; i < picker.length; i++) {
-
-            let defaults = {
-                disableMobile: 'true'
-            }
-
-            let userOptions;
-            if(picker[i].dataset.datepickerOptions != undefined) userOptions = JSON.parse(picker[i].dataset.datepickerOptions);
-            let linkedInput = picker[i].classList.contains('date-range') ? {"plugins": [new rangePlugin({ input: picker[i].dataset.linkedInput })]} : '{}';
-            let options = {...defaults, ...linkedInput, ...userOptions}
-
-            flatpickr(picker[i], options);
-        }
-
     }
 }

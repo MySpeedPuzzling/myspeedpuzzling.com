@@ -142,6 +142,11 @@ JSON list of every round inside the same single statement).
 side the locale puts it ("10–11 Oct", "10.–11. 10.", "2025年10月10日–11日"). `EventsIndexScriptTest` pins that both
 sides write the same text in all 6 locales.
 
+**Date fields** (every `.date-picker`, `assets/datepicker_locale.js`, `DatePickerScriptTest`): the calendar starts on the
+*visitor's* first day of the week (browser locale; Czech pages Monday) - a Monday-first grid once made an American
+organiser's Monday bar night a Tuesday. The field shows the day with its weekday in the page's language ("Mon, 5 Oct
+2026", skeleton `yMMMEd`); the submitted value keeps the form's own format.
+
 | Status | Rule |
 |---|---|
 | live | start ≤ today ≤ end (end = last day, else start), except a long span its rounds do not define |

@@ -119,6 +119,34 @@ final class EventsIndexScriptTest extends TestCase
     }
 
     /**
+     * The browser writes and places an index day as that day whatever the visitor's zone - it is read in UTC, never on
+     * the visitor's clock (west of UTC Monday 5 October must not become Sunday the 4th, in Auckland not Tuesday the 6th)
+     */
+    public function testADayIsTheSameDayInEveryVisitorZone(): void
+    {
+        $monday = ['f' => '2026-10-05', 't' => null];
+
+        foreach (['America/Los_Angeles', 'America/New_York', 'UTC', 'Europe/Prague', 'Pacific/Auckland'] as $zone) {
+            $results = $this->runInNode([
+                'formatted' => [['entry' => $monday, 'locale' => 'en-GB', 'withYear' => true]],
+                'dates' => [
+                    ['from' => '2026-10-05', 'lang' => 'en', 'skeleton' => 'yMMMd'],
+                    ['from' => '2026-10-05', 'to' => '2026-10-06', 'lang' => 'en', 'skeleton' => 'MMMd'],
+                ],
+                'days' => [
+                    ['entry' => $monday, 'day' => '2026-10-04'],
+                    ['entry' => $monday, 'day' => '2026-10-05'],
+                    ['entry' => $monday, 'day' => '2026-10-06'],
+                ],
+            ], $zone);
+
+            self::assertSame(['5 Oct 2026'], $results['formatted'], $zone);
+            self::assertSame(['5 Oct 2026', '5–6 Oct'], $results['dates'], $zone);
+            self::assertSame([false, true, false], $results['days'], $zone);
+        }
+    }
+
+    /**
      * Server and browser write the same dates in all six languages (EventsPageDates, formatDate()/formatDayRange()) -
      * the skeletons both sides use; weekday ones are server-only (ICU versions differ on their commas)
      */
@@ -283,13 +311,13 @@ final class EventsIndexScriptTest extends TestCase
      *
      * @return array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>, times: list<string>, zones: list<string>, visitor: list<null|array{time: string, zone: string, dayShift: int}>}
      */
-    private function runInNode(array $input): array
+    private function runInNode(array $input, string $zone = 'UTC'): array
     {
         $node = new ExecutableFinder()->find('node');
 
         self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
 
-        $process = new Process([$node, __DIR__ . '/events-index-harness.mjs']);
+        $process = new Process([$node, __DIR__ . '/events-index-harness.mjs'], env: ['TZ' => $zone]);
         $process->setInput(json_encode($input + ['scopes' => [], 'queries' => [], 'days' => [], 'months' => [], 'formatted' => [], 'dates' => [], 'times' => [], 'zones' => [], 'visitor' => []], JSON_THROW_ON_ERROR));
         $process->mustRun();
 

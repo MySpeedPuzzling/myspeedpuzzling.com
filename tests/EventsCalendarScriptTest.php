@@ -160,6 +160,26 @@ final class EventsCalendarScriptTest extends TestCase
     }
 
     /**
+     * A day of the index is its own day in the visitor's calendar whatever their zone: Monday 5 October 2026 sits in
+     * the Monday column (Thursday the 1st leads with 3 blanks) under "Mon", also west of UTC and in Auckland
+     */
+    public function testADayKeepsItsPlaceInEveryVisitorZone(): void
+    {
+        foreach (['America/Los_Angeles', 'America/New_York', 'UTC', 'Europe/Prague', 'Pacific/Auckland'] as $zone) {
+            $results = $this->runInNode([
+                'months' => [['index' => [self::entry(1, '2026-10-05', null, 'us', 'past')], 'month' => '2026-10', 'today' => '']],
+                'weekdays' => [['locale' => 'en-GB']],
+            ], $zone);
+            $month = $results['months'][0];
+
+            self::assertSame(3, $month['lead'], $zone);
+            self::assertSame(['2026-10-05'], array_keys($month['days']), $zone);
+            self::assertSame([1], $month['days']['2026-10-05']['ids'], $zone);
+            self::assertSame('Mon', $results['weekdays'][0][($month['lead'] + 5 - 1) % 7], $zone);
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function entry(int $id, null|string $from, null|string $to, string $scopeKey, string $status, string $text = '', bool $longRunning = false): array
@@ -183,13 +203,13 @@ final class EventsCalendarScriptTest extends TestCase
      *
      * @return array{months: list<array{lead: int, dayCount: int, days: array<string, array{ids: list<int>, kinds: list<string>, today: bool}>, runs: list<array{id: int, kind: string, text: string}>, items: list<int>}>, dayIds: list<list<int>>, shifted: list<string>, parsed: list<null|array{year: int, month0: int}>, strongest: list<null|string>, weekdays: list<list<string>>, directions: list<null|string>}
      */
-    private function runInNode(array $input): array
+    private function runInNode(array $input, string $zone = 'UTC'): array
     {
         $node = new ExecutableFinder()->find('node');
 
         self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
 
-        $process = new Process([$node, __DIR__ . '/events-calendar-harness.mjs']);
+        $process = new Process([$node, __DIR__ . '/events-calendar-harness.mjs'], env: ['TZ' => $zone]);
         $process->setInput(json_encode($input + ['months' => [], 'dayIds' => [], 'shifted' => [], 'parsed' => [], 'strongest' => [], 'weekdays' => [], 'directions' => []], JSON_THROW_ON_ERROR));
         $process->mustRun();
 

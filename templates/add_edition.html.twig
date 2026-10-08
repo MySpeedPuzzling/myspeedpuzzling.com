@@ -26,13 +26,13 @@
 
                         <div class="mb-3 required">
                             {{ form_label(form.dateFrom, null, {label_attr: {class: 'form-label'}}) }}
-                            {{ form_widget(form.dateFrom, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                            {{ form_widget(form.dateFrom, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
                             {{ form_errors(form.dateFrom) }}
                         </div>
 
                         <div class="mb-3 required">
                             {{ form_label(form.dateTo, null, {label_attr: {class: 'form-label'}}) }}
-                            {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                            {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
                             {{ form_errors(form.dateTo) }}
                         </div>
 

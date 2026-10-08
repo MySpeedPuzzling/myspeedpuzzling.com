@@ -108,7 +108,7 @@
                                 <div class="col-6 mb-3">
                                     {{ form_label(form.dateFrom, null, {label_attr: {class: 'form-label required', 'data-competition-form-target': 'dateLabel'}}) }}
                                     <div class="input-group">
-                                        {{ form_widget(form.dateFrom, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                                        {{ form_widget(form.dateFrom, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
                                         <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
                                     </div>
                                     {{ form_help(form.dateFrom) }}
@@ -117,7 +117,7 @@
                                 <div class="col-6 mb-3">
                                     {{ form_label(form.dateTo, null, {label_attr: {class: 'form-label required', 'data-competition-form-target': 'dateLabel'}}) }}
                                     <div class="input-group">
-                                        {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                                        {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
                                         <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
                                     </div>
                                     {{ form_errors(form.dateTo) }}

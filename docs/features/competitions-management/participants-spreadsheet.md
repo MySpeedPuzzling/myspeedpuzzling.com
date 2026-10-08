@@ -777,6 +777,8 @@ import - they run as native modules in a browser and under node), plus the lazy 
 `assets/controllers/participants_sheet_controller.js`. Pure modules are pinned by
 `tests/ParticipantsSheetCoreScriptsTest.php` → `tests/participants-sheet-core-harness.mjs` → the suites in
 `tests/participants-sheet-core/` (node:assert; `echo '[{"suite":"queue"}]' | node tests/participants-sheet-core-harness.mjs`).
+The DOM suites (`grid`, `people`, `controller`) run the real grid, People view and Stimulus controller in jsdom (a dev
+dependency in `package-lock.json`, `dom.mjs`); `perf` pins bulk actions to one rebuild and one re-render.
 
 ### Modules
 
@@ -796,19 +798,27 @@ import - they run as native modules in a browser and under node), plus the lazy 
 ### Data flow
 
 1. A view builds an **action** with a `sheet_changes.js` builder and calls `context.act(action)`.
-2. `act()` announces client refusals (`action.errors`), shows every group at once (`model.applyLocal(groupId, changes)`),
-   queues them (`queue.enqueueGroups`), queues results changes (`action.results` → `queue.results(roundId).set(...)` +
-   `enqueueResults`) and records one undo step.
-3. The queue sends after ~800 ms (one request in flight). Per answered group: applied/unchanged → `model.confirm(id,
-   deletedTeams)` (folded into the base, markers cleared); conflict/refused → `model.revert(id)` + a **problem** (with the
-   server's translated message and `current`) + a marker on the cell. `versionBefore === model.version` (and not a
+2. `act()` announces client refusals (`action.errors`, in the server's words - `errorText()`) and marks them on their
+   cells for 8 s, shows every group at once inside one `model.batch()` (`model.applyLocalMany(groups)` - one rebuild, one
+   re-render for a bulk action of 1,000 groups), queues them (`queue.enqueueGroups`), queues results changes
+   (`action.results` → `queue.results(roundId).set(...)` + `enqueueResults`) and records one undo step.
+3. The queue sends after ~800 ms (one request in flight). Per answered group (all of an answer in one `model.batch()`,
+   `confirmMany` / `revertMany`, each group settled on its own - a view throwing never leaves the others pending):
+   applied/unchanged → folded into the base with the server's `deletedTeams` (a pair/team the answer created that ends
+   it unnamed and empty is dropped - the server never created it), markers cleared; conflict/refused → reverted + a
+   **problem** (with the server's translated message - always shown as it is - and `current`) + a marker on the cell.
+   A changeset refused as a whole (400) answers every group as refused (`outcome` events); a 409 `changed_meanwhile` is
+   kept and sent again like a busy server. `versionBefore === model.version` (and not a
    replay) → `model.version = versionAfter`; otherwise the state is fetched (through the same FIFO, so a fetch never races
    our own save) and merged. Saves that create what the browser cannot know (new round entries' ids, `source` after a
-   removal, registration after a restore, a new person) fetch the state 1.5 s after things got quiet.
+   removal, registration after a restore, a new person, a profile linked or unlinked) fetch the state 1.5 s after things
+   got quiet.
 4. Every model change emits a **delta** `{people: Set, teams: Set, rounds: Set, rows: bool, all: bool}` (a diff of what
    views read - unchanged records keep their identity, so the diff is cheap); the controller hands it to the mounted
    view's `update(delta)` and re-renders the tab counts. Marker changes emit deltas the same way.
-5. Live: `participants_sheet.changed` with an unknown version → fetch; `official_results.entries` → `model.mergeEntries`
+5. Live: `participants_sheet.changed` with an unknown version → fetch, and "another organiser changed the sheet" is said
+   (`onForeignChange`) - never for the echo of one of our own saves (on its way, adopted, or late: `queue.isOwnVersion()`);
+   `official_results.entries` → `model.mergeEntries`
    (an unknown ref → fetch); `.refresh` → fetch; `.round` → `model.updateRound`. Plus `GET urls.version` every 30 s while
    visible and idle, a fetch when the tab returns after 10 s, when the browser is online again, and when the stream
    reopens.
@@ -829,14 +839,21 @@ informational), `peopleInNoRound()`, `duplicateNames()` / `peopleNamed(name)` (P
 `holdsDataInRound()` / `holdsDataInEvent()` (the results guard on what the page knows), `isRemoved()`, `isWaitlisted()`.
 Derived values are cached per change.
 
-Writing: `applyLocal(groupId, changes)`, `confirm(groupId, deletedTeams)`, `revert(groupId)`, `replaceState(state)` (a
-fetched state; pending groups replayed on it; a newer live result is never replaced by an older state), `mergeEntries(entries)`
-→ `{unknown, delta}`, `updateRound(overview)`, `scratch()`, `subscribe(listener)`. `model.version` = the known sheet
+Writing: `applyLocal(groupId, changes)` / `applyLocalMany([{id, changes}])`, `confirm(groupId, deletedTeams)` /
+`confirmMany([{groupId, deletedTeams}])`, `revert(groupId)` / `revertMany(groupIds)` (the `Many` forms: one rebuild, one
+delta), `batch(fn)` (every delta `fn` causes - model and markers - told once, merged), `replaceState(state)` (a fetched
+state; pending groups replayed on it; a newer live result is never replaced by an older state), `mergeEntries(entries)`
+→ `{unknown, delta}` (an update about an older result than the page holds changes nothing - nor its table number or
+qualified mark), `updateRound(overview)`, `scratch()`, `subscribe(listener)` (a listener that throws is logged, the
+others still run). A linked or unlinked profile keeps `playerResultRounds` (the own-time guard) until the next state;
+a profile picked from the search with `hidden: true` shows as "Linked to a MySpeedPuzzling profile" (O9). `Working`
+(the scratch state) records writes between `begin()` and `rollback()` / `commit()` - client checks of a group run on it
+without copying the state. `model.version` = the known sheet
 version, `model.resultsGeneration` counts merged result updates. Places created on the page have `local: true` and an id
 `local:…` until the next state.
 
-**Markers** (`model.marks`, a `SheetMarks`): key → `{state: saving | waiting | conflict | refused | warning, message,
-groupId, problemId}`. Keys: `person:<id>:<name|country|externalId|note|player|removed>`, `place:<personId>:<roundId>`,
+**Markers** (`model.marks`, a `SheetMarks`; `setMany([{key, mark, entities}])` re-renders once): key → `{state: saving |
+waiting | conflict | refused | warning, message, groupId, problemId, transient?}`. Keys: `person:<id>:<name|country|externalId|note|player|removed>`, `place:<personId>:<roundId>`,
 `team:<teamId>:<name|delete>`, `round:<roundId>:teamSize`, `result:<ref>:<result|table_number|qualified>`. Views ask
 `context.markerFor(key)` → `{state, text, title}` and put it in a cell's `marker` (the grid draws an icon **and** a
 word). Server warnings mark `person:<id>:name` / `team:<id>:name` for 20 s and are announced.
@@ -846,25 +863,38 @@ word). Server warnings mark `person:<id>:name` / `team:<id>:name` for 20 s and a
 An action = **one undo step**: `{label: {key, …}, groups: [{id, changes}], inverse: [{id, inverseOf, changes}], errors:
 [{reason, change}], results?: [{roundId, ref, field, from, to}], inverseResults?}`. A group is atomic on the server; an
 action holds several groups when its parts are independent (a bulk "Solo: in" of 40 rows = 40 groups). Every `from` is
-what the model shows (the organiser's own pending value included - a second edit chains on the first). `errors` are
-client refusals (codes of §3.1: `name_blank`, `name_too_long`, `invalid_country` (with `countries`), `note_too_long`,
-`external_id_too_long`, `team_name_too_long`, `participant_removed`, `has_result_in_round`, `has_result_in_event`,
-`team_has_result`, `player_linked_elsewhere`, `not_a_team_round`, `team_of_another_round`, `invalid_team_size`, …);
-those groups never leave the browser. Inverses are computed change by change on a scratch state: a deleted pair is
+what the model shows (the organiser's own pending value included - a second edit chains on the first) - **or what an
+editor showed when it opened** (`options.from`, below). `errors` are client refusals (codes of §3.1: `name_blank`,
+`name_too_long`, `invalid_country` (with `countries`), `note_too_long`, `external_id_too_long`, `external_id_taken`,
+`team_name_too_long`, `participant_removed`, `has_result_in_round` (own data only - the person's solo entry or own
+time), `has_result_in_event`, `team_has_result` (a pair/team holding a result left without a going member - not removed,
+not waitlisted - by the group as a whole; `cause: emptied | waitlisted_only`), `player_linked_elsewhere`,
+`not_a_team_round`, `team_of_another_round`, `invalid_team_size`, `too_many_changes` (> 500 changes in a group), …);
+those groups never leave the browser. `refusalDetails(error, model)` → `{key, params}` words one like the server
+(`participants_sheet_server.reason.<key>`, the cause variants `has_result_in_round_own_time`, `team_has_result_emptied`,
+… and `%name%`/`%round%`/`%team%`/… from the page) - views show it through `context.errorText(error)`. Inverses are computed change by change on a scratch state: a deleted pair is
 created again **with the same id** and its active members put back; a pair the server will delete automatically when a
 group empties it is created again first; a new person's undo is `remove`, its redo `restore`.
 
-Builders (each `(model, …, options)` with `options = {newId?, countries?, label?}`): `setField(personId, field, value)`,
-`setFields(field, [{personId, value}])`, `linkProfile(personId, player|null)` (`player` = `{id, name, code, avatar,
-country, profileUrl}` - shown at once via the `_player` hint, stripped from the wire), `addPerson({name, country?,
+Builders (each `(model, …, options)` with `options = {newId?, countries?, label?, from?}`). **`from`** = what the
+organiser saw when the edit started (an editor's `seen`): sent as the change's `from` instead of the model's value
+(a live change that arrived while the cell was being edited comes back as a conflict, never silently reverted); the
+client checks still run on the model; a value equal to it is no change (no group, no undo step). One value, or for
+builders over several people a `Map` / function personId → value (`fromFor()`); `setFields` takes it per item.
+`setField(personId, field, value)`, `setFields(field, [{personId, value, from?}])`, `linkProfile(personId, player|null)`
+(`player` = `{id, name, code, avatar, country, profileUrl, visible?}` - shown at once via the `_player` hint, stripped
+from the wire), `addPerson({name, country?,
 externalId?, id?})` (+ `personId`), `removePeople(ids)`, `restorePeople(ids)`, `setPlace(personId, roundId, to)`,
 `setInRound(ids, roundId, bool)`, `newTeamRow(roundId, {id?, name, members: [personId | {name, country}]})` (+ `teamId`;
 "type a pair into the new row" - one group: new people, the team, every member placed from wherever they are),
 `putInTeam(roundId, teamId, personId | {name, country})` (move / add, + `personId`), `clearMember(roundId, personId)`
-(→ the tray), `renameTeam(teamId, name)`, `deleteTeam(teamId)`, `setTeamSize(roundId, size|null)`, `resultsAction(changes)`
-(RecordRoundResults fields, undone by the swapped change). Lower level: `buildAction(model, [[changes], …])`,
-`combine(label, …actions)` (independent actions as one step), `invertGroups(groups, model)`, `checkChange(change, state)`,
-`changeTarget(change, model)` (marker key + entities), `wireChange` / `wireGroups`, `isEmpty(action)`.
+(→ the tray), `renameTeam(teamId, name)`, `deleteTeam(teamId)` (its table number comes back on undo: `inverseResults`
+`table_number` null → the old number, `inverseOf` the deleting group - sent after the group re-creating the pair),
+`setTeamSize(roundId, size|null)`, `resultsAction(changes)` (RecordRoundResults fields, undone by the swapped change).
+Lower level: `buildAction(model, [[changes], …])`, `checkGroup(changes, working, {countries, now})` (the checks of one
+group incl. the group rules; the Working is left as it was), `combine(label, …actions)` (independent actions as one step
+- groups, results and both inverses), `invertGroups(groups, model)`, `checkChange(change, state)`, `refusalDetails(error,
+state)`, `changeTarget(change, model)` (marker key + entities), `wireChange` / `wireGroups`, `isEmpty(action)`.
 
 Undo labels (`label.key`) map to `action_<key>` texts (core); a new key needs its text there.
 
@@ -872,11 +902,14 @@ Undo labels (`label.key`) map to `action_<key>` texts (core); a new key needs it
 
 Items: `sheet` (groups → `urls.changes`, `changesetId` kept across retries - frozen once sent, later groups go into a new
 changeset; limits 1,000 groups / 5,000 changes), `results` (a round's queued cells of a `PendingChanges` - the results
-desk's module - → `urls.record`), `tables` (`enqueueTables(roundId, [{entry, from, number}])` → `urls.tables`, resolves
+desk's module - → `urls.record`; a cell is stamped with the sheet items queued before it and a results request takes
+only cells queued before the next sheet item still waiting - a result never overtakes the group creating its pair), `tables` (`enqueueTables(roundId, [{entry, from, number}])` → `urls.tables`, resolves
 `{kind: ok, entries}` | `{kind: refused, problems}` - a refusal also fetches the state), `preview` (`preview(groups)` → the
-dry run answer, after everything queued before it, never retried), `state` (`refetch()`, coalesced, resolves to the
-answer's kind). Debounce 800 ms after the last edit (results and sheet groups); one request in flight; offline / 5xx /
-busy kept and retried after 2, 5, 10, 20, 30 s (typing does not shorten the backoff), at once on `online()`; `auth`,
+dry run answer, after everything queued before it, never retried; still waiting behind a retried save after 15 s it
+answers `{kind: offline | timeout}`), `state` (`refetch()`, coalesced, resolves to the answer's kind). Debounce 800 ms
+after the last edit (results and sheet groups) - a dry run, a fetch or "send now" sends what was queued before it at
+once, later edits wait for the debounce again; one request in flight; offline / 5xx / busy / 409 `changed_meanwhile`
+kept and retried after 2, 5, 10, 20, 30 s (typing does not shorten the backoff), at once on `online()`; `auth`,
 `forbidden`, `gone` stop sending until `retryNow()` (dry runs and fetches answer at once meanwhile).
 
 For results: `queue.results(roundId)` is the round's `PendingChanges` (`set(ref, field, to, seen)`, `value(ref, field,
@@ -884,10 +917,14 @@ serverValue)` for what a cell shows, `get(ref, field)` for its status) - D's res
 `action.results` fills it.
 
 Problems: `problems()` → `[{id, kind: sheet|results, status: conflict|refused, reason, message, current, change | ref+field,
-group (with `origin` = the tab it was made on), target: {key, people, teams, rounds}}]`; `keepMine(id)` (a sheet group sent
-again with `from` = the current value of its conflicting changes; results: the desk's keep mine), `dismiss(id)` (use
-theirs / OK - a conflict fetches the state), `retryProblem(id)` (a refused results cell). Status:
-`status()` → `{state: saved | saving | waiting | offline | attention | auth | forbidden | gone, waiting, attention}`.
+group (with `origin` = the tab it was made on and `label`), target: {key, people, teams, rounds}}]`; `keepMineAction(id)`
+(the controller's Keep mine: the sheet group again with `from` = the current value of its conflicting changes, as an
+action `{label, groups, inverse}` the controller performs - an undo step of its own; results: the desk's keep mine, sent
+at once, null), `keepMine(id)` (the same, performed by the queue), `dismiss(id)` (use theirs / OK - a conflict fetches the
+state), `retryProblem(id)` (a refused results cell). Status: `status()` → `{state: saved | saving | waiting | offline |
+attention | auth | forbidden | gone, waiting, attention, offline}` (`offline` also while problems need the organiser - the
+pill says "1 needs you · offline", the offline banner shows). `isOwnVersion(version)` - a version one of our saves
+produced.
 Events (`subscribe`): `status`, `outcome` (every answered group - the undo stack and views listen), `warnings`, `problems`,
 `state` (a fetch answered, with `kind`), `results`, `gone`. `installLeaveGuards({window, document, confirm, message})`
 (beforeunload + turbo:before-visit while `hasUnsaved()` - unsent changes or undecided conflicts).
@@ -895,9 +932,13 @@ Events (`subscribe`): `status`, `outcome` (every answered group - the undo stack
 ### Undo (`SheetUndo`)
 
 `record(action)`, `outcome(groupId, status)` (→ `'undo'` / `'redo'` when an undo/redo group was refused: the controller
-says "Can't undo - somebody changed it meanwhile"), `undo(model)` / `redo(model)` → an action with `kind` (performed by
-`act()`, which hands it back with `done()`), `canUndo/canRedo`, `peekUndo/peekRedo`. Only forward groups that went
-through (or are still on their way) are undone; a step with nothing left is skipped. Limit 100 steps.
+says "Can't undo - somebody changed it meanwhile"; `'undo_unsaved'` / `'redo_unsaved'` when what it took back was itself
+never saved: "That change was not saved - nothing to undo"), `undo(model)` / `redo(model)` → an action with `kind` and
+`skipped` (place changes of people removed from the event meanwhile, left out of the undo and named - e.g. a deleted
+pair's members are put back only if still active) (performed by `act()`, which hands it back with `done()`),
+`canUndo/canRedo`, `peekUndo/peekRedo`. Only forward groups that went through (or are still on their way) are undone,
+results changes tied to a group (`inverseOf`) only with it; a step with nothing left is skipped. "Keep mine" is a step
+of its own. Limit 100 steps.
 
 ### The grid (`SheetGrid`)
 
@@ -906,13 +947,17 @@ through (or are still on their way) are undone; a step with nothing left is skip
 
 Columns: `{key, label, kind: text | list | checkbox | readonly | action, width (px - every column should have one: the
 table then gets a fixed width and the browser never measures 10,000 cells), headerHtml?, space?: 'panel', autoHighlight?
-(list: the first suggestion highlighted, default true), className?}`. The first column is the sticky row header.
+(list: the first suggestion highlighted, default true), commitOnBlur? (list: false = Tab, arrows and a blur never take
+an option - only Enter or a click), className?}`. Options flagged `action: true` (Open the profile, Unlink) are never
+taken by Tab, arrows or a blur in any column. The first column is the sticky row header.
 
 `cell(rowKey, colKey)` → `{text, html?, checked?, label? (checkbox name), readonly?, marker?, className?, copy?}` - keep
 the markup small (every element costs layout time: a 400 × 18 sheet is 7,000+ cells; plain text needs no wrapper).
 
-Callbacks: `commit(row, col, {text, option}, {fill, cells})` → `{error}` keeps the editor open with the reason
-(`aria-invalid` + described), `{focus: {row, col} | (move) => {row, col}}` overrides where the focus goes next;
+Callbacks: `seenValue(row, col)` - what the cell shows as a change compares it, read when an editor OPENS (typing,
+Enter/F2, a double click, Alt+↓); `commit(row, col, {text, option}, {fill, cells, seen})` (`seen` = that value; undefined
+for fills and pastes - no editor) → `{error}` keeps the editor open with the reason (`aria-invalid` + described),
+`{focus: {row, col} | (move) => {row, col}}` overrides where the focus goes next;
 `suggest(row, col, query)` → options (array or `{options, hint}`, sync or a Promise; option = `{value, label, html?, detail?,
 create?, className?, …anything the view needs back}`); `toggle(cells, value|null)`; `clear(cells)`; `paste(anchor, rows,
 selectedCells)` (rows already parsed by tsv.js); `fill('down' | 'selection', {rows, cols}, active)`; `cut(cells)` (default
@@ -920,9 +965,15 @@ clear); `activate(row, col)` (action cells: Enter, double click); `openPanel(row
 `editValue(row, col)` (Enter/F2 start text); `rowLabel(row)` (editor/checkbox names); `rowClass(row)`.
 
 Methods: `setRows(keys)` (keyed: rows reused, created, removed, moved - cells not re-rendered), `updateRows(keys)` /
-`updateCell(row, col)` (cell-local: only cells whose markup changed are touched; a focused checkbox keeps its element;
-the cell being edited is never re-rendered), `focusCell(row, col)`, `focusActive()`, `isEditing()`, `fitHeight()`,
-`destroy()`; `grid.rows`, `grid.columns`, `grid.active`, `grid.stats` (`renderMs`, `lastCommitMs`, `lastCellMs`).
+`updateCell(row, col)` (cell-local: only cells whose markup changed are touched; a checkbox always shows the cell's state -
+a click the view refused snaps back; a focused checkbox keeps its element; the cell being edited is never re-rendered),
+`editorNotice({text, actions: [{label, run}]} | null)` (a note next to the open editor - polite live region, in the
+editor's `aria-describedby`; Tab from the editor reaches its buttons, Esc goes back), `acknowledgeSeen(value)` /
+`commitWithSeen(value)` (Keep mine: the edit goes over the value now seen), `editState()` → `{row, col, text, seen, …}` /
+`resumeEdit(state)` (a rebuilt grid goes on with an edit), `commitOpenEdit()` (like a blur), `focusCell(row, col)`,
+`focusActive()`, `isEditing()`, `fitHeight()`, `destroy({keepEdit?})` (an open edit is committed like a blur unless
+`keepEdit`); `grid.rows`, `grid.columns`, `grid.active`, `grid.stats` (`renderMs`, `lastCommitMs`, `lastCellMs`).
+Every cell carries `aria-selected` (`false` unless selected - APG).
 
 Behaviour: roving tabindex (a checkbox cell focuses its checkbox - its name carries the checked state); ranges by
 Shift+arrows, mouse drag, Shift+Space (row), Ctrl+Space or a header click (column), Ctrl+A; one floating 16 px editor
@@ -947,8 +998,17 @@ controller picks it by name (`VIEW_MODULES` in the controller) and loads it with
 `texts` (`{core, round, people}`, each `{t(key, params), tc(key, count, params), has(key)}` over `_texts_core|round|people`),
 `countries` (code → label), `countryCodes` (Set), `locale`, `urls`, `csrfToken`, `act(action, {origin?, quiet?})` → `{performed,
 errors}`, `announce(text)` (the polite live region), `switchTab(tabId, focus)` (`focus` = `{personId?, teamId?, col?}` handed
-to the new view's `focus()`), `openPersonEditor(personId)`, `createGrid(options)`, `preview(options)` (an open
-`PreviewDialog`), `reasonText(code)`, `markerFor(key)`.
+to the new view's `focus()`), `openPersonEditor(personId)`, `createGrid(options)` (the page knows the grid: its open edit
+is saved before the page goes), `preview(options)` (an open `PreviewDialog`), `errorText(error)` (a client refusal in
+the server's words with its parameters - use it for an action's `errors`), `reasonText(code, params?)`, `markerFor(key)`.
+
+**The open editor and live changes** (review B1, the results desk's `openEditor()` lesson): a view gives the grid
+`seenValue` for every editable column and passes `from: extra.seen` to the builder; in `update(delta)` it compares the
+edited cell's value now with `grid.editState().seen` and shows `grid.editorNotice({text: "Changed meanwhile to X",
+actions: [Keep mine → grid.commitWithSeen(now), Use theirs → grid.cancelEdit(true)]})` (or `null` when equal again).
+Enter without a choice sends over what the editor opened with - the server answers with a conflict. A view rebuilding
+its grid (`update` with `delta.all`, new columns) keeps the edit: `editState()` → `destroy({keepEdit: true})` → render →
+`resumeEdit(state)`.
 
 `view`: `render()`, `update(delta)` (re-render only what the delta names), `focus(target)`, `reveal(problem)` (jump to a
 problem's cell - the problems panel's "Show"), `onOutcome?(event)`, `destroy()`.
@@ -956,20 +1016,30 @@ problem's cell - the problems panel's "Show"), `onOutcome?(event)`, `destroy()`.
 The controller owns: tabs (People + every round in order, counts, problem badges, `?tab=` via `replaceState`, APG tab
 keys), the status pill (click: problems / retry / reload), banners (signed out, forbidden, gone, offline), the problems
 panel (Show, Keep mine, Use theirs, OK, Try again), undo/redo (targets + Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y outside text
-inputs), the keyboard help (`help` target or `?` outside the grid), the live region, the phone breakpoint, and the
-teardown of every listener in `disconnect()`. The undo/redo/help buttons are wired by the controller unless their markup
+inputs and outside dialogs; titles with ⌘ on a Mac), the setup checklist (`checklist` target - hidden once the event
+has a round and a person), the keyboard help (`help` target or `?` outside the grid), the live region, the phone
+breakpoint (a view is rebuilt only when another module shows the tab; the focus comes back), view modules (a module not
+in the build falls back for good; one that failed to load - a chunk while offline - says so with "Try again" and is
+tried again when back online, never remembered as missing), and the teardown in `disconnect()` (an open edit is saved
+and sent first; listeners, timers, dialogs, the person editor let go). The undo/redo/help buttons are wired by the controller unless their markup
 already calls `participants-sheet#undo` / `#redo` / `#showHelp`.
 
 ### The People grid (basic, `views/people_view.js`)
 
 Name (sticky row header; badges "On the waitlist", "Joined by themselves"), Country (combobox over `countries`, typed
 codes and names accepted), MySpeedPuzzling profile (O9: name + #CODE + a link when visible, else "Linked to a
-MySpeedPuzzling profile"; a combobox over `urls.playerSearch` - Open / Unlink while nothing is typed), a checkbox column
+MySpeedPuzzling profile"; a combobox over `urls.playerSearch` (`participants_sheet_player_search`, `hidden` players
+included and shown as linked only) - Open / Unlink while nothing is typed; `autoHighlight: false`, `commitOnBlur: false`:
+only Enter or a click links or unlinks), a checkbox column
 per solo round, a read-only label per pair/team round (team name or "(no name)", "No pair yet", size when off; Enter or a
 double click opens the round's tab at the person), the new-person row (type a name, Enter = the next name, Tab = the new
 person's next cell). Delete clears (a name refuses), Ctrl+D / Ctrl+Enter fill country and solo columns, paste fills
 names / countries / solo columns of existing rows (one value onto a selection fills it); more than 10 rows or anything
 left out opens the preview with the server's dry run; rows below the list are listed, not added (adding by paste is E's).
+
+Bulk actions (review minor 5, `perf` suite, node on a laptop): a bulk "in" over 400 people = 400 groups built, shown and
+settled in ~5 ms (1,000: ~13 ms), one re-render to show them and one for the answer - before the batch APIs 360 ms and
+2.4 s with a re-render per group.
 
 ### Measured (2026-10-08, standalone harness, headless Chromium 124, invented WJPC-sized event)
 

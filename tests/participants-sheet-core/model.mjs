@@ -354,6 +354,20 @@ export default function (test) {
         working.rollback();
         assert.equal(JSON.stringify([[...working.people], [...working.places], [...working.teams], [...working.rounds], working.order]), before);
     });
+
+    test('a pair/team a save created that ends it unnamed and empty is dropped on confirm - the server never created it', () => {
+        const m = model();
+        m.applyLocalMany([
+            { id: 'g1', changes: [{ op: 'newTeam', id: 't-new', round: ROUND_PAIRS, name: null }] },
+            { id: 'g2', changes: [{ op: 'newTeam', id: 't-named', round: ROUND_PAIRS, name: 'Named' }] },
+            { id: 'g3', changes: [{ op: 'newTeam', id: 't-filled', round: ROUND_PAIRS, name: null }, { op: 'place', participant: 'p-jo', round: ROUND_PAIRS, from: 'in', to: 'team:t-filled' }] },
+        ]);
+        assert.notEqual(m.team('t-new'), null, 'shown while on its way');
+        m.confirmMany([{ groupId: 'g1' }, { groupId: 'g2' }, { groupId: 'g3' }]);
+        assert.equal(m.team('t-new'), null);
+        assert.notEqual(m.team('t-named'), null, 'a named one stays (pre-created teams)');
+        assert.notEqual(m.team('t-filled'), null);
+    });
 }
 
 

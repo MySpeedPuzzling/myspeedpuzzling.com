@@ -393,6 +393,100 @@ function holdsDataInEvent(state, personId) {
     return (state.person(personId)?.playerResultRounds ?? []).length > 0;
 }
 
+// ---------------------------------------------------------------- refusals in words
+
+/**
+ * What a client refusal says - the server's text for the same refusal (`participants_sheet_server.reason.<key>`, the
+ * cause variants included: `has_result_in_round_own_time`, `team_has_result_emptied`, …) and its parameters, read
+ * from what the page knows. A `null` team name is "(no name)" - the caller words it.
+ *
+ * @param {{reason: string, change?: object, cause?: string, teamId?: string}} error an action's error
+ * @param {object} state the model (or a Working)
+ * @returns {{key: string, params: object}}
+ */
+export function refusalDetails(error, state) {
+    const reason = error?.reason ?? 'invalid_change';
+    const change = error?.change ?? {};
+    const personOf = (id) => (typeof state?.person === 'function' && id ? state.person(id) : null);
+    const roundName = (id) => (id ? roundOf(state, id)?.name ?? '' : '');
+    const team = (id) => (typeof state?.team === 'function' && id ? state.team(id) : null);
+    const name = personOf(change.participant ?? change.id)?.name ?? (typeof change.name === 'string' ? cleanName(change.name) : '');
+
+    switch (reason) {
+        case 'participant_removed':
+            return { key: reason, params: { name } };
+        case 'name_too_long':
+            return { key: reason, params: { max: NAME_MAX_LENGTH } };
+        case 'external_id_too_long':
+            return { key: reason, params: { max: EXTERNAL_ID_MAX_LENGTH } };
+        case 'note_too_long':
+            return { key: reason, params: { max: NOTE_MAX_LENGTH } };
+        case 'team_name_too_long':
+            return { key: reason, params: { max: TEAM_NAME_MAX_LENGTH } };
+        case 'invalid_country':
+            return { key: reason, params: { country: String(change.op === 'newParticipant' ? change.country ?? '' : change.to ?? '') } };
+        case 'invalid_team_size':
+            return { key: reason, params: { min: TEAM_SIZE_MIN, max: TEAM_SIZE_MAX } };
+        case 'external_id_taken': {
+            const id = cleanOptionalText(change.op === 'newParticipant' ? change.externalId : change.to);
+            const other = peopleOf(state).find((candidate) => candidate.id !== (change.participant ?? change.id) && candidate.removedAt === null && (candidate.externalId ?? null) === id);
+
+            return { key: reason, params: { id: id ?? '', other: other?.name ?? '' } };
+        }
+        case 'player_linked_elsewhere': {
+            const playerId = change.op === 'restore' ? personOf(change.participant)?.player?.id : change.to;
+            const other = peopleOf(state).find((candidate) => candidate.id !== change.participant && candidate.removedAt === null && candidate.player?.id === playerId);
+
+            return { key: reason, params: { other: other?.name ?? '' } };
+        }
+        case 'not_a_team_round':
+            return { key: reason, params: { round: roundName(change.round) } };
+        case 'team_of_another_round': {
+            const target = team(parsePlace(change.to).teamId);
+
+            return { key: reason, params: { team: target?.name ?? null, round: roundName(target?.roundId) } };
+        }
+        case 'has_result_in_round': {
+            const own = !officialDataInRound(state, change.participant, change.round);
+
+            return { key: own ? 'has_result_in_round_own_time' : reason, params: { name, round: roundName(change.round) } };
+        }
+        case 'has_result_in_event': {
+            const rounds = roundIds(state);
+            const official = rounds.find((roundId) => officialDataInRound(state, change.participant, roundId));
+            const ownTime = rounds.find((roundId) => (personOf(change.participant)?.playerResultRounds ?? []).includes(roundId));
+
+            return official !== undefined || ownTime === undefined
+                ? { key: reason, params: { name, round: roundName(official ?? rounds[0]) } }
+                : { key: 'has_result_in_event_own_time', params: { name, round: roundName(ownTime) } };
+        }
+        case 'team_has_result': {
+            const teamId = error.teamId ?? change.team ?? null;
+            const record = team(teamId);
+            const key = error.cause === 'emptied' || error.cause === 'waitlisted_only' ? `team_has_result_${error.cause}` : reason;
+
+            return { key, params: { team: record?.name ?? null, round: roundName(record?.roundId) } };
+        }
+        default:
+            return { key: reason, params: {} };
+    }
+}
+
+function roundIds(state) {
+    if (typeof state?.rounds === 'function') {
+        return state.rounds().map((round) => round.id);
+    }
+
+    return [...(state?.rounds?.keys?.() ?? [])];
+}
+
+/** Official data of the person's own entry or of their pair/team in the round (not their own time). */
+function officialDataInRound(state, personId, roundId) {
+    const place = typeof state?.place === 'function' ? state.place(personId, roundId) : null;
+
+    return place !== null && (hasOfficialData(place) || (place.teamId !== null && hasOfficialData(state.team(place.teamId))));
+}
+
 // ---------------------------------------------------------------- inverting
 
 /**
@@ -546,7 +640,15 @@ export function checkGroup(changes, working, { countries = null, now = Date.now(
             return { reason, change };
         }
 
-        return leavesTeamWithoutGoingMember(change, working) ? { reason: 'team_has_result', change } : null;
+        if (leavesTeamWithoutGoingMember(change, working)) {
+            const teamId = working.place(change.participant, change.round).teamId;
+            // Somebody else stays, but only people on the waitlist
+            const cause = working.activeMemberCount(teamId) > (working.person(change.participant)?.removedAt === null ? 1 : 0) ? 'waitlisted_only' : 'emptied';
+
+            return { reason: 'team_has_result', change, cause, teamId };
+        }
+
+        return null;
     }
 
     working.begin();
@@ -577,7 +679,7 @@ export function checkGroup(changes, working, { countries = null, now = Date.now(
         if (refused === null) {
             for (const [teamId, change] of left) {
                 if (hasOfficialData(working.team(teamId)) && working.goingMemberCount(teamId) === 0) {
-                    refused = { reason: 'team_has_result', change };
+                    refused = { reason: 'team_has_result', change, cause: working.activeMemberCount(teamId) > 0 ? 'waitlisted_only' : 'emptied', teamId };
                     break;
                 }
             }

@@ -82,4 +82,5 @@ for (const testCase of cases) {
     results.push(testCase.suite !== undefined ? await runSuite(testCase.suite) : runFn(testCase));
 }
 
-process.stdout.write(JSON.stringify(results));
+// Exits when written: a timer a failed test left behind never keeps the run (and the PHP test) waiting
+process.stdout.write(JSON.stringify(results), () => process.exit(0));

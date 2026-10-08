@@ -1170,6 +1170,7 @@ export class SheetModel {
         const working = new Working(this.base);
         const positions = new Map(this.pending.map((group, index) => [group.id, index]));
         const confirmed = new Set();
+        const created = new Set();
 
         for (const { groupId, deletedTeams = [] } of answers) {
             const index = positions.get(groupId);
@@ -1179,6 +1180,10 @@ export class SheetModel {
 
                 for (const change of this.pending[index].changes) {
                     working.apply(change, this.pending[index].at);
+
+                    if (change.op === 'newTeam') {
+                        created.add(change.id);
+                    }
                 }
             }
 
@@ -1186,6 +1191,16 @@ export class SheetModel {
                 if (working.teams.has(teamId)) {
                     working.apply({ op: 'deleteTeam', team: teamId });
                 }
+            }
+        }
+
+        // A pair/team the answer created that ends it with no name and nobody in it was never created by the server
+        // (contract §3.1, A-r7) - not shown either
+        for (const teamId of created) {
+            const team = working.team(teamId);
+
+            if (team !== null && team.name === null && !hasOfficialData(team) && working.activeMemberCount(teamId) === 0) {
+                working.apply({ op: 'deleteTeam', team: teamId });
             }
         }
 

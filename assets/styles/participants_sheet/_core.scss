@@ -517,6 +517,34 @@ $sheet-cell-height: 2.25rem;
     }
 }
 
+// "Changed meanwhile to X · Keep mine / Use theirs" next to an open editor (a live change of the cell being edited)
+.sheet-editor-notice {
+    position: absolute;
+    z-index: 7;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .125rem .5rem;
+    padding: .25rem .5rem;
+    border: 1px solid $warning;
+    border-radius: 0 0 $border-radius $border-radius;
+    background-color: $white;
+    color: $body-color;
+    font-size: $font-size-sm;
+    box-shadow: 0 .25rem .75rem rgba($black, .12);
+
+    &[hidden] {
+        display: none;
+    }
+
+    .sheet-editor-notice-action {
+        padding: 0;
+        font-size: inherit;
+        // 24 px targets (WCAG 2.5.8) on a dense sheet
+        min-height: 24px;
+    }
+}
+
 .sheet-listbox {
     position: absolute;
     z-index: 7;

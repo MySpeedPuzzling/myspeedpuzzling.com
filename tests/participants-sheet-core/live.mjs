@@ -16,6 +16,7 @@ function setup({ visible = true } = {}) {
     const stream = { started: false, updates: [], suspended: 0, closed: false, options: null };
     const view = { visible };
     const handled = [];
+    const foreign = [];
     const live = new SheetLive({
         model,
         queue,
@@ -26,6 +27,7 @@ function setup({ visible = true } = {}) {
         cancel: time.cancel,
         now: time.now,
         onMessage: (data) => handled.push(data.type),
+        onForeignChange: (data) => foreign.push(data.version),
         eventsFactory: (options) => {
             stream.options = options;
 
@@ -40,7 +42,7 @@ function setup({ visible = true } = {}) {
     });
     live.start();
 
-    return { time, server, model, queue, live, stream, view, handled };
+    return { time, server, model, queue, live, stream, view, handled, foreign };
 }
 
 export default function (test) {
@@ -151,5 +153,51 @@ export default function (test) {
         assert.equal(stream.closed, true);
         await time.advance(VERSION_POLL_MS * 2);
         assert.equal(server.calls.length, 1);
+    });
+
+    test('nit: our own save\'s echo is never "another organiser changed the sheet" - on its way, adopted, or late', async () => {
+        const { live, server, time, model, queue, foreign } = setup();
+        const save = (name, versionBefore, versionAfter) => async (echoFirst) => {
+            const action = setField(model, 'p-ana', 'name', name);
+            model.applyLocalMany(action.groups);
+            queue.enqueueGroups(action.groups);
+            await time.advance(800);
+
+            if (echoFirst) {
+                live.handle({ type: 'participants_sheet.changed', version: versionAfter });
+            }
+
+            await server.reply(appliedAnswer(server.calls.at(-1), { versionBefore, versionAfter }));
+
+            if (!echoFirst) {
+                live.handle({ type: 'participants_sheet.changed', version: versionAfter });
+            }
+
+            await time.advance(0);
+        };
+        await save('Ana One', 'v1', 'v2')(true);
+        await save('Ana Two', 'v2', 'v3')(false);
+        assert.equal(server.calls.length, 2, 'nothing fetched');
+        live.handle({ type: 'participants_sheet.changed', version: 'v2' });
+        await time.advance(0);
+        assert.deepEqual(foreign, [], 'a late echo of v2 is fetched but not news');
+        await server.reply({ kind: 'ok', status: 200, data: smallState({ version: 'v3' }) });
+
+        live.handle({ type: 'participants_sheet.changed', version: 'v-theirs' });
+        await time.advance(0);
+        assert.deepEqual(foreign, ['v-theirs']);
+    });
+
+    test('nit: somebody else\'s save that arrives while ours is on its way is told once our answer is in', async () => {
+        const { live, server, time, model, queue, foreign } = setup();
+        const action = setField(model, 'p-ana', 'name', 'Ana One');
+        model.applyLocalMany(action.groups);
+        queue.enqueueGroups(action.groups);
+        await time.advance(800);
+        live.handle({ type: 'participants_sheet.changed', version: 'v-theirs' });
+        assert.deepEqual(foreign, []);
+        await server.reply(appliedAnswer(server.calls[0], { versionBefore: 'v1', versionAfter: 'v2' }));
+        await time.advance(0);
+        assert.deepEqual(foreign, ['v-theirs']);
     });
 }

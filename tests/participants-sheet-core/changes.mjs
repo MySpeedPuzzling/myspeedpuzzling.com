@@ -15,6 +15,7 @@ import {
     linkProfile,
     newTeamRow,
     putInTeam,
+    refusalDetails,
     removePeople,
     renameTeam,
     restorePeople,
@@ -356,5 +357,37 @@ export default function (test) {
             ['team:t-corners2', { seconds: 3100 }, null],
             ['team:t-corners', { seconds: 3000 }, null],
         ]);
+    });
+
+    test('a client refusal is worded like the server\'s (its cause variant and parameters from the page)', () => {
+        const state = smallState();
+        state.competition = { ...state.competition, registrationManaged: true };
+        state.people = state.people.map((p) => {
+            if (p.id === 'p-ana') {
+                return { ...p, externalId: 'A-1' };
+            }
+
+            if (p.id === 'p-lee') {
+                return { ...p, playerResultRounds: [ROUND_PAIRS] };
+            }
+
+            return p.id === 'p-max' ? { ...p, registration: { status: 'waitlisted' } } : p;
+        });
+        state.teams = state.teams.map((t) => (t.id === 't-corners2' ? { ...t, result: { seconds: 900 } } : t));
+        const m = new SheetModel(state, { now: () => 0 });
+        const details = (action) => refusalDetails(action.errors[0], m);
+
+        assert.deepEqual(details(setField(m, 'p-ola', 'name', 'Ola Two')), { key: 'participant_removed', params: { name: 'Ola Fictive' } });
+        assert.deepEqual(details(setField(m, 'p-jo', 'externalId', 'A-1')), { key: 'external_id_taken', params: { id: 'A-1', other: 'Ana Example' } });
+        assert.deepEqual(details(setPlace(m, 'p-kim', ROUND_SOLO, 'out')), { key: 'has_result_in_round', params: { name: 'Kim Example', round: 'Solo' } });
+        assert.deepEqual(refusalDetails({ reason: 'has_result_in_round', change: { op: 'place', participant: 'p-jo', round: ROUND_PAIRS, from: 'in', to: 'out' } }, new SheetModel({ ...state, people: state.people.map((p) => (p.id === 'p-jo' ? { ...p, playerResultRounds: [ROUND_PAIRS] } : p)) })),
+            { key: 'has_result_in_round_own_time', params: { name: 'Jo Do', round: 'Pairs' } });
+        assert.deepEqual(details(setPlace(m, 'p-lee', ROUND_PAIRS, 'in')), { key: 'team_has_result_waitlisted_only', params: { team: 'corners', round: 'Pairs' } });
+        const emptied = buildAction(m, [['p-t4', 'p-t5', 'p-t6', 'p-t7'].map((id) => ({ op: 'place', participant: id, round: ROUND_TEAMS, from: 'team:t-flat', to: 'in' }))]);
+        assert.deepEqual(details(emptied), { key: 'team_has_result_emptied', params: { team: 'Flat', round: 'Teams' } });
+        assert.deepEqual(details(deleteTeam(m, 't-flat')), { key: 'team_has_result', params: { team: 'Flat', round: 'Teams' } });
+        assert.deepEqual(details(setTeamSize(m, ROUND_TEAMS, 30)), { key: 'invalid_team_size', params: { min: 2, max: 20 } });
+        assert.deepEqual(details(linkProfile(m, 'p-jo', { id: 'pl-kim' })), { key: 'player_linked_elsewhere', params: { other: 'Kim Example' } });
+        assert.deepEqual(details(setField(m, 'p-jo', 'name', 'x'.repeat(300))), { key: 'name_too_long', params: { max: 255 } });
     });
 }

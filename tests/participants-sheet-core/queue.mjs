@@ -575,4 +575,19 @@ export default function (test) {
         await server.reply(appliedAnswer(server.calls[0]));
         assert.equal(deltas.length, 1, 'confirmed, markers cleared: one re-render');
     });
+
+    test('a 409 changed_meanwhile (the event changed while the server planned) is kept and sent again - not a refusal', async () => {
+        const { time, server, queue, act, model } = setup();
+        act(setField(model, 'p-ana', 'name', 'Ana One'));
+        await time.advance(DEBOUNCE_MS);
+        await server.reply({ kind: 'client', status: 409, data: { error: 'changed_meanwhile', message: 'Something changed on the event meanwhile.' } });
+        assert.deepEqual(queue.problems(), []);
+        assert.equal(model.person('p-ana').name, 'Ana One', 'still shown');
+        assert.equal(queue.status().state, 'waiting');
+        await time.advance(2000);
+        assert.equal(server.calls.length, 2);
+        assert.equal(server.calls[1].body.changesetId, server.calls[0].body.changesetId);
+        await server.reply(appliedAnswer(server.calls[1]));
+        assert.equal(queue.status().state, 'saved');
+    });
 }

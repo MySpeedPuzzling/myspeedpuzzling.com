@@ -2,7 +2,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { chooseTranslation } from '../translation_choice.js';
 import { SheetModel } from '../participants_sheet/sheet_model.js';
-import { changeTarget, isEmpty } from '../participants_sheet/sheet_changes.js';
+import { changeTarget, isEmpty, refusalDetails } from '../participants_sheet/sheet_changes.js';
 import { SheetSaveQueue } from '../participants_sheet/sheet_save_queue.js';
 import { SheetUndo } from '../participants_sheet/sheet_undo.js';
 import { SheetLive } from '../participants_sheet/sheet_live.js';
@@ -543,7 +543,8 @@ export default class extends Controller {
             openPersonEditor: (personId) => this.openPersonEditor(personId),
             createGrid: (options) => this.createGrid(options),
             preview: (options) => new PreviewDialog({ host: this.element, texts: this.texts.core, ...options }).open(),
-            reasonText: (code) => this.reasonText(code),
+            reasonText: (code, params) => this.reasonText(code, params),
+            errorText: (error) => this.errorText(error),
             markerFor: (key) => this.markerFor(key),
         };
     }
@@ -667,7 +668,7 @@ export default class extends Controller {
         // `quiet`: the caller shows the refusal itself (an editor's error, read out by its role=alert); otherwise it is
         // read out and marked on its cells for a moment (a checkbox click that was refused is not just silently undone)
         if (errors.length > 0 && !quiet) {
-            this.announce(this.reasonText(errors[0].reason));
+            this.announce(this.errorText(errors[0]));
             this.markRefusals(errors);
         }
 
@@ -723,7 +724,7 @@ export default class extends Controller {
                 continue;
             }
 
-            marks.push({ key: target.key, mark: { state: 'refused', message: this.reasonText(error.reason), transient: true }, entities: target });
+            marks.push({ key: target.key, mark: { state: 'refused', message: this.errorText(error), transient: true }, entities: target });
         }
 
         this.model.marks.setMany(marks);
@@ -943,10 +944,24 @@ export default class extends Controller {
         return { state: mark.state, text, title: mark.message ? `${text}: ${mark.message}` : text };
     }
 
-    reasonText(code) {
+    /**
+     * A refusal reason in words - the server's own text (`participants_sheet_server.reason.<code>`) with its parameters
+     * (`%name%`, `%round%`, …); a `null` team is "(no name)". Prefer errorText() for an action's error: it reads the
+     * parameters from the page.
+     */
+    reasonText(code, params = {}) {
         const key = `reason_${code}`;
+        const core = this.texts.core;
+        const filled = Object.fromEntries(Object.entries(params ?? {}).map(([name, value]) => [name, value ?? core.t('team_no_name')]));
 
-        return this.texts.core.has(key) ? this.texts.core.t(key) : this.texts.core.t('reason_invalid_change');
+        return core.has(key) ? core.t(key, filled) : core.t('reason_invalid_change');
+    }
+
+    /** A client refusal (an action's `errors` item) in the server's words, parameters filled from the page. */
+    errorText(error) {
+        const { key, params } = refusalDetails(error, this.model);
+
+        return this.reasonText(this.texts.core.has(`reason_${key}`) ? key : error?.reason, params);
     }
 
     // ---------------------------------------------------------------- status pill and banner

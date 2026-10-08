@@ -595,13 +595,18 @@ export class PeopleView {
 
     // ---------------------------------------------------------------- editing
 
+    /** A client refusal in the server's words (its parameters from the page). */
+    errorText(error) {
+        return typeof this.context.errorText === 'function' ? this.context.errorText(error) : this.context.reasonText(error.reason);
+    }
+
     /** An action performed through the controller; its client refusals come back as the editor's error. */
     perform(action) {
         const blocked = action.groups.length === 0 && action.errors.length > 0;
         const outcome = this.context.act(action, { quiet: blocked });
 
         if (blocked) {
-            return { error: this.context.reasonText(outcome.errors[0].reason) };
+            return { error: this.errorText(outcome.errors[0]) };
         }
 
         return undefined;
@@ -968,7 +973,7 @@ export class PeopleView {
 
         for (const action of actions) {
             for (const error of action.errors) {
-                problems.push({ text: this.model.person(error.change.participant ?? error.change.id)?.name ?? '', note: this.context.reasonText(error.reason), status: 'error' });
+                problems.push({ text: this.model.person(error.change.participant ?? error.change.id)?.name ?? '', note: this.errorText(error), status: 'error' });
             }
         }
 

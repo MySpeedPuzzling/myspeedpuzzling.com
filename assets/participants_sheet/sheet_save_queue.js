@@ -565,6 +565,12 @@ export class SheetSaveQueue {
             return 'continue';
         }
 
+        if (answer.kind === 'client' && answer.status === 409 && answer.data?.error === 'changed_meanwhile') {
+            // Something changed on the event while the server planned it (a deleted player, a stale read): nothing was
+            // saved - kept and sent again later like a busy server, never a refusal of the groups
+            return this.failed({ kind: 'server', status: 409, retryAfter: null, busy: true });
+        }
+
         if (answer.kind === 'client' && !isGone(answer)) {
             // The changeset as a whole was refused (400 invalid_changes, 409 changeset_id_taken): nothing of it applied -
             // every group is reverted and answered like a refused one (undo and views hear it)

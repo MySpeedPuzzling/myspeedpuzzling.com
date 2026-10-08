@@ -28,6 +28,9 @@ use SpeedPuzzling\Web\Message\AddTableRow;
 use SpeedPuzzling\Web\Message\BackfillCompetitionRoundSlugs;
 use SpeedPuzzling\Web\Message\BackfillRoundTimezones;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
+use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
+use SpeedPuzzling\Web\Message\MoveEditionToSeries;
+use SpeedPuzzling\Web\Message\MoveRoundToCompetition;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
 use SpeedPuzzling\Web\Message\DeletePlayer;
@@ -160,6 +163,20 @@ final class SerializedByLockMessagesTest extends TestCase
     }
 
     /**
+     * The restructuring moves take the lock of the event the edition or round is in when the move is asked for
+     * (docs/features/organizations/README.md "Restructuring tools", D7) - a registration or a round entry never lands
+     * half way through a move.
+     */
+    public function testTheMovesLockTheEventTheyMoveFrom(): void
+    {
+        $competitionId = '018D0004-0000-0000-0000-000000000002';
+        $key = CompetitionParticipantsLock::key($competitionId);
+
+        self::assertSame($key, (new MoveEditionToSeries($competitionId, 'series', 'player'))->lockKey());
+        self::assertSame($key, (new MoveRoundToCompetition('round', $competitionId, 'target', 'player'))->lockKey());
+    }
+
+    /**
      * The guard behind the test above (review 2, A-F2 / B-M1): a message whose handler touches an event's participants,
      * round entries or pairs/teams - or deletes or changes a round, which can take official results with it - must take
      * the event's participants lock (SerializedByLock with CompetitionParticipantsLock::key($this->competitionId)), or
@@ -214,6 +231,7 @@ final class SerializedByLockMessagesTest extends TestCase
         BackfillCompetitionRoundSlugs::class => 'console backfill of round slugs - no entry, no result',
         BackfillRoundTimezones::class => 'console backfill of round time zones - no entry, no result',
         ChangeRoundTableNumbersUsage::class => 'a display switch of the round - the table numbers stay on the entries as they are',
+        CreateOrganizationFromSeries::class => 'turns a series into an organization: writes the organization, follows and redirect rows for the old addresses of every edition and round (EventUrlRedirects reads their slugs) - several events in one message, and no spot, entry or result changes',
         DeleteCompetitionSeries::class => 'deletes whole editions with everything they hold - several events in one message (one lock key per message), and nothing of theirs is meant to stay',
         DeletePlayer::class => 'account deletion only clears the player link on the rows of every event the player was in - an unbounded set of events; no spot, entry or result changes',
         OfficialRoundResultsPublished::class => 'the notification after a publish - reads only',

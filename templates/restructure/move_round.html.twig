@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'restructure.move_round.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {% set rounds_url = path('manage_competition_rounds', {competitionId: competition.id}) %}
+
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: rounds_url},
+        {label: 'restructure.move_round.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: rounds_url, fallbackTitle: competition.name}) }}
+
+    <div class="ev-restructure pb-4">
+        <h1 class="h2">{{ 'restructure.move_round.title'|trans }}</h1>
+        <p class="text-muted mb-3">{{ 'restructure.move_round.intro'|trans({'%round%': round.name, '%competition%': competition.name}) }}</p>
+
+        <ul class="ev-restructure-facts small text-muted">
+            <li>{{ 'restructure.move_round.fact_moves'|trans }}</li>
+            <li>{{ 'restructure.move_round.fact_times'|trans }}</li>
+            <li>{{ 'restructure.move_round.fact_refused'|trans }}</li>
+        </ul>
+
+        <div class="card shadow-sm my-3">
+            <div class="card-body">
+                {% if has_choices %}
+                    {{ form_start(form) }}
+                    {{ form_errors(form) }}
+                    {{ form_row(form.competitionId) }}
+                    <button type="submit" class="btn btn-primary ev-restructure-submit">
+                        {{ 'restructure.move_round.submit'|trans }}
+                    </button>
+                    {{ form_end(form) }}
+                {% else %}
+                    <p class="mb-0">{{ 'restructure.move_round.no_choices'|trans }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

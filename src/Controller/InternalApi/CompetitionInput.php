@@ -27,6 +27,7 @@ final class CompetitionInput
         'registrationLink',
         'resultsLink',
         'isOnline',
+        'eligibility',
         'slug',
         'maintainerIds',
     ];
@@ -62,6 +63,11 @@ final class CompetitionInput
 
         if ($input->has('resultsLink')) {
             $data->resultsLink = $input->string('resultsLink');
+        }
+
+        // "Who can enter" - an edition without its own shows its series'
+        if ($input->has('eligibility')) {
+            $data->eligibility = $input->string('eligibility');
         }
 
         if ($input->has('locationCountryCode')) {

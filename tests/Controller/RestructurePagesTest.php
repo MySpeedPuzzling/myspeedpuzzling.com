@@ -1,0 +1,238 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Tests\Controller;
+
+use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\AddCompetitionRound;
+use SpeedPuzzling\Web\Message\AddCompetitionRoundWithPuzzles;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\TestingLogin;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+/**
+ * The three restructuring pages (docs/features/organizations/README.md "Restructuring tools", D13): who reaches them,
+ * what their selects offer, every refusal as a form error (422), success as a redirect.
+ */
+final class RestructurePagesTest extends WebTestCase
+{
+    public function testMoveEditionOffersTheSeriesTheViewerManages(): void
+    {
+        $browser = self::createClient();
+        $path = '/en/move-edition/' . OrganizationFixture::EDITION_LANTERN_1;
+
+        $browser->request('GET', $path);
+        self::assertResponseRedirects();
+        self::assertStringContainsString('/login', (string) $browser->getResponse()->headers->get('Location'));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', $path);
+        self::assertResponseStatusCodeSame(403);
+
+        // The maintainer of the organization: its series, not the edition's own, nothing else
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $crawler = $browser->request('GET', $path);
+        self::assertResponseIsSuccessful();
+        $options = $crawler->filter('select[name="move_edition_form[seriesId]"] option')->extract(['value']);
+        self::assertContains(OrganizationFixture::SERIES_RIVERBEND_VIRTUAL, $options);
+        self::assertNotContains(OrganizationFixture::SERIES_LANTERN_NIGHTS, $options);
+        self::assertNotContains(CompetitionSeriesFixture::SERIES_EJJ, $options);
+
+        // A one-time event has no such page
+        $browser->request('GET', '/en/move-edition/' . OrganizationFixture::COMPETITION_RIVERBEND_OPEN);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testMoveEditionAsksForANewAddressWhenItsOwnIsTaken(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition SET slug = 'virtual-contest-1' WHERE id = :id",
+            ['id' => OrganizationFixture::EDITION_LANTERN_1],
+        );
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/move-edition/' . OrganizationFixture::EDITION_LANTERN_1);
+        $form = $crawler->selectButton($this->trans('restructure.move_edition.submit'))->form();
+        $form->setValues(['move_edition_form[seriesId]' => OrganizationFixture::SERIES_RIVERBEND_VIRTUAL]);
+        $crawler = $browser->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString($this->trans('restructure.move_edition.slug_taken'), $crawler->filter('form')->text());
+
+        $form = $crawler->selectButton($this->trans('restructure.move_edition.submit'))->form();
+        $form->setValues(['move_edition_form[seriesId]' => OrganizationFixture::SERIES_RIVERBEND_VIRTUAL]);
+        $form['move_edition_form[slug]'] = 'Lantern Night Online';
+        $browser->submit($form);
+
+        self::assertResponseRedirects('/en/series/' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL_SLUG . '/lantern-night-online');
+    }
+
+    public function testMoveEditionRefusesASeriesItDoesNotOffer(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $crawler = $browser->request('GET', '/en/move-edition/' . OrganizationFixture::EDITION_LANTERN_1);
+        $form = $crawler->selectButton($this->trans('restructure.move_edition.submit'))->form();
+        $form->disableValidation();
+        $form->setValues(['move_edition_form[seriesId]' => CompetitionSeriesFixture::SERIES_EJJ]);
+        $browser->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(OrganizationFixture::SERIES_LANTERN_NIGHTS, $this->seriesOf(OrganizationFixture::EDITION_LANTERN_1));
+    }
+
+    public function testMoveRoundMovesItAndShowsEveryRefusalAsAFormError(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/move-round/' . OrganizationFixture::ROUND_DRAFT_NIGHT);
+        self::assertResponseStatusCodeSame(403);
+
+        // The target holds a solo round with the round's puzzle already
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new AddCompetitionRoundWithPuzzles(new AddCompetitionRound(
+            roundId: Uuid::uuid7(),
+            competitionId: OrganizationFixture::COMPETITION_RIVERBEND_OPEN,
+            name: 'Spring Open Final',
+            minutesLimit: 90,
+            startsAt: new DateTimeImmutable('+60 days'),
+            timezone: 'America/New_York',
+            badgeBackgroundColor: null,
+            badgeTextColor: null,
+        ), [PuzzleFixture::PUZZLE_3000]));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', '/en/move-round/' . OrganizationFixture::ROUND_DRAFT_NIGHT);
+        self::assertResponseIsSuccessful();
+        $options = $crawler->filter('select[name="move_round_form[competitionId]"] option')->extract(['value']);
+        self::assertContains(OrganizationFixture::COMPETITION_RIVERBEND_OPEN, $options);
+        self::assertContains(OrganizationFixture::EDITION_LANTERN_1, $options);
+        self::assertNotContains(OrganizationFixture::COMPETITION_DRAFT_NIGHT, $options);
+        self::assertNotContains(CompetitionFixture::COMPETITION_WJPC_2024, $options);
+
+        $form = $crawler->selectButton($this->trans('restructure.move_round.submit'))->form();
+        $form->setValues(['move_round_form[competitionId]' => OrganizationFixture::COMPETITION_RIVERBEND_OPEN]);
+        $crawler = $browser->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Spring Open Final', $crawler->filter('form')->text());
+
+        $form = $crawler->selectButton($this->trans('restructure.move_round.submit'))->form();
+        $form->setValues(['move_round_form[competitionId]' => OrganizationFixture::EDITION_LANTERN_1]);
+        $browser->submit($form);
+        self::assertResponseRedirects('/en/manage-event-rounds/' . OrganizationFixture::EDITION_LANTERN_1);
+        self::assertSame(
+            OrganizationFixture::EDITION_LANTERN_1,
+            self::getContainer()->get(Connection::class)->fetchOne('SELECT competition_id FROM competition_round WHERE id = :id', ['id' => OrganizationFixture::ROUND_DRAFT_NIGHT]),
+        );
+    }
+
+    public function testMoveRoundRefusesARoundWithEntries(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/move-round/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
+        $form = $crawler->selectButton($this->trans('restructure.move_round.submit'))->form();
+        $form->setValues(['move_round_form[competitionId]' => OrganizationFixture::COMPETITION_RIVERBEND_OPEN]);
+        $crawler = $browser->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString($this->trans('restructure.move_round.refused.has_entries'), $crawler->filter('form')->text());
+    }
+
+    public function testTurnIntoAnOrganizationAsAnAdmin(): void
+    {
+        $browser = self::createClient();
+        $path = '/en/series-to-organization/' . CompetitionSeriesFixture::SERIES_OFFLINE;
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', $path);
+        self::assertResponseStatusCodeSame(403);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', $path);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Puzzle Meetup Prague', $crawler->filter('input[name="create_organization_from_series_form[name]"]')->attr('value'));
+        self::assertSame('puzzle-meetup-prague', $crawler->filter('input[name="create_organization_from_series_form[newSeriesSlug]"]')->attr('value'));
+
+        $form = $crawler->selectButton($this->trans('restructure.to_organization.submit'))->form();
+        $form['create_organization_from_series_form[name]'] = 'Prague Puzzle Club';
+        $form['create_organization_from_series_form[slug]'] = OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG;
+        $crawler = $browser->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString($this->trans('restructure.to_organization.slug_taken'), $crawler->filter('form')->text());
+
+        $form = $crawler->selectButton($this->trans('restructure.to_organization.submit'))->form();
+        $form['create_organization_from_series_form[slug]'] = 'puzzle-meetup-prague';
+        $form['create_organization_from_series_form[newSeriesName]'] = 'Prague Puzzle Meetup Nights';
+        $form['create_organization_from_series_form[newSeriesSlug]'] = 'prague-puzzle-meetup-nights';
+        $browser->submit($form);
+
+        self::assertResponseRedirects('/en/organizations/puzzle-meetup-prague');
+        self::assertSame(
+            'approved',
+            self::getContainer()->get(Connection::class)->fetchOne(
+                "SELECT CASE WHEN approved_at IS NULL THEN 'pending' ELSE 'approved' END FROM organization WHERE slug = 'puzzle-meetup-prague'",
+            ),
+        );
+
+        // The old series address leads to the organization
+        $browser->request('GET', '/en/series/puzzle-meetup-prague');
+        self::assertResponseRedirects('/en/organizations/puzzle-meetup-prague', 301);
+    }
+
+    public function testTurnIntoAnOrganizationByItsCreatorWaitsForApproval(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/series-to-organization/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT);
+        $form = $crawler->selectButton($this->trans('restructure.to_organization.submit'))->form();
+        $form['create_organization_from_series_form[name]'] = 'Quiet Pines Puzzle Guild';
+        $browser->submit($form);
+
+        self::assertResponseRedirects('/en/organizations/quiet-pines-puzzle-guild');
+        self::assertQueuedEmailCount(1);
+        self::assertNull(self::getContainer()->get(Connection::class)->fetchOne("SELECT approved_at FROM organization WHERE slug = 'quiet-pines-puzzle-guild'"));
+    }
+
+    public function testASeriesOfAnOrganizationShowsWhereItBelongsAndRefusesThePost(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $path = '/en/series-to-organization/' . OrganizationFixture::SERIES_LANTERN_NIGHTS;
+
+        $crawler = $browser->request('GET', $path);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(OrganizationFixture::ORGANIZATION_RIVERBEND_NAME, $crawler->filter('.ev-restructure')->text());
+        self::assertCount(0, $crawler->filter('form[name="create_organization_from_series_form"]'));
+
+        $browser->request('POST', $path, ['create_organization_from_series_form' => ['name' => 'Another']]);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    private function seriesOf(string $competitionId): mixed
+    {
+        return self::getContainer()->get(Connection::class)->fetchOne('SELECT series_id FROM competition WHERE id = :id', ['id' => $competitionId]);
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     */
+    private function trans(string $key, array $parameters = []): string
+    {
+        return self::getContainer()->get(TranslatorInterface::class)->trans($key, $parameters);
+    }
+}

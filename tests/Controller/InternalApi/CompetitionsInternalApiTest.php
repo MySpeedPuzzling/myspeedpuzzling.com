@@ -9,6 +9,7 @@ use Monolog\Handler\TestHandler;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
@@ -668,6 +669,97 @@ final class CompetitionsInternalApiTest extends WebTestCase
         $records = $auditLog->getRecords();
         self::assertCount(1, $records);
         self::assertSame(['competitionId' => CompetitionFixture::COMPETITION_WJPC_2024], $records[0]->context['targetIds']);
+    }
+
+    public function testAnswersCarryOrganizationDraftEligibilityAndCounts(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        $open = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . OrganizationFixture::COMPETITION_RIVERBEND_OPEN);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $open['organizationId']);
+        self::assertIsArray($open['organization']);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG, $open['organization']['slug']);
+        self::assertSame('Residents of Riverbend Valley', $open['eligibility']);
+        self::assertFalse($open['draft']);
+        self::assertFalse($open['hiddenAsDraft']);
+        self::assertSame(0, $open['resultsCount']);
+        self::assertSame(0, $open['participantsCount']);
+
+        // An edition: its organization is its series'
+        $edition = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . OrganizationFixture::EDITION_LANTERN_1);
+        self::assertNull($edition['organizationId']);
+        self::assertIsArray($edition['series']);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $edition['series']['organizationId']);
+        self::assertFalse($edition['series']['draft']);
+
+        $wjpc = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024);
+        self::assertSame($database->fetchOne('SELECT COUNT(*) FROM puzzle_solving_time WHERE competition_id = :id', ['id' => CompetitionFixture::COMPETITION_WJPC_2024]), $wjpc['resultsCount']);
+        self::assertSame(
+            $database->fetchOne('SELECT COUNT(*) FROM puzzle_solving_time WHERE competition_id = :id AND competition_round_id IS NULL', ['id' => CompetitionFixture::COMPETITION_WJPC_2024]),
+            $wjpc['resultsWithoutRoundCount'],
+        );
+        self::assertSame(
+            $database->fetchOne('SELECT COUNT(*) FROM competition_participant WHERE competition_id = :id AND deleted_at IS NULL', ['id' => CompetitionFixture::COMPETITION_WJPC_2024]),
+            $wjpc['participantsCount'],
+        );
+    }
+
+    public function testCreatedUnderAnApprovedOrganizationItIsApprovedAtOnce(): void
+    {
+        $browser = self::createClient();
+
+        $answer = self::callInternalApi($browser, 'POST', '/internal-api/competitions', [
+            'name' => 'Riverbend Autumn Classic',
+            'location' => 'Riverbend',
+            'locationCountryCode' => 'us',
+            'dateFrom' => '2026-11-21',
+            'dateTo' => '2026-11-21',
+            'organizationId' => OrganizationFixture::ORGANIZATION_RIVERBEND,
+            'eligibility' => 'Residents of Riverbend Valley',
+        ]);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $answer['organizationId']);
+        self::assertSame('approved', $answer['status']);
+        self::assertSame('Residents of Riverbend Valley', $answer['eligibility']);
+
+        $unknown = self::callInternalApi($browser, 'POST', '/internal-api/competitions', [
+            'name' => 'Nowhere Cup',
+            'isOnline' => true,
+            'organizationId' => '018d0042-0000-0000-0000-00000000ffff',
+        ]);
+        self::assertResponseStatusCodeSame(400);
+        self::assertIsArray($unknown['errors']);
+        self::assertArrayHasKey('organizationId', $unknown['errors']);
+    }
+
+    public function testPatchMovesAnEventIntoAnOrganizationButNeverAnEdition(): void
+    {
+        $browser = self::createClient();
+
+        $in = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED, [
+            'organizationId' => OrganizationFixture::ORGANIZATION_RIVERBEND,
+            'eligibility' => '21+',
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $in['organizationId']);
+        self::assertSame('approved', $in['status']);
+        self::assertSame('21+', $in['eligibility']);
+
+        $out = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED, [
+            'organizationId' => null,
+            'eligibility' => null,
+        ]);
+        self::assertNull($out['organizationId']);
+        self::assertNull($out['eligibility']);
+
+        self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . OrganizationFixture::EDITION_LANTERN_1, [
+            'organizationId' => OrganizationFixture::ORGANIZATION_RIVERBEND,
+            'name' => 'Renamed Night',
+        ]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('Lantern Night One', self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . OrganizationFixture::EDITION_LANTERN_1)['name']);
     }
 
     /**

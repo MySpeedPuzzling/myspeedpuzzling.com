@@ -33,6 +33,10 @@ readonly final class RoundsTimeline
         // of the first round
         public null|string $zone,
         public bool $zoneAssumed,
+        // without rounds, a span of more than 31 days that has started and not ended: the header says "Runs until …"
+        public bool $runsUntilEnd = false,
+        // the rounds name more than one zone - the side column's single zone note would be wrong
+        public bool $mixedZones = false,
     ) {
     }
 

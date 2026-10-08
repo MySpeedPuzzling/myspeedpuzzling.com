@@ -7630,7 +7630,7 @@ participants_sheet_people:
   "facts":
     "editions": "%count% edice|%count% edice|%count% edic"
     "since": "od %date%"
-    "coming": "%count% nadcházející|%count% nadcházející|%count% nadcházejících"
+    "coming": "%count% nadcházející termín|%count% nadcházející termíny|%count% nadcházejících termínů"
     "next": "další %date%"
     "live_now": "právě probíhá"
   "next": "Nejbližší termín"

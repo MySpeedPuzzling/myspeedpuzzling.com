@@ -58,7 +58,12 @@ readonly final class GetEventOccurrences
             return [];
         }
 
-        return $this->fetch('c.series_id = :seriesId AND c.rejected_at IS NULL', ['seriesId' => $seriesId]);
+        // The rounds aggregate only over the series' own competitions - the page must not grow with the site
+        return $this->fetch(
+            'c.series_id = :seriesId AND c.rejected_at IS NULL',
+            ['seriesId' => $seriesId],
+            'WHERE cr_j.competition_id IN (SELECT s_c.id FROM competition s_c WHERE s_c.series_id = :seriesId)',
+        );
     }
 
     /**
@@ -66,10 +71,10 @@ readonly final class GetEventOccurrences
      *
      * @return list<EventOccurrence>
      */
-    private function fetch(string $where, array $parameters): array
+    private function fetch(string $where, array $parameters, string $roundsWhere = ''): array
     {
         $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
-        $rounds = OccurrenceRounds::sqlJoinWithResults();
+        $rounds = OccurrenceRounds::sqlJoinWithResults($roundsWhere);
 
         $query = <<<SQL
 SELECT

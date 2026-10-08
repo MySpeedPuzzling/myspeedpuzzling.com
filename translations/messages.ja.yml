@@ -7623,7 +7623,7 @@ participants_sheet_people:
   "facts":
     "editions": "エディション%count%件"
     "since": "%date%から"
-    "coming": "今後%count%件"
+    "coming": "今後の日程%count%件"
     "next": "次回%date%"
     "live_now": "開催中"
   "next": "次回"

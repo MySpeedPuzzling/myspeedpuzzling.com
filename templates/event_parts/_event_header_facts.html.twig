@@ -7,8 +7,8 @@
 #}
 {{- include('event_parts/_place.html.twig', {place: event_place}) }}
 {% if timeline.start %}
-    {%- set long_span = not timeline.hasRounds and timeline.end is not null and timeline.start.diff(timeline.end).days > 31 -%}
-    {% if long_span and not event_title.isPast and timeline.start|date('Y-m-d', false) <= 'now'|date('Y-m-d') %}
+    {#- RoundsTimeline::$runsUntilEnd - decided on the controller's clock -#}
+    {% if timeline.runsUntilEnd %}
         <span class="ev-detail-fact">{{ 'event_detail.facts.runs_until'|trans({'%date%': timeline.end|events_date('yMMMd')}) }}</span>
     {% else %}
         <span class="ev-detail-fact">{{ events_date_range(timeline.start, timeline.end, 'yMMMd') }}</span>

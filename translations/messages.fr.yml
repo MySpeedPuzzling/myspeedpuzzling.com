@@ -7634,7 +7634,7 @@ participants_sheet_people:
   "facts":
     "editions": "%count% édition|%count% éditions"
     "since": "depuis %date%"
-    "coming": "%count% à venir|%count% à venir"
+    "coming": "%count% date à venir|%count% dates à venir"
     "next": "prochaine %date%"
     "live_now": "en direct maintenant"
   "next": "Prochaine date"

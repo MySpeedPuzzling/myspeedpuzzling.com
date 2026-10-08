@@ -7633,7 +7633,7 @@ participants_sheet_people:
   "facts":
     "editions": "%count% edición|%count% ediciones"
     "since": "desde %date%"
-    "coming": "%count% próxima|%count% próximas"
+    "coming": "%count% fecha próxima|%count% fechas próximas"
     "next": "próxima %date%"
     "live_now": "en directo ahora"
   "next": "Próxima fecha"

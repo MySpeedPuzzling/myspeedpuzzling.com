@@ -101,6 +101,19 @@ final class GetEventAttendanceTest extends KernelTestCase
         self::assertFalse($this->query->forEvent($edition, null, true)->isFollowing);
     }
 
+    public function testFollowingAnEditionItselfIsNotFollowingItsSeries(): void
+    {
+        // The edition page's star acts on the series: an old follow of the edition alone leaves it unpressed
+        $this->database->executeStatement(
+            "INSERT INTO followed_competition (id, created_at, player_id, competition_id, series_id) VALUES ('018d0040-0000-0000-0000-0000000000f1', NOW(), :player, :edition, NULL)",
+            ['player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'edition' => EventsPageFixture::EDITION_HARBOR_1],
+        );
+
+        $edition = self::getContainer()->get(GetCompetitionEvents::class)->byId(EventsPageFixture::EDITION_HARBOR_1);
+
+        self::assertFalse($this->query->forEvent($edition, PlayerFixture::PLAYER_WITH_FAVORITES, true)->isFollowing);
+    }
+
     public function testFollowingAOneTimeEvent(): void
     {
         $meadow = self::getContainer()->get(GetCompetitionEvents::class)->byId(EventsPageFixture::COMPETITION_MEADOW_TBA);

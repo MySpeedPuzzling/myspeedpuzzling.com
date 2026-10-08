@@ -26,7 +26,8 @@
                 <dd><a href="{{ event.link }}" target="_blank" rel="noopener noreferrer">{{ 'events.website_link'|trans }}<span aria-hidden="true"> ↗</span></a></dd>
             {% endif %}
         </dl>
-        {% if timeline.hasRounds and timeline.zone %}
+        {#- Rounds in different zones each name their own: no single note then -#}
+        {% if timeline.hasRounds and timeline.zone and not timeline.mixedZones %}
             {% set zone_name = event_time_parts((timeline.rounds|first).time).zone %}
             <p class="ev-side-note">{{ (online ? 'event_detail.side.times_online' : 'event_detail.side.times_in_person')|trans({'%zone%': zone_name}) }}</p>
         {% endif %}

@@ -30,6 +30,20 @@ final class GetEventOccurrencesTest extends KernelTestCase
         $this->today = new DateTimeImmutable($now->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d'), new DateTimeZone('UTC'));
     }
 
+    public function testTheSeriesOwnRoundsAggregateGivesWhatTheWholeSiteOneGives(): void
+    {
+        // forSeries() aggregates only the series' rounds - the occurrences, their rounds and results are the same
+        foreach ([EventsPageFixture::SERIES_SPRINT_LEAGUE, EventsPageFixture::SERIES_HARBOR_NIGHTS] as $seriesId) {
+            $fromAll = array_values(array_filter(
+                $this->query->all(true),
+                static fn (EventOccurrence $occurrence): bool => $occurrence->seriesId === $seriesId,
+            ));
+
+            self::assertNotSame([], $fromAll);
+            self::assertEquals($fromAll, $this->query->forSeries($seriesId));
+        }
+    }
+
     public function testThePublicSetHasNoUnapprovedRejectedOrRejectedSeriesItems(): void
     {
         $ids = array_map(static fn (EventOccurrence $occurrence): string => $occurrence->competitionId, $this->query->all(false));

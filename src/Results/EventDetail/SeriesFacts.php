@@ -18,7 +18,7 @@ readonly final class SeriesFacts
         public int $editionCount,
         // the first dated session
         public null|DateTimeImmutable $since,
-        // live and upcoming sessions
+        // live and upcoming sessions - the strip says "N upcoming dates", not editions (an edition may have several)
         public int $comingCount,
         // the Next card's day
         public null|DateTimeImmutable $next,

@@ -181,6 +181,37 @@ final class RoundsTimelineBuilderTest extends TestCase
         self::assertFalse($undated->isLive);
     }
 
+    public function testALongSpanWithoutRoundsRunsUntilItsEndOnlyWhileItRuns(): void
+    {
+        $utc = new DateTimeZone('UTC');
+        $day = static fn (string $date): DateTimeImmutable => new DateTimeImmutable($date, $utc);
+
+        // NOW is 2026-06-10: started in March, ends in December
+        self::assertTrue($this->build([], dateFrom: $day('2026-03-01'), dateTo: $day('2026-12-31'))->runsUntilEnd);
+        // Its first and last day count
+        self::assertTrue($this->build([], dateFrom: $day('2026-06-10'), dateTo: $day('2026-08-31'))->runsUntilEnd);
+        self::assertTrue($this->build([], dateFrom: $day('2026-04-01'), dateTo: $day('2026-06-10'))->runsUntilEnd);
+        // Not started yet, over, or not longer than 31 days: the plain date range
+        self::assertFalse($this->build([], dateFrom: $day('2026-06-11'), dateTo: $day('2026-12-31'))->runsUntilEnd);
+        self::assertFalse($this->build([], dateFrom: $day('2026-01-01'), dateTo: $day('2026-06-09'))->runsUntilEnd);
+        self::assertFalse($this->build([], dateFrom: $day('2026-06-01'), dateTo: $day('2026-06-30'))->runsUntilEnd);
+        // Rounds define the dates
+        self::assertFalse($this->build([self::round('r1', '2026-06-10 10:00')], dateFrom: $day('2026-03-01'), dateTo: $day('2026-12-31'))->runsUntilEnd);
+    }
+
+    public function testRoundsInDifferentZonesAreMixed(): void
+    {
+        self::assertFalse($this->build([
+            self::round('r1', '2026-07-10 16:00', zone: 'Europe/Prague'),
+            self::round('r2', '2026-07-11 16:00', zone: 'Europe/Prague'),
+        ])->mixedZones);
+
+        self::assertTrue($this->build([
+            self::round('r1', '2026-07-10 16:00', zone: 'Europe/Prague'),
+            self::round('r2', '2026-07-11 16:00', zone: 'America/New_York'),
+        ])->mixedZones);
+    }
+
     /**
      * @param list<EditionRoundDetail> $rounds
      * @param array<string, int> $resultsPerRound

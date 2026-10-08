@@ -1143,7 +1143,7 @@ series_page:
     facts:
         editions: "%count% edition|%count% editions"
         since: "since %date%"
-        coming: "%count% coming|%count% coming"
+        coming: "%count% upcoming date|%count% upcoming dates"
         next: "next %date%"
         live_now: "live now"
     next: "Next"

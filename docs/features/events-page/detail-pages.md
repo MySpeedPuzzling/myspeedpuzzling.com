@@ -95,7 +95,7 @@ Events › Harbor Jigsaw Nights                              (breadcrumb: links 
 
 ```
 header (Follow series · Website · ⋯ Manage series / Add edition / Page content)
-facts strip: 21 editions · since May 2025 · 7 coming · next Tue 13 Oct
+facts strip: 21 editions · since May 2025 · 7 upcoming dates · next Tue 13 Oct
 ┌ Next ─────────────────────────────────────────────┐
 │ [TUE 13 OCT] Individual 500                        │
 │              Online · 20:00 Toronto Time           │
@@ -127,7 +127,7 @@ Past · 14             year chips [2026 · 5] [2025 · 9]; newest year open, 5 l
   with the **Results** tag per session. Year chips switch the year in place; the newest year shows 5 lines and
   "Show all 2026 (14)". Without JavaScript every year is shown under its own heading.
 - **Facts**: editions (every edition, the undated ones too - the events page's directory count), since (the first
-  dated session), coming (live + upcoming sessions), next (date, or "live now"), how often - **about every week /
+  dated session), "N upcoming dates" (live + upcoming sessions - dates, not editions), next (date, or "live now"), how often - **about every week /
   about twice a month / about once a month** from the median gap of the last 8 session starts (at least 3 sessions;
   otherwise nothing is said).
 - **Side column** (from 992 px): "About" (editions, how often, since, next, website, place or Online) and, for a

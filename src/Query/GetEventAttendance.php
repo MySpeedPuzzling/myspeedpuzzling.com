@@ -198,20 +198,22 @@ SQL;
     }
 
     /**
-     * The viewer follows the competition, or its series (an edition's star follows the series). A visitor's
-     * `:playerId` is null - never true.
+     * What the page's star acts on: an edition's star follows its series, so an edition is "following" only when the
+     * viewer follows the series (a follow of the edition itself does not count); a one-time event when it is followed.
+     * A visitor's `:playerId` is null - never true.
      */
     private function sqlIsFollowing(): string
     {
         return <<<SQL
 EXISTS (
         SELECT 1
-        FROM followed_competition fc
-        WHERE fc.player_id = :playerId
+        FROM competition f_c
+        JOIN followed_competition fc ON fc.player_id = :playerId
             AND (
-                fc.competition_id = :competitionId
-                OR fc.series_id = (SELECT f_c.series_id FROM competition f_c WHERE f_c.id = :competitionId)
+                (f_c.series_id IS NOT NULL AND fc.series_id = f_c.series_id)
+                OR (f_c.series_id IS NULL AND fc.competition_id = f_c.id)
             )
+        WHERE f_c.id = :competitionId
     )
 SQL;
     }

@@ -125,9 +125,9 @@ final class SeriesPageUiTest extends WebTestCase
         $crawler = $this->page(self::createClient(), self::HARBOR);
 
         $facts = $crawler->filter('[data-series-facts]');
-        // 3 coming, 2 past, 1 undated
+        // 3 upcoming dates (sessions, not editions), 2 past, 1 undated
         self::assertSame('6 editions', trim($facts->filter('[data-series-fact="editions"]')->text()));
-        self::assertSame('3 coming', trim($facts->filter('[data-series-fact="coming"]')->text()));
+        self::assertSame('3 upcoming dates', trim($facts->filter('[data-series-fact="coming"]')->text()));
         self::assertStringStartsWith('since ', trim($facts->filter('[data-series-fact="since"]')->text()));
         self::assertStringStartsWith('next ', trim($facts->filter('[data-series-fact="next"]')->text()));
         // No "how often"

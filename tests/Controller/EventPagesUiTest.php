@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
@@ -313,6 +314,45 @@ final class EventPagesUiTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-round-results-link]'));
         self::assertCount(0, $crawler->filter('[data-round-add-time]'));
         self::assertCount(0, $crawler->filter('[data-header-add-time]'));
+    }
+
+    public function testAPastEventOffersAddMyTimeOnceInTheHeader(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $lastYear = (int) self::getContainer()->get(ClockInterface::class)->now()->format('Y') - 1;
+        $crawler = $browser->request('GET', '/en/events/valley-speed-puzzle-cup-' . $lastYear);
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-header-add-time]'));
+        self::assertCount(0, $crawler->filter('.ev-taking-part a[href^="/en/add-time"], .ev-taking-part a[href*="competition="]'));
+    }
+
+    public function testALongEditionWithoutRoundsRunsUntilItsEndInTheHeader(): void
+    {
+        // Lakeside Clock Marathon: from 30 days ago to 400 days ahead, no rounds
+        $crawler = self::createClient()->request('GET', '/en/series/lakeside-clock-marathon/marathon');
+
+        $this->assertResponseIsSuccessful();
+        $facts = $crawler->filter('.ev-detail-facts .ev-detail-fact')->each(static fn (Crawler $fact): string => trim($fact->text()));
+        self::assertCount(1, array_filter($facts, static fn (string $fact): bool => str_starts_with($fact, 'Runs until')), implode(' | ', $facts));
+    }
+
+    public function testTheSideZoneNoteOnlyWhileEveryRoundSharesTheZone(): void
+    {
+        $browser = self::createClient();
+        $crawler = $browser->request('GET', self::HILLTOP_URL);
+        self::assertCount(1, $crawler->filter('.ev-detail-side .ev-side-note'));
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition_round SET timezone = 'America/New_York' WHERE id = :id",
+            ['id' => EventDetailFixture::ROUND_HILLTOP_SUN],
+        );
+
+        // Each round names its own zone - one note naming the first would be wrong
+        $crawler = $browser->request('GET', self::HILLTOP_URL);
+        self::assertCount(0, $crawler->filter('.ev-detail-side .ev-side-note'));
     }
 
     public function testAnUnapprovedEventHasNoStar(): void

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -69,6 +70,45 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         }
 
         self::assertSame($statements, $this->measure($browser, $url), ($playerId ?? 'guest') . ' ' . $url);
+    }
+
+    /**
+     * @return iterable<string, array{string, int}>
+     */
+    public static function provideMaintainerPages(): iterable
+    {
+        // A non-admin organiser: maintainer of both series (Season One is edited through its series), creator of the
+        // one-time event - the same statements as an admin, the permissions statement answers both
+        yield 'series, maintainer' => [self::HARBOR, 9];
+        yield 'edition, series maintainer' => [self::SEASON_ONE, 19];
+        yield 'event, creator' => [self::HILLTOP, 19];
+    }
+
+    #[DataProvider('provideMaintainerPages')]
+    public function testThePageCostForANonAdminOrganiser(string $url, int $statements): void
+    {
+        $browser = self::createClient();
+
+        /** @var Connection $connection */
+        $connection = $browser->getContainer()->get(Connection::class);
+        $organiser = PlayerFixture::PLAYER_WITH_FAVORITES;
+
+        foreach ([EventsPageFixture::SERIES_HARBOR_NIGHTS, EventsPageFixture::SERIES_SPRINT_LEAGUE] as $seriesId) {
+            $connection->executeStatement(
+                'INSERT INTO competition_series_maintainer (competition_series_id, player_id) VALUES (:series, :player)',
+                ['series' => $seriesId, 'player' => $organiser],
+            );
+        }
+
+        $connection->executeStatement(
+            'UPDATE competition SET added_by_player_id = :player WHERE id = :id',
+            ['player' => $organiser, 'id' => EventDetailFixture::COMPETITION_HILLTOP_WEEKEND],
+        );
+
+        TestingLogin::asPlayer($browser, $organiser);
+
+        self::assertSame($statements, $this->measure($browser, $url), 'maintainer ' . $url);
+        self::assertCount(1, $browser->getCrawler()->filter('.ev-detail-actions .ev-manage'), 'the organiser gets the header menu');
     }
 
     public function testTenMoreEditionsAddNoStatementToTheSeriesPage(): void

@@ -128,6 +128,14 @@ readonly final class RoundsTimelineBuilder
         }
 
         $firstRound = $rounds[0] ?? null;
+        $today = OccurrenceDates::today($now);
+        $runsUntilEnd = $rounds === []
+            && $first->start !== null
+            && $first->end !== null
+            && (int) $first->start->diff($first->end)->days > 31
+            && $first->start <= $today
+            && $first->end >= $today;
+        $zones = array_unique(array_map(static fn (EditionRoundDetail $round): string => $round->timezone, $rounds));
 
         return new RoundsTimeline(
             rounds: $timelineRounds,
@@ -140,6 +148,8 @@ readonly final class RoundsTimelineBuilder
             roundsWithResults: $roundsWithResults,
             zone: $firstRound?->timezone,
             zoneAssumed: $firstRound !== null && $firstRound->timezoneAssumed,
+            runsUntilEnd: $runsUntilEnd,
+            mixedZones: count($zones) > 1,
         );
     }
 

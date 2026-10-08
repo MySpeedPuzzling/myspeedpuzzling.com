@@ -47,13 +47,18 @@ LEFT JOIN (
         ) ORDER BY cr_j.starts_at, cr_j.id) AS rounds,
         COUNT(*) AS round_count
     FROM competition_round cr_j
+    %s
     GROUP BY cr_j.competition_id
 ) r ON r.competition_id = c.id
 SQL;
 
-    public static function sqlJoinWithResults(): string
+    /**
+     * @param string $roundsWhere a WHERE on `cr_j` (competition_round) inside the aggregate - the series page passes
+     *     its own competitions so it does not aggregate every round on the site; empty = all rounds (the events page)
+     */
+    public static function sqlJoinWithResults(string $roundsWhere = ''): string
     {
-        return sprintf(self::SQL_JOIN_WITH_RESULTS, GetPublishedRoundResults::sqlShowsOfficialResults('cr_j'));
+        return sprintf(self::SQL_JOIN_WITH_RESULTS, GetPublishedRoundResults::sqlShowsOfficialResults('cr_j'), $roundsWhere);
     }
 
     /**

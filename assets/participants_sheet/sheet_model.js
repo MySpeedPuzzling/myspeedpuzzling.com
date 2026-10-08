@@ -1150,6 +1150,41 @@ export class SheetModel {
         return { unknown, delta };
     }
 
+    /**
+     * One person's row as the server has it now (the answer of a registration action - contract §4.3): it replaces the
+     * person in the base, pending groups replayed on top. A person the page did not know is added at the end. Returns
+     * the delta (also emitted).
+     */
+    mergePerson(person) {
+        if (person === null || typeof person !== 'object' || typeof person.id !== 'string') {
+            return emptyDelta();
+        }
+
+        const before = this.current;
+        const base = new Working(this.base);
+
+        if (!base.people.has(person.id)) {
+            base.order.push(person.id);
+        }
+
+        base.people.set(person.id, {
+            note: null,
+            externalId: null,
+            registration: null,
+            player: null,
+            playerResultRounds: [],
+            removedAt: null,
+            connectedAt: null,
+            source: 'manual',
+            country: null,
+            ...person,
+        });
+        this.base = base;
+        this.rebuild();
+
+        return this.emitDiff(before);
+    }
+
     /** `official_results.round`: what changed about a round (publication, table numbers usage, started). */
     updateRound(overview) {
         if (!overview || typeof overview.id !== 'string' || !this.base.rounds.has(overview.id)) {

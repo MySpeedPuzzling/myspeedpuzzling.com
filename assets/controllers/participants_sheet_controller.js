@@ -447,7 +447,7 @@ export default class extends Controller {
             act: (action, options) => this.act(action, options),
             announce: (text) => this.announce(text),
             switchTab: (tab, focus = null) => this.showTab(tab, { focus }),
-            openPersonEditor: (personId) => this.openPersonEditor(personId),
+            openPersonEditor: (personId, options) => this.openPersonEditor(personId, options),
             createGrid: (options) => new SheetGrid({
                 texts: this.texts.core,
                 announce: (text) => this.announce(text),
@@ -506,7 +506,11 @@ export default class extends Controller {
         }
     }
 
-    async openPersonEditor(personId) {
+    /**
+     * `options` (handed to the editor as they are): `list` = a function giving the ids previous/next walk through (the
+     * view's filtered, sorted rows), `returnFocus(personId)` = where the focus goes when the editor closes.
+     */
+    async openPersonEditor(personId, options = {}) {
         const factory = await this.loadModule(PERSON_EDITOR_MODULE);
 
         if (factory === null || this.model === undefined) {
@@ -517,7 +521,7 @@ export default class extends Controller {
             this.personEditor = factory(this.viewContext({ kind: 'person', round: null }));
         }
 
-        this.personEditor.open?.(personId);
+        this.personEditor.open?.(personId, options);
     }
 
     // ---------------------------------------------------------------- acting

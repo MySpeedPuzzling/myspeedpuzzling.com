@@ -971,6 +971,52 @@ person's next cell). Delete clears (a name refuses), Ctrl+D / Ctrl+Enter fill co
 names / countries / solo columns of existing rows (one value onto a selection fills it); more than 10 rows or anything
 left out opens the preview with the server's dry run; rows below the list are listed, not added (adding by paste is E's).
 
+### The People tab (stream E: `views/people_view.js`, `person_editor.js`, `people_list_view.js`)
+
+Modules: `people_paste.js` (pure - adding people by pasting names: `planNamePaste(model, rows, {readCountry,
+headerNames})` → lines `new | existing | removed | duplicate | invalid | header` matched by the name key against the
+active and the removed people, `namePasteAction(model, plan, ticks)` → one action, a `newParticipant` / `restore` group
+per ticked line), `registration_actions.js` (pure rules - `allowedActions(person, {checkIn})`, `waitlistPositions`
+(FIFO by registeredAt, id), `registrationCounts`, `firstInLine`, `paidBefore`, `matchesRegistrationFilter` - plus
+`sendRegistrationAction()` / `performRegistrationAction(context, personId, action)`: POST `urls.registration`, the answer's
+`person` merged with `model.mergePerson()`; the known version is **never** taken from that answer - the live update or
+the version check fetches the state). Both pinned by `tests/ParticipantsSheetPeopleScriptsTest.php` →
+`tests/participants-sheet-people-harness.mjs` (suites `paste`, `registration`, `filters`); every text by
+`tests/ParticipantsSheetPeopleTextsTest.php`. Views use `say()` / `sayCount()` for the People texts (`t()` = core texts).
+
+Desktop (`people_view.js`, extends C's grid): a selection column first (header box = everybody shown, Shift+click ranges -
+the grid's own range + checkbox behaviour; a range over the selection column only selects), name sticky next to it;
+the **bulk bar** floats at the bottom (no layout shift; the scroller gets bottom padding while it shows): "N selected
+(M not shown by the filter)" · Into / Out of a solo round (a menu for several) · Make a pair/team ▾ (`newTeamRow` with the
+selected people; previewed with the dry run when it moves anybody or the size is off) · Remove from event (more than
+25 % and at least 10 → type the number) · Restore · Clear selection - each one undo step. Filters (`FILTERS`; the
+registration ones only when managed, check-in only in person) with counts and `aria-pressed`, a search (every typed
+word folded: name, external id, the visible MSP name, `#code`); `held` = rows a filter does not hide until it changes
+(the focused row, the row open in the editor, people added on the page). Columns menu (`COLUMN_OPTIONS`, a Bootstrap
+dropdown of `menuitemcheckbox` items, stored in localStorage `participants-sheet:people-columns:<eventId>`, try/catch).
+Columns beyond C's: External ID, Note (`field: note`, header says it is private), Source, Joined (MSP), Registration
+(chip Reserved / Paid / Waitlist #n; Enter or Space opens the allowed actions), Paid (date, or "Paid on {date}, before
+the registration was cancelled"), Checked in, the row actions (⋯ → Edit, Registration…, Remove; removed rows: Restore).
+The small cell menus are **not** `.dropdown-menu` (Bootstrap's document keyboard handler would steal the arrows for
+another dropdown). Pastes: onto the new-person row - or the part of a name-column block below the last row - = names
+(`name ⇥ country ⇥ external id`), previewed together with the edits of existing rows; external ids and notes paste
+into their columns. Client refusals are said with the reason's placeholders filled (`reasonFor()`). Editors open with
+`seenValue(row, col)` (the value shown) and commit with `from: seen`.
+
+Person editor (`person_editor.js`): one `<dialog>` - `show()` as a side panel at ≥ 768 px (the page gets
+`has-person-panel`, the grid makes room), `showModal()` full screen on phones; `open(personId, {list, returnFocus,
+onShow})` - `list()` is the opener's filtered rows (previous/next), `onShow(id|null)` lets the view hold and mark the
+row. Text fields save on change / Enter with `from` = the value at focus; a live change under a field being typed in
+shows "Changed meanwhile to …" with Keep mine / Use theirs; server conflicts and refusals show at the field (Keep mine
+= `queue.keepMine`, Use theirs = `queue.dismiss`). Sections re-render from HTML strings only when they changed and wait
+while a select / text field in them has the focus.
+
+Phone (`people_list_view.js`): search, a filter `<select>` with counts, the counters and the hint, "+ Add a person",
+cards (name, flag, rounds in words, problems in words) rendered 50 at a time ("Show 50 more"); tap → the editor full
+screen with previous/next over the whole filtered list. Measured with 400 people (headless Chromium 124): the desktop
+grid renders in 220 ms (970 ms at 4× CPU), a filter switch 10 ms, an edit 8 ms (46 ms at 4×), selecting everybody
+66 ms; the phone list's first 50 cards 5 ms at 4× CPU (all 400: 17 ms).
+
 ### Measured (2026-10-08, standalone harness, headless Chromium 124, invented WJPC-sized event)
 
 400 people × 15 rounds (18 columns, 7,236 cells, 100 pairs, 50 teams): render 190 ms at 1× CPU (layout ~95 ms of it),

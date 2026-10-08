@@ -11,26 +11,29 @@
  */
 
 import { escapeHtml } from '../sheet_grid.js';
-import { cleanTeamName, hasOfficialData, nameKey, parsePlace } from '../sheet_model.js';
+import { IN, OUT, cleanTeamName, hasOfficialData, nameKey, parsePlace } from '../sheet_model.js';
 import { keepMineInEditor, openEditor, savedMeanwhile } from '../../official_results_pending_changes.js';
 import { refusalDetails } from '../sheet_changes.js';
+import { buildAction } from '../sheet_changes.js';
 import {
     enteredLabel,
     officialEdit,
     officialEdits,
+    parseResultAs,
     parseResultInput,
     parseTableNumber,
     parsedValue,
     resultKind,
     resultPreview,
     resultText,
+    roundRanks,
     sameValue,
     swapAsResults,
     swapAssignments,
     tableHolder,
     wordList,
 } from '../sheet_results.js';
-import { SKIP, chosenResultChanges } from '../round_paste.js';
+import { CHOOSE, SKIP, chosenResultChanges, newTeamsOfResults } from '../round_paste.js';
 
 export const CREATE = '__create';
 export const OPTION_LIMIT = 30;
@@ -68,6 +71,49 @@ export function isTeamRound(round) {
 /** The round uses table numbers (in person, not switched off) - else its first column is a plain row index. */
 export function usesTables(model, round) {
     return model.competition?.isOnline !== true && round?.tableNumbersOff !== true;
+}
+
+/**
+ * Something the organiser did was refused, or did nothing: said visibly (BR1 - the core's `notify()`, a toast next to
+ * `anchor`, read out too) - or only read out where the page has no notify().
+ *
+ * @param {{kind?: 'error'|'warning'|'info', anchor?: {row: string, col: string}|Element|null}} [options]
+ */
+export function feedback(context, text, { kind = 'error', anchor = null } = {}) {
+    if (!text) {
+        return;
+    }
+
+    if (typeof context.notify === 'function') {
+        context.notify(text, { kind, anchor: anchor ?? undefined });
+    } else {
+        context.announce(text);
+    }
+}
+
+/**
+ * "Take the whole pair/team out of the round": the pair/team deleted and its people out of the round in one group;
+ * the undo creates it again and gives its table number back (review D-m5 - like deleteTeam()).
+ */
+export function takeTeamOutAction(model, roundId, teamId, options = {}) {
+    const team = model.team(teamId);
+
+    if (team === null) {
+        return buildAction(model, [], options);
+    }
+
+    const members = model.membersOf(teamId).map((person) => person.id);
+    const changes = [{ op: 'deleteTeam', team: teamId }, ...members.map((personId) => ({ op: 'place', participant: personId, round: roundId, from: IN, to: OUT }))];
+    const action = buildAction(model, [changes], { label: { key: 'round_out' }, ...options });
+
+    if (action.groups.length === 0 || team.table === null || team.table === undefined) {
+        return action;
+    }
+
+    return {
+        ...action,
+        inverseResults: [{ roundId, ref: `team:${teamId}`, field: 'table_number', from: null, to: team.table, inverseOf: action.groups[0].id }],
+    };
 }
 
 // ---------------------------------------------------------------- labels
@@ -290,10 +336,14 @@ const WHERE_ORDER = { tray: 0, out: 1, team: 2 };
  * the last option `+ Add "Jo Do" as a new participant` when nobody is called exactly that (D9 - never picked by Enter
  * alone). An empty query lists the round's people without a pair/team.
  *
+ * Options carry `exact` (the only person called exactly what was typed) and `moves` (picking them takes them out of
+ * another pair/team) - the grid and RoundDialog highlight an option for Enter only when it is `exact` and not `moves`
+ * (review D-m2: Enter never moves somebody or picks one of several namesakes on its own).
+ *
  * @param {{teamId?: string|null, only?: 'tray'|'out'|null, exclude?: Set<string>, create?: boolean, limit?: number,
  *          countries?: object}} [options] teamId = the pair/team being edited (its own members say so)
  * @returns {Array<{value: string, label: string, detail: string, html: string, personId?: string, create?: boolean,
- *          name?: string, moveFrom?: string|null}>}
+ *          name?: string, moveFrom?: string|null, exact?: boolean, moves?: boolean}>}
  */
 export function personOptions(model, roundId, query, texts, { teamId = null, only = null, exclude = new Set(), create = true, limit = OPTION_LIMIT, countries = {} } = {}) {
     const folded = nameKey(query);
@@ -304,27 +354,30 @@ export function personOptions(model, roundId, query, texts, { teamId = null, onl
             continue;
         }
 
-        const where = whereInRound(model, person.id, roundId, texts);
-
-        if (only !== null && where.kind !== only) {
-            continue;
-        }
-
+        // The name first - where somebody is in the round is only looked up for the people who match (review D NIT)
         const rank = matchRank(nameKey(person.name), folded);
 
-        if (rank === -1 || (folded === '' && where.kind !== 'tray' && only === null)) {
+        if (rank === -1) {
             continue;
         }
 
-        candidates.push({ person, where, rank });
+        const kind = whereKind(model, person.id, roundId);
+
+        if ((only !== null && kind !== only) || (folded === '' && kind !== 'tray' && only === null)) {
+            continue;
+        }
+
+        candidates.push({ person, kind, rank });
     }
 
     const order = model.peopleRank();
     candidates.sort((a, b) => a.rank - b.rank
-        || (WHERE_ORDER[a.where.kind] ?? 3) - (WHERE_ORDER[b.where.kind] ?? 3)
+        || (WHERE_ORDER[a.kind] ?? 3) - (WHERE_ORDER[b.kind] ?? 3)
         || (order.get(a.person.id) ?? 0) - (order.get(b.person.id) ?? 0));
+    const exactCount = candidates.filter((candidate) => candidate.rank === 0).length;
 
-    const options = candidates.slice(0, limit).map(({ person, where }) => {
+    const options = candidates.slice(0, limit).map(({ person, rank }) => {
+        const where = whereInRound(model, person.id, roundId, texts);
         const own = teamId !== null && where.teamId === teamId;
         const moves = where.kind === 'team' && !own;
         const parts = [];
@@ -347,6 +400,8 @@ export function personOptions(model, roundId, query, texts, { teamId = null, onl
             html: `${flagHtml(person.country)}${escapeHtml(person.name)}`,
             moveFrom: moves ? where.teamId : null,
             where: where.kind,
+            exact: rank === 0 && exactCount === 1,
+            moves,
         };
     });
 
@@ -357,6 +412,13 @@ export function personOptions(model, roundId, query, texts, { teamId = null, onl
     }
 
     return options;
+}
+
+/** `team` | `tray` | `out` - where a person is in a round, without the words. */
+function whereKind(model, personId, roundId) {
+    const place = parsePlace(model.placeValue(personId, roundId));
+
+    return place.kind === 'team' ? 'team' : (place.kind === IN ? 'tray' : 'out');
 }
 
 /**
@@ -377,7 +439,14 @@ export function teamOptions(model, roundId, query, texts, { exclude = new Set(),
             continue;
         }
 
-        options.push({ value: team.id, teamId: team.id, label, detail: sizeInfo(model, team.id, texts).text });
+        options.push({ value: team.id, teamId: team.id, label, detail: sizeInfo(model, team.id, texts).text, exact: folded !== '' && team.name !== null && nameKey(team.name) === folded });
+    }
+
+    // Enter takes a pair/team only when exactly one is called what was typed
+    if (options.filter((option) => option.exact).length > 1) {
+        options.forEach((option) => {
+            option.exact = false;
+        });
     }
 
     return options.slice(0, limit);
@@ -421,6 +490,7 @@ export function roundEntries(model, roundId, pending, texts = null) {
                 personId: person.id,
                 displayName: person.name,
                 names: [person.name],
+                codes: playerCodes([person]),
                 table,
                 tableNumber: table,
                 result: shown(ref, 'result', place.result),
@@ -447,6 +517,7 @@ export function roundEntries(model, roundId, pending, texts = null) {
             teamId: team.id,
             displayName: team.name ?? (members.join(', ') || (texts ? texts.t('team_no_name') : '')),
             names: [team.name, ...members].filter(Boolean),
+            codes: playerCodes(model.membersOf(team.id)),
             table,
             tableNumber: table,
             result: shown(ref, 'result', team.result),
@@ -462,6 +533,30 @@ export function roundEntries(model, roundId, pending, texts = null) {
     return entries;
 }
 
+/** Codes of the people's linked players, lower case - `#kim01` in a results paste (BR5, the live entry's rule). */
+function playerCodes(people) {
+    return people.map((person) => person.player?.code).filter((code) => typeof code === 'string' && code !== '').map((code) => code.toLowerCase());
+}
+
+/** How many entries of the round are marked qualified, as the page shows them (BR6). */
+export function qualifiedCount(entries) {
+    return entries.filter((entry) => entry.qualified).length;
+}
+
+/**
+ * Ids of the round's rows by rank (BR6 "Sort by rank"): ranked entries first, ties and the unranked in `fallback`
+ * order (table, then name). `idOf(entry)` = the row key of an entry.
+ */
+export function rankOrder(entries, fallback, idOf) {
+    const ranks = roundRanks(entries);
+    const position = new Map(fallback.map((id, index) => [id, index]));
+    const rows = entries.map((entry) => ({ id: idOf(entry), rank: ranks.get(entry.id) ?? null }));
+
+    return rows.sort((a, b) => (a.rank === null) - (b.rank === null)
+        || (a.rank ?? 0) - (b.rank ?? 0)
+        || (position.get(a.id) ?? 0) - (position.get(b.id) ?? 0)).map((row) => row.id);
+}
+
 /** The round holds official data (any result or qualified mark) - its results columns show by default (O3). */
 export function roundHasResults(model, roundId) {
     const round = model.round(roundId);
@@ -475,6 +570,11 @@ export function roundHasResults(model, roundId) {
     }
 
     return model.teamsOf(roundId).some((team) => hasOfficialData(team));
+}
+
+/** The organiser's own choice of the results columns for the round (true / false), or null when they never chose. */
+export function storedResultsColumns(storage, roundId) {
+    return readStored(storage, roundId);
 }
 
 /** Results / rank / qualified columns shown: the organiser's choice for the round, else started or holding results. */
@@ -543,8 +643,9 @@ export class RoundDialog {
      * @param {string} [options.description]
      * @param {Array<object>} [options.items]       menu items
      * @param {{label: string, placeholder?: string, options: function(string): Array<object>, empty?: string,
-     *          none?: string, extra?: {label: string, placeholder?: string}, submit?: {label: string}}} [options.picker]
-     *        `submit` = a button resolving {submit: true, query, extra} (e.g. "Create with this name only")
+     *          none?: string, pick?: string, extra?: {label: string, placeholder?: string}, submit?: {label: string}}} [options.picker]
+     *        `submit` = a button resolving {submit: true, query, extra} (e.g. "Create with this name only"); `pick` =
+     *        the hint when Enter found no highlighted option ("Pick one with ↓ and Enter")
      * @param {{label: string, value?: string, placeholder?: string, submitLabel: string}} [options.form] one text
      *        field (rename) - resolves {value}
      * @param {HTMLElement|null} [options.anchor]   desktop: shown next to it
@@ -669,7 +770,9 @@ export class RoundDialog {
         const hint = Array.isArray(answer) ? '' : (answer?.hint ?? '');
         this.listElement.innerHTML = this.list.map((option, index) => `<li role="option" id="${this.id}-o${index}" class="sheet-round-dialog-option${option.create ? ' is-create' : ''}" data-index="${index}" aria-selected="false">${option.html ?? escapeHtml(option.label)}${option.detail ? ` <small class="d-block text-body-secondary">${escapeHtml(option.detail)}</small>` : ''}</li>`).join('');
         this.hint.textContent = this.list.length === 0 ? (hint || (query.trim() === '' ? (picker.empty ?? '') : (picker.none ?? ''))) : hint;
-        this.highlight(this.list.length > 0 && !this.list[0].create ? 0 : -1);
+        // Enter alone takes only the one exact match that moves nobody (review D-m2) - never a partial match, one of
+        // several namesakes, somebody of another pair/team or "+ Add … as a new participant"
+        this.highlight(this.list.findIndex((option) => option.exact === true && option.moves !== true && !option.create));
     }
 
     highlight(index) {
@@ -711,6 +814,9 @@ export class RoundDialog {
                 if (chosen) {
                     this.choose(chosen);
                 }
+            } else if (count > 0 && this.options.picker.pick) {
+                // Nothing taken by Enter alone: said where the list is, never a silent nothing (BR1)
+                this.hint.textContent = this.options.picker.pick;
             }
         }
     }
@@ -838,6 +944,7 @@ export class RoundResultsCells {
             invalid: this.t('result_invalid'),
             outOfRange: this.t('result_out_of_range'),
             piecesRange: this.t('result_pieces_range'),
+            piecesTotal: this.t('result_pieces_total'),
         };
     }
 
@@ -1020,7 +1127,8 @@ export class RoundResultsCells {
             return { error: `${this.meanwhileText('result', found)} ${this.t('meanwhile_choose')}` };
         }
 
-        const parsed = parseResultInput(input.text, this.parseOptions());
+        // A kind picked from the Alt+Down list reads what was typed that way: "Didn't finish" + 479 = 479 pieces placed
+        const parsed = parseResultAs(option?.startsWith('kind:') ? option.slice('kind:'.length) : null, input.text, this.parseOptions());
 
         if (option === 'kind:dns') {
             return this.resultAction(current, { didNotStart: true });
@@ -1170,7 +1278,7 @@ export class RoundResultsCells {
         }
 
         const message = answer.problems?.[0]?.message ?? answer.message ?? this.t('table_swap_failed');
-        this.context.announce(message);
+        feedback(this.context, message);
 
         return false;
     }
@@ -1197,34 +1305,44 @@ export class RoundResultsCells {
 
 /**
  * The results paste preview (both round views): lines with "replaces 1:24:00", names not found / not in the round /
- * unreadable listed, ambiguous names picked; Confirm = one RecordRoundResults step.
+ * unreadable / blank listed, ambiguous names picked, unknown names of a round of team names only offered as new
+ * pairs/teams ("Create the team", ticked per name - BR16); Confirm = the new pairs/teams (when any) and then the
+ * RecordRoundResults changes. Creating teams and recording their results are two undo steps: an undo deletes a
+ * pair/team only after its result is gone, so Ctrl+Z takes the results back first, the teams with the next one.
  */
 export async function previewResults(view, plan, entries) {
     const t = (key, params) => view.texts.t(key, params);
     const tc = (key, count, params) => view.texts.tc(key, count, params);
     const byRef = new Map(entries.filter((entry) => entry.ref !== null).map((entry) => [entry.ref, entry]));
-    const piecesCount = view.model.round(view.roundId)?.piecesCount ?? null;
+    const round = view.model.round(view.roundId);
+    const piecesCount = round?.piecesCount ?? null;
+    const duo = round?.category === 'duo';
     const describe = (result) => resultText(result, piecesCount, view.results.resultTexts()) || t('result_preview_none');
 
     if (plan.lines.length === 0) {
-        view.context.announce(t('paste_nothing'));
+        feedback(view.context, t('paste_nothing'), { kind: 'info' });
 
         return;
     }
 
-    const lines = plan.lines.map((line) => {
+    const lines = plan.header ? [{ id: plan.header.id, text: plan.header.text, status: 'skip', note: t('paste_header_skipped') }] : [];
+
+    for (const line of plan.lines) {
         const who = line.ref ? (byRef.get(line.ref)?.displayName ?? line.name) : line.name;
-        const text = [who || t('paste_row', { number: line.index + 1 }), line.value].filter(Boolean).join(' ⇥ ');
+        const text = [who || t('paste_row', { number: line.index + 1 }), line.value].filter(Boolean).join(' · ');
 
         switch (line.status) {
             case 'change':
-                return { id: line.id, text, status: 'change', note: line.from !== null && line.from !== undefined ? t('paste_replaces', { value: describe(line.from) }) : describe(line.to) };
+                lines.push({ id: line.id, text, status: 'change', note: line.from !== null && line.from !== undefined ? t('paste_replaces', { value: describe(line.from) }) : describe(line.to) });
+                break;
             case 'same':
-                return { id: line.id, text, status: 'same', note: t('paste_result_same') };
+                lines.push({ id: line.id, text, status: 'same', note: t('paste_result_same') });
+                break;
             case 'error':
-                return { id: line.id, text, status: 'error', note: resultPreview(line.parsed, view.results.previewTexts()) };
+                lines.push({ id: line.id, text, status: 'error', note: resultPreview(line.parsed, view.results.previewTexts()) });
+                break;
             case 'ambiguous':
-                return {
+                lines.push({
                     id: line.id,
                     text,
                     status: 'warning',
@@ -1234,11 +1352,21 @@ export async function previewResults(view, plan, entries) {
                         options: [...line.candidates.map((ref) => ({ value: ref, label: byRef.get(ref)?.displayName ?? ref })), { value: SKIP, label: t('paste_leave_out') }],
                         value: SKIP,
                     },
-                };
+                });
+                break;
+            case 'new_team':
+                lines.push({
+                    id: line.id,
+                    text: [line.newTeam, line.value].filter(Boolean).join(' · '),
+                    status: 'new',
+                    note: [t(duo ? 'paste_result_new_pair' : 'paste_result_new_team'), describe(line.to)].join(' · '),
+                    tick: { label: t(duo ? 'paste_create_pair' : 'paste_create_team', { name: line.newTeam }), checked: true },
+                });
+                break;
             default:
-                return { id: line.id, text, status: 'skip', note: t(`paste_result_${line.reason}`) };
+                lines.push({ id: line.id, text, status: 'skip', note: t(`paste_result_${line.reason}`) });
         }
-    });
+    }
 
     const counts = [];
     const add = (count, key, tone = null) => {
@@ -1247,6 +1375,7 @@ export async function previewResults(view, plan, entries) {
         }
     };
     add(plan.counts.changes, 'count_results');
+    add(plan.counts.newTeams, duo ? 'count_new_pairs' : 'count_new_teams', 'warning');
     add(plan.counts.replaces, 'count_replaces', 'warning');
     add(plan.counts.skipped, 'count_skipped', 'danger');
     add(plan.counts.unreadable, 'count_unreadable', 'danger');
@@ -1254,10 +1383,10 @@ export async function previewResults(view, plan, entries) {
 
     const dialog = view.context.preview({
         title: t('paste_results_title'),
-        intro: t('paste_results_intro'),
+        intro: t(plan.byTable ? 'paste_results_intro_tables' : 'paste_results_intro'),
         counts,
         lines,
-        confirmLabel: tc('paste_results_confirm', plan.counts.changes + plan.counts.ambiguous),
+        confirmLabel: tc('paste_results_confirm', plan.counts.changes + plan.counts.ambiguous + plan.counts.newTeams),
         returnFocus: () => view.grid?.focusActive({ scroll: false }),
     });
     const selection = await dialog.result;
@@ -1268,21 +1397,200 @@ export async function previewResults(view, plan, entries) {
         return;
     }
 
-    const changes = chosenResultChanges(view.roundId, plan, entries, selection);
+    const created = newTeamsOfResults(view.model, view.roundId, plan, selection, { countries: view.context.countryCodes });
+    const changes = [...chosenResultChanges(view.roundId, plan, entries, selection), ...created.results];
 
-    if (changes.length === 0) {
-        view.context.announce(t('paste_nothing'));
+    if (changes.length === 0 && created.teams === null) {
+        feedback(view.context, t('paste_nothing'), { kind: 'info' });
 
         return;
     }
 
-    view.context.act(officialEdits(changes, { key: 'paste' }));
-    view.context.announce(tc('pasted_results', changes.length));
+    if (created.teams !== null && view.context.act(created.teams).performed !== true) {
+        // Every new pair/team refused (said by act()): their results have nothing to go to
+        changes.splice(changes.length - created.results.length);
+    }
+
+    if (changes.length > 0 && view.context.act(officialEdits(changes, { key: 'paste' })).performed) {
+        view.context.announce(tc('pasted_results', changes.length));
+    }
+}
+
+/** Per pasted row: the server's dry run said no (a refusal - `status: error`) or warned. */
+export function dryRunNotes(answer, action, notPossible) {
+    const notes = new Map();
+
+    if (answer?.kind !== 'ok') {
+        return notes;
+    }
+
+    const lineOf = new Map(action.groups.map((group, index) => [group.id, action.lineIds?.[index] ?? null]));
+
+    for (const group of answer.data?.groups ?? []) {
+        const lineId = lineOf.get(group.id);
+
+        if (!lineId) {
+            continue;
+        }
+
+        if (group.status === 'refused' || group.status === 'conflict') {
+            const change = (group.changes ?? []).find((candidate) => candidate.status === 'refused' || candidate.status === 'conflict');
+            notes.set(lineId, { status: 'error', note: change?.message ?? notPossible });
+        } else if ((group.warnings ?? []).length > 0) {
+            notes.set(lineId, { status: 'warning', note: group.warnings.map((warning) => warning.message).filter(Boolean).join(' ') });
+        }
+    }
+
+    return notes;
+}
+
+/**
+ * The preview of a paste that changes the sheet (rows of pairs/teams, names into a solo round), with the server's dry
+ * run (review D-m4): everything is built from the snapshot taken when the organiser pasted; the dry run runs again
+ * whenever a choice or a tick changes (the latest answer counts - rows it refuses under the choices made are left out,
+ * a row refused under an earlier choice is checked again); Confirm waits while a choice is still "Choose…" or the
+ * check runs. Resolves to the action to perform (rows refused by the dry run left out) or null when cancelled.
+ *
+ * @param {object} context the view's context (`preview`, `queue`)
+ * @param {{title: string, intro: string, build: function(object, Set<string>): object,
+ *          describe: function(object, Map<string, object>, object): {lines: Array<object>, counts: Array<object>},
+ *          undecided: function(object): string[], confirmLabel: function(number): string,
+ *          refusalText: function(object): string, returnFocus?: function(): void,
+ *          texts: {checking: string, unchecked: string, notPossible: string, choose: function(number): string}}} options
+ *        `build(selection, skip)` → an action with `lineIds`, `refusedLines`; `describe(selection, notes, action)` →
+ *        the dialog's lines and counts (`notes` = lineId → {status, note} from the checks)
+ * @returns {Promise<object|null>}
+ */
+export async function matchPreview(context, options) {
+    let dialog = null;
+    let seq = 0;
+    let skip = new Set();
+    let checking = false;
+
+    const sync = (patch) => {
+        if (dialog.settled) {
+            return;
+        }
+
+        // The dialog redraws its lines: the select / box the organiser is on keeps the focus
+        const active = dialog.dialog?.contains(document.activeElement) ? document.activeElement : null;
+        const choice = active?.dataset?.choice ?? null;
+        const tick = active?.dataset?.tick ?? null;
+        dialog.update(patch);
+        const confirm = dialog.dialog?.querySelector('[data-preview-confirm]');
+
+        if (confirm && (checking || options.undecided(dialog.selection()).length > 0)) {
+            confirm.disabled = true;
+        }
+
+        const again = choice !== null
+            ? dialog.dialog?.querySelector(`[data-choice="${CSS.escape(choice)}"]`)
+            : (tick !== null ? dialog.dialog?.querySelector(`[data-tick="${CSS.escape(tick)}"]`) : null);
+        again?.focus({ preventScroll: true });
+    };
+
+    const check = async () => {
+        const mine = ++seq;
+        const selection = dialog.selection();
+        const forward = options.build(selection, new Set());
+        const notes = new Map(forward.refusedLines
+            .filter((refusal) => refusal.lineId !== null)
+            .map((refusal) => [refusal.lineId, { status: 'error', note: options.refusalText(refusal.error) }]));
+        let message = '';
+
+        if (forward.groups.length > 0) {
+            checking = true;
+            sync({ message: options.texts.checking });
+            const answer = await context.queue.preview(forward.groups);
+
+            if (mine !== seq || dialog.settled) {
+                return;
+            }
+
+            checking = false;
+
+            for (const [lineId, note] of dryRunNotes(answer, forward, options.texts.notPossible)) {
+                notes.set(lineId, note);
+            }
+
+            message = answer?.kind === 'ok' ? '' : options.texts.unchecked;
+        }
+
+        skip = new Set([...notes].filter(([, note]) => note.status === 'error').map(([lineId]) => lineId));
+        const open = options.undecided(selection);
+        const shown = options.describe(selection, notes, forward);
+        const count = forward.lineIds.filter((lineId) => lineId !== null && !skip.has(lineId)).length;
+        sync({
+            loading: false,
+            lines: shown.lines,
+            counts: shown.counts,
+            confirmLabel: options.confirmLabel(count),
+            message: open.length > 0 ? options.texts.choose(open.length) : message,
+        });
+    };
+
+    const first = options.describe({ choices: {}, ticks: {} }, new Map(), null);
+    dialog = context.preview({
+        title: options.title,
+        intro: options.intro,
+        counts: first.counts,
+        lines: first.lines,
+        loading: true,
+        confirmLabel: options.confirmLabel(0),
+        returnFocus: options.returnFocus,
+        // A choice still open, or the check still running: the dialog stays and says so
+        onConfirm: (selection) => {
+            const open = options.undecided(selection);
+
+            if (open.length > 0) {
+                return { error: options.texts.choose(open.length) };
+            }
+
+            return checking ? { error: options.texts.checking } : undefined;
+        },
+    });
+    dialog.dialog?.addEventListener('change', () => check());
+    check();
+
+    const selection = await dialog.result;
+
+    if (selection === null) {
+        return null;
+    }
+
+    return options.build(selection, skip);
+}
+
+/**
+ * A name nobody of the event has, in a paste preview: "Add … as a new participant" - not ticked when a close name
+ * exists ("Did you mean Kim Example?") or the value looks like a country code, a number or an e-mail (BR9).
+ *
+ * @param {{t: function}} texts the round texts
+ * @param {{key: string, name: string, close: Array<{name: string}>, suspicious: string|null, tick: boolean}} entry
+ */
+export function newPersonLine(texts, entry) {
+    const notes = [texts.t('paste_new_person_note')];
+
+    if (entry.close.length > 0) {
+        notes.push(texts.t('paste_did_you_mean', { names: entry.close.map((person) => person.name).join(', ') }));
+    }
+
+    if (entry.suspicious !== null) {
+        notes.push(texts.t(`paste_looks_like_${entry.suspicious}`));
+    }
+
+    return {
+        id: `n${entry.key}`,
+        text: entry.name,
+        status: entry.tick ? 'new' : 'warning',
+        note: notes.join(' · '),
+        tick: { label: texts.t('paste_add_new_person', { name: entry.name }), checked: entry.tick },
+    };
 }
 
 /** A selector finding the same control again after a re-render. */
 export function focusKey(element) {
-    for (const attribute of ['data-filter', 'data-person', 'data-team', 'data-sort', 'data-results', 'data-team-size', 'data-tray-add', 'data-add', 'data-action']) {
+    for (const attribute of ['data-filter', 'data-person', 'data-team', 'data-sort', 'data-rank-sort', 'data-results', 'data-team-size', 'data-tray-add', 'data-add', 'data-action']) {
         if (element.hasAttribute?.(attribute)) {
             const value = element.getAttribute(attribute);
 

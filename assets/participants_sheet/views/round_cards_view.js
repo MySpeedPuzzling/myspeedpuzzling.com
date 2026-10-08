@@ -10,7 +10,9 @@
  * - solo rounds: the round's people (table, name, flag, result read-only), "Add people to this round", "Take out".
  *
  * 44 px targets, native controls (buttons, `<dialog>`, inputs), nothing drag-only, no horizontal page scroll at 375 px.
- * Every change is the same action as on a desktop (sheet_changes.js through `context.act()`).
+ * Every change is the same action as on a desktop (sheet_changes.js through `context.act()`); a refusal is shown next to
+ * the button it came from (feedback() → the core's notify(), BR1), the round's "Results published …" and qualified
+ * count in the head (BR6).
  */
 
 import { escapeHtml } from '../sheet_grid.js';
@@ -18,10 +20,12 @@ import { buildAction, clearMember, deleteTeam, newTeamRow, renameTeam, setPlace 
 import { IN, OUT, cleanName, hasOfficialData, parsePlace, teamPlace } from '../sheet_model.js';
 import { newClientId } from '../../official_results_api.js';
 import {
+    feedback,
     flagHtml,
     keepOrder,
     nameCollator,
     personOptions,
+    qualifiedCount,
     RoundDialog,
     roundEntries,
     roundRefusalText,
@@ -30,6 +34,7 @@ import {
     sizeInfo,
     sortedPeopleIds,
     sortedTeamIds,
+    takeTeamOutAction,
     teamLabelText,
     teamOptions,
     teamShortLabel,
@@ -107,18 +112,13 @@ export class RoundCardsView {
             return;
         }
 
-        if (delta.all) {
-            this.renderAll();
-
-            return;
-        }
-
-        const touched = delta.rounds.has(this.roundId) || delta.people.size > 0 || delta.teams.size > 0;
+        const touched = delta.all || delta.rounds.has(this.roundId) || delta.people.size > 0 || delta.teams.size > 0;
 
         if (!touched) {
             return;
         }
 
+        // The order first - a fetched state (delta.all) brings pairs/teams and people too (review D-m1)
         const ids = this.solo() ? this.model.peopleIn(this.roundId).map((person) => person.id) : this.model.teamsOf(this.roundId).map((team) => team.id);
         this.order = keepOrder(this.order, ids);
         this.renderHead();
@@ -214,7 +214,14 @@ export class RoundCardsView {
             ? `<a class="btn btn-outline-secondary sheet-cards-button" href="${escapeHtml(urls.liveEntry)}" target="_blank" rel="noopener"><i class="bi bi-broadcast" aria-hidden="true"></i> ${escapeHtml(this.t('link_live_entry'))}<span class="visually-hidden"> ${escapeHtml(this.t('new_tab'))}</span></a>`
             : '';
 
+        const qualified = qualifiedCount(roundEntries(this.model, this.roundId, this.results.pending(), this.texts));
+
+        if (qualified > 0) {
+            parts.push(this.tc('qualified_count', qualified));
+        }
+
         this.patch(this.head, `<p class="sheet-cards-summary mb-2"><span class="sheet-round-swatch" style="background-color:${escapeHtml(safeColor(round.color))}" aria-hidden="true"></span> <strong>${escapeHtml(round.name)}</strong> · ${escapeHtml(parts.join(' · '))}</p>
+            ${round.resultsPublished === true ? `<p class="sheet-round-published small mb-2"><i class="bi bi-broadcast-pin" aria-hidden="true"></i> ${escapeHtml(this.t('results_published'))}</p>` : ''}
             <div class="sheet-cards-tools">${this.solo() ? `<button type="button" class="btn btn-primary sheet-cards-button" data-key="add-people" data-action="add-people"><i class="bi bi-person-plus" aria-hidden="true"></i> ${escapeHtml(this.t('add_people'))}</button>` : ''}${live}</div>`);
     }
 
@@ -350,7 +357,7 @@ export class RoundCardsView {
                 this.chipMenu(person, button);
                 break;
             case 'remove':
-                this.removeMember(person, team);
+                this.removeMember(person, team, button);
                 break;
             case 'add-member':
                 this.addMember(team, button);
@@ -365,7 +372,7 @@ export class RoundCardsView {
                 this.addPeople(button);
                 break;
             case 'out':
-                this.takeOut(person);
+                this.takeOut(person, button);
                 break;
             default:
         }
@@ -380,21 +387,29 @@ export class RoundCardsView {
         return roundRefusalText(this.context, this.model, this.texts, error);
     }
 
-    /** An action through the controller; a refusal is said aloud (and shown in the problems panel by the core). */
-    perform(action, success = '') {
+    /**
+     * An action through the controller: a refusal is shown next to `anchor` (the button it came from - BR1), `success`
+     * read out only when something was done. Returns whether it was performed without a refusal.
+     */
+    perform(action, success = '', anchor = null) {
         const outcome = this.context.act(action, { quiet: true });
 
         if (outcome.errors.length > 0) {
-            this.context.announce(this.reasonText(outcome.errors[0]));
+            this.say(this.reasonText(outcome.errors[0]), anchor);
 
             return false;
         }
 
-        if (success) {
+        if (success && outcome.performed) {
             this.context.announce(success);
         }
 
         return outcome.performed;
+    }
+
+    /** A refusal or "nothing happened", shown next to the element it came from. */
+    say(text, anchor = null, kind = 'error') {
+        feedback(this.context, text, { kind, anchor: anchor && anchor.isConnected ? anchor : null });
     }
 
     openDialog(options) {
@@ -436,7 +451,7 @@ export class RoundCardsView {
                 { value: 'out', label: this.t('chip_out'), icon: 'bi-box-arrow-right', danger: true, disabled: holds, reason: holds ? this.reasonText({ reason: 'has_result_in_round', change: { participant: personId, round: this.roundId } }) : '' },
             ],
             returnFocus: () => this.focusKey(`chip:${personId}`, 'tray-add'),
-            onDisabled: (item) => this.context.announce(item.reason),
+            onDisabled: (item) => this.say(item.reason, anchor),
         });
 
         if (choice === null) {
@@ -451,6 +466,7 @@ export class RoundCardsView {
                     placeholder: this.t('search_people_placeholder'),
                     empty: this.tk('pair_with_empty'),
                     none: this.t('no_matches'),
+                    pick: this.t('picker_pick'),
                     options: (query) => personOptions(this.model, this.roundId, query, this.texts, { only: 'tray', exclude: new Set([personId]), create: false, countries: this.context.countries }).map((option) => ({ ...option, detail: '' })),
                 },
                 returnFocus: () => this.focusKey(`chip:${personId}`, 'tray-add'),
@@ -459,7 +475,7 @@ export class RoundCardsView {
             if (picked?.personId) {
                 const action = newTeamRow(this.model, this.roundId, { members: [personId, picked.personId] }, this.options());
 
-                if (this.perform(action, this.tk('paired', { first: person.name, second: picked.label }))) {
+                if (this.perform(action, this.tk('paired', { first: person.name, second: picked.label }), anchor)) {
                     this.focusKey(`menu:${action.teamId}`);
                 }
             }
@@ -470,6 +486,7 @@ export class RoundCardsView {
                     label: this.tk('search_teams'),
                     placeholder: this.tk('search_teams_placeholder'),
                     none: this.t('no_matches'),
+                    pick: this.t('picker_pick'),
                     options: (query) => teamOptions(this.model, this.roundId, query, this.texts),
                 },
                 returnFocus: () => this.focusKey(`chip:${personId}`, 'tray-add'),
@@ -478,38 +495,34 @@ export class RoundCardsView {
             if (picked?.teamId) {
                 const changes = [{ op: 'place', participant: personId, round: this.roundId, from: this.model.placeValue(personId, this.roundId), to: teamPlace(picked.teamId) }];
 
-                if (this.perform(buildAction(this.model, [changes], { label: { key: 'put_in_team' }, ...this.options() }), this.t('added_to', { name: person.name, team: picked.label }))) {
+                if (this.perform(buildAction(this.model, [changes], { label: { key: 'put_in_team' }, ...this.options() }), this.t('added_to', { name: person.name, team: picked.label }), anchor)) {
                     this.focusKey(`remove:${personId}`);
                 }
             }
         } else if (choice.value === 'new') {
             const action = newTeamRow(this.model, this.roundId, { members: [personId] }, this.options());
 
-            if (this.perform(action, this.tk('created_with', { name: person.name }))) {
+            if (this.perform(action, this.tk('created_with', { name: person.name }), anchor)) {
                 this.focusKey(`add:${action.teamId}`);
             }
         } else if (choice.value === 'out') {
-            this.perform(setPlace(this.model, personId, this.roundId, OUT, { label: { key: 'round_out' }, ...this.options() }), this.t('taken_out_person', { name: person.name }));
-            this.focusKey('tray-add');
+            if (this.perform(setPlace(this.model, personId, this.roundId, OUT, { label: { key: 'round_out' }, ...this.options() }), this.t('taken_out_person', { name: person.name }), anchor)) {
+                this.focusKey('tray-add');
+            }
         }
     }
 
-    removeMember(personId, teamId) {
+    removeMember(personId, teamId, anchor = null) {
         const team = this.model.team(teamId);
 
         if (team === null) {
             return;
         }
 
-        if (hasOfficialData(team) && this.model.membersOf(teamId).length <= 1) {
-            this.context.announce(this.reasonText({ reason: 'team_has_result', change: { team: teamId } }));
-
-            return;
-        }
-
         const name = this.model.person(personId)?.name ?? '';
 
-        if (this.perform(clearMember(this.model, this.roundId, personId, this.options()), this.tk('member_to_tray', { name }))) {
+        // A pair/team with a result keeps a going member - the core's group check says why (review D-m9)
+        if (this.perform(clearMember(this.model, this.roundId, personId, this.options()), this.tk('member_to_tray', { name }), anchor)) {
             // The card (or what is left of it) keeps the focus; the pair/team may be gone (no name, emptied)
             this.focusKey(`add:${teamId}`, `chip:${personId}`, 'tray-add');
         }
@@ -524,6 +537,7 @@ export class RoundCardsView {
                 placeholder: this.t('search_people_placeholder'),
                 empty: this.t('member_hint'),
                 none: this.t('no_matches'),
+                pick: this.t('picker_pick'),
                 options: (query) => personOptions(this.model, this.roundId, query, this.texts, { teamId, countries: this.context.countries }),
             },
             returnFocus: () => this.focusKey(`add:${teamId}`),
@@ -546,28 +560,11 @@ export class RoundCardsView {
         }
 
         const from = parsePlace(this.model.placeValue(personId, this.roundId));
-
-        if (this.leavesResultEmpty(personId, teamId)) {
-            return;
-        }
-
         changes.push({ op: 'place', participant: personId, round: this.roundId, from: this.model.placeValue(personId, this.roundId), to: teamPlace(teamId) });
         const moves = from.kind === 'team' && from.teamId !== teamId ? this.t('moves_announce', { name: picked.label, where: teamShortLabel(this.model, from.teamId, this.texts) }) : '';
-        this.perform(buildAction(this.model, [changes], { label: { key: 'put_in_team' }, ...this.options() }), [this.t('added_to', { name: picked.create ? cleanName(picked.name) : picked.label, team: label }), moves].filter(Boolean).join(' '));
+        // Taking the last going member out of a pair/team with a result is refused by the core's group check (D-m9)
+        this.perform(buildAction(this.model, [changes], { label: { key: 'put_in_team' }, ...this.options() }), [this.t('added_to', { name: picked.create ? cleanName(picked.name) : picked.label, team: label }), moves].filter(Boolean).join(' '), anchor);
         this.focusKey(`add:${teamId}`);
-    }
-
-    /** Moving the last person out of a pair/team with a result is refused (the server would too) - said aloud. */
-    leavesResultEmpty(personId, teamId) {
-        const from = parsePlace(this.model.placeValue(personId, this.roundId));
-
-        if (from.kind === 'team' && from.teamId !== teamId && hasOfficialData(this.model.team(from.teamId)) && this.model.membersOf(from.teamId).length <= 1) {
-            this.context.announce(this.reasonText({ reason: 'team_has_result', change: { team: from.teamId } }));
-
-            return true;
-        }
-
-        return false;
     }
 
     async teamMenu(teamId, anchor) {
@@ -588,27 +585,31 @@ export class RoundCardsView {
                 { value: 'out', label: this.tk('menu_take_out'), icon: 'bi-box-arrow-right', danger: true, disabled: official || holder !== null, reason: official ? this.reasonText({ reason: 'team_has_result', change: { team: teamId } }) : (holder ? this.reasonText({ reason: 'has_result_in_round', change: { participant: holder.id, round: this.roundId } }) : '') },
             ],
             returnFocus: () => this.focusKey(`menu:${teamId}`, 'new'),
-            onDisabled: (item) => this.context.announce(item.reason),
+            onDisabled: (item) => this.say(item.reason, anchor),
         });
 
         if (choice?.value === 'rename') {
+            // `from` = the name when the sheet opened (review D-m6): a rename by somebody else meanwhile comes back as
+            // a conflict instead of being overwritten
+            const seen = this.model.team(teamId)?.name ?? null;
             const answer = await this.openDialog({
                 title: this.tk('menu_rename'),
-                form: { label: this.tk('col_name'), value: team.name ?? '', placeholder: this.core.t('team_no_name'), submitLabel: this.t('save') },
+                form: { label: this.tk('col_name'), value: seen ?? '', placeholder: this.core.t('team_no_name'), submitLabel: this.t('save') },
                 returnFocus: () => this.focusKey(`menu:${teamId}`),
             });
 
             if (answer !== null) {
-                this.perform(renameTeam(this.model, teamId, answer.value, this.options()), this.t('renamed'));
+                this.perform(renameTeam(this.model, teamId, answer.value, { ...this.options(), from: seen }), this.t('renamed'), this.context.root.querySelector(`[data-key="${CSS.escape(`menu:${teamId}`)}"]`));
             }
         } else if (choice?.value === 'delete') {
-            this.perform(deleteTeam(this.model, teamId, this.options()), this.tk('deleted', { team: label }));
-            this.focusKey('tray-add', 'new');
+            if (this.perform(deleteTeam(this.model, teamId, this.options()), this.tk('deleted', { team: label }), anchor)) {
+                this.focusKey('tray-add', 'new');
+            }
         } else if (choice?.value === 'out') {
-            const members = this.model.membersOf(teamId).map((person) => person.id);
-            const changes = [{ op: 'deleteTeam', team: teamId }, ...members.map((personId) => ({ op: 'place', participant: personId, round: this.roundId, from: IN, to: OUT }))];
-            this.perform(buildAction(this.model, [changes], { label: { key: 'round_out' }, ...this.options() }), this.tk('taken_out', { team: label }));
-            this.focusKey('new');
+            // The undo gives the table number back (review D-m5)
+            if (this.perform(takeTeamOutAction(this.model, this.roundId, teamId, this.options()), this.tk('taken_out', { team: label }), anchor)) {
+                this.focusKey('new');
+            }
         }
     }
 
@@ -622,6 +623,7 @@ export class RoundCardsView {
                 placeholder: this.t('search_people_placeholder'),
                 empty: this.t('member_hint'),
                 none: this.t('no_matches'),
+                pick: this.t('picker_pick'),
                 options: (query) => personOptions(this.model, this.roundId, query, this.texts, { teamId: null, countries: this.context.countries }),
                 submit: { label: this.tk('new_name_only') },
             },
@@ -634,20 +636,17 @@ export class RoundCardsView {
 
         const name = picked.extra ?? '';
         const members = picked.create ? [{ name: picked.name, country: null }] : (picked.personId ? [picked.personId] : []);
+        const anchor = this.context.root.querySelector('[data-key="new"]');
 
         if (members.length === 0 && name.trim() === '') {
-            this.context.announce(this.tk('new_needs_something'));
+            this.say(this.tk('new_needs_something'), anchor, 'warning');
 
-            return;
-        }
-
-        if (picked.personId && this.leavesResultEmpty(picked.personId, null)) {
             return;
         }
 
         const action = newTeamRow(this.model, this.roundId, { name, members }, this.options());
 
-        if (this.perform(action, this.tk('created', { name: name.trim() || this.core.t('team_no_name') }))) {
+        if (this.perform(action, this.tk('created', { name: name.trim() || this.core.t('team_no_name') }), anchor)) {
             this.focusKey(`add:${action.teamId}`);
         }
     }
@@ -660,6 +659,7 @@ export class RoundCardsView {
                 placeholder: this.t('search_people_placeholder'),
                 empty: this.t('add_people_hint'),
                 none: this.t('no_matches'),
+                pick: this.t('picker_pick'),
                 options: (query) => (query.trim() === '' ? [] : personOptions(this.model, this.roundId, query, this.texts, { only: 'out', countries: this.context.countries })),
             },
             returnFocus: () => this.focusKey('add-people', 'tray-add'),
@@ -669,19 +669,21 @@ export class RoundCardsView {
             return;
         }
 
+        const anchor = this.context.root.querySelector('[data-key="add-people"]') ?? this.context.root.querySelector('[data-key="tray-add"]');
+
         if (picked.create) {
             const id = newClientId();
             const changes = [
                 { op: 'newParticipant', id, name: cleanName(picked.name), country: null, externalId: null },
                 { op: 'place', participant: id, round: this.roundId, from: OUT, to: IN },
             ];
-            this.perform(buildAction(this.model, [changes], { label: { key: 'add_person' }, ...this.options() }), this.t('added_new_to_round', { name: cleanName(picked.name) }));
+            this.perform(buildAction(this.model, [changes], { label: { key: 'add_person' }, ...this.options() }), this.t('added_new_to_round', { name: cleanName(picked.name) }), anchor);
         } else if (picked.personId) {
-            this.perform(setPlace(this.model, picked.personId, this.roundId, IN, { label: { key: 'round_in' }, ...this.options() }), this.t('added_to_round', { name: picked.label }));
+            this.perform(setPlace(this.model, picked.personId, this.roundId, IN, { label: { key: 'round_in' }, ...this.options() }), this.t('added_to_round', { name: picked.label }), anchor);
         }
     }
 
-    takeOut(personId) {
+    takeOut(personId, anchor = null) {
         const person = this.model.person(personId);
 
         if (person === null) {
@@ -689,7 +691,7 @@ export class RoundCardsView {
         }
 
         if (this.model.holdsDataInRound(personId, this.roundId)) {
-            this.context.announce(this.reasonText({ reason: 'has_result_in_round', change: { participant: personId, round: this.roundId } }));
+            this.say(this.reasonText({ reason: 'has_result_in_round', change: { participant: personId, round: this.roundId } }), anchor);
 
             return;
         }
@@ -697,7 +699,7 @@ export class RoundCardsView {
         const index = this.order.indexOf(personId);
         const next = this.order.slice(index + 1).find((id) => this.cards.has(id)) ?? this.order.slice(0, index).reverse().find((id) => this.cards.has(id));
 
-        if (this.perform(setPlace(this.model, personId, this.roundId, OUT, { label: { key: 'round_out' }, ...this.options() }), this.t('taken_out_person', { name: person.name }))) {
+        if (this.perform(setPlace(this.model, personId, this.roundId, OUT, { label: { key: 'round_out' }, ...this.options() }), this.t('taken_out_person', { name: person.name }), anchor)) {
             this.focusKey(next ? `out:${next}` : null, 'add-people');
         }
     }

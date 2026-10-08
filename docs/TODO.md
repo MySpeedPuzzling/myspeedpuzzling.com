@@ -57,10 +57,10 @@ A second puzzler asked for much the same, so it is not a one-off wish.
 
 What a reply to a player promised to build. Each has an MSP Mailer follow-up: tell the player when it ships.
 
-- [ ] First tries (and unboxed) filter for pairs and teams. Today the switch is shown, but `PlayerSolvedPuzzles.php`
-      (~222-225) resets it outside solo and only solo results are filtered (~263-280); the puzzle leaderboard has
-      the same reset (`PuzzleTimes.php` ~245-247). A pair/team result is a first try only when it is everybody's
-      (`docs/features/first-try-integrity.md`). Promised to Gav (MSP #90, follow-up F45) and Allison (MSP #107, F46).
+- [x] First tries (and unboxed) filter for pairs and teams, on the profile and the puzzle leaderboard, kept across
+      tabs (2026-10-08, `docs/features/pairs-and-teams/README.md` "Filters"). With it Allison's other report: the
+      "with…" pair/team filter no longer hides the Solo tab. Promised to Gav (MSP #90, follow-up F45) and Allison
+      (MSP #107, F46) - tell them once it is deployed.
 - [ ] Move several puzzles at once on a collection page (select, then "Move to collection"), not only one by one or
       through multiscan. Promised to Allison (MSP #107, follow-up F50).
 

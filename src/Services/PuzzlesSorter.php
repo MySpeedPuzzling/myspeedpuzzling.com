@@ -85,20 +85,47 @@ readonly final class PuzzlesSorter
 
     /**
      * Pair/team results grouped by puzzle AND the exact people (puzzling team), in the given order - one group is
-     * what the result detail of its first time shows (docs/features/puzzle-result-detail.md)
+     * what the result detail of its first time shows (docs/features/puzzle-result-detail.md).
+     *
+     * Under the first tries / unboxed filter only the groups with a matching attempt are left, each led and placed by
+     * its first matching attempt in the given order - like a solo row, the shown time is the first try / unboxed one
      *
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<string, non-empty-array<SolvedPuzzle>>
      */
-    public function groupPuzzlesByTeam(array $solvedPuzzles): array
+    public function groupPuzzlesByTeam(array $solvedPuzzles, bool $onlyFirstTries = false, bool $onlyUnboxed = false): array
     {
         $grouped = [];
 
         foreach ($solvedPuzzles as $solvedPuzzle) {
-            $grouped[$solvedPuzzle->puzzleId . '|' . ($solvedPuzzle->teamId ?? $solvedPuzzle->timeId)][] = $solvedPuzzle;
+            $grouped[self::teamGroupKey($solvedPuzzle)][] = $solvedPuzzle;
         }
 
-        return $grouped;
+        if ($onlyFirstTries === false && $onlyUnboxed === false) {
+            return $grouped;
+        }
+
+        $led = [];
+
+        foreach ($solvedPuzzles as $solvedPuzzle) {
+            $key = self::teamGroupKey($solvedPuzzle);
+
+            if (isset($led[$key]) || ($onlyFirstTries && $solvedPuzzle->firstAttempt === false) || ($onlyUnboxed && $solvedPuzzle->unboxed === false)) {
+                continue;
+            }
+
+            $led[$key] = [
+                $solvedPuzzle,
+                ...array_values(array_filter($grouped[$key], static fn(SolvedPuzzle $other): bool => $other !== $solvedPuzzle)),
+            ];
+        }
+
+        return $led;
+    }
+
+    private static function teamGroupKey(SolvedPuzzle $solvedPuzzle): string
+    {
+        return $solvedPuzzle->puzzleId . '|' . ($solvedPuzzle->teamId ?? $solvedPuzzle->timeId);
     }
 
     /**
@@ -475,6 +502,24 @@ readonly final class PuzzlesSorter
         });
 
         return $groupedSolvedPuzzles;
+    }
+
+    /**
+     * The first tries / unboxed filter of solo, pair and team lists: groups with a matching attempt - with both on,
+     * one attempt that is both a first try and unboxed
+     *
+     * @template T of PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle
+     * @param array<string, non-empty-array<T>> $groupedSolvers
+     * @return array<string, non-empty-array<T>>
+     */
+    public function filterGroupedByAttempt(array $groupedSolvers, bool $onlyFirstTries, bool $onlyUnboxed): array
+    {
+        return match (true) {
+            $onlyFirstTries && $onlyUnboxed => $this->filterByFirstAttemptAndUnboxedGrouped($groupedSolvers),
+            $onlyFirstTries => $this->filterOutNonFirstTriesGrouped($groupedSolvers),
+            $onlyUnboxed => $this->filterOutNonUnboxedGrouped($groupedSolvers),
+            default => $groupedSolvers,
+        };
     }
 
     /**

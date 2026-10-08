@@ -39,6 +39,8 @@ readonly final class SuspiciousTimeDecisionLogItem
         public null|string $decidedById,
         public null|string $decidedByName,
         public null|string $decidedByCode,
+        // A puzzle's slow threshold decision: the threshold set
+        public null|float $slowThreshold = null,
     ) {
     }
 
@@ -54,6 +56,15 @@ readonly final class SuspiciousTimeDecisionLogItem
             SuspiciousTimeDecisionKind::MarkedOutsideApp => 'Flagged outside the app',
             SuspiciousTimeDecisionKind::UnmarkedOutsideApp => 'Unflagged outside the app',
             SuspiciousTimeDecisionKind::PiecesConfirmed => 'Piece count is right',
+            SuspiciousTimeDecisionKind::SlowThresholdSet => $this->slowThreshold !== null
+                ? sprintf('Hard puzzle - too slow only from %s× the expected time', self::number($this->slowThreshold))
+                : 'Hard puzzle - slow threshold set',
+            SuspiciousTimeDecisionKind::SlowThresholdRemoved => 'Hard puzzle no more - the usual slow thresholds again',
         };
+    }
+
+    private static function number(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.');
     }
 }

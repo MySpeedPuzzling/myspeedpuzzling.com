@@ -68,6 +68,8 @@ final class ListPuzzleMergeRequestsController extends AbstractController
             'sourcePuzzleName' => $item->sourcePuzzleName,
             'actionable' => $item->isActionable(),
             'missingPuzzleIds' => $item->missingPuzzleIds,
+            // Reported puzzle id => the puzzle it was merged into since (a candidate in its place) - an object even when empty
+            'mergedMeanwhile' => (object) $item->mergedMeanwhile,
             // What the reporter said each puzzle's name is in - puzzle id => language, an object even when empty
             'reportedNameLanguages' => (object) $item->reportedNameLanguages,
             'candidates' => array_map($this->serializeCandidate(...), $item->candidates),

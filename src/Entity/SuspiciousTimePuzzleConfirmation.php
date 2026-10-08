@@ -16,9 +16,11 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
 /**
- * "The piece count is right" on a puzzle card of the moderator queue (docs/features/suspicious-time-review.md,
- * "The piece count is wrong"): the puzzle's cases go on one by one. Bound to the piece count it was given for - it
- * lapses when the puzzle's count changes.
+ * A moderator's word about a puzzle in time verification (docs/features/suspicious-time-review.md, "A hard puzzle"):
+ * its piece count is right and its times are too slow only from slowThreshold × what was expected - a puzzle all of
+ * one colour takes everybody many times longer than its piece count suggests. Bound to the piece count it was given
+ * for: it lapses when the puzzle's count changes. Rows without a threshold are earlier "the piece count is right"
+ * confirmations - they no longer change anything.
  */
 #[Entity]
 class SuspiciousTimePuzzleConfirmation
@@ -36,9 +38,14 @@ class SuspiciousTimePuzzleConfirmation
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: UuidType::NAME, nullable: true)]
         public null|UuidInterface $confirmedById,
+        // When it was last set - the scan judges again every time of the puzzle checked before (GetSuspiciousTimeCandidates)
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $confirmedAt,
+        // A slow time on the puzzle is raised only from this many times its expectation (SuspiciousTimeClassifier)
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::FLOAT, nullable: true)]
+        public null|float $slowThreshold = null,
     ) {
     }
 
@@ -47,9 +54,13 @@ class SuspiciousTimePuzzleConfirmation
         return $this->piecesCount === $piecesCount;
     }
 
-    public function confirmAgain(int $piecesCount, null|UuidInterface $confirmedById, DateTimeImmutable $now): void
+    /**
+     * A new threshold, or none (null) - for the puzzle's current piece count.
+     */
+    public function changeSlowThreshold(int $piecesCount, null|float $slowThreshold, null|UuidInterface $confirmedById, DateTimeImmutable $now): void
     {
         $this->piecesCount = $piecesCount;
+        $this->slowThreshold = $slowThreshold;
         $this->confirmedById = $confirmedById;
         $this->confirmedAt = $now;
     }

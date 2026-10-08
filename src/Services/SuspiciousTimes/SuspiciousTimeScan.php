@@ -75,6 +75,29 @@ readonly final class SuspiciousTimeScan
     }
 
     /**
+     * One puzzle's times judged again right after a moderator changed its slow threshold - its cases close (or open)
+     * at once. Null when it failed (logged): the next run judges them, the threshold made their checks stale.
+     */
+    public function forPuzzle(string $puzzleId): null|SuspiciousTimeScanSummary
+    {
+        try {
+            $detection = $this->messageBus->dispatch(new DetectSuspiciousTimes(onlyPuzzleId: $puzzleId))->last(HandledStamp::class)?->getResult();
+            assert($detection instanceof SuspiciousTimeScanSummary);
+        } catch (Throwable $e) {
+            $detection = null;
+
+            $this->logger->warning('Time verification: judging one puzzle\'s times again failed - the next run does it', [
+                'puzzleId' => $puzzleId,
+                'exception' => $e,
+            ]);
+        }
+
+        $this->freshEntityManager();
+
+        return $detection;
+    }
+
+    /**
      * A refused handler's changes are rolled back in the database but stay in the unit of work - the next message's
      * flush would write them after all. A failed flush closes the entity manager altogether.
      */

@@ -35,12 +35,12 @@ membership_subscribed:
 
 subscription_payment_failed:
     subject: "Membership payment on MySpeedPuzzling.com failed"
-    preheader: "The payment did not go through – check your payment method to keep your membership."
+    preheader: "The payment did not go through – your membership is paused until it does."
     title: "Membership payment failed!"
     content: |
-        <p>We noticed that your recent membership payment was unsuccessful. There may have been an issue with your payment method.</p>
-        <p>If you wish to keep your membership active, please check and update your payment method in the billing portal.</p>
-        <p>If the payment continues to fail, your membership will be deactivated after a few more attempts. We hope you’ll stay with MySpeedPuzzling.com!</p>
+        <p>Your latest membership payment did not go through. Payments are sometimes declined even when nothing changed on your side, for example when the bank replaced the card or a card saved in Apple Pay or Google Pay stopped being valid there.</p>
+        <p>Your membership is paused until a payment goes through. Please check your payment method in the billing portal. As soon as a payment succeeds, your membership is back right away.</p>
+        <p>We may try the payment again automatically over the next few days, but not every failed payment can be retried, so please don’t wait for it. We hope you’ll stay with MySpeedPuzzling.com!</p>
     button: "Update payment method"
 
 subscription_renewed:

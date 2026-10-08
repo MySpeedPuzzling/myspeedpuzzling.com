@@ -1,0 +1,83 @@
+{# The decision taken about a case so far - who, when, what the player reads and how they answered. Expects: case
+   (SuspiciousTimeCaseCard) whose status is not pending. #}
+{% set status = case.status.value %}
+{% set decided_by = case.decidedByName ?? (case.decidedByCode ? '#' ~ case.decidedByCode : null) %}
+<dl class="tv-status" aria-label="Decision so far">
+    <div>
+        <dt>
+            {% if status == 'marked' %}
+                <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>Needs verification
+            {% elseif status == 'trusted' %}
+                <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Verified fine
+            {% else %}
+                {{ status|capitalize }}
+            {% endif %}
+        </dt>
+        <dd>
+            {% if status == 'marked' %}
+                Marked {{ case.markedAt ? case.markedAt|date('j M Y H:i') : '' }}
+            {% else %}
+                {{ case.decidedAt ? case.decidedAt|date('j M Y H:i') : '' }}
+            {% endif %}
+            {% if decided_by %}by {{ decided_by }}{% elseif status == 'marked' %}outside the app{% endif %}
+        </dd>
+    </div>
+
+    {% if status == 'marked' %}
+        <div>
+            <dt>The player reads</dt>
+            <dd>
+                {% if case.reasonsShown is empty and case.moderatorNote is null %}
+                    <span class="text-muted">only that the time awaits verification</span>
+                {% endif %}
+                {% if case.reasonsShown is not empty %}
+                    <ul class="tv-list">
+                        {% for reason in case.reasonsShown %}
+                            <li>{{ include('suspicious_time/_reason.html.twig', {reason: reason}, with_context = false) }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if case.moderatorNote %}<div class="mt-1">Note: <em class="text-break">{{ case.moderatorNote }}</em></div>{% endif %}
+            </dd>
+        </div>
+    {% endif %}
+
+    {% if case.playerEditedAt %}
+        <div>
+            <dt><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>The entry changed</dt>
+            <dd><strong>{{ case.playerEditedAt|date('j M Y H:i') }}</strong> - the player's edit, or the puzzle or its piece count changed. It still needs a look.</dd>
+        </div>
+    {% endif %}
+
+    {% set current_notices = case.currentNotices %}
+    {% if current_notices is not empty or status == 'marked' %}
+        <div>
+            <dt>Told</dt>
+            <dd>
+                {% for notice in current_notices %}
+                    <div class="text-break{% if not loop.first %} mt-2{% endif %}">
+                        {{ notice.playerName ?? ('#' ~ notice.playerCode) }}
+                        &middot; {{ notice.via.value == 'manual_email' ? 'by hand, before the notice run existed' : notice.notifiedAt|date('j M Y') }}
+                        {% if notice.response is null %}
+                            &middot; <span class="text-muted">no reaction yet</span>
+                        {% elseif notice.response.value == 'says_correct' %}
+                            &middot; <strong>says the time is correct</strong> ({{ notice.respondedAt ? notice.respondedAt|date('j M Y') : '' }})
+                            {% if notice.responseText %}
+                                <blockquote class="tv-reply">{{ notice.responseText }}</blockquote>
+                            {% endif %}
+                        {% elseif notice.response.value == 'fixed' %}
+                            &middot; fixed it
+                        {% else %}
+                            &middot; left it as it is
+                        {% endif %}
+                        {% if notice.answer %}
+                            <div class="text-muted">Answered: {{ notice.answer.value == 'trusted' ? 'counts again' : 'stays marked' }}{% if notice.answerNote %} - “{{ notice.answerNote }}”{% endif %}</div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <span class="text-muted">Nobody yet - the next run tells the player.</span>
+                {% endfor %}
+            </dd>
+        </div>
+    {% endif %}
+</dl>

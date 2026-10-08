@@ -33,6 +33,9 @@ readonly final class SuspicionInput
         public null|int $previousAttemptSeconds = null,
         // An earlier attempt of the puzzle has a pending or marked slow case
         public bool $previousAttemptRaisedSlow = false,
+        // A moderator's bar for the puzzle (suspicious_time_puzzle_confirmation.slow_threshold, for its current piece
+        // count): a slow time is raised only from this many times its expectation
+        public null|float $slowThreshold = null,
     ) {
     }
 
@@ -50,6 +53,7 @@ readonly final class SuspicionInput
             evidence: $evidence,
             previousAttemptSeconds: $this->previousAttemptSeconds,
             previousAttemptRaisedSlow: $this->previousAttemptRaisedSlow,
+            slowThreshold: $this->slowThreshold,
         );
     }
 
@@ -68,6 +72,7 @@ readonly final class SuspicionInput
             paceFactor: $this->paceFactor,
             references: $this->references,
             evidence: $this->evidence,
+            slowThreshold: $this->slowThreshold,
         );
     }
 

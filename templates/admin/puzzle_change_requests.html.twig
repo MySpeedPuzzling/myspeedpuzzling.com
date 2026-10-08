@@ -33,11 +33,21 @@
                 {% endif %}
             </a>
         </li>
+        {# Closed without a review - the catalogue already did what they asked (OutdatedPuzzleRequests) #}
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'outdated' ? 'active' : '' }}"
+               href="{{ path('admin_puzzle_change_requests', {tab: 'outdated'}) }}">
+                Already done
+                {% if counts.outdated > 0 %}
+                    <span class="badge bg-secondary">{{ counts.outdated }}</span>
+                {% endif %}
+            </a>
+        </li>
     </ul>
 
     {% if requests is empty %}
         <div class="alert alert-info">
-            No {{ active_tab }} change requests.
+            {% if active_tab == 'outdated' %}No change requests closed as already done.{% else %}No {{ active_tab }} change requests.{% endif %}
         </div>
     {% else %}
         <div class="card shadow">
@@ -73,7 +83,11 @@
                                 {{ request.reporterName ? request.reporterName ~ ' #' ~ request.reporterCode : '#' ~ request.reporterCode }}
                                 &bull; {{ request.submittedAt|ago }}
                             </div>
-                            {% if active_tab != 'pending' and request.reviewedAt %}
+                            {% if request.status.value == 'outdated' %}
+                                <div class="small text-muted">
+                                    {{ request.outdatedReason ? request.outdatedReason.label() : 'Already done' }} &bull; closed {{ request.reviewedAt|ago }}
+                                </div>
+                            {% elseif active_tab != 'pending' and request.reviewedAt %}
                                 <div class="small text-muted">
                                     Reviewed {{ request.reviewedAt|ago }}{% if request.reviewerName %} by {{ request.reviewerName }}{% endif %}
                                 </div>

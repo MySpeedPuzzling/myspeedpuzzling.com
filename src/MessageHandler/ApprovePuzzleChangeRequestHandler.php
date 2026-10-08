@@ -31,6 +31,7 @@ use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -55,6 +56,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
         private PuzzleRecordUpdater $puzzleRecordUpdater,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
         private ChangeRequestCreatedBrandSettler $changeRequestCreatedBrandSettler,
+        private OutdatedPuzzleRequests $outdatedPuzzleRequests,
     ) {
     }
 
@@ -132,6 +134,9 @@ readonly final class ApprovePuzzleChangeRequestHandler
         // After the decision above: a brand the proposal created is approved (a rename merges the emptied brand into
         // it) or, unused, deleted
         $this->changeRequestCreatedBrandSettler->settle($changeRequest, $brandBefore, $reviewer, $message->decisionSource);
+
+        // Another pending proposal of the puzzle may ask for nothing more than this one did
+        $this->outdatedPuzzleRequests->afterRecordChange($puzzle);
 
         $notification = new Notification(
             id: Uuid::uuid7(),

@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
+use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\CloseOutdatedPuzzleRequests;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\ProposesPuzzleNames;
@@ -22,6 +28,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class PuzzleChangeRequestControllerTest extends WebTestCase
 {
@@ -321,6 +328,60 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('form[data-controller~="puzzle-record"]');
         self::assertSelectorTextContains('.col-lg-8', 'Already Approved Name');
+    }
+
+    public function testARequestFiledOnAPuzzleMergedSinceSaysWhereItWasFiled(): void
+    {
+        $browser = $this->signedInAdmin();
+        // The fixture's pending merge keeps PUZZLE_500_01 - the proposal with an image was filed on PUZZLE_500_02
+        $browser->getContainer()->get(MessageBusInterface::class)->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: PuzzleReportFixture::MERGE_REQUEST_PENDING,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: PuzzleFixture::PUZZLE_500_01,
+            mergedName: 'Puzzle 1',
+            mergedEans: null,
+            mergedBrandCodes: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: null,
+            selectedImagePuzzleId: null,
+        ));
+
+        $browser->request('GET', '/admin/puzzle-change-requests/' . PuzzleReportFixture::CHANGE_REQUEST_WITH_IMAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('form[data-controller~="puzzle-record"]');
+        self::assertSelectorExists('[data-role="merged-from"] a[href="/admin/puzzles/' . PuzzleFixture::PUZZLE_500_02 . '/history"]');
+        self::assertSelectorTextContains('h2 a[href*="' . PuzzleFixture::PUZZLE_500_01 . '"]', 'Puzzle 1');
+    }
+
+    public function testARequestThePuzzleAlreadyHadIsListedAsAlreadyDone(): void
+    {
+        $browser = $this->signedInAdmin();
+        $container = $browser->getContainer();
+        $puzzle = $container->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_03);
+        $request = new PuzzleChangeRequest(
+            id: Uuid::uuid7(),
+            puzzle: $puzzle,
+            reporter: $container->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR),
+            submittedAt: new DateTimeImmutable(),
+            proposedPiecesCount: $puzzle->piecesCount,
+            originalName: $puzzle->name,
+            originalPiecesCount: $puzzle->piecesCount - 1,
+        );
+        $container->get(EntityManagerInterface::class)->persist($request);
+        $container->get(EntityManagerInterface::class)->flush();
+        $container->get(MessageBusInterface::class)->dispatch(new CloseOutdatedPuzzleRequests());
+
+        $browser->request('GET', '/admin/puzzle-change-requests?tab=outdated');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('a[href="/admin/puzzle-change-requests/' . $request->id->toString() . '"]');
+
+        $browser->request('GET', '/admin/puzzle-change-requests/' . $request->id->toString());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1 ~ .badge', 'Already done');
+        self::assertSelectorExists('[data-role="outdated"]');
+        self::assertSelectorTextContains('.col-lg-4', 'Closed automatically');
+        self::assertSelectorNotExists('form[data-controller~="puzzle-record"]');
     }
 
     private function photo(): UploadedFile

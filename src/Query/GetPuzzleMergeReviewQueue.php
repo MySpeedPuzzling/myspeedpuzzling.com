@@ -9,17 +9,20 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleMergeReviewCandidate;
 use SpeedPuzzling\Web\Results\PuzzleMergeReviewItem;
+use SpeedPuzzling\Web\Value\MergeRequestPuzzles;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 /**
  * Review queue for puzzle merge requests: every request with every puzzle it
- * proposes to merge, in two queries regardless of how many are pending.
+ * proposes to merge - as they are now (MergeRequestPuzzles) - in three queries
+ * regardless of how many are pending.
  */
 readonly final class GetPuzzleMergeReviewQueue
 {
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private GetCurrentPuzzleIds $getCurrentPuzzleIds,
     ) {
     }
 
@@ -80,7 +83,8 @@ SQL;
             }
         }
 
-        $candidatesByPuzzleId = $this->fetchCandidates(array_values($allPuzzleIds));
+        $currentIds = $this->getCurrentPuzzleIds->of(array_values($allPuzzleIds));
+        $candidatesByPuzzleId = $this->fetchCandidates(array_values(array_unique(array_filter($currentIds, static fn (null|string $id): bool => $id !== null))));
 
         $items = [];
 
@@ -90,14 +94,12 @@ SQL;
             $submittedAt = $row['submitted_at'];
             assert(is_string($submittedAt));
 
+            $puzzles = MergeRequestPuzzles::resolve($reportedIdsPerRequest[$requestId], $currentIds);
             $candidates = [];
-            $missingPuzzleIds = [];
 
-            foreach ($reportedIdsPerRequest[$requestId] as $puzzleId) {
+            foreach ($puzzles->currentIds() as $puzzleId) {
                 if (isset($candidatesByPuzzleId[$puzzleId])) {
                     $candidates[] = $candidatesByPuzzleId[$puzzleId];
-                } else {
-                    $missingPuzzleIds[] = $puzzleId;
                 }
             }
 
@@ -113,8 +115,9 @@ SQL;
                 sourcePuzzleId: is_string($row['source_puzzle_id']) ? $row['source_puzzle_id'] : null,
                 sourcePuzzleName: $sourcePuzzleName,
                 candidates: $candidates,
-                missingPuzzleIds: $missingPuzzleIds,
+                missingPuzzleIds: $puzzles->gone(),
                 reportedNameLanguages: self::reportedNameLanguages($row['reported_name_languages']),
+                mergedMeanwhile: $puzzles->mergedMeanwhile(),
             );
         }
 

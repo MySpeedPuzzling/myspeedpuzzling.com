@@ -15,6 +15,8 @@
     merge_approved: {title: 'Duplicates merged into this puzzle', verb: 'Merged by', icon: 'bi-union', color: 'text-success'},
     merged_away: {title: 'Merged into another puzzle', verb: 'Merged by', icon: 'bi-box-arrow-right', color: 'text-muted'},
     merge_rejected: {title: 'Merge request rejected', verb: 'Rejected by', icon: 'bi-x-circle', color: 'text-danger'},
+    change_request_outdated: {title: 'Change request closed - the puzzle already had it', verb: 'Closed automatically', icon: 'bi-check2-all', color: 'text-muted'},
+    merge_outdated: {title: 'Merge request closed - already merged', verb: 'Closed automatically', icon: 'bi-check2-all', color: 'text-muted'},
     approved: {title: 'Approved', verb: 'Approved by', icon: 'bi-patch-check', color: 'text-success'},
     brand_approved: {title: 'Brand approved', verb: 'Approved by', icon: 'bi-tag', color: 'text-success'},
     brand_merged: {title: 'Brand merged', verb: 'Merged by', icon: 'bi-tags', color: 'text-muted'},
@@ -92,7 +94,12 @@
                     </div>
 
                     <div class="small mb-2">
-                        {{ kind.verb }} {{ macros.player(entry.byId, entry.byName, entry.byCode) }}
+                        {# Nobody decides what closes by itself (MergeDecisionSource::Automatic) #}
+                        {% if entry.kind.value in ['change_request_outdated', 'merge_outdated'] %}
+                            {{ kind.verb }}
+                        {% else %}
+                            {{ kind.verb }} {{ macros.player(entry.byId, entry.byName, entry.byCode) }}
+                        {% endif %}
                         {% if entry.proposedById is not null or entry.proposedByName is not null %}
                             {% if entry.proposedById != entry.byId %}
                                 &bull; proposed by {{ macros.player(entry.proposedById, entry.proposedByName, entry.proposedByCode) }}
@@ -128,7 +135,7 @@
                     {% if entry.puzzles is not empty %}
                         <div class="small mb-2">
                             <div class="text-muted">
-                                {% if entry.kind.value == 'merged_away' %}Merged into{% elseif entry.kind.value == 'merge_rejected' %}Reported as a duplicate of{% else %}Merged in and deleted{% endif %}
+                                {% if entry.kind.value == 'merged_away' %}Merged into{% elseif entry.kind.value in ['merge_rejected', 'merge_outdated'] %}Reported as a duplicate of{% else %}Merged in and deleted{% endif %}
                             </div>
                             <ul class="list-unstyled mb-0">
                                 {% for other in entry.puzzles %}

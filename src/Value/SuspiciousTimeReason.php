@@ -14,8 +14,9 @@ namespace SpeedPuzzling\Web\Value;
  * - beyond_known_pace: ppm, p999_ppm (the community's 99.9th percentile of the range), entered, pieces
  * - slower_than_predicted: expected, entered, ratio (entered ÷ expected), pieces
  * - slower_than_usual: expected, entered, ratio (entered ÷ expected), pieces, source (baseline|pace)
- * - below_slow_floor: ppm, floor_ppm (a tenth of the community median of the range and puzzling type), median (the
- *   community median time for the piece count), entered, pieces, puzzling_type (solo|duo|team)
+ * - below_slow_floor: ppm, floor_ppm (a tenth of the community median of the range and puzzling type - less on a
+ *   puzzle with a higher slow threshold), median (the community median time for the piece count), entered, pieces,
+ *   puzzling_type (solo|duo|team)
  * - hours_left_out: suggested, hours
  * - teammates_saved_group: time_id, seconds, puzzling_type (duo|team)
  * - comment_mentions_group: word

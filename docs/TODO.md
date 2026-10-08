@@ -4,6 +4,33 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Puzzle picker - feedback from a puzzler (`docs/features/puzzle-picker/README.md`, e-mail 2026-09-20)
+
+A second puzzler asked for much the same, so it is not a one-off wish.
+
+- [ ] The whole result list, not just 5 more: the page shows the total of matches, but "Show more" only reveals the
+      over-fetched rows (README "Show 5 more"). Wanted most when the results are sorted (e.g. by the gap to the
+      prediction). The README's way out: chained Turbo Frames `?seed=…&offset=6&limit=5`, the seeded order already
+      makes paging stable (`GetPuzzlePickerSuggestions` takes `LIMIT :limit OFFSET :offset`).
+- [ ] A short explanation of what each preset ("Surprise me", "Quick one", "Rating grind", …) and each filter does,
+      next to it - for accessibility, not only for newcomers.
+- [ ] Pick from the puzzles people bring to a meetup. Today it needs a temporary custom collection (members only,
+      one owner). Idea: a shared collection where each attendee adds the puzzles they bring, which the picker then
+      uses as its source like any collection. Check overlap with "Marketplace at events" (`11-events.md`, sellers
+      mark listings they are *bringing*) before designing a second "bringing" concept.
+- [ ] "Similar puzzles" (more like a puzzle I liked / want to improve on): needs image/category classification
+      (small models, embeddings) - not before the more important backlog items. Same person offered help with
+      embedding models (no training, existing models only).
+
+## Outdated puzzle requests (`docs/features/puzzle-approvals.md`, "Outdated requests", PR #247)
+
+- [ ] `GetPendingPuzzleProposals` (the puzzle page's "pending proposal" badge, `blocksNewProposal()`, the pending list)
+      and `GetPuzzleMergeRequests::sqlNoSecretPuzzle()` still match a merge request by its reported ids only. A pending
+      request naming a puzzle merged into this one since (resolved through `puzzle_redirect` everywhere else -
+      `MergeRequestPuzzles`) is not shown on this puzzle's page and does not block a new suggestion there.
+- [ ] The history line of an outdated merge request names a puzzle deleted by a merge as "Puzzle 018d…" -
+      `GetPuzzleHistory::knownNames()` reads `puzzle_name` only, not a merge's `details.mergedPuzzleNames`.
+
 ## Inbox promises (simona@ backlog, 2026-10-07)
 
 What a reply to a player promised to build. Each has an MSP Mailer follow-up: tell the player when it ships.
@@ -12,6 +39,8 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       (~222-225) resets it outside solo and only solo results are filtered (~263-280); the puzzle leaderboard has
       the same reset (`PuzzleTimes.php` ~245-247). A pair/team result is a first try only when it is everybody's
       (`docs/features/first-try-integrity.md`). Promised to Gav (MSP #90, follow-up F45) and Allison (MSP #107, F46).
+- [ ] Move several puzzles at once on a collection page (select, then "Move to collection"), not only one by one or
+      through multiscan. Promised to Allison (MSP #107, follow-up F50).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

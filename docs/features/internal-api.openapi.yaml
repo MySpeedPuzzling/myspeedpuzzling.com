@@ -1376,11 +1376,17 @@ components:
           type: string
         actionable:
           type: boolean
-          description: False when fewer than two reported puzzles still exist; such a request can only be rejected.
+          description: False when fewer than two puzzles are left; such a request closes as already done by itself, or can be rejected.
         missingPuzzleIds:
           type: array
-          description: Reported puzzles already deleted by an earlier merge.
+          description: Reported puzzles deleted without a merge.
           items:
+            type: string
+            format: uuid
+        mergedMeanwhile:
+          type: object
+          description: Reported puzzle id => the puzzle it was merged into since the report - that puzzle is a candidate in its place. An empty object when none.
+          additionalProperties:
             type: string
             format: uuid
         reportedNameLanguages:

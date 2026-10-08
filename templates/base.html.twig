@@ -502,28 +502,32 @@
                                     <i class="ci-key"></i>
                                 </a>
 
+                                {# The backlog of every queue - one statement, only for admins and moderators (GetAdminQueueCounts) #}
+                                {% set queue_counts = admin_queue_counts(is_granted('ADMIN_ACCESS')) %}
                                 <ul class="dropdown-menu">
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_change_requests' %}active{% endif %}" href="{{ path('admin_puzzle_change_requests') }}">
                                             Puzzle Change Requests
+                                            {% if queue_counts.changeRequests is not null %}<span class="badge {{ queue_counts.changeRequests > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-change-requests">{{ queue_counts.changeRequests }}</span>{% endif %}
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_merge_requests' %}active{% endif %}" href="{{ path('admin_puzzle_merge_requests') }}">
                                             Puzzle Merge Requests
+                                            {% if queue_counts.mergeRequests is not null %}<span class="badge {{ queue_counts.mergeRequests > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-merge-requests">{{ queue_counts.mergeRequests }}</span>{% endif %}
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_approvals' %}active{% endif %}" href="{{ path('admin_puzzle_approvals') }}">
                                             Puzzle Approvals
+                                            {% if queue_counts.puzzleApprovals is not null %}<span class="badge {{ queue_counts.puzzleApprovals > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-puzzle-approvals">{{ queue_counts.puzzleApprovals }}</span>{% endif %}
                                         </a>
                                     </li>
                                     {% if is_granted('REVIEW_SUSPICIOUS_TIMES') %}
                                     <li>
-                                        {% set time_verification_pending = time_verification_pending_count() %}
                                         <a class="dropdown-item pb-1 {% if currentRoute starts with 'admin_time_verification' %}active{% endif %}" href="{{ path('admin_time_verification') }}">
                                             Time verification
-                                            {% if time_verification_pending > 0 %}<span class="badge bg-warning text-dark ms-1">{{ time_verification_pending }}</span>{% endif %}
+                                            {% if queue_counts.timeVerification is not null %}<span class="badge {{ queue_counts.timeVerification > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-time-verification">{{ queue_counts.timeVerification }}</span>{% endif %}
                                         </a>
                                     </li>
                                     {% endif %}
@@ -541,6 +545,7 @@
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_competition_approvals' %}active{% endif %}" href="{{ path('admin_competition_approvals') }}">
                                             Competition Approvals
+                                            {% if queue_counts.competitionApprovals is not null %}<span class="badge {{ queue_counts.competitionApprovals > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-competition-approvals">{{ queue_counts.competitionApprovals }}</span>{% endif %}
                                         </a>
                                     </li>
                                     <li>
@@ -556,6 +561,7 @@
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_oauth2_client_requests' or currentRoute == 'admin_oauth2_client_request_detail' %}active{% endif %}" href="{{ path('admin_oauth2_client_requests') }}">
                                             OAuth2 Requests
+                                            {% if queue_counts.oauth2Requests is not null %}<span class="badge {{ queue_counts.oauth2Requests > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-oauth2-requests">{{ queue_counts.oauth2Requests }}</span>{% endif %}
                                         </a>
                                     </li>
                                     <li>
@@ -576,6 +582,7 @@
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_duplicate_results' %}active{% endif %}" href="{{ path('admin_duplicate_results') }}">
                                             Duplicate results
+                                            {% if queue_counts.duplicatePuzzleSignals is not null %}<span class="badge {{ queue_counts.duplicatePuzzleSignals > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-duplicate-puzzle-signals">{{ queue_counts.duplicatePuzzleSignals }}</span>{% endif %}
                                         </a>
                                     </li>
                                     {% endif %}

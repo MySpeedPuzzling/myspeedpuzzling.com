@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Message\DetectSuspiciousTimes;
+use SpeedPuzzling\Web\Message\SetPuzzleSlowThreshold;
 use SpeedPuzzling\Web\Repository\SuspiciousTimeCaseRepository;
 use SpeedPuzzling\Web\Results\SuspiciousTimeRaisedRow;
 use SpeedPuzzling\Web\Results\SuspiciousTimeScanSummary;
@@ -278,6 +279,55 @@ final class DetectSuspiciousTimesHandlerTest extends KernelTestCase
         self::assertSame(['pending', SuspiciousTimesFixture::CASE_PENDING_FAST], [$case['status'], $case['id']]);
     }
 
+    public function testAHardPuzzlesThresholdClosesItsSlowCasesAtOnceAndTouchesNothingElse(): void
+    {
+        $this->scan();
+        $this->clearEntityManager();
+        $this->checkedAnHourAgo();
+        $fastCheckedAt = $this->checkOf(SuspiciousTimesFixture::TIME_STEADY_FAST)['checked_at'];
+
+        // 49:08:00 against a predicted hour is 49× - a puzzle that takes everybody up to 60× longer
+        $this->messageBus->dispatch(new SetPuzzleSlowThreshold(SuspiciousTimesFixture::PUZZLE_ORCHARD, PlayerFixture::PLAYER_ADMIN, 520, 60.0));
+        $this->clearEntityManager();
+        $summary = $this->scan(onlyPuzzleId: SuspiciousTimesFixture::PUZZLE_ORCHARD);
+
+        self::assertSame(1, $summary->goneCases);
+        self::assertSame(0, $summary->raised);
+        self::assertSame(['gone', 'clear'], [$this->caseOf(SuspiciousTimesFixture::TIME_STEADY_TYPO)['status'], $this->checkOf(SuspiciousTimesFixture::TIME_STEADY_TYPO)['outcome']]);
+        // Another puzzle's time was not looked at
+        self::assertSame($fastCheckedAt, $this->checkOf(SuspiciousTimesFixture::TIME_STEADY_FAST)['checked_at']);
+        self::assertSame('pending', $this->caseOf(SuspiciousTimesFixture::TIME_STEADY_FAST)['status']);
+
+        // Taken away: the next run of the puzzle raises it again
+        $this->messageBus->dispatch(new SetPuzzleSlowThreshold(SuspiciousTimesFixture::PUZZLE_ORCHARD, PlayerFixture::PLAYER_ADMIN, 520, null));
+        $this->clearEntityManager();
+        $again = $this->scan(onlyPuzzleId: SuspiciousTimesFixture::PUZZLE_ORCHARD);
+
+        self::assertSame(1, $again->reopenedCases);
+        self::assertSame('pending', $this->caseOf(SuspiciousTimesFixture::TIME_STEADY_TYPO)['status']);
+    }
+
+    public function testTheFullScanJudgesAPuzzleAgainWhenItsThresholdChanged(): void
+    {
+        $this->scan();
+        $this->clearEntityManager();
+        $this->checkedAnHourAgo();
+
+        // Saved, but the run of the puzzle never happened (it failed) - the next full run catches up
+        $this->messageBus->dispatch(new SetPuzzleSlowThreshold(SuspiciousTimesFixture::PUZZLE_ORCHARD, PlayerFixture::PLAYER_ADMIN, 520, 60.0));
+        $this->clearEntityManager();
+        $summary = $this->scan();
+
+        self::assertSame(1, $summary->goneCases);
+        self::assertSame('gone', $this->caseOf(SuspiciousTimesFixture::TIME_STEADY_TYPO)['status']);
+
+        // ... once: a check after the threshold is current (one in the very same second is not - see the query)
+        $this->database->executeStatement("UPDATE suspicious_time_puzzle_confirmation SET confirmed_at = confirmed_at - INTERVAL '1 minute'");
+        $this->clearEntityManager();
+        $again = $this->scan();
+        self::assertSame($again->noData, $again->checked);
+    }
+
     public function testPredictionBuiltOnASlowAttemptIsNotTrusted(): void
     {
         // Two later attempts of Quiet Orchard, whose 49:08:00 has a pending slow case - both predicted from it (41:40:00)
@@ -401,12 +451,20 @@ final class DetectSuspiciousTimesHandlerTest extends KernelTestCase
         $this->clearEntityManager();
     }
 
-    private function scan(bool $dryRun = false): SuspiciousTimeScanSummary
+    private function scan(bool $dryRun = false, null|string $onlyPuzzleId = null): SuspiciousTimeScanSummary
     {
-        $summary = $this->messageBus->dispatch(new DetectSuspiciousTimes($dryRun))->last(HandledStamp::class)?->getResult();
+        $summary = $this->messageBus->dispatch(new DetectSuspiciousTimes($dryRun, $onlyPuzzleId))->last(HandledStamp::class)?->getResult();
         assert($summary instanceof SuspiciousTimeScanSummary);
 
         return $summary;
+    }
+
+    /**
+     * As if the last scan ran an hour ago - a check of this run is told apart from it.
+     */
+    private function checkedAnHourAgo(): void
+    {
+        $this->database->executeStatement("UPDATE suspicious_time_check SET checked_at = checked_at - INTERVAL '1 hour'");
     }
 
     /**

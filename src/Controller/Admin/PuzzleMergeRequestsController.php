@@ -35,6 +35,7 @@ final class PuzzleMergeRequestsController extends AbstractController
         $requests = match ($tab) {
             'approved' => $this->getPuzzleMergeRequests->allApproved(),
             'rejected' => $this->getPuzzleMergeRequests->allRejected(),
+            'outdated' => $this->getPuzzleMergeRequests->allOutdated(),
             default => $this->getPuzzleMergeRequests->allPending(),
         };
 

@@ -14,8 +14,11 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleNamesDiff;
+use SpeedPuzzling\Web\Value\PuzzleReportOutdatedReason;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 #[Entity]
@@ -38,14 +41,26 @@ class PuzzleChangeRequest
     #[Column(type: 'text', nullable: true)]
     public null|string $rejectionReason = null;
 
+    // Why it was closed as outdated (PuzzleReportStatus::Outdated)
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: 'string', nullable: true, enumType: PuzzleReportOutdatedReason::class)]
+    public null|PuzzleReportOutdatedReason $outdatedReason = null;
+
+    // The puzzle it was filed on, when a merge moved it onto another one (puzzleMergedInto()) - null = filed on $puzzle
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $mergedFromPuzzleId = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-        #[Immutable]
+        // No cascade: a merge moves the requests of a puzzle it deletes onto the survivor (puzzleMergedInto()), any other
+        // deletion of a puzzle with requests fails instead of losing them
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[ManyToOne]
-        #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
+        #[JoinColumn(nullable: false)]
         public Puzzle $puzzle,
         #[Immutable]
         #[ManyToOne]
@@ -158,6 +173,81 @@ class PuzzleChangeRequest
         $this->reviewedBy = $reviewedBy;
         $this->reviewedAt = $reviewedAt;
         $this->rejectionReason = $reason;
+    }
+
+    /**
+     * Nothing to review: the catalogue already did what it asked - another proposal, an edit or a merge.
+     */
+    public function markOutdated(PuzzleReportOutdatedReason $reason, DateTimeImmutable $at): void
+    {
+        $this->status = PuzzleReportStatus::Outdated;
+        $this->reviewedAt = $at;
+        $this->outdatedReason = $reason;
+    }
+
+    /**
+     * Its puzzle was merged into another one - the same puzzle, so the proposal is about that one now (a pending one
+     * stays reviewable, a decided one stays in its history). The original values stay as filed - the review shows
+     * where they differ from the puzzle now - and so does the puzzle it was filed on.
+     */
+    public function puzzleMergedInto(Puzzle $survivor): void
+    {
+        $this->mergedFromPuzzleId ??= $this->puzzle->id;
+        $this->puzzle = $survivor;
+    }
+
+    /**
+     * Whether its puzzle has every value it proposes already. Errs on "something left": a proposed image is a new file,
+     * a brand it created is no brand of any puzzle yet, and other names count as applied only when applying them
+     * changes nothing - a moderator decides anything less clear.
+     */
+    public function nothingLeftToApply(): bool
+    {
+        if ($this->hasProposedChanges() === false || $this->proposedImage !== null) {
+            return false;
+        }
+
+        $puzzle = $this->puzzle;
+
+        if ($this->proposedName !== null && $this->proposedName !== $puzzle->name) {
+            return false;
+        }
+
+        if ($this->proposedManufacturer !== null && $this->proposedManufacturer->id->equals($puzzle->manufacturer?->id) === false) {
+            return false;
+        }
+
+        // The brand it created was deleted unused - what it proposed is no brand to compare with
+        if ($this->proposedManufacturer === null && $this->createdManufacturerName !== null) {
+            return false;
+        }
+
+        if ($this->proposedPiecesCount !== null && $this->proposedPiecesCount !== $puzzle->piecesCount) {
+            return false;
+        }
+
+        if ($this->proposedEan !== null && EanList::fromStored($this->proposedEan)->equals($puzzle->eans()) === false) {
+            return false;
+        }
+
+        if ($this->proposedIdentificationNumber !== null && BrandCodeList::fromStored($this->proposedIdentificationNumber)->equals($puzzle->brandCodes()) === false) {
+            return false;
+        }
+
+        if ($this->proposedAlternativeNames !== null) {
+            $names = $puzzle->alternativeNames();
+
+            if ($this->proposedNamesDiff()->applyTo($names)->cleanedFor($puzzle->name)->toArray() !== $names->toArray()) {
+                return false;
+            }
+
+            // The main title's language is part of the proposal only when it differs from the one it was filed with
+            if ($this->proposedNameLanguage !== $this->originalNameLanguage && $this->proposedNameLanguage !== $puzzle->nameLanguage) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function hasProposedChanges(): bool

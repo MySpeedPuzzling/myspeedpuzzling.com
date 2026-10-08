@@ -6,11 +6,12 @@ namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\ExpectedTimeSource;
 use SpeedPuzzling\Web\Value\SuspiciousTimeReason;
+use SpeedPuzzling\Web\Value\SuspiciousTimeReasonCode;
 use SpeedPuzzling\Web\Value\SuspiciousTimeTier;
 
 /**
- * One pending case inside a puzzle card of the time verification queue - a line, not a whole card: the question
- * there is the puzzle's piece count.
+ * One pending case inside a puzzle card of the time verification queue - a line of its overview; the case itself is
+ * decided in its own card right below.
  */
 readonly final class SuspiciousTimePuzzleCardCase
 {
@@ -34,15 +35,48 @@ readonly final class SuspiciousTimePuzzleCardCase
     }
 
     /**
-     * How far off: expected ÷ entered for a fast time, entered ÷ expected for a slow one - always ≥ 1 when raised.
+     * How far off: expected ÷ entered for a fast time, entered ÷ expected for a slow one - always ≥ 1 when raised. A
+     * time judged by the community's slow floor (a pair/team, a new player) is compared with the community median.
      */
     public function ratio(): null|float
     {
-        if ($this->seconds === null || $this->seconds <= 0 || $this->expectedSeconds === null || $this->expectedSeconds <= 0) {
+        $expected = $this->comparedWithSeconds();
+
+        if ($this->seconds === null || $this->seconds <= 0 || $expected === null || $expected <= 0) {
             return null;
         }
 
-        return max($this->expectedSeconds / $this->seconds, $this->seconds / $this->expectedSeconds);
+        return max($expected / $this->seconds, $this->seconds / $expected);
+    }
+
+    /**
+     * The player's own expectation, or for a time below the community's slow floor what most puzzlers take.
+     */
+    public function comparedWithSeconds(): null|int
+    {
+        if ($this->expectedSeconds !== null) {
+            return $this->expectedSeconds;
+        }
+
+        $median = $this->belowSlowFloor()?->params['median'] ?? null;
+
+        return is_int($median) ? $median : null;
+    }
+
+    public function isComparedWithCommunity(): bool
+    {
+        return $this->expectedSeconds === null && $this->comparedWithSeconds() !== null;
+    }
+
+    private function belowSlowFloor(): null|SuspiciousTimeReason
+    {
+        foreach ($this->reasons as $reason) {
+            if ($reason->code === SuspiciousTimeReasonCode::BelowSlowFloor) {
+                return $reason;
+            }
+        }
+
+        return null;
     }
 
     public function trigger(): null|SuspiciousTimeReason

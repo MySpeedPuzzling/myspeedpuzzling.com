@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
+use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Query\GetPuzzleHistory;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\PuzzleHistoryChange;
@@ -108,6 +109,39 @@ final class GetPuzzleHistoryTest extends KernelTestCase
         self::assertCount(1, $mergedAway);
         self::assertSame(PuzzleFixture::PUZZLE_500_01, $mergedAway[0]->puzzles[0]->puzzleId);
         self::assertSame('Merged Name', $mergedAway[0]->puzzles[0]->name);
+    }
+
+    public function testARequestTheMergeLeftNothingToDoForShowsAsClosedByItself(): void
+    {
+        $sameAgain = Uuid::uuid7()->toString();
+        $this->messageBus->dispatch(new SubmitPuzzleMergeRequest(
+            mergeRequestId: $sameAgain,
+            sourcePuzzleId: PuzzleFixture::PUZZLE_500_02,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            duplicatePuzzleIds: [PuzzleFixture::PUZZLE_500_01],
+        ));
+
+        $this->messageBus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: PuzzleReportFixture::MERGE_REQUEST_PENDING,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: PuzzleFixture::PUZZLE_500_01,
+            mergedName: 'Merged Name',
+            mergedEans: null,
+            mergedBrandCodes: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: null,
+            selectedImagePuzzleId: null,
+        ));
+
+        $closed = array_values(array_filter(
+            $this->getPuzzleHistory->forPuzzle(PuzzleFixture::PUZZLE_500_01),
+            static fn ($entry): bool => $entry->kind === PuzzleHistoryEntryKind::MergeOutdated,
+        ));
+        self::assertCount(1, $closed);
+        self::assertSame($sameAgain, $closed[0]->mergeRequestId);
+        self::assertNull($closed[0]->byId);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $closed[0]->proposedById);
+        self::assertSame([PuzzleFixture::PUZZLE_500_02], array_map(static fn ($puzzle): string => $puzzle->puzzleId, $closed[0]->puzzles));
     }
 
     public function testAnEditOfTheOtherNamesShowsTheListWithLanguages(): void

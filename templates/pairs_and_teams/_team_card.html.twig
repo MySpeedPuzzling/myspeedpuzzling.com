@@ -10,9 +10,10 @@
 <div class="card card-body shadow-sm mb-2 pairs-and-teams-card" data-team-id="{{ team.teamId }}">
     <div class="d-flex flex-wrap align-items-start gap-2">
         <div class="flex-grow-1" style="min-width: 0;">
-            <div class="fw-semibold text-truncate" data-testid="team-title"><a class="text-reset" href="{{ team_page }}">{{ team.name ?? member_names }}</a></div>
+            {# Every member stays readable: long lists wrap, never cut off with "…" #}
+            <div class="fw-semibold text-break" data-testid="team-title"><a class="text-reset" href="{{ team_page }}">{{ team.name ?? member_names }}</a></div>
             {% if team.name is not null %}
-                <div class="fs-sm text-muted text-truncate">{{ member_names }}</div>
+                <div class="fs-sm text-muted text-break" data-testid="team-members">{{ member_names }}</div>
             {% endif %}
             <div class="fs-sm text-muted">
                 {% if team.timesCount > 0 %}

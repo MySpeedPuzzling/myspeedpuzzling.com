@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PuzzleReportOutdatedReason;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 readonly final class PuzzleMergeRequestOverview
@@ -38,6 +39,9 @@ readonly final class PuzzleMergeRequestOverview
         public null|string $reviewerId,
         public null|string $reviewerName,
         public array $reportedNameLanguages = [],
+        // Closed without a review (PuzzleReportStatus::Outdated): why, and the merge that did it (null = found by the daily check)
+        public null|PuzzleReportOutdatedReason $outdatedReason = null,
+        public null|string $outdatedByMergeRequestId = null,
     ) {
     }
 
@@ -95,6 +99,8 @@ readonly final class PuzzleMergeRequestOverview
             reviewerId: is_string($row['reviewer_id']) ? $row['reviewer_id'] : null,
             reviewerName: is_string($row['reviewer_name']) ? $row['reviewer_name'] : null,
             reportedNameLanguages: self::reportedNameLanguages($row['reported_name_languages'] ?? null),
+            outdatedReason: is_string($row['outdated_reason'] ?? null) ? PuzzleReportOutdatedReason::tryFrom($row['outdated_reason']) : null,
+            outdatedByMergeRequestId: is_string($row['outdated_by_merge_request_id'] ?? null) ? $row['outdated_by_merge_request_id'] : null,
         );
     }
 

@@ -80,7 +80,7 @@ final class MergeManufacturersHandlerTest extends KernelTestCase
         $decisions = $this->decisions();
         self::assertCount(1, $decisions);
         self::assertSame(MergeDecisionSource::InternalApi, $decisions[0]->source);
-        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decisions[0]->decidedById->toString());
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $decisions[0]->decidedById?->toString());
         self::assertSame(ManufacturerFixture::MANUFACTURER_TREFL, $decisions[0]->manufacturerId?->toString());
         self::assertSame('Same GS1 prefix', $decisions[0]->note);
         self::assertSame('Ravensburger', $decisions[0]->details['mergedManufacturerName'] ?? null);

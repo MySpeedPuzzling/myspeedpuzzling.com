@@ -35,12 +35,12 @@ membership_subscribed:
 
 subscription_payment_failed:
     subject: "Platba členství na MySpeedPuzzling.com selhala"
-    preheader: "Platba neprošla – zkontrolujte prosím platební metodu, aby vám členství zůstalo."
+    preheader: "Platba neprošla – členství je pozastavené, dokud platba neprojde."
     title: "Platba členství selhala!"
     content: |
-        <p>Všimli jsme si, že vaše poslední platba za předplatné neproběhla úspěšně. Mohlo dojít k problému s vaší platební metodou.</p>
-        <p>Pokud si přejete, aby vaše členství zůstalo aktivní, zkontrolujte a aktualizujte svou platební metodu v platebním portálu.</p>
-        <p>Pokud platba nadále selhává, vaše členství bude po několika dalších pokusech deaktivováno. Doufáme, že zůstanete součástí MySpeedPuzzling.com!</p>
+        <p>Vaše poslední platba za členství neprošla. Platba bývá někdy zamítnuta, i když se na vaší straně nic nezměnilo – například když banka kartu vyměnila nebo karta uložená v Apple Pay či Google Pay tam přestala platit.</p>
+        <p>Členství je pozastavené, dokud platba neprojde. Zkontrolujte prosím platební metodu v platebním portálu. Jakmile platba projde, členství se hned obnoví.</p>
+        <p>Platbu můžeme během několika dalších dnů zkusit automaticky znovu, ale ne každou neúspěšnou platbu lze opakovat, takže na to prosím nečekejte. Doufáme, že s MySpeedPuzzling.com zůstanete!</p>
     button: "Aktualizovat platební metodu"
 
 subscription_renewed:

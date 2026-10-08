@@ -35,12 +35,12 @@ membership_subscribed:
 
 subscription_payment_failed:
     subject: "El pago de membresía en MySpeedPuzzling.com falló"
-    preheader: "El pago no se ha completado: revisa tu método de pago para mantener tu membresía."
+    preheader: "El pago no se ha completado: tu membresía queda en pausa hasta que se complete."
     title: "¡El pago de membresía falló!"
     content: |
-        <p>Notamos que tu pago de membresía reciente no fue exitoso. Puede haber habido un problema con tu método de pago.</p>
-        <p>Si deseas mantener tu membresía activa, por favor verifica y actualiza tu método de pago en el portal de facturación.</p>
-        <p>Si el pago continúa fallando, tu membresía será desactivada después de algunos intentos más. ¡Esperamos que te quedes con MySpeedPuzzling.com!</p>
+        <p>Tu último pago de membresía no se ha completado. A veces los pagos se rechazan aunque no hayas cambiado nada, por ejemplo cuando el banco ha sustituido la tarjeta o una tarjeta guardada en Apple Pay o Google Pay ha dejado de ser válida allí.</p>
+        <p>Tu membresía queda en pausa hasta que se complete un pago. Revisa tu método de pago en el portal de facturación. En cuanto un pago se complete, tu membresía vuelve a estar activa al instante.</p>
+        <p>Es posible que volvamos a intentar el pago automáticamente en los próximos días, pero no todos los pagos fallidos se pueden reintentar, así que no esperes a que ocurra. ¡Esperamos que te quedes con MySpeedPuzzling.com!</p>
     button: "Actualizar método de pago"
 
 subscription_renewed:

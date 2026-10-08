@@ -197,6 +197,11 @@ final class PairsAndTeamsControllerTest extends WebTestCase
         $card = $crawler->filter('.pairs-and-teams-card');
         self::assertCount(1, $card);
         self::assertSame('Knitting circle', trim($card->filter('[data-testid="team-title"]')->text()));
+        // Every member is listed in full - long lists wrap instead of being cut off
+        $members = $card->filter('[data-testid="team-members"]');
+        self::assertStringContainsString('Grandma', $members->text());
+        self::assertStringNotContainsString('text-truncate', (string) $members->attr('class'));
+        self::assertStringNotContainsString('text-truncate', (string) $card->filter('[data-testid="team-title"]')->attr('class'));
         self::assertStringContainsString('No time together yet', $card->text());
         self::assertCount(1, $card->filter('form[action$="/delete"]'));
 
@@ -266,6 +271,11 @@ final class PairsAndTeamsControllerTest extends WebTestCase
         self::assertCount(1, $guests);
         self::assertSame('Grandma', trim($guests->filter('[data-testid="guest-name"]')->text()));
         self::assertStringContainsString('3× together', $guests->text());
+
+        // "They have an account now" finds players by name too: the picker knows whom it looks for
+        $picker = $guests->filter('[data-controller="guest-link-picker"]');
+        self::assertSame('Grandma', $picker->attr('data-guest-link-picker-guest-name-value'));
+        self::assertCount(1, $picker->filter('input[name="code"][data-guest-link-picker-target="input"]'));
 
         // …and one pair instead of two
         $crawler = $browser->request('GET', '/en/pairs-and-teams');

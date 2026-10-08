@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Value\PuzzleNameLanguageChoices;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleNamesDiff;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
+use SpeedPuzzling\Web\Value\PuzzleReportOutdatedReason;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 readonly final class PuzzleChangeRequestOverview
@@ -67,6 +68,11 @@ readonly final class PuzzleChangeRequestOverview
         public null|string $puzzleAddedById = null,
         public null|string $puzzleAddedByName = null,
         public null|string $puzzleAddedByCode = null,
+        // Closed without a review (PuzzleReportStatus::Outdated)
+        public null|PuzzleReportOutdatedReason $outdatedReason = null,
+        // Filed on another puzzle, merged into this one since (PuzzleChangeRequest::puzzleMergedInto()) - the original
+        // values are that puzzle's
+        public null|string $mergedFromPuzzleId = null,
     ) {
     }
 
@@ -153,6 +159,8 @@ readonly final class PuzzleChangeRequestOverview
             puzzleAddedById: is_string($row['puzzle_added_by_id'] ?? null) ? $row['puzzle_added_by_id'] : null,
             puzzleAddedByName: is_string($row['puzzle_added_by_name'] ?? null) ? $row['puzzle_added_by_name'] : null,
             puzzleAddedByCode: is_string($row['puzzle_added_by_code'] ?? null) ? $row['puzzle_added_by_code'] : null,
+            outdatedReason: is_string($row['outdated_reason'] ?? null) ? PuzzleReportOutdatedReason::tryFrom($row['outdated_reason']) : null,
+            mergedFromPuzzleId: is_string($row['merged_from_puzzle_id'] ?? null) ? $row['merged_from_puzzle_id'] : null,
         );
     }
 

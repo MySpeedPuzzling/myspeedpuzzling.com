@@ -12,6 +12,8 @@ use SpeedPuzzling\Web\FormData\PuzzleMergeReviewFormData;
 use SpeedPuzzling\Web\FormData\PuzzleNamesFormData;
 use SpeedPuzzling\Web\FormType\PuzzleMergeReviewFormType;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Query\GetCurrentPuzzleIds;
+use SpeedPuzzling\Web\Query\GetPuzzleHistory;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
@@ -24,6 +26,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\MergeRequestPuzzles;
 use SpeedPuzzling\Web\Value\NamedPuzzle;
 use SpeedPuzzling\Web\Value\PuzzleMergeNames;
 use SpeedPuzzling\Web\Value\PuzzleNameLanguageChoices;
@@ -66,6 +69,8 @@ final class PuzzleMergeRequestDetailController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
         private readonly FormPhotoStash $formPhotoStash,
+        private readonly GetCurrentPuzzleIds $getCurrentPuzzleIds,
+        private readonly GetPuzzleHistory $getPuzzleHistory,
     ) {
     }
 
@@ -79,16 +84,22 @@ final class PuzzleMergeRequestDetailController extends AbstractController
     {
         $mergeRequest = $this->getPuzzleMergeRequests->byId($id) ?? throw new PuzzleMergeRequestNotFound();
 
-        // The reported puzzles still there - an earlier merge may have deleted some. One statement each for every
-        // puzzle's overview and its stored record (the image of a puzzle under embargo included - the record version)
-        $overviews = $this->getPuzzleOverview->byIds(array_values($mergeRequest->reportedDuplicatePuzzleIds));
-        $storedRecords = $this->getPuzzleRecord->byIds(array_values($mergeRequest->reportedDuplicatePuzzleIds));
+        // The reported puzzles as they are now: one merged into another puzzle meanwhile is that puzzle, one deleted
+        // without a merge is left out (MergeRequestPuzzles). One statement each for every puzzle's overview and its
+        // stored record (the image of a puzzle under embargo included - the record version)
+        $reportedPuzzles = MergeRequestPuzzles::resolve(
+            $mergeRequest->reportedDuplicatePuzzleIds,
+            $this->getCurrentPuzzleIds->of($mergeRequest->reportedDuplicatePuzzleIds),
+        );
+        $currentPuzzleIds = $reportedPuzzles->currentIds();
+        $overviews = $this->getPuzzleOverview->byIds($currentPuzzleIds);
+        $storedRecords = $this->getPuzzleRecord->byIds($currentPuzzleIds);
         $puzzles = [];
         $records = [];
 
-        foreach ($mergeRequest->reportedDuplicatePuzzleIds as $puzzleId) {
-            $puzzle = $overviews[strtolower($puzzleId)] ?? null;
-            $record = $storedRecords[strtolower($puzzleId)] ?? null;
+        foreach ($currentPuzzleIds as $puzzleId) {
+            $puzzle = $overviews[$puzzleId] ?? null;
+            $record = $storedRecords[$puzzleId] ?? null;
 
             if ($puzzle !== null && $record !== null) {
                 $puzzles[] = $puzzle;
@@ -97,6 +108,7 @@ final class PuzzleMergeRequestDetailController extends AbstractController
         }
 
         $mergedData = $this->collectMergedData($puzzles);
+        $pending = $mergeRequest->status === PuzzleReportStatus::Pending;
 
         $parameters = [
             'request' => $mergeRequest,
@@ -104,10 +116,15 @@ final class PuzzleMergeRequestDetailController extends AbstractController
             'records' => $records,
             'merged_data' => $mergedData,
             'reported_languages' => $this->reportedLanguageLabels($mergeRequest),
+            // What happened to reported puzzles meanwhile - the decided request's own merge is no news
+            'merged_meanwhile' => $pending ? $this->mergedMeanwhile($reportedPuzzles) : [],
+            'gone_count' => $pending ? count($reportedPuzzles->gone()) : 0,
             'form' => null,
         ];
 
-        if ($mergeRequest->status !== PuzzleReportStatus::Pending || $puzzles === []) {
+        // Nothing to merge with fewer than two puzzles - such a request is closed as outdated (OutdatedPuzzleRequests),
+        // until then it can be rejected
+        if ($pending === false || count($puzzles) < 2) {
             return $this->render('admin/puzzle_merge_request_detail.html.twig', $parameters);
         }
 
@@ -216,6 +233,33 @@ final class PuzzleMergeRequestDetailController extends AbstractController
         $data->recordVersions = array_map(static fn (PuzzleRecord $record): string => $record->recordVersion(), $records);
 
         return $data;
+    }
+
+    /**
+     * @return list<array{reportedId: string, reportedName: null|string, currentId: string, currentName: null|string}>
+     */
+    private function mergedMeanwhile(MergeRequestPuzzles $reportedPuzzles): array
+    {
+        $merged = $reportedPuzzles->mergedMeanwhile();
+
+        if ($merged === []) {
+            return [];
+        }
+
+        // A merged puzzle no longer exists - its name is the one the decision log last saw
+        $names = $this->getPuzzleHistory->knownNames([...array_keys($merged), ...array_values($merged)]);
+        $lines = [];
+
+        foreach ($merged as $reportedId => $currentId) {
+            $lines[] = [
+                'reportedId' => $reportedId,
+                'reportedName' => $names[$reportedId] ?? null,
+                'currentId' => $currentId,
+                'currentName' => $names[$currentId] ?? null,
+            ];
+        }
+
+        return $lines;
     }
 
     private static function namedPuzzle(PuzzleRecord $record): NamedPuzzle

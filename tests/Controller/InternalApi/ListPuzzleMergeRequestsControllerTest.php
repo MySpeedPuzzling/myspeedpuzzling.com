@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\InternalApi\ListPuzzleMergeRequestsController;
 use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -130,5 +131,51 @@ final class ListPuzzleMergeRequestsControllerTest extends KernelTestCase
         }
 
         self::assertCount(2, $items[0]['candidates']);
+    }
+
+    /**
+     * A reported puzzle merged into another one since the report is that puzzle now - a candidate in its place.
+     */
+    public function testAPuzzleMergedSinceTheReportIsACandidateInItsPlace(): void
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+        $messageBus = $container->get(MessageBusInterface::class);
+
+        $withAnother = Uuid::uuid7()->toString();
+        $messageBus->dispatch(new SubmitPuzzleMergeRequest(
+            mergeRequestId: $withAnother,
+            sourcePuzzleId: PuzzleFixture::PUZZLE_500_02,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            duplicatePuzzleIds: [PuzzleFixture::PUZZLE_1000_05],
+        ));
+        $messageBus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: PuzzleReportFixture::MERGE_REQUEST_PENDING,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: PuzzleFixture::PUZZLE_500_01,
+            mergedName: 'Puzzle 1',
+            mergedEans: null,
+            mergedBrandCodes: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: null,
+            selectedImagePuzzleId: null,
+        ));
+        $container->get(EntityManagerInterface::class)->clear();
+
+        $controller = $container->get(ListPuzzleMergeRequestsController::class);
+        $response = $controller(Request::create('/internal-api/puzzle-merge-requests', 'GET', ['limit' => 100]));
+
+        /** @var array{mergeRequests: list<array{mergeRequestId: string, actionable: bool, missingPuzzleIds: list<string>, mergedMeanwhile: array<string, string>, candidates: list<array{puzzleId: string}>}>} $body */
+        $body = json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        $items = array_values(array_filter($body['mergeRequests'], static fn (array $item): bool => $item['mergeRequestId'] === $withAnother));
+        self::assertCount(1, $items);
+
+        self::assertTrue($items[0]['actionable']);
+        self::assertSame([], $items[0]['missingPuzzleIds']);
+        self::assertSame([PuzzleFixture::PUZZLE_500_02 => PuzzleFixture::PUZZLE_500_01], $items[0]['mergedMeanwhile']);
+        self::assertSame(
+            [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_1000_05],
+            array_map(static fn (array $candidate): string => $candidate['puzzleId'], $items[0]['candidates']),
+        );
     }
 }

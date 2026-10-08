@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Value\PuzzleApprovalBrandChoice;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -44,6 +45,7 @@ readonly final class ApprovePuzzleHandler
         private PuzzleRecordUpdater $puzzleRecordUpdater,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
         private ClockInterface $clock,
+        private OutdatedPuzzleRequests $outdatedPuzzleRequests,
     ) {
     }
 
@@ -116,6 +118,9 @@ readonly final class ApprovePuzzleHandler
         }
 
         $puzzle->approve($reviewer, $this->clock->now());
+
+        // The corrections may have done what a pending change request proposes
+        $this->outdatedPuzzleRequests->afterRecordChange($puzzle);
 
         $note = $message->note !== null ? trim($message->note) : '';
 

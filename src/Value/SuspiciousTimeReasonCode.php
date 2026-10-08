@@ -68,6 +68,33 @@ enum SuspiciousTimeReasonCode: string
     }
 
     /**
+     * A short name for the moderator queue's overviews (English only, never "suspicious") - the full sentence with its
+     * numbers is templates/suspicious_time/_reason.html.twig.
+     */
+    public function moderatorLabel(): string
+    {
+        return match ($this) {
+            self::FasterThanPredicted => 'Faster than predicted',
+            self::FasterThanUsual => 'Faster than usual',
+            self::BeyondKnownPace => 'Beyond any known pace',
+            self::SlowerThanPredicted => 'Slower than predicted',
+            self::SlowerThanUsual => 'Slower than usual',
+            self::BelowSlowFloor => 'Far slower than most puzzlers',
+            self::HoursLeftOut => 'Hours box left empty?',
+            self::TeammatesSavedGroup => 'Others saved it as a group',
+            self::CommentMentionsGroup => 'Comment mentions others',
+            self::OftenInGroup => 'Often puzzles in a group',
+            self::OtherEdition => 'Another edition?',
+            self::FastestOnPuzzle => 'Would be the fastest',
+            self::MinutesInHoursBox => 'Minutes in the hours box?',
+            self::IncludesBreaks => 'Days counted?',
+            self::NewPlayer => 'New player',
+            self::ConfirmedWhileSaving => 'Confirmed while saving',
+            self::PredictionFromSlowAttempt => 'Prediction from a slow attempt',
+        };
+    }
+
+    /**
      * A likely mistake with a fix to offer - it makes a raised time strong whatever its ratio.
      */
     public function isFittingExplanation(): bool

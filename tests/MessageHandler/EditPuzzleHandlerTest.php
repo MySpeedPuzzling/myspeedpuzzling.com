@@ -72,7 +72,7 @@ final class EditPuzzleHandlerTest extends KernelTestCase
         self::assertCount(1, $decisions);
         $decision = $decisions[0];
         self::assertSame(PuzzleModerationAction::PuzzleEdited, $decision->action);
-        self::assertSame(PlayerFixture::PLAYER_REGULAR, $decision->decidedById->toString());
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $decision->decidedById?->toString());
         self::assertSame('Edited Name', $decision->puzzleName);
         self::assertSame('Checked on the box photo', $decision->note);
 

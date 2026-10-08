@@ -19,6 +19,9 @@ enum PuzzleHistoryEntryKind: string
     // This puzzle was merged into another one and deleted
     case MergedAway = 'merged_away';
     case MergeRejected = 'merge_rejected';
+    // Closed by the application, nothing left to do (OutdatedPuzzleRequests) - nobody decided
+    case ChangeRequestOutdated = 'change_request_outdated';
+    case MergeOutdated = 'merge_outdated';
     case Approved = 'approved';
     case BrandApproved = 'brand_approved';
     case BrandMerged = 'brand_merged';

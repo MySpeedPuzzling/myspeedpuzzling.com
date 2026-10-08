@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\DetectSuspiciousTimes;
 use SpeedPuzzling\Web\Query\GetSuspiciousTimeCaseDetail;
 use SpeedPuzzling\Web\Repository\SuspiciousTimeNoticeRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\SuspiciousTimesFixture;
@@ -18,6 +19,7 @@ use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
 use SpeedPuzzling\Web\Value\SuspiciousTimeReasonCode;
 use SpeedPuzzling\Web\Value\SuspiciousTimeResponse;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * docs/features/suspicious-time-review.md, "Moderator queue": what a card shows.
@@ -141,6 +143,27 @@ final class GetSuspiciousTimeCaseDetailTest extends KernelTestCase
         self::assertCount(1, $marked->currentNotices());
         self::assertCount(1, $marked->openReplies());
         self::assertSame('Correct!', $marked->openReplies()[0]->responseText);
+    }
+
+    public function testAPairBelowTheCommunityFloorIsComparedWithWhatMostPairsTake(): void
+    {
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new DetectSuspiciousTimes());
+        $caseId = $this->database->fetchOne('SELECT id FROM suspicious_time_case WHERE time_id = :id', ['id' => SuspiciousTimesFixture::TIME_SLOW_PAIR]);
+        self::assertIsString($caseId);
+
+        $card = $this->detail->cards([$caseId])[0];
+
+        self::assertNull($card->expectedSeconds);
+        self::assertNull($card->ratio());
+        $median = $card->reasons[0]->param('median');
+        self::assertIsInt($median);
+        self::assertSame($median, $card->communityMedianSeconds());
+        self::assertEqualsWithDelta(540000 / $median, $card->communityRatio(), 0.001);
+
+        // A case with an expectation of the player's own has none
+        $own = $this->detail->cards([SuspiciousTimesFixture::CASE_PENDING_SLOW])[0];
+        self::assertNull($own->communityMedianSeconds());
+        self::assertNull($own->communityRatio());
     }
 
     public function testAPendingTimeEditedSinceTheScanIsShownAsSuch(): void

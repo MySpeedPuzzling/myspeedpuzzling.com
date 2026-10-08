@@ -35,12 +35,12 @@ membership_subscribed:
 
 subscription_payment_failed:
     subject: "Mitgliedschafts-Zahlung auf MySpeedPuzzling.com fehlgeschlagen"
-    preheader: "Die Zahlung ist nicht durchgegangen – prüfe deine Zahlungsmethode, um Mitglied zu bleiben."
+    preheader: "Die Zahlung ist nicht durchgegangen – deine Mitgliedschaft ruht, bis sie klappt."
     title: "Mitgliedschafts-Zahlung fehlgeschlagen!"
     content: |
-        <p>Wir haben bemerkt, dass deine letzte Mitgliedschafts-Zahlung nicht erfolgreich war. Es könnte ein Problem mit deiner Zahlungsmethode gegeben haben.</p>
-        <p>Wenn du deine Mitgliedschaft aktiv halten möchtest, überprüfe und aktualisiere bitte deine Zahlungsmethode im Abrechnungsportal.</p>
-        <p>Wenn die Zahlung weiterhin fehlschlägt, wird deine Mitgliedschaft nach einigen weiteren Versuchen deaktiviert. Wir hoffen, dass du bei MySpeedPuzzling.com bleibst!</p>
+        <p>Deine letzte Mitgliedschafts-Zahlung ist nicht durchgegangen. Zahlungen werden manchmal abgelehnt, auch wenn sich bei dir nichts geändert hat – zum Beispiel, wenn die Bank die Karte ersetzt hat oder eine in Apple Pay oder Google Pay gespeicherte Karte dort nicht mehr gültig ist.</p>
+        <p>Deine Mitgliedschaft ruht, bis eine Zahlung durchgeht. Bitte prüfe deine Zahlungsmethode im Abrechnungsportal. Sobald eine Zahlung klappt, ist deine Mitgliedschaft sofort wieder aktiv.</p>
+        <p>Wir versuchen die Zahlung in den nächsten Tagen eventuell automatisch erneut, aber nicht jede fehlgeschlagene Zahlung lässt sich wiederholen – warte also bitte nicht darauf. Wir hoffen, dass du bei MySpeedPuzzling.com bleibst!</p>
     button: "Zahlungsmethode aktualisieren"
 
 subscription_renewed:

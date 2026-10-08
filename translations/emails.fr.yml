@@ -35,12 +35,12 @@ membership_subscribed:
 
 subscription_payment_failed:
     subject: "Le paiement de l'adhésion sur MySpeedPuzzling.com a échoué"
-    preheader: "Le paiement n’a pas abouti – vérifiez votre moyen de paiement pour garder votre adhésion."
+    preheader: "Le paiement n’a pas abouti – votre adhésion est suspendue jusqu’à ce qu’il passe."
     title: "Le paiement de l'adhésion a échoué !"
     content: |
-        <p>Nous avons remarqué que votre paiement récent d'adhésion n'a pas réussi. Il pourrait y avoir eu un problème avec votre méthode de paiement.</p>
-        <p>Si vous souhaitez maintenir votre adhésion active, veuillez vérifier et mettre à jour votre méthode de paiement dans le portail de facturation.</p>
-        <p>Si le paiement continue d'échouer, votre adhésion sera désactivée après quelques tentatives supplémentaires. Nous espérons que vous resterez avec MySpeedPuzzling.com !</p>
+        <p>Votre dernier paiement d’adhésion n’a pas abouti. Un paiement est parfois refusé même si rien n’a changé de votre côté, par exemple lorsque la banque a remplacé la carte ou qu’une carte enregistrée dans Apple Pay ou Google Pay n’y est plus valide.</p>
+        <p>Votre adhésion est suspendue jusqu’à ce qu’un paiement aboutisse. Veuillez vérifier votre moyen de paiement dans le portail de facturation. Dès qu’un paiement aboutit, votre adhésion est immédiatement rétablie.</p>
+        <p>Nous pourrons retenter le paiement automatiquement dans les prochains jours, mais tous les paiements échoués ne peuvent pas être retentés : merci donc de ne pas attendre. Nous espérons que vous resterez avec MySpeedPuzzling.com !</p>
     button: "Mettre à jour le moyen de paiement"
 
 subscription_renewed:

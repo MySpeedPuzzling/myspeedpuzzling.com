@@ -133,6 +133,47 @@ image-editor). Optional note → `ApprovePuzzleMergeRequest::$decisionNote`. The
 posts back to the page (422 keeps what was typed, the dropped photo too - `FormPhotoStash`) and carries every puzzle's
 record version - a puzzle saved in between refuses the merge. The approval queue's "merge" can say which language the new puzzle's name is in.
 
+A request names its puzzles as a list of ids, as reported. Another merge may have merged one of them since: the
+review, the approval and the internal API queue read the reported puzzles **as they are now** (`MergeRequestPuzzles`
+over `GetCurrentPuzzleIds`: a merged puzzle leads to its survivor through `puzzle_redirect`, one deleted without a merge
+is gone) - "B was merged into C since it was reported" and C is reviewed in B's place. The approval refuses a request
+that is not pending or has fewer than two puzzles left. A pending request with fewer than two puzzles shows "Nothing
+left to merge" and the Reject button - normally it is closed as already done first (next section).
+
+## Outdated requests - "Already done"
+
+Requests the catalogue already took care of close by themselves, so the queues hold only work
+(`OutdatedPuzzleRequests`, status `PuzzleReportStatus::Outdated` + `outdated_reason`, tab **Already done** on both
+queues). Jan, 2026-10-07: a one-time cleanup is no solution - it happens again.
+
+- **Merge request** with fewer than two of its puzzles left: `already_merged` (other merges joined them -
+  `survivor_puzzle_id` = the puzzle they are now, `outdated_by_merge_request_id` = the merge that did it) or
+  `puzzles_gone` (a puzzle deleted without a merge).
+- **Change request** whose puzzle has every value it proposes already: `already_applied`
+  (`PuzzleChangeRequest::nothingLeftToApply()` - errs on "something left": a proposed image, a created brand that is
+  gone, other names whose diff still changes something stay for a moderator).
+- **Who closes them:** whatever makes them outdated, in its own transaction - a merge
+  (`ApprovePuzzleMergeRequestHandler` → `afterMerge()`: every other pending merge request naming a merged puzzle, and the
+  survivor's pending change requests), a saved record (`afterRecordChange()` from `ApprovePuzzleChangeRequestHandler`,
+  `EditPuzzleHandler`, `ApprovePuzzleHandler`). Safety net: `myspeedpuzzling:close-outdated-puzzle-requests`
+  (daily on lily, `CloseOutdatedPuzzleRequests`) runs the same rules over every pending request and logs a **warning**
+  when it closes anything - that means something went around the handlers (SQL, a writer not wired in).
+- Nobody decided, so `reviewed_by` stays null and the log row has no decider (`source = automatic`,
+  `merge_request_outdated` / `change_request_outdated`, a line in the puzzle's history). **The reporter is told
+  nothing** - nobody judged the report, and what it asked for happened. Not "rejected" (that tells the reporter they
+  were wrong), not "approved" (that claims a review that never happened).
+- Before this, a stuck merge request had no buttons at all ("All reported puzzles have been deleted"), and kept
+  blocking new suggestions for its remaining puzzle (`GetPendingPuzzleProposals::blocksNewProposal()`).
+
+**Change requests move with a merge.** A merge says the two records were the same puzzle, so every change request of a
+merged puzzle - pending or decided - moves onto the survivor (`PuzzleChangeRequest::puzzleMergedInto()`, ids in the
+merge audit's `migrated.changeRequests`) and remembers where it was filed (`merged_from_puzzle_id`, "Filed on X, which
+was merged into this puzzle since" on its page). Its original values stay the merged puzzle's - the review shows where
+they differ from the puzzle now. The foreign key no longer cascades: until 2026-10 a merge silently deleted the merged
+puzzle's change requests, pending ones with no decision and no word to the reporter. Now any other deletion of a
+puzzle with change requests fails instead. `PuzzleMergeForeignKeyCoverageTest` lists every foreign key to `puzzle`
+with what a merge does with its rows - a new one fails until somebody decides.
+
 ## A puzzle's history
 
 `/admin/puzzles/{id}/history` (`PuzzleHistoryController`, `GetPuzzleHistory`) - who changed, approved or merged what,
@@ -164,10 +205,12 @@ change request is deleted outright with its reporter (`ON DELETE CASCADE`).
 | `merge_request_approved` / `merge_request_rejected` | `ApprovePuzzleMergeRequestHandler` / `RejectPuzzleMergeRequestHandler` |
 | `puzzle_approved`, `brand_approved`, `brand_merged` | `ApprovePuzzleHandler` |
 | `puzzle_edited` | `EditPuzzleHandler` (a moderator's direct edit) |
+| `merge_request_outdated` / `change_request_outdated` | `OutdatedPuzzleRequests` - no decider, `source = automatic` |
 
 - **No foreign keys**, on purpose: requests, puzzles and brands get deleted (merges, cascades) and so do players.
   The decider's id, name and code are copied in; the puzzle's name too.
-- `source` = `admin_ui` / `internal_api` (`MergeDecisionSource`; the internal API sets it for merge approve + reject).
+- `source` = `admin_ui` / `internal_api` (`MergeDecisionSource`; the internal API sets it for merge approve + reject) /
+  `automatic` (an outdated request closed by itself - `decided_by_id` null, the only rows without a decider).
 - `note` = rejection reason / the optional note of the approve and edit forms; `details` (JSON) = what changed (before/after, image choice, selected fields,
   merged ids, brand merge counts).
 - Backfilled by migration `Version20260925165131` from every change / merge request decided before it existed
@@ -183,4 +226,6 @@ change request is deleted outright with its reporter (`ON DELETE CASCADE`).
 `ApprovePuzzleMergeRequestHandlerTest`, `tests/Query/GetPuzzleApprovalsTest.php`, and the approve + merge flows as a
 moderator in `tests/Controller/Admin/ModeratorAccessTest.php`. Direct edit + history: `EditPuzzleHandlerTest`,
 `tests/Query/GetPuzzleHistoryTest.php`, `tests/Controller/Admin/EditPuzzleControllerTest.php`; merge review page:
-`PuzzleMergeRequestControllerTest`.
+`PuzzleMergeRequestControllerTest`. Outdated requests: `tests/Services/OutdatedPuzzleRequestsTest.php`,
+`tests/Entity/PuzzleChangeRequestTest.php`, `tests/Value/MergeRequestPuzzlesTest.php`,
+`tests/PuzzleMergeForeignKeyCoverageTest.php`.

@@ -43,8 +43,9 @@ class PuzzleModerationDecision
         public PuzzleModerationAction $action,
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $decidedAt,
-        #[Column(type: UuidType::NAME)]
-        public UuidInterface $decidedById,
+        // Null for what the application closed by itself (MergeDecisionSource::Automatic)
+        #[Column(type: UuidType::NAME, nullable: true)]
+        public null|UuidInterface $decidedById,
         #[Column(nullable: true)]
         public null|string $decidedByName,
         #[Column(nullable: true)]

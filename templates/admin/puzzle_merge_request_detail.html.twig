@@ -25,6 +25,8 @@
                     <span class="badge bg-warning text-dark">Pending</span>
                 {% elseif request.status.value == 'approved' %}
                     <span class="badge bg-success">Approved</span>
+                {% elseif request.status.value == 'outdated' %}
+                    <span class="badge bg-secondary">Already done</span>
                 {% else %}
                     <span class="badge bg-danger">Rejected</span>
                 {% endif %}
@@ -47,7 +49,25 @@
                 </div>
             {% endif %}
 
-            {% if request.reviewedAt %}
+            {% if request.status.value == 'outdated' %}
+                {# Closed by OutdatedPuzzleRequests - nobody reviewed it #}
+                <div class="p-2 p-md-3 mb-3 bg-light rounded small text-break" data-role="outdated">
+                    Closed without a review {{ request.reviewedAt|ago }}:
+                    {% if request.outdatedReason and request.outdatedReason.value == 'already_merged' %}
+                        other merges already joined these puzzles into one.
+                    {% else %}
+                        fewer than two of these puzzles are left - the others no longer exist.
+                    {% endif %}
+                    {% if request.outdatedByMergeRequestId %}
+                        <a href="{{ path('admin_puzzle_merge_request_detail', {id: request.outdatedByMergeRequestId}) }}">The merge that did it</a>.
+                    {% endif %}
+                    {% if request.finalMergedPuzzleId %}
+                        The puzzle now:
+                        <a href="{{ path('puzzle_detail', {puzzleId: request.finalMergedPuzzleId}) }}" target="_blank">{{ request.survivorPuzzleName ?? 'view' }}</a>
+                        &bull; <a href="{{ path('admin_puzzle_history', {puzzleId: request.finalMergedPuzzleId}) }}">History</a>
+                    {% endif %}
+                </div>
+            {% elseif request.reviewedAt %}
                 <div class="p-2 p-md-3 mb-3 bg-light rounded small text-break">
                     Reviewed {{ request.reviewedAt|ago }}{% if request.reviewerName %} by {{ request.reviewerName }}{% endif %}.
                     {% if request.finalMergedPuzzleId %}
@@ -58,10 +78,39 @@
                 </div>
             {% endif %}
 
-            {% if puzzles is empty %}
-                <div class="alert alert-warning">
-                    All reported puzzles have been deleted.
+            {# Reported puzzles merged into another puzzle since the report - the request is about that puzzle now #}
+            {% if merged_meanwhile is not empty %}
+                <div class="alert alert-info small text-break" data-role="merged-meanwhile">
+                    {% for line in merged_meanwhile %}
+                        <div>
+                            <a href="{{ path('admin_puzzle_history', {puzzleId: line.reportedId}) }}">{{ line.reportedName ?? ('Puzzle ' ~ line.reportedId|slice(0, 8) ~ '…') }}</a>
+                            was merged into
+                            <a href="{{ path('admin_puzzle_history', {puzzleId: line.currentId}) }}">{{ line.currentName ?? ('Puzzle ' ~ line.currentId|slice(0, 8) ~ '…') }}</a>
+                            since it was reported - shown below in its place.
+                        </div>
+                    {% endfor %}
                 </div>
+            {% endif %}
+
+            {% if pending and form is null %}
+                {# Fewer than two puzzles left - closed as already done by the daily check, or rejected here meanwhile #}
+                <div class="alert alert-warning text-break" data-role="nothing-to-merge">
+                    Nothing left to merge:
+                    {% if puzzles is empty %}none of the reported puzzles exists any more{% else %}only one of the reported puzzles is left{% endif %}{% if gone_count > 0 %} ({{ gone_count }} deleted without a merge){% endif %}.
+                    It closes as already done with the next daily check, or reject it now.
+                </div>
+                <button type="button"
+                        class="btn btn-outline-danger mb-4"
+                        data-bs-toggle="modal"
+                        data-bs-target="#rejectModal">
+                    <i class="bi bi-x-lg me-1"></i> Reject
+                </button>
+            {% endif %}
+
+            {% if puzzles is empty %}
+                {% if not pending %}
+                    <div class="alert alert-light border small">None of the reported puzzles exists any more.</div>
+                {% endif %}
             {% else %}
                 {% if form %}
                     {# Posts back here with the query string - a merge started from the approval queue returns there #}

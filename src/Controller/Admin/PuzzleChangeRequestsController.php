@@ -38,6 +38,7 @@ final class PuzzleChangeRequestsController extends AbstractController
         $requests = match ($tab) {
             'approved' => $this->getPuzzleChangeRequests->allApproved($isAdmin),
             'rejected' => $this->getPuzzleChangeRequests->allRejected($isAdmin),
+            'outdated' => $this->getPuzzleChangeRequests->allOutdated($isAdmin),
             default => $this->getPuzzleChangeRequests->allPending($isAdmin),
         };
 

@@ -10,8 +10,9 @@ use SpeedPuzzling\Web\Value\SuspicionDirection;
 use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
 
 /**
- * Facts of one entry for SingleTimeSuspicionCheck. forEntry(): the puzzle's piece count, the player's baseline for it
- * and the puzzle's difficulty (when its confidence is not insufficient) in one statement - the baseline step; it reads
+ * Facts of one entry for SingleTimeSuspicionCheck. forEntry(): the puzzle's piece count, the player's baseline for it,
+ * the puzzle's difficulty (when its confidence is not insufficient) and its slow threshold (while it is for the
+ * current piece count) in one statement - the baseline step; it reads
  * no results at all, so suspicious ones play no part. earlierAttemptRaisedSlow(): the scan's "the prediction was built
  * on a far too slow attempt" fact (GetSuspiciousTimeCandidates, previous_attempt_raised_slow) for one entry.
  */
@@ -23,7 +24,7 @@ readonly final class GetSuspicionEntryFacts
     }
 
     /**
-     * @return null|array{pieces_count: int, baseline_seconds: null|int, difficulty_score: null|float} null for an unknown puzzle
+     * @return null|array{pieces_count: int, baseline_seconds: null|int, difficulty_score: null|float, slow_threshold: null|float} null for an unknown puzzle
      */
     public function forEntry(string $playerId, string $puzzleId): null|array
     {
@@ -31,12 +32,13 @@ readonly final class GetSuspicionEntryFacts
 SELECT
     p.pieces_count,
     (SELECT pb.baseline_seconds FROM player_baseline pb WHERE pb.player_id = :playerId AND pb.pieces_count = p.pieces_count) AS baseline_seconds,
-    (SELECT pd.difficulty_score FROM puzzle_difficulty pd WHERE pd.puzzle_id = p.id AND pd.confidence <> 'insufficient') AS difficulty_score
+    (SELECT pd.difficulty_score FROM puzzle_difficulty pd WHERE pd.puzzle_id = p.id AND pd.confidence <> 'insufficient') AS difficulty_score,
+    (SELECT conf.slow_threshold FROM suspicious_time_puzzle_confirmation conf WHERE conf.puzzle_id = p.id AND conf.pieces_count = p.pieces_count) AS slow_threshold
 FROM puzzle p
 WHERE p.id = :puzzleId
 SQL;
 
-        /** @var false|array{pieces_count: int|string, baseline_seconds: null|int|string, difficulty_score: null|float|string} $row */
+        /** @var false|array{pieces_count: int|string, baseline_seconds: null|int|string, difficulty_score: null|float|string, slow_threshold: null|float|string} $row */
         $row = $this->database->fetchAssociative($query, ['playerId' => $playerId, 'puzzleId' => $puzzleId]);
 
         if ($row === false) {
@@ -47,6 +49,7 @@ SQL;
             'pieces_count' => (int) $row['pieces_count'],
             'baseline_seconds' => $row['baseline_seconds'] === null ? null : (int) $row['baseline_seconds'],
             'difficulty_score' => $row['difficulty_score'] === null ? null : (float) $row['difficulty_score'],
+            'slow_threshold' => $row['slow_threshold'] === null ? null : (float) $row['slow_threshold'],
         ];
     }
 

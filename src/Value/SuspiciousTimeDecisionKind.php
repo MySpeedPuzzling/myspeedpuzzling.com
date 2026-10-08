@@ -17,6 +17,9 @@ enum SuspiciousTimeDecisionKind: string
     // puzzle_solving_time.suspicious was changed by SQL - the scan's reconciliation noticed it
     case MarkedOutsideApp = 'marked_outside_app';
     case UnmarkedOutsideApp = 'unmarked_outside_app';
-    // "The piece count is right" on a puzzle card
+    // "The piece count is right" on a puzzle card - no longer written since 2026-10-08 (the slow threshold took its place)
     case PiecesConfirmed = 'pieces_confirmed';
+    // A moderator set / removed a puzzle's slow threshold ("A hard puzzle") - snapshot slow_threshold, previous_slow_threshold
+    case SlowThresholdSet = 'slow_threshold_set';
+    case SlowThresholdRemoved = 'slow_threshold_removed';
 }

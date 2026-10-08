@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Controller\InternalApi\ApprovePuzzleMergeRequestController;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Query\GetCurrentPuzzleIds;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -333,6 +334,7 @@ final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
         $controller = new ApprovePuzzleMergeRequestController(
             $container->get(MessageBusInterface::class),
             $container->get(GetPuzzleMergeRequests::class),
+            $container->get(GetCurrentPuzzleIds::class),
             PlayerFixture::PLAYER_ADMIN,
         );
 
@@ -380,6 +382,7 @@ final class ApprovePuzzleMergeRequestControllerTest extends KernelTestCase
         return new ApprovePuzzleMergeRequestController(
             $messageBus,
             self::getContainer()->get(GetPuzzleMergeRequests::class),
+            self::getContainer()->get(GetCurrentPuzzleIds::class),
             $reviewerPlayerId,
         );
     }

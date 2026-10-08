@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 /**
- * What one player may manage among competitions and series - the answers the
- * CompetitionEdit/Delete, CompetitionResultsEntry and CompetitionSeriesEdit/Delete voters give.
+ * What one player may manage among competitions, series and organizations - the answers the
+ * CompetitionEdit/Delete, CompetitionResultsEntry, CompetitionSeriesEdit/Delete and OrganizationEdit/Delete voters give.
  * Ids are stored lower-cased (Postgres' uuid text form).
  */
 readonly final class CompetitionPermissions
@@ -17,6 +17,8 @@ readonly final class CompetitionPermissions
      * @param array<string, true> $editableSeriesIds
      * @param array<string, true> $deletableSeriesIds
      * @param array<string, true> $refereeCompetitionIds
+     * @param array<string, true> $editableOrganizationIds
+     * @param array<string, true> $deletableOrganizationIds
      */
     public function __construct(
         private array $editableCompetitionIds,
@@ -24,6 +26,8 @@ readonly final class CompetitionPermissions
         private array $editableSeriesIds,
         private array $deletableSeriesIds,
         private array $refereeCompetitionIds = [],
+        private array $editableOrganizationIds = [],
+        private array $deletableOrganizationIds = [],
     ) {
     }
 
@@ -67,5 +71,31 @@ readonly final class CompetitionPermissions
     public function canDeleteSeries(string $seriesId): bool
     {
         return isset($this->deletableSeriesIds[strtolower($seriesId)]);
+    }
+
+    /**
+     * Creator or maintainer of the organization - its team.
+     */
+    public function canEditOrganization(string $organizationId): bool
+    {
+        return isset($this->editableOrganizationIds[strtolower($organizationId)]);
+    }
+
+    /**
+     * Creator of the organization.
+     */
+    public function canDeleteOrganization(string $organizationId): bool
+    {
+        return isset($this->deletableOrganizationIds[strtolower($organizationId)]);
+    }
+
+    /**
+     * The organizations the player is on the team of - the choices of the "Organization" select.
+     *
+     * @return list<string>
+     */
+    public function organizationIds(): array
+    {
+        return array_map(strval(...), array_keys($this->editableOrganizationIds));
     }
 }

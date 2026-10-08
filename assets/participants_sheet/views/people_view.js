@@ -1,37 +1,220 @@
 /**
- * The People tab on a desktop (D1, O4; docs/features/competitions-management/participants-spreadsheet.md §4 (C) and
- * "Client architecture (as built)") - one row per active person: name, country, MSP profile, a checkbox column per solo
- * round, a read-only pair/team label per pair/team round (Enter or a double click opens that round's tab at the person),
- * and the new-person row at the bottom (type a name, Enter, the next name).
+ * The People tab on a desktop (D1, O4, O5; docs/features/competitions-management/participants-spreadsheet.md §4 (C), §6,
+ * §7 and "Client architecture (as built)") - one row per person:
  *
- * The basics of stream C; stream E extends this file (filters, search, selection + bulk bar, adding people by paste,
- * registration columns, the Columns menu). Every edit is an action of sheet_changes.js handed to `context.act()`.
+ * - a selection column (Shift+click ranges, the header box = every shown row) and the **bulk bar** for the selected
+ *   people: in / out of a solo round, "Make a pair/team" in a pair/team round (a preview with the server's dry run when it
+ *   moves anybody or the size is off), Remove from event, Restore - each one undo step;
+ * - **filters** with counts (All, Not in any round, Joined by themselves, the registration filters of a managed event,
+ *   Duplicate names, Removed) and a **search** (name, external id, MSP name, #code - folded); a filter never hides a row
+ *   that has the focus or is open in the person editor until the filter changes;
+ * - the **Columns menu** (D10, remembered per event in this browser): name, country, MSP profile, rounds shown by
+ *   default; external id, source, joined (MSP), the registration columns of a managed event, the private note hidden;
+ * - name, country, MSP profile (O9: "Linked to a MySpeedPuzzling profile" when the viewer may not see it), a checkbox
+ *   per solo round, a read-only pair/team label per pair/team round (Enter or a double click opens that round's tab at the
+ *   person), external id, note (`field: note`, private to the organisers), the registration (Enter/Space opens the
+ *   actions its state allows - registration_actions.js), paid, checked in, the row actions (Edit, Remove / Restore);
+ * - markers in text: "Joined by themselves", "On the waitlist", same names, "No round yet", removed rows struck through;
+ * - the new-person row at the bottom (type a name, Enter, the next name) and **adding people by paste** (people_paste.js:
+ *   a block pasted onto the new row - or reaching past the end of the list - is read as `name ⇥ country ⇥ external id`
+ *   per line, previewed and added with one Confirm);
+ * - counters above the grid for a managed event ("Spots taken 180 / 200 · Waitlist 12") and the first-in-line hint.
  *
- * Profile cell (O9): the linked profile's name, #CODE and link when the viewer may see it (`player.visible`), else
- * "Linked to a MySpeedPuzzling profile"; link / unlink through a typeahead over `urls.playerSearch`
- * (`player_search_autocomplete?format=co-puzzler`).
+ * Every edit is an action of sheet_changes.js handed to `context.act()`; registration changes go only through the
+ * registration endpoint. update(delta) re-renders only the rows the delta names (plus the rows whose same-name or
+ * waitlist marker moved because of them) - never the whole grid on an edit.
+ *
+ * Texts: `this.t()` = the core texts (C's keys), `this.say()` / `this.sayCount()` = the People texts
+ * (_texts_people.html.twig).
  */
 
-import { SheetGrid, escapeHtml } from '../sheet_grid.js';
+import { escapeHtml } from '../sheet_grid.js';
 import {
     addPerson,
+    cleanFieldValue,
     combine,
     isEmpty,
     linkProfile,
+    newTeamRow,
+    removePeople,
+    restorePeople,
     setField,
     setFields,
     setInRound,
 } from '../sheet_changes.js';
 import { readBoolean, trimCell } from '../tsv.js';
 import { foldSearchText } from '../../search_fold.js';
-import { parsePlace } from '../sheet_model.js';
+import { nameKey, parsePlace } from '../sheet_model.js';
+import { LINE_DUPLICATE, LINE_EXISTING, LINE_HEADER, LINE_INVALID, LINE_NEW, LINE_REMOVED, lineOfError, namePasteAction, planNamePaste } from '../people_paste.js';
+import {
+    allowedActions,
+    firstInLine,
+    matchesRegistrationFilter,
+    paidBefore,
+    performRegistrationAction,
+    registrationCounts,
+    registrationStatus,
+    waitlistPositions,
+} from '../registration_actions.js';
 
 export const NEW_ROW = '__new';
 // A paste or fill touching more rows than this is previewed first (§6)
 export const PREVIEW_ABOVE_ROWS = 10;
+// Removing more than this share of the active people (and at least LARGE_REMOVAL_MIN) asks for the typed number (§6)
+export const LARGE_REMOVAL_SHARE = 0.25;
+export const LARGE_REMOVAL_MIN = 10;
 const UNLINK = '__unlink';
 const OPEN = '__open';
 const NO_COUNTRY = '__none';
+const SELECT = 'select';
+const ACTIONS = 'actions';
+const NAME_WIDTH = 240;
+const SELECT_WIDTH = 44;
+
+/** The People filters in the order the toolbar shows them; `managed` ones only for a managed event. */
+export const FILTERS = [
+    { key: 'all' },
+    { key: 'no_round' },
+    { key: 'joined' },
+    { key: 'waitlist', managed: true },
+    { key: 'not_paid', managed: true },
+    { key: 'checked_in', managed: true, inPerson: true },
+    { key: 'not_checked_in', managed: true, inPerson: true },
+    { key: 'duplicates' },
+    { key: 'removed' },
+];
+
+/**
+ * The columns of the Columns menu (D10): `rounds` = every round column; `name` is always shown. Registration columns
+ * only for a managed event (check-in only in person).
+ */
+export const COLUMN_OPTIONS = [
+    { key: 'name', fixed: true },
+    { key: 'country', on: true },
+    { key: 'player', on: true },
+    { key: 'rounds', on: true },
+    { key: 'externalId', on: false },
+    { key: 'source', on: false },
+    { key: 'joined', on: false },
+    { key: 'registration', on: true, managed: true },
+    { key: 'paid', on: false, managed: true },
+    { key: 'checkedIn', on: false, managed: true, inPerson: true },
+    { key: 'note', on: false },
+];
+
+/** The filters and columns an event offers. */
+export function offeredFor(list, competition) {
+    return list.filter((item) => (!item.managed || competition?.registrationManaged === true) && (!item.inPerson || competition?.isOnline !== true));
+}
+
+const searchTexts = new WeakMap();
+
+/** What the search box looks through, folded once per person record: name, external id, MSP name, #code. */
+export function personSearchText(person) {
+    let text = searchTexts.get(person);
+
+    if (text === undefined) {
+        const player = person.player?.visible === true ? person.player : null;
+        text = foldSearchText([person.name, person.externalId ?? '', player?.name ?? '', player?.code ? `#${player.code}` : ''].join(' \u0000 '));
+        searchTexts.set(person, text);
+    }
+
+    return text;
+}
+
+/** The search: every word typed must be found ("kim ex", "#abc12", an external id). */
+export function matchesSearch(person, query) {
+    const folded = foldSearchText(String(query ?? '')).trim();
+
+    if (folded === '') {
+        return true;
+    }
+
+    const text = personSearchText(person);
+
+    return folded.split(/\s+/).every((word) => text.includes(word));
+}
+
+/**
+ * A person under a filter (contract §5 stream E). `duplicateKeys` = the name keys shared by 2+ active people.
+ */
+export function matchesFilter(model, person, filter, duplicateKeys = null) {
+    const removed = (person.removedAt ?? null) !== null;
+
+    if (filter === 'removed') {
+        return removed;
+    }
+
+    if (removed) {
+        return false;
+    }
+
+    switch (filter) {
+        case 'no_round':
+            return model.placesOf(person.id).size === 0;
+        case 'joined':
+            return person.source === 'self_joined';
+        case 'duplicates':
+            return (duplicateKeys ?? new Set(model.duplicateNames().keys())).has(nameKey(person.name));
+        case 'waitlist':
+        case 'not_paid':
+        case 'checked_in':
+        case 'not_checked_in':
+            return matchesRegistrationFilter(person, filter);
+        default:
+            return true;
+    }
+}
+
+/** Counts per filter key (search applied). */
+export function filterCounts(model, filters, query = '') {
+    const duplicateKeys = new Set(model.duplicateNames().keys());
+    const people = model.people({ includeRemoved: true }).filter((person) => matchesSearch(person, query));
+    const counts = {};
+
+    for (const { key } of filters) {
+        counts[key] = people.filter((person) => matchesFilter(model, person, key, duplicateKeys)).length;
+    }
+
+    return counts;
+}
+
+/** The ids a filter + search shows, in the people order (state order, people added on the page at the end). */
+export function visiblePeople(model, filter, query = '', held = null) {
+    const duplicateKeys = new Set(model.duplicateNames().keys());
+
+    return model.people({ includeRemoved: true })
+        .filter((person) => (held?.has(person.id) ?? false) || (matchesFilter(model, person, filter, duplicateKeys) && matchesSearch(person, query)))
+        .map((person) => person.id);
+}
+
+/** Stored per event, in this browser only (localStorage may be missing or throw - the defaults then). */
+export function readColumnPrefs(storage, competitionId) {
+    try {
+        const raw = storage?.getItem(`participants-sheet:people-columns:${competitionId}`);
+        const value = raw ? JSON.parse(raw) : null;
+
+        return value && typeof value === 'object' ? value : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+export function writeColumnPrefs(storage, competitionId, prefs) {
+    try {
+        storage?.setItem(`participants-sheet:people-columns:${competitionId}`, JSON.stringify(prefs));
+    } catch (e) {
+        // Private mode, quota, blocked storage - the choice lasts for this page view
+    }
+}
+
+function browserStorage() {
+    try {
+        return typeof window !== 'undefined' ? window.localStorage : null;
+    } catch (e) {
+        return null;
+    }
+}
 
 export default function createPeopleView(context) {
     return new PeopleView(context);
@@ -42,24 +225,69 @@ export class PeopleView {
         this.context = context;
         this.model = context.model;
         this.texts = context.texts.core;
+        this.people = context.texts.people;
         this.grid = null;
         this.roundSignatures = new Map();
         this.searchController = null;
+        this.filter = 'all';
+        this.query = '';
+        this.selected = new Set();
+        this.held = new Set();
+        this.panelPersonId = null;
+        this.menu = null;
+        this.cleanups = [];
+        this.chromeFrame = null;
+        this.competition = this.model.competition ?? {};
+        this.columnPrefs = readColumnPrefs(browserStorage(), this.competition.id ?? '');
+        this.duplicateIds = new Set();
+        this.positions = new Map();
     }
 
     t(key, params) {
         return this.texts.t(key, params);
     }
 
+    /** A People text (_texts_people.html.twig). */
+    say(key, params) {
+        return this.people.t(key, params);
+    }
+
+    sayCount(key, count, params) {
+        return this.people.tc(key, count, params);
+    }
+
+    get managed() {
+        return this.competition.registrationManaged === true;
+    }
+
     // ---------------------------------------------------------------- the view interface
 
     render() {
         this.context.root.classList.add('sheet-view', 'sheet-view-people');
+        this.host = document.createElement('div');
+        this.host.className = 'sheet-people';
+        this.host.innerHTML = this.chromeHtml();
         this.gridRoot = document.createElement('div');
         this.gridRoot.className = 'sheet-grid-host';
-        this.context.root.replaceChildren(this.gridRoot);
+        this.host.append(this.gridRoot);
+        this.context.root.replaceChildren(this.host);
+
+        this.toolbar = this.host.querySelector('[data-people-toolbar]');
+        this.searchInput = this.host.querySelector('[data-people-search]');
+        this.filtersElement = this.host.querySelector('[data-people-filters]');
+        this.registrationElement = this.host.querySelector('[data-people-registration]');
+        this.bulkElement = this.host.querySelector('[data-people-bulk]');
+        this.columnsMenu = this.host.querySelector('[data-people-columns]');
+
+        this.wireChrome();
+        this.buildGrid();
+        this.renderChrome();
+    }
+
+    buildGrid() {
         this.columns = this.buildColumns();
         this.rememberRounds();
+        this.refreshMarkerSets();
         this.grid = this.context.createGrid({
             container: this.gridRoot,
             label: this.t('people_grid_label'),
@@ -69,6 +297,7 @@ export class PeopleView {
             rowLabel: (row) => (row === NEW_ROW ? this.t('people_new_row') : this.model.person(row)?.name ?? ''),
             rowClass: (row) => this.rowClass(row),
             editValue: (row, col) => this.editValue(row, col),
+            seenValue: (row, col) => this.seenValue(row, col),
             suggest: (row, col, query) => this.suggest(row, col, query),
             commit: (row, col, input, info) => this.commit(row, col, input, info),
             toggle: (cells, value) => this.toggle(cells, value),
@@ -76,17 +305,27 @@ export class PeopleView {
             paste: (anchor, rows, selected) => this.paste(anchor, rows, selected),
             fill: (kind, range, active) => this.fill(kind, range, active),
             activate: (row, col) => this.activate(row, col),
-            openPanel: (row) => {
-                if (row !== NEW_ROW) {
-                    this.context.openPersonEditor(row);
-                }
-            },
+            openPanel: (row) => this.openEditor(row),
         });
+        this.syncSelectAll();
+    }
+
+    /** New columns (rounds came or went, the Columns menu): the grid is built again, the focused cell focused again. */
+    rebuildGrid() {
+        const active = this.grid ? { ...this.grid.active } : null;
+        const focused = this.gridRoot.contains(document.activeElement);
+        this.grid?.destroy();
+        this.buildGrid();
+
+        if (focused && active !== null && !this.grid.focusCell(active.row, active.col)) {
+            this.grid.focusCell(active.row, 'name');
+        }
     }
 
     /**
-     * The model changed (or a cell marker): only the rows it names are re-rendered; the row list only when people came
-     * or went; every row of a round only when its expected size changed.
+     * The model changed (or a cell marker): only the rows it names are re-rendered (and rows whose same-name or
+     * waitlist marker moved with them); the row list when the filter's answer changed; every row of a round only when
+     * its expected size changed.
      */
     update(delta) {
         if (this.grid === null) {
@@ -94,19 +333,14 @@ export class PeopleView {
         }
 
         if (delta.all || this.roundsChanged()) {
-            // Rounds came, went or were renamed: new columns - the focused cell is focused again
-            const active = { ...this.grid.active };
-            const focused = this.gridRoot.contains(document.activeElement);
-            this.grid.destroy();
-            this.render();
-
-            if (focused) {
-                this.grid.focusCell(active.row, active.col);
-            }
+            this.rebuildGrid();
+            this.scheduleChrome();
 
             return;
         }
 
+        this.holdFocusedRow();
+        this.noticeChangedMeanwhile(delta);
         const keys = this.rowKeys();
 
         if (delta.rows || keys.length !== this.grid.rows.length || keys.some((key, index) => this.grid.rows[index] !== key)) {
@@ -128,7 +362,12 @@ export class PeopleView {
             }
         }
 
+        if (delta.people.size > 0) {
+            this.refreshMarkerSets().forEach((id) => rows.add(id));
+        }
+
         this.grid.updateRows([...rows]);
+        this.scheduleChrome();
     }
 
     focus(target = null) {
@@ -136,66 +375,334 @@ export class PeopleView {
             return;
         }
 
-        if (target?.personId && this.grid.focusCell(target.personId, target.col ?? 'name')) {
+        if (target?.personId) {
+            this.reveal({ target: { key: `person:${target.personId}:${target.col ?? 'name'}` } });
+
             return;
         }
 
         this.grid.focusActive();
     }
 
-    /** Jump to the cell of a problem (the conflicts panel). */
+    /** Jump to the cell of a problem (the conflicts panel) - the filter and search let go of it when they hide it. */
     reveal(problem) {
         const key = problem?.target?.key ?? '';
         const [kind, id, rest] = key.split(':');
+        let col = 'name';
 
         if (kind === 'person') {
-            const col = rest === 'country' ? 'country' : (rest === 'player' ? 'player' : 'name');
-
-            return this.grid?.focusCell(id, col) ?? false;
+            col = { country: 'country', player: 'player', externalId: 'externalId', note: 'note', registration: 'registration' }[rest] ?? 'name';
+        } else if (kind === 'place') {
+            col = `round:${key.slice(`place:${id}:`.length)}`;
+        } else {
+            return false;
         }
 
-        if (kind === 'place') {
-            const roundId = key.slice(`place:${id}:`.length);
-
-            return this.grid?.focusCell(id, `round:${roundId}`) ?? false;
+        if (this.model.person(id) === null || this.grid === null) {
+            return false;
         }
 
-        return false;
+        if (!this.grid.rows.includes(id)) {
+            this.setFilter(this.model.isRemoved(id) ? 'removed' : 'all', { query: '' });
+        }
+
+        if (this.grid.colIndex(col) === -1) {
+            col = 'name';
+        }
+
+        return this.grid.focusCell(id, col);
+    }
+
+    onOutcome() {
+        // Refusals and conflicts show on their cells through the markers; nothing more here
     }
 
     destroy() {
         this.searchController?.abort();
+        this.closeMenu(false);
+        cancelAnimationFrame(this.chromeFrame);
+        this.cleanups.forEach((cleanup) => cleanup());
+        this.cleanups = [];
         this.grid?.destroy();
         this.grid = null;
     }
 
+    listen(target, type, handler, options) {
+        target.addEventListener(type, handler, options);
+        this.cleanups.push(() => target.removeEventListener(type, handler, options));
+    }
+
+    // ---------------------------------------------------------------- chrome: toolbar, counters, bulk bar
+
+    chromeHtml() {
+        const columns = offeredFor(COLUMN_OPTIONS, this.competition).map((option) => {
+            const checked = option.fixed || this.columnOn(option.key);
+
+            return `<li><button type="button" class="dropdown-item sheet-columns-item" role="menuitemcheckbox" aria-checked="${checked ? 'true' : 'false'}" data-column="${escapeHtml(option.key)}"${option.fixed ? ' disabled' : ''}><i class="bi bi-check-lg" aria-hidden="true"></i> ${escapeHtml(this.say(`column_${option.key}`))}</button></li>`;
+        }).join('');
+
+        return `<div class="sheet-people-toolbar" data-people-toolbar>
+                <div class="sheet-people-search">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input type="search" class="form-control form-control-sm" data-people-search autocomplete="off" spellcheck="false"
+                           placeholder="${escapeHtml(this.say('search_placeholder'))}" aria-label="${escapeHtml(this.say('search_label'))}">
+                </div>
+                <div class="sheet-people-filters" role="group" aria-label="${escapeHtml(this.say('filters_label'))}" data-people-filters></div>
+                <div class="dropdown sheet-people-columns">
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-haspopup="true">
+                        <i class="bi bi-layout-three-columns" aria-hidden="true"></i> ${escapeHtml(this.say('columns_button'))}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" role="menu" aria-label="${escapeHtml(this.say('columns_label'))}" data-people-columns>${columns}</ul>
+                </div>
+            </div>
+            <div class="sheet-people-registration" data-people-registration${this.managed ? '' : ' hidden'}></div>
+            <div class="sheet-bulk-bar" role="region" aria-label="${escapeHtml(this.say('bulk_label'))}" data-people-bulk hidden></div>`;
+    }
+
+    wireChrome() {
+        this.listen(this.searchInput, 'input', () => {
+            this.setFilter(this.filter, { query: this.searchInput.value });
+        });
+        this.listen(this.searchInput, 'keydown', (event) => {
+            // Down from the search goes to the first row shown
+            if (event.key === 'ArrowDown' && this.grid?.rows.length) {
+                event.preventDefault();
+                this.grid.focusCell(this.grid.rows[0], 'name');
+            }
+        });
+        this.listen(this.filtersElement, 'click', (event) => {
+            const button = event.target.closest('[data-filter]');
+
+            if (button) {
+                this.setFilter(button.dataset.filter);
+            }
+        });
+        this.listen(this.columnsMenu, 'click', (event) => {
+            const item = event.target.closest('[data-column]');
+
+            if (item && !item.disabled) {
+                this.toggleColumn(item.dataset.column);
+                item.setAttribute('aria-checked', this.columnOn(item.dataset.column) ? 'true' : 'false');
+            }
+        });
+        this.listen(this.registrationElement, 'click', (event) => {
+            const button = event.target.closest('[data-promote]');
+
+            if (button) {
+                this.registrationAction(button.dataset.promote, 'promote');
+            }
+        });
+        this.listen(this.bulkElement, 'click', (event) => this.onBulkClick(event));
+        this.listen(this.gridRoot, 'click', (event) => {
+            const action = event.target.closest('[data-row-action]');
+
+            if (action) {
+                const row = action.closest('tr')?.dataset.row;
+
+                if (row && row !== NEW_ROW) {
+                    event.preventDefault();
+                    this.rowAction(row, action.dataset.rowAction, action.closest('td, th'));
+                }
+            }
+        });
+        // The header's "select every shown row" box: the grid never treats its click as a column selection
+        this.listen(this.gridRoot, 'pointerdown', (event) => {
+            if (event.target.closest?.('.sheet-select-all')) {
+                event.stopPropagation();
+            }
+        }, true);
+        this.listen(this.gridRoot, 'change', (event) => {
+            if (event.target.matches?.('.sheet-select-all')) {
+                this.selectShown(event.target.checked);
+            }
+        });
+    }
+
+    scheduleChrome() {
+        cancelAnimationFrame(this.chromeFrame);
+        this.chromeFrame = requestAnimationFrame(() => this.renderChrome());
+    }
+
+    renderChrome() {
+        if (!this.host) {
+            return;
+        }
+
+        this.renderFilters();
+        this.renderRegistration();
+        this.renderBulkBar();
+        this.syncSelectAll();
+    }
+
+    renderFilters() {
+        const counts = filterCounts(this.model, offeredFor(FILTERS, this.competition), this.query);
+        const html = offeredFor(FILTERS, this.competition).map(({ key }) => {
+            const pressed = key === this.filter;
+            // Optional filters that would show nobody stay out of the way (All and the active one are always there)
+            const hidden = !pressed && key !== 'all' && counts[key] === 0 && ['joined', 'duplicates', 'removed', 'checked_in'].includes(key);
+
+            return `<button type="button" class="btn btn-sm sheet-filter${pressed ? ' active' : ''}" data-filter="${escapeHtml(key)}" aria-pressed="${pressed ? 'true' : 'false'}"${hidden ? ' hidden' : ''}>${escapeHtml(this.say(`filter_${key}`))} <span class="sheet-filter-count">${counts[key]}</span><span class="visually-hidden"> (${escapeHtml(this.sayCount('people_count', counts[key]))})</span></button>`;
+        }).join('');
+
+        if (this.filtersElement.dataset.html !== html) {
+            const focused = this.filtersElement.contains(document.activeElement) ? document.activeElement.dataset.filter : null;
+            this.filtersElement.innerHTML = html;
+            this.filtersElement.dataset.html = html;
+
+            if (focused) {
+                this.filtersElement.querySelector(`[data-filter="${CSS.escape(focused)}"]`)?.focus();
+            }
+        }
+    }
+
+    renderRegistration() {
+        if (!this.managed) {
+            return;
+        }
+
+        const html = registrationSummaryHtml(this.model, this.competition, (key, params) => this.say(key, params), (key, count, params) => this.sayCount(key, count, params));
+
+        if (this.registrationElement.dataset.html !== html) {
+            const before = this.registrationElement.offsetHeight;
+            this.registrationElement.innerHTML = html;
+            this.registrationElement.dataset.html = html;
+
+            if (this.registrationElement.offsetHeight !== before) {
+                this.grid?.fitHeight();
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- filters and search
+
+    setFilter(filter, { query = this.query } = {}) {
+        const offered = offeredFor(FILTERS, this.competition).some((item) => item.key === filter);
+        this.filter = offered ? filter : 'all';
+        this.query = String(query ?? '');
+
+        if (this.searchInput && this.searchInput.value !== this.query) {
+            this.searchInput.value = this.query;
+        }
+
+        // A new filter starts over: only the person open in the editor stays shown whatever the filter says
+        this.held = new Set(this.panelPersonId ? [this.panelPersonId] : []);
+
+        this.grid?.setRows(this.rowKeys());
+
+        this.renderChrome();
+        this.context.announce(this.sayCount('shown_count', this.visibleIds().length));
+    }
+
+    /** The row with the focus (or an edit) stays until the filter changes (§ "never hides a row with focus"). */
+    holdFocusedRow() {
+        if (this.grid === null) {
+            return;
+        }
+
+        const row = this.grid.active?.row;
+
+        if (row && row !== NEW_ROW && (this.grid.isEditing() || this.gridRoot.contains(document.activeElement))) {
+            this.held.add(row);
+        }
+    }
+
+    visibleIds() {
+        return visiblePeople(this.model, this.filter, this.query, this.held);
+    }
+
     // ---------------------------------------------------------------- columns and rows
+
+    columnOn(key) {
+        const option = COLUMN_OPTIONS.find((candidate) => candidate.key === key);
+
+        if (option === undefined || option.fixed) {
+            return true;
+        }
+
+        if (!offeredFor([option], this.competition).length) {
+            return false;
+        }
+
+        return typeof this.columnPrefs[key] === 'boolean' ? this.columnPrefs[key] : option.on;
+    }
+
+    toggleColumn(key) {
+        this.columnPrefs = { ...this.columnPrefs, [key]: !this.columnOn(key) };
+        writeColumnPrefs(browserStorage(), this.competition.id ?? '', this.columnPrefs);
+        this.rebuildGrid();
+        this.context.announce(this.say(this.columnOn(key) ? 'column_shown' : 'column_hidden', { column: this.say(`column_${key}`) }));
+    }
 
     buildColumns() {
         const columns = [
-            { key: 'name', label: this.t('people_col_name'), kind: 'text', width: 240, space: 'panel' },
-            { key: 'country', label: this.t('people_col_country'), kind: 'list', width: 180 },
-            { key: 'player', label: this.t('people_col_profile'), kind: 'list', width: 240 },
+            {
+                key: SELECT,
+                label: this.say('col_select'),
+                kind: 'checkbox',
+                width: SELECT_WIDTH,
+                className: 'sheet-col-select',
+                headerHtml: `<input type="checkbox" class="form-check-input sheet-select-all" tabindex="-1" aria-label="${escapeHtml(this.say('select_all_shown'))}" title="${escapeHtml(this.say('select_all_shown'))}">`,
+            },
+            { key: 'name', label: this.t('people_col_name'), kind: 'text', width: NAME_WIDTH, space: 'panel', className: 'sheet-col-name' },
         ];
 
-        for (const round of this.model.rounds()) {
-            const solo = round.category === 'solo';
-            const kindText = this.t(`round_kind_${round.category}`);
-            columns.push({
-                key: `round:${round.id}`,
-                label: round.name,
-                kind: solo ? 'checkbox' : 'action',
-                width: solo ? 120 : 190,
-                className: solo ? 'sheet-col-solo' : 'sheet-col-team',
-                headerHtml: `<span class="sheet-round-head"><span class="sheet-round-swatch" style="background-color:${escapeHtml(safeColor(round.color))}" aria-hidden="true"></span><span class="sheet-round-name">${escapeHtml(round.name)}</span><span class="sheet-round-kind">${escapeHtml(kindText)}</span></span>`,
-            });
+        if (this.columnOn('country')) {
+            columns.push({ key: 'country', label: this.t('people_col_country'), kind: 'list', width: 180 });
         }
+
+        if (this.columnOn('player')) {
+            columns.push({ key: 'player', label: this.t('people_col_profile'), kind: 'list', width: 240 });
+        }
+
+        if (this.columnOn('rounds')) {
+            for (const round of this.model.rounds()) {
+                const solo = round.category === 'solo';
+                const kindText = this.t(`round_kind_${round.category}`);
+                columns.push({
+                    key: `round:${round.id}`,
+                    label: round.name,
+                    kind: solo ? 'checkbox' : 'action',
+                    width: solo ? 120 : 190,
+                    className: solo ? 'sheet-col-solo' : 'sheet-col-team',
+                    headerHtml: `<span class="sheet-round-head"><span class="sheet-round-swatch" style="background-color:${escapeHtml(safeColor(round.color))}" aria-hidden="true"></span><span class="sheet-round-name">${escapeHtml(round.name)}</span><span class="sheet-round-kind">${escapeHtml(kindText)}</span></span>`,
+                });
+            }
+        }
+
+        const optional = [
+            ['externalId', { kind: 'text', width: 150 }],
+            ['source', { kind: 'readonly', width: 170 }],
+            ['joined', { kind: 'readonly', width: 160 }],
+            ['registration', { kind: 'action', width: 170 }],
+            ['paid', { kind: 'readonly', width: 190 }],
+            ['checkedIn', { kind: 'readonly', width: 150 }],
+            ['note', { kind: 'text', width: 240, title: this.say('col_note_title') }],
+        ];
+
+        for (const [key, column] of optional) {
+            if (this.columnOn(key)) {
+                const label = this.say(`col_${key}`);
+                columns.push({
+                    key,
+                    label,
+                    ...column,
+                    headerHtml: column.title
+                        ? `<span title="${escapeHtml(column.title)}"><i class="bi bi-lock me-1" aria-hidden="true"></i>${escapeHtml(label)}<span class="visually-hidden"> (${escapeHtml(column.title)})</span></span>`
+                        : undefined,
+                });
+            }
+        }
+
+        columns.push({ key: ACTIONS, label: this.say('col_actions'), kind: 'action', width: 104, className: 'sheet-col-actions' });
 
         return columns;
     }
 
     rowKeys() {
-        return [...this.model.people().map((person) => person.id), NEW_ROW];
+        const keys = this.visibleIds();
+
+        // Nobody is added to the removed people
+        return this.filter === 'removed' ? keys : [...keys, NEW_ROW];
     }
 
     roundSignature(roundId) {
@@ -211,6 +718,41 @@ export class PeopleView {
         return this.model.rounds().map((round) => `${round.id}|${round.name}|${round.category}|${round.color ?? ''}`).join(',') !== this.roundKeys;
     }
 
+    /**
+     * The people with a same-name marker and the waitlist positions - recomputed after people changed; returns the ids
+     * whose marker or position moved (their rows are re-rendered too).
+     */
+    refreshMarkerSets() {
+        const changed = new Set();
+        const duplicates = new Set();
+
+        for (const people of this.model.duplicateNames().values()) {
+            people.forEach((person) => duplicates.add(person.id));
+        }
+
+        for (const id of new Set([...duplicates, ...this.duplicateIds])) {
+            if (duplicates.has(id) !== this.duplicateIds.has(id)) {
+                changed.add(id);
+            }
+        }
+
+        this.duplicateIds = duplicates;
+
+        if (this.managed) {
+            const positions = waitlistPositions(this.model.people());
+
+            for (const id of new Set([...positions.keys(), ...this.positions.keys()])) {
+                if (positions.get(id) !== this.positions.get(id)) {
+                    changed.add(id);
+                }
+            }
+
+            this.positions = positions;
+        }
+
+        return changed;
+    }
+
     rowClass(row) {
         if (row === NEW_ROW) {
             return 'sheet-row-new';
@@ -224,6 +766,18 @@ export class PeopleView {
 
         if (this.model.person(row)?.local) {
             classes.push('sheet-row-local');
+        }
+
+        if (this.model.isRemoved(row)) {
+            classes.push('sheet-row-removed');
+        }
+
+        if (this.selected.has(row)) {
+            classes.push('sheet-row-selected');
+        }
+
+        if (this.panelPersonId === row) {
+            classes.push('sheet-row-open');
         }
 
         return classes.join(' ');
@@ -250,24 +804,56 @@ export class PeopleView {
             return { text: '', readonly: true };
         }
 
-        if (col === 'name') {
-            return this.nameCell(person);
+        if (col === SELECT) {
+            return { checked: this.selected.has(row), label: this.say('select_person', { name: person.name }), copy: '' };
         }
 
-        if (col === 'country') {
-            const label = person.country ? (this.context.countries[person.country] ?? person.country.toUpperCase()) : '';
-
-            return {
-                text: label,
-                html: person.country ? `<span class="fi fi-${escapeHtml(person.country)} shadow-custom" aria-hidden="true"></span> ${escapeHtml(label)}` : '',
-                marker: this.marker(`person:${person.id}:country`),
-            };
+        if (col === ACTIONS) {
+            return this.actionsCell(person);
         }
 
-        if (col === 'player') {
-            return this.playerCell(person);
-        }
+        const removed = person.removedAt !== null;
+        const content = this.dataCell(person, col);
 
+        // A removed person is read only until restored (the server refuses `participant_removed`)
+        return removed && col !== 'name' ? { ...content, readonly: true, checked: undefined } : content;
+    }
+
+    dataCell(person, col) {
+        switch (col) {
+            case 'name':
+                return this.nameCell(person);
+            case 'country': {
+                const label = person.country ? (this.context.countries[person.country] ?? person.country.toUpperCase()) : '';
+
+                return {
+                    text: label,
+                    html: person.country ? `<span class="fi fi-${escapeHtml(person.country)} shadow-custom" aria-hidden="true"></span> ${escapeHtml(label)}` : '',
+                    marker: this.marker(`person:${person.id}:country`),
+                };
+            }
+            case 'player':
+                return this.playerCell(person);
+            case 'externalId':
+                return { text: person.externalId ?? '', marker: this.marker(`person:${person.id}:externalId`) };
+            case 'note':
+                return { text: person.note ?? '', marker: this.marker(`person:${person.id}:note`) };
+            case 'source':
+                return { text: this.say(`source_${person.source === 'self_joined' || person.source === 'imported' ? person.source : 'manual'}`) };
+            case 'joined':
+                return { text: person.source === 'self_joined' && person.connectedAt ? formatDate(person.connectedAt, this.context.locale, true) : '' };
+            case 'registration':
+                return this.registrationCell(person);
+            case 'paid':
+                return this.paidCell(person);
+            case 'checkedIn':
+                return { text: person.registration?.checkedInAt ? formatDate(person.registration.checkedInAt, this.context.locale, true) : (person.registration ? '-' : '') };
+            default:
+                return this.roundCell(person, col);
+        }
+    }
+
+    roundCell(person, col) {
         const roundId = col.slice('round:'.length);
         const round = this.model.round(roundId);
 
@@ -275,19 +861,35 @@ export class PeopleView {
             return { text: '', readonly: true };
         }
 
+        let content;
+
         if (round.category === 'solo') {
-            return {
-                checked: this.model.placeValue(person.id, roundId) !== 'out',
+            const checked = this.model.placeValue(person.id, roundId) !== 'out';
+            content = {
+                checked,
                 label: this.t('people_in_round_label', { round: round.name, name: person.name }),
                 marker: this.marker(`place:${person.id}:${roundId}`),
+                // What a removed (read only) row shows instead of the box
+                text: checked ? this.say('in_round_short') : '',
             };
+        } else {
+            content = this.teamCell(person, round);
         }
 
-        return this.teamCell(person, round);
+        // "No round yet": said once, in the first round column of somebody in no round at all
+        if (!content.marker && person.removedAt === null && this.model.rounds()[0]?.id === roundId && this.model.placesOf(person.id).size === 0) {
+            content = { ...content, marker: { state: 'info', text: this.say('no_round_yet'), title: this.say('no_round_yet_title') } };
+        }
+
+        return content;
     }
 
     nameCell(person) {
         const badges = [];
+
+        if (person.removedAt !== null) {
+            badges.push(`<span class="sheet-badge sheet-badge-removed">${escapeHtml(this.say('badge_removed'))}</span>`);
+        }
 
         if (person.registration?.status === 'waitlisted') {
             badges.push(`<span class="sheet-badge sheet-badge-waitlist">${escapeHtml(this.t('people_badge_waitlisted'))}</span>`);
@@ -297,12 +899,20 @@ export class PeopleView {
             badges.push(`<span class="sheet-badge sheet-badge-joined"><i class="bi bi-dot" aria-hidden="true"></i>${escapeHtml(this.t('people_badge_joined'))}</span>`);
         }
 
+        if (person.removedAt === null && this.duplicateIds.has(person.id)) {
+            const others = this.model.peopleNamed(person.name).filter((other) => other.id !== person.id);
+            const text = this.say('same_name_as', { name: others.map((other) => other.name).join(', ') });
+            badges.push(`<span class="sheet-badge sheet-badge-duplicate" title="${escapeHtml(text)}"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${escapeHtml(this.say('badge_same_name'))}<span class="visually-hidden">: ${escapeHtml(text)}</span></span>`);
+        }
+
         const marker = this.marker(`person:${person.id}:name`) ?? this.marker(`person:${person.id}:removed`);
+        const name = person.removedAt !== null ? `<s>${escapeHtml(person.name)}</s>` : escapeHtml(person.name);
 
         return {
             text: person.name,
-            html: badges.length > 0 ? `${escapeHtml(person.name)}${badges.join('')}` : undefined,
+            html: badges.length > 0 || person.removedAt !== null ? `${name}${badges.join('')}` : undefined,
             marker,
+            readonly: person.removedAt !== null,
         };
     }
 
@@ -376,6 +986,82 @@ export class PeopleView {
         };
     }
 
+    registrationCell(person) {
+        const status = registrationStatus(person);
+        const marker = this.marker(`person:${person.id}:registration`);
+
+        if (status === null) {
+            return { text: '', readonly: true, marker };
+        }
+
+        const label = this.statusLabel(person);
+        const before = paidBefore(person);
+        const beforeText = before ? this.say('paid_before', { date: formatDate(before, this.context.locale, false) }) : '';
+
+        return {
+            text: [label, beforeText].filter(Boolean).join(' - '),
+            html: `<span class="sheet-reg sheet-reg-${escapeHtml(status)}">${escapeHtml(label)}</span>${before ? ` <i class="bi bi-cash-coin sheet-muted" title="${escapeHtml(beforeText)}" aria-hidden="true"></i><span class="visually-hidden">${escapeHtml(beforeText)}</span>` : ''}`,
+            marker,
+            copy: label,
+        };
+    }
+
+    /** Reserved / Paid / Waitlist #3 */
+    statusLabel(person) {
+        const status = registrationStatus(person);
+
+        if (status === 'waitlisted') {
+            const position = this.positions.get(person.id);
+
+            return position ? this.say('status_waitlisted_position', { position }) : this.say('status_waitlisted');
+        }
+
+        return this.say(`status_${status}`);
+    }
+
+    paidCell(person) {
+        if (person.registration === null || person.registration === undefined) {
+            return { text: '' };
+        }
+
+        const status = registrationStatus(person);
+
+        if (status === 'paid' && person.registration.paidAt) {
+            return { text: formatDate(person.registration.paidAt, this.context.locale, false) };
+        }
+
+        const before = paidBefore(person);
+
+        if (before) {
+            const text = this.say('paid_before', { date: formatDate(before, this.context.locale, false) });
+
+            return { text, html: `<span class="sheet-muted" title="${escapeHtml(text)}">${escapeHtml(text)}</span>` };
+        }
+
+        return { text: '-' };
+    }
+
+    actionsCell(person) {
+        if (person.removedAt !== null) {
+            const label = this.say('row_restore_label', { name: person.name });
+
+            return {
+                text: this.say('row_restore'),
+                html: `<button type="button" class="btn btn-sm btn-outline-success sheet-row-action" data-row-action="restore" tabindex="-1" aria-label="${escapeHtml(label)}"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> ${escapeHtml(this.say('row_restore'))}</button>`,
+                copy: '',
+                marker: this.marker(`person:${person.id}:removed`),
+            };
+        }
+
+        const label = this.say('row_actions_label', { name: person.name });
+
+        return {
+            text: this.say('row_actions'),
+            html: `<button type="button" class="btn btn-sm btn-link sheet-row-action" data-row-action="menu" tabindex="-1" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"><i class="bi bi-three-dots" aria-hidden="true"></i></button>`,
+            copy: '',
+        };
+    }
+
     editValue(row, col) {
         const person = this.model.person(row);
 
@@ -391,39 +1077,72 @@ export class PeopleView {
             return person.country ? (this.context.countries[person.country] ?? person.country) : '';
         }
 
+        if (col === 'externalId' || col === 'note') {
+            return person[col] ?? '';
+        }
+
         return '';
+    }
+
+    /**
+     * What the organiser sees in a cell when its editor opens (the model's value, their own pending one included) - the
+     * grid hands it back with the commit as `seen`, sent as the change's `from`: somebody else's change reaching the
+     * open cell comes back as a conflict instead of being overwritten.
+     */
+    seenValue(row, col) {
+        const person = row === NEW_ROW ? null : this.model.person(row);
+
+        if (person === null) {
+            return undefined;
+        }
+
+        if (col === 'name' || col === 'country' || col === 'externalId' || col === 'note') {
+            return person[col] ?? null;
+        }
+
+        if (col === 'player') {
+            return person.player?.id ?? null;
+        }
+
+        return undefined;
+    }
+
+    /** The builders' options of a commit: `from` = what the organiser saw when the editor opened (one cell only). */
+    commitOptions(info, rows) {
+        return info?.seen !== undefined && rows.length === 1 ? { ...this.options(), from: info.seen } : this.options();
+    }
+
+    /**
+     * The open editor's cell changed under it (a live update): said next to the editor - Keep mine (my value goes over
+     * theirs) or Use theirs (the edit is dropped, the cell shows theirs).
+     */
+    noticeChangedMeanwhile(delta) {
+        const editing = this.grid?.editing ?? null;
+
+        if (editing === null || editing.seen === undefined || !delta.people.has(editing.row) || typeof this.grid.editorNotice !== 'function') {
+            return;
+        }
+
+        const now = this.seenValue(editing.row, editing.col);
+
+        if (JSON.stringify(now ?? null) === JSON.stringify(editing.seen ?? null)) {
+            return;
+        }
+
+        const shown = editing.col === 'country' ? this.countryLabel(now) : (editing.col === 'player' ? (this.model.person(editing.row)?.player?.name ?? this.t('people_profile_hidden')) : (now ?? ''));
+        this.grid.editorNotice({
+            text: this.say('changed_meanwhile', { value: shown === '' ? this.t('value_empty') : shown }),
+            actions: [
+                { label: this.t('problem_keep_mine'), run: () => { editing.seen = now ?? null; } },
+                { label: this.t('problem_use_theirs'), run: () => this.grid.cancelEdit(true) },
+            ],
+        });
     }
 
     // ---------------------------------------------------------------- suggestions
 
     countryOptions(query, person) {
-        const folded = foldSearchText(query);
-        const options = [];
-
-        if (person?.country && folded === '') {
-            options.push({ value: NO_COUNTRY, label: this.t('people_no_country') });
-        }
-
-        const entries = Object.entries(this.context.countries)
-            .map(([code, label]) => ({ code, label: String(label), folded: foldSearchText(label) }))
-            .filter((country) => folded === '' || country.code === folded || country.folded.includes(folded))
-            .sort((a, b) => {
-                // A name starting with what was typed first, then by name
-                const startA = a.code === folded || a.folded.startsWith(folded) ? 0 : 1;
-                const startB = b.code === folded || b.folded.startsWith(folded) ? 0 : 1;
-
-                return startA - startB || a.label.localeCompare(b.label, this.context.locale);
-            });
-
-        for (const country of entries) {
-            options.push({
-                value: country.code,
-                label: country.label,
-                html: `<span class="fi fi-${escapeHtml(country.code)} shadow-custom" aria-hidden="true"></span> ${escapeHtml(country.label)}`,
-            });
-        }
-
-        return options;
+        return countryOptions(this.context, query, person, (key) => this.t(key));
     }
 
     suggest(row, col, query) {
@@ -460,35 +1179,23 @@ export class PeopleView {
 
         this.searchController?.abort();
         this.searchController = typeof AbortController === 'undefined' ? null : new AbortController();
-        const url = new URL(this.context.urls.playerSearch, window.location.href);
-        url.searchParams.set('query', text);
+        const found = await searchPlayers(this.context, this.model, text, person?.id ?? null, this.searchController?.signal);
 
-        let players = [];
-
-        try {
-            const response = await fetch(url.toString(), {
-                headers: { Accept: 'application/json' },
-                credentials: 'same-origin',
-                signal: this.searchController?.signal,
-            });
-            players = response.ok ? await response.json() : [];
-        } catch (e) {
+        if (found === null) {
             return { options, hint: this.t('people_profile_search_failed') };
         }
 
-        for (const player of Array.isArray(players) ? players : []) {
-            const elsewhere = this.model.people().find((other) => other.id !== person?.id && other.player?.id === player.key);
-            const country = player.country ? (this.context.countries[player.country] ?? '') : '';
+        for (const player of found) {
             options.push({
-                value: player.key,
-                label: player.label,
-                detail: [player.code ? `#${player.code}` : '', country, elsewhere ? this.t('people_profile_linked_to', { name: elsewhere.name }) : ''].filter(Boolean).join(' · '),
-                html: `${player.country ? `<span class="fi fi-${escapeHtml(player.country)} shadow-custom" aria-hidden="true"></span> ` : ''}${escapeHtml(player.label)}`,
-                player: { id: player.key, visible: true, name: player.label, code: player.code ?? null, country: player.country ?? null, avatar: player.avatar ?? null, profileUrl: null },
+                value: player.id,
+                label: player.name,
+                detail: [player.code ? `#${player.code}` : '', player.countryLabel, player.linkedTo ? this.t('people_profile_linked_to', { name: player.linkedTo }) : ''].filter(Boolean).join(' · '),
+                html: `${player.country ? `<span class="fi fi-${escapeHtml(player.country)} shadow-custom" aria-hidden="true"></span> ` : ''}${escapeHtml(player.name)}`,
+                player: player.player,
             });
         }
 
-        return { options, hint: players.length === 0 ? this.t('people_profile_none') : '' };
+        return { options, hint: found.length === 0 ? this.t('people_profile_none') : '' };
     }
 
     // ---------------------------------------------------------------- editing
@@ -499,7 +1206,7 @@ export class PeopleView {
         const outcome = this.context.act(action, { quiet: blocked });
 
         if (blocked) {
-            return { error: this.context.reasonText(outcome.errors[0].reason) };
+            return { error: reasonFor(this.context, outcome.errors[0]) };
         }
 
         return undefined;
@@ -517,13 +1224,19 @@ export class PeopleView {
         }
 
         const rows = info.fill ? [...new Set(info.cells.filter((cell) => cell.col === col && cell.row !== NEW_ROW).map((cell) => cell.row))] : [row];
+        const options = this.commitOptions(info, rows);
 
-        if (col === 'name') {
+        if (col === 'name' || col === 'externalId' || col === 'note') {
             if (info.fill && rows.length > 1) {
-                return this.perform(setFields(this.model, 'name', rows.map((personId) => ({ personId, value: input.text })), this.options()));
+                return this.perform(setFields(this.model, col, rows.map((personId) => ({ personId, value: input.text })), options));
             }
 
-            return this.perform(setField(this.model, row, 'name', input.text, this.options()));
+            // Nothing typed over what was shown: nothing is sent (whatever arrived meanwhile stays)
+            if (options.from !== undefined && cleanFieldValue(col, input.text) === options.from) {
+                return undefined;
+            }
+
+            return this.perform(setField(this.model, row, col, input.text, options));
         }
 
         if (col === 'country') {
@@ -533,7 +1246,11 @@ export class PeopleView {
                 return { error: this.t('people_country_pick') };
             }
 
-            return this.perform(setFields(this.model, 'country', rows.map((personId) => ({ personId, value: code })), this.options()));
+            if (options.from !== undefined && rows.length === 1 && code === options.from) {
+                return undefined;
+            }
+
+            return this.perform(setFields(this.model, 'country', rows.map((personId) => ({ personId, value: code })), options));
         }
 
         if (col === 'player') {
@@ -546,11 +1263,11 @@ export class PeopleView {
             }
 
             if (option?.value === UNLINK) {
-                return this.perform(linkProfile(this.model, row, null, this.options()));
+                return this.perform(linkProfile(this.model, row, null, options));
             }
 
             if (option?.player) {
-                return this.perform(linkProfile(this.model, row, option.player, this.options()));
+                return this.perform(linkProfile(this.model, row, option.player, options));
             }
 
             if (input.text.trim() === '') {
@@ -575,9 +1292,13 @@ export class PeopleView {
         }
 
         const action = addPerson(this.model, { name }, this.options());
+        // Shown whatever the filter says - the organiser just typed them
+        this.held.add(action.personId);
         const error = this.perform(action);
 
         if (error) {
+            this.held.delete(action.personId);
+
             return error;
         }
 
@@ -594,7 +1315,7 @@ export class PeopleView {
             focus: (move) => {
                 const columnKey = this.columns[move.col]?.key ?? 'name';
 
-                return columnKey === 'name' ? { row: NEW_ROW, col: 'name' } : { row: action.personId, col: columnKey };
+                return columnKey === 'name' || columnKey === SELECT ? { row: NEW_ROW, col: 'name' } : { row: action.personId, col: columnKey };
             },
         };
     }
@@ -610,23 +1331,7 @@ export class PeopleView {
 
     /** A typed or pasted country: '' = none, a code ("cz", "CZ") or a name in the page's language; undefined = unknown. */
     readCountry(text) {
-        const value = foldSearchText(trimCell(text));
-
-        if (value === '') {
-            return null;
-        }
-
-        if (value in this.context.countries) {
-            return value;
-        }
-
-        for (const [code, label] of Object.entries(this.context.countries)) {
-            if (foldSearchText(label) === value) {
-                return code;
-            }
-        }
-
-        return undefined;
+        return readCountry(this.context.countries, text);
     }
 
     options() {
@@ -634,10 +1339,20 @@ export class PeopleView {
     }
 
     toggle(cells, value) {
+        // The selection column never mixes with data: a range over it changes only the selection
+        const selection = cells.filter(({ row, col }) => col === SELECT && row !== NEW_ROW);
+
+        if (selection.length > 0) {
+            const target = value ?? !this.selected.has(selection[0].row);
+            this.setSelected(selection.map(({ row }) => row), target);
+
+            return;
+        }
+
         const byRound = new Map();
 
         for (const { row, col } of cells) {
-            if (row === NEW_ROW || !col.startsWith('round:')) {
+            if (row === NEW_ROW || !col.startsWith('round:') || this.model.isRemoved(row)) {
                 continue;
             }
 
@@ -659,7 +1374,7 @@ export class PeopleView {
         const byColumn = new Map();
 
         for (const { row, col } of cells) {
-            if (row !== NEW_ROW) {
+            if (row !== NEW_ROW && !this.model.isRemoved(row)) {
                 byColumn.set(col, [...(byColumn.get(col) ?? []), row]);
             }
         }
@@ -669,8 +1384,10 @@ export class PeopleView {
         for (const [col, rows] of byColumn) {
             if (col === 'name') {
                 this.context.announce(this.t('people_name_required'));
-            } else if (col === 'country') {
-                actions.push(setFields(this.model, 'country', rows.map((personId) => ({ personId, value: null })), this.options()));
+            } else if (col === SELECT) {
+                this.setSelected(rows, false);
+            } else if (col === 'country' || col === 'externalId' || col === 'note') {
+                actions.push(setFields(this.model, col, rows.map((personId) => ({ personId, value: null })), this.options()));
             } else if (col === 'player') {
                 actions.push(...rows.map((personId) => linkProfile(this.model, personId, null, this.options())));
             } else if (col.startsWith('round:') && this.model.round(col.slice(6))?.category === 'solo') {
@@ -688,14 +1405,14 @@ export class PeopleView {
         const action = combine(label, ...actions);
 
         if (isEmpty(action) && action.errors.length === 0) {
-            return;
+            return { performed: false, errors: [] };
         }
 
-        this.context.act(action);
+        return this.context.act(action);
     }
 
     fill(kind, range, active) {
-        const rows = range.rows.filter((row) => row !== NEW_ROW);
+        const rows = range.rows.filter((row) => row !== NEW_ROW && !this.model.isRemoved(row));
         const cols = range.cols.filter((col) => col === 'country' || this.isSoloColumn(col));
 
         if (cols.length === 0) {
@@ -744,7 +1461,23 @@ export class PeopleView {
     }
 
     activate(row, col) {
-        if (row === NEW_ROW || !col.startsWith('round:')) {
+        if (row === NEW_ROW) {
+            return;
+        }
+
+        if (col === ACTIONS) {
+            this.rowAction(row, this.model.isRemoved(row) ? 'restore' : 'menu', this.grid.cellElement(row, col));
+
+            return;
+        }
+
+        if (col === 'registration') {
+            this.openRegistrationMenu(row, this.grid.cellElement(row, col));
+
+            return;
+        }
+
+        if (!col.startsWith('round:')) {
             return;
         }
 
@@ -753,16 +1486,568 @@ export class PeopleView {
         this.context.switchTab(roundId, { personId: row, teamId: place.teamId });
     }
 
+    // ---------------------------------------------------------------- selection and the bulk bar
+
+    setSelected(ids, value) {
+        const changed = [];
+
+        for (const id of ids) {
+            if (value && !this.selected.has(id) && this.model.person(id) !== null) {
+                this.selected.add(id);
+                changed.push(id);
+            } else if (!value && this.selected.has(id)) {
+                this.selected.delete(id);
+                changed.push(id);
+            }
+        }
+
+        if (changed.length === 0) {
+            return;
+        }
+
+        this.grid?.updateRows(changed);
+        this.renderBulkBar();
+        this.syncSelectAll();
+        this.context.announce(this.selected.size > 0 ? this.sayCount('selected_count', this.selected.size) : this.say('selection_cleared'));
+    }
+
+    /** The header box: every shown row in or out of the selection. */
+    selectShown(value) {
+        this.setSelected(this.visibleIds(), value);
+    }
+
+    clearSelection() {
+        this.setSelected([...this.selected], false);
+    }
+
+    syncSelectAll() {
+        const box = this.gridRoot?.querySelector('.sheet-select-all');
+
+        if (!box) {
+            return;
+        }
+
+        const shown = this.grid?.rows.filter((row) => row !== NEW_ROW) ?? [];
+        const count = shown.filter((row) => this.selected.has(row)).length;
+        box.checked = shown.length > 0 && count === shown.length;
+        box.indeterminate = count > 0 && count < shown.length;
+    }
+
+    selectedPeople() {
+        return [...this.selected].map((id) => this.model.person(id)).filter(Boolean);
+    }
+
+    renderBulkBar() {
+        const people = this.selectedPeople();
+
+        this.context.root.classList.toggle('has-selection', people.length > 0);
+
+        if (people.length === 0) {
+            if (!this.bulkElement.hidden) {
+                // The bar goes - a focus inside it goes back to the grid instead of the page
+                const hadFocus = this.bulkElement.contains(document.activeElement);
+                this.bulkElement.hidden = true;
+                this.bulkElement.innerHTML = '';
+                this.bulkElement.dataset.html = '';
+
+                if (hadFocus) {
+                    this.grid?.focusActive({ scroll: false });
+                }
+            }
+
+            return;
+        }
+
+        const active = people.filter((person) => person.removedAt === null);
+        const removed = people.length - active.length;
+        const shown = new Set(this.grid?.rows ?? []);
+        const notShown = people.filter((person) => !shown.has(person.id)).length;
+        const solo = this.model.rounds().filter((round) => round.category === 'solo');
+        const teamRounds = this.model.rounds().filter((round) => round.category !== 'solo');
+        const parts = [`<span class="sheet-bulk-count"><strong>${escapeHtml(this.sayCount('selected_count', people.length))}</strong>${notShown > 0 ? ` <span class="sheet-bulk-hidden">${escapeHtml(this.sayCount('selected_not_shown', notShown))}</span>` : ''}</span>`];
+
+        if (active.length > 0 && solo.length === 1) {
+            const round = solo[0];
+            parts.push(`<button type="button" class="btn btn-sm btn-light" data-bulk="in" data-round="${escapeHtml(round.id)}">${escapeHtml(this.say('bulk_solo_in', { round: round.name }))}</button>`);
+            parts.push(`<button type="button" class="btn btn-sm btn-light" data-bulk="out" data-round="${escapeHtml(round.id)}">${escapeHtml(this.say('bulk_solo_out', { round: round.name }))}</button>`);
+        } else if (active.length > 0 && solo.length > 1) {
+            const items = solo.map((round) => `<li><button type="button" class="dropdown-item" data-bulk="in" data-round="${escapeHtml(round.id)}">${escapeHtml(this.say('bulk_solo_in', { round: round.name }))}</button></li><li><button type="button" class="dropdown-item" data-bulk="out" data-round="${escapeHtml(round.id)}">${escapeHtml(this.say('bulk_solo_out', { round: round.name }))}</button></li>`).join('<li><hr class="dropdown-divider"></li>');
+            parts.push(`<div class="dropup"><button type="button" class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">${escapeHtml(this.say('bulk_solo_menu'))}</button><ul class="dropdown-menu">${items}</ul></div>`);
+        }
+
+        if (active.length > 0 && teamRounds.length > 0) {
+            const items = teamRounds.map((round) => `<li><button type="button" class="dropdown-item" data-bulk="team" data-round="${escapeHtml(round.id)}">${escapeHtml(this.say(round.category === 'duo' ? 'bulk_make_pair_in' : 'bulk_make_team_in', { round: round.name }))}</button></li>`).join('');
+            parts.push(`<div class="dropup"><button type="button" class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">${escapeHtml(this.say('bulk_make_team'))}</button><ul class="dropdown-menu">${items}</ul></div>`);
+        }
+
+        if (active.length > 0) {
+            parts.push(`<button type="button" class="btn btn-sm btn-outline-light" data-bulk="remove">${escapeHtml(this.say('bulk_remove'))}</button>`);
+        }
+
+        if (removed > 0) {
+            parts.push(`<button type="button" class="btn btn-sm btn-light" data-bulk="restore">${escapeHtml(this.sayCount('bulk_restore', removed))}</button>`);
+        }
+
+        parts.push(`<button type="button" class="btn btn-sm btn-link sheet-bulk-clear" data-bulk="clear">${escapeHtml(this.say('bulk_clear'))}</button>`);
+
+        const html = parts.join('');
+
+        if (this.bulkElement.dataset.html !== html) {
+            const focusedBulk = this.bulkElement.contains(document.activeElement) ? document.activeElement.dataset.bulk ?? null : null;
+            this.bulkElement.innerHTML = html;
+            this.bulkElement.dataset.html = html;
+
+            if (focusedBulk) {
+                this.bulkElement.querySelector(`[data-bulk="${CSS.escape(focusedBulk)}"]`)?.focus();
+            }
+        }
+
+        this.bulkElement.hidden = false;
+    }
+
+    onBulkClick(event) {
+        const button = event.target.closest('[data-bulk]');
+
+        if (!button) {
+            return;
+        }
+
+        const ids = this.selectedPeople().filter((person) => person.removedAt === null).map((person) => person.id);
+        const roundId = button.dataset.round ?? null;
+
+        switch (button.dataset.bulk) {
+            case 'in':
+            case 'out':
+                this.bulkInRound(ids, roundId, button.dataset.bulk === 'in');
+                break;
+            case 'team':
+                this.makeTeam(ids, roundId);
+                break;
+            case 'remove':
+                this.removeWithCheck(ids);
+                break;
+            case 'restore':
+                this.restore(this.selectedPeople().filter((person) => person.removedAt !== null).map((person) => person.id));
+                break;
+            case 'clear':
+                this.clearSelection();
+                this.grid?.focusActive();
+                break;
+            default:
+        }
+
+        // An item of a closed dropup (or a button the bar re-rendered) leaves the focus nowhere: back to the bar, else the grid
+        requestAnimationFrame(() => {
+            const active = document.activeElement;
+
+            if (active !== null && active !== document.body && active.isConnected && active.offsetParent !== null) {
+                return;
+            }
+
+            const target = this.bulkElement.hidden ? null : (this.bulkElement.querySelector('.dropdown-toggle, [data-bulk]') ?? null);
+
+            if (target !== null) {
+                target.focus();
+            } else {
+                this.grid?.focusActive({ scroll: false });
+            }
+        });
+    }
+
+    bulkInRound(ids, roundId, inRound) {
+        const round = this.model.round(roundId);
+        const action = setInRound(this.model, ids, roundId, inRound, this.options());
+        const outcome = this.context.act(action, { quiet: true });
+
+        if (outcome.performed) {
+            this.context.announce(this.sayCount(inRound ? 'bulk_solo_in_done' : 'bulk_solo_out_done', action.groups.length, { round: round?.name ?? '' }));
+        } else if (action.errors.length === 0) {
+            this.context.announce(this.say('bulk_nothing'));
+        }
+
+        this.announceRefused(action.errors);
+    }
+
+    /** Client refusals of a bulk action: how many and the reason of the first. */
+    announceRefused(errors) {
+        if (errors.length === 0) {
+            return;
+        }
+
+        const first = this.model.person(errors[0].change.participant ?? errors[0].change.id)?.name ?? '';
+        this.context.announce(this.sayCount('bulk_refused', errors.length, { name: first, reason: reasonFor(this.context, errors[0]) }));
+    }
+
+    /**
+     * "Make a pair/team": a new pair/team of the round with exactly the selected people, each moved out of their current
+     * pair/team of that round. Previewed (with the server's dry run) when it moves anybody or the size is off.
+     */
+    async makeTeam(ids, roundId) {
+        const round = this.model.round(roundId);
+
+        if (round === null || ids.length === 0) {
+            return;
+        }
+
+        const action = newTeamRow(this.model, roundId, { members: ids }, this.options());
+        const moves = ids.filter((id) => parsePlace(this.model.placeValue(id, roundId)).kind === 'team');
+        const expected = this.model.expectedSize(roundId);
+        const sizeOff = expected !== null && ids.length !== expected && !this.model.isNamesOnly(roundId);
+        const kind = round.category === 'duo' ? 'pair' : 'team';
+
+        if (action.groups.length === 0) {
+            this.announceRefused(action.errors);
+
+            return;
+        }
+
+        if (moves.length > 0 || sizeOff || action.errors.length > 0) {
+            const confirmed = await this.previewTeam(action, round, ids, moves, expected);
+
+            if (!confirmed) {
+                this.context.announce(this.say('make_team_cancelled'));
+
+                return;
+            }
+        }
+
+        const outcome = this.context.act(action, { quiet: true });
+
+        if (outcome.performed) {
+            const names = ids.map((id) => this.model.person(id)?.name ?? '').join(', ');
+            this.context.announce(this.say(`make_${kind}_done`, { round: round.name, names }));
+        }
+    }
+
+    async previewTeam(action, round, ids, moves, expected) {
+        const kind = round.category === 'duo' ? 'pair' : 'team';
+        const lines = ids.map((id) => {
+            const person = this.model.person(id);
+            const place = parsePlace(this.model.placeValue(id, round.id));
+            let note = this.say('make_team_line_new', { round: round.name });
+            let status = 'new';
+
+            if (place.kind === 'team') {
+                note = this.say('make_team_line_moves', { from: this.teamLabelText(place.teamId) });
+                status = 'change';
+            } else if (place.kind === 'in') {
+                note = this.say(`make_team_line_from_tray_${kind}`);
+                status = 'change';
+            }
+
+            return { id: `p-${id}`, text: person?.name ?? '', note, status };
+        });
+
+        if (expected !== null && ids.length !== expected) {
+            lines.unshift({ id: 'size', text: this.say(`make_team_size_${kind}`, { count: ids.length, expected }), status: 'warning' });
+        }
+
+        const dialog = this.context.preview({
+            title: this.say(`make_${kind}_title`, { round: round.name }),
+            intro: this.say('make_team_intro'),
+            counts: [{ text: this.sayCount('make_team_count_people', ids.length) }, ...(moves.length > 0 ? [{ text: this.sayCount('make_team_count_moves', moves.length), tone: 'warning' }] : [])],
+            lines,
+            loading: true,
+            confirmLabel: this.say(`make_${kind}_confirm`),
+            returnFocus: () => this.grid?.focusActive({ scroll: false }),
+        });
+
+        const answer = await this.context.queue.preview(action.groups);
+        const extra = [];
+        let blocked = false;
+
+        if (answer.kind === 'ok') {
+            for (const group of answer.data?.groups ?? []) {
+                for (const change of group.changes ?? []) {
+                    if ((change.status === 'refused' || change.status === 'conflict') && change.message) {
+                        extra.push({ id: `r${extra.length}`, text: change.message, status: 'error' });
+                        blocked = true;
+                    }
+                }
+
+                for (const warning of group.warnings ?? []) {
+                    if (warning.message && warning.code !== 'team_size_off') {
+                        extra.push({ id: `w${extra.length}`, text: warning.message, status: 'warning' });
+                    }
+                }
+            }
+        }
+
+        dialog.update({
+            loading: false,
+            lines: [...extra, ...lines],
+            message: answer.kind === 'ok' ? (blocked ? this.say('make_team_blocked') : '') : this.t('people_paste_unchecked'),
+            confirmLabel: this.say(`make_${kind}_confirm`),
+        });
+
+        const selection = await dialog.result;
+
+        return selection !== null;
+    }
+
+    /** O1: `Corners · Table 2 · Kim Example, Pat Sample` (no "Table n" without one, "(no name)" for an unnamed one). */
+    teamLabelText(teamId) {
+        return teamLabelText(this.model, teamId, (key, params) => this.t(key, params), (key, params) => this.say(key, params));
+    }
+
+    async removeWithCheck(ids) {
+        const active = ids.filter((id) => !this.model.isRemoved(id));
+
+        if (active.length === 0) {
+            return;
+        }
+
+        const total = this.model.people().length;
+
+        if (active.length >= LARGE_REMOVAL_MIN && active.length > total * LARGE_REMOVAL_SHARE) {
+            const confirmed = await confirmTyped({
+                host: this.context.root,
+                title: this.sayCount('remove_many_title', active.length),
+                text: this.say('remove_many_text', { count: active.length, total }),
+                prompt: this.say('remove_many_prompt', { count: active.length }),
+                expected: String(active.length),
+                confirmLabel: this.sayCount('remove_many_confirm', active.length),
+                cancelLabel: this.t('preview_cancel'),
+                closeLabel: this.t('preview_close'),
+            });
+
+            if (!confirmed) {
+                this.context.announce(this.say('remove_cancelled'));
+                this.grid?.focusActive({ scroll: false });
+
+                return;
+            }
+        }
+
+        const action = removePeople(this.model, active, this.options());
+        const outcome = this.context.act(action, { quiet: true });
+
+        if (outcome.performed) {
+            this.setSelected(action.groups.map((group) => group.changes[0].participant), false);
+            this.context.announce(this.sayCount('removed_count', action.groups.length));
+        }
+
+        this.announceRefused(action.errors);
+    }
+
+    restore(ids) {
+        const action = restorePeople(this.model, ids, this.options());
+        const outcome = this.context.act(action, { quiet: true });
+
+        if (outcome.performed) {
+            this.setSelected(action.groups.map((group) => group.changes[0].participant), false);
+            this.context.announce(this.sayCount('restored_count', action.groups.length));
+        }
+
+        this.announceRefused(action.errors);
+    }
+
+    // ---------------------------------------------------------------- row actions, registration menu
+
+    rowAction(personId, kind, cell) {
+        if (kind === 'restore') {
+            this.restore([personId]);
+
+            return;
+        }
+
+        const person = this.model.person(personId);
+
+        if (person === null) {
+            return;
+        }
+
+        const items = [
+            { label: this.say('row_edit'), icon: 'bi-pencil', run: () => this.openEditor(personId) },
+        ];
+
+        if (this.managed && allowedActions(person, { checkIn: this.competition.isOnline !== true }).length > 0) {
+            items.push({ label: this.say('row_registration'), icon: 'bi-ticket-perforated', run: () => this.openRegistrationMenu(personId, cell) });
+        }
+
+        items.push({ label: this.say('row_remove'), icon: 'bi-person-x', danger: true, run: () => this.removeWithCheck([personId]) });
+        this.openMenu(cell, items, this.say('row_actions_label', { name: person.name }));
+    }
+
+    openRegistrationMenu(personId, cell) {
+        const person = this.model.person(personId);
+
+        if (person === null || !this.managed) {
+            return;
+        }
+
+        const actions = allowedActions(person, { checkIn: this.competition.isOnline !== true });
+
+        if (actions.length === 0) {
+            this.context.announce(this.say('registration_no_actions', { name: person.name }));
+
+            return;
+        }
+
+        const items = actions.map((action) => ({
+            label: this.say(`reg_${action}`),
+            description: this.say(`reg_${action}_help`),
+            run: () => this.registrationAction(personId, action),
+        }));
+        this.openMenu(cell, items, this.say('registration_menu_label', { name: person.name, status: this.statusLabel(person) }));
+    }
+
+    registrationAction(personId, action) {
+        return performRegistrationAction(this.context, personId, action);
+    }
+
+    /**
+     * A small menu at a cell (row actions, registration): arrows / Home / End move, Enter or Space picks, Esc or Tab
+     * closes and the focus goes back to the cell.
+     */
+    openMenu(anchor, items, label) {
+        this.closeMenu(false);
+
+        const menu = document.createElement('div');
+        // Not a Bootstrap .dropdown-menu: its document-level keyboard handler would take the arrows to another dropdown
+        menu.className = 'sheet-cell-menu';
+        menu.setAttribute('role', 'menu');
+        menu.setAttribute('aria-label', label);
+        menu.innerHTML = items.map((item, index) => `<button type="button" class="dropdown-item${item.danger ? ' text-danger' : ''}" role="menuitem" data-item="${index}" tabindex="-1">${item.icon ? `<i class="bi ${escapeHtml(item.icon)} me-2" aria-hidden="true"></i>` : ''}${escapeHtml(item.label)}${item.description ? `<small class="sheet-cell-menu-help">${escapeHtml(item.description)}</small>` : ''}</button>`).join('');
+        this.host.append(menu);
+
+        const rect = (anchor ?? this.gridRoot).getBoundingClientRect();
+        const width = menu.offsetWidth;
+        const height = menu.offsetHeight;
+        const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+        const below = rect.bottom + 2;
+        menu.style.left = `${left}px`;
+        menu.style.top = `${below + height > window.innerHeight - 8 ? Math.max(8, rect.top - height - 2) : below}px`;
+
+        const buttons = [...menu.querySelectorAll('[role="menuitem"]')];
+        const close = (refocus) => this.closeMenu(refocus);
+        menu.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-item]');
+
+            if (button) {
+                close(true);
+                items[Number(button.dataset.item)].run();
+            }
+        });
+        menu.addEventListener('keydown', (event) => {
+            const index = buttons.indexOf(document.activeElement);
+            const next = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: buttons.length - 1 }[event.key];
+
+            if (next !== undefined) {
+                event.preventDefault();
+                buttons[(next + buttons.length) % buttons.length].focus();
+            } else if (event.key === 'Escape' || event.key === 'Tab') {
+                event.preventDefault();
+                event.stopPropagation();
+                close(true);
+            }
+        });
+        const outside = (event) => {
+            if (!menu.contains(event.target)) {
+                close(false);
+            }
+        };
+        document.addEventListener('pointerdown', outside, true);
+        this.menu = { element: menu, outside };
+        buttons[0]?.focus();
+    }
+
+    closeMenu(refocus) {
+        if (this.menu === null) {
+            return;
+        }
+
+        document.removeEventListener('pointerdown', this.menu.outside, true);
+        this.menu.element.remove();
+        this.menu = null;
+
+        if (refocus) {
+            this.grid?.focusActive({ scroll: false });
+        }
+    }
+
+    // ---------------------------------------------------------------- the person editor
+
+    openEditor(personId) {
+        if (personId === NEW_ROW || this.model.person(personId) === null) {
+            return;
+        }
+
+        this.context.openPersonEditor(personId, {
+            list: () => this.visibleIds(),
+            onShow: (id) => this.panelShows(id),
+            returnFocus: (id) => {
+                if (this.grid === null) {
+                    return;
+                }
+
+                if (!this.grid.focusCell(id, 'name')) {
+                    this.grid.focusActive();
+                }
+            },
+        });
+    }
+
+    /** The editor shows a person (or closed - null): the row is marked and stays shown whatever the filter says. */
+    panelShows(personId) {
+        const previous = this.panelPersonId;
+        this.panelPersonId = personId;
+
+        if (personId !== null) {
+            this.held.add(personId);
+        }
+
+        if (this.grid !== null) {
+            const keys = this.rowKeys();
+
+            if (keys.length !== this.grid.rows.length || keys.some((key, index) => this.grid.rows[index] !== key)) {
+                this.grid.setRows(keys);
+            }
+
+            this.grid.updateRows([previous, personId].filter(Boolean));
+        }
+    }
+
     // ---------------------------------------------------------------- paste
 
     /**
      * A block from a spreadsheet: one value onto a selection fills it; otherwise the block lands at the active cell,
-     * column by column - names, countries (a code or a name), solo rounds (TRUE/FALSE, x, yes/no...). Nothing invalid is
-     * dropped silently: unknown countries, unreadable checkboxes, profiles and pair/team cells are listed. More than a
-     * few rows - or anything left out - are previewed first (the server's dry run included).
+     * column by column - names, countries (a code or a name), solo rounds (TRUE/FALSE, x, yes/no...), external ids,
+     * notes. A block pasted onto the new-person row - or the part of a block in the name column that reaches past the
+     * end of the list - adds people (`name ⇥ country ⇥ external id`, people_paste.js). Nothing invalid is dropped
+     * silently: unknown countries, unreadable checkboxes, profiles and pair/team cells are listed. More than a few rows -
+     * or anything left out, or new people - are previewed first (the server's dry run included).
      */
     paste(anchor, block, selected) {
-        const plan = this.planPaste(anchor, block, selected);
+        const rows = this.grid.rows;
+        const people = rows.filter((row) => row !== NEW_ROW);
+        let names = [];
+        let edits = block;
+
+        if (anchor.row === NEW_ROW) {
+            names = block;
+            edits = [];
+        } else if (anchor.col === 'name' && !(block.length === 1 && block[0].length === 1 && selected.length > 1)) {
+            const fits = Math.max(0, people.length - rows.indexOf(anchor.row));
+            names = block.slice(fits);
+            edits = block.slice(0, fits);
+        }
+
+        if (this.filter === 'removed' && names.length > 0) {
+            // The removed people's list adds nobody - said, nothing applied
+            this.context.announce(this.say('paste_no_add_removed'));
+
+            return;
+        }
+
+        const plan = edits.length > 0 ? this.planPaste(anchor, edits, selected) : { actions: [], problems: [], rows: 0, changes: 0 };
+        const namePlan = names.length > 0 ? planNamePaste(this.model, names, { readCountry: (text) => this.readCountry(text), headerNames: this.headerNames() }) : null;
+
+        if (namePlan !== null) {
+            this.previewPaste(plan, namePlan);
+
+            return;
+        }
 
         if (plan.changes === 0 && plan.problems.length === 0) {
             this.context.announce(this.t('people_paste_nothing'));
@@ -777,7 +2062,12 @@ export class PeopleView {
             return;
         }
 
-        this.previewPaste(plan);
+        this.previewPaste(plan, null);
+    }
+
+    /** The column names a header line of a pasted list would carry (left out when it is the first line). */
+    headerNames() {
+        return [this.t('people_col_name'), this.say('col_name_alt'), this.t('people_col_country'), this.say('col_externalId')];
     }
 
     planPaste(anchor, block, selected) {
@@ -801,8 +2091,7 @@ export class PeopleView {
         }
 
         const problems = [];
-        const names = [];
-        const countries = [];
+        const fields = { name: [], country: [], externalId: [], note: [] };
         const rounds = new Map();
         let beyond = 0;
         const touchedRows = new Set();
@@ -819,13 +2108,21 @@ export class PeopleView {
                 continue;
             }
 
+            if (person.removedAt !== null) {
+                if (trimCell(value) !== '' && col !== SELECT && col !== ACTIONS) {
+                    problems.push({ text: person.name, note: reasonFor(this.context, { reason: 'participant_removed', change: { participant: row } }), status: 'skip' });
+                }
+
+                continue;
+            }
+
             touchedRows.add(row);
 
             if (col === 'name') {
                 if (trimCell(value) === '') {
                     problems.push({ text: person.name, note: this.t('people_name_required'), status: 'error' });
                 } else {
-                    names.push({ personId: row, value: trimCell(value) });
+                    fields.name.push({ personId: row, value: trimCell(value) });
                 }
             } else if (col === 'country') {
                 const code = this.readCountry(value);
@@ -833,8 +2130,10 @@ export class PeopleView {
                 if (code === undefined) {
                     problems.push({ text: person.name, note: this.t('people_paste_unknown_country', { value: trimCell(value) }), status: 'error' });
                 } else {
-                    countries.push({ personId: row, value: code });
+                    fields.country.push({ personId: row, value: code });
                 }
+            } else if (col === 'externalId' || col === 'note') {
+                fields[col].push({ personId: row, value: trimCell(value) });
             } else if (this.isSoloColumn(col)) {
                 const inRound = readBoolean(value);
                 const roundId = col.slice('round:'.length);
@@ -846,15 +2145,14 @@ export class PeopleView {
                     lists[inRound ? 'in' : 'out'].push(row);
                     rounds.set(roundId, lists);
                 }
-            } else if (trimCell(value) !== '') {
+            } else if (trimCell(value) !== '' && col !== SELECT) {
                 const column = columns.find((candidate) => candidate.key === col);
                 problems.push({ text: person.name, note: this.t('people_paste_column_skipped', { column: column?.label ?? '' }), status: 'skip' });
             }
         }
 
         const actions = [
-            setFields(this.model, 'name', names, this.options()),
-            setFields(this.model, 'country', countries, this.options()),
+            ...Object.entries(fields).map(([field, values]) => setFields(this.model, field, values, this.options())),
             ...[...rounds].flatMap(([roundId, lists]) => [
                 setInRound(this.model, lists.in, roundId, true, this.options()),
                 setInRound(this.model, lists.out, roundId, false, this.options()),
@@ -863,7 +2161,7 @@ export class PeopleView {
 
         for (const action of actions) {
             for (const error of action.errors) {
-                problems.push({ text: this.model.person(error.change.participant ?? error.change.id)?.name ?? '', note: this.context.reasonText(error.reason), status: 'error' });
+                problems.push({ text: this.model.person(error.change.participant ?? error.change.id)?.name ?? '', note: reasonFor(this.context, error), status: 'error' });
             }
         }
 
@@ -879,42 +2177,87 @@ export class PeopleView {
         };
     }
 
-    async previewPaste(plan) {
-        const action = combine({ key: 'paste' }, ...plan.actions);
-        const lines = action.groups.map((group) => ({ id: group.id, ...this.describeGroup(group), status: 'change' }));
+    /**
+     * The preview of a paste: the edits of existing rows (a line per change) and/or the people a list of names adds
+     * (a line per name: new - ticked, already on the list, removed earlier - "restore?" unticked, twice in the paste,
+     * not possible). The server's dry run checks it all before anything is applied; one Confirm, one undo step.
+     */
+    async previewPaste(plan, namePlan) {
+        const edits = combine({ key: 'paste' }, ...plan.actions);
+        const editLines = edits.groups.map((group) => ({ id: group.id, ...this.describeGroup(group), status: 'change' }));
         const errorLines = plan.problems.map((problem, index) => ({ id: `p${index}`, ...problem }));
-        let goes = action.groups.map((group) => group.id);
+        const nameLines = namePlan ? namePlan.lines.map((line) => this.nameLine(line)) : [];
+        // Everything that could go, checked at once: the edits and every name (ticked or not)
+        const candidates = namePlan ? namePasteAction(this.model, namePlan, Object.fromEntries(namePlan.lines.map((line) => [line.id, true])), this.options()) : null;
+        const dryGroups = [...edits.groups, ...(candidates?.action.groups ?? [])];
+        const refusedLines = new Map();
+        let refusedEdits = new Set();
+
+        if (candidates !== null) {
+            for (const error of candidates.action.errors) {
+                const lineId = lineOfError(error, namePlan);
+
+                if (lineId !== null) {
+                    refusedLines.set(lineId, reasonFor(this.context, error));
+                }
+            }
+        }
+
+        const counts = () => this.pasteCounts(editLines.length - refusedEdits.size, namePlan, refusedLines, plan.problems.length);
+        const linesNow = () => [
+            ...errorLines,
+            ...editLines.map((line) => (refusedEdits.has(line.id) ? { ...line, status: 'error', note: line.refusal } : line)),
+            ...nameLines.map((line) => (refusedLines.has(line.id) ? { ...line, status: 'error', note: refusedLines.get(line.id), tick: undefined } : line)),
+        ];
+        const confirmCount = () => editLines.length - refusedEdits.size + (namePlan ? namePlan.lines.filter((line) => line.tick && !refusedLines.has(line.id)).length : 0);
         const dialog = this.context.preview({
-            title: this.t('people_paste_title'),
-            intro: this.t('people_paste_intro'),
-            counts: this.pasteCounts(lines.length, plan.problems),
-            lines: [...errorLines, ...lines],
-            loading: action.groups.length > 0,
-            confirmLabel: this.texts.tc('people_paste_confirm', action.groups.length),
+            title: namePlan ? this.say('paste_names_title') : this.t('people_paste_title'),
+            intro: namePlan ? this.say('paste_names_intro') : this.t('people_paste_intro'),
+            counts: counts(),
+            lines: linesNow(),
+            loading: dryGroups.length > 0,
+            confirmLabel: this.texts.tc('people_paste_confirm', confirmCount()),
             returnFocus: () => this.grid?.focusActive({ scroll: false }),
         });
 
-        if (action.groups.length > 0) {
+        // The Confirm button counts what the ticks say
+        const ticked = () => editLines.length - refusedEdits.size + (namePlan ? namePlan.lines.filter((line) => !refusedLines.has(line.id) && (line.id in dialog.ticks ? dialog.ticks[line.id] : line.tick)).length : 0);
+        dialog.dialog?.addEventListener('change', (event) => {
+            if (event.target.closest('[data-tick]')) {
+                const label = this.texts.tc('people_paste_confirm', ticked());
+                dialog.options.confirmLabel = label;
+                dialog.dialog.querySelector('[data-preview-confirm]').textContent = label;
+            }
+        });
+
+        if (dryGroups.length > 0) {
             // The server's rules (results, profiles linked elsewhere) before anything is applied
-            const answer = await this.context.queue.preview(action.groups);
-            const refused = new Map();
+            const answer = await this.context.queue.preview(dryGroups);
 
             if (answer.kind === 'ok') {
                 for (const group of answer.data?.groups ?? []) {
-                    if (group.status === 'refused' || group.status === 'conflict') {
-                        const change = group.changes.find((candidate) => candidate.status === 'refused' || candidate.status === 'conflict');
-                        refused.set(group.id, change?.message ?? this.t('people_paste_not_possible'));
+                    if (group.status !== 'refused' && group.status !== 'conflict') {
+                        continue;
+                    }
+
+                    const change = group.changes.find((candidate) => candidate.status === 'refused' || candidate.status === 'conflict');
+                    const message = change?.message ?? this.t('people_paste_not_possible');
+                    const editLine = editLines.find((line) => line.id === group.id);
+
+                    if (editLine) {
+                        editLine.refusal = message;
+                        refusedEdits = new Set([...refusedEdits, group.id]);
+                    } else if (candidates?.lineOfGroup.has(group.id)) {
+                        refusedLines.set(candidates.lineOfGroup.get(group.id), message);
                     }
                 }
             }
 
-            const checked = lines.map((line) => (refused.has(line.id) ? { ...line, status: 'error', note: refused.get(line.id) } : line));
-            goes = goes.filter((id) => !refused.has(id));
             dialog.update({
                 loading: false,
-                lines: [...errorLines, ...checked],
-                counts: this.pasteCounts(goes.length, [...plan.problems, ...refused.values()]),
-                confirmLabel: this.texts.tc('people_paste_confirm', goes.length),
+                lines: linesNow(),
+                counts: counts(),
+                confirmLabel: this.texts.tc('people_paste_confirm', ticked()),
                 message: answer.kind === 'ok' ? '' : this.t('people_paste_unchecked'),
             });
         }
@@ -927,23 +2270,113 @@ export class PeopleView {
             return;
         }
 
-        const keep = new Set(goes);
-        const groups = action.groups.filter((group) => keep.has(group.id));
+        const keptEdits = edits.groups.filter((group) => !refusedEdits.has(group.id));
+        const keptIds = new Set(keptEdits.map((group) => group.id));
+        const editAction = { ...edits, groups: keptEdits, inverse: edits.inverse.filter((group) => keptIds.has(group.inverseOf)), errors: [] };
+        let added = null;
 
-        if (groups.length === 0) {
-            return;
+        if (namePlan !== null) {
+            const ticks = { ...Object.fromEntries(namePlan.lines.map((line) => [line.id, line.tick])), ...selection.ticks };
+
+            for (const lineId of refusedLines.keys()) {
+                ticks[lineId] = false;
+            }
+
+            added = namePasteAction(this.model, namePlan, ticks, this.options());
+            added.peopleIds.forEach((id) => this.held.add(id));
         }
 
         // Applied as previewed - from-values are rechecked by the server, a change meanwhile comes back as a conflict
-        this.context.act({ ...action, groups, inverse: action.inverse.filter((group) => keep.has(group.inverseOf)), errors: [] });
-        this.context.announce(this.texts.tc('people_pasted', groups.length));
+        const action = combine({ key: 'paste' }, editAction, added?.action ?? null);
+        action.errors = [];
+
+        if (isEmpty(action)) {
+            this.context.announce(this.t('people_paste_nothing'));
+
+            return;
+        }
+
+        this.context.act(action);
+        const parts = [];
+
+        if (keptEdits.length > 0) {
+            parts.push(this.texts.tc('people_pasted', keptEdits.length));
+        }
+
+        if (added !== null && added.action.groups.length > 0) {
+            parts.push(this.sayCount('paste_names_done', added.action.groups.length));
+        }
+
+        this.context.announce(parts.join(' '));
     }
 
-    pasteCounts(changes, problems) {
-        const counts = [{ text: this.texts.tc('people_paste_count_changes', changes) }];
+    /** A line of the names preview. */
+    nameLine(line) {
+        const details = [];
 
-        if (problems.length > 0) {
-            counts.push({ text: this.texts.tc('people_paste_count_problems', problems.length), tone: 'danger' });
+        if (line.country) {
+            details.push(this.countryLabel(line.country));
+        }
+
+        if (line.externalId) {
+            details.push(this.say('paste_external_id', { id: line.externalId }));
+        }
+
+        if (line.countryText) {
+            details.push(this.t('people_paste_unknown_country', { value: line.countryText }));
+        }
+
+        const detail = details.join(' · ');
+        const named = (ids) => ids.map((id) => this.model.person(id)?.name ?? '').filter(Boolean).join(', ');
+
+        switch (line.status) {
+            case LINE_NEW:
+                return { id: line.id, text: line.name, note: detail, status: line.countryText ? 'warning' : 'new', tick: { label: this.say('paste_tick_add'), checked: true } };
+            case LINE_EXISTING: {
+                const as = named(line.matches);
+
+                return { id: line.id, text: line.name, note: as && as !== line.name ? this.say('paste_existing_as', { name: as }) : this.say('paste_existing'), status: 'same' };
+            }
+            case LINE_REMOVED:
+                return { id: line.id, text: line.name, note: this.say('paste_removed', { name: named(line.matches.slice(0, 1)) }), status: 'warning', tick: { label: this.say('paste_tick_restore'), checked: false } };
+            case LINE_DUPLICATE:
+                return { id: line.id, text: line.name, note: this.say('paste_duplicate'), status: 'skip' };
+            case LINE_HEADER:
+                return { id: line.id, text: line.name, note: this.say('paste_header'), status: 'skip' };
+            case LINE_INVALID:
+            default:
+                return { id: line.id, text: line.name || this.say('paste_no_name'), note: reasonFor(this.context, { reason: line.reason ?? 'invalid_change', change: { name: line.name } }), status: 'error' };
+        }
+    }
+
+    pasteCounts(changes, namePlan, refusedLines, problems) {
+        const counts = [];
+
+        if (changes > 0 || namePlan === null) {
+            counts.push({ text: this.texts.tc('people_paste_count_changes', changes) });
+        }
+
+        if (namePlan !== null) {
+            const newOnes = namePlan.lines.filter((line) => line.status === LINE_NEW && !refusedLines.has(line.id)).length;
+            counts.push({ text: this.sayCount('paste_count_new', newOnes) });
+
+            if (namePlan.counts.existing > 0) {
+                counts.push({ text: this.sayCount('paste_count_existing', namePlan.counts.existing) });
+            }
+
+            if (namePlan.counts.removed > 0) {
+                counts.push({ text: this.sayCount('paste_count_removed', namePlan.counts.removed), tone: 'warning' });
+            }
+
+            if (namePlan.counts.duplicate > 0) {
+                counts.push({ text: this.sayCount('paste_count_duplicate', namePlan.counts.duplicate) });
+            }
+        }
+
+        const notPossible = problems + refusedLines.size + (namePlan?.counts.invalid ?? 0);
+
+        if (notPossible > 0) {
+            counts.push({ text: this.texts.tc('people_paste_count_problems', notPossible), tone: 'danger' });
         }
 
         return counts;
@@ -957,6 +2390,10 @@ export class PeopleView {
 
         if (change.op === 'field' && change.field === 'country') {
             return { text: name, note: this.t('people_change_country', { from: this.countryLabel(change.from), to: this.countryLabel(change.to) }) };
+        }
+
+        if (change.op === 'field' && (change.field === 'externalId' || change.field === 'note')) {
+            return { text: name, note: this.say(`paste_change_${change.field}`, { from: change.from ?? '', to: change.to ?? '' }) };
         }
 
         if (change.op === 'field') {
@@ -975,6 +2412,247 @@ export class PeopleView {
     countryLabel(code) {
         return code ? (this.context.countries[code] ?? code.toUpperCase()) : this.t('people_no_country');
     }
+}
+
+// ---------------------------------------------------------------- shared with the phone list and the person editor
+
+/**
+ * A client refusal in words: the server's reason text (`context.reasonText()`) with its %placeholders% filled from the
+ * refused change - who, which round, which pair/team, the profile's other row, the limits.
+ */
+export function reasonFor(context, error) {
+    const reason = error?.reason ?? 'invalid_change';
+    const change = error?.change ?? {};
+    const model = context.model;
+    const person = model.person(change.participant ?? change.id ?? '') ?? null;
+    const team = change.team ? model.team(change.team) : null;
+    const round = model.round(change.round ?? team?.roundId ?? '') ?? null;
+    let other = null;
+
+    if (reason === 'player_linked_elsewhere') {
+        const playerId = change.op === 'player' ? change.to : person?.player?.id;
+        other = model.people().find((candidate) => candidate.id !== person?.id && candidate.player?.id === playerId) ?? null;
+    }
+
+    const params = {
+        name: person?.name ?? change.name ?? '',
+        round: round?.name ?? '',
+        team: team?.name ?? context.texts.core.t('team_no_name'),
+        other: other?.name ?? '',
+        country: change.to ?? change.country ?? '',
+        min: 2,
+        max: reason === 'invalid_team_size' ? 20 : 255,
+    };
+
+    return Object.entries(params).reduce((text, [key, value]) => text.replaceAll(`%${key}%`, String(value ?? '')), context.reasonText(reason));
+}
+
+/** A typed or pasted country: '' = none, a code ("cz", "CZ") or a name in the page's language; undefined = unknown. */
+export function readCountry(countries, text) {
+    const value = foldSearchText(trimCell(text));
+
+    if (value === '') {
+        return null;
+    }
+
+    if (value in countries) {
+        return value;
+    }
+
+    for (const [code, label] of Object.entries(countries)) {
+        if (foldSearchText(label) === value) {
+            return code;
+        }
+    }
+
+    return undefined;
+}
+
+/** The country typeahead's options (a name starting with what was typed first). */
+export function countryOptions(context, query, person, t) {
+    const folded = foldSearchText(query);
+    const options = [];
+
+    if (person?.country && folded === '') {
+        options.push({ value: NO_COUNTRY, label: t('people_no_country') });
+    }
+
+    const entries = Object.entries(context.countries)
+        .map(([code, label]) => ({ code, label: String(label), folded: foldSearchText(label) }))
+        .filter((country) => folded === '' || country.code === folded || country.folded.includes(folded))
+        .sort((a, b) => {
+            const startA = a.code === folded || a.folded.startsWith(folded) ? 0 : 1;
+            const startB = b.code === folded || b.folded.startsWith(folded) ? 0 : 1;
+
+            return startA - startB || a.label.localeCompare(b.label, context.locale);
+        });
+
+    for (const country of entries) {
+        options.push({
+            value: country.code,
+            label: country.label,
+            html: `<span class="fi fi-${escapeHtml(country.code)} shadow-custom" aria-hidden="true"></span> ${escapeHtml(country.label)}`,
+        });
+    }
+
+    return options;
+}
+
+/**
+ * The MSP player search (`urls.playerSearch` = player_search_autocomplete?format=co-puzzler): players as
+ * `{id, name, code, country, countryLabel, linkedTo, player}` (`player` = what linkProfile() takes), null when it failed.
+ */
+export async function searchPlayers(context, model, text, personId, signal) {
+    const url = new URL(context.urls.playerSearch, window.location.href);
+    url.searchParams.set('query', text);
+    let players;
+
+    try {
+        const response = await fetch(url.toString(), { headers: { Accept: 'application/json' }, credentials: 'same-origin', signal });
+        players = response.ok ? await response.json() : [];
+    } catch (e) {
+        return null;
+    }
+
+    return (Array.isArray(players) ? players : []).map((player) => {
+        const elsewhere = model.people().find((other) => other.id !== personId && other.player?.id === player.key);
+
+        return {
+            id: player.key,
+            name: player.label,
+            code: player.code ?? null,
+            country: player.country ?? null,
+            countryLabel: player.country ? (context.countries[player.country] ?? '') : '',
+            linkedTo: elsewhere?.name ?? null,
+            player: { id: player.key, visible: true, name: player.label, code: player.code ?? null, country: player.country ?? null, avatar: player.avatar ?? null, profileUrl: null },
+        };
+    });
+}
+
+/** O1: `Corners · Table 2 · Kim Example, Pat Sample` - without "Table n" when it has none, "(no name)" when unnamed. */
+export function teamLabelText(model, teamId, t, say) {
+    const label = model.teamLabel(teamId);
+    const parts = [label.name ?? t('team_no_name')];
+
+    if (label.table !== null && label.table !== undefined) {
+        parts.push(say('team_table', { table: label.table }));
+    }
+
+    if (label.members.length > 0) {
+        parts.push(label.members.join(', '));
+    }
+
+    return parts.join(' · ');
+}
+
+/** A date (and time) of the state (ATOM, UTC) in the page's language and the browser's zone. */
+export function formatDate(value, locale, withTime) {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    try {
+        return new Intl.DateTimeFormat(locale || undefined, withTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' }).format(date);
+    } catch (e) {
+        return date.toISOString().slice(0, withTime ? 16 : 10).replace('T', ' ');
+    }
+}
+
+/**
+ * The registration counters and the first-in-line hint of a managed event, from the people already loaded:
+ * "Spots taken 180 / 200 · Waitlist 12 · Paid 150 · Checked in 20" and "A spot is free - Robin Example is first on the
+ * waitlist · Give a spot".
+ */
+export function registrationSummaryHtml(model, competition, say, sayCount) {
+    const people = model.people();
+    const counts = registrationCounts(people, competition.capacity ?? null);
+    const items = [
+        counts.capacity !== null
+            ? say('counter_spots_capacity', { taken: counts.taken, capacity: counts.capacity })
+            : say('counter_spots', { taken: counts.taken }),
+        say('counter_waitlist', { count: counts.waitlisted }),
+        say('counter_paid', { count: counts.paid }),
+    ];
+
+    if (competition.isOnline !== true) {
+        items.push(say('counter_checked_in', { count: counts.checkedIn }));
+    }
+
+    const first = firstInLine(people, competition.capacity ?? null);
+    let hint = '';
+
+    if (first !== null) {
+        const text = counts.capacity === null
+            ? say('first_in_line_no_capacity', { name: first.name })
+            : sayCount('first_in_line', counts.free, { name: first.name });
+        hint = `<div class="sheet-first-in-line" role="status"><i class="bi bi-arrow-up-circle" aria-hidden="true"></i> <span>${escapeHtml(text)}</span> <button type="button" class="btn btn-sm btn-success" data-promote="${escapeHtml(first.id)}">${escapeHtml(say('first_in_line_action'))}</button></div>`;
+    }
+
+    return `<p class="sheet-counters${counts.over ? ' is-over' : ''}">${items.map((item) => `<span>${escapeHtml(item)}</span>`).join('<span aria-hidden="true"> · </span>')}${counts.over ? ` <span class="sheet-counters-over"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${escapeHtml(say('counter_over'))}</span>` : ''}</p>${hint}`;
+}
+
+/**
+ * "Type the number to confirm" (§6 Deletes: removing more than 25 % of the people, at least 10) - a modal dialog that
+ * resolves true only when the typed number matches.
+ */
+export function confirmTyped({ host, title, text, prompt, expected, confirmLabel, cancelLabel, closeLabel }) {
+    return new Promise((resolve) => {
+        const id = `sheet-confirm-${Math.random().toString(36).slice(2)}`;
+        const dialog = document.createElement('dialog');
+        dialog.className = 'sheet-preview sheet-confirm';
+        dialog.setAttribute('aria-labelledby', `${id}-title`);
+        dialog.innerHTML = `<form method="dialog" class="sheet-preview-form" novalidate>
+                <div class="sheet-preview-head"><h2 class="h5 mb-0" id="${id}-title">${escapeHtml(title)}</h2><button type="button" class="btn-close" data-confirm-cancel aria-label="${escapeHtml(closeLabel)}"></button></div>
+                <div class="sheet-preview-body">
+                    <p>${escapeHtml(text)}</p>
+                    <label class="form-label" for="${id}-input">${escapeHtml(prompt)}</label>
+                    <input type="text" inputmode="numeric" class="form-control" id="${id}-input" autocomplete="off" data-confirm-input>
+                </div>
+                <div class="sheet-preview-foot"><div class="d-flex gap-2 justify-content-end">
+                    <button type="button" class="btn btn-outline-secondary" data-confirm-cancel>${escapeHtml(cancelLabel)}</button>
+                    <button type="submit" class="btn btn-danger" data-confirm-ok disabled>${escapeHtml(confirmLabel)}</button>
+                </div></div>
+            </form>`;
+        const returnTo = document.activeElement;
+        let settled = false;
+        const finish = (value) => {
+            if (settled) {
+                return;
+            }
+
+            settled = true;
+            dialog.close();
+            dialog.remove();
+
+            if (returnTo?.isConnected) {
+                returnTo.focus({ preventScroll: true });
+            }
+
+            resolve(value);
+        };
+        const input = dialog.querySelector('[data-confirm-input]');
+        const ok = dialog.querySelector('[data-confirm-ok]');
+        input.addEventListener('input', () => {
+            ok.disabled = input.value.trim() !== expected;
+        });
+        dialog.querySelectorAll('[data-confirm-cancel]').forEach((button) => button.addEventListener('click', () => finish(false)));
+        dialog.addEventListener('cancel', (event) => {
+            event.preventDefault();
+            finish(false);
+        });
+        dialog.querySelector('form').addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            if (input.value.trim() === expected) {
+                finish(true);
+            }
+        });
+        (host.closest?.('[data-controller~="participants-sheet"]') ?? document.body).append(dialog);
+        dialog.showModal();
+        input.focus();
+    });
 }
 
 /** Round colours come from the server as #hex; anything else is not put into a style attribute. */

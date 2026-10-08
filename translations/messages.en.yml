@@ -885,7 +885,6 @@ events:
     results_link: "Official results"
     registration_link: "Register"
     competition_puzzles: "Competition puzzles"
-    results_by_round: "Results by round"
     no_puzzle_text: No puzzles here… yet! Stay tuned
     upcoming_editions: "Upcoming editions"
     past_editions: "Past editions"
@@ -3890,8 +3889,6 @@ competition:
     pending_approval_info: "This event is pending admin approval and is not yet visible to other users."
     rejected_info: "This event was not approved."
     rejection_reason: "Reason"
-    online: "Online"
-    recurring: "Recurring"
     add_event_info: "Add a new competition or event. It will be reviewed by an admin before being published."
     managed_event_info: "Interested in fully managing participant registrations and payments through MySpeedPuzzling? Contact me at <a href=\"mailto:%email%\">%email%</a>."
     submit_for_approval: "Submit for Approval"

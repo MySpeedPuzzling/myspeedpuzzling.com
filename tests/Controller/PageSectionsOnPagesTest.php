@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\AddPageSection;
 use SpeedPuzzling\Web\Message\ChangePageSectionVisibility;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -21,7 +22,10 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * Content sections are opt-in (docs/features/competitions-management/public-page.md): an event, edition or series page
  * without one runs exactly the statements it ran before they existed - the "has sections" flag rides on the
  * competition/series row the page reads anyway - and renders no section markup at all. The budgets below were measured
- * on main before page sections (2026-10-07) and must not grow.
+ * on main before page sections (2026-10-07), re-measured on the redesigned detail pages (2026-10-08,
+ * docs/features/events-page/detail-pages-plan.md 1.10 and "Foundation deviations" 16) and must not grow. Sections sit
+ * after the agenda: series - between Upcoming and Past; event and edition - after Taking part and the marketplace card,
+ * before the participants (detail-pages.md, "Conflicts" 1).
  */
 final class PageSectionsOnPagesTest extends WebTestCase
 {
@@ -108,9 +112,35 @@ final class PageSectionsOnPagesTest extends WebTestCase
         self::assertSame('Is there parking?', $crawler->filter('[data-page-section="faq"] summary')->text());
 
         // After the puzzles, Taking part and the marketplace card, before the participants (detail-pages.md, conflict 1)
+        self::assertSectionsBetween((string) $browser->getResponse()->getContent(), 'id="taking-part"', 'data-live-name-value="CompetitionParticipants"');
+    }
+
+    public function testEditionSectionsComeAfterTheMarketplaceCardAndBeforeTheParticipants(): void
+    {
+        $browser = self::createClient();
+        $this->add(CompetitionSeriesFixture::EDITION_OFFLINE_1, null, PageSectionType::RichText, 'This time', ['html' => '<p>New room</p>']);
+
+        $browser->request('GET', self::EDITION_URL);
+        self::assertResponseIsSuccessful();
         $html = (string) $browser->getResponse()->getContent();
-        self::assertLessThan(strpos($html, 'id="taking-part"'), strpos($html, 'data-event-description'));
-        self::assertLessThan(strpos($html, 'data-page-sections'), strpos($html, 'id="taking-part"'));
+
+        self::assertSectionsBetween($html, 'id="taking-part"', 'data-live-name-value="CompetitionParticipants"');
+
+        if (str_contains($html, 'data-testid="event-offers"')) {
+            self::assertSectionsBetween($html, 'data-testid="event-offers"', 'data-live-name-value="CompetitionParticipants"');
+        }
+    }
+
+    public function testSeriesSectionsSitBetweenUpcomingAndPast(): void
+    {
+        $browser = self::createClient();
+        // Harbor Jigsaw Nights: three sessions ahead, two last year
+        $this->add(null, EventsPageFixture::SERIES_HARBOR_NIGHTS, PageSectionType::RichText, 'House rules', ['html' => '<p>Cameras on</p>']);
+
+        $browser->request('GET', '/en/series/harbor-jigsaw-nights');
+        self::assertResponseIsSuccessful();
+
+        self::assertSectionsBetween((string) $browser->getResponse()->getContent(), 'data-series-upcoming', 'data-series-past');
     }
 
     public function testAnEditionShowsItsOwnSectionsThenTheSeriesOnes(): void
@@ -142,6 +172,22 @@ final class PageSectionsOnPagesTest extends WebTestCase
 
         self::assertSame(12 + 1, $this->queryCount($browser));
         self::assertSame('https://facebook.com/groups/x?utm_source=myspeedpuzzling', $crawler->filter('[data-page-section="links"] a')->attr('href'));
+    }
+
+    /**
+     * The page sections come after the first marker and before the second (both present)
+     */
+    private static function assertSectionsBetween(string $html, string $before, string $after): void
+    {
+        $sections = strpos($html, 'data-page-sections');
+        $beforeAt = strpos($html, $before);
+        $afterAt = strpos($html, $after);
+
+        self::assertNotFalse($sections, 'The page shows its sections');
+        self::assertNotFalse($beforeAt, $before);
+        self::assertNotFalse($afterAt, $after);
+        self::assertLessThan($sections, $beforeAt, 'The sections come after ' . $before);
+        self::assertLessThan($afterAt, $sections, 'The sections come before ' . $after);
     }
 
     /**

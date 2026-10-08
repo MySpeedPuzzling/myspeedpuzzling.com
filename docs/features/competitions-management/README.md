@@ -116,22 +116,23 @@ CompetitionSeries ("Euro Jigsaw Jam")
 - Registration link, results link (optional)
 - After creation, organizer adds rounds from the edition management page
 
-**Public series page** (`/en/series/{slug}`):
-- Series header with name, description (plain text, line breaks kept), logo, website link, badges
-- Upcoming editions as cards (2-column grid on desktop, single column on mobile, `_series_edition_card.html.twig`): name, date with relative time, time limit, puzzle count, participant count, registration link, and the edition's **own** logo on the right when it has one (no series logo repeated on every card - it is in the header)
-- Past editions as cards (same layout): with results link instead of registration link
-- Each edition card links to the edition detail page
-- **No edition is ever hidden.** An edition is dated by its first round, else by its own `date_from` (shown as a date range when it has no round yet). One with neither - no date and no rounds, e.g. a draft or a duplicate - is listed **with the upcoming editions, last**, labelled "Date not set" (`edition.date_not_set`) - on this page and on the organiser's management page (`manage_competition_series`, `_series_editions_table.html.twig`, where it keeps its edit and delete buttons so it can be fixed or removed). `GetCompetitionSeries::fetchEditions()`; `SeriesEdition::isUndated()`. Such an edition is left out of the series `EventSeries` JSON-LD (`subEvent` needs a `startDate`); `subEvent` carries an edition's own logo as `image`.
+**Public series, edition and event pages** (`/en/series/{slug}`, `/en/series/{seriesSlug}/{editionSlug}`,
+`/en/events/{slug}`) are built from the events page's parts (`templates/event_parts/`) - design and rules in
+[../events-page/detail-pages.md](../events-page/detail-pages.md). In short:
 
-**Public edition detail page** (`/en/series/{seriesSlug}/{editionSlug}`):
-- Edition header with link back to series; the edition's own logo, else the series logo (the JSON-LD `image` follows the same rule)
-- Links: Info (the edition's own website link), Register, Results, Add my time - external ones with `utm_source=myspeedpuzzling` like everywhere
-- The edition's description below the header, as plain text: `{{ description|nl2br }}` (Twig escapes before adding `<br>`; never `|raw`, no linkifying) - the standalone event page shows its description the same way
-- "Date not set" when the edition has neither a date nor a round
-- Each round heading shows its category pill - Solo too
-- Puzzle grid (from the edition's round)
-- Participants component (competition-scoped)
-- Legacy URLs (`/en/edition/{competitionId}`) 301 redirect to the new slug-based URL
+- **Series page**: the shared header (crumbs, labelled "Follow series", Website, ⋯), then one list of **sessions**
+  (`GetEventOccurrences::forSeries()` → `SeriesPageBuilder`): the Next card, Upcoming by month, Ongoing, "Date not set"
+  (an edition with neither a date nor a round - **no edition is ever hidden**, it is also listed on the organiser's
+  management page `manage_competition_series`, `_series_editions_table.html.twig`, with its edit and delete buttons), the
+  page sections, then Past by year with a Results tag per session. The `EventSeries` JSON-LD has one `subEvent` per
+  dated session (undated editions left out; the edition's own logo as `image`).
+- **Edition and event pages**: the shared header (crumbs with the series, I'm going, Follow, Registration, Website,
+  Results, Add my time, ⋯), the **rounds timeline** (`RoundsTimelineBuilder`: one `#round-<id>` row per round with its
+  category pill, start time in the event's zone, its puzzles, Results and Add my time; the next round highlighted, earlier
+  ones folded), "More puzzles of this event", Taking part, the marketplace card, page sections, participants. The
+  description is plain text (`{{ description|nl2br }}`, never `|raw`, no linkifying); "Date not set" when an edition has
+  neither a date nor a round; the logo is the edition's own, else the series' (the JSON-LD `image` follows the same rule).
+- Legacy URLs (`/en/edition/{competitionId}`) 301 redirect to the slug-based URL.
 
 **Editions get auto-generated slugs** — when an edition is created via `AddEditionHandler`, a unique slug is generated from the edition name. Slug uniqueness is scoped to the parent series (not globally), enforced by a composite unique constraint on `(series_id, slug)`.
 
@@ -157,7 +158,7 @@ The "Competition / event" picker on the add-time form (`PuzzleAddFormType`, rout
 - **Ordering** (global, one SQL `ORDER BY`): live → undated standalone ("perpetual" online umbrellas, the most-used entries) → past (newest first) → upcoming (soonest first) → undated editions. Undated editions with rounds are dated by their first round (`MIN(competition_round.starts_at)`). Editions carry `optgroup` = series id and TomSelect renders a series' block where its best-ranked edition sits (`lockOptgroupOrder` off); standalone events are ungrouped.
 - **Rendering**: option cards are built in `CompetitionChoicesBuilder` (every organiser-authored string HTML-escaped, lazy-loaded 48px logo falling back to the series logo, series name on edition cards, "live" badge, `keywords` = series name/shortcut + name/shortcut + location as extra `searchField`). `assets/controllers/competition_picker_controller.js` patches the TomSelect config on `autocomplete:pre-connect` (`maxOptions: null`, optgroup header with series logo, blur on select) — ux-autocomplete forces `maxOptions: 50` and its own `render` for `<input>`-based pickers, so these cannot come from PHP.
 - **Deep link** `puzzle_add?competition=<uuid>` (`/en/puzzle-add?competition=…`, built with `path('puzzle_add', {competition: id})`): `PuzzleAddController` pre-selects the competition in the picker when the form opens in speed-puzzling mode and `IsCompetitionPubliclyVisible::check()` passes — the `_solving_time_form` template then renders the competition section expanded. Any other value (not a uuid, unknown, unapproved, edition of an unapproved series, `?mode=relax|collection`) is ignored silently: no flash, no error, the form just opens without a pre-selection. It only seeds the GET render; on POST `handleRequest()` overwrites the data, so a cleared field is never re-filled from the URL.
-- **"Add my time from this event" CTA** (`events.add_my_time`) on the standalone event page (`EventDetailController` → `event_detail.html.twig`, next to the "I'm going" / "You are going" buttons) and the edition page (`EditionDetailController` → `edition_detail.html.twig`, in the registration/results link row) links to that deep link. Shown only when `can_add_time` = signed in **and** the competition row is publicly visible (`IsCompetitionPubliclyVisible::check()`) **and** the event has started — `CompetitionEvent::startsAfter(now)` is false, i.e. `COALESCE(date_from, date_to)` is not a later calendar day than today (`ClockInterface`; an undated event is perpetual and always qualifies). No per-edition CTA on the series page or in the editions table — a time links to a concrete edition, so the CTA lives on the edition page.
+- **"Add my time from this event" CTA** (`events.add_my_time`) on the standalone event page and the edition page (in the header's actions once the event is over, on every started round of the timeline - with the round's puzzle pre-selected when it has exactly one with its picture shown - and in Taking part on the event page) links to that deep link. Shown only when `can_add_time` = signed in **and** the competition row is publicly visible (`IsCompetitionPubliclyVisible::check()`) **and** the event has started — `CompetitionEvent::startsAfter(now)` is false, i.e. `COALESCE(date_from, date_to)` is not a later calendar day than today (`ClockInterface`; an undated event is perpetual and always qualifies). No per-edition CTA on the series page or in the editions table — a time links to a concrete edition, so the CTA lives on the edition page.
 
 ## Round Results
 
@@ -168,8 +169,8 @@ Every round with a slug has a public results page — `/en/events/{slug}/results
 - **Titles** (`Value\EventTitle`, used by the event, edition and round results pages): the full name, never shortened; an edition gets its series in front unless its name mentions it (`Piece-off · #21 - May 2026`); the year follows unless the name already carries a standalone 19xx/20xx year. Once the event is over — `date_to ?? date_from` before today, by calendar day — **and** has at least one (not suspicious) result here, the title says Results (`EventTitle::saysResults()`, `events.meta.event_detail_title_results`, word order per locale); an event that is over without results is named like an upcoming one — a "Results" title over a page without any would disappoint searchers. Editions without own dates are dated by their rounds. Round results: `{event} – {round} Results`. The H1 stays the organiser's name.
 - **Meta descriptions**: the same rule — events that say Results quote the number of results (`CountCompetitionResults`); all others keep date + location.
 - **Sitemap**: `sitemap-events.xml` lists every edition that passes `IsCompetitionPubliclyVisible` (editions are never approved individually).
-- **Puzzles on the standalone event page**: tagged puzzles; else the puzzles of its rounds (`GetCompetitionPuzzles::roundPuzzleOverviews`, round hide rules applied); else the puzzles people logged times for there, most logged first, max 24 (`solvedPuzzleOverviews`) - same cards as tagged puzzles.
-- **Results by round** (standalone event page): one compact row of small round buttons in the event header (not a section of its own - the puzzle cards link their round too): rounds with a slug and ≥ 1 result, only on a publicly visible event — round results pages of a non-public event answer 404, so nothing links to them.
+- **Puzzles on the event and edition pages** (`EventPagePuzzles`, one rule for both): a round's puzzles sit in their round on the timeline (round hide rules applied by `GetEditionRounds`); "More puzzles of this event" lists the tagged puzzles not in a round, else - only without rounds - the puzzles people logged times for there, most logged first, max 24 (`solvedPuzzleOverviews`), as full puzzle cards.
+- **Results by round** (event and edition pages): each round on the timeline links its results page ("Official results" once published) - rounds with a slug and something to show (`CountCompetitionResults::perRound()`), only on a publicly visible page — round results pages of a non-public event answer 404, so nothing links to them. The old "Results by round" button row is gone.
 - **Indexing**: unapproved/rejected events and series, and editions failing `IsCompetitionPubliclyVisible`, render `noindex, nofollow`. Event/edition/series JSON-LD `image` is the 1200 px `puzzle_large` preset (JPEG, metadata stripped; Google wants event images ≥ 720 px wide) - never the uploaded original, which may carry EXIF/GPS (see `docs/TODO.md`, Image storage).
 - **WJPC hub** lists every edition's tagged + round puzzles with public solo median/fastest (`GetCompetitionPuzzles::forCompetitions`, publicly visible competitions only), each edition folded in a `<details>` so ~140 puzzles do not push "how to take part" and the FAQ out of reach.
 

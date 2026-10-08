@@ -1,7 +1,8 @@
 {#
-    The EventSeries JSON-LD of the series page (owner: workstream C, docs/features/events-page/detail-pages.md "SEO").
-    Moved from the page template; `subEvent` = page.subEvents - one per public dated session (SeriesPageBuilder), undated
-    editions left out. Variables: the page's (series, page).
+    The EventSeries JSON-LD of the series page (docs/features/events-page/detail-pages.md "SEO"). `subEvent` =
+    page.subEvents - one per public dated session (SeriesPageBuilder: an edition, or each session of an edition whose
+    rounds fall on separate days, linking `#round-<id>`), undated editions left out. Every value goes through `json_ld`.
+    Variables: the page's (series, page).
 #}
 {% if series.approvedAt is not null and series.rejectedAt is null and series.slug is not null %}
 {# A schema.org Event needs a startDate - an edition without a round and without its own date is left out #}
@@ -46,6 +47,10 @@
             "name": {{ sub_event.name|json_ld }},
             "url": {{ absolute_url(sub_event.path)|json_ld }},
             "startDate": {{ sub_event.startDate|date('Y-m-d', false)|json_ld }}
+            {%- if sub_event.endDate %},
+            "endDate": {{ sub_event.endDate|date('Y-m-d', false)|json_ld }}
+            {%- endif %},
+            "eventAttendanceMode": {{ (sub_event.isOnline ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode')|json_ld }}
             {%- if sub_event.image %},
             "image": {{ sub_event.image|thumbnail('puzzle_large')|json_ld }}
             {%- endif %}

@@ -4,6 +4,18 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Series, edition and event pages (`docs/features/events-page/detail-pages.md`)
+
+- [ ] Format chips / an "Organisation" level above series, for organisers running several formats under one name -
+      Jan's decision: nothing is built until the organiser he asked answers whether they want it.
+- [ ] An organiser-only hint on long spans without rounds ("add a round per night"), so a month-long online event
+      stops reading as "Ongoing" with no dates.
+- [ ] BreadcrumbList JSON-LD for the crumbs of the three pages (the crumbs are plain links today).
+- [ ] A live leaderboard link for spectators while a round runs (Live entry / round results), next to the "Live" round.
+- [ ] `EXPLAIN ANALYZE` of `GetEventOccurrences::all()` and `forSeries()` on a copy of production data with the per-round
+      `has_results` join (`OccurrenceRounds::sqlJoinWithResults()`) - before/after numbers into the PR; if the events page
+      statement grows by more than 5 ms, keep the flag on the series page only.
+
 ## Events page (`docs/features/events-page/README.md`, shipped 2026-10-08)
 
 - [ ] Post-launch measurement ~2026-11-05: `?view=calendar` loads (Tempo) and the GA events `events_scope` / `events_view` / `events_search` / `events_calendar_day` / `events_calendar_month` vs the README baseline (7 days before launch: 1,004 views from 404 IPs, filters from 115, calendar from 32)
@@ -416,8 +428,9 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
 - [ ] Links are kept after the event (decision) - nothing reads them yet ("Brought to WJPC 2026" history is an idea).
 - [ ] Measure after the spring 2027 season: sellers marking per event vs sellers going, "Ask to bring it" conversations,
       listings sold to a buyer who went to the same event (`sold_swapped_item` + participants).
-- [ ] Event pages still format dates with `_event_date_range.html.twig` ("10.-11.10."); the new labels use the
-      locale-aware `event_dates()` - unify the event pages one day.
+- [x] Event pages still format dates with `_event_date_range.html.twig` ("10.-11.10."); the new labels use the
+      locale-aware `event_dates()` - unify the event pages one day. (Done by the detail pages redesign: the event,
+      edition and series pages use `events_date` / `events_date_range()`; only the manage pages keep the partial.)
 - [ ] Marketplace filter panel: the Sort select is squeezed to ~90 px ("Ne…" for "Newest") on desktop - pre-existing,
       seen during the review (also on `main`).
 - [ ] German pre-filled buyer message uses the site's formal "Sie" - between hobbyists "du" may read warmer; Jan to decide.

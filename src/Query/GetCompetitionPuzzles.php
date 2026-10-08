@@ -25,8 +25,8 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 readonly final class GetCompetitionPuzzles
 {
     /**
-     * Per puzzle of one competition's (:competitionId) rounds: its first round's start and whether a
-     * round still hides it entirely or just its image (hide-until-round-starts, until its reveal moment -
+     * Per puzzle of one competition's (:competitionId) rounds: whether a round still hides it entirely or
+     * just its image (hide-until-round-starts, until its reveal moment -
      * RoundPuzzleReveal, the same rule as GetEditionRounds).
      */
 
@@ -37,7 +37,6 @@ readonly final class GetCompetitionPuzzles
         return <<<SQL
     SELECT
         crp.puzzle_id,
-        MIN(cr.starts_at) AS first_round_starts_at,
         BOOL_OR(
             {$hidden}
             AND COALESCE(crp.hide_mode, 'entirely') = 'entirely'
@@ -197,42 +196,9 @@ SQL;
     }
 
     /**
-     * The puzzles of one competition's rounds, each once, in schedule order - for an event page whose
-     * event has no tagged puzzles.
-     *
-     * @return list<PuzzleOverview>
-     */
-    public function roundPuzzleOverviews(string $competitionId): array
-    {
-        if (Uuid::isValid($competitionId) === false) {
-            return [];
-        }
-
-        $columns = self::puzzleOverviewColumns('round_puzzle.image_hidden');
-        $roundPuzzleRules = self::roundPuzzleRules();
-
-        $query = <<<SQL
-WITH round_puzzle AS (
-{$roundPuzzleRules}
-)
-SELECT
-{$columns}
-FROM round_puzzle
-INNER JOIN puzzle ON puzzle.id = round_puzzle.puzzle_id
-INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-LEFT JOIN puzzle_statistics ON puzzle_statistics.puzzle_id = puzzle.id
-WHERE round_puzzle.hidden_entirely = false
-    AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
-ORDER BY round_puzzle.first_round_starts_at, puzzle.name
-SQL;
-
-        return $this->puzzleOverviews($query, ['competitionId' => $competitionId], []);
-    }
-
-    /**
      * The puzzles people logged (not suspicious) times for at a competition, the most logged first -
-     * for an event page whose event has neither tagged nor visible round puzzles, e.g. championships
-     * entered without rounds. Capped, because a perpetual online event collects hundreds of puzzles.
+     * for an event or edition page whose event has neither tagged puzzles nor rounds, e.g. championships
+     * entered without rounds (EventPagePuzzles). Capped, because a perpetual online event collects hundreds of puzzles.
      * A round's secret puzzle stays secret here too, even when someone already linked a time to it.
      *
      * @return list<PuzzleOverview>

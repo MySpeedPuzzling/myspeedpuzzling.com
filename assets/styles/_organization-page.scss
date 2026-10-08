@@ -22,6 +22,10 @@
     }
 }
 
+.ev-detail-by {
+    overflow-wrap: anywhere;
+}
+
 .ev-organized-by a {
     @include ev-hit-area(12px);
     color: $ev-ink;

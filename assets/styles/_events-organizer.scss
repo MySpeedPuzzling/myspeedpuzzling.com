@@ -652,26 +652,8 @@ summary.ev-action {
     color: $evo-muted;
 }
 
-// The byline of the series, edition and event pages: Organized by · Who can enter · When it happens
-.ev-detail-byline {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: .125rem .5rem;
-    margin: .25rem 0 0;
-    color: $evo-ink-2;
-    font-size: .9375rem;
-
-    > * + *::before {
-        content: "·";
-        margin-right: .5rem;
-        color: $evo-muted;
-    }
-}
-
-.ev-detail-by {
-    overflow-wrap: anywhere;
-}
+// The byline of the series, edition and event pages (Organized by · Who can enter · When it happens) is styled in
+// _organization-page.scss.
 
 // "Add several dates at once" on the add-edition form
 .ev-add-editions-hint {

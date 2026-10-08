@@ -7719,3 +7719,61 @@ collection_selection:
         already_there: "1 už tam bylo.|%count% už tam byla.|%count% už tam bylo."
         skipped: "1 už tu nebylo.|%count% už tu nebyla.|%count% už tu nebylo."
         open: "Otevřít"
+
+puzzle_selection:
+    add_to_collection: "Přidat do kolekce…"
+    add_to_collection_short: "Přidat do…"
+    add_to_collection_title: "Přidat 1 puzzle do kolekce|Přidat %count% puzzle do kolekce|Přidat %count% puzzle do kolekce"
+    add_to_collection_submit: "Přidat 1 puzzle|Přidat %count% puzzle|Přidat %count% puzzle"
+    add_to_collection_wishlist_help: "Puzzle, která mají ze seznamu přání odejít, jakmile je budeš mít, teď odejdou."
+    remove_from_collections: "Odebrat z kolekcí"
+    lend_borrowed: "1 z vybraných puzzle je vypůjčené a zůstane, jak je.|%count% z vybraných puzzle jsou vypůjčená a zůstanou, jak jsou.|%count% z vybraných puzzle je vypůjčeno a zůstanou, jak jsou."
+    done:
+        added_to_collection: "1 puzzle přidáno do %collection%.|%count% puzzle přidána do %collection%.|%count% puzzle přidáno do %collection%."
+        already: "1 nepotřebovalo změnu.|%count% nepotřebovala změnu.|%count% nepotřebovalo změnu."
+        skipped: "1 zůstalo, jak bylo.|%count% zůstala, jak byla.|%count% zůstalo, jak bylo."
+        borrowed_left_out: "1 vypůjčené puzzle bylo vynecháno.|%count% vypůjčená puzzle byla vynechána.|%count% vypůjčených puzzle bylo vynecháno."
+    wishlist:
+        remove:
+            title: "Odebrat 1 puzzle ze seznamu přání?|Odebrat %count% puzzle ze seznamu přání?|Odebrat %count% puzzle ze seznamu přání?"
+            message: "Odejdou jen ze seznamu přání."
+            submit: "Odebrat 1 puzzle|Odebrat %count% puzzle|Odebrat %count% puzzle"
+            done: "1 puzzle odebráno ze seznamu přání.|%count% puzzle odebrána ze seznamu přání.|%count% puzzle odebráno ze seznamu přání."
+    sell_swap:
+        sold:
+            short: "Prodáno"
+            button: "Označit jako prodáno/vyměněno"
+            title: "Označit 1 nabídku jako prodanou nebo vyměněnou?|Označit %count% nabídky jako prodané nebo vyměněné?|Označit %count% nabídek jako prodané nebo vyměněné?"
+            message: "Odejdou ze seznamu k prodeji/výměně, z tvých kolekcí i ze seznamu přání a přesunou se do historie prodaných/vyměněných. Lidé, kteří ti o nich psali, dostanou zprávu. Kupující se nezaznamená - pokud ho chceš uvést, označ nabídku samostatně."
+            submit: "Označit 1 jako prodanou/vyměněnou|Označit %count% jako prodané/vyměněné|Označit %count% jako prodané/vyměněné"
+            done: "1 nabídka označena jako prodaná/vyměněná.|%count% nabídky označeny jako prodané/vyměněné.|%count% nabídek označeno jako prodané/vyměněné."
+        reserve:
+            button: "Rezervovat"
+            title: "Rezervovat 1 nabídku|Rezervovat %count% nabídky|Rezervovat %count% nabídek"
+            message: "Lidé, kteří ti o nich psali, dostanou zprávu."
+            submit: "Rezervovat 1 nabídku|Rezervovat %count% nabídky|Rezervovat %count% nabídek"
+            done: "1 nabídka rezervována.|%count% nabídky rezervovány.|%count% nabídek rezervováno."
+        unreserve:
+            button: "Zrušit rezervaci"
+            title: "Zrušit rezervaci 1 nabídky|Zrušit rezervaci %count% nabídek|Zrušit rezervaci %count% nabídek"
+            message: "Lidé, kteří ti o nich psali, dostanou zprávu."
+            submit: "Zrušit 1 rezervaci|Zrušit %count% rezervace|Zrušit %count% rezervací"
+            done: "Rezervace zrušena u 1 nabídky.|Rezervace zrušena u %count% nabídek.|Rezervace zrušena u %count% nabídek."
+        remove:
+            title: "Odebrat 1 nabídku?|Odebrat %count% nabídky?|Odebrat %count% nabídek?"
+            message: "Odejdou ze seznamu k prodeji/výměně - v kolekcích puzzle zůstanou. Lidé, kteří ti o nich psali, dostanou zprávu."
+            submit: "Odebrat 1 nabídku|Odebrat %count% nabídky|Odebrat %count% nabídek"
+            done: "1 nabídka odebrána.|%count% nabídky odebrány.|%count% nabídek odebráno."
+    unsolved:
+        remove:
+            title: "Odebrat 1 puzzle z kolekcí?|Odebrat %count% puzzle z kolekcí?|Odebrat %count% puzzle z kolekcí?"
+            message: "Odejdou ze všech tvých kolekcí. Vypůjčená puzzle zůstanou, jak jsou."
+            submit: "Odebrat 1 puzzle|Odebrat %count% puzzle|Odebrat %count% puzzle"
+            done: "1 puzzle odebráno z kolekcí.|%count% puzzle odebrána z kolekcí.|%count% puzzle odebráno z kolekcí."
+    lend_borrow:
+        return:
+            button: "Vrátit"
+            title: "Označit 1 puzzle jako vrácené?|Označit %count% puzzle jako vrácená?|Označit %count% puzzle jako vrácená?"
+            message: "Půjčená puzzle jsou zpět u tebe, vypůjčená se vracejí majitelům."
+            submit: "Označit 1 jako vrácené|Označit %count% jako vrácená|Označit %count% jako vrácená"
+            done: "1 puzzle vráceno.|%count% puzzle vrácena.|%count% puzzle vráceno."

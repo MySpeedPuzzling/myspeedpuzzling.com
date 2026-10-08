@@ -1,4 +1,4 @@
-{# "Lend to…" for the puzzles selected on a collection page (LendSelectedPuzzlesController) #}
+{# "Lend to…" for the puzzles selected on a collection page (LendSelectedPuzzlesController) or the unsolved page (LendSelectedListPuzzlesController, passes action_url) #}
 <turbo-frame id="modal-frame">
     <div class="modal-header">
         <h5 class="modal-title">{{ 'collection_selection.lend_title'|trans({'%count%': lendable_count}) }}</h5>
@@ -9,12 +9,15 @@
         {% if already_lent_count > 0 %}
             <p class="text-muted small">{{ 'collection_selection.lend_already_lent'|trans({'%count%': already_lent_count}) }}</p>
         {% endif %}
+        {% if (borrowed_count ?? 0) > 0 %}
+            <p class="text-muted small">{{ 'puzzle_selection.lend_borrowed'|trans({'%count%': borrowed_count}) }}</p>
+        {% endif %}
 
         {% if lendable_count == 0 %}
             <div class="alert alert-info mb-0">{{ 'collection_selection.nothing_to_lend'|trans }}</div>
         {% else %}
             {{ form_start(form, {
-                action: path('collection_selected_lend', {collectionId: selection.routeCollectionId}),
+                action: action_url ?? path('collection_selected_lend', {collectionId: selection.routeCollectionId}),
                 attr: {'data-turbo-frame': 'modal-frame', 'data-collection-selection-form': ''},
             }) }}
                 {{ include('collections/_selected_hidden_inputs.html.twig') }}

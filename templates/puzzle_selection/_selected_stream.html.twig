@@ -1,0 +1,31 @@
+{#
+    Answer to an action on the puzzles selected on a list page (PuzzleListSelectionResponder).
+    - targets: PuzzleList::streamTargets() (null = nothing to take off the page)
+    - removed_puzzle_ids: cards to take off the page
+    - remaining_count: puzzles left on the list
+    - message: the one toast
+    - open_url: "Open" in the toast (the target collection), or null
+#}
+{{ include('_modal_close_stream.html.twig') }}
+
+{% if targets is not null and removed_puzzle_ids is not empty %}
+    {% for puzzle_id in removed_puzzle_ids %}
+        {{ include('_library_item_stream.html.twig', {action: 'remove', page_context: targets.page_context, puzzle_id: puzzle_id}) }}
+    {% endfor %}
+
+    <turbo-stream action="update" target="{{ targets.count_target }}">
+        <template>{{ remaining_count }}</template>
+    </turbo-stream>
+
+    {% if remaining_count == 0 %}
+        <turbo-stream action="update" target="{{ targets.container_target }}">
+            <template>{{ include(targets.empty_state, {isOwnProfile: true}) }}</template>
+        </turbo-stream>
+    {% endif %}
+{% endif %}
+
+{{ include('_toast_stream.html.twig', {
+    message: message,
+    link_url: open_url,
+    link_label: 'collection_selection.done.open'|trans,
+}) }}

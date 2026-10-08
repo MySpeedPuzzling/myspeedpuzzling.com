@@ -1,0 +1,28 @@
+{# Confirms an action on the puzzles selected on a list page (ApplyToSelectedListPuzzlesController) #}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ (prefix ~ '.title')|trans({'%count%': selection.puzzleIds|length}) }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+
+    <div class="modal-body">
+        {% if selection.puzzleIds is empty %}
+            <div class="alert alert-warning mb-0">{{ 'collection_selection.nothing_selected'|trans }}</div>
+        {% else %}
+            <p>{{ (prefix ~ '.message')|trans({'%count%': selection.puzzleIds|length}) }}</p>
+
+            <form method="post"
+                  action="{{ path('puzzle_list_selected_action', {list: list.value, action: action.value}) }}"
+                  data-turbo-frame="modal-frame"
+                  data-collection-selection-form>
+                {{ include('puzzle_selection/_hidden_inputs.html.twig') }}
+                <input type="hidden" name="confirm" value="1">
+
+                <button type="submit" class="btn {{ action.value == 'remove' ? 'btn-danger' : 'btn-primary' }}" data-loading-text="{{ 'forms.saving'|trans }}">
+                    {{ (prefix ~ '.submit')|trans({'%count%': selection.puzzleIds|length}) }}
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+            </form>
+        {% endif %}
+    </div>
+</turbo-frame>

@@ -7712,3 +7712,61 @@ collection_selection:
         already_there: "%count%件はすでに入っていました。"
         skipped: "%count%件はもうここにありませんでした。"
         open: "開く"
+
+puzzle_selection:
+    add_to_collection: "コレクションに追加…"
+    add_to_collection_short: "追加…"
+    add_to_collection_title: "%count%件のパズルをコレクションに追加"
+    add_to_collection_submit: "%count%件を追加"
+    add_to_collection_wishlist_help: "入手したらウィッシュリストから外す設定のパズルは、今ウィッシュリストから外れます。"
+    remove_from_collections: "コレクションから削除"
+    lend_borrowed: "選択したパズルのうち%count%件は借りているもののため、そのままです。"
+    done:
+        added_to_collection: "%count%件のパズルを%collection%に追加しました。"
+        already: "%count%件は変更不要でした。"
+        skipped: "%count%件はそのままです。"
+        borrowed_left_out: "借りているパズル%count%件は対象外にしました。"
+    wishlist:
+        remove:
+            title: "%count%件のパズルをウィッシュリストから削除しますか？"
+            message: "ウィッシュリストからのみ削除されます。"
+            submit: "%count%件を削除"
+            done: "%count%件のパズルをウィッシュリストから削除しました。"
+    sell_swap:
+        sold:
+            short: "売却済み"
+            button: "売却・交換済みにする"
+            title: "%count%件の出品を売却・交換済みにしますか？"
+            message: "売買・交換リスト、コレクション、ウィッシュリストから外れ、売却・交換の履歴に移ります。これらについてメッセージをくれた人には通知されます。購入者は記録されません。購入者を指定するには出品を個別に処理してください。"
+            submit: "%count%件を売却・交換済みにする"
+            done: "%count%件の出品を売却・交換済みにしました。"
+        reserve:
+            button: "予約済みにする"
+            title: "%count%件の出品を予約済みにする"
+            message: "これらについてメッセージをくれた人には通知されます。"
+            submit: "%count%件を予約済みにする"
+            done: "%count%件の出品を予約済みにしました。"
+        unreserve:
+            button: "予約を解除"
+            title: "%count%件の出品の予約を解除"
+            message: "これらについてメッセージをくれた人には通知されます。"
+            submit: "%count%件の予約を解除"
+            done: "%count%件の出品の予約を解除しました。"
+        remove:
+            title: "%count%件の出品を削除しますか？"
+            message: "売買・交換リストから外れます。パズルはコレクションに残ります。これらについてメッセージをくれた人には通知されます。"
+            submit: "%count%件の出品を削除"
+            done: "%count%件の出品を削除しました。"
+    unsolved:
+        remove:
+            title: "%count%件のパズルをコレクションから削除しますか？"
+            message: "すべてのコレクションから削除されます。借りているパズルはそのままです。"
+            submit: "%count%件を削除"
+            done: "%count%件のパズルをコレクションから削除しました。"
+    lend_borrow:
+        return:
+            button: "返却"
+            title: "%count%件のパズルを返却済みにしますか？"
+            message: "貸し出したパズルは手元に戻り、借りたパズルは所有者に返却されます。"
+            submit: "%count%件を返却済みにする"
+            done: "%count%件のパズルを返却しました。"

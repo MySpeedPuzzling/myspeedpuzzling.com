@@ -8,6 +8,8 @@
 {% set show_insights = puzzle_insights is defined %}
 {% set with_difficulty = show_insights and insights_with_difficulty|default(false) %}
 {% set insight = show_insights ? (puzzle_insights[item.puzzleId] ?? null) : null %}
+{# Members select several listings at once (docs/features/collections/bulk-actions.md "Other lists") #}
+{% set selectable = isOwnProfile and logged_user.profile is not null and logged_user.profile.activeMembership %}
 <div class="col"
      id="library-sell-swap-{{ item.puzzleId }}"
      data-collection-items-target="item"
@@ -32,5 +34,6 @@
         show_insights: show_insights,
         with_difficulty: with_difficulty,
         insight: insight,
+        selectable: selectable,
     } only %}
 </div>

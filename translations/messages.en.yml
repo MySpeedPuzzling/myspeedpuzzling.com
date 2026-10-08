@@ -8074,3 +8074,61 @@ collection_selection:
         already_there: "1 was already there.|%count% were already there."
         skipped: "1 was no longer here.|%count% were no longer here."
         open: "Open"
+
+puzzle_selection:
+    add_to_collection: "Add to collection…"
+    add_to_collection_short: "Add to…"
+    add_to_collection_title: "Add 1 puzzle to a collection|Add %count% puzzles to a collection"
+    add_to_collection_submit: "Add 1 puzzle|Add %count% puzzles"
+    add_to_collection_wishlist_help: "Puzzles set to leave your wishlist once you have them leave it now."
+    remove_from_collections: "Remove from collections"
+    lend_borrowed: "1 of the selected puzzles is borrowed and stays as it is.|%count% of the selected puzzles are borrowed and stay as they are."
+    done:
+        added_to_collection: "1 puzzle added to %collection%.|%count% puzzles added to %collection%."
+        already: "1 needed no change.|%count% needed no change."
+        skipped: "1 stayed as it was.|%count% stayed as they were."
+        borrowed_left_out: "1 borrowed puzzle was left out.|%count% borrowed puzzles were left out."
+    wishlist:
+        remove:
+            title: "Remove 1 puzzle from your wishlist?|Remove %count% puzzles from your wishlist?"
+            message: "They leave your wishlist only."
+            submit: "Remove 1 puzzle|Remove %count% puzzles"
+            done: "1 puzzle removed from your wishlist.|%count% puzzles removed from your wishlist."
+    sell_swap:
+        sold:
+            short: "Sold"
+            button: "Mark as sold/swapped"
+            title: "Mark 1 listing as sold or swapped?|Mark %count% listings as sold or swapped?"
+            message: "They leave your sell/swap list, your collections and your wishlist and go to your sold/swapped history. People who wrote to you about them are told. No buyer is recorded - mark a listing on its own to name one."
+            submit: "Mark 1 as sold/swapped|Mark %count% as sold/swapped"
+            done: "1 listing marked as sold/swapped.|%count% listings marked as sold/swapped."
+        reserve:
+            button: "Reserve"
+            title: "Reserve 1 listing|Reserve %count% listings"
+            message: "People who wrote to you about them are told."
+            submit: "Reserve 1 listing|Reserve %count% listings"
+            done: "1 listing reserved.|%count% listings reserved."
+        unreserve:
+            button: "Remove reservation"
+            title: "Remove the reservation of 1 listing|Remove the reservation of %count% listings"
+            message: "People who wrote to you about them are told."
+            submit: "Remove 1 reservation|Remove %count% reservations"
+            done: "Reservation removed from 1 listing.|Reservation removed from %count% listings."
+        remove:
+            title: "Remove 1 listing?|Remove %count% listings?"
+            message: "They leave your sell/swap list - your collections keep the puzzles. People who wrote to you about them are told."
+            submit: "Remove 1 listing|Remove %count% listings"
+            done: "1 listing removed.|%count% listings removed."
+    unsolved:
+        remove:
+            title: "Remove 1 puzzle from your collections?|Remove %count% puzzles from your collections?"
+            message: "They leave every collection of yours. Borrowed puzzles stay as they are."
+            submit: "Remove 1 puzzle|Remove %count% puzzles"
+            done: "1 puzzle removed from your collections.|%count% puzzles removed from your collections."
+    lend_borrow:
+        return:
+            button: "Return"
+            title: "Mark 1 puzzle as returned?|Mark %count% puzzles as returned?"
+            message: "Puzzles you lent out are back with you, puzzles you borrowed go back to their owners."
+            submit: "Mark 1 as returned|Mark %count% as returned"
+            done: "1 puzzle returned.|%count% puzzles returned."

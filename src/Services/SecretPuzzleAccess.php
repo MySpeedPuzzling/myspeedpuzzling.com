@@ -118,6 +118,18 @@ readonly final class SecretPuzzleAccess
     }
 
     /**
+     * pendingReveal() for a list (puzzles selected on a list page) - one statement: the ids a competition still keeps
+     * secret, keyed by the (lower-case) id.
+     *
+     * @param array<string> $puzzleIds
+     * @return array<string, true>
+     */
+    public function pendingRevealAmong(array $puzzleIds): array
+    {
+        return array_fill_keys(array_keys($this->secretRows($puzzleIds, false)), true);
+    }
+
+    /**
      * The same for a loaded puzzle - no query at all while the puzzle is not hidden.
      *
      * @throws PuzzleNotFound

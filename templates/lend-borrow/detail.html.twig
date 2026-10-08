@@ -3,7 +3,12 @@
 {% block title %}{{ 'lend_borrow.title'|trans }}{% if not isOwnProfile %} - {{ profile_name(player) }}{% endif %}{% endblock %}
 
 {% block content %}
-<div data-controller="collection-items">
+{% set can_select = isOwnProfile and hasMembership %}
+<div data-controller="collection-items{{ can_select ? ' collection-selection' }}"
+     {% if can_select %}
+     data-collection-selection-count-text-value="{{ browser_translation('collection_selection.selected_count')|json_encode }}"
+     data-action="click->collection-selection#cardClick keydown.esc@document->collection-selection#escape turbo:submit-end@document->collection-selection#submitted"
+     {% endif %}>
     <twig:PlayerHeader player="{{ player }}" tab="library" />
 
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}
@@ -77,6 +82,7 @@
                         {{ include('_puzzle_library_item.html.twig', {
                             item: item,
                             page_context: 'lend-borrow-lent',
+                            selectable: can_select,
                             puzzle_statuses: puzzle_statuses,
                             logged_user: logged_user,
                             isOwnProfile: isOwnProfile,
@@ -98,6 +104,7 @@
                         {{ include('_puzzle_library_item.html.twig', {
                             item: item,
                             page_context: 'lend-borrow-borrowed',
+                            selectable: can_select,
                             puzzle_statuses: puzzle_statuses,
                             logged_user: logged_user,
                             isOwnProfile: isOwnProfile,
@@ -108,5 +115,11 @@
             </div>
         </div>
     </div>
+
+    {% if can_select %}
+        {{ include('_puzzle_selection_bar.html.twig', {actions: [
+            {label: 'puzzle_selection.lend_borrow.return.button'|trans, icon: 'bi bi-arrow-return-left', url: path('puzzle_list_selected_action', {list: 'lend-borrow', action: 'return'})},
+        ]}) }}
+    {% endif %}
 </div>
 {% endblock %}

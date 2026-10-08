@@ -1,0 +1,42 @@
+{# "Add to collection…" for the puzzles selected on the wishlist or the unsolved page (AddSelectedListPuzzlesToCollectionController) #}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'puzzle_selection.add_to_collection_title'|trans({'%count%': selection.puzzleIds|length}) }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+
+    <div class="modal-body" data-controller="puzzle-collection-form" data-puzzle-collection-form-system-id-value="{{ system_collection_id }}">
+        {% if selection.puzzleIds is empty %}
+            <div class="alert alert-warning mb-0">{{ 'collection_selection.nothing_selected'|trans }}</div>
+        {% else %}
+            {{ form_start(form, {
+                action: path('puzzle_list_selected_add_to_collection', {list: list.value}),
+                attr: {'data-turbo-frame': 'modal-frame', 'data-collection-selection-form': ''},
+            }) }}
+                {{ include('puzzle_selection/_hidden_inputs.html.twig') }}
+
+                {{ form_row(form.collection, {attr: {'data-puzzle-collection-form-target': 'collection'}}) }}
+
+                {# A typed name creates the collection #}
+                <div class="mb-3 d-none" data-puzzle-collection-form-target="newCollection">
+                    <div class="border rounded p-3 bg-light shadow-lg">
+                        <h6 class="mb-3">{{ 'collections.create.title'|trans }}</h6>
+                        {{ form_row(form.collectionVisibility) }}
+                        {{ form_row(form.collectionDescription) }}
+                    </div>
+                </div>
+
+                {% if list.value == 'wishlist' %}
+                    <p class="text-muted small">{{ 'puzzle_selection.add_to_collection_wishlist_help'|trans }}</p>
+                {% endif %}
+
+                <div>
+                    <button type="submit" class="btn btn-primary" data-loading-text="{{ 'forms.saving'|trans }}">
+                        {{ 'puzzle_selection.add_to_collection_submit'|trans({'%count%': selection.puzzleIds|length}) }}
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+                </div>
+            {{ form_end(form, {render_rest: false}) }}
+        {% endif %}
+    </div>
+</turbo-frame>

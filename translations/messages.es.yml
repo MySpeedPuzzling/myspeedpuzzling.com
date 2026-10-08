@@ -7722,3 +7722,61 @@ collection_selection:
         already_there: "1 ya estaba allí.|%count% ya estaban allí."
         skipped: "1 ya no estaba aquí.|%count% ya no estaban aquí."
         open: "Abrir"
+
+puzzle_selection:
+    add_to_collection: "Añadir a colección…"
+    add_to_collection_short: "Añadir a…"
+    add_to_collection_title: "Añadir 1 puzzle a una colección|Añadir %count% puzzles a una colección"
+    add_to_collection_submit: "Añadir 1 puzzle|Añadir %count% puzzles"
+    add_to_collection_wishlist_help: "Los puzzles marcados para salir de tu lista de deseos cuando los tengas salen de ella ahora."
+    remove_from_collections: "Quitar de las colecciones"
+    lend_borrowed: "1 de los puzzles seleccionados es prestado y se queda como está.|%count% de los puzzles seleccionados son prestados y se quedan como están."
+    done:
+        added_to_collection: "1 puzzle añadido a %collection%.|%count% puzzles añadidos a %collection%."
+        already: "1 no necesitaba cambios.|%count% no necesitaban cambios."
+        skipped: "1 se quedó como estaba.|%count% se quedaron como estaban."
+        borrowed_left_out: "1 puzzle prestado se dejó fuera.|%count% puzzles prestados se dejaron fuera."
+    wishlist:
+        remove:
+            title: "¿Quitar 1 puzzle de tu lista de deseos?|¿Quitar %count% puzzles de tu lista de deseos?"
+            message: "Solo salen de tu lista de deseos."
+            submit: "Quitar 1 puzzle|Quitar %count% puzzles"
+            done: "1 puzzle quitado de tu lista de deseos.|%count% puzzles quitados de tu lista de deseos."
+    sell_swap:
+        sold:
+            short: "Vendido"
+            button: "Marcar como vendido/intercambiado"
+            title: "¿Marcar 1 anuncio como vendido o intercambiado?|¿Marcar %count% anuncios como vendidos o intercambiados?"
+            message: "Salen de tu lista de venta/intercambio, de tus colecciones y de tu lista de deseos y pasan a tu historial de vendidos/intercambiados. Quienes te escribieron sobre ellos reciben un aviso. No se guarda ningún comprador: marca un anuncio por separado para indicarlo."
+            submit: "Marcar 1 como vendido/intercambiado|Marcar %count% como vendidos/intercambiados"
+            done: "1 anuncio marcado como vendido/intercambiado.|%count% anuncios marcados como vendidos/intercambiados."
+        reserve:
+            button: "Reservar"
+            title: "Reservar 1 anuncio|Reservar %count% anuncios"
+            message: "Quienes te escribieron sobre ellos reciben un aviso."
+            submit: "Reservar 1 anuncio|Reservar %count% anuncios"
+            done: "1 anuncio reservado.|%count% anuncios reservados."
+        unreserve:
+            button: "Quitar reserva"
+            title: "Quitar la reserva de 1 anuncio|Quitar la reserva de %count% anuncios"
+            message: "Quienes te escribieron sobre ellos reciben un aviso."
+            submit: "Quitar 1 reserva|Quitar %count% reservas"
+            done: "Reserva quitada de 1 anuncio.|Reserva quitada de %count% anuncios."
+        remove:
+            title: "¿Quitar 1 anuncio?|¿Quitar %count% anuncios?"
+            message: "Salen de tu lista de venta/intercambio; tus colecciones conservan los puzzles. Quienes te escribieron sobre ellos reciben un aviso."
+            submit: "Quitar 1 anuncio|Quitar %count% anuncios"
+            done: "1 anuncio quitado.|%count% anuncios quitados."
+    unsolved:
+        remove:
+            title: "¿Quitar 1 puzzle de tus colecciones?|¿Quitar %count% puzzles de tus colecciones?"
+            message: "Salen de todas tus colecciones. Los puzzles prestados se quedan como están."
+            submit: "Quitar 1 puzzle|Quitar %count% puzzles"
+            done: "1 puzzle quitado de tus colecciones.|%count% puzzles quitados de tus colecciones."
+    lend_borrow:
+        return:
+            button: "Devolver"
+            title: "¿Marcar 1 puzzle como devuelto?|¿Marcar %count% puzzles como devueltos?"
+            message: "Los puzzles que prestaste vuelven contigo, los que tomaste prestados vuelven a sus propietarios."
+            submit: "Marcar 1 como devuelto|Marcar %count% como devueltos"
+            done: "1 puzzle devuelto.|%count% puzzles devueltos."

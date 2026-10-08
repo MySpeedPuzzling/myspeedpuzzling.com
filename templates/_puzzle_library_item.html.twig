@@ -72,8 +72,8 @@
 {% set my_time = show_my_times ? (my_times[item.puzzleId] ?? null) : null %}
 {% set my_prediction = show_my_times ? ((predictions|default({}))[item.puzzleId] ?? null) : null %}
 
-{# Members select several puzzles on their own collection pages (docs/features/collections/bulk-actions.md) #}
-{% set selectable = page_context == 'collection' and isOwnProfile and logged_user.profile is not null and logged_user.profile.activeMembership %}
+{# Members select several puzzles on their own list pages (docs/features/collections/bulk-actions.md) - other lists than a collection pass `selectable` #}
+{% set selectable = selectable ?? (page_context == 'collection' and isOwnProfile and logged_user.profile is not null and logged_user.profile.activeMembership) %}
 
 {# Difficulty tier (members) and community solve count #}
 {% set show_insights = puzzle_insights is defined %}

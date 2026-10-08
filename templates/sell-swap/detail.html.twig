@@ -3,7 +3,12 @@
 {% block title %}{{ 'sell_swap_list.title'|trans }}{% if not isOwnProfile %} - {{ profile_name(player) }}{% endif %}{% endblock %}
 
 {% block content %}
-<div data-controller="collection-items collection-filter">
+{% set can_select = isOwnProfile and logged_user.profile is not null and logged_user.profile.activeMembership %}
+<div data-controller="collection-items collection-filter{{ can_select ? ' collection-selection' }}"
+     {% if can_select %}
+     data-collection-selection-count-text-value="{{ browser_translation('collection_selection.selected_count')|json_encode }}"
+     data-action="click->collection-selection#cardClick keydown.esc@document->collection-selection#escape turbo:submit-end@document->collection-selection#submitted"
+     {% endif %}>
     <twig:PlayerHeader player="{{ player }}" tab="library" />
 
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}
@@ -201,5 +206,14 @@
         </div>
     {% endif %}
     </div>
+
+    {% if can_select %}
+        {{ include('_puzzle_selection_bar.html.twig', {actions: [
+            {label: 'puzzle_selection.sell_swap.sold.button'|trans, short: 'puzzle_selection.sell_swap.sold.short'|trans, icon: 'bi bi-check-circle', url: path('puzzle_list_selected_action', {list: 'sell-swap', action: 'sold'})},
+            {label: 'puzzle_selection.sell_swap.reserve.button'|trans, icon: 'bi bi-bookmark-check', url: path('puzzle_list_selected_action', {list: 'sell-swap', action: 'reserve'})},
+            {label: 'puzzle_selection.sell_swap.unreserve.button'|trans, icon: 'bi bi-bookmark-dash', url: path('puzzle_list_selected_action', {list: 'sell-swap', action: 'unreserve'})},
+            {label: 'collection_selection.remove'|trans, icon: 'ci-trash', url: path('puzzle_list_selected_action', {list: 'sell-swap', action: 'remove'}), danger: true},
+        ]}) }}
+    {% endif %}
 </div>
 {% endblock %}

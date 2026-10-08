@@ -3,12 +3,13 @@ import { Controller } from '@hotwired/stimulus';
 import { chooseTranslation } from '../translation_choice.js';
 
 /**
- * Select several puzzles on your own collection page (members, docs/features/collections/bulk-actions.md).
+ * Select several puzzles on your own collection page or other list page - wishlist, sell/swap, unsolved, lend/borrow
+ * (members, docs/features/collections/bulk-actions.md).
  *
  * - Ticking the first checkbox shows the floating bar; while anything is selected a tap anywhere on a card toggles
  *   it instead of opening the puzzle, and the card menus step aside. Shift-click selects a range. Esc clears.
  * - "Select all" picks the cards the filters show (collection_filter_controller.js hides the rest).
- * - The bar's Move / Copy / Remove post the selected ids into the modal frame as hidden inputs - never in the URL.
+ * - The bar's actions post the selected ids into the modal frame as hidden inputs - never in the URL.
  * - The selection lives on this page only: a reload or another page starts empty.
  * - After a successful Move / Copy / Remove (a form marked data-collection-selection-form) the selection is cleared;
  *   cards the answer removed simply drop out of the targets.
@@ -127,7 +128,8 @@ export default class extends Controller {
         return this.checkboxTargets.filter((checkbox) => {
             const card = checkbox.closest('[data-collection-filter-target~="item"]');
 
-            return card === null || card.style.display !== 'none';
+            // Hidden by a filter, or on another tab (lend/borrow): not shown = not picked by "Select all"
+            return card === null || card.getClientRects().length > 0;
         });
     }
 

@@ -4,24 +4,21 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Collections;
 
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
-use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\FormData\CollectionPuzzleActionFormData;
 use SpeedPuzzling\Web\FormType\CollectionPuzzleActionFormType;
 use SpeedPuzzling\Web\Message\CopyPuzzlesToCollection;
-use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Message\MovePuzzlesToCollection;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Services\CollectionSelectionResponder;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\SelectedPuzzlesCollectionTarget;
 use SpeedPuzzling\Web\Value\CollectionSelection;
 use SpeedPuzzling\Web\Value\SelectedPuzzlesOutcome;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
@@ -41,6 +38,7 @@ final class MoveSelectedPuzzlesController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private CollectionSelectionResponder $responder,
+        readonly private SelectedPuzzlesCollectionTarget $collectionTarget,
     ) {
     }
 
@@ -102,7 +100,7 @@ final class MoveSelectedPuzzlesController extends AbstractController
 
             /** @var CollectionPuzzleActionFormData $formData */
             $formData = $form->getData();
-            [$targetCollectionId, $targetName] = $this->resolveTarget($formData, $player->playerId, $choices);
+            [$targetCollectionId, $targetName] = $this->collectionTarget->resolve($formData, $player->playerId, $choices);
 
             $message = $mode === 'copy'
                 ? new CopyPuzzlesToCollection($player->playerId, $selection->puzzleIds, $selection->collectionId, $targetCollectionId)
@@ -135,52 +133,5 @@ final class MoveSelectedPuzzlesController extends AbstractController
             'selection' => $selection,
             'system_collection_id' => Collection::SYSTEM_ID,
         ], new Response(status: $form->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
-    }
-
-    /**
-     * The picked collection, or a new one from a typed name (an existing name = that collection)
-     *
-     * @param array<string, null|string> $choices
-     * @return array{null|string, string}
-     */
-    private function resolveTarget(CollectionPuzzleActionFormData $formData, string $playerId, array $choices): array
-    {
-        $target = $formData->collection;
-
-        if ($target === null || $target === Collection::SYSTEM_ID) {
-            return [null, $this->translator->trans('collections.system_name')];
-        }
-
-        if (Uuid::isValid($target)) {
-            $name = array_search($target, $choices, true);
-
-            if ($name === false) {
-                throw new CollectionNotFound();
-            }
-
-            return [$target, (string) $name];
-        }
-
-        $newCollectionId = Uuid::uuid7()->toString();
-
-        try {
-            $this->messageBus->dispatch(new CreateCollection(
-                collectionId: $newCollectionId,
-                playerId: $playerId,
-                name: $target,
-                description: $formData->collectionDescription,
-                visibility: $formData->collectionVisibility,
-            ));
-        } catch (HandlerFailedException $exception) {
-            $previous = $exception->getPrevious();
-
-            if ($previous instanceof CollectionAlreadyExists) {
-                return [$previous->collectionId, $target];
-            }
-
-            throw $exception;
-        }
-
-        return [$newCollectionId, $target];
     }
 }

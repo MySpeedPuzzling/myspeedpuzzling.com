@@ -1,6 +1,15 @@
 <div class="card h-100 shadow position-relative">
+    {% if selectable|default(false) %}
+        {# On the card's top left corner, outside the puzzle link (docs/features/collections/bulk-actions.md) #}
+        <label class="collection-select-check">
+            <input type="checkbox" class="form-check-input" value="{{ item.puzzleId }}"
+                   aria-label="{{ 'collection_selection.select_puzzle'|trans({'%name%': item.puzzleName}) }}"
+                   data-collection-selection-target="checkbox"
+                   data-action="click->collection-selection#toggle">
+        </label>
+    {% endif %}
     {% if item.reserved %}
-        <div class="position-absolute start-0 top-0" style="z-index: 2;">
+        <div class="position-absolute start-0 top-0" style="z-index: 2;{{ selectable|default(false) ? ' margin-left: 1.25rem;' }}">
             {% if isOwnProfile and item.reservedForPlayerName is not null %}
                 <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.sellSwapListItemId}) }}"
                    class="badge bg-dark text-light px-2 py-1 mt-2 text-decoration-none"

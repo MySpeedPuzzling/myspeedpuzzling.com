@@ -1,0 +1,5 @@
+{# The selection carried from the bar to the modal's own submit (PuzzleSelection) #}
+<input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Value\\PuzzleSelection::CSRF_TOKEN_ID')) }}">
+{% for puzzle_id in selection.puzzleIds %}
+    <input type="hidden" name="puzzleIds[]" value="{{ puzzle_id }}">
+{% endfor %}

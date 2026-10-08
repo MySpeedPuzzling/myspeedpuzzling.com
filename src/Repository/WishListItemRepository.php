@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Repository;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -43,6 +44,41 @@ readonly final class WishListItemRepository
                 'player' => $player,
                 'puzzle' => $puzzle,
             ]);
+    }
+
+    /**
+     * The player's wishlist items of the selected puzzles, keyed by puzzle id - ids not on the wishlist are left out
+     * (docs/features/collections/bulk-actions.md).
+     *
+     * @param list<string> $puzzleIds
+     * @return array<string, WishListItem>
+     */
+    public function findByPlayerAndPuzzles(Player $player, array $puzzleIds): array
+    {
+        $puzzleIds = array_values(array_filter($puzzleIds, static fn (string $id): bool => Uuid::isValid($id)));
+
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        /** @var array<WishListItem> $items */
+        $items = $this->entityManager->createQueryBuilder()
+            ->select('item', 'puzzle')
+            ->from(WishListItem::class, 'item')
+            ->join('item.puzzle', 'puzzle')
+            ->where('item.player = :player')
+            ->andWhere('puzzle.id IN (:puzzleIds)')
+            ->setParameter('player', $player->id->toString())
+            ->setParameter('puzzleIds', $puzzleIds, ArrayParameterType::STRING)
+            ->getQuery()
+            ->getResult();
+
+        $byPuzzle = [];
+        foreach ($items as $item) {
+            $byPuzzle[$item->puzzle->id->toString()] = $item;
+        }
+
+        return $byPuzzle;
     }
 
     public function findByPlayerIdAndPuzzleIdWithRemoveFlag(string $playerId, string $puzzleId): null|WishListItem

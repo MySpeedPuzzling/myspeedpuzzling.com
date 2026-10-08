@@ -65,8 +65,8 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       through multiscan. Promised to Allison (MSP #107, follow-up F50). Shipped 2026-10-08 with Copy and Remove,
       members only (`docs/features/collections/bulk-actions.md`).
 - [ ] Rename the default ("system") collection - Allison asked in the same mail (MSP #107), answered "noted", not promised.
-- [ ] Select several puzzles on the other lists too (wishlist, sell/swap, unsolved) - the collection page's
-      `collection_selection_controller.js` + bar are the pattern (`docs/features/collections/bulk-actions.md`).
+- [x] Select several puzzles on the other lists too (wishlist, sell/swap, unsolved, lend/borrow) - shipped 2026-10-08,
+      members only (`docs/features/collections/bulk-actions.md` "Other lists").
 - [ ] Profile results sort 'Slowest' should order puzzles by the player's best (fastest) time per puzzle, not by their
       slowest attempt (usually the first try). Promised to Šárka (MSP #194, follow-up F60).
 

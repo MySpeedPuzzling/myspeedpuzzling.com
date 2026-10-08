@@ -114,6 +114,36 @@ readonly final class CollectionItemRepository
         return $byPuzzle;
     }
 
+    /**
+     * The player's items of the selected puzzles in every collection, the system one included
+     * (docs/features/collections/bulk-actions.md).
+     *
+     * @param list<string> $puzzleIds
+     * @return list<CollectionItem>
+     */
+    public function findByPlayerAndPuzzles(Player $player, array $puzzleIds): array
+    {
+        $puzzleIds = array_values(array_filter($puzzleIds, static fn (string $id): bool => Uuid::isValid($id)));
+
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        /** @var list<CollectionItem> $items */
+        $items = $this->entityManager->createQueryBuilder()
+            ->select('item', 'puzzle')
+            ->from(CollectionItem::class, 'item')
+            ->join('item.puzzle', 'puzzle')
+            ->where('item.player = :player')
+            ->andWhere('puzzle.id IN (:puzzleIds)')
+            ->setParameter('player', $player->id->toString())
+            ->setParameter('puzzleIds', $puzzleIds, ArrayParameterType::STRING)
+            ->getQuery()
+            ->getResult();
+
+        return $items;
+    }
+
     public function countByCollection(null|Collection $collection, Player $player): int
     {
         return $this->entityManager->getRepository(CollectionItem::class)

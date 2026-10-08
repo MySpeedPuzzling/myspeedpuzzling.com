@@ -7721,3 +7721,61 @@ collection_selection:
         already_there: "1 war schon dort.|%count% waren schon dort."
         skipped: "1 war nicht mehr hier.|%count% waren nicht mehr hier."
         open: "Öffnen"
+
+puzzle_selection:
+    add_to_collection: "Zur Sammlung hinzufügen…"
+    add_to_collection_short: "Hinzufügen…"
+    add_to_collection_title: "1 Puzzle zu einer Sammlung hinzufügen|%count% Puzzles zu einer Sammlung hinzufügen"
+    add_to_collection_submit: "1 Puzzle hinzufügen|%count% Puzzles hinzufügen"
+    add_to_collection_wishlist_help: "Puzzles, die die Wunschliste verlassen sollen, sobald du sie hast, verlassen sie jetzt."
+    remove_from_collections: "Aus Sammlungen entfernen"
+    lend_borrowed: "1 der ausgewählten Puzzles ist ausgeliehen und bleibt, wie es ist.|%count% der ausgewählten Puzzles sind ausgeliehen und bleiben, wie sie sind."
+    done:
+        added_to_collection: "1 Puzzle zu %collection% hinzugefügt.|%count% Puzzles zu %collection% hinzugefügt."
+        already: "1 brauchte keine Änderung.|%count% brauchten keine Änderung."
+        skipped: "1 blieb, wie es war.|%count% blieben, wie sie waren."
+        borrowed_left_out: "1 ausgeliehenes Puzzle wurde ausgelassen.|%count% ausgeliehene Puzzles wurden ausgelassen."
+    wishlist:
+        remove:
+            title: "1 Puzzle von der Wunschliste entfernen?|%count% Puzzles von der Wunschliste entfernen?"
+            message: "Sie verlassen nur deine Wunschliste."
+            submit: "1 Puzzle entfernen|%count% Puzzles entfernen"
+            done: "1 Puzzle von der Wunschliste entfernt.|%count% Puzzles von der Wunschliste entfernt."
+    sell_swap:
+        sold:
+            short: "Verkauft"
+            button: "Als verkauft/getauscht markieren"
+            title: "1 Angebot als verkauft oder getauscht markieren?|%count% Angebote als verkauft oder getauscht markieren?"
+            message: "Sie verlassen deine Verkauf/Tausch-Liste, deine Sammlungen und deine Wunschliste und kommen in deinen Verkauft/Getauscht-Verlauf. Wer dir dazu geschrieben hat, wird benachrichtigt. Kein Käufer wird gespeichert - markiere ein Angebot einzeln, um einen anzugeben."
+            submit: "1 als verkauft/getauscht markieren|%count% als verkauft/getauscht markieren"
+            done: "1 Angebot als verkauft/getauscht markiert.|%count% Angebote als verkauft/getauscht markiert."
+        reserve:
+            button: "Reservieren"
+            title: "1 Angebot reservieren|%count% Angebote reservieren"
+            message: "Wer dir dazu geschrieben hat, wird benachrichtigt."
+            submit: "1 Angebot reservieren|%count% Angebote reservieren"
+            done: "1 Angebot reserviert.|%count% Angebote reserviert."
+        unreserve:
+            button: "Reservierung aufheben"
+            title: "Reservierung von 1 Angebot aufheben|Reservierung von %count% Angeboten aufheben"
+            message: "Wer dir dazu geschrieben hat, wird benachrichtigt."
+            submit: "1 Reservierung aufheben|%count% Reservierungen aufheben"
+            done: "Reservierung von 1 Angebot aufgehoben.|Reservierung von %count% Angeboten aufgehoben."
+        remove:
+            title: "1 Angebot entfernen?|%count% Angebote entfernen?"
+            message: "Sie verlassen deine Verkauf/Tausch-Liste - deine Sammlungen behalten die Puzzles. Wer dir dazu geschrieben hat, wird benachrichtigt."
+            submit: "1 Angebot entfernen|%count% Angebote entfernen"
+            done: "1 Angebot entfernt.|%count% Angebote entfernt."
+    unsolved:
+        remove:
+            title: "1 Puzzle aus deinen Sammlungen entfernen?|%count% Puzzles aus deinen Sammlungen entfernen?"
+            message: "Sie verlassen alle deine Sammlungen. Ausgeliehene Puzzles bleiben, wie sie sind."
+            submit: "1 Puzzle entfernen|%count% Puzzles entfernen"
+            done: "1 Puzzle aus deinen Sammlungen entfernt.|%count% Puzzles aus deinen Sammlungen entfernt."
+    lend_borrow:
+        return:
+            button: "Zurückgeben"
+            title: "1 Puzzle als zurückgegeben markieren?|%count% Puzzles als zurückgegeben markieren?"
+            message: "Verliehene Puzzles sind wieder bei dir, ausgeliehene gehen an ihre Eigentümer zurück."
+            submit: "1 als zurückgegeben markieren|%count% als zurückgegeben markieren"
+            done: "1 Puzzle zurückgegeben.|%count% Puzzles zurückgegeben."

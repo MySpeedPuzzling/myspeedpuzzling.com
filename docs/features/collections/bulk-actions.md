@@ -1,4 +1,4 @@
-# Collections: select several puzzles (move, copy, remove)
+# Select several puzzles: collections and the other lists
 
 Asked by a puzzler (MSP #107, follow-up F50, 2026-10): move many puzzles between collections without scanning the
 boxes again. Before this, a puzzle moved one at a time (card ⋯ → Move, `MovePuzzleToCollectionController`), and
@@ -66,3 +66,49 @@ multiscan's "Scan into collection" only adds and refuses a batch with a puzzle a
 
 Tests: `tests/MessageHandler/SelectedCollectionPuzzlesHandlersTest.php`,
 `tests/Controller/SelectedCollectionPuzzlesControllerTest.php`.
+
+## Other lists: wishlist, sell/swap, unsolved, lend/borrow (shipped 2026-10-08)
+
+Jan's calls: all four lists, the fuller set of actions, members only (owner of the list with an active membership).
+
+| List | Actions | Answer |
+|---|---|---|
+| Wishlist | **Add to collection…** (picker; leaves the wishlist like the single add, `removeOnCollectionAdd`), **Remove from wishlist** (confirm) | add = page refresh, remove = streams |
+| Sell/swap | **Mark as sold/swapped** (no buyer; also leaves collections + wishlist like the single one), **Reserve**, **Remove reservation**, **Remove from list** (confirm) | sold/remove = streams, reserve/unreserve = act at once + refresh |
+| Unsolved | **Add to collection…**, **Lend to…**, **Remove from all my collections** (confirm; borrowed puzzles skipped) | add = toast only, lend = refresh, remove = streams |
+| Lend/borrow (both tabs) | **Return** (confirm; owner and holder alike, `ReturnLentPuzzles`) | refresh |
+
+Every action keeps the collection rules: one request, one message, stale ids skipped and counted, one toast.
+Sell/swap messages run the single handlers per listing, so buyers in a conversation get the same system messages.
+
+How it works:
+- `Value\PuzzleSelection` reads the ids (`puzzleIds[]`, `MAX_PUZZLES`, CSRF id `collection_selection`, shared with
+  collections - `CollectionSelection` uses it). `Value\PuzzleList` = the four lists (URL segment, page route, card id
+  prefix + count/container ids + empty state for the streams); `Value\PuzzleListSelectionAction` = remove / sold /
+  reserve / unreserve / return (which list has which, which asks first, which takes cards off).
+- Pages: `can_select` = owner with an active membership; `_puzzle_library_item.html.twig` takes `selectable` from the
+  page (collections keep their own default), the sell/swap card (`sell-swap/_item.html.twig` works it out itself, so
+  the reserve streams keep the checkbox) has the checkbox on the card's corner, outside the puzzle link, and the
+  "Reserved" badge moves aside. The bar is `_puzzle_selection_bar.html.twig` with a list of actions - the collection
+  bar is one use of it. Lend/borrow: one selection over both tabs; "Select all" and shift-ranges take only shown
+  cards (`getClientRects()`: filtered out or on the other tab = not shown).
+- Routes (POST, members, 403 otherwise; an action the list does not have = 404): `puzzle_list_selected_action`
+  (`/en/my-lists/{list}/selected/{action}`, `ApplyToSelectedListPuzzlesController`: confirm modal
+  `puzzle_selection/confirm_modal.html.twig`, reserve/unreserve act at once), `puzzle_list_selected_add_to_collection`
+  (wishlist + unsolved, the collection picker; `SelectedPuzzlesCollectionTarget` is the picker's "picked or typed"
+  logic, shared with Move/Copy), `puzzle_list_selected_lend` (unsolved, the collection lend modal with `action_url`).
+- Messages, each answering `SelectedPuzzlesOutcome`, touching the signed-in player's own rows only:
+  `RemovePuzzlesFromWishList`, `MarkPuzzlesAsSoldOrSwapped`, `ReservePuzzleListings`,
+  `RemovePuzzleListingReservations`, `RemovePuzzlesFromSellSwapList`, `RemovePuzzlesFromAllCollections`. The existing
+  batch messages `AddPuzzlesToCollection`, `LendPuzzlesToPlayer`, `ReturnLentPuzzles` reject a whole batch on one
+  ineligible puzzle, so the controllers filter first (`MultiscanEligibility`, `SecretPuzzleAccess::pendingRevealAmong()`
+  for secret puzzles, borrowed puzzles left out of Lend).
+- **Gotcha: `SystemMessageSender::sendToAllConversations()` flushes.** A batch that deletes listings must tell every
+  conversation first and delete afterwards - a flush meeting a conversation whose listing was deleted earlier in the
+  batch fails ("A new entity was found through the relationship Conversation#sellSwapListItem").
+  `MarkPuzzleAsSoldOrSwappedHandler` is split into `recordSale()` + `removeEverywhere()` for that.
+- Answer: `PuzzleListSelectionResponder` - streams for wishlist remove and sell/swap sold/remove (cards, count, empty
+  state, toast), the page loaded again (`<turbo-stream action="refresh">` + flash) for the rest, a redirect to the
+  list page without the modal frame.
+
+Tests: `tests/MessageHandler/SelectedListPuzzlesHandlersTest.php`, `tests/Controller/SelectedListPuzzlesControllerTest.php`.

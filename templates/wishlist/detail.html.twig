@@ -5,7 +5,12 @@
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" tab="library" />
 
-<div data-controller="collection-items collection-filter">
+{% set can_select = logged_user.profile is not null and logged_user.profile.playerId == collection.playerId and logged_user.profile.activeMembership %}
+<div data-controller="collection-items collection-filter{{ can_select ? ' collection-selection' }}"
+     {% if can_select %}
+     data-collection-selection-count-text-value="{{ browser_translation('collection_selection.selected_count')|json_encode }}"
+     data-action="click->collection-selection#cardClick keydown.esc@document->collection-selection#escape turbo:submit-end@document->collection-selection#submitted"
+     {% endif %}>
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}
 
     <div class="d-flex flex-column flex-sm-row align-items-start justify-content-between gap-2 mb-4">
@@ -93,6 +98,7 @@
                 {{ include('_puzzle_library_item.html.twig', {
                     item: item,
                     page_context: 'wishlist',
+                    selectable: can_select,
                     collection: collection,
                     puzzle_statuses: puzzle_statuses,
                     logged_user: logged_user,
@@ -108,5 +114,12 @@
         </div>
     {% endif %}
     </div>
+
+    {% if can_select %}
+        {{ include('_puzzle_selection_bar.html.twig', {actions: [
+            {label: 'puzzle_selection.add_to_collection'|trans, short: 'puzzle_selection.add_to_collection_short'|trans, icon: 'bi bi-collection', url: path('puzzle_list_selected_add_to_collection', {list: 'wishlist'})},
+            {label: 'collection_selection.remove'|trans, icon: 'ci-trash', url: path('puzzle_list_selected_action', {list: 'wishlist', action: 'remove'}), danger: true},
+        ]}) }}
+    {% endif %}
 </div>
 {% endblock %}

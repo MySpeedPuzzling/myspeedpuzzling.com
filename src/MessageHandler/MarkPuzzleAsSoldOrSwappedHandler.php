@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
@@ -55,6 +56,17 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
             $buyerName = $buyerData['name'];
         }
 
+        $this->recordSale($item, $buyerPlayer, $buyerName);
+        $this->removeEverywhere($item);
+    }
+
+    /**
+     * The sold/swapped history row and the conversations' system message. Kept apart from removeEverywhere() for the
+     * batch (MarkPuzzlesAsSoldOrSwappedHandler): the message sender flushes, and a flush must not meet a conversation
+     * whose listing an earlier step of the same batch already deleted.
+     */
+    public function recordSale(SellSwapListItem $item, null|Player $buyerPlayer, null|string $buyerName): void
+    {
         // Create history record (TransactionCompleted domain event is dispatched from entity after flush)
         $soldSwappedItem = new SoldSwappedItem(
             Uuid::uuid7(),
@@ -75,11 +87,15 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
             SystemMessageType::ListingSold,
             $buyerPlayer?->id,
         );
+    }
 
-        // Delete from sell/swap list
+    /**
+     * The listing leaves the sell/swap list, every collection and the wishlist.
+     */
+    public function removeEverywhere(SellSwapListItem $item): void
+    {
         $this->sellSwapListItemRepository->delete($item);
 
-        // Delete from all collections
         $collectionItems = $this->collectionItemRepository->findByPlayerAndPuzzle(
             $item->player->id->toString(),
             $item->puzzle->id->toString(),
@@ -89,7 +105,6 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
             $this->collectionItemRepository->delete($collectionItem);
         }
 
-        // Delete from wishlist if present
         $wishListItem = $this->wishListItemRepository->findByPlayerAndPuzzle($item->player, $item->puzzle);
 
         if ($wishListItem !== null) {

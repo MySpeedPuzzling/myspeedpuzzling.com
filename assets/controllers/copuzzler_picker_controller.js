@@ -14,8 +14,6 @@ import { Controller } from '@hotwired/stimulus';
  *    the same way - PuzzlersGrouping::splitInputs()).
  *  - The one exception to "never notices the form": a submit is stopped while a name sits typed in the search
  *    but not added, or Pair/Team holds nobody - either would save a solo time without a word.
- *  - Everybody the suggestions know stays known: what the player archived (`archived` teams, `setAside` people) is
- *    only left out of what is offered - a team still names all its members, the search still finds everybody.
  */
 export default class extends Controller {
     static targets = [
@@ -28,8 +26,6 @@ export default class extends Controller {
     static values = {
         suggestionsUrl: String,
         searchUrl: String,
-        archiveUrl: String,
-        archiveToken: String,
         locale: String,
         max: { type: Number, default: 15 },
         recentDays: { type: Number, default: 30 },
@@ -57,9 +53,6 @@ export default class extends Controller {
         this.showAllPeople = false;
         this.lastMultiAdd = null;
         this.recentlyRemoved = [];
-        // "“…” is hidden from your suggestions. Undo" after the × on a team: { teamId, text, undo }
-        this.teamNotice = null;
-        this.archiveChain = Promise.resolve();
         this.collapsed = chips.length > 0;
         this.nameOpen = this.nameInputTarget.value.trim() !== '';
         // Why the last submit was stopped: { typed: "Anna, Ben" } or { nobody: true }
@@ -207,7 +200,6 @@ export default class extends Controller {
         }
 
         this.blocked = null;
-        this.teamNotice = null;
 
         // Going from a pair to a team keeps the partner - unless a team was already put together
         if (this.mode === 'pair' && mode === 'team' && this.stash.team.length === 0) {
@@ -379,70 +371,16 @@ export default class extends Controller {
 
         const missing = team.members
             .filter(key => !this.isSelected(key) && key !== this.tracker?.key)
-            .map(key => this.known.get(key));
+            .map(key => this.known.get(key))
+            .filter(Boolean);
 
-        // All of them or nobody: a team short of somebody would be saved as another group
-        if (missing.includes(undefined) || this.selection.length + missing.length > this.maxValue) {
+        if (this.selection.length + missing.length > this.maxValue) {
             return;
         }
 
         this.stash.team = [...this.stash.team, ...missing];
         this.lastMultiAdd = missing.length > 1 ? missing.map(person => person.key) : null;
         this.render();
-    }
-
-    /** The × on a team offered: archived for this player (ArchiveCoPuzzlerTeamController), with an Undo. */
-    hideTeam(event) {
-        const team = this.suggestions?.teams.find(candidate => candidate.id === event.currentTarget.dataset.teamId);
-
-        if (!team || team.archived) {
-            return;
-        }
-
-        team.archived = true;
-        this.teamNotice = { teamId: team.id, text: this.textsValue.teamHidden.replace('%name%', this.teamName(team)), undo: true };
-        this.render();
-        // The × is gone with its team: keyboard focus continues on the Undo
-        this.teamsTarget.querySelector('[data-team-undo]')?.focus({ preventScroll: true });
-        this.sendArchive(team, true);
-    }
-
-    undoHideTeam() {
-        const team = this.suggestions?.teams.find(candidate => candidate.id === this.teamNotice?.teamId);
-        this.teamNotice = null;
-
-        if (team && team.archived) {
-            team.archived = false;
-            this.sendArchive(team, false);
-        }
-
-        this.render();
-    }
-
-    /** One after another: a quick Undo must not overtake the archive it undoes. */
-    sendArchive(team, archive) {
-        const body = new FormData();
-        body.set('_token', this.archiveTokenValue);
-        body.set('teamId', team.id);
-        body.set('archive', archive ? '1' : '0');
-
-        this.archiveChain = this.archiveChain
-            .then(() => fetch(this.archiveUrlValue, {
-                method: 'POST',
-                body,
-                credentials: 'same-origin',
-                headers: { Accept: 'application/json' },
-            }))
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-            })
-            .catch(() => {
-                team.archived = !archive;
-                this.teamNotice = { teamId: team.id, text: this.textsValue.hideFailed, undo: false };
-                this.render();
-            });
     }
 
     undoMultiAdd() {
@@ -807,7 +745,7 @@ export default class extends Controller {
         }
 
         const candidates = this.suggestions.teams
-            .filter(team => team.size >= 3 && !team.archived)
+            .filter(team => team.size >= 3)
             .filter(team => selectedKeys.every(key => team.members.includes(key)))
             .filter(team => team.members.length > selectedKeys.length);
 
@@ -816,7 +754,7 @@ export default class extends Controller {
         const regulars = candidates.filter(team => team.count >= 2 || team.name);
         const shown = this.showAllTeams ? candidates : regulars.slice(0, 4);
 
-        if (candidates.length === 0 && this.teamNotice === null) {
+        if (candidates.length === 0) {
             this.teamsSectionTarget.hidden = true;
 
             return;
@@ -827,11 +765,7 @@ export default class extends Controller {
         this.teamsLabelTarget.textContent = nothingPicked ? texts.yourTeams : texts.completeTeam;
 
         const options = shown.map(team => {
-            // Every member, always: the suggestions know all of them (see the rules on top)
             const missing = team.members.filter(key => !selectedKeys.includes(key)).map(key => this.known.get(key)).filter(Boolean);
-            const wrapper = document.createElement('div');
-            wrapper.className = 'copuzzler-team';
-
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'copuzzler-option copuzzler-option--team';
@@ -856,54 +790,14 @@ export default class extends Controller {
             ].filter(Boolean).join(' · ');
             button.append(meta);
 
-            const hide = document.createElement('button');
-            hide.type = 'button';
-            hide.className = 'copuzzler-team__hide';
-            hide.dataset.action = 'copuzzler-picker#hideTeam';
-            hide.dataset.teamId = team.id;
-            hide.dataset.testid = 'copuzzler-team-hide';
-            hide.title = texts.hideTeam.replace('%name%', this.teamName(team));
-            hide.setAttribute('aria-label', hide.title);
-            hide.innerHTML = '<i class="ci-close" aria-hidden="true"></i>';
-
-            wrapper.append(button, hide);
-
-            return wrapper;
+            return button;
         });
 
         if (candidates.length > shown.length || this.showAllTeams) {
             options.push(this.toggleElement('toggleAllTeams', this.showAllTeams ? texts.showLess : texts.showAll.replace('%count%', String(candidates.length))));
         }
 
-        if (this.teamNotice !== null) {
-            options.unshift(this.teamNoticeElement());
-        }
-
         this.teamsTarget.replaceChildren(...options);
-    }
-
-    /** A team as the player knows it: its name, else everybody in it but the player. */
-    teamName(team) {
-        return team.name || team.members.map(key => this.known.get(key)?.label).filter(Boolean).join(', ');
-    }
-
-    teamNoticeElement() {
-        const notice = document.createElement('div');
-        notice.className = 'copuzzler-team-notice';
-        notice.setAttribute('role', 'status');
-        notice.append(this.teamNotice.text);
-
-        if (this.teamNotice.undo) {
-            const undo = document.createElement('button');
-            undo.type = 'button';
-            undo.className = 'btn btn-link btn-sm p-0 ms-2 align-baseline';
-            undo.dataset.action = 'copuzzler-picker#undoHideTeam';
-            undo.dataset.teamUndo = '';
-            undo.textContent = this.textsValue.undo;
-            notice.append(undo);
-        }
-
-        return notice;
     }
 
     renderPeople() {
@@ -931,8 +825,6 @@ export default class extends Controller {
 
         const candidates = Array.from(this.known.values())
             .filter(person => !this.isSelected(person.key))
-            // The partner of an archived pair is out of the shortcuts, unless just removed or picked for the team
-            .filter(person => !person.setAside || rank(person) > 1)
             .filter(person => this.tracker === null || person.key !== this.tracker.key)
             .sort((a, b) => rank(b) - rank(a) || this.byRecentThenCount(a, b, ranking) || a.label.localeCompare(b.label));
 
@@ -969,10 +861,6 @@ export default class extends Controller {
             label.textContent = person.label;
             button.append(label);
 
-            if (person.favorite) {
-                button.append(this.favoriteElement());
-            }
-
             const count = pairMode ? person.pairCount : person.count;
 
             if (count > 0) {
@@ -996,16 +884,6 @@ export default class extends Controller {
      * Whoever the player puzzled with in the last recentDays (GetCoPuzzlers::RECENT_DAYS) comes first, latest
      * first - the partners of these weeks. Everybody else by how often, then by the recency-weighted score.
      */
-    favoriteElement() {
-        const star = document.createElement('i');
-        star.className = 'bi bi-star-fill copuzzler-favorite';
-        star.setAttribute('role', 'img');
-        star.setAttribute('aria-label', this.textsValue.favorite);
-        star.title = this.textsValue.favorite;
-
-        return star;
-    }
-
     byRecentThenCount(a, b, { last, count, score }) {
         const recent = item => {
             const days = this.daysSince(last(item));
@@ -1154,7 +1032,7 @@ export default class extends Controller {
                         .catch(() => callback());
                 },
                 render: {
-                    option: person => `<div class="d-flex align-items-center">${this.avatarElement(person).outerHTML}<span>${escapeHtml(person.label)}</span>${person.favorite ? this.favoriteElement().outerHTML : ''}${person.code && person.label !== `#${person.code}` ? `<small class="text-muted ms-1">#${escapeHtml(person.code)}</small>` : ''}${person.guest ? `<small class="text-muted ms-1">${escapeHtml(texts.guest)}</small>` : ''}</div>`,
+                    option: person => `<div class="d-flex align-items-center">${this.avatarElement(person).outerHTML}<span>${escapeHtml(person.label)}</span>${person.code && person.label !== `#${person.code}` ? `<small class="text-muted ms-1">#${escapeHtml(person.code)}</small>` : ''}${person.guest ? `<small class="text-muted ms-1">${escapeHtml(texts.guest)}</small>` : ''}</div>`,
                     item: person => `<div>${escapeHtml(person.label)}</div>`,
                     option_create: data => {
                         const people = this.typedPeople(data.input);

@@ -119,6 +119,22 @@ export default function (test) {
         assert.equal(undone, 1, 'outside a dialog it does');
     }));
 
+    test('Ctrl+Z with the focus left on the page body (a toast or a menu closed) still undoes; keys outside the sheet do not', page({}, async ({ controller, element }) => {
+        let undone = 0;
+        let redone = 0;
+        controller.undo = () => undone++;
+        controller.redo = () => redone++;
+        key(element.ownerDocument.body, 'z', { ctrlKey: true });
+        key(element.ownerDocument.body, 'z', { ctrlKey: true, shiftKey: true });
+        assert.equal(undone, 1, 'Ctrl+Z on the body undoes');
+        assert.equal(redone, 1, 'Ctrl+Shift+Z on the body redoes');
+        const outside = element.ownerDocument.createElement('button');
+        element.ownerDocument.body.append(outside);
+        key(outside, 'z', { ctrlKey: true });
+        assert.equal(undone, 1, 'a key aimed at something outside the sheet is not ours');
+        outside.remove();
+    }));
+
     test('a breakpoint switch that resolves to the same module keeps the view (and an open edit)', page({}, async ({ controller }) => {
         // As when the phone list is not in the build: the phone falls back to the same People grid
         controller.modules.set('people_list_view', null);

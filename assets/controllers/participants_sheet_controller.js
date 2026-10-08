@@ -170,7 +170,13 @@ export default class extends Controller {
                 this.showTab(this.currentTab, { replaceUrl: false });
             }
         });
-        this.listen(this.element, 'keydown', (event) => this.onKeyDown(event));
+        // On the document: the sheet fills the page, and a focus left on the body (a toast or a menu closed, a click on
+        // empty space) must still undo - keys aimed at anything outside the sheet are not ours
+        this.listen(document, 'keydown', (event) => {
+            if (event.target === document.body || event.target === document.documentElement || this.element.contains(event.target)) {
+                this.onKeyDown(event);
+            }
+        });
         this.media = window.matchMedia(PHONE_QUERY);
         this.phone = this.media.matches;
         this.listen(this.media, 'change', () => this.onBreakpoint());

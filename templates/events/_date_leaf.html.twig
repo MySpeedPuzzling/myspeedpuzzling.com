@@ -1,0 +1,13 @@
+{# The date block of a row (owner: workstream A). Variables: leaf (DateLeaf) #}
+<div class="ev-leaf ev-leaf-{{ leaf.tone }}" aria-hidden="true">
+    {% if leaf.from %}
+        {% set to = leaf.to %}
+        <span class="ev-leaf-band">{{ leaf.from|format_date(pattern: 'EEE', timezone: 'UTC') }}{% if to %}–{{ to|format_date(pattern: 'EEE', timezone: 'UTC') }}{% endif %}</span>
+        <span class="ev-leaf-day">{{ leaf.from|format_date(pattern: 'd', timezone: 'UTC') }}{% if to %}–{{ to|format_date(pattern: 'd', timezone: 'UTC') }}{% endif %}</span>
+        <span class="ev-leaf-month">{{ leaf.from|format_date(pattern: 'LLL', timezone: 'UTC') }}{% if to and to|date('m', 'UTC') != leaf.from|date('m', 'UTC') %}–{{ to|format_date(pattern: 'LLL', timezone: 'UTC') }}{% endif %}</span>
+    {% else %}
+        <span class="ev-leaf-band">{{ 'events_page.leaf.tba'|trans }}</span>
+        <span class="ev-leaf-day">?</span>
+        <span class="ev-leaf-month">{{ 'events_page.leaf.date'|trans }}</span>
+    {% endif %}
+</div>

@@ -1,0 +1,55 @@
+{# The agenda: happening now, months, date to be announced, empty states (owner: workstream A). Variables: page #}
+{% set scope_country = page.scope.countryCode %}
+{% set scope_name = scope_country ? scope_country.localizedName(app.request.locale) : (page.scope.isOnline ? 'events_page.scope.online'|trans : '') %}
+<section class="ev-agenda">
+    {% if page.happeningNow is not empty %}
+        <section class="ev-happening-now">
+            <h2>{{ 'events_page.agenda.happening_now'|trans }}</h2>
+            <ul class="ev-rows">
+                {% for row in page.happeningNow %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    <h2>{{ page.scope.isEverywhere ? 'events_page.agenda.upcoming'|trans : 'events_page.agenda.upcoming_in'|trans({'%scope%': scope_name}) }}</h2>
+
+    {% for month in page.months %}
+        <section class="ev-month" data-ev-month="{{ month.firstDay|date('Y-m', 'UTC') }}" {{ month.rows|filter(row => row.visible)|length == 0 ? 'hidden' }}>
+            <h3 class="ev-month-header">
+                {{ month.firstDay|format_date(pattern: 'LLLL yyyy', timezone: 'UTC') }}
+                <span>{{ 'events_page.agenda.dates_count'|trans({'%count%': month.visibleCount}) }}</span>
+            </h3>
+            <ul class="ev-rows">
+                {% for row in month.rows %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+            </ul>
+        </section>
+    {% endfor %}
+
+    <div class="ev-empty" {{ page.scopeUpcoming > 0 ? 'hidden' }}>
+        {% if page.scope.isEverywhere %}
+            <p>{{ 'events_page.summary.dates'|trans({'%count%': 0}) }}</p>
+        {% else %}
+            <p>{{ 'events_page.empty.none_in'|trans({'%scope%': scope_name}) }}</p>
+            {% if page.scopeLast %}
+                <p>{{ 'events_page.empty.last_one'|trans({'%name%': page.scopeLast.title, '%month%': page.scopeLast.from|format_date(pattern: 'LLLL yyyy', timezone: 'UTC')}) }}</p>
+            {% else %}
+                <p>{{ 'events_page.empty.none_yet'|trans }}</p>
+            {% endif %}
+            {% if page.homeCountry and scope_country and scope_country == page.homeCountry.code %}
+                <p class="ev-home-callout">{{ 'events_page.home_callout.nothing_planned'|trans({'%country%': page.homeCountry.name}) }} {{ 'events_page.home_callout.know_one'|trans }}
+                    <a href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}">{{ 'events_page.home_callout.add_it'|trans }}</a></p>
+            {% else %}
+                <p>{{ 'events_page.empty.know_one'|trans }} <a href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}">+ {{ 'events_page.add_event'|trans }}</a></p>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if page.tba is not empty %}
+        <section class="ev-tba">
+            <h3>{{ 'events_page.agenda.tba'|trans }}</h3>
+            <ul class="ev-rows">
+                {% for row in page.tba %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+</section>

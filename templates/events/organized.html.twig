@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{# "You organize", route organized_events (owner: workstream C). Variables: items (list<OrganizedEvent>), today
+   Foundation stub: a plain list. #}
+
+{% block title %}{{ 'events_organizer.organize.title'|trans }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block content %}
+    <h1>{{ 'events_organizer.organize.title'|trans }}</h1>
+    <p>{{ 'events_organizer.organize.note'|trans }}</p>
+    {% if items is empty %}
+        <p>{{ 'events_organizer.organize.empty'|trans }}</p>
+    {% else %}
+        <ul class="ev-organized">
+            {% for item in items %}
+                {% set reference = item.reference %}
+                <li class="ev-organized-item" data-organized-id="{{ item.id }}">
+                    {% if reference.routeName %}<a href="{{ path(reference.routeName, reference.routeParameters) }}">{{ reference.displayName }}</a>{% else %}{{ reference.displayName }}{% endif %}
+                    <span>{{ ('events_organizer.type.' ~ item.kind)|trans }}</span>
+                    <span class="ev-badge">{{ item.badge(today).translationKey|trans }}</span>
+                    {% if item.isRejected and item.rejectionReason %}
+                        <span>{{ 'events_organizer.organize.reason'|trans({'%reason%': item.rejectionReason}) }}</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <a href="{{ path('events') }}">{{ 'events_page.title'|trans }}</a>
+{% endblock %}

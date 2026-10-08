@@ -1,0 +1,44 @@
+{# The archive (owner: workstream A). Variables: page
+   Everywhere: year chips (links to events_archive), the newest year's ARCHIVE_PREVIEW_LINES lines and "Show all".
+   A country or Online: "Past · Czechia" with every year of that scope. #}
+{% set preview = constant('SpeedPuzzling\\Web\\Services\\EventsPage\\EventsPageBuilder::ARCHIVE_PREVIEW_LINES') %}
+<section class="ev-archive">
+    {% if page.scope.isEverywhere %}
+        <h2>{{ 'events_page.archive.title'|trans }}</h2>
+        {% if page.archiveYears is empty %}
+            <p>{{ 'events_page.archive.none'|trans }}</p>
+        {% else %}
+            <nav class="ev-archive-years">
+                {% for archive_year in page.archiveYears %}
+                    <a href="{{ path('events_archive', {year: archive_year.year}) }}" data-ev-year="{{ archive_year.year }}">{{ archive_year.year }}</a>
+                {% endfor %}
+            </nav>
+            {% set newest = page.archiveYears|first %}
+            <ul class="ev-lines">
+                {% for line in newest.lines|slice(0, preview) %}
+                    {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
+                {% endfor %}
+            </ul>
+            {% if newest.lines|length > preview %}
+                <a href="{{ path('events_archive', {year: newest.year}) }}">{{ 'events_page.archive.show_all'|trans({'%year%': newest.year, '%count%': newest.occurrenceCount}) }}</a>
+            {% endif %}
+        {% endif %}
+    {% else %}
+        {% set scope_country = page.scope.countryCode %}
+        <h2>{{ 'events_page.archive.past_in'|trans({'%scope%': scope_country ? scope_country.localizedName(app.request.locale) : 'events_page.scope.online'|trans}) }}</h2>
+        {% set shown = 0 %}
+        {% for archive_year in page.archiveYears %}
+            {% set lines = archive_year.lines|filter(line => line.visible) %}
+            {% if lines is not empty %}
+                {% set shown = shown + 1 %}
+                <h3>{{ archive_year.year }}</h3>
+                <ul class="ev-lines">
+                    {% for line in lines %}
+                        {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endfor %}
+        {% if shown == 0 %}<p>{{ 'events_page.archive.none'|trans }}</p>{% endif %}
+    {% endif %}
+</section>

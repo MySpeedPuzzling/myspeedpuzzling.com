@@ -1,0 +1,171 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Query;
+
+use DateTimeImmutable;
+use DateTimeZone;
+use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Results\EventOccurrence;
+use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\RoundTimezone;
+
+/**
+ * Every occurrence of the events page in one statement (docs/features/events-page/implementation-plan.md, 1.4):
+ * one-time events and editions together. Admins also get the ones waiting for approval (`isPublic` false); rejected
+ * ones, and editions of a rejected series, nobody.
+ */
+readonly final class GetEventOccurrences
+{
+    public function __construct(
+        private Connection $database,
+    ) {
+    }
+
+    /**
+     * @return list<EventOccurrence>
+     */
+    public function all(bool $includeUnapproved): array
+    {
+        $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $officialResults = GetPublishedRoundResults::sqlShowsOfficialResults('rr');
+        $where = $includeUnapproved
+            ? 'c.rejected_at IS NULL AND (c.series_id IS NULL OR cs.rejected_at IS NULL)'
+            : $visible;
+
+        $query = <<<SQL
+SELECT
+    c.id,
+    c.name,
+    c.slug,
+    c.logo,
+    c.series_id,
+    cs.name AS series_name,
+    cs.slug AS series_slug,
+    COALESCE(c.location, cs.location) AS location,
+    COALESCE(c.location_country_code, cs.location_country_code) AS country_code,
+    c.location_country_code AS own_country_code,
+    cs.location_country_code AS series_country_code,
+    CASE WHEN c.series_id IS NULL THEN c.is_online ELSE cs.is_online END AS is_online,
+    c.date_from,
+    c.date_to,
+    r.first_starts_at,
+    r.last_starts_at,
+    r.round_timezone,
+    COALESCE(r.round_count, 0) AS round_count,
+    (c.registration_link IS NOT NULL AND c.registration_managed = false) AS has_registration_link,
+    c.registration_managed,
+    c.capacity,
+    c.registration_opens_at,
+    c.registration_closes_at,
+    c.registration_timezone,
+    (c.results_link IS NOT NULL OR EXISTS (
+        SELECT 1
+        FROM competition_round rr
+        WHERE rr.competition_id = c.id
+            AND (
+                EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.competition_round_id = rr.id AND pst.suspicious = false)
+                OR {$officialResults}
+            )
+    )) AS has_results,
+    ({$visible}) AS is_public
+FROM competition c
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+LEFT JOIN (
+    SELECT competition_id,
+        MIN(starts_at) AS first_starts_at,
+        MAX(starts_at) AS last_starts_at,
+        MIN(timezone) AS round_timezone,
+        COUNT(*) AS round_count
+    FROM competition_round
+    GROUP BY competition_id
+) r ON r.competition_id = c.id
+WHERE {$where}
+SQL;
+
+        $occurrences = [];
+
+        /** @var array<string, null|string|int|bool> $row */
+
+        foreach ($this->database->executeQuery($query)->fetchAllAssociative() as $row) {
+            $occurrences[] = self::hydrate($row);
+        }
+
+        usort($occurrences, static function (EventOccurrence $a, EventOccurrence $b): int {
+            if ($a->startDate === null || $b->startDate === null) {
+                return ($a->startDate === null) <=> ($b->startDate === null) ?: strcmp($a->name, $b->name);
+            }
+
+            return $a->startDate <=> $b->startDate ?: strcmp($a->name, $b->name);
+        });
+
+        return $occurrences;
+    }
+
+    /**
+     * @param array<string, null|string|int|bool> $row
+     */
+    private static function hydrate(array $row): EventOccurrence
+    {
+        $isEdition = $row['series_id'] !== null;
+        $ownCountry = self::nullableString($row['own_country_code']);
+        $seriesCountry = self::nullableString($row['series_country_code']);
+
+        if ($isEdition) {
+            $dates = OccurrenceDates::ofEdition(
+                self::instant($row['first_starts_at']),
+                self::instant($row['last_starts_at']),
+                RoundTimezone::resolve(self::nullableString($row['round_timezone']), $ownCountry, $seriesCountry),
+                self::instant($row['date_from']),
+                self::instant($row['date_to']),
+            );
+        } else {
+            $dates = OccurrenceDates::ofEvent(self::instant($row['date_from']), self::instant($row['date_to']));
+        }
+
+        $capacity = $row['capacity'];
+
+        return new EventOccurrence(
+            competitionId: (string) $row['id'],
+            name: (string) $row['name'],
+            slug: self::nullableString($row['slug']),
+            logo: self::nullableString($row['logo']),
+            seriesId: self::nullableString($row['series_id']),
+            seriesName: self::nullableString($row['series_name']),
+            seriesSlug: self::nullableString($row['series_slug']),
+            location: self::nullableString($row['location']),
+            countryCode: CountryCode::fromCode(self::nullableString($row['country_code'])),
+            isOnline: (bool) $row['is_online'],
+            startDate: $dates->start,
+            endDate: $dates->end,
+            roundCount: is_numeric($row['round_count']) ? (int) $row['round_count'] : 0,
+            hasRegistrationLink: (bool) $row['has_registration_link'],
+            registrationManaged: (bool) $row['registration_managed'],
+            capacity: is_numeric($capacity) ? (int) $capacity : null,
+            registrationOpensAt: self::instant($row['registration_opens_at']),
+            registrationClosesAt: self::instant($row['registration_closes_at']),
+            registrationTimezone: self::nullableString($row['registration_timezone']),
+            hasResults: (bool) $row['has_results'],
+            isPublic: (bool) $row['is_public'],
+        );
+    }
+
+    private static function nullableString(mixed $value): null|string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
+     * A stored timestamp (UTC, without zone)
+     */
+    private static function instant(mixed $value): null|DateTimeImmutable
+    {
+        if (is_string($value) === false || $value === '') {
+            return null;
+        }
+
+        return new DateTimeImmutable($value, new DateTimeZone('UTC'));
+    }
+}

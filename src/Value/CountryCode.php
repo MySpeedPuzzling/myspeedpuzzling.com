@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
+use Symfony\Component\Intl\Countries;
+
 enum CountryCode: string
 {
     case af = 'Afghanistan';
@@ -269,6 +271,21 @@ enum CountryCode: string
         }
 
         return null;
+    }
+
+    /**
+     * The country's name in $locale (Symfony Intl), else the English name of the case - the events page shows localised
+     * names, other places still show the English value.
+     */
+    public function localizedName(string $locale): string
+    {
+        $code = strtoupper($this->name);
+
+        if (Countries::exists($code)) {
+            return Countries::getName($code, $locale);
+        }
+
+        return $this->value;
     }
 
     public function defaultTimezone(): string

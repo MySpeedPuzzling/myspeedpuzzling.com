@@ -6,9 +6,9 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetMarketplaceEventsHintState;
-use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
@@ -81,7 +81,8 @@ final class GetMarketplaceEventsHintStateTest extends KernelTestCase
     {
         $state = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
 
-        self::assertSame(CompetitionFixture::COMPETITION_WJPC_2024, $state->nearestEvent?->competitionId);
+        // Riverside Puzzle Open (EventsPageFixture, +20 days) is nearer than WJPC (+30 days)
+        self::assertSame(EventsPageFixture::COMPETITION_RIVERSIDE_OPEN, $state->nearestEvent?->competitionId);
         self::assertSame(0, $state->broughtByOthers);
         self::assertNull($state->banner(false));
     }

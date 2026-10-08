@@ -1,0 +1,13 @@
+{#
+    The star and the ⋯ button of a row (owner: workstream C).
+    Variables: follow_target (?FollowTarget), follow_name, following, show_star, manage (?ManageRef)
+    Foundation stub: the star form for signed-in players only, no ⋯.
+#}
+{% if show_star and follow_target and is_granted('IS_AUTHENTICATED_REMEMBERED') %}
+    <form class="ev-star" method="post" action="{{ path(following ? 'event_unfollow' : 'event_follow') }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('event_follow') }}">
+        <input type="hidden" name="target" value="{{ follow_target.toString }}">
+        <input type="hidden" name="return" value="{{ app.request.requestUri }}">
+        <button type="submit" aria-pressed="{{ following ? 'true' : 'false' }}" aria-label="{{ (following ? 'events_organizer.follow.following' : 'events_organizer.follow.follow')|trans({'%name%': follow_name}) }}" data-follow-target="{{ follow_target.toString }}">{{ following ? '★' : '☆' }}</button>
+    </form>
+{% endif %}

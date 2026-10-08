@@ -1,0 +1,23 @@
+{# The country sheet (owner: workstream A). Variables: page, view, query #}
+<div class="ev-sheet" role="dialog" aria-modal="true" aria-labelledby="ev-sheet-title" hidden>
+    <h2 id="ev-sheet-title">{{ 'events_page.sheet.title'|trans }}</h2>
+    <p>{{ 'events_page.sheet.note'|trans }}</p>
+    {% for group in page.regions %}
+        <h3>{{ group.region.translationKey|trans }}</h3>
+        <ul>
+            {% for country in group.countries %}
+                <li>
+                    <a href="{{ path('events', {country: country.code.name}) }}"><span class="fi fi-{{ country.code.name }}" aria-hidden="true"></span> {{ country.name }}</a>
+                    <span>
+                        {%- set parts = [] -%}
+                        {%- if country.upcoming > 0 %}{% set parts = parts|merge(['events_page.sheet.upcoming'|trans({'%count%': country.upcoming})]) %}{% endif -%}
+                        {%- if country.tba > 0 %}{% set parts = parts|merge(['events_page.sheet.tba'|trans({'%count%': country.tba})]) %}{% endif -%}
+                        {%- if country.past > 0 %}{% set parts = parts|merge(['events_page.sheet.past'|trans({'%count%': country.past})]) %}{% endif -%}
+                        {{ parts|join(' · ') }}
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+    <button type="button" data-ev-close-sheet>{{ 'events_page.sheet.done'|trans }}</button>
+</div>

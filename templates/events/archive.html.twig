@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{# One year of past events, route events_archive (owner: workstream D). Variables: archive (EventsArchivePage)
+   Foundation stub: H1 and the lines. #}
+
+{% block title %}{{ 'events_archive.meta.title'|trans({'%year%': archive.year}) }}{% endblock %}
+
+{% block meta_description %}{{ 'events_archive.meta.description'|trans({'%year%': archive.year}) }}{% endblock %}
+
+{% block content %}
+    <h1>{{ 'events_archive.heading'|trans({'%year%': archive.year}) }}</h1>
+    <p>{{ 'events_archive.intro'|trans({'%count%': archive.count}) }}</p>
+    <ul class="ev-lines">
+        {% for line in archive.lines %}
+            {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
+        {% endfor %}
+    </ul>
+    <nav>
+        <h2>{{ 'events_archive.years'|trans }}</h2>
+        {% for year in archive.years %}
+            <a href="{{ path('events_archive', {year: year}) }}" {{ year == archive.year ? 'aria-current="page"' }}>{{ year }}</a>
+        {% endfor %}
+    </nav>
+    <a href="{{ path('events') }}">{{ 'events_archive.back'|trans }}</a>
+{% endblock %}

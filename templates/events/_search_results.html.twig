@@ -1,0 +1,8 @@
+{# Search results, filled in the browser from the index (owner: workstream A). Variables: page #}
+<section class="ev-search-results" data-ev-search-results hidden>
+    <section data-ev-search="upcoming"><h2>{{ 'events_page.search.upcoming'|trans }}</h2><ul class="ev-rows"></ul></section>
+    <section data-ev-search="past"><h2>{{ 'events_page.search.past'|trans }}</h2><ul class="ev-lines"></ul></section>
+    <section data-ev-search="series"><h2>{{ 'events_page.search.series'|trans }}</h2><ul class="ev-series-lines"></ul></section>
+    <section data-ev-search="ongoing"><h2>{{ 'events_page.series.ongoing_online'|trans }}</h2><ul class="ev-rows"></ul></section>
+    <p data-ev-search="nothing" hidden>{{ 'events_page.search.nothing_hint'|trans }}</p>
+</section>

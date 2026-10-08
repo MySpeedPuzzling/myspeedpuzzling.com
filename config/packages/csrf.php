@@ -58,6 +58,9 @@ return App::config([
                 // Official results JSON endpoints (OfficialResultsApi): the organiser devices send it as the
                 // X-CSRF-Token header, often long after the page was loaded and from a page kept open offline
                 'official_results',
+                // The follow star on the events page (docs/features/events-page/README.md, "Follow"): it sits on a page
+                // every player opens, on every row - a session-backed token would write the session on each view
+                'event_follow',
             ],
         ],
     ],

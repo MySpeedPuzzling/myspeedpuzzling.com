@@ -1,0 +1,53 @@
+{# Series directory: in person, online, ongoing online (owner: workstream A). Variables: page #}
+<section class="ev-series">
+    <h2>{{ 'events_page.series.title'|trans }}</h2>
+    {% for group in [
+        {title: 'events_page.series.in_person', lines: page.seriesInPerson},
+        {title: 'events_page.series.online', lines: page.seriesOnline},
+    ] %}
+        {% if group.lines is not empty %}
+            <h3>{{ group.title|trans }}</h3>
+            <ul class="ev-series-lines">
+                {% for line in group.lines %}
+                    <li class="ev-series-line{{ line.isPending ? ' ev-row-pending' }}" data-ev-ids="{{ line.indexId }}" data-ev-scope="{{ line.scopeKey }}" {{ line.visible ? '' : 'hidden' }}>
+                        {% if line.url %}<a href="{{ line.url }}">{{ line.name }}</a>{% else %}{{ line.name }}{% endif %}
+                        {% if line.isPending %}<span class="ev-tag">{{ 'events_page.tag.waiting_for_approval'|trans }}</span>{% endif %}
+                        <span class="ev-series-place">
+                            {%- if line.place.isOnline -%}
+                                {{ 'events_page.place.online'|trans }}
+                            {%- else -%}
+                                {{ [line.place.city, line.place.country]|filter(part => part is not null)|join(', ') }}
+                            {%- endif -%}
+                        </span>
+                        <span class="ev-series-editions">{{ line.editionCount > 0 ? 'events_page.series.editions'|trans({'%count%': line.editionCount}) : 'events_page.series.no_editions'|trans }}</span>
+                        <span class="ev-series-next">
+                            {%- if line.next.type == 'next' -%}
+                                {{ 'events_page.series.next'|trans({'%date%': line.next.date|format_date(pattern: 'EEE d LLL', timezone: 'UTC')}) }}
+                            {%- elseif line.next.type == 'live' -%}
+                                {{ 'events_page.series.happening_now'|trans }}
+                            {%- elseif line.next.type == 'last' -%}
+                                {{ 'events_page.series.last'|trans({'%date%': line.next.date|format_date(pattern: 'd LLL yyyy', timezone: 'UTC')}) }}
+                            {%- else -%}
+                                {{ 'events_page.series.no_dates'|trans }}
+                            {%- endif -%}
+                        </span>
+                        {{ include('events/_row_actions.html.twig', {
+                            follow_target: line.followTarget,
+                            follow_name: line.name,
+                            following: line.following,
+                            show_star: true,
+                            manage: line.manage,
+                        }) }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endfor %}
+
+    {% if page.ongoingOnline is not empty %}
+        <h3>{{ 'events_page.series.ongoing_online'|trans }}</h3>
+        <ul class="ev-rows">
+            {% for row in page.ongoingOnline %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+        </ul>
+    {% endif %}
+</section>

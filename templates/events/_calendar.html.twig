@@ -1,0 +1,5 @@
+{# The calendar view (owner: workstream B). Variables: page, view, month
+   Foundation stub: an empty container, shown only in the calendar view. #}
+<section class="ev-calendar" data-ev-calendar {{ view.value == 'calendar' ? '' : 'hidden' }}>
+    <p>{{ 'events_calendar.noscript'|trans }} <a href="{{ path('events', page.scope.toQuery) }}">{{ 'events_page.view.list'|trans }}</a></p>
+</section>

@@ -1,0 +1,61 @@
+{# One agenda row (owner: workstream A). Variables: row (AgendaRow). No id attributes - the calendar clones rows. #}
+<li class="ev-row{{ row.isGroup ? ' ev-row-group' }}{{ row.isPending ? ' ev-row-pending' }}"
+    data-ev-ids="{{ row.idsAttribute }}"
+    data-ev-scope="{{ row.scopeKey }}"
+    data-ev-from="{{ row.from }}"
+    data-ev-to="{{ row.to }}"
+    data-ev-status="{{ row.status.value }}"
+    {{ row.visible ? '' : 'hidden' }}>
+    {{ include('events/_date_leaf.html.twig', {leaf: row.leaf}) }}
+    <div class="ev-row-body">
+        <div class="ev-row-title">
+            {% if row.url %}<a href="{{ row.url }}">{{ row.title }}</a>{% else %}{{ row.title }}{% endif %}
+        </div>
+        {% if row.editionName %}<div class="ev-row-edition">{{ row.editionName }}</div>{% endif %}
+        <div class="ev-row-place">
+            {% if row.place.isOnline %}
+                {{ 'events_page.place.online'|trans }}
+            {% else %}
+                {% if row.place.countryCode %}<span class="fi fi-{{ row.place.countryCode.name }}" aria-hidden="true"></span>{% endif %}
+                {{ [row.place.city, row.place.country]|filter(part => part is not null)|join(', ') }}
+            {% endif %}
+        </div>
+        {% if row.isGroup %}
+            <div class="ev-row-sessions">
+                {{ 'events_page.row.sessions'|trans({'%count%': row.sessions|length}) }}
+                {% for session in row.sessions %}
+                    {% if session.url %}<a href="{{ session.url }}" title="{{ session.title }}">{{ session.date|format_date(pattern: 'EEE d LLL', timezone: 'UTC') }}</a>{% else %}<span>{{ session.date|format_date(pattern: 'EEE d LLL', timezone: 'UTC') }}</span>{% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if row.tags is not empty %}
+            <ul class="ev-tags">
+                {% for tag in row.tags %}
+                    <li class="ev-tag ev-tag-{{ tag.type.value }}">
+                        {%- if tag.type.value == 'registration_opens' and tag.date -%}
+                            {{ tag.type.translationKey|trans({'%date%': tag.date|format_date(pattern: 'd LLL', timezone: 'UTC')}) }}
+                        {%- elseif tag.type.value == 'runs_until' and tag.date -%}
+                            {{ tag.type.translationKey|trans({'%date%': tag.date|format_date(pattern: 'd LLL yyyy', timezone: 'UTC')}) }}
+                        {%- elseif tag.type.value == 'going_count' -%}
+                            {{ tag.type.translationKey|trans({'%count%': tag.count}) }}
+                        {%- else -%}
+                            {{ tag.type.translationKey|trans }}
+                        {%- endif -%}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+    <div class="ev-row-side">
+        {% if row.when %}
+            <span class="ev-when{{ row.when.soon ? ' ev-when-soon' }}">{{ row.when.translationKey|trans({'%count%': row.when.days}) }}</span>
+        {% endif %}
+        {{ include('events/_row_actions.html.twig', {
+            follow_target: row.followTarget,
+            follow_name: row.followName,
+            following: row.following,
+            show_star: row.followTarget is not null and row.status.value != 'past',
+            manage: row.manage,
+        }) }}
+    </div>
+</li>

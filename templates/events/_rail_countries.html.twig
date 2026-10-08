@@ -1,0 +1,10 @@
+{# Desktop side column: countries with upcoming dates (owner: workstream A). Variables: page, view, query #}
+<section class="ev-rail-countries">
+    <h2>{{ 'events_page.rail.countries'|trans }}</h2>
+    <ul>
+        {% for country in page.countryCounts|filter(country => country.upcoming > 0) %}
+            <li><a href="{{ path('events', {country: country.code.name}) }}"><span class="fi fi-{{ country.code.name }}" aria-hidden="true"></span> {{ country.name }}</a> {{ country.upcoming }}</li>
+        {% endfor %}
+    </ul>
+    <button type="button" data-ev-open-sheet aria-haspopup="dialog">{{ 'events_page.scope.more_countries'|trans }}</button>
+</section>

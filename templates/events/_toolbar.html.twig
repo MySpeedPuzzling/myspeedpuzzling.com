@@ -1,0 +1,26 @@
+{# Search, List | Calendar, scope chips (owner: workstream A). Variables: page, view, query #}
+{% set scope_key = page.scope.key %}
+<div class="ev-toolbar">
+    <form class="ev-search" method="get" action="{{ path('events') }}" role="search">
+        <label class="visually-hidden" for="ev-search-input">{{ 'events_page.search.label'|trans }}</label>
+        <input id="ev-search-input" type="search" name="q" value="{{ query }}" placeholder="{{ 'events_page.search.placeholder'|trans }}" autocomplete="off">
+        {% for name, value in page.scope.toQuery %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    </form>
+    <div class="ev-view-switch" role="group" aria-label="{{ 'events_page.view.label'|trans }}">
+        <a href="{{ path('events', page.scope.toQuery) }}" aria-current="{{ view.value == 'list' ? 'true' : 'false' }}">{{ 'events_page.view.list'|trans }}</a>
+        <a href="{{ path('events', page.scope.toQuery|merge({view: 'calendar'})) }}" aria-current="{{ view.value == 'calendar' ? 'true' : 'false' }}">{{ 'events_page.view.calendar'|trans }}</a>
+    </div>
+    <nav class="ev-chips" aria-label="{{ 'events_page.scope.label'|trans }}">
+        <a class="ev-chip" href="{{ path('events') }}" aria-current="{{ scope_key == 'all' ? 'true' : 'false' }}">{{ 'events_page.scope.everywhere'|trans }} ({{ page.everywhereUpcoming }})</a>
+        {% if page.homeCountry %}
+            <a class="ev-chip" href="{{ path('events', {country: page.homeCountry.code.name}) }}" aria-current="{{ scope_key == page.homeCountry.code.name ? 'true' : 'false' }}"><span class="fi fi-{{ page.homeCountry.code.name }}" aria-hidden="true"></span> {{ page.homeCountry.name }} ({{ page.homeCountry.upcoming }})</a>
+        {% endif %}
+        <a class="ev-chip" href="{{ path('events', {onlineOnly: 1}) }}" aria-current="{{ scope_key == 'online' ? 'true' : 'false' }}">{{ 'events_page.scope.online'|trans }} ({{ page.onlineUpcoming }})</a>
+        {% for country in page.chipCountries %}
+            {% if page.homeCountry is null or country.code != page.homeCountry.code %}
+                <a class="ev-chip" href="{{ path('events', {country: country.code.name}) }}" aria-current="{{ scope_key == country.code.name ? 'true' : 'false' }}"><span class="fi fi-{{ country.code.name }}" aria-hidden="true"></span> {{ country.name }} ({{ country.upcoming }})</a>
+            {% endif %}
+        {% endfor %}
+        <button type="button" class="ev-chip" data-ev-open-sheet aria-haspopup="dialog">{{ 'events_page.scope.all_countries'|trans }} ▾</button>
+    </nav>
+</div>

@@ -1,0 +1,7 @@
+{# "Organising a puzzle event?" (owner: workstream A). Variables: page #}
+<aside class="ev-foot">
+    <h2>{{ 'events_page.foot.title'|trans }}</h2>
+    <p>{{ 'events_page.foot.text'|trans }}</p>
+    <a href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}">+ {{ 'events_page.add_event'|trans }}</a>
+    <a href="{{ path('for_organizers') }}">{{ 'events_page.guide'|trans }}</a>
+</aside>

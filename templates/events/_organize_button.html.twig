@@ -1,0 +1,4 @@
+{# "You organize (n)" (owner: workstream C). Variables: count - foundation stub: a plain link #}
+{% if count > 0 %}
+    <a class="ev-organize-button" href="{{ path('organized_events') }}">{{ 'events_organizer.organize.button'|trans }} ({{ count }})</a>
+{% endif %}

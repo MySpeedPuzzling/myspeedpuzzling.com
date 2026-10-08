@@ -1,180 +1,52 @@
 {% extends 'base.html.twig' %}
 
+{# The events page (docs/features/events-page/README.md). Owner: workstream A - structure fixed by the implementation plan, 1.7 #}
+
 {% block title %}{{ 'events.meta.title'|trans }}{% endblock %}
 
 {% block meta_description %}{{ 'events.meta.description'|trans }}{% endblock %}
 
+{% block robots %}{{ include('events/_robots.html.twig', {urls: page.itemListUrls}) }}{% endblock %}
+
+{% block json_ld %}{{ parent() }}{{ include('events/_item_list_json_ld.html.twig', {urls: page.itemListUrls}) }}{% endblock %}
+
 {% block content %}
-    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-        <h1 class="mb-0">{{ 'events.heading'|trans }}</h1>
-        {% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
-            <a href="{{ path('add_competition', {return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-plus-lg me-1"></i>{{ 'competition.add_event'|trans }}
-            </a>
-        {% endif %}
-        <a href="{{ path('for_organizers') }}" class="small text-muted">
-            <i class="bi bi-info-circle me-1"></i>{{ 'events.more_info_for_organizers'|trans }}
-        </a>
-    </div>
-
-    <p class="mb-3">
-        <a href="{{ path('wjpc_hub') }}"><i class="bi bi-trophy me-1"></i>{{ 'events.wjpc_hub_link'|trans }}</a>
-    </p>
-
-    {% if player_competitions|length > 0 or player_series|length > 0 %}
-        <h2 class="mt-4">{{ 'competition.my_competitions'|trans }}</h2>
-        <div class="row">
-            {% for series_item in player_series %}
-                <div class="mb-3 mb-md-4 col-md-6">
-                    <div class="card shadow position-relative">
-                        <div class="d-flex gap-1" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
-                            <a href="{{ path('manage_competition_series', {'seriesId': series_item.id, return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary px-2 py-1">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series_item.id) %}
-                                <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" data-bs-toggle="modal" data-bs-target="#deleteCompetitionSeriesModal-my-{{ series_item.id }}" title="{{ 'series.delete.button'|trans }}">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            {% endif %}
-                        </div>
-                        {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series_item.id) %}
-                            {{ include('_competition_series_delete_modal.html.twig', {id: series_item.id, modalId: 'my-' ~ series_item.id, name: series_item.name}) }}
-                        {% endif %}
-                        <div class="card-body d-flex w-100 p-3">
-                            <div class="flex-fill">
-                                <h3 class="h5 mb-2">
-                                    {% if series_item.slug %}
-                                        <a class="text-decoration-underline" href="{{ path('competition_series_detail', {'slug': series_item.slug}) }}">
-                                            {{ series_item.name }}
-                                        </a>
-                                    {% else %}
-                                        {{ series_item.name }}
-                                    {% endif %}
-                                    {% if series_item.rejectedAt is not null %}
-                                        <span class="badge bg-danger ms-1">{{ 'competition.rejected'|trans }}</span>
-                                    {% elseif series_item.approvedAt is null %}
-                                        <span class="badge bg-warning text-dark ms-1">{{ 'competition.pending_approval'|trans }}</span>
-                                    {% endif %}
-                                    {% if series_item.isOnline %}
-                                        <span class="badge bg-info text-dark ms-1">{{ 'competition.online'|trans }}</span>
-                                    {% endif %}
-                                    <span class="badge bg-secondary ms-1">{{ 'competition.recurring'|trans }}</span>
-                                </h3>
-
-                                {% if series_item.nextEditionDate %}
-                                    <div class="mt-1">
-                                        <i class="ci-calendar me-2 ps-1"></i>
-                                        {% if series_item.nextEditionDate > date() %}
-                                            {{ 'competition.next_edition'|trans }}: {{ series_item.nextEditionDate|date('d.m.') }}
-                                        {% else %}
-                                            {{ 'competition.last_edition'|trans }}: {{ series_item.nextEditionDate|date('d.m.') }}
-                                        {% endif %}
-                                        <small class="text-muted ps-1">({{ series_item.nextEditionDate|ago }})</small>
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="ms-3 flex-shrink-0 event-image">
-                                {% if series_item.logo %}
-                                    <img style="max-height: 84px;" src="{{ series_item.logo|thumbnail('puzzle_small') }}" alt="{{ series_item.name }} logo" class="img-fluid">
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-
-            {% for event in player_competitions %}
-                <div class="mb-3 mb-md-4 col-md-6">
-                    <div class="card shadow position-relative">
-                        <div class="d-flex gap-1" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
-                            <a href="{{ path('edit_competition', {'competitionId': event.id, return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary px-2 py-1">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionDeleteVoter::COMPETITION_DELETE'), event.id) %}
-                                <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" data-bs-toggle="modal" data-bs-target="#deleteCompetitionModal-my-{{ event.id }}" title="{{ 'competition.delete.button'|trans }}">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            {% endif %}
-                        </div>
-                        {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionDeleteVoter::COMPETITION_DELETE'), event.id) %}
-                            {{ include('_competition_delete_modal.html.twig', {id: event.id, modalId: 'my-' ~ event.id, name: event.name}) }}
-                        {% endif %}
-                        <div class="card-body d-flex w-100 p-3">
-                            <div class="flex-fill">
-                                <h3 class="h5 mb-2">
-                                    {% if event.slug %}
-                                        <a class="text-decoration-underline" href="{{ path('event_detail', {'slug': event.slug}) }}">
-                                            {{ event.name }}
-                                        </a>
-                                    {% else %}
-                                        {{ event.name }}
-                                    {% endif %}
-                                    {% if event.rejectedAt is not null %}
-                                        <span class="badge bg-danger ms-1">{{ 'competition.rejected'|trans }}</span>
-                                    {% elseif event.approvedAt is null %}
-                                        <span class="badge bg-warning text-dark ms-1">{{ 'competition.pending_approval'|trans }}</span>
-                                    {% endif %}
-                                    {% if event.isOnline %}
-                                        <span class="badge bg-info text-dark ms-1">{{ 'competition.online'|trans }}</span>
-                                    {% endif %}
-                                </h3>
-
-                                <div class="row">
-                                    <div class="col-sm-6 col-md-12 col-xl-6">
-                                        {# Older online events still carry location "Online" - the badge above says it once #}
-                                        {% if not event.isOnline %}
-                                            {% if event.locationCountryCode %}
-                                                <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
-                                            {% endif %}
-
-                                            {{ event.location }}
-                                        {% endif %}
-
-                                        {% if event.dateFrom %}
-                                            <div class="mt-1">
-                                                <i class="ci-calendar me-2 ps-1"></i>
-                                                {{ include('_event_date_range.html.twig', {date_from: event.dateFrom, date_to: event.dateTo}) }}
-                                                <small class="text-muted ps-1">({{ event.dateFrom|ago }})</small>
-                                            </div>
-                                        {% endif %}
-                                    </div>
-
-                                    {% if event.link or event.registrationLink or event.resultsLink %}
-                                        <div class="col-sm-6 col-md-12 col-xl-6 mt-2 mt-sm-0 mt-md-2 mt-xl-0">
-                                            {% if event.link %}
-                                                <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
-                                                    <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                                                </a>
-                                            {% endif %}
-
-                                            {% if event.registrationLink %}
-                                                <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.registrationLink }}">
-                                                    <i class="bi bi-person-plus me-1"></i>{{ 'events.registration_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                                                </a>
-                                            {% endif %}
-
-                                            {% if event.resultsLink %}
-                                                <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.resultsLink }}">
-                                                    <i class="bi bi-trophy me-1"></i>{{ 'events.results_link'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                                                </a>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="ms-3 flex-shrink-0 event-image">
-                                {% if event.logo %}
-                                    <img style="max-height: 84px;" src="{{ event.logo|thumbnail('puzzle_small') }}" alt="{{ event.name }} logo" class="img-fluid">
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
+<div class="ev-page"
+     data-controller="events-page"
+     data-events-page-scope-value="{{ page.scope.key }}"
+     data-events-page-view-value="{{ view.value }}"
+     data-events-page-query-value="{{ query }}"
+     data-events-page-month-value="{{ month ?? '' }}"
+     data-events-page-home-value="{{ page.homeCountry ? page.homeCountry.code.name : '' }}"
+     data-events-page-signed-in-value="{{ is_granted('IS_AUTHENTICATED_REMEMBERED') ? 'true' : 'false' }}"
+     data-events-page-messages-value="{{ {
+         online: 'events_page.place.online'|trans,
+         results: 'events_page.tag.results'|trans,
+         everywhere: 'events_page.scope.everywhere'|trans,
+     }|json_encode }}"
+>
+    {{ include('events/_header.html.twig') }}
+    {{ include('events/_toolbar.html.twig') }}
+    <div class="ev-body">
+        <div class="ev-main">
+            <div class="ev-list-view" data-events-page-target="listView" {{ view.value == 'calendar' ? 'hidden' }}>
+                {{ include('events/_your_events.html.twig') }}
+                {{ include('events/_agenda.html.twig') }}
+                {{ include('events/_series_directory.html.twig') }}
+                {{ include('events/_archive_section.html.twig') }}
+                {{ include('events/_search_results.html.twig') }}
+                {{ include('events/_page_foot.html.twig') }}
+            </div>
+            {{ include('events/_calendar.html.twig') }}
         </div>
-    {% endif %}
-
-    <twig:EventsListing />
+        <aside class="ev-rail">
+            {{ include('events/_rail_countries.html.twig') }}
+            {{ include('events/_rail_calendar.html.twig') }}
+        </aside>
+    </div>
+    {{ include('events/_country_sheet.html.twig') }}
+    {{ include('events/_manage_menu_host.html.twig') }}
+    <template data-events-archive-line-template>{{ include('events/_archive_line.html.twig', {line: null, template: true}) }}</template>
+    <script type="application/json" data-events-index>{{ page.index|json_ld }}</script>
+</div>
 {% endblock %}

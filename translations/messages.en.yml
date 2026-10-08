@@ -920,6 +920,208 @@ events:
     no_results: "No events found."
     no_participants_message: "No participants list available yet. Would you love to see how you compare with other competitors? Kindly ask the event organizer to upload the participants list — it makes the experience so much better for everyone!"
 
+# Events page - list (workstream A, docs/features/events-page/)
+events_page:
+    title: "Events"
+    summary:
+        dates: "{0}No upcoming dates|{1}1 upcoming date|]1,Inf[%count% upcoming dates"
+        countries: "in %count% country|in %count% countries"
+        and_online: "and online"
+        only_online: "online"
+        series: "%count% series|%count% series"
+    add_event: "Add event"
+    guide: "Guide for organisers"
+    search:
+        label: "Search events"
+        placeholder: "Search events, series, places"
+        clear: "Clear search"
+        upcoming: "Upcoming"
+        past: "Past"
+        series: "Series"
+        no_upcoming: "No upcoming event matches."
+        no_past: "No past event matches."
+        past_limited: "The %shown% most recent of %count%. Add a year or a country to narrow it down."
+        nothing: "Nothing found for “%query%”"
+        nothing_hint: "Try a city or a country, or add the event yourself."
+    view:
+        label: "View"
+        list: "List"
+        calendar: "Calendar"
+    scope:
+        label: "Where"
+        everywhere: "Everywhere"
+        online: "Online"
+        all_countries: "All countries"
+        more_countries: "More countries…"
+        guessed: "Guessed from your browser"
+    sheet:
+        title: "Countries"
+        done: "Done"
+        search_label: "Search countries"
+        search_placeholder: "Search countries"
+        upcoming: "%count% upcoming|%count% upcoming"
+        tba: "%count% date TBA|%count% dates TBA"
+        past: "%count% past|%count% past"
+        empty: "No events in a country with that name yet."
+        note: "Countries with at least one in-person event or edition. Online ones are under Online."
+    your_events:
+        title: "Your events"
+    agenda:
+        upcoming: "Upcoming"
+        upcoming_in: "Upcoming · %scope%"
+        dates_count: "%count% date|%count% dates"
+        events_count: "%count% event|%count% events"
+        without_date: "%count% without a date|%count% without a date"
+        happening_now: "Happening now"
+        tba: "Date to be announced"
+        no_upcoming_in: "No upcoming dates in %scope% yet."
+        no_upcoming_online: "No upcoming dates online yet."
+    empty:
+        none_in: "No upcoming events in %scope%"
+        last_one: "The last one was %name% (%month%)."
+        none_yet: "None on MySpeedPuzzling yet."
+        know_one: "Know about one?"
+    home_callout:
+        nothing_planned: "Nothing planned in %country% yet."
+        know_one: "Know about an event?"
+        add_it: "Add it to the calendar"
+    when:
+        happening_now: "Happening now"
+        now: "Now"
+        tomorrow: "Tomorrow"
+        this_weekend: "This weekend"
+        in_days: "In %count% day|In %count% days"
+    tag:
+        waiting_for_approval: "Waiting for approval"
+        going: "Going"
+        recurring: "Recurring"
+        registration: "Registration"
+        registration_open: "Registration open"
+        registration_opens: "Opens %date%"
+        registration_closed: "Registration closed"
+        full_waitlist: "Full · waitlist"
+        results: "Results"
+        runs_until: "Runs until %date%"
+        going_count: "%count% going|%count% going"
+    row:
+        sessions: "%count% session|%count% sessions"
+    place:
+        online: "Online"
+    leaf:
+        tba: "TBA"
+        date: "date"
+    series:
+        title: "Series"
+        in_person: "In person"
+        online: "Online"
+        ongoing_online: "Ongoing online"
+        editions: "%count% edition|%count% editions"
+        no_editions: "no editions yet"
+        next: "Next: %date%"
+        last: "Last: %date%"
+        happening_now: "Happening now"
+        no_dates: "No dates yet"
+        no_fixed_dates: "Online · no fixed dates"
+        ongoing: "Ongoing"
+    archive:
+        title: "Archive"
+        show_all: "Show all %year% (%count%)"
+        past_in: "Past · %scope%"
+        none: "None yet."
+        editions_in: "%series% · %count% edition in %year%|%series% · %count% editions in %year%"
+    foot:
+        title: "Organising a puzzle event?"
+        text: "Add it to the calendar. It's free, and puzzlers can say they're going."
+    rail:
+        countries: "Countries"
+
+# Events page - calendar (workstream B)
+events_calendar:
+    prev_month: "Previous month"
+    next_month: "Next month"
+    today: "Today"
+    key_in_person: "in person"
+    key_online: "online"
+    key_past: "past"
+    day_label: "%day%: %count% event|%day%: %count% events"
+    more: "+%count% more"
+    highlighted: "%date% is highlighted"
+    whole_month: "Show the whole month"
+    empty: "Nothing on the calendar in %month%"
+    empty_matching: "Nothing matching in %month%"
+    empty_hint: "Try the next month."
+    empty_hint_scope: "Try the next month, or Everywhere."
+    run_all_month: "runs all month, until %until%"
+    run_from: "from %from%, until %until%"
+    run_until: "all month, until %until%"
+    noscript: "The calendar needs JavaScript. The list has every upcoming date."
+
+# Events page - organisers and following (workstream C)
+events_organizer:
+    organize:
+        button: "You organize"
+        title: "You organize"
+        note: "Events and series you created or maintain. The ⋯ button on their rows opens the same actions."
+        empty: "You don't organise any event yet."
+        reason: "Reason: %reason%"
+        next: "Next: %date%"
+        editions: "%count% edition|%count% editions"
+    type:
+        event: "Event"
+        edition: "Edition"
+        series: "Series"
+    badge:
+        waiting_for_approval: "Waiting for approval"
+        rejected: "Rejected"
+        live: "Live"
+        upcoming: "Upcoming"
+        past: "Past"
+        date_not_set: "Date not set"
+    menu:
+        open: "Manage %name%"
+        waiting_suffix: "waiting for approval"
+        edit_event: "Edit event"
+        rounds: "Rounds & puzzles"
+        participants: "Participants"
+        results: "Results"
+        page_content: "Page content"
+        delete: "Delete"
+        manage_series: "Manage series"
+        add_edition: "Add edition"
+        delete_series: "Delete series"
+        approve_event: "Approve event"
+        reject_event: "Reject event…"
+        approve_series: "Approve series"
+        reject_series: "Reject series…"
+        reject_reason: "Reason for the organiser"
+        reject_submit: "Reject"
+        delete_confirm: "Delete “%name%”? This cannot be undone."
+        cancel: "Cancel"
+        close: "Close"
+    follow:
+        follow: "Follow %name%"
+        following: "Following %name%"
+        title_follow: "Follow"
+        title_following: "Following"
+        sign_in_note: "Sign in to follow events and series."
+        sign_in: "Sign in"
+        flash_followed: "You follow %name%."
+        flash_unfollowed: "You no longer follow %name%."
+        not_available: "This event can't be followed."
+        try_again: "That didn't work. Please try again."
+    mark:
+        going: "Going"
+        following: "Following"
+
+# Events page - year archive (workstream D)
+events_archive:
+    meta:
+        title: "Speed puzzling events %year% - results and archive"
+        description: "Every speed puzzling competition and event of %year% on MySpeedPuzzling: dates, places and results, in person and online."
+    heading: "Events in %year%"
+    intro: "%count% event or edition|%count% events and editions"
+    years: "Other years"
+    back: "Upcoming events"
 
 for_developers:
     meta:

@@ -1,0 +1,17 @@
+{# "Your events" strip (owner: workstream A). Variables: page #}
+{% if page.yourEvents is not empty %}
+    <section class="ev-your-events" {{ page.scope.isEverywhere ? '' : 'hidden' }}>
+        <h2>{{ 'events_page.your_events.title'|trans }}</h2>
+        <ul>
+            {% for your_event in page.yourEvents %}
+                {% set row = your_event.row %}
+                <li class="ev-your-event" data-ev-ids="{{ row.idsAttribute }}">
+                    {{ include('events/_date_leaf.html.twig', {leaf: row.leaf}) }}
+                    {% if row.url %}<a href="{{ row.url }}">{{ row.title }}</a>{% else %}{{ row.title }}{% endif %}
+                    {% if row.editionName %}<span>{{ row.editionName }}</span>{% endif %}
+                    {{ include('events/_your_event_mark.html.twig', {mark: your_event.mark}) }}
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+{% endif %}

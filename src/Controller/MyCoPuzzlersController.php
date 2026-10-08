@@ -43,18 +43,9 @@ final class MyCoPuzzlersController extends AbstractController
 
         $suggestions = $this->getCoPuzzlers->forPlayer($player->playerId);
 
-        // What the player archived stays out of their shortcuts: the pair/team itself, and - for a pair - the person
-        // too, since hiding them is the point. Unless they are a favorite: following somebody says "offer them".
-        // Nobody leaves the payload though: a team names every member, the search finds everybody, and a team put
-        // together by hand is still recognised (`archived` / `setAside` = known, not offered).
-        $archivedPartners = [];
-
-        foreach ($suggestions->teams as $team) {
-            if ($team->archived && $team->size === 2) {
-                $archivedPartners[$team->memberKeys[0] ?? ''] = true;
-            }
-        }
-
+        // Everything, archived or not: the picker leaves archived pairs/teams (and an archived pair's person) out of
+        // what it offers, but a team still names every member, the search finds everybody, a group put together by
+        // hand is still recognised - and a × hides one more without asking the server again (copuzzler_picker_controller.js)
         return $this->privateJson([
             'teams' => array_map(static fn(TeamSuggestion $team): array => [
                 'id' => $team->teamId,
@@ -81,7 +72,6 @@ final class MyCoPuzzlersController extends AbstractController
                 'score' => round($person->score, 4),
                 'pairScore' => round($person->pairScore, 4),
                 'favorite' => $person->isFavorite,
-                'setAside' => $person->isFavorite === false && isset($archivedPartners[$person->key]),
             ], $suggestions->people),
         ]);
     }

@@ -245,8 +245,9 @@ SQL,
 
     /**
      * A player archived their pair with somebody who is also in one of their teams and among their favorites: the
-     * pair leaves the shortcuts, the person never leaves the picker - the team names them, the search finds them,
-     * and a favorite is offered all the same (it happened: the archived partner vanished from the whole form).
+     * pair leaves the shortcuts, the person never leaves the picker's data - the team names them, the search finds
+     * them, Team mode offers a favorite (it happened: the archived partner vanished from the whole form). What is
+     * offered where is the picker's call (copuzzler_picker_controller.js), the payload carries the facts.
      */
     public function testArchivingAPairNeverMakesThePersonDisappear(): void
     {
@@ -263,7 +264,7 @@ SQL,
 
         $payload = $this->suggestions($browser);
         self::assertTrue($this->teamIn($payload, $pairId)['archived'], 'Known, so a pair put together by hand is still recognised');
-        self::assertTrue($this->personIn($payload, PlayerFixture::PLAYER_REGULAR)['setAside']);
+        self::assertFalse($this->personIn($payload, PlayerFixture::PLAYER_REGULAR)['favorite']);
 
         $peopleKeys = array_column($payload['people'], 'key');
 
@@ -273,11 +274,9 @@ SQL,
             }
         }
 
-        // Following somebody says "offer them"
+        // Following somebody: still there, now marked
         $bus->dispatch(new AddPlayerToFavorites(PlayerFixture::PLAYER_PRIVATE_USER_ID, PlayerFixture::PLAYER_REGULAR));
-        $regular = $this->personIn($this->suggestions($browser), PlayerFixture::PLAYER_REGULAR);
-        self::assertTrue($regular['favorite']);
-        self::assertFalse($regular['setAside']);
+        self::assertTrue($this->personIn($this->suggestions($browser), PlayerFixture::PLAYER_REGULAR)['favorite']);
 
         // Undo
         self::assertSame(['archived' => false], $this->archiveFromPicker($browser, $pairId, false));
@@ -322,21 +321,21 @@ SQL,
     }
 
     /**
-     * @return array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool, setAside: bool}>}
+     * @return array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool}>}
      */
     private function suggestions(KernelBrowser $browser): array
     {
         $browser->request('GET', '/en/my-co-puzzlers.json');
         $this->assertResponseIsSuccessful();
 
-        /** @var array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool, setAside: bool}>} $payload */
+        /** @var array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool}>} $payload */
         $payload = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
 
         return $payload;
     }
 
     /**
-     * @param array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool, setAside: bool}>} $payload
+     * @param array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool}>} $payload
      * @return array{id: string, archived: bool, members: list<string>}
      */
     private function teamIn(array $payload, string $teamId): array
@@ -348,8 +347,8 @@ SQL,
     }
 
     /**
-     * @param array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool, setAside: bool}>} $payload
-     * @return array{key: string, favorite: bool, setAside: bool}
+     * @param array{teams: list<array{id: string, archived: bool, members: list<string>}>, people: list<array{key: string, favorite: bool}>} $payload
+     * @return array{key: string, favorite: bool}
      */
     private function personIn(array $payload, string $key): array
     {

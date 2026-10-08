@@ -193,6 +193,14 @@
     margin-left: 0;
   }
 
+  // "(20)" - times together, next to the name
+  &__count {
+    margin-left: .35rem;
+    color: $gray-600;
+    font-size: .875em;
+    white-space: nowrap;
+  }
+
   // A team names every member - wrapped, never cut off
   &--team &__title,
   &--team &__meta {
@@ -202,23 +210,25 @@
   }
 }
 
-// A team offered + its × (hide it from the suggestions): two buttons side by side, the × in the card's corner
-.copuzzler-team {
+// A pair/team offered + its × (hide it from the suggestions): two buttons side by side, the × inside the option's
+// border - on the right of a person's pill, in the corner of a team's card
+.copuzzler-hideable {
   position: relative;
   display: inline-flex;
   max-width: 100%;
 
-  .copuzzler-option--team {
+  > .copuzzler-option {
     padding-right: 2.4rem;
   }
 
   &__hide {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 50%;
+    right: 4px;
     // Small glyph, full-size tap target
     width: 36px;
     height: 36px;
+    transform: translateY(-50%);
     border: 0;
     border-radius: 50%;
     background: transparent;
@@ -230,9 +240,15 @@
       color: $danger;
     }
   }
+
+  &--team &__hide {
+    top: 0;
+    right: 0;
+    transform: none;
+  }
 }
 
-.copuzzler-team-notice {
+.copuzzler-hide-notice {
   flex: 1 0 100%;
   font-size: .875rem;
   color: $gray-700;

@@ -6215,6 +6215,8 @@ copuzzler_picker:
     favorite: "In favorites"
     hide_team: "Hide “%name%” from suggestions"
     team_hidden: "“%name%” is hidden from your suggestions (Pairs & teams → Archived)."
+    hide_pair: "Stop offering %name% as your pair"
+    pair_hidden: "%name% is no longer offered as your pair (Pairs & teams → Archived)."
     hide_failed: "That didn't work. Please try again."
     add_several: "Add %count% people: %names%"
     pending:

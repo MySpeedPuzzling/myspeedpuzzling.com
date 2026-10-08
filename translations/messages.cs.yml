@@ -5659,6 +5659,8 @@ favorite_puzzlers:
   "favorite": "V oblíbených"
   "hide_team": "Skrýt „%name%“ z návrhů"
   "team_hidden": "„%name%“ už se v návrzích nezobrazí (Dvojice a týmy → Archivováno)."
+  "hide_pair": "Přestat nabízet %name% jako dvojici"
+  "pair_hidden": "Dvojice s %name% se už v návrzích nezobrazí (Dvojice a týmy → Archivováno)."
   "hide_failed": "Nepovedlo se. Zkuste to prosím znovu."
   "add_several": "Přidat všechny (%count%): %names%"
   "pending":

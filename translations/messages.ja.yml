@@ -5652,6 +5652,8 @@ favorite_puzzlers:
   "favorite": "お気に入り"
   "hide_team": "「%name%」を候補から非表示にする"
   "team_hidden": "「%name%」は候補に表示されなくなりました（ペアとチーム → アーカイブ済み）。"
+  "hide_pair": "%name%をペアの候補に表示しない"
+  "pair_hidden": "%name%とのペアは候補に表示されなくなりました（ペアとチーム → アーカイブ済み）。"
   "hide_failed": "うまくいきませんでした。もう一度お試しください。"
   "add_several": "%count%人を追加: %names%"
   "pending":

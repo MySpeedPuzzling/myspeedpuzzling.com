@@ -5662,6 +5662,8 @@ favorite_puzzlers:
   "favorite": "En favoritos"
   "hide_team": "Ocultar «%name%» de las sugerencias"
   "team_hidden": "«%name%» ya no aparece en tus sugerencias (Parejas y equipos → Archivados)."
+  "hide_pair": "Dejar de sugerir a %name% como pareja"
+  "pair_hidden": "La pareja con %name% ya no aparece en tus sugerencias (Parejas y equipos → Archivados)."
   "hide_failed": "No ha funcionado. Inténtalo de nuevo."
   "add_several": "Añadir a los %count%: %names%"
   "pending":

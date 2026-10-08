@@ -216,16 +216,21 @@ the card opens instantly with skeleton chips. Edit form, 422 re-render and `?tea
   manage page folds them under "Archived". `PuzzlingTeamResolver::resolve(..., usedByPlayerId:)` deletes the
   archive row inside the lookup statement.
   - **The picker leaves archived things out of what it offers, never out of what it knows** (2026-10-08): the
-    `my_co_puzzlers` payload keeps every team (`archived`) and every person (`setAside` = the partner of an archived
-    pair). Before, an archived pair took its person out of the payload altogether - a puzzler's favorite vanished from
-    the shortcuts, from the search's local results and from the names of her other teams (and tapping such a team
-    added it without her). Now archived teams are not offered but still recognised when put together by hand, a
-    set-aside person is not offered in the shortcut row but every team names them and the search finds them, and **a
-    favorite is never set aside** - following somebody says "offer them". `pickTeam()` adds all of a team or nobody.
-  - **× on a team suggestion** (Team mode): archives it for the player right in the form -
-    `ArchiveCoPuzzlerTeamController` (`POST /{_locale}/my-co-puzzlers/archive`, stateless CSRF `copuzzler_archive`,
-    JSON only, `archive=0` = Undo), "“…” is hidden from your suggestions (Pairs & teams → Archived). Undo".
-  - Favorites carry a star in the people row and in the search's options.
+    `my_co_puzzlers` payload keeps every team, archived ones flagged `archived`, and every person. Before, an archived
+    pair took its person out of the payload altogether - a puzzler's favorite vanished from the shortcuts, from the
+    search's local results and from the names of her other teams (and tapping such a team added it without her).
+    Now an archived team is not offered but still recognised when put together by hand, every team names all its
+    members, the search finds everybody, and the person of an archived pair is not offered in Pair mode, nor in
+    Team mode - **unless a favorite** (the rule lives in `copuzzler_picker_controller.js`, so a × applies at once).
+    `pickTeam()` adds all of a team or nobody.
+  - **× on what the picker offers**: on each team (Team mode) and on each person whose pair with the player exists
+    (Pair mode) - archives that pair/team for the player right in the form, `ArchiveCoPuzzlerTeamController`
+    (`POST /{_locale}/my-co-puzzlers/archive`, stateless CSRF `copuzzler_archive`, JSON only, `archive=0` = Undo),
+    "“…” is hidden from your suggestions (Pairs & teams → Archived). Undo". It comes back by itself the next time the
+    player adds or edits a time with exactly those people (the resolver's `usedByPlayerId`) - a teammate adding the
+    time does not bring it back for them.
+  - Counts read "Name (20)", never "20×": next to a × the count must not look like another one. Favorites carry a
+    star in the people row and in the search's options.
 - **Cleanup**: `myspeedpuzzling:cleanup-empty-puzzling-teams` removes teams with no result, no name, no preparer,
   older than a day. Manual; nothing depends on it.
 - **API**: result rows carry `team_id` + `team_name` (nullable, read-only, appended). Nothing renamed.

@@ -1,12 +1,16 @@
-# Participants spreadsheet (research + design, not built)
+# Participants spreadsheet
 
-Status: **plan - the sheet itself is not built.** Design approved 2026-10-07 (Jan picked every recommended option - §11).
-The results and qualification part (§11b) was decided the same day ("best of both worlds") and **built in PR #136**
-together with live entry, seating and the referee role - see §0. The sheet (stages 0b-2) remains a plan and builds on
-what PR #136 shipped.
-Clickable proposal: https://claude.ai/artifact/T2nZjZJJ2SwpYFbnjujmMk (private). Extends [participants.md](participants.md)
-(participants, organiser UI, Excel import/export) and [participant-import-preview.md](participant-import-preview.md)
-(the file pipeline from PR #245). Examples use invented people only.
+Status: **built** (2026-10-08) - stages 0b, 1 and 2 of §10 plus the results / table / qualified columns, in one delivery.
+This document is the design of record: §0-§12 are the approved design (Jan picked every recommended option - §11; the
+results part §11b was built in PR #136), §13 records what was delivered and every decision taken while building it, and
+the sections after it ("Client architecture (as built)" onwards) document the code. Where §1-§11 and §13 disagree, §13
+and the as-built sections win.
+Route: `participants_sheet` (`/en/participants-sheet/{competitionId}`, cs `/tabulka-ucastniku/{competitionId}`), linked as
+"Participants" from the event's edit page, the series editions table, the rounds page, the results desk / overview /
+seating ("Participants" per round) and the waitlist note. The old participants page and the round teams page redirect to
+it. Clickable proposal: https://claude.ai/artifact/T2nZjZJJ2SwpYFbnjujmMk (private). Related: [participants.md](participants.md)
+(participants, self-join, Excel import/export) and [participant-import-preview.md](participant-import-preview.md). Examples
+use invented people only.
 
 ## TL;DR
 
@@ -25,8 +29,9 @@ Clickable proposal: https://claude.ai/artifact/T2nZjZJJ2SwpYFbnjujmMk (private).
   under the same per-event lock. A paste or bulk action is previewed first with a dry run of the same message (§6).
 - **Phone:** not a spreadsheet. A people list that opens a full-screen editor per person (with previous/next), and per
   round a list of pair/team cards with member chips and a "Without a pair" tray (§8).
-- **Team size is not stored anywhere today.** Stage 1 adds one expected size per team round and a stable team number
-  per round (§11 D5, D7). Wrong sizes stay warnings ("3/2", "1/2"), never blocking.
+- **Team size:** one expected size per team round (`competition_round.team_size`, pairs are always 2), set on the round
+  form or in the round tab's header (§11 D5). Wrong sizes stay warnings ("3/2", "1/2"), never blocking. **D7 was
+  replaced by the table number** (§13 O1).
 
 ---
 
@@ -631,6 +636,8 @@ Round tab (375 px)
 
 ## 10. Staged plan
 
+*Delivered: stages 0b, 1 and 2 and the results columns shipped together on 2026-10-08 (§13); stage 0a shipped in PR #136.*
+
 **Stage 0a - one lock for every participant write (1–2 days, own PR, D13).** Rename the import's lock key to
 `competition-participants-<id>` and make the Live editor, the team controllers and `Join`/`LeaveCompetition` take it.
 
@@ -768,6 +775,68 @@ an automatic rule would also race with results being entered). As built:
 - Real touch, screen-reader and paste behaviour of every library (no browser test, which is what stage 0 is for). JS
   sizes from esbuild, not Webpack Encore.
 - The in-house effort estimate.
+
+## 13. As delivered (2026-10-08)
+
+Delivered by an orchestrated multi-stream build (contract → server write path, read path + page, client core, round
+tabs, People tab → three review rounds → fixes → real-browser verification → 6 locales). Decisions taken under Jan's rule
+for this delivery - *the best possible competition management for organisers, covering every real scenario (WJPC,
+Wisconsin, a Minnesota-style night), without breaking existing competitions*:
+
+| # | Decision |
+|---|---|
+| O1 | **D7 → the table number.** No stored per-round team number: a round tab's first column is the entry's table number (PR #136, written through `RecordRoundResults` / `AssignTableNumbers`); online events and rounds without tables show an unstored row index. Same-named teams are told apart by their members (same row) and the table; pickers label a team `Corners · Table 2 · Kim Example, Pat Sample`. |
+| O2 | **Every round has a tab** - solo rounds too (table, name, country, result, rank, qualified), so results of a solo round can be typed and pasted. People keeps a checkbox column per solo round. |
+| O3 | **Results / rank / qualified columns** in every round tab, shown once the round started or holds data (a Results columns toggle otherwise), written only through `RecordRoundResults` / `AssignTableNumbers` - no second write path. Rank = `official_results_ranking.js`. |
+| O4 | **The sheet replaces the participants page and `manage_round_teams`** (D12): both redirect (302, `?return=` kept); the Live component, the teams page, the team POST controllers and 8 messages left without a dispatcher were deleted; import/export, tool links and the setup checklist moved into the sheet (Tools menu, Import dialog). |
+| O5 | **Registration in the People tab** (managed events): status / paid / checked-in / registered / note columns, counters, waitlist position (from the server), the first-in-line hint, the actions of the old page (existing messages via `participants_sheet_registration`) incl. bulk Mark paid / Check in with an e-mail count in the confirmation. The organiser note is a sheet field for every event. |
+| O6 | **Expected team size** stored, set on the round form (team rounds only, the guess as a placeholder - an untouched field stores nothing) and inline in the round tab; the import's oversize warning uses it. A round changed away from team forgets it. |
+| O7 | **Names-only rounds (Minnesota)**: a named team without members is not a problem; problem counts = incomplete + too many + people without a pair/team (+ shared names, informational). A results paste with unknown team names offers "Create the team". |
+| O8 | **Waitlisted people** can be placed (planning ahead) with a marker; results tools ignore them; they never count as the members keeping a team with a result. Removed people can't be placed (restore first). |
+| O9 | **Privacy**: participant rows (the organiser's record) are never hidden - organiser tooling (`BlocklistQueryCoverageTest` ORGANISER). The linked profile's identity (MSP name, #CODE, avatar, link) follows the viewer's own blocks and `PrivateProfileAccess`; otherwise "Linked to a MySpeedPuzzling profile". The sheet's own player search (`participants_sheet_player_search`) includes players the organiser blocked (blocklist rule 7: tooling never makes anyone unassignable). The round topics' live updates are the organisers' existing results topics (the results desk shows the same identities); the sheet drops identity fields from them. |
+| O10 | CSS in `assets/styles/participants_sheet/*.scss` imported from `app.scss`; the JS is a lazy Stimulus controller + ES modules (`app.js` does not grow). |
+| O11 | **Idempotency + change trail**: every applied change set leaves a receipt (`participant_sheet_change_receipt`: id = the page's `changesetId`, the outcomes, versions before/after, **the acting player and the change set as received**) - a replay is answered from it; kept 90 days (the existing `myspeedpuzzling:prune-round-result-change-receipts` prunes both). The trail is the raw material of D11's future change log ("who removed Kim?"). |
+| O12 | **Live updates** on a private topic `/competition-participants/{id}` (`participants_sheet.changed` + version) and every round's results topic, through a per-page subscription token; version check every 30 s while visible, state fetch on any mismatch / reconnect / tab return. Never the subscribe cookie. |
+| O13 | **Phones (< 768 px)**: People = a list + full-screen person editor (previous/next); round tabs = pair/team cards + tray (bottom sheets); solo round = a list with results read-only + Live entry. 44 px targets. |
+| O14 | **Undo** per page view (D11): a step = the inverse of one action, sent as new change sets / results changes (three-way checked); a refused undo says why. Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y work anywhere on the page outside text fields. |
+
+Decided during the reviews:
+
+- **The `from` of an open editor is what the organiser saw when it opened** (a live update reaching the open cell shows "Changed meanwhile to X · Keep mine / Use theirs"; an unchanged value sends nothing) - the results desk's old BLOCKER, found again in review and fixed in the grid for every view.
+- **A member may leave a pair/team holding a result** (to the tray, out of the round, to another team) with the warning "the result now belongs to the new line-up" while the team keeps a going member; only emptying it is refused. A person's own solo result still keeps them in the round; their own MySpeedPuzzling time in a round keeps them there too (checked against the profile linked at the start of the change set - unlink + remove in one save is refused).
+- **Duplicate external IDs are refused** (`external_id_taken`) - the import matches by them.
+- **Every refusal and "nothing happened" is visible** (`context.notify()` toasts anchored at the cell, also read by screen readers) - not only announced.
+- **Pastes are always previewed when they rename people or need a decision**; ambiguous names (two "Jo Do") never default to a candidate - Confirm waits for the organiser's choice; a pasted name close to an existing one, or looking like a country code / number / e-mail, is not pre-ticked as a new participant; partner-column pastes (each pair on both partners' lines) count each pair once; pastes are planned on a snapshot taken at paste time.
+- **WJPC groups**: a column of names pasted into a solo round tab (or the People paste's "and put them into ▾") places them; People filters "In no solo round", "In 2+ solo rounds", "In / Not in <round>", sortable columns.
+- **Results pastes** match names, table numbers or #codes, only within that round; a blank result in a paste never clears a saved one.
+- People added in the sheet to a managed event are reserved and get a registration date (like the old add form).
+
+### Stage 0b spike (2026-10-08, throwaway, outside the repo)
+
+D2 confirmed - in-house. 70/70 Chromium checks + cross-browser clipboard checks (WebKit 26, Firefox 141, Chromium via
+Playwright): keyboard model 28/28 with real key events, paste/copy 23/23 (15 text + 3 HTML fixtures, real system
+clipboard), accessibility tree 8/8. Two corrections to §9: **`content-visibility` does nothing on table row groups**
+(and block rows with it drop rows from the accessibility tree and Ctrl+F) - native table layout without it, fine to
+~1,500 rows; **WebKit fires no clipboard event on a focused table cell** - the grid routes Ctrl/Cmd+C/X/V through a
+hidden textarea. 1,000 rows rendered in ~60-90 ms, an edit 3-4 ms (cell-local). Not verified: Safari / iOS, real Android,
+Windows, NVDA/VoiceOver, a Japanese IME's first keystroke, clipboards captured from real Excel/Numbers/Sheets (the
+spike's `capture.html` is the 15-minute way to get them) - see `docs/TODO.md`.
+
+### Verified in a real browser (2026-10-08)
+
+On a scratch copy of the production database (World Jigsaw Puzzle Championship 2026: 836 people, 13 rounds), headless
+Chromium with real key events and a Mercure hub: the sheet loads in ~1.6 s (837 rows, no horizontal page scroll at
+1,280 and 375 px); a 30-pair CRLF paste through the preview created exactly 30 pairs / 60 entries; a 203-person bulk
+"Into Individual Semifinal S1" saved in 0.6 s; a rename reached a second organiser's sheet live; an open editor showed
+"Changed meanwhile" and Keep mine won on the server and in both sheets; results, table number and qualified typed in a
+solo tab; removing a person with a result refused with a visible toast; undo/redo by button and keyboard; the old routes
+redirect; the results desk links the round's tab; phone views (cards, tray, people list) with no target under 44 px.
+
+### Not built (follow-ups in docs/TODO.md)
+
+Export / print of a tab, highlighting other organisers' changes, "Make a pair → existing" and "Split" in People,
+"Replace with…" on phone chips, a server-side change log with restore (D11 - the receipts already store who and what),
+registration actions kept offline, merging a self-joined row into an imported one, per-round column hiding in People.
 
 ## Client architecture (as built)
 

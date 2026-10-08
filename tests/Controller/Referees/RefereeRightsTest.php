@@ -217,6 +217,7 @@ final class RefereeRightsTest extends WebTestCase
         yield 'participants sheet' => ['GET', '/en/participants-sheet/' . $competition];
         yield 'participants sheet state' => ['GET', '/en/participants-sheet-api/' . $competition . '/state'];
         yield 'participants sheet version' => ['GET', '/en/participants-sheet-api/' . $competition . '/version'];
+        yield 'participants sheet player search' => ['GET', '/en/participants-sheet-api/' . $competition . '/player-search?query=ann'];
         yield 'registration' => ['GET', '/en/manage-event-registration/' . $competition];
         yield 'check-in' => ['GET', '/en/event-check-in/' . $competition];
         yield 'name tags' => ['GET', '/en/name-tags/' . $competition];
@@ -253,6 +254,16 @@ final class RefereeRightsTest extends WebTestCase
         yield 'participants sheet registration' => ['/en/participants-sheet-api/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '/registration', [
             'participant' => OfficialResultsFixture::PARTICIPANT_ANNA,
             'action' => 'checkIn',
+        ]];
+        yield 'participants sheet changes' => ['/en/participants-sheet-api/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '/changes', [
+            'changesetId' => '0199c3a0-0000-7000-8000-000000000001',
+            'groups' => [['id' => 'g1', 'changes' => [[
+                'op' => 'field',
+                'participant' => OfficialResultsFixture::PARTICIPANT_ANNA,
+                'field' => 'name',
+                'from' => 'Anna Fast',
+                'to' => 'Anna Renamed',
+            ]]]],
         ]];
     }
 

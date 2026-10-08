@@ -9,7 +9,8 @@ The feature set is **tiered and opt-in**: a competition with everything off is j
 | Managed registration (capacity, reserved/paid, waitlist, check-in) | "Manage registration on MySpeedPuzzling" on the event's own Registration page (`manage_competition_registration`) | [registration.md](registration.md) |
 | Official round results (live entry, results desk, qualification and advancing, seating, publishing) | Recorded by the organiser per round, published per round | [official-results.md](official-results.md) |
 | Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Page content" on the event/edition edit page or the series management page - a page shows nothing new until a section is added | [public-page.md](public-page.md) |
-| Participant management, import/export, pairing | Always available | [participants.md](participants.md) |
+| Participants spreadsheet: people, pairs/teams per round, results / table / qualified columns, registration columns, paste, undo, phone lists | Always available - "Participants" on the event's edit page (replaced the participants page and the round teams page) | [participants-spreadsheet.md](participants-spreadsheet.md) |
+| Participant model, self-join ("I'm going"), import/export, pairing | Always available | [participants.md](participants.md) |
 
 One permanent product boundary: **MySpeedPuzzling never processes payments.** Managed registration only records the organizer's payment confirmation ("mark paid") — collecting entry fees is entirely the organizer's responsibility.
 

@@ -63,7 +63,6 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       (MSP #107, F46) - tell them once it is deployed.
 - [ ] Move several puzzles at once on a collection page (select, then "Move to collection"), not only one by one or
       through multiscan. Promised to Allison (MSP #107, follow-up F50).
-- [ ] x. Promised to A (MSP #1, follow-up F99).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

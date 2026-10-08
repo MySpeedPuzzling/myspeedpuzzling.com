@@ -28,7 +28,7 @@ class CollectionItem implements EntityWithEvents
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-        #[Immutable]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[ManyToOne]
         #[JoinColumn(nullable: true, onDelete: 'CASCADE')]
         public null|Collection $collection,
@@ -57,5 +57,14 @@ class CollectionItem implements EntityWithEvents
     public function changeComment(null|string $comment): void
     {
         $this->comment = $comment;
+    }
+
+    /**
+     * Moving is not re-adding: the item keeps its id, added date and comment (null = the system collection).
+     * The caller makes sure the target does not hold the puzzle yet (unique per collection, player and puzzle).
+     */
+    public function moveTo(null|Collection $collection): void
+    {
+        $this->collection = $collection;
     }
 }

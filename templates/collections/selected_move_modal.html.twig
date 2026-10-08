@@ -1,0 +1,46 @@
+{# "Move to…" / "Copy to…" for the puzzles selected on a collection page (MoveSelectedPuzzlesController) #}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ ('collection_selection.' ~ mode ~ '_title')|trans({'%count%': selection.puzzleIds|length}) }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+
+    <div class="modal-body" data-controller="puzzle-collection-form" data-puzzle-collection-form-system-id-value="{{ system_collection_id }}">
+        <p class="text-muted small mb-3">
+            {{ ('collection_selection.' ~ mode ~ '_from')|trans({'%collection%': selection.collectionName}) }}
+        </p>
+
+        {% if selection.puzzleIds is empty %}
+            <div class="alert alert-warning mb-0">{{ 'collection_selection.nothing_selected'|trans }}</div>
+        {% else %}
+            {{ form_start(form, {
+                action: path('collection_selected_move', {collectionId: selection.routeCollectionId, mode: mode}),
+                attr: {'data-turbo-frame': 'modal-frame', 'data-collection-selection-form': ''},
+            }) }}
+                {{ include('collections/_selected_hidden_inputs.html.twig') }}
+
+                {{ form_row(form.collection, {attr: {'data-puzzle-collection-form-target': 'collection'}}) }}
+
+                {# A typed name creates the collection #}
+                <div class="mb-3 d-none" data-puzzle-collection-form-target="newCollection">
+                    <div class="border rounded p-3 bg-light shadow-lg">
+                        <h6 class="mb-3">{{ 'collections.create.title'|trans }}</h6>
+                        {{ form_row(form.collectionVisibility) }}
+                        {{ form_row(form.collectionDescription) }}
+                    </div>
+                </div>
+
+                {% if mode == 'copy' %}
+                    <p class="text-muted small">{{ 'collection_selection.copy_help'|trans({'%collection%': selection.collectionName}) }}</p>
+                {% endif %}
+
+                <div>
+                    <button type="submit" class="btn btn-primary" data-loading-text="{{ 'forms.saving'|trans }}">
+                        {{ ('collection_selection.' ~ mode ~ '_submit')|trans({'%count%': selection.puzzleIds|length}) }}
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+                </div>
+            {{ form_end(form, {render_rest: false}) }}
+        {% endif %}
+    </div>
+</turbo-frame>

@@ -1,0 +1,30 @@
+{#
+    Answer to Move / Copy / Remove of the puzzles selected on a collection page (CollectionSelectionResponder).
+    - removed_puzzle_ids: cards to take off the page (empty for a copy)
+    - remaining_count: puzzles left in the collection the page shows
+    - message: the one toast
+    - open_url: the target collection ("Open" in the toast), null for a remove
+#}
+{{ include('_modal_close_stream.html.twig') }}
+
+{% for puzzle_id in removed_puzzle_ids %}
+    {{ include('_library_item_stream.html.twig', {action: 'remove', page_context: 'collection', puzzle_id: puzzle_id}) }}
+{% endfor %}
+
+{% if removed_puzzle_ids is not empty %}
+    <turbo-stream action="update" target="collection-count">
+        <template>{{ remaining_count }}</template>
+    </turbo-stream>
+
+    {% if remaining_count == 0 %}
+        <turbo-stream action="update" target="collection-list-container">
+            <template>{{ include('collections/_empty_state.html.twig') }}</template>
+        </turbo-stream>
+    {% endif %}
+{% endif %}
+
+{{ include('_toast_stream.html.twig', {
+    message: message,
+    link_url: open_url,
+    link_label: 'collection_selection.done.open'|trans,
+}) }}

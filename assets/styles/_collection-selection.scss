@@ -1,0 +1,105 @@
+// Selecting several puzzles on your own collection page (docs/features/collections/bulk-actions.md)
+
+.collection-select-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    // A 44 px tap target around the 1.25 rem checkbox, without widening the card much
+    width: 32px;
+    min-height: 44px;
+    margin: -0.25rem 0.25rem -0.25rem -0.25rem;
+    cursor: pointer;
+
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin: 0;
+        cursor: pointer;
+    }
+}
+
+.collection-selecting {
+    // Room for the bar under the last cards
+    padding-bottom: 5rem;
+
+    [data-collection-filter-target~="item"] {
+        cursor: pointer;
+        user-select: none;
+
+        // One action at a time: the card menus step aside while selecting
+        .dropdown {
+            visibility: hidden;
+        }
+    }
+}
+
+.collection-item-selected > .card {
+    outline: 2px solid $primary;
+    outline-offset: -2px;
+}
+
+.collection-selection-bar {
+    position: fixed;
+    left: 50%;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 1035; // above the comparison launcher and sticky header, below modals (1050) and toasts (1060)
+    width: max-content;
+    max-width: calc(100% - 24px);
+    padding: 0.5rem 0.75rem;
+    border-radius: 999px;
+    background: $white;
+    border: 1px solid $border-color;
+    animation: collection-selection-bar-in 0.15s ease-out;
+
+    &[hidden] {
+        display: none;
+    }
+
+    .collection-selection-bar-inner {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .collection-selection-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        margin-left: 0.25rem;
+    }
+
+    // Phones: the bar spans the screen, the actions sit on its right end
+    @media (max-width: 575.98px) {
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: none;
+        transform: none;
+        animation-name: collection-selection-bar-in-phone;
+
+        .collection-selection-actions {
+            margin-left: auto;
+        }
+    }
+}
+
+@keyframes collection-selection-bar-in-phone {
+    from {
+        opacity: 0;
+        transform: translateY(1rem);
+    }
+}
+
+@keyframes collection-selection-bar-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 1rem);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .collection-selection-bar {
+        animation: none;
+    }
+}

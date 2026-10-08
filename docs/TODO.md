@@ -61,8 +61,12 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       tabs (2026-10-08, `docs/features/pairs-and-teams/README.md` "Filters"). With it Allison's other report: the
       "with…" pair/team filter no longer hides the Solo tab. Promised to Gav (MSP #90, follow-up F45) and Allison
       (MSP #107, F46) - tell them once it is deployed.
-- [ ] Move several puzzles at once on a collection page (select, then "Move to collection"), not only one by one or
-      through multiscan. Promised to Allison (MSP #107, follow-up F50).
+- [x] Move several puzzles at once on a collection page (select, then "Move to collection"), not only one by one or
+      through multiscan. Promised to Allison (MSP #107, follow-up F50). Shipped 2026-10-08 with Copy and Remove,
+      members only (`docs/features/collections/bulk-actions.md`).
+- [ ] Rename the default ("system") collection - Allison asked in the same mail (MSP #107), answered "noted", not promised.
+- [ ] Select several puzzles on the other lists too (wishlist, sell/swap, unsolved) - the collection page's
+      `collection_selection_controller.js` + bar are the pattern (`docs/features/collections/bulk-actions.md`).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

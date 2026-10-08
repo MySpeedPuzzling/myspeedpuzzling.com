@@ -42,38 +42,37 @@ readonly final class MovePuzzleToCollectionHandler
         $player = $this->playerRepository->get($message->playerId);
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
 
-        $sourceCollection = null;
-        if ($message->sourceCollectionId !== null) {
-            $sourceCollection = $this->collectionRepository->get($message->sourceCollectionId);
-        }
+        // Both collections must be the player's own - the form field is free text, so any id can arrive here
+        $sourceCollection = $this->collectionRepository->getOwnedBy($message->sourceCollectionId, $player);
+        $targetCollection = $this->collectionRepository->getOwnedBy($message->targetCollectionId, $player);
 
-        $targetCollection = null;
-        if ($message->targetCollectionId !== null) {
-            $targetCollection = $this->collectionRepository->get($message->targetCollectionId);
-        }
-
-        // Find and delete item from source collection
         $sourceItem = $this->collectionItemRepository->findByCollectionPlayerAndPuzzle($sourceCollection, $player, $puzzle);
-
-        if ($sourceItem !== null) {
-            $this->collectionItemRepository->delete($sourceItem);
-        } else {
-            // Nothing to move: this adds the puzzle - a secret competition puzzle takes nothing personal before its
-            // reveal, from anybody (SecretPuzzleAccess)
-            $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $message->playerId);
-        }
-
-        // Check if item already exists in target collection
         $existingTargetItem = $this->collectionItemRepository->findByCollectionPlayerAndPuzzle($targetCollection, $player, $puzzle);
 
         if ($existingTargetItem !== null) {
-            // Already exists in target, just update comment if provided
+            // Already in the target: it only leaves the source, the comment goes to the target item
+            if ($sourceItem !== null && $sourceItem !== $existingTargetItem) {
+                $this->collectionItemRepository->delete($sourceItem);
+            }
+
             if ($message->comment !== null) {
                 $existingTargetItem->changeComment($message->comment);
-                $this->collectionItemRepository->save($existingTargetItem);
             }
+
             return;
         }
+
+        if ($sourceItem !== null) {
+            // Moving is not re-adding: the item keeps its id and added date
+            $sourceItem->moveTo($targetCollection);
+            $sourceItem->changeComment($message->comment);
+
+            return;
+        }
+
+        // Nothing to move: this adds the puzzle - a secret competition puzzle takes nothing personal before its
+        // reveal, from anybody (SecretPuzzleAccess)
+        $this->secretPuzzleAccess->assertPuzzleWritableBy($puzzle, $message->playerId);
 
         // Create new item in target collection
         $collectionItem = new CollectionItem(

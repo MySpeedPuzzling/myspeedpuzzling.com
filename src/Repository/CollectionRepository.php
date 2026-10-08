@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 
 readonly final class CollectionRepository
@@ -28,6 +29,26 @@ readonly final class CollectionRepository
         $collection = $this->entityManager->find(Collection::class, $collectionId);
 
         if ($collection === null) {
+            throw new CollectionNotFound();
+        }
+
+        return $collection;
+    }
+
+    /**
+     * A collection of this player - somebody else's id is "not found", like an unknown one. Null = the system collection.
+     *
+     * @throws CollectionNotFound
+     */
+    public function getOwnedBy(null|string $collectionId, Player $player): null|Collection
+    {
+        if ($collectionId === null) {
+            return null;
+        }
+
+        $collection = $this->get($collectionId);
+
+        if ($collection->player->id->equals($player->id) === false) {
             throw new CollectionNotFound();
         }
 

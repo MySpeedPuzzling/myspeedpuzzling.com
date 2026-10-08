@@ -72,6 +72,9 @@
 {% set my_time = show_my_times ? (my_times[item.puzzleId] ?? null) : null %}
 {% set my_prediction = show_my_times ? ((predictions|default({}))[item.puzzleId] ?? null) : null %}
 
+{# Members select several puzzles on their own collection pages (docs/features/collections/bulk-actions.md) #}
+{% set selectable = page_context == 'collection' and isOwnProfile and logged_user.profile is not null and logged_user.profile.activeMembership %}
+
 {# Difficulty tier (members) and community solve count #}
 {% set show_insights = puzzle_insights is defined %}
 {% set with_difficulty = show_insights and insights_with_difficulty|default(false) %}
@@ -103,6 +106,14 @@
 
     <div class="card card-body shadow p-2 position-relative {{ isLent and page_context not in ['lend-borrow-lent', 'lend-borrow-borrowed'] ? 'puzzle-lent' }}">
         <div class="d-flex">
+            {% if selectable %}
+                <label class="collection-select-check flex-shrink-0 align-self-center">
+                    <input type="checkbox" class="form-check-input" value="{{ item.puzzleId }}"
+                           aria-label="{{ 'collection_selection.select_puzzle'|trans({'%name%': item.puzzleName}) }}"
+                           data-collection-selection-target="checkbox"
+                           data-action="click->collection-selection#toggle">
+                </label>
+            {% endif %}
             {# Puzzle image #}
             <div style="width: 60px;" class="flex-shrink-0">
                 <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">

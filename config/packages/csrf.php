@@ -61,6 +61,9 @@ return App::config([
                 // The follow star on the events page (docs/features/events-page/README.md, "Follow"): it sits on a page
                 // every player opens, on every row - a session-backed token would write the session on each view
                 'event_follow',
+                // Selecting several puzzles on a collection page (docs/features/collections/bulk-actions.md): the bar's
+                // token is rendered on every collection page a member opens
+                'collection_selection',
             ],
         ],
     ],

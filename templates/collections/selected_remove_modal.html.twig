@@ -1,0 +1,28 @@
+{# "Remove" for the puzzles selected on a collection page (RemoveSelectedPuzzlesController) #}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'collection_selection.remove_title'|trans({'%count%': selection.puzzleIds|length}) }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+
+    <div class="modal-body">
+        {% if selection.puzzleIds is empty %}
+            <div class="alert alert-warning mb-0">{{ 'collection_selection.nothing_selected'|trans }}</div>
+        {% else %}
+            <p>{{ 'collection_selection.remove_message'|trans({'%collection%': selection.collectionName}) }}</p>
+
+            <form method="post"
+                  action="{{ path('collection_selected_remove', {collectionId: selection.routeCollectionId}) }}"
+                  data-turbo-frame="modal-frame"
+                  data-collection-selection-form>
+                {{ include('collections/_selected_hidden_inputs.html.twig') }}
+                <input type="hidden" name="confirm" value="1">
+
+                <button type="submit" class="btn btn-danger" data-loading-text="{{ 'forms.saving'|trans }}">
+                    {{ 'collection_selection.remove_submit'|trans({'%count%': selection.puzzleIds|length}) }}
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+            </form>
+        {% endif %}
+    </div>
+</turbo-frame>

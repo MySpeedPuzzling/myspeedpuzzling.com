@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Repository;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
@@ -69,6 +70,48 @@ readonly final class CollectionItemRepository
                 'player' => $player,
                 'puzzle' => $puzzle,
             ]);
+    }
+
+    /**
+     * Items of one collection (null = the system collection) among the given puzzles, with their puzzle loaded - one
+     * statement for a whole selection. Ids that are not valid UUIDs are left out.
+     *
+     * @param array<string> $puzzleIds
+     * @return array<string, CollectionItem> keyed by puzzle id
+     */
+    public function findByCollectionPlayerAndPuzzles(null|Collection $collection, Player $player, array $puzzleIds): array
+    {
+        $puzzleIds = array_values(array_filter($puzzleIds, static fn (string $id): bool => Uuid::isValid($id)));
+
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        $queryBuilder = $this->entityManager->createQueryBuilder()
+            ->select('item', 'puzzle')
+            ->from(CollectionItem::class, 'item')
+            ->join('item.puzzle', 'puzzle')
+            ->where('item.player = :player')
+            ->andWhere('puzzle.id IN (:puzzleIds)')
+            ->setParameter('player', $player->id->toString())
+            ->setParameter('puzzleIds', $puzzleIds, ArrayParameterType::STRING);
+
+        if ($collection === null) {
+            $queryBuilder->andWhere('item.collection IS NULL');
+        } else {
+            $queryBuilder->andWhere('item.collection = :collection')
+                ->setParameter('collection', $collection->id->toString());
+        }
+
+        /** @var array<CollectionItem> $items */
+        $items = $queryBuilder->getQuery()->getResult();
+
+        $byPuzzle = [];
+        foreach ($items as $item) {
+            $byPuzzle[$item->puzzle->id->toString()] = $item;
+        }
+
+        return $byPuzzle;
     }
 
     public function countByCollection(null|Collection $collection, Player $player): int

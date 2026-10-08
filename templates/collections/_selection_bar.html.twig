@@ -1,0 +1,67 @@
+{#
+    The floating bar of a collection page while puzzles are selected (collection_selection_controller.js,
+    docs/features/collections/bulk-actions.md). Its buttons post the selected ids into the modal frame - never in the
+    URL. Expects `collection` (the page's collection).
+#}
+{% set route_collection_id = collection.collectionId ?? '__system_collection__' %}
+<form method="post" class="collection-selection-bar shadow-lg" hidden
+      data-collection-selection-target="bar"
+      data-turbo-frame="modal-frame"
+      aria-label="{{ 'collection_selection.bar_label'|trans }}">
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Value\\CollectionSelection::CSRF_TOKEN_ID')) }}">
+    <div data-collection-selection-target="inputs"></div>
+
+    <div class="collection-selection-bar-inner">
+        <button type="button" class="btn btn-sm btn-link text-body p-1" data-action="collection-selection#clear"
+                title="{{ 'collection_selection.clear'|trans }}" aria-label="{{ 'collection_selection.clear'|trans }}">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <span class="fw-semibold text-nowrap" data-collection-selection-target="count" aria-live="polite"></span>
+        <button type="button" class="btn btn-sm btn-link px-1 text-nowrap d-none d-sm-inline-block" data-action="collection-selection#selectAll"
+                title="{{ 'collection_selection.select_all_title'|trans }}">
+            {{ 'collection_selection.select_all'|trans }}
+        </button>
+
+        <div class="collection-selection-actions">
+            <button type="submit" class="btn btn-sm btn-primary text-nowrap"
+                    formaction="{{ path('collection_selected_move', {collectionId: route_collection_id, mode: 'move'}) }}">
+                <i class="bi bi-folder-symlink me-1"></i>{{ 'collection_selection.move'|trans }}
+            </button>
+            <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap d-none d-sm-inline-block"
+                    formaction="{{ path('collection_selected_move', {collectionId: route_collection_id, mode: 'copy'}) }}">
+                <i class="bi bi-copy me-1"></i>{{ 'collection_selection.copy'|trans }}
+            </button>
+            <button type="submit" class="btn btn-sm btn-outline-danger text-nowrap d-none d-sm-inline-block"
+                    formaction="{{ path('collection_selected_remove', {collectionId: route_collection_id}) }}">
+                <i class="ci-trash me-1"></i>{{ 'collection_selection.remove'|trans }}
+            </button>
+
+            {# Phones: Select all, Copy and Remove behind ⋯ #}
+            <div class="dropup d-sm-none">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="dropdown"
+                        aria-expanded="false" aria-label="{{ 'collection_selection.more_actions'|trans }}">
+                    <i class="ci-menu"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <button type="button" class="dropdown-item" data-action="collection-selection#selectAll">
+                            <i class="bi bi-check2-all me-1"></i>{{ 'collection_selection.select_all'|trans }}
+                        </button>
+                    </li>
+                    <li>
+                        <button type="submit" class="dropdown-item"
+                                formaction="{{ path('collection_selected_move', {collectionId: route_collection_id, mode: 'copy'}) }}">
+                            <i class="bi bi-copy me-1"></i>{{ 'collection_selection.copy'|trans }}
+                        </button>
+                    </li>
+                    <li>
+                        <button type="submit" class="dropdown-item text-danger"
+                                formaction="{{ path('collection_selected_remove', {collectionId: route_collection_id}) }}">
+                            <i class="ci-trash me-1"></i>{{ 'collection_selection.remove'|trans }}
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</form>

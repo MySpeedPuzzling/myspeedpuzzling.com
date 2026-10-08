@@ -5,7 +5,12 @@
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" tab="library" />
 
-<div data-controller="collection-items collection-filter">
+{% set can_select = logged_user.profile is not null and logged_user.profile.playerId == collection.playerId and logged_user.profile.activeMembership %}
+<div data-controller="collection-items collection-filter{{ can_select ? ' collection-selection' }}"
+     {% if can_select %}
+     data-collection-selection-count-text-value="{{ browser_translation('collection_selection.selected_count')|json_encode }}"
+     data-action="click->collection-selection#cardClick keydown.esc@document->collection-selection#escape turbo:submit-end@document->collection-selection#submitted"
+     {% endif %}>
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}
 
     <div class="d-flex flex-column flex-sm-row align-items-start justify-content-between gap-2 mb-4">
@@ -131,6 +136,10 @@
                 }) }}
             {% endfor %}
         </div>
+
+        {% if can_select %}
+            {{ include('collections/_selection_bar.html.twig') }}
+        {% endif %}
 
         <div class="hidden" data-collection-filter-target="noResults">
             <div class="alert alert-warning mb-0">

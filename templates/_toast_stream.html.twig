@@ -4,6 +4,7 @@
     Parameters:
     - message: The toast message to display
     - type: Toast type - 'success' (default), 'danger', 'warning', 'info'
+    - link_url, link_label: optional link after the message (the toast then stays twice as long)
 #}
 {% set type = type|default('success') %}
 
@@ -11,9 +12,14 @@
     <template>
         <div class="toast align-items-center text-bg-{{ type }} border-0"
              data-controller="turbo-stream-toast"
-             data-turbo-stream-toast-delay-value="3000">
+             data-turbo-stream-toast-delay-value="{{ link_url|default(null) ? 6000 : 3000 }}">
             <div class="d-flex">
-                <div class="toast-body">{{ message }}</div>
+                <div class="toast-body">
+                    {{ message }}
+                    {% if link_url|default(null) %}
+                        <a href="{{ link_url }}" class="text-white fw-semibold ms-1 text-nowrap">{{ link_label }}</a>
+                    {% endif %}
+                </div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="{{ 'forms.close'|trans }}"></button>
             </div>
         </div>

@@ -117,6 +117,9 @@
 // The admin overview of duplicate results (docs/features/duplicate-results.md, "Admin overview")
 @import "duplicate-results";
 
+// Select several puzzles on a collection page (docs/features/collections/bulk-actions.md)
+@import "collection-selection";
+
 @import "flag-icons/sass/flag-icons";
 
 // Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen

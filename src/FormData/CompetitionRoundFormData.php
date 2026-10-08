@@ -57,7 +57,7 @@ final class CompetitionRoundFormData
     }
 
     /**
-     * @param null|int $guessedTeamSize the most common size of the round's teams (ParticipantRules::usualTeamSize()) -
+     * @param null|int $guessedTeamSize the most common size of the round's teams (ParticipantRules::guessedTeamSize()) -
      *                                  shown for a team round without an expected size yet (D5), null = no guess
      */
     public static function fromCompetitionRound(CompetitionRound $round, null|int $guessedTeamSize = null): self

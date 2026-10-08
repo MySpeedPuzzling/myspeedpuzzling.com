@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\ParticipantsSheet;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Services\ParticipantImport\SiteSnapshotReader;
 use SpeedPuzzling\Web\Services\ParticipantsSheet\Plan\SheetPlan;
 use SpeedPuzzling\Web\Services\ParticipantsSheet\Plan\SheetPlanRun;
@@ -31,9 +32,22 @@ readonly final class SheetChangesPlanner
     /**
      * @param list<SheetChangeGroup> $groups
      * @param string $stateVersion GetParticipantsSheetVersion, read by the caller before this
+     *
+     * @throws CompetitionNotFound
      */
-    public function plan(string $competitionId, bool $registrationManaged, array $groups, string $stateVersion): SheetPlan
+    public function plan(string $competitionId, array $groups, string $stateVersion): SheetPlan
     {
+        // Read here, under the event's lock - never from an entity loaded before it (the controller's, the identity
+        // map's): an organiser switching management on or off meanwhile decides whether a restore keeps the waitlist
+        $registrationManaged = $this->database->fetchOne(
+            'SELECT registration_managed FROM competition WHERE id = :competitionId',
+            ['competitionId' => $competitionId],
+        );
+
+        if (!is_bool($registrationManaged)) {
+            throw new CompetitionNotFound();
+        }
+
         $playerIds = [];
         $newParticipantIds = [];
         $teamIds = [];

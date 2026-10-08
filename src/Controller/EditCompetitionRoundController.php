@@ -256,7 +256,8 @@ final class EditCompetitionRoundController extends AbstractController
     }
 
     /**
-     * The most common size of the round's teams, for a team round without an expected size yet - null otherwise.
+     * The most common size of the round's teams, for a team round without an expected size yet - never above what the
+     * form accepts (ParticipantRules::guessedTeamSize()), null otherwise.
      */
     private function guessedTeamSize(CompetitionRound $round): null|int
     {
@@ -264,9 +265,7 @@ final class EditCompetitionRoundController extends AbstractController
             return null;
         }
 
-        $sizes = $this->getRoundTeamSizes->ofRound($round->id->toString());
-
-        return $sizes !== [] ? ParticipantRules::usualTeamSize($sizes) : null;
+        return ParticipantRules::guessedTeamSize($this->getRoundTeamSizes->ofRound($round->id->toString()));
     }
 
     /**

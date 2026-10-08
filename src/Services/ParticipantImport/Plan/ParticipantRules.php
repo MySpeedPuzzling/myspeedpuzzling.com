@@ -15,6 +15,12 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  */
 final class ParticipantRules
 {
+    /** A time the linked player added to their own profile keeps them (D11) */
+    public const string KEPT_BY_OWN_TIME = 'own_time';
+
+    /** A result or qualified mark the organisers recorded keeps them (official-results.md) */
+    public const string KEPT_BY_OFFICIAL_DATA = 'official';
+
     /**
      * A player is linked to one active participant of an event at most - the participant holding them now, or null
      * when `$personKey` may take them. Removed participants keep their link and block nobody.
@@ -40,22 +46,25 @@ final class ParticipantRules
      */
     public static function usualTeamSize(array $sizes): int
     {
-        $sizes = array_values(array_filter($sizes, static fn (int $size): bool => $size > 0));
+        return max(2, self::mostCommonSize($sizes) ?? 2);
+    }
 
-        if ($sizes === []) {
-            return 2;
+    /**
+     * What the round form offers for a team round without an expected size (D5): the most common size of its teams, at
+     * most CompetitionRound::TEAM_SIZE_MAX (a bigger number would make the untouched form invalid); none when there are
+     * no teams with people or most have fewer than TEAM_SIZE_MIN.
+     *
+     * @param list<int> $sizes members of each pair/team that has any
+     */
+    public static function guessedTeamSize(array $sizes): null|int
+    {
+        $size = self::mostCommonSize($sizes);
+
+        if ($size === null || $size < CompetitionRound::TEAM_SIZE_MIN) {
+            return null;
         }
 
-        $counts = array_count_values($sizes);
-        ksort($counts);
-        $usual = (int) array_key_first($counts);
-        foreach ($counts as $size => $count) {
-            if ($count > $counts[$usual]) {
-                $usual = $size;
-            }
-        }
-
-        return max(2, $usual);
+        return min($size, CompetitionRound::TEAM_SIZE_MAX);
     }
 
     /**
@@ -82,6 +91,25 @@ final class ParticipantRules
     }
 
     /**
+     * The participant holding `$externalId` already, or null when `$personKey` may have it - an external id is one
+     * person's (the organiser's registration number, a ticket): exactly equal, removed participants count too (a
+     * restore brings them back with it). The import keeps a matched participant's id instead (`external_id_kept`), the
+     * sheet refuses the change (`external_id_taken`).
+     *
+     * @param iterable<string, array{externalId: null|string, ...}> $people participant key => person
+     */
+    public static function externalIdTakenBy(string $externalId, string $personKey, iterable $people): null|string
+    {
+        foreach ($people as $key => $person) {
+            if ($key !== $personKey && $person['externalId'] === $externalId) {
+                return $key;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Official data a person holds in a round (official-results.md "Guards"): the result or qualified mark of their own
      * entry (solo rounds), or of the pair/team they are in.
      */
@@ -91,11 +119,48 @@ final class ParticipantRules
     }
 
     /**
-     * Data a person must not be taken out of a round with (D11): official data (holdsOfficialData()), or a time the
-     * linked player added to their profile in that round.
+     * What keeps a person in a round (D11): a time one of their players added to their own profile there
+     * (KEPT_BY_OWN_TIME - checked first: nobody but the player can take it away), or the result or qualified mark of their
+     * own entry (KEPT_BY_OFFICIAL_DATA - the results desk clears it); null when nothing does. A pair's/team's result is
+     * not the member's own: a member may leave while the pair/team keeps somebody taking part - the sheet's emptying
+     * guard (participants-spreadsheet.md, official-results.md "Guards").
+     *
+     * @param iterable<null|string> $playerIds the participant's players - linked now and at the start of the change, so
+     *                                         unlinking first does not get around their time
      */
-    public static function holdsResultInRound(SiteSnapshot $site, null|string $playerId, string $roundId, bool $entryHasOwnData, null|string $teamId): bool
+    public static function keptInRoundBy(SiteSnapshot $site, iterable $playerIds, string $roundId, bool $entryHasOwnData): null|string
     {
-        return self::holdsOfficialData($site, $entryHasOwnData, $teamId) || $site->hasResult($playerId, $roundId);
+        foreach ($playerIds as $playerId) {
+            if ($site->hasResult($playerId, $roundId)) {
+                return self::KEPT_BY_OWN_TIME;
+            }
+        }
+
+        return $entryHasOwnData ? self::KEPT_BY_OFFICIAL_DATA : null;
+    }
+
+    /**
+     * The most common of the sizes above zero - on a tie the smaller one; null when there is none.
+     *
+     * @param list<int> $sizes
+     */
+    private static function mostCommonSize(array $sizes): null|int
+    {
+        $sizes = array_values(array_filter($sizes, static fn (int $size): bool => $size > 0));
+
+        if ($sizes === []) {
+            return null;
+        }
+
+        $counts = array_count_values($sizes);
+        ksort($counts);
+        $usual = (int) array_key_first($counts);
+        foreach ($counts as $size => $count) {
+            if ($count > $counts[$usual]) {
+                $usual = $size;
+            }
+        }
+
+        return $usual;
     }
 }

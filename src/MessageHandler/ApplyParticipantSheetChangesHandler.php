@@ -78,7 +78,7 @@ readonly final class ApplyParticipantSheetChangesHandler
 
         // First, before the plan reads the event - under the lock nobody else writes in between
         $versionBefore = $this->getVersion->ofCompetition($competitionId);
-        $plan = $this->planner->plan($competitionId, $competition->registrationManaged, $message->groups, $versionBefore);
+        $plan = $this->planner->plan($competitionId, $message->groups, $versionBefore);
 
         if ($message->dryRun) {
             return new AppliedParticipantSheetChanges(

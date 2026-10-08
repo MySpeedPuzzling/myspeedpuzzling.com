@@ -98,6 +98,31 @@ final class RoundTeamSizeTest extends WebTestCase
         self::assertNull($this->teamSize($roundId));
     }
 
+    /**
+     * Review A-r13: the guess never makes the untouched form invalid - teams of 25 offer 20, teams of one offer nothing.
+     */
+    public function testTheGuessStaysWithinWhatTheFormAccepts(): void
+    {
+        $browser = $this->organiser();
+        $big = $this->addRound($browser, 'Big Teams', 'team', '');
+        $this->team($big, 'Crowd', 25);
+        $this->team($big, 'Mob', 25);
+
+        $crawler = $browser->request('GET', $this->editUrl($big));
+        self::assertSame('20', $crawler->filter('input[name="' . self::FIELD . '"]')->attr('value'));
+        $browser->submitForm('Save Changes');
+        self::assertResponseRedirects(self::ROUNDS_URL);
+        self::assertSame(20, $this->teamSize($big));
+
+        $singles = $this->addRound($browser, 'Single Teams', 'team', '');
+        $this->team($singles, 'Lone', 1);
+        $this->team($singles, 'Wolf', 1);
+        $this->team($singles, 'Pair', 2);
+
+        $crawler = $browser->request('GET', $this->editUrl($singles));
+        self::assertSame('', (string) $crawler->filter('input[name="' . self::FIELD . '"]')->attr('value'));
+    }
+
     public function testTheInternalApiSetsKeepsAndClearsTheSize(): void
     {
         $browser = self::createClient();

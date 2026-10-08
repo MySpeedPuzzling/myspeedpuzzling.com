@@ -91,8 +91,9 @@ $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
 6. **Bilateral history stays readable**: lending/borrowing, completed sales, pending ratings and
    an open conversation keep showing a counterparty the viewer later blocked. (The *public* review
    list on a profile, `GetTransactionRatings::forPlayer()`, does hide a blocked reviewer.)
-7. **Organiser/admin tooling is not filtered** (participant management, table layout, maintainers
-   picker — `SearchPlayers::fulltext(includeHidden: true)`): blocking someone must not make them
+7. **Organiser/admin tooling is not filtered** (the participants sheet's profile search
+   `participants_sheet_player_search`, table layout, maintainers picker —
+   `SearchPlayers::fulltext(includeHidden: true)`): blocking someone must not make them
    unassignable at an event you run.
 
 ### Profiles

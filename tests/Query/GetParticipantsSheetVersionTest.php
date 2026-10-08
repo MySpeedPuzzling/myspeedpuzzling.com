@@ -49,6 +49,17 @@ final class GetParticipantsSheetVersionTest extends KernelTestCase
         yield 'a pair\'s name' => ["UPDATE competition_team SET name = 'Sharks' WHERE id = :id", ['id' => Cup::TEAM_SHARKS]];
         yield 'a team size' => ['UPDATE competition_round SET team_size = 4 WHERE id = :id', ['id' => Cup::ROUND_PAIRS]];
         yield 'a round\'s start' => ["UPDATE competition_round SET starts_at = starts_at + INTERVAL '1 hour' WHERE id = :id", ['id' => Cup::ROUND_FINAL]];
+        // What the sheet shows of the event and its rounds besides the people (review A-r5, B-m4)
+        yield 'a registration time' => ['UPDATE competition_participant SET registered_at = NOW() WHERE id = :id', ['id' => Cup::PARTICIPANT_IVAN]];
+        yield 'a round\'s time zone' => ["UPDATE competition_round SET timezone = 'America/Chicago' WHERE id = :id", ['id' => Cup::ROUND_FINAL]];
+        yield 'a round\'s colour' => ["UPDATE competition_round SET badge_background_color = '#123456' WHERE id = :id", ['id' => Cup::ROUND_FINAL]];
+        yield 'a round\'s text colour' => ["UPDATE competition_round SET badge_text_color = '#fefefe' WHERE id = :id", ['id' => Cup::ROUND_FINAL]];
+        yield 'table numbers off' => ['UPDATE competition_round SET table_numbers_off = true WHERE id = :id', ['id' => Cup::ROUND_FINAL]];
+        yield 'results published' => ['UPDATE competition_round SET results_published_at = NOW() WHERE id = :id', ['id' => Cup::ROUND_FINAL]];
+        yield 'the event\'s name' => ["UPDATE competition SET name = 'Results Cup 2' WHERE id = :id", ['id' => Cup::COMPETITION_RESULTS_CUP]];
+        yield 'managed registration' => ['UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]];
+        yield 'the capacity' => ['UPDATE competition SET capacity = 120 WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]];
+        yield 'online' => ['UPDATE competition SET is_online = true WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]];
     }
 
     /**

@@ -211,28 +211,197 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
 
     public function testNobodyIsTakenOutOfARoundWhereTheyHoldAResult(): void
     {
-        // Anna's player added a time in the Final to their own profile; Ben has an official result in Group A, Cara holds
-        // one through her pair
-        $this->database->executeStatement(
-            'UPDATE puzzle_solving_time SET competition_round_id = :round WHERE id = (SELECT id FROM puzzle_solving_time WHERE player_id = :player ORDER BY id LIMIT 1)',
-            ['round' => Cup::ROUND_FINAL, 'player' => PlayerFixture::PLAYER_ADMIN],
-        );
+        // Anna's player added a time in the Final to their own profile; Ben has an official result in Group A
+        $this->ownTimeOfAnnaInTheFinal();
 
         $applied = $this->applySheetChanges([
             self::sheetGroup(self::placeChange(Cup::PARTICIPANT_ANNA, Cup::ROUND_FINAL, 'in', 'out')),
             self::sheetGroup(self::placeChange(Cup::PARTICIPANT_BEN, Cup::ROUND_GROUP_A, 'in', 'out')),
-            self::sheetGroup(self::placeChange(Cup::PARTICIPANT_CARA, Cup::ROUND_PAIRS, 'team:' . Cup::TEAM_CORNERS, 'out')),
         ]);
 
         self::assertSame(['refused:has_result_in_round'], self::changeStatuses($applied, 0));
         self::assertSame(['name' => 'Anna Fast', 'round' => 'Final'], $applied->groups[0]->changes[0]->parameters);
+        // The organiser cannot clear a player's own time - its own text
+        self::assertSame('participants_sheet_server.reason.has_result_in_round_own_time', $applied->groups[0]->changes[0]->messageKey());
         self::assertSame(['refused:has_result_in_round'], self::changeStatuses($applied, 1));
-        self::assertSame(['refused:has_result_in_round'], self::changeStatuses($applied, 2));
+        self::assertSame('participants_sheet_server.reason.has_result_in_round', $applied->groups[1]->changes[0]->messageKey());
         self::assertSame('in', $applied->groups[1]->changes[0]->current);
 
         self::assertSame('in', self::storedPlace($this->database, Cup::PARTICIPANT_ANNA, Cup::ROUND_FINAL));
         self::assertSame('in', self::storedPlace($this->database, Cup::PARTICIPANT_BEN, Cup::ROUND_GROUP_A));
+    }
+
+    /**
+     * Review A-r1: unlinking the profile and taking the person out in the same change set does not get around their
+     * player's own time; an unlink saved before does - the time is not theirs any more.
+     */
+    public function testTheTimeOfThePlayerLinkedWhenTheChangeSetStartedKeepsThePersonIn(): void
+    {
+        $this->ownTimeOfAnnaInTheFinal();
+        $unlink = ['op' => 'player', 'participant' => Cup::PARTICIPANT_ANNA, 'from' => PlayerFixture::PLAYER_ADMIN, 'to' => null];
+
+        $applied = $this->applySheetChanges([
+            self::sheetGroup($unlink, self::placeChange(Cup::PARTICIPANT_ANNA, Cup::ROUND_FINAL, 'in', 'out')),
+            self::sheetGroup($unlink),
+            self::sheetGroup(self::placeChange(Cup::PARTICIPANT_ANNA, Cup::ROUND_FINAL, 'in', 'out')),
+            self::sheetGroup(['op' => 'remove', 'participant' => Cup::PARTICIPANT_ANNA]),
+        ]);
+
+        self::assertSame(['refused', 'applied', 'refused', 'refused'], self::groupStatuses($applied));
+        self::assertSame(['skipped', 'refused:has_result_in_round'], self::changeStatuses($applied, 0));
+        self::assertSame(['refused:has_result_in_round'], self::changeStatuses($applied, 2));
+        self::assertSame('participants_sheet_server.reason.has_result_in_round_own_time', $applied->groups[2]->changes[0]->messageKey());
+        // Anna holds official results too - her player's own time is what the organiser is told about first
+        self::assertSame(['refused:has_result_in_event'], self::changeStatuses($applied, 3));
+        self::assertSame(['name' => 'Anna Fast', 'round' => 'Final'], $applied->groups[3]->changes[0]->parameters);
+        self::assertSame('participants_sheet_server.reason.has_result_in_event_own_time', $applied->groups[3]->changes[0]->messageKey());
+        self::assertNull(self::participantRow($this->database, Cup::PARTICIPANT_ANNA)['player_id']);
+
+        // Unlinked in an earlier save: the time is the player's, not this participant's
+        $later = $this->applySheetChanges([self::sheetGroup(self::placeChange(Cup::PARTICIPANT_ANNA, Cup::ROUND_FINAL, 'in', 'out'))]);
+
+        self::assertSame(['applied'], self::groupStatuses($later));
+        self::assertSame('out', self::storedPlace($this->database, Cup::PARTICIPANT_ANNA, Cup::ROUND_FINAL));
+    }
+
+    /**
+     * Review A-r2: a pair's result belongs to its line-up - a member may leave it (out of the round, into the round
+     * without a pair, into another pair) while it keeps somebody; the last one may not.
+     */
+    public function testAMemberMayLeaveAPairWithAResultWhileItKeepsSomebody(): void
+    {
+        $applied = $this->applySheetChanges([
+            self::sheetGroup(self::placeChange(Cup::PARTICIPANT_CARA, Cup::ROUND_PAIRS, 'team:' . Cup::TEAM_CORNERS, 'out')),
+        ]);
+
+        self::assertSame(['applied'], self::groupStatuses($applied));
+        self::assertContains('team_result_line_up_changed', array_map(static fn ($warning): string => $warning->code, $applied->groups[0]->warnings));
+        self::assertSame('out', self::storedPlace($this->database, Cup::PARTICIPANT_CARA, Cup::ROUND_PAIRS));
+
+        $last = $this->applySheetChanges([
+            self::sheetGroup(self::placeChange(Cup::PARTICIPANT_DAN, Cup::ROUND_PAIRS, 'team:' . Cup::TEAM_CORNERS, 'out')),
+            self::sheetGroup(self::placeChange(Cup::PARTICIPANT_DAN, Cup::ROUND_PAIRS, 'team:' . Cup::TEAM_CORNERS, 'in')),
+        ]);
+
+        self::assertSame(['refused:team_has_result'], self::changeStatuses($last, 0));
+        self::assertSame(['refused:team_has_result'], self::changeStatuses($last, 1));
+        self::assertSame(['team' => 'Corner Pieces', 'round' => 'Pairs'], $last->groups[0]->changes[0]->parameters);
+        self::assertSame('participants_sheet_server.reason.team_has_result_emptied', $last->groups[0]->changes[0]->messageKey());
+        self::assertSame('team:' . Cup::TEAM_CORNERS, self::storedPlace($this->database, Cup::PARTICIPANT_DAN, Cup::ROUND_PAIRS));
+    }
+
+    /**
+     * Review A-r3: on an event managing registration, people on the waitlist are placed for when they get a spot - a
+     * pair with a result left with only them has nobody taking part.
+     */
+    public function testAPairWithAResultKeepsSomebodyWhoIsNotOnTheWaitlist(): void
+    {
+        $this->database->executeStatement("UPDATE competition_participant SET registration_status = 'waitlisted', registered_at = NOW() WHERE id = :id", ['id' => Cup::PARTICIPANT_DAN]);
+        $caraLeaves = self::sheetGroup(self::placeChange(Cup::PARTICIPANT_CARA, Cup::ROUND_PAIRS, 'team:' . Cup::TEAM_CORNERS, 'in'));
+
+        $this->database->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]);
+        $managed = $this->applySheetChanges([$caraLeaves]);
+
+        self::assertSame(['refused:team_has_result'], self::changeStatuses($managed));
+        self::assertSame('participants_sheet_server.reason.team_has_result_waitlisted_only', $managed->groups[0]->changes[0]->messageKey());
         self::assertSame('team:' . Cup::TEAM_CORNERS, self::storedPlace($this->database, Cup::PARTICIPANT_CARA, Cup::ROUND_PAIRS));
+
+        // An event that does not manage registration has no waitlist - a status left from before counts for nothing
+        $this->database->executeStatement('UPDATE competition SET registration_managed = false WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]);
+        $unmanaged = $this->applySheetChanges([$caraLeaves]);
+
+        self::assertSame(['applied'], self::groupStatuses($unmanaged));
+        self::assertSame('in', self::storedPlace($this->database, Cup::PARTICIPANT_CARA, Cup::ROUND_PAIRS));
+    }
+
+    /**
+     * Review A-r6: an external id is one participant's - removed ones' too (a restore brings them back with it), the
+     * import's rule (ParticipantRules::externalIdTakenBy()).
+     */
+    public function testAnExternalIdBelongsToOneParticipant(): void
+    {
+        $removed = $this->participant('Gone Person', removed: true);
+        $this->database->executeStatement("UPDATE competition_participant SET external_id = 'R-9' WHERE id = :id", ['id' => $removed]);
+
+        $applied = $this->applySheetChanges([
+            self::sheetGroup(self::fieldChange(Cup::PARTICIPANT_IVAN, 'externalId', null, 'R-1')),
+            self::sheetGroup(self::fieldChange(Cup::PARTICIPANT_FILIP, 'externalId', null, ' R-1 ')),
+            self::sheetGroup(['op' => 'newParticipant', 'id' => Uuid::uuid7()->toString(), 'name' => 'Jo Doe', 'externalId' => 'R-1']),
+            self::sheetGroup(self::fieldChange(Cup::PARTICIPANT_FILIP, 'externalId', null, 'R-9')),
+            // Handed over within one group: let go first
+            self::sheetGroup(
+                self::fieldChange(Cup::PARTICIPANT_IVAN, 'externalId', 'R-1', null),
+                self::fieldChange(Cup::PARTICIPANT_EVA, 'externalId', null, 'R-1'),
+            ),
+        ]);
+
+        self::assertSame(['applied', 'refused', 'refused', 'refused', 'applied'], self::groupStatuses($applied));
+        self::assertSame(['refused:external_id_taken'], self::changeStatuses($applied, 1));
+        self::assertSame(['id' => 'R-1', 'other' => 'Ivan Last'], $applied->groups[1]->changes[0]->parameters);
+        self::assertNull($applied->groups[1]->changes[0]->current);
+        self::assertSame(['refused:external_id_taken'], self::changeStatuses($applied, 2));
+        self::assertSame(['id' => 'R-9', 'other' => 'Gone Person'], $applied->groups[3]->changes[0]->parameters);
+
+        self::assertNull(self::participantRow($this->database, Cup::PARTICIPANT_IVAN)['external_id']);
+        self::assertNull(self::participantRow($this->database, Cup::PARTICIPANT_FILIP)['external_id']);
+        self::assertSame('R-1', self::participantRow($this->database, Cup::PARTICIPANT_EVA)['external_id']);
+        self::assertSame(0, $this->database->fetchOne("SELECT COUNT(*) FROM competition_participant WHERE name = 'Jo Doe'"));
+    }
+
+    /**
+     * Review A-r7: a pair/team the change set creates and leaves without a name and without anybody is never created.
+     */
+    public function testAnUnnamedPairTheChangeSetCreatesAndEmptiesIsNeverCreated(): void
+    {
+        $emptied = Uuid::uuid7()->toString();
+        $alone = Uuid::uuid7()->toString();
+        $filled = Uuid::uuid7()->toString();
+        $versionBefore = $this->version();
+
+        $applied = $this->applySheetChanges([
+            self::sheetGroup(
+                ['op' => 'newTeam', 'id' => $emptied, 'round' => Cup::ROUND_PAIRS, 'name' => null],
+                // Eva moves from her pair into the new one and back
+                self::placeChange(Cup::PARTICIPANT_EVA, Cup::ROUND_PAIRS, 'team:' . Cup::TEAM_UNNAMED, 'team:' . $emptied),
+                self::placeChange(Cup::PARTICIPANT_EVA, Cup::ROUND_PAIRS, 'team:' . $emptied, 'team:' . Cup::TEAM_UNNAMED),
+            ),
+            self::sheetGroup(['op' => 'newTeam', 'id' => $alone, 'round' => Cup::ROUND_PAIRS_FINAL, 'name' => null]),
+        ]);
+
+        self::assertSame(['applied', 'applied'], self::groupStatuses($applied));
+        self::assertSame(0, $this->database->fetchOne('SELECT COUNT(*) FROM competition_team WHERE id IN (:a, :b)', ['a' => $emptied, 'b' => $alone]));
+        self::assertSame('team:' . Cup::TEAM_UNNAMED, self::storedPlace($this->database, Cup::PARTICIPANT_EVA, Cup::ROUND_PAIRS));
+        self::assertSame($versionBefore, $applied->versionAfter);
+
+        // Filled in a later group of the same change set: created
+        $later = $this->applySheetChanges([
+            self::sheetGroup(['op' => 'newTeam', 'id' => $filled, 'round' => Cup::ROUND_PAIRS_FINAL, 'name' => null]),
+            self::sheetGroup(self::placeChange(Cup::PARTICIPANT_IVAN, Cup::ROUND_PAIRS_FINAL, 'out', 'team:' . $filled)),
+        ]);
+
+        self::assertSame(['applied', 'applied'], self::groupStatuses($later));
+        self::assertSame('team:' . $filled, self::storedPlace($this->database, Cup::PARTICIPANT_IVAN, Cup::ROUND_PAIRS_FINAL));
+    }
+
+    /**
+     * Review A-r9: whether the event manages registration is read under the event's lock - not from an entity loaded
+     * before it (the controller's, still in the identity map).
+     */
+    public function testRegistrationManagementIsReadUnderTheLock(): void
+    {
+        $waiting = $this->participant('Waiting Removed', removed: true, status: RegistrationStatus::Waitlisted);
+
+        // Loaded while the event did not manage registration; switched on meanwhile
+        $competition = $this->entityManager->find(Competition::class, Cup::COMPETITION_RESULTS_CUP);
+        self::assertNotNull($competition);
+        self::assertFalse($competition->registrationManaged);
+        $this->database->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]);
+
+        $applied = $this->applySheetChanges([self::sheetGroup(['op' => 'restore', 'participant' => $waiting])]);
+
+        self::assertSame(['applied'], self::groupStatuses($applied));
+        // A managed event keeps its waitlist
+        self::assertSame(RegistrationStatus::Waitlisted->value, self::participantRow($this->database, $waiting)['registration_status']);
     }
 
     public function testTakenOutAndPutBackIsNoChangeAtAll(): void
@@ -363,7 +532,8 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
         $applied = $this->applySheetChanges([self::sheetGroup(['op' => 'remove', 'participant' => Cup::PARTICIPANT_EVA])]);
 
         self::assertSame(['refused:has_result_in_event'], self::changeStatuses($applied));
-        self::assertSame(['name' => 'Eva Noshow'], $applied->groups[0]->changes[0]->parameters);
+        self::assertSame(['name' => 'Eva Noshow', 'round' => 'Group A'], $applied->groups[0]->changes[0]->parameters);
+        self::assertSame('participants_sheet_server.reason.has_result_in_event', $applied->groups[0]->changes[0]->messageKey());
         self::assertNull(self::participantRow($this->database, Cup::PARTICIPANT_EVA)['deleted_at']);
     }
 
@@ -684,6 +854,14 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
         self::assertSame($this->version(), $applied->versionAfter);
         self::assertNotSame($before, $applied->versionAfter);
         self::assertTrue($applied->changedTheSheet());
+    }
+
+    private function ownTimeOfAnnaInTheFinal(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET competition_round_id = :round WHERE id = (SELECT id FROM puzzle_solving_time WHERE player_id = :player ORDER BY id LIMIT 1)',
+            ['round' => Cup::ROUND_FINAL, 'player' => PlayerFixture::PLAYER_ADMIN],
+        );
     }
 
     private function version(): string

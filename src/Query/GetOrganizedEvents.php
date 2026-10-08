@@ -17,9 +17,11 @@ use SpeedPuzzling\Web\Value\OccurrenceDates;
 
 /**
  * The items of "You organize" (docs/features/events-page/implementation-plan.md, 1.4) for the ids of
- * EventsViewerData::organizedCompetitionIds() / organizedSeriesIds(): two statements, waiting for approval and
- * rejected ones included. Dates follow the occurrence rule (OccurrenceDates); of a competition whose rounds fall on
- * separate days, the session not over yet (else the last) stands for it.
+ * EventsViewerData::organizedCompetitionIds() / organizedSeriesIds() / organizedOrganizationIds(): a statement per
+ * kind asked for, drafts, waiting for approval and rejected ones included. Dates follow the occurrence rule
+ * (OccurrenceDates); of a competition whose rounds fall on separate days, the session not over yet (else the last)
+ * stands for it. "Approved" is the approval state alone (IsCompetitionPubliclyVisible::SQL_APPROVED's meaning) - a draft
+ * says so on its own (docs/features/organizations/README.md).
  */
 readonly final class GetOrganizedEvents
 {
@@ -32,15 +34,60 @@ readonly final class GetOrganizedEvents
     /**
      * @param list<string> $competitionIds
      * @param list<string> $seriesIds
+     * @param list<string> $organizationIds
      *
      * @return list<OrganizedEvent>
      */
-    public function byIds(array $competitionIds, array $seriesIds): array
+    public function byIds(array $competitionIds, array $seriesIds, array $organizationIds = []): array
     {
         return [
+            ...$this->organizations(self::validIds($organizationIds)),
             ...$this->competitions(self::validIds($competitionIds)),
             ...$this->series(self::validIds($seriesIds)),
         ];
+    }
+
+    /**
+     * @param list<string> $ids
+     *
+     * @return list<OrganizedEvent>
+     */
+    private function organizations(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $query = <<<SQL
+SELECT o.id, o.name, o.slug, o.country_code, o.is_draft,
+    (o.approved_at IS NOT NULL) AS is_approved, (o.rejected_at IS NOT NULL) AS is_rejected, o.rejection_reason,
+    (SELECT COUNT(*) FROM competition_series cs WHERE cs.organization_id = o.id) AS series_count,
+    (SELECT COUNT(*) FROM competition c WHERE c.organization_id = o.id AND c.series_id IS NULL) AS event_count
+FROM organization o
+WHERE o.id IN (:ids)
+SQL;
+
+        $items = [];
+
+        /** @var array<string, null|string|int|bool> $row */
+
+        foreach ($this->database->executeQuery($query, ['ids' => $ids], ['ids' => ArrayParameterType::STRING])->fetchAllAssociative() as $row) {
+            $items[] = new OrganizedEvent(
+                kind: OrganizedEvent::KIND_ORGANIZATION,
+                id: (string) $row['id'],
+                name: (string) $row['name'],
+                slug: self::string($row['slug']),
+                countryCode: CountryCode::fromCode(self::string($row['country_code'])),
+                isApproved: (bool) $row['is_approved'],
+                rejectionReason: self::string($row['rejection_reason']),
+                isRejected: (bool) $row['is_rejected'],
+                isDraft: (bool) $row['is_draft'],
+                seriesCount: is_numeric($row['series_count']) ? (int) $row['series_count'] : 0,
+                eventCount: is_numeric($row['event_count']) ? (int) $row['event_count'] : 0,
+            );
+        }
+
+        return $items;
     }
 
     /**
@@ -65,7 +112,9 @@ SELECT c.id, c.name, c.slug, c.series_id, cs.name AS series_name, cs.slug AS ser
     c.date_from, c.date_to, r.rounds, COALESCE(r.round_count, 0) AS round_count,
     CASE WHEN c.series_id IS NULL THEN c.approved_at IS NOT NULL ELSE cs.approved_at IS NOT NULL END AS is_approved,
     (c.rejected_at IS NOT NULL OR cs.rejected_at IS NOT NULL) AS is_rejected,
-    COALESCE(c.rejection_reason, cs.rejection_reason) AS rejection_reason
+    COALESCE(c.rejection_reason, cs.rejection_reason) AS rejection_reason,
+    (c.is_draft OR COALESCE(cs.is_draft, false)) AS is_draft,
+    COALESCE(c.organization_id, cs.organization_id) AS organization_id
 FROM competition c
 LEFT JOIN competition_series cs ON cs.id = c.series_id
 {$rounds}
@@ -100,6 +149,8 @@ SQL;
                 isApproved: (bool) $row['is_approved'],
                 rejectionReason: self::string($row['rejection_reason']),
                 isRejected: (bool) $row['is_rejected'],
+                isDraft: (bool) $row['is_draft'],
+                organizationId: self::string($row['organization_id']),
             );
         }
 
@@ -125,6 +176,7 @@ SQL;
 SELECT cs.id AS series_id, cs.name AS series_name, cs.slug AS series_slug, cs.is_online, cs.location,
     cs.location_country_code AS series_country_code,
     (cs.approved_at IS NOT NULL) AS is_approved, (cs.rejected_at IS NOT NULL) AS is_rejected, cs.rejection_reason,
+    cs.is_draft, cs.organization_id,
     c.id AS edition_id, c.location_country_code AS own_country_code, c.date_from, c.date_to,
     r.rounds, COALESCE(r.round_count, 0) AS round_count
 FROM competition_series cs
@@ -186,6 +238,8 @@ SQL;
                 editionCount: $item['count'],
                 nextEditionDate: $item['next'],
                 lastEditionDate: $item['last'],
+                isDraft: (bool) $row['is_draft'],
+                organizationId: self::string($row['organization_id']),
             );
         }
 

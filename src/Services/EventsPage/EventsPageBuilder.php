@@ -496,6 +496,8 @@ readonly final class EventsPageBuilder
                 isPending: $row->isPublic === false,
                 scopeKey: EventsScope::keyOf($row->isOnline, $row->countryCode),
                 visible: $scope->matches($row->isOnline, $row->countryCode),
+                // "by …" under the line - only a publicly visible organization (docs/features/organizations/README.md)
+                organization: $row->organization?->isPublic === true ? $row->organization : null,
             );
         }
 
@@ -537,6 +539,7 @@ readonly final class EventsPageBuilder
                 isPending: $line->isPending,
                 scopeKey: $line->scopeKey,
                 visible: $line->visible,
+                organization: $line->organization,
             );
         }
 

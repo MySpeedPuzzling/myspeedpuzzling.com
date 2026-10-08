@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results\EventsPage;
 
+use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Value\FollowTarget;
 
 readonly final class SeriesLine
@@ -24,6 +25,8 @@ readonly final class SeriesLine
         public bool $isPending,
         public string $scopeKey,
         public bool $visible,
+        // only a publicly visible organization ("by …" under the line, docs/features/organizations/README.md)
+        public null|OrganizationRef $organization = null,
     ) {
     }
 }

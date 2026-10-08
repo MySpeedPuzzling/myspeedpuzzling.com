@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Results\CompetitionSeriesOverview;
+use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Results\SeriesEdition;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -26,11 +27,11 @@ readonly final class GetCompetitionSeries
      */
     public function byId(string $seriesId): CompetitionSeriesOverview
     {
-        $shownOnPage = GetCompetitionPageSections::sqlShownOnSeriesPage('s', 'cs');
+        $columns = self::pageColumns();
         $query = <<<SQL
-SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
-       EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections
+SELECT {$columns}
 FROM competition_series cs
+LEFT JOIN organization o ON o.id = cs.organization_id
 WHERE cs.id = :seriesId
 SQL;
 
@@ -50,11 +51,11 @@ SQL;
      */
     public function bySlug(string $slug): CompetitionSeriesOverview
     {
-        $shownOnPage = GetCompetitionPageSections::sqlShownOnSeriesPage('s', 'cs');
+        $columns = self::pageColumns();
         $query = <<<SQL
-SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
-       EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections
+SELECT {$columns}
 FROM competition_series cs
+LEFT JOIN organization o ON o.id = cs.organization_id
 WHERE cs.slug = :slug
 SQL;
 
@@ -70,7 +71,7 @@ SQL;
     }
 
     /**
-     * The admin approval queue.
+     * The admin approval queue - never a draft: it is submitted by publishing it (docs/features/organizations/README.md).
      *
      * @return array<CompetitionSeriesOverview>
      */
@@ -78,10 +79,11 @@ SQL;
     {
         $query = <<<SQL
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+    cs.eligibility, cs.schedule, cs.is_draft,
     p.name AS added_by_player_name
 FROM competition_series cs
 LEFT JOIN player p ON p.id = cs.added_by_player_id
-WHERE cs.approved_at IS NULL AND cs.rejected_at IS NULL
+WHERE cs.approved_at IS NULL AND cs.rejected_at IS NULL AND cs.is_draft = false
 ORDER BY cs.created_at DESC NULLS LAST
 SQL;
 
@@ -90,6 +92,24 @@ SQL;
             ->fetchAllAssociative();
 
         return array_map($this->mapRow(...), $rows);
+    }
+
+    /**
+     * The columns of byId() / bySlug(): the series, whether a page section shows, and its organization (`o`, LEFT JOINed
+     * on cs.organization_id) - the "Organized by" byline rides on this statement.
+     */
+    private static function pageColumns(): string
+    {
+        $shownOnPage = GetCompetitionPageSections::sqlShownOnSeriesPage('s', 'cs');
+        $organizationVisible = IsOrganizationPubliclyVisible::SQL_CONDITION;
+
+        return <<<SQL
+cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+       EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections,
+       cs.eligibility, cs.schedule, cs.is_draft,
+       o.id AS organization_id, o.name AS organization_name, o.short_name AS organization_short_name, o.slug AS organization_slug,
+       COALESCE(({$organizationVisible}), false) AS organization_public
+SQL;
     }
 
     /**
@@ -224,6 +244,9 @@ SQL;
          *     rejected_at: null|string,
          *     added_by_player_name?: null|string,
          *     has_page_sections?: bool,
+         *     eligibility?: null|string,
+         *     schedule?: null|string,
+         *     is_draft?: bool,
          * } $row
          */
 
@@ -247,6 +270,10 @@ SQL;
             rejectedAt: $row['rejected_at'] !== null ? new DateTimeImmutable($row['rejected_at']) : null,
             addedByPlayerName: $row['added_by_player_name'] ?? null,
             hasPageSections: $row['has_page_sections'] ?? false,
+            organization: OrganizationRef::fromRow($row),
+            eligibility: $row['eligibility'] ?? null,
+            schedule: $row['schedule'] ?? null,
+            isDraft: $row['is_draft'] ?? false,
         );
     }
 }

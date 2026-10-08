@@ -23,8 +23,9 @@ use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
  * - merge requests: pending, none touching a secret puzzle (GetPuzzleMergeReviewQueue::countPending())
  * - puzzle approvals: unapproved, not secret (GetPuzzleApprovals::countPending())
  * - time verification: pending cases (GetSuspiciousTimeQueue::countPending())
- * - competition approvals: events (not series editions) and series neither approved nor rejected
- *   (GetCompetitionEvents::allUnapproved(), GetCompetitionSeries::allUnapproved())
+ * - competition approvals: events (not series editions), series and organizations neither approved nor rejected, and
+ *   not drafts - a draft is submitted by publishing it (GetCompetitionEvents::allUnapproved(),
+ *   GetCompetitionSeries::allUnapproved(), GetOrganizations::allUnapproved())
  * - OAuth2 requests: pending
  * - duplicate results: open strong "possible duplicate puzzles" signals - what an admin acts on there; duplicate cases
  *   are for the players to decide
@@ -49,8 +50,9 @@ readonly final class GetAdminQueueCounts
         $mergeRequestsNoSecret = GetPuzzleMergeRequests::sqlNoSecretPuzzle();
 
         $competitionApprovals = $isAdmin
-            ? '(SELECT COUNT(*) FROM competition c WHERE c.approved_at IS NULL AND c.rejected_at IS NULL AND c.series_id IS NULL)'
-                . ' + (SELECT COUNT(*) FROM competition_series cs WHERE cs.approved_at IS NULL AND cs.rejected_at IS NULL)'
+            ? '(SELECT COUNT(*) FROM competition c WHERE c.approved_at IS NULL AND c.rejected_at IS NULL AND c.series_id IS NULL AND c.is_draft = false)'
+                . ' + (SELECT COUNT(*) FROM competition_series cs WHERE cs.approved_at IS NULL AND cs.rejected_at IS NULL AND cs.is_draft = false)'
+                . ' + (SELECT COUNT(*) FROM organization o WHERE o.approved_at IS NULL AND o.rejected_at IS NULL AND o.is_draft = false)'
             : 'NULL';
         $oauth2Requests = $isAdmin
             ? '(SELECT COUNT(*) FROM oauth2_client_request r WHERE r.status = :oauth2Pending)'

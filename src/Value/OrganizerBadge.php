@@ -6,10 +6,11 @@ namespace SpeedPuzzling\Web\Value;
 
 /**
  * The status an organiser sees on "You organize" (docs/features/events-page/README.md). Rejected wins over everything,
- * then waiting for approval.
+ * then a draft (docs/features/organizations/README.md), then waiting for approval.
  */
 enum OrganizerBadge: string
 {
+    case Draft = 'draft';
     case WaitingForApproval = 'waiting_for_approval';
     case Rejected = 'rejected';
     case Live = 'live';

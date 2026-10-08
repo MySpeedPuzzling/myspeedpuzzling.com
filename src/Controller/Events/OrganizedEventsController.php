@@ -51,11 +51,12 @@ final class OrganizedEventsController extends AbstractController
         // What needs attention first, then what is coming, then the rest
         $rank = static fn (OrganizedEvent $item): int => match ($item->badge($today)) {
             OrganizerBadge::Rejected => 0,
-            OrganizerBadge::WaitingForApproval => 1,
-            OrganizerBadge::Live => 2,
-            OrganizerBadge::Upcoming => 3,
-            OrganizerBadge::DateNotSet => 4,
-            OrganizerBadge::Past => 5,
+            OrganizerBadge::Draft => 1,
+            OrganizerBadge::WaitingForApproval => 2,
+            OrganizerBadge::Live => 3,
+            OrganizerBadge::Upcoming => 4,
+            OrganizerBadge::DateNotSet => 5,
+            OrganizerBadge::Past => 6,
         };
 
         usort($items, static fn (OrganizedEvent $a, OrganizedEvent $b): int => $rank($a) <=> $rank($b)

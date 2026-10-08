@@ -14,6 +14,8 @@ readonly final class RowTag
         public null|DateTimeImmutable $date = null,
         // GoingCount
         public null|int $count = null,
+        // Eligibility: the "Who can enter" text
+        public null|string $text = null,
     ) {
     }
 }

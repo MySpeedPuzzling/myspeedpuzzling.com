@@ -33,6 +33,9 @@ use SpeedPuzzling\Web\Value\SearchText;
  * RowContext::SeriesPage - the series is the page: a row is named by its edition/session (EventOccurrence::subtitle(),
  * else its name) with no line under it, carries no "Recurring" and no "Waiting for approval" tag (the page says both),
  * has no star (the header's star follows the series), always shows, and gets the start time of its first round.
+ *
+ * RowContext::OrganizationPage (docs/features/organizations/README.md) - named as on the events page, "Recurring" kept,
+ * no star (the series cards and the header carry them, P19), always shows, and gets the start time of its first round.
  */
 readonly final class EventRowFactory
 {
@@ -62,10 +65,12 @@ readonly final class EventRowFactory
         $isPast = $status === EventOccurrenceStatus::Past;
         $going = $viewer?->isGoing($occurrence->competitionId) ?? false;
         $onSeriesPage = $context === RowContext::SeriesPage;
+        // The series page and the organization page: every row shows, no star on it, the first round's time
+        $onOwnPage = $onSeriesPage || $context === RowContext::OrganizationPage;
 
         $followTarget = null;
 
-        if ($onSeriesPage === false) {
+        if ($onOwnPage === false) {
             if ($isEdition) {
                 $followTarget = FollowTarget::series((string) $occurrence->seriesId);
             } elseif ($isPast === false) {
@@ -106,9 +111,9 @@ readonly final class EventRowFactory
             following: $followTarget !== null && $viewer !== null && $viewer->follows($followTarget),
             manage: new ManageRef(ManageRef::KIND_COMPETITION, $occurrence->competitionId, $occurrence->reference()->displayName()),
             isPending: $occurrence->isPublic === false,
-            visible: $onSeriesPage || $scope->matches($occurrence->isOnline, $occurrence->countryCode),
+            visible: $onOwnPage || $scope->matches($occurrence->isOnline, $occurrence->countryCode),
             logo: $logo,
-            time: $onSeriesPage && $occurrence->firstRound !== null ? EventTime::fromOccurrenceRound($occurrence->firstRound) : null,
+            time: $onOwnPage && $occurrence->firstRound !== null ? EventTime::fromOccurrenceRound($occurrence->firstRound) : null,
         );
     }
 
@@ -125,6 +130,7 @@ readonly final class EventRowFactory
         $start = $occurrence->startDate;
         assert($start !== null);
         $onSeriesPage = $context === RowContext::SeriesPage;
+        $onOwnPage = $onSeriesPage || $context === RowContext::OrganizationPage;
 
         return new ArchiveLine(
             indexIds: [$indexId],
@@ -138,15 +144,16 @@ readonly final class EventRowFactory
             hasResults: $occurrence->hasResults,
             place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
             scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
-            visible: $onSeriesPage || $scope->matches($occurrence->isOnline, $occurrence->countryCode),
+            visible: $onOwnPage || $scope->matches($occurrence->isOnline, $occurrence->countryCode),
             editionName: $onSeriesPage ? null : $occurrence->subtitle(),
             year: (int) $start->format('Y'),
         );
     }
 
     /**
-     * WaitingForApproval, Going, Recurring, registration, Results, RunsUntil, GoingCount - in this order. The series
-     * page leaves out WaitingForApproval and Recurring.
+     * WaitingForApproval or Draft, Going, Recurring, Eligibility, registration, Results, RunsUntil, GoingCount - in this
+     * order. The series page leaves out WaitingForApproval and Recurring. A draft (only its team gets its row) says Draft
+     * everywhere and never "Waiting for approval" - it is submitted by publishing it.
      *
      * @return list<RowTag>
      */
@@ -162,7 +169,9 @@ readonly final class EventRowFactory
         $onSeriesPage = $context === RowContext::SeriesPage;
         $tags = [];
 
-        if ($occurrence->isPublic === false && $onSeriesPage === false) {
+        if ($occurrence->isDraft) {
+            $tags[] = new RowTag(RowTagType::Draft);
+        } elseif ($occurrence->isPublic === false && $onSeriesPage === false) {
             $tags[] = new RowTag(RowTagType::WaitingForApproval);
         }
 
@@ -172,6 +181,10 @@ readonly final class EventRowFactory
 
         if ($occurrence->isEdition() && $onSeriesPage === false) {
             $tags[] = new RowTag(RowTagType::Recurring);
+        }
+
+        if ($occurrence->eligibility !== null) {
+            $tags[] = new RowTag(RowTagType::Eligibility, text: $occurrence->eligibility);
         }
 
         if ($isPast === false && $going === false) {

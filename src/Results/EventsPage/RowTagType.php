@@ -10,8 +10,12 @@ namespace SpeedPuzzling\Web\Results\EventsPage;
 enum RowTagType: string
 {
     case WaitingForApproval = 'waiting_for_approval';
+    // only its team sees a draft's row (docs/features/organizations/README.md)
+    case Draft = 'draft';
     case Going = 'going';
     case Recurring = 'recurring';
+    // "Who can enter" - RowTag::$text
+    case Eligibility = 'eligibility';
     // only an external registration link - never claims registration is open
     case Registration = 'registration';
     case RegistrationOpen = 'registration_open';

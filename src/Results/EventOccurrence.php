@@ -51,6 +51,12 @@ readonly final class EventOccurrence
         public null|OccurrenceRound $firstRound = null,
         // the external registration link, only while registration is not managed here
         public null|string $registrationLink = null,
+        // its organization: a one-time event's own, an edition's series' (docs/features/organizations/README.md)
+        public null|OrganizationRef $organization = null,
+        // "Who can enter": its own, else its series'
+        public null|string $eligibility = null,
+        // a draft itself, or an edition of a draft series - only its team ever gets such a row
+        public bool $isDraft = false,
     ) {
     }
 

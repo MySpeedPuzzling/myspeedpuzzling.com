@@ -305,6 +305,6 @@ readonly final class SeriesPageBuilder
 
     private static function isPublic(CompetitionSeriesOverview $series): bool
     {
-        return $series->approvedAt !== null && $series->rejectedAt === null;
+        return $series->isPubliclyVisible();
     }
 }

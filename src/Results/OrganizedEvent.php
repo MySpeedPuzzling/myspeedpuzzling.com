@@ -12,16 +12,18 @@ use SpeedPuzzling\Web\Value\OrganizerBadge;
 
 /**
  * One item of "You organize" (docs/features/events-page/README.md): a one-time event, an edition the viewer organises
- * directly, or a series - waiting for approval and rejected ones included.
+ * directly, a series or an organization (docs/features/organizations/README.md) - drafts, waiting for approval and
+ * rejected ones included.
  */
 readonly final class OrganizedEvent
 {
     public const string KIND_EVENT = 'event';
     public const string KIND_EDITION = 'edition';
     public const string KIND_SERIES = 'series';
+    public const string KIND_ORGANIZATION = 'organization';
 
     /**
-     * @param 'event'|'edition'|'series' $kind
+     * @param 'event'|'edition'|'series'|'organization' $kind
      */
     public function __construct(
         public string $kind,
@@ -47,6 +49,14 @@ readonly final class OrganizedEvent
         public null|DateTimeImmutable $nextEditionDate = null,
         // Series: the start of the latest edition that is over
         public null|DateTimeImmutable $lastEditionDate = null,
+        // A draft itself - for an edition also when its series is one
+        public bool $isDraft = false,
+        // The organization it is under (a one-time event's own, a series' or an edition's series'), null for an
+        // organization itself
+        public null|string $organizationId = null,
+        // Organization: its series and one-time events
+        public int $seriesCount = 0,
+        public int $eventCount = 0,
     ) {
     }
 
@@ -55,14 +65,29 @@ readonly final class OrganizedEvent
         return $this->kind === self::KIND_SERIES;
     }
 
+    public function isOrganization(): bool
+    {
+        return $this->kind === self::KIND_ORGANIZATION;
+    }
+
     public function badge(DateTimeImmutable $today): OrganizerBadge
     {
         if ($this->isRejected) {
             return OrganizerBadge::Rejected;
         }
 
+        // A draft that also waits for approval shows Draft - it is submitted by publishing it
+        if ($this->isDraft) {
+            return OrganizerBadge::Draft;
+        }
+
         if ($this->isApproved === false) {
             return OrganizerBadge::WaitingForApproval;
+        }
+
+        // An approved, published organization has no dates of its own
+        if ($this->isOrganization()) {
+            return OrganizerBadge::DateNotSet;
         }
 
         if ($this->isSeries()) {
@@ -87,6 +112,11 @@ readonly final class OrganizedEvent
 
     public function reference(): CompetitionReference
     {
+        // An organization's page is organization_detail - the reference only names it (C links it)
+        if ($this->isOrganization()) {
+            return new CompetitionReference(name: $this->name, slug: null);
+        }
+
         if ($this->isSeries()) {
             return new CompetitionReference(name: $this->name, slug: $this->slug, isSeries: true);
         }

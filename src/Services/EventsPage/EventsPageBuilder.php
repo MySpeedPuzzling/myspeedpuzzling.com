@@ -727,7 +727,9 @@ readonly final class EventsPageBuilder
     /**
      * Going (live, upcoming, TBA, ongoing), followed one-time events (also ongoing ones) and the next live-or-upcoming
      * edition of every followed series - public only, one row per competition (Going wins; of a competition with
-     * several sessions only the next one not over), by start, undated last.
+     * several sessions only the next one not over), by start, undated last. A followed organization (publicly visible,
+     * docs/features/organizations/README.md "Follow") counts as following each of its one-time events and each of its
+     * series: the same rows, so an event or series followed both ways is listed once.
      *
      * @param list<ListedOccurrence> $listed in date order
      * @param callable(ListedOccurrence, null|string): AgendaRow $rowOf
@@ -761,10 +763,15 @@ readonly final class EventsPageBuilder
                 continue;
             }
 
+            // Through its organization: only while the organization itself is public (a draft one hides only itself)
+            $followedOrganization = $occurrence->organization !== null
+                && $occurrence->organization->isPublic
+                && $viewer->followsOrganization($occurrence->organization->id);
+
             if (
                 $occurrence->isEdition() === false
                 && $notOver
-                && $viewer->follows(FollowTarget::competition($occurrence->competitionId))
+                && ($followedOrganization || $viewer->follows(FollowTarget::competition($occurrence->competitionId)))
             ) {
                 $picked[$occurrence->competitionId] = ['item' => $item, 'mark' => YourEvent::MARK_FOLLOWING];
 
@@ -776,7 +783,7 @@ readonly final class EventsPageBuilder
             if (
                 $seriesId !== null
                 && $notOver
-                && $viewer->follows(FollowTarget::series($seriesId))
+                && ($followedOrganization || $viewer->follows(FollowTarget::series($seriesId)))
                 && (isset($nextOfSeries[$seriesId]) === false || $occurrence->startDate < $nextOfSeries[$seriesId]['occurrence']->startDate)
             ) {
                 $nextOfSeries[$seriesId] = $item;

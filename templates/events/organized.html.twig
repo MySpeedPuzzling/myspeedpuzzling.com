@@ -1,9 +1,12 @@
 {% extends 'base.html.twig' %}
 
 {#
-    "You organize", route organized_events (owner: workstream C, docs/features/events-page/README.md): every event and
-    series the viewer created or maintains, with its status and its actions inline (the ⋯ menu's items).
-    Variables: items (list<OrganizedEvent>, sorted by the controller), today
+    "You organize", route organized_events (owner: workstream C, docs/features/events-page/README.md,
+    docs/features/organizations/README.md P9): the viewer's organizations first - each with its series and one-time
+    events listed under it - then every other event and series the viewer created or maintains, with its status and its
+    actions inline (the ⋯ menu's items).
+    Variables: groups (list<{organization: OrganizedEvent, items: list<OrganizedEvent>}>), items (list<OrganizedEvent>,
+    the rest - both sorted by the controller), total (organizations + the rest = the header button's count), today
 #}
 
 {% block title %}{{ 'events_organizer.organize.title'|trans }}{% endblock %}
@@ -13,6 +16,7 @@
 {% block content %}
     {%- set title = 'events_organizer.organize.title'|trans -%}
     {%- set locale = app.request.locale -%}
+    {%- set back = {return: path('organized_events'), return_title: title} -%}
     {{ include('_breadcrumb.html.twig', {items: [
         {label: 'events_page.title'|trans, url: path('events')},
         {label: title},
@@ -20,49 +24,36 @@
 
     <div class="ev-organized-page">
         <header class="ev-organized-head">
-            <h1 class="ev-organized-title">{{ title }}{% if items is not empty %} <span class="ev-organized-total">{{ items|length }}</span>{% endif %}</h1>
-            <p class="ev-organized-note">{{ 'events_organizer.organize.note'|trans }}</p>
+            <h1 class="ev-organized-title">{{ title }}{% if total > 0 %} <span class="ev-organized-total">{{ total }}</span>{% endif %}</h1>
+            <p class="ev-organized-note">{{ 'organizer_tools.organize.note'|trans }}</p>
+            <div class="ev-organized-actions">
+                <a class="btn btn-sm btn-primary" href="{{ path('add_competition', back) }}" data-add-event>+ {{ 'events_page.add_event'|trans }}</a>
+                <a class="btn btn-sm btn-outline-primary" href="{{ path('add_organization', back) }}" data-add-organization>+ {{ 'organizer_tools.organize.add_organization'|trans }}</a>
+                <a class="ev-organized-directory" href="{{ path('organizations') }}">{{ 'organizer_tools.organize.directory'|trans }}</a>
+            </div>
         </header>
 
-        {% if items is empty %}
+        {% if total == 0 %}
             <div class="ev-organized-empty">
                 <p>{{ 'events_organizer.organize.empty'|trans }}</p>
-                <a class="btn btn-sm btn-primary" href="{{ path('add_competition', {return: path('organized_events'), return_title: title}) }}">+ {{ 'events_page.add_event'|trans }}</a>
+                <p class="ev-organized-empty-hint">{{ 'organizer_tools.organize.empty_hint'|trans }}</p>
             </div>
         {% else %}
             <ul class="ev-organized">
-                {% for item in items %}
-                    {%- set reference = item.reference -%}
-                    {%- set badge = item.badge(today) -%}
-                    {%- set country = item.countryCode ? item.countryCode.localizedName(locale) : null -%}
-                    {%- set city = item.location is not empty and (country is null or (country|lower) not in (item.location|lower)) ? item.location : null -%}
-                    <li class="ev-organized-item" data-organized-id="{{ item.id }}">
-                        <div class="ev-organized-top">
-                            {% if reference.routeName %}
-                                <a class="ev-organized-name" href="{{ path(reference.routeName, reference.routeParameters) }}">{{ reference.displayName }}</a>
-                            {% else %}
-                                <span class="ev-organized-name">{{ reference.displayName }}</span>
-                            {% endif %}
-                            <span class="ev-badge ev-badge-{{ badge.value }}">{{ badge.translationKey|trans }}</span>
-                        </div>
-                        <div class="ev-organized-sub">
-                            {{- ('events_organizer.type.' ~ item.kind)|trans -}}
-                            {%- if item.isSeries -%}
-                                {%- if item.nextEditionDate %} · {{ 'events_organizer.organize.next'|trans({'%date%': item.nextEditionDate|events_date('yMMMEd')}) }}
-                                {%- elseif item.lastEditionDate %} · {{ 'events_organizer.organize.last'|trans({'%date%': item.lastEditionDate|events_date('yMMMd')}) }}
-                                {%- else %} · {{ 'events_organizer.organize.no_dates'|trans }}{% endif -%}
-                                {{- ' · ' }}{{ 'events_organizer.organize.editions'|trans({'%count%': item.editionCount}) -}}
-                            {%- elseif item.startDate -%}
-                                {{- ' · ' }}{{ events_date_range(item.startDate, item.endDate, 'yMMMd') -}}
-                            {%- endif -%}
-                            {%- if item.isOnline %} · {{ 'events_organizer.organize.online'|trans }}
-                            {%- elseif city or country %} · {% if item.countryCode %}<span class="fi fi-{{ item.countryCode.name }}" aria-hidden="true"></span> {% endif %}{{ [city, country]|filter(part => part is not null)|join(', ') }}{% endif -%}
-                        </div>
-                        {% if item.isRejected and item.rejectionReason %}
-                            <p class="ev-organized-reason">{{ 'events_organizer.organize.reason'|trans({'%reason%': item.rejectionReason}) }}</p>
+                {% for group in groups %}
+                    {%- set nested -%}
+                        {% if group.items is not empty %}
+                            <ul class="ev-organized ev-organized-nested" aria-label="{{ 'organizer_tools.organize.under'|trans({'%name%': group.organization.name}) }}">
+                                {% for item in group.items %}
+                                    {{ include('events/_organized_item.html.twig', {item: item, today: today, return_title: title, locale: locale}, with_context = false) }}
+                                {% endfor %}
+                            </ul>
                         {% endif %}
-                        {{ include('events/_manage_items.html.twig', {item: item, return_url: path('organized_events'), return_title: title, layout: 'inline'}) }}
-                    </li>
+                    {%- endset -%}
+                    {{ include('events/_organized_item.html.twig', {item: group.organization, today: today, return_title: title, locale: locale, nested: nested}, with_context = false) }}
+                {% endfor %}
+                {% for item in items %}
+                    {{ include('events/_organized_item.html.twig', {item: item, today: today, return_title: title, locale: locale}, with_context = false) }}
                 {% endfor %}
             </ul>
         {% endif %}

@@ -1,0 +1,126 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Add several dates", route add_editions (owner: workstream C, docs/features/organizations/README.md "Add several
+    dates"). Step 1 - the rule or the picked days and the names - is a GET form (its fields are the query string, works
+    without JavaScript); step 2 - the dates with their names, each checked unless the series has an edition that day -
+    posts the checked days to the same URL. organizer_form_controller.js only hides the fields the chosen way does not
+    use; the multi-day calendar is the site's .date-picker.
+
+    Variables: form (AddEditionsFormType, no name), series (CompetitionSeriesOverview), preview (null|list<{date, value,
+    name, taken}>), selected (null|list<string> - the days checked in a refused POST), selection_error, csrf_token_id
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'organizer_tools.add_editions.title'|trans }} - {{ series.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {%- set manage_url = path('manage_competition_series', {seriesId: series.id}) -%}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: series.name, url: manage_url},
+        {label: 'organizer_tools.add_editions.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: manage_url, fallbackTitle: 'series.manage'|trans}) }}
+
+    <div class="ev-add-editions">
+        <h1 class="h2">{{ 'organizer_tools.add_editions.title'|trans }}</h1>
+        <p class="text-muted mb-1">{{ series.name }}</p>
+        <p class="ev-add-editions-intro">{{ 'organizer_tools.add_editions.intro'|trans }}</p>
+
+        <div class="card shadow-sm ev-add-editions-card">
+            <div class="card-body">
+                {{ form_start(form, {
+                    action: path('add_editions', {seriesId: series.id}),
+                    method: 'GET',
+                    attr: {class: 'ev-add-editions-rule', 'data-controller': 'organizer-form', 'data-action': 'change->organizer-form#update', novalidate: 'novalidate'},
+                }) }}
+                    {% for key in ['return', 'return_title'] %}
+                        {% if app.request.query.has(key) %}<input type="hidden" name="{{ key }}" value="{{ app.request.query.getString(key) }}">{% endif %}
+                    {% endfor %}
+
+                    <fieldset class="mb-3">
+                        <legend class="form-label fs-6">{{ 'organizer_tools.add_editions.how'|trans }}</legend>
+                        <div class="ev-segmented">
+                            {% for choice in form.how %}
+                                {{ form_widget(choice, {attr: {class: 'btn-check'}, label_attr: {class: 'btn btn-outline-primary'}}) }}
+                            {% endfor %}
+                        </div>
+                        {% do form.how.setRendered %}
+                        {{ form_errors(form.how) }}
+                    </fieldset>
+
+                    <div class="ev-add-editions-repeat" data-organizer-form-target="part" data-show-field="how" data-show-values="repeat">
+                        <div class="row g-3">
+                            <div class="col-12 col-sm-6">{{ form_row(form.rule, {row_attr: {class: 'mb-0'}}) }}</div>
+                            <div class="col-12 col-sm-6" data-organizer-form-target="part" data-show-field="rule" data-show-values="nth_weekday">
+                                {{ form_row(form.nth, {row_attr: {class: 'mb-0'}}) }}
+                            </div>
+                            <div class="col-12 col-sm-6">{{ form_row(form.weekday, {row_attr: {class: 'mb-0'}}) }}</div>
+                            <div class="col-7 col-sm-6">
+                                {{ form_label(form.starting) }}
+                                <div class="input-group">
+                                    {{ form_widget(form.starting, {attr: {class: 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
+                                    <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                                </div>
+                                {{ form_help(form.starting) }}
+                                {{ form_errors(form.starting) }}
+                            </div>
+                            <div class="col-5 col-sm-6">{{ form_row(form.count, {row_attr: {class: 'mb-0'}}) }}</div>
+                        </div>
+                    </div>
+
+                    <div class="ev-add-editions-pick" data-organizer-form-target="part" data-show-field="how" data-show-values="pick">
+                        {{ form_label(form.dates) }}
+                        {# One calendar, tap every day (flatpickr "multiple"); without JavaScript the days are typed #}
+                        {{ form_widget(form.dates, {attr: {class: 'form-control date-picker ev-add-editions-dates', placeholder: 'organizer_tools.add_editions.dates_placeholder'|trans, autocomplete: 'off', 'data-datepicker-options': '{"mode": "multiple", "dateFormat": "d.m.Y", "conjunction": ", ", "inline": true}'}}) }}
+                        {{ form_help(form.dates) }}
+                        {{ form_errors(form.dates) }}
+                    </div>
+
+                    <div class="mt-3">
+                        {{ form_row(form.namePattern) }}
+                        {{ form_row(form.eligibility) }}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" data-show-dates>{{ 'organizer_tools.add_editions.show'|trans }}</button>
+                {{ form_end(form, {render_rest: false}) }}
+            </div>
+        </div>
+
+        {% if preview is not null %}
+            <section class="ev-add-editions-preview" aria-labelledby="add-editions-preview-title" id="dates">
+                <h2 class="h4" id="add-editions-preview-title">{{ 'organizer_tools.add_editions.preview_title'|trans({'%count%': preview|length}) }}</h2>
+                <form method="post" action="{{ app.request.requestUri }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                    {% if selection_error %}
+                        <div class="alert alert-danger" role="alert">{{ selection_error }}</div>
+                    {% endif %}
+                    <ul class="ev-add-editions-dates-list">
+                        {% for item in preview %}
+                            {%- set checked = selected is null ? not item.taken : item.value in selected -%}
+                            <li>
+                                <label class="ev-add-editions-date{% if item.taken %} is-taken{% endif %}" data-date="{{ item.value }}">
+                                    <input type="checkbox" class="form-check-input" name="selected[]" value="{{ item.value }}"{% if checked %} checked{% endif %}>
+                                    <span class="ev-add-editions-date-text">
+                                        <span class="ev-add-editions-day">{{ item.date|events_date('yMMMEd') }}</span>
+                                        <span class="ev-add-editions-name">{{ item.name }}</span>
+                                        {% if item.taken %}<span class="ev-add-editions-taken">{{ 'organizer_tools.add_editions.taken'|trans }}</span>{% endif %}
+                                    </span>
+                                </label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary" name="create" value="1">{{ 'organizer_tools.add_editions.create'|trans }}</button>
+                        <button type="submit" class="btn btn-outline-secondary" name="saveDraft" value="1">{{ 'organizer_tools.form.save_draft'|trans }}</button>
+                    </div>
+                    <p class="form-text mt-2 mb-0">{{ 'organizer_tools.add_editions.create_help'|trans }}</p>
+                </form>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

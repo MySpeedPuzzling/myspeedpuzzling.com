@@ -57,7 +57,32 @@ readonly final class OrganizedEvent
         // Organization: its series and one-time events
         public int $seriesCount = 0,
         public int $eventCount = 0,
+        // Its own draft flag (Publish acts on it) - an edition of a draft series may be published itself already
+        public bool $ownDraft = false,
+        // An edition whose series is a draft - it is published through its series
+        public bool $seriesIsDraft = false,
     ) {
+    }
+
+    public function isEdition(): bool
+    {
+        return $this->kind === self::KIND_EDITION;
+    }
+
+    /**
+     * Not empty: an organization with series or one-time events can't be deleted (OrganizationNotEmpty)
+     */
+    public function isEmptyOrganization(): bool
+    {
+        return $this->isOrganization() && $this->seriesCount === 0 && $this->eventCount === 0;
+    }
+
+    /**
+     * Waiting for an admin's approval - a draft is not submitted yet, so an admin has nothing to decide
+     */
+    public function awaitsApproval(): bool
+    {
+        return $this->isApproved === false && $this->isRejected === false && $this->isDraft === false;
     }
 
     public function isSeries(): bool

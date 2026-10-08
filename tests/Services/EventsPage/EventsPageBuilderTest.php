@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Results\EventsPage\SeriesNext;
 use SpeedPuzzling\Web\Results\EventsPage\WhenLabel;
 use SpeedPuzzling\Web\Results\EventsPage\YourEvent;
 use SpeedPuzzling\Web\Results\EventsViewerData;
+use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Services\EventsPage\EventsIndexFactory;
 use SpeedPuzzling\Web\Services\EventsPage\EventsPageBuilder;
 use SpeedPuzzling\Web\Services\EventsPage\EventUrls;
@@ -384,6 +385,46 @@ final class EventsPageBuilderTest extends TestCase
         self::assertSame('Session 1', $page->yourEvents[1]->row->editionName);
         self::assertSame('Session 3', $page->yourEvents[3]->row->editionName);
         self::assertTrue($page->yourEvents[1]->row->following);
+    }
+
+    /**
+     * docs/features/organizations/README.md "Follow": a followed organization adds its upcoming one-time events and the
+     * next date of each of its series, deduplicated against what is followed directly - only while it is public
+     */
+    public function testYourEventsThroughAFollowedOrganization(): void
+    {
+        $riverbend = new OrganizationRef('o1', 'Riverbend Jigsaw Association', 'RJA', 'riverbend', isPublic: true);
+        $draftClub = new OrganizationRef('o2', 'Harbor Puzzle Club', null, 'harbor', isPublic: false);
+        $notFollowed = new OrganizationRef('o3', 'Maple Leaf Puzzlers', null, 'maple', isPublic: true);
+
+        $page = $this->build(
+            [
+                $this->event('Org Open', '2026-11-20', organization: $riverbend),
+                $this->event('Org Past', '2025-02-01', organization: $riverbend),
+                $this->edition('s1', 'Night 1', '2026-11-05', series: 'Lantern Nights', organization: $riverbend),
+                $this->edition('s1', 'Night 2', '2026-11-12', series: 'Lantern Nights', organization: $riverbend),
+                // Followed directly too: one row
+                $this->edition('s2', 'Meet 1', '2026-11-07', series: 'Club Meets', organization: $riverbend),
+                $this->event('Draft Club Cup', '2026-11-08', organization: $draftClub),
+                $this->event('Maple Cup', '2026-11-09', organization: $notFollowed),
+                // An organization never shows what is not public itself
+                $this->event('Pending Org Cup', '2026-11-10', public: false, organization: $riverbend),
+            ],
+            [$this->series('s1', 'Lantern Nights'), $this->series('s2', 'Club Meets')],
+            viewer: new EventsViewerData(
+                followedSeriesIds: ['s2'],
+                followedOrganizationIds: ['o1', 'o2'],
+            ),
+        );
+
+        self::assertSame(
+            [
+                ['Lantern Nights', 'Night 1', YourEvent::MARK_FOLLOWING],
+                ['Club Meets', 'Meet 1', YourEvent::MARK_FOLLOWING],
+                ['Org Open', null, YourEvent::MARK_FOLLOWING],
+            ],
+            array_map(static fn (YourEvent $event): array => [$event->row->title, $event->row->editionName, $event->mark], $page->yourEvents),
+        );
     }
 
     public function testSeriesDirectory(): void
@@ -780,11 +821,13 @@ final class EventsPageBuilderTest extends TestCase
         null|DateTimeImmutable $closesAt = null,
         // the day of its last round - none: no rounds
         null|string $lastRound = null,
+        null|OrganizationRef $organization = null,
     ): EventOccurrence {
         return new EventOccurrence(
             competitionId: $this->nextId(),
             name: $name,
             slug: strtolower(str_replace(' ', '-', $name)),
+            organization: $organization,
             location: $online ? null : 'Town',
             countryCode: $country,
             isOnline: $online,
@@ -813,11 +856,13 @@ final class EventsPageBuilderTest extends TestCase
         bool $public = true,
         // the day of its last round - none: no rounds
         null|string $lastRound = null,
+        null|OrganizationRef $organization = null,
     ): EventOccurrence {
         return new EventOccurrence(
             competitionId: $this->nextId(),
             name: $name,
             slug: strtolower(str_replace(' ', '-', $name)),
+            organization: $organization,
             seriesId: $seriesId,
             seriesName: $series,
             seriesSlug: strtolower(str_replace(' ', '-', $series)),

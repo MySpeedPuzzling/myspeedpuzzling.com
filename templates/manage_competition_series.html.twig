@@ -19,9 +19,19 @@
             <a href="{{ path('add_edition', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary">
                 <i class="bi bi-plus-lg me-1"></i>{{ 'series.add_edition'|trans }}
             </a>
+            {# docs/features/organizations/README.md "Add several dates" #}
+            <a href="{{ path('add_editions', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary" data-add-editions-link>
+                <i class="bi bi-calendar-plus me-1"></i>{{ 'organizer_tools.menu.add_editions'|trans }}
+            </a>
             <a href="{{ path('manage_series_page', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary">
                 <i class="bi bi-layout-text-window-reverse me-1"></i>{{ 'page_sections.manage_button'|trans }}
             </a>
+            {# A series used as an organiser's bucket becomes an organization (docs/features/organizations/README.md) #}
+            {% if series.organization is null %}
+                <a href="{{ path('create_organization_from_series', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary" data-to-organization-link>
+                    <i class="bi bi-diagram-3 me-1"></i>{{ 'organizer_tools.menu.to_organization'|trans }}
+                </a>
+            {% endif %}
             {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series.id) %}
                 <button type="button" class="btn btn-outline-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteCompetitionSeriesModal-{{ series.id }}" title="{{ 'series.delete.button'|trans }}">
                     <i class="bi bi-trash"></i>

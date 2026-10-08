@@ -28,10 +28,13 @@
                 <div class="card shadow my-4">
                     <div class="card-body">
                         {{ form_start(form) }}
-                        <div data-controller="competition-form">
+                        <div data-controller="competition-form organizer-form" data-action="change->organizer-form#update">
                             <div class="required">{{ form_row(form.name) }}</div>
                             {{ form_row(form.shortcut) }}
                             {{ form_row(form.description) }}
+                            {% if form.organizationId is defined %}
+                                {{ form_row(form.organizationId) }}
+                            {% endif %}
                             <div class="required" data-action="change->competition-form#toggle">
                                 {{ form_row(form.isOnline) }}
                             </div>
@@ -70,6 +73,12 @@
                                 </div>
                             </div>
 
+                            {{ form_row(form.eligibility) }}
+                            {# "When it happens" belongs to a series: shown while "Recurring" is ticked #}
+                            <div data-organizer-form-target="part" data-show-field="isRecurring" data-show-values="1">
+                                {{ form_row(form.schedule) }}
+                            </div>
+
                             {{ form_row(form.link) }}
                             <div data-competition-form-target="editionLinks">
                                 {{ form_row(form.registrationLink) }}
@@ -93,9 +102,13 @@
                                 <span>{{ 'competition.managed_event_info'|trans({'%email%': 'jan@myspeedpuzzling.com'})|raw }}</span>
                             </div>
 
-                            <button type="submit" class="btn btn-primary mt-3">
-                                {{ 'competition.submit_for_approval'|trans }}
-                            </button>
+                            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                                <button type="submit" class="btn btn-primary">
+                                    {{ 'competition.submit_for_approval'|trans }}
+                                </button>
+                                {{ form_widget(form.saveDraft, {attr: {class: 'btn btn-outline-secondary'}}) }}
+                            </div>
+                            <p class="form-text mt-2 mb-0">{{ 'organizer_tools.form.save_draft_help'|trans }}</p>
                         </div>
                         {{ form_end(form) }}
                     </div>

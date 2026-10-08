@@ -84,6 +84,7 @@ SQL;
                 isDraft: (bool) $row['is_draft'],
                 seriesCount: is_numeric($row['series_count']) ? (int) $row['series_count'] : 0,
                 eventCount: is_numeric($row['event_count']) ? (int) $row['event_count'] : 0,
+                ownDraft: (bool) $row['is_draft'],
             );
         }
 
@@ -113,7 +114,7 @@ SELECT c.id, c.name, c.slug, c.series_id, cs.name AS series_name, cs.slug AS ser
     CASE WHEN c.series_id IS NULL THEN c.approved_at IS NOT NULL ELSE cs.approved_at IS NOT NULL END AS is_approved,
     (c.rejected_at IS NOT NULL OR cs.rejected_at IS NOT NULL) AS is_rejected,
     COALESCE(c.rejection_reason, cs.rejection_reason) AS rejection_reason,
-    (c.is_draft OR COALESCE(cs.is_draft, false)) AS is_draft,
+    c.is_draft AS own_draft, COALESCE(cs.is_draft, false) AS series_is_draft,
     COALESCE(c.organization_id, cs.organization_id) AS organization_id
 FROM competition c
 LEFT JOIN competition_series cs ON cs.id = c.series_id
@@ -149,8 +150,10 @@ SQL;
                 isApproved: (bool) $row['is_approved'],
                 rejectionReason: self::string($row['rejection_reason']),
                 isRejected: (bool) $row['is_rejected'],
-                isDraft: (bool) $row['is_draft'],
+                isDraft: (bool) $row['own_draft'] || (bool) $row['series_is_draft'],
                 organizationId: self::string($row['organization_id']),
+                ownDraft: (bool) $row['own_draft'],
+                seriesIsDraft: (bool) $row['series_is_draft'],
             );
         }
 
@@ -240,6 +243,7 @@ SQL;
                 lastEditionDate: $item['last'],
                 isDraft: (bool) $row['is_draft'],
                 organizationId: self::string($row['organization_id']),
+                ownDraft: (bool) $row['is_draft'],
             );
         }
 

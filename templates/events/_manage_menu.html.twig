@@ -1,16 +1,17 @@
 {#
-    The ⋯ menu's content (owner: workstream C): the item's name and kind, then its actions.
-    Variables: item (OrganizedEvent), return_url, return_title, delete_return (optional)
+    The ⋯ menu's content (owner: workstream C): the item's name and kind (with its state: draft, waiting for approval,
+    rejected), then its actions.
+    Variables: item (OrganizedEvent), return_url, return_title, delete_return (optional), unpublish_blockers (optional)
 #}
-{%- set pending = not item.isApproved and not item.isRejected -%}
 <div class="ev-menu">
     <div class="ev-menu-head">
         <span class="ev-menu-name">{{ item.reference.displayName }}</span>
         <span class="ev-menu-kind">
-            {{- ('events_organizer.type.' ~ item.kind)|trans -}}
-            {%- if pending %} · {{ 'events_organizer.menu.waiting_suffix'|trans }}{% endif -%}
-            {%- if item.isRejected %} · {{ 'events_organizer.badge.rejected'|trans }}{% endif -%}
+            {{- (item.isOrganization ? 'organizer_tools.type.organization' : 'events_organizer.type.' ~ item.kind)|trans -}}
+            {%- if item.isRejected %} · {{ 'events_organizer.badge.rejected'|trans }}
+            {%- elseif item.isDraft %} · {{ 'events_organizer.badge.draft'|trans }}
+            {%- elseif not item.isApproved %} · {{ 'events_organizer.menu.waiting_suffix'|trans }}{% endif -%}
         </span>
     </div>
-    {{ include('events/_manage_items.html.twig', {item: item, return_url: return_url, return_title: return_title, delete_return: delete_return|default(null), layout: 'menu'}) }}
+    {{ include('events/_manage_items.html.twig', {item: item, return_url: return_url, return_title: return_title, delete_return: delete_return|default(null), unpublish_blockers: unpublish_blockers|default(null), layout: 'menu'}) }}
 </div>

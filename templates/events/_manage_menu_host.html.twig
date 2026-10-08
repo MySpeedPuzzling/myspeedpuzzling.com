@@ -1,0 +1,19 @@
+{#
+    The events page's host of the lazily loaded ⋯ menu and of the guests' "Sign in to follow" note (owner: workstream C).
+    event_manage_menu_controller.js opens a menu link's URL in one <turbo-frame id="event-manage-menu"> on a layer of
+    <body>: a popover under the ⋯ button from 992 px up, a bottom sheet below. Only for viewers with ⋯ buttons (organisers
+    and admins), so other players never load the controller. Variables: page
+#}
+{% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
+    {% if page.organizedCount > 0 or is_granted('ADMIN_ACCESS') %}
+        <div class="ev-menu-host" hidden
+             data-controller="event-manage-menu"
+             data-event-manage-menu-loading-value="{{ 'events_organizer.menu.loading'|trans }}"
+             data-event-manage-menu-error-value="{{ 'events_organizer.menu.try_again'|trans }}"
+             data-event-manage-menu-close-value="{{ 'events_organizer.menu.close'|trans }}"></div>
+    {% endif %}
+{% else %}
+    <template data-ev-signin-note-template>
+        <p class="ev-signin-note" role="status">{{ 'events_organizer.follow.sign_in_note'|trans }} <a href="{{ path('login', {return: app.request.requestUri}) }}" rel="nofollow">{{ 'events_organizer.follow.sign_in'|trans }}</a></p>
+    </template>
+{% endif %}

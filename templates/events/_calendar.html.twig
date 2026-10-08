@@ -1,0 +1,72 @@
+{#
+    The calendar view, `?view=calendar` (owner: workstream B, docs/features/events-page/README.md "Calendar view").
+    Variables: page, view, today (Y-m-d, the controller's clock), month (Y-m from ?month=, calendar view only).
+    The grid, the long-running bars and the month's rows are drawn by events_calendar_controller.js from the page's
+    index; the server renders the frame and the month's name. Without JavaScript the list stays visible (the
+    <noscript> style below undoes the list's `hidden`) and this section only says so.
+#}
+{% set calendar_today = today %}
+{% set calendar_month = month ?? calendar_today|slice(0, 7) %}
+<section class="ev-calendar"
+         data-ev-calendar
+         aria-labelledby="ev-calendar-title"
+         data-controller="events-calendar"
+         data-events-calendar-mode-value="full"
+         data-events-calendar-today-value="{{ calendar_today }}"
+         data-events-calendar-month-value="{{ month ?? '' }}"
+         data-events-calendar-messages-value="{{ {
+             dayLabel: browser_translation('events_calendar.day_label'),
+             monthCount: browser_translation('events_calendar.month_count'),
+             more: 'events_calendar.more'|trans,
+             highlighted: 'events_calendar.highlighted'|trans,
+             empty: 'events_calendar.empty'|trans,
+             emptyMatching: 'events_calendar.empty_matching'|trans,
+             emptyHint: 'events_calendar.empty_hint'|trans,
+             emptyHintScope: 'events_calendar.empty_hint_scope'|trans,
+             emptyHintPrevious: 'events_calendar.empty_hint_previous'|trans,
+             emptyHintScopePrevious: 'events_calendar.empty_hint_scope_previous'|trans,
+             emptyHintNone: 'events_calendar.empty_hint_none'|trans,
+             emptyHintScopeNone: 'events_calendar.empty_hint_scope_none'|trans,
+             runAllMonth: 'events_calendar.run_all_month'|trans,
+             runFrom: 'events_calendar.run_from'|trans,
+             runUntil: 'events_calendar.run_until'|trans,
+             results: 'events_page.tag.results'|trans,
+             online: 'events_page.place.online'|trans,
+         }|json_encode }}"
+         {{ view.value == 'calendar' ? '' : 'hidden' }}>
+    <noscript>
+        <style>.ev-list-view[hidden] { display: block !important; } .ev-calendar-app { display: none !important; }</style>
+        <p class="ev-cal-noscript">{{ 'events_calendar.noscript'|trans }}</p>
+    </noscript>
+    <div class="ev-calendar-app">
+        <div class="ev-cal-head">
+            <button type="button" class="ev-cal-nav" data-action="events-calendar#previous" aria-label="{{ 'events_calendar.prev_month'|trans }}">
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
+            </button>
+            <h2 class="ev-cal-title" id="ev-calendar-title" data-events-calendar-target="title" aria-live="polite">{{ date(calendar_month ~ '-01T00:00:00+00:00')|events_date('yMMMM') }}</h2>
+            <button type="button" class="ev-cal-nav" data-action="events-calendar#next" aria-label="{{ 'events_calendar.next_month'|trans }}">
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="ev-cal-today-btn" data-action="events-calendar#today" data-events-calendar-target="todayButton" {{ calendar_month == calendar_today|slice(0, 7) ? 'disabled' }}>{{ 'events_calendar.today'|trans }}</button>
+        </div>
+
+        <div class="ev-cal-grids" data-events-calendar-target="grid" data-action="click->events-calendar#gridClick keydown->events-calendar#gridKeydown"></div>
+
+        <p class="ev-cal-key">
+            <span><i class="ev-cal-dot ev-cal-dot-in_person" aria-hidden="true"></i> {{ 'events_calendar.key_in_person'|trans }}</span>
+            <span><i class="ev-cal-dot ev-cal-dot-online" aria-hidden="true"></i> {{ 'events_calendar.key_online'|trans }}</span>
+            <span><i class="ev-cal-dot ev-cal-dot-past" aria-hidden="true"></i> {{ 'events_calendar.key_past'|trans }}</span>
+        </p>
+
+        <div class="ev-cal-runs" data-events-calendar-target="runs" hidden></div>
+
+        <div class="ev-cal-selection" role="status">
+            <div class="ev-cal-selection-bar" data-events-calendar-target="selection" hidden>
+                <span data-events-calendar-target="selectionText"></span>
+                <button type="button" class="ev-cal-whole-month" data-action="events-calendar#clearDay">{{ 'events_calendar.whole_month'|trans }}</button>
+            </div>
+        </div>
+
+        <div class="ev-cal-list" data-events-calendar-target="list"></div>
+    </div>
+</section>

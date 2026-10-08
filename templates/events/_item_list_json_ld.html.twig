@@ -1,0 +1,8 @@
+{#
+    ItemList JSON-LD of the listed event URLs (owner: workstream D). Variables: urls (list of paths). Built as one value
+    and encoded by `json_ld` - nothing typed by a player reaches the script element unescaped. Nothing when empty.
+#}
+{% if urls is not empty %}
+    {% set items = urls|map((url, key) => {'@type': 'ListItem', 'position': key + 1, 'url': absolute_url(url)}) %}
+    <script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'ItemList', 'numberOfItems': urls|length, 'itemListElement': items}|json_ld }}</script>
+{% endif %}

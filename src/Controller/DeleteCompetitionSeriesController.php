@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
 use SpeedPuzzling\Web\Security\CompetitionSeriesDeleteVoter;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -48,6 +49,13 @@ final class DeleteCompetitionSeriesController extends AbstractController
         $this->messageBus->dispatch(new DeleteCompetitionSeries(seriesId: $seriesId));
 
         $this->addFlash('success', $this->translator->trans('series.flash.deleted'));
+
+        // The events page's ⋯ menu and "You organize" return to where they were opened (docs/features/events-page/README.md)
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
+
+        if ($returnUrl !== null) {
+            return $this->redirect($returnUrl->path);
+        }
 
         return $this->redirectToRoute('events');
     }

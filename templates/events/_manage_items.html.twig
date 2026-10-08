@@ -1,0 +1,122 @@
+{#
+    The actions of one organiser item (owner: workstream C, docs/features/events-page/README.md "The ⋯ menu"): the ⋯ menu
+    (layout 'menu') and "You organize" (layout 'inline') list the same ones, each only when its voter allows it
+    (GetCompetitionPermissions is read once per request). Links and forms leave any Turbo Frame (_top) and carry
+    return/return_title back to the page they were opened from. Delete and Reject are confirmed in place
+    (<details> + inline_confirm_controller.js - also works without JavaScript); Delete posts the existing per-id token.
+
+    Variables: item (OrganizedEvent), return_url, return_title, layout ('menu'|'inline')
+#}
+{%- set back = {return: return_url, return_title: return_title} -%}
+{%- set pending = not item.isApproved and not item.isRejected -%}
+{%- set is_admin = is_granted('ADMIN_ACCESS') -%}
+{%- set approval = null -%}
+{%- set links = [] -%}
+{%- set delete = null -%}
+{%- if item.isSeries -%}
+    {%- if is_admin and pending -%}
+        {%- set approval = {
+            approve_url: path('admin_approve_competition_series', {seriesId: item.id}),
+            reject_url: path('admin_reject_competition_series', {seriesId: item.id}),
+            approve_label: 'events_organizer.menu.approve_series',
+            reject_label: 'events_organizer.menu.reject_series',
+        } -%}
+    {%- endif -%}
+    {%- if is_granted('COMPETITION_SERIES_EDIT', item.id) -%}
+        {%- set links = [
+            {label: 'events_organizer.menu.manage_series', url: path('manage_competition_series', {seriesId: item.id}|merge(back))},
+            {label: 'events_organizer.menu.add_edition', url: path('add_edition', {seriesId: item.id}|merge(back))},
+            {label: 'events_organizer.menu.page_content', url: path('manage_series_page', {seriesId: item.id}|merge(back))},
+        ] -%}
+    {%- endif -%}
+    {%- if is_granted('COMPETITION_SERIES_DELETE', item.id) -%}
+        {%- set delete = {
+            url: path('delete_competition_series', {seriesId: item.id}),
+            token: csrf_token('delete_competition_series_' ~ item.id),
+            label: 'events_organizer.menu.delete_series',
+        } -%}
+    {%- endif -%}
+{%- else -%}
+    {%- if is_admin and pending -%}
+        {#- An edition waits for its series' approval: editions are never approved on their own (IsCompetitionPubliclyVisible) -#}
+        {%- if item.seriesId -%}
+            {%- set approval = {
+                approve_url: path('admin_approve_competition_series', {seriesId: item.seriesId}),
+                reject_url: path('admin_reject_competition_series', {seriesId: item.seriesId}),
+                approve_label: 'events_organizer.menu.approve_series',
+                reject_label: 'events_organizer.menu.reject_series',
+            } -%}
+        {%- else -%}
+            {%- set approval = {
+                approve_url: path('admin_approve_competition', {competitionId: item.id}),
+                reject_url: path('admin_reject_competition', {competitionId: item.id}),
+                approve_label: 'events_organizer.menu.approve_event',
+                reject_label: 'events_organizer.menu.reject_event',
+            } -%}
+        {%- endif -%}
+    {%- endif -%}
+    {%- if is_granted('COMPETITION_EDIT', item.id) -%}
+        {%- set links = [
+            {label: 'events_organizer.menu.edit_event', url: path('edit_competition', {competitionId: item.id}|merge(back))},
+            {label: 'events_organizer.menu.rounds', url: path('manage_competition_rounds', {competitionId: item.id}|merge(back))},
+            {label: 'events_organizer.menu.participants', url: path('participants_sheet', {competitionId: item.id}|merge(back))},
+        ] -%}
+        {%- if item.roundCount > 0 -%}
+            {%- set links = links|merge([{label: 'events_organizer.menu.results', url: path('competition_results_overview', {competitionId: item.id}|merge(back))}]) -%}
+        {%- endif -%}
+        {%- set links = links|merge([{label: 'events_organizer.menu.page_content', url: path('manage_competition_page', {competitionId: item.id}|merge(back))}]) -%}
+    {%- endif -%}
+    {%- if is_granted('COMPETITION_DELETE', item.id) -%}
+        {%- set delete = {
+            url: path(item.kind == 'edition' ? 'delete_competition_edition' : 'delete_competition', {competitionId: item.id}),
+            token: csrf_token('delete_competition_' ~ item.id),
+            label: 'events_organizer.menu.delete',
+        } -%}
+    {%- endif -%}
+{%- endif -%}
+{%- set name = item.reference.displayName -%}
+<ul class="ev-actions ev-actions-{{ layout }}" aria-label="{{ 'events_organizer.organize.actions'|trans({'%name%': name}) }}">
+    {% if approval %}
+        <li>
+            <form method="post" action="{{ approval.approve_url }}" data-turbo-frame="_top">
+                <input type="hidden" name="return" value="{{ return_url }}">
+                <button type="submit" class="ev-action ev-action-approve">{{ approval.approve_label|trans }}</button>
+            </form>
+        </li>
+        <li>
+            <details class="ev-confirm" data-controller="inline-confirm" data-action="toggle->inline-confirm#toggled keydown.esc->inline-confirm#cancel">
+                <summary class="ev-action" data-inline-confirm-target="summary">{{ approval.reject_label|trans }}</summary>
+                <form class="ev-confirm-body" method="post" action="{{ approval.reject_url }}" data-turbo-frame="_top">
+                    <input type="hidden" name="return" value="{{ return_url }}">
+                    <label class="ev-confirm-label">
+                        {{ 'events_organizer.menu.reject_reason'|trans }}
+                        <textarea class="form-control" name="reason" rows="3" required data-inline-confirm-target="focus"></textarea>
+                    </label>
+                    <div class="ev-confirm-buttons">
+                        <button type="button" class="ev-action" data-action="inline-confirm#cancel" data-inline-confirm-target="cancel" hidden>{{ 'events_organizer.menu.cancel'|trans }}</button>
+                        <button type="submit" class="ev-action ev-action-danger-solid">{{ 'events_organizer.menu.reject_submit'|trans }}</button>
+                    </div>
+                </form>
+            </details>
+        </li>
+    {% endif %}
+    {% for link in links %}
+        <li><a class="ev-action" href="{{ link.url }}" data-turbo-frame="_top">{{ link.label|trans }}</a></li>
+    {% endfor %}
+    {% if delete %}
+        <li>
+            <details class="ev-confirm" data-controller="inline-confirm" data-action="toggle->inline-confirm#toggled keydown.esc->inline-confirm#cancel">
+                <summary class="ev-action ev-action-danger" data-inline-confirm-target="summary">{{ delete.label|trans }}</summary>
+                <form class="ev-confirm-body" method="post" action="{{ delete.url }}" data-turbo-frame="_top">
+                    <input type="hidden" name="_token" value="{{ delete.token }}">
+                    <input type="hidden" name="return" value="{{ return_url }}">
+                    <p class="ev-confirm-text">{{ 'events_organizer.menu.delete_confirm'|trans({'%name%': name}) }}</p>
+                    <div class="ev-confirm-buttons">
+                        <button type="button" class="ev-action" data-action="inline-confirm#cancel" data-inline-confirm-target="cancel" hidden>{{ 'events_organizer.menu.cancel'|trans }}</button>
+                        <button type="submit" class="ev-action ev-action-danger-solid" data-inline-confirm-target="focus">{{ 'events_organizer.menu.delete'|trans }}</button>
+                    </div>
+                </form>
+            </details>
+        </li>
+    {% endif %}
+</ul>

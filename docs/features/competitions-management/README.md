@@ -44,15 +44,7 @@ The edit forms show the current logo above the file input ("Leave empty to keep 
 
 ### 4. Public Listing
 
-The events page shows four sections:
-- **Live** — one-time events where today's date falls within the event date range
-- **Upcoming** — one-time events starting in the future
-- **Recurring** — all approved recurring events (sorted alphabetically)
-- **Past** — one-time events that have ended
-
-Recurring events are excluded from Live/Upcoming/Past sections. All sections only show approved competitions. External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. Online and recurring badges are displayed on event cards. An online event never prints its location (older online events still carry location "Online" in the data - no migration): the event cards, "My events", the event page header and the admin approval queue show the Online badge instead; the event page JSON-LD of an online event is a `VirtualLocation`, never a `Place`. Recurring series cards display the next upcoming edition date (derived from the nearest future round's `starts_at` across all editions).
-
-Each competition also appears in "My Competitions" for its creator/maintainers regardless of approval status.
+The events page (`/en/events`) is described in [../events-page/README.md](../events-page/README.md): one agenda of one-time events and series editions, a series directory, follow + "Your events", the calendar view, the year archive and the organiser tools ("You organize", the ⋯ menu). Only publicly visible competitions are listed (`IsCompetitionPubliclyVisible`); admins also see the ones waiting for approval, with Approve / Reject in the row's ⋯ menu. External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. An online event never prints its location (older online events still carry location "Online" in the data - no migration): the events page, "You organize", the event page header and the admin approval queue show Online instead; the event page JSON-LD of an online event is a `VirtualLocation`, never a `Place`.
 
 ## Access Control
 
@@ -143,10 +135,7 @@ CompetitionSeries ("Euro Jigsaw Jam")
 
 **Editions get auto-generated slugs** — when an edition is created via `AddEditionHandler`, a unique slug is generated from the edition name. Slug uniqueness is scoped to the parent series (not globally), enforced by a composite unique constraint on `(series_id, slug)`.
 
-**Events listing:**
-- Standalone competitions appear in Live/Upcoming/Past sections
-- Series appear in a dedicated "Recurring" section as single cards, showing the next upcoming edition date
-- Editions (competitions with `series_id`) are excluded from Live/Upcoming/Past
+**Events page:** every dated edition is its own occurrence in the agenda and the calendar (several editions of one series in a month share one row); past editions roll up to one line per series and year. See [../events-page/README.md](../events-page/README.md).
 
 ### Event badge on solving times
 

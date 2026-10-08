@@ -1,0 +1,20 @@
+{# The tags of an agenda row or an "Ongoing online" line (owner: workstream A). Variables: tags (list<RowTag>) #}
+{% if tags is not empty %}
+    <ul class="ev-tags">
+        {% for tag in tags %}
+            <li class="ev-tag ev-tag-{{ tag.type.value }}">
+                {%- if tag.type.value == 'going' -%}
+                    <span aria-hidden="true">✓ </span>{{ tag.type.translationKey|trans }}
+                {%- elseif tag.type.value == 'registration_opens' and tag.date -%}
+                    {{ tag.type.translationKey|trans({'%date%': tag.date|events_date('MMMd')}) }}
+                {%- elseif tag.type.value == 'runs_until' and tag.date -%}
+                    {{ tag.type.translationKey|trans({'%date%': tag.date|events_date('yMMMd')}) }}
+                {%- elseif tag.type.value == 'going_count' -%}
+                    {{ tag.type.translationKey|trans({'%count%': tag.count}) }}
+                {%- else -%}
+                    {{ tag.type.translationKey|trans }}
+                {%- endif -%}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

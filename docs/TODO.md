@@ -4,6 +4,16 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Events page (`docs/features/events-page/README.md`, shipped 2026-10-08)
+
+- [ ] Post-launch measurement ~2026-11-05: `?view=calendar` loads (Tempo) and the GA events `events_scope` / `events_view` / `events_search` / `events_calendar_day` / `events_calendar_month` vs the README baseline (7 days before launch: 1,004 views from 404 IPs, filters from 115, calendar from 32)
+- [ ] Phase 2 ideas: "N sellers bringing puzzles" tag from Marketplace at events (`docs/features/marketplace/11-events.md`), "Live results" tag on events happening now
+- [ ] Notifications for followed series (new edition announced, registration opens); "N of your favourite puzzlers are going" (then add the page to the blocklist/private-profile canaries)
+- [ ] Data clean-up (via the internal API / organisers): series without editions or duplicated, undated editions duplicating dated ones, online one-time events with no dates that are really series (`ConvertCompetitionToSeriesController`), annual championships entered as separate one-time events
+- [ ] An index endpoint instead of the embedded index once the page passes ~1,000 occurrences
+- [ ] `CountryRegion` could replace the region grouping copies in `MarketplaceListing` / `ManageCompetitionParticipants`
+- [ ] Admin approve/reject routes have no CSRF check (admin-only POST, unchanged) - separate hardening
+
 ## Puzzle picker - feedback from a puzzler (`docs/features/puzzle-picker/README.md`, e-mail 2026-09-20)
 
 A second puzzler asked for much the same, so it is not a one-off wish.

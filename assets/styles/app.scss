@@ -96,6 +96,12 @@
 // Official results: the organiser's results desk (docs/features/competitions-management/results-desk.md)
 @import "results-desk";
 
+// Events page (docs/features/events-page/)
+@import "events-page";
+@import "events-calendar";
+@import "events-organizer";
+@import "events-archive";
+
 // Participants spreadsheet (docs/features/competitions-management/participants-spreadsheet.md)
 @import "participants_sheet/sheet";
 

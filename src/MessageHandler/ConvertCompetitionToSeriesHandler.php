@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionSeries;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\FollowedCompetitionRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -18,6 +19,7 @@ readonly final class ConvertCompetitionToSeriesHandler
     public function __construct(
         private EntityManagerInterface $entityManager,
         private CompetitionRepository $competitionRepository,
+        private FollowedCompetitionRepository $followedCompetitionRepository,
         private ClockInterface $clock,
         private SluggerInterface $slugger,
     ) {
@@ -70,6 +72,11 @@ readonly final class ConvertCompetitionToSeriesHandler
         $competition->rejectedAt = null;
         $competition->rejectedByPlayer = null;
         $competition->rejectionReason = null;
+
+        // The event became the first edition of the series - an edition is followed through its series
+        foreach ($this->followedCompetitionRepository->listForCompetition($competition) as $followed) {
+            $followed->moveToSeries($series);
+        }
 
         $this->entityManager->flush();
     }

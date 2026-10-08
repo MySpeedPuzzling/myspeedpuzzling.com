@@ -1,0 +1,87 @@
+{# Series directory: in person, online, ongoing online (owner: workstream A). Variables: page; search_ids, scope_name.
+   Each line: name, place or Online, edition count, next/live/last date or "No dates yet", star + ⋯. "Ongoing online"
+   lists online one-time events without dates in the same compact form. #}
+{% set sid = search_ids ?? null %}
+{% set groups = [
+    {key: 'in_person', title: 'events_page.series.in_person', lines: page.seriesInPerson},
+    {key: 'online', title: 'events_page.series.online', lines: page.seriesOnline},
+] %}
+{% set total_shown = 0 %}
+{% for group in groups %}
+    {% set total_shown = total_shown + group.lines|filter(l => l.visible and (sid is null or l.indexId in sid))|length %}
+{% endfor %}
+{% set ongoing_shown = page.ongoingOnline|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
+{% set total_shown = total_shown + ongoing_shown|length %}
+<section class="ev-block ev-series" aria-labelledby="ev-series-title" data-ev-section="series" {{ total_shown == 0 ? 'hidden' }}>
+    <div class="ev-block-head">
+        <h2 class="ev-block-title" id="ev-series-title">{{ 'events_page.series.title'|trans }}</h2>
+    </div>
+    {% for group in groups %}
+        {% if group.lines is not empty %}
+            {% set shown_lines = group.lines|filter(l => l.visible and (sid is null or l.indexId in sid)) %}
+            <div class="ev-series-group" data-ev-series-group="{{ group.key }}" {{ shown_lines is empty ? 'hidden' }}>
+                <h3 class="ev-subhead">{{ group.title|trans }} <span class="ev-subhead-n" data-ev-group-count>{{ shown_lines|length }}</span></h3>
+                <ul class="ev-series-lines">
+                    {% for line in group.lines %}
+                        {% set shown = line.visible and (sid is null or line.indexId in sid) %}
+                        <li class="ev-series-line{{ line.isPending ? ' ev-row-pending' }}" data-ev-ids="{{ line.indexId }}" data-ev-scope="{{ line.scopeKey }}" {{ shown ? '' : 'hidden' }}>
+                            <div class="ev-series-main">
+                                {% if line.url %}<a class="ev-series-name" href="{{ line.url }}">{{ line.name }}</a>{% else %}<span class="ev-series-name">{{ line.name }}</span>{% endif %}
+                                <span class="ev-series-sub">
+                                    {{- include('events/_place.html.twig', {place: line.place}) -}}
+                                    <span class="ev-series-count">· {{ line.editionCount > 0 ? 'events_page.series.editions'|trans({'%count%': line.editionCount}) : 'events_page.series.no_editions'|trans }}</span>
+                                </span>
+                                {% if line.isPending %}<span class="ev-tag ev-tag-waiting_for_approval">{{ 'events_page.tag.waiting_for_approval'|trans }}</span>{% endif %}
+                            </div>
+                            <span class="ev-series-next ev-series-next-{{ line.next.type }}">
+                                {%- if line.next.type == 'next' -%}
+                                    {{ 'events_page.series.next'|trans({'%date%': line.next.date|events_date('MMMEd')}) }}
+                                {%- elseif line.next.type == 'live' -%}
+                                    {{ 'events_page.series.happening_now'|trans }}
+                                {%- elseif line.next.type == 'last' -%}
+                                    {{ 'events_page.series.last'|trans({'%date%': line.next.date|events_date('yMMMd')}) }}
+                                {%- else -%}
+                                    {{ 'events_page.series.no_dates'|trans }}
+                                {%- endif -%}
+                            </span>
+                            {{ include('events/_row_actions.html.twig', {
+                                follow_target: line.followTarget,
+                                follow_name: line.name,
+                                following: line.following,
+                                show_star: not line.isPending,
+                                manage: line.manage,
+                            }) }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    {% if page.ongoingOnline is not empty %}
+        <div class="ev-series-group" data-ev-series-group="ongoing" {{ ongoing_shown is empty ? 'hidden' }}>
+            <h3 class="ev-subhead">{{ 'events_page.series.ongoing_online'|trans }} <span class="ev-subhead-n" data-ev-group-count>{{ ongoing_shown|length }}</span></h3>
+            <ul class="ev-series-lines">
+                {% for row in page.ongoingOnline %}
+                    {% set shown = row.visible and (sid is null or row.indexIds|filter(i => i in sid)|length > 0) %}
+                    <li class="ev-series-line ev-ongoing-line{{ row.isPending ? ' ev-row-pending' }}" data-ev-ids="{{ row.idsAttribute }}" data-ev-scope="{{ row.scopeKey }}" {{ shown ? '' : 'hidden' }}>
+                        <div class="ev-series-main">
+                            {% if row.url %}<a class="ev-series-name" href="{{ row.url }}">{{ row.title }}</a>{% else %}<span class="ev-series-name">{{ row.title }}</span>{% endif %}
+                            <span class="ev-series-sub">{{ 'events_page.series.no_fixed_dates'|trans }}</span>
+                            {#- Waiting for approval, registration, "N going" - an ongoing event takes registrations too -#}
+                            {{ include('events/_row_tags.html.twig', {tags: row.tags}) }}
+                        </div>
+                        <span class="ev-series-next ev-series-next-live">{{ 'events_page.series.ongoing'|trans }}</span>
+                        {{ include('events/_row_actions.html.twig', {
+                            follow_target: row.followTarget,
+                            follow_name: row.followName,
+                            following: row.following,
+                            show_star: row.followTarget is not null and not row.isPending,
+                            manage: row.manage,
+                        }) }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</section>

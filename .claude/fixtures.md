@@ -264,6 +264,33 @@ PLAYER_PRIVATE = [WJPC_2024]. Nobody but the players above goes to the fair.
 | `ROUND_OFFLINE_TEAM` | EDITION_OFFLINE_1 | Team Round | 90 min | - |
 | `ROUND_PAST_ONLY` | EDITION_PAST_ONLY_1 | Berlin Puzzle Cup 2026 | 90 min | - |
 
+### Events page (`EventsPageFixture`, ids `018d0040-…`)
+
+Every kind of event the events page lists (docs/features/events-page/). Made-up names; dates anchored so they hold for
+weeks after the test DB is built (upcoming ones at least 20 days ahead, past ones last year / the year before).
+
+| Const | What | Purpose |
+|---|---|---|
+| `SERIES_HARBOR_NIGHTS` "Harbor Jigsaw Nights" | online series, country `ca`, approved, created by PLAYER_ADMIN | online with a country → counts under Online only |
+| `EDITION_HARBOR_1..3` "Session 1..3" | days 5, 12, 19 of the month two months ahead; session 1 has `ROUND_HARBOR_1` at 23:30 America/Toronto | month roll-up; dated in the round's zone (UTC is the next day) |
+| `EDITION_HARBOR_PAST_A/B` "Spring/Summer Session" | 10 and 24 June of last year | archive roll-up "2 editions in <year>" |
+| `EDITION_HARBOR_UNDATED` | no date, no rounds | date not set: counted in the series (6 editions), never listed |
+| `SERIES_CLOCK_MARATHON` "Lakeside Clock Marathon" | in person, `us`, approved | |
+| `EDITION_CLOCK_LONG` | named like its series, -30 to +400 days | live + long-running ("Runs until") |
+| `COMPETITION_RIVERSIDE_OPEN` "Riverside Puzzle Open" | Hamburg, `de`, +20..+21 days, managed registration open since -10 days, capacity 2; `PARTICIPANT_RIVERSIDE_A` (PLAYER_WITH_FAVORITES), `_B` (unlinked), `_WAITLISTED` | "Full · waitlist", "2 going" |
+| `COMPETITION_MEADOW_TBA` "Meadow Puzzle Championship" | in person, `ro`, no dates, external registration link | "Date to be announced" + "Registration" |
+| `COMPETITION_ENDLESS_RELAY` "Endless Online Puzzle Relay" | online, no dates | "Ongoing online" |
+| `COMPETITION_VALLEY_CUP_LAST_YEAR` "Valley Speed Puzzle Cup <last year>" | in person, `cz`, 14 March last year, results link | archive, Results |
+| `COMPETITION_VALLEY_CUP_TWO_YEARS_AGO` | the same two years ago, no results | a second archive year |
+| `COMPETITION_GARDEN_SWAP_REJECTED` "Garden Swap Evening" | `cz`, +50 days, created by PLAYER_REGULAR, rejected ("A swap meet without timed rounds.") | "You organize": Rejected + reason; never listed |
+| `SERIES_SUMMIT_LEAGUE` "Summit Puzzle League" | in person, `at`, approved, no editions | "No dates yet" |
+| `SERIES_OLD_MILL_REJECTED` "Old Mill Puzzle Nights" | approved **and** rejected later, one edition (`EDITION_OLD_MILL`, +10 days) | never listed |
+| `FOLLOW_REGULAR_HARBOR`, `FOLLOW_REGULAR_MEADOW`, `FOLLOW_FAVORITES_RIVERSIDE` | `followed_competition` rows | PLAYER_REGULAR follows Harbor (series) and Meadow; PLAYER_WITH_FAVORITES follows Riverside |
+
+PLAYER_REGULAR organises 3 items ("You organize (3)"): `COMPETITION_UNAPPROVED`, `COMPETITION_RECURRING_ONLINE` and
+Garden Swap; it is going to WJPC 2024 and Puzzle Swap Fair. Admins also see `COMPETITION_UNAPPROVED` and
+`SERIES_UNAPPROVED` (+ its edition) on the events page, tagged "Waiting for approval".
+
 ### Official results (`OfficialResultsFixture`, ids `018d0020-…`)
 
 `COMPETITION_RESULTS_CUP` "Results Cup" (slug `results-cup`) - a past (-10 days), approved, in-person event in Brno, CZ,

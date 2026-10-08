@@ -179,11 +179,14 @@ final class GetSelectableCompetitionsTest extends KernelTestCase
         );
 
         $all = $this->query->all();
-        $last = end($all);
+        $index = array_flip(array_map(static fn (SelectableCompetition $c): string => $c->id, $all));
 
-        self::assertNotFalse($last);
-        self::assertSame(self::UNDATED_EDITION_WITH_ROUND, $last->id);
-        self::assertSame('undated', $last->eventStatus);
+        self::assertArrayHasKey(self::UNDATED_EDITION_WITH_ROUND, $index);
+
+        // Undated ones close the list (EventsPageFixture has another undated edition)
+        foreach (array_slice($all, $index[self::UNDATED_EDITION_WITH_ROUND]) as $competition) {
+            self::assertSame('undated', $competition->eventStatus, $competition->id);
+        }
     }
 
     public function testAlwaysIncludedCompetitionIsReturnedExactlyOnce(): void

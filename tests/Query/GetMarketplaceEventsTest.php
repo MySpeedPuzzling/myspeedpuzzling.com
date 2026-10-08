@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\MarketplaceEvent;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -152,8 +153,9 @@ final class GetMarketplaceEventsTest extends KernelTestCase
             self::ids($this->query->forPlayer(PlayerFixture::PLAYER_REGULAR)),
         );
 
+        // Riverside Puzzle Open (EventsPageFixture, +20 days) before WJPC (+30 days)
         self::assertSame(
-            [CompetitionFixture::COMPETITION_WJPC_2024],
+            [EventsPageFixture::COMPETITION_RIVERSIDE_OPEN, CompetitionFixture::COMPETITION_WJPC_2024],
             self::ids($this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES)),
         );
 

@@ -22,7 +22,6 @@ readonly final class CompetitionSeriesOverview
         public null|string $location,
         public null|CountryCode $locationCountryCode,
         public null|string $addedByPlayerId,
-        public null|DateTimeImmutable $nextEditionDate = null,
         public null|DateTimeImmutable $approvedAt = null,
         public null|DateTimeImmutable $rejectedAt = null,
         public null|string $addedByPlayerName = null,

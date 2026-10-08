@@ -1,0 +1,19 @@
+{# The date block of a row (owner: workstream A). Variables: leaf (DateLeaf)
+   Weekday band, day number(s), month(s) - the locale's stand-alone weekday and month abbreviations (`E`, `MMM`). A band, day or month string longer than a short
+   English one gets the `-long` size, so "SA.–SO.", "SAM.–DIM." or "10–11" still fit 56 px. The row says the date in
+   words for screen readers, so the leaf is hidden from them. #}
+{% if leaf.from %}
+    {% set to = leaf.to %}
+    {% set band = leaf.from|events_date('E') ~ (to ? '–' ~ to|events_date('E')) %}
+    {% set day = leaf.from|date('j', false) ~ (to ? '–' ~ to|date('j', false)) %}
+    {% set month_text = leaf.from|events_date('MMM') ~ (to and to|date('Y-m', false) != leaf.from|date('Y-m', false) ? '–' ~ to|events_date('MMM')) %}
+{% else %}
+    {% set band = 'events_page.leaf.tba'|trans %}
+    {% set day = '?' %}
+    {% set month_text = 'events_page.leaf.date'|trans %}
+{% endif %}
+<div class="ev-leaf ev-leaf-{{ leaf.tone }}" aria-hidden="true">
+    <span class="ev-leaf-band{{ band|length > 3 ? ' ev-leaf-long' }}">{{ band }}</span>
+    <span class="ev-leaf-day{{ day|length > 4 ? ' ev-leaf-long' }}">{{ day }}</span>
+    <span class="ev-leaf-month{{ month_text|length > 4 ? ' ev-leaf-long' }}">{{ month_text }}</span>
+</div>

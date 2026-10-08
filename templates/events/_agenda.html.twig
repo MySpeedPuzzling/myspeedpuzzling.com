@@ -1,0 +1,103 @@
+{# The agenda: happening now, months, date to be announced, empty states (owner: workstream A). Variables: page; search_ids,
+   searching, scope_name from the page. Every row of every scope is here (hidden when not in scope) - the browser
+   switches scope and search over them and recounts the headers (events_page_controller.js). #}
+{% set sid = search_ids ?? null %}
+{% set scope_country = page.scope.countryCode %}
+{% set scope_prefix = scope_name ? scope_name ~ ' · ' : '' %}
+{% set now_rows = page.happeningNow|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
+{% set tba_rows = page.tba|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
+{% set month_dates = 0 %}
+{% set month_rows_shown = 0 %}
+{% for month in page.months %}
+    {% set shown_rows = month.rows|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
+    {% set month_rows_shown = month_rows_shown + shown_rows|length %}
+    {% set month_dates = month_dates + shown_rows|filter(r => not r.isPending)|reduce((carry, r) => carry + r.datesCount, 0) %}
+{% endfor %}
+{% set now_dates = now_rows|filter(r => not r.isPending)|length %}
+{% set tba_count = tba_rows|filter(r => not r.isPending)|length %}
+{% set add_url = path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) %}
+{% set home_empty = page.homeCountry is not null and page.homeCountry.upcoming == 0 %}
+
+<section class="ev-block ev-agenda" aria-labelledby="ev-agenda-title" data-events-page-target="agenda" {{ search_nothing ?? false ? 'hidden' }}>
+    <div class="ev-block-head">
+        <h2 class="ev-block-title" id="ev-agenda-title" data-ev-agenda-title>
+            {{- searching or page.scope.isEverywhere ? 'events_page.agenda.upcoming'|trans : 'events_page.agenda.upcoming_in'|trans({'%scope%': scope_name}) -}}
+        </h2>
+        <span class="ev-block-n" data-ev-agenda-count>
+            {{- now_dates + month_dates -}}
+            {%- if tba_count > 0 %} · {{ 'events_page.agenda.without_date'|trans({'%count%': tba_count}) }}{% endif -%}
+        </span>
+    </div>
+
+    {% if page.happeningNow is not empty %}
+        <section class="ev-group ev-group-now" data-ev-group="now" {{ now_rows is empty ? 'hidden' }}>
+            <h3 class="ev-month-header">
+                <span><span data-ev-scope-prefix>{{ scope_prefix }}</span>{{ 'events_page.agenda.happening_now'|trans }}</span>
+                <span class="ev-month-n" data-ev-group-count>{{ 'events_page.agenda.dates_count'|trans({'%count%': now_dates}) }}</span>
+            </h3>
+            <ul class="ev-rows">
+                {% for row in page.happeningNow %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% for month in page.months %}
+        {% set shown_rows = month.rows|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
+        <section class="ev-group ev-month" data-ev-group="month" data-ev-month="{{ month.firstDay|date('Y-m', 'UTC') }}" {{ shown_rows is empty ? 'hidden' }}>
+            <h3 class="ev-month-header">
+                <span><span data-ev-scope-prefix>{{ scope_prefix }}</span>{{ month.firstDay|events_date('yMMMM') }}</span>
+                <span class="ev-month-n" data-ev-group-count>{{ 'events_page.agenda.dates_count'|trans({'%count%': shown_rows|filter(r => not r.isPending)|reduce((carry, r) => carry + r.datesCount, 0)}) }}</span>
+            </h3>
+            <ul class="ev-rows">
+                {% for row in month.rows %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+            </ul>
+        </section>
+    {% endfor %}
+
+    {# Something live or without a date, nothing dated ahead #}
+    <p class="ev-note" data-ev-no-upcoming {{ not searching and month_rows_shown == 0 and (now_rows is not empty or tba_rows is not empty) ? '' : 'hidden' }}>
+        {{- page.scope.isOnline ? 'events_page.agenda.no_upcoming_online'|trans : (scope_country ? 'events_page.agenda.no_upcoming_in'|trans({'%scope%': scope_name}) : 'events_page.summary.dates'|trans({'%count%': 0})) -}}
+    </p>
+    <p class="ev-note" data-ev-no-match {{ searching and now_rows is empty and month_rows_shown == 0 and tba_rows is empty ? '' : 'hidden' }}>{{ 'events_page.search.no_upcoming'|trans }}</p>
+
+    {# Nothing coming at all in this scope: the honest empty state #}
+    <div class="ev-empty" data-ev-empty {{ not searching and now_rows is empty and month_rows_shown == 0 and tba_rows is empty ? '' : 'hidden' }}>
+        <p class="ev-empty-title" data-ev-empty-title>
+            {{- page.scope.isEverywhere ? 'events_page.summary.dates'|trans({'%count%': 0}) : 'events_page.empty.none_in'|trans({'%scope%': scope_name}) -}}
+        </p>
+        <p class="ev-empty-text">
+            <span data-ev-empty-last>
+                {%- if page.scopeLast -%}
+                    {{ 'events_page.empty.last_one'|trans({'%name%': page.scopeLast.title, '%month%': page.scopeLast.from|events_date('yMMMM')}) }}
+                {%- else -%}
+                    {{ 'events_page.empty.none_yet'|trans }}
+                {%- endif -%}
+            </span>
+            {{ 'events_page.empty.know_one'|trans }}
+        </p>
+        <a class="btn btn-sm btn-outline-primary ev-add" href="{{ add_url }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> {{ 'events_page.add_event'|trans }}</a>
+    </div>
+
+    {% if page.tba is not empty %}
+        <section class="ev-group ev-group-tba" data-ev-group="tba" {{ tba_rows is empty ? 'hidden' }}>
+            <h3 class="ev-month-header">
+                <span><span data-ev-scope-prefix>{{ scope_prefix }}</span>{{ 'events_page.agenda.tba'|trans }}</span>
+                <span class="ev-month-n" data-ev-group-count>{{ 'events_page.agenda.events_count'|trans({'%count%': tba_count}) }}</span>
+            </h3>
+            <ul class="ev-rows">
+                {% for row in page.tba %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    {% if home_empty %}
+        {# Signed in, nothing coming in the player's own country: Everywhere and that country's view say so #}
+        {% set home = page.homeCountry %}
+        <p class="ev-callout" data-ev-home-callout="{{ home.code.name }}" {{ not searching and (page.scope.isEverywhere or page.scope.key == home.code.name) ? '' : 'hidden' }}>
+            <span class="fi fi-{{ home.code.name }}" aria-hidden="true"></span>
+            <b>{{ 'events_page.home_callout.nothing_planned'|trans({'%country%': home.name}) }}</b>
+            {{ 'events_page.home_callout.know_one'|trans }}
+            <a href="{{ add_url }}">{{ 'events_page.home_callout.add_it'|trans }}</a>
+        </p>
+    {% endif %}
+</section>

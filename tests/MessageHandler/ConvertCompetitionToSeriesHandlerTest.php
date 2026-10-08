@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -148,5 +151,34 @@ final class ConvertCompetitionToSeriesHandlerTest extends KernelTestCase
         self::assertSame($originalLocation, $series->location);
         self::assertSame($originalLocationCountryCode, $series->locationCountryCode);
         self::assertNotNull($series->slug);
+    }
+
+    /**
+     * An edition is followed through its series (docs/features/events-page/README.md, "Follow") - the event's followers
+     * follow the new series.
+     */
+    public function testFollowersOfTheEventFollowTheNewSeries(): void
+    {
+        $seriesId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new ConvertCompetitionToSeries(
+            competitionId: EventsPageFixture::COMPETITION_MEADOW_TBA,
+            seriesId: $seriesId,
+        ));
+
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+        $row = $connection->fetchAssociative(
+            'SELECT competition_id, series_id FROM followed_competition WHERE id = :id',
+            ['id' => EventsPageFixture::FOLLOW_REGULAR_MEADOW],
+        );
+
+        self::assertIsArray($row);
+        self::assertNull($row['competition_id']);
+        self::assertSame($seriesId->toString(), $row['series_id']);
+        self::assertSame(1, $connection->fetchOne(
+            'SELECT COUNT(*) FROM followed_competition WHERE player_id = :player AND series_id = :series',
+            ['player' => PlayerFixture::PLAYER_REGULAR, 'series' => $seriesId->toString()],
+        ));
     }
 }

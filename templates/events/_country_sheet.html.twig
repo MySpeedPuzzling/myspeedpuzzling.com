@@ -1,0 +1,49 @@
+{# The country sheet (owner: workstream A). Variables: page, view, query
+   A bottom sheet on phones, a centred dialog on desktop. events_page_controller.js opens it (focus in, Escape, backdrop,
+   focus back); without JavaScript the "All countries" link opens it through :target and "Done" closes it. #}
+{% set keep = (view.value == 'calendar' ? {view: 'calendar'}|merge(month ? {month: month} : {}) : {})|merge(query ? {q: query} : {}) %}
+<div class="ev-sheet" id="ev-sheet" data-events-page-target="sheet" data-action="click->events-page#sheetBackdrop keydown->events-page#sheetKeydown">
+    <div class="ev-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="ev-sheet-title" tabindex="-1" data-events-page-target="sheetPanel">
+        <div class="ev-sheet-head">
+            <span class="ev-sheet-grab" aria-hidden="true"></span>
+            <div class="ev-sheet-title-row">
+                <h2 class="ev-sheet-title" id="ev-sheet-title">{{ 'events_page.sheet.title'|trans }}</h2>
+                <a class="ev-sheet-done" href="#" data-action="events-page#closeSheet">{{ 'events_page.sheet.done'|trans }}</a>
+            </div>
+            <div class="ev-search ev-sheet-search">
+                <svg class="ev-search-icon" width="18" height="18" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="9" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input class="ev-search-input" type="search" autocomplete="off" enterkeyhint="search"
+                       aria-label="{{ 'events_page.sheet.search_label'|trans }}" placeholder="{{ 'events_page.sheet.search_placeholder'|trans }}"
+                       data-events-page-target="sheetSearch" data-action="input->events-page#filterSheet">
+            </div>
+        </div>
+        <div class="ev-sheet-list">
+            {% for group in page.regions %}
+                <section class="ev-sheet-group" data-ev-sheet-group>
+                    <h3 class="ev-sheet-region">{{ group.region.translationKey|trans }}</h3>
+                    <ul>
+                        {% for country in group.countries %}
+                            <li data-ev-search="{{ (country.name ~ ' ' ~ country.code.value)|search_fold }}">
+                                <a class="ev-sheet-option" href="{{ path('events', {country: country.code.name}|merge(keep)) }}"
+                                   data-ev-scope="{{ country.code.name }}" data-ev-name="{{ country.name }}" data-ev-upcoming="{{ country.upcoming }}"
+                                   data-action="events-page#chooseScope" aria-current="{{ page.scope.key == country.code.name ? 'true' : 'false' }}">
+                                    <span class="fi fi-{{ country.code.name }}" aria-hidden="true"></span>
+                                    <span class="ev-sheet-name">{{ country.name }}</span>
+                                    <span class="ev-sheet-counts">
+                                        {%- set parts = [] -%}
+                                        {%- if country.upcoming > 0 %}{% set parts = parts|merge(['<b>' ~ 'events_page.sheet.upcoming'|trans({'%count%': country.upcoming})|e ~ '</b>']) %}{% endif -%}
+                                        {%- if country.tba > 0 %}{% set parts = parts|merge(['events_page.sheet.tba'|trans({'%count%': country.tba})|e]) %}{% endif -%}
+                                        {%- set parts = parts|merge(['events_page.sheet.past'|trans({'%count%': country.past})|e]) -%}
+                                        {{ parts|join(' · ')|raw }}
+                                    </span>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endfor %}
+            <p class="ev-note ev-sheet-empty" data-events-page-target="sheetEmpty" hidden>{{ 'events_page.sheet.empty'|trans }}</p>
+            <p class="ev-note ev-sheet-note">{{ 'events_page.sheet.note'|trans }}</p>
+        </div>
+    </div>
+</div>

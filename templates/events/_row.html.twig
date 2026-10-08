@@ -1,0 +1,57 @@
+{# One agenda row (owner: workstream A). Variables: row (AgendaRow); search_ids from the page (null without a query).
+   No id attributes - the calendar clones rows. One link per row: the name, stretched over the row; the session chips,
+   the star and the ⋯ sit above it. No star on a row waiting for approval (admins only). #}
+{% set shown = row.visible and ((search_ids ?? null) is null or row.indexIds|filter(id => id in search_ids)|length > 0) %}
+<li class="ev-row{{ row.isGroup ? ' ev-row-group' }}{{ row.isPending ? ' ev-row-pending' }}{{ row.place.isOnline ? ' ev-row-online' }}"
+    data-ev-ids="{{ row.idsAttribute }}"
+    data-ev-scope="{{ row.scopeKey }}"
+    data-ev-from="{{ row.from }}"
+    data-ev-to="{{ row.to }}"
+    data-ev-status="{{ row.status.value }}"
+    {{ shown ? '' : 'hidden' }}>
+    {{ include('events/_date_leaf.html.twig', {leaf: row.leaf}) }}
+    <div class="ev-row-body">
+        {% if row.leaf.from %}
+            <span class="visually-hidden">
+                {{- row.leaf.from|events_date('yMMMMEEEEd') -}}
+                {%- if row.leaf.to %} – {{ row.leaf.to|events_date('yMMMMEEEEd') }}{% endif -%}
+                {%- if row.isGroup %} ({{ 'events_page.row.sessions'|trans({'%count%': row.sessions|length}) }}){% endif %}: </span>
+        {% endif %}
+        {% if row.url %}
+            <a class="ev-row-name" href="{{ row.url }}">{{ row.title }}</a>
+        {% else %}
+            <span class="ev-row-name">{{ row.title }}</span>
+        {% endif %}
+        {% if row.editionName %}<div class="ev-row-edition">{{ row.editionName }}</div>{% endif %}
+        <div class="ev-row-meta">
+            {{ include('events/_place.html.twig', {place: row.place}) }}
+        </div>
+        {% if row.isGroup %}
+            <div class="ev-sessions">
+                <span class="ev-sessions-n">{{ 'events_page.row.sessions'|trans({'%count%': row.sessions|length}) }}</span>
+                {% for session in row.sessions %}
+                    {% set label = session.date|events_date('Ed') %}
+                    {% set full = session.title ~ ', ' ~ session.date|events_date('yMMMMEEEEd') %}
+                    {% if session.url %}
+                        <a class="ev-session" href="{{ session.url }}" data-ev-ids="{{ session.indexId }}" title="{{ full }}" aria-label="{{ full }}">{{ label }}</a>
+                    {% else %}
+                        <span class="ev-session" data-ev-ids="{{ session.indexId }}" title="{{ full }}">{{ label }}</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+        {{ include('events/_row_tags.html.twig', {tags: row.tags}) }}
+    </div>
+    <div class="ev-row-side">
+        {% if row.when %}
+            <span class="ev-when{{ row.when.soon ? ' ev-when-soon' }}">{{ row.when.translationKey|trans({'%count%': row.when.days}) }}</span>
+        {% endif %}
+        {{ include('events/_row_actions.html.twig', {
+            follow_target: row.followTarget,
+            follow_name: row.followName,
+            following: row.following,
+            show_star: row.followTarget is not null and row.status.value != 'past' and not row.isPending,
+            manage: row.manage,
+        }) }}
+    </div>
+</li>

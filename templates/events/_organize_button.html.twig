@@ -1,0 +1,9 @@
+{# "You organize (n)" in the events page header (owner: workstream C). Only for players who created or maintain
+   something - the same rule as the organized_events page (EventsViewerData::organizedCount()). Variables: count #}
+{% if count > 0 %}
+    <a class="ev-organize-button" href="{{ path('organized_events') }}">
+        <svg class="ev-organize-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2" y="3" width="12" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>{{ 'events_organizer.organize.button'|trans }}</span>
+        <span class="ev-organize-count">{{ count }}</span>
+    </a>
+{% endif %}

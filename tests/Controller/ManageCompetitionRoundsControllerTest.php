@@ -63,6 +63,13 @@ final class ManageCompetitionRoundsControllerTest extends WebTestCase
         self::assertSame('Results desk', trim($groupA->filter('[data-round-tool="desk"]')->text()));
         self::assertSame('Tables: 5 / 6 assigned - recommended before the round starts', trim((string) preg_replace('/\s+/', ' ', $groupA->filter('[data-seating-readiness]')->text())));
 
+        // Every round's tab of the participants sheet: a solo round's people, a pair round's pairs (and the round list
+        // has its own link - the tools partial adds none)
+        self::assertSame('Participants', trim($groupA->filter('[data-round-participants-link]')->text()));
+        self::assertStringStartsWith('/en/participants-sheet/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '?tab=' . OfficialResultsFixture::ROUND_GROUP_A . '&return=', (string) $groupA->filter('[data-round-participants-link]')->attr('href'));
+        self::assertSame('Pairs and teams', trim(self::card($crawler, 'Pairs Final')->filter('[data-round-participants-link]')->text()));
+        self::assertCount(0, $crawler->filter('[data-round-tool="participants"]'));
+
         // review2-b m5: a past round never nags - also one that was (partly) seated - and a round without entries has
         // nothing to seat
         self::assertCount(0, self::card($crawler, 'Group B')->filter('[data-seating-readiness]'));

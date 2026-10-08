@@ -55,7 +55,7 @@ final class DiscardParticipantImportController extends AbstractController
             $this->addFlash('danger', $this->translator->trans('competition.participants.import.confirm.expired'));
         }
 
-        return $this->redirectToRoute('manage_competition_participants', [
+        return $this->redirectToRoute('participants_sheet', [
             'competitionId' => $competitionId,
         ], Response::HTTP_SEE_OTHER);
     }

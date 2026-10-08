@@ -11,6 +11,8 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Services\RoundResults\CompetitionRoundSlugGenerator;
+use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantRules;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 
 #[AsMessageHandler]
@@ -26,8 +28,15 @@ readonly final class AddCompetitionRoundHandler
 
     public function __invoke(AddCompetitionRound $message): void
     {
+        // Meaningful for team rounds only - a pair always has 2, a solo round none (expectedTeamSize()): whatever was
+        // sent for another category is ignored
+        $teamSize = $message->category === RoundCategory::Team ? $message->teamSize : null;
+
         // Checked before anything is created - the entity's constructor checks the range too
         RoundPuzzleReveal::assertValidDelay($message->revealDelayMinutes);
+        if (ParticipantRules::isValidTeamSize($teamSize) === false) {
+            throw new \InvalidArgumentException('A team size is 2 to 20 people.');
+        }
 
         $competition = $this->competitionRepository->get($message->competitionId);
 
@@ -47,6 +56,7 @@ readonly final class AddCompetitionRoundHandler
             resultsLink: $message->resultsLink,
             timezone: $message->timezone,
             revealDelayMinutes: $message->revealDelayMinutes,
+            teamSize: $teamSize,
         );
 
         $this->competitionRoundRepository->save($round);

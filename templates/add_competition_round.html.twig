@@ -33,7 +33,11 @@
                             {# Errors of the whole form - e.g. a field the form does not have #}
                             {{ form_errors(form) }}
                             {{ form_row(form.name) }}
-                            {{ form_row(form.category) }}
+                            {# "Members per team" only for team rounds - round_team_size_controller.js follows the category #}
+                            <div data-controller="round-team-size" data-action="change->round-team-size#toggle">
+                                {{ form_row(form.category) }}
+                                {{ form_row(form.teamSize, {row_attr: {'data-round-team-size-target': 'field', hidden: form.category.vars.value != 'team'}}) }}
+                            </div>
                             {{ form_row(form.minutesLimit) }}
 
                             {% if single_day is not null %}

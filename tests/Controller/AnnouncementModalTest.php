@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\AnnouncementModals\ResolveAnnouncementModal;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\FreeTrialConditions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * The one-time "try membership for free" modal (docs/features/announcement-modals.md): the right
@@ -75,6 +78,34 @@ final class AnnouncementModalTest extends WebTestCase
 
         $crawler = $browser->request('GET', self::ORDINARY_PAGE);
         self::assertCount(1, $crawler->filter(self::MODAL), 'It waited for a page that can take it');
+    }
+
+    /**
+     * An organiser running their event (the participants sheet, the results desk, check-in, ...) is in the middle of
+     * something too (review B-m1).
+     */
+    public function testTheOrganisersToolsAreNotInterrupted(): void
+    {
+        // PLAYER_REGULAR organises this event
+        $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredDaysAgo: 40);
+
+        $crawler = $browser->request('GET', '/en/participants-sheet/' . CompetitionFixture::COMPETITION_UNAPPROVED);
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter(self::MODAL));
+        self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR));
+
+        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
+        self::assertCount(1, $crawler->filter(self::MODAL), 'It waited for a page that can take it');
+    }
+
+    public function testEveryQuietRouteExists(): void
+    {
+        $routes = self::getContainer()->get(RouterInterface::class)->getRouteCollection();
+
+        foreach (ResolveAnnouncementModal::QUIET_ROUTES as $route) {
+            // Localized routes are registered per locale (`<name>.en`, ...) with the name as their canonical route
+            self::assertTrue($routes->get($route) !== null || $routes->get($route . '.en') !== null, "Route {$route} does not exist");
+        }
     }
 
     public function testNativeAppsAndTurboFramesGetNothing(): void

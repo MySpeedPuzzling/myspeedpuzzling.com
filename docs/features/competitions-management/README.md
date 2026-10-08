@@ -9,7 +9,8 @@ The feature set is **tiered and opt-in**: a competition with everything off is j
 | Managed registration (capacity, reserved/paid, waitlist, check-in) | "Manage registration on MySpeedPuzzling" on the event's own Registration page (`manage_competition_registration`) | [registration.md](registration.md) |
 | Official round results (live entry, results desk, qualification and advancing, seating, publishing) | Recorded by the organiser per round, published per round | [official-results.md](official-results.md) |
 | Custom public page content (rich text, FAQ, gallery, venue, sponsors, links, contact) | "Page content" on the event/edition edit page or the series management page - a page shows nothing new until a section is added | [public-page.md](public-page.md) |
-| Participant management, import/export, pairing | Always available | [participants.md](participants.md) |
+| Participants spreadsheet: people, pairs/teams per round, results / table / qualified columns, registration columns, paste, undo, phone lists | Always available - "Participants" on the event's edit page (replaced the participants page and the round teams page) | [participants-spreadsheet.md](participants-spreadsheet.md) |
+| Participant model, self-join ("I'm going"), import/export, pairing | Always available | [participants.md](participants.md) |
 
 One permanent product boundary: **MySpeedPuzzling never processes payments.** Managed registration only records the organizer's payment confirmation ("mark paid") — collecting entry fees is entirely the organizer's responsibility.
 
@@ -235,14 +236,15 @@ CompetitionTeam
 
 **Participant-team assignment:** `CompetitionParticipantRound` has a nullable FK to `CompetitionTeam`. For solo rounds, team is always null. For duo/team rounds, participants on the same team share the same `CompetitionTeam` FK.
 
-**Management UI** (`/en/manage-round-teams/{roundId}`):
-- Create teams (with optional name)
-- Assign participants to teams (from those assigned to the round)
-- Remove participants from teams
-- Rename a team, or name an unnamed one (pencil on the team card, `RenameCompetitionTeam`; empty = unnamed, max 255 characters). Two teams of one round may share a name - different groups really do; every such card says so and the assign dropdown adds the members' names to tell them apart
-- Delete teams - a team with members can be deleted: its members go back to "unassigned" in that round, nothing else about them changes (`DeleteCompetitionTeamHandler`, one transaction; the confirmation says how many). This includes removed (soft-deleted) participants, who keep their round entries and team while hidden from the page - such a team used to look empty and fail to delete (Sentry WEB-D5, 2026-10-07)
-- View unassigned participants
-- Every form carries the page's CSRF token (`ManageRoundTeamsController::csrfTokenId()`, one per round); a team is assigned only within its own round
+**Management UI**: the round's tab of the participants spreadsheet ([participants-spreadsheet.md](participants-spreadsheet.md);
+the old `/en/manage-round-teams/{roundId}` redirects there) - one row per pair/team with its members, typed or pasted;
+a "Without a pair/team" tray for people in the round without one; create, name/rename (empty = unnamed, max 255
+characters; two teams of one round may share a name - the sheet says so and tells them apart by their members and table
+number), move members, delete a pair/team (its members, removed people too, stay in the round without one - WEB-D5).
+Every change goes through `ApplyParticipantSheetChanges` under the event's lock: a pair/team with an official result is
+never deleted, and keeps at least one member taking part (official-results.md "Guards"); an unnamed pair/team the sheet
+empties is deleted with it, a named one stays (made in advance). Team rounds have an optional expected team size
+(`competition_round.team_size`, 2-20) - sizes are pointed out, never enforced.
 
 **Import/Export**: The Excel import reads optional `round_names` (comma-separated, what the template and the export write; the old single `round_name` still works) and `team_name` columns, plus what the export adds: one `team_name: <round>` column per duo/team round and `participant_id`, so an export imported back changes nothing. Participants are added to every listed round (several rows of one person add up), and for duo/team rounds teams are created or matched by name. An upload (`.xlsx`, `.csv`, `.tsv`, `.txt`) first goes to a **preview** - sheet, column mapping, exactly what will change, warnings - and nothing is written before the organiser confirms; *Update only* never removes anything, *Full sync – the file is the truth* also removes participants, round entries and emptied pairs/teams the file does not have (never anybody with results). See [participant-import-preview.md](participant-import-preview.md) and `participants.md` §Excel Import.
 

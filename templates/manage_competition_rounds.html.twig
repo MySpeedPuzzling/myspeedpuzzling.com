@@ -77,11 +77,10 @@
                                     <a href="{{ path('manage_round_puzzles', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-puzzle me-1"></i>{{ 'competition.puzzles'|trans }}
                                     </a>
-                                    {% if round.category.value != 'solo' %}
-                                        <a href="{{ path('manage_round_teams', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-people me-1"></i>{{ 'competition.manage_teams'|trans }}
-                                        </a>
-                                    {% endif %}
+                                    {# The round's tab of the participants sheet - its pairs/teams, or its people #}
+                                    <a href="{{ path('participants_sheet', {'competitionId': competition.id, tab: round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary" data-round-participants-link>
+                                        <i class="bi bi-people me-1"></i>{{ (round.category.value != 'solo' ? 'participants_sheet.links.pairs_and_teams' : 'participants_sheet.title')|trans }}
+                                    </a>
                                     {% if is_granted('ADMIN_ACCESS') %}
                                         {% if not competition.isOnline %}
                                             <a href="{{ path('manage_round_tables', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">

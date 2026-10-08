@@ -163,35 +163,35 @@ final class CompetitionNameTagsTest extends WebTestCase
         self::assertStringStartsWith('<svg', $qr->svg($url));
     }
 
-    public function testTheParticipantsPageLinksThemForInPersonEventsOnly(): void
+    public function testTheParticipantsSheetLinksThemForInPersonEventsOnly(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $crawler = $this->browser->request('GET', '/en/manage-event-participants/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
+        $crawler = $this->browser->request('GET', '/en/participants-sheet/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
         self::assertCount(1, $crawler->filter('a[href="' . self::PAGE . '"]'));
-        self::assertCount(1, $crawler->filter('[data-participants-tools] a[href="' . self::PAGE . '"]'));
+        self::assertCount(1, $crawler->filter('[data-sheet-tool="name-tags"][href="' . self::PAGE . '"]'));
 
-        // With managed registration, name tags sit in one row with the registration tools (browser verification)
+        // With managed registration, name tags sit in the Tools menu with the registration tools
         self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
-        $crawler = $this->browser->request('GET', '/en/manage-event-participants/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
-        self::assertCount(1, $crawler->filter('[data-participants-tools]'));
-        self::assertCount(3, $crawler->filter('[data-participants-tools] a'));
-        self::assertCount(1, $crawler->filter('[data-participants-tools] a[href="' . self::PAGE . '"]'));
+        $crawler = $this->browser->request('GET', '/en/participants-sheet/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP);
+        self::assertCount(1, $crawler->filter('[data-sheet-tool="registration"]'));
+        self::assertCount(1, $crawler->filter('[data-sheet-tool="check-in"]'));
+        self::assertCount(1, $crawler->filter('[data-sheet-tool="name-tags"][href="' . self::PAGE . '"]'));
 
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
-        $crawler = $this->browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE);
+        $crawler = $this->browser->request('GET', '/en/participants-sheet/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE);
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('a[href^="/en/name-tags/"]'));
     }
 
-    public function testTheParticipantsPageOfAnEventWithoutOfficialResultsKeepsEverythingElse(): void
+    public function testTheParticipantsSheetOfAnEventWithoutOfficialResultsKeepsEverythingElse(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_ADMIN);
 
-        $crawler = $this->browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_WJPC_2024);
+        $crawler = $this->browser->request('GET', '/en/participants-sheet/' . CompetitionFixture::COMPETITION_WJPC_2024);
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('a[href="/en/name-tags/' . CompetitionFixture::COMPETITION_WJPC_2024 . '"]'));
-        self::assertCount(1, $crawler->filter('form[action$="/import"], form[enctype="multipart/form-data"]'));
+        self::assertCount(1, $crawler->filter('form[enctype="multipart/form-data"]'));
     }
 
     /**

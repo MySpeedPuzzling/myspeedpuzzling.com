@@ -65,6 +65,21 @@ final readonly class OfficialResultsSubscription
     }
 
     /**
+     * The participants spreadsheet of an event: its participants topic (ParticipantsSheetLiveUpdates) and every round's
+     * private results topic - the sheet shows results, table numbers and qualified marks of all rounds.
+     *
+     * @param list<string> $roundIds
+     * @return null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int}
+     */
+    public function forParticipantsSheet(string $competitionId, array $roundIds): null|array
+    {
+        return $this->forTopics(array_values(array_unique([
+            ParticipantsSheetLiveUpdates::topic($competitionId),
+            ...array_map(OfficialResultsLiveUpdates::topic(...), $roundIds),
+        ])));
+    }
+
+    /**
      * @param list<string> $topics
      * @return null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int}
      */

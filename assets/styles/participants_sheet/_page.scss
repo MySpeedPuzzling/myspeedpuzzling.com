@@ -1,0 +1,185 @@
+// Participants spreadsheet - page (docs/features/competitions-management/participants-spreadsheet.md): the frame around
+// the grid. Full screen: the page is the viewport - the sheet's bar on top, the grid area (`main` target, stream C
+// renders into it) fills the rest and scrolls on its own, so the bar and the grid's sticky header and first column stay
+// in view. A browser without :has() scrolls the page as a whole instead - the bar is sticky there too.
+
+body:has(> main .participants-sheet) {
+  height: 100vh;
+  height: 100dvh;
+
+  > main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+}
+
+.participants-sheet {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  background-color: $white;
+}
+
+.participants-sheet-bar {
+  position: sticky;
+  top: 0;
+  z-index: $zindex-sticky;
+  flex: 0 0 auto;
+  padding: .375rem .5rem 0;
+  background-color: $white;
+  border-bottom: 1px solid $border-color;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    min-width: 0;
+    padding-bottom: .375rem;
+  }
+
+  &__back {
+    flex: 0 0 auto;
+    padding-left: .25rem;
+    padding-right: .25rem;
+    text-decoration: none;
+
+    .bi {
+      margin-right: .25rem;
+    }
+  }
+
+  &__title {
+    display: flex;
+    flex: 1 1 12rem;
+    align-items: baseline;
+    gap: .5rem;
+    min-width: 0;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: $font-weight-medium;
+    line-height: 1.3;
+  }
+
+  // A long event name never pushes the buttons out - it ends with an ellipsis
+  &__event {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__subtitle {
+    flex: 0 0 auto;
+    color: $text-muted;
+    font-size: .875rem;
+    font-weight: $font-weight-normal;
+  }
+
+  &__actions {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: .375rem;
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  &__status {
+    flex: 0 1 auto;
+    min-width: 0;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  &__history,
+  &__tools,
+  &__help {
+    flex: 0 0 auto;
+  }
+
+  &__tools .bi {
+    margin-right: .25rem;
+  }
+
+  // The round tabs (stream C renders them): one line that scrolls sideways on a narrow screen, never wraps
+  &__tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .25rem;
+    min-height: 2.25rem;
+    margin: 0 -.5rem;
+    padding: 0 .5rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+
+    > * {
+      flex: 0 0 auto;
+    }
+  }
+
+  // Phones: the event name gets the first line, the status and the buttons a line of their own (the status on the
+  // left, the buttons on the right); Back and Tools say it with their icon only (their accessible names stay), the
+  // subtitle goes - the page title says it
+  @include media-breakpoint-down(md) {
+    &__row {
+      flex-wrap: wrap;
+      row-gap: .25rem;
+    }
+
+    &__title {
+      flex-basis: calc(100% - 3.5rem);
+    }
+
+    &__actions {
+      flex: 1 1 100%;
+      justify-content: flex-end;
+    }
+
+    &__status {
+      margin-right: auto;
+    }
+
+    &__label {
+      @include visually-hidden;
+    }
+
+    &__subtitle {
+      display: none;
+    }
+
+    &__back .bi,
+    &__tools .bi {
+      margin-right: 0;
+    }
+
+    // 44 px targets
+    .btn-sm {
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+    }
+  }
+}
+
+.participants-sheet__checklist {
+  flex: 0 0 auto;
+}
+
+.participants-sheet__main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+.participants-sheet__loading {
+  margin: 0;
+  padding: 1rem;
+  color: $text-muted;
+}

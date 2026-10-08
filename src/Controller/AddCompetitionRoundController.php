@@ -108,6 +108,8 @@ final class AddCompetitionRoundController extends AbstractController
                 category: $data->category,
                 resultsLink: $data->resultsLink,
                 revealDelayMinutes: $data->revealDelayMinutes,
+                // Ignored for solo and pair rounds (AddCompetitionRoundHandler)
+                teamSize: $data->teamSize,
             ));
 
             $this->addFlash('success', $this->translator->trans('competition.flash.round_added'));

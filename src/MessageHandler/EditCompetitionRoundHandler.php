@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
+use SpeedPuzzling\Web\Services\ParticipantImport\Plan\ParticipantRules;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -70,6 +72,15 @@ readonly final class EditCompetitionRoundHandler
 
         RoundPuzzleReveal::assertValidDelay($revealDelayMinutes);
 
+        // Null = the round's expected team size as it is now, under the lock; checked before anything changes. Only a
+        // team round has one - a solo or pair round has none, whatever was sent (a round changed away from team loses it)
+        $teamSize = $category === RoundCategory::Team
+            ? ($message->clearTeamSize ? null : ($message->teamSize ?? $round->teamSize))
+            : null;
+        if (ParticipantRules::isValidTeamSize($teamSize) === false) {
+            throw new \InvalidArgumentException('A team size is 2 to 20 people.');
+        }
+
         // The round's automatic reveal (start + delay) moved earlier lets its secret puzzles out earlier than planned -
         // only on a yes for exactly that list (SecretRevealPreview), checked again here, after the locks. A later moment
         // never reveals anything early.
@@ -119,6 +130,9 @@ readonly final class EditCompetitionRoundHandler
             resultsLink: $keep('resultsLink') ? $round->resultsLink : $message->resultsLink,
         );
         $round->changeRevealDelay($revealDelayMinutes);
+
+        // Null for a solo or pair round (a pair always has 2)
+        $round->changeTeamSize($teamSize);
 
         // An automatic reveal follows the round's start and its delay - the puzzles it keeps secret on the whole site
         // follow too (a longer delay hides them longer). Scheduled and manual reveals are the organiser's own and stay

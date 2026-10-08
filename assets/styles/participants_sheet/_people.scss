@@ -1,0 +1,934 @@
+// Participants spreadsheet - people (docs/features/competitions-management/participants-spreadsheet.md, stream E): the
+// People tab's toolbar (search, filters with counts, Columns menu), the registration counters and the first-in-line hint,
+// the selection column and the bulk bar, the row markers (removed, same name, registration status), the small cell
+// menus, the person editor (a side panel on desktops, a full-screen dialog on phones) and the phone people list.
+// States are said in words and icons, never colour alone; phones get 44 px targets and never scroll sideways.
+// Uses the core partial's $sheet-* variables (imported before this one).
+
+$people-panel-width: 24rem;
+
+// ---------------------------------------------------------------- the People tab (desktop)
+
+.sheet-people {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: .5rem .5rem 0;
+}
+
+.sheet-people-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem .75rem;
+    margin-bottom: .5rem;
+}
+
+.sheet-people-search {
+    position: relative;
+    flex: 0 1 20rem;
+    min-width: 12rem;
+
+    .bi-search {
+        position: absolute;
+        top: 50%;
+        left: .625rem;
+        color: $gray-600;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+    .form-control {
+        padding-left: 2rem;
+        // 16 px: no iOS zoom
+        font-size: 1rem;
+    }
+}
+
+// Search and Columns on the first line, the filters on a line of their own below them
+.sheet-people-filters {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    order: 3;
+    gap: .25rem;
+}
+
+.sheet-filter {
+    border: 1px solid $sheet-line;
+    border-radius: 1rem;
+    background-color: $white;
+    color: $gray-800;
+
+    &:hover {
+        background-color: $gray-100;
+    }
+
+    // The active filter: a filled pill and a bold label (pressed state is in aria-pressed, not only the colour)
+    &.active,
+    &[aria-pressed='true'] {
+        border-color: shade-color($accent, 15%);
+        background-color: shade-color($accent, 15%);
+        color: $white;
+        font-weight: $font-weight-semibold;
+
+        .sheet-filter-count {
+            color: $white;
+        }
+    }
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+        outline-offset: 1px;
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.sheet-filter-count {
+    margin-left: .125rem;
+    color: $gray-600;
+    font-variant-numeric: tabular-nums;
+}
+
+.sheet-people-round {
+    flex: 0 1 14rem;
+    width: auto;
+    min-width: 9rem;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.sheet-people-columns {
+    margin-left: auto;
+}
+
+// A sortable header: the whole label is the button (aria-sort on its cell says the order)
+.sheet-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+
+    .bi {
+        flex: none;
+        color: $gray-600;
+        font-size: .8125em;
+    }
+
+    &:hover .bi,
+    th[aria-sort] & .bi {
+        color: $gray-900;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+        outline-offset: 1px;
+    }
+}
+
+// A green action button that is readable: dark green on white, white on a darker green when pressed (E-3 - the theme's
+// light green with white text is not)
+.sheet-btn-success {
+    --#{$prefix}btn-color: #{shade-color($success, 60%)};
+    --#{$prefix}btn-border-color: #{shade-color($success, 35%)};
+    --#{$prefix}btn-hover-color: #{$white};
+    --#{$prefix}btn-hover-bg: #{shade-color($success, 45%)};
+    --#{$prefix}btn-hover-border-color: #{shade-color($success, 45%)};
+    --#{$prefix}btn-active-color: #{$white};
+    --#{$prefix}btn-active-bg: #{shade-color($success, 55%)};
+    --#{$prefix}btn-active-border-color: #{shade-color($success, 55%)};
+    --#{$prefix}btn-disabled-color: #{shade-color($success, 40%)};
+    --#{$prefix}btn-disabled-border-color: #{shade-color($success, 20%)};
+    --#{$prefix}btn-bg: #{$white};
+}
+
+.sheet-columns-item {
+    .bi-check-lg {
+        visibility: hidden;
+    }
+
+    &[aria-checked='true'] .bi-check-lg {
+        visibility: visible;
+    }
+
+    &:disabled {
+        color: $gray-600;
+    }
+}
+
+// ---------------------------------------------------------------- registration counters
+
+.sheet-people-registration {
+    margin-bottom: .5rem;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.sheet-counters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem;
+    margin: 0;
+    color: $gray-800;
+    font-size: $font-size-sm;
+    font-variant-numeric: tabular-nums;
+}
+
+.sheet-counters-over {
+    color: $sheet-danger-text;
+    font-weight: $font-weight-semibold;
+}
+
+.sheet-first-in-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .375rem .5rem;
+    margin-top: .375rem;
+    padding: .375rem .75rem;
+    border: 1px solid rgba($success, .4);
+    border-radius: $border-radius;
+    background-color: rgba($success, .08);
+    color: shade-color($success, 50%);
+    font-size: $font-size-sm;
+
+    > span {
+        flex: 1 1 14rem;
+    }
+
+    .btn {
+        margin-left: auto;
+    }
+}
+
+.sheet-first-in-line-mail {
+    color: shade-color($success, 60%);
+}
+
+.sheet-counters:focus {
+    outline: none;
+}
+
+.sheet-counters:focus-visible {
+    outline: 2px solid $sheet-focus;
+    outline-offset: 2px;
+}
+
+// ---------------------------------------------------------------- the grid's People columns
+
+.sheet-view-people {
+    // The name stays in view next to the selection column (both sticky); the focused cell is never under them (2.4.11)
+    .sheet-scroller {
+        scroll-padding-left: calc(var(--sheet-first-w, 2.75rem) + 15rem);
+    }
+
+    // The name is the second column (after the selection box) - in the header row too
+    .sheet-grid {
+        tr > :nth-child(2) {
+            position: sticky;
+            left: var(--sheet-first-w, 2.75rem);
+            z-index: 2;
+            box-shadow: 1px 0 0 $sheet-line;
+        }
+
+        thead tr > :nth-child(2) {
+            z-index: 4;
+        }
+
+        tbody tr > :nth-child(2) {
+            background-color: $gray-100;
+            font-weight: $font-weight-medium;
+        }
+
+        tbody tr > .is-selected:nth-child(2) {
+            background-color: mix($sheet-focus, $gray-100, 14%);
+        }
+
+        .sheet-col-select {
+            padding: 0;
+            text-align: center;
+        }
+
+        .sheet-select-all {
+            width: 1.125rem;
+            height: 1.125rem;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .sheet-col-actions {
+            padding: 0 .25rem;
+            text-align: center;
+        }
+    }
+
+    // The rows of the selection: a tint and a bar on the left - the ticked box says it too
+    .sheet-row-selected > td,
+    .sheet-row-selected > th {
+        background-color: rgba($sheet-focus, .06);
+    }
+
+    .sheet-row-selected > .sheet-col-select {
+        box-shadow: inset 3px 0 0 $sheet-focus;
+    }
+
+    // The person open in the editor
+    .sheet-row-open > :nth-child(2) {
+        box-shadow: inset 0 -2px 0 $sheet-focus, 1px 0 0 $sheet-line;
+    }
+
+    .sheet-row-removed > td,
+    .sheet-row-removed > th {
+        color: $gray-600;
+    }
+}
+
+.sheet-row-action {
+    min-height: 1.75rem;
+    padding: 0 .5rem;
+    font-size: .8125rem;
+    line-height: 1.5;
+
+    &.btn-link {
+        color: $gray-800;
+    }
+}
+
+.sheet-badge-removed {
+    background-color: $gray-200;
+    color: $gray-800;
+}
+
+.sheet-badge-duplicate {
+    background-color: rgba($warning, .2);
+    color: $sheet-warning-text;
+}
+
+.sheet-marker-info {
+    color: $gray-600;
+    font-weight: $font-weight-normal;
+
+    .sheet-marker-text {
+        font-weight: $font-weight-normal;
+    }
+}
+
+// Next to a checkbox there is room for the icon only (its word stays for screen readers and in the title)
+.sheet-col-solo .sheet-marker-info .sheet-marker-text {
+    @include visually-hidden;
+}
+
+// The registration status chip: its word is the state, the colour only repeats it
+.sheet-reg {
+    display: inline-block;
+    padding: 0 .5rem;
+    border: 1px solid transparent;
+    border-radius: 1rem;
+    font-size: .75rem;
+    font-weight: $font-weight-semibold;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+.sheet-reg-reserved {
+    border-color: rgba($accent, .35);
+    background-color: rgba($accent, .08);
+    color: shade-color($accent, 35%);
+}
+
+.sheet-reg-paid {
+    border-color: rgba($success, .45);
+    background-color: rgba($success, .12);
+    color: shade-color($success, 50%);
+}
+
+.sheet-reg-waitlisted {
+    border-color: rgba($warning, .6);
+    background-color: rgba($warning, .18);
+    color: $sheet-warning-text;
+}
+
+// ---------------------------------------------------------------- the bulk bar (floats at the bottom: no layout shift)
+
+.sheet-bulk-bar {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    z-index: $zindex-sticky + 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem .5rem;
+    width: max-content;
+    max-width: calc(100vw - 2rem);
+    padding: .5rem .75rem;
+    border-radius: $border-radius-lg;
+    background-color: $gray-900;
+    color: $white;
+    font-size: $font-size-sm;
+    box-shadow: 0 .5rem 1.5rem rgba($black, .3);
+    transform: translateX(-50%);
+
+    &[hidden] {
+        display: none;
+    }
+
+    .sheet-bulk-count {
+        margin-right: .25rem;
+    }
+
+    .sheet-bulk-hidden {
+        color: $gray-400;
+    }
+
+    .btn:focus-visible {
+        outline: 2px solid $white;
+        outline-offset: 1px;
+    }
+
+    .sheet-bulk-clear {
+        color: $gray-300;
+    }
+}
+
+.participants-sheet.has-person-panel .sheet-bulk-bar {
+    @include media-breakpoint-up(md) {
+        left: calc(50% - #{$people-panel-width} / 2);
+    }
+}
+
+// While the bar floats over the grid's bottom, the last rows can scroll above it and a focused cell is never under it
+.sheet-view-people.has-selection .sheet-scroller {
+    padding-bottom: 4.5rem;
+    scroll-padding-bottom: 4.5rem;
+}
+
+// ---------------------------------------------------------------- the small menus at a cell
+
+.sheet-cell-menu {
+    position: fixed;
+    z-index: $zindex-popover;
+    min-width: 14rem;
+    max-width: min(24rem, calc(100vw - 1rem));
+    padding: .375rem 0;
+    border: 1px solid rgba($black, .15);
+    border-radius: $border-radius;
+    background-color: $white;
+    box-shadow: 0 .5rem 1rem rgba($black, .15);
+
+    .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: .375rem 1rem;
+        border: 0;
+        background-color: transparent;
+        color: $gray-900;
+        text-align: left;
+        white-space: normal;
+
+        &:hover,
+        &:focus {
+            background-color: $gray-100;
+        }
+
+        &:focus {
+            outline: 2px solid $sheet-focus;
+            outline-offset: -2px;
+        }
+
+        &.text-danger {
+            color: $sheet-danger-text !important;
+        }
+    }
+
+    .sheet-cell-menu-help {
+        display: block;
+        color: $gray-600;
+        font-size: .75rem;
+    }
+}
+
+// ---------------------------------------------------------------- the person editor
+
+.sheet-person {
+    position: fixed;
+    top: var(--sheet-person-top, 0);
+    right: 0;
+    bottom: 0;
+    left: auto;
+    z-index: $zindex-sticky + 2;
+    width: $people-panel-width;
+    max-width: 100vw;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    border: 0;
+    border-left: 1px solid $sheet-line;
+    background-color: $white;
+    color: $gray-900;
+    box-shadow: -.5rem 0 1.5rem rgba($black, .08);
+    overscroll-behavior: contain;
+
+    // Phones: the whole screen, a modal dialog
+    &.is-modal {
+        top: 0;
+        width: 100vw;
+        height: 100dvh;
+        border-left: 0;
+        box-shadow: none;
+
+        &::backdrop {
+            background-color: rgba($black, .4);
+        }
+    }
+
+    &:not([open]) {
+        display: none;
+    }
+}
+
+.participants-sheet.has-person-panel .participants-sheet__main {
+    @include media-breakpoint-up(md) {
+        margin-right: $people-panel-width;
+    }
+}
+
+.sheet-person-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    border-bottom: 1px solid $sheet-line;
+    background-color: $white;
+
+    .btn-close {
+        flex: none;
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0;
+        background-size: .875rem;
+    }
+}
+
+.sheet-person-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: 1.0625rem;
+    font-weight: $font-weight-semibold;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sheet-person-position {
+    flex: none;
+    color: $gray-600;
+    font-size: $font-size-sm;
+    font-variant-numeric: tabular-nums;
+}
+
+.sheet-person-nav {
+    display: inline-flex;
+    flex: none;
+    gap: .25rem;
+
+    .btn {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+        padding: 0;
+    }
+}
+
+.sheet-person-body {
+    padding: .75rem;
+
+    // 16 px fields: no iOS zoom
+    .form-control,
+    .form-select {
+        font-size: 1rem;
+    }
+
+    .form-select-sm {
+        min-height: 2.75rem;
+    }
+
+    .form-label {
+        margin-bottom: .25rem;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+    }
+}
+
+.sheet-person-field {
+    margin-bottom: .875rem;
+}
+
+.sheet-person-error {
+    margin-top: .25rem;
+    color: $sheet-danger-text;
+    font-size: $font-size-sm;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// Phones: every button of a field's note is a 44 px target (Keep mine / Use theirs / OK / Unlink)
+.sheet-person.is-modal {
+    .sheet-person-mark .btn,
+    .sheet-person-player .btn {
+        min-height: 2.75rem;
+    }
+}
+
+.sheet-person-mark {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    margin-top: .25rem;
+    font-size: $font-size-sm;
+
+    .sheet-person-mark-actions {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: .25rem;
+    }
+
+    .btn {
+        min-height: 2.25rem;
+    }
+}
+
+.sheet-person-mark-saving,
+.sheet-person-mark-waiting {
+    color: $gray-600;
+}
+
+.sheet-person-mark-conflict,
+.sheet-person-mark-refused {
+    color: $sheet-danger-text;
+}
+
+.sheet-person-mark-warning {
+    color: $sheet-warning-text;
+}
+
+.sheet-person-status {
+    margin-bottom: .75rem;
+}
+
+.sheet-person-player {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem .75rem;
+    min-height: 2.75rem;
+
+    a {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+        min-height: 2.75rem;
+    }
+
+    .sheet-avatar,
+    .sheet-avatar-icon {
+        margin-right: 0;
+    }
+}
+
+.sheet-person-search {
+    position: relative;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.sheet-person-results {
+    max-height: 16rem;
+    margin: .25rem 0 0;
+    padding: .25rem 0;
+    overflow-y: auto;
+    border: 1px solid $sheet-line;
+    border-radius: $border-radius;
+    list-style: none;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.sheet-person-result {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    min-height: 2.75rem;
+    padding: .375rem .75rem;
+    cursor: pointer;
+
+    &.is-active,
+    &:hover {
+        background-color: rgba($sheet-focus, .12);
+        box-shadow: inset 3px 0 0 $sheet-focus;
+    }
+}
+
+.sheet-person-rounds {
+    margin-bottom: .875rem;
+    padding: 0;
+    border: 0;
+
+    legend {
+        float: none;
+        width: auto;
+    }
+}
+
+.sheet-person-round {
+    padding: .5rem 0;
+    border-top: 1px solid $gray-200;
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        min-height: 2.75rem;
+        margin: 0;
+        padding-left: 3rem;
+    }
+
+    .form-check-input {
+        width: 2.5rem;
+        height: 1.375rem;
+        margin-top: 0;
+        margin-left: -3rem;
+        cursor: pointer;
+    }
+
+    .form-check-label {
+        cursor: pointer;
+    }
+}
+
+.sheet-person-team {
+    margin: .25rem 0 0 3rem;
+
+    .small {
+        margin-top: .25rem;
+    }
+}
+
+.sheet-person-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin: .5rem 0;
+
+    .btn {
+        min-height: 2.75rem;
+    }
+}
+
+.sheet-person-section[data-section='registration']:not(:empty) {
+    margin-bottom: .875rem;
+    padding-top: .75rem;
+    border-top: 1px solid $sheet-line;
+
+    h3 {
+        margin-bottom: .375rem;
+    }
+}
+
+.sheet-person-danger {
+    padding-top: .75rem;
+    border-top: 1px solid $sheet-line;
+
+    .btn {
+        min-height: 2.75rem;
+    }
+}
+
+// ---------------------------------------------------------------- the phone people list
+
+.sheet-plist {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding: .5rem .75rem 1rem;
+
+    .form-control,
+    .form-select,
+    .btn {
+        min-height: 2.75rem;
+        font-size: 1rem;
+    }
+}
+
+.sheet-plist-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 11rem);
+    gap: .5rem;
+}
+
+.sheet-plist-round {
+    grid-column: 1 / -1;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// ---------------------------------------------------------------- previews and dialogs of the People tab
+
+// "And put them into ▾ Group A" in the names preview (BR3)
+.sheet-paste-round {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    margin-bottom: .75rem;
+
+    .form-select {
+        width: auto;
+        min-width: 12rem;
+        max-width: 100%;
+        min-height: 2.75rem;
+        font-size: 1rem;
+
+        @include media-breakpoint-up(md) {
+            min-height: 0;
+            font-size: $font-size-sm;
+        }
+    }
+}
+
+.sheet-run-progress:empty {
+    display: none;
+}
+
+.sheet-plist-add {
+    display: flex;
+    gap: .5rem;
+
+    .form-control {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .btn {
+        flex: none;
+    }
+}
+
+.sheet-plist-added {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 .5rem;
+    font-size: $font-size-sm;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.sheet-plist-count {
+    margin: 0;
+}
+
+.sheet-plist-list {
+    margin: 0;
+    border-top: 1px solid $sheet-line;
+
+    > li {
+        border-bottom: 1px solid $sheet-line;
+    }
+}
+
+.sheet-plist-empty {
+    padding: 1rem .25rem;
+    color: $gray-600;
+}
+
+.sheet-pcard {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: .625rem 2rem .625rem .25rem;
+    border: 0;
+    background: transparent;
+    color: $gray-900;
+    text-align: left;
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+        outline-offset: -2px;
+    }
+
+    &.is-removed {
+        color: $gray-600;
+    }
+}
+
+.sheet-pcard-name {
+    display: block;
+    overflow-wrap: anywhere;
+    font-weight: $font-weight-semibold;
+
+    .fi {
+        margin-left: .25rem;
+    }
+}
+
+.sheet-pcard-summary {
+    display: block;
+    color: $gray-700;
+    font-size: $font-size-sm;
+    overflow-wrap: anywhere;
+}
+
+.sheet-pcard-problems {
+    display: block;
+    color: $sheet-warning-text;
+    font-size: $font-size-sm;
+}
+
+.sheet-pcard-refused {
+    color: $sheet-danger-text;
+}
+
+.sheet-pcard-go {
+    position: absolute;
+    top: 50%;
+    right: .5rem;
+    color: $gray-500;
+    transform: translateY(-50%);
+}
+
+.sheet-plist-more[hidden] {
+    display: none;
+}

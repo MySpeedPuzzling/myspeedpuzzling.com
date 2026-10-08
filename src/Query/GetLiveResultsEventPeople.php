@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Services\PrivateProfileAccess;
  * Picked there, they are put into the round by their id (RecordRoundResults `newEntry.participantId`) instead of being
  * typed in as a second person. Organiser tooling behind COMPETITION_EDIT: names as the organiser recorded them, no
  * blocklist; only people going to the event (CompetitionParticipantGoing) - somebody of the waitlist who turns up gets a
- * spot on the participants page first, an entry of a waitlisted person would be no entry of the round. One statement.
+ * spot in the participants sheet first, an entry of a waitlisted person would be no entry of the round. One statement.
  *
  * A referee (live-results.md "Referees") gets no #code of a player private to them (`withPrivateCodes: false`,
  * PrivateProfileAccess) - organisers get every code, as on their participant list.

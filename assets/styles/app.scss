@@ -96,6 +96,9 @@
 // Official results: the organiser's results desk (docs/features/competitions-management/results-desk.md)
 @import "results-desk";
 
+// Participants spreadsheet (docs/features/competitions-management/participants-spreadsheet.md)
+@import "participants_sheet/sheet";
+
 // The moderators' time verification queue (docs/features/suspicious-time-review.md)
 @import "time-verification";
 

@@ -41,6 +41,15 @@ final class CompetitionRoundFormData
         #[Assert\NotNull]
         #[Assert\Range(notInRangeMessage: 'competition_round_reveal_delay_range', min: 0, max: RoundPuzzleReveal::MAX_DELAY_MINUTES)]
         public null|int $revealDelayMinutes = RoundPuzzleReveal::DEFAULT_DELAY_MINUTES,
+        // How many people a team of a team round is expected to have (CompetitionRound::$teamSize) - a hint for the
+        // participants sheet, never a limit. Null = not set. Checked for team rounds only: the handlers ignore it for
+        // solo and pair rounds (a round changed to one loses it), and a number left in the field hidden for another
+        // category must not keep the form from saving
+        #[Assert\When(
+            expression: 'this.category.value === "team"',
+            constraints: [new Assert\Range(min: CompetitionRound::TEAM_SIZE_MIN, max: CompetitionRound::TEAM_SIZE_MAX)],
+        )]
+        public null|int $teamSize = null,
     ) {
     }
 
@@ -70,6 +79,9 @@ final class CompetitionRoundFormData
         $data->category = $round->category;
         $data->resultsLink = $round->resultsLink;
         $data->revealDelayMinutes = $round->revealDelayMinutes;
+        // The stored size only - a guess is the field's placeholder (CompetitionRoundFormType `team_size_guess`), so an
+        // untouched form stores nothing
+        $data->teamSize = $round->teamSize;
 
         return $data;
     }

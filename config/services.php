@@ -188,6 +188,8 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/PuzzleTextSearch.php',
             // one planning run of ParticipantImportPlanner and its values - not services
             __DIR__ . '/../src/Services/ParticipantImport/Plan/',
+            // one planning run of SheetChangesPlanner and its result - not services
+            __DIR__ . '/../src/Services/ParticipantsSheet/Plan/',
             // the counters of one suspicious time scan, created per run by its handler - not a service
             __DIR__ . '/../src/Services/SuspiciousTimes/SuspiciousTimeScanTally.php',
         ]);

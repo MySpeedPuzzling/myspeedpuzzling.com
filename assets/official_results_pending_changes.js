@@ -136,9 +136,12 @@ export class PendingChanges {
      * change id - a replay of the same change.
      *
      * @param {() => string} newId
+     * @param {number} [limit]
+     * @param {function(object): boolean} [accept] only the queued cells it accepts (the participants sheet's queue
+     *        keeps a cell back until the sheet change it depends on was saved)
      * @returns {Array<{clientChangeId: string, entry: string, field: string, from: *, to: *}>}
      */
-    take(newId, limit = 500) {
+    take(newId, limit = 500, accept = null) {
         const changes = [];
 
         for (const cell of this.cells.values()) {
@@ -146,7 +149,7 @@ export class PendingChanges {
                 break;
             }
 
-            if (cell.status !== 'queued' || cell.inFlight !== null) {
+            if (cell.status !== 'queued' || cell.inFlight !== null || (accept !== null && !accept(cell))) {
                 continue;
             }
 

@@ -1,12 +1,16 @@
-# Participants spreadsheet (research + design, not built)
+# Participants spreadsheet
 
-Status: **plan - the sheet itself is not built.** Design approved 2026-10-07 (Jan picked every recommended option - §11).
-The results and qualification part (§11b) was decided the same day ("best of both worlds") and **built in PR #136**
-together with live entry, seating and the referee role - see §0. The sheet (stages 0b-2) remains a plan and builds on
-what PR #136 shipped.
-Clickable proposal: https://claude.ai/artifact/T2nZjZJJ2SwpYFbnjujmMk (private). Extends [participants.md](participants.md)
-(participants, organiser UI, Excel import/export) and [participant-import-preview.md](participant-import-preview.md)
-(the file pipeline from PR #245). Examples use invented people only.
+Status: **built** (2026-10-08) - stages 0b, 1 and 2 of §10 plus the results / table / qualified columns, in one delivery.
+This document is the design of record: §0-§12 are the approved design (Jan picked every recommended option - §11; the
+results part §11b was built in PR #136), §13 records what was delivered and every decision taken while building it, and
+the sections after it ("Client architecture (as built)" onwards) document the code. Where §1-§11 and §13 disagree, §13
+and the as-built sections win.
+Route: `participants_sheet` (`/en/participants-sheet/{competitionId}`, cs `/tabulka-ucastniku/{competitionId}`), linked as
+"Participants" from the event's edit page, the series editions table, the rounds page, the results desk / overview /
+seating ("Participants" per round) and the waitlist note. The old participants page and the round teams page redirect to
+it. Clickable proposal: https://claude.ai/artifact/T2nZjZJJ2SwpYFbnjujmMk (private). Related: [participants.md](participants.md)
+(participants, self-join, Excel import/export) and [participant-import-preview.md](participant-import-preview.md). Examples
+use invented people only.
 
 ## TL;DR
 
@@ -25,8 +29,9 @@ Clickable proposal: https://claude.ai/artifact/T2nZjZJJ2SwpYFbnjujmMk (private).
   under the same per-event lock. A paste or bulk action is previewed first with a dry run of the same message (§6).
 - **Phone:** not a spreadsheet. A people list that opens a full-screen editor per person (with previous/next), and per
   round a list of pair/team cards with member chips and a "Without a pair" tray (§8).
-- **Team size is not stored anywhere today.** Stage 1 adds one expected size per team round and a stable team number
-  per round (§11 D5, D7). Wrong sizes stay warnings ("3/2", "1/2"), never blocking.
+- **Team size:** one expected size per team round (`competition_round.team_size`, pairs are always 2), set on the round
+  form or in the round tab's header (§11 D5). Wrong sizes stay warnings ("3/2", "1/2"), never blocking. **D7 was
+  replaced by the table number** (§13 O1).
 
 ---
 
@@ -617,9 +622,11 @@ Round tab (375 px)
   region for "Saved", "Pasted 120 cells, 3 need attention", "3 people changed by another organiser", and conflicts.
   Every action is reachable without dragging. Visible focus. Sizes and problems in text. The phone view uses native
   controls (buttons, dialog, combobox).
-- **Privacy.** Organisers already see and link any player (participants.md). The profile typeahead uses the existing
-  player search (blocklist rules for the viewer apply as on other pickers). The export of the sheet = the existing
-  export. No personal data leaves the event's maintainers.
+- **Privacy.** Organisers already see and link any player (participants.md). The profile typeahead has its own search
+  (`participants_sheet_player_search`, the event's organisers only): organiser tooling, so players the organiser blocked
+  are found too - blocking must not make anybody unassignable (player-blocklist.md rule 7); a private player is found
+  by their exact code only, as everywhere. The export of the sheet = the existing export. No personal data leaves the
+  event's maintainers.
 - **Tests.** Handler tests for each op, conflicts, refusals (results guard, connect rule), idempotent resend,
   lock key; a parity test that a sheet change and the equivalent import produce the same operations. Node tests (like
   `RelativeTimeParityTest`) for the TSV parser, the changeset builder, undo inversion and the keyboard state machine.
@@ -628,6 +635,8 @@ Round tab (375 px)
 ---
 
 ## 10. Staged plan
+
+*Delivered: stages 0b, 1 and 2 and the results columns shipped together on 2026-10-08 (§13); stage 0a shipped in PR #136.*
 
 **Stage 0a - one lock for every participant write (1–2 days, own PR, D13).** Rename the import's lock key to
 `competition-participants-<id>` and make the Live editor, the team controllers and `Join`/`LeaveCompetition` take it.
@@ -766,3 +775,593 @@ an automatic rule would also race with results being entered). As built:
 - Real touch, screen-reader and paste behaviour of every library (no browser test, which is what stage 0 is for). JS
   sizes from esbuild, not Webpack Encore.
 - The in-house effort estimate.
+
+## 13. As delivered (2026-10-08)
+
+Delivered by an orchestrated multi-stream build (contract → server write path, read path + page, client core, round
+tabs, People tab → three review rounds → fixes → real-browser verification → 6 locales). Decisions taken under Jan's rule
+for this delivery - *the best possible competition management for organisers, covering every real scenario (WJPC,
+Wisconsin, a Minnesota-style night), without breaking existing competitions*:
+
+| # | Decision |
+|---|---|
+| O1 | **D7 → the table number.** No stored per-round team number: a round tab's first column is the entry's table number (PR #136, written through `RecordRoundResults` / `AssignTableNumbers`); online events and rounds without tables show an unstored row index. Same-named teams are told apart by their members (same row) and the table; pickers label a team `Corners · Table 2 · Kim Example, Pat Sample`. |
+| O2 | **Every round has a tab** - solo rounds too (table, name, country, result, rank, qualified), so results of a solo round can be typed and pasted. People keeps a checkbox column per solo round. |
+| O3 | **Results / rank / qualified columns** in every round tab, shown once the round started or holds data (a Results columns toggle otherwise), written only through `RecordRoundResults` / `AssignTableNumbers` - no second write path. Rank = `official_results_ranking.js`. |
+| O4 | **The sheet replaces the participants page and `manage_round_teams`** (D12): both redirect (302, `?return=` kept); the Live component, the teams page, the team POST controllers and 8 messages left without a dispatcher were deleted; import/export, tool links and the setup checklist moved into the sheet (Tools menu, Import dialog). |
+| O5 | **Registration in the People tab** (managed events): status / paid / checked-in / registered / note columns, counters, waitlist position (from the server), the first-in-line hint, the actions of the old page (existing messages via `participants_sheet_registration`) incl. bulk Mark paid / Check in with an e-mail count in the confirmation. The organiser note is a sheet field for every event. |
+| O6 | **Expected team size** stored, set on the round form (team rounds only, the guess as a placeholder - an untouched field stores nothing) and inline in the round tab; the import's oversize warning uses it. A round changed away from team forgets it. |
+| O7 | **Names-only rounds (Minnesota)**: a named team without members is not a problem; problem counts = incomplete + too many + people without a pair/team (+ shared names, informational). A results paste with unknown team names offers "Create the team". |
+| O8 | **Waitlisted people** can be placed (planning ahead) with a marker; results tools ignore them; they never count as the members keeping a team with a result. Removed people can't be placed (restore first). |
+| O9 | **Privacy**: participant rows (the organiser's record) are never hidden - organiser tooling (`BlocklistQueryCoverageTest` ORGANISER). The linked profile's identity (MSP name, #CODE, avatar, link) follows the viewer's own blocks and `PrivateProfileAccess`; otherwise "Linked to a MySpeedPuzzling profile". The sheet's own player search (`participants_sheet_player_search`) includes players the organiser blocked (blocklist rule 7: tooling never makes anyone unassignable). The round topics' live updates are the organisers' existing results topics (the results desk shows the same identities); the sheet drops identity fields from them. |
+| O10 | CSS in `assets/styles/participants_sheet/*.scss` imported from `app.scss`; the JS is a lazy Stimulus controller + ES modules (`app.js` does not grow). |
+| O11 | **Idempotency + change trail**: every applied change set leaves a receipt (`participant_sheet_change_receipt`: id = the page's `changesetId`, the outcomes, versions before/after, **the acting player and the change set as received**) - a replay is answered from it; kept 90 days (the existing `myspeedpuzzling:prune-round-result-change-receipts` prunes both). The trail is the raw material of D11's future change log ("who removed Kim?"). |
+| O12 | **Live updates** on a private topic `/competition-participants/{id}` (`participants_sheet.changed` + version) and every round's results topic, through a per-page subscription token; version check every 30 s while visible, state fetch on any mismatch / reconnect / tab return. Never the subscribe cookie. |
+| O13 | **Phones (< 768 px)**: People = a list + full-screen person editor (previous/next); round tabs = pair/team cards + tray (bottom sheets); solo round = a list with results read-only + Live entry. 44 px targets. |
+| O14 | **Undo** per page view (D11): a step = the inverse of one action, sent as new change sets / results changes (three-way checked); a refused undo says why. Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y work anywhere on the page outside text fields. |
+
+Decided during the reviews:
+
+- **The `from` of an open editor is what the organiser saw when it opened** (a live update reaching the open cell shows "Changed meanwhile to X · Keep mine / Use theirs"; an unchanged value sends nothing) - the results desk's old BLOCKER, found again in review and fixed in the grid for every view.
+- **A member may leave a pair/team holding a result** (to the tray, out of the round, to another team) with the warning "the result now belongs to the new line-up" while the team keeps a going member; only emptying it is refused. A person's own solo result still keeps them in the round; their own MySpeedPuzzling time in a round keeps them there too (checked against the profile linked at the start of the change set - unlink + remove in one save is refused).
+- **Duplicate external IDs are refused** (`external_id_taken`) - the import matches by them.
+- **Every refusal and "nothing happened" is visible** (`context.notify()` toasts anchored at the cell, also read by screen readers) - not only announced.
+- **Pastes are always previewed when they rename people or need a decision**; ambiguous names (two "Jo Do") never default to a candidate - Confirm waits for the organiser's choice; a pasted name close to an existing one, or looking like a country code / number / e-mail, is not pre-ticked as a new participant; partner-column pastes (each pair on both partners' lines) count each pair once; pastes are planned on a snapshot taken at paste time.
+- **WJPC groups**: a column of names pasted into a solo round tab (or the People paste's "and put them into ▾") places them; People filters "In no solo round", "In 2+ solo rounds", "In / Not in <round>", sortable columns.
+- **Results pastes** match names, table numbers or #codes, only within that round; a blank result in a paste never clears a saved one.
+- People added in the sheet to a managed event are reserved and get a registration date (like the old add form).
+
+### Stage 0b spike (2026-10-08, throwaway, outside the repo)
+
+D2 confirmed - in-house. 70/70 Chromium checks + cross-browser clipboard checks (WebKit 26, Firefox 141, Chromium via
+Playwright): keyboard model 28/28 with real key events, paste/copy 23/23 (15 text + 3 HTML fixtures, real system
+clipboard), accessibility tree 8/8. Two corrections to §9: **`content-visibility` does nothing on table row groups**
+(and block rows with it drop rows from the accessibility tree and Ctrl+F) - native table layout without it, fine to
+~1,500 rows; **WebKit fires no clipboard event on a focused table cell** - the grid routes Ctrl/Cmd+C/X/V through a
+hidden textarea. 1,000 rows rendered in ~60-90 ms, an edit 3-4 ms (cell-local). Not verified: Safari / iOS, real Android,
+Windows, NVDA/VoiceOver, a Japanese IME's first keystroke, clipboards captured from real Excel/Numbers/Sheets (the
+spike's `capture.html` is the 15-minute way to get them) - see `docs/TODO.md`.
+
+### Verified in a real browser (2026-10-08)
+
+On a scratch copy of the production database (World Jigsaw Puzzle Championship 2026: 836 people, 13 rounds), headless
+Chromium with real key events and a Mercure hub: the sheet loads in ~1.6 s (837 rows, no horizontal page scroll at
+1,280 and 375 px); a 30-pair CRLF paste through the preview created exactly 30 pairs / 60 entries; a 203-person bulk
+"Into Individual Semifinal S1" saved in 0.6 s; a rename reached a second organiser's sheet live; an open editor showed
+"Changed meanwhile" and Keep mine won on the server and in both sheets; results, table number and qualified typed in a
+solo tab; removing a person with a result refused with a visible toast; undo/redo by button and keyboard; the old routes
+redirect; the results desk links the round's tab; phone views (cards, tray, people list) with no target under 44 px.
+
+### Not built (follow-ups in docs/TODO.md)
+
+Export / print of a tab, highlighting other organisers' changes, "Make a pair → existing" and "Split" in People,
+"Replace with…" on phone chips, a server-side change log with restore (D11 - the receipts already store who and what),
+registration actions kept offline, merging a self-joined row into an imported one, per-round column hiding in People.
+
+## Client architecture (as built)
+
+Stream C of the delivery (the client core + the basic People grid). Streams D (round tabs) and E (People extras, person
+editor, phone list) build on these APIs. Everything is plain ES modules under `assets/participants_sheet/` (no bundler-only
+import - they run as native modules in a browser and under node), plus the lazy Stimulus controller
+`assets/controllers/participants_sheet_controller.js`. Pure modules are pinned by
+`tests/ParticipantsSheetCoreScriptsTest.php` → `tests/participants-sheet-core-harness.mjs` → the suites in
+`tests/participants-sheet-core/` (node:assert; `echo '[{"suite":"queue"}]' | node tests/participants-sheet-core-harness.mjs`).
+The DOM suites (`grid`, `toasts`, `people`, `controller`) run the real grid, the toasts, People view and Stimulus
+controller in jsdom (a dev
+dependency in `package-lock.json`, `dom.mjs`); `perf` pins bulk actions to one rebuild and one re-render.
+
+### Modules
+
+| Module | Responsibility |
+|---|---|
+| `tsv.js` | Clipboard: `parseClipboardText` (tabs, CRLF/LF/CR, one trailing line end, RFC 4180 quoting only where a producer had to, BOM), `parseClipboardHtml` (fallback), `rowsFromClipboard(text, html)`, `toTsv` / `toHtmlTable` (copy), `readBoolean` (TRUE/FALSE, 1/0, x, yes/no in the site's languages → true/false/null), `trimCell`. From the stage 0b spike. |
+| `grid_keys.js` | `nextAction(state, keyEvent)` - the APG grid keyboard model as a pure state machine (navigation vs edit, Tab wrap, IME, AltGr, non-Latin layouts). From the spike. |
+| `sheet_model.js` | `SheetModel` - the state JSON (§4.2) as indexes, the derived facts, the optimistic overlay, merges; `SheetMarks` (cell markers); `Working` (the copy-on-write state the overlay and inverses run on); cleaning helpers identical to the server's (`cleanName`, `cleanTeamName`, `cleanOptionalText`, `nameKey` = ParticipantNameKey). |
+| `sheet_changes.js` | Builders of **actions** for every op of §3.1 and the composite actions; client checks with the server's reason codes; exact inverses. |
+| `sheet_save_queue.js` | `SheetSaveQueue` - the one FIFO to the server, the version protocol, retries, problems. |
+| `sheet_undo.js` | `SheetUndo` - per page view. |
+| `sheet_live.js` | `SheetLive` - the Mercure stream (`OfficialResultsEvents` with the state's token), version polling, catch-up. |
+| `sheet_grid.js` | `SheetGrid` - the generic DOM grid views configure. `escapeHtml`, `markerHtml`, `exactRule`. |
+| `sheet_toasts.js` | `SheetToasts` - the visible feedback behind the controller's `notify()` (below): the stack in the status area, pointing at a cell, timing, dialogs. |
+| `preview_dialog.js` | `PreviewDialog` - the generic match-then-confirm `<dialog>`. |
+| `views/people_view.js` | The People grid (desktop) - the first real view, extended by stream E. |
+
+### Data flow
+
+1. A view builds an **action** with a `sheet_changes.js` builder and calls `context.act(action)`.
+2. `act()` shows client refusals (`action.errors`, in the server's words - `errorText()`; several = the first one +
+   "2 more changes were not saved either") as an error toast pointing at the cell acted on (`notify()`) and marks them
+   on their cells for 8 s, notes the tab it was made on (`action.origin`), shows every group at once inside one
+   `model.batch()` (`model.applyLocalMany(groups)` - one rebuild, one
+   re-render for a bulk action of 1,000 groups), queues them (`queue.enqueueGroups`), queues results changes
+   (`action.results` → `queue.results(roundId).set(...)` + `enqueueResults`) and records one undo step.
+3. The queue sends after ~800 ms (one request in flight). Per answered group (all of an answer in one `model.batch()`,
+   `confirmMany` / `revertMany`, each group settled on its own - a view throwing never leaves the others pending):
+   applied/unchanged → folded into the base with the server's `deletedTeams` (a pair/team the answer created that ends
+   it unnamed and empty is dropped - the server never created it), markers cleared; conflict/refused → reverted + a
+   **problem** (with the server's translated message - always shown as it is - and `current`) + a marker on the cell.
+   A changeset refused as a whole (400) answers every group as refused (`outcome` events); a 409 `changed_meanwhile` is
+   kept and sent again like a busy server. `versionBefore === model.version` (and not a
+   replay) → `model.version = versionAfter`; otherwise the state is fetched (through the same FIFO, so a fetch never races
+   our own save) and merged. Saves that create what the browser cannot know (new round entries' ids, `source` after a
+   removal, registration after a restore, a new person, a profile linked or unlinked) fetch the state 1.5 s after things
+   got quiet.
+4. Every model change emits a **delta** `{people: Set, teams: Set, rounds: Set, rows: bool, all: bool}` (a diff of what
+   views read - unchanged records keep their identity, so the diff is cheap); the controller hands it to the mounted
+   view's `update(delta)` and re-renders the tab counts. Marker changes emit deltas the same way.
+5. Live: `participants_sheet.changed` with an unknown version → fetch, and "another organiser changed the sheet" is said
+   (`onForeignChange`) - never for the echo of one of our own saves (on its way, adopted, or late: `queue.isOwnVersion()`);
+   `official_results.entries` → `model.mergeEntries`
+   (an unknown ref → fetch); `.refresh` → fetch; `.round` → `model.updateRound`. Plus `GET urls.version` every 30 s while
+   visible and idle, a fetch when the tab returns after 10 s, when the browser is online again, and when the stream
+   reopens.
+
+### The model (`SheetModel`)
+
+Reading (base + pending, i.e. what the organiser sees): `rounds()`, `round(id)`, `people({includeRemoved})` (state order -
+by name - with people added on the page at the end), `person(id)`, `team(id)`, `teamsOf(roundId)` (state order, new ones
+last), `place(personId, roundId)`, `placeValue(personId, roundId)` → `out` | `in` | `team:<id>`, `placesOf(personId)`,
+`placeById(entryId)`, `peopleIn(roundId)`, `membersOf(teamId)` (active people), `trayOf(roundId)` (in the round without a
+pair/team), `expectedSize(roundId)` (2 for pairs, the stored size of a team round else `usualTeamSize()` = the most common,
+the smaller on a tie, ≥ 2; null for solo), `isNamesOnly(roundId)` (O7), `sizeStatus(teamId)` → `{count, expected, status:
+complete | incomplete | too_many | empty | names_only}`, `sameNameTeams(roundId)` → Map teamId → other ids,
+`problems(roundId)` → `{incomplete, tooMany, withoutTeam, sameName, total}` (total = the tab badge; same names are
+informational), `peopleInNoRound()`, `duplicateNames()` / `peopleNamed(name)` (ParticipantNameKey fold),
+`teamLabel(teamId)` → `{name, table, members}` (O1 - the view formats `Corners · Table 2 · Kim Example, Pat Sample`),
+`entryRef(personId, roundId)` → `participant_round:<id>` / `team:<id>` / null for an entry not saved yet,
+`holdsDataInRound()` / `holdsDataInEvent()` (the results guard on what the page knows), `isRemoved()`, `isWaitlisted()`.
+Derived values are cached per change.
+
+Writing: `applyLocal(groupId, changes)` / `applyLocalMany([{id, changes}])`, `confirm(groupId, deletedTeams)` /
+`confirmMany([{groupId, deletedTeams}])`, `revert(groupId)` / `revertMany(groupIds)` (the `Many` forms: one rebuild, one
+delta), `batch(fn)` (every delta `fn` causes - model and markers - told once, merged), `replaceState(state)` (a fetched
+state; pending groups replayed on it; a newer live result is never replaced by an older state), `mergeEntries(entries)`
+→ `{unknown, delta}` (an update about an older result than the page holds changes nothing - nor its table number or
+qualified mark), `updateRound(overview)`, `scratch()`, `subscribe(listener)` (a listener that throws is logged, the
+others still run). A linked or unlinked profile keeps `playerResultRounds` (the own-time guard) until the next state;
+a profile picked from the search with `hidden: true` shows as "Linked to a MySpeedPuzzling profile" (O9). `Working`
+(the scratch state) records writes between `begin()` and `rollback()` / `commit()` - client checks of a group run on it
+without copying the state. `model.version` = the known sheet
+version, `model.resultsGeneration` counts merged result updates. Places created on the page have `local: true` and an id
+`local:…` until the next state.
+
+**Markers** (`model.marks`, a `SheetMarks`; `setMany([{key, mark, entities}])` re-renders once): key → `{state: saving |
+waiting | conflict | refused | warning, message, groupId, problemId, transient?}`. Keys: `person:<id>:<name|country|externalId|note|player|removed>`, `place:<personId>:<roundId>`,
+`team:<teamId>:<name|delete>`, `round:<roundId>:teamSize`, `result:<ref>:<result|table_number|qualified>`. Views ask
+`context.markerFor(key)` → `{state, text, title}` and put it in a cell's `marker` (the grid draws an icon **and** a
+word). Server warnings mark `person:<id>:name` / `team:<id>:name` for 20 s and are shown as a warning toast pointing at
+that name (`notify()`).
+
+### Actions (`sheet_changes.js`)
+
+An action = **one undo step**: `{label: {key, …}, groups: [{id, changes}], inverse: [{id, inverseOf, changes}], errors:
+[{reason, change}], results?: [{roundId, ref, field, from, to}], inverseResults?}`. A group is atomic on the server; an
+action holds several groups when its parts are independent (a bulk "Solo: in" of 40 rows = 40 groups). Every `from` is
+what the model shows (the organiser's own pending value included - a second edit chains on the first) - **or what an
+editor showed when it opened** (`options.from`, below). `errors` are client refusals (codes of §3.1: `name_blank`,
+`name_too_long`, `invalid_country` (with `countries`), `note_too_long`, `external_id_too_long`, `external_id_taken`,
+`team_name_too_long`, `participant_removed`, `has_result_in_round` (own data only - the person's solo entry or own
+time), `has_result_in_event`, `team_has_result` (a pair/team holding a result left without a going member - not removed,
+not waitlisted - by the group as a whole; `cause: emptied | waitlisted_only`), `player_linked_elsewhere`,
+`not_a_team_round`, `team_of_another_round`, `invalid_team_size`, `too_many_changes` (> 500 changes in a group), …);
+those groups never leave the browser. `refusalDetails(error, model)` → `{key, params}` words one like the server
+(`participants_sheet_server.reason.<key>`, the cause variants `has_result_in_round_own_time`, `team_has_result_emptied`,
+… and `%name%`/`%round%`/`%team%`/… from the page) - views show it through `context.errorText(error)`. Inverses are computed change by change on a scratch state: a deleted pair is
+created again **with the same id** and its active members put back; a pair the server will delete automatically when a
+group empties it is created again first; a new person's undo is `remove`, its redo `restore`.
+
+Builders (each `(model, …, options)` with `options = {newId?, countries?, label?, from?}`). **`from`** = what the
+organiser saw when the edit started (an editor's `seen`): sent as the change's `from` instead of the model's value
+(a live change that arrived while the cell was being edited comes back as a conflict, never silently reverted); the
+client checks still run on the model; a value equal to it is no change (no group, no undo step). One value, or for
+builders over several people a `Map` / function personId → value (`fromFor()`); `setFields` takes it per item.
+`setField(personId, field, value)`, `setFields(field, [{personId, value, from?}])`, `linkProfile(personId, player|null)`
+(`player` = `{id, name, code, avatar, country, profileUrl, visible?}` - shown at once via the `_player` hint, stripped
+from the wire), `addPerson({name, country?,
+externalId?, id?})` (+ `personId`), `removePeople(ids)`, `restorePeople(ids)`, `setPlace(personId, roundId, to)`,
+`setInRound(ids, roundId, bool)`, `newTeamRow(roundId, {id?, name, members: [personId | {name, country}]})` (+ `teamId`;
+"type a pair into the new row" - one group: new people, the team, every member placed from wherever they are),
+`putInTeam(roundId, teamId, personId | {name, country})` (move / add, + `personId`), `clearMember(roundId, personId)`
+(→ the tray), `renameTeam(teamId, name)`, `deleteTeam(teamId)` (its table number comes back on undo: `inverseResults`
+`table_number` null → the old number, `inverseOf` the deleting group - sent after the group re-creating the pair),
+`setTeamSize(roundId, size|null)`, `resultsAction(changes)` (RecordRoundResults fields, undone by the swapped change).
+Lower level: `buildAction(model, [[changes], …])`, `checkGroup(changes, working, {countries, now})` (the checks of one
+group incl. the group rules; the Working is left as it was), `combine(label, …actions)` (independent actions as one step
+- groups, results and both inverses), `invertGroups(groups, model)`, `checkChange(change, state)`, `refusalDetails(error,
+state)`, `changeTarget(change, model)` (marker key + entities), `wireChange` / `wireGroups`, `isEmpty(action)`.
+
+Undo labels (`label.key`) map to `action_<key>` texts (core); a new key needs its text there.
+
+### The save queue (`SheetSaveQueue`)
+
+Items: `sheet` (groups → `urls.changes`, `changesetId` kept across retries - frozen once sent, later groups go into a new
+changeset; limits 1,000 groups / 5,000 changes), `results` (a round's queued cells of a `PendingChanges` - the results
+desk's module - → `urls.record`; a cell is stamped with the sheet items queued before it and a results request takes
+only cells queued before the next sheet item still waiting - a result never overtakes the group creating its pair), `tables` (`enqueueTables(roundId, [{entry, from, number}])` → `urls.tables`, resolves
+`{kind: ok, entries}` | `{kind: refused, problems}` - a refusal also fetches the state), `preview` (`preview(groups)` → the
+dry run answer, after everything queued before it, never retried; still waiting behind a retried save after 15 s it
+answers `{kind: offline | timeout}`), `state` (`refetch()`, coalesced, resolves to the answer's kind). Debounce 800 ms
+after the last edit (results and sheet groups) - a dry run, a fetch or "send now" sends what was queued before it at
+once, later edits wait for the debounce again; one request in flight; offline / 5xx / busy / 409 `changed_meanwhile`
+kept and retried after 2, 5, 10, 20, 30 s (typing does not shorten the backoff), at once on `online()`; `auth`,
+`forbidden`, `gone` stop sending until `retryNow()` (dry runs and fetches answer at once meanwhile).
+
+For results: `queue.results(roundId)` is the round's `PendingChanges` (`set(ref, field, to, seen)`, `value(ref, field,
+serverValue)` for what a cell shows, `get(ref, field)` for its status) - D's result cells read it; `context.act()` with
+`action.results` fills it.
+
+Problems: `problems()` → `[{id, kind: sheet|results, status: conflict|refused, reason, message, current, change | ref+field,
+group (with `origin` = the tab it was made on and `label`), target: {key, people, teams, rounds}}]`; `keepMineAction(id)`
+(the controller's Keep mine: the sheet group again with `from` = the current value of its conflicting changes, as an
+action `{label, groups, inverse}` the controller performs - an undo step of its own; results: the desk's keep mine, sent
+at once, null), `keepMine(id)` (the same, performed by the queue), `dismiss(id)` (use theirs / OK - a conflict fetches the
+state), `retryProblem(id)` (a refused results cell). Status: `status()` → `{state: saved | saving | waiting | offline |
+attention | auth | forbidden | gone, waiting, attention, offline}` (`offline` also while problems need the organiser - the
+pill says "1 needs you · offline", the offline banner shows). `isOwnVersion(version)` - a version one of our saves
+produced.
+Events (`subscribe`): `status`, `outcome` (every answered group - the undo stack and views listen), `warnings`, `problems`,
+`state` (a fetch answered, with `kind`), `results`, `gone`. `installLeaveGuards({window, document, confirm, message})`
+(beforeunload + turbo:before-visit while `hasUnsaved()` - unsent changes or undecided conflicts).
+
+### Undo (`SheetUndo`)
+
+`record(action)`, `outcome(groupId, status)` (→ `'undo'` / `'redo'` when an undo/redo group was refused: the controller
+shows "Can't undo - it was changed meanwhile" (an error toast); `'undo_unsaved'` / `'redo_unsaved'` when what it took
+back was itself never saved: "That change was not saved - nothing to undo"), `undo(model)` / `redo(model)` → an action
+with `kind` and
+`skipped` (place changes of people removed from the event meanwhile, left out of the undo and named - e.g. a deleted
+pair's members are put back only if still active) (performed by `act()`, which hands it back with `done()`),
+`canUndo/canRedo`, `peekUndo/peekRedo`. Only forward groups that went through (or are still on their way) are undone,
+results changes tied to a group (`inverseOf`) only with it; a step with nothing left is skipped. "Keep mine" is a step
+of its own. Limit 100 steps. An undo/redo action carries the step's `origin` (the tab it was made on): undone from
+another tab, nothing changes on screen, so the controller says "Undone on Pairs: the rename." with **Show** (the tab,
+at the cell); on the same tab it is only read out. "Nothing to undo" (Ctrl+Z with an empty stack) is an info toast.
+
+### The grid (`SheetGrid`)
+
+`new SheetGrid({container, label, columns, rows, cell, …callbacks})` - views get it through `context.createGrid(options)`
+(texts, announce and undo/redo pre-wired). Native `<table role="grid">`, every row in the DOM, no content-visibility.
+
+Columns: `{key, label, kind: text | list | checkbox | readonly | action, width (px - every column should have one: the
+table then gets a fixed width and the browser never measures 10,000 cells), headerHtml?, space?: 'panel', autoHighlight?
+(list: `true` (default) = the first suggestion highlighted, `false` = never - a free-text column (Result, Table): Enter
+keeps what was typed, `'exact'` = the exact-match rule below), commitOnBlur? (list: false = Tab, arrows and a blur never
+take an option - only Enter or a click), className?}`. Options flagged `action: true` (Open the profile, Unlink) are
+never taken by Tab, arrows or a blur in any column. The first column is the sticky row header.
+
+**Which suggestion Enter takes** (review D-m2). A suggestion is highlighted - Enter picks it - only when Enter cannot
+pick the wrong one: never with an empty editor (Enter clears the cell), never a `create` option ("Add … as a new
+participant" - a typo must not create anybody, D9). A list of **people** says per option whether it matches the typed
+text exactly and whether picking it moves somebody: `exact: true | false` (the name is the typed text, folded like
+ParticipantNameKey) and `moves: true | false` (the person leaves another pair/team of the round). Such a list - any option
+carrying `exact` or `moves` (set them on every option, true or false), or a column with `autoHighlight: 'exact'` - gets
+the **exact-match rule**: highlighted only when exactly one option is `exact: true` and it is not `moves: true`. A partial
+match, a name two people share and a move are always chosen explicitly (arrows + Enter, or a click). With nothing
+highlighted and something typed, **Enter keeps the text in the editor and shows the list** with "Choose from the list
+with the arrow keys, then press Enter - or keep typing." (also after Esc closed the list, and when Enter came before
+the suggestions - they wait for a pause in typing: they are fetched at once and decided on); Tab and a blur still hand
+the typed text to the view (`option: null` - the view decides what it means). A list whose options carry neither flag
+(countries) keeps the first-suggestion rule.
+
+`cell(rowKey, colKey)` → `{text, html?, checked?, label? (checkbox name), readonly?, marker?, className?, copy?}` - keep
+the markup small (every element costs layout time: a 400 × 18 sheet is 7,000+ cells; plain text needs no wrapper).
+
+Options besides the callbacks: `texts`, `announce(text)` (the live region), `notify(text, {kind, anchor})` (the page's
+`notify()` - `createGrid()` wires both; without `notify` the grid only announces).
+
+Callbacks: `seenValue(row, col)` - what the cell shows as a change compares it, read when an editor OPENS (typing,
+Enter/F2, a double click, Alt+↓); `commit(row, col, {text, option}, {fill, cells, seen})` (`seen` = that value; undefined
+for fills and pastes - no editor) → `{error}` keeps the editor open with the reason (`aria-invalid` + described),
+`{focus: {row, col} | (move) => {row, col}}` overrides where the focus goes next;
+`suggest(row, col, query)` → options (array or `{options, hint}`, sync or a Promise; option = `{value, label, html?, detail?,
+create?, className?, …anything the view needs back}`); `toggle(cells, value|null)`; `clear(cells)`; `paste(anchor, rows,
+selectedCells)` (rows already parsed by tsv.js); `fill('down' | 'selection', {rows, cols}, active)`; `cut(cells)` (default
+clear); `activate(row, col)` (action cells: Enter, double click); `openPanel(row)` (Space on a `space: 'panel'` column);
+`editValue(row, col)` (Enter/F2 start text); `rowLabel(row)` (editor/checkbox names); `rowClass(row)`.
+
+Methods: `setRows(keys)` (keyed: rows reused, created, removed, moved - cells not re-rendered), `updateRows(keys)` /
+`updateCell(row, col)` (cell-local: only cells whose markup changed are touched; a checkbox always shows the cell's state -
+a click the view refused snaps back; a focused checkbox keeps its element; the cell being edited is never re-rendered),
+`editorNotice({text, actions: [{label, run}]} | null)` (a note next to the open editor - polite live region, in the
+editor's `aria-describedby`; Tab from the editor reaches its buttons, Esc goes back), `acknowledgeSeen(value)` /
+`commitWithSeen(value)` (Keep mine: the edit goes over the value now seen), `editState()` → `{row, col, text, seen, …}` /
+`resumeEdit(state)` (a rebuilt grid goes on with an edit), `commitOpenEdit()` (like a blur), `focusCell(row, col)`,
+`focusActive()`, `isEditing()`, `fitHeight()`, `destroy({keepEdit?})` (an open edit is committed like a blur unless
+`keepEdit`); `grid.rows`, `grid.columns`, `grid.active`, `grid.stats` (`renderMs`, `lastCommitMs`, `lastCellMs`).
+Every cell carries `aria-selected` (`false` unless selected - APG). The suggestion list stays visible inside the
+scroller: on the last rows (the new row included) it opens above the cell, its height capped by the room it has.
+
+Behaviour: roving tabindex (a checkbox cell focuses its checkbox - its name carries the checked state); ranges by
+Shift+arrows, mouse drag, Shift+Space (row), Ctrl+Space or a header click (column), Ctrl+A; one floating 16 px editor
+(IME-safe; Enter/Tab/arrows commit and move per grid_keys); `list` columns are a combobox + listbox (arrows, Enter/Tab pick,
+Esc closes the list, a second Esc cancels); Ctrl/Cmd+C/X/V through a hidden textarea (WebKit sends no clipboard event to
+a table cell); a blur commits (a refused value is dropped - a warning toast pointing at the cell: `"Xyz" was not saved:
+<reason>`); typing into a cell that can't be changed and an empty paste are info toasts at the cell; the scroller's
+height fits the viewport, sticky header + first column with scroll padding (2.4.11).
+
+### The view interface
+
+A view module is `assets/participants_sheet/views/<name>.js` with `export default function (context) → view`. The
+controller picks it by name (`VIEW_MODULES` in the controller) and loads it with a dynamic import (a separate chunk):
+
+| Tab | Desktop | Phone (< 768 px) | Missing module |
+|---|---|---|---|
+| People | `people_view` (C, E extends) | `people_list_view` (E) | the People grid |
+| solo round | `solo_round_view` (D) | `round_cards_view` (D) | a summary placeholder |
+| duo / team round | `team_round_view` (D) | `round_cards_view` (D) | a summary placeholder |
+| person editor (Space on a name) | `person_editor` (E): `export default (context) → {open(personId), update?(delta), destroy()}` | same | nothing happens |
+
+`context`: `root` (the view's element), `kind` (`people` | `round`), `round` (round tabs), `phone`, `model`, `queue`, `undo`,
+`texts` (`{core, round, people}`, each `{t(key, params), tc(key, count, params), has(key)}` over `_texts_core|round|people`),
+`countries` (code → label), `countryCodes` (Set), `locale`, `urls`, `csrfToken`, `act(action, {origin?, quiet?, anchor?})` →
+`{performed, errors}` (refusals shown unless `quiet`; `anchor` = where their toast points, default the focused element
+of an open dialog, else the grid's active cell), `announce(text)` (the polite live region - for what is on screen
+anyway), `notify(text, {kind, anchor?, actions?})` (below), `switchTab(tabId, focus)` (`focus` = `{personId?, teamId?,
+col?}` handed
+to the new view's `focus()`), `openPersonEditor(personId)`, `createGrid(options)` (the page knows the grid: its open edit
+is saved before the page goes), `preview(options)` (an open `PreviewDialog`), `errorText(error)` (a client refusal in
+the server's words with its parameters - use it for an action's `errors`), `reasonText(code, params?)`, `markerFor(key)`.
+
+**Visible feedback - `context.notify(text, {kind: 'error' | 'warning' | 'info', anchor?: {row, col} | Element, actions?:
+[{label, run}]})`** (business review BR1). Everything that is refused or does nothing visible must be **seen**, not
+only read out: a client refusal the view words itself, "nothing to paste here", a paste onto the wrong column, a value
+dropped, an action that could not be done. `notify` shows a toast in the sheet's status area - right under the bar, next
+to the save status, newest first, at most 3, an overlay (the grid never moves); on a desktop with `anchor` (a cell of the
+view's grid by row/col keys, or an element - e.g. a dialog's field) the newest toast points at it (under it, above on
+the last rows) and goes back to the stack when the organiser moves on or the cell scrolls away; phones: at the bottom,
+above the safe area, never pointing. Errors and warnings stay ~8 s, information ~4 s, the time standing still under the
+pointer or while the focus is inside; a close button, Esc in a toast closes it (the focus goes back). The same text is
+said once through the live region - **call `notify` instead of `announce`, never both**. While a modal dialog is open
+the toast shows inside it (the page behind is inert) and comes back to the stack when it closes. Returns `{id,
+dismiss()}` (null for an empty text). Views call it as `this.context.notify?.(…)`. `actions` are buttons ("Show",
+"Try again") - a click runs it and closes the toast. Server refusals stay markers + the problems panel - except a
+problem of **another tab** (not on screen), which the controller says once with **Show**.
+
+**The open editor and live changes** (review B1, the results desk's `openEditor()` lesson): a view gives the grid
+`seenValue` for every editable column and passes `from: extra.seen` to the builder; in `update(delta)` it compares the
+edited cell's value now with `grid.editState().seen` and shows `grid.editorNotice({text: "Changed meanwhile to X",
+actions: [Keep mine → grid.commitWithSeen(now), Use theirs → grid.cancelEdit(true)]})` (or `null` when equal again).
+Enter without a choice sends over what the editor opened with - the server answers with a conflict. A view rebuilding
+its grid (`update` with `delta.all`, new columns) keeps the edit: `editState()` → `destroy({keepEdit: true})` → render →
+`resumeEdit(state)`.
+
+`view`: `render()`, `update(delta)` (re-render only what the delta names), `focus(target)`, `reveal(problem)` (jump to a
+problem's cell - the problems panel's "Show"), `onOutcome?(event)`, `destroy()`.
+
+The controller owns: tabs (People + every round in order, counts, problem badges, `?tab=` via `replaceState`, APG tab
+keys), the status pill (click: problems / retry / reload), banners (signed out, forbidden, gone, offline), the problems
+panel (Show, Keep mine, Use theirs, OK, Try again), the toasts (`notify()`, `sheet_toasts.js`), undo/redo (targets +
+Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y outside text inputs and outside dialogs; titles with ⌘ on a Mac), the setup checklist
+(`checklist` target - hidden live once the event has a round and (somebody on its list or a pair/team): an event of
+team names only is set up, BR15), the Help dialog (`help` target or `?` outside the grid: how to do the common tasks -
+saving, adding people from a list (People or a solo round's last row), pasting pairs/teams (name + members side by side
+onto the new row's Name cell, members only onto Member 1), results (names or table numbers + results onto the Name
+column, one column onto Result), undo (this page view only), leaving the grid (Ctrl+End then Tab, Ctrl+Home then
+Shift+Tab) - and the keyboard shortcuts, BR7), the live region, the phone
+breakpoint (a view is rebuilt only when another module shows the tab; the focus comes back), view modules (a module not
+in the build falls back for good; one that failed to load - a chunk while offline - says so with "Try again" and is
+tried again when back online, never remembered as missing: "This tab could not be loaded. Check the connection and try
+again." + Try again; the person editor that failed says the same as an error toast with Try again), and the teardown in
+`disconnect()` (an open edit is saved
+and sent first; listeners, timers, dialogs, the person editor let go). The undo/redo/help buttons are wired by the controller unless their markup
+already calls `participants-sheet#undo` / `#redo` / `#showHelp`.
+
+### The People grid (basic, `views/people_view.js`)
+
+Name (sticky row header; badges "On the waitlist", "Joined by themselves"), Country (combobox over `countries`, typed
+codes and names accepted), MySpeedPuzzling profile (O9: name + #CODE + a link when visible, else "Linked to a
+MySpeedPuzzling profile"; a combobox over `urls.playerSearch` (`participants_sheet_player_search`, `hidden` players
+included and shown as linked only) - Open / Unlink while nothing is typed; `autoHighlight: false`, `commitOnBlur: false`:
+only Enter or a click links or unlinks), a checkbox column
+per solo round, a read-only label per pair/team round (team name or "(no name)", "No pair yet", size when off; Enter or a
+double click opens the round's tab at the person), the new-person row (type a name, Enter = the next name, Tab = the new
+person's next cell). Delete clears (a name refuses), Ctrl+D / Ctrl+Enter fill country and solo columns, paste fills
+names / countries / solo columns of existing rows (one value onto a selection fills it); more than 10 rows or anything
+left out opens the preview with the server's dry run; rows below the list are listed, not added (adding by paste is E's).
+
+Bulk actions (review minor 5, `perf` suite, node on a laptop): a bulk "in" over 400 people = 400 groups built, shown and
+settled in ~5 ms (1,000: ~13 ms), one re-render to show them and one for the answer - before the batch APIs 360 ms and
+2.4 s with a re-render per group.
+
+### The People tab (stream E: `views/people_view.js`, `person_editor.js`, `people_list_view.js`)
+
+Modules: `people_paste.js` (pure - adding people by pasting names: `planNamePaste(model, rows, {readCountry,
+headerNames})` → lines `new | existing | removed | duplicate | invalid | header` matched by the name key against the
+active and the removed people; a new line that looks like a mistake carries a `hint` and is **not ticked** (business
+review BR9): a name close to somebody on the list (`closeNames()` - the import's similar-name rule, both name keys at
+least 6 characters, 1-2 edits apart, `boundedDistance()`) → "Did you mean Kim Example?", or a value that is a country
+code, a number or an e-mail address (`looksLikeNoName()` - columns pasted in another order). `namePasteAction(model,
+plan, ticks, {roundId, skip})` → one action: a `newParticipant` / `restore` group per ticked line; with `roundId` (a solo
+round, BR3) the new and restored people are put into it **in the same group** and every person already on the list (one
+person of that name - `placementOf()` → `put | already | ambiguous`) gets a group putting them in), `registration_actions.js`
+(pure rules - `allowedActions(person, {checkIn})`, `waitlistPositions` (the server's `registration.waitlistPosition` when
+the rows carry it - its FIFO compares microseconds, the state sends seconds - else FIFO by registeredAt, id; numbered
+again from 1, so a promoted person closes the gap at once), `registrationCounts`, `firstInLine`, `paidBefore` (also on a
+removed row still saying paid: a cancelled registration), `matchesRegistrationFilter` (waitlist, not paid, paid, checked
+in, not checked in), `bulkRegistrationPlan` - plus `sendRegistrationAction()` / `performRegistrationAction(context,
+personId, action, {quiet, anchor})`: first waits until the organiser's own unsaved edits of that person are saved
+(`waitForSaves()` - `queue.flushNow()`, the model's and the queue's events; gives up after 15 s with "not saved yet",
+so a registration never reaches the server before a person added on the page), then POST `urls.registration`, the
+answer's `person` merged with `model.mergePerson()`; the known version is **never** taken from that answer - the live
+update or the version check fetches the state; a refusal without the server's words is said by kind (`failureText()`:
+signed out, 403 "you may not change this event any more", 429 "the server is busy", no answer) and shown
+(`context.notify`, anchored at the cell). `runRegistrationBulk()` sends several one after the other - never two at once -
+stopping when signed out or forbidden (the rest is not sent) or on the organiser's Stop. Pinned by
+`tests/ParticipantsSheetPeopleScriptsTest.php` → `tests/participants-sheet-people-harness.mjs` (suites `paste`,
+`registration`, `filters`, and `view` - the views in jsdom on the real model, grid and preview dialog: review E's
+reproductions and the business review's People items); every text by `tests/ParticipantsSheetPeopleTextsTest.php`.
+Views use `say()` / `sayCount()` for the People texts (`t()` = core texts). Every refusal and every "nothing happened"
+of the People views is shown, not only read out: `notify(context, text, {kind, anchor})` → `context.notify` (which reads
+it out too - never both), the live region on a page without toasts.
+
+Desktop (`people_view.js`, extends C's grid): a selection column first (header box = everybody shown, Shift+click ranges -
+the grid's own range + checkbox behaviour; a range over the selection column only selects), name sticky next to it;
+the **bulk bar** floats at the bottom (no layout shift; the scroller gets bottom padding while it shows): "N selected
+(M not shown by the filter)" · Into / Out of a solo round (a menu for several) · Make a pair/team ▾ (`newTeamRow` with the
+selected people; previewed with the dry run when it moves anybody or the size is off - a refused dry run cannot be
+confirmed, `holdConfirm()`) · on a managed event **Mark paid / Check in** (BR13: a confirmation saying who it applies to,
+who is left out and how many e-mails go out - Mark paid one per person linked to a MySpeedPuzzling account, Check in
+none -, then sent one by one through the registration endpoint with "3 of 12 done…" and Stop in the dialog
+(`runInDialog()`), summed up in one toast) · Remove from event (more than 25 % and at least 10 of the people who would
+really go - the built action's groups, refused ones left out and said - → type the number; full-width digits accepted) ·
+Restore · Clear selection - each one undo step. Filters (`FILTERS`, `offeredFor(list, competition, rounds)`: the
+registration ones only when managed - waitlist, not paid, paid -, check-in only in person; "In no solo round" with a solo
+round and a round of another kind, "In 2+ solo rounds" with two solo rounds) with counts and `aria-pressed`, a **round
+select** ("In Group A" / "Not in Group A" - any place in that round), a search (every typed word folded: name, external
+id, the visible MSP name, `#code`; its count read out once the typing pauses); `held` = rows a filter does not hide until
+it changes (the focused row, the row open in the editor, people added on the page). `?filter=<key>` (or `in:<round>` /
+`out:<round>`) in the page URL opens the tab with it on - read once and taken out of the URL (the waitlist note links
+`?tab=people&filter=waitlist`). **Sorting** (BR4): name, country (its name in the page's language), external ID (numbers
+as numbers), registered, joined - the header is a button (a click or Enter / Space: A→Z, again Z→A; the grid never takes
+its keys or its click as a column selection), `aria-sort` on its cell, remembered per event in localStorage
+`participants-sheet:people-sort:<eventId>` (try/catch); empty values last both ways (`sortPeople()`). While the organiser
+works in the grid (the focus in it, an open edit) the rows shown keep their places (`keepOrder()` - an edited name never
+jumps away; only new rows are put where the sort says); a filter or sort change, or a change while nobody is in the grid,
+orders everything. Previous / next in the person editor walk the rows as shown. Columns menu (`COLUMN_OPTIONS`, a
+Bootstrap dropdown of `menuitemcheckbox` items, stored in localStorage `participants-sheet:people-columns:<eventId>`,
+try/catch). Columns beyond C's: External ID, Note (`field: note`, header says it is private), Source, Joined (MSP),
+Registration (chip Reserved / Paid / Waitlist #n; Enter or Space opens the allowed actions; a removed row: only "Paid on
+{date}, before the registration was cancelled" when it was paid), Registered, Paid (date, or that record), Checked in,
+the row actions (⋯ → Edit, Registration…, Remove; removed rows: Restore). The small cell menus are **not**
+`.dropdown-menu` (Bootstrap's document keyboard handler would steal the arrows for another dropdown). Pastes: onto the
+new-person row - or the part of a name-column block below the last row - = names (`name ⇥ country ⇥ external id`),
+previewed together with the edits of existing rows; the names preview offers **"And put them into ▾"** the solo rounds
+(BR3 - choosing one runs the dry run again; the select sits outside the lines, which are drawn again on every check);
+external ids and notes paste into their columns. A block pasted on the selection column lands on the names; the selection
+column never takes a value (one value over a selection including it lists those cells as left out - review M1). **A paste
+that renames anybody is always previewed** (BR12), whatever its size. Client refusals are said in the server's words
+(`reasonFor()` = the core's `context.errorText()`). Editors open with `seenValue(row, col)` (the value shown) and commit
+with `from: seen`; a change meanwhile shows the core's "Changed meanwhile to X · Keep mine / Use theirs" next to the
+editor. The view reads the event from the model each time (`competition` getter) and follows a fetched state that
+changes it (the queue's `state` event): registration management switched on or off rebuilds the columns, filters and
+counters; a new capacity re-renders the counters and the first-in-line hint. That hint's "Give a spot" is a readable
+green outline button (`sheet-btn-success` - the theme's light green with white text is not, review E-3), says that the
+person gets the "a spot opened up" e-mail, and keeps the focus (on the next first-in-line's button, else the counters).
+
+Person editor (`person_editor.js`): one `<dialog>` - `show()` as a side panel at ≥ 768 px (the page gets
+`has-person-panel`, the grid makes room), `showModal()` full screen on phones; `open(personId, {list, returnFocus,
+onShow})` - `list()` is the opener's rows as shown (previous/next), `onShow(id|null)` lets the view hold and mark the
+row. Text fields save on change / Enter with `from` = the value at focus; a live change under a field being typed in
+shows "Changed meanwhile to …" with Keep mine / Use theirs; server conflicts and refusals show at the field (Keep mine
+= `queue.keepMine`, Use theirs = `queue.dismiss`) and as a toast. A round's switch and pair/team picker carry
+`data-shown` (the place they show, written with every render of them) and send it as `from` (review M2: a tap on a
+phone gives no focus, a value remembered at a focus goes stale - a focused picker a live change could not redraw sends
+what it shows and the server answers with a conflict). Sections re-render from HTML strings only when they changed
+(compared with the source string, never the browser's `innerHTML`) and wait while a select / text field in them has
+the focus. Phones: every button of a field's note (Keep mine / Use theirs / OK / Unlink) is 44 px.
+
+Phone (`people_list_view.js`): search, a filter `<select>` with counts, the round select, the counters and the hint,
+"+ Add a person", cards (name, flag, rounds in words, problems in words) rendered 50 at a time ("Show 50 more"); tap →
+the editor full screen with previous/next over the whole filtered list; `?filter=` like the desktop. Measured with 400
+people (headless Chromium 124): the desktop grid renders in 220 ms (970 ms at 4× CPU), a filter switch 10 ms, an edit
+8 ms (46 ms at 4×), selecting everybody 66 ms; the phone list's first 50 cards 5 ms at 4× CPU (all 400: 17 ms).
+
+### The round tabs (stream D: `views/team_round_view.js`, `views/solo_round_view.js`, `views/round_cards_view.js`)
+
+Shared pieces: `round/round_common.js` (O1 labels, where a person is in a round, the people/team pickers' options with
+`+ Add "Jo Do" as a new participant`, size texts (O7), row order and order by rank, member slots, the round's results
+entries, when the results columns show, the `RoundResultsCells` helper of both grids, the `RoundDialog` menu/picker - a
+native modal `<dialog>`, a bottom sheet / full-screen search on phones -, `feedback()`, `takeTeamOutAction()`, the
+results paste preview and `matchPreview()`), `sheet_results.js` (the result grammar, table numbers, the "Swap them"
+write, ranks) and `round_paste.js` (pastes); pinned by `tests/ParticipantsSheetRoundScriptsTest.php` →
+`tests/participants-sheet-round-harness.mjs` → `tests/participants-sheet-round/{results,paste,common,views}.mjs`
+(`views` = the three views on the real grid, model, preview dialog and RoundDialog in jsdom, review D's reproductions
+included); every text by `tests/ParticipantsSheetRoundTextsTest.php` (round texts, and the core texts the views read).
+
+- **Pair/team tab**: Table (`list` cell: 1..9999, a number another entry holds offers "Swap them" = one
+  AssignTableNumbers write, undone as two RecordRoundResults table changes) or a plain `#` (online / table numbers off),
+  Name, Member 1…N (N = max(expected size, largest pair/team)), `+`, Size in words, Result / Rank / Qualified (shown
+  once the round started or holds results, else behind "Results columns" - remembered per round in localStorage; the
+  organiser's choice wins, but without one the columns appear when the round starts or its first result arrives), ⋯
+  (Enter, double click or the context menu: rename, delete, take the whole pair/team out - disabled with the reason
+  while it holds a result; "take out" is one group whose undo creates the pair/team again with its table number).
+  Members keep their column while the organiser works (`memberSlots`); rows keep their order until "Sort". The new
+  row: a name (Enter = the next name, Tab = its members) or a person creates the pair/team; Enter in a member cell goes
+  on with the same pair/team while it is short of people (always in a team round without a set size), then to the new
+  row. The tray below the grid ("In the round without a pair (5)"): chip → Pair with… / Add to… / New pair / Not in
+  this round, plus "Add people to this round".
+- **Member cells and pickers** (review D-m2): every person option says `exact` (the only person called exactly what
+  was typed) and `moves` (picking them takes them out of another pair/team); member columns are `autoHighlight:
+  'exact'`. Enter alone takes only the one exact match that moves nobody - a partial match, one of several namesakes,
+  somebody of another pair/team or `+ Add … as a new participant` is always chosen with the arrows or a click (the
+  grid keeps the text and shows the list); a typed name committed without an option (Tab, a blur) never moves anybody
+  ("Kim Example is in Table 2 · Corners - pick them from the list to move them here"). RoundDialog pickers follow the
+  same rule (team options are `exact` for the one pair/team of that name) and say how to pick when Enter found nothing.
+- **Toolbar** (both grids): the round, counts and "N qualified" (BR6); problem filters (pair/team tab) or the waitlist
+  filter (solo tab) - an active filter and "Show all" stay while it matches nothing, and the row being worked on (the
+  focused / edited row, pairs/teams or people added meanwhile) stays until the filter changes (review D-M2, People's
+  rule); members per team (team rounds); Sort (table, then name); **Sort by rank** (`aria-pressed`, while the results
+  columns show: ranked entries first, then table and name - the rows follow the ranks, never while an editor is open);
+  Results columns; Live entry / Results desk / Seating; and while the round's results are published (`rounds[].
+  resultsPublished`, kept current by `model.updateRound`) a line "Results published - changes are public and notify
+  linked players." (also on the phone cards).
+- **Solo tab**: Table, Name (read-only - Enter/Space opens the person editor, else People at the person; Delete takes
+  them out of the round), Country, Result / Rank / Qualified, ⋯; the new row puts a person (or a new one) into the
+  round; people on the waitlist are listed, their results cells say why they cannot be edited.
+- **Results cells** (both): `from` = what the cell showed when its editor opened (`openEditor()` of
+  official_results_pending_changes.js, remembered by the grid's `editStart`, read back by a side-effect-free
+  `seenValue`); a value saved meanwhile (a live update while the editor is open) turns the editor's list into "Saved
+  meanwhile by Eva: 1:20:00 · Keep mine / Take theirs" and Enter is refused until one is picked; the parsed value shows
+  under the editor while typing; Alt+↓ lists Finished / Didn't finish / Did not start / No result (picked "Didn't
+  finish", typed digits are pieces placed: `479` = 479 pieces); `479/1000` in a round whose puzzle has 500 pieces is
+  refused (the total must be the round's).
+- **Paste** (`round_paste.js`; a one-line hint under each grid says how - BR7): everything is planned, dry-run checked
+  and finally built on a **snapshot** of the page taken when the organiser pasted (`snapshotModel()`, review D-m4) - a
+  live change while the preview is open comes back from the server as a conflict, never overwritten.
+  - *Rows of pairs/teams* (`Team ⇥ member ⇥ member`, onto the new row or wider than the row) or positional (onto
+    existing rows). A name of several pairs/teams, or a person's name several people share, is **never** picked for the
+    organiser (review D-M1): the round decides when exactly one combination of the namesakes is a pair/team of it
+    (`Corners ⇥ Kim ⇥ Jo Do` where Corners = Kim + one of the Jos), else the preview's choice starts at "Choose…" (the
+    pair/team holding a pasted person, the namesake already in that pair/team or paired with the row's people listed
+    first) and Confirm waits until every one is chosen. A first row of column headings is left out (D-m8); rows naming
+    the same people again - a partner column lists every pair twice - are one pair, counted once, without the "on
+    another line" warning (BR8). A name nobody has is offered as a new participant, **not** ticked when a close name
+    exists ("Did you mean Kim Example?" - a typo, swapped words, a middle name) or it looks like a country code, a
+    number or an e-mail (BR9).
+  - *Names into a solo tab* (BR3): a column of names (anything that is not `name ⇥ result`) puts those people into the
+    round - matched by name key to the event's active people, namesakes chosen, people in it already left as they are,
+    removed people named ("restore them on the People tab first"), new people offered as above; only the first column
+    is read (said when there were more); one confirm, one undo step (a group per person).
+  - *Results* (both tabs): `who ⇥ result` (most second cells readable as results, none of them a person's name) or one
+    column onto Result. `who` = a pair's/team's or member's name, a person's name, `#code` of a linked player, or a
+    table number - only when every number of the column is a table of this round (an id column never is - BR5). A
+    blank result is left out ("a paste never clears a saved result", D-m3); rows that cannot get one say why - on the
+    waitlist, not saved yet, below the list, not in this round, "No pair, team or person in this round has this name"
+    (D-m7); any number of changes (the save queue sends 500 a request). In a round of team names only (or none yet),
+    unknown names are offered as new pairs/teams, ticked per name (BR16): Confirm creates them and then records the
+    results - **two undo steps** (an undo can delete a pair/team only after its result is gone, and an undo sends its
+    groups before its results, so Ctrl+Z takes the results back first and the teams with the next one).
+  - The preview (`matchPreview()`, rows and names): the server's dry run runs again whenever a choice or a tick changes
+    (the latest answer counts - a row refused under one choice is checked again under the next); Confirm waits while a
+    choice is "Choose…" or a check runs; rows the dry run refuses are not sent; one undo step. Small pastes (≤ 10
+    cells, nothing to decide, no headings or repeated rows) go without a preview.
+- **Feedback** (BR1): every refusal or "nothing happened" of the round views and phone cards goes through `feedback()`
+  → the core's `context.notify(text, {kind, anchor})` (a toast next to the cell or the button, said once), or only the
+  live region where there is no notify. Refusals come from the core's group checks (`checkGroup`: a pair/team holding
+  a result keeps a going member, with the cause - review D-m9), worded with the round's own pair/team label; a success
+  is read out only when something was done.
+- **Phone** (`round_cards_view.js`, < 768 px): the counts (and "N qualified", "Results published …"), the tray first, a
+  card per pair/team (member chips with ✕, "+ Add partner" full-screen search, ⋯ Rename / Delete / Take out, the result
+  read-only + Live entry), "+ New pair" (a name and/or the first person); solo rounds = the people with their result,
+  "Add people to this round", "Take out". A rename sends the name shown when its sheet opened (D-m6). A fetched state
+  (`delta.all`) keeps the order of every view current (D-m1).
+
+Core additions made for the round tabs: `SheetGrid` - `content.kind` (a cell's own kind: the solo name cells are
+actions, its new row types), `editStart(row, col)`, `suggest(…, {explicit})` (Alt+↓), a `create` option or an empty
+editor is never auto-highlighted, the focus stays in the grid when the focused row goes; `SheetSaveQueue.enqueueResults`
+clears the marker of a results cell changed back before it was sent; the controller's `openPersonEditor()` resolves
+to whether an editor opened. The final fix round needed nothing more of the core than what its fixer built (`notify`,
+the `exact`/`moves` highlight rule): the round code only reads `model.scratch()` for its snapshot and drives the
+preview dialog through its public `update()`, `selection()` and change events.
+
+### Measured (2026-10-08, standalone harness, headless Chromium 124, invented WJPC-sized event)
+
+400 people × 15 rounds (18 columns, 7,236 cells, 100 pairs, 50 teams): render 190 ms at 1× CPU (layout ~95 ms of it),
+760-820 ms at 4×; an edit = 6-8 ms from Enter to the re-rendered cell (the cell itself 0.3 ms). 1,000 people: render
+500 ms, an edit 7.6 ms. Checked with real keys (CDP): arrows, Home/End, Ctrl+Home/End, PageDown, Tab wrap, leaving with
+Ctrl+End + Tab, ranges, header click, the focused cell never under the sticky header/column, typing to edit, Enter/Esc,
+an invalid name kept with `aria-invalid` + the reason, country and profile comboboxes, a checkbox cell, the new-person
+row, Delete, Ctrl+D, undo/redo through the server, a real Ctrl+V of an Excel CRLF block, a 12-row paste through the
+preview + dry run, Ctrl+C as TSV, a conflict + Keep mine, a live version change keeping the focus, offline + back online,
+an IME composition, the tabs keyboard, the help dialog, `disconnect()` leaving no listener, timer or request; no
+horizontal page scroll at 1280 and 375 px.

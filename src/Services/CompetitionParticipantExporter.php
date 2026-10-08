@@ -27,7 +27,7 @@ readonly final class CompetitionParticipantExporter
 
     /**
      * Only in the export of an event that manages registration, after every other column
-     * (docs/features/competitions-management/registration.md): what the organiser sees on the participants page.
+     * (docs/features/competitions-management/registration.md): what the organiser sees in the participants sheet.
      * The import knows them and reads nothing from them - registrations change on the site, never through a file.
      */
     public const array REGISTRATION_HEADERS = ['registration_status', 'paid_at', 'checked_in_at'];
@@ -108,7 +108,7 @@ readonly final class CompetitionParticipantExporter
             $values[] = $participant->participantId;
 
             if ($registrationTimezone !== null) {
-                // Rows without a status hold a spot - reserved, as on the participants page
+                // Rows without a status hold a spot - reserved, as in the participants sheet
                 $values[] = ($participant->registrationStatus ?? RegistrationStatus::Reserved)->value;
                 $values[] = $participant->paidAt !== null ? RoundTimezone::toLocal($participant->paidAt, $registrationTimezone)->format('Y-m-d H:i') : null;
                 $values[] = $participant->checkedInAt !== null ? RoundTimezone::toLocal($participant->checkedInAt, $registrationTimezone)->format('Y-m-d H:i') : null;

@@ -134,6 +134,7 @@ final class CreateCompetitionRoundController extends AbstractController
             category: $data->category,
             resultsLink: $data->resultsLink,
             revealDelayMinutes: $data->revealDelayMinutes,
+            teamSize: $data->teamSize,
         );
 
         // The round and its puzzles in one transaction (AddCompetitionRoundWithPuzzlesHandler dispatches both inside its

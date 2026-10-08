@@ -1,8 +1,8 @@
 // Participants spreadsheet - stream core (docs/features/competitions-management/participants-spreadsheet.md §7, §9):
-// tabs, the save status, banners, the problems panel, the grid (sticky header and first column, scroll padding so the
-// focused cell is never hidden - WCAG 2.4.11), the floating editor (16 px: no iOS zoom) and its suggestion list, cell
-// markers (an icon and a word - never colour alone), the People grid, the preview and help dialogs. Native table
-// layout without content-visibility (stage 0b). Phones (< 768 px): 44 px targets.
+// tabs, the save status, banners, the toasts of notify(), the problems panel, the grid (sticky header and first column,
+// scroll padding so the focused cell is never hidden - WCAG 2.4.11), the floating editor (16 px: no iOS zoom) and its
+// suggestion list, cell markers (an icon and a word - never colour alone), the People grid, the preview and help
+// dialogs. Native table layout without content-visibility (stage 0b). Phones (< 768 px): 44 px targets.
 
 $sheet-focus: $accent;
 $sheet-line: $gray-300;
@@ -142,6 +142,186 @@ $sheet-cell-height: 2.25rem;
 @keyframes sheet-spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+// ---------------------------------------------------------------- visible feedback (the controller's notify())
+
+// The stack: an overlay right under the sheet's bar at its right end, next to the save status - the grid never moves.
+// Newest first, at most three (sheet_toasts.js). Phones: at the bottom, above the safe area.
+.sheet-toasts {
+    position: fixed;
+    top: 4.5rem;
+    right: .75rem;
+    z-index: $zindex-toast;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .5rem;
+    width: min(26rem, calc(100vw - 1.5rem));
+    pointer-events: none;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.participants-sheet-bar .sheet-toasts {
+    position: absolute;
+    top: calc(100% + .5rem);
+    right: .5rem;
+}
+
+// Inside a modal dialog (the page behind it is inert): at the bottom of the window
+.sheet-toasts-dialog {
+    top: auto;
+    right: 0;
+    bottom: 1rem;
+    left: 0;
+    align-items: center;
+    margin: 0 auto;
+}
+
+.sheet-toast {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    max-width: 100%;
+    padding: .5rem .5rem .5rem .75rem;
+    border: 1px solid $sheet-line;
+    border-left-width: 4px;
+    border-radius: $border-radius;
+    background-color: $white;
+    color: $gray-900;
+    font-size: $font-size-sm;
+    line-height: 1.4;
+    box-shadow: 0 .5rem 1.5rem rgba($black, .18);
+    pointer-events: auto;
+    animation: sheet-toast-in .16s ease-out;
+
+    .sheet-toast-icon {
+        flex: none;
+        margin-top: .0625rem;
+    }
+
+    .sheet-toast-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .sheet-toast-action {
+        flex: none;
+        min-height: 24px;
+        padding: 0 .25rem;
+        font-size: inherit;
+        font-weight: $font-weight-semibold;
+        line-height: inherit;
+    }
+
+    .sheet-toast-close {
+        flex: none;
+        // 24 px target (WCAG 2.5.8)
+        width: 1.5rem;
+        height: 1.5rem;
+        padding: 0;
+        background-size: .625rem;
+    }
+
+    // Pointing at its cell (desktop): placed by the script under the cell (above it on the last rows)
+    &.is-anchored {
+        position: fixed;
+        z-index: $zindex-toast;
+        width: max-content;
+        max-width: min(22rem, calc(100vw - 1rem));
+
+        &::before {
+            position: absolute;
+            top: -6px;
+            left: var(--sheet-toast-arrow, 1rem);
+            width: 10px;
+            height: 10px;
+            margin-left: -5px;
+            border-top: 1px solid $sheet-line;
+            border-left: 1px solid $sheet-line;
+            background-color: $white;
+            content: '';
+            transform: rotate(45deg);
+        }
+
+        &.is-above::before {
+            top: auto;
+            bottom: -6px;
+            transform: rotate(225deg);
+        }
+    }
+}
+
+.sheet-toast-error {
+    border-left-color: $danger;
+
+    .sheet-toast-icon {
+        color: $sheet-danger-text;
+    }
+}
+
+.sheet-toast-warning {
+    border-left-color: $warning;
+
+    .sheet-toast-icon {
+        color: $sheet-warning-text;
+    }
+}
+
+.sheet-toast-info {
+    border-left-color: $sheet-focus;
+
+    .sheet-toast-icon {
+        color: shade-color($sheet-focus, 10%);
+    }
+}
+
+@keyframes sheet-toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(-.25rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .sheet-toasts,
+    .participants-sheet-bar .sheet-toasts {
+        position: fixed;
+        top: auto;
+        right: .5rem;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + .75rem);
+        left: .5rem;
+        flex-direction: column-reverse;
+        align-items: stretch;
+        width: auto;
+    }
+
+    .sheet-toast {
+        align-items: center;
+
+        // 44 px targets on a phone
+        .sheet-toast-action,
+        .sheet-toast-close {
+            min-width: 44px;
+            min-height: 44px;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sheet-toast {
+        animation: none;
     }
 }
 
@@ -736,6 +916,23 @@ $sheet-cell-height: 2.25rem;
 
 .sheet-preview-error .sheet-preview-status {
     color: $sheet-danger-text;
+}
+
+// The Help dialog: task help (two columns where there is room), then the shortcuts; the head stays, the body scrolls
+.sheet-help[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.sheet-help-tasks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: .75rem 1.5rem;
+
+    h4 {
+        font-size: $font-size-base;
+        font-weight: $font-weight-semibold;
+    }
 }
 
 .sheet-help {

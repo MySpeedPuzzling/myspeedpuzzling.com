@@ -1,6 +1,8 @@
 // The page controller (assets/controllers/participants_sheet_controller.js) under Stimulus in jsdom: the setup
-// checklist, undo/redo titles on a Mac, Ctrl+Z inside a dialog, the breakpoint, a view that failed to load, a refused
-// checkbox marked on its cell, "needs you · offline", Keep mine as an undo step, one re-render per action, disconnect.
+// checklist (BR15), undo/redo titles on a Mac, Ctrl+Z inside a dialog, the breakpoint, a view that failed to load, a
+// refused checkbox marked on its cell and shown as a toast (BR1), "nothing to undo" / an undo on another tab / a problem
+// on another tab shown, the Help dialog's task help (BR7), "needs you · offline", Keep mine as an undo step, one
+// re-render per action, disconnect.
 import assert from 'node:assert/strict';
 import { setupDom, key, tick } from './dom.mjs';
 import { smallState, ROUND_SOLO, ROUND_PAIRS } from './fixture.mjs';
@@ -75,11 +77,19 @@ function page(options, fn) {
 }
 
 export default function (test) {
-    test('the setup checklist goes once the event has a round and a person on its list - people change live', page({ state: smallState({ mercure: null, people: [], places: [] }) }, async ({ controller, element }) => {
+    test('the setup checklist goes once the event has a round and a person on its list - people change live', page({ state: smallState({ mercure: null, people: [], places: [], teams: [] }) }, async ({ controller, element }) => {
         const checklist = element.querySelector('[data-participants-sheet-target="checklist"]');
         assert.equal(checklist.hidden, false);
         controller.model.applyLocal('g1', [{ op: 'newParticipant', id: 'p-new', name: 'New Person', country: null, externalId: null }]);
         assert.equal(checklist.hidden, true);
+    }));
+
+    test('an event of team names only (rounds and pairs/teams, nobody on the list) is set up - no checklist (BR15)', page({ state: smallState({ mercure: null, people: [], places: [] }) }, async ({ element }) => {
+        assert.equal(element.querySelector('[data-participants-sheet-target="checklist"]').hidden, true);
+    }));
+
+    test('without a round the checklist stays, whoever is on the list', page({ state: smallState({ mercure: null, rounds: [], places: [], teams: [] }) }, async ({ element }) => {
+        assert.equal(element.querySelector('[data-participants-sheet-target="checklist"]').hidden, false);
     }));
 
     test('the setup checklist is hidden at once when the event is set up', page({}, async ({ element }) => {
@@ -173,7 +183,7 @@ export default function (test) {
         assert.match(controller.viewRoot.textContent, /round_view_unavailable/);
     }));
 
-    test('a checkbox click refused in the browser is marked on its cell in the server\'s words, the box ticked again', page({}, async ({ controller }) => {
+    test('a checkbox click refused in the browser is marked on its cell in the server\'s words, the box ticked again', page({}, async ({ controller, element }) => {
         const cell = controller.view.grid.cellElement('p-kim', `round:${ROUND_SOLO}`);
         cell.querySelector('input.sheet-check').click();
         assert.equal(cell.querySelector('input.sheet-check').checked, true);
@@ -181,7 +191,139 @@ export default function (test) {
         assert.equal(mark.state, 'refused');
         assert.equal(mark.message, "Kim Example's result in Solo is recorded - clear it on the results desk first to take Kim Example out.");
         assert.ok(controller.view.grid.cellElement('p-kim', `round:${ROUND_SOLO}`).classList.contains('has-marker-refused'));
-        assert.equal(controller.liveRegion.textContent === '' || controller.liveRegion.textContent === mark.message, true);
+
+        // Shown, not only read out: a toast pointing at the cell (BR1) - and said once
+        assert.equal(controller.actingAnchor(), controller.view.grid.cellElement('p-kim', `round:${ROUND_SOLO}`), 'the cell acted on');
+        assert.equal(controller.toasts.shown().length, 1);
+        const [toast] = controller.toasts.shown();
+        assert.deepEqual({ kind: toast.kind, text: toast.text }, { kind: 'error', text: mark.message });
+        assert.ok(controller.toastRegion.querySelector('.sheet-toast-error'));
+        assert.equal(controller.toastRegion.previousElementSibling, element.querySelector('[data-participants-sheet-target="status"]'), 'next to the save status');
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        assert.equal(controller.liveRegion.textContent, mark.message);
+    }));
+
+    test('several refusals at once: the first reason and how many more; a quiet act shows nothing', page({}, async ({ controller }) => {
+        const refused = (participant) => ({ reason: 'participant_removed', change: { op: 'place', participant, round: ROUND_SOLO, from: 'out', to: 'in' } });
+        controller.act({ label: { key: 'round_in' }, groups: [], inverse: [], errors: [refused('p-ana'), refused('p-jo'), refused('p-lee')] });
+        assert.match(controller.toasts.shown()[0].text, / notify_more_refused$/);
+        controller.toasts.destroy();
+        controller.act({ label: { key: 'round_in' }, groups: [], inverse: [], errors: [refused('p-ana')] }, { quiet: true });
+        assert.deepEqual(controller.toasts.shown(), [], 'the caller shows it (an editor error)');
+    }));
+
+    test('Ctrl+Z with nothing to undo is shown; an undo of a step made on another tab says so with "Show" (BR1)', page({}, async ({ controller }) => {
+        controller.undo();
+        assert.deepEqual(controller.toasts.shown().map((toast) => [toast.kind, toast.text]), [['info', 'undo_nothing']]);
+
+        // A step made on the Pairs tab, undone from People
+        controller.act({ label: { key: 'rename_team' }, groups: [{ id: 'gp', changes: [{ op: 'renameTeam', team: 't-corners', from: 'Corners', to: 'Corner Kings' }] }], inverse: [{ id: 'gpi', inverseOf: 'gp', changes: [{ op: 'renameTeam', team: 't-corners', from: 'Corner Kings', to: 'Corners' }] }], errors: [] }, { origin: ROUND_PAIRS });
+        assert.equal(controller.currentTab, 'people');
+        let revealed = null;
+        controller.showTab = async (tab, options = {}) => {
+            revealed = { tab, key: options.reveal?.target?.key ?? null };
+        };
+        controller.undo();
+        assert.equal(controller.model.team('t-corners').name, 'Corners');
+        const [toast] = controller.toasts.shown();
+        assert.equal(toast.text, 'undo_done_elsewhere');
+        controller.toastRegion.querySelector('[data-toast-action="0"]').click();
+        assert.deepEqual(revealed, { tab: ROUND_PAIRS, key: 'team:t-corners:name' }, '"Show" opens the tab at the cell');
+
+        // On the tab it was made on: the change is on screen - read out only
+        controller.toasts.destroy();
+        controller.act({ label: { key: 'field' }, groups: [{ id: 'gn', changes: [{ op: 'field', participant: 'p-ana', field: 'name', from: 'Ana Example', to: 'Ana One' }] }], inverse: [{ id: 'gni', inverseOf: 'gn', changes: [{ op: 'field', participant: 'p-ana', field: 'name', from: 'Ana One', to: 'Ana Example' }] }], errors: [] });
+        controller.undo();
+        assert.deepEqual(controller.toasts.shown(), []);
+    }));
+
+    test('a refused undo is shown as an error, a problem of another tab gets a toast with "Show" - the current tab\'s stay markers', page({}, async ({ controller }) => {
+        const problem = (id, origin, status = 'refused') => ({ id, kind: 'sheet', status, message: 'Refused by the server.', current: null, change: { op: 'renameTeam', team: 't-corners', from: 'Corners', to: 'X' }, group: { id: `${id}-g`, changes: [], origin }, target: { key: 'team:t-corners:name', teams: ['t-corners'] } });
+        let problems = [problem('p1', 'people')];
+        controller.queue.problems = () => problems;
+        controller.queue.problem = (id) => problems.find((candidate) => candidate.id === id) ?? null;
+        controller.onQueueEvent({ type: 'problems' });
+        assert.deepEqual(controller.toasts.shown(), [], 'on screen: the marker and the problems panel say it');
+
+        problems = [...problems, problem('p2', ROUND_PAIRS)];
+        controller.onQueueEvent({ type: 'problems' });
+        const [toast] = controller.toasts.shown();
+        assert.equal(toast.kind, 'error');
+        assert.match(toast.text, /^notify_problem_elsewhere/);
+        controller.onQueueEvent({ type: 'problems' });
+        assert.equal(controller.toasts.shown().length, 1, 'once per problem');
+
+        let shown = null;
+        controller.showTab = async (tab, options = {}) => {
+            shown = { tab, problem: options.reveal?.id ?? null };
+        };
+        controller.toastRegion.querySelector('[data-toast-action="0"]').click();
+        assert.deepEqual(shown, { tab: ROUND_PAIRS, problem: 'p2' });
+
+        problems = [...problems, problem('p3', ROUND_PAIRS, 'conflict'), problem('p4', ROUND_SOLO, 'conflict')];
+        controller.onQueueEvent({ type: 'problems' });
+        assert.deepEqual([controller.toasts.shown()[0].kind, controller.toasts.shown()[0].text], ['warning', 'notify_problems_elsewhere']);
+
+        // An undo the server refused: "Can't undo"
+        controller.undoStack.reversals.set('u1', 'undo');
+        controller.undoStack.statuses.set('u1', 'pending');
+        controller.onQueueEvent({ type: 'outcome', kind: 'sheet', group: { id: 'u1', origin: 'people', changes: [] }, outcome: { status: 'conflict' } });
+        assert.deepEqual([controller.toasts.shown()[0].kind, controller.toasts.shown()[0].text], ['error', 'undo_refused']);
+    }));
+
+    test('a server warning is shown at the name it is about and marked there', page({}, async ({ controller }) => {
+        controller.showWarnings([{ participantId: 'p-ana', message: 'Probably the same person as Ana Exampel - check the list.' }]);
+        assert.deepEqual(controller.toasts.shown().map((toast) => [toast.kind, toast.text]), [['warning', 'Probably the same person as Ana Exampel - check the list.']]);
+        assert.equal(controller.model.marks.get('person:p-ana:name').state, 'warning');
+        assert.equal(controller.anchorElement({ row: 'p-ana', col: 'name' }), controller.view.grid.cellElement('p-ana', 'name'), 'the toast points at the name');
+    }));
+
+    test('the person editor that could not be loaded says so with "Try again"', page({}, async ({ controller }) => {
+        let attempts = 0;
+        controller.importView = async () => {
+            attempts++;
+
+            throw Object.assign(new Error('Loading chunk 9 failed.'), { name: 'ChunkLoadError' });
+        };
+        const original = console.error;
+        console.error = () => {};
+
+        try {
+            assert.equal(await controller.openPersonEditor('p-ana'), false);
+            assert.deepEqual(controller.toasts.shown().map((toast) => [toast.kind, toast.text]), [['error', 'editor_load_failed']]);
+            controller.toastRegion.querySelector('[data-toast-action="0"]').click();
+            await tick(5);
+            assert.equal(attempts, 2, 'tried again');
+        } finally {
+            console.error = original;
+        }
+    }));
+
+    test('views get notify(); a toast in a modal dialog shows inside it', page({}, async ({ controller }) => {
+        const context = controller.viewContext({ kind: 'people', round: null });
+        assert.equal(typeof context.notify, 'function');
+        context.notify('Kim can\'t be moved', { kind: 'warning' });
+        assert.equal(controller.toasts.shown()[0].text, 'Kim can\'t be moved');
+        assert.equal(context.notify(''), null, 'nothing to say, nothing shown');
+
+        controller.showHelp();
+        context.notify('Saved elsewhere');
+        assert.ok(controller.helpDialog.querySelector('.sheet-toast'), 'inside the open help (the page behind it is inert)');
+        controller.helpDialog.close();
+    }));
+
+    test('the Help dialog explains the tasks next to the shortcuts (BR7)', page({}, async ({ controller }) => {
+        controller.showHelp();
+        const text = controller.helpDialog.textContent;
+
+        for (const task of ['saving', 'names', 'pairs', 'results', 'undo', 'leave']) {
+            assert.match(text, new RegExp(`help_task_${task}_title`));
+            assert.match(text, new RegExp(`help_task_${task}(?!_)`));
+        }
+
+        assert.match(text, /help_keys_title/);
+        assert.equal(controller.helpDialog.querySelectorAll('tbody tr').length, 16);
+        controller.helpDialog.close();
     }));
 
     test('problems while offline: the pill says both, the offline banner shows', page({}, async ({ controller, element }) => {

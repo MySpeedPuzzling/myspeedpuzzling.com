@@ -777,7 +777,8 @@ import - they run as native modules in a browser and under node), plus the lazy 
 `assets/controllers/participants_sheet_controller.js`. Pure modules are pinned by
 `tests/ParticipantsSheetCoreScriptsTest.php` → `tests/participants-sheet-core-harness.mjs` → the suites in
 `tests/participants-sheet-core/` (node:assert; `echo '[{"suite":"queue"}]' | node tests/participants-sheet-core-harness.mjs`).
-The DOM suites (`grid`, `people`, `controller`) run the real grid, People view and Stimulus controller in jsdom (a dev
+The DOM suites (`grid`, `toasts`, `people`, `controller`) run the real grid, the toasts, People view and Stimulus
+controller in jsdom (a dev
 dependency in `package-lock.json`, `dom.mjs`); `perf` pins bulk actions to one rebuild and one re-render.
 
 ### Modules
@@ -791,15 +792,18 @@ dependency in `package-lock.json`, `dom.mjs`); `perf` pins bulk actions to one r
 | `sheet_save_queue.js` | `SheetSaveQueue` - the one FIFO to the server, the version protocol, retries, problems. |
 | `sheet_undo.js` | `SheetUndo` - per page view. |
 | `sheet_live.js` | `SheetLive` - the Mercure stream (`OfficialResultsEvents` with the state's token), version polling, catch-up. |
-| `sheet_grid.js` | `SheetGrid` - the generic DOM grid views configure. `escapeHtml`, `markerHtml`. |
+| `sheet_grid.js` | `SheetGrid` - the generic DOM grid views configure. `escapeHtml`, `markerHtml`, `exactRule`. |
+| `sheet_toasts.js` | `SheetToasts` - the visible feedback behind the controller's `notify()` (below): the stack in the status area, pointing at a cell, timing, dialogs. |
 | `preview_dialog.js` | `PreviewDialog` - the generic match-then-confirm `<dialog>`. |
 | `views/people_view.js` | The People grid (desktop) - the first real view, extended by stream E. |
 
 ### Data flow
 
 1. A view builds an **action** with a `sheet_changes.js` builder and calls `context.act(action)`.
-2. `act()` announces client refusals (`action.errors`, in the server's words - `errorText()`) and marks them on their
-   cells for 8 s, shows every group at once inside one `model.batch()` (`model.applyLocalMany(groups)` - one rebuild, one
+2. `act()` shows client refusals (`action.errors`, in the server's words - `errorText()`; several = the first one +
+   "2 more changes were not saved either") as an error toast pointing at the cell acted on (`notify()`) and marks them
+   on their cells for 8 s, notes the tab it was made on (`action.origin`), shows every group at once inside one
+   `model.batch()` (`model.applyLocalMany(groups)` - one rebuild, one
    re-render for a bulk action of 1,000 groups), queues them (`queue.enqueueGroups`), queues results changes
    (`action.results` → `queue.results(roundId).set(...)` + `enqueueResults`) and records one undo step.
 3. The queue sends after ~800 ms (one request in flight). Per answered group (all of an answer in one `model.batch()`,
@@ -856,7 +860,8 @@ version, `model.resultsGeneration` counts merged result updates. Places created 
 waiting | conflict | refused | warning, message, groupId, problemId, transient?}`. Keys: `person:<id>:<name|country|externalId|note|player|removed>`, `place:<personId>:<roundId>`,
 `team:<teamId>:<name|delete>`, `round:<roundId>:teamSize`, `result:<ref>:<result|table_number|qualified>`. Views ask
 `context.markerFor(key)` → `{state, text, title}` and put it in a cell's `marker` (the grid draws an icon **and** a
-word). Server warnings mark `person:<id>:name` / `team:<id>:name` for 20 s and are announced.
+word). Server warnings mark `person:<id>:name` / `team:<id>:name` for 20 s and are shown as a warning toast pointing at
+that name (`notify()`).
 
 ### Actions (`sheet_changes.js`)
 
@@ -932,13 +937,16 @@ Events (`subscribe`): `status`, `outcome` (every answered group - the undo stack
 ### Undo (`SheetUndo`)
 
 `record(action)`, `outcome(groupId, status)` (→ `'undo'` / `'redo'` when an undo/redo group was refused: the controller
-says "Can't undo - somebody changed it meanwhile"; `'undo_unsaved'` / `'redo_unsaved'` when what it took back was itself
-never saved: "That change was not saved - nothing to undo"), `undo(model)` / `redo(model)` → an action with `kind` and
+shows "Can't undo - it was changed meanwhile" (an error toast); `'undo_unsaved'` / `'redo_unsaved'` when what it took
+back was itself never saved: "That change was not saved - nothing to undo"), `undo(model)` / `redo(model)` → an action
+with `kind` and
 `skipped` (place changes of people removed from the event meanwhile, left out of the undo and named - e.g. a deleted
 pair's members are put back only if still active) (performed by `act()`, which hands it back with `done()`),
 `canUndo/canRedo`, `peekUndo/peekRedo`. Only forward groups that went through (or are still on their way) are undone,
 results changes tied to a group (`inverseOf`) only with it; a step with nothing left is skipped. "Keep mine" is a step
-of its own. Limit 100 steps.
+of its own. Limit 100 steps. An undo/redo action carries the step's `origin` (the tab it was made on): undone from
+another tab, nothing changes on screen, so the controller says "Undone on Pairs: the rename." with **Show** (the tab,
+at the cell); on the same tab it is only read out. "Nothing to undo" (Ctrl+Z with an empty stack) is an info toast.
 
 ### The grid (`SheetGrid`)
 
@@ -947,12 +955,30 @@ of its own. Limit 100 steps.
 
 Columns: `{key, label, kind: text | list | checkbox | readonly | action, width (px - every column should have one: the
 table then gets a fixed width and the browser never measures 10,000 cells), headerHtml?, space?: 'panel', autoHighlight?
-(list: the first suggestion highlighted, default true), commitOnBlur? (list: false = Tab, arrows and a blur never take
-an option - only Enter or a click), className?}`. Options flagged `action: true` (Open the profile, Unlink) are never
-taken by Tab, arrows or a blur in any column. The first column is the sticky row header.
+(list: `true` (default) = the first suggestion highlighted, `false` = never - a free-text column (Result, Table): Enter
+keeps what was typed, `'exact'` = the exact-match rule below), commitOnBlur? (list: false = Tab, arrows and a blur never
+take an option - only Enter or a click), className?}`. Options flagged `action: true` (Open the profile, Unlink) are
+never taken by Tab, arrows or a blur in any column. The first column is the sticky row header.
+
+**Which suggestion Enter takes** (review D-m2). A suggestion is highlighted - Enter picks it - only when Enter cannot
+pick the wrong one: never with an empty editor (Enter clears the cell), never a `create` option ("Add … as a new
+participant" - a typo must not create anybody, D9). A list of **people** says per option whether it matches the typed
+text exactly and whether picking it moves somebody: `exact: true | false` (the name is the typed text, folded like
+ParticipantNameKey) and `moves: true | false` (the person leaves another pair/team of the round). Such a list - any option
+carrying `exact` or `moves` (set them on every option, true or false), or a column with `autoHighlight: 'exact'` - gets
+the **exact-match rule**: highlighted only when exactly one option is `exact: true` and it is not `moves: true`. A partial
+match, a name two people share and a move are always chosen explicitly (arrows + Enter, or a click). With nothing
+highlighted and something typed, **Enter keeps the text in the editor and shows the list** with "Choose from the list
+with the arrow keys, then press Enter - or keep typing." (also after Esc closed the list, and when Enter came before
+the suggestions - they wait for a pause in typing: they are fetched at once and decided on); Tab and a blur still hand
+the typed text to the view (`option: null` - the view decides what it means). A list whose options carry neither flag
+(countries) keeps the first-suggestion rule.
 
 `cell(rowKey, colKey)` → `{text, html?, checked?, label? (checkbox name), readonly?, marker?, className?, copy?}` - keep
 the markup small (every element costs layout time: a 400 × 18 sheet is 7,000+ cells; plain text needs no wrapper).
+
+Options besides the callbacks: `texts`, `announce(text)` (the live region), `notify(text, {kind, anchor})` (the page's
+`notify()` - `createGrid()` wires both; without `notify` the grid only announces).
 
 Callbacks: `seenValue(row, col)` - what the cell shows as a change compares it, read when an editor OPENS (typing,
 Enter/F2, a double click, Alt+↓); `commit(row, col, {text, option}, {fill, cells, seen})` (`seen` = that value; undefined
@@ -980,8 +1006,9 @@ Behaviour: roving tabindex (a checkbox cell focuses its checkbox - its name carr
 Shift+arrows, mouse drag, Shift+Space (row), Ctrl+Space or a header click (column), Ctrl+A; one floating 16 px editor
 (IME-safe; Enter/Tab/arrows commit and move per grid_keys); `list` columns are a combobox + listbox (arrows, Enter/Tab pick,
 Esc closes the list, a second Esc cancels); Ctrl/Cmd+C/X/V through a hidden textarea (WebKit sends no clipboard event to
-a table cell); a blur commits (a refused value is dropped and its reason announced); the scroller's height fits the
-viewport, sticky header + first column with scroll padding (2.4.11).
+a table cell); a blur commits (a refused value is dropped - a warning toast pointing at the cell: `"Xyz" was not saved:
+<reason>`); typing into a cell that can't be changed and an empty paste are info toasts at the cell; the scroller's
+height fits the viewport, sticky header + first column with scroll padding (2.4.11).
 
 ### The view interface
 
@@ -997,11 +1024,29 @@ controller picks it by name (`VIEW_MODULES` in the controller) and loads it with
 
 `context`: `root` (the view's element), `kind` (`people` | `round`), `round` (round tabs), `phone`, `model`, `queue`, `undo`,
 `texts` (`{core, round, people}`, each `{t(key, params), tc(key, count, params), has(key)}` over `_texts_core|round|people`),
-`countries` (code → label), `countryCodes` (Set), `locale`, `urls`, `csrfToken`, `act(action, {origin?, quiet?})` → `{performed,
-errors}`, `announce(text)` (the polite live region), `switchTab(tabId, focus)` (`focus` = `{personId?, teamId?, col?}` handed
+`countries` (code → label), `countryCodes` (Set), `locale`, `urls`, `csrfToken`, `act(action, {origin?, quiet?, anchor?})` →
+`{performed, errors}` (refusals shown unless `quiet`; `anchor` = where their toast points, default the focused element
+of an open dialog, else the grid's active cell), `announce(text)` (the polite live region - for what is on screen
+anyway), `notify(text, {kind, anchor?, actions?})` (below), `switchTab(tabId, focus)` (`focus` = `{personId?, teamId?,
+col?}` handed
 to the new view's `focus()`), `openPersonEditor(personId)`, `createGrid(options)` (the page knows the grid: its open edit
 is saved before the page goes), `preview(options)` (an open `PreviewDialog`), `errorText(error)` (a client refusal in
 the server's words with its parameters - use it for an action's `errors`), `reasonText(code, params?)`, `markerFor(key)`.
+
+**Visible feedback - `context.notify(text, {kind: 'error' | 'warning' | 'info', anchor?: {row, col} | Element, actions?:
+[{label, run}]})`** (business review BR1). Everything that is refused or does nothing visible must be **seen**, not
+only read out: a client refusal the view words itself, "nothing to paste here", a paste onto the wrong column, a value
+dropped, an action that could not be done. `notify` shows a toast in the sheet's status area - right under the bar, next
+to the save status, newest first, at most 3, an overlay (the grid never moves); on a desktop with `anchor` (a cell of the
+view's grid by row/col keys, or an element - e.g. a dialog's field) the newest toast points at it (under it, above on
+the last rows) and goes back to the stack when the organiser moves on or the cell scrolls away; phones: at the bottom,
+above the safe area, never pointing. Errors and warnings stay ~8 s, information ~4 s, the time standing still under the
+pointer or while the focus is inside; a close button, Esc in a toast closes it (the focus goes back). The same text is
+said once through the live region - **call `notify` instead of `announce`, never both**. While a modal dialog is open
+the toast shows inside it (the page behind is inert) and comes back to the stack when it closes. Returns `{id,
+dismiss()}` (null for an empty text). Views call it as `this.context.notify?.(…)`. `actions` are buttons ("Show",
+"Try again") - a click runs it and closes the toast. Server refusals stay markers + the problems panel - except a
+problem of **another tab** (not on screen), which the controller says once with **Show**.
 
 **The open editor and live changes** (review B1, the results desk's `openEditor()` lesson): a view gives the grid
 `seenValue` for every editable column and passes `from: extra.seen` to the builder; in `update(delta)` it compares the
@@ -1016,12 +1061,19 @@ problem's cell - the problems panel's "Show"), `onOutcome?(event)`, `destroy()`.
 
 The controller owns: tabs (People + every round in order, counts, problem badges, `?tab=` via `replaceState`, APG tab
 keys), the status pill (click: problems / retry / reload), banners (signed out, forbidden, gone, offline), the problems
-panel (Show, Keep mine, Use theirs, OK, Try again), undo/redo (targets + Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y outside text
-inputs and outside dialogs; titles with ⌘ on a Mac), the setup checklist (`checklist` target - hidden once the event
-has a round and a person), the keyboard help (`help` target or `?` outside the grid), the live region, the phone
+panel (Show, Keep mine, Use theirs, OK, Try again), the toasts (`notify()`, `sheet_toasts.js`), undo/redo (targets +
+Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y outside text inputs and outside dialogs; titles with ⌘ on a Mac), the setup checklist
+(`checklist` target - hidden live once the event has a round and (somebody on its list or a pair/team): an event of
+team names only is set up, BR15), the Help dialog (`help` target or `?` outside the grid: how to do the common tasks -
+saving, adding people from a list (People or a solo round's last row), pasting pairs/teams (name + members side by side
+onto the new row's Name cell, members only onto Member 1), results (names or table numbers + results onto the Name
+column, one column onto Result), undo (this page view only), leaving the grid (Ctrl+End then Tab, Ctrl+Home then
+Shift+Tab) - and the keyboard shortcuts, BR7), the live region, the phone
 breakpoint (a view is rebuilt only when another module shows the tab; the focus comes back), view modules (a module not
 in the build falls back for good; one that failed to load - a chunk while offline - says so with "Try again" and is
-tried again when back online, never remembered as missing), and the teardown in `disconnect()` (an open edit is saved
+tried again when back online, never remembered as missing: "This tab could not be loaded. Check the connection and try
+again." + Try again; the person editor that failed says the same as an error toast with Try again), and the teardown in
+`disconnect()` (an open edit is saved
 and sent first; listeners, timers, dialogs, the person editor let go). The undo/redo/help buttons are wired by the controller unless their markup
 already calls `participants-sheet#undo` / `#redo` / `#showHelp`.
 

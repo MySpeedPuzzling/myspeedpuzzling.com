@@ -62,7 +62,7 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $card = $crawler->filter(sprintf('[data-series-edition="%s"]', $undatedId));
         self::assertCount(1, $card, 'An edition without a date and without rounds must never vanish from the series page');
-        self::assertStringContainsString('Ou La La SPC No. 17', $card->text());
+        self::assertStringContainsString('Pinecone Speed Cup No. 17', $card->text());
         self::assertSame('Date not set', trim($card->filter('[data-edition-date-not-set]')->text()));
 
         // With the upcoming editions - the Next card first, the undated one last
@@ -89,7 +89,7 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         }
         // One sub-event per session, named like the event (series · edition)
         self::assertContains('Euro Jigsaw Jam · EJJ #69 — May 2026', $names);
-        self::assertNotContains('Ou La La SPC No. 17', $names);
+        self::assertNotContains('Pinecone Speed Cup No. 17', $names);
     }
 
     public function testEditionCardShowsTheEditionsOwnLogo(): void
@@ -119,7 +119,7 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/manage-series/' . CompetitionSeriesFixture::SERIES_EJJ);
 
         $this->assertResponseIsSuccessful();
-        self::assertStringContainsString('Ou La La SPC No. 17', $crawler->filter('main')->text());
+        self::assertStringContainsString('Pinecone Speed Cup No. 17', $crawler->filter('main')->text());
         self::assertSame('Date not set', trim($crawler->filter('[data-edition-date-not-set]')->text()));
         // ... with its edit and delete buttons, so the organiser can fix or remove it
         self::assertCount(1, $crawler->filter(sprintf('a[href^="/en/edit-event/%s"]', $undatedId)));
@@ -136,7 +136,7 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new AddEdition(
             competitionId: $editionId,
             seriesId: CompetitionSeriesFixture::SERIES_EJJ,
-            name: 'Ou La La SPC No. 17',
+            name: 'Pinecone Speed Cup No. 17',
             dateFrom: null,
             dateTo: null,
             registrationLink: null,

@@ -2,7 +2,8 @@
 // round/round_common.js - stream D) under node for tests/ParticipantsSheetRoundScriptsTest.php: the cases come on
 // stdin as JSON, one result per case is printed.
 //
-// - {"suite": "<name>"} runs tests/participants-sheet-round/<name>.mjs (node:assert tests) and answers
+// - {"suite": "<name>"} runs tests/participants-sheet-round/<name>.mjs (node:assert tests; `views` = the round views on
+//   the real grid, model and dialogs in jsdom - tests/participants-sheet-core/dom.mjs) and answers
 //   {"suite", "passed", "failures": [{"name", "message"}]};
 // - {"fn": "..."} cases answer one value the PHP test asserts itself (the facts worth reading in PHP).
 //
@@ -15,7 +16,7 @@ import { wireGroups } from '../assets/participants_sheet/sheet_changes.js';
 import { SheetModel } from '../assets/participants_sheet/sheet_model.js';
 import { parseClipboardText } from '../assets/participants_sheet/tsv.js';
 
-const SUITES = ['results', 'paste', 'common'];
+const SUITES = ['results', 'paste', 'common', 'views'];
 
 async function runSuite(name) {
     if (!SUITES.includes(name)) {

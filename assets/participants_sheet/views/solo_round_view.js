@@ -217,7 +217,7 @@ export class SoloRoundView {
         const inRound = this.model.peopleIn(this.roundId).map((person) => person.id);
         const known = new Set(this.order);
         this.order = keepOrder(this.order, inRound);
-        this.holdWorkedOn(inRound.filter((id) => !known.has(id)));
+        this.holdWorkedOn(inRound.filter((id) => !known.has(id) && this.model.place(id, this.roundId)?.local === true));
         this.autoShowResults();
 
         if (this.columnsKey() !== this.builtKey) {
@@ -338,7 +338,7 @@ export class SoloRoundView {
             this.tablesUsed
                 ? { key: 'table', label: this.t('col_table'), kind: 'list', width: 84, autoHighlight: false, className: 'sheet-col-table' }
                 : { key: 'table', label: this.t('col_index'), kind: 'readonly', width: 56, className: 'sheet-col-table' },
-            { key: 'name', label: this.t('col_person'), kind: 'list', width: 240, space: 'panel' },
+            { key: 'name', label: this.t('col_person'), kind: 'list', width: 240, space: 'panel', autoHighlight: 'exact' },
             { key: 'country', label: this.t('col_country'), kind: 'readonly', width: 170 },
         ];
 

@@ -408,7 +408,7 @@ export function personOptions(model, roundId, query, texts, { teamId = null, onl
     const name = String(query ?? '').trim();
 
     if (create && name !== '' && model.peopleNamed(name).length === 0) {
-        options.push({ value: CREATE, create: true, name, label: texts.t('add_new_person', { name }), detail: '' });
+        options.push({ value: CREATE, create: true, name, label: texts.t('add_new_person', { name }), detail: '', exact: false, moves: false });
     }
 
     return options;
@@ -439,7 +439,7 @@ export function teamOptions(model, roundId, query, texts, { exclude = new Set(),
             continue;
         }
 
-        options.push({ value: team.id, teamId: team.id, label, detail: sizeInfo(model, team.id, texts).text, exact: folded !== '' && team.name !== null && nameKey(team.name) === folded });
+        options.push({ value: team.id, teamId: team.id, label, detail: sizeInfo(model, team.id, texts).text, exact: folded !== '' && team.name !== null && nameKey(team.name) === folded, moves: false });
     }
 
     // Enter takes a pair/team only when exactly one is called what was typed

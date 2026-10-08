@@ -9,6 +9,9 @@ import assert from 'node:assert/strict';
 import { setupDom, key, TEXTS, tick } from '../participants-sheet-core/dom.mjs';
 import { ROUND_PAIRS, ROUND_SOLO, ROUND_TEAMS, person, place, smallState, team } from '../participants-sheet-core/fixture.mjs';
 
+// The round texts answer their key - except the heading words a pasted block is checked against
+const ROUND_TEXTS = { ...TEXTS, t: (key, params) => (key === 'paste_header_words' ? 'team, pair, name, member, partner, result, time' : TEXTS.t(key, params)) };
+
 /**
  * A view on a real model and grid. `previewAnswer(groups, call)` = what the server's dry run answers (default: all
  * applied). Returns the view and what it did: `acted` (actions), `announced`, `notified` ({text, kind, anchor}),
@@ -65,7 +68,7 @@ async function mount(viewName, { state = smallState(), roundId = ROUND_PAIRS, pr
             dismiss() {},
         },
         undo: { record: (action) => log.undo.push(action) },
-        texts: { core: TEXTS, round: TEXTS, people: TEXTS },
+        texts: { core: TEXTS, round: ROUND_TEXTS, people: TEXTS },
         countries: { us: 'United States', ca: 'Canada', de: 'Germany' },
         countryCodes: new Set(['us', 'ca', 'de']),
         locale: 'en',
@@ -167,6 +170,34 @@ export default function (test) {
         // Picked from the list ("moves from Corners"), Kim moves
         view.commit('__new', 'm0', { text: 'Kim Example', option: options[0] }, {});
         assert.ok(log.acted[1].groups[0].changes.some((change) => change.participant === 'p-kim' && change.from === 'team:t-corners'));
+        view.destroy();
+    });
+
+    test('D-m2 on the real grid: Enter after a partial name keeps the text and shows the list; the one exact name that moves nobody goes', async () => {
+        const { view, log } = await mount('team');
+        const grid = view.grid;
+        grid.focusCell('__new', 'm0');
+        grid.startEdit(true);
+        grid.editor.value = 'Kim Ex';
+        grid.editor.dispatchEvent(new window.Event('input', { bubbles: true }));
+        key(grid.editor, 'Enter');
+        await tick();
+        assert.equal(log.acted.length, 0);
+        assert.equal(grid.isEditing(), true);
+        assert.equal(grid.list.active, -1);
+        // Kim Example in full: exact, but she would move out of Corners - still chosen explicitly
+        grid.editor.value = 'Kim Example';
+        grid.editor.dispatchEvent(new window.Event('input', { bubbles: true }));
+        key(grid.editor, 'Enter');
+        await tick();
+        assert.equal(log.acted.length, 0);
+        // Jo Do is in the tray: Enter takes her
+        grid.editor.value = 'Jo Do';
+        grid.editor.dispatchEvent(new window.Event('input', { bubbles: true }));
+        key(grid.editor, 'Enter');
+        await tick();
+        assert.equal(log.acted.length, 1);
+        assert.ok(log.acted[0].groups[0].changes.some((change) => change.participant === 'p-jo'));
         view.destroy();
     });
 

@@ -17,7 +17,9 @@ use Symfony\Component\Process\Process;
  *   "Swap them" write, RecordRoundResults changes with their exact inverse, ranks as the page shows them;
  * - paste: rows of pairs/teams (by name, by members, ambiguous names and people, new people, moves), positional pastes,
  *   results pastes matched only to the round's entries;
- * - common: O1 labels, the pickers' options, sizes in words (O7), row order, member slots, results columns (O3).
+ * - common: O1 labels, the pickers' options, sizes in words (O7), row order, member slots, results columns (O3);
+ * - views: the three round views on the real grid, model and dialogs in jsdom (review D's reproductions, the business
+ *   review's round items - names into a solo round, the toolbar, the paste hint, visible feedback).
  */
 final class ParticipantsSheetRoundScriptsTest extends TestCase
 {
@@ -26,7 +28,7 @@ final class ParticipantsSheetRoundScriptsTest extends TestCase
      */
     public static function suites(): iterable
     {
-        foreach (['results', 'paste', 'common'] as $suite) {
+        foreach (['results', 'paste', 'common', 'views'] as $suite) {
             yield $suite => [$suite];
         }
     }

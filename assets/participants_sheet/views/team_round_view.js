@@ -261,7 +261,8 @@ export class TeamRoundView {
         const ours = new Set(this.model.teamsOf(this.roundId).map((team) => team.id));
         const known = new Set(this.order);
         this.order = keepOrder(this.order, [...ours]);
-        this.holdWorkedOn([...ours].filter((id) => !known.has(id)));
+        // Pairs/teams made on this page meanwhile stay visible under a filter (others' arrive filtered)
+        this.holdWorkedOn([...ours].filter((id) => !known.has(id) && this.model.team(id)?.local === true));
         this.autoShowResults();
 
         // New columns (a member typed into "+", the round's table usage, its name, results shown): a new grid once the
@@ -482,7 +483,8 @@ export class TeamRoundView {
         ];
 
         for (let index = 0; index < this.memberCount; index++) {
-            columns.push({ key: `m${index}`, label: this.t('col_member', { number: index + 1 }), kind: 'list', width: 175, className: 'sheet-col-member' });
+            // Enter alone takes only the one exact name that moves nobody (D-m2)
+            columns.push({ key: `m${index}`, label: this.t('col_member', { number: index + 1 }), kind: 'list', width: 175, autoHighlight: 'exact', className: 'sheet-col-member' });
         }
 
         columns.push({
@@ -491,6 +493,7 @@ export class TeamRoundView {
             headerHtml: `<span aria-hidden="true">+</span><span class="visually-hidden">${escapeHtml(this.t('col_member_extra', { number: this.memberCount + 1 }))}</span>`,
             kind: 'list',
             width: 100,
+            autoHighlight: 'exact',
             className: 'sheet-col-member sheet-col-extra',
         });
         columns.push({ key: 'size', label: this.t('col_size'), kind: 'readonly', width: 215, className: 'sheet-col-size' });

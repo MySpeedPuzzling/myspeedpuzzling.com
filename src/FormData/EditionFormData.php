@@ -28,6 +28,9 @@ final class EditionFormData
         #[Assert\Length(max: 250)]
         public null|string $link = null,
         public null|string $description = null,
+        // "Who can enter" - empty shows the series' (docs/features/organizations/README.md)
+        #[Assert\Length(max: 120)]
+        public null|string $eligibility = null,
     ) {
     }
 }

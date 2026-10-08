@@ -10,35 +10,41 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
+use SpeedPuzzling\Web\Exceptions\OrganizationNotManaged;
 use SpeedPuzzling\Web\Message\AddCompetition;
+use SpeedPuzzling\Web\Repository\OrganizationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\Mailer\MailerInterface;
+use SpeedPuzzling\Web\Services\Organizations\CompetitionSubmittedMailer;
+use SpeedPuzzling\Web\Services\Organizations\OrganizationApprovalPolicy;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * A one-time event waits for an admin's approval - unless it is created under an approved organization by its team
+ * (OrganizationApprovalPolicy, docs/features/organizations/README.md "Approval"). The admin is e-mailed only for an
+ * event that enters the approval queue now: not a draft (submitted when published), not approved at once.
+ */
 #[AsMessageHandler]
 readonly final class AddCompetitionHandler
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
         private PlayerRepository $playerRepository,
+        private OrganizationRepository $organizationRepository,
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
         private CompetitionSlugGenerator $slugGenerator,
-        private MailerInterface $mailer,
-        private UrlGeneratorInterface $urlGenerator,
-        private TranslatorInterface $translator,
+        private OrganizationApprovalPolicy $organizationApprovalPolicy,
+        private CompetitionSubmittedMailer $competitionSubmittedMailer,
     ) {
     }
 
     /**
      * @throws CompetitionSlugTaken
      * @throws InvalidCompetitionSlug
+     * @throws OrganizationNotManaged
      */
     public function __invoke(AddCompetition $message): void
     {
@@ -52,6 +58,16 @@ readonly final class AddCompetitionHandler
 
             if ($this->slugGenerator->isTaken($message->slug, null)) {
                 throw new CompetitionSlugTaken($message->slug);
+            }
+        }
+
+        $organization = null;
+
+        if ($message->organizationId !== null) {
+            $organization = $this->organizationRepository->get($message->organizationId);
+
+            if ($player->isAdmin === false && $organization->isOnTeam($player) === false) {
+                throw new OrganizationNotManaged();
             }
         }
 
@@ -91,6 +107,9 @@ readonly final class AddCompetitionHandler
             isOnline: $message->isOnline,
             addedByPlayer: $player,
             createdAt: $now,
+            organization: $organization,
+            isDraft: $message->isDraft,
+            eligibility: $message->eligibility,
         );
 
         foreach ($message->maintainerIds as $maintainerId) {
@@ -98,33 +117,15 @@ readonly final class AddCompetitionHandler
             $competition->maintainers->add($maintainer);
         }
 
+        $approvedAtOnce = $this->organizationApprovalPolicy->approveIfUnderTrustedOrganization($competition, $player, $now);
+
         $this->entityManager->persist($competition);
         $this->entityManager->flush();
 
-        if ($message->notifyAdmin === false) {
+        if ($message->notifyAdmin === false || $message->isDraft || $approvedAtOnce) {
             return;
         }
 
-        $adminUrl = $this->urlGenerator->generate('admin_competition_approvals', [], UrlGeneratorInterface::ABSOLUTE_URL);
-
-        $subject = $this->translator->trans(
-            'competition_submitted.subject',
-            ['%competitionName%' => $message->name],
-            domain: 'emails',
-        );
-
-        $email = (new TemplatedEmail())
-            ->to('jan.mikes@myspeedpuzzling.com')
-            ->subject($subject)
-            ->htmlTemplate('emails/competition_submitted.html.twig')
-            ->context([
-                'playerName' => $player->name ?? 'Unknown',
-                'competitionName' => $message->name,
-                'location' => $message->location,
-                'adminUrl' => $adminUrl,
-            ]);
-        $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
-
-        $this->mailer->send($email);
+        $this->competitionSubmittedMailer->notifyAdmin($message->name, $player->name ?? 'Unknown', $message->location);
     }
 }

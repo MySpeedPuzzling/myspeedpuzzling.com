@@ -13,7 +13,9 @@ use Symfony\Component\String\Slugger\SluggerInterface;
  *
  * The event page looks a competition up by its slug alone, so a standalone competition's slug is unique across every
  * competition. An edition's slug is only unique within its series (`competition (series_id, slug)`), because its
- * address is `/en/series/{seriesSlug}/{editionSlug}`. A series' slug is unique among series (`competition_series.slug`).
+ * address is `/en/series/{seriesSlug}/{editionSlug}`. A series' slug is unique among series (`competition_series.slug`),
+ * an organization's among organizations (`organization.slug`, `/en/organizations/{slug}` - docs/features/organizations/
+ * README.md, P11).
  */
 readonly final class CompetitionSlugGenerator
 {
@@ -58,6 +60,45 @@ readonly final class CompetitionSlugGenerator
 
         // Transliterated the same whatever the page language ("ü" → "u", not "ue" on a German page)
         return strtolower((string) $this->slugger->slug(strtolower($input), '-', 'en'));
+    }
+
+    /**
+     * An organization's slug from its name, with a random suffix when another organization holds it already.
+     */
+    public function generateOrganizationSlug(string $name): string
+    {
+        $slug = (string) $this->slugger->slug(strtolower($name));
+
+        if ($slug === '' || $this->isOrganizationSlugTaken($slug)) {
+            $slug .= ($slug === '' ? '' : '-') . substr(md5(uniqid()), 0, 6);
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Whether another organization holds the slug.
+     */
+    public function isOrganizationSlugTaken(string $slug, null|string $exceptOrganizationId = null): bool
+    {
+        $taken = $this->database
+            ->executeQuery(
+                <<<SQL
+SELECT EXISTS (
+    SELECT 1
+    FROM organization
+    WHERE slug = :slug
+        AND (CAST(:exceptId AS UUID) IS NULL OR id <> CAST(:exceptId AS UUID))
+)
+SQL,
+                [
+                    'slug' => $slug,
+                    'exceptId' => $exceptOrganizationId,
+                ],
+            )
+            ->fetchOne();
+
+        return $taken === true;
     }
 
     /**

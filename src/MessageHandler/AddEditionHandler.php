@@ -6,8 +6,11 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
+use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
 use SpeedPuzzling\Web\Message\AddEdition;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
+use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
@@ -18,17 +21,32 @@ readonly final class AddEditionHandler
         private EntityManagerInterface $entityManager,
         private CompetitionSeriesRepository $seriesRepository,
         private SluggerInterface $slugger,
+        private CompetitionSlugGenerator $slugGenerator,
     ) {
     }
 
+    /**
+     * @throws CompetitionSlugTaken
+     * @throws InvalidCompetitionSlug
+     */
     public function __invoke(AddEdition $message): void
     {
         $series = $this->seriesRepository->get($message->seriesId);
 
+        if ($message->slug !== null) {
+            if (CompetitionSlugGenerator::isValid($message->slug) === false) {
+                throw new InvalidCompetitionSlug($message->slug);
+            }
+
+            if ($this->slugGenerator->isTaken($message->slug, $message->seriesId)) {
+                throw new CompetitionSlugTaken($message->slug);
+            }
+        }
+
         $competition = new Competition(
             id: $message->competitionId,
             name: $message->name,
-            slug: $this->generateUniqueSlug($message->name, $message->seriesId),
+            slug: $message->slug ?? $this->generateUniqueSlug($message->name, $message->seriesId),
             shortcut: null,
             logo: null,
             description: self::emptyToNull($message->description),
@@ -42,6 +60,8 @@ readonly final class AddEditionHandler
             tag: null,
             isOnline: $series->isOnline,
             series: $series,
+            isDraft: $message->isDraft,
+            eligibility: self::emptyToNull($message->eligibility),
         );
 
         $this->entityManager->persist($competition);

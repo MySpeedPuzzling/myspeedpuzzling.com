@@ -71,6 +71,8 @@ final class UpdateCompetitionController extends AbstractController
             isOnline: $data->isOnline === true,
             logo: null,
             maintainerIds: $maintainerIds ?? $data->maintainers,
+            // Kept as stored until the API takes the field (workstream D)
+            eligibility: $competition->eligibility,
             slug: $slug !== $competition->slug ? $slug : null,
         ));
 

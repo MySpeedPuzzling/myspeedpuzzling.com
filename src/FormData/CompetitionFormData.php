@@ -45,6 +45,14 @@ final class CompetitionFormData
         public array $maintainers = [],
         // The "URL" field of the edit forms (CompetitionFormType `url_field`), checked by CompetitionUrlField
         public null|string $slug = null,
+        // docs/features/organizations/README.md - the "Organization" select (one-time events and series only)
+        public null|string $organizationId = null,
+        // "Who can enter"
+        #[Assert\Length(max: 120)]
+        public null|string $eligibility = null,
+        // "When it happens" (series only)
+        #[Assert\Length(max: 160)]
+        public null|string $schedule = null,
     ) {
     }
 
@@ -114,6 +122,8 @@ final class CompetitionFormData
         $data->dateFrom = $competition->dateFrom;
         $data->dateTo = $competition->dateTo;
         $data->isOnline = $competition->isOnline;
+        $data->eligibility = $competition->eligibility;
+        $data->organizationId = $competition->organization?->id->toString();
 
         $maintainerIds = [];
         foreach ($competition->maintainers as $maintainer) {

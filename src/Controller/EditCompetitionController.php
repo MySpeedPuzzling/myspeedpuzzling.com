@@ -89,6 +89,8 @@ final class EditCompetitionController extends AbstractController
                         isOnline: $data->isOnline === true,
                         logo: $data->logo,
                         maintainerIds: $data->maintainers,
+                        // CompetitionFormData::fromCompetition() holds the stored value until the form shows the field
+                        eligibility: $data->eligibility,
                         slug: $slug,
                     ));
 

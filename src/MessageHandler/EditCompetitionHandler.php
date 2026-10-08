@@ -82,6 +82,7 @@ readonly final class EditCompetitionHandler
             dateTo: $message->dateTo,
             isOnline: $message->isOnline,
         );
+        $competition->changeEligibility($message->eligibility);
 
         // Sync maintainers
         $competition->maintainers->clear();

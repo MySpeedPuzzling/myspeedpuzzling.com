@@ -78,6 +78,7 @@ readonly final class EditCompetitionSeriesHandler
             locationCountryCode: $message->locationCountryCode,
             shortcut: $message->shortcut,
         );
+        $series->changeEligibilityAndSchedule($message->eligibility, $message->schedule);
 
         $series->maintainers->clear();
         foreach ($message->maintainerIds as $maintainerId) {

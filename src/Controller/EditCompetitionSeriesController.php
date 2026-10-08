@@ -70,6 +70,10 @@ final class EditCompetitionSeriesController extends AbstractController
         $formData->maintainers = $maintainerIds;
 
         $formData->slug = $series->slug;
+        // Kept as stored until the form shows the fields (docs/features/organizations/README.md)
+        $formData->eligibility = $series->eligibility;
+        $formData->schedule = $series->schedule;
+        $formData->organizationId = $series->organization?->id->toString();
         // A series is recurring: its in-person form must not ask for dates (they belong to its editions)
         $formData->isRecurring = true;
 
@@ -98,6 +102,8 @@ final class EditCompetitionSeriesController extends AbstractController
                         locationCountryCode: $data->locationCountryCode,
                         logo: $data->logo,
                         maintainerIds: $data->maintainers,
+                        eligibility: $data->eligibility,
+                        schedule: $data->schedule,
                         slug: $slug,
                     ));
 

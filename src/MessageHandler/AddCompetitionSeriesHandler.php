@@ -8,38 +8,72 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionSeries;
+use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
+use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
+use SpeedPuzzling\Web\Exceptions\OrganizationNotManaged;
 use SpeedPuzzling\Web\Message\AddCompetitionSeries;
+use SpeedPuzzling\Web\Repository\OrganizationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
-use Symfony\Component\Mailer\MailerInterface;
+use SpeedPuzzling\Web\Services\Organizations\CompetitionSubmittedMailer;
+use SpeedPuzzling\Web\Services\Organizations\OrganizationApprovalPolicy;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\String\Slugger\SluggerInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * A series waits for an admin's approval - unless it is created under an approved organization by its team
+ * (OrganizationApprovalPolicy, docs/features/organizations/README.md "Approval"). The admin is e-mailed only for a
+ * series that enters the approval queue now: not a draft, not approved at once, and not created by an admin.
+ */
 #[AsMessageHandler]
 readonly final class AddCompetitionSeriesHandler
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
         private PlayerRepository $playerRepository,
+        private OrganizationRepository $organizationRepository,
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
         private SluggerInterface $slugger,
-        private MailerInterface $mailer,
-        private UrlGeneratorInterface $urlGenerator,
-        private TranslatorInterface $translator,
+        private CompetitionSlugGenerator $slugGenerator,
+        private OrganizationApprovalPolicy $organizationApprovalPolicy,
+        private CompetitionSubmittedMailer $competitionSubmittedMailer,
     ) {
     }
 
+    /**
+     * @throws CompetitionSlugTaken
+     * @throws InvalidCompetitionSlug
+     * @throws OrganizationNotManaged
+     */
     public function __invoke(AddCompetitionSeries $message): void
     {
         $player = $this->playerRepository->get($message->playerId);
         $now = $this->clock->now();
 
-        $slug = $this->generateUniqueSlug($message->name);
+        if ($message->slug !== null) {
+            if (CompetitionSlugGenerator::isValid($message->slug) === false) {
+                throw new InvalidCompetitionSlug($message->slug);
+            }
+
+            if ($this->slugGenerator->isSeriesSlugTaken($message->slug)) {
+                throw new CompetitionSlugTaken($message->slug);
+            }
+        }
+
+        $organization = null;
+
+        if ($message->organizationId !== null) {
+            $organization = $this->organizationRepository->get($message->organizationId);
+
+            if ($player->isAdmin === false && $organization->isOnTeam($player) === false) {
+                throw new OrganizationNotManaged();
+            }
+        }
+
+        $slug = $message->slug ?? $this->generateUniqueSlug($message->name);
 
         $logoPath = null;
         if ($message->logo !== null) {
@@ -70,6 +104,10 @@ readonly final class AddCompetitionSeriesHandler
             shortcut: $message->shortcut,
             addedByPlayer: $player,
             createdAt: $now,
+            organization: $organization,
+            isDraft: $message->isDraft,
+            eligibility: $message->eligibility,
+            schedule: $message->schedule,
         );
 
         foreach ($message->maintainerIds as $maintainerId) {
@@ -77,30 +115,16 @@ readonly final class AddCompetitionSeriesHandler
             $series->maintainers->add($maintainer);
         }
 
+        $approvedAtOnce = $this->organizationApprovalPolicy->approveIfUnderTrustedOrganization($series, $player, $now);
+
         $this->entityManager->persist($series);
         $this->entityManager->flush();
 
-        $adminUrl = $this->urlGenerator->generate('admin_competition_approvals', [], UrlGeneratorInterface::ABSOLUTE_URL);
+        if ($message->notifyAdmin === false || $message->isDraft || $approvedAtOnce) {
+            return;
+        }
 
-        $subject = $this->translator->trans(
-            'competition_submitted.subject',
-            ['%competitionName%' => $message->name],
-            domain: 'emails',
-        );
-
-        $email = (new TemplatedEmail())
-            ->to('jan.mikes@myspeedpuzzling.com')
-            ->subject($subject)
-            ->htmlTemplate('emails/competition_submitted.html.twig')
-            ->context([
-                'playerName' => $player->name ?? 'Unknown',
-                'competitionName' => $message->name,
-                'location' => $message->location ?? 'Online',
-                'adminUrl' => $adminUrl,
-            ]);
-        $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
-
-        $this->mailer->send($email);
+        $this->competitionSubmittedMailer->notifyAdmin($message->name, $player->name ?? 'Unknown', $message->location ?? 'Online');
     }
 
     private function generateUniqueSlug(string $name): string

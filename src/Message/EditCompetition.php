@@ -27,6 +27,8 @@ readonly final class EditCompetition
         public bool $isOnline,
         public null|UploadedFile $logo,
         public array $maintainerIds,
+        // "Who can enter" (docs/features/organizations/README.md) - an edition without one shows its series'
+        public null|string $eligibility,
         // An explicitly chosen slug (validated unique) - null keeps the slug, also on a rename: published links and
         // search engines know the competition by it
         public null|string $slug = null,

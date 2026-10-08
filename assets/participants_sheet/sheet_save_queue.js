@@ -247,6 +247,20 @@ export class SheetSaveQueue {
 
         this.model.marks.setMany(marks);
 
+        // A cell changed back to the saved value before it was sent is gone - so is its "saving" marker
+        const pending = this.results(roundId);
+
+        for (const mark of this.model.marks.all()) {
+            if ((mark.state === 'saving' || mark.state === 'waiting') && mark.key.startsWith('result:') && (mark.entities?.rounds ?? []).includes(roundId)) {
+                const field = mark.key.slice(mark.key.lastIndexOf(':') + 1);
+                const ref = mark.key.slice('result:'.length, mark.key.lastIndexOf(':'));
+
+                if (pending.get(ref, field) === null) {
+                    this.model.marks.set(mark.key, null);
+                }
+            }
+        }
+
         const last = this.items[this.items.length - 1];
 
         if (!(last && last.kind === 'results' && last.roundId === roundId && !last.sent)) {

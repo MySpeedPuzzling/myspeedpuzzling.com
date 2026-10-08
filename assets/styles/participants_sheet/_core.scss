@@ -561,6 +561,12 @@ $sheet-cell-height: 2.25rem;
     &[hidden] {
         display: none;
     }
+
+    // Flipped above the cell (the last rows): the shadow and the rounded corners face up
+    &.is-above {
+        border-radius: $border-radius $border-radius 0 0;
+        box-shadow: 0 -.5rem 1rem rgba($black, .15);
+    }
 }
 
 .sheet-option {

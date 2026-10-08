@@ -92,6 +92,8 @@ export function markerHtml(marker) {
  * @property {boolean} [checked]       checkbox cells
  * @property {string} [label]          checkbox cells: the accessible name ("Solo, Kim Example")
  * @property {boolean} [readonly]      this cell cannot be edited (the column's kind otherwise)
+ * @property {'text'|'list'|'readonly'|'action'} [kind]  this cell's own kind instead of the column's (e.g. the name
+ *                                     cells of a round's people open the person - `action` - while the new row's types)
  * @property {{state: string, text: string, title?: string}|null} [marker]
  * @property {string} [className]
  * @property {string} [copy]           what Ctrl+C copies (default: text, TRUE/FALSE for checkboxes)
@@ -111,7 +113,10 @@ export class SheetGrid {
      * @param {function(string, string): string} [options.editValue]          the text an edit (Enter/F2) starts with
      * @param {function(string, string): *} [options.seenValue]                what the cell shows when an editor opens
      *        (the value its change's `from` must be) - handed back to commit() as `seen`
-     * @param {function(string, string, string): (Array|Promise<Array>)} [options.suggest]   list columns
+     * @param {function(string, string, {replace: boolean}): void} [options.editStart]  an edit of the cell begins (not
+     *        called when a rebuilt grid resumes an edit - resumeEdit())
+     * @param {function(string, string, string, {explicit: boolean}): (Array|Promise<Array>)} [options.suggest]   list
+     *        columns; `explicit` = the list was asked for (Alt+Down), not opened by typing
      * @param {function(string, string, {text: string, option: object|null}, {fill: boolean, cells: Array, seen: *}): ({error?: string, focus?: object|function}|void)} options.commit
  *        `error` keeps the editor open with the reason; `focus` = {row, col} keys (or a function of the planned move
  *        {row, col} indexes) where the focus goes instead of the planned move. `seen` = seenValue() when the editor
@@ -256,17 +261,11 @@ export class SheetGrid {
     }
 
     cellKind(rowKey, column) {
-        const content = this.content(rowKey, column.key);
-
-        if (content.readonly && column.kind !== 'action') {
-            return 'readonly';
-        }
-
-        return column.kind;
+        return kindOf(column, this.content(rowKey, column.key));
     }
 
     cellAttributes(rowKey, column, content) {
-        const kind = content.readonly && column.kind !== 'action' ? 'readonly' : column.kind;
+        const kind = kindOf(column, content);
         // Short markup: a 400 x 18 sheet is 7,000 cells (the column is data-c, its index)
         const classes = [`sheet-kind-${kind}`];
 
@@ -329,6 +328,8 @@ export class SheetGrid {
      */
     setRows(keys) {
         const wanted = new Set(keys);
+        // Asked before any row goes: a removed focused cell takes the focus with it (to <body>)
+        const hadFocus = this.table.contains(document.activeElement);
 
         for (const [key, tr] of this.rowElements) {
             if (!wanted.has(key)) {
@@ -367,7 +368,6 @@ export class SheetGrid {
 
         if (!this.rowIndex.has(this.active.row)) {
             // The focused row went: the row now at its place takes the focus (without stealing it from elsewhere)
-            const hadFocus = this.table.contains(document.activeElement);
             this.active = { row: this.rows[Math.min(activeIndex, this.rows.length - 1)] ?? null, col: this.active.col };
             this.setTabStop();
 
@@ -879,6 +879,12 @@ export class SheetGrid {
         }
 
         const cell = this.cellElement(rowKey, column.key);
+
+        if (preset === null) {
+            // The view learns what the organiser saw when the edit began (the `from` of its save - official results)
+            this.options.editStart?.(rowKey, column.key, { replace });
+        }
+
         const value = preset !== null ? String(preset.text ?? '') : (replace ? '' : (this.options.editValue?.(rowKey, column.key) ?? this.content(rowKey, column.key).text ?? ''));
         // What the organiser saw - the `from` of the change this edit makes, whatever arrives while it is open
         const seen = preset !== null ? preset.seen : this.options.seenValue?.(rowKey, column.key);
@@ -936,7 +942,57 @@ export class SheetGrid {
         Object.assign(this.listbox.style, { top: `${top + cellRect.height}px`, left: `${left}px`, minWidth: `${width}px` });
         Object.assign(this.listStatus.style, { top: `${top + cellRect.height}px`, left: `${left}px`, minWidth: `${width}px` });
         Object.assign(this.notice.style, { top: `${top + cellRect.height}px`, left: `${left}px`, maxWidth: `${Math.max(width, 320)}px` });
+        this.editorBox = { top, height: cellRect.height };
         this.stackBelowEditor();
+        this.placeList();
+    }
+
+    /**
+     * The suggestions (and their status line) stay visible inside the scroller: below the cell when they fit there (or
+     * there is more room below than above), above it otherwise - the last rows and the new row included; the list's
+     * height is capped by the room it has (it scrolls).
+     */
+    placeList() {
+        const box = this.editorBox;
+
+        if (!box || (this.listbox.hidden && this.listStatus.hidden)) {
+            return;
+        }
+
+        const head = this.thead.rows[0]?.offsetHeight ?? 0;
+        const viewTop = this.scroller.scrollTop + head;
+        const viewBottom = this.scroller.scrollTop + this.scroller.clientHeight;
+        const statusHeight = this.listStatus.hidden ? 0 : this.listStatus.offsetHeight;
+        const below = Math.max(0, viewBottom - (box.top + box.height));
+        const above = Math.max(0, box.top - viewTop);
+        // Taken off by the notice / error under the editor when they show
+        const extras = (this.notice.hidden ? 0 : this.notice.offsetHeight) + (this.editorError.hidden ? 0 : this.editorError.offsetHeight);
+        this.listbox.style.maxHeight = '';
+        const natural = (this.listbox.hidden ? 0 : this.listbox.offsetHeight) + statusHeight;
+
+        if (natural === 0 || this.scroller.clientHeight === 0) {
+            return;
+        }
+
+        const flip = natural + extras > below && above > below;
+        const room = Math.max(96, (flip ? above : below - extras) - statusHeight - 4);
+
+        if (!this.listbox.hidden && this.listbox.offsetHeight > room) {
+            this.listbox.style.maxHeight = `${room}px`;
+        }
+
+        const listHeight = this.listbox.hidden ? 0 : this.listbox.offsetHeight;
+        this.listbox.classList.toggle('is-above', flip);
+        this.listStatus.classList.toggle('is-above', flip);
+
+        if (flip) {
+            this.listbox.style.top = `${box.top - listHeight}px`;
+            this.listStatus.style.top = `${box.top - listHeight - statusHeight}px`;
+        } else {
+            const top = box.top + box.height + extras;
+            this.listbox.style.top = `${top}px`;
+            this.listStatus.style.top = `${top + listHeight}px`;
+        }
     }
 
     /** The notice and the error under the editor, one below the other when both show. */
@@ -1255,7 +1311,7 @@ export class SheetGrid {
             let answer;
 
             try {
-                answer = this.options.suggest(row, col, this.editor.value);
+                answer = this.options.suggest(row, col, this.editor.value, { explicit: immediately === true });
             } catch (e) {
                 answer = [];
             }
@@ -1300,7 +1356,9 @@ export class SheetGrid {
             this.editor.removeAttribute('aria-activedescendant');
         } else {
             this.showListStatus(hint);
-            this.highlight(column?.autoHighlight === false ? -1 : 0);
+            // A "create" option is never picked by Enter alone - a typo must not create anything (D9) - and an empty
+            // editor + Enter clears the cell instead of taking the first suggestion
+            this.highlight(column?.autoHighlight === false || options[0]?.create || this.editor.value.trim() === '' ? -1 : 0);
             this.announce(this.texts.tc('grid_suggestions', options.length));
         }
     }
@@ -1314,6 +1372,8 @@ export class SheetGrid {
         if (!this.listbox.hidden) {
             this.listStatus.style.top = `${this.listbox.offsetTop + this.listbox.offsetHeight}px`;
         }
+
+        this.placeList();
     }
 
     highlight(index) {
@@ -1788,6 +1848,15 @@ export class SheetGrid {
         this.listeners = [];
         this.options.container.replaceChildren();
     }
+}
+
+/** A cell's kind: its own (`content.kind`), readonly when the view says so (action cells stay actions), else the column's. */
+function kindOf(column, content) {
+    if (content.kind) {
+        return content.kind;
+    }
+
+    return content.readonly && column.kind !== 'action' ? 'readonly' : column.kind;
 }
 
 function pickKeyEvent(event) {

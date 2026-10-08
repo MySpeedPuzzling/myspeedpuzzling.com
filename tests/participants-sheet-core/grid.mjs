@@ -10,8 +10,9 @@ async function setup({ columns = null, rows = ['a', 'b', 'c'], suggest = null, t
     setupDom();
     ({ SheetGrid } = await import('../../assets/participants_sheet/sheet_grid.js'));
     const data = {
-        a: { name: 'Ann', country: 'cz', act: '', pick: '', box: true },
-        b: { name: 'Bo', country: 'us', act: '', pick: '', box: false },
+        // Something in the list cells: an empty editor never highlights a suggestion (Enter clears the cell instead)
+        a: { name: 'Ann', country: 'cz', act: 'Opt', pick: 'P', box: true },
+        b: { name: 'Bo', country: 'us', act: 'Opt', pick: 'P', box: false },
         c: { name: 'Cy', country: null, act: '', pick: '', box: false },
     };
     const commits = [];
@@ -249,6 +250,29 @@ export default function (test) {
         assert.equal(cellOf(grid, 'a', 'name').getAttribute('aria-selected'), 'false');
         grid.setRows(['a', 'b', 'c', 'd']);
         assert.equal(container.querySelector('tr[data-row="d"] td').getAttribute('aria-selected'), 'false');
+        grid.destroy();
+    });
+
+    test('the suggestion list stays visible: on the last rows it opens above the cell, its height capped by the room', async () => {
+        const { grid } = await setup();
+        grid.focusCell('c', 'country');
+        key(cellOf(grid, 'c', 'country'), 'ArrowDown', { altKey: true });
+        assert.equal(grid.list.open, true);
+        const size = (element, values) => Object.entries(values).forEach(([name, value]) => Object.defineProperty(element, name, { value, configurable: true }));
+        size(grid.scroller, { clientHeight: 300, scrollTop: 0 });
+        size(grid.thead.rows[0], { offsetHeight: 30 });
+        size(grid.listbox, { offsetHeight: 160 });
+        size(grid.listStatus, { offsetHeight: 0 });
+
+        grid.editorBox = { top: 240, height: 32 };   // a cell near the bottom: 28 px below it, 210 above
+        grid.placeList();
+        assert.equal(grid.listbox.classList.contains('is-above'), true);
+        assert.equal(grid.listbox.style.top, '80px');
+
+        grid.editorBox = { top: 40, height: 32 };    // near the top: below, as always
+        grid.placeList();
+        assert.equal(grid.listbox.classList.contains('is-above'), false);
+        assert.equal(grid.listbox.style.top, '72px');
         grid.destroy();
     });
 }

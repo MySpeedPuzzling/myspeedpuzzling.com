@@ -390,4 +390,17 @@ export default function (test) {
         assert.deepEqual(details(linkProfile(m, 'p-jo', { id: 'pl-kim' })), { key: 'player_linked_elsewhere', params: { other: 'Kim Example' } });
         assert.deepEqual(details(setField(m, 'p-jo', 'name', 'x'.repeat(300))), { key: 'name_too_long', params: { max: 255 } });
     });
+
+    test('round tabs word a client refusal like the core, with their own team label (O1)', async () => {
+        const { roundRefusalText } = await import('../../assets/participants_sheet/round/round_common.js');
+        const m = model();
+        const roundTexts = { t: (key, params = {}) => (key === 'label_table' ? `Table ${params.table}` : key), tc: (key) => key, has: () => true };
+        const context = {
+            texts: { core: { has: (key) => key === 'reason_team_has_result' } },
+            reasonText: (code, params) => `${code}: ${JSON.stringify(params)}`,
+        };
+        assert.equal(roundRefusalText(context, m, roundTexts, deleteTeam(m, 't-flat').errors[0]), 'team_has_result: {"team":"Flat","round":"Teams"}');
+        const corners = { ...deleteTeam(m, 't-flat').errors[0], change: { op: 'deleteTeam', team: 't-corners' } };
+        assert.equal(roundRefusalText(context, m, roundTexts, corners), 'team_has_result: {"team":"Corners · Table 2","round":"Pairs"}');
+    });
 }

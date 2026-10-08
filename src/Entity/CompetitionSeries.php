@@ -11,6 +11,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\ManyToOne;
@@ -71,8 +72,59 @@ class CompetitionSeries
         #[ManyToMany(targetEntity: Player::class)]
         #[JoinTable(name: 'competition_series_maintainer')]
         public Collection $maintainers = new ArrayCollection(),
+        // The organization running it (docs/features/organizations/README.md) - its editions are under it too.
+        // assignOrganization()
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[ManyToOne]
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|Organization $organization = null,
+        // A draft series hides itself and every edition (IsSeriesPubliclyVisible) - publish() / unpublish()
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(options: ['default' => false])]
+        public bool $isDraft = false,
+        // "Who can enter" - shown by editions without their own
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(length: 120, nullable: true)]
+        public null|string $eligibility = null,
+        // "When it happens" ("Third Wednesday of the month, 6:45 pm") - free text, each date is still its own edition
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(length: 160, nullable: true)]
+        public null|string $schedule = null,
     ) {
         $this->locationCountryCode = self::normalizeCountryCode($locationCountryCode);
+    }
+
+    /**
+     * Moves the series into an organization (or out of it, null). The caller checks who may (AssignEventToOrganization)
+     * and runs OrganizationApprovalPolicy afterwards.
+     */
+    public function assignOrganization(null|Organization $organization): void
+    {
+        $this->organization = $organization;
+    }
+
+    public function publish(): void
+    {
+        $this->isDraft = false;
+    }
+
+    public function unpublish(): void
+    {
+        $this->isDraft = true;
+    }
+
+    /**
+     * The PHP mirror of IsSeriesPubliclyVisible::SQL_CONDITION (VisibilityParityTest keeps them equal)
+     */
+    public function isPubliclyVisible(): bool
+    {
+        return $this->approvedAt !== null && $this->rejectedAt === null && $this->isDraft === false;
+    }
+
+    public function changeEligibilityAndSchedule(null|string $eligibility, null|string $schedule): void
+    {
+        $this->eligibility = $eligibility;
+        $this->schedule = $schedule;
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void

@@ -192,6 +192,22 @@ class CompetitionRound implements EntityWithEvents
     }
 
     /**
+     * Moves the round to another one-time event or edition (MoveRoundToCompetition - the caller checks every refusal
+     * and that the slug is free in the target). The round keeps the wall-clock zone it is shown in now (P22), and both
+     * competitions' round results are reconciled after the flush (CompetitionRoundsChanged).
+     */
+    public function moveToCompetition(Competition $target, string $slug): void
+    {
+        $this->saveDisplayedTimezone();
+        $this->recordThat(new CompetitionRoundsChanged($this->competition->id));
+
+        $this->competition = $target;
+        $this->slug = $slug;
+
+        $this->recordThat(new CompetitionRoundsChanged($target->id));
+    }
+
+    /**
      * Shows the official results on the round page. Every publish records OfficialRoundResultsPublished: the players with
      * a finished result who were not told yet get a notification (each player once per round, ever - the notification
      * handler's marker decides, so a publish → unpublish → publish before the worker ran still tells everybody).

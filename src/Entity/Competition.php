@@ -11,14 +11,17 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\Table;
 use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
+use LogicException;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Exceptions\OrganizationOnEdition;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
@@ -107,8 +110,108 @@ class Competition
         public null|string $entryFeeText = null,
         #[Column(type: Types::TEXT, nullable: true)]
         public null|string $paymentInstructions = null,
+        // One-time events only (docs/features/organizations/README.md): an edition belongs to its series' organization
+        // and never has its own - assignOrganization()
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[ManyToOne]
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|Organization $organization = null,
+        // Only its team sees a draft (IsCompetitionPubliclyVisible) - publish() / unpublish()
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(options: ['default' => false])]
+        public bool $isDraft = false,
+        // "Who can enter" ("Residents of the state", "21+") - an edition without its own shows its series' -
+        // changeEligibility()
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(length: 120, nullable: true)]
+        public null|string $eligibility = null,
     ) {
+        if ($series !== null && $organization !== null) {
+            throw new OrganizationOnEdition();
+        }
+
         $this->locationCountryCode = self::normalizeCountryCode($locationCountryCode);
+    }
+
+    /**
+     * Moves a one-time event into an organization (or out of it, null). The caller checks who may
+     * (AssignEventToOrganization) and runs OrganizationApprovalPolicy afterwards.
+     *
+     * @throws OrganizationOnEdition
+     */
+    public function assignOrganization(null|Organization $organization): void
+    {
+        if ($organization !== null && $this->series !== null) {
+            throw new OrganizationOnEdition();
+        }
+
+        $this->organization = $organization;
+    }
+
+    public function publish(): void
+    {
+        $this->isDraft = false;
+    }
+
+    public function unpublish(): void
+    {
+        $this->isDraft = true;
+    }
+
+    /**
+     * Hidden as a draft: its own flag, or its series is a draft
+     */
+    public function isHiddenAsDraft(): bool
+    {
+        return $this->isDraft || ($this->series !== null && $this->series->isDraft);
+    }
+
+    /**
+     * The PHP mirror of IsCompetitionPubliclyVisible::SQL_CONDITION - for handlers deciding before the flush
+     * (VisibilityParityTest keeps them equal)
+     */
+    public function isPubliclyVisible(): bool
+    {
+        if ($this->rejectedAt !== null || $this->isDraft) {
+            return false;
+        }
+
+        if ($this->series === null) {
+            return $this->approvedAt !== null;
+        }
+
+        return $this->series->isPubliclyVisible();
+    }
+
+    public function changeEligibility(null|string $eligibility): void
+    {
+        $this->eligibility = $eligibility;
+    }
+
+    /**
+     * Moves an edition to another series (MoveEditionToSeries). The caller checks the slug is free in the target. A
+     * place equal to the old series' (copied when the edition was added) takes the target's; a place the organiser
+     * changed stays (docs/features/organizations/README.md, P21). Online follows the target series.
+     */
+    public function moveToSeries(CompetitionSeries $target, string $slug): void
+    {
+        $oldSeries = $this->series;
+
+        if ($oldSeries === null) {
+            throw new LogicException('Only an edition moves to another series.');
+        }
+
+        if ($this->location === $oldSeries->location) {
+            $this->location = $target->location;
+        }
+
+        if ($this->locationCountryCode === $oldSeries->locationCountryCode) {
+            $this->locationCountryCode = $target->locationCountryCode;
+        }
+
+        $this->series = $target;
+        $this->slug = $slug;
+        $this->isOnline = $target->isOnline;
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void

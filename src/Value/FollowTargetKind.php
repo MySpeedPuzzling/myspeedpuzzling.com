@@ -8,4 +8,5 @@ enum FollowTargetKind: string
 {
     case Competition = 'competition';
     case Series = 'series';
+    case Organization = 'organization';
 }

@@ -7,8 +7,9 @@ namespace SpeedPuzzling\Web\Value;
 use Ramsey\Uuid\Uuid;
 
 /**
- * What a star follows (docs/features/events-page/README.md, "Follow"): a one-time event or a whole series. Its string
- * form `competition:<uuid>` / `series:<uuid>` is what the follow forms post and the page marks stars with.
+ * What a star follows (docs/features/events-page/README.md, "Follow"): a one-time event, a whole series or an
+ * organization (docs/features/organizations/README.md, "Follow"). Its string form `competition:<uuid>` /
+ * `series:<uuid>` / `organization:<uuid>` is what the follow forms post and the page marks stars with.
  */
 readonly final class FollowTarget
 {
@@ -28,11 +29,16 @@ readonly final class FollowTarget
         return new self(FollowTargetKind::Series, strtolower($seriesId));
     }
 
+    public static function organization(string $organizationId): self
+    {
+        return new self(FollowTargetKind::Organization, strtolower($organizationId));
+    }
+
     public static function tryFromString(string $value): null|self
     {
         $value = strtolower(trim($value));
 
-        if (preg_match('/^(competition|series):(.+)$/', $value, $matches) !== 1) {
+        if (preg_match('/^(competition|series|organization):(.+)$/', $value, $matches) !== 1) {
             return null;
         }
 
@@ -51,5 +57,10 @@ readonly final class FollowTarget
     public function isSeries(): bool
     {
         return $this->kind === FollowTargetKind::Series;
+    }
+
+    public function isOrganization(): bool
+    {
+        return $this->kind === FollowTargetKind::Organization;
     }
 }

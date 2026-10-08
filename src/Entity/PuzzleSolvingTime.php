@@ -398,6 +398,16 @@ class PuzzleSolvingTime implements EntityWithEvents
     }
 
     /**
+     * Its round moved to another competition (MoveRoundToCompetition) - the round link stays, the time follows its round.
+     * Records no domain event: nothing about the time itself changed (the round results are reconciled through the
+     * round's CompetitionRoundsChanged).
+     */
+    public function competitionRoundMovedTo(Competition $competition): void
+    {
+        $this->competition = $competition;
+    }
+
+    /**
      * Only a solo time with seconds is ever predicted. Records no domain event on purpose: the backfill
      * writes ~450k of these, and PuzzleSolvingTimeModified would recalculate the insights for each one.
      */

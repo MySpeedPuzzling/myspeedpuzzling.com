@@ -42,7 +42,7 @@
 
                 {% if not is_publicly_visible %}
                     <div class="alert alert-info small" role="status">
-                        <i class="bi bi-info-circle me-1"></i>{{ 'competition_registration.settings.not_public'|trans }}
+                        <i class="bi bi-info-circle me-1"></i>{{ (is_draft|default(false) ? 'drafts.hint.registration' : 'competition_registration.settings.not_public')|trans }}
                     </div>
                 {% endif %}
 

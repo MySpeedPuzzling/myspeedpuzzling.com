@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,6 +35,12 @@ final class RoundStopwatchController extends AbstractController
     {
         $round = $this->competitionRoundRepository->get($roundId);
         $canManage = $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $round->competition->id->toString());
+
+        // The shared stopwatch names the event and the round - of a draft only for its team and admins
+        // (docs/features/organizations/README.md "Drafts")
+        if ($canManage === false && $round->competition->isHiddenAsDraft()) {
+            throw new DraftNotVisible();
+        }
 
         return $this->render('round_stopwatch.html.twig', [
             'round' => $round,

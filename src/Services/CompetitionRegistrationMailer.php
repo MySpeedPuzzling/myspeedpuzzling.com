@@ -18,7 +18,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The event's name, entry fee and payment instructions are typed by its organiser: the templates escape them, and
  * label the payment instructions as the organiser's - MySpeedPuzzling does not process payments. The fee and the
  * instructions go out only while the event manages registration and is not over - a waitlist promoted by switching
- * management off, or a status changed after the event, never asks anybody to pay.
+ * management off, or a status changed after the event, never asks anybody to pay. Nothing goes out while the event is a
+ * draft.
  */
 readonly final class CompetitionRegistrationMailer
 {
@@ -36,6 +37,12 @@ readonly final class CompetitionRegistrationMailer
         $player = $participant->player;
 
         if ($player === null) {
+            return;
+        }
+
+        // Nothing while the event is a draft (or an edition of a draft series): an organiser may prepare participants on
+        // it, and the e-mail would point at a page that answers 404 (docs/features/organizations/README.md, P18)
+        if ($participant->competition->isHiddenAsDraft()) {
             return;
         }
 

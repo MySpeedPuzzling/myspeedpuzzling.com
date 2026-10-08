@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -153,6 +154,36 @@ final class GetPuzzleSummaryTest extends KernelTestCase
         $this->tagPuzzle(TagFixture::TAG_ONLINE, PuzzleFixture::PUZZLE_1000_04);
 
         self::assertSame([], $this->query->forPuzzle(PuzzleFixture::PUZZLE_1000_04)->usedAt);
+    }
+
+    /**
+     * Drafts (docs/features/organizations/README.md "Drafts"): a draft series behind a tag, a draft event using the
+     * puzzle in a round - listed only once published
+     */
+    public function testDraftsAreLeftOut(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE competition_series SET tag_id = :tagId, is_draft = true WHERE id = :seriesId',
+            ['tagId' => TagFixture::TAG_ONLINE, 'seriesId' => CompetitionSeriesFixture::SERIES_OFFLINE],
+        );
+        $this->tagPuzzle(TagFixture::TAG_ONLINE, PuzzleFixture::PUZZLE_3000);
+
+        // PUZZLE_3000 is in the round of the draft Birchwood night - and in no other round
+        self::assertSame([], $this->query->forPuzzle(PuzzleFixture::PUZZLE_3000)->usedAt);
+
+        $this->database->executeStatement(
+            'UPDATE competition_series SET is_draft = false WHERE id = :seriesId',
+            ['seriesId' => CompetitionSeriesFixture::SERIES_OFFLINE],
+        );
+        $this->database->executeStatement(
+            'UPDATE competition SET is_draft = false WHERE id = :competitionId',
+            ['competitionId' => OrganizationFixture::COMPETITION_DRAFT_NIGHT],
+        );
+
+        self::assertSame(
+            [OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME, 'Puzzle Meetup Prague'],
+            $this->displayNames($this->query->forPuzzle(PuzzleFixture::PUZZLE_3000)->usedAt),
+        );
     }
 
     public function testEditionOfASeriesLinksToTheEditionPage(): void

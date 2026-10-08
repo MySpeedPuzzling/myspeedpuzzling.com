@@ -107,12 +107,17 @@ final class ManageCompetitionRegistrationController extends AbstractController
             }
         }
 
+        $isPubliclyVisible = $this->isCompetitionPubliclyVisible->check($competitionId);
+
         // A refused form answers 422 (render() sets it when handed the form itself)
         return $this->render('manage_competition_registration.html.twig', [
             'competition' => $competition,
             'form' => $form,
             'counts' => $this->countCompetitionRegistrations->of($competitionId),
-            'is_publicly_visible' => $this->isCompetitionPubliclyVisible->check($competitionId),
+            'is_publicly_visible' => $isPubliclyVisible,
+            // A draft (or an edition of a draft series) says so instead of the approval wording
+            // (docs/features/organizations/README.md "Drafts") - asked only of an event that is not public
+            'is_draft' => $isPubliclyVisible === false && $this->competitionRepository->get($competitionId)->isHiddenAsDraft(),
         ]);
     }
 

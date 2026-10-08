@@ -35,6 +35,13 @@ final class SitemapEventsController extends AbstractController
             ]));
         }
 
+        // Publicly visible organizations (docs/features/organizations/README.md "Organization page") - never a draft
+        foreach ($this->getCompetitionSlugsForSitemap->organizationSlugs() as $slug) {
+            array_push($entries, ...$this->localizedEntries('organization_detail', [
+                'slug' => $slug,
+            ]));
+        }
+
         foreach ($this->getCompetitionSlugsForSitemap->editionSlugPairs() as $edition) {
             array_push($entries, ...$this->localizedEntries('edition_detail', [
                 'seriesSlug' => $edition['series_slug'],

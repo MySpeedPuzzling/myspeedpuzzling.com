@@ -1,1 +1,51 @@
 // The draft banner and draft marks (owner: workstream B, docs/features/organizations/README.md "Drafts")
+
+// The banner: the first thing inside .ev-detail, rendered for the team only (everybody else gets 404). Amber like
+// "Waiting for approval" - the page is not public; the text keeps 4.5:1 on the wash.
+.ev-draft-banner {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    margin: 0 0 1rem;
+    padding: .625rem .75rem .625rem 1rem;
+    border: 1px solid rgba($ev-amber-ink, .25);
+    border-radius: 12px;
+    background: $ev-amber-soft;
+    color: $ev-amber-ink;
+}
+
+.ev-draft-banner-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+}
+
+.ev-draft-banner-text {
+    display: flex;
+    flex: 1 1 16rem;
+    gap: .5rem;
+    align-items: baseline;
+    margin: 0;
+    font-weight: 500;
+}
+
+.ev-draft-banner-form {
+    flex: none;
+    margin: 0;
+}
+
+// 44 px to hit
+.ev-draft-banner-button {
+    min-height: 44px;
+    padding-inline: 1.25rem;
+    white-space: nowrap;
+}
+
+// The "Draft" tag of agenda rows and cards (the team's preview, P6)
+.ev-tag-draft {
+    background: $ev-amber-soft;
+    color: $ev-amber-ink;
+    box-shadow: inset 0 0 0 1px rgba($ev-amber-ink, .35);
+}

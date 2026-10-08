@@ -3,7 +3,8 @@
 {# Page editor of an event, edition or series (docs/features/competitions-management/public-page.md). Expects: owner
    (Value\PageSectionOwner), owner_name, back_url, view_url, sections (list<Results\PageSection>, an edition's inherited
    series sections last), section_types (what can be added), series_editor_url, publicly_visible (the page shows the
-   sections only once the event/series is approved), section_limit_reached #}
+   sections only once the event/series is approved and published), is_draft (a draft: the draft hint instead of the
+   approval one), section_limit_reached #}
 
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
@@ -33,7 +34,9 @@
 
         {% if not publicly_visible %}
             <div class="alert alert-warning small py-2" role="status" data-page-sections-not-public>
-                <i class="bi bi-eye-slash me-1" aria-hidden="true"></i>{{ (owner.isSeries ? 'page_sections.not_public_yet_series' : 'page_sections.not_public_yet')|trans }}
+                <i class="bi bi-eye-slash me-1" aria-hidden="true"></i>{{ (is_draft|default(false)
+                    ? (owner.isSeries ? 'drafts.hint.page_sections_series' : 'drafts.hint.page_sections')
+                    : (owner.isSeries ? 'page_sections.not_public_yet_series' : 'page_sections.not_public_yet'))|trans }}
             </div>
         {% endif %}
 

@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,6 +30,7 @@ final class LeaveCompetitionController extends AbstractController
 
     public function __construct(
         private readonly GetCompetitionEvents $getCompetitionEvents,
+        private readonly CompetitionRepository $competitionRepository,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
@@ -51,6 +54,12 @@ final class LeaveCompetitionController extends AbstractController
     {
         // Also the 404 of an unknown competition. For an edition its own page, never event_detail with its slug
         $competitionUrl = $this->competitionDetailUrl->of($competitionId);
+
+        // A draft's URL is its team's (docs/features/organizations/README.md "Drafts") - anybody else goes to the events page
+        if ($this->competitionRepository->get($competitionId)->isHiddenAsDraft() && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false) {
+            $competitionUrl = $this->generateUrl('events');
+        }
+
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
         // A registration (possibly paid) is cancelled only through the card's confirmation, never by a bare POST

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Query\GetLiveResultsEntrant;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
@@ -33,6 +34,7 @@ final class LiveResultsScanController extends AbstractController
         private readonly GetLiveResultsEntrant $getLiveResultsEntrant,
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
+        private readonly CompetitionRepository $competitionRepository,
         private readonly ClockInterface $clock,
         private readonly TranslatorInterface $translator,
     ) {
@@ -80,7 +82,11 @@ final class LiveResultsScanController extends AbstractController
             }
 
             try {
-                $response = $this->redirect($this->competitionDetailUrl->of($competitionId));
+                // A draft's URL is its team's (docs/features/organizations/README.md "Drafts") - a tag of one scanned by
+                // anybody else leads to the events page, like a tag of an unknown event
+                $response = $this->competitionRepository->get($competitionId)->isHiddenAsDraft() && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false
+                    ? $this->redirectToRoute('events')
+                    : $this->redirect($this->competitionDetailUrl->of($competitionId));
             } catch (CompetitionNotFound) {
                 $response = $this->redirectToRoute('events');
             }

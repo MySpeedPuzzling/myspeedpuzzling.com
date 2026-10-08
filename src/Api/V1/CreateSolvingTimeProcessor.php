@@ -9,12 +9,14 @@ use ApiPlatform\State\ProcessorInterface;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeIdReused;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
@@ -44,6 +46,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         private GetSolvingTimePrediction $getSolvingTimePrediction,
         private RequestStack $requestStack,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
+        private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
     ) {
     }
 
@@ -67,10 +70,16 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         $timeId = $this->timeId($playerId);
 
         // Validate the optional round here so an invalid/unknown id surfaces as 404
-        // (CompetitionRoundNotFound is a NotFoundHttpException). The handler re-resolves
-        // the round to wire it onto the entity.
+        // (CompetitionRoundNotFound is a NotFoundHttpException) - a round of an event that is not
+        // publicly visible (a draft, waiting for approval, rejected) too: for the API it does not
+        // exist. The handler re-resolves the round to wire it onto the entity, and refuses the same
+        // (its 404 reaches the client unwrapped - UnwrapHttpExceptionMiddleware).
         if ($data->roundId !== null) {
-            $this->competitionRoundRepository->get($data->roundId);
+            $round = $this->competitionRoundRepository->get($data->roundId);
+
+            if ($this->isCompetitionPubliclyVisible->check($round->competition->id->toString()) === false) {
+                throw new CompetitionRoundNotFound();
+            }
         }
 
         $finishedAt = $data->finishedAt !== null ? new DateTimeImmutable($data->finishedAt) : null;

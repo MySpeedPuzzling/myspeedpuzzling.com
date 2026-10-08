@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetCompetitionSlugsForSitemap;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SitemapEventsControllerTest extends WebTestCase
@@ -59,6 +60,49 @@ final class SitemapEventsControllerTest extends WebTestCase
         self::assertStringNotContainsString('/berlin-puzzle-cup', $content);
         self::assertStringNotContainsString('/ejj-69-may-2026</loc>', $content);
         self::assertStringContainsString('/en/series/euro-jigsaw-jam-series/ejj-68-february-2026</loc>', $content);
+    }
+
+    /**
+     * Organizations (docs/features/organizations/README.md): publicly visible ones in every locale; a draft, one waiting
+     * for approval or a rejected one never
+     */
+    public function testListsPublicOrganizationsOnly(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/sitemap-events.xml');
+
+        $this->assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('/organizace/' . OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG . '</loc>', $content);
+        self::assertStringContainsString('/en/organizations/' . OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG . '</loc>', $content);
+        self::assertStringContainsString('/de/organisationen/' . OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG . '</loc>', $content);
+        self::assertStringNotContainsString(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_SLUG, $content);
+        self::assertStringNotContainsString(OrganizationFixture::ORGANIZATION_MAPLE_PENDING_SLUG, $content);
+        self::assertStringNotContainsString(OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT_SLUG, $content);
+    }
+
+    /**
+     * Drafts (docs/features/organizations/README.md "Drafts"): no draft one-time event, draft edition, draft series or
+     * edition of one - their published neighbours stay
+     */
+    public function testLeavesOutDrafts(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/sitemap-events.xml');
+
+        $this->assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG, $content);
+        self::assertStringNotContainsString(OrganizationFixture::EDITION_LANTERN_DRAFT_SLUG, $content);
+        self::assertStringNotContainsString(OrganizationFixture::SERIES_QUIET_PINES_DRAFT_SLUG, $content);
+        self::assertStringNotContainsString('old-harbor-draft-classic', $content);
+        self::assertStringContainsString('/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG . '</loc>', $content);
+        self::assertStringContainsString('/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG . '/lantern-night-one</loc>', $content);
+        self::assertStringContainsString('/en/events/' . OrganizationFixture::COMPETITION_RIVERBEND_OPEN_SLUG . '</loc>', $content);
+        // A draft organization hides only itself
+        self::assertStringContainsString('/en/series/' . OrganizationFixture::SERIES_HARBOR_CLUB_MEETS_SLUG . '</loc>', $content);
     }
 
     public function testListsTheArchiveYearsInEveryLocale(): void

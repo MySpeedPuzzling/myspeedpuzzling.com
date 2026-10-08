@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Entity\PuzzlingTeamMember;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 
@@ -64,6 +65,25 @@ readonly final class PuzzleSolvingTimeRepository
         }
 
         return $byId;
+    }
+
+    /**
+     * Results of the pairs/teams with a guest written as several people ("Anna, Ben, Clara") - see SplitCombinedGuests
+     *
+     * @return list<PuzzleSolvingTime>
+     */
+    public function findWithCombinedGuest(): array
+    {
+        /** @var list<PuzzleSolvingTime> $times */
+        $times = $this->entityManager->createQueryBuilder()
+            ->select('time')
+            ->from(PuzzleSolvingTime::class, 'time')
+            ->where('time.puzzlingTeam IN (SELECT IDENTITY(guest.team) FROM ' . PuzzlingTeamMember::class . " guest WHERE guest.player IS NULL AND guest.guestName LIKE '%,%')")
+            ->orderBy('time.id')
+            ->getQuery()
+            ->getResult();
+
+        return $times;
     }
 
     public function save(PuzzleSolvingTime $solvingTime): void

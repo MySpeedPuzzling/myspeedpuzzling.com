@@ -528,6 +528,16 @@ class PuzzleSolvingTime implements EntityWithEvents
         }
     }
 
+    /**
+     * The same people written down properly - a guest typed as "Anna, Ben, Clara" is three guests
+     * (SplitCombinedGuests). Nobody edited the result, so nothing is recorded.
+     */
+    public function correctGroup(PuzzlersGroup $group, PuzzlingTeam $puzzlingTeam): void
+    {
+        $this->replaceTeam($group);
+        $this->puzzlingTeam = $puzzlingTeam;
+    }
+
     private function forgetPrediction(): void
     {
         $this->predictable = null;

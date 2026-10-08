@@ -34,6 +34,11 @@
          trackedIt: 'copuzzler_picker.tracked_it'|trans,
          guest: 'copuzzler_picker.guest'|trans,
          addGuest: 'copuzzler_picker.add_guest'|trans,
+         addSeveral: 'copuzzler_picker.add_several'|trans,
+         pendingText: 'copuzzler_picker.pending.text'|trans,
+         pendingAddOne: 'copuzzler_picker.pending.add_one'|trans,
+         pendingAddSeveral: 'copuzzler_picker.pending.add_several'|trans,
+         nobodyAdded: 'copuzzler_picker.pending.nobody'|trans,
          remove: 'copuzzler_picker.remove'|trans,
          whichOne: 'copuzzler_picker.which_one'|trans,
          whoWith: 'copuzzler_picker.who_with'|trans,
@@ -95,6 +100,15 @@
                 <label class="copuzzler-section__label d-block" for="copuzzler-search-input-ts-control">{{ 'copuzzler_picker.search_label'|trans }}</label>
                 <select id="copuzzler-search-input" data-copuzzler-picker-target="search" autocomplete="off"></select>
                 <div class="form-text">{{ 'copuzzler_picker.search_help'|trans }}</div>
+            </div>
+
+            {# Shown when a submit was stopped: a name typed but not added, or nobody picked (the controller's guardSubmit) #}
+            <div class="alert alert-warning py-2 px-3 mt-2 mb-0" data-copuzzler-picker-target="pending" role="alert" tabindex="-1" hidden>
+                <div data-copuzzler-picker-target="pendingText"></div>
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
+                    <button type="button" class="btn btn-sm btn-primary" data-copuzzler-picker-target="pendingAdd" data-action="copuzzler-picker#addPending"></button>
+                    <button type="button" class="btn btn-link btn-sm p-0" data-copuzzler-picker-target="pendingDiscard" data-action="copuzzler-picker#discardPending">{{ 'copuzzler_picker.pending.discard'|trans }}</button>
+                </div>
             </div>
 
             <div class="copuzzler-name mt-3" data-copuzzler-picker-target="nameRow" hidden>

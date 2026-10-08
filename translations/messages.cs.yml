@@ -5656,6 +5656,13 @@ favorite_puzzlers:
   "name_label": "Název"
   "name_help": "Viditelný pro všechny u vašich výsledků. Kterýkoli člen ho může později změnit."
   "leaving_time": "Už nebudete součástí tohoto času."
+  "add_several": "Přidat všechny (%count%): %names%"
+  "pending":
+    "text": "„%text%“ zatím není přidané - přidejte to a pak znovu uložte."
+    "add_one": "Přidat „%name%“"
+    "add_several": "Přidat všechny (%count%)"
+    "discard": "Smazat text"
+    "nobody": "Přidejte, s kým jste skládali, nebo přepněte na Solo."
 
 "pairs_and_teams":
   "title": "Dvojice a týmy"

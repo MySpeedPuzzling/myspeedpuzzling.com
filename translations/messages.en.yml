@@ -6212,6 +6212,13 @@ copuzzler_picker:
     name_label: "Name"
     name_help: "Visible to everyone next to your results. Any member can change it later."
     leaving_time: "You will no longer be part of this time."
+    add_several: "Add %count% people: %names%"
+    pending:
+        text: "“%text%” is not added yet - add it, then save again."
+        add_one: "Add “%name%”"
+        add_several: "Add all %count%"
+        discard: "Clear the text"
+        nobody: "Add who you puzzled with, or switch to Solo."
 
 pairs_and_teams:
     title: "Pairs & teams"

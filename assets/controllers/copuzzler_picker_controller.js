@@ -10,12 +10,17 @@ import { Controller } from '@hotwired/stimulus';
  *    brings the group back. They are never disabled.
  *  - The mode is always switchable and switching never destroys anything: every mode keeps its own
  *    stash, the inputs mirror the active one.
+ *  - One person per chip: "Anna, Ben, Clara" typed into the search are three people (the server splits
+ *    the same way - PuzzlersGrouping::splitInputs()).
+ *  - The one exception to "never notices the form": a submit is stopped while a name sits typed in the search
+ *    but not added, or Pair/Team holds nobody - either would save a solo time without a word.
  */
 export default class extends Controller {
     static targets = [
         'modeButton', 'card', 'summary', 'summaryText', 'body', 'chips', 'identity', 'notice',
         'teamsSection', 'teamsLabel', 'teams', 'peopleSection', 'peopleLabel', 'people',
         'search', 'nameRow', 'nameToggle', 'nameField', 'nameInput', 'doneButton', 'inputs', 'initial',
+        'pending', 'pendingText', 'pendingAdd', 'pendingDiscard',
     ];
 
     static values = {
@@ -50,6 +55,10 @@ export default class extends Controller {
         this.recentlyRemoved = [];
         this.collapsed = chips.length > 0;
         this.nameOpen = this.nameInputTarget.value.trim() !== '';
+        // Why the last submit was stopped: { typed: "Anna, Ben" } or { nobody: true }
+        this.blocked = null;
+        // What sits typed in the search - TomSelect empties the box itself once it loses focus, i.e. on tapping Save
+        this.typed = '';
 
         chips.forEach(person => this.known.set(person.key, person));
 
@@ -62,10 +71,17 @@ export default class extends Controller {
         // Without a solo option (preparing a pair/team ahead) a pick must not fold the card away
         this.neverCollapse = this.defaultModeValue !== 'solo';
 
+        this.form = this.element.closest('form');
+        this.submitGuard = event => this.guardSubmit(event);
+        // Capture: before the form's other submit handlers (pace check, first try, Turbo) see it
+        this.form?.addEventListener('submit', this.submitGuard, { capture: true });
+
         this.render();
     }
 
     disconnect() {
+        this.form?.removeEventListener('submit', this.submitGuard, { capture: true });
+
         if (this.tomSelect) {
             this.tomSelect.destroy();
             this.tomSelect = null;
@@ -100,6 +116,32 @@ export default class extends Controller {
             country: null,
             avatar: null,
         };
+    }
+
+    /**
+     * The people typed into the search: one per comma-separated part, a #code is that player, anything else
+     * a guest - or, with matchKnown, the player of exactly that name the picker already knows.
+     */
+    typedPeople(input, matchKnown = false) {
+        const people = [];
+
+        input.split(',').map(part => part.trim()).filter(part => part !== '').forEach(part => {
+            const known = matchKnown && !part.startsWith('#') ? this.knownByLabel(part) : null;
+            const person = known || this.personFromValue(part.startsWith('#') ? part : part.replace(/^#+/, '').trim());
+
+            if (!people.some(other => other.key === person.key)) {
+                people.push(person);
+            }
+        });
+
+        return people;
+    }
+
+    knownByLabel(label) {
+        const wanted = label.toLowerCase();
+        const candidates = [...this.known.values(), ...Object.values(this.tomSelect?.options || {}).filter(option => !option.created)];
+
+        return candidates.find(person => !person.guest && person.label && person.label.toLowerCase() === wanted) || null;
     }
 
     /** Same normalisation as TeamComposition::guestMemberKey() - good enough to match suggestions. */
@@ -156,6 +198,9 @@ export default class extends Controller {
         if (this.mode !== 'solo') {
             this.names[this.mode] = this.nameInputTarget.value;
         }
+
+        this.blocked = null;
+        this.typed = '';
 
         // Going from a pair to a team keeps the partner - unless a team was already put together
         if (this.mode === 'pair' && mode === 'team' && this.stash.team.length === 0) {
@@ -246,6 +291,12 @@ export default class extends Controller {
         this.known.set(person.key, person);
         this.recentlyRemoved = this.recentlyRemoved.filter(key => key !== person.key);
         this.lastMultiAdd = null;
+        this.blocked = null;
+
+        // "Sar" typed, then Sarah tapped among the people offered: nothing is left unadded
+        if (this.typed.trim() !== '' && person.label.toLowerCase().startsWith(this.typed.trim().toLowerCase())) {
+            this.typed = '';
+        }
 
         if (this.mode === 'pair') {
             this.stash.pair = [person];
@@ -258,6 +309,38 @@ export default class extends Controller {
             this.stash.team = [...this.stash.team, person];
         }
 
+        this.render();
+    }
+
+    /** Several people at once ("Anna, Ben, Clara"): more than one is a team. */
+    addPeople(people) {
+        const fresh = people.filter(person => !(this.tracker !== null && person.key === this.tracker.key));
+
+        if (fresh.length <= 1) {
+            fresh.forEach(person => this.addPerson(person));
+
+            return;
+        }
+
+        if (this.mode !== 'team') {
+            this.setMode('team');
+        }
+
+        const added = [];
+
+        fresh.forEach(person => {
+            if (this.isSelected(person.key) || this.stash.team.length >= this.maxValue) {
+                return;
+            }
+
+            this.known.set(person.key, person);
+            this.stash.team = [...this.stash.team, person];
+            added.push(person.key);
+        });
+
+        this.recentlyRemoved = this.recentlyRemoved.filter(key => !added.includes(key));
+        this.lastMultiAdd = added.length > 1 ? added : null;
+        this.blocked = null;
         this.render();
     }
 
@@ -275,6 +358,7 @@ export default class extends Controller {
         this.stash[this.mode] = this.selection.filter(person => person.key !== key);
         this.recentlyRemoved = [key, ...this.recentlyRemoved.filter(removed => removed !== key)];
         this.lastMultiAdd = null;
+        this.blocked = null;
         this.collapsed = false;
         this.render();
     }
@@ -339,6 +423,80 @@ export default class extends Controller {
 
     swallowEnter(event) {
         event.preventDefault();
+    }
+
+    // --- a submit that would lose people ------------------------------------------------------
+
+    guardSubmit(event) {
+        if (this.mode === 'solo') {
+            return;
+        }
+
+        const typed = this.typed.trim();
+
+        if (typed !== '') {
+            this.blocked = { typed };
+        } else if (this.selection.length === 0 && this.tracker === null) {
+            this.blocked = { nobody: true };
+        } else {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        this.collapsed = false;
+        this.render();
+        this.pendingTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        (this.blocked.typed ? this.pendingAddTarget : this.pendingTarget).focus({ preventScroll: true });
+    }
+
+    addPending() {
+        const typed = this.blocked?.typed;
+
+        if (!typed) {
+            return;
+        }
+
+        this.typed = '';
+        this.tomSelect?.setTextboxValue('');
+        this.tomSelect?.close();
+        this.addPeople(this.typedPeople(typed, true));
+    }
+
+    discardPending() {
+        this.typed = '';
+        this.tomSelect?.setTextboxValue('');
+        this.tomSelect?.close();
+        this.blocked = null;
+        this.render();
+    }
+
+    renderPending() {
+        const texts = this.textsValue;
+        const blocked = this.mode === 'solo' ? null : this.blocked;
+
+        this.pendingTarget.hidden = blocked === null;
+
+        if (blocked === null) {
+            return;
+        }
+
+        if (blocked.nobody) {
+            this.pendingTextTarget.textContent = texts.nobodyAdded;
+            this.pendingAddTarget.hidden = true;
+            this.pendingDiscardTarget.hidden = true;
+
+            return;
+        }
+
+        const people = this.typedPeople(blocked.typed, true);
+        this.pendingTextTarget.textContent = texts.pendingText.replace('%text%', blocked.typed);
+        this.pendingAddTarget.hidden = people.length === 0;
+        this.pendingAddTarget.textContent = people.length > 1
+            ? texts.pendingAddSeveral.replace('%count%', String(people.length))
+            : texts.pendingAddOne.replace('%name%', people[0]?.label || blocked.typed);
+        this.pendingDiscardTarget.hidden = false;
     }
 
     // --- what the selection is -----------------------------------------------------------------
@@ -413,6 +571,7 @@ export default class extends Controller {
         this.renderSwitch();
 
         this.renderNotice();
+        this.renderPending();
 
         const open = this.mode !== 'solo';
         this.cardTarget.hidden = !open;
@@ -852,11 +1011,16 @@ export default class extends Controller {
                 loadThrottle: 250,
                 shouldLoad: query => query.trim().length >= 2,
                 create: input => {
-                    const name = input.replace(/^#+/, '').trim();
+                    const people = this.typedPeople(input);
 
-                    return { ...this.personFromValue(input.trim().startsWith('#') ? input.trim() : name), created: true };
+                    // "Anna, Ben, Clara": one option adding all three (onItemAdd)
+                    if (people.length > 1) {
+                        return { key: `several:${input}`, label: input, several: this.typedPeople(input, true), created: true };
+                    }
+
+                    return { ...people[0], created: true };
                 },
-                createFilter: input => input.trim().length > 0 && !this.isSelected(this.guestKey(input)),
+                createFilter: input => this.typedPeople(input).some(person => !this.isSelected(person.key)),
                 load: (query, callback) => {
                     const url = new URL(this.searchUrlValue, window.location.origin);
                     url.searchParams.set('query', query.trim());
@@ -871,21 +1035,35 @@ export default class extends Controller {
                 render: {
                     option: person => `<div class="d-flex align-items-center">${this.avatarElement(person).outerHTML}<span>${escapeHtml(person.label)}</span>${person.code && person.label !== `#${person.code}` ? `<small class="text-muted ms-1">#${escapeHtml(person.code)}</small>` : ''}${person.guest ? `<small class="text-muted ms-1">${escapeHtml(texts.guest)}</small>` : ''}</div>`,
                     item: person => `<div>${escapeHtml(person.label)}</div>`,
-                    option_create: data => `<div class="create">${escapeHtml(texts.addGuest.replace('%name%', data.input))}</div>`,
+                    option_create: data => {
+                        const people = this.typedPeople(data.input);
+                        const text = people.length > 1
+                            ? texts.addSeveral.replace('%count%', String(people.length)).replace('%names%', people.map(person => person.label).join(', '))
+                            : texts.addGuest.replace('%name%', people[0]?.label || data.input);
+
+                        return `<div class="create">${escapeHtml(text)}</div>`;
+                    },
                     no_results: () => `<div class="no-results">${escapeHtml(texts.noResults)}</div>`,
                 },
                 onItemAdd: key => {
                     const person = this.tomSelect.options[key];
 
-                    if (person) {
+                    if (person?.several) {
+                        this.addPeople(person.several);
+                    } else if (person) {
                         const { created, suggested, $order, $score, ...clean } = person;
                         this.addPerson(clean);
                     }
 
+                    this.typed = '';
                     this.tomSelect.clear(true);
                     this.tomSelect.clearOptions();
                     this.refreshSearchOptions();
                 },
+            });
+
+            this.tomSelect.on('type', text => {
+                this.typed = text;
             });
 
             // Enter must never submit the form. With something typed it picks the highlighted option

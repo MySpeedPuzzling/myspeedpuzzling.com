@@ -26,6 +26,8 @@ readonly final class PuzzlersGrouping
      */
     public function assembleGroup(Player $player, array $teamPlayers): null|PuzzlersGroup
     {
+        $teamPlayers = self::splitInputs($teamPlayers);
+
         if (count($teamPlayers) === 0) {
             return null;
         }
@@ -69,7 +71,7 @@ readonly final class PuzzlersGrouping
     {
         $ids = [];
 
-        foreach (array_unique($teamPlayers) as $playerCodeOrName) {
+        foreach (array_unique(self::splitInputs($teamPlayers)) as $playerCodeOrName) {
             $puzzler = $this->getPuzzlerFromUserInput($playerCodeOrName);
 
             if ($puzzler->playerId !== null) {
@@ -78,6 +80,35 @@ readonly final class PuzzlersGrouping
         }
 
         return array_values(array_unique($ids));
+    }
+
+    /**
+     * One co-puzzler input holds one person - "Anna, Ben, Clara" typed into the guest box are three guests,
+     * never one guest of that name (a pair saved instead of a team of four). Every reader of the inputs splits
+     * the same way: the group, the first-try rules and the pace check's head count.
+     *
+     * @param array<mixed> $teamPlayers
+     * @return list<string>
+     */
+    public static function splitInputs(array $teamPlayers): array
+    {
+        $inputs = [];
+
+        foreach ($teamPlayers as $input) {
+            if (is_string($input) === false) {
+                continue;
+            }
+
+            foreach (explode(',', $input) as $part) {
+                $part = trim($part);
+
+                if ($part !== '') {
+                    $inputs[] = $part;
+                }
+            }
+        }
+
+        return $inputs;
     }
 
     private function getPuzzlerFromUserInput(string $playerCodeOrName): Puzzler

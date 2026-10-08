@@ -53,6 +53,9 @@ readonly final class CoPuzzlerPicker
             return ['chips' => [], 'tracker' => null, 'viewerKey' => null];
         }
 
+        // One chip per person, exactly as the group is saved
+        $groupPlayers = PuzzlersGrouping::splitInputs($groupPlayers);
+
         return [
             'chips' => $groupPlayers === [] ? [] : $this->getCoPuzzlerChips->forGroupPlayers($groupPlayers),
             'tracker' => $trackerPlayerId === null ? null : $this->getCoPuzzlerChips->forPlayerId($trackerPlayerId),

@@ -5649,6 +5649,13 @@ favorite_puzzlers:
   "name_label": "名前"
   "name_help": "結果の横に表示され、誰でも見ることができます。メンバーなら誰でも後から変更できます。"
   "leaving_time": "あなたはこのタイムのメンバーではなくなります。"
+  "add_several": "%count%人を追加: %names%"
+  "pending":
+    "text": "「%text%」はまだ追加されていません。追加してから、もう一度保存してください。"
+    "add_one": "「%name%」を追加"
+    "add_several": "%count%人すべて追加"
+    "discard": "入力を消去"
+    "nobody": "一緒に組んだ人を追加するか、ソロに切り替えてください。"
 
 "pairs_and_teams":
   "title": "ペアとチーム"

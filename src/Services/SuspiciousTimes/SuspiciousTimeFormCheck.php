@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
+use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\PaceFormCheck;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SolveMoment;
@@ -174,11 +175,7 @@ readonly final class SuspiciousTimeFormCheck
         $trackerCode = $trackerCode !== null ? mb_strtolower(trim($trackerCode, "\# \t\n\r\0")) : null;
         $others = [];
 
-        foreach ($groupPlayers as $input) {
-            if (is_string($input) === false) {
-                continue;
-            }
-
+        foreach (PuzzlersGrouping::splitInputs($groupPlayers) as $input) {
             $registered = str_starts_with($input, '#');
             $name = mb_strtolower(trim($input, "\# \t\n\r\0"));
 

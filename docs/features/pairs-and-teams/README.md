@@ -128,6 +128,23 @@ After the first pick the team row narrows to teams containing *everyone selected
 - Chips rebuild from the hidden inputs on `connect()` → 422 re-render, browser back and bfcache restore the
   group. Inputs are never `disabled` (the TomSelect restore race, fixed c6054122).
 
+### One input = one person; nothing typed is lost (2026-10-08)
+
+A player typed "Anna, Ben, Clara" and added it as one guest: the result was saved as a *pair* with a guest of
+that name. Before that, she typed the names, tapped Save without adding them, and the time stayed solo without a
+word - TomSelect empties its box when it loses focus, and the server never sees the mode, only the chips.
+
+- **Commas split people everywhere.** `PuzzlersGrouping::splitInputs()` is the one reading of the co-puzzler
+  inputs on the server (the group, the first-try rules, the pace check's head count, the picker's chips on a
+  re-render); the picker splits the same way (`typedPeople()`): the search offers "Add 3 people: Anna, Ben,
+  Clara", several people in Pair mode switch to Team, Undo removes them again.
+- **A submit is stopped** (`guardSubmit()`, a capture listener on the surrounding form - the one place the picker
+  touches the form) while text typed into the search was not added (remembered from TomSelect's `type` event, since
+  the box is already empty by the time Save is tapped), or Pair/Team holds nobody. The card shows the typed text
+  with "Add …" (a part matching a known player's name is that player) and "Clear the text"; the player saves again.
+- Guests saved combined before this: `myspeedpuzzling:split-combined-guests` (dry run unless `--write`) moves their
+  results to the pair/team they really are; the emptied team goes with `cleanup-empty-puzzling-teams`.
+
 ### Always switchable (D8)
 
 Each mode keeps an in-memory stash (pair partner · team selection · typed name); the hidden inputs mirror the

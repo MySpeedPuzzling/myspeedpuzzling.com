@@ -5659,6 +5659,13 @@ favorite_puzzlers:
   "name_label": "Nombre"
   "name_help": "Visible para todos junto a tus resultados. Cualquier miembro puede cambiarlo más adelante."
   "leaving_time": "Dejarás de formar parte de este tiempo."
+  "add_several": "Añadir a los %count%: %names%"
+  "pending":
+    "text": "«%text%» aún no está añadido: añádelo y vuelve a guardar."
+    "add_one": "Añadir a «%name%»"
+    "add_several": "Añadir a los %count%"
+    "discard": "Borrar el texto"
+    "nobody": "Añade con quién hiciste el puzzle o cambia a Solo."
 
 "pairs_and_teams":
   "title": "Parejas y equipos"

@@ -30,7 +30,7 @@ If `$TOKEN` is empty, stop and tell the user — the API is closed-by-default an
 
 ## Endpoints
 
-All endpoints are `POST`, return `204 No Content` on success, accept optional JSON body with `{ "githubUrl": "...", "adminComment": "..." }` — both fields optional, both strings.
+The feature-request endpoints are `POST`, return `204 No Content` on success, accept optional JSON body with `{ "githubUrl": "...", "adminComment": "..." }` — both fields optional, both strings.
 
 | Path | Purpose |
 |---|---|
@@ -40,6 +40,17 @@ All endpoints are `POST`, return `204 No Content` on success, accept optional JS
 | `/internal-api/puzzle-change-requests` | File a change proposal - see the `puzzle-change-proposal` skill |
 | `/internal-api/puzzle-change-requests/{id}/reject` | Reject a "suggest a change" proposal - body `{"rejectionReason": "..."}` (required, shown to the player) |
 | `/internal-api/puzzle-change-requests/{id}/approve` | Approve a proposal - body `{"selectedFields": [...]}` (required; `[]` = apply nothing), optional `decisionNote` and `recordVersion` (the puzzle as you read it); `409` once reviewed or when the puzzle changed since `recordVersion` |
+
+Time verification, by **solving time id** (the id in `/en/result/{timeId}`); each answers the time's verification
+state as JSON (`200`), credited to `INTERNAL_API_REVIEWER_PLAYER_ID`:
+
+| Path | Purpose |
+|---|---|
+| `GET /internal-api/solving-times/{id}/verification` | Flag, case, reasons shown, who was told |
+| `POST /internal-api/solving-times/{id}/mark-suspicious` | "Needs verification" - optional `note` (**the player reads it**), `reasonCodes`, `toldByHand: true` when we e-mail the player ourselves (the app then never tells them); `409` when already marked |
+| `POST /internal-api/solving-times/{id}/unmark-suspicious` | "Looks fine" - unmark (counts again, their reply answered) or trust a pending case; optional `note` (the player reads it); `409` when nothing to unmark |
+
+Use these instead of SQL on `puzzle_solving_time.suspicious` - SQL skips the decision log and the player's answer.
 
 Puzzle merge-request and brand endpoints: see `docs/features/internal-api.md`. A merge approve sends every candidate's
 `recordVersion` from `GET /internal-api/puzzle-merge-requests` (read right before) as `recordVersions` - a puzzle saved
@@ -69,7 +80,8 @@ Body fields are **all optional** — send `-d '{}'` or drop the body+header enti
 
 | Status | Meaning | What to do |
 |---|---|---|
-| `204` | Success | Stop, confirm to user. Body is empty. |
+| `204` / `200` | Success | Stop, confirm to user. `204` has no body; `200` answers JSON. |
+| `409` | Refused (already done / nothing to do) | Read the `error`, nothing changed. |
 | `400` | Body present but not valid JSON | Check your `-d '...'` payload. |
 | `401` | Token missing / wrong / `INTERNAL_API_TOKEN` unset on server | Stop. Don't retry. Tell user to check the env var on the target server. |
 | `404` | Unknown UUID | Stop. Verify the UUID on the feature request page. |

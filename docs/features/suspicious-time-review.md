@@ -310,6 +310,14 @@ same lock before they write to a case, so nobody writes over a decision taken me
 ids 1.2-2 ms, the 30 cards of a page 10-24 ms ("Too fast" - the place counted) and 5-6 ms ("Too slow"); the whole request
 with rendering 27-41 ms (Numbers 7 ms, Decision log 7 ms).
 
+**Internal API** (`docs/features/internal-api.md`, "Time verification"): `mark-suspicious` / `unmark-suspicious` by
+solving time id do what "Needs verification" / "Looks fine" do, without the card - for decisions taken outside the
+queue (a player's e-mail answer, outreach). `MarkSolvingTimeSuspiciousDirectly` marks any time (a time without a
+case gets one with origin `moderator`, no reasons; `toldByHand` records `manual_email` notices right away, so a
+player e-mailed by hand is not told twice); `UnmarkSolvingTimeSuspiciousDirectly` unmarks a flagged time (an SQL
+flag without a case gets its `manual` case first) or trusts a pending one. Trusting is one service for both
+(`SuspiciousTimeTrust`), so are the notices (`SuspiciousTimeNotices`, also the notice run's).
+
 ## Telling the player
 
 ### The notice run (end of every scan)

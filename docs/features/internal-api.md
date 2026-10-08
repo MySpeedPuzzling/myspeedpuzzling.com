@@ -34,7 +34,7 @@ Endpoints that perform *moderation* (the puzzle merge queue and the brand endpoi
 INTERNAL_API_REVIEWER_PLAYER_ID=<player uuid>
 ```
 
-Also closed-by-default: while it is empty, the moderation endpoints return `400` and dispatch nothing. The feature-request endpoints do not need it. The competition endpoints need it to create a competition (its creator), approve one and create a puzzle (who added and approved it) - see [Competitions and events](#competitions-and-events). It is also the player the [audit log](#audit-log-of-every-write) names.
+Also closed-by-default: while it is empty, the moderation endpoints return `400` and dispatch nothing. The feature-request endpoints do not need it. The competition endpoints need it to create a competition (its creator), approve one and create a puzzle (who added and approved it) - see [Competitions and events](#competitions-and-events). The [time verification](#time-verification) endpoints credit their decisions to it. It is also the player the [audit log](#audit-log-of-every-write) names.
 
 ## Endpoints
 
@@ -196,6 +196,51 @@ redirecting to it (the database would quietly null the proposal and cascade the 
 brand instead, which moves all of those. The deleted brand's slug gets no redirect (there is nothing to send it to) and
 is free for a new brand again. One `brand_deleted` decision holds its name, slug, approval and `added_at` - the only
 trace of it.
+
+### Time verification
+
+Mark a solving time "needs verification" or unmark it without the queue's card at `/admin/time-verification`
+([`suspicious-time-review.md`](./suspicious-time-review.md)) - for times a person looked at outside the queue (a
+player's e-mail answer, an outreach round). Keyed by the **solving time id** (the id in `/en/result/{timeId}`), they
+go through the same entity methods as the queue: the flag (statistics, insights and round results follow its event),
+the case, the notices and one `suspicious_time_decision` row credited to `INTERNAL_API_REVIEWER_PLAYER_ID` (required).
+Each answers the time's verification state (`200`, the same JSON as the `GET`).
+
+| Method | Path | Purpose | Body fields (all optional) |
+|---|---|---|---|
+| `GET` | `/internal-api/solving-times/{timeId}/verification` | Flag, case (status, origin, reasons, reasons shown, note) and who was told about the current mark | - |
+| `POST` | `/internal-api/solving-times/{timeId}/mark-suspicious` | "Needs verification" | `note`, `reasonCodes`, `toldByHand` |
+| `POST` | `/internal-api/solving-times/{timeId}/unmark-suspicious` | "Looks fine" | `note` |
+
+- **mark-suspicious** works on any time: a pending case is marked with the scan's reasons, any other case (trusted,
+  gone, corrected) or none gets a mark of its own - a time the scan never raised gets a case with origin `moderator`
+  ("Flagged by hand" on the card) and no reasons. `reasonCodes` picks which of the scan's reasons the player reads
+  (default: every one a player may read; only reasons the case has, and only while they are about this very entry).
+  `note` (≤ 1000 characters) is **read by the player**. The time stops counting at once; the player is told by the next
+  notice run (end of the scan, 04:19 / 16:19 UTC) - **`toldByHand: true`** records the notices as already sent
+  (`manual_email`) for every registered person of the time, so somebody you e-mail yourself is never told twice. `409`
+  when the time is already marked.
+- **unmark-suspicious**: a flagged time is unmarked - a flag set by SQL that the scan has not given a case yet too (it
+  gets one, origin `manual`, first) - counts again, and the player's open reply ("The time is correct", an edit) is
+  answered "Your time counts again" with the `note`; a pending case is trusted. Either way this entry is never raised
+  again; an edit of the time lapses that. `409` when the time is neither flagged nor waiting in the queue.
+- `404` for an unknown time, `400` for an unknown field or reason code (nothing changes).
+
+```bash
+# What is going on with this time?
+curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  https://myspeedpuzzling.com/internal-api/solving-times/<timeId>/verification | jq
+
+# The player answered our e-mail - it was the 500-piece edition, she moved the time: it counts again
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"note": "Thanks for the correction!"}' \
+  https://myspeedpuzzling.com/internal-api/solving-times/<timeId>/unmark-suspicious
+
+# Mark a time we e-mail the player about ourselves - the app does not tell them again
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"toldByHand": true}' \
+  https://myspeedpuzzling.com/internal-api/solving-times/<timeId>/mark-suspicious
+```
 
 ### Competitions and events
 

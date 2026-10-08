@@ -56,6 +56,7 @@
                     {% if case.unboxed %}<span class="badge bg-light text-dark border">Unboxed</span>{% endif %}
                     {% if case.playerPrivate %}<span class="badge bg-light text-dark border"><i class="bi bi-lock-fill" aria-hidden="true"></i> Private profile</span>{% endif %}
                     {% if case.origin.value == 'manual' %}<span class="badge bg-light text-dark border">Flagged outside the app</span>{% endif %}
+                    {% if case.origin.value == 'moderator' %}<span class="badge bg-light text-dark border">Flagged by hand</span>{% endif %}
                     {% if status != 'pending' and case.flagged %}<span class="badge bg-warning text-dark">Not counted now</span>{% endif %}
                 </div>
                 {% if not in_puzzle_card %}
@@ -161,7 +162,7 @@
             <div class="col-lg-7">
                 <h{{ heading_level + 1 }} class="tv-subtitle">Why it is here</h{{ heading_level + 1 }}>
                 {% if case.reasons is empty %}
-                    <p class="small mb-2">No reasons - the time was flagged outside the app.</p>
+                    <p class="small mb-2">No reasons - {{ case.origin.value == 'moderator' ? 'the time was flagged by hand, without a scan.' : 'the time was flagged outside the app.' }}</p>
                 {% else %}
                     {% if shown_reasons is not empty %}
                         {% if deciding %}

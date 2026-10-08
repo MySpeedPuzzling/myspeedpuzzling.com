@@ -167,6 +167,15 @@ class SuspiciousTimeCase
         return $case;
     }
 
+    /**
+     * A person flagged a time the scan has no case for (the internal API's mark-suspicious) - opened for the mark that
+     * follows: no detection, no reasons of its own.
+     */
+    public static function reportedByHand(UuidInterface $id, PuzzleSolvingTime $time, string $fingerprint, DateTimeImmutable $now): self
+    {
+        return new self($id, $time, SuspiciousTimeCaseOrigin::Moderator, $fingerprint, $now);
+    }
+
     public function isPending(): bool
     {
         return $this->status === SuspiciousTimeCaseStatus::Pending;

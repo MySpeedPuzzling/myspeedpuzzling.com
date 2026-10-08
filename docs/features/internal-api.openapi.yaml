@@ -930,6 +930,123 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /internal-api/solving-times/{timeId}/verification:
+    parameters:
+      - $ref: "#/components/parameters/SolvingTimeId"
+    get:
+      summary: Read a solving time's verification state
+      operationId: getSolvingTimeVerification
+      description: |
+        Whether the time is flagged ("needs verification" - counted nowhere), its
+        case in the time verification queue and the notices of the current mark.
+        See suspicious-time-review.md.
+      responses:
+        "200":
+          description: The verification state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SolvingTimeVerification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/solving-times/{timeId}/mark-suspicious:
+    parameters:
+      - $ref: "#/components/parameters/SolvingTimeId"
+    post:
+      summary: Mark a solving time "needs verification"
+      operationId: markSolvingTimeSuspicious
+      description: |
+        The queue's "Needs verification" without its card, on any time - one the
+        scan never raised gets a case of its own (origin `moderator`, no reasons).
+        The time stops counting at once; the player is told by the next notice run
+        (the scan, 04:19 / 16:19) unless `toldByHand` is true. One `marked`
+        decision, credited to `INTERNAL_API_REVIEWER_PLAYER_ID`.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                note:
+                  type: string
+                  maxLength: 1000
+                  description: The player reads it with the mark.
+                reasonCodes:
+                  type: array
+                  items:
+                    type: string
+                  description: |
+                    Which of the scan's reasons the player reads (default: every one a
+                    player may read). Only reasons the case has count, and only while
+                    they are about this very entry.
+                toldByHand:
+                  type: boolean
+                  default: false
+                  description: |
+                    The player is e-mailed by hand - the notices are recorded as sent
+                    (`manual_email`), so the banner and the "Your results" e-mail never
+                    repeat it.
+      responses:
+        "200":
+          description: Marked - the verification state now
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SolvingTimeVerification"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /internal-api/solving-times/{timeId}/unmark-suspicious:
+    parameters:
+      - $ref: "#/components/parameters/SolvingTimeId"
+    post:
+      summary: Unmark a solving time ("looks fine")
+      operationId: unmarkSolvingTimeSuspicious
+      description: |
+        The queue's "Looks fine" without its card: a flagged time is unmarked (a flag
+        set by SQL that the scan has not reconciled yet too) and counts again, the
+        player's open reply is answered "Your time counts again"; a pending case is
+        trusted. Either way this entry is never raised again - an edit lapses that.
+        409 when the time is neither flagged nor pending.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                note:
+                  type: string
+                  maxLength: 1000
+                  description: The player reads it with the answer to their reply.
+      responses:
+        "200":
+          description: Unmarked / trusted - the verification state now
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SolvingTimeVerification"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
 components:
   securitySchemes:
     InternalApiBearer:
@@ -989,6 +1106,15 @@ components:
       in: path
       required: true
       description: UUID (v7) of the puzzle change request.
+      schema:
+        type: string
+        format: uuid
+
+    SolvingTimeId:
+      name: timeId
+      in: path
+      required: true
+      description: UUID of the solving time (the id in /en/result/{timeId}).
       schema:
         type: string
         format: uuid
@@ -1733,6 +1859,45 @@ components:
                   elsewhere (UTC); null for `everywhere`, and for `event` when the puzzle
                   was public elsewhere all along. `9999-12-31T00:00:00+00:00` = until a
                   manual reveal ("Reveal now" in another round) is made.
+
+    SolvingTimeVerification:
+      type: object
+      properties:
+        timeId: { type: string, format: uuid }
+        suspicious:
+          type: boolean
+          description: Flagged - the time is counted nowhere.
+        playerId: { type: string, format: uuid, description: Who tracked the time }
+        puzzleId: { type: string, format: uuid }
+        puzzleName: { type: string }
+        piecesCount: { type: integer }
+        seconds: { type: [integer, "null"] }
+        puzzlingType: { type: string, enum: [solo, duo, team] }
+        case:
+          type: [object, "null"]
+          description: The time's case in the queue - null when it never had one.
+          properties:
+            id: { type: string, format: uuid }
+            status: { type: string, enum: [pending, marked, trusted, corrected, gone] }
+            origin: { type: string, enum: [detector, manual, moderator] }
+            direction: { type: [string, "null"], enum: [fast, slow, null] }
+            reasons: { type: array, items: { type: string }, description: The scan's reason codes }
+            reasonsShown: { type: array, items: { type: string }, description: The reasons the player reads }
+            moderatorNote: { type: [string, "null"] }
+            markedAt: { type: [string, "null"], format: date-time }
+            decidedAt: { type: [string, "null"], format: date-time }
+        notices:
+          type: array
+          description: Who was told about the current mark (empty unless marked).
+          items:
+            type: object
+            properties:
+              playerId: { type: string, format: uuid }
+              via: { type: string, enum: [run, manual_email] }
+              notifiedAt: { type: string, format: date-time }
+              response: { type: [string, "null"], description: What the player did (fixed, says_correct, left_as_is) }
+              responseText: { type: [string, "null"] }
+              answer: { type: [string, "null"], description: The moderators' answer to it }
 
   responses:
     InvalidJson:

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
@@ -160,6 +161,31 @@ final class CompetitionRoundFormType extends AbstractType
             'expanded' => true,
         ]);
 
+        // The expected size of a team round's teams (participants-spreadsheet.md D5) - the templates show it for team
+        // rounds only (round_team_size_controller.js follows the category). The most common size of the round's teams is
+        // a placeholder, never a value: an untouched empty field stores nothing
+        /** @var null|int $teamSizeGuess */
+        $teamSizeGuess = $options['team_size_guess'];
+        $teamSizeAttributes = [
+            'min' => CompetitionRound::TEAM_SIZE_MIN,
+            'max' => CompetitionRound::TEAM_SIZE_MAX,
+            'step' => 1,
+            'inputmode' => 'numeric',
+            'class' => 'w-auto',
+        ];
+
+        if ($teamSizeGuess !== null) {
+            $teamSizeAttributes['placeholder'] = 'participants_sheet_server.round_form.team_size_placeholder';
+        }
+
+        $builder->add('teamSize', IntegerType::class, [
+            'label' => 'participants_sheet_server.round_form.team_size',
+            'help' => 'participants_sheet_server.round_form.team_size_help',
+            'required' => false,
+            'attr' => $teamSizeAttributes,
+            'attr_translation_parameters' => ['%size%' => $teamSizeGuess],
+        ]);
+
         $builder->add('resultsLink', UrlType::class, [
             'label' => 'competition.round.form.results_link',
             'help' => 'competition.round.form.results_link_help',
@@ -189,11 +215,14 @@ final class CompetitionRoundFormType extends AbstractType
             'timezone_offset_at' => null,
             'reveal_confirmation' => false,
             'timezone_assumed' => false,
+            // The most common size of a team round's teams - the "Members per team" placeholder, null = none
+            'team_size_guess' => null,
         ]);
 
         $resolver->setAllowedTypes('single_day', 'bool');
         $resolver->setAllowedTypes('timezone_offset_at', ['null', \DateTimeImmutable::class]);
         $resolver->setAllowedTypes('reveal_confirmation', 'bool');
         $resolver->setAllowedTypes('timezone_assumed', 'bool');
+        $resolver->setAllowedTypes('team_size_guess', ['null', 'int']);
     }
 }

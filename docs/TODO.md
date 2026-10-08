@@ -49,13 +49,35 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       (~222-225) resets it outside solo and only solo results are filtered (~263-280); the puzzle leaderboard has
       the same reset (`PuzzleTimes.php` ~245-247). A pair/team result is a first try only when it is everybody's
       (`docs/features/first-try-integrity.md`). Promised to Gav (MSP #90, follow-up F45) and Allison (MSP #107, F46).
+- [ ] Move several puzzles at once on a collection page (select, then "Move to collection"), not only one by one or
+      through multiscan. Promised to Allison (MSP #107, follow-up F50).
+
+## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
+
+- [ ] Pilot: the Wisconsin organiser tries the sheet on their next event (D14) - e-mail drafted in MSP Mailer for Jan.
+- [ ] Manual pass the automated checks could not do: Safari macOS + iOS (clipboard through the hidden textarea, Cmd+D,
+      the sticky table), a real Android phone, Windows + Excel, VoiceOver and NVDA on the grid (selection, checkbox
+      names, the hidden textarea briefly focused), a Japanese IME's first keystroke on a cell (Enter/F2 first is the
+      documented path). Clipboard samples from real Excel (Mac/Windows), Numbers and Google Sheets: paste them into the
+      spike's `capture.html` (kept in the delivery notes) and add them to `tests/participants-sheet-core/tsv_fixtures.mjs`.
+- [ ] Export / print of the current tab (pairs with members, tables and results) - today the participants export and the
+      results desk export per round.
+- [ ] A change log with restore (D11): `participant_sheet_change_receipt` already keeps who sent what (90 days) - a
+      "what changed today, by whom" panel when organisers ask.
+- [ ] Highlight rows another organiser changed (they update live today, with an announcement only).
+- [ ] People tab: "Make a pair/team ▾ → existing", "Split → Move to a new pair/team" (§5), hiding single round columns
+      (15 rounds at WJPC); phone chips: "Replace with…" after a no-show.
+- [ ] Registration actions are sent at once, not kept offline like the sheet's edits; and merging a self-joined row into
+      an imported row of the same person.
+- [ ] The import confirm, the check-in page and self join/leave do not publish the sheet's live topic - open sheets
+      catch up within 30 s (version check); publish from them if organisers notice.
 
 ## Managed registration (`docs/features/competitions-management/registration.md`)
 
-- [ ] Registration status / paid / checked-in as optional columns of the participants spreadsheet's People tab
+- [x] Registration status / paid / checked-in as optional columns of the participants spreadsheet's People tab
       (participants-spreadsheet.md D10) - the import reads nothing from the export's registration columns today.
 - [ ] Notify maintainers about a new registration, a cancelled *paid* registration (refund talk) and a listed name
-      picked on a managed event ("connected by …" on the participants page - review 2 A-F10, documented trade-off);
+      picked on a managed event ("connected by …" in the participants sheet - review 2 A-F10, documented trade-off);
       optional daily digest.
 - [ ] Payment deadline / automatic release of unpaid spots; a response deadline for a spot offered from the waitlist.
 - [ ] A verified e-mail before registering (throwaway accounts can fill a capacity).
@@ -93,7 +115,7 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Live entry quick add: the event's people come with the page (`GetLiveResultsEventPeople`) - somebody added to
       the event by another device during the session is not offered until a reload (rare; typing the name in creates a
       second person, as before).
-- [ ] The participants spreadsheet (`participants-spreadsheet.md`, its own PR): its result / table / qualified cells
+- [x] The participants spreadsheet (`participants-spreadsheet.md`, its own PR): its result / table / qualified cells
       send `RecordRoundResults` changes (the live entry's and the desk's write path), not a separate changeset type.
 - [ ] Advance with the country rule: entries sharing the K-th place of a country across groups are ordered by the
       advancement seed (relative result, round order, name) - highlight such ties for the organiser like the desk's
@@ -172,7 +194,7 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] A team renamed in the file (all its members under a new name) is planned as move + delete, not as a rename.
 - [ ] Clearing field values (country, external id) from empty cells in full sync - empty cells never clear today (D14).
 - [ ] A connected player the file wants to change for a participant who has one is refused with a row message (never
-      taken over) - offer a way to change it on purpose (participants page or an explicit mapping). External ids are
+      taken over) - offer a way to change it on purpose (the participants sheet's profile column, or an explicit mapping). External ids are
       updated unless another participant of the event has the file's one.
 - [ ] Code page guess: names that defeat the neighbour rule (Norwegian "Øystein", French "Anaïs" next to vowels) can tip
       a small Western file to Windows-1250 - the Encoding select fixes it; watch for reports.
@@ -190,7 +212,7 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       column per pair/team round, so an export imported back changes nothing; same-named people are never merged.
 - [x] Import accepts `.xlsx` only - CSV/TSV/TXT, a sheet chooser, column mapping, a preview and full sync shipped
       (`participant-import-preview.md`).
-- [ ] Bulk editor (spreadsheet-like grid of all participants: name, country, external id, player, one checkbox per
+- [x] Bulk editor (spreadsheet-like grid of all participants: name, country, external id, player, one checkbox per
       round, team per round) - proposal in PR #241.
 - [x] `RoundTableManager` Live actions check `CompetitionEditVoter` on every request and only touch rows, tables
       and spots of their own round.

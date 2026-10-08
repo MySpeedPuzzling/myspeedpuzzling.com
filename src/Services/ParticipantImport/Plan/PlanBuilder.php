@@ -32,6 +32,9 @@ use Symfony\Component\Translation\TranslatableMessage;
  *   team column, removes participants the file does not have and deletes the pairs/teams it empties - never what
  *   has results (D11)
  * - an export imported back unchanged changes nothing
+ *
+ * The rules the participants sheet follows too - one linked player per active participant, the usual team size, the
+ * results guard - live in ParticipantRules and SiteSnapshot, so a file and the sheet never disagree.
  */
 final class PlanBuilder
 {
@@ -748,8 +751,8 @@ final class PlanBuilder
     }
 
     /**
-     * D16 (c): more people under one name than the round's teams usually have, and pairs/teams of one person -
-     * only teams somebody of the file is in.
+     * D16 (c): more people under one name than the round's teams usually have (a team round's expected size when the
+     * organiser set one), and pairs/teams of one person - only teams somebody of the file is in.
      */
     private function warnAboutTeamSizes(): void
     {
@@ -777,7 +780,8 @@ final class PlanBuilder
             }
 
             $teamKeys = array_keys($fileTeams[$round->id]);
-            $usual = $round->category === RoundCategory::Duo ? 2 : $this->usualTeamSize($round, $teamKeys, $members);
+            // The organiser's expected size of a team round when they set one (D5), else the guess
+            $usual = $round->category === RoundCategory::Duo ? 2 : ($round->teamSize ?? $this->usualTeamSize($round, $teamKeys, $members));
 
             $singles = [];
             foreach ($teamKeys as $teamKey) {
@@ -834,21 +838,8 @@ final class PlanBuilder
             }
         }
 
-        if ($sizes === []) {
-            return 2;
-        }
-
-        $counts = array_count_values($sizes);
-        // The most common size; on a tie the smaller one
-        ksort($counts);
-        $usual = (int) array_key_first($counts);
-        foreach ($counts as $size => $count) {
-            if ($count > $counts[$usual]) {
-                $usual = $size;
-            }
-        }
-
-        return max(2, $usual);
+        // The most common size; on a tie the smaller one (the sheet's guess too)
+        return ParticipantRules::usualTeamSize($sizes);
     }
 
     /**
@@ -1406,31 +1397,46 @@ final class PlanBuilder
      */
     private function canConnect(string $playerId, string $personKey, PlanRow $row, string $name): bool
     {
-        foreach ($this->people as $other) {
-            if ($other->key !== $personKey && !$other->deleted && $other->playerId === $playerId) {
-                $row->messages[] = self::message('player_linked_elsewhere', [
-                    '%row%' => $row->rowNumber,
-                    '%name%' => $name,
-                    '%id%' => $playerId,
-                    '%other%' => $other->name,
-                ]);
+        $otherKey = ParticipantRules::playerLinkedTo($playerId, $personKey, $this->links());
 
-                return false;
-            }
+        if ($otherKey !== null) {
+            $row->messages[] = self::message('player_linked_elsewhere', [
+                '%row%' => $row->rowNumber,
+                '%name%' => $name,
+                '%id%' => $playerId,
+                '%other%' => $this->people[$otherKey]->name,
+            ]);
+
+            return false;
         }
 
         return true;
     }
 
+    /**
+     * @return \Generator<string, array{playerId: null|string, deleted: bool}>
+     */
+    private function links(): \Generator
+    {
+        foreach ($this->people as $key => $person) {
+            yield $key => ['playerId' => $person->playerId, 'deleted' => $person->deleted];
+        }
+    }
+
     private function externalIdTakenByAnother(string $externalId, string $personKey): bool
     {
-        foreach ($this->people as $other) {
-            if ($other->key !== $personKey && $other->externalId === $externalId) {
-                return true;
-            }
-        }
+        // The participants sheet's rule too (external_id_taken) - one rule, ParticipantRules
+        return ParticipantRules::externalIdTakenBy($externalId, $personKey, $this->externalIds()) !== null;
+    }
 
-        return false;
+    /**
+     * @return \Generator<string, array{externalId: null|string}>
+     */
+    private function externalIds(): \Generator
+    {
+        foreach ($this->people as $key => $person) {
+            yield $key => ['externalId' => $person->externalId];
+        }
     }
 
     /**

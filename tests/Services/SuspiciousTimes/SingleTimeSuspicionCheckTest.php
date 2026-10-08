@@ -88,6 +88,26 @@ final class SingleTimeSuspicionCheckTest extends KernelTestCase
         self::assertSame(['slower_than_usual', 'includes_breaks'], $assessment->reasonCodes());
     }
 
+    public function testAHardPuzzlesSlowThresholdAppliesWhileTyping(): void
+    {
+        // The same 49:08:00 on a puzzle a moderator gave a threshold of 8× - for its current piece count only
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            'INSERT INTO suspicious_time_puzzle_confirmation (puzzle_id, pieces_count, confirmed_by_id, confirmed_at, slow_threshold) VALUES (:id, 4000, NULL, NOW(), 8.0)',
+            ['id' => SuspiciousTimesFixture::PUZZLE_HARBOUR],
+        );
+        $entry = [SuspiciousTimesFixture::PLAYER_STEADY, SuspiciousTimesFixture::PUZZLE_HARBOUR, 176880, PuzzlingType::Solo, 1, SuspiciousTimesFixture::TIME_STEADY_FAST, self::moment()];
+
+        $withThreshold = $this->check()->forEntry(...$entry);
+        self::assertNotNull($withThreshold);
+        self::assertSame(SuspicionCheckOutcome::Clear, $withThreshold->outcome);
+
+        $database->executeStatement('UPDATE suspicious_time_puzzle_confirmation SET pieces_count = 3000');
+        $lapsed = $this->check()->forEntry(...$entry);
+        self::assertNotNull($lapsed);
+        self::assertSame(SuspicionCheckOutcome::Raised, $lapsed->outcome);
+    }
+
     public function testPairEntryIsJudgedByTheCommunitysSlowFloorOnly(): void
     {
         $slow = $this->check()->forEntry(SuspiciousTimesFixture::PLAYER_PARTNER, SuspiciousTimesFixture::PUZZLE_MARATHON, 540000, PuzzlingType::Duo, 2, null, self::moment());

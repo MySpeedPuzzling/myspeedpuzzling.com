@@ -41,6 +41,7 @@ final class TimeVerificationController extends AbstractController
         $counts = $this->getSuspiciousTimeQueue->counts();
         $direction = $tab->direction();
         $puzzleCards = [];
+        $puzzleCardCases = [];
         $caseIds = [];
         $total = 0;
         $perPage = GetSuspiciousTimeQueue::PER_PAGE;
@@ -50,9 +51,20 @@ final class TimeVerificationController extends AbstractController
             $caseIds = $pending->caseIds;
             $total = $pending->total;
 
-            // One decision about the puzzle settles many cases - on top of the first page
+            // One decision about the puzzle settles many cases - on top of the first page, each case decided right in it
             if ($page === 1) {
                 $puzzleCards = $this->getSuspiciousTimeQueue->puzzleCards($direction);
+                $cardCaseIds = [];
+
+                foreach ($puzzleCards as $card) {
+                    foreach ($card->cases as $line) {
+                        $cardCaseIds[] = $line->caseId;
+                    }
+                }
+
+                foreach ($this->getSuspiciousTimeCaseDetail->cards($cardCaseIds) as $cardCase) {
+                    $puzzleCardCases[$cardCase->caseId] = $cardCase;
+                }
             }
         } elseif ($tab->listsCases()) {
             $caseIds = $this->getSuspiciousTimeQueue->decidedCaseIds($tab, $page);
@@ -70,6 +82,7 @@ final class TimeVerificationController extends AbstractController
             'pages' => max(1, (int) ceil($total / $perPage)),
             'total' => $total,
             'puzzle_cards' => $puzzleCards,
+            'puzzle_card_cases' => $puzzleCardCases,
             'cases' => $this->getSuspiciousTimeCaseDetail->cards($caseIds),
             'log' => $tab === SuspiciousTimeQueueTab::Log ? $this->getSuspiciousTimesOverview->log($page) : [],
             'numbers' => $tab === SuspiciousTimeQueueTab::Numbers ? $this->getSuspiciousTimesOverview->numbers() : null,

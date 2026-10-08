@@ -13,11 +13,11 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * The organiser pages tell why official results stop a change (docs/features/competitions-management/official-results.md).
+ * Pairs/teams are edited in the participants spreadsheet now - its write path has the team guards
+ * (participants-spreadsheet.md, `team_has_result`, `team_result_line_up_changed`).
  */
 final class OfficialResultsGuardsPagesTest extends WebTestCase
 {
-    private const string TEAMS_PAGE = '/en/manage-round-teams/' . OfficialResultsFixture::ROUND_PAIRS;
-
     private KernelBrowser $browser;
     private Connection $database;
 
@@ -61,36 +61,5 @@ final class OfficialResultsGuardsPagesTest extends WebTestCase
 
         self::assertResponseRedirects();
         self::assertFalse($this->database->fetchOne('SELECT 1 FROM competition_round WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_PAIRS_FINAL]));
-    }
-
-    public function testAPairWithAResultIsNotDeletedFromTheTeamsPage(): void
-    {
-        $crawler = $this->browser->request('GET', self::TEAMS_PAGE);
-        $form = $crawler->filter('#team-' . OfficialResultsFixture::TEAM_SHARKS . ' form[action$="/delete-team/' . OfficialResultsFixture::TEAM_SHARKS . '"]');
-
-        $this->browser->submit($form->form());
-
-        self::assertResponseRedirects(self::TEAMS_PAGE, 303);
-        $this->browser->followRedirect();
-        self::assertSelectorTextContains('.alert-danger', 'This pair/team has an official result or a qualified mark');
-        self::assertNotFalse($this->database->fetchOne('SELECT 1 FROM competition_team WHERE id = :id', ['id' => OfficialResultsFixture::TEAM_SHARKS]));
-    }
-
-    public function testMovingSomebodyOutOfAPairWithAResultWarns(): void
-    {
-        $crawler = $this->browser->request('GET', self::TEAMS_PAGE);
-        $token = (string) $crawler->filter('input[name="_token"]')->first()->attr('value');
-        $annaInPairs = $this->database->fetchOne(
-            'SELECT id FROM competition_participant_round WHERE participant_id = :participant AND round_id = :round',
-            ['participant' => OfficialResultsFixture::PARTICIPANT_ANNA, 'round' => OfficialResultsFixture::ROUND_PAIRS],
-        );
-        self::assertIsString($annaInPairs);
-
-        $this->browser->request('POST', '/en/assign-participant-to-team/' . $annaInPairs, ['_token' => $token, 'team_id' => '']);
-
-        self::assertResponseRedirects(self::TEAMS_PAGE, 303);
-        $this->browser->followRedirect();
-        self::assertSelectorTextContains('.alert-warning', 'This pair/team has an official result - it now belongs to the new line-up.');
-        self::assertNull($this->database->fetchOne('SELECT team_id FROM competition_participant_round WHERE id = :id', ['id' => $annaInPairs]));
     }
 }

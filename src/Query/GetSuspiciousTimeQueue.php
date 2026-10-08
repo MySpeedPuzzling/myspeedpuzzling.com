@@ -31,10 +31,11 @@ use SpeedPuzzling\Web\Value\SuspiciousTimeTier;
  * the time leads its puzzle (#1) first, then bigger leaderboards first, then the score. A slow time takes no place
  * anybody cares about - by score (how many times slower) after the tier.
  *
- * Pending cases of a puzzle that makes a puzzle card ("is the piece count right?") are shown in the card, not in the
- * list: several different players raised on it in that direction making a fifth of its comparable results (a popular
- * puzzle collects a few raised times by chance), or its difficulty far below (fast) or above (slow) the usual - unless
- * a moderator confirmed its current piece count.
+ * Pending cases of a puzzle that makes a puzzle card ("is the piece count right - or is it a hard puzzle?") are shown
+ * in the card, not in the list: several different players raised on it in that direction making a fifth of its
+ * comparable results (a popular puzzle collects a few raised times by chance), or its difficulty far below (fast) or
+ * above (slow) the usual. Every case of a card is decided there like in the list; the card carries the puzzle's slow
+ * threshold while it is for the current piece count.
  */
 readonly final class GetSuspiciousTimeQueue
 {
@@ -126,6 +127,7 @@ SELECT
     p.image,
     m.name AS manufacturer_name,
     pd.difficulty_score,
+    CASE WHEN conf.pieces_count = p.pieces_count THEN conf.slow_threshold END AS slow_threshold,
     COUNT(DISTINCT pe.player_id) AS players,
     COALESCE(ps.solved_times_solo_count, 0) AS solo_results,
     ps.median_time_solo,
@@ -151,11 +153,12 @@ JOIN player pl ON pl.id = pe.player_id
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id
-GROUP BY p.id, m.name, pd.difficulty_score, ps.solved_times_solo_count, ps.median_time_solo, ps.fastest_time_solo
+LEFT JOIN suspicious_time_puzzle_confirmation conf ON conf.puzzle_id = p.id
+GROUP BY p.id, m.name, pd.difficulty_score, conf.pieces_count, conf.slow_threshold, ps.solved_times_solo_count, ps.median_time_solo, ps.fastest_time_solo
 ORDER BY COUNT(DISTINCT pe.player_id) DESC, p.name, p.id
 SQL;
 
-        /** @var list<array{puzzle_id: string, puzzle_name: string, pieces_count: int, image: null|string, manufacturer_name: null|string, difficulty_score: null|float|string, players: int|string, solo_results: int|string, median_time_solo: null|int, fastest_time_solo: null|int, cases: string}> $rows */
+        /** @var list<array{puzzle_id: string, puzzle_name: string, pieces_count: int, image: null|string, manufacturer_name: null|string, difficulty_score: null|float|string, slow_threshold: null|float|string, players: int|string, solo_results: int|string, median_time_solo: null|int, fastest_time_solo: null|int, cases: string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, $this->pendingParameters($direction));
 
         return array_map(static function (array $row) use ($direction): SuspiciousTimePuzzleCard {
@@ -169,6 +172,7 @@ SQL;
                 piecesCount: $row['pieces_count'],
                 image: $row['image'],
                 difficultyScore: $row['difficulty_score'] !== null ? (float) $row['difficulty_score'] : null,
+                slowThreshold: $row['slow_threshold'] !== null ? (float) $row['slow_threshold'] : null,
                 playersCount: (int) $row['players'],
                 soloResults: (int) $row['solo_results'],
                 medianSolo: $row['median_time_solo'],
@@ -287,8 +291,7 @@ SQL;
 WITH pending AS (
     SELECT
         c.id, c.tier, c.score, c.reasons, c.expected_seconds, c.expected_source,
-        pst.id AS time_id, pst.puzzle_id, pst.player_id, pst.seconds_to_solve, pst.puzzlers_count, pst.puzzling_type,
-        p.pieces_count
+        pst.id AS time_id, pst.puzzle_id, pst.player_id, pst.seconds_to_solve, pst.puzzlers_count, pst.puzzling_type
     FROM suspicious_time_case c
     JOIN puzzle_solving_time pst ON pst.id = c.time_id
     JOIN puzzle p ON p.id = pst.puzzle_id
@@ -303,10 +306,6 @@ card_candidate AS (
         array_agg(DISTINCT pe.puzzling_type) AS puzzling_types
     FROM pending pe
     LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = pe.puzzle_id
-    WHERE NOT EXISTS (
-        SELECT 1 FROM suspicious_time_puzzle_confirmation conf
-        WHERE conf.puzzle_id = pe.puzzle_id AND conf.pieces_count = pe.pieces_count
-    )
     GROUP BY pe.puzzle_id, pd.difficulty_score
 ),
 card_puzzle AS (

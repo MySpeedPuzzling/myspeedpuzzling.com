@@ -134,100 +134,22 @@ Clear wording is important — "Disconnect" communicates that the participant re
 
 ## Organizer Participant Management UI
 
-Accessible from the competition edit/management page. Uses `CompetitionEditVoter` for access control (maintainer or admin).
+**Since 2026-10 the participants spreadsheet is the organisers' participant management** - the People tab (name,
+country, external id, MySpeedPuzzling profile, solo rounds, pairs/teams, registration, the organiser's note) and one
+tab per round, saved change by change and checked three-way on the server (`ApplyParticipantSheetChanges`). Route
+`participants_sheet` (`/en/participants-sheet/{competitionId}`, + localized variants), `CompetitionEditVoter` (maintainer,
+series maintainer or admin). Design, rules and what was built: [participants-spreadsheet.md](participants-spreadsheet.md).
+The import, export, template and the organiser tools (registration settings, check-in, name tags, referees, results,
+rounds) are in the sheet's Tools menu; the setup checklist (no rounds / nobody on the list yet) sits above the grid.
 
-### Route
+The old routes `manage_competition_participants` (`/en/manage-event-participants/{competitionId}`) and
+`manage_round_teams` redirect to the sheet (the round's tab). History, kept short: the participants page was a Live
+Component with an inline edit row (2026-07 → 2026-10). Its lesson stays in the sheet's design - **a save carries the
+change, never the row's state**: after the Wisconsin 2026 organiser's ~250 saves wrote one participant's values over the
+next one's (2026-10-06), the editor sent its round and profile changes as a diff against what the row was opened with;
+the sheet sends every cell as `from → to` and the server refuses a change whose `from` is no longer there.
 
-`/en/manage-competition-participants/{competitionId}` (+ localized variants)
-
-### Organizer Checklist
-
-Below the import/export section, a setup checklist guides organizers through remaining steps:
-
-- Rounds configured (with count and link to round management)
-- Participants imported
-
-The checklist is **hidden entirely** when both items are done (rounds > 0 and participants > 0). This avoids unnecessary clutter once setup is complete.
-
-### Layout
-
-Live Component with inline editing, inspired by [Symfony UX inline edit demo](https://ux.symfony.com/demos/live-component/inline-edit).
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│ Participants for "WJPC 2026"           34 active · 2 deleted         │
-│                                                                      │
-│ [Import Excel]  [Export Excel]  [+ Add Participant]                  │
-│                                                                      │
-│ [Search...              ]              [☐ Show deleted]              │
-│                                                                      │
-│ ┌───────────┬─────┬──────────┬─────────────┬───────────┬──────────┐ │
-│ │ Name      │ 🏳  │ Ext. ID  │ MSP Player  │ Rounds    │          │ │
-│ ├───────────┼─────┼──────────┼─────────────┼───────────┼──────────┤ │
-│ │ Jan M.    │ CZ  │ P-001    │ Jan Mikeš ↗ │ [R1] [R2] │ ✏️  🗑   │ │
-│ │ Bob S.    │ US  │ —        │ —           │ [R1]      │ ✏️  🗑   │ │
-│ │ Alice W.  │ GB  │ —        │ Alice W. ↗  │ [       ] │ ✏️  🗑   │ │
-│ │                                            ↑ inline               │ │
-│ │                                 Tom Select multiselect             │ │
-│ │ ~~Deleted~~ │ ~~FR~~ │        │             │           │ ↩️       │ │
-│ └───────────┴─────┴──────────┴─────────────┴───────────┴──────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-### Inline Editing
-
-Each participant row can be edited inline (click ✏️ or click on the cell):
-
-- **Name** — text input
-- **Country** — Tom Select country autocomplete with flag icons, grouped by region (same `country-select` Stimulus controller used in the Marketplace and elsewhere). Wrapped in `data-live-ignore` to prevent TomSelect destruction on Live Component re-render.
-- **External ID** — text input
-- **MSP Player** — inline search (min 2 characters, up to 10 results), with "clear" option to disconnect
-- **Rounds** — clickable round badges to toggle assignment. Updates `CompetitionParticipantRound` records.
-
-Save/Cancel buttons appear inline when editing. Uses `#[LiveAction]` methods on the component.
-
-**A save writes every field of the form**, so the form must always hold exactly the participant being edited (fixed 2026-10-06 after the Wisconsin 2026 organiser's ~250 saves cleared countries, unlinked a player and renamed participants after the previous one):
-- `startEdit` loads the participant from the database (`GetCompetitionParticipantsForManagement::byId()`, scoped to the competition) - never from the page's list, which an action request has not loaded (`#[PostMount]`/`#[PreReRender]` only).
-- Save, cancel and deleting the edited row reset every edit field; a blank name is refused with a message, nothing is written.
-- Rows carry ids (`participant-{id}`, edit row `participant-{id}-edit`, its live-ignored country select `participant-{id}-edit-country`), so idiomorph never morphs one participant's form into another row. `live_controller.js` never removes a `data-live-ignore` node by itself - without the ids every closed form left its TomSelect behind in a display row, and Live reads every `select[data-model]` back into the model after a render.
-- Every Live request re-checks `CompetitionEditVoter` (`#[PostHydrate]`), and every participant id an action receives must belong to the component's competition; the handler ignores rounds of other competitions.
-- Guard: `tests/Component/ManageCompetitionParticipantsEditTest.php` (real Live requests, so hydration is the browser's).
-
-**Rounds and the player connection are saved as the change of this edit, never as the row's state** (review 2 of the
-PR #136 port, 2026-10-07): an edit row can be minutes old on an event day, while the results desk advances the person to
-a final and seats them, or the player connects themselves. `startEdit` keeps the round ids and the player the row was
-opened with (`editOriginalRoundIds`, `editOriginalPlayerId` - not writable); the save sends `addRoundIds` /
-`removeRoundIds` (the toggles of this edit) and `changePlayer` only when the edit changed the player.
-`EditCompetitionParticipantHandler` applies them as a diff against the entries the person has under the lock: an entry
-added meanwhile stays (with its table number), a round left meanwhile is nothing to remove, an untick of a round where the
-person holds official results is refused before anything changes. Name, country, external id and the note are the
-organiser's own fields and are written as typed. Every write of the page (edit, remove, restore, the registration
-actions) takes the event's `CompetitionParticipantsLock` - see registration.md, Concurrency.
-
-**Organizer can link any MSP player** to any participant without the player's consent. This is intentional — organizers need full control over participant pairing for competition management. The player can later disconnect themselves via the public event page if they disagree.
-
-### Add Participant
-
-Opens an inline form at the top of the table:
-
-| Field | Required? | Input type |
-|-------|-----------|------------|
-| Name | Yes | Text |
-| Country | No | Tom Select country autocomplete (with flags, grouped by region) |
-| External ID | No | Text |
-| MSP Player | No | Inline search autocomplete |
-
-Creates `CompetitionParticipant` with `source=manual`.
-
-### Delete / Restore
-
-- **Delete** (🗑) → sets `deletedAt`, row disappears unless "Show deleted" is checked
-- **Restore** (↩️) → clears `deletedAt`, row becomes active again
-- No hard delete through the UI
-
-### Search
-
-Client-side filtering by participant name. Filters the visible table rows.
+**Organizer can link any MSP player** to any participant without the player's consent. This is intentional — organizers need full control over participant pairing for competition management. The player can later disconnect themselves via the public event page if they disagree. The sheet's profile search (`participants_sheet_player_search`) finds players the organiser blocked too (player-blocklist.md rule 7).
 
 ## Excel Import
 

@@ -1,0 +1,949 @@
+// Participants spreadsheet - stream core (docs/features/competitions-management/participants-spreadsheet.md §7, §9):
+// tabs, the save status, banners, the toasts of notify(), the problems panel, the grid (sticky header and first column,
+// scroll padding so the focused cell is never hidden - WCAG 2.4.11), the floating editor (16 px: no iOS zoom) and its
+// suggestion list, cell markers (an icon and a word - never colour alone), the People grid, the preview and help
+// dialogs. Native table layout without content-visibility (stage 0b). Phones (< 768 px): 44 px targets.
+
+$sheet-focus: $accent;
+$sheet-line: $gray-300;
+$sheet-head-bg: $gray-100;
+$sheet-danger-text: shade-color($danger, 35%);
+$sheet-warning-text: shade-color($warning, 55%);
+$sheet-cell-height: 2.25rem;
+
+// ---------------------------------------------------------------- tabs and status
+
+.sheet-tabs {
+    // Positioned: the visually hidden counts inside the tabs stay inside this scroll box - otherwise they escape to the
+    // sticky top bar and make the whole page scroll sideways
+    position: relative;
+    display: flex;
+    gap: .25rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    min-width: 0;
+}
+
+.sheet-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    flex: none;
+    min-height: 2.25rem;
+    padding: .25rem .75rem;
+    border: 1px solid transparent;
+    border-radius: $border-radius;
+    background: transparent;
+    color: $gray-700;
+    font-size: $font-size-sm;
+    white-space: nowrap;
+
+    &:hover {
+        background-color: $gray-100;
+        color: $gray-900;
+    }
+
+    &.active {
+        border-color: $sheet-line;
+        background-color: $white;
+        color: $gray-900;
+        font-weight: $font-weight-semibold;
+        box-shadow: inset 0 -2px 0 $sheet-focus;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+        outline-offset: 1px;
+    }
+
+    @media (max-width: 767.98px) {
+        min-height: 44px;
+    }
+}
+
+.sheet-tab-count {
+    color: $gray-600;
+    font-variant-numeric: tabular-nums;
+}
+
+.sheet-tab-problems {
+    display: inline-flex;
+    align-items: center;
+    gap: .125rem;
+    padding: 0 .375rem;
+    border-radius: 1rem;
+    background-color: rgba($warning, .2);
+    color: $sheet-warning-text;
+    font-weight: $font-weight-semibold;
+}
+
+.sheet-round-swatch {
+    display: inline-block;
+    flex: none;
+    width: .625rem;
+    height: .625rem;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba($black, .15);
+}
+
+.sheet-status {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    min-height: 2rem;
+    padding: .25rem .75rem;
+    border: 1px solid $sheet-line;
+    border-radius: 1rem;
+    background-color: $white;
+    color: $gray-800;
+    font-size: $font-size-sm;
+    white-space: nowrap;
+
+    &:focus-visible {
+        outline: 2px solid $sheet-focus;
+        outline-offset: 1px;
+    }
+
+    &.sheet-status-saved {
+        color: shade-color($success, 45%);
+    }
+
+    &.sheet-status-saving .bi {
+        animation: sheet-spin 1.2s linear infinite;
+    }
+
+    &.sheet-status-offline,
+    &.sheet-status-waiting,
+    &.sheet-status-attention {
+        border-color: $warning;
+        background-color: rgba($warning, .12);
+        color: $sheet-warning-text;
+    }
+
+    &.sheet-status-auth,
+    &.sheet-status-forbidden,
+    &.sheet-status-gone {
+        border-color: $danger;
+        background-color: rgba($danger, .08);
+        color: $sheet-danger-text;
+    }
+
+    @media (max-width: 767.98px) {
+        min-height: 44px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &.sheet-status-saving .bi {
+            animation: none;
+        }
+    }
+}
+
+@keyframes sheet-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+// ---------------------------------------------------------------- visible feedback (the controller's notify())
+
+// The stack: an overlay right under the sheet's bar at its right end, next to the save status - the grid never moves.
+// Newest first, at most three (sheet_toasts.js). Phones: at the bottom, above the safe area.
+.sheet-toasts {
+    position: fixed;
+    top: 4.5rem;
+    right: .75rem;
+    z-index: $zindex-toast;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .5rem;
+    width: min(26rem, calc(100vw - 1.5rem));
+    pointer-events: none;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.participants-sheet-bar .sheet-toasts {
+    position: absolute;
+    top: calc(100% + .5rem);
+    right: .5rem;
+}
+
+// Inside a modal dialog (the page behind it is inert): at the bottom of the window
+.sheet-toasts-dialog {
+    top: auto;
+    right: 0;
+    bottom: 1rem;
+    left: 0;
+    align-items: center;
+    margin: 0 auto;
+}
+
+.sheet-toast {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    max-width: 100%;
+    padding: .5rem .5rem .5rem .75rem;
+    border: 1px solid $sheet-line;
+    border-left-width: 4px;
+    border-radius: $border-radius;
+    background-color: $white;
+    color: $gray-900;
+    font-size: $font-size-sm;
+    line-height: 1.4;
+    box-shadow: 0 .5rem 1.5rem rgba($black, .18);
+    pointer-events: auto;
+    animation: sheet-toast-in .16s ease-out;
+
+    .sheet-toast-icon {
+        flex: none;
+        margin-top: .0625rem;
+    }
+
+    .sheet-toast-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .sheet-toast-action {
+        flex: none;
+        min-height: 24px;
+        padding: 0 .25rem;
+        font-size: inherit;
+        font-weight: $font-weight-semibold;
+        line-height: inherit;
+    }
+
+    .sheet-toast-close {
+        flex: none;
+        // 24 px target (WCAG 2.5.8)
+        width: 1.5rem;
+        height: 1.5rem;
+        padding: 0;
+        background-size: .625rem;
+    }
+
+    // Pointing at its cell (desktop): placed by the script under the cell (above it on the last rows)
+    &.is-anchored {
+        position: fixed;
+        z-index: $zindex-toast;
+        width: max-content;
+        max-width: min(22rem, calc(100vw - 1rem));
+
+        &::before {
+            position: absolute;
+            top: -6px;
+            left: var(--sheet-toast-arrow, 1rem);
+            width: 10px;
+            height: 10px;
+            margin-left: -5px;
+            border-top: 1px solid $sheet-line;
+            border-left: 1px solid $sheet-line;
+            background-color: $white;
+            content: '';
+            transform: rotate(45deg);
+        }
+
+        &.is-above::before {
+            top: auto;
+            bottom: -6px;
+            transform: rotate(225deg);
+        }
+    }
+}
+
+.sheet-toast-error {
+    border-left-color: $danger;
+
+    .sheet-toast-icon {
+        color: $sheet-danger-text;
+    }
+}
+
+.sheet-toast-warning {
+    border-left-color: $warning;
+
+    .sheet-toast-icon {
+        color: $sheet-warning-text;
+    }
+}
+
+.sheet-toast-info {
+    border-left-color: $sheet-focus;
+
+    .sheet-toast-icon {
+        color: shade-color($sheet-focus, 10%);
+    }
+}
+
+@keyframes sheet-toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(-.25rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .sheet-toasts,
+    .participants-sheet-bar .sheet-toasts {
+        position: fixed;
+        top: auto;
+        right: .5rem;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + .75rem);
+        left: .5rem;
+        flex-direction: column-reverse;
+        align-items: stretch;
+        width: auto;
+    }
+
+    .sheet-toast {
+        align-items: center;
+
+        // 44 px targets on a phone
+        .sheet-toast-action,
+        .sheet-toast-close {
+            min-width: 44px;
+            min-height: 44px;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sheet-toast {
+        animation: none;
+    }
+}
+
+// ---------------------------------------------------------------- main area
+
+.sheet-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.sheet-problems {
+    margin-bottom: .5rem;
+    padding: .5rem .75rem;
+    border: 1px solid $warning;
+    border-radius: $border-radius;
+    background-color: rgba($warning, .08);
+
+    .sheet-problems-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+        color: $sheet-warning-text;
+    }
+
+    .sheet-problems-list {
+        max-height: 30vh;
+        margin-top: .25rem;
+        overflow-y: auto;
+    }
+
+    .sheet-problem {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .25rem .75rem;
+        padding: .375rem 0;
+        border-top: 1px solid rgba($warning, .35);
+        font-size: $font-size-sm;
+    }
+
+    .sheet-problem-text {
+        flex: 1 1 18rem;
+    }
+
+    .sheet-problem-actions {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: .25rem;
+
+        .btn {
+            @media (max-width: 767.98px) {
+                min-height: 44px;
+            }
+        }
+    }
+
+    .sheet-problem-conflict .bi,
+    .sheet-problem-refused .bi {
+        color: $sheet-danger-text;
+    }
+}
+
+.sheet-placeholder-view {
+    padding: 1.5rem;
+    border: 1px dashed $sheet-line;
+    border-radius: $border-radius;
+    color: $gray-700;
+}
+
+// ---------------------------------------------------------------- the grid
+
+.sheet-grid-host {
+    min-height: 0;
+}
+
+.sheet-scroller {
+    position: relative;
+    overflow: auto;
+    max-width: 100%;
+    max-height: calc(100dvh - var(--sheet-scroller-top, 10rem) - .75rem);
+    min-height: 12rem;
+    border: 1px solid $sheet-line;
+    border-radius: $border-radius;
+    background-color: $white;
+    // The sticky header row and first column never hide the focused cell (WCAG 2.4.11, technique C43)
+    scroll-padding-top: var(--sheet-head-h, 2.5rem);
+    scroll-padding-left: var(--sheet-first-w, 15rem);
+    overscroll-behavior: contain;
+}
+
+.sheet-grid {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    font-size: .875rem;
+
+    th,
+    td {
+        box-sizing: border-box;
+        height: $sheet-cell-height;
+        max-width: 0;
+        padding: 0 .5rem;
+        overflow: hidden;
+        border-right: 1px solid $sheet-line;
+        border-bottom: 1px solid $sheet-line;
+        background-color: $white;
+        color: $gray-900;
+        font-weight: $font-weight-normal;
+        text-align: left;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle;
+        cursor: cell;
+    }
+
+    thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        height: auto;
+        padding-top: .25rem;
+        padding-bottom: .25rem;
+        background-color: $sheet-head-bg;
+        color: $gray-800;
+        font-weight: $font-weight-semibold;
+        line-height: 1.2;
+        white-space: normal;
+        vertical-align: bottom;
+        cursor: s-resize;
+        user-select: none;
+    }
+
+    // The first column (the row header) stays while scrolling sideways
+    tr > :first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        box-shadow: 1px 0 0 $sheet-line;
+    }
+
+    thead tr > :first-child {
+        z-index: 4;
+    }
+
+    tbody tr > :first-child {
+        background-color: $gray-100;
+        font-weight: $font-weight-medium;
+    }
+
+    // The focused cell: a ring that is not colour alone (2 px, 6:1 against white)
+    td:focus,
+    th:focus,
+    td:focus-within,
+    th:focus-within {
+        outline: 2px solid $sheet-focus;
+        outline-offset: -2px;
+    }
+
+    .is-selected {
+        background-color: rgba($sheet-focus, .12);
+    }
+
+    tbody tr > .is-selected:first-child {
+        background-color: mix($sheet-focus, $gray-100, 14%);
+    }
+
+    [aria-readonly='true'] {
+        color: $gray-700;
+    }
+
+    .sheet-kind-readonly {
+        background-color: $gray-100;
+        cursor: default;
+    }
+
+    .sheet-kind-action {
+        cursor: pointer;
+    }
+
+    .sheet-kind-checkbox {
+        text-align: center;
+    }
+
+    .sheet-check {
+        width: 1.125rem;
+        height: 1.125rem;
+        margin: 0;
+        vertical-align: middle;
+        cursor: pointer;
+
+        &:focus {
+            box-shadow: none;
+        }
+    }
+
+    .is-editing {
+        color: transparent;
+    }
+
+}
+
+// A round's column header: the colour and the name, the kind below it (names wrap - never cut to "Gro…")
+.sheet-round-head {
+    display: inline-grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: .375rem;
+    max-width: 100%;
+
+    .sheet-round-name {
+        overflow-wrap: anywhere;
+    }
+
+    .sheet-round-kind {
+        grid-column: 2;
+        color: $gray-600;
+        font-size: .75rem;
+        font-weight: $font-weight-normal;
+    }
+}
+
+// ---------------------------------------------------------------- markers (icon + word)
+
+.sheet-marker {
+    display: inline-flex;
+    align-items: center;
+    gap: .125rem;
+    margin-left: .375rem;
+    font-size: .75rem;
+    vertical-align: middle;
+
+    .sheet-marker-text {
+        font-weight: $font-weight-semibold;
+    }
+}
+
+.sheet-marker-saving,
+.sheet-marker-waiting {
+    color: $gray-600;
+}
+
+.sheet-marker-saving .bi {
+    display: inline-block;
+    animation: sheet-spin 1.2s linear infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
+}
+
+.sheet-marker-waiting {
+    color: $sheet-warning-text;
+}
+
+.sheet-marker-conflict,
+.sheet-marker-refused {
+    color: $sheet-danger-text;
+}
+
+.sheet-marker-warning {
+    color: $sheet-warning-text;
+}
+
+.has-marker-conflict,
+.has-marker-refused {
+    box-shadow: inset 3px 0 0 $danger;
+}
+
+.has-marker-warning {
+    box-shadow: inset 3px 0 0 $warning;
+}
+
+.sheet-attention {
+    color: $sheet-warning-text;
+}
+
+.sheet-muted {
+    color: $gray-600;
+}
+
+.sheet-placeholder {
+    color: $gray-600;
+    font-style: italic;
+    font-weight: $font-weight-normal;
+}
+
+.sheet-badge {
+    display: inline-block;
+    margin-left: .375rem;
+    padding: 0 .375rem;
+    border-radius: 1rem;
+    font-size: .6875rem;
+    font-weight: $font-weight-semibold;
+    vertical-align: middle;
+}
+
+.sheet-badge-waitlist {
+    background-color: rgba($warning, .2);
+    color: $sheet-warning-text;
+}
+
+.sheet-badge-joined {
+    background-color: rgba($accent, .1);
+    color: shade-color($accent, 20%);
+}
+
+.sheet-row-new > :first-child {
+    background-color: $white;
+}
+
+.sheet-avatar {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: .375rem;
+    border-radius: 50%;
+    object-fit: cover;
+    vertical-align: middle;
+}
+
+.sheet-avatar-icon {
+    margin-right: .375rem;
+    color: $gray-500;
+}
+
+.sheet-profile-link {
+    margin-left: .25rem;
+    color: $gray-700;
+}
+
+// ---------------------------------------------------------------- the editor and its list
+
+.sheet-editor {
+    position: absolute;
+    z-index: 6;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 .5rem;
+    border: 2px solid $sheet-focus;
+    border-radius: 0;
+    background-color: $white;
+    color: $gray-900;
+    // 16 px: iOS does not zoom into it
+    font-size: 16px;
+    outline: none;
+    box-shadow: 0 .25rem .75rem rgba($black, .12);
+
+    &[aria-invalid='true'] {
+        border-color: $danger;
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.sheet-editor-error {
+    position: absolute;
+    z-index: 7;
+    padding: .25rem .5rem;
+    border: 1px solid $danger;
+    border-radius: 0 0 $border-radius $border-radius;
+    background-color: $white;
+    color: $sheet-danger-text;
+    font-size: $font-size-sm;
+    box-shadow: 0 .25rem .75rem rgba($black, .12);
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// "Changed meanwhile to X · Keep mine / Use theirs" next to an open editor (a live change of the cell being edited)
+.sheet-editor-notice {
+    position: absolute;
+    z-index: 7;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .125rem .5rem;
+    padding: .25rem .5rem;
+    border: 1px solid $warning;
+    border-radius: 0 0 $border-radius $border-radius;
+    background-color: $white;
+    color: $body-color;
+    font-size: $font-size-sm;
+    box-shadow: 0 .25rem .75rem rgba($black, .12);
+
+    &[hidden] {
+        display: none;
+    }
+
+    .sheet-editor-notice-action {
+        padding: 0;
+        font-size: inherit;
+        // 24 px targets (WCAG 2.5.8) on a dense sheet
+        min-height: 24px;
+    }
+}
+
+.sheet-listbox {
+    position: absolute;
+    z-index: 7;
+    max-height: 16rem;
+    margin: 0;
+    padding: .25rem 0;
+    overflow-y: auto;
+    border: 1px solid $sheet-line;
+    border-radius: 0 0 $border-radius $border-radius;
+    background-color: $white;
+    list-style: none;
+    box-shadow: 0 .5rem 1rem rgba($black, .15);
+
+    &[hidden] {
+        display: none;
+    }
+
+    // Flipped above the cell (the last rows): the shadow and the rounded corners face up
+    &.is-above {
+        border-radius: $border-radius $border-radius 0 0;
+        box-shadow: 0 -.5rem 1rem rgba($black, .15);
+    }
+}
+
+.sheet-option {
+    padding: .375rem .75rem;
+    color: $gray-900;
+    font-size: $font-size-sm;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &.is-active,
+    &:hover {
+        background-color: rgba($sheet-focus, .12);
+        box-shadow: inset 3px 0 0 $sheet-focus;
+    }
+
+    .sheet-option-detail {
+        color: $gray-600;
+    }
+}
+
+.sheet-option-create,
+.sheet-option-action {
+    border-top: 1px solid $sheet-line;
+    color: shade-color($accent, 10%);
+    font-weight: $font-weight-medium;
+}
+
+.sheet-listbox-status {
+    position: absolute;
+    z-index: 7;
+    padding: .375rem .75rem;
+    border: 1px solid $sheet-line;
+    background-color: $white;
+    color: $gray-700;
+    font-size: $font-size-sm;
+    box-shadow: 0 .5rem 1rem rgba($black, .15);
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// The hidden textarea the clipboard shortcuts run in (WebKit fires no clipboard event on a table cell)
+.sheet-clipboard {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    overflow: hidden;
+    resize: none;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// ---------------------------------------------------------------- dialogs
+
+.sheet-preview,
+.sheet-help {
+    width: min(44rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 0;
+    border: 0;
+    border-radius: $border-radius-lg;
+    box-shadow: 0 1rem 3rem rgba($black, .25);
+
+    &::backdrop {
+        background-color: rgba($black, .4);
+    }
+
+    @media (max-width: 767.98px) {
+        width: 100vw;
+        max-width: 100vw;
+        height: 100dvh;
+        max-height: 100dvh;
+        margin: 0;
+        border-radius: 0;
+    }
+}
+
+.sheet-preview-form {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 2rem);
+}
+
+.sheet-preview-head,
+.sheet-help-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem .75rem;
+    border-bottom: 1px solid $sheet-line;
+}
+
+.sheet-preview-body,
+.sheet-help-body {
+    flex: 1 1 auto;
+    padding: 1rem 1.25rem;
+    overflow-y: auto;
+}
+
+.sheet-preview-foot {
+    padding: .75rem 1.25rem 1rem;
+    border-top: 1px solid $sheet-line;
+
+    .sheet-preview-message {
+        margin-bottom: .5rem;
+        color: $sheet-danger-text;
+
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    .btn {
+        @media (max-width: 767.98px) {
+            min-height: 44px;
+        }
+    }
+}
+
+.sheet-preview-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .25rem .75rem;
+    padding: .375rem 0;
+    border-bottom: 1px solid $gray-200;
+    font-size: $font-size-sm;
+
+    .sheet-preview-status {
+        flex: none;
+        min-width: 6.5rem;
+        font-weight: $font-weight-semibold;
+    }
+
+    .sheet-preview-text {
+        flex: 1 1 14rem;
+    }
+
+    .sheet-preview-controls {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+}
+
+.sheet-preview-new .sheet-preview-status {
+    color: shade-color($success, 45%);
+}
+
+.sheet-preview-change .sheet-preview-status {
+    color: shade-color($accent, 10%);
+}
+
+.sheet-preview-warning .sheet-preview-status,
+.sheet-preview-skip .sheet-preview-status {
+    color: $sheet-warning-text;
+}
+
+.sheet-preview-error .sheet-preview-status {
+    color: $sheet-danger-text;
+}
+
+// The Help dialog: task help (two columns where there is room), then the shortcuts; the head stays, the body scrolls
+.sheet-help[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.sheet-help-tasks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: .75rem 1.5rem;
+
+    h4 {
+        font-size: $font-size-base;
+        font-weight: $font-weight-semibold;
+    }
+}
+
+.sheet-help {
+    kbd {
+        background-color: $gray-800;
+        font-size: .75rem;
+        white-space: normal;
+    }
+
+    th {
+        width: 40%;
+        font-weight: $font-weight-normal;
+    }
+}

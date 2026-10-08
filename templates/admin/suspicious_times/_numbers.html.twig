@@ -9,10 +9,16 @@
     marked_outside_app: 'Flagged outside the app',
     unmarked_outside_app: 'Unflagged outside the app',
     pieces_confirmed: 'Piece count is right',
+    slow_threshold_set: 'Hard puzzle - slow threshold set',
+    slow_threshold_removed: 'Hard puzzle no more',
 } %}
-<p class="text-muted small">
-    What the next threshold change is judged by. "Marked" counts cases marked now plus those the player fixed after the
-    mark (the mark was right); precision = marked of the decided cases.
+{% set reason_labels = {} %}
+{% for reason_code in reason_codes %}
+    {% set reason_labels = reason_labels|merge({(reason_code.value): reason_code.moderatorLabel}) %}
+{% endfor %}
+<p class="small">
+    "Marked" counts cases marked now plus those the player fixed after the mark (the mark was right); precision = marked
+    of the decided cases.
 </p>
 
 <h2 class="h5">By detector version</h2>
@@ -66,8 +72,14 @@
         <tbody>
             {% for row in numbers.byReason %}
                 <tr>
-                    <td><code>{{ row.code }}</code></td>
-                    <td>{{ row.trigger ? 'trigger' : 'explanation' }}{% if not row.shown_to_player %} <span class="text-muted">(moderators only)</span>{% endif %}</td>
+                    <td>
+                        {{ reason_labels[row.code] ?? row.code }}
+                        <code class="d-block fs-xs">{{ row.code }}</code>
+                    </td>
+                    <td>
+                        {{ row.trigger ? 'Trigger' : 'Explanation' }}
+                        {% if not row.shown_to_player %}<div class="text-muted fs-xs"><i class="bi bi-eye-slash me-1" aria-hidden="true"></i>only moderators see it</div>{% endif %}
+                    </td>
                     <td class="text-end">{{ row.raised }}</td>
                     <td class="text-end">{{ row.pending }}</td>
                     <td class="text-end">{{ row.marked }}</td>

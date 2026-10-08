@@ -23,7 +23,7 @@ final class SecretPuzzleRouteCanaryTest extends KernelTestCase
         '_api_/v1/me/puzzles/{puzzleId}/predicted-time_get' => 'numbers only, no name or picture (the 200 is a known existence signal, docs/TODO.md)',
         'admin_puzzle_approval_detail' => 'admins and moderators only; GetPuzzleApprovals leaves secret puzzles out, so the page is a 404',
         'admin_merge_unapproved_puzzle' => 'admins and moderators only; merges of a secret puzzle are refused (PuzzleIsStillSecret)',
-        'admin_time_verification_confirm_pieces' => 'admins and moderators only, POST; a secret puzzle has no card (GetSuspiciousTimeQueue leaves its times out) and is refused (PuzzleIsStillSecret)',
+        'admin_time_verification_slow_threshold' => 'admins and moderators only, POST; a secret puzzle has no card (GetSuspiciousTimeQueue leaves its times out) and is refused (PuzzleIsStillSecret)',
         'first_try_conflict_resolve' => 'POST on the player\'s own results only - nothing can be recorded before the reveal',
         'legacy_add_time' => '301 to puzzle_add, which is guarded',
         'puzzle_detail_qr' => '301 to puzzle_detail, which is guarded',

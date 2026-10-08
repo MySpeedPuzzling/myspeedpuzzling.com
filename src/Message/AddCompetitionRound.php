@@ -25,6 +25,9 @@ readonly final class AddCompetitionRound
         public null|string $resultsLink = null,
         // Minutes after the start when the round's secret puzzles with an automatic reveal come out (RoundPuzzleReveal)
         public int $revealDelayMinutes = RoundPuzzleReveal::DEFAULT_DELAY_MINUTES,
+        // The expected size of a team round's teams (CompetitionRound::TEAM_SIZE_MIN..TEAM_SIZE_MAX), null = not set;
+        // ignored for solo and pair rounds
+        public null|int $teamSize = null,
     ) {
     }
 }

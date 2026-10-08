@@ -205,7 +205,7 @@ routes the viewer may use (voters `COMPETITION_EDIT`, `COMPETITION_DELETE`, `COM
 `COMPETITION_SERIES_DELETE`, which read `GetCompetitionPermissions::forPlayer()` once per request):
 
 - Event / edition: Edit event (`edit_competition`), Rounds & puzzles (`manage_competition_rounds`), Participants
-  (`manage_competition_participants`), Results (`competition_results_overview`, when it has rounds), Page content
+  (`participants_sheet`), Results (`competition_results_overview`, when it has rounds), Page content
   (`manage_competition_page`), Delete (`delete_competition` / `delete_competition_edition`, owner only).
 - Series: Manage series (`manage_competition_series`), Add edition (`add_edition`), Page content
   (`manage_series_page`), Delete series (`delete_competition_series`, owner only).

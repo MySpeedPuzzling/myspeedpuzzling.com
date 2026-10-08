@@ -77,6 +77,9 @@ final class UpdateCompetitionRoundController extends AbstractController
                 keepFields: self::keptFields($input),
                 // Left out = null = the round's delay as it is under the handler's lock
                 revealDelayMinutes: $input->has('revealDelayMinutes') ? $data->revealDelayMinutes : null,
+                // Left out = kept as the round has it under the handler's lock; `null` takes it away
+                teamSize: $input->has('teamSize') ? $data->teamSize : null,
+                clearTeamSize: $input->has('teamSize') && $data->teamSize === null,
             ));
         } catch (HandlerFailedException $exception) {
             $previous = $exception->getPrevious();

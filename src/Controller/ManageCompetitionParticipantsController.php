@@ -4,27 +4,22 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\FormData\ExcelImportFormData;
-use SpeedPuzzling\Web\FormType\ExcelImportFormType;
-use SpeedPuzzling\Web\Query\GetCompetitionEvents;
-use SpeedPuzzling\Web\Query\GetCompetitionParticipantsForManagement;
-use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Value\ReturnQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * The old participants page - retired for the participants spreadsheet's People tab
+ * (docs/features/competitions-management/participants-spreadsheet.md D12). Bookmarks and old links land on the sheet;
+ * nobody else learns anything they could not before (the event's organisers only).
+ */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ManageCompetitionParticipantsController extends AbstractController
 {
-    public function __construct(
-        private readonly GetCompetitionEvents $getCompetitionEvents,
-        private readonly GetCompetitionRounds $getCompetitionRounds,
-        private readonly GetCompetitionParticipantsForManagement $getParticipants,
-    ) {
-    }
-
     #[Route(
         path: [
             'cs' => '/sprava-ucastniku-udalosti/{competitionId}',
@@ -36,21 +31,11 @@ final class ManageCompetitionParticipantsController extends AbstractController
         ],
         name: 'manage_competition_participants',
     )]
-    public function __invoke(string $competitionId): Response
+    public function __invoke(Request $request, string $competitionId): RedirectResponse
     {
         $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
-        $competition = $this->getCompetitionEvents->byId($competitionId);
-        $rounds = $this->getCompetitionRounds->ofCompetition($competitionId);
-        $participants = $this->getParticipants->all($competitionId);
-
-        $importForm = $this->createForm(ExcelImportFormType::class, new ExcelImportFormData());
-
-        return $this->render('manage_competition_participants.html.twig', [
-            'competition' => $competition,
-            'roundCount' => count($rounds),
-            'participantCount' => count($participants),
-            'import_form' => $importForm,
-        ]);
+        // A validated `?return=` goes along - the sheet's back link goes where the old page's went
+        return $this->redirectToRoute('participants_sheet', ['competitionId' => $competitionId] + ReturnQuery::from($request));
     }
 }

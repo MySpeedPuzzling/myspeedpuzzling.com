@@ -15,14 +15,12 @@ use SpeedPuzzling\Web\Exceptions\InvalidRegistrationSettings;
 use SpeedPuzzling\Web\Exceptions\ParticipantIsWaitlisted;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotManaged;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotOpen;
-use SpeedPuzzling\Web\Message\AddCompetitionParticipant;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\CheckInParticipant;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Message\MarkParticipantPaid;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
-use SpeedPuzzling\Web\Message\RestoreCompetitionParticipant;
 use SpeedPuzzling\Web\Message\UndoParticipantCheckIn;
 use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
@@ -304,20 +302,6 @@ final class CompetitionRegistrationTest extends KernelTestCase
         ));
     }
 
-    public function testOrganiserAddedParticipantHoldsASpotEvenAboveTheCapacity(): void
-    {
-        $this->manage(capacity: 1);
-        $this->join(PlayerFixture::PLAYER_REGULAR);
-
-        $this->messageBus->dispatch(new AddCompetitionParticipant(self::EVENT, 'Listed By Hand', 'cz', null, null));
-
-        $added = $this->database->fetchOne(
-            'SELECT registration_status FROM competition_participant WHERE competition_id = :id AND name = :name',
-            ['id' => self::EVENT, 'name' => 'Listed By Hand'],
-        );
-        self::assertSame(RegistrationStatus::Reserved->value, $added);
-    }
-
     public function testSwitchingManagementOffMakesTheWaitlistGoingAndTellsThem(): void
     {
         $this->manage(capacity: 1, entryFee: '10 EUR', paymentInstructions: 'Bank 123/0100');
@@ -375,20 +359,13 @@ final class CompetitionRegistrationTest extends KernelTestCase
 
     /**
      * Belt and braces for rows that are waitlisted on an event without management anyway (written by SQL, or before the
-     * switch-off covered removed rows): coming back - joining again or the organiser's restore - makes them going.
+     * switch-off covered removed rows): coming back by joining again makes them going (the organiser's restore in the
+     * participants spreadsheet does the same - its write path's tests).
      */
     public function testAWaitlistedRowComingBackOnAnEventWithoutManagementIsGoing(): void
     {
         $this->join(PlayerFixture::PLAYER_ADMIN);
         $rowId = $this->rowOf(PlayerFixture::PLAYER_ADMIN)->id->toString();
-        $this->database->executeStatement(
-            "UPDATE competition_participant SET registration_status = 'waitlisted', deleted_at = NOW() WHERE id = :id",
-            ['id' => $rowId],
-        );
-        self::getContainer()->get(EntityManagerInterface::class)->clear();
-
-        $this->messageBus->dispatch(new RestoreCompetitionParticipant(self::EVENT, $rowId));
-        self::assertSame(RegistrationStatus::Reserved, $this->rowOf(PlayerFixture::PLAYER_ADMIN)->registrationStatus);
 
         $this->database->executeStatement(
             "UPDATE competition_participant SET registration_status = 'waitlisted', deleted_at = NOW() WHERE id = :id",

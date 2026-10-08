@@ -32,10 +32,12 @@ final class ResolveAnnouncementModal implements ResetInterface
     public const int COOLDOWN_DAYS = 14;
 
     /**
-     * Pages in the middle of something: paying, signing in, timing a puzzle, filling a form. A modal
-     * skipped here is not lost - it waits for the next page that can take the interruption.
+     * Pages in the middle of something: paying, signing in, timing a puzzle, filling a form, running an
+     * event (the organisers' tools - an offer over the participants sheet or the results desk on event
+     * day is in the way). A modal skipped here is not lost - it waits for the next page that can take
+     * the interruption.
      */
-    private const array QUIET_ROUTES = [
+    public const array QUIET_ROUTES = [
         'membership', 'buy_membership', 'billing_portal', 'stripe_checkout_success', 'claim_voucher',
         'free_trial_started',
         'login', 'logout', 'register', 'registration_welcome', 'getting_started', 'verify_email',
@@ -45,6 +47,8 @@ final class ResolveAnnouncementModal implements ResetInterface
         'social_register_confirm', 'oauth2_authorize', 'oauth2_device_code', 'claim_oauth2_credentials',
         'edit_profile', 'puzzle_add', 'legacy_add_time', 'edit_time', 'delete_time', 'added_time_recap',
         'stopwatch', 'stopwatch_puzzle', 'finish_stopwatch', 'round_stopwatch', 'manage_round_stopwatch',
+        'participants_sheet', 'results_desk', 'round_seating', 'live_results', 'competition_results_overview',
+        'competition_check_in', 'competition_name_tags',
     ];
 
     private bool $resolved = false;

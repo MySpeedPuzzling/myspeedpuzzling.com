@@ -45,7 +45,7 @@
 </head>
 <body>
     <form class="controls" method="get" action="{{ path('competition_name_tags', {competitionId: competition.id}) }}">
-        <a href="{{ path('manage_competition_participants', {competitionId: competition.id}) }}">&larr; {{ 'name_tags.back'|trans }}</a>
+        <a href="{{ path('participants_sheet', {competitionId: competition.id}) }}">&larr; {{ 'name_tags.back'|trans }}</a>
         <label>
             {{ 'name_tags.round'|trans }}
             <select name="round" onchange="this.form.submit()">

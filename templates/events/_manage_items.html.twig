@@ -59,7 +59,7 @@
         {%- set links = [
             {label: 'events_organizer.menu.edit_event', url: path('edit_competition', {competitionId: item.id}|merge(back))},
             {label: 'events_organizer.menu.rounds', url: path('manage_competition_rounds', {competitionId: item.id}|merge(back))},
-            {label: 'events_organizer.menu.participants', url: path('manage_competition_participants', {competitionId: item.id}|merge(back))},
+            {label: 'events_organizer.menu.participants', url: path('participants_sheet', {competitionId: item.id}|merge(back))},
         ] -%}
         {%- if item.roundCount > 0 -%}
             {%- set links = links|merge([{label: 'events_organizer.menu.results', url: path('competition_results_overview', {competitionId: item.id}|merge(back))}]) -%}

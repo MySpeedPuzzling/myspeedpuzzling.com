@@ -127,7 +127,7 @@ Thresholds are constants of `SuspiciousTimeClassifier` and part of its `VERSION`
 ### The piece count is wrong
 
 A **puzzle card** in the queue groups a puzzle's pending cases of one direction - "Several players are much faster here
-than usual - is the piece count right?" - when either
+than usual - which is it?" - when either
 
 - **≥ 2 different players are raised on it and their raised results are ≥ 20 % of its comparable results** (its
   results of the types raised - solo; pair/team below the slow floor - as `puzzle_statistics` counts them, flagged ones
@@ -135,10 +135,34 @@ than usual - is the piece count right?" - when either
   slow cards on the production copy, 1 and 12 with it); or
 - its `difficulty_score` is below 0.5 (fast) or above 2.0 (slow - a catalogued count too low makes everybody slow),
 
-unless a moderator confirmed its current piece count. Actions: fix the puzzle (the moderator's direct edit) - the piece
-count is part of each time's fingerprint, so the next run re-checks all of the puzzle's times and the cases close by
-themselves - or "the piece count is right", after which the cases go on one by one. The catalogue error of Player I
-would have ended here instead of on the player.
+and offers: **the piece count is wrong** - edit the puzzle (the moderator's direct edit); the piece count is part of
+each time's fingerprint, so the next run re-checks all of the puzzle's times and the cases close by themselves; **it is
+a hard puzzle** (slow cards, below); or **neither** - every case of the card is a full case card inside it, decided
+like any other (since 2026-10-08 - before, its cases could only be decided after "the piece count is right" broke the
+card up, which nobody understood). The catalogue error of Player I would have ended here instead of on the player.
+
+### A hard puzzle (moderator's slow threshold, 2026-10-08)
+
+Some puzzles take everybody many times longer than their piece count suggests - all of one colour (Krypt Black, 736
+pieces: solo median 10:24:12, fastest 6:50:28), "impossible" puzzles, expert editions. Their puzzle difficulty is
+usually unknown (too few first attempts by players with a baseline - Krypt Black had 4, `confidence = insufficient`),
+so every solver lands 5-13× above their own times. On production 2026-10-08 the slow cards were nearly all such
+puzzles (Krypt Black 10 cases, Krypt Universe Glow, Krypt Pink, Frozen 2 Impossible, The Clearly Impossible Puzzle,
+Stitch Challenge, Jan van Haasteren Expert ...).
+
+A moderator gives such a puzzle a **slow threshold** on its card: "too slow here only from N× the expected time"
+(3-100, prefilled a quarter above the slowest line of the card). It is the moderators' own call, not the computed
+difficulty, and applies to every slow rule of the puzzle's times: the prediction's 3×, the baseline / pace 5× and the
+community floor's 10× (pair/team results, new players) become max(rule, N); strong from max(10, 2N); "the prediction
+was built on a far too slow attempt" uses the same bar. **Fast rules never change.** Bound to the piece count it was
+given for (a fix of the count lapses it). Without a threshold nothing differs, so it is no new detector version.
+
+Saving it (`SetPuzzleSlowThreshold`, logged `slow_threshold_set` / `slow_threshold_removed` with the threshold and the
+one before) judges the puzzle's undecided times again right away (`DetectSuspiciousTimes` with `onlyPuzzleId` - its
+candidates only, the stored references, nothing reconciled): the cases within the new bar are gone, the flash says how
+many closed and how many still need a look. Should that run fail, the next scan does it: a check written in or before
+the second the threshold was set is not current (`suspicious_time_check.checked_at <= confirmed_at`). The add/edit
+form's check reads the threshold too. Times a person decided about stay decided.
 
 ### Too slow (same mechanism)
 
@@ -245,6 +269,14 @@ Page title "Time verification". **Tabs**: **Too fast** · **Too slow** (pending 
   fastest, its other editions); the player (results count, baselines per piece count, pair/team share, other results
   that day); the comment, the finished photo, competition / round; the reasons (moderator-only hints included), the
   suggested time; who was told and what they answered.
+- **Layout (2026-10-08 redesign, `assets/styles/_time-verification.scss`)**: work queues (Too fast, Too slow, Player
+  replied) left, records right, one scrolling row of tabs on a phone; a closed "How deciding works" panel. A card reads
+  top down: whose time on what → the figures (entered + PPM, expected + source in words, how far off, place on the
+  puzzle; a pair/team or new player: what most pairs/teams/puzzlers take and how many times slower) → "Why it is here"
+  (the reasons the player may read are the checkboxes themselves, moderator-only hints follow with an eye-slash) and a
+  grey panel with the player's and the puzzle's numbers → the decision bar (Needs verification / Looks fine, side by
+  side, each with one line saying what happens; the note is folded). A puzzle card offers its choices as option boxes,
+  a compact table of its times with short reason labels (`SuspiciousTimeReasonCode::moderatorLabel()`), then the cases.
 
 **Actions** (POST + CSRF, each a Messenger handler writing the decision log; serialized per case - the handlers read
 the case under its row lock (`SuspiciousTimeCaseRepository::getForUpdate()`), the scan and an edit's re-check take the
@@ -260,8 +292,9 @@ same lock before they write to a case, so nobody writes over a decision taken me
   replies - "The time is correct" and edits that still looked off - are answered `kept` with the note, which reaches the
   review page and the next "Your results" e-mail. A later edit or "The time is correct" asks again: the earlier answer
   makes way for the next one.
-- On a puzzle card: **Fix the puzzle** (the direct edit) / **Piece count is right** (`ConfirmPuzzlePiecesCount` →
-  `suspicious_time_puzzle_confirmation` with the current count).
+- On a puzzle card: **Edit the puzzle** (the direct edit) / **It is a hard puzzle** - slow cards only
+  (`SetPuzzleSlowThreshold` → `suspicious_time_puzzle_confirmation.slow_threshold` for the current count, then the
+  puzzle's times judged again) / every case of the card decided in its own card inside it.
 - **"Changed meanwhile"** (`SuspiciousTimeCaseChanged`, nothing saved, a warning flash): another status than the page
   showed, the time's fingerprint differs from what the moderator saw, a pending case whose time was edited after the
   scan (its reasons are about the old entry - the card says so and offers no action), Keep with nothing left to answer,
@@ -398,8 +431,8 @@ the 10 heaviest players × the 5 most solved puzzles 4.8 / 7.2 ms. With the edit
 | `suspicious_time_reference` | PK (`pieces_range`, `puzzling_type`): `median_ppm`, `p999_ppm`, `sample_size`, `computed_at`. Community pace per piece-count range and type (≥ 30 non-flagged results; a row whose sample falls below keeps its last values), refreshed by every scan |
 | `suspicious_time_case` | One per time a scan raised or a person flagged: `time_id` (unique, FK cascade), `origin` (`detector`/`manual`/`moderator`), `status` (`pending`/`marked`/`trusted`/`corrected`/`gone`), `direction` (null for a flag the scan never raised), `tier`, `score`, `reasons` (jsonb `[{code, params}]`), `expected_seconds`, `expected_source`, `detector_version`, `fingerprint`, `detected_at`, `last_checked_at`, `decided_at`, `decided_by_id` (plain id), `reasons_shown`, `moderator_note`, `marked_at`, `player_edited_at`. Index (`status`, `direction`) |
 | `suspicious_time_notice` | One per person per mark: `case_id` (FK cascade), `player_id` (FK cascade), `marked_at`, `notified_at`, `via` (`run`/`manual_email`), `contact_id` (the e-mail that carried the mark), `response` (`fixed`/`says_correct`/`left_as_is`), `response_text`, `responded_at`, `answer` (`trusted`/`kept`), `answer_note`, `answered_at`, `answer_contact_id`. Unique (`case_id`, `player_id`, `marked_at`) |
-| `suspicious_time_decision` | Append-only log, no FKs: `decision` (`marked`, `trusted`, `unmarked`, `kept_after_reply`, `corrected_automatically`, `unmarked_after_edit`, `marked_outside_app`, `unmarked_outside_app`, `pieces_confirmed`), `decided_at`, `puzzle_id`, `time_id`, `tracker_id`, `case_id`, `reasons_shown`, `note`, `snapshot` (seconds, piece count, expected, version), `decided_by_id/_name/_code` |
-| `suspicious_time_puzzle_confirmation` | "The piece count is right": PK `puzzle_id` (FK cascade), `pieces_count` (lapses when the puzzle's count differs), `confirmed_by_id`, `confirmed_at` |
+| `suspicious_time_decision` | Append-only log, no FKs: `decision` (`marked`, `trusted`, `unmarked`, `kept_after_reply`, `corrected_automatically`, `unmarked_after_edit`, `marked_outside_app`, `unmarked_outside_app`, `slow_threshold_set`, `slow_threshold_removed`; `pieces_confirmed` until 2026-10-08), `decided_at`, `puzzle_id`, `time_id`, `tracker_id`, `case_id`, `reasons_shown`, `note`, `snapshot` (seconds, piece count, expected, version), `decided_by_id/_name/_code` |
+| `suspicious_time_puzzle_confirmation` | A moderator's word about a puzzle - "a hard puzzle": PK `puzzle_id` (FK cascade), `pieces_count` (lapses when the puzzle's count differs), `slow_threshold` (null on the earlier "the piece count is right" rows, which no longer change anything), `confirmed_by_id`, `confirmed_at` (when last set - older checks of its times are not current) |
 | `suspicious_time_confirmation` | "Yes, it's right" in the form: `time_id`, `player_id` (both FK cascade), `expected_seconds` (what the notice compared it with), `confirmed_at` |
 | `result_review_contact.suspicious_notice_ids` | jsonb list next to `case_ids` / `removal_ids`: the notices an e-mail really told |
 
@@ -495,10 +528,10 @@ the bus itself, since Doctrine sees no change.
 **Moderator queue** - `src/Controller/Admin/SuspiciousTimes/*`: `GET /admin/time-verification?tab=&page=`
 (`admin_time_verification`), POST + CSRF (`time-verification-{caseId}`, puzzles `time-verification-puzzle-{puzzleId}`)
 `…/{caseId}/mark` (`admin_time_verification_mark`), `…/{caseId}/trust`, `…/{caseId}/keep`,
-`…/puzzles/{puzzleId}/pieces-count-right` (`admin_time_verification_confirm_pieces`); every action redirects back to
+`…/puzzles/{puzzleId}/slow-threshold` (`admin_time_verification_slow_threshold`, `remove` takes it away); every action redirects back to
 its tab and page with a flash. Messages `MarkSolvingTimeSuspicious`, `TrustSolvingTime`, `KeepSolvingTimeSuspicious`
 (their handlers read the case with `getForUpdate()` - the row lock the scan and the edit re-check take too),
-`ConfirmPuzzlePiecesCount`. Queries `GetSuspiciousTimeQueue` (tab counts, the menu count over the (`status`,
+`SetPuzzleSlowThreshold` (+ `SuspiciousTimeScan::forPuzzle()` right after). Queries `GetSuspiciousTimeQueue` (tab counts, the menu count over the (`status`,
 `direction`) index, puzzle cards - `CARD_MIN_PLAYERS` 2, `CARD_MIN_SHARE` 0.2, `CARD_EASY_BELOW` 0.5,
 `CARD_HARD_ABOVE` 2.0 - and one page of ids), `GetSuspiciousTimeCaseDetail` (the cards of a page, 5 statements + 1 for
 pair/team people + 1 when a reason names another edition; other results of that day never of a puzzle a competition
@@ -601,6 +634,8 @@ references), documented in `.claude/fixtures.md`.
 10. **Never "suspicious" in anything a person reads** - "Needs verification" / "Awaiting verification".
 11. **The marks existing at go-live were told by hand** - recorded by the go-live option, never by ids in the code
     (the repository is public).
+12. **A hard puzzle gets the moderators' own slow threshold** (2026-10-08) - set by hand on the puzzle, not the
+    computed difficulty; every time of a puzzle card can be decided right in the card.
 
 ## Queries
 

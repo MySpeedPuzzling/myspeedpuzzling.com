@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Value\SuspicionDirection;
 use SpeedPuzzling\Web\Value\SuspiciousTimeCaseOrigin;
 use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
 use SpeedPuzzling\Web\Value\SuspiciousTimeReason;
+use SpeedPuzzling\Web\Value\SuspiciousTimeReasonCode;
 use SpeedPuzzling\Web\Value\SuspiciousTimeTier;
 
 /**
@@ -103,6 +104,37 @@ readonly final class SuspiciousTimeCaseCard
         }
 
         return max($this->expectedSeconds / $this->seconds, $this->seconds / $this->expectedSeconds);
+    }
+
+    /**
+     * A time judged by the community's slow floor (a pair/team, a new player): what most puzzlers take for the piece
+     * count, from its below_slow_floor reason - null for every other case.
+     */
+    public function communityMedianSeconds(): null|int
+    {
+        if ($this->expectedSeconds !== null) {
+            return null;
+        }
+
+        foreach ($this->reasons as $reason) {
+            if ($reason->code === SuspiciousTimeReasonCode::BelowSlowFloor) {
+                $median = $reason->params['median'] ?? null;
+
+                return is_int($median) && $median > 0 ? $median : null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * How many times slower than most puzzlers (communityMedianSeconds()).
+     */
+    public function communityRatio(): null|float
+    {
+        $median = $this->communityMedianSeconds();
+
+        return $median !== null && $this->seconds !== null && $this->seconds > 0 ? $this->seconds / $median : null;
     }
 
     public function isFasterThanExpected(): bool

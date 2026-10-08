@@ -24,7 +24,7 @@ use SpeedPuzzling\Web\Value\SuspiciousTimeTier;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * docs/features/suspicious-time-review.md, "Moderator queue" and "The piece count is wrong".
+ * docs/features/suspicious-time-review.md, "Moderator queue", "The piece count is wrong" and "A hard puzzle".
  */
 final class GetSuspiciousTimeQueueTest extends KernelTestCase
 {
@@ -158,23 +158,27 @@ final class GetSuspiciousTimeQueueTest extends KernelTestCase
         self::assertSame([], $this->queue->puzzleCards(SuspicionDirection::Slow));
     }
 
-    public function testAConfirmedPiecesCountSendsTheCasesBackToTheListUntilItChanges(): void
+    public function testAHardPuzzleKeepsItsCardWithItsThresholdForItsPiecesCount(): void
     {
-        $eda = $this->raiseCopyOf(SuspiciousTimesFixture::TIME_STEADY_FAST, ['player_id' => SuspiciousTimesFixture::PLAYER_EDITION]);
-        $harbour = self::getContainer()->get(PuzzleRepository::class)->get(SuspiciousTimesFixture::PUZZLE_HARBOUR);
-        $this->entityManager->persist(new SuspiciousTimePuzzleConfirmation($harbour, 4000, Uuid::uuid7(), $this->now()));
+        $this->setDifficulty(SuspiciousTimesFixture::PUZZLE_ORCHARD, 2.5);
+        $orchard = self::getContainer()->get(PuzzleRepository::class)->get(SuspiciousTimesFixture::PUZZLE_ORCHARD);
+        $this->entityManager->persist(new SuspiciousTimePuzzleConfirmation($orchard, 520, Uuid::uuid7(), $this->now(), slowThreshold: 60.0));
         $this->entityManager->flush();
 
-        self::assertSame([], $this->queue->puzzleCards(SuspicionDirection::Fast));
-        self::assertEqualsCanonicalizing([SuspiciousTimesFixture::CASE_PENDING_FAST, $eda['caseId']], $this->queue->pending(SuspicionDirection::Fast, 1)->caseIds);
-
-        // The piece count changed - the confirmation was about another one
-        $this->database->executeStatement('UPDATE puzzle SET pieces_count = 3000 WHERE id = :id', ['id' => SuspiciousTimesFixture::PUZZLE_HARBOUR]);
-
-        $cards = $this->queue->puzzleCards(SuspicionDirection::Fast);
+        // A case still raised under the threshold stays in the card - every case of a card is decided right there
+        $cards = $this->queue->puzzleCards(SuspicionDirection::Slow);
         self::assertCount(1, $cards);
-        self::assertSame(3000, $cards[0]->piecesCount);
-        self::assertSame([], $this->queue->pending(SuspicionDirection::Fast, 1)->caseIds);
+        self::assertSame(60.0, $cards[0]->slowThreshold);
+        self::assertSame(60.0, $cards[0]->suggestedSlowThreshold());
+        self::assertSame([SuspiciousTimesFixture::CASE_PENDING_SLOW], self::caseIdsOf($cards[0]));
+
+        // The piece count changed - the threshold was about another one
+        $this->database->executeStatement('UPDATE puzzle SET pieces_count = 500 WHERE id = :id', ['id' => SuspiciousTimesFixture::PUZZLE_ORCHARD]);
+
+        $cards = $this->queue->puzzleCards(SuspicionDirection::Slow);
+        self::assertNull($cards[0]->slowThreshold);
+        // 49:08:00 against the predicted hour - a quarter above, rounded up
+        self::assertSame(62.0, $cards[0]->suggestedSlowThreshold());
     }
 
     public function testAPuzzleFarOffItsUsualDifficultyMakesACardOnItsOwn(): void

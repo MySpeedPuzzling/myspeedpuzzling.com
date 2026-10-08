@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DBALException;
 use Generator;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\SuspicionCandidate;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspicionFingerprint;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeClassifier;
@@ -18,14 +19,16 @@ use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
 
 /**
  * The times the suspicious time scan checks (docs/features/suspicious-time-review.md, "Checks and versions"):
- * without a check, checked by another detector version, a different entry since (fingerprint), or no_data and solved
- * recently enough to be judged once the player has a level - but never a time a person decided about (a marked or
- * trusted case) while its fingerprint is unchanged. Flagged times are not classified - the flag reconciliation
+ * without a check, checked by another detector version, a different entry since (fingerprint), checked before a
+ * moderator last set the puzzle's slow threshold, or no_data and solved recently enough to be judged once the player
+ * has a level - but never a time a person decided about (a marked or trusted case) while its fingerprint is unchanged.
+ * Optionally one puzzle only (right after its slow threshold changed): every time of it nobody decided about. Flagged times are not classified - the flag reconciliation
  * handles them. Results with a time only; pair/team results too (judged by the slow floor only).
  *
  * Each solo candidate carries what the classifier needs except the pace: the stored prediction (predictable = true)
  * with the attempt a personal one was built on, the player's baseline for the piece count and the puzzle's difficulty
- * when its confidence is not insufficient. Only for a time far faster than a personal prediction: whether an earlier
+ * when its confidence is not insufficient; every candidate carries the puzzle's slow threshold while it is for the
+ * puzzle's current piece count. Only for a time far faster than a personal prediction: whether an earlier
  * attempt of the puzzle has a pending or marked slow case (the prediction may be inflated by it) - a lookup for a few
  * hundred rows, CASE evaluates it for no other.
  *
@@ -46,12 +49,12 @@ readonly final class GetSuspiciousTimeCandidates
     /**
      * @return Generator<int, list<SuspicionCandidate>> batches of whole players, at least $batchSize times each (but the last)
      */
-    public function batches(int $version, DateTimeImmutable $noDataSince, int $batchSize): Generator
+    public function batches(int $version, DateTimeImmutable $noDataSince, int $batchSize, null|string $onlyPuzzleId = null): Generator
     {
         $batch = [];
         $lastPlayerId = null;
 
-        foreach ($this->rows($version, $noDataSince) as $row) {
+        foreach ($this->rows($version, $noDataSince, $onlyPuzzleId) as $row) {
             $candidate = self::candidate($row);
 
             if (count($batch) >= $batchSize && $candidate->playerId !== $lastPlayerId) {
@@ -101,8 +104,12 @@ SQL;
     /**
      * @return Generator<int, array<string, mixed>>
      */
-    private function rows(int $version, DateTimeImmutable $noDataSince): Generator
+    private function rows(int $version, DateTimeImmutable $noDataSince, null|string $onlyPuzzleId): Generator
     {
+        if ($onlyPuzzleId !== null && !Uuid::isValid($onlyPuzzleId)) {
+            return;
+        }
+
         $fingerprint = SuspicionFingerprint::sql('pst', 'p');
         $decided = implode(', ', array_map(
             fn (SuspiciousTimeCaseStatus $status): string => $this->database->quote($status->value),
@@ -117,6 +124,19 @@ SQL;
         $fastFrom = SuspiciousTimeClassifier::PREDICTION_RAISE_RATIO;
         // Inlined: a cursor declaration takes no bind parameters - an int and a formatted date, nothing a player typed
         $since = $this->database->quote($noDataSince->format('Y-m-d H:i:s'));
+        // One puzzle (a UUID, checked above): every time of it a person has not decided - its checks may be fresh
+        $onlyPuzzle = $onlyPuzzleId !== null ? 'AND pst.puzzle_id = ' . $this->database->quote(strtolower($onlyPuzzleId)) : '';
+        // The rest: a time without a current check. Checked in the very second the threshold was set counts as before
+        // it - a run started then may have read the puzzle without it (timestamps are whole seconds)
+        $notCurrent = $onlyPuzzleId !== null ? '' : <<<SQL
+    AND (
+        c.time_id IS NULL
+        OR c.version <> {$version}
+        OR c.fingerprint <> {$fingerprint}
+        OR c.checked_at <= conf.confirmed_at
+        OR (c.outcome = {$noData} AND COALESCE(pst.finished_at, pst.tracked_at) >= {$since})
+    )
+SQL;
 
         $query = <<<SQL
 SELECT
@@ -148,6 +168,7 @@ SELECT
     END AS previous_attempt_raised_slow,
     CASE WHEN pst.puzzling_type = 'solo' THEN pb.baseline_seconds END AS baseline_seconds,
     CASE WHEN pst.puzzling_type = 'solo' AND pd.confidence <> 'insufficient' THEN pd.difficulty_score END AS difficulty_score,
+    CASE WHEN conf.pieces_count = p.pieces_count THEN conf.slow_threshold END AS slow_threshold,
     {$fingerprint} AS fingerprint,
     sc.id AS case_id,
     sc.status AS case_status
@@ -157,15 +178,12 @@ LEFT JOIN suspicious_time_check c ON c.time_id = pst.id
 LEFT JOIN suspicious_time_case sc ON sc.time_id = pst.id
 LEFT JOIN player_baseline pb ON pb.player_id = pst.player_id AND pb.pieces_count = p.pieces_count
 LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = pst.puzzle_id
+LEFT JOIN suspicious_time_puzzle_confirmation conf ON conf.puzzle_id = pst.puzzle_id
 WHERE pst.seconds_to_solve > 0
     AND pst.suspicious = false
     AND p.pieces_count > 0
-    AND (
-        c.time_id IS NULL
-        OR c.version <> {$version}
-        OR c.fingerprint <> {$fingerprint}
-        OR (c.outcome = {$noData} AND COALESCE(pst.finished_at, pst.tracked_at) >= {$since})
-    )
+    {$onlyPuzzle}
+{$notCurrent}
     AND (sc.id IS NULL OR sc.status NOT IN ({$decided}) OR sc.fingerprint <> {$fingerprint})
 ORDER BY pst.player_id, pst.id
 SQL;
@@ -180,12 +198,19 @@ SQL;
         // A full pass, planned for the whole result with hash joins (~1.5 s on a copy of production). Left to itself
         // the planner optimises a cursor for its first rows - right after a mass change of the checks, on statistics
         // not yet refreshed, that picked nested loops which ran for many minutes. The plan is fixed at DECLARE, so the
-        // settings go back to their defaults for the rest of the transaction right after it.
-        $this->database->executeStatement('SET LOCAL cursor_tuple_fraction = 1.0');
-        $this->database->executeStatement('SET LOCAL enable_nestloop = off');
+        // settings go back to their defaults for the rest of the transaction right after it. One puzzle's times are
+        // a few index lookups - hash joins would read every time there is.
+        if ($onlyPuzzleId === null) {
+            $this->database->executeStatement('SET LOCAL cursor_tuple_fraction = 1.0');
+            $this->database->executeStatement('SET LOCAL enable_nestloop = off');
+        }
+
         $this->database->executeStatement('DECLARE ' . self::CURSOR . ' NO SCROLL CURSOR FOR ' . $query);
-        $this->database->executeStatement('SET LOCAL enable_nestloop TO DEFAULT');
-        $this->database->executeStatement('SET LOCAL cursor_tuple_fraction TO DEFAULT');
+
+        if ($onlyPuzzleId === null) {
+            $this->database->executeStatement('SET LOCAL enable_nestloop TO DEFAULT');
+            $this->database->executeStatement('SET LOCAL cursor_tuple_fraction TO DEFAULT');
+        }
 
         try {
             do {
@@ -208,7 +233,7 @@ SQL;
      */
     private static function candidate(array $row): SuspicionCandidate
     {
-        /** @var array{time_id: string, player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, puzzling_type: string, solved_at: int|string, predicted_seconds: null|int|string, previous_attempt_seconds: null|int|string, previous_attempt_raised_slow: bool, baseline_seconds: null|int|string, difficulty_score: null|float|string, fingerprint: string, case_id: null|string, case_status: null|string} $row */
+        /** @var array{time_id: string, player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, puzzling_type: string, solved_at: int|string, predicted_seconds: null|int|string, previous_attempt_seconds: null|int|string, previous_attempt_raised_slow: bool, baseline_seconds: null|int|string, difficulty_score: null|float|string, slow_threshold: null|float|string, fingerprint: string, case_id: null|string, case_status: null|string} $row */
 
         return new SuspicionCandidate(
             timeId: $row['time_id'],
@@ -226,6 +251,7 @@ SQL;
             fingerprint: $row['fingerprint'],
             caseId: $row['case_id'],
             caseStatus: $row['case_status'] === null ? null : SuspiciousTimeCaseStatus::from($row['case_status']),
+            slowThreshold: $row['slow_threshold'] === null ? null : (float) $row['slow_threshold'],
         );
     }
 }

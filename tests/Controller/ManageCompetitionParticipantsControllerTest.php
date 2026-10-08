@@ -5,43 +5,56 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use PHPUnit\Framework\Attributes\DataProvider;
-use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Messenger\MessageBusInterface;
 
+/**
+ * The old participants page is retired for the participants spreadsheet (participants-spreadsheet.md D12): its URLs -
+ * bookmarks, old e-mails - lead to the sheet, for the event's organisers only, in every locale.
+ */
 final class ManageCompetitionParticipantsControllerTest extends WebTestCase
 {
     /**
-     * @return array<string, array{string}>
+     * @return array<string, array{string, string}>
      */
-    public static function provideLocalizedPagePaths(): array
+    public static function provideLocalizedPaths(): array
     {
         return [
-            'cs' => ['/sprava-ucastniku-udalosti/'],
-            'en' => ['/en/manage-event-participants/'],
-            'es' => ['/es/manage-event-participants/'],
-            'ja' => ['/ja/manage-event-participants/'],
-            'fr' => ['/fr/manage-event-participants/'],
-            'de' => ['/de/manage-event-participants/'],
+            'cs' => ['/sprava-ucastniku-udalosti/', '/tabulka-ucastniku/'],
+            'en' => ['/en/manage-event-participants/', '/en/participants-sheet/'],
+            'es' => ['/es/manage-event-participants/', '/es/participants-sheet/'],
+            'ja' => ['/ja/manage-event-participants/', '/ja/participants-sheet/'],
+            'fr' => ['/fr/manage-event-participants/', '/fr/participants-sheet/'],
+            'de' => ['/de/manage-event-participants/', '/de/participants-sheet/'],
         ];
     }
 
-    /**
-     * The page links to the import/export/template routes - it used to 500 in
-     * every locale those routes were not defined for (production, /fr/).
-     */
-    #[DataProvider('provideLocalizedPagePaths')]
-    public function testMaintainerCanAccessPageInEveryLocale(string $path): void
+    #[DataProvider('provideLocalizedPaths')]
+    public function testTheOrganiserLandsOnTheSheetInEveryLocale(string $oldPath, string $sheetPath): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', $path . CompetitionFixture::COMPETITION_UNAPPROVED);
+        $browser->request('GET', $oldPath . CompetitionFixture::COMPETITION_UNAPPROVED);
 
-        $this->assertResponseIsSuccessful();
+        self::assertResponseRedirects($sheetPath . CompetitionFixture::COMPETITION_UNAPPROVED, 302);
+        $browser->followRedirect();
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testAValidatedReturnAddressGoesAlong(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_UNAPPROVED . '?return=/en/series/x&return_title=My%20series');
+        self::assertResponseRedirects('/en/participants-sheet/' . CompetitionFixture::COMPETITION_UNAPPROVED . '?return=/en/series/x&return_title=My%20series', 302);
+
+        // Another site's address is dropped - its title with it
+        $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_UNAPPROVED . '?return=//evil.example&return_title=Evil');
+        self::assertResponseRedirects('/en/participants-sheet/' . CompetitionFixture::COMPETITION_UNAPPROVED, 302);
     }
 
     public function testAnonymousUserIsRedirectedToLogin(): void
@@ -49,39 +62,8 @@ final class ManageCompetitionParticipantsControllerTest extends WebTestCase
         $browser = self::createClient();
         $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_UNAPPROVED);
 
-        $this->assertResponseRedirects();
-    }
-
-    public function testMaintainerCanAccessPage(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_UNAPPROVED);
-
-        $this->assertResponseIsSuccessful();
-    }
-
-    /**
-     * Managed registration: an in-person event offers the check-in page, an online one does not - nobody walks in.
-     */
-    public function testCheckInIsOfferedOnlyForInPersonManagedEvents(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        $bus = self::getContainer()->get(MessageBusInterface::class);
-
-        foreach ([CompetitionFixture::COMPETITION_UNAPPROVED, CompetitionFixture::COMPETITION_RECURRING_ONLINE] as $competitionId) {
-            $bus->dispatch(new ChangeCompetitionRegistrationSettings($competitionId, true, null, null, null, 'Europe/Prague', null, null));
-        }
-
-        $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_UNAPPROVED);
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorExists('a[href="/en/event-check-in/' . CompetitionFixture::COMPETITION_UNAPPROVED . '"]');
-
-        $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE);
-        $this->assertResponseIsSuccessful();
-        $this->assertSelectorNotExists('a[href*="/event-check-in/"]');
+        self::assertResponseRedirects();
+        self::assertStringNotContainsString('participants-sheet', (string) $browser->getResponse()->headers->get('Location'));
     }
 
     public function testNonMaintainerDenied(): void
@@ -91,6 +73,6 @@ final class ManageCompetitionParticipantsControllerTest extends WebTestCase
 
         $browser->request('GET', '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_WJPC_2024);
 
-        $this->assertResponseStatusCodeSame(403);
+        self::assertResponseStatusCodeSame(403);
     }
 }

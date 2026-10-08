@@ -49,6 +49,11 @@ readonly final class EditCompetitionRound implements SerializedByLock
         // Minutes after the start when the round's secret puzzles with an automatic reveal come out (RoundPuzzleReveal).
         // Null = keep the round's value as it is under the handler's lock (callers that do not set it)
         public null|int $revealDelayMinutes = null,
+        // The expected size of a team round's teams (CompetitionRound::TEAM_SIZE_MIN..TEAM_SIZE_MAX). Null = keep the
+        // round's value as it is under the handler's lock, unless $clearTeamSize; ignored for solo and pair rounds
+        public null|int $teamSize = null,
+        // The organiser emptied the expected team size (the form's blank field, the internal API's `"teamSize": null`)
+        public bool $clearTeamSize = false,
     ) {
     }
 

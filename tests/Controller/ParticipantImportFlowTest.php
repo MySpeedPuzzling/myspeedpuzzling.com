@@ -32,7 +32,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 final class ParticipantImportFlowTest extends WebTestCase
 {
     private const string COMPETITION = CompetitionFixture::COMPETITION_WJPC_2024;
-    private const string PARTICIPANTS_URL = '/en/manage-event-participants/' . self::COMPETITION;
+    private const string PARTICIPANTS_URL = '/en/participants-sheet/' . self::COMPETITION;
 
     /** "John Regular" is a participant of the event already (fixtures), "Alex Example" is new */
     private const string CSV = "Name,Country,Address,Rounds\nJohn Regular,cz,1 Sample Street,Final Round\nAlex Example,gb,2 Sample Street,Final Round\n";

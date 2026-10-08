@@ -25,7 +25,7 @@ use Throwable;
  *
  * The expectation is the live prediction (GetPlayerPrediction::forPuzzle() as of the solve, the edited time itself
  * left out), then the player's baseline × difficulty, then the pace on their other solo results; pair/team entries
- * are judged by the community's slow floor only - like the scan. A personal prediction built on a far too slow attempt
+ * are judged by the community's slow floor only - like the scan, and like there under the puzzle's slow threshold. A personal prediction built on a far too slow attempt
  * is not trusted, like in the scan: the live prediction's last attempt and whether an earlier attempt has a slow case
  * go into the classifier's input. Explanations are looked up only for a raised entry.
  * Measured on a copy of production: ~1 ms for a typical check; a raised one 2-5 ms p50, 5-7 ms p95 without the edition
@@ -132,6 +132,7 @@ readonly final class SingleTimeSuspicionCheck
             references: $references,
             previousAttemptSeconds: $previousAttemptSeconds,
             previousAttemptRaisedSlow: $previousAttemptRaisedSlow,
+            slowThreshold: $facts['slow_threshold'],
         );
 
         $assessment = $this->classifier->classify($input);

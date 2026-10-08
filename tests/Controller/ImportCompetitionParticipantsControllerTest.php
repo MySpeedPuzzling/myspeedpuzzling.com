@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class ImportCompetitionParticipantsControllerTest extends WebTestCase
 {
-    private const string MANAGE_URL = '/en/manage-event-participants/' . CompetitionFixture::COMPETITION_WJPC_2024;
+    private const string MANAGE_URL = '/en/participants-sheet/' . CompetitionFixture::COMPETITION_WJPC_2024;
     private const string IMPORT_URL = '/en/import-event-participants/' . CompetitionFixture::COMPETITION_WJPC_2024;
 
     /** @var list<string> */

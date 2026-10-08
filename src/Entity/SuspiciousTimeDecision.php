@@ -44,7 +44,7 @@ class SuspiciousTimeDecision
         public DateTimeImmutable $decidedAt,
         #[Column(type: UuidType::NAME)]
         public UuidInterface $puzzleId,
-        // Null for a decision about a puzzle (pieces_confirmed)
+        // Null for a decision about a puzzle (pieces_confirmed, slow_threshold_set, slow_threshold_removed)
         #[Column(type: UuidType::NAME, nullable: true)]
         public null|UuidInterface $timeId,
         // The time's tracker

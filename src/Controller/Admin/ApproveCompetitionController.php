@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 use SpeedPuzzling\Web\Message\ApproveCompetition;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -29,7 +31,7 @@ final class ApproveCompetitionController extends AbstractController
         methods: ['POST'],
     )]
     #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
-    public function __invoke(string $competitionId): Response
+    public function __invoke(Request $request, string $competitionId): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
         assert($profile !== null);
@@ -40,6 +42,13 @@ final class ApproveCompetitionController extends AbstractController
         ));
 
         $this->addFlash('success', $this->translator->trans('competition.flash.approved'));
+
+        // The events page's ⋯ menu returns to where it was opened (docs/features/events-page/README.md)
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
+
+        if ($returnUrl !== null) {
+            return $this->redirect($returnUrl->path);
+        }
 
         return $this->redirectToRoute('admin_competition_approvals');
     }

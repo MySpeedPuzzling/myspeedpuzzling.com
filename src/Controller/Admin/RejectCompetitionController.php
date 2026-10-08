@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 use SpeedPuzzling\Web\Message\RejectCompetition;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,11 +37,13 @@ final class RejectCompetitionController extends AbstractController
         assert($profile !== null);
 
         $reason = trim((string) $request->request->get('reason', ''));
+        // The events page's ⋯ menu returns to where it was opened (docs/features/events-page/README.md)
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
 
         if ($reason === '') {
             $this->addFlash('danger', $this->translator->trans('competition.flash.rejection_reason_required'));
 
-            return $this->redirectToRoute('admin_competition_approvals');
+            return $returnUrl !== null ? $this->redirect($returnUrl->path) : $this->redirectToRoute('admin_competition_approvals');
         }
 
         $this->messageBus->dispatch(new RejectCompetition(
@@ -51,6 +54,6 @@ final class RejectCompetitionController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('competition.flash.rejected'));
 
-        return $this->redirectToRoute('admin_competition_approvals');
+        return $returnUrl !== null ? $this->redirect($returnUrl->path) : $this->redirectToRoute('admin_competition_approvals');
     }
 }

@@ -1066,6 +1066,10 @@ events_organizer:
         reason: "Reason: %reason%"
         next: "Next: %date%"
         editions: "%count% edition|%count% editions"
+        last: "Last: %date%"
+        no_dates: "No dates yet"
+        online: "Online"
+        actions: "Actions for %name%"
     type:
         event: "Event"
         edition: "Edition"
@@ -1098,6 +1102,9 @@ events_organizer:
         delete_confirm: "Delete “%name%”? This cannot be undone."
         cancel: "Cancel"
         close: "Close"
+        loading: "Loading…"
+        back: "Back to %title%"
+        try_again: "The actions could not be loaded. Please try again."
     follow:
         follow: "Follow %name%"
         following: "Following %name%"

@@ -1,0 +1,43 @@
+{#
+    The follow star (owner: workstream C, docs/features/events-page/README.md "Follow").
+    Variables: follow_target (FollowTarget), follow_name, following
+
+    Signed in: a stateless-CSRF POST form - event_follow_controller.js sends it with fetch and flips every star of the same
+    target in place; without JavaScript it posts and the controller redirects back (303) with a flash.
+    Guests: a link to sign in (and back); with JavaScript it shows "Sign in to follow…" under the row instead
+    (the note's template is in events/_manage_menu_host.html.twig).
+#}
+{%- set target = follow_target.toString -%}
+{%- set label_follow = 'events_organizer.follow.follow'|trans({'%name%': follow_name}) -%}
+{%- set label_following = 'events_organizer.follow.following'|trans({'%name%': follow_name}) -%}
+{%- set icon -%}
+    <svg class="ev-star-icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>
+{%- endset -%}
+{% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
+    <form class="ev-star-form" method="post" action="{{ path(following ? 'event_unfollow' : 'event_follow') }}"
+          data-controller="event-follow"
+          data-action="submit->event-follow#submit"
+          data-follow-url="{{ path('event_follow') }}"
+          data-unfollow-url="{{ path('event_unfollow') }}"
+          data-error="{{ 'events_organizer.follow.try_again'|trans }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('event_follow') }}">
+        <input type="hidden" name="target" value="{{ target }}">
+        <input type="hidden" name="return" value="{{ app.request.requestUri }}">
+        <button type="submit" class="ev-star"
+                aria-pressed="{{ following ? 'true' : 'false' }}"
+                aria-label="{{ following ? label_following : label_follow }}"
+                title="{{ (following ? 'events_organizer.follow.title_following' : 'events_organizer.follow.title_follow')|trans }}"
+                data-follow-target="{{ target }}"
+                data-label-follow="{{ label_follow }}"
+                data-label-following="{{ label_following }}"
+                data-title-follow="{{ 'events_organizer.follow.title_follow'|trans }}"
+                data-title-following="{{ 'events_organizer.follow.title_following'|trans }}">{{ icon }}</button>
+    </form>
+{% else %}
+    <a class="ev-star ev-star-guest" href="{{ path('login', {return: app.request.requestUri}) }}" rel="nofollow"
+       data-controller="event-follow"
+       data-action="event-follow#guest"
+       aria-expanded="false"
+       aria-label="{{ label_follow }}"
+       title="{{ 'events_organizer.follow.title_follow'|trans }}">{{ icon }}</a>
+{% endif %}

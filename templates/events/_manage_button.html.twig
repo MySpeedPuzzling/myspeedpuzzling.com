@@ -1,0 +1,16 @@
+{#
+    The ⋯ button of a row the viewer may manage (owner: workstream C). The caller checked the voters.
+    Variables: manage (ManageRef), return_title (optional, defaults to the events page's title)
+
+    A link to the menu's own page (works without JavaScript); event_manage_menu_controller.js opens the same URL in
+    <turbo-frame id="event-manage-menu"> as a popover (desktop) or a bottom sheet (phones).
+#}
+<a class="ev-manage" href="{{ path('event_manage_menu', {kind: manage.kind, id: manage.id, return: app.request.requestUri, return_title: return_title|default('events_page.title'|trans)}) }}"
+   rel="nofollow"
+   data-ev-manage-menu
+   aria-haspopup="dialog"
+   aria-expanded="false"
+   aria-label="{{ 'events_organizer.menu.open'|trans({'%name%': manage.name}) }}"
+   title="{{ 'events_organizer.menu.open'|trans({'%name%': manage.name}) }}">
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="4" cy="10" r="1.8"/><circle cx="10" cy="10" r="1.8"/><circle cx="16" cy="10" r="1.8"/></svg>
+</a>

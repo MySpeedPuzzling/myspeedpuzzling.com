@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{# The ⋯ menu as a page of its own (owner: workstream C) - opened without JavaScript. Variables: item, return_url,
+   return_title #}
+
+{% block title %}{{ 'events_organizer.menu.open'|trans({'%name%': item.reference.displayName}) }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: return_title, url: return_url},
+        {label: item.reference.displayName},
+    ]}) }}
+    <div class="ev-menu-page">
+        <h1 class="h3">{{ 'events_organizer.menu.open'|trans({'%name%': item.reference.displayName}) }}</h1>
+        {{ include('events/_manage_menu.html.twig') }}
+        <p class="ev-menu-back"><a href="{{ return_url }}">{{ 'events_organizer.menu.back'|trans({'%title%': return_title}) }}</a></p>
+    </div>
+{% endblock %}

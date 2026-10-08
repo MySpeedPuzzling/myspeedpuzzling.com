@@ -5,9 +5,10 @@
 // tests/EventsIndexScriptTest.php, which runs it under node.
 //
 // Entry keys: id, k (e = one-time event, d = edition, s = series), n (name; an edition's: the series name), en (an
-// edition's own name), sid (an edition's series entry), u (link), f / t (first / last day, Y-m-d; t null for one day),
-// lr (long-running), sc (scope key: online / country code / ''), c (country code), p (place label), st (status: live,
-// upcoming, past, tba, ongoing; null for a series), r (results), w (waiting for approval), x (folded search text).
+// edition's own name), sl (a session's label), cm (the competition - sessions of one share it), sid (an edition's
+// series entry), u (link), f / t (first / last day, Y-m-d; t null for one day), lr (long-running), sc (scope key:
+// online / country code / ''), c (country code), p (place label), st (status: live, upcoming, past, tba, ongoing; null
+// for a series), r (results), w (waiting for approval), x (folded search text).
 
 import { foldSearchText } from './search_fold.js';
 
@@ -40,6 +41,14 @@ export function readEventsIndex(root) {
     } catch {
         return [];
     }
+}
+
+/**
+ * An entry's name with the line under it - "Moonlight Sprint League · Season One · Sprint 3" (the name, an edition's
+ * own name, a session's label), like EventOccurrence::subtitle() on the server.
+ */
+export function entryTitle(entry) {
+    return [entry?.n, entry?.en, entry?.sl].filter((part) => part !== null && part !== undefined && part !== '').join(' · ');
 }
 
 /**
@@ -130,7 +139,7 @@ export function fillArchiveLine(templateRoot, entry, { locale, withYear = false,
     const title = slot('title');
 
     if (title) {
-        title.textContent = entry.en ? `${entry.n} · ${entry.en}` : String(entry.n ?? '');
+        title.textContent = entryTitle(entry);
     }
 
     const link = slot('link');

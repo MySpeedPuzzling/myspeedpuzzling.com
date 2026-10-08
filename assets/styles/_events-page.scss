@@ -682,6 +682,22 @@ $ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px)
     font-weight: 500;
 }
 
+// "Live" with the pulsing dot (.live-dot, app.scss)
+.ev-when-live {
+    color: $ev-ink;
+    font-weight: 600;
+
+    .live-dot {
+        margin-right: .375rem;
+    }
+}
+
+// The Live header: room for the dot's pulse inside the header's clipped first span
+.ev-group-now .ev-month-header > span:first-child {
+    margin: -.375rem 0 -.375rem -.375rem;
+    padding: .375rem 0 .375rem .375rem;
+}
+
 // Month roll-up: a chip per session, each opening its edition
 .ev-sessions {
     display: flex;

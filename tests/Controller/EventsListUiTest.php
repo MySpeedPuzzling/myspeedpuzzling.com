@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
@@ -42,16 +46,70 @@ final class EventsListUiTest extends WebTestCase
         self::assertSame('online', $harbor->attr('data-ev-scope'));
     }
 
-    public function testALongRunningEditionIsHappeningNowAndRunsUntilItsLastDay(): void
+    public function testALongRunningEditionWithoutRoundsIsOngoingNotLive(): void
     {
         $crawler = $this->page(self::createClient(), '/en/events');
-        $clock = $this->rows($crawler, '[data-ev-group="now"] .ev-row', EventsPageFixture::SERIES_CLOCK_MARATHON_NAME);
 
+        self::assertCount(0, $this->rows($crawler, '.ev-agenda .ev-row', EventsPageFixture::SERIES_CLOCK_MARATHON_NAME), 'neither Live nor in a month');
+
+        $clock = $this->rows($crawler, '[data-ev-series-group="ongoing"] .ev-ongoing-line', EventsPageFixture::SERIES_CLOCK_MARATHON_NAME);
         self::assertCount(1, $clock);
         self::assertStringStartsWith('Runs until', $clock->filter('.ev-tag-runs_until')->text());
-        self::assertSame('Now', $clock->filter('.ev-when')->text());
-        // The edition is called like its series - no second line
-        self::assertCount(0, $clock->filter('.ev-row-edition'));
+        self::assertStringContainsString('Lakeside', $clock->filter('.ev-series-sub')->text(), 'its place, not "no fixed dates"');
+        self::assertStringStartsWith('Ongoing ', trim($crawler->filter('[data-ev-series-group="ongoing"] .ev-subhead')->text()));
+
+        $series = $this->rows($crawler, '[data-ev-series-group="in_person"] .ev-series-line', EventsPageFixture::SERIES_CLOCK_MARATHON_NAME);
+        self::assertSame('Ongoing', $series->filter('.ev-series-next')->text());
+    }
+
+    /**
+     * An edition with a round a month: between two rounds it is not live - the agenda shows its next session
+     */
+    public function testAnEditionWithMonthlyRoundsShowsItsNextSessionNotLive(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $roundDays = EventsPageFixture::storedSprintRoundDays($connection);
+        // The day the fixtures were built, so "In 25 days" holds whenever the test runs
+        self::getContainer()->set(ClockInterface::class, new MockClock(EventsPageFixture::builtOn($connection)->setTime(12, 0)));
+        $crawler = $this->page($browser, '/en/events');
+
+        $sprint = $this->rows($crawler, '.ev-agenda .ev-row', EventsPageFixture::SERIES_SPRINT_LEAGUE_NAME);
+        self::assertCount(2, $sprint, 'the two coming sessions, each in its month');
+        self::assertCount(0, $this->rows($crawler, '[data-ev-group="now"] .ev-row', EventsPageFixture::SERIES_SPRINT_LEAGUE_NAME));
+
+        $next = $sprint->first();
+        self::assertSame(EventsPageFixture::EDITION_SPRINT_SEASON_NAME . ' · Sprint 3', $next->filter('.ev-row-edition')->text());
+        self::assertStringEndsWith('/season-one#round-' . EventsPageFixture::ROUND_SPRINT_3, (string) $next->filter('a.ev-row-name')->attr('href'));
+        self::assertSame('In 25 days', $next->filter('.ev-when')->text());
+        self::assertSame($roundDays[2], $next->attr('data-ev-from'));
+
+        $line = $this->rows($crawler, '[data-ev-series-group="online"] .ev-series-line', EventsPageFixture::SERIES_SPRINT_LEAGUE_NAME);
+        self::assertStringContainsString('1 edition', $line->text());
+        self::assertStringStartsWith('Next: ', $line->filter('.ev-series-next')->text());
+    }
+
+    /**
+     * On a session's day it is Live: the "Live" header and label with the pulsing dot, hidden from screen readers
+     */
+    public function testASessionOnItsDayIsLiveWithThePulsingDot(): void
+    {
+        $browser = self::createClient();
+        // The third round's day in New York, 18:00 UTC
+        $day = EventsPageFixture::storedSprintRoundDays(self::getContainer()->get(Connection::class))[2];
+        self::getContainer()->set(ClockInterface::class, new MockClock(new DateTimeImmutable($day . ' 18:00', new DateTimeZone('UTC'))));
+        $crawler = $this->page($browser, '/en/events');
+
+        $header = $crawler->filter('[data-ev-group="now"] .ev-month-header');
+        self::assertCount(1, $header);
+        self::assertStringContainsString('Live', $header->text());
+        self::assertCount(1, $header->filter('.live-dot[aria-hidden="true"]'));
+
+        $sprint = $this->rows($crawler, '[data-ev-group="now"] .ev-row', EventsPageFixture::SERIES_SPRINT_LEAGUE_NAME);
+        self::assertCount(1, $sprint);
+        self::assertSame('Live', $sprint->filter('.ev-when')->text());
+        self::assertCount(1, $sprint->filter('.ev-when .live-dot[aria-hidden="true"]'));
+        self::assertStringContainsString('Sprint 3', $sprint->filter('.ev-row-edition')->text());
     }
 
     public function testAnEventWithoutADateIsToBeAnnouncedWithItsRegistrationLink(): void

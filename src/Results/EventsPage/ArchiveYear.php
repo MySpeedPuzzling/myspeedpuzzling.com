@@ -15,6 +15,10 @@ readonly final class ArchiveYear
     ) {
     }
 
+    /**
+     * The events held that year - one-time events and editions, the sessions of one counted once (like the series
+     * directory's edition counts; month headers count dates instead)
+     */
     public function occurrenceCount(): int
     {
         $count = 0;

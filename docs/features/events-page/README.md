@@ -53,11 +53,14 @@ instead of the prototype's continents; country names are localised (Symfony Intl
    keeps Everywhere, your country and Online.
 3. **Your events** (signed in, scope Everywhere, no search): a horizontal strip of cards, ordered by date (undated
    last), each marked **Going** or **Following**. Going wins when both apply.
-4. **Agenda.** "Happening now" first when something is live, then one block per month under a sticky month header
+4. **Agenda.** **"Live"** (a pulsing red dot, then the word; the dot is `aria-hidden`, static under
+   `prefers-reduced-motion` - the shared `.live-dot` of the live event strip) first when something is live, then one
+   block per month under a sticky month header
    that carries the year (and the country when one is selected), then **"Date to be announced"** at the end.
-5. **Series directory.** All public series: "In person", "Online", then **"Ongoing online"** (online one-time events
-   without dates). Each line: name, place or Online, edition count, next date ("Next: Tue 12 Nov"), "Happening now",
-   last date ("Last: 3 Mar") or "No dates yet". Sorted: series with a next date by that date, then by last date
+5. **Series directory.** All public series: "In person", "Online", then **"Ongoing"**: online one-time events without
+   dates, and occurrences without rounds spanning more than a month while they run (place and "Runs until …"). Each
+   line: name, place or Online, edition count (sessions of one edition count once), next date ("Next: Tue 12 Nov"),
+   "Live" (with the dot), "Ongoing", last date ("Last: 3 Mar") or "No dates yet". Sorted: series with a next date by that date, then by last date
    (newest first), then by name.
 6. **Archive.** One chip per year with past occurrences. The newest year is open with its 5 latest lines and
    "Show all 2026 (58)". Other years open in place from the index; their chips are real links to `events_archive`.
@@ -81,7 +84,7 @@ counts, and "More countries…") and, in the list view, a **mini calendar** whos
   only sign of the country. Online occurrences say "Online".
 - **Tags**: Waiting for approval (admins only) · ✓ Going · Recurring (editions) · registration state · Results (past)
   · Runs until … · "41 going".
-- **When**: "Happening now", "Now" (long-running), "Tomorrow", "This weekend" (a Fri–Sun of the current Monday-first week, so never next week's), "In 16 days"
+- **When**: "Live" (with the pulsing dot, long-running ones too), "Tomorrow", "This weekend" (a Fri–Sun of the current Monday-first week, so never next week's), "In 16 days"
   (up to 30 days; coral when ≤ 14).
 - **☆** follows the event (an edition's star follows its series). Guests get "Sign in to follow events and series."
   under the row. No star on past rows, nor on rows waiting for approval (admins only).
@@ -89,7 +92,8 @@ counts, and "More countries…") and, in the list view, a **mini calendar** whos
 
 **Month roll-up**: several upcoming editions of one series in the same month are **one row**: the series name,
 "3 sessions" and a date chip per edition (each chip opens its edition page; the name opens the series page). The leaf
-shows the first date. Live editions are never rolled up (they are in Happening now).
+shows the first date. Sessions of one edition (rounds on separate days, see "Dates") roll up the same way, a chip
+per session linking `#round-<id>` on the edition page. Live editions are never rolled up (they are under Live).
 
 ### Registration and results tags
 
@@ -101,12 +105,30 @@ shows the first date. Live editions are never rolled up (they are in Happening n
 
 ### Dates
 
-An edition is dated by its first round's `starts_at`, else its `date_from` (the rule of `GetCompetitionSeries` and the
-series page). A round start is converted to the **event's own zone** (`RoundTimezone::resolve()`: the round's zone,
-else the event's or the series' country) before taking its day - an evening round in Toronto is that evening's date,
-not the next UTC day. The guest HTML is the same for everybody, so it cannot use the viewer's zone. A one-time event is
-dated by `date_from`/`date_to` as before. "Today" is the server's UTC date, as the old listing - the calendars take it
-from the controller's clock too.
+`OccurrenceDates` is the one rule - the events page, the archive, `GetCompetitionSlugsForSitemap::archiveYears()` and
+"You organize" all date through `OccurrenceDates::sessions()`, fed by one shared rounds join (`OccurrenceRounds`, a
+JSON list of every round inside the same single statement).
+
+- A round's day is its start in the **event's own zone** (`RoundTimezone::resolve()`: the round's zone, else the
+  event's or the series' country) - an evening round in Toronto is that evening's date, not the next UTC day. The
+  guest HTML is the same for everybody, so it cannot use the viewer's zone.
+- **Sessions.** Round days at most 2 days apart are one session (a Friday-Sunday championship stays one, even
+  without a Saturday round), and so is every round inside a declared span (`date_from`..`date_to`) of at most 7 days.
+  Two or more sessions - a monthly online competition inside one edition or one-time event - make **one dated
+  occurrence per session**: start = its first round's day, end = its last round's day, its own status;
+  `date_from`/`date_to` are not used. The row keeps the series/edition naming and adds the round's name when the
+  session has a single round; it links `#round-<first round id>` (edition page: the round blocks; event page: an empty
+  anchor per round above its puzzles). Index entries are positional, so every session has its own `id`; `cm` names
+  the competition. (Seen in production, 2026-10: an edition with a round a month was one span listed as live for
+  months.)
+- **One session** (the common case) or no rounds - one-time events and editions alike: dated by the first round's
+  day, else `date_from` (else `date_to`); the end is the later of `date_to` and the last round's day.
+- **A span over 31 days its rounds do not define is never live** - no rounds, or `date_to` more than 31 days after
+  the last round (one opening round of a 14-month event): while it runs it is *ongoing*. It counts as "upcoming" in
+  the summary, the chips and the country counts (something is on there), but is not an upcoming *date* in the month
+  headers. "You organize" shows it as Live.
+
+"Today" is the server's UTC date, as the old listing - the calendars take it from the controller's clock too.
 
 **Written in the page's language.** Every date on the events pages comes from an ICU skeleton (`yMMMM` month headers,
 `MMMd` / `yMMMd` days, `MMMEd` next editions, `E` / `MMM` leaf parts), never a hand-written pattern:
@@ -118,11 +140,11 @@ sides write the same text in all 6 locales.
 
 | Status | Rule |
 |---|---|
-| live | start ≤ today ≤ end (end = last day, else start) |
+| live | start ≤ today ≤ end (end = last day, else start), except a long span its rounds do not define |
 | upcoming | start > today |
 | past | end < today |
 | tba | one-time, in person, no date |
-| ongoing | one-time, online, no date |
+| ongoing | one-time, online, no date; or a long span its rounds do not define, start ≤ today ≤ end |
 | date_not_set | edition without date and without rounds |
 
 ## Every kind of event
@@ -132,15 +154,17 @@ sides write the same text in all 6 locales.
 | One-time, in person, dated | Agenda by month, then the archive. Counts under its country. | `event_detail` |
 | One-time, in person, no date | "Date to be announced" at the end of the agenda, counted per country (sheet: "date TBA"). | `event_detail` |
 | One-time, online, dated | Agenda and archive, counts under Online. | `event_detail` |
-| One-time, online, no date | "Ongoing online" in the series directory. | `event_detail` |
+| One-time, online, no date | "Ongoing" in the series directory. | `event_detail` |
+| Any occurrence over more than 31 days its rounds do not define | Upcoming in the agenda until it starts, then "Ongoing" in the series directory (place, "Runs until …") - never Live, not in a month; a bar in the calendar; Past in the archive. | its own page |
+| Rounds on separate days (a round a month) | One dated occurrence per **session**: its own days, status, row ("Season One · October 2026" when the session has one round), month roll-up, archive line, calendar dots and index entry. "Your events" shows only the next session not over. Going count, star and ⋯ belong to the competition. | its page `#round-<first round id>` |
 | Series in person | Series directory "In person"; its editions count under the series' country. | `competition_series_detail` |
 | Series online | Series directory "Online"; its editions count under Online, even when the series has a country. | `competition_series_detail` |
 | Edition, dated | Agenda row: series name, edition name, place, "Recurring". | `edition_detail` |
-| Edition, live | "Happening now". | `edition_detail` |
+| Edition, live | "Live". | `edition_detail` |
 | Edition, long-running (> 14 days) | "Runs until …" tag; a bar under the calendar grid instead of a dot on every day. | `edition_detail` |
 | Edition, date not set | Not in the agenda or calendar (the series page lists it last). Counted in the series' edition count. | series page |
 | Several editions in one month | One row with a chip per date. | name: series; chip: edition |
-| Past editions | Archive and country views: one line per series and year ("Harbor Jigsaw Nights · 5 editions in 2026"); a single edition stays its own line. Search lists matching editions one by one. | series page (single: its page) |
+| Past editions | Archive and country views: one line per series and year ("Harbor Jigsaw Nights · 5 editions in 2026" - editions, never sessions); a single edition stays its own line, and so do the sessions of one edition (or one-time event), from its first to its last day. The year chip and "Show all 2026 (N)" count events held (editions and one-time events, sessions once) - like the directory's edition counts; month headers count dates. Search lists matching sessions one by one. | series page (single: its page) |
 | Waiting for approval | Only admins see it in the list ("Waiting for approval" tag, Approve/Reject in ⋯); its creator sees it under "You organize". Never counted. | its own page |
 | Rejected | Nobody sees it in the list; its creator sees it under "You organize" with the reason. | - |
 | Series without editions | Series directory, "No dates yet". | series page |
@@ -152,7 +176,8 @@ An occurrence without the slugs its route needs (`CompetitionReference::routeNam
 - **Online occurrences count under Online only**, never under a country - an online series whose country is Canada
   is not in the Canada view. This deliberately differs from the old filter, which matched the
   country column alone.
-- Chips show only countries with upcoming dates (live + upcoming, in person, public), by count then name. The home
+- Chips show only countries with upcoming dates (live + upcoming + long spans running now, in person, public), by
+  count then name. The home
   chip is the one chip that may show 0: tapping it gives the honest empty state with the last past event and
   "+ Add event", plus the callout "Nothing planned in Czechia yet. Know about an event? Add it to the calendar."
 - The **country sheet** (bottom sheet on phones, centred dialog on desktop) lists every country with at least one
@@ -165,7 +190,7 @@ One field searches every event, edition and series, past included: name, series 
 English), year and "online". **Every typed word must match**; `wjpc` and `ejpc` also match their full names. Text is
 folded on the server with `SearchText::fold()` and the typed query in the browser with `foldSearchText()`
 (`assets/search_fold.js`) - the same fold. Results: Upcoming (rows), Past (newest 30 lines, editions one by one, with
-the year), Series, Ongoing online. Search honours the selected scope.
+the year), Series, Ongoing. Search honours the selected scope.
 
 ## Calendar view (`?view=calendar`)
 

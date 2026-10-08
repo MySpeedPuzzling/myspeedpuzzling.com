@@ -489,7 +489,7 @@
             {% set live_event_slug = 'world-jigsaw-puzzle-championship-2026' %}
             {% if date() < date('2026-09-21T00:00:00+02:00') and not (currentRoute == 'event_detail' and currentRouteParams.slug is defined and currentRouteParams.slug == live_event_slug) %}
                 <a class="competition-panel-info" href="{{ path('event_detail', {slug: live_event_slug}) }}">
-                    <span class="competition-panel-info-live-dot" aria-hidden="true"></span>{{ 'live_event_strip'|trans({'%event%': 'WJPC 2026'}) }}
+                    <span class="live-dot live-dot-light" aria-hidden="true"></span>{{ 'live_event_strip'|trans({'%event%': 'WJPC 2026'}) }}
                 </a>
             {% endif %}
             <div class="topbar topbar-light">

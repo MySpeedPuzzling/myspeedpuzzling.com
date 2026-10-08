@@ -176,7 +176,8 @@
 
     {% if rounds|length > 0 %}
         {% for round in rounds %}
-            <div class="mt-4">
+            {#- The events page links a session (rounds on separate days) to its first round: #round-<id> -#}
+            <div class="mt-4 event-round-anchor" id="round-{{ round.id }}">
                 <h2 class="h5 mb-3">
                     <span class="badge me-2" style="background-color: {{ round.color }}; color: {{ round.textColor }};">
                         {{ round.name }}

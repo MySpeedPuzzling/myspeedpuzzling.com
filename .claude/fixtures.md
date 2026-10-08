@@ -276,10 +276,12 @@ weeks after the test DB is built (upcoming ones at least 20 days ahead, past one
 | `EDITION_HARBOR_PAST_A/B` "Spring/Summer Session" | 10 and 24 June of last year | archive roll-up "2 editions in <year>" |
 | `EDITION_HARBOR_UNDATED` | no date, no rounds | date not set: counted in the series (6 editions), never listed |
 | `SERIES_CLOCK_MARATHON` "Lakeside Clock Marathon" | in person, `us`, approved | |
-| `EDITION_CLOCK_LONG` | named like its series, -30 to +400 days | live + long-running ("Runs until") |
+| `EDITION_CLOCK_LONG` | named like its series, -30 to +400 days, no rounds | ongoing, not live (no rounds, over 31 days): series directory "Ongoing", "Runs until", calendar bar |
+| `SERIES_SPRINT_LEAGUE` "Moonlight Sprint League" | online series, `us`, approved | |
+| `EDITION_SPRINT_SEASON` "Season One" | `date_from`/`date_to` = first/last round; rounds `ROUND_SPRINT_1..4` "Sprint 1..4" on days -60, -30, +25, +70 at 22:00 America/New_York (the next day in UTC) | rounds on separate days = 4 sessions: 2 past (archive roll-up), next one +25 days ("Season One · Sprint 3", `#round-…`), never live between them |
 | `COMPETITION_RIVERSIDE_OPEN` "Riverside Puzzle Open" | Hamburg, `de`, +20..+21 days, managed registration open since -10 days, capacity 2; `PARTICIPANT_RIVERSIDE_A` (PLAYER_WITH_FAVORITES), `_B` (unlinked), `_WAITLISTED` | "Full · waitlist", "2 going" |
 | `COMPETITION_MEADOW_TBA` "Meadow Puzzle Championship" | in person, `ro`, no dates, external registration link | "Date to be announced" + "Registration" |
-| `COMPETITION_ENDLESS_RELAY` "Endless Online Puzzle Relay" | online, no dates | "Ongoing online" |
+| `COMPETITION_ENDLESS_RELAY` "Endless Online Puzzle Relay" | online, no dates | "Ongoing" |
 | `COMPETITION_VALLEY_CUP_LAST_YEAR` "Valley Speed Puzzle Cup <last year>" | in person, `cz`, 14 March last year, results link | archive, Results |
 | `COMPETITION_VALLEY_CUP_TWO_YEARS_AGO` | the same two years ago, no results | a second archive year |
 | `COMPETITION_GARDEN_SWAP_REJECTED` "Garden Swap Evening" | `cz`, +50 days, created by PLAYER_REGULAR, rejected ("A swap meet without timed rounds.") | "You organize": Rejected + reason; never listed |

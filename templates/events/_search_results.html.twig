@@ -18,7 +18,7 @@
                     {{- events_date_range(from, entry.t ? date(entry.t ~ 'T00:00:00+00:00') : null, 'yMMMd') -}}
                 </span>
                 <span class="ev-line-main">
-                    {% set title = entry.en ? entry.n ~ ' · ' ~ entry.en : entry.n %}
+                    {% set title = [entry.n, entry.en, entry.sl]|filter(part => part is not null and part != '')|join(' · ') %}
                     {% if entry.u %}<a class="ev-line-title" href="{{ entry.u }}">{{ title }}</a>{% else %}<span class="ev-line-title">{{ title }}</span>{% endif %}
                     {% if entry.r %}<span class="ev-tag ev-tag-results">{{ 'events_page.tag.results'|trans }}</span>{% endif %}
                 </span>

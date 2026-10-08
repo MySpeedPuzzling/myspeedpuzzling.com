@@ -9,7 +9,7 @@ namespace SpeedPuzzling\Web\Value;
  */
 enum EventOccurrenceStatus: string
 {
-    // start <= today <= end
+    // start <= today <= end (but see Ongoing)
     case Live = 'live';
     // start > today
     case Upcoming = 'upcoming';
@@ -17,7 +17,8 @@ enum EventOccurrenceStatus: string
     case Past = 'past';
     // a one-time in-person event without a date
     case Tba = 'tba';
-    // a one-time online event without a date
+    // a one-time online event without a date, or an occurrence without rounds spanning more than
+    // OccurrenceDates::LONG_SPAN_DAYS while it runs - never live
     case Ongoing = 'ongoing';
     // an edition without a date and without rounds
     case DateNotSet = 'notset';

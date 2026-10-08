@@ -32,7 +32,7 @@ readonly final class ArchiveLine
         public Place $place,
         public string $scopeKey,
         public bool $visible,
-        // a single edition's own name (null when it equals the series name)
+        // a single occurrence's line under the name (EventOccurrence::subtitle())
         public null|string $editionName = null,
         public int $year = 0,
     ) {

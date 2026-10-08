@@ -1,0 +1,6 @@
+{# The "when" of a row (WhenLabel): "Live" with the pulsing dot (aria-hidden - the text is what screen readers get),
+   "Tomorrow", "This weekend", "In 16 days". Variables: when. #}
+<span class="ev-when{{ when.soon ? ' ev-when-soon' }}{{ when.live ? ' ev-when-live' }}">
+    {%- if when.live %}<span class="live-dot" aria-hidden="true"></span>{% endif -%}
+    {{ when.translationKey|trans({'%count%': when.days}) -}}
+</span>

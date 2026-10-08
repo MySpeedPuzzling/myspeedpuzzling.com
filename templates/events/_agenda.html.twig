@@ -1,10 +1,12 @@
-{# The agenda: happening now, months, date to be announced, empty states (owner: workstream A). Variables: page; search_ids,
+{# The agenda: Live, months, date to be announced, empty states (owner: workstream A). Variables: page; search_ids,
    searching, scope_name from the page. Every row of every scope is here (hidden when not in scope) - the browser
    switches scope and search over them and recounts the headers (events_page_controller.js). #}
 {% set sid = search_ids ?? null %}
 {% set scope_country = page.scope.countryCode %}
 {% set scope_prefix = scope_name ? scope_name ~ ' · ' : '' %}
-{% set now_rows = page.happeningNow|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
+{% set now_rows = page.live|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
+{# A long span running now (an "Ongoing" line under Series) counts as something on - never "nothing planned" #}
+{% set running_rows = page.ongoing|filter(r => r.from and r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
 {% set tba_rows = page.tba|filter(r => r.visible and (sid is null or r.indexIds|filter(i => i in sid)|length > 0)) %}
 {% set month_dates = 0 %}
 {% set month_rows_shown = 0 %}
@@ -29,14 +31,14 @@
         </span>
     </div>
 
-    {% if page.happeningNow is not empty %}
+    {% if page.live is not empty %}
         <section class="ev-group ev-group-now" data-ev-group="now" {{ now_rows is empty ? 'hidden' }}>
             <h3 class="ev-month-header">
-                <span><span data-ev-scope-prefix>{{ scope_prefix }}</span>{{ 'events_page.agenda.happening_now'|trans }}</span>
+                <span><span data-ev-scope-prefix>{{ scope_prefix }}</span><span class="live-dot" aria-hidden="true"></span>{{ 'events_page.agenda.live'|trans }}</span>
                 <span class="ev-month-n" data-ev-group-count>{{ 'events_page.agenda.dates_count'|trans({'%count%': now_dates}) }}</span>
             </h3>
             <ul class="ev-rows">
-                {% for row in page.happeningNow %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
+                {% for row in page.live %}{{ include('events/_row.html.twig', {row: row}) }}{% endfor %}
             </ul>
         </section>
     {% endif %}
@@ -55,13 +57,13 @@
     {% endfor %}
 
     {# Something live or without a date, nothing dated ahead #}
-    <p class="ev-note" data-ev-no-upcoming {{ not searching and month_rows_shown == 0 and (now_rows is not empty or tba_rows is not empty) ? '' : 'hidden' }}>
+    <p class="ev-note" data-ev-no-upcoming {{ not searching and month_rows_shown == 0 and running_rows is empty and (now_rows is not empty or tba_rows is not empty) ? '' : 'hidden' }}>
         {{- page.scope.isOnline ? 'events_page.agenda.no_upcoming_online'|trans : (scope_country ? 'events_page.agenda.no_upcoming_in'|trans({'%scope%': scope_name}) : 'events_page.summary.dates'|trans({'%count%': 0})) -}}
     </p>
     <p class="ev-note" data-ev-no-match {{ searching and now_rows is empty and month_rows_shown == 0 and tba_rows is empty ? '' : 'hidden' }}>{{ 'events_page.search.no_upcoming'|trans }}</p>
 
     {# Nothing coming at all in this scope: the honest empty state #}
-    <div class="ev-empty" data-ev-empty {{ not searching and now_rows is empty and month_rows_shown == 0 and tba_rows is empty ? '' : 'hidden' }}>
+    <div class="ev-empty" data-ev-empty {{ not searching and now_rows is empty and month_rows_shown == 0 and tba_rows is empty and running_rows is empty ? '' : 'hidden' }}>
         <p class="ev-empty-title" data-ev-empty-title>
             {{- page.scope.isEverywhere ? 'events_page.summary.dates'|trans({'%count%': 0}) : 'events_page.empty.none_in'|trans({'%scope%': scope_name}) -}}
         </p>

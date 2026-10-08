@@ -9,12 +9,14 @@ use SpeedPuzzling\Web\Services\EventsPage\EventsPageBuilder;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\OccurrenceSession;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
  * One dated (or not yet dated) occurrence on the events page: a one-time event or an edition of a series
- * (docs/features/events-page/README.md). Dates are date-only values at 00:00 UTC (OccurrenceDates).
+ * (docs/features/events-page/README.md), or one session of one when its rounds fall on separate days (`session`). Dates
+ * are date-only values at 00:00 UTC (OccurrenceDates).
  */
 readonly final class EventOccurrence
 {
@@ -40,6 +42,10 @@ readonly final class EventOccurrence
         public null|string $registrationTimezone = null,
         public bool $hasResults = false,
         public bool $isPublic = true,
+        // one of several sessions (rounds on separate days, OccurrenceDates::sessions()); null for the common case
+        public null|OccurrenceSession $session = null,
+        // the day of the last round dating it (OccurrenceDates::$lastRoundDay); null without rounds
+        public null|DateTimeImmutable $lastRoundDay = null,
     ) {
     }
 
@@ -50,7 +56,12 @@ readonly final class EventOccurrence
 
     public function status(DateTimeImmutable $today): EventOccurrenceStatus
     {
-        return new OccurrenceDates($this->startDate, $this->endDate)->status($today, $this->isEdition(), $this->isOnline);
+        return $this->dates()->status($today, $this->isEdition(), $this->isOnline);
+    }
+
+    public function dates(): OccurrenceDates
+    {
+        return new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay, $this->session);
     }
 
     public function isLongRunning(): bool
@@ -73,6 +84,37 @@ readonly final class EventOccurrence
         }
 
         return $this->name;
+    }
+
+    /**
+     * The session's label (its one round's name) - null when it only repeats the name or the edition's name
+     */
+    public function sessionLabel(): null|string
+    {
+        $label = trim((string) $this->session?->label);
+
+        if ($label === '') {
+            return null;
+        }
+
+        foreach ([$this->isEdition() ? $this->seriesName : $this->name, $this->editionName()] as $name) {
+            if ($name !== null && mb_strtolower(trim($name)) === mb_strtolower($label)) {
+                return null;
+            }
+        }
+
+        return $label;
+    }
+
+    /**
+     * The line under the name: the edition's own name and the session's label, as far as there are any -
+     * "Season One · Sprint 3".
+     */
+    public function subtitle(): null|string
+    {
+        $parts = array_values(array_filter([$this->editionName(), $this->sessionLabel()], static fn (null|string $part): bool => $part !== null));
+
+        return $parts === [] ? null : implode(' · ', $parts);
     }
 
     /**

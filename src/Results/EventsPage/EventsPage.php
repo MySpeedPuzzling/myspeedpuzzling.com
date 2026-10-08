@@ -14,12 +14,12 @@ readonly final class EventsPage
 {
     /**
      * @param list<YourEvent> $yourEvents
-     * @param list<AgendaRow> $happeningNow
+     * @param list<AgendaRow> $live
      * @param list<AgendaMonth> $months
      * @param list<AgendaRow> $tba
      * @param list<SeriesLine> $seriesInPerson
      * @param list<SeriesLine> $seriesOnline
-     * @param list<AgendaRow> $ongoingOnline
+     * @param list<AgendaRow> $ongoing
      * @param list<ArchiveYear> $archiveYears all public past, newest first
      * @param list<CountryCount> $countryCounts the sheet: every country with an in-person occurrence
      * @param list<CountryCount> $chipCountries ≤ CHIP_COUNTRIES with upcoming dates, + the active scope's country
@@ -30,12 +30,12 @@ readonly final class EventsPage
     public function __construct(
         public EventsSummary $summary,
         public array $yourEvents,
-        public array $happeningNow,
+        public array $live,
         public array $months,
         public array $tba,
         public array $seriesInPerson,
         public array $seriesOnline,
-        public array $ongoingOnline,
+        public array $ongoing,
         public array $archiveYears,
         public array $countryCounts,
         public array $chipCountries,

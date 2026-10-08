@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\DataFixtures;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\DBAL\Connection;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Psr\Clock\ClockInterface;
@@ -36,6 +37,9 @@ final class EventsPageFixture extends Fixture implements DependentFixtureInterfa
     // In person (at), approved, no editions
     public const string SERIES_SUMMIT_LEAGUE = '018d0040-0000-0000-0000-000000000003';
     public const string SERIES_SUMMIT_LEAGUE_NAME = 'Summit Puzzle League';
+    // Online (us), one edition whose four rounds are a month or more apart - four sessions
+    public const string SERIES_SPRINT_LEAGUE = '018d0040-0000-0000-0000-000000000005';
+    public const string SERIES_SPRINT_LEAGUE_NAME = 'Moonlight Sprint League';
     // Approved, then rejected - never listed
     public const string SERIES_OLD_MILL_REJECTED = '018d0040-0000-0000-0000-000000000004';
     public const string SERIES_OLD_MILL_REJECTED_NAME = 'Old Mill Puzzle Nights';
@@ -52,9 +56,24 @@ final class EventsPageFixture extends Fixture implements DependentFixtureInterfa
     // -30 days to +400 days, named like its series
     public const string EDITION_CLOCK_LONG = '018d0040-0000-0000-0000-000000000017';
     public const string EDITION_OLD_MILL = '018d0040-0000-0000-0000-000000000018';
+    // date_from = the first round, date_to = the last; rounds on days -60, -30, +25 and +70, each at 22:00 New York (the
+    // next day in UTC)
+    public const string EDITION_SPRINT_SEASON = '018d0040-0000-0000-0000-000000000019';
+    public const string EDITION_SPRINT_SEASON_NAME = 'Season One';
 
     // Session 1 starts at 23:30 in Toronto - the next day in UTC
     public const string ROUND_HARBOR_1 = '018d0040-0000-0000-0000-000000000021';
+    // Moonlight Sprint League rounds "Sprint 1".."Sprint 4": -60, -30, +25, +70 days
+    public const string ROUND_SPRINT_1 = '018d0040-0000-0000-0000-000000000022';
+    public const string ROUND_SPRINT_2 = '018d0040-0000-0000-0000-000000000023';
+    public const string ROUND_SPRINT_3 = '018d0040-0000-0000-0000-000000000024';
+    public const string ROUND_SPRINT_4 = '018d0040-0000-0000-0000-000000000025';
+    public const array SPRINT_ROUND_DAYS = [
+        self::ROUND_SPRINT_1 => -60,
+        self::ROUND_SPRINT_2 => -30,
+        self::ROUND_SPRINT_3 => 25,
+        self::ROUND_SPRINT_4 => 70,
+    ];
 
     // Hamburg (de), +20..+21 days, managed registration open, capacity 2, two going and one waitlisted
     public const string COMPETITION_RIVERSIDE_OPEN = '018d0040-0000-0000-0000-000000000031';
@@ -87,6 +106,34 @@ final class EventsPageFixture extends Fixture implements DependentFixtureInterfa
     public function __construct(
         private readonly ClockInterface $clock,
     ) {
+    }
+
+    /**
+     * The Moonlight Sprint League round days as stored (Y-m-d in New York, round order) - tests compare with these
+     * instead of "+25 days" from the clock, which moves on after the test database was built.
+     *
+     * @return list<string>
+     */
+    public static function storedSprintRoundDays(Connection $connection): array
+    {
+        /** @var list<string> $startsAt */
+        $startsAt = $connection->fetchFirstColumn(
+            'SELECT starts_at FROM competition_round WHERE competition_id = :id ORDER BY starts_at',
+            ['id' => self::EDITION_SPRINT_SEASON],
+        );
+
+        return array_map(
+            static fn (string $instant): string => new DateTimeImmutable($instant, new DateTimeZone('UTC'))->setTimezone(new DateTimeZone('America/New_York'))->format('Y-m-d'),
+            $startsAt,
+        );
+    }
+
+    /**
+     * The day the test database was built ("today" of this fixture): the first Sprint round is 60 days before it
+     */
+    public static function builtOn(Connection $connection): DateTimeImmutable
+    {
+        return new DateTimeImmutable(self::storedSprintRoundDays($connection)[0], new DateTimeZone('UTC'))->modify('+60 days');
     }
 
     public function load(ObjectManager $manager): void
@@ -144,6 +191,30 @@ final class EventsPageFixture extends Fixture implements DependentFixtureInterfa
         $clockEdition = $this->competition(self::EDITION_CLOCK_LONG, self::SERIES_CLOCK_MARATHON_NAME, 'marathon', 'Lakeside', 'us', $today->modify('-30 days'), $today->modify('+400 days'), series: $clock);
         $manager->persist($clockEdition);
         $this->addReference(self::EDITION_CLOCK_LONG, $clockEdition);
+
+        // Moonlight Sprint League - online, one edition with a round a month: every round is its own session
+        $sprint = $this->series(self::SERIES_SPRINT_LEAGUE, self::SERIES_SPRINT_LEAGUE_NAME, 'moonlight-sprint-league', true, null, 'us', $admin, $now);
+        $manager->persist($sprint);
+        $this->addReference(self::SERIES_SPRINT_LEAGUE, $sprint);
+
+        $sprintDays = array_values(self::SPRINT_ROUND_DAYS);
+        $sprintSeason = $this->competition(self::EDITION_SPRINT_SEASON, self::EDITION_SPRINT_SEASON_NAME, 'season-one', null, null, $today->modify(sprintf('%+d days', $sprintDays[0])), $today->modify(sprintf('%+d days', $sprintDays[3])), isOnline: true, series: $sprint);
+        $manager->persist($sprintSeason);
+        $this->addReference(self::EDITION_SPRINT_SEASON, $sprintSeason);
+        $number = 0;
+
+        foreach (self::SPRINT_ROUND_DAYS as $roundId => $days) {
+            $number++;
+            $manager->persist(new CompetitionRound(
+                id: Uuid::fromString($roundId),
+                competition: $sprintSeason,
+                name: 'Sprint ' . $number,
+                minutesLimit: 60,
+                startsAt: new DateTimeImmutable($today->modify(sprintf('%+d days', $days))->format('Y-m-d') . ' 22:00', new DateTimeZone('America/New_York'))->setTimezone($utc),
+                slug: 'sprint-' . $number,
+                timezone: 'America/New_York',
+            ));
+        }
 
         // Summit Puzzle League - no editions yet
         $summit = $this->series(self::SERIES_SUMMIT_LEAGUE, self::SERIES_SUMMIT_LEAGUE_NAME, 'summit-puzzle-league', false, 'Innsbruck', 'at', $admin, $now);

@@ -1,5 +1,57 @@
-// The rounds timeline of the edition and event pages, round puzzles, More puzzles and Taking part
-// (docs/features/events-page/detail-pages.md "Rounds timeline"). Owner: workstream B. Imported after _event-detail.scss.
+// The edition and event pages below the shared header: header actions' extras, the rounds timeline, round puzzles,
+// "Show N earlier rounds", the facts strip link, Taking part (docs/features/events-page/detail-pages.md "Edition page
+// and one-time event page"). Owner: workstream B. Imported after _event-detail.scss. Phone first; 44 px targets.
+
+// ---- header ----------------------------------------------------------------------------------------------------------
+
+.ev-action-ext {
+    margin-left: .25rem;
+    font-size: .75rem;
+    opacity: .7;
+}
+
+// ---- the page's blocks -----------------------------------------------------------------------------------------------
+
+.ev-detail-edition,
+.ev-detail-event {
+    .ev-detail-main > .ev-detail-section + *,
+    .ev-detail-main > * + .ev-detail-section {
+        margin-top: 2rem;
+    }
+
+    .ev-detail-main > .ev-detail-section:first-child,
+    .ev-detail-main > .ev-facts-strip + .ev-detail-section {
+        margin-top: 0;
+    }
+}
+
+.ev-facts-strip-link {
+    @include ev-hit-area(12px);
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+        color: $ev-coral-ink;
+        text-decoration: underline;
+    }
+}
+
+.ev-facts-strip .ev-when-live {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+
+    .live-dot {
+        margin-right: 0;
+    }
+}
+
+.ev-facts-strip-round {
+    margin-left: .25rem;
+    font-weight: 400;
+}
+
+// ---- rounds timeline -------------------------------------------------------------------------------------------------
 
 .ev-rounds {
     margin: 0;
@@ -11,37 +63,127 @@
     display: grid;
     grid-template-columns: 56px minmax(0, 1fr);
     gap: .75rem;
-    padding: .75rem 0;
+    padding: .875rem 0;
     border-bottom: 1px solid $ev-line;
     scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
 
     @include media-breakpoint-up(lg) {
         grid-template-columns: 64px minmax(0, 1fr);
+        gap: 1rem;
+    }
+
+    &:last-child {
+        border-bottom: 0;
     }
 }
 
-.ev-round-head,
-.ev-round-links {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: .375rem .625rem;
-    font-size: .875rem;
+// The next round (or one running now): a soft coral wash, set off from its neighbours
+.ev-round-next,
+.ev-round-live {
+    margin: .25rem -.5rem;
+    padding-inline: .5rem;
+    border-bottom-color: transparent;
+    border-radius: 10px;
+    background: linear-gradient(90deg, $ev-coral-soft, rgba($ev-coral-soft, 0) 85%);
+    box-shadow: inset 3px 0 0 $ev-coral-ink;
+
+    @include media-breakpoint-up(lg) {
+        margin-inline: -.75rem;
+        padding-inline: .75rem;
+    }
 }
 
+// A round on the same day as the one before it: the date is said once (screen readers still hear it)
+.ev-round-same-day {
+    .ev-leaf {
+        visibility: hidden;
+    }
+}
+
+.ev-round-body {
+    min-width: 0;
+}
+
+.ev-round-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.ev-round-name {
+    display: inline-block;
+    max-width: 100%;
+    padding: .125rem .5rem;
+    border-radius: 6px;
+    font-size: .9375rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.ev-round-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .25rem .625rem;
+    margin: .375rem 0 0;
+    color: $ev-muted;
+    font-size: .8125rem;
+
+    .ev-time {
+        color: $ev-ink-2;
+        white-space: normal;
+    }
+
+    time,
+    .ev-time-zone {
+        white-space: nowrap;
+    }
+
+    .ev-time-yours {
+        color: $ev-muted;
+    }
+
+    .ev-when {
+        font-size: .8125rem;
+        text-align: left;
+    }
+}
+
+.ev-round-past .ev-round-name {
+    opacity: .8;
+}
+
+// ---- puzzles inside their round --------------------------------------------------------------------------------------
+
 .ev-round-puzzles {
+    display: grid;
+    gap: .25rem;
     margin: .5rem 0 0;
     padding: 0;
     list-style: none;
 }
 
 .ev-round-puzzle {
-    display: flex;
-    flex-wrap: wrap;
+    position: relative;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
     align-items: center;
-    gap: .25rem .5rem;
+    gap: .625rem;
     min-height: 44px;
-    font-size: .875rem;
+    margin: 0;
+    padding: .125rem .375rem .125rem 0;
+    border-radius: 8px;
+    font-size: .8125rem;
+
+    &:has(a.ev-round-puzzle-name):hover {
+        background: rgba($ev-sunken, .7);
+    }
+}
+
+.ev-round-puzzle-tba {
+    margin-top: .5rem;
+    color: $ev-muted;
 }
 
 .ev-round-puzzle-thumb,
@@ -49,23 +191,182 @@
     width: 44px;
     height: 44px;
     border-radius: 6px;
-    object-fit: cover;
 }
 
-.ev-round-puzzle-tile {
-    display: inline-block;
+.ev-round-puzzle-thumb {
+    object-fit: cover;
     background: $ev-sunken;
 }
 
-.ev-round-note {
-    margin: .375rem 0 0;
+.ev-round-puzzle-tile {
+    display: grid;
+    place-items: center;
+    background: $ev-sunken;
     color: $ev-muted;
-    font-size: .875rem;
+    font-size: 1.125rem;
 }
 
-.ev-rounds-earlier > summary {
-    padding: .5rem 0;
-    color: $ev-ink-2;
+.ev-round-puzzle-tile-tba {
+    border: 1px dashed $ev-line;
+    background: $gray-100;
+}
+
+.ev-round-puzzle-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.ev-round-puzzle-name {
+    color: $ev-ink;
     font-size: .875rem;
-    cursor: pointer;
+    font-weight: 500;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+a.ev-round-puzzle-name {
+    @include ev-stretched-link;
+
+    &:hover {
+        color: $ev-coral-ink;
+    }
+}
+
+.ev-round-puzzle-meta {
+    color: $ev-muted;
+
+    .diff-icon {
+        vertical-align: -3px;
+    }
+}
+
+.ev-round-puzzle-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 .25rem;
+
+    .badge {
+        font-size: .6875rem;
+    }
+}
+
+// ---- links per round -------------------------------------------------------------------------------------------------
+
+.ev-round-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.25rem;
+    margin: .25rem 0 0;
+
+    a {
+        @include ev-hit-area(4px);
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        color: $ev-coral-ink;
+        font-size: .875rem;
+        font-weight: 500;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.ev-round-body [data-organiser-round-links] {
+    margin: .25rem 0 0 !important;
+
+    a {
+        @include ev-hit-area(12px);
+    }
+}
+
+// ---- "Show N earlier rounds" -----------------------------------------------------------------------------------------
+
+.ev-rounds-earlier {
+    border-bottom: 1px solid $ev-line;
+
+    > summary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .375rem;
+        min-height: 44px;
+        margin: 0 0 .5rem;
+        border: 1px solid $ev-line;
+        border-radius: 8px;
+        color: $ev-ink;
+        font-size: .875rem;
+        font-weight: 500;
+        list-style: none;
+        cursor: pointer;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        &::after {
+            content: "";
+            width: .5rem;
+            height: .5rem;
+            margin-top: -.25rem;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg);
+        }
+
+        &:hover {
+            background: $gray-100;
+        }
+
+        &:focus-visible {
+            outline: 3px solid $ev-sky-ink;
+            outline-offset: 2px;
+        }
+    }
+
+    &[open] > summary::after {
+        margin-top: .25rem;
+        transform: rotate(-135deg);
+    }
+
+    &[open] .ev-rounds-earlier-show,
+    &:not([open]) .ev-rounds-earlier-hide {
+        display: none;
+    }
+
+    &:not([open]) {
+        border-bottom: 0;
+    }
+}
+
+// ---- Taking part -----------------------------------------------------------------------------------------------------
+
+.ev-taking-part-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+
+    > * {
+        margin: 0 !important;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+    }
+
+    .ev-registration-card {
+        flex-basis: 100%;
+        scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
+    }
+}
+
+.ev-taking-part {
+    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
 }

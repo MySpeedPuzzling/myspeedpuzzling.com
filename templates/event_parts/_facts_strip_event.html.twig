@@ -1,12 +1,18 @@
 {#
-    The edition and event pages' facts as a strip under the header on phones (hidden from 992 px) - owner: workstream B.
-    Variables: the page's timeline
+    The edition and event pages' facts as a strip under the header on phones, hidden from 992 px where the side column
+    says the same (owner: workstream B): the next round's date and time (or the round running now) and how many rounds
+    have results. Nothing without either. Variables: the page's timeline
 #}
-{% set next = timeline.rounds|filter(item => item.round.id == timeline.nextRoundId)|first %}
-{% if next %}
+{%- set next = timeline.nextRoundId is not null ? timeline.rounds|filter(item => item.round.id == timeline.nextRoundId)|first : null -%}
+{% if next or timeline.roundsWithResults > 0 %}
     <ul class="ev-facts-strip" data-event-facts>
-        {% if next %}
-            <li>{{ 'series_page.facts.next'|trans({'%date%': next.leaf.from|events_date('MMMEd')}) }} · {{ event_time(next.time) }}</li>
+        {% if next and next.status.value == 'live' %}
+            <li class="ev-when-live">{{ include('event_parts/_live.html.twig') }}<span class="ev-facts-strip-round">{{ next.round.name }}</span></li>
+        {% elseif next %}
+            <li><a class="ev-facts-strip-link" href="#round-{{ next.round.id }}">{{ 'event_rounds.facts.next'|trans({'%date%': next.leaf.from|events_date('MMMEd')}) }} · {{ event_time(next.time) }}</a></li>
+        {% endif %}
+        {% if timeline.roundsWithResults > 0 %}
+            <li>{{ 'event_rounds.facts.with_results'|trans({'%count%': timeline.roundsWithResults}) }}</li>
         {% endif %}
     </ul>
 {% endif %}

@@ -1,8 +1,9 @@
 {#
     The side column of the edition and event pages from 992 px (owner: workstream B): Part of (edition), the dates, the
-    place or Online, the website, and how times are shown. Variables: the page's event, timeline, event_place, online;
-    series (edition page only)
+    place or Online, the next round, the website, and how times are shown. Variables: the page's event, timeline,
+    event_place, online; series (edition page only)
 #}
+{%- set next = timeline.nextRoundId is not null ? timeline.rounds|filter(item => item.round.id == timeline.nextRoundId)|first : null -%}
 <aside class="ev-detail-side">
     <div class="ev-side-card">
         <dl class="ev-side-facts">
@@ -12,8 +13,14 @@
             {% endif %}
             <dt>{{ 'event_detail.side.dates'|trans }}</dt>
             <dd>{% if timeline.start %}{{ events_date_range(timeline.start, timeline.end, 'yMMMd') }}{% else %}{{ 'edition.date_not_set'|trans }}{% endif %}</dd>
-            <dt>{{ 'event_detail.side.place'|trans }}</dt>
-            <dd>{{ include('event_parts/_place.html.twig', {place: event_place}) }}</dd>
+            {% if next %}
+                <dt>{{ 'event_rounds.side.next_round'|trans }}</dt>
+                <dd><a href="#round-{{ next.round.id }}">{{ next.round.name }}</a><br>{{ next.leaf.from|events_date('yMMMEd') }} · {{ event_time(next.time) }}</dd>
+            {% endif %}
+            {% if event_place.isOnline or event_place.city or event_place.country %}
+                <dt>{{ 'event_detail.side.place'|trans }}</dt>
+                <dd>{{ include('event_parts/_place.html.twig', {place: event_place}) }}</dd>
+            {% endif %}
             {% if event.link %}
                 <dt>{{ 'event_detail.side.website'|trans }}</dt>
                 <dd><a href="{{ event.link }}" target="_blank" rel="noopener noreferrer">{{ 'events.website_link'|trans }}<span aria-hidden="true"> ↗</span></a></dd>

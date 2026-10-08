@@ -1166,12 +1166,20 @@ event_rounds:
     title: "Rounds"
     next_round: "Next round:"
     show_earlier: "Show %count% earlier round|Show %count% earlier rounds"
+    hide_earlier: "Hide earlier rounds"
     minutes: "%count% min"
     not_announced: "Puzzles not announced yet"
     picture_hidden: "Picture revealed when the round starts"
     official_results: "Official results"
+    add_my_time: "Add my time"
     more_puzzles: "More puzzles of this event"
     taking_part: "Taking part"
+    facts:
+        next: "Next %date%"
+        live: "Live now: %round%"
+        with_results: "%count% round with results|%count% rounds with results"
+    side:
+        next_round: "Next round"
 
 for_developers:
     meta:

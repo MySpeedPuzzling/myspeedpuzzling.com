@@ -1,40 +1,57 @@
 {#
-    One round of the timeline (owner: workstream B): `id="round-<id>"` - the anchor the events page and the series page
-    link sessions to. Variables: item (TimelineRound), event (CompetitionEvent), online (bool); the page's
-    difficulty_data, puzzle_statuses.
+    One round of the timeline (owner: workstream B, docs/features/events-page/detail-pages.md "Rounds timeline"):
+    `id="round-<id>"` - the anchor the events page and the series page link sessions to.
+    Variables: item (TimelineRound), previous (?TimelineRound, the round before it in the same list), event
+    (CompetitionEvent), online (bool); the page's difficulty_data, puzzle_statuses.
+
+    Date leaf (the round's day in its own zone) · name in its badge colour · category, time limit, the start time in the
+    event's zone named (online: the visitor's own after it) and the when label · its puzzles · its links. The next round
+    (or a running one) is highlighted; a screen reader hears "Next round:" and the date in words first.
 #}
-{% set round = item.round %}
-<li id="round-{{ round.id }}" class="ev-round ev-round-{{ item.status.value }}">
+{%- set round = item.round -%}
+{%- set status = item.status.value -%}
+{%- set highlighted = status == 'next' or status == 'live' -%}
+{%- set same_day = previous is not null and not highlighted and previous.leaf.from|date('Y-m-d', false) == item.leaf.from|date('Y-m-d', false) -%}
+<li id="round-{{ round.id }}" class="ev-round ev-round-{{ status }}{{ same_day ? ' ev-round-same-day' }}" data-round-status="{{ status }}">
     {{ include('event_parts/_date_leaf.html.twig', {leaf: item.leaf}) }}
     <div class="ev-round-body">
-        <span class="visually-hidden">
-            {%- if item.status.value == 'next' %}{{ 'event_rounds.next_round'|trans }} {% endif -%}
-            {{- item.leaf.from|events_date('yMMMMEEEEd') }}: </span>
-        <div class="ev-round-head">
-            <span class="badge" style="background-color: {{ round.color }}; color: {{ round.textColor }};">{{ round.name }}</span>
-            <span class="badge bg-secondary" data-round-category="{{ round.category.value }}">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
+        <h3 class="ev-round-title">
+            <span class="visually-hidden">
+                {%- if status == 'next' %}{{ 'event_rounds.next_round'|trans }} {% endif -%}
+                {{- item.leaf.from|events_date('yMMMMEEEEd') }}: </span>
+            <span class="ev-round-name" style="background-color: {{ round.color }}; color: {{ round.textColor }};">{{ round.name }}</span>
+        </h3>
+        <p class="ev-round-meta">
+            <span class="ev-tag ev-round-category" data-round-category="{{ round.category.value }}">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
             <span class="ev-round-limit">{{ 'event_rounds.minutes'|trans({'%count%': round.minutesLimit}) }}</span>
             {{ include('event_parts/_event_time.html.twig', {time: item.time, online: online}) }}
             {% if item.when %}{{ include('event_parts/_when.html.twig', {when: item.when}) }}{% endif %}
-        </div>
+        </p>
         {% if round.puzzles is not empty %}
             <ul class="ev-round-puzzles">
                 {% for puzzle in round.puzzles %}{{ include('event_parts/_round_puzzle.html.twig', {puzzle: puzzle}) }}{% endfor %}
             </ul>
         {% elseif not item.isPast %}
-            <p class="ev-round-note">{{ 'event_rounds.not_announced'|trans }}</p>
+            {#- Never how many are secret: the read model drops a puzzle hidden entirely -#}
+            <p class="ev-round-puzzle ev-round-puzzle-tba">
+                <span class="ev-round-puzzle-tile ev-round-puzzle-tile-tba" aria-hidden="true"><i class="bi bi-question-lg"></i></span>
+                <span class="ev-round-puzzle-text">{{ 'event_rounds.not_announced'|trans }}</span>
+            </p>
         {% endif %}
-        <div class="ev-round-links">
-            {% if item.resultsUrl %}
-                <a href="{{ item.resultsUrl }}" data-round-results-link>{{ (item.officialResults ? 'event_rounds.official_results' : 'round_results.link')|trans }}</a>
-            {% endif %}
-            {% if item.addTimeUrl %}
-                <a href="{{ item.addTimeUrl }}" data-round-add-time>{{ 'events.add_my_time'|trans }}</a>
-            {% endif %}
-            {% if item.status.value == 'next' and event.registrationLink %}
-                <a href="{{ event.registrationLink }}" target="_blank" rel="noopener noreferrer">{{ 'events.registration_link'|trans }}<span aria-hidden="true"> ↗</span></a>
-            {% endif %}
-        </div>
+        {%- set show_registration = status == 'next' and event.registrationLink -%}
+        {% if item.resultsUrl or item.addTimeUrl or show_registration %}
+            <p class="ev-round-links">
+                {% if item.resultsUrl %}
+                    <a href="{{ item.resultsUrl }}" data-round-results-link>{{ (item.officialResults ? 'event_rounds.official_results' : 'round_results.link')|trans }}</a>
+                {% endif %}
+                {% if item.addTimeUrl %}
+                    <a href="{{ item.addTimeUrl }}" data-round-add-time>{{ 'event_rounds.add_my_time'|trans }}</a>
+                {% endif %}
+                {% if show_registration %}
+                    <a href="{{ event.registrationLink }}" target="_blank" rel="noopener noreferrer">{{ 'events.registration_link'|trans }}<span class="ev-action-ext" aria-hidden="true">↗</span></a>
+                {% endif %}
+            </p>
+        {% endif %}
         {{ include('official_results/_organiser_round_links.html.twig', {competition_id: event.id, round_id: round.id}) }}
     </div>
 </li>

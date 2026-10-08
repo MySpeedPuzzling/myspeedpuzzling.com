@@ -2,21 +2,37 @@
     The rounds timeline of the edition and event pages (owner: workstream B, docs/features/events-page/detail-pages.md
     "Rounds timeline"). Variables: timeline (RoundsTimeline), event (CompetitionEvent), online (bool); the page's
     difficulty_data, puzzle_statuses.
-    Earlier rounds (folded) sit in a native <details> before the shown ones.
+
+    An ordered list of rounds in schedule order. With a next round and 2+ past ones before it, the past rounds except
+    the latest fold into a native <details> ("Show N earlier rounds" - works without JavaScript);
+    event_rounds_controller.js (lazy, only then) opens it when the URL's #round-<id> points inside. A round on the same
+    day as the one before it keeps its date for screen readers but not its leaf, so a championship weekend reads as days.
 #}
 {% if timeline.hasRounds %}
-    <section class="ev-detail-section ev-rounds-section" aria-labelledby="event-rounds-title" data-event-rounds>
+    <section class="ev-detail-section ev-rounds-section" aria-labelledby="event-rounds-title" data-event-rounds
+        {%- if timeline.foldedCount > 0 %} data-controller="event-rounds"{% endif %}>
         <h2 class="ev-detail-section-title" id="event-rounds-title">{{ 'event_rounds.title'|trans }} <span class="ev-month-n">{{ timeline.rounds|length }}</span></h2>
         {% if timeline.foldedCount > 0 %}
-            <details class="ev-rounds-earlier">
-                <summary>{{ 'event_rounds.show_earlier'|trans({'%count%': timeline.foldedCount}) }}</summary>
+            <details class="ev-rounds-earlier" data-event-rounds-target="earlier">
+                <summary>
+                    <span class="ev-rounds-earlier-show">{{ 'event_rounds.show_earlier'|trans({'%count%': timeline.foldedCount}) }}</span>
+                    <span class="ev-rounds-earlier-hide">{{ 'event_rounds.hide_earlier'|trans }}</span>
+                </summary>
                 <ol class="ev-rounds">
-                    {% for item in timeline.foldedRounds %}{{ include('event_parts/_round.html.twig', {item: item, event: event, online: online}) }}{% endfor %}
+                    {% set previous = null %}
+                    {% for item in timeline.foldedRounds %}
+                        {{ include('event_parts/_round.html.twig', {item: item, event: event, online: online, previous: previous}) }}
+                        {% set previous = item %}
+                    {% endfor %}
                 </ol>
             </details>
         {% endif %}
         <ol class="ev-rounds">
-            {% for item in timeline.shownRounds %}{{ include('event_parts/_round.html.twig', {item: item, event: event, online: online}) }}{% endfor %}
+            {% set previous = null %}
+            {% for item in timeline.shownRounds %}
+                {{ include('event_parts/_round.html.twig', {item: item, event: event, online: online, previous: previous}) }}
+                {% set previous = item %}
+            {% endfor %}
         </ol>
     </section>
 {% endif %}

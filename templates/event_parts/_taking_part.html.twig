@@ -1,14 +1,16 @@
 {#
-    Taking part (owner: workstream B): "I'm going" with Change/Leave, or the registration card (#registration);
-    "Add my time" on the event page. Variables: the page's event, attendance, can_add_time; series (edition page only)
+    Taking part (owner: workstream B, docs/features/events-page/detail-pages.md "The rest of the page"): the header's
+    "✓ You're going!" links here (#taking-part). _event_attendance.html.twig unchanged - "I'm going" with Change/Leave,
+    or the registration card (id="registration", the header's "Registration" links to it) - plus "Add my time" on the
+    event page, as before. Variables: the page's event, attendance, can_add_time; series (edition page only)
 #}
-<section class="ev-detail-section" id="taking-part" aria-labelledby="taking-part-title">
+<section class="ev-detail-section ev-taking-part" id="taking-part" aria-labelledby="taking-part-title">
     <h2 class="ev-detail-section-title" id="taking-part-title">{{ 'event_rounds.taking_part'|trans }}</h2>
-    <div{% if attendance.registration is not null %} id="registration"{% endif %}>
+    <div class="ev-taking-part-body">
         {{ include('_event_attendance.html.twig', {competition_id: event.id, attendance: attendance}) }}
         {% if can_add_time and (series ?? null) is null %}
-            <a href="{{ path('puzzle_add', {competition: event.id}) }}" class="btn btn-sm btn-outline-primary ms-1 text-wrap">
-                <i class="bi bi-stopwatch me-1"></i>{{ 'events.add_my_time'|trans }}
+            <a href="{{ path('puzzle_add', {competition: event.id}) }}" class="btn btn-sm btn-outline-primary text-wrap">
+                <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'events.add_my_time'|trans }}
             </a>
         {% endif %}
     </div>

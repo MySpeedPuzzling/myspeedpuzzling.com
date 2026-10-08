@@ -27,16 +27,17 @@ trait LeaderboardSeeding
         int $firstSeconds = 5000,
         bool $firstAttempt = false,
         int $secondsBetween = 1,
+        null|string $country = null,
     ): array {
         $database = self::getContainer()->get(Connection::class);
 
         $database->executeStatement(
             <<<SQL
-INSERT INTO player (id, code, name, registered_at)
-SELECT gen_random_uuid(), 'leaderboard' || n, 'Leaderboard Solver ' || n, NOW() - INTERVAL '1 year'
+INSERT INTO player (id, code, name, registered_at, country)
+SELECT gen_random_uuid(), 'leaderboard' || n, 'Leaderboard Solver ' || n, NOW() - INTERVAL '1 year', :country
 FROM generate_series(1, :count) AS n
 SQL,
-            ['count' => $count],
+            ['count' => $count, 'country' => $country],
             ['count' => ParameterType::INTEGER],
         );
 
@@ -80,15 +81,15 @@ SQL,
     /**
      * A solo time of an existing player - finished two days ago, so it leads any seeded solver with the same time
      */
-    protected function seedSoloTime(string $puzzleId, string $playerId, int $seconds): void
+    protected function seedSoloTime(string $puzzleId, string $playerId, int $seconds, bool $firstAttempt = false): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
             <<<SQL
 INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt)
-VALUES (gen_random_uuid(), :playerId, :puzzleId, :seconds, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', true, false)
+VALUES (gen_random_uuid(), :playerId, :puzzleId, :seconds, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', true, :firstAttempt)
 SQL,
-            ['playerId' => $playerId, 'puzzleId' => $puzzleId, 'seconds' => $seconds],
-            ['seconds' => ParameterType::INTEGER],
+            ['playerId' => $playerId, 'puzzleId' => $puzzleId, 'seconds' => $seconds, 'firstAttempt' => $firstAttempt],
+            ['seconds' => ParameterType::INTEGER, 'firstAttempt' => ParameterType::BOOLEAN],
         );
     }
 }

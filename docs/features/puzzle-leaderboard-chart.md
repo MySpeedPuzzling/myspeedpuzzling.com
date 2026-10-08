@@ -309,6 +309,12 @@ the reasoning of 2026-09-30.)*
 - The gap row counts the rows it hides and is a button running the same "Show more" action as the button under the table – a
   row saying "497 more" invites a tap, so it must do something. After one tap it reads "⋯ 397 more"; once the top rows reach the
   neighbourhood it disappears.
+- The revealed rows belong to one list – the tab and its filters (`PuzzleTimes::$pagedList`): another tab or filter starts from
+  the top 100 again, the same list keeps them whatever a request carries. Never reset the limit in a filter's `onUpdated` hook:
+  Live re-sends the members' country select (`""` for "All countries" while the prop is null) with every request, so such a
+  hook ran every time and undid each "Show more" after the first one (fixed 2026-10-09: stuck at 200 rows, the gap row did
+  nothing). `PuzzleTimesLeaderboardLimitTest` drives the table from the puzzle page the way the browser does
+  (`tests/LiveComponentBrowserRequests.php`).
 - No separate "load rows around me" control: ±2 rows answer "who is right around me"; "Show more" / "Show all" remain for
   everything else.
 - **Position line** in the viewer's own card, for every signed-in player (it only restates the public table):

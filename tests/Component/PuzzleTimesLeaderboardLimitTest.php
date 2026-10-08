@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\LeaderboardSeeding;
+use SpeedPuzzling\Web\Tests\LiveComponentBrowserRequests;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -31,6 +32,7 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
 {
     use InteractsWithLiveComponents;
     use LeaderboardSeeding;
+    use LiveComponentBrowserRequests;
 
     public function testOnlyTheTopRowsAreRenderedWhileStatisticsDescribeTheWholeLeaderboard(): void
     {
@@ -126,6 +128,48 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
         self::assertSame(PuzzleTimes::DEFAULT_LIMIT, $this->limitOf($component));
     }
 
+    /**
+     * Live re-sends models nobody touched (the country select's "" after every render): a value that leaves the list as it
+     * is keeps the rows "Show more" revealed
+     *
+     * @return iterable<string, array{string, bool|string|null}>
+     */
+    public static function provideUnchangedFilters(): iterable
+    {
+        yield 'first attempts only, still off' => ['onlyFirstTries', false];
+        yield 'unboxed only, still off' => ['onlyUnboxed', false];
+        yield 'favorite players only, still off' => ['onlyFavoritePlayers', false];
+        yield 'my pairs / teams only, still off' => ['onlyMyTeams', false];
+        yield 'all countries, as the select sends it' => ['country', ''];
+        yield 'all countries' => ['country', null];
+    }
+
+    #[DataProvider('provideUnchangedFilters')]
+    public function testAnUnchangedFilterKeepsTheRevealedRows(string $filter, null|bool|string $value): void
+    {
+        $client = self::createClient();
+        $component = $this->mountSoloLeaderboard($client, PuzzleFixture::PUZZLE_500_01, 500, limit: 2);
+
+        $component->call('showMore');
+        $component->set($filter, $value);
+        $component->call('showMore');
+
+        self::assertSame(2 + 2 * PuzzleTimes::DEFAULT_LIMIT, $this->limitOf($component));
+    }
+
+    public function testAllCountriesAgainStartsFromTheTop(): void
+    {
+        $client = self::createClient();
+        $component = $this->mountSoloLeaderboard($client, PuzzleFixture::PUZZLE_500_01, 500, limit: 2);
+
+        $component->set('country', 'cz')->call('showMore');
+        self::assertSame(2 * PuzzleTimes::DEFAULT_LIMIT, $this->limitOf($component));
+
+        // "All countries" the way the select sends it
+        $component->set('country', '');
+        self::assertSame(PuzzleTimes::DEFAULT_LIMIT, $this->limitOf($component));
+    }
+
     public function testSwitchingTheCategoryResetsTheLimit(): void
     {
         $client = self::createClient();
@@ -200,6 +244,54 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
 
         // Rows 1-300 reach the neighbourhood: nothing is hidden above it any more
         self::assertCount(0, $component->call('showMore')->render()->crawler()->filter('tr.leaderboard-gap'));
+    }
+
+    /**
+     * Bug (2026-10-09): Brunch Crunch, first tries only, the viewer 328th - "⋯ 125 more" and "Show 100 more" did nothing
+     * after the first tap. A member's filters hold the country select, whose "All countries" is "" while the prop is null,
+     * so the browser re-sends `country: ""` with every request - and the filters' onUpdated hook reset the limit before
+     * showMore() added to it. This drives the leaderboard the way the browser does, from the puzzle page on.
+     */
+    public function testGapRowAndShowMoreKeepRevealingRowsWithTheSelectResentByTheBrowser(): void
+    {
+        $client = self::createClient();
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
+        // 450 first tries at 5010 ... 9500 s; the viewer's first try (8255 s) is 326th, the neighbourhood is 324-328
+        $solvers = $this->seedSoloSolvers(PuzzleFixture::PUZZLE_1000_04, 450, firstAttempt: true, secondsBetween: 10, country: 'cz');
+        $this->seedSoloTime(PuzzleFixture::PUZZLE_1000_04, PlayerFixture::PLAYER_WITH_STRIPE, 8255, firstAttempt: true);
+
+        $page = $client->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_1000_04);
+        self::assertResponseIsSuccessful();
+        $leaderboard = $this->leaderboardRoot($page);
+
+        // Czech solvers and the British viewer: the member gets the country select, and the browser re-sends it
+        self::assertSame(['country' => ''], self::modelsTheBrowserResends($leaderboard));
+
+        $leaderboard = $this->leaderboardRoot($this->browserLiveRequest($client, $leaderboard, updated: ['onlyFirstTries' => true]));
+        self::assertCount(105, $this->rowKeys($leaderboard));
+        self::assertSame('⋯ 223 more', trim($leaderboard->filter('tr.leaderboard-gap')->text()));
+
+        $leaderboard = $this->tapLikeTheBrowser($client, $leaderboard, 'tr.leaderboard-gap button');
+        self::assertCount(205, $this->rowKeys($leaderboard));
+        self::assertSame('⋯ 123 more', trim($leaderboard->filter('tr.leaderboard-gap')->text()));
+
+        $leaderboard = $this->tapLikeTheBrowser($client, $leaderboard, 'tr.leaderboard-gap button');
+        self::assertCount(305, $this->rowKeys($leaderboard));
+        self::assertSame('⋯ 23 more', trim($leaderboard->filter('tr.leaderboard-gap')->text()));
+
+        // Rows 1-400 reach the neighbourhood: no gap row any more, the button under the table goes on
+        $leaderboard = $this->tapLikeTheBrowser($client, $leaderboard, 'tr.leaderboard-gap button');
+        self::assertCount(400, $this->rowKeys($leaderboard));
+        self::assertCount(0, $leaderboard->filter('tr.leaderboard-gap'));
+        self::assertSame('Show 51 more', $this->buttonText($leaderboard, 'showMore'));
+
+        $leaderboard = $this->tapLikeTheBrowser($client, $leaderboard, 'button[data-live-action-param="showMore"]');
+        self::assertSame(
+            [...array_slice($solvers, 0, 325), PlayerFixture::PLAYER_WITH_STRIPE, ...array_slice($solvers, 325)],
+            $this->rowKeys($leaderboard),
+        );
+        self::assertCount(0, $leaderboard->filter('button[data-live-action-param="showMore"]'));
+        self::assertTrue(self::renderedLiveProps($leaderboard)['onlyFirstTries'], 'Still the first tries');
     }
 
     public function testGapRowCountReadsNaturallyInCzech(): void
@@ -356,6 +448,25 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
             'UPDATE puzzle_solving_time SET seconds_to_solve = 1750 WHERE id IN (:first, :second)',
             ['first' => PuzzleSolvingTimeFixture::TIME_04, 'second' => PuzzleSolvingTimeFixture::TIME_05],
         );
+    }
+
+    private function leaderboardRoot(Crawler $crawler): Crawler
+    {
+        $root = $crawler->filter('[data-live-name-value="PuzzleTimes"]');
+        self::assertCount(1, $root);
+
+        return $root;
+    }
+
+    /**
+     * A tap on a button of the leaderboard: the action it names, sent the way the browser sends it
+     */
+    private function tapLikeTheBrowser(KernelBrowser $client, Crawler $leaderboard, string $button): Crawler
+    {
+        $action = (string) $leaderboard->filter($button)->last()->attr('data-live-action-param');
+        self::assertNotSame('', $action);
+
+        return $this->leaderboardRoot($this->browserLiveRequest($client, $leaderboard, $action));
     }
 
     private function limitOf(TestLiveComponent $component): int

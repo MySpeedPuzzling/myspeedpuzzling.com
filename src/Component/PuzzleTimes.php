@@ -57,24 +57,36 @@ final class PuzzleTimes
     #[LiveProp]
     public string $category = 'solo';
 
-    // Not writable: changed only by the actions below, and reset whenever the list changes
+    // Not writable: changed only by the actions below, and back to DEFAULT_LIMIT whenever the list changes ($pagedList)
     #[LiveProp]
     public int $limit = self::DEFAULT_LIMIT;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    /**
+     * The list the revealed rows belong to - the tab and its filters (keepTheRevealedRowsOfTheSameList()). Another list
+     * starts from its top again, the same list keeps what "Show more" revealed, whatever a request carries.
+     *
+     * Never reset the limit in a filter's onUpdated hook: after every render Live reads each <select data-model> back and
+     * re-sends whatever differs from the prop - the members' country select says "" for "All countries" while the prop
+     * is null - so such a hook runs on every request. It used to undo each "Show more" after the first one (2026-10-09:
+     * the table stuck at 200 rows, the "⋯ N more" row did nothing), the same bug Comparison had.
+     */
+    #[LiveProp]
+    public string $pagedList = '';
+
+    #[LiveProp(writable: true)]
     public bool $onlyFirstTries = false;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true)]
     public bool $onlyUnboxed = false;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true)]
     public bool $onlyFavoritePlayers = false;
 
     // Pair / team tabs only: the results the viewer took part in
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true)]
     public bool $onlyMyTeams = false;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true)]
     public null|string $country = null;
 
     /**
@@ -200,12 +212,12 @@ final class PuzzleTimes
         }
     }
 
+    // Another tab is another list: it starts from its top again ($pagedList)
     #[LiveAction]
     public function changeResultsCategory(#[LiveArg] string $category): void
     {
-        if (in_array($category, ['solo', 'duo', 'group'], true) && $category !== $this->category) {
+        if (in_array($category, ['solo', 'duo', 'group'], true)) {
             $this->category = $category;
-            $this->limit = self::DEFAULT_LIMIT;
         }
     }
 
@@ -219,14 +231,6 @@ final class PuzzleTimes
     public function showAll(): void
     {
         $this->showAllRequested = true;
-    }
-
-    /**
-     * LiveProp onUpdated hook of every filter: a differently filtered list starts from its top again
-     */
-    public function onFilterUpdated(): void
-    {
-        $this->limit = self::DEFAULT_LIMIT;
     }
 
     #[PostMount]
@@ -436,6 +440,7 @@ final class PuzzleTimes
             }
         }
 
+        $this->keepTheRevealedRowsOfTheSameList($activeCountry);
         $this->sliceVisibleRows();
     }
 
@@ -463,6 +468,27 @@ final class PuzzleTimes
             $this->onlyFirstTries,
             $this->onlyUnboxed,
         );
+    }
+
+    /**
+     * Runs after the action of the request, so a tab switched by changeResultsCategory() counts as another list as well
+     */
+    private function keepTheRevealedRowsOfTheSameList(null|CountryCode $activeCountry): void
+    {
+        $listKey = implode('|', [
+            $this->category,
+            $this->onlyFirstTries ? 'first-tries' : '',
+            $this->onlyUnboxed ? 'unboxed' : '',
+            $this->onlyFavoritePlayers ? 'favorites' : '',
+            $this->onlyMyTeams ? 'my-teams' : '',
+            $activeCountry->name ?? '',
+        ]);
+
+        if ($this->pagedList !== '' && $this->pagedList !== $listKey) {
+            $this->limit = self::DEFAULT_LIMIT;
+        }
+
+        $this->pagedList = $listKey;
     }
 
     /**

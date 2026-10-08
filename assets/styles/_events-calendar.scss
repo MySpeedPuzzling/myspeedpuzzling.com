@@ -1,2 +1,484 @@
 // Events page (docs/features/events-page/implementation-plan.md) - owner: workstream B - calendar view.
-// Every class is prefixed `ev-`.
+// Every class is prefixed `ev-`. The calendar view (templates/events/_calendar.html.twig) and the desktop side
+// calendar (_rail_calendar.html.twig), drawn by controllers/events_calendar_controller.js.
+
+// Dot and name colours: coral in person, blue online, grey past (the date leaf's band colours, ≥ 3:1 on white)
+$ev-cal-in-person: #d63c42;
+$ev-cal-online: #2463a6;
+$ev-cal-past: $gray-600;
+$ev-cal-ink: $gray-900;
+$ev-cal-muted: #646d80;
+
+.ev-calendar {
+    margin-top: .75rem;
+}
+
+.ev-cal-noscript {
+    margin: 0 0 1rem;
+    padding: .75rem 1rem;
+    border-radius: .625rem;
+    background: $gray-200;
+    color: $ev-cal-ink;
+    font-size: .875rem;
+}
+
+// ‹ October 2026 › Today
+.ev-cal-head {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    margin-bottom: .375rem;
+}
+
+.ev-cal-title {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    text-align: center;
+    font-size: 1.0625rem;
+    font-weight: 500;
+    color: $ev-cal-ink;
+}
+
+.ev-cal-nav,
+.ev-rail-cal-nav {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: .5rem;
+    background: none;
+    color: $gray-700;
+    font-size: 1rem;
+
+    &:hover {
+        background: $gray-200;
+        color: $ev-cal-ink;
+    }
+}
+
+.ev-cal-today-btn {
+    flex: none;
+    min-height: 44px;
+    padding: 0 .875rem;
+    border: 1px solid $gray-300;
+    border-radius: 999px;
+    background: $white;
+    color: $ev-cal-ink;
+    font-size: .875rem;
+    font-weight: 500;
+
+    &:hover:not(:disabled) {
+        background: $gray-200;
+    }
+
+    &:disabled {
+        opacity: .5;
+        cursor: default;
+    }
+}
+
+// The grid: Monday first, 7 columns that never overflow a 320 px phone
+// Room for the phone grid until the script draws it, so the rows below do not jump
+.ev-cal-grids:empty {
+    min-height: 17rem;
+}
+
+.ev-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.ev-cal-dow {
+    overflow: hidden;
+    padding-bottom: .25rem;
+    text-align: center;
+    white-space: nowrap;
+    font-size: .6875rem;
+    color: $ev-cal-muted;
+}
+
+.ev-cal-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 2px;
+    border: 0;
+    border-radius: .5rem;
+    background: none;
+    font: inherit;
+    font-size: .875rem;
+    color: $ev-cal-muted;
+}
+
+button.ev-cal-day {
+    color: $ev-cal-ink;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+        background: $gray-200;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $ev-cal-in-person;
+        outline-offset: 1px;
+    }
+}
+
+.ev-cal-day-today {
+    box-shadow: inset 0 0 0 1px $primary;
+}
+
+button.ev-cal-day.ev-cal-day-selected,
+button.ev-cal-day.ev-cal-day-selected:hover {
+    background: $ev-cal-ink;
+    color: $white;
+}
+
+.ev-cal-dots {
+    display: flex;
+    gap: 3px;
+    height: 6px;
+}
+
+.ev-cal-dot {
+    display: inline-block;
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: $ev-cal-in-person;
+}
+
+.ev-cal-dot-online {
+    background: $ev-cal-online;
+}
+
+.ev-cal-dot-past {
+    background: $ev-cal-past;
+}
+
+.ev-cal-day-selected .ev-cal-dot {
+    box-shadow: 0 0 0 1px $white;
+}
+
+// Desktop: a bigger grid with up to 2 names a day and "+2 more"
+.ev-cal-grid-big {
+    display: none;
+
+    .ev-cal-day {
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 2px;
+        min-height: 92px;
+        padding: 4px 6px;
+        border-radius: 6px;
+        box-shadow: inset 0 0 0 1px $gray-300;
+        text-align: left;
+        font-size: .75rem;
+        font-weight: 400;
+    }
+
+    .ev-cal-day-today {
+        box-shadow: inset 0 0 0 2px $primary;
+    }
+
+    .ev-cal-num {
+        font-size: .8125rem;
+        font-weight: 600;
+    }
+}
+
+.ev-cal-name {
+    display: block;
+    overflow: hidden;
+    padding-left: 4px;
+    border-left: 3px solid $ev-cal-in-person;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: $gray-700;
+    line-height: 1.35;
+}
+
+.ev-cal-name-online {
+    border-left-color: $ev-cal-online;
+}
+
+.ev-cal-name-past {
+    border-left-color: $ev-cal-past;
+    color: $ev-cal-muted;
+}
+
+.ev-cal-more {
+    color: $ev-cal-muted;
+}
+
+.ev-cal-day-selected .ev-cal-name,
+.ev-cal-day-selected .ev-cal-more {
+    color: inherit;
+}
+
+@include media-breakpoint-up(lg) {
+    .ev-cal-grids:empty {
+        min-height: 30rem;
+    }
+
+    .ev-cal-grid-small {
+        display: none;
+    }
+
+    .ev-cal-grid-big {
+        display: grid;
+    }
+}
+
+// in person · online · past
+.ev-cal-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1rem;
+    margin: .5rem 0 0;
+    font-size: .75rem;
+    color: $ev-cal-muted;
+
+    span {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+    }
+}
+
+// Long-running occurrences: a bar under the grid instead of a dot on every day
+.ev-cal-runs {
+    display: grid;
+    gap: .375rem;
+    margin-top: .75rem;
+}
+
+.ev-cal-run {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+    font-size: .8125rem;
+    color: $gray-700;
+}
+
+.ev-cal-run-bar {
+    flex: none;
+    position: relative;
+    top: -2px;
+    width: 28px;
+    height: 4px;
+    border-radius: 4px;
+    background: $ev-cal-in-person;
+}
+
+.ev-cal-run-online .ev-cal-run-bar {
+    background: $ev-cal-online;
+}
+
+.ev-cal-run-past .ev-cal-run-bar {
+    background: $ev-cal-past;
+}
+
+.ev-cal-run-name {
+    color: $ev-cal-ink;
+    font-weight: 500;
+}
+
+a.ev-cal-run-name:hover {
+    color: #c9393f;
+}
+
+// "Saturday 10 October is highlighted · Show the whole month"
+.ev-cal-selection-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0 .75rem;
+    margin-top: .75rem;
+    padding: 0 .75rem;
+    border-radius: .625rem;
+    background: $gray-200;
+    font-size: .875rem;
+    color: $ev-cal-ink;
+}
+
+.ev-cal-whole-month {
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #c9393f;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+// The month's rows (agenda rows cloned from the list, past ones as archive lines)
+.ev-cal-list {
+    margin-top: 1.25rem;
+}
+
+.ev-cal-list-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem;
+    margin: 0 0 .375rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: $ev-cal-ink;
+}
+
+.ev-cal-list-count {
+    font-size: .8125rem;
+    font-weight: 400;
+    color: $ev-cal-muted;
+}
+
+.ev-cal-lines,
+.ev-cal-rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ev-cal-lines + .ev-cal-rows {
+    margin-top: .5rem;
+}
+
+.ev-cal-list {
+    .ev-row,
+    .ev-line {
+        transition: opacity .2s ease, background-color .2s ease;
+    }
+
+    .ev-cal-dim {
+        opacity: .45;
+    }
+
+    .ev-cal-hit {
+        border-radius: .5rem;
+        background-color: rgba($primary, .09);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ev-cal-list {
+        .ev-row,
+        .ev-line {
+            transition: none;
+        }
+    }
+}
+
+.ev-cal-empty {
+    margin-top: .25rem;
+    padding: 1.5rem 1rem;
+    border: 1px dashed $gray-300;
+    border-radius: .75rem;
+    text-align: center;
+    font-size: .875rem;
+    color: $gray-700;
+
+    p {
+        margin: 0;
+    }
+}
+
+.ev-cal-empty-title {
+    font-weight: 500;
+    color: $ev-cal-ink;
+}
+
+// The desktop side calendar of the list view
+.ev-rail-calendar {
+    display: none;
+}
+
+@include media-breakpoint-up(lg) {
+    .ev-rail-calendar {
+        display: block;
+        margin-bottom: .875rem;
+        padding: .875rem 1rem;
+        border: 1px solid $gray-300;
+        border-radius: .75rem;
+        background: $white;
+    }
+}
+
+.ev-rail-cal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .375rem;
+}
+
+.ev-rail-cal-title {
+    margin: 0;
+    font-size: .9375rem;
+    font-weight: 500;
+    color: $ev-cal-ink;
+}
+
+.ev-rail-cal-nav {
+    width: 32px;
+    height: 32px;
+    border-radius: .375rem;
+    font-size: .875rem;
+}
+
+.ev-cal-grid-rail {
+    .ev-cal-day {
+        position: relative;
+        min-height: 32px;
+        padding: 0 0 6px;
+        border-radius: .375rem;
+        font-size: .75rem;
+        font-weight: 400;
+        color: $gray-700;
+    }
+
+    button.ev-cal-day {
+        color: $ev-cal-ink;
+        font-weight: 600;
+
+        &::after {
+            content: "";
+            position: absolute;
+            bottom: 3px;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            margin-left: -2.5px;
+            border-radius: 50%;
+            background: $ev-cal-in-person;
+        }
+    }
+
+    button.ev-cal-day-online::after {
+        background: $ev-cal-online;
+    }
+
+    button.ev-cal-day-past {
+        color: $ev-cal-muted;
+        font-weight: 500;
+
+        &::after {
+            background: $ev-cal-past;
+        }
+    }
+}

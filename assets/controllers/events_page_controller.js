@@ -14,7 +14,8 @@ import { chooseTranslation } from '../translation_choice.js';
 //
 // Contract for the calendar (workstream B):
 // - after every change (and once on connect) the element dispatches `events-page:state`, detail {scope, query, view};
-//   it bubbles, so listen with `events-page:state@document->…`. The current state is also on the element's own
+//   it bubbles to the document (the lazy calendar listens there with addEventListener - an action would hit its
+//   placeholder while the chunk loads). The current state is also on the element's own
 //   values (`data-events-page-scope-value`, `-query-value`, `-view-value`) for a controller that connects later.
 // - `events-calendar:day` (detail {day: 'YYYY-MM-DD'|null, ids: number[]}) dispatched inside the page scrolls to the
 //   first matching row and flashes them, opening the archive year when needed.

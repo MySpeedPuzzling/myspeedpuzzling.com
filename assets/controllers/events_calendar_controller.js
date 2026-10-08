@@ -56,7 +56,16 @@ export default class extends Controller {
         this.selectedDay = null;
         this.stale = true;
 
+        // A listener of our own, not a `data-action`: this controller is lazy, and an action bound while its chunk is
+        // still loading invokes the placeholder controller, which has no `update` (a console error on every load)
+        this.onState = (event) => this.update(event);
+        document.addEventListener('events-page:state', this.onState);
+
         this.applyView();
+    }
+
+    disconnect() {
+        document.removeEventListener('events-page:state', this.onState);
     }
 
     // `events-page:state` from the list page

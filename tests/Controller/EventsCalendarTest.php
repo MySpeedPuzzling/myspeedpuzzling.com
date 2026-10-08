@@ -30,7 +30,6 @@ final class EventsCalendarTest extends WebTestCase
         self::assertSame('events-calendar', $calendar->attr('data-controller'));
         self::assertSame('full', $calendar->attr('data-events-calendar-mode-value'));
         self::assertSame('', $calendar->attr('data-events-calendar-month-value'));
-        self::assertStringContainsString('events-page:state@document->events-calendar#update', (string) $calendar->attr('data-action'));
 
         self::assertNotNull($crawler->filter('.ev-list-view')->attr('hidden'));
         // The side calendar belongs to the list view

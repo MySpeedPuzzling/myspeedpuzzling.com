@@ -65,14 +65,12 @@
         {% if row.when %}
             <span class="ev-when{{ row.when.soon ? ' ev-when-soon' }}">{{ row.when.translationKey|trans({'%count%': row.when.days}) }}</span>
         {% endif %}
-        <div class="ev-row-actions">
-            {{ include('events/_row_actions.html.twig', {
-                follow_target: row.followTarget,
-                follow_name: row.followName,
-                following: row.following,
-                show_star: row.followTarget is not null and row.status.value != 'past',
-                manage: row.manage,
-            }) }}
-        </div>
+        {{ include('events/_row_actions.html.twig', {
+            follow_target: row.followTarget,
+            follow_name: row.followName,
+            following: row.following,
+            show_star: row.followTarget is not null and row.status.value != 'past',
+            manage: row.manage,
+        }) }}
     </div>
 </li>

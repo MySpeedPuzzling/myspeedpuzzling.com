@@ -124,8 +124,12 @@ $ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px)
     display: inline-flex;
     align-items: center;
     gap: .375rem;
-    min-height: 40px;
+    min-height: 44px;
     white-space: nowrap;
+
+    @include media-breakpoint-up(lg) {
+        min-height: 40px;
+    }
 }
 
 // ---- toolbar (sticky under the site header) -------------------------------------------------------------------------
@@ -379,6 +383,12 @@ $ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px)
         display: block;
         position: sticky;
         top: calc(#{$ev-sticky-top} + .75rem);
+        // Countries + mini calendar can be taller than a laptop screen: the column scrolls on its own instead of
+        // keeping the mini calendar out of reach below the fold
+        max-height: calc(100vh - #{$ev-sticky-top} - 1.5rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
         margin-top: 1.25rem;
     }
 }
@@ -670,18 +680,6 @@ $ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px)
 .ev-when-soon {
     color: $ev-coral-ink;
     font-weight: 500;
-}
-
-.ev-row-actions {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    margin-right: -.5rem;
-
-    &:empty {
-        display: none;
-    }
 }
 
 // Month roll-up: a chip per session, each opening its edition

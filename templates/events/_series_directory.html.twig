@@ -44,15 +44,13 @@
                                     {{ 'events_page.series.no_dates'|trans }}
                                 {%- endif -%}
                             </span>
-                            <div class="ev-row-actions">
-                                {{ include('events/_row_actions.html.twig', {
-                                    follow_target: line.followTarget,
-                                    follow_name: line.name,
-                                    following: line.following,
-                                    show_star: true,
-                                    manage: line.manage,
-                                }) }}
-                            </div>
+                            {{ include('events/_row_actions.html.twig', {
+                                follow_target: line.followTarget,
+                                follow_name: line.name,
+                                following: line.following,
+                                show_star: true,
+                                manage: line.manage,
+                            }) }}
                         </li>
                     {% endfor %}
                 </ul>
@@ -73,15 +71,13 @@
                             {% if row.isPending %}<span class="ev-tag ev-tag-waiting_for_approval">{{ 'events_page.tag.waiting_for_approval'|trans }}</span>{% endif %}
                         </div>
                         <span class="ev-series-next ev-series-next-live">{{ 'events_page.series.ongoing'|trans }}</span>
-                        <div class="ev-row-actions">
-                            {{ include('events/_row_actions.html.twig', {
-                                follow_target: row.followTarget,
-                                follow_name: row.followName,
-                                following: row.following,
-                                show_star: row.followTarget is not null,
-                                manage: row.manage,
-                            }) }}
-                        </div>
+                        {{ include('events/_row_actions.html.twig', {
+                            follow_target: row.followTarget,
+                            follow_name: row.followName,
+                            following: row.following,
+                            show_star: row.followTarget is not null,
+                            manage: row.manage,
+                        }) }}
                     </li>
                 {% endfor %}
             </ul>

@@ -1054,7 +1054,8 @@ events_calendar:
     empty_hint_scope: "Try the next month, or Everywhere."
     run_all_month: "runs all month, until %until%"
     run_from: "from %from%, until %until%"
-    run_until: "all month, until %until%"
+    run_until: "until %until%"
+    month_count: "%count% date|%count% dates"
     noscript: "The calendar needs JavaScript. The list has every upcoming date."
 
 # Events page - organisers and following (workstream C)

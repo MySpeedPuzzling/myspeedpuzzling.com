@@ -1,3 +1,34 @@
-{# The desktop mini calendar in the list view (owner: workstream B). Variables: page, view, month
-   Foundation stub: an empty container. #}
-<section class="ev-rail-calendar" hidden></section>
+{#
+    The desktop mini calendar in the list view's side column (owner: workstream B). Variables: page, view, month
+    One dot a day (in person wins over online over past), its own ‹ ›; a day dispatches `events-calendar:day` with the
+    index ids of that day's occurrences in the selected scope, and the list scrolls to them (events_page_controller.js).
+    Drawn by events_calendar_controller.js; without JavaScript there is nothing to show.
+#}
+{% set calendar_today = 'now'|date('Y-m-d', 'UTC') %}
+<section class="ev-rail-calendar"
+         aria-labelledby="ev-rail-calendar-title"
+         data-controller="events-calendar"
+         data-action="events-page:state@document->events-calendar#update"
+         data-events-calendar-mode-value="rail"
+         data-events-calendar-today-value="{{ calendar_today }}"
+         data-events-calendar-messages-value="{{ {
+             dayLabel: browser_translation('events_calendar.day_label'),
+         }|json_encode }}"
+         {{ view.value == 'calendar' ? 'hidden' }}>
+    <noscript><style>.ev-rail-calendar { display: none !important; }</style></noscript>
+    <div class="ev-rail-cal-head">
+        <button type="button" class="ev-rail-cal-nav" data-action="events-calendar#previous" aria-label="{{ 'events_calendar.prev_month'|trans }}">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+        </button>
+        <h2 class="ev-rail-cal-title" id="ev-rail-calendar-title" data-events-calendar-target="title" aria-live="polite">{{ (calendar_today|slice(0, 7) ~ '-01')|format_date(pattern: 'LLLL yyyy', timezone: 'UTC') }}</h2>
+        <button type="button" class="ev-rail-cal-nav" data-action="events-calendar#next" aria-label="{{ 'events_calendar.next_month'|trans }}">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div class="ev-rail-cal-grid" data-events-calendar-target="grid" data-action="click->events-calendar#gridClick keydown->events-calendar#gridKeydown"></div>
+    <p class="ev-cal-key">
+        <span><i class="ev-cal-dot ev-cal-dot-in_person" aria-hidden="true"></i> {{ 'events_calendar.key_in_person'|trans }}</span>
+        <span><i class="ev-cal-dot ev-cal-dot-online" aria-hidden="true"></i> {{ 'events_calendar.key_online'|trans }}</span>
+        <span><i class="ev-cal-dot ev-cal-dot-past" aria-hidden="true"></i> {{ 'events_calendar.key_past'|trans }}</span>
+    </p>
+</section>

@@ -1,0 +1,22 @@
+{#
+    The organization page's "What we run" (owner: workstream A, docs/features/organizations/README.md): a card per series
+    (organization/_series_card.html.twig), then the one-time events not over yet (organization/_event_card.html.twig).
+    Nothing without either.
+    Variables: page (OrganizationPage)
+#}
+{% if page.seriesCards is not empty or page.eventCards is not empty %}
+    <section class="ev-detail-section ev-org-run" aria-labelledby="org-run-title" data-org-run>
+        <h2 class="ev-detail-section-title" id="org-run-title">{{ 'organization_page.what_we_run'|trans }}</h2>
+        {% if page.seriesCards is not empty %}
+            <ul class="ev-org-cards" data-org-series-cards>
+                {% for card in page.seriesCards %}{{ include('organization/_series_card.html.twig', {card: card}) }}{% endfor %}
+            </ul>
+        {% endif %}
+        {% if page.eventCards is not empty %}
+            <h3 class="ev-org-subhead" id="org-events-title">{{ 'organization_page.one_time_events'|trans }}</h3>
+            <ul class="ev-org-cards" aria-labelledby="org-events-title" data-org-event-cards>
+                {% for card in page.eventCards %}{{ include('organization/_event_card.html.twig', {card: card}) }}{% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+{% endif %}

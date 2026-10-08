@@ -4,19 +4,28 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Organizations;
 
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\GetEventOccurrences;
 use SpeedPuzzling\Web\Query\GetOrganizations;
+use SpeedPuzzling\Web\Results\OrganizationDirectoryRow;
+use SpeedPuzzling\Web\Services\Organizations\OrganizationsDirectoryBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The organizations directory (docs/features/organizations/README.md "Directory") - SKELETON of the foundation: the
- * publicly visible organizations as a plain list. Workstream A builds the page (OrganizationsDirectoryBuilder).
+ * The organizations directory (docs/features/organizations/README.md "Directory"): the publicly visible organizations
+ * alphabetically, with the counts of their public series and one-time events and the next date of any of them - two
+ * statements (the organizations, their occurrences), nothing per viewer. Indexable.
  */
 final class OrganizationsController extends AbstractController
 {
     public function __construct(
         readonly private GetOrganizations $getOrganizations,
+        readonly private GetEventOccurrences $getEventOccurrences,
+        readonly private OrganizationsDirectoryBuilder $directoryBuilder,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -31,10 +40,15 @@ final class OrganizationsController extends AbstractController
         ],
         name: 'organizations',
     )]
-    public function __invoke(): Response
+    public function __invoke(Request $request): Response
     {
+        $organizations = $this->getOrganizations->publicDirectory();
+        $occurrences = $this->getEventOccurrences->forOrganizations(
+            array_map(static fn (OrganizationDirectoryRow $row): string => $row->id, $organizations),
+        );
+
         return $this->render('organizations.html.twig', [
-            'organizations' => $this->getOrganizations->publicDirectory(),
+            'directory' => $this->directoryBuilder->build($organizations, $occurrences, $this->clock->now(), $request->getLocale()),
         ]);
     }
 }

@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Results\EventSeriesRow;
 use SpeedPuzzling\Web\Results\EventsPage\Place;
 use SpeedPuzzling\Web\Results\EventsPage\SeriesLine;
+use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\SearchText;
@@ -24,7 +25,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * for a series), `sid` (an edition's series entry), `u` (link), `f`/`t` (Y-m-d first and last day, `t` null for one
  * day), `lr` (long-running), `sc` (scope key: online / country code / ''), `c` (country code), `p` (place label), `st`
  * (EventOccurrenceStatus, null for a series), `r` (results), `w` (waiting for approval), `x` (folded search text:
- * names, a session's label, location, the country's localised and English name, the year, "online").
+ * names, a session's label, location, the country's localised and English name, the year, "online", and the name and
+ * short name of its organization while that is publicly visible - docs/features/organizations/README.md).
  */
 readonly final class EventsIndexFactory
 {
@@ -76,6 +78,7 @@ readonly final class EventsIndexFactory
                 $occurrence->countryCode?->value,
                 $occurrence->startDate?->format('Y'),
                 $occurrence->isOnline ? 'online' : null,
+                ...self::organizationNames($occurrence->organization),
             ]),
         ];
     }
@@ -109,6 +112,7 @@ readonly final class EventsIndexFactory
                 $series->countryCode?->localizedName($locale),
                 $series->countryCode?->value,
                 $series->isOnline ? 'online' : null,
+                ...self::organizationNames($line->organization),
             ]),
         ];
     }
@@ -125,6 +129,20 @@ readonly final class EventsIndexFactory
         $parts = array_filter([$place->city, $place->country], static fn (null|string $part): bool => $part !== null && $part !== '');
 
         return $parts === [] ? null : implode(', ', $parts);
+    }
+
+    /**
+     * The name and short name of a publicly visible organization - nothing for a draft, pending or rejected one
+     *
+     * @return list<null|string>
+     */
+    private static function organizationNames(null|OrganizationRef $organization): array
+    {
+        if ($organization === null || $organization->isPublic === false) {
+            return [];
+        }
+
+        return [$organization->name, $organization->shortName];
     }
 
     /**

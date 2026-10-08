@@ -1,7 +1,8 @@
 {# Series directory: in person, online, ongoing (owner: workstream A). Variables: page; search_ids, scope_name.
    Each line: name, place or Online, edition count, next/live/ongoing/last date or "No dates yet", star + ⋯. "Ongoing"
    lists online one-time events without dates and, while they run, occurrences without rounds spanning more than a
-   month (OccurrenceDates::LONG_SPAN_DAYS) in the same compact form. #}
+   month (OccurrenceDates::LONG_SPAN_DAYS) in the same compact form. A line of a series under a publicly visible
+   organization says "by …" (docs/features/organizations/README.md); the head links the organizations directory. #}
 {% set sid = search_ids ?? null %}
 {% set groups = [
     {key: 'in_person', title: 'events_page.series.in_person', lines: page.seriesInPerson},
@@ -16,6 +17,7 @@
 <section class="ev-block ev-series" aria-labelledby="ev-series-title" data-ev-section="series" {{ total_shown == 0 ? 'hidden' }}>
     <div class="ev-block-head">
         <h2 class="ev-block-title" id="ev-series-title">{{ 'events_page.series.title'|trans }}</h2>
+        <a class="ev-block-link" href="{{ path('organizations') }}" data-ev-organizations-link>{{ 'organization_page.directory.link'|trans }}<span aria-hidden="true"> →</span></a>
     </div>
     {% for group in groups %}
         {% if group.lines is not empty %}
@@ -32,6 +34,7 @@
                                     {{- include('event_parts/_place.html.twig', {place: line.place}) -}}
                                     <span class="ev-series-count">· {{ line.editionCount > 0 ? 'events_page.series.editions'|trans({'%count%': line.editionCount}) : 'events_page.series.no_editions'|trans }}</span>
                                 </span>
+                                {% if line.organization %}<span class="ev-series-by" data-ev-series-by="{{ line.organization.id }}">{{ 'organization_page.series_by'|trans({'%name%': line.organization.name}) }}</span>{% endif %}
                                 {% if line.isPending %}<span class="ev-tag ev-tag-waiting_for_approval">{{ 'events_page.tag.waiting_for_approval'|trans }}</span>{% endif %}
                             </div>
                             <span class="ev-series-next ev-series-next-{{ line.next.type }}">

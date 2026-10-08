@@ -10,9 +10,9 @@
  * (`context.texts.round`) - `t(key, params)` / `tc(key, count, params)`.
  */
 
-import { escapeHtml } from './sheet_grid.js';
-import { cleanTeamName, hasOfficialData, nameKey, parsePlace } from './sheet_model.js';
-import { keepMineInEditor, openEditor, savedMeanwhile } from '../official_results_pending_changes.js';
+import { escapeHtml } from '../sheet_grid.js';
+import { cleanTeamName, hasOfficialData, nameKey, parsePlace } from '../sheet_model.js';
+import { keepMineInEditor, openEditor, savedMeanwhile } from '../../official_results_pending_changes.js';
 import {
     enteredLabel,
     officialEdit,
@@ -28,8 +28,8 @@ import {
     swapAssignments,
     tableHolder,
     wordList,
-} from './sheet_results.js';
-import { SKIP, chosenResultChanges } from './round_paste.js';
+} from '../sheet_results.js';
+import { SKIP, chosenResultChanges } from '../round_paste.js';
 
 export const CREATE = '__create';
 export const OPTION_LIMIT = 30;

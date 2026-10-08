@@ -10,9 +10,9 @@ use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
 /**
- * The participants spreadsheet's round tabs in the browser (assets/participants_sheet/{sheet_results,round_paste,
- * round_common}.js, stream D), executed by node through tests/participants-sheet-round-harness.mjs - the suites under
- * tests/participants-sheet-round/ (node:assert) and a few facts asserted here:
+ * The participants spreadsheet's round tabs in the browser (assets/participants_sheet/{sheet_results,round_paste}.js
+ * and round/round_common.js, stream D), executed by node through tests/participants-sheet-round-harness.mjs - the
+ * suites under tests/participants-sheet-round/ (node:assert) and a few facts asserted here:
  * - results: the result cell's grammar (times via parseResultTime, pieces placed, did not start), table numbers, the
  *   "Swap them" write, RecordRoundResults changes with their exact inverse, ranks as the page shows them;
  * - paste: rows of pairs/teams (by name, by members, ambiguous names and people, new people, moves), positional pastes,
@@ -95,20 +95,23 @@ final class ParticipantsSheetRoundScriptsTest extends TestCase
         self::assertSame(['newTeams' => 3, 'moves' => 1, 'newPeople' => 4, 'ambiguousTeams' => 0, 'ambiguousPeople' => 0, 'sharedNames' => 0, 'renames' => 0], $paste['counts']);
         self::assertSame([], $paste['errors']);
 
-        self::assertIsArray($paste['groups']);
+        $groups = $paste['groups'];
+        self::assertIsArray($groups);
         // Line 1 (Corners as it is) and line 3 (Lee + Max as they are) change nothing - 4 groups for the other rows
-        self::assertCount(4, $paste['groups']);
+        self::assertCount(4, $groups);
+        self::assertIsArray($groups[0]);
+        self::assertIsArray($groups[2]);
         self::assertSame([
             ['op' => 'newParticipant', 'id' => 'id1', 'name' => 'Jo New', 'country' => null, 'externalId' => null],
             ['op' => 'newTeam', 'id' => 'id2', 'round' => 'r-pairs', 'name' => 'Owls'],
             ['op' => 'place', 'participant' => 'p-kim', 'round' => 'r-pairs', 'from' => 'in', 'to' => 'team:id2'],
             ['op' => 'place', 'participant' => 'id1', 'round' => 'r-pairs', 'from' => 'out', 'to' => 'team:id2'],
-        ], $paste['groups'][0]['changes']);
-        // The later Corners line: Kim moves back from Owls, Ann and Pat (not listed there) go to the tray
+        ], $groups[0]['changes']);
+        // The later Corners line: Kim moves back from Owls, Ann (not listed there) goes to the tray - Pat left for Bats
         self::assertSame([
             ['op' => 'place', 'participant' => 'p-kim', 'round' => 'r-pairs', 'from' => 'team:id2', 'to' => 'team:t-corners'],
             ['op' => 'place', 'participant' => 'p-ann', 'round' => 'r-pairs', 'from' => 'team:t-corners', 'to' => 'in'],
-        ], $paste['groups'][2]['changes']);
+        ], $groups[2]['changes']);
     }
 
     /**

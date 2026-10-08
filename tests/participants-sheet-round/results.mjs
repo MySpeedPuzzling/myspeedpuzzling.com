@@ -19,6 +19,9 @@ import {
     tableHolder,
     wordList,
 } from '../../assets/participants_sheet/sheet_results.js';
+import { SheetModel } from '../../assets/participants_sheet/sheet_model.js';
+import { SheetSaveQueue, DEBOUNCE_MS } from '../../assets/participants_sheet/sheet_save_queue.js';
+import { ROUND_TEAMS, clock, fakeServer, ids, smallState } from '../participants-sheet-core/fixture.mjs';
 
 const PREVIEW = {
     finished: 'Finished in %time%',
@@ -158,6 +161,39 @@ export default function (test) {
             { id: 'f', displayName: 'F', tableNumber: 6, result: null },
         ]);
         assert.deepEqual(Object.fromEntries(ranks), { b: 1, a: 2, c: 2, d: 4, e: null, f: null });
+    });
+
+    test('a qualified mark ticked and unticked before it was sent sends nothing and leaves no "saving" marker', async () => {
+        const time = clock();
+        const server = fakeServer();
+        const model = new SheetModel(smallState(), { now: time.now });
+        const queue = new SheetSaveQueue({
+            model,
+            urls: { changes: '/c', state: '/s', record: '/r/__ROUND__', tables: '/t/__ROUND__' },
+            csrfToken: 'csrf',
+            request: server.request,
+            newId: ids('cs'),
+            schedule: time.schedule,
+            cancel: time.cancel,
+            now: time.now,
+        });
+        // What the controller's act() does with an action's results
+        const act = (action) => {
+            for (const change of action.results) {
+                queue.results(change.roundId).set(change.ref, change.field, change.to, change.from);
+            }
+
+            queue.enqueueResults(ROUND_TEAMS);
+        };
+
+        act(officialEdit(ROUND_TEAMS, 'team:t-edge', 'qualified', false, true));
+        assert.equal(model.marks.get('result:team:t-edge:qualified')?.state, 'saving');
+        act(officialEdit(ROUND_TEAMS, 'team:t-edge', 'qualified', true, false));
+        assert.equal(model.marks.get('result:team:t-edge:qualified'), null);
+
+        await time.advance(DEBOUNCE_MS + 10);
+        assert.equal(server.open().length, 0);
+        assert.equal(queue.status().state, 'saved');
     });
 
     test('"entered by Eva · 10:42" in the round\'s time zone', () => {

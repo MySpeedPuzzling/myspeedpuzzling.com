@@ -33,7 +33,7 @@ import {
     teamOptions,
     teamShortLabel,
     usesTables,
-} from '../round_common.js';
+} from '../round/round_common.js';
 import { resultText, roundRanks } from '../sheet_results.js';
 
 export default function createRoundCardsView(context) {

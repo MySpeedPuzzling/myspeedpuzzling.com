@@ -9,7 +9,7 @@
  *   round (refused with the reason while they hold a result here).
  * - The new row at the bottom: type a person (people of the event not in this round, or `+ Add "Jo Do" as a new
  *   participant`) → in the round.
- * - Results / rank / qualified (O3) like the pair/team tab (round_common.js RoundResultsCells): RecordRoundResults only,
+ * - Results / rank / qualified (O3) like the pair/team tab (round/round_common.js RoundResultsCells): RecordRoundResults only,
  *   "Table 6 is Ben's · Swap them", "Saved meanwhile by Eva · Keep mine / Take theirs"; people on the waitlist are
  *   ignored by the results tools (official-results rule) - their cells say so.
  * - Paste: results (`name ⇥ result` matched only to people of this round, or one column onto Result).
@@ -35,7 +35,7 @@ import {
     sortedPeopleIds,
     storeResultsColumns,
     usesTables,
-} from '../round_common.js';
+} from '../round/round_common.js';
 import { officialEdits, resultEditText, roundRanks } from '../sheet_results.js';
 import { looksLikeResults, matchPerson, planResultsPaste } from '../round_paste.js';
 
@@ -123,6 +123,13 @@ export class SoloRoundView {
         this.rebuildTimer = null;
 
         if (this.grid === null) {
+            return;
+        }
+
+        if (this.grid.isEditing()) {
+            // A live update asked for new columns while the organiser types: after the edit
+            this.rebuildTimer = setTimeout(() => this.rebuild(), 300);
+
             return;
         }
 

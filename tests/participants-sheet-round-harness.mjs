@@ -1,6 +1,6 @@
-// Runs the participants spreadsheet's round-tab modules (assets/participants_sheet/{sheet_results,round_paste,
-// round_common}.js - stream D) under node for tests/ParticipantsSheetRoundScriptsTest.php: the cases come on stdin as
-// JSON, one result per case is printed.
+// Runs the participants spreadsheet's round-tab modules (assets/participants_sheet/{sheet_results,round_paste}.js and
+// round/round_common.js - stream D) under node for tests/ParticipantsSheetRoundScriptsTest.php: the cases come on
+// stdin as JSON, one result per case is printed.
 //
 // - {"suite": "<name>"} runs tests/participants-sheet-round/<name>.mjs (node:assert tests) and answers
 //   {"suite", "passed", "failures": [{"name", "message"}]};

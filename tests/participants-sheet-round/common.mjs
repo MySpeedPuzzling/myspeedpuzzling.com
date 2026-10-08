@@ -1,4 +1,4 @@
-// round_common.js - labels (O1), where a person is, the pickers' options (D9), sizes (O7), the row order, member slots,
+// round/round_common.js - labels (O1), where a person is, the pickers' options (D9), sizes (O7), the row order, member slots,
 // the round's entries for ranks and results, and when the results columns show (O3).
 
 import assert from 'node:assert/strict';
@@ -21,7 +21,7 @@ import {
     teamOptions,
     usesTables,
     whereInRound,
-} from '../../assets/participants_sheet/round_common.js';
+} from '../../assets/participants_sheet/round/round_common.js';
 import { ROUND_PAIRS, ROUND_SOLO, ROUND_TEAMS, person, place, smallState, team } from '../participants-sheet-core/fixture.mjs';
 
 /** Texts that show the key and its parameters - "size_incomplete:1|2". */

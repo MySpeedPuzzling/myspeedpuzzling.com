@@ -536,7 +536,7 @@ export function looksLikeResults(block, parseOptions = {}, model = null) {
  *
  * @param {object} model
  * @param {string} roundId
- * @param {Array<object>} entries round_common.js roundEntries() - only these can get a result
+ * @param {Array<object>} entries round/round_common.js roundEntries() - only these can get a result
  * @param {string[][]} block
  * @param {{mode: 'names'|'positional', targets?: Array<string|null>, parse?: object}} options
  * @returns {{lines: Array<object>, changes: Array<object>, counts: object}}

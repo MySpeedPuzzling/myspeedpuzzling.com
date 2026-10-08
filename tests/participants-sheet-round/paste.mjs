@@ -16,7 +16,7 @@ import {
     teamOfExactly,
     teamsNamed,
 } from '../../assets/participants_sheet/round_paste.js';
-import { roundEntries } from '../../assets/participants_sheet/round_common.js';
+import { roundEntries } from '../../assets/participants_sheet/round/round_common.js';
 import { ROUND_PAIRS, ROUND_SOLO, ROUND_TEAMS, ids, person, place, smallState, team } from '../participants-sheet-core/fixture.mjs';
 
 const rows = (columns) => ({ columns });

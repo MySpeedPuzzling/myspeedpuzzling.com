@@ -971,6 +971,48 @@ person's next cell). Delete clears (a name refuses), Ctrl+D / Ctrl+Enter fill co
 names / countries / solo columns of existing rows (one value onto a selection fills it); more than 10 rows or anything
 left out opens the preview with the server's dry run; rows below the list are listed, not added (adding by paste is E's).
 
+### The round tabs (stream D: `views/team_round_view.js`, `views/solo_round_view.js`, `views/round_cards_view.js`)
+
+Shared pieces: `round/round_common.js` (O1 labels, where a person is in a round, the people/team pickers' options with
+`+ Add "Jo Do" as a new participant`, size texts (O7), row order, member slots, the round's results entries, when the
+results columns show, the `RoundResultsCells` helper of both grids and the `RoundDialog` menu/picker - a native modal
+`<dialog>`, a bottom sheet / full-screen search on phones), `sheet_results.js` (the result grammar, table numbers, the
+"Swap them" write, ranks) and `round_paste.js` (pastes); pinned by `tests/ParticipantsSheetRoundScriptsTest.php` →
+`tests/participants-sheet-round-harness.mjs` → `tests/participants-sheet-round/{results,paste,common}.mjs`.
+
+- **Pair/team tab**: Table (`list` cell: 1..9999, a number another entry holds offers "Swap them" = one
+  AssignTableNumbers write, undone as two RecordRoundResults table changes) or a plain `#` (online / table numbers off),
+  Name, Member 1…N (N = max(expected size, largest pair/team)), `+`, Size in words, Result / Rank / Qualified (shown
+  once the round started or holds results, else behind "Results columns" - remembered per round in localStorage), ⋯
+  (Enter, double click or the context menu: rename, delete, take the whole pair/team out - disabled with the reason
+  while it holds a result). Members keep their column while the organiser works (`memberSlots`); rows keep their
+  order until "Sort". The new row: a name (Enter = the next name, Tab = its members) or a person creates the pair/team;
+  Enter in a member cell goes on with the same pair/team while it is short of people (always in a team round without a
+  set size), then to the new row. The tray below the grid ("In the round without a pair (5)"): chip → Pair with… /
+  Add to… / New pair / Not in this round, plus "Add people to this round". Toolbar: problem filters, members per team,
+  Sort, Results columns, Live entry / Results desk / Seating.
+- **Solo tab**: Table, Name (read-only - Enter/Space opens the person editor, else People at the person; Delete takes
+  them out of the round), Country, Result / Rank / Qualified, ⋯; the new row puts a person (or a new one) into the
+  round; people on the waitlist are listed, their results cells say why they cannot be edited.
+- **Results cells** (both): `from` = what the cell showed when its editor opened (`openEditor()` of
+  official_results_pending_changes.js, through the grid's `editStart`/`seenValue`); a value saved meanwhile (a live
+  update while the editor is open) turns the editor's list into "Saved meanwhile by Eva: 1:20:00 · Keep mine / Take
+  theirs" and Enter is refused until one is picked; the parsed value shows under the editor while typing; Alt+↓ lists
+  Finished / Didn't finish / Did not start / No result.
+- **Paste**: `Team ⇥ member ⇥ member` rows (new row or wider than the row) or positional (onto existing rows), `name ⇥
+  result` (most second cells readable as results, none of them a person's name) or one column onto Result - always
+  previewed with the server's dry run above 10 cells or with anything to decide; rows the dry run refuses are not
+  sent; one undo step.
+- **Phone** (`round_cards_view.js`, < 768 px): the counts, the tray first, a card per pair/team (member chips with ✕,
+  "+ Add partner" full-screen search, ⋯ Rename / Delete / Take out, the result read-only + Live entry), "+ New pair"
+  (a name and/or the first person); solo rounds = the people with their result, "Add people to this round", "Take out".
+
+Core additions made for the round tabs: `SheetGrid` - `content.kind` (a cell's own kind: the solo name cells are
+actions, its new row types), `editStart(row, col)`, `suggest(…, {explicit})` (Alt+↓), a `create` option or an empty
+editor is never auto-highlighted, the focus stays in the grid when the focused row goes; `SheetSaveQueue.enqueueResults`
+clears the marker of a results cell changed back before it was sent; the controller's `openPersonEditor()` resolves
+to whether an editor opened.
+
 ### Measured (2026-10-08, standalone harness, headless Chromium 124, invented WJPC-sized event)
 
 400 people × 15 rounds (18 columns, 7,236 cells, 100 pairs, 50 teams): render 190 ms at 1× CPU (layout ~95 ms of it),

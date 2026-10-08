@@ -56,7 +56,7 @@ import {
     teamShortLabel,
     usesTables,
     whereInRound,
-} from '../round_common.js';
+} from '../round/round_common.js';
 import { officialEdits, resultEditText, roundRanks } from '../sheet_results.js';
 import {
     NEW_TEAM,
@@ -184,6 +184,13 @@ export class TeamRoundView {
         this.rebuildTimer = null;
 
         if (this.grid === null) {
+            return;
+        }
+
+        if (this.grid.isEditing()) {
+            // A live update asked for new columns while the organiser types: after the edit
+            this.rebuildTimer = setTimeout(() => this.rebuild(), 300);
+
             return;
         }
 

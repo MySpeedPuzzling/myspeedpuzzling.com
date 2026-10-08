@@ -1,8 +1,18 @@
 {#
     "Organized by <organization>" in the byline of the series, edition and event pages (owner: workstream A,
-    docs/features/organizations/README.md "Organized by") - HOOK of the foundation, renders nothing yet.
+    docs/features/organizations/README.md "Organized by"): the organization's name links its page. Shown while the
+    organization is publicly visible - to everyone - or, when it is not (a draft, waiting for approval, rejected), to its
+    team only, marked "Not public". The voter is asked only for a non-public organization, so public pages pay no
+    statement. The name is escaped before it goes into the sentence (as event_parts/_event_time.html.twig assembles its
+    text).
 
-    Variables: organization (null|OrganizationRef) - shown when organization.isPublic, or to its team
-    (is_granted('ORGANIZATION_EDIT', organization.id) - ask the voter only for a non-public organization, so public pages
-    pay no statement). Text: 'organization.byline.organized_by' with %name% = the link to organization_detail.
+    Variables: organization (null|OrganizationRef)
 #}
+{%- if organization is not null and (organization.isPublic or is_granted('ORGANIZATION_EDIT', organization.id)) -%}
+    <span class="ev-detail-by ev-organized-by" data-organized-by="{{ organization.id }}">
+        {{- 'organization.byline.organized_by'|trans({
+            '%name%': '<a href="' ~ path('organization_detail', {slug: organization.slug})|e ~ '">' ~ organization.name|e ~ '</a>',
+        })|raw -}}
+        {%- if not organization.isPublic %} <span class="ev-tag ev-tag-not-public">{{ 'organization_page.byline.not_public'|trans }}</span>{% endif -%}
+    </span>
+{%- endif -%}

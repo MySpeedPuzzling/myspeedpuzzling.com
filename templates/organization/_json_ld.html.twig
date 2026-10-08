@@ -1,0 +1,41 @@
+{#
+    The Organization JSON-LD of the organization page (owner: workstream A, docs/features/organizations/README.md "SEO"):
+    name, alternateName (the short name), url, logo (the 1200 px metadata-stripped preset - never the uploaded original),
+    description (the about text), sameAs (the website and the social links), address (region and country). Only while
+    the organization is publicly visible. Every value goes through `json_ld`.
+    Variables: organization (OrganizationDetail)
+#}
+{% if organization.isPublic %}
+{% set same_as = (organization.website ? [organization.website] : [])|merge(organization.socialLinks|map(link => link.url)) %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": {{ organization.name|json_ld }},
+    "url": {{ url('organization_detail', {'slug': organization.slug})|json_ld }}
+    {%- if organization.shortName %},
+    "alternateName": {{ organization.shortName|json_ld }}
+    {%- endif %}
+    {%- if organization.logo %},
+    "logo": {{ organization.logo|thumbnail('puzzle_large')|json_ld }}
+    {%- endif %}
+    {%- if organization.about %},
+    "description": {{ organization.about|json_ld }}
+    {%- endif %}
+    {%- if same_as is not empty %},
+    "sameAs": {{ same_as|json_ld }}
+    {%- endif %}
+    {%- if organization.region or organization.countryCode %},
+    "address": {
+        "@type": "PostalAddress"
+        {%- if organization.region %},
+        "addressRegion": {{ organization.region|json_ld }}
+        {%- endif %}
+        {%- if organization.countryCode %},
+        "addressCountry": {{ organization.countryCode.name|upper|json_ld }}
+        {%- endif %}
+    }
+    {%- endif %}
+}
+</script>
+{% endif %}

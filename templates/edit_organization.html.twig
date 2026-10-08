@@ -1,0 +1,74 @@
+{% extends 'base.html.twig' %}
+
+{#
+    Edit an organization (docs/features/organizations/README.md "Forms", owner: workstream A): its team and admins. Why it
+    is not public yet (rejected with the reason, waiting for approval, a draft), the form with the "URL" field, and the
+    team - only here, never on the public page (D19).
+    Variables: form, kept_photos, organization (OrganizationDetail), team (list<{name, code, creator}>), slug_prefix
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'organization_page.form.edit_title'|trans }} - {{ organization.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: organization.name, url: path('organization_detail', {slug: organization.slug})},
+        {label: 'organization_page.form.edit_title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('organization_detail', {slug: organization.slug}), fallbackTitle: organization.name}) }}
+
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-8">
+                <h1 class="h2">{{ 'organization_page.form.edit_title'|trans }}: {{ organization.name }}</h1>
+
+                {% if organization.rejectedAt %}
+                    <div class="alert alert-danger" role="alert" data-org-rejected>
+                        {{ 'organization_page.form.rejected'|trans({'%reason%': organization.rejectionReason ?? '-'}) }}
+                    </div>
+                {% elseif organization.isDraft %}
+                    <div class="alert alert-light border" role="status" data-org-draft-note>
+                        {{ 'organization_page.form.draft'|trans }}
+                    </div>
+                {% elseif organization.isPending %}
+                    <div class="alert alert-warning" role="status" data-org-pending>
+                        {{ 'organization_page.form.pending'|trans }}
+                    </div>
+                {% endif %}
+
+                <p><a href="{{ path('organization_detail', {slug: organization.slug}) }}">{{ 'organization_page.form.view_page'|trans }}</a></p>
+
+                <div class="card shadow my-4">
+                    <div class="card-body">
+                        {{ include('organization/_form.html.twig', {
+                            form: form,
+                            kept_photos: kept_photos,
+                            current_logo: organization.logo,
+                            slug_prefix: slug_prefix,
+                            submit_label: 'organization_page.form.save',
+                        }, with_context = false) }}
+                    </div>
+                </div>
+
+                <section class="card shadow my-4" aria-labelledby="org-team-title" data-org-team>
+                    <div class="card-body">
+                        <h2 class="h5" id="org-team-title">{{ 'organization_page.form.team_title'|trans }}</h2>
+                        <p class="text-muted small">{{ 'organization_page.form.team_note'|trans }}</p>
+                        <ul class="list-unstyled mb-0">
+                            {% for member in team %}
+                                <li class="py-1" data-org-team-member="{{ member.code }}">
+                                    {{ member.name }} <small class="text-muted">#{{ member.code }}</small>
+                                    {% if member.creator %}<span class="badge bg-secondary ms-1">{{ 'organization_page.form.creator'|trans }}</span>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+{% endblock %}

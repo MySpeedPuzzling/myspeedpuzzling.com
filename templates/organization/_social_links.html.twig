@@ -1,0 +1,18 @@
+{#
+    An organization's social links as icon links (owner: workstream A, docs/features/organizations/README.md, D9/P13):
+    the platform's Bootstrap icon (a generic link icon for any other host), its name - "Instagram", "Discord", or the
+    host for any other site - as the accessible name and the tooltip. 44 px targets. Nothing without links.
+    Variables: links (list<SocialLink>), name (the organization's name - the list's label)
+#}
+{% if links is not empty %}
+    <ul class="ev-org-social" aria-label="{{ 'organization_page.header.social_links'|trans({'%name%': name}) }}" data-org-social>
+        {% for link in links %}
+            <li>
+                <a class="ev-org-social-link" href="{{ link.url }}" target="_blank" rel="noopener noreferrer"
+                   aria-label="{{ link.name }}" title="{{ link.name }}" data-org-social-link="{{ link.platform.value }}">
+                    <i class="bi {{ link.platform.iconClass }}" aria-hidden="true"></i>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

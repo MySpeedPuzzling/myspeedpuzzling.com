@@ -10,9 +10,10 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * The "URL" (slug) field of the event, edition and series edit forms: what the organiser typed, normalised like a
- * generated slug ("My New URL" → "my-new-url") and checked unique in its scope by CompetitionSlugGenerator - the same
- * checks the handlers run (and the internal API's explicit `slug`). A URL that cannot be used is an error on the field.
+ * The "URL" (slug) field of the event, edition, series and organization edit forms: what the organiser typed,
+ * normalised like a generated slug ("My New URL" → "my-new-url") and checked unique in its scope by
+ * CompetitionSlugGenerator - the same checks the handlers run (and the internal API's explicit `slug`). A URL that
+ * cannot be used is an error on the field.
  */
 readonly final class CompetitionUrlField
 {
@@ -50,6 +51,20 @@ readonly final class CompetitionUrlField
             $field,
             $currentSlug,
             fn (string $slug): bool => $this->slugGenerator->isSeriesSlugTaken($slug, $seriesId),
+        );
+    }
+
+    /**
+     * The slug to send for an organization (docs/features/organizations/README.md, P11): null = unchanged.
+     *
+     * @param FormInterface<mixed> $field
+     */
+    public function organizationSlug(FormInterface $field, string $currentSlug, string $organizationId): null|string
+    {
+        return $this->resolve(
+            $field,
+            $currentSlug,
+            fn (string $slug): bool => $this->slugGenerator->isOrganizationSlugTaken($slug, $organizationId),
         );
     }
 

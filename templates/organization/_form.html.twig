@@ -1,0 +1,45 @@
+{#
+    The fields of the add/edit organization forms (owner: workstream A, docs/features/organizations/README.md "Forms").
+    The edit form has the "URL" field (form.slug) with the address it completes above it; the add form the secondary
+    "Save as draft" submit (form.saveDraft). Full-page form: success redirects, a refused submit answers 422.
+    Variables: form, kept_photos, current_logo (null|string), slug_prefix (null|string), submit_label
+#}
+{{ form_start(form) }}
+    <div class="required">{{ form_row(form.name) }}</div>
+    {{ form_row(form.shortName) }}
+    {% if form.slug is defined %}
+        <div class="mb-3">
+            {{ form_label(form.slug) }}
+            {% if slug_prefix|default(null) is not null %}
+                {# The address the slug completes, above the input - beside it, it would squeeze the input on a phone #}
+                <div class="small text-muted text-break mb-1" data-slug-prefix>{{ slug_prefix }}</div>
+            {% endif %}
+            {{ form_widget(form.slug) }}
+            {{ form_help(form.slug) }}
+            {{ form_errors(form.slug) }}
+        </div>
+    {% endif %}
+    {{ form_row(form.kind) }}
+    <div data-controller="country-autocomplete">
+        {{ form_row(form.countryCode) }}
+    </div>
+    {{ form_row(form.region) }}
+    {{ form_row(form.about) }}
+    {{ form_row(form.website) }}
+    {{ form_row(form.socialLinks) }}
+    {{ include('_competition_logo_field.html.twig', {
+        field: form.logo,
+        current_logo: current_logo|default(null),
+        kept_photo: (kept_photos|default({})).logo ?? null,
+    }, with_context = false) }}
+    <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
+        {{ form_row(form.maintainers) }}
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <button type="submit" class="btn btn-primary mt-3">{{ submit_label|trans }}</button>
+        {% if form.saveDraft is defined %}
+            {{ form_widget(form.saveDraft) }}
+        {% endif %}
+    </div>
+{{ form_end(form) }}

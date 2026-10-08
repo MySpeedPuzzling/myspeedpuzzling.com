@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\EventSeriesRow;
 use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
 use SpeedPuzzling\Web\Results\EventsPage\SeriesLine;
 use SpeedPuzzling\Web\Results\EventsPage\SeriesNext;
+use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Services\EventsPage\EventsIndexFactory;
 use SpeedPuzzling\Web\Services\EventsPage\EventsPageBuilder;
 use SpeedPuzzling\Web\Services\EventsPage\EventUrls;
@@ -191,6 +192,71 @@ final class EventsIndexFactoryTest extends TestCase
         self::assertSame('at', $entry['sc']);
         self::assertSame('Innsbruck, Austria', $entry['p']);
         self::assertSame('summit puzzle league innsbruck austria', $entry['x']);
+    }
+
+    public function testThePublicOrganizationsNameAndShortNameAreSearchable(): void
+    {
+        $organization = new OrganizationRef('018d0099-0000-0000-0000-000000000010', 'Riverbend Jigsaw Association', 'RJA', 'riverbend-jigsaw-association', true);
+        $event = new EventOccurrence(
+            competitionId: '018d0099-0000-0000-0000-000000000011',
+            name: 'Spring Open',
+            slug: 'spring-open',
+            location: 'Riverbend',
+            countryCode: CountryCode::us,
+            startDate: new DateTimeImmutable('2026-12-05', new DateTimeZone('UTC')),
+            organization: $organization,
+        );
+
+        $entry = $this->factory()->occurrence(0, $event, EventOccurrenceStatus::Upcoming, '/en/events/spring-open', EventsPageBuilder::place(false, 'Riverbend', CountryCode::us, 'en'), null, 'en');
+
+        self::assertSame('spring open riverbend united states united states of america 2026 riverbend jigsaw association rja', $entry['x']);
+
+        $series = new EventSeriesRow('018d0099-0000-0000-0000-000000000012', 'Lantern Nights', 'lantern-nights', false, 'Riverbend', CountryCode::us, organization: $organization);
+        $seriesEntry = $this->factory()->series($this->seriesLine($series, $organization), $series, 'en');
+
+        self::assertSame('lantern nights riverbend united states united states of america riverbend jigsaw association rja', $seriesEntry['x']);
+    }
+
+    public function testADraftOrPendingOrganizationIsNotSearchable(): void
+    {
+        $organization = new OrganizationRef('018d0099-0000-0000-0000-000000000013', 'Harbor Puzzle Club', null, 'harbor-puzzle-club', false);
+        $event = new EventOccurrence(
+            competitionId: '018d0099-0000-0000-0000-000000000014',
+            name: 'Club Meet',
+            slug: 'club-meet',
+            isOnline: true,
+            startDate: new DateTimeImmutable('2026-12-05', new DateTimeZone('UTC')),
+            organization: $organization,
+        );
+
+        $entry = $this->factory()->occurrence(0, $event, EventOccurrenceStatus::Upcoming, '/en/events/club-meet', EventsPageBuilder::place(true, null, null, 'en'), null, 'en');
+
+        self::assertSame('club meet 2026 online', $entry['x']);
+
+        // A series line carries only a publicly visible organization (EventsPageBuilder) - nothing to fold
+        $series = new EventSeriesRow('018d0099-0000-0000-0000-000000000015', 'Club Meets', 'club-meets', true, organization: $organization);
+        self::assertSame('club meets online', $this->factory()->series($this->seriesLine($series, null), $series, 'en')['x']);
+    }
+
+    private function seriesLine(EventSeriesRow $series, null|OrganizationRef $organization): SeriesLine
+    {
+        return new SeriesLine(
+            indexId: 3,
+            seriesId: $series->id,
+            name: $series->name,
+            url: '/en/series/' . $series->slug,
+            place: EventsPageBuilder::place($series->isOnline, $series->location, $series->countryCode, 'en'),
+            isOnline: $series->isOnline,
+            editionCount: 0,
+            next: new SeriesNext(SeriesNext::NONE, null),
+            followTarget: FollowTarget::series($series->id),
+            following: false,
+            manage: new ManageRef(ManageRef::KIND_SERIES, $series->id, $series->name),
+            isPending: false,
+            scopeKey: $series->isOnline ? 'online' : 'us',
+            visible: true,
+            organization: $organization,
+        );
     }
 
     private function factory(): EventsIndexFactory

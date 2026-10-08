@@ -3,8 +3,11 @@
     Emitted for a publicly visible page with a start date. The dates come from the rounds timeline (OccurrenceDates
     over every round - an edition dated only by its rounds gets its Event too); a competition with two or more sessions
     adds a `subEvent` per session, linking its first round (`#round-<id>`). Every value goes through `json_ld`.
-    Variables: the page's (event, event_title, is_publicly_visible, timeline, series - null on the event page),
-    meta_description (the page's, trimmed).
+    Variables: the page's (event, event_title, is_publicly_visible, timeline, series - null on the event page,
+    organization - its organization, an edition's is its series'), meta_description (the page's, trimmed).
+
+    `organizer` (docs/features/organizations/README.md): its organization while that is publicly visible (name + its
+    page); else an edition names its series, a one-time event none.
 #}
 {% set is_edition = series is defined and series is not null %}
 {% if is_edition %}
@@ -21,6 +24,7 @@
 {% set jsonld_image = is_edition ? (event.logo ?? series.logo) : event.logo %}
 {% set attendance_mode = jsonld_online ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode' %}
 {% set virtual_url = event.registrationLink ?? event.resultsLink ?? page_url %}
+{% set jsonld_organization = organization|default(null) is not null and organization.isPublic ? organization : null %}
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
@@ -62,14 +66,26 @@
     {%- endif %},
     "organizer": {
         "@type": "Organization",
+        {%- if jsonld_organization %}
+        "name": {{ jsonld_organization.name|json_ld }},
+        "url": {{ url('organization_detail', {'slug': jsonld_organization.slug})|json_ld }}
+        {%- else %}
         "name": {{ series.name|json_ld }}
+        {%- endif %}
     }
     {%- else %}
     {# description is a Google-recommended Event property - always emit,
-       falling back to the same text as the meta description. organizer is
-       deliberately NOT emitted: added_by_player is the submitter (often an
-       admin), not the organizer - see docs/features/seo/TODO.md #14. #}
+       falling back to the same text as the meta description. organizer only
+       for an event under a public organization: added_by_player is the
+       submitter (often an admin), not the organizer - see docs/features/seo/TODO.md #14. #}
     ,"description": {{ (event.description ? event.description|striptags : meta_description)|json_ld }}
+    {%- if jsonld_organization %},
+    "organizer": {
+        "@type": "Organization",
+        "name": {{ jsonld_organization.name|json_ld }},
+        "url": {{ url('organization_detail', {'slug': jsonld_organization.slug})|json_ld }}
+    }
+    {%- endif %}
     {%- endif %}
     {%- if event.registrationLink %},
     "offers": {

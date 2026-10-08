@@ -36,6 +36,8 @@ final class SitemapStaticController extends AbstractController
         'terms_of_service',
         // 'hub' is deliberately missing: it is `noindex, follow` (a dashboard, not a landing page)
         'events',
+        // The organizations directory (docs/features/organizations/README.md "Directory")
+        'organizations',
         'marketplace',
         'puzzle_tracker_app',
         'feature_requests',

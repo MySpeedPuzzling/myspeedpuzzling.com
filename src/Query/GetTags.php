@@ -20,7 +20,7 @@ readonly final class GetTags
     /**
      * With the publicly visible competition each tag belongs to, so the puzzle page can link a tag badge to its
      * event instead of a filter URL. A tag of several competitions links the latest one; a competition wins
-     * over a series holding the same tag.
+     * over a series holding the same tag. A tag of drafts only is left out (sqlNotOnlyOfDrafts()).
      *
      * @throws PuzzleNotFound
      * @return array<PuzzleTag>
@@ -32,6 +32,8 @@ readonly final class GetTags
         }
 
         $visibleCompetition = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $visibleSeries = IsSeriesPubliclyVisible::SQL_CONDITION;
+        $notOnlyOfDrafts = self::sqlNotOnlyOfDrafts('tag');
 
         $query = <<<SQL
 SELECT
@@ -56,13 +58,13 @@ LEFT JOIN LATERAL (
         SELECT cs.name, cs.slug, NULL, NULL, true, NULL
         FROM competition_series cs
         WHERE cs.tag_id = tag.id
-            AND cs.approved_at IS NOT NULL
-            AND cs.rejected_at IS NULL
+            AND {$visibleSeries}
     ) candidate
     ORDER BY candidate.is_series, candidate.date_from DESC NULLS LAST, candidate.name
     LIMIT 1
 ) linked ON true
 WHERE tag_puzzle.puzzle_id = :puzzleId
+    AND {$notOnlyOfDrafts}
 ORDER BY tag.name
 SQL;
 
@@ -90,14 +92,19 @@ SQL;
     }
 
     /**
+     * Every tag but those of drafts only (sqlNotOnlyOfDrafts())
+     *
      * @return array<PuzzleTag>
      */
     public function all(): array
     {
+        $notOnlyOfDrafts = self::sqlNotOnlyOfDrafts('tag');
+
         $query = <<<SQL
-SELECT id AS tag_id, name
+SELECT tag.id AS tag_id, tag.name
 FROM tag
-ORDER BY name
+WHERE {$notOnlyOfDrafts}
+ORDER BY tag.name
 SQL;
 
         $data = $this->database
@@ -117,18 +124,20 @@ SQL;
     }
 
     /**
+     * The tags of each puzzle - but those of drafts only (sqlNotOnlyOfDrafts())
+     *
      * @param null|list<string> $onlyPuzzleIds
      *
      * @return array<string, array<PuzzleTag>>
      */
     public function allGroupedPerPuzzle(null|array $onlyPuzzleIds = null): array
     {
-        $whereClause = '';
+        $whereClause = 'WHERE ' . self::sqlNotOnlyOfDrafts('tag');
         $params = [];
         $types = [];
 
         if ($onlyPuzzleIds !== null) {
-            $whereClause = 'WHERE tag_puzzle.puzzle_id IN (:puzzleIds)';
+            $whereClause .= ' AND tag_puzzle.puzzle_id IN (:puzzleIds)';
             $params['puzzleIds'] = $onlyPuzzleIds;
             $types['puzzleIds'] = ArrayParameterType::STRING;
         }
@@ -166,5 +175,35 @@ SQL;
         }
 
         return $data;
+    }
+
+    /**
+     * A competition's tag is named after it (SetCompetitionPuzzles), so a tag that belongs to drafts only would tell a
+     * draft's name: it is left out everywhere until one of them is published (docs/features/organizations/README.md
+     * "Drafts"). A tag of no event, or of any event or series that is not a draft, stays - an event waiting for approval
+     * keeps its plain badge as before. Alias of the tag row: $tag.
+     */
+    private static function sqlNotOnlyOfDrafts(string $tag): string
+    {
+        return <<<SQL
+(
+    (
+        NOT EXISTS (
+            SELECT 1
+            FROM competition draft_c
+            LEFT JOIN competition_series draft_cs ON draft_cs.id = draft_c.series_id
+            WHERE draft_c.tag_id = {$tag}.id AND (draft_c.is_draft OR COALESCE(draft_cs.is_draft, false))
+        )
+        AND NOT EXISTS (SELECT 1 FROM competition_series draft_s WHERE draft_s.tag_id = {$tag}.id AND draft_s.is_draft)
+    )
+    OR EXISTS (
+        SELECT 1
+        FROM competition shown_c
+        LEFT JOIN competition_series shown_cs ON shown_cs.id = shown_c.series_id
+        WHERE shown_c.tag_id = {$tag}.id AND shown_c.is_draft = false AND COALESCE(shown_cs.is_draft, false) = false
+    )
+    OR EXISTS (SELECT 1 FROM competition_series shown_s WHERE shown_s.tag_id = {$tag}.id AND shown_s.is_draft = false)
+)
+SQL;
     }
 }

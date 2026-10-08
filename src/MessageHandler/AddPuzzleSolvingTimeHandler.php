@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Entity\SuspiciousTimeConfirmation;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
@@ -30,6 +31,7 @@ use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetRecentIdenticalSolvingTime;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -80,6 +82,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private IdLock $idLock,
         private SecretPuzzleAccess $secretPuzzleAccess,
         private SuspiciousTimeConfirmationRepository $suspiciousTimeConfirmationRepository,
+        private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
     ) {
     }
 
@@ -94,6 +97,7 @@ readonly final class AddPuzzleSolvingTimeHandler
      * @throws StopwatchNotFound
      * @throws CanNotModifyOtherPlayersTime
      * @throws StopwatchCouldNotBeFinished
+     * @throws CompetitionRoundNotFound
      */
     public function __invoke(AddPuzzleSolvingTime $message): void
     {
@@ -153,6 +157,12 @@ readonly final class AddPuzzleSolvingTimeHandler
             // The round's competition is derived; both are written together so they cannot disagree.
             $competitionRound = $this->competitionRoundRepository->get($message->roundId);
             $competition = $competitionRound->competition;
+
+            // A round of an event nobody may see (a draft, waiting for approval, rejected) does not exist for a time -
+            // the API's round id included (docs/features/organizations/README.md "Drafts"); refused before anything changes
+            if ($this->isCompetitionPubliclyVisible->check($competition->id->toString()) === false) {
+                throw new CompetitionRoundNotFound();
+            }
         } elseif ($message->competitionId !== null) {
             try {
                 $competition = $this->competitionRepository->get($message->competitionId);

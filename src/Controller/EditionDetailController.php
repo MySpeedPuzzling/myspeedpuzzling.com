@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\DraftState;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
 use SpeedPuzzling\Web\Services\EventDetail\RoundsTimelineBuilder;
 use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
@@ -77,8 +79,16 @@ final class EditionDetailController extends AbstractController
         assert($competition->series !== null);
 
         $competitionId = $competition->id->toString();
-        $competitionEvent = $this->getCompetitionEvents->byId($competitionId);
         $seriesOverview = $this->getCompetitionSeries->byId($competition->series->id->toString());
+
+        // A draft edition, or any edition of a draft series, exists only for its team and admins
+        // (docs/features/organizations/README.md "Drafts", P5/P7) - before anything else is read. The series' flag comes
+        // from the overview: the entity's series is a lazy proxy, reading it would cost a statement
+        if (($competition->isDraft || $seriesOverview->isDraft) && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false) {
+            throw new DraftNotVisible();
+        }
+
+        $competitionEvent = $this->getCompetitionEvents->byId($competitionId);
 
         $rounds = array_values($this->getEditionRounds->forCompetition($competitionId));
         $now = $this->clock->now();

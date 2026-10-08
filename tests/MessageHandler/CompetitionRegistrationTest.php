@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Exceptions\InvalidRegistrationSettings;
 use SpeedPuzzling\Web\Exceptions\ParticipantIsWaitlisted;
@@ -121,11 +122,21 @@ final class CompetitionRegistrationTest extends KernelTestCase
         self::assertSame(0, $this->rowCount(self::EVENT));
     }
 
+    /**
+     * An event that is not publicly visible cannot be joined at all (docs/features/organizations/README.md, P17) - a
+     * registration neither
+     */
     public function testEventThatIsNotPubliclyVisibleTakesNoRegistrations(): void
     {
         $this->manage(competitionId: CompetitionFixture::COMPETITION_UNAPPROVED);
 
-        $this->assertRefused(RegistrationAvailability::NotPublic, CompetitionFixture::COMPETITION_UNAPPROVED, PlayerFixture::PLAYER_ADMIN);
+        try {
+            $this->join(PlayerFixture::PLAYER_ADMIN, CompetitionFixture::COMPETITION_UNAPPROVED);
+            self::fail('The registration must be refused');
+        } catch (CompetitionNotFound) {
+            // Refused before anything changes
+        }
+
         self::assertSame(0, $this->rowCount(CompetitionFixture::COMPETITION_UNAPPROVED));
         self::assertQueuedEmailCount(0);
     }

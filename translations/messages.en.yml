@@ -8171,3 +8171,16 @@ drafts_core:
         participants: "people have joined it"
         results: "it has official results"
         solving_times: "solving times are linked to it"
+drafts:
+    banner:
+        own: "Draft: only you and your team can see this page."
+        series: "This series is a draft: only you and your team can see this page."
+        publish: "Publish"
+        publish_series: "Publish series"
+    hint:
+        page_sections: "This is a draft - only you and your team can see it. Visitors see these sections once you publish it; until then you can prepare them here."
+        page_sections_series: "This series is a draft - only you and your team can see it. Visitors see these sections once you publish it; until then you can prepare them here."
+        registration: "This is a draft - only you and your team can see it. Puzzlers can register once you publish it."
+        results_desk: "This is a draft - only you and your team can see it. The results page stays hidden and the players are told once you publish it."
+    follow:
+        unfollowed_unnamed: "You no longer follow it."

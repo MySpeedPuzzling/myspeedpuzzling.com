@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\DraftState;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
 use SpeedPuzzling\Web\Services\EventDetail\RoundsTimelineBuilder;
 use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
@@ -70,6 +72,13 @@ final class EventDetailController extends AbstractController
         #[CurrentUser] null|UserInterface $user,
         Request $request,
     ): Response {
+        // A draft - its own flag, or an edition's series' - exists only for its team and admins
+        // (docs/features/organizations/README.md "Drafts", P5). Checked before the edition redirect, which would tell the
+        // draft's series URL; the voter is asked only for a draft, so a public page pays no statement for it
+        if ($competition->isHiddenAsDraft() && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString()) === false) {
+            throw new DraftNotVisible();
+        }
+
         if ($competition->series !== null && $competition->series->slug !== null && $competition->slug !== null) {
             return $this->redirectToRoute('edition_detail', [
                 'seriesSlug' => $competition->series->slug,

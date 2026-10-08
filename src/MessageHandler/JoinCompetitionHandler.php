@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotOpen;
@@ -30,10 +31,11 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * "I'm going" (docs/features/competitions-management/participants.md). On an event that manages registration
- * (registration.md) a new spot - joining yourself, or again after cancelling - is a registration: only while the event
- * is publicly visible and its window is open, reserved under the capacity, waitlisted when full (first come, first
- * served - JoinCompetition takes turns with every other participant write of the event). Picking your name from the
- * organiser's list is no new spot: it always works and keeps the row's status - the organiser holds that spot.
+ * (registration.md) a new spot - joining yourself, or again after cancelling - is a registration: only while its window
+ * is open, reserved under the capacity, waitlisted when full (first come, first served - JoinCompetition takes turns with
+ * every other participant write of the event). Picking your name from the organiser's list is no new spot: it always
+ * works and keeps the row's status - the organiser holds that spot. Nothing at all on an event that is not publicly
+ * visible - a draft, waiting for approval or rejected (docs/features/organizations/README.md, P17).
  */
 #[AsMessageHandler]
 readonly final class JoinCompetitionHandler
@@ -53,12 +55,19 @@ readonly final class JoinCompetitionHandler
     }
 
     /**
+     * @throws CompetitionNotFound
      * @throws CompetitionParticipantNotFound
      * @throws CompetitionParticipantAlreadyConnectedToDifferentPlayer
      * @throws RegistrationNotOpen
      */
     public function __invoke(JoinCompetition $message): void
     {
+        // Only a publicly visible event can be joined (docs/features/organizations/README.md, P17): a draft, an event
+        // waiting for approval or a rejected one has no public page - picking a name from its list included
+        if ($this->isCompetitionPubliclyVisible->check($message->competitionId) === false) {
+            throw new CompetitionNotFound();
+        }
+
         $player = $this->playerRepository->get($message->playerId);
 
         if ($message->participantId !== null) {
@@ -137,10 +146,8 @@ readonly final class JoinCompetitionHandler
      */
     private function newRegistrationStatus(Competition $competition): array
     {
-        $availability = $competition->registrationAvailability(
-            $this->clock->now(),
-            $this->isCompetitionPubliclyVisible->check($competition->id->toString()),
-        );
+        // Publicly visible - checked on the way in
+        $availability = $competition->registrationAvailability($this->clock->now(), true);
 
         if ($availability !== RegistrationAvailability::Open) {
             throw new RegistrationNotOpen($availability);

@@ -75,6 +75,8 @@ final class ResultsDeskController extends AbstractController
             throw $this->createNotFoundException();
         }
 
+        $isPubliclyVisible = $this->isCompetitionPubliclyVisible->check($competitionId);
+
         $countries = [];
         foreach (CountryCode::cases() as $country) {
             $countries[$country->name] = $country->value;
@@ -84,6 +86,9 @@ final class ResultsDeskController extends AbstractController
             'competition' => $competition,
             'round' => $thisRound,
             'rounds' => $rounds,
+            // A draft (or an edition of a draft series) says so instead of the approval wording
+            // (docs/features/organizations/README.md "Drafts") - asked only of an event that is not public
+            'is_draft' => $isPubliclyVisible === false && $round->competition->isHiddenAsDraft(),
             'state' => [
                 'serverNow' => $this->clock->now()->format(\DateTimeInterface::ATOM),
                 'topic' => OfficialResultsLiveUpdates::topic($roundId),
@@ -92,7 +97,7 @@ final class ResultsDeskController extends AbstractController
                     'name' => $competition->name,
                     'isOnline' => $competition->isOnline,
                     // Publishing on an event nobody can see yet tells nobody until it is approved
-                    'isPubliclyVisible' => $this->isCompetitionPubliclyVisible->check($competitionId),
+                    'isPubliclyVisible' => $isPubliclyVisible,
                 ],
                 'round' => $thisRound,
                 'rounds' => $rounds,

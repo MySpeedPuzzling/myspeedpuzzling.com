@@ -39,6 +39,7 @@ readonly final class GetPuzzleSummary
         }
 
         $visibleCompetition = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $visibleSeries = IsSeriesPubliclyVisible::SQL_CONDITION;
         $roundPuzzleHidden = RoundPuzzleReveal::sqlHidden('crp', 'cr');
 
         $query = <<<SQL
@@ -101,8 +102,7 @@ SELECT
                 NULL
             FROM competition_series cs
             WHERE cs.tag_id IN (SELECT tp.tag_id FROM tag_puzzle tp WHERE tp.puzzle_id = p.id)
-                AND cs.approved_at IS NOT NULL
-                AND cs.rejected_at IS NULL
+                AND {$visibleSeries}
         ) used
     ) AS used_at
 FROM puzzle p

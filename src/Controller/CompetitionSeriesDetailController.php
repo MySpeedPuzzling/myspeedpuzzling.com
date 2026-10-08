@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEventGoingCounts;
@@ -25,7 +26,8 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * The series page (docs/features/events-page/detail-pages.md "Series page"): the series, its occurrences in one
  * statement, the going counts of the coming ones, and for a signed-in visitor their going/follow rows - SeriesPageBuilder
- * turns them into the page. An unapproved or rejected series is reachable at its URL (noindex, no star).
+ * turns them into the page. An unapproved or rejected series is reachable at its URL (noindex, no star); a draft one
+ * only for its team and admins (404 for everybody else, the draft banner for them).
  */
 final class CompetitionSeriesDetailController extends AbstractController
 {
@@ -55,6 +57,13 @@ final class CompetitionSeriesDetailController extends AbstractController
     public function __invoke(string $slug, Request $request): Response
     {
         $series = $this->getCompetitionSeries->bySlug($slug);
+
+        // A draft series (and so every edition of it) exists only for its team and admins
+        // (docs/features/organizations/README.md "Drafts", P5) - the voter is asked only for a draft
+        if ($series->isDraft && $this->isGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $series->id) === false) {
+            throw new DraftNotVisible();
+        }
+
         $now = $this->clock->now();
 
         $profile = $this->retrieveLoggedUserProfile->getProfile();

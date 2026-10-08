@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\OAuth2TestHelper;
@@ -119,6 +120,55 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
         );
 
         $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    /**
+     * A round of an event nobody may see - a draft, one waiting for approval - does not exist for the API either
+     * (docs/features/organizations/README.md "Drafts"): 404, nothing saved
+     */
+    public function testRoundOfAnEventThatIsNotPublicReturnsNotFound(): void
+    {
+        $browser = self::createClient();
+
+        $token = PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR);
+        PatTestHelper::addBearerToken($browser, $token);
+
+        $send = static function () use ($browser): void {
+            $browser->request(
+                'POST',
+                '/api/v1/me/solving-times',
+                server: ['CONTENT_TYPE' => 'application/json'],
+                content: (string) json_encode([
+                    'puzzle_id' => PuzzleFixture::PUZZLE_3000,
+                    'time' => '55:00',
+                    'round_id' => OrganizationFixture::ROUND_DRAFT_NIGHT,
+                ]),
+            );
+        };
+
+        $send();
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+
+        // Published but waiting for approval: still not public
+        $this->database()->executeStatement(
+            'UPDATE competition SET is_draft = false, approved_at = NULL WHERE id = :id',
+            ['id' => OrganizationFixture::COMPETITION_DRAFT_NIGHT],
+        );
+        $send();
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+
+        self::assertSame(0, $this->database()->fetchOne(
+            'SELECT COUNT(*) FROM puzzle_solving_time WHERE competition_round_id = :roundId',
+            ['roundId' => OrganizationFixture::ROUND_DRAFT_NIGHT],
+        ));
+
+        // Approved and published, the same request saves
+        $this->database()->executeStatement(
+            'UPDATE competition SET approved_at = NOW() WHERE id = :id',
+            ['id' => OrganizationFixture::COMPETITION_DRAFT_NIGHT],
+        );
+        $send();
+        $this->assertResponseIsSuccessful();
     }
 
     /**
@@ -310,7 +360,7 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
             'SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :playerId AND puzzle_id = :puzzleId AND seconds_to_solve = 3900',
             ['playerId' => PlayerFixture::PLAYER_REGULAR, 'puzzleId' => PuzzleFixture::PUZZLE_1500_02],
         );
-        self::assertSame(0, (int) $saved, 'Nothing is saved');
+        self::assertSame(0, $saved, 'Nothing is saved');
     }
 
     private function database(): Connection

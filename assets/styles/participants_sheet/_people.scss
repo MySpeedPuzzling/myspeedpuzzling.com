@@ -150,7 +150,7 @@ $people-panel-width: 24rem;
     --#{$prefix}btn-active-border-color: #{shade-color($success, 55%)};
     --#{$prefix}btn-disabled-color: #{shade-color($success, 40%)};
     --#{$prefix}btn-disabled-border-color: #{shade-color($success, 20%)};
-    background-color: $white;
+    --#{$prefix}btn-bg: #{$white};
 }
 
 .sheet-columns-item {

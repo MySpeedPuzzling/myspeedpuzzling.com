@@ -1098,48 +1098,94 @@ settled in ~5 ms (1,000: ~13 ms), one re-render to show them and one for the ans
 
 Modules: `people_paste.js` (pure - adding people by pasting names: `planNamePaste(model, rows, {readCountry,
 headerNames})` → lines `new | existing | removed | duplicate | invalid | header` matched by the name key against the
-active and the removed people, `namePasteAction(model, plan, ticks)` → one action, a `newParticipant` / `restore` group
-per ticked line), `registration_actions.js` (pure rules - `allowedActions(person, {checkIn})`, `waitlistPositions`
-(FIFO by registeredAt, id), `registrationCounts`, `firstInLine`, `paidBefore`, `matchesRegistrationFilter` - plus
-`sendRegistrationAction()` / `performRegistrationAction(context, personId, action)`: POST `urls.registration`, the answer's
-`person` merged with `model.mergePerson()`; the known version is **never** taken from that answer - the live update or
-the version check fetches the state). Both pinned by `tests/ParticipantsSheetPeopleScriptsTest.php` →
-`tests/participants-sheet-people-harness.mjs` (suites `paste`, `registration`, `filters`); every text by
-`tests/ParticipantsSheetPeopleTextsTest.php`. Views use `say()` / `sayCount()` for the People texts (`t()` = core texts).
+active and the removed people; a new line that looks like a mistake carries a `hint` and is **not ticked** (business
+review BR9): a name close to somebody on the list (`closeNames()` - the import's similar-name rule, both name keys at
+least 6 characters, 1-2 edits apart, `boundedDistance()`) → "Did you mean Kim Example?", or a value that is a country
+code, a number or an e-mail address (`looksLikeNoName()` - columns pasted in another order). `namePasteAction(model,
+plan, ticks, {roundId, skip})` → one action: a `newParticipant` / `restore` group per ticked line; with `roundId` (a solo
+round, BR3) the new and restored people are put into it **in the same group** and every person already on the list (one
+person of that name - `placementOf()` → `put | already | ambiguous`) gets a group putting them in), `registration_actions.js`
+(pure rules - `allowedActions(person, {checkIn})`, `waitlistPositions` (the server's `registration.waitlistPosition` when
+the rows carry it - its FIFO compares microseconds, the state sends seconds - else FIFO by registeredAt, id; numbered
+again from 1, so a promoted person closes the gap at once), `registrationCounts`, `firstInLine`, `paidBefore` (also on a
+removed row still saying paid: a cancelled registration), `matchesRegistrationFilter` (waitlist, not paid, paid, checked
+in, not checked in), `bulkRegistrationPlan` - plus `sendRegistrationAction()` / `performRegistrationAction(context,
+personId, action, {quiet, anchor})`: first waits until the organiser's own unsaved edits of that person are saved
+(`waitForSaves()` - `queue.flushNow()`, the model's and the queue's events; gives up after 15 s with "not saved yet",
+so a registration never reaches the server before a person added on the page), then POST `urls.registration`, the
+answer's `person` merged with `model.mergePerson()`; the known version is **never** taken from that answer - the live
+update or the version check fetches the state; a refusal without the server's words is said by kind (`failureText()`:
+signed out, 403 "you may not change this event any more", 429 "the server is busy", no answer) and shown
+(`context.notify`, anchored at the cell). `runRegistrationBulk()` sends several one after the other - never two at once -
+stopping when signed out or forbidden (the rest is not sent) or on the organiser's Stop. Pinned by
+`tests/ParticipantsSheetPeopleScriptsTest.php` → `tests/participants-sheet-people-harness.mjs` (suites `paste`,
+`registration`, `filters`, and `view` - the views in jsdom on the real model, grid and preview dialog: review E's
+reproductions and the business review's People items); every text by `tests/ParticipantsSheetPeopleTextsTest.php`.
+Views use `say()` / `sayCount()` for the People texts (`t()` = core texts). Every refusal and every "nothing happened"
+of the People views is shown, not only read out: `notify(context, text, {kind, anchor})` → `context.notify` (which reads
+it out too - never both), the live region on a page without toasts.
 
 Desktop (`people_view.js`, extends C's grid): a selection column first (header box = everybody shown, Shift+click ranges -
 the grid's own range + checkbox behaviour; a range over the selection column only selects), name sticky next to it;
 the **bulk bar** floats at the bottom (no layout shift; the scroller gets bottom padding while it shows): "N selected
 (M not shown by the filter)" · Into / Out of a solo round (a menu for several) · Make a pair/team ▾ (`newTeamRow` with the
-selected people; previewed with the dry run when it moves anybody or the size is off) · Remove from event (more than
-25 % and at least 10 → type the number) · Restore · Clear selection - each one undo step. Filters (`FILTERS`; the
-registration ones only when managed, check-in only in person) with counts and `aria-pressed`, a search (every typed
-word folded: name, external id, the visible MSP name, `#code`); `held` = rows a filter does not hide until it changes
-(the focused row, the row open in the editor, people added on the page). Columns menu (`COLUMN_OPTIONS`, a Bootstrap
-dropdown of `menuitemcheckbox` items, stored in localStorage `participants-sheet:people-columns:<eventId>`, try/catch).
-Columns beyond C's: External ID, Note (`field: note`, header says it is private), Source, Joined (MSP), Registration
-(chip Reserved / Paid / Waitlist #n; Enter or Space opens the allowed actions), Paid (date, or "Paid on {date}, before
-the registration was cancelled"), Checked in, the row actions (⋯ → Edit, Registration…, Remove; removed rows: Restore).
-The small cell menus are **not** `.dropdown-menu` (Bootstrap's document keyboard handler would steal the arrows for
-another dropdown). Pastes: onto the new-person row - or the part of a name-column block below the last row - = names
-(`name ⇥ country ⇥ external id`), previewed together with the edits of existing rows; external ids and notes paste
-into their columns. Client refusals are said in the server's words (`reasonFor()` = the core's `context.errorText()`).
-Editors open with `seenValue(row, col)` (the value shown) and commit with `from: seen`; a change meanwhile shows the
-core's "Changed meanwhile to X · Keep mine / Use theirs" next to the editor.
+selected people; previewed with the dry run when it moves anybody or the size is off - a refused dry run cannot be
+confirmed, `holdConfirm()`) · on a managed event **Mark paid / Check in** (BR13: a confirmation saying who it applies to,
+who is left out and how many e-mails go out - Mark paid one per person linked to a MySpeedPuzzling account, Check in
+none -, then sent one by one through the registration endpoint with "3 of 12 done…" and Stop in the dialog
+(`runInDialog()`), summed up in one toast) · Remove from event (more than 25 % and at least 10 of the people who would
+really go - the built action's groups, refused ones left out and said - → type the number; full-width digits accepted) ·
+Restore · Clear selection - each one undo step. Filters (`FILTERS`, `offeredFor(list, competition, rounds)`: the
+registration ones only when managed - waitlist, not paid, paid -, check-in only in person; "In no solo round" with a solo
+round and a round of another kind, "In 2+ solo rounds" with two solo rounds) with counts and `aria-pressed`, a **round
+select** ("In Group A" / "Not in Group A" - any place in that round), a search (every typed word folded: name, external
+id, the visible MSP name, `#code`; its count read out once the typing pauses); `held` = rows a filter does not hide until
+it changes (the focused row, the row open in the editor, people added on the page). `?filter=<key>` (or `in:<round>` /
+`out:<round>`) in the page URL opens the tab with it on - read once and taken out of the URL (the waitlist note links
+`?tab=people&filter=waitlist`). **Sorting** (BR4): name, country (its name in the page's language), external ID (numbers
+as numbers), registered, joined - the header is a button (a click or Enter / Space: A→Z, again Z→A; the grid never takes
+its keys or its click as a column selection), `aria-sort` on its cell, remembered per event in localStorage
+`participants-sheet:people-sort:<eventId>` (try/catch); empty values last both ways (`sortPeople()`). While the organiser
+works in the grid (the focus in it, an open edit) the rows shown keep their places (`keepOrder()` - an edited name never
+jumps away; only new rows are put where the sort says); a filter or sort change, or a change while nobody is in the grid,
+orders everything. Previous / next in the person editor walk the rows as shown. Columns menu (`COLUMN_OPTIONS`, a
+Bootstrap dropdown of `menuitemcheckbox` items, stored in localStorage `participants-sheet:people-columns:<eventId>`,
+try/catch). Columns beyond C's: External ID, Note (`field: note`, header says it is private), Source, Joined (MSP),
+Registration (chip Reserved / Paid / Waitlist #n; Enter or Space opens the allowed actions; a removed row: only "Paid on
+{date}, before the registration was cancelled" when it was paid), Registered, Paid (date, or that record), Checked in,
+the row actions (⋯ → Edit, Registration…, Remove; removed rows: Restore). The small cell menus are **not**
+`.dropdown-menu` (Bootstrap's document keyboard handler would steal the arrows for another dropdown). Pastes: onto the
+new-person row - or the part of a name-column block below the last row - = names (`name ⇥ country ⇥ external id`),
+previewed together with the edits of existing rows; the names preview offers **"And put them into ▾"** the solo rounds
+(BR3 - choosing one runs the dry run again; the select sits outside the lines, which are drawn again on every check);
+external ids and notes paste into their columns. A block pasted on the selection column lands on the names; the selection
+column never takes a value (one value over a selection including it lists those cells as left out - review M1). **A paste
+that renames anybody is always previewed** (BR12), whatever its size. Client refusals are said in the server's words
+(`reasonFor()` = the core's `context.errorText()`). Editors open with `seenValue(row, col)` (the value shown) and commit
+with `from: seen`; a change meanwhile shows the core's "Changed meanwhile to X · Keep mine / Use theirs" next to the
+editor. The view reads the event from the model each time (`competition` getter) and follows a fetched state that
+changes it (the queue's `state` event): registration management switched on or off rebuilds the columns, filters and
+counters; a new capacity re-renders the counters and the first-in-line hint. That hint's "Give a spot" is a readable
+green outline button (`sheet-btn-success` - the theme's light green with white text is not, review E-3), says that the
+person gets the "a spot opened up" e-mail, and keeps the focus (on the next first-in-line's button, else the counters).
 
 Person editor (`person_editor.js`): one `<dialog>` - `show()` as a side panel at ≥ 768 px (the page gets
 `has-person-panel`, the grid makes room), `showModal()` full screen on phones; `open(personId, {list, returnFocus,
-onShow})` - `list()` is the opener's filtered rows (previous/next), `onShow(id|null)` lets the view hold and mark the
+onShow})` - `list()` is the opener's rows as shown (previous/next), `onShow(id|null)` lets the view hold and mark the
 row. Text fields save on change / Enter with `from` = the value at focus; a live change under a field being typed in
 shows "Changed meanwhile to …" with Keep mine / Use theirs; server conflicts and refusals show at the field (Keep mine
-= `queue.keepMine`, Use theirs = `queue.dismiss`). Sections re-render from HTML strings only when they changed and wait
-while a select / text field in them has the focus.
+= `queue.keepMine`, Use theirs = `queue.dismiss`) and as a toast. A round's switch and pair/team picker carry
+`data-shown` (the place they show, written with every render of them) and send it as `from` (review M2: a tap on a
+phone gives no focus, a value remembered at a focus goes stale - a focused picker a live change could not redraw sends
+what it shows and the server answers with a conflict). Sections re-render from HTML strings only when they changed
+(compared with the source string, never the browser's `innerHTML`) and wait while a select / text field in them has
+the focus. Phones: every button of a field's note (Keep mine / Use theirs / OK / Unlink) is 44 px.
 
-Phone (`people_list_view.js`): search, a filter `<select>` with counts, the counters and the hint, "+ Add a person",
-cards (name, flag, rounds in words, problems in words) rendered 50 at a time ("Show 50 more"); tap → the editor full
-screen with previous/next over the whole filtered list. Measured with 400 people (headless Chromium 124): the desktop
-grid renders in 220 ms (970 ms at 4× CPU), a filter switch 10 ms, an edit 8 ms (46 ms at 4×), selecting everybody
-66 ms; the phone list's first 50 cards 5 ms at 4× CPU (all 400: 17 ms).
+Phone (`people_list_view.js`): search, a filter `<select>` with counts, the round select, the counters and the hint,
+"+ Add a person", cards (name, flag, rounds in words, problems in words) rendered 50 at a time ("Show 50 more"); tap →
+the editor full screen with previous/next over the whole filtered list; `?filter=` like the desktop. Measured with 400
+people (headless Chromium 124): the desktop grid renders in 220 ms (970 ms at 4× CPU), a filter switch 10 ms, an edit
+8 ms (46 ms at 4×), selecting everybody 66 ms; the phone list's first 50 cards 5 ms at 4× CPU (all 400: 17 ms).
 
 ### The round tabs (stream D: `views/team_round_view.js`, `views/solo_round_view.js`, `views/round_cards_view.js`)
 

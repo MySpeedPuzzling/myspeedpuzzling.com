@@ -1,44 +1,63 @@
-{# The archive (owner: workstream A). Variables: page
+{# The archive (owner: workstream A). Variables: page; searching, scope_name from the page.
    Everywhere: year chips (links to events_archive), the newest year's ARCHIVE_PREVIEW_LINES lines and "Show all".
-   A country or Online: "Past · Czechia" with every year of that scope. #}
+   A country or Online: "Past · Czechia" with every year of that scope.
+   The browser re-renders [data-ev-archive-body] from the index when the scope changes or a year opens in place
+   (events_page_controller.js renderArchive()) - the same structure as here. #}
 {% set preview = constant('SpeedPuzzling\\Web\\Services\\EventsPage\\EventsPageBuilder::ARCHIVE_PREVIEW_LINES') %}
-<section class="ev-archive">
-    {% if page.scope.isEverywhere %}
-        <h2>{{ 'events_page.archive.title'|trans }}</h2>
-        {% if page.archiveYears is empty %}
-            <p>{{ 'events_page.archive.none'|trans }}</p>
-        {% else %}
-            <nav class="ev-archive-years">
-                {% for archive_year in page.archiveYears %}
-                    <a href="{{ path('events_archive', {year: archive_year.year}) }}" data-ev-year="{{ archive_year.year }}">{{ archive_year.year }}</a>
-                {% endfor %}
-            </nav>
-            {% set newest = page.archiveYears|first %}
-            <ul class="ev-lines">
-                {% for line in newest.lines|slice(0, preview) %}
-                    {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
-                {% endfor %}
-            </ul>
-            {% if newest.lines|length > preview %}
-                <a href="{{ path('events_archive', {year: newest.year}) }}">{{ 'events_page.archive.show_all'|trans({'%year%': newest.year, '%count%': newest.occurrenceCount}) }}</a>
-            {% endif %}
-        {% endif %}
-    {% else %}
-        {% set scope_country = page.scope.countryCode %}
-        <h2>{{ 'events_page.archive.past_in'|trans({'%scope%': scope_country ? scope_country.localizedName(app.request.locale) : 'events_page.scope.online'|trans}) }}</h2>
-        {% set shown = 0 %}
-        {% for archive_year in page.archiveYears %}
-            {% set lines = archive_year.lines|filter(line => line.visible) %}
-            {% if lines is not empty %}
-                {% set shown = shown + 1 %}
-                <h3>{{ archive_year.year }}</h3>
-                <ul class="ev-lines">
-                    {% for line in lines %}
+{% set archive_urls = {} %}
+{% for archive_year in page.archiveYears %}{% set archive_urls = archive_urls|merge({('y' ~ archive_year.year): path('events_archive', {year: archive_year.year})}) %}{% endfor %}
+<section class="ev-block ev-archive" aria-labelledby="ev-archive-title" data-ev-section="archive" data-events-page-target="archive"
+         data-ev-archive-urls="{{ archive_urls|json_encode }}" {{ searching ?? false ? 'hidden' }}>
+    <div data-ev-archive-body>
+        {% if page.scope.isEverywhere %}
+            <div class="ev-block-head">
+                <h2 class="ev-block-title" id="ev-archive-title">{{ 'events_page.archive.title'|trans }}</h2>
+            </div>
+            {% if page.archiveYears is empty %}
+                <p class="ev-note">{{ 'events_page.archive.none'|trans }}</p>
+            {% else %}
+                {% set newest = page.archiveYears|first %}
+                <nav class="ev-years" aria-labelledby="ev-archive-title">
+                    {% for archive_year in page.archiveYears %}
+                        <a class="ev-chip ev-year" href="{{ path('events_archive', {year: archive_year.year}) }}" data-ev-year="{{ archive_year.year }}" data-action="events-page#toggleYear" aria-current="{{ archive_year.year == newest.year ? 'true' : 'false' }}">
+                            {{- archive_year.year }} <span class="ev-chip-n">{{ archive_year.occurrenceCount }}</span>
+                        </a>
+                    {% endfor %}
+                </nav>
+                <ul class="ev-lines ev-archive-lines">
+                    {% for line in newest.lines|slice(0, preview) %}
                         {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
                     {% endfor %}
                 </ul>
+                {% if newest.lines|length > preview %}
+                    <a class="ev-more" href="{{ path('events_archive', {year: newest.year}) }}" data-ev-show-all data-action="events-page#showAllYear">
+                        {{- 'events_page.archive.show_all'|trans({'%year%': newest.year, '%count%': newest.occurrenceCount}) -}}
+                    </a>
+                {% endif %}
             {% endif %}
-        {% endfor %}
-        {% if shown == 0 %}<p>{{ 'events_page.archive.none'|trans }}</p>{% endif %}
-    {% endif %}
+        {% else %}
+            <div class="ev-block-head">
+                <h2 class="ev-block-title" id="ev-archive-title">{{ 'events_page.archive.past_in'|trans({'%scope%': scope_name}) }}</h2>
+            </div>
+            {% set shown = 0 %}
+            {% for archive_year in page.archiveYears %}
+                {% set lines = archive_year.lines|filter(line => line.visible) %}
+                {% if lines is not empty %}
+                    {% set shown = shown + 1 %}
+                    <section class="ev-group">
+                        <h3 class="ev-month-header">
+                            <span>{{ scope_name }} · {{ archive_year.year }}</span>
+                            <span class="ev-month-n">{{ 'events_page.agenda.events_count'|trans({'%count%': lines|reduce((carry, line) => carry + line.editionCount, 0)}) }}</span>
+                        </h3>
+                        <ul class="ev-lines">
+                            {% for line in lines %}
+                                {{ include('events/_archive_line.html.twig', {line: line, template: false, with_year: false}) }}
+                            {% endfor %}
+                        </ul>
+                    </section>
+                {% endif %}
+            {% endfor %}
+            {% if shown == 0 %}<p class="ev-note">{{ 'events_page.archive.none'|trans }}</p>{% endif %}
+        {% endif %}
+    </div>
 </section>

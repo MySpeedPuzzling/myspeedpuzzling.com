@@ -1,13 +1,19 @@
-{# The date block of a row (owner: workstream A). Variables: leaf (DateLeaf) #}
+{# The date block of a row (owner: workstream A). Variables: leaf (DateLeaf)
+   Weekday band, day(s), month(s) - ICU names in the page's language. A band, day or month string longer than a short
+   English one gets the `-long` size, so "SA.–SO.", "SAM.–DIM." or "10–11" still fit 56 px. The row says the date in
+   words for screen readers, so the leaf is hidden from them. #}
+{% if leaf.from %}
+    {% set to = leaf.to %}
+    {% set band = leaf.from|format_date(pattern: 'EEE', timezone: 'UTC') ~ (to ? '–' ~ to|format_date(pattern: 'EEE', timezone: 'UTC')) %}
+    {% set day = leaf.from|format_date(pattern: 'd', timezone: 'UTC') ~ (to ? '–' ~ to|format_date(pattern: 'd', timezone: 'UTC')) %}
+    {% set month_text = leaf.from|format_date(pattern: 'LLL', timezone: 'UTC') ~ (to and to|date('Y-m', 'UTC') != leaf.from|date('Y-m', 'UTC') ? '–' ~ to|format_date(pattern: 'LLL', timezone: 'UTC')) %}
+{% else %}
+    {% set band = 'events_page.leaf.tba'|trans %}
+    {% set day = '?' %}
+    {% set month_text = 'events_page.leaf.date'|trans %}
+{% endif %}
 <div class="ev-leaf ev-leaf-{{ leaf.tone }}" aria-hidden="true">
-    {% if leaf.from %}
-        {% set to = leaf.to %}
-        <span class="ev-leaf-band">{{ leaf.from|format_date(pattern: 'EEE', timezone: 'UTC') }}{% if to %}–{{ to|format_date(pattern: 'EEE', timezone: 'UTC') }}{% endif %}</span>
-        <span class="ev-leaf-day">{{ leaf.from|format_date(pattern: 'd', timezone: 'UTC') }}{% if to %}–{{ to|format_date(pattern: 'd', timezone: 'UTC') }}{% endif %}</span>
-        <span class="ev-leaf-month">{{ leaf.from|format_date(pattern: 'LLL', timezone: 'UTC') }}{% if to and to|date('m', 'UTC') != leaf.from|date('m', 'UTC') %}–{{ to|format_date(pattern: 'LLL', timezone: 'UTC') }}{% endif %}</span>
-    {% else %}
-        <span class="ev-leaf-band">{{ 'events_page.leaf.tba'|trans }}</span>
-        <span class="ev-leaf-day">?</span>
-        <span class="ev-leaf-month">{{ 'events_page.leaf.date'|trans }}</span>
-    {% endif %}
+    <span class="ev-leaf-band{{ band|length > 3 ? ' ev-leaf-long' }}">{{ band }}</span>
+    <span class="ev-leaf-day{{ day|length > 4 ? ' ev-leaf-long' }}">{{ day }}</span>
+    <span class="ev-leaf-month{{ month_text|length > 4 ? ' ev-leaf-long' }}">{{ month_text }}</span>
 </div>

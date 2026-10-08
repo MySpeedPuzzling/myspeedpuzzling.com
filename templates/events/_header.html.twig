@@ -1,14 +1,20 @@
 {# Events page header (owner: workstream A). Variables: page #}
 <header class="ev-header">
-    <h1 class="ev-title">{{ 'events_page.title'|trans }}</h1>
-    <p class="ev-summary">
-        {{- 'events_page.summary.dates'|trans({'%count%': page.summary.upcomingDates}) -}}
-        {%- if page.summary.countries > 0 %} {{ 'events_page.summary.countries'|trans({'%count%': page.summary.countries}) }}{% if page.summary.hasOnline %} {{ 'events_page.summary.and_online'|trans }}{% endif %}
-        {%- elseif page.summary.hasOnline %} {{ 'events_page.summary.only_online'|trans }}{% endif -%}
-        {%- if page.summary.series > 0 %} · {{ 'events_page.summary.series'|trans({'%count%': page.summary.series}) }}{% endif -%}
-    </p>
+    <div class="ev-header-text">
+        <h1 class="ev-title">{{ 'events_page.title'|trans }}</h1>
+        <p class="ev-summary">
+            {{- 'events_page.summary.dates'|trans({'%count%': page.summary.upcomingDates}) -}}
+            {%- if page.summary.countries > 0 %} {{ 'events_page.summary.countries'|trans({'%count%': page.summary.countries}) }}{% if page.summary.hasOnline %} {{ 'events_page.summary.and_online'|trans }}{% endif %}
+            {%- elseif page.summary.hasOnline %} {{ 'events_page.summary.only_online'|trans }}{% endif -%}
+            {%- if page.summary.series > 0 %} · {{ 'events_page.summary.series'|trans({'%count%': page.summary.series}) }}{% endif -%}
+        </p>
+    </div>
     <div class="ev-header-actions">
-        <a class="btn btn-sm btn-primary" href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}">+ {{ 'events_page.add_event'|trans }}</a>
+        {# On phones the guide is in the footer card only - the header stays two lines #}
+        <a class="ev-guide-link" href="{{ path('for_organizers') }}">{{ 'events_page.guide'|trans }}</a>
         {{ include('events/_organize_button.html.twig', {count: page.organizedCount}) }}
+        <a class="btn btn-sm btn-outline-primary ev-add" href="{{ path('add_competition', {return: path('events'), return_title: 'events_page.title'|trans}) }}">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> {{ 'events_page.add_event'|trans }}
+        </a>
     </div>
 </header>

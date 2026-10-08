@@ -943,6 +943,7 @@ events_page:
         past_limited: "The %shown% most recent of %count%. Add a year or a country to narrow it down."
         nothing: "Nothing found for “%query%”"
         nothing_hint: "Try a city or a country, or add the event yourself."
+        results: "%count% result|%count% results"
     view:
         label: "View"
         list: "List"

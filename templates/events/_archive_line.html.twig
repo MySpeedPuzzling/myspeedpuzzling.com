@@ -2,16 +2,19 @@
     One archive line (owner: workstream A). Variables: line (?ArchiveLine), template (bool), with_year (bool)
     Template mode (line null): every value is an empty element with data-slot="date|title|results|place" and the link
     data-slot="link" - fillArchiveLine() in assets/events_index.js fills exactly these.
+    The title link is stretched over the line.
 #}
 {% if template|default(false) %}
     <li class="ev-line" data-ev-ids="">
         <span class="ev-line-date" data-slot="date"></span>
-        <a class="ev-line-title" data-slot="link" href=""><span data-slot="title"></span></a>
-        <span class="ev-tag ev-tag-results" data-slot="results"></span>
+        <span class="ev-line-main">
+            <a class="ev-line-title" data-slot="link" href=""><span data-slot="title"></span></a>
+            <span class="ev-tag ev-tag-results" data-slot="results"></span>
+        </span>
         <span class="ev-line-place" data-slot="place"></span>
     </li>
 {% else %}
-    <li class="ev-line" data-ev-ids="{{ line.idsAttribute }}" data-ev-scope="{{ line.scopeKey }}" {{ line.visible ? '' : 'hidden' }}>
+    <li class="ev-line{{ line.isRollUp ? ' ev-line-rollup' }}" data-ev-ids="{{ line.idsAttribute }}" data-ev-scope="{{ line.scopeKey }}" {{ line.visible ? '' : 'hidden' }}>
         <span class="ev-line-date">
             {%- if line.isRollUp -%}
                 {{ line.from|format_date(pattern: 'LLL', timezone: 'UTC') }}{% if line.monthTo != line.monthFrom %}–{{ line.to|format_date(pattern: 'LLL', timezone: 'UTC') }}{% endif %}
@@ -23,14 +26,10 @@
         {% set title = line.isRollUp
             ? 'events_page.archive.editions_in'|trans({'%series%': line.title, '%count%': line.editionCount, '%year%': line.year})
             : (line.editionName ? line.title ~ ' · ' ~ line.editionName : line.title) %}
-        {% if line.url %}<a class="ev-line-title" href="{{ line.url }}">{{ title }}</a>{% else %}<span class="ev-line-title">{{ title }}</span>{% endif %}
-        {% if line.hasResults %}<span class="ev-tag ev-tag-results">{{ 'events_page.tag.results'|trans }}</span>{% endif %}
-        <span class="ev-line-place">
-            {%- if line.place.isOnline -%}
-                {{ 'events_page.place.online'|trans }}
-            {%- else -%}
-                {{ [line.place.city, line.place.country]|filter(part => part is not null)|join(', ') }}
-            {%- endif -%}
+        <span class="ev-line-main">
+            {% if line.url %}<a class="ev-line-title" href="{{ line.url }}">{{ title }}</a>{% else %}<span class="ev-line-title">{{ title }}</span>{% endif %}
+            {% if line.hasResults %}<span class="ev-tag ev-tag-results">{{ 'events_page.tag.results'|trans }}</span>{% endif %}
         </span>
+        <span class="ev-line-place">{{ include('events/_place.html.twig', {place: line.place}) }}</span>
     </li>
 {% endif %}

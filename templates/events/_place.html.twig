@@ -1,0 +1,11 @@
+{# `[flag] City, Country` or "Online" (owner: workstream A). Variables: place (Place)
+   The city shortens with an ellipsis, the country always shows in full; the flag is never the only sign of it. #}
+{% if place.isOnline -%}
+    <span class="ev-place ev-place-online">{{ 'events_page.place.online'|trans }}</span>
+{%- elseif place.city or place.country -%}
+    <span class="ev-place">
+        {%- if place.countryCode %}<span class="fi fi-{{ place.countryCode.name }} ev-flag" aria-hidden="true"></span>{% endif -%}
+        {%- if place.city %}<span class="ev-place-city">{{ place.city }}</span>{% endif -%}
+        {%- if place.country %}<span class="ev-place-country">{{ place.city ? ', ' }}{{ place.country }}</span>{% endif -%}
+    </span>
+{%- endif %}

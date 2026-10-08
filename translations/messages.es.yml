@@ -6003,6 +6003,7 @@ multiscan:
         collection_not_found: "Esta colección no es tuya."
         rejected: "El lote no se aplicó: un puzzle %reason%. No se cambió nada - quítalo e inténtalo de nuevo."
         failed: "Algo salió mal y no se cambió nada. Inténtalo de nuevo."
+        unavailable: "{1}Un puzzle escaneado ya no está disponible y se ha quitado. No se cambió nada - inténtalo de nuevo.|]1,Inf[%count% puzzles escaneados ya no están disponibles y se han quitado. No se cambió nada - inténtalo de nuevo."
     toast:
         duplicate: "Ya está en la pila: %name%"
         invalid: "%ean% no es un código de barras válido - prueba con el otro código de la caja."

@@ -285,7 +285,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       collection / wishlist / sell-swap / lend buttons on its page still say it only on submit (flash or modal).
 - [ ] With the deploy: purge the old guessable image names the backfill prints from the images-cache and Cloudflare
       (commands in the PR's production plan). Later renames (a puzzle becoming secret) are rare - same commands by hand.
-- [ ] "Something went wrong" in multiscan for a row whose puzzle became secret meanwhile - say "no longer available".
+- [x] "Something went wrong" in multiscan for a row whose puzzle became secret meanwhile - say "no longer available".
+      Shipped 2026-10-08: taken out of the tray with "no longer available"; a puzzle merged away meanwhile becomes the
+      survivor, a deleted one an unknown code (`docs/features/multiscan/README.md` §5).
 - [ ] Multiscan answers a code only a hidden puzzle carries with its generic "could not be added / linking failed" (since
       2026-10, no more "already assigned" - that told a secret box has the code). A player may retry in vain; once the
       puzzle is revealed it resolves normally.

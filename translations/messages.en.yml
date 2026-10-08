@@ -6556,6 +6556,7 @@ multiscan:
         collection_not_found: "This collection is not yours."
         rejected: "The batch was not applied: one puzzle is %reason%. Nothing was changed - remove it and try again."
         failed: "Something went wrong and nothing was changed. Please try again."
+        unavailable: "{1}One scanned puzzle is no longer available and was taken out. Nothing was changed - apply again.|]1,Inf[%count% scanned puzzles are no longer available and were taken out. Nothing was changed - apply again."
     toast:
         duplicate: "Already scanned: %name%"
         invalid: "%ean% is not a valid barcode - try the other code on the box."

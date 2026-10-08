@@ -6000,6 +6000,7 @@ multiscan:
         collection_not_found: "Tahle kolekce není tvoje."
         rejected: "Dávka se nepoužila: jedno puzzle %reason%. Nic se nezměnilo - odeber ho a zkus to znovu."
         failed: "Něco se pokazilo a nic se nezměnilo. Zkus to prosím znovu."
+        unavailable: "{1}Jedno naskenované puzzle už není dostupné, tak jsme ho odebrali. Nic se nezměnilo - zkus to znovu.|{2,3,4}%count% naskenovaná puzzle už nejsou dostupná, tak jsme je odebrali. Nic se nezměnilo - zkus to znovu.|]4,Inf[%count% naskenovaných puzzlí už není dostupných, tak jsme je odebrali. Nic se nezměnilo - zkus to znovu."
     toast:
         duplicate: "Již naskenováno: %name%"
         invalid: "%ean% není platný čárový kód - zkus ten druhý kód na krabici."

@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Message\LendPuzzlesToPlayer;
 use SpeedPuzzling\Web\Message\LinkEanToPuzzle;
 use SpeedPuzzling\Web\Message\ReturnLentPuzzles;
 use SpeedPuzzling\Web\Query\FindPuzzlesByExactEan;
+use SpeedPuzzling\Web\Query\GetCurrentPuzzleIds;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetLendBorrowCounterparties;
 use SpeedPuzzling\Web\Query\GetManufacturers;
@@ -46,6 +47,7 @@ use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\LendBorrowParticipantParser;
 use SpeedPuzzling\Web\Services\MultiscanEligibility;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
@@ -64,6 +66,7 @@ use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\Attribute\PostHydrate;
+use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -197,6 +200,8 @@ final class MultiscanTray
         readonly private ValidatorInterface $validator,
         readonly private GetPuzzleRecord $getPuzzleRecord,
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
+        readonly private SecretPuzzleAccess $secretPuzzleAccess,
+        readonly private GetCurrentPuzzleIds $getCurrentPuzzleIds,
     ) {
     }
 
@@ -226,6 +231,17 @@ final class MultiscanTray
             static fn (array $row): array => ['key' => $row['key'] ?? $row['ean']] + $row,
             $rows,
         );
+    }
+
+    /**
+     * A puzzle merged away since it was scanned becomes the puzzle it was merged into; one deleted without a merge
+     * becomes an unknown code, never sent to an action. Costs nothing while every row's puzzle exists - the rows are
+     * hydrated for the template anyway.
+     */
+    #[PreReRender]
+    public function followMergedPuzzles(): void
+    {
+        $this->replaceVanishedPuzzles();
     }
 
     // ------------------------------------------------------------------ scanning
@@ -562,6 +578,7 @@ final class MultiscanTray
         $profile = $this->requireMember();
 
         $action = $this->currentAction();
+        $this->replaceVanishedPuzzles();
         $report = $this->report();
 
         if ($report->eligible === []) {
@@ -616,9 +633,12 @@ final class MultiscanTray
         } catch (HandlerFailedException $e) {
             $this->failWith($e->getPrevious() ?? $e);
             return;
-        } catch (PlayerNotFound | CannotLendToSelf | PuzzleNotFound | PuzzleNotRevealedYet $e) {
+        } catch (PlayerNotFound | CannotLendToSelf | PuzzleNotRevealedYet $e) {
             // HTTP exceptions of the handler arrive unwrapped (UnwrapHttpExceptionMiddleware)
             $this->failWith($e);
+            return;
+        } catch (PuzzleNotFound $e) {
+            $this->takeOutUnavailablePuzzles($e);
             return;
         }
 
@@ -1325,6 +1345,73 @@ final class MultiscanTray
         $this->notice = null;
         $this->error = null;
         $this->errorParams = [];
+        $this->hydratedRows = null;
+    }
+
+    /**
+     * A puzzle of the batch became secret after it was scanned (a competition keeps it hidden from this player until
+     * its reveal): "try again" would fail the same way, so it is taken out of the tray. Why it is no longer available
+     * is not said - that would tell it is secret.
+     */
+    private function takeOutUnavailablePuzzles(PuzzleNotFound $e): void
+    {
+        $hidden = $this->secretPuzzleAccess->hiddenFromViewerAmong($this->resolvedPuzzleIds());
+        $count = count($this->rows);
+
+        $this->rows = array_values(array_filter(
+            $this->rows,
+            static fn (array $row): bool => $row['puzzleId'] === null || !isset($hidden[strtolower($row['puzzleId'])]),
+        ));
+        $this->hydratedRows = null;
+        $takenOut = $count - count($this->rows);
+
+        if ($takenOut > 0) {
+            $this->error = 'multiscan.error.unavailable';
+            $this->errorParams = ['%count%' => (string) $takenOut];
+        } else {
+            $this->failWith($e);
+        }
+    }
+
+    /**
+     * Rows whose puzzle no longer exists: the survivor of its merge takes its place (unless already in the tray),
+     * a puzzle deleted without a merge leaves an unknown code.
+     */
+    private function replaceVanishedPuzzles(): void
+    {
+        $vanished = [];
+
+        foreach ($this->trayRows() as $index => $row) {
+            $stored = $this->rows[$index];
+
+            if ($stored['state'] === 'resolved' && $stored['puzzleId'] !== null && $row->puzzle === null) {
+                $vanished[$stored['key']] = $stored['puzzleId'];
+            }
+        }
+
+        if ($vanished === []) {
+            return;
+        }
+
+        $currentIds = $this->getCurrentPuzzleIds->of(array_values($vanished));
+
+        foreach ($vanished as $key => $puzzleId) {
+            $survivorId = $currentIds[strtolower($puzzleId)] ?? null;
+
+            if ($survivorId !== null && $this->hasPuzzle($survivorId, $key)) {
+                $this->rows = array_values(array_filter($this->rows, static fn (array $r): bool => $r['key'] !== $key));
+                continue;
+            }
+
+            $index = $this->rowIndex($key);
+            assert($index !== null);
+            $row = $this->rows[$index];
+
+            $this->replaceRow($key, $survivorId !== null
+                ? array_replace($row, ['puzzleId' => $survivorId])
+                : array_replace($row, ['puzzleId' => null, 'state' => 'unknown', 'candidateIds' => []]));
+        }
+
         $this->hydratedRows = null;
     }
 

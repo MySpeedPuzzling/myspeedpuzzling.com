@@ -6002,6 +6002,7 @@ multiscan:
         collection_not_found: "Diese Sammlung gehört nicht dir."
         rejected: "Der Stapel wurde nicht angewendet: ein Puzzle ist %reason%. Nichts wurde geändert - entferne es und versuche es erneut."
         failed: "Etwas ist schiefgelaufen, nichts wurde geändert. Bitte versuche es erneut."
+        unavailable: "{1}Ein gescanntes Puzzle ist nicht mehr verfügbar und wurde entfernt. Nichts wurde geändert - versuche es erneut.|]1,Inf[%count% gescannte Puzzles sind nicht mehr verfügbar und wurden entfernt. Nichts wurde geändert - versuche es erneut."
     toast:
         duplicate: "Schon im Stapel: %name%"
         invalid: "%ean% ist kein gültiger Barcode - probiere den anderen Code auf der Schachtel."

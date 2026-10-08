@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Component;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Component\MultiscanTray;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
@@ -648,6 +649,118 @@ final class MultiscanTrayTest extends WebTestCase
         $component = $tray->component();
         assert($component instanceof MultiscanTray);
         self::assertSame($collectionId, $component->collectionId, 'the picker now holds the created collection');
+    }
+
+    public function testAPuzzleTurnedSecretAfterTheScanIsTakenOutOnApply(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, data: ['presetAction' => 'lend']);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_300]);
+        $tray->set('person', '#' . self::playerCode(PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        // It becomes a secret puzzle hidden from this player while it lies in the tray (PUZZLE_6000 is in a round of
+        // a competition this player maintains - they would be told when it opens instead)
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            "UPDATE puzzle SET approved = false, hide_until = NOW() + INTERVAL '30 days' WHERE id = :id",
+            ['id' => PuzzleFixture::PUZZLE_300],
+        );
+
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('One scanned puzzle is no longer available and was taken out', $html);
+        self::assertStringNotContainsString('Something went wrong', $html);
+        self::assertSame([PuzzleFixture::PUZZLE_6000], array_column(self::rows($tray), 'puzzleId'));
+
+        // Applying again goes through with the rest
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('One puzzle lent to ' . PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $html);
+    }
+
+    public function testAPuzzleMergedAwayAfterTheScanBecomesThePuzzleItWasMergedInto(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $mergedId = $this->quickAddedPuzzle($tray);
+        $this->mergeAway($mergedId, PuzzleFixture::PUZZLE_6000);
+
+        $tray->call('dismissError');
+        $html = $tray->render()->toString();
+
+        self::assertSame([PuzzleFixture::PUZZLE_6000], array_column(self::rows($tray), 'puzzleId'));
+        self::assertStringContainsString('Puzzle 18', $html);
+
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('One puzzle added to your library', $html);
+    }
+
+    public function testAPuzzleMergedIntoOneAlreadyInTheTrayLeavesOneRow(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $mergedId = $this->quickAddedPuzzle($tray);
+        $this->mergeAway($mergedId, PuzzleFixture::PUZZLE_6000);
+
+        $tray->call('dismissError');
+
+        self::assertSame([PuzzleFixture::PUZZLE_6000], array_column(self::rows($tray), 'puzzleId'));
+    }
+
+    public function testAPuzzleDeletedAfterTheScanIsNoLongerApplied(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $deletedId = $this->quickAddedPuzzle($tray);
+        self::getContainer()->get(Connection::class)->executeStatement('DELETE FROM puzzle WHERE id = :id', ['id' => $deletedId]);
+
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('One puzzle added to your library', $html);
+        self::assertSame([['resolved', PuzzleFixture::PUZZLE_6000], ['unknown', null]], array_map(
+            static fn (array $row): array => [$row['state'], $row['puzzleId']],
+            self::rows($tray),
+        ));
+    }
+
+    /**
+     * A puzzle of its own (no times, no lists) so a test may delete it.
+     */
+    private function quickAddedPuzzle(TestLiveComponent $tray): string
+    {
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_UNKNOWN]);
+        $tray->call('toggleQuickAdd');
+        $tray->set('newName', 'Scanned box');
+        $tray->set('newPiecesCount', '1000');
+        $tray->call('createPuzzle', files: ['photo' => self::boxPhoto()]);
+
+        $rows = self::rows($tray);
+        $puzzleId = $rows[count($rows) - 1]['puzzleId'];
+        self::assertNotNull($puzzleId);
+
+        return $puzzleId;
+    }
+
+    private function mergeAway(string $puzzleId, string $survivorId): void
+    {
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement('DELETE FROM puzzle WHERE id = :id', ['id' => $puzzleId]);
+        $database->executeStatement(
+            'INSERT INTO puzzle_redirect (id, old_puzzle_id, survivor_puzzle_id, created_at) VALUES (:id, :old, :survivor, NOW())',
+            ['id' => Uuid::uuid7()->toString(), 'old' => $puzzleId, 'survivor' => $survivorId],
+        );
     }
 
     /**

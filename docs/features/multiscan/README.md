@@ -114,6 +114,12 @@ Aggregating into one ("Anna lent you 6 puzzles") needs a new notification type �
   anything (rolled-back handlers leak through later flushes otherwise).
 - **Hidden puzzles** (`hide_until` in the future) are invisible to the lookup on purpose and are
   checked on the write side too: nobody can link an EAN to them or create a duplicate of them.
+- **A row's puzzle can change after the scan** (2026-10-08). Merged away: the row becomes the puzzle it
+  was merged into (`GetCurrentPuzzleIds`, in a `PreReRender` hook and again before Apply - nothing
+  queried while every puzzle exists), or goes when that puzzle is already in the tray. Deleted without
+  a merge: the row becomes an unknown code. Turned secret and hidden from the player: Apply takes it
+  out with "no longer available … nothing was changed" (`multiscan.error.unavailable`) - never why,
+  and never a "try again" that would fail the same way. Its organisers get "still secret until …".
 - Link and create are idempotent on the normalised code: a double tap or a retry never makes two
   puzzles or two change requests.
 

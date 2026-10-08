@@ -162,12 +162,14 @@ final class SecretPuzzleWritesHttpTest extends WebTestCase
         $browser = self::createClient();
 
         // Somebody else's secret (a row only the server writes - rows is not a writable prop - holding a puzzle that
-        // became secret meanwhile): the tray does not fail, it says nothing was changed
+        // became secret meanwhile): the tray takes it out without saying why, and nothing was changed
         $hidden = $this->secretPuzzle(PlayerFixture::PLAYER_REGULAR_USER_ID);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $tray = $this->tray($browser, $hidden);
         $tray->call('apply');
-        self::assertStringContainsString('Something went wrong and nothing was changed.', $tray->render()->toString());
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('One scanned puzzle is no longer available and was taken out. Nothing was changed', $html);
+        self::assertStringNotContainsString('secret', $html);
 
         // The member's own secret: told when it opens
         $own = $this->secretPuzzle(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, 'Own Lighthouse');

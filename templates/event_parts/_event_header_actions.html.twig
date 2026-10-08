@@ -1,0 +1,28 @@
+{#
+    The header actions of the edition and event pages (owner: workstream B, docs/features/events-page/detail-pages.md
+    "The shared header"), in this order - they wrap on phones, 44 px targets:
+    1. "I'm going!" / "✓ You're going!" / managed: "Registration" (_going_action); once it is over "Add my time" instead.
+       An event without rounds that has started also gets "Add my time" here (its rounds carry their own otherwise).
+    2. The labelled follow star (an edition follows its series, an event itself).
+    3. Registration ↗ (not managed, not over), Website ↗, Results ↗ (external, once there are results to look at).
+    4. ⋯ for the organisers the voter allows, Delete returning to the page's parent.
+    Variables: the page's event, attendance, event_title, is_publicly_visible, timeline, can_add_time, follow_target,
+    following, manage, delete_return; follow_kind ('series'|'event'), follow_name
+#}
+{{ include('event_parts/_going_action.html.twig', {competition_id: event.id, attendance: attendance, is_past: event_title.isPast, is_public: is_publicly_visible}) }}
+{% if can_add_time and (event_title.isPast or not timeline.hasRounds) %}
+    <a class="ev-action-button{{ event_title.isPast ? ' ev-action-primary' }}" href="{{ path('puzzle_add', {competition: event.id}) }}" data-header-add-time>{{ 'event_rounds.add_my_time'|trans }}</a>
+{% endif %}
+{{ include('event_parts/_follow_action.html.twig', {follow_target: follow_target, following: following, kind: follow_kind, follow_name: follow_name}) }}
+{% if event.registrationLink and not event_title.isPast %}
+    <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ event.registrationLink }}">{{ 'events.registration_link'|trans }}<span class="ev-action-ext" aria-hidden="true">↗</span></a>
+{% endif %}
+{% if event.link %}
+    <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ event.link }}">{{ 'events.website_link'|trans }}<span class="ev-action-ext" aria-hidden="true">↗</span></a>
+{% endif %}
+{% if event.resultsLink and (event_title.isPast or timeline.roundsWithResults > 0) %}
+    <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ event.resultsLink }}">{{ 'events.results_link'|trans }}<span class="ev-action-ext" aria-hidden="true">↗</span></a>
+{% endif %}
+{% if is_granted('IS_AUTHENTICATED_REMEMBERED') and is_granted('COMPETITION_EDIT', event.id) %}
+    {{ include('event_parts/_manage_button.html.twig', {manage: manage, return_title: event.name, delete_return: delete_return}) }}
+{% endif %}

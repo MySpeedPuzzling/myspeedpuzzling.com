@@ -57,36 +57,8 @@
             return_fallback_url: series.slug ? path('competition_series_detail', {slug: series.slug}) : path('events'),
             return_fallback_title: series.slug ? series.name : 'events.title'|trans,
         } %}
-            {% block facts %}
-                {{- include('event_parts/_place.html.twig', {place: event_place}) }}
-                {% if timeline.start %}
-                    <span class="ev-detail-fact">{{ events_date_range(timeline.start, timeline.end, 'yMMMd') }}</span>
-                {% else %}
-                    <span class="ev-detail-fact" data-edition-date-not-set>{{ 'edition.date_not_set'|trans }}</span>
-                {% endif %}
-                {% if timeline.isLive %}<span class="ev-detail-fact ev-when-live">{{ include('event_parts/_live.html.twig') }}</span>{% endif %}
-                <span class="ev-detail-fact">{{ 'event_detail.facts.recurring'|trans }}</span>
-                {% if timeline.rounds|length >= 2 %}<span class="ev-detail-fact">{{ 'event_detail.facts.rounds'|trans({'%count%': timeline.rounds|length}) }}</span>{% endif %}
-            {% endblock %}
-            {% block actions %}
-                {{ include('event_parts/_going_action.html.twig', {competition_id: event.id, attendance: attendance, is_past: event_title.isPast, is_public: is_publicly_visible}) }}
-                {{ include('event_parts/_follow_action.html.twig', {follow_target: follow_target, following: following, kind: 'series', follow_name: series.name}) }}
-                {% if event.registrationLink %}
-                    <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ event.registrationLink }}">{{ 'events.registration_link'|trans }}<span aria-hidden="true"> ↗</span></a>
-                {% endif %}
-                {% if event.link %}
-                    <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ event.link }}">{{ 'events.website_link'|trans }}<span aria-hidden="true"> ↗</span></a>
-                {% endif %}
-                {% if event.resultsLink %}
-                    <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ event.resultsLink }}">{{ 'events.results_link'|trans }}<span aria-hidden="true"> ↗</span></a>
-                {% endif %}
-                {% if can_add_time %}
-                    <a class="ev-action-button" href="{{ path('puzzle_add', {competition: event.id}) }}">{{ 'events.add_my_time'|trans }}</a>
-                {% endif %}
-                {% if is_granted('IS_AUTHENTICATED_REMEMBERED') and is_granted('COMPETITION_EDIT', event.id) %}
-                    {{ include('event_parts/_manage_button.html.twig', {manage: manage, return_title: event.name, delete_return: delete_return}) }}
-                {% endif %}
-            {% endblock %}
+            {% block facts %}{{ include('event_parts/_event_header_facts.html.twig', {recurring: true}) }}{% endblock %}
+            {% block actions %}{{ include('event_parts/_event_header_actions.html.twig', {follow_kind: 'series', follow_name: series.name}) }}{% endblock %}
         {% endembed %}
 
         <div class="ev-detail-body">

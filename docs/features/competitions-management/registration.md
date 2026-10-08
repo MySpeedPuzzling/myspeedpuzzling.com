@@ -15,7 +15,7 @@ payments** - permanently: no Stripe for events, no payouts, no refunds. It only 
 ## Settings - their own page and message
 
 `manage_competition_registration` (`/en/manage-event-registration/{id}`, maintainers only via `CompetitionEditVoter`,
-`noindex`), linked from the event edit page (button row) and from the participants page while managed. Message
+`noindex`), linked from the event edit page (button row) and from the participants spreadsheet's Tools menu while managed. Message
 `ChangeCompetitionRegistrationSettings` - deliberately **not** part of `EditCompetition`: the edit form, the edition form,
 convert-to-series and the internal API PATCH (`UpdateCompetitionController`) dispatch `EditCompetition` and must never
 switch management off or wipe the settings.
@@ -71,8 +71,8 @@ connections of the join flow (`getPlayerConnections`, `isPlayerSelfJoined`) read
   anybody signed in can pick any unconnected name of the list and is connected to that row - including its reserved or
   paid spot; the real person then gets "this name is connected to another account". It stays because organisers' lists
   (imports, invitations) must stay connectable after registration closed, and the name auto-match only pre-selects. The
-  organiser corrects a wrong pick on the participants page: open the row, clear the MSP player (or pick the right one)
-  and save - the impostor is disconnected (their own registration, if any, was cancelled by the pick and stays cancelled),
+  organiser corrects a wrong pick in the participants spreadsheet: unlink the MSP profile in the person's row (or link
+  the right one) - the impostor is disconnected (their own registration, if any, was cancelled by the pick and stays cancelled),
   and the right person can pick the name again. Follow-up ideas (notify maintainers, require the profile name to match on
   managed events) are in docs/TODO.md.
 - **A new spot** (joining yourself, again after cancelling, "not on the list"): only while the event is publicly
@@ -80,8 +80,8 @@ connections of the join flow (`getPlayerConnections`, `isPlayerSelfJoined`) read
   payment instructions) and the window is open (`RegistrationNotOpen` with `RegistrationAvailability`
   `not_yet_open`/`closed`/`not_public`). Reserved under the capacity, **waitlisted** when full; a registration made again
   after cancelling starts fresh (restored row, not paid, not checked in, end of the queue) - but keeps `paid_at`: the
-  organiser's record of a payment they hold is never wiped by the player; the participants page shows "paid on {date},
-  before the registration was cancelled" on such a row, and "Mark paid" confirms it again.
+  organiser's record of a payment they hold is never wiped by the player; the participants spreadsheet shows the payment
+  on such a row, and "Mark paid" confirms it again.
 - Everything is decided **before** anything changes (main's rolled-back-handler rule): the window, the visibility and
   the count come before "not on the list" lets go of the organiser's row.
 
@@ -116,13 +116,16 @@ changes); events without management keep main's plain button and route.
 
 ## Organiser tools
 
-Participants page (`ManageCompetitionParticipants`), **only while managed** (`registrationManaged`/`capacity` are
-non-writable props from the page - no extra statement; counts come from the rows already loaded): counters, status
-filter, status column with separate row actions (never part of the row's save) - Mark paid, Take back "paid", Give a
-spot, Give a spot and mark paid - the first-in-line hint with one click when a spot is free, the private note in the
-edit row (saved only while managed, `EditCompetitionParticipant::$changeOrganizerNote`). Every action looks the
-participant up in the component's event first, `#[PostHydrate]` re-checks the maintainer, the handler checks the event
-again.
+The People tab of the participants spreadsheet ([participants-spreadsheet.md](participants-spreadsheet.md) - it
+replaced the participants page), **only while managed** (from the sheet's state, `competition.registrationManaged` /
+`capacity` and each person's `registration`): the Registration status, Paid and Checked in columns, counters (spots
+taken / capacity, waitlist), filters, the first-in-line hint, and separate row actions - Mark paid, Take back "paid",
+Give a spot, Give a spot and mark paid, Check in, Undo check-in - through `POST
+/{_locale}/participants-sheet-api/{competitionId}/registration` (`ParticipantsSheetRegistrationController`), which
+dispatches the messages below unchanged. The organiser's private note is a sheet column for every event (`field: note`
+of `ApplyParticipantSheetChanges`). Every action looks the participant up in the event first (404
+`participant_not_found`), the endpoint re-checks the maintainer on every request, the handler checks the event again
+(409 `registration_not_managed`).
 
 Status rules (handlers, under the lock): mark paid twice = one e-mail; a waitlisted row is marked paid only together
 with an explicit promotion (`MarkParticipantPaid::$promoteFromWaitlist`); promote only from the waitlist (again = no
@@ -132,26 +135,25 @@ like adding someone by hand. Organiser-added participants are reserved even abov
 
 Check-in (`/en/event-check-in/{id}`): maintainers only, 404 unless managed, `noindex` + `Cache-Control: private,
 no-store`; everybody holding a spot (no waitlist), big tap targets, "Not paid" + Mark paid, progress. The participants
-page links it only for in-person events - nobody walks in to an online one.
+spreadsheet's Tools menu links it only for in-person events - nobody walks in to an online one.
 
 ## Import / export
 
 The export of a **managed** event appends `registration_status`, `paid_at`, `checked_in_at` (event's zone) after
 `participant_id`; every other export is byte-for-byte as before. The import knows the three columns and reads nothing
 from them (no warning; "Not imported" on the preview) - statuses change on the site, never through a file, so an
-exported sheet imported back changes nothing and never wipes a payment or a check-in. Status columns in the
-spreadsheet's People tab: follow-up (participants-spreadsheet.md D10).
+exported sheet imported back changes nothing and never wipes a payment or a check-in. The statuses are columns of the
+spreadsheet's People tab (participants-spreadsheet.md D10, Organiser tools above).
 
 ## Concurrency
 
 `CompetitionParticipantsLock::key($competitionId)` - the participant import's key - is taken by **every write to an
 event's participants, round entries and pairs/teams, and every round change that can delete or invalidate official
-results**: the registration messages (`JoinCompetition`, `LeaveCompetition`, `AddCompetitionParticipant`,
+results**: the registration messages (`JoinCompetition`, `LeaveCompetition`,
 `MarkParticipantPaid`, `UnmarkParticipantPaid`, `PromoteParticipantFromWaitlist`, `CheckInParticipant`,
 `UndoParticipantCheckIn`, `ChangeCompetitionRegistrationSettings`), the imports (`ApplyParticipantImport`, the console's
-`ImportCompetitionParticipants`), the participants editor (`EditCompetitionParticipant`, `SoftDeleteCompetitionParticipant`,
-`RestoreCompetitionParticipant`), the teams page (`CreateCompetitionTeams`, `RenameCompetitionTeam`,
-`AssignParticipantToTeam`, `DeleteCompetitionTeam`), `ConnectCompetitionParticipant`, the round changes
+`ImportCompetitionParticipants`), the participants spreadsheet (`ApplyParticipantSheetChanges` - every participant,
+round entry and pair/team change it makes), `ConnectCompetitionParticipant`, the round changes
 (`EditCompetitionRound` - category guard, `DeleteCompetitionRound` - incl. the web confirmation's hash check,
 `DeleteCompetition`) and the official results writes (`RecordRoundResults`, `AdvanceQualified`, `AssignTableNumbers`).
 The lock is held until commit (`LockUntilCommittedMiddleware`), so two registrations for the last spot never both get

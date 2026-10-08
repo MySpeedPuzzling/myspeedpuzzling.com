@@ -5,7 +5,15 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\ParticipantsSheet;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Driver\Exception as DriverException;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Controller\ParticipantsSheet\ApplyParticipantSheetChangesController;
+use SpeedPuzzling\Web\Exceptions\ParticipantImportPreviewStale;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Services\OfficialResultsApi;
+use SpeedPuzzling\Web\Services\ParticipantsSheetLiveUpdates;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
@@ -15,6 +23,10 @@ use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * POST /{_locale}/participants-sheet-api/{competitionId}/changes - who may send change sets, what is refused as a whole,
@@ -153,7 +165,7 @@ final class ApplyParticipantSheetChangesControllerTest extends WebTestCase
             'index' => 0,
             'status' => 'refused',
             'reason' => 'has_result_in_round',
-            'message' => 'Ben Steady already has a result in Group A - clear it first to take them out of the round.',
+            'message' => "Ben Steady's result in Group A is recorded - clear it on the results desk first to take Ben Steady out.",
             'current' => 'in',
         ], $refused['changes'][0]);
 
@@ -182,6 +194,7 @@ final class ApplyParticipantSheetChangesControllerTest extends WebTestCase
 
         self::assertSame('refused', $skipped['status']);
         self::assertSame('team_has_result', $skipped['changes'][0]['reason']);
+        self::assertSame('The result of Puzzle Sharks in Pairs is recorded - clear it on the results desk first to delete the pair/team.', $skipped['changes'][0]['message']);
         self::assertSame('skipped', $skipped['changes'][1]['status']);
         self::assertSame('Not saved - another part of the same change could not be saved.', $skipped['changes'][1]['message']);
 
@@ -196,6 +209,154 @@ final class ApplyParticipantSheetChangesControllerTest extends WebTestCase
         self::assertIsArray($payload);
         self::assertSame('participants_sheet.changed', $payload['type']);
         self::assertSame($answer['versionAfter'], $payload['version']);
+    }
+
+    /**
+     * One code, several causes: the organiser is told what holds the person - something the results desk clears, or a
+     * time the player added themselves, which stays (review A-1). The codes stay for the page.
+     */
+    public function testTheGuardsSayWhatKeepsSomebody(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        // Anna's player added a time in the Final to their own profile
+        $this->database()->executeStatement(
+            'UPDATE puzzle_solving_time SET competition_round_id = :round WHERE id = (SELECT id FROM puzzle_solving_time WHERE player_id = :player ORDER BY id LIMIT 1)',
+            ['round' => Cup::ROUND_FINAL, 'player' => PlayerFixture::PLAYER_ADMIN],
+        );
+        $this->database()->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]);
+        $this->database()->executeStatement("UPDATE competition_participant SET registration_status = 'waitlisted' WHERE id = :id", ['id' => Cup::PARTICIPANT_DAN]);
+
+        $this->post(self::CHANGES, self::changeSet(
+            [['op' => 'place', 'participant' => Cup::PARTICIPANT_ANNA, 'round' => Cup::ROUND_FINAL, 'from' => 'in', 'to' => 'out']],
+            [['op' => 'remove', 'participant' => Cup::PARTICIPANT_ANNA]],
+            [['op' => 'remove', 'participant' => Cup::PARTICIPANT_BEN]],
+            [['op' => 'place', 'participant' => Cup::PARTICIPANT_CARA, 'round' => Cup::ROUND_PAIRS, 'from' => 'team:' . Cup::TEAM_CORNERS, 'to' => 'out']],
+            [
+                ['op' => 'place', 'participant' => Cup::PARTICIPANT_GINA, 'round' => Cup::ROUND_PAIRS, 'from' => 'team:' . Cup::TEAM_EDGES, 'to' => 'in'],
+                ['op' => 'place', 'participant' => Cup::PARTICIPANT_HUGO, 'round' => Cup::ROUND_PAIRS, 'from' => 'team:' . Cup::TEAM_EDGES, 'to' => 'in'],
+            ],
+            [['op' => 'field', 'participant' => Cup::PARTICIPANT_IVAN, 'field' => 'externalId', 'from' => null, 'to' => 'R-1'], ['op' => 'field', 'participant' => Cup::PARTICIPANT_FILIP, 'field' => 'externalId', 'from' => null, 'to' => 'R-1']],
+        ));
+
+        self::assertResponseIsSuccessful();
+        $messages = array_map(
+            static fn (array $group): array => array_values(array_filter(array_map(static fn (array $change): null|string => $change['reason'] !== null ? $change['reason'] . ': ' . $change['message'] : null, $group['changes']))),
+            $this->answeredGroups(),
+        );
+
+        self::assertSame([
+            ['has_result_in_round: Anna Fast added their own time to Final on MySpeedPuzzling - they stay in the round.'],
+            ['has_result_in_event: Anna Fast added their own time to Final on MySpeedPuzzling - they stay in the event.'],
+            ['has_result_in_event: Ben Steady has a recorded result in Group A - clear it on the results desk first to remove Ben Steady from the event.'],
+            // Dan is on the waitlist of the managed event - nobody taking part would be left in Corner Pieces
+            ['team_has_result: The result of Corner Pieces in Pairs is recorded - keep at least one person in it who is not on the waitlist.'],
+            ['team_has_result: The result of Edge Hunters in Pairs is recorded - keep at least one person in the pair/team, or clear the result on the results desk first.'],
+            ['external_id_taken: The external id R-1 belongs to Ivan Last already.'],
+        ], $messages);
+    }
+
+    /**
+     * Review A-r10: something the change set names vanished outside the event's lock (a player deleting their account
+     * between the plan and the write) - nothing was written, the page sends the change set again.
+     *
+     * @return iterable<string, array{bool}>
+     */
+    public static function vanishedMeanwhile(): iterable
+    {
+        yield 'an entity the plan names' => [false];
+        yield 'a player deleted before the write' => [true];
+    }
+
+    #[DataProvider('vanishedMeanwhile')]
+    public function testSomethingVanishingMeanwhileIsAConflictToSendAgain(bool $atTheWrite): void
+    {
+        $vanished = $atTheWrite
+            ? new HandlerFailedException(
+                new Envelope(new \stdClass()),
+                [new ForeignKeyConstraintViolationException(self::createStub(DriverException::class), null)],
+            )
+            : new ParticipantImportPreviewStale();
+
+        $this->browser->disableReboot();
+        $container = $this->browser->getContainer();
+        $controller = new ApplyParticipantSheetChangesController(
+            $container->get(CompetitionRepository::class),
+            new class ($vanished) implements MessageBusInterface {
+                public function __construct(
+                    private readonly \Throwable $vanished,
+                ) {
+                }
+
+                public function dispatch(object $message, array $stamps = []): Envelope
+                {
+                    throw $this->vanished;
+                }
+            },
+            $container->get(OfficialResultsApi::class),
+            $container->get(ParticipantsSheetLiveUpdates::class),
+            $container->get(TranslatorInterface::class),
+        );
+        $controller->setContainer($container);
+        $container->set(ApplyParticipantSheetChangesController::class, $controller);
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $this->post(self::CHANGES, self::changeSet([self::rename('Ivan Last', 'Ivan Lastly')]));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame([
+            'error' => 'changed_meanwhile',
+            'message' => 'Something changed on the event meanwhile - nothing was saved. Try again.',
+        ], $this->json());
+        self::assertSame([], self::hub()->getPublishedUpdates());
+    }
+
+    /**
+     * Review A-r11: a JSON list (or anything but a change set object) is an unreadable change set with the organiser's text.
+     */
+    public function testAListInsteadOfAChangeSetIsUnreadable(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        foreach ([json_encode([self::changeSet([self::rename('Ivan Last', 'Ivan Lastly')])], JSON_THROW_ON_ERROR), '42', '"changes"'] as $content) {
+            $this->postRaw(self::CHANGES, $content);
+
+            self::assertResponseStatusCodeSame(400);
+            self::assertSame([
+                'error' => 'invalid_changes',
+                'reason' => 'not_a_list',
+                'message' => 'These changes could not be read - reload the page and make them again.',
+            ], $this->json(), $content);
+        }
+
+        $this->postRaw(self::CHANGES, '{"groups": [');
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame('invalid_json', $this->json()['error']);
+        self::assertIsString($this->json()['message']);
+
+        self::assertSame('Ivan Last', $this->ivanName());
+    }
+
+    public function testNoAnswerIsEverIndexed(): void
+    {
+        $this->post(self::CHANGES, self::changeSet([self::rename('Ivan Last', 'Ivan Lastly')]));
+        self::assertResponseStatusCodeSame(401);
+        self::assertResponseHeaderSame('X-Robots-Tag', 'noindex, nofollow');
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $this->post('/en/participants-sheet-api/' . Uuid::uuid7()->toString() . '/changes', self::changeSet([self::rename('Ivan Last', 'Ivan Lastly')]));
+        self::assertResponseStatusCodeSame(404);
+        self::assertResponseHeaderSame('X-Robots-Tag', 'noindex, nofollow');
+
+        foreach (['state', 'version'] as $endpoint) {
+            $this->browser->request('GET', '/en/participants-sheet-api/' . Cup::COMPETITION_RESULTS_CUP . '/' . $endpoint);
+            self::assertResponseIsSuccessful();
+            self::assertResponseHeaderSame('X-Robots-Tag', 'noindex, nofollow');
+        }
+
+        $this->post(self::CHANGES, self::changeSet([self::rename('Ivan Last', 'Ivan Lastly')]));
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('X-Robots-Tag', 'noindex, nofollow');
     }
 
     public function testADryRunWritesAndTellsNothing(): void
@@ -296,6 +457,16 @@ final class ApplyParticipantSheetChangesControllerTest extends WebTestCase
             'HTTP_ORIGIN' => $origin,
             'HTTP_X_CSRF_TOKEN' => 'csrf-token',
         ], content: json_encode($body, JSON_THROW_ON_ERROR));
+    }
+
+    private function postRaw(string $url, string $content): void
+    {
+        $this->browser->request('POST', $url, server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_ORIGIN' => 'http://localhost',
+            'HTTP_X_CSRF_TOKEN' => 'csrf-token',
+        ], content: $content);
     }
 
     /**

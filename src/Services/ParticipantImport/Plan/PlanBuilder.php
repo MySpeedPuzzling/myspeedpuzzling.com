@@ -1425,13 +1425,18 @@ final class PlanBuilder
 
     private function externalIdTakenByAnother(string $externalId, string $personKey): bool
     {
-        foreach ($this->people as $other) {
-            if ($other->key !== $personKey && $other->externalId === $externalId) {
-                return true;
-            }
-        }
+        // The participants sheet's rule too (external_id_taken) - one rule, ParticipantRules
+        return ParticipantRules::externalIdTakenBy($externalId, $personKey, $this->externalIds()) !== null;
+    }
 
-        return false;
+    /**
+     * @return \Generator<string, array{externalId: null|string}>
+     */
+    private function externalIds(): \Generator
+    {
+        foreach ($this->people as $key => $person) {
+            yield $key => ['externalId' => $person->externalId];
+        }
     }
 
     /**

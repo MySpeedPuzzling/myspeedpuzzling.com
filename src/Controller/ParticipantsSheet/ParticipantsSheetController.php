@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -73,8 +74,15 @@ final class ParticipantsSheetController extends AbstractController
             'action' => $this->generateUrl('import_competition_participants', ['competitionId' => $competitionId]),
         ]);
 
+        // Back where the organiser came from (a series' editions, the registration settings, ...) - a validated
+        // same-site path only, else the event's edit page (docs/features/return-url.md)
+        $returnUrl = ReturnUrl::tryFrom($request->query->getString('return'));
+        $returnTitle = trim($request->query->getString('return_title'));
+
         $response = $this->render('participants_sheet/page.html.twig', [
             'state' => $state,
+            'back_url' => $returnUrl->path ?? $state->competition->editUrl,
+            'back_title' => $returnUrl !== null && $returnTitle !== '' ? $returnTitle : null,
             // In a <script type="application/json">: `<`, `>`, `&`, quotes escaped - a name can never close the tag
             'state_json' => json_encode($state, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR),
             'tab' => $tab,
@@ -110,7 +118,8 @@ final class ParticipantsSheetController extends AbstractController
             'registration' => $this->generateUrl('participants_sheet_registration', ['competitionId' => $competitionId]),
             'record' => $roundUrl('official_results_record'),
             'tables' => $roundUrl('official_results_assign_table_numbers'),
-            'playerSearch' => $this->generateUrl('player_search_autocomplete', ['format' => 'co-puzzler']),
+            // The sheet's own search: players the organiser blocked are found too (player-blocklist.md rule 7)
+            'playerSearch' => $this->generateUrl('participants_sheet_player_search', ['competitionId' => $competitionId]),
             'import' => $this->generateUrl('import_competition_participants', ['competitionId' => $competitionId]),
             'export' => $this->generateUrl('export_competition_participants', ['competitionId' => $competitionId]),
             'rounds' => $this->generateUrl('manage_competition_rounds', ['competitionId' => $competitionId]),

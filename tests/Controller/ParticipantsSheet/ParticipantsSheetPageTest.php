@@ -125,6 +125,62 @@ final class ParticipantsSheetPageTest extends WebTestCase
         self::assertStringContainsString('This tool needs JavaScript', $crawler->filter('noscript')->html());
     }
 
+    public function testTheBackLinkGoesWhereTheOrganiserCameFrom(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $this->browser->request('GET', self::RESULTS_CUP . '?' . http_build_query(['return' => '/en/manage-event-rounds/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, 'return_title' => 'Rounds']));
+        $back = $crawler->filter('[data-participants-sheet-back]');
+        self::assertSame('/en/manage-event-rounds/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $back->attr('href'));
+        self::assertSame('Rounds', trim($back->text()));
+        self::assertSame('Back to Rounds', $back->attr('aria-label'));
+
+        // Never off the site - the event's edit page instead
+        foreach (['https://evil.example/', '//evil.example', '/\\evil.example'] as $hostile) {
+            $crawler = $this->browser->request('GET', self::RESULTS_CUP . '?' . http_build_query(['return' => $hostile, 'return_title' => 'Phishing']));
+            $back = $crawler->filter('[data-participants-sheet-back]');
+            self::assertSame('/en/edit-event/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $back->attr('href'), $hostile);
+            self::assertSame('Event', trim($back->text()));
+        }
+    }
+
+    public function testThePagesLinkingTheSheetSayWhereToComeBack(): void
+    {
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $competition = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ChangeCompetitionRegistrationSettings(
+            competitionId: $competition,
+            registrationManaged: true,
+            capacity: 20,
+            registrationOpensAt: null,
+            registrationClosesAt: null,
+            timezone: 'Europe/Prague',
+            entryFeeText: null,
+            paymentInstructions: null,
+        ));
+
+        $pages = [
+            '/en/edit-event/' . $competition => '/en/edit-event/' . $competition,
+            '/en/manage-event-registration/' . $competition => '/en/manage-event-registration/' . $competition,
+            '/en/manage-event-rounds/' . $competition => '/en/manage-event-rounds/' . $competition,
+        ];
+
+        foreach ($pages as $page => $returnTo) {
+            $crawler = $this->browser->request('GET', $page);
+            self::assertResponseIsSuccessful($page);
+
+            $links = $crawler->filter('a[href^="/en/participants-sheet/' . $competition . '"]');
+            self::assertGreaterThan(0, $links->count(), $page);
+
+            foreach ($links as $link) {
+                assert($link instanceof \DOMElement);
+                parse_str((string) parse_url($link->getAttribute('href'), PHP_URL_QUERY), $query);
+                self::assertSame($returnTo, $query['return'] ?? null, $page);
+                self::assertIsString($query['return_title'] ?? null, $page);
+            }
+        }
+    }
+
     public function testTheFrameCarriesTheControllersTargetsAndValues(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -150,7 +206,7 @@ final class ParticipantsSheetPageTest extends WebTestCase
             'registration' => '/en/participants-sheet-api/' . $competition . '/registration',
             'record' => '/en/official-results/rounds/__ROUND__/changes',
             'tables' => '/en/official-results/rounds/__ROUND__/table-numbers',
-            'playerSearch' => '/en/player-search-autocomplete/?format=co-puzzler',
+            'playerSearch' => '/en/participants-sheet-api/' . $competition . '/player-search',
             'import' => '/en/import-event-participants/' . $competition,
             'export' => '/en/export-event-participants/' . $competition,
             'rounds' => '/en/manage-event-rounds/' . $competition,

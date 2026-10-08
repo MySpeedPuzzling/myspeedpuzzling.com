@@ -617,9 +617,11 @@ Round tab (375 px)
   region for "Saved", "Pasted 120 cells, 3 need attention", "3 people changed by another organiser", and conflicts.
   Every action is reachable without dragging. Visible focus. Sizes and problems in text. The phone view uses native
   controls (buttons, dialog, combobox).
-- **Privacy.** Organisers already see and link any player (participants.md). The profile typeahead uses the existing
-  player search (blocklist rules for the viewer apply as on other pickers). The export of the sheet = the existing
-  export. No personal data leaves the event's maintainers.
+- **Privacy.** Organisers already see and link any player (participants.md). The profile typeahead has its own search
+  (`participants_sheet_player_search`, the event's organisers only): organiser tooling, so players the organiser blocked
+  are found too - blocking must not make anybody unassignable (player-blocklist.md rule 7); a private player is found
+  by their exact code only, as everywhere. The export of the sheet = the existing export. No personal data leaves the
+  event's maintainers.
 - **Tests.** Handler tests for each op, conflicts, refusals (results guard, connect rule), idempotent resend,
   lock key; a parity test that a sheet change and the equivalent import produce the same operations. Node tests (like
   `RelativeTimeParityTest`) for the TSV parser, the changeset builder, undo inversion and the keyboard state machine.

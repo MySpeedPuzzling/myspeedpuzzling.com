@@ -137,7 +137,7 @@ final class SheetImportParityTest extends KernelTestCase
         }
 
         $parsed = SheetChangesParser::parse(['changesetId' => Uuid::uuid7()->toString(), 'groups' => $groups]);
-        $plan = $this->sheetPlanner->plan(Cup::COMPETITION_RESULTS_CUP, false, $parsed['groups'], 'version');
+        $plan = $this->sheetPlanner->plan(Cup::COMPETITION_RESULTS_CUP, $parsed['groups'], 'version');
 
         self::assertContains($plan->groups[0]->status->value, ['applied', 'unchanged'], 'The sheet applies the changes the file makes');
         foreach (array_slice($plan->groups, 1) as $group) {

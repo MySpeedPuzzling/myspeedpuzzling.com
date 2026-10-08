@@ -31,7 +31,7 @@
 
                 {% if competition.registrationManaged %}
                     <div class="mb-3 d-flex flex-wrap gap-2">
-                        <a href="{{ path('participants_sheet', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary">
+                        <a href="{{ path('participants_sheet', {competitionId: competition.id, return: path('manage_competition_registration', {competitionId: competition.id}), return_title: 'competition_registration.settings.title'|trans}) }}" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}
                         </a>
                         <a href="{{ path('competition_check_in', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary">

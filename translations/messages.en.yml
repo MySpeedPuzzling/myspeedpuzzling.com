@@ -7599,7 +7599,7 @@ participants_sheet_people:
     bulk_nothing: "Nothing to change - everybody selected is there already."
     bulk_solo_in_done: "1 person put into %round%.|%count% people put into %round%."
     bulk_solo_out_done: "1 person taken out of %round%.|%count% people taken out of %round%."
-    bulk_refused: "1 person left as they were: %name% - %reason%|%count% people left as they were, e.g. %name% - %reason%"
+    bulk_refused: "%count% people left as they were, e.g. %name% - %reason%"
     make_pair_title: "A new pair in %round%"
     make_team_title: "A new team in %round%"
     make_team_intro: "Check who goes into it. Nothing is saved until you confirm."

@@ -2204,7 +2204,10 @@ export class PeopleView {
         const personId = errors[0].change.participant ?? errors[0].change.id;
         const first = this.model.person(personId)?.name ?? '';
         const anchor = this.grid?.rows.includes(personId) ? { row: personId, col: 'name' } : null;
-        this.notify(this.sayCount('bulk_refused', errors.length, { name: first, reason: reasonFor(this.context, errors[0]) }), { anchor });
+        // One person: the reason already names them
+        this.notify(errors.length === 1
+            ? reasonFor(this.context, errors[0])
+            : this.sayCount('bulk_refused', errors.length, { name: first, reason: reasonFor(this.context, errors[0]) }), { anchor });
     }
 
     /**

@@ -189,6 +189,7 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this.tabsScrolledTo = undefined;
         this.mountToken++;
 
         if (this.queue) {
@@ -465,6 +466,16 @@ export default class extends Controller {
         }
 
         this.viewRoot?.setAttribute('aria-labelledby', `sheet-tab-${this.currentTab}`);
+
+        // The selected tab of a long round list (15 rounds at a world championship) is kept in sight of the tab bar
+        if (this.tabsScrolledTo !== this.currentTab) {
+            const selectedTab = this.tabsList.querySelector('[aria-selected="true"]');
+
+            if (selectedTab && typeof selectedTab.scrollIntoView === 'function') {
+                selectedTab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                this.tabsScrolledTo = this.currentTab;
+            }
+        }
     }
 
     scheduleTabs() {

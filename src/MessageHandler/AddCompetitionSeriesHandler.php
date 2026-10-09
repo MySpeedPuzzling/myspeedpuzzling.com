@@ -117,6 +117,12 @@ readonly final class AddCompetitionSeriesHandler
 
         $approvedAtOnce = $this->organizationApprovalPolicy->approveIfUnderTrustedOrganization($series, $player, $now);
 
+        // Created published, or by an admin / the internal API: in the queue (or past it) now - its first publish
+        // later e-mails nobody
+        if ($message->isDraft === false || $message->notifyAdmin === false) {
+            $series->markSubmitted($now);
+        }
+
         $this->entityManager->persist($series);
         $this->entityManager->flush();
 

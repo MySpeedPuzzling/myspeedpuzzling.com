@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Message\PublishCompetition;
@@ -27,6 +28,7 @@ readonly final class PublishCompetitionHandler
         private CompetitionSubmittedMailer $competitionSubmittedMailer,
         private GetRoundsWithPublishedOfficialResults $getRoundsWithPublishedOfficialResults,
         private MessageBusInterface $messageBus,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -38,9 +40,12 @@ readonly final class PublishCompetitionHandler
             return;
         }
 
+        // Submitted before (created published, published once, approved): the admins were told then
+        $wasSubmitted = $competition->submittedAt !== null;
         $competition->publish();
+        $competition->markSubmitted($this->clock->now());
 
-        if ($message->notifyAdmin && $competition->series === null && $competition->isApproved() === false && $competition->isRejected() === false) {
+        if ($message->notifyAdmin && $wasSubmitted === false && $competition->series === null && $competition->isApproved() === false && $competition->isRejected() === false) {
             $this->competitionSubmittedMailer->notifyAdmin(
                 $competition->name,
                 $competition->addedByPlayer->name ?? 'Unknown',

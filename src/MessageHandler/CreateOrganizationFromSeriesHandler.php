@@ -125,6 +125,9 @@ readonly final class CreateOrganizationFromSeriesHandler
             $organization->approve($actor, $now);
         }
 
+        // Created published: in the queue now (or past it)
+        $organization->markSubmitted($now);
+
         $this->organizationRepository->save($organization);
 
         $this->carryFollowsOver($series, $organization, $now);

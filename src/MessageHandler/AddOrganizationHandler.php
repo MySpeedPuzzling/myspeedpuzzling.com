@@ -105,6 +105,11 @@ readonly final class AddOrganizationHandler
             $organization->approve($player, $now);
         }
 
+        // Created published: in the queue now (approve() marks it too) - a later publish e-mails nobody
+        if ($message->isDraft === false) {
+            $organization->markSubmitted($now);
+        }
+
         $this->organizationRepository->save($organization);
 
         if ($message->approve === false && $message->isDraft === false) {

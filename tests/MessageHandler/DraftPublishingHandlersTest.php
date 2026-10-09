@@ -55,6 +55,30 @@ final class DraftPublishingHandlersTest extends KernelTestCase
         self::assertEmailAddressContains(self::getMailerMessage() ?? self::fail('No e-mail'), 'To', self::ADMIN_EMAIL);
     }
 
+    public function testPublishingAgainAfterGoingBackToDraftEmailsNobody(): void
+    {
+        $this->messageBus->dispatch(new PublishCompetition(OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT));
+        $this->messageBus->dispatch(new UnpublishCompetition(OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT));
+        $this->messageBus->dispatch(new PublishCompetition(OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT));
+
+        $this->messageBus->dispatch(new PublishOrganization(OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT));
+        $this->messageBus->dispatch(new UnpublishOrganization(OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT));
+        $this->messageBus->dispatch(new PublishOrganization(OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT));
+
+        // One e-mail each - the first publish
+        self::assertQueuedEmailCount(2);
+        self::assertFalse($this->isDraft('competition', OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT));
+    }
+
+    public function testAnItemAnAdminPublishedEmailsNobodyWhenItsTeamPublishesItAgain(): void
+    {
+        $this->messageBus->dispatch(new PublishCompetition(OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT, notifyAdmin: false));
+        $this->messageBus->dispatch(new UnpublishCompetition(OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT));
+        $this->messageBus->dispatch(new PublishCompetition(OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT));
+
+        self::assertQueuedEmailCount(0);
+    }
+
     public function testPublishingADraftEditionSendsNoEmail(): void
     {
         // An edition is approved through its series

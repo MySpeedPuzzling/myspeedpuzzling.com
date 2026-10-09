@@ -23,6 +23,16 @@ use Ramsey\Uuid\UuidInterface;
 class CompetitionSeries
 {
     /**
+     * When it entered the approval queue (docs/features/organizations/README.md "Approval"): created published, first
+     * published, approved, or created or published by an admin or the internal API. The admins' "submitted" e-mail
+     * goes out only while it is null, so going back to draft and publishing again never e-mails them twice. Rows from
+     * before the column are null.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $submittedAt = null;
+
+    /**
      * @param Collection<int, Player> $maintainers
      */
     public function __construct(
@@ -131,6 +141,16 @@ class CompetitionSeries
     {
         $this->approvedAt = $approvedAt;
         $this->approvedByPlayer = $approvedBy;
+        // An approved item is past the queue - publishing it later e-mails nobody
+        $this->markSubmitted($approvedAt);
+    }
+
+    /**
+     * It entered the approval queue (or skipped it) - kept at the first time
+     */
+    public function markSubmitted(DateTimeImmutable $submittedAt): void
+    {
+        $this->submittedAt ??= $submittedAt;
     }
 
     public function reject(Player $rejectedBy, DateTimeImmutable $rejectedAt, string $reason): void

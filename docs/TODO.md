@@ -29,6 +29,13 @@ Replaces "Format chips / an 'Organisation' level above series" - the level is bu
 - [ ] The site's flash colours fail WCAG AA contrast (success and warning about 2.2:1 on their backgrounds) - older
       than this feature, but its key messages use them ("Saved as a draft", "cannot go back to draft").
 - [ ] Header action buttons and social icons of the event family are 40 px (`ev-action-button`), not the 44 px target.
+- [ ] Browser review leftovers (2026-10-09, all minor): the series page's facts strip (".ev-facts-strip": "2 editions
+      · since … · next …") still starts a wrapped line with "·" at 360 px (older than this feature - the byline, the
+      organization facts and the cards were fixed); "Save as draft" stays enabled on "Add several dates" while no date is
+      checked (the server refuses); on "Move to another series" the address prefix sits above the label and the
+      taken-address error still says "type another one" while a free suggestion is filled in; the "by <organization>"
+      link on series directory lines is 14 px tall; required-field markers read "* Required" in English on de/ja forms
+      (older than this feature).
 - [ ] The `competitionId` branch of `AddPuzzleSolvingTimeHandler` does not re-check visibility (the forms validate the
       picker's set and API v1 checks rounds, but the handler itself would link a time to a draft).
 - [ ] Anonymous pages are shared-cached for 60 s, so an unpublished (or newly hidden) item can linger that long on

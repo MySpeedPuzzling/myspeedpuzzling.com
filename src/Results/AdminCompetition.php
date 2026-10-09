@@ -61,6 +61,9 @@ readonly final class AdminCompetition
         public int $participantsCount = 0,
         // An edition's series rejected - the edition is rejected with it
         public bool $seriesRejected = false,
+        // Of the linked times, the series picks MySpeedPuzzling matched to this edition (puzzle_solving_time.
+        // competition_series_id set - docs/features/events-page/high-frequency-series.md); the rest are linked explicitly
+        public int $seriesPickResultsCount = 0,
     ) {
     }
 
@@ -106,6 +109,7 @@ readonly final class AdminCompetition
      *     results_count: int,
      *     results_without_round_count: int,
      *     participants_count: int,
+     *     series_pick_results_count?: int,
      *     ...
      * } $row
      */
@@ -152,6 +156,7 @@ readonly final class AdminCompetition
             resultsWithoutRoundCount: $row['results_without_round_count'],
             participantsCount: $row['participants_count'],
             seriesRejected: ($row['series_rejected_at'] ?? null) !== null,
+            seriesPickResultsCount: $row['series_pick_results_count'] ?? 0,
         );
     }
 
@@ -244,6 +249,7 @@ readonly final class AdminCompetition
             'roundsCount' => $this->roundsCount,
             'resultsCount' => $this->resultsCount,
             'resultsWithoutRoundCount' => $this->resultsWithoutRoundCount,
+            'seriesPickResultsCount' => $this->seriesPickResultsCount,
             'participantsCount' => $this->participantsCount,
         ];
     }

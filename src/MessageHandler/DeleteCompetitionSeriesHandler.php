@@ -25,6 +25,14 @@ readonly final class DeleteCompetitionSeriesHandler
         $seriesId = $message->seriesId;
         $params = ['id' => $seriesId];
 
+        // Its series picks lose the pick - the results stay on the players' profiles, without an event
+        // (docs/features/events-page/high-frequency-series.md). Explicitly, with the match kind: the foreign key's
+        // ON DELETE SET NULL would leave the match kind behind
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET competition_series_id = NULL, series_edition_match = NULL WHERE competition_series_id = :id',
+            $params,
+        );
+
         // Secret puzzles of the rounds going away - re-synced afterwards from the rounds left, never revealed by accident
         /** @var array<string> $roundIds */
         $roundIds = $this->database->fetchFirstColumn('SELECT cr.id FROM competition_round cr INNER JOIN competition c ON c.id = cr.competition_id WHERE c.series_id = :id', $params);

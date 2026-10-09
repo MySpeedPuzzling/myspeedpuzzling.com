@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class CompetitionsInternalApiTest extends WebTestCase
@@ -703,6 +705,37 @@ final class CompetitionsInternalApiTest extends WebTestCase
             $database->fetchOne('SELECT COUNT(*) FROM competition_participant WHERE competition_id = :id AND deleted_at IS NULL', ['id' => CompetitionFixture::COMPETITION_WJPC_2024]),
             $wjpc['participantsCount'],
         );
+    }
+
+    /**
+     * docs/features/events-page/high-frequency-series.md P19: `resultsCount` counts every time linked to the edition,
+     * `seriesPickResultsCount` the series picks MySpeedPuzzling matched to it; a series pick without an edition is in
+     * no competition's counts. A one-time event has none.
+     */
+    public function testSeriesPickResultsCountCountsTheMatchedSeriesPicks(): void
+    {
+        $browser = self::createClient();
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $series = $scenario->series();
+        $puzzle = $scenario->puzzle();
+        $edition = $scenario->edition($series, 'Jam No. 153', '2026-03-02');
+        $scenario->round($edition, RoundCategory::Solo, '2026-03-02 19:00', puzzleIds: [$puzzle]);
+        $scenario->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, $puzzle, '2026-03-02', competitionId: $edition, time: '01:04:00');
+        $scenario->addTime(PlayerFixture::PLAYER_PRIVATE_USER_ID, $puzzle, '2026-03-02', seriesId: $series);
+        $scenario->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, $scenario->puzzle('Silver Harbor'), '2026-05-01', seriesId: $series);
+
+        $answer = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . $edition);
+        self::assertResponseIsSuccessful();
+        self::assertSame(2, $answer['resultsCount']);
+        self::assertSame(1, $answer['seriesPickResultsCount']);
+        self::assertSame(0, $answer['resultsWithoutRoundCount']);
+
+        $listed = self::callInternalApi($browser, 'GET', '/internal-api/competitions?q=' . urlencode('Jam No. 153'));
+        $byId = array_column(self::list($listed['competitions']), null, 'competitionId');
+        self::assertSame(1, $byId[$edition]['seriesPickResultsCount']);
+
+        $oneTime = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_WJPC_2024);
+        self::assertSame(0, $oneTime['seriesPickResultsCount']);
     }
 
     public function testCreatedUnderAnApprovedOrganizationItIsApprovedAtOnce(): void

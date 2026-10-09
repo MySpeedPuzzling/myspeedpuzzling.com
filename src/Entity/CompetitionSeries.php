@@ -18,10 +18,17 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 
+/**
+ * Records SeriesEditionsChanged when its visibility changes - its editions become or stop being match candidates for
+ * its series picks (docs/features/events-page/high-frequency-series.md).
+ */
 #[Entity]
-class CompetitionSeries
+class CompetitionSeries implements EntityWithEvents
 {
+    use HasEvents;
+
     /**
      * When it entered the approval queue (docs/features/organizations/README.md "Approval"): created published, first
      * published, approved, or created or published by an admin or the internal API. The admins' "submitted" e-mail
@@ -115,12 +122,16 @@ class CompetitionSeries
 
     public function publish(): void
     {
+        $wasVisible = $this->isPubliclyVisible();
         $this->isDraft = false;
+        $this->recordSeriesEditionsChangedUnless($wasVisible);
     }
 
     public function unpublish(): void
     {
+        $wasVisible = $this->isPubliclyVisible();
         $this->isDraft = true;
+        $this->recordSeriesEditionsChangedUnless($wasVisible);
     }
 
     /**
@@ -139,10 +150,14 @@ class CompetitionSeries
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void
     {
+        $wasVisible = $this->isPubliclyVisible();
+
         $this->approvedAt = $approvedAt;
         $this->approvedByPlayer = $approvedBy;
         // An approved item is past the queue - publishing it later e-mails nobody
         $this->markSubmitted($approvedAt);
+
+        $this->recordSeriesEditionsChangedUnless($wasVisible);
     }
 
     /**
@@ -155,9 +170,13 @@ class CompetitionSeries
 
     public function reject(Player $rejectedBy, DateTimeImmutable $rejectedAt, string $reason): void
     {
+        $wasVisible = $this->isPubliclyVisible();
+
         $this->rejectedAt = $rejectedAt;
         $this->rejectedByPlayer = $rejectedBy;
         $this->rejectionReason = $reason;
+
+        $this->recordSeriesEditionsChangedUnless($wasVisible);
     }
 
     public function isApproved(): bool
@@ -190,6 +209,13 @@ class CompetitionSeries
         $this->location = $location;
         $this->locationCountryCode = self::normalizeCountryCode($locationCountryCode);
         $this->shortcut = $shortcut;
+    }
+
+    private function recordSeriesEditionsChangedUnless(bool $wasVisible): void
+    {
+        if ($wasVisible !== $this->isPubliclyVisible()) {
+            $this->recordThat(new SeriesEditionsChanged($this->id));
+        }
     }
 
     private static function normalizeCountryCode(null|string $countryCode): null|string

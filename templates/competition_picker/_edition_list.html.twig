@@ -1,0 +1,29 @@
+{#
+    The short edition list under a series' preview (SeriesEditionPreviewController, docs/features/events-page/
+    high-frequency-series.md "The short list"): closest to the solve day first, nothing preselected. A row carries its
+    TomSelect option - a pick adds it to the picker as `edition:<uuid>`. Revealed round puzzles only.
+    Variables: editions (list of {edition, option, optgroup}), searched (a search narrowed it)
+#}
+{% if editions is empty %}
+    <p class="sp-note mb-0">{{ (searched ? 'series_picker.no_match' : 'series_picker.no_editions')|trans }}</p>
+{% else %}
+    <ul class="list-unstyled sp-editions mb-0">
+        {% for item in editions %}
+            {% set edition = item.edition %}
+            <li>
+                <button type="button"
+                        class="sp-edition"
+                        data-action="series-edition-preview#pick"
+                        data-series-edition-preview-option-param="{{ item.option }}"
+                        data-series-edition-preview-optgroup-param="{{ item.optgroup }}">
+                    <span class="sp-edition-name">{{ edition.name }}</span>
+                    <span class="sp-edition-meta">
+                        {{- edition.dayFrom is not null ? picker_date(edition.dayFrom, edition.dayTo) : 'series_picker.undated'|trans -}}
+                        {%- for category in edition.categories %} · {{ ('competition.round.category.' ~ category.value)|trans }}{% endfor -%}
+                        {%- if edition.puzzleNames is not empty %} · {{ edition.puzzleNames|join(', ') }}{% endif -%}
+                    </span>
+                </button>
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

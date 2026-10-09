@@ -13,4 +13,4 @@
         '%zone%': '<span class="ev-time-zone" data-round-zone>' ~ parts.zone|e ~ '</span>',
     })|raw -}}
     {%- if online %}<span class="ev-time-yours" data-local-time hidden></span>{% endif -%}
-</span>
+</span>{#- no trailing space: a header fact's dot must stay glued to the time -#}

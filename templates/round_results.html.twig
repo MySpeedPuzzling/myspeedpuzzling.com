@@ -18,6 +18,11 @@
 {% block meta_description %}{{ page.officialResults is null ? 'round_results.meta.description'|trans({'%round%': round.name, '%event%': page.eventTitle.label}) : 'round_results.official.meta_description'|trans({'%count%': page.officialResults.rankedCount, '%round%': round.name, '%event%': page.eventTitle.label}) }}{% endblock %}
 
 {% block content %}
+    {#- Whenever the times puzzlers logged are listed (no published official results): they are not the official results -
+        the organiser's are one tap away, in the label - the header then has no button of its own
+        (docs/features/events-page/high-frequency-series.md "Edition page and round results") -#}
+    {% set unofficial_label = page.officialResults is null and round.puzzles is not empty %}
+
     {{ include('_return_back_button.html.twig', {fallbackUrl: event_url, fallbackTitle: event.name}) }}
 
     <p class="mb-1 small">
@@ -68,7 +73,8 @@
             </a>
         {% endif %}
 
-        {% if page.officialResultsLink %}
+        {#- Not while the "not the official results" label below carries the same link -#}
+        {% if page.officialResultsLink and not unofficial_label %}
             <a class="btn btn-sm btn-outline-primary ms-md-auto" href="{{ page.officialResultsLink }}" target="_blank" rel="noopener">
                 <i class="bi bi-trophy me-1"></i>{{ (page.officialResults is null ? 'round_results.official_results' : 'round_results.official.organiser_results')|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
             </a>
@@ -80,12 +86,12 @@
        asks for the viewer's permissions (OfficialRoundResultsPageTest pins main's statement count) #}
     {% if app.user and page.officialResults is not null %}{{ include('official_results/_organiser_round_links.html.twig', {competition_id: event.id, round_id: round.id}) }}{% endif %}
 
-    {% if page.officialResults is null and page.hasStarted and page.resultsCount > 0 %}
-        <p class="small text-muted mb-3">
-            <i class="bi bi-info-circle me-1"></i>{{ 'round_results.unofficial_note'|trans }}
-            {% if page.officialResultsLink %}
-                <a href="{{ page.officialResultsLink }}" target="_blank" rel="noopener" class="text-nowrap">{{ 'round_results.see_official_results'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i></a>
-            {% endif %}
+    {% if unofficial_label %}
+        <p class="small mb-3 round-results-unofficial" data-round-unofficial>
+            <i class="bi bi-info-circle me-1 text-muted" aria-hidden="true"></i><span class="fw-medium">{{ 'series_pages.round_results.unofficial_label'|trans }}</span>
+            {%- if page.officialResultsLink %}
+                <span class="text-muted mx-1" aria-hidden="true">·</span><a href="{{ page.officialResultsLink }}" target="_blank" rel="noopener" class="text-nowrap" data-round-official-link>{{ 'round_results.official_results'|trans }}<span aria-hidden="true"> ↗</span></a>
+            {%- endif %}
         </p>
     {% endif %}
 

@@ -7,7 +7,10 @@ namespace SpeedPuzzling\Web\Tests;
 use PHPUnit\Framework\TestCase;
 use DateTimeImmutable;
 use DateTimeZone;
+use SpeedPuzzling\Web\Services\EventsPage\EventsIndexFactory;
 use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
+use SpeedPuzzling\Web\Tests\Services\EventsPage\EventsIndexExamples;
+use SpeedPuzzling\Web\Twig\EventsSearchTwigExtension;
 use SpeedPuzzling\Web\Value\SearchText;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\Process\ExecutableFinder;
@@ -288,6 +291,130 @@ final class EventsIndexScriptTest extends TestCase
         self::assertSame(['GMT-3', 'Port Town'], array_slice($results, 3, 2));
     }
 
+    /**
+     * The page ships the index compact (EventsIndexFactory::compact(), docs/features/events-page/high-frequency-series.md
+     * P25); the browser rebuilds exactly the entries the server reads - an edition's name, scope, country, place and
+     * link from its series entry, its search text joined with its series' - so search, the calendar, the archive and
+     * the country views see what they saw before
+     */
+    public function testTheBrowserRebuildsTheServersIndexFromTheShippedOne(): void
+    {
+        $small = EventsIndexExamples::smallPage();
+        $weekly = EventsIndexExamples::weeklySeriesPage(200, upcoming: 3);
+
+        $expanded = $this->runInNode(['expand' => [$small->shippedIndex, $weekly->shippedIndex]])['expanded'];
+
+        self::assertSame(self::viaJson($small->index), $expanded[0]);
+        self::assertSame(self::viaJson($weekly->index), $expanded[1]);
+        // The PHP mirror (tests read rendered pages through it) gives the same
+        self::assertSame($small->index, EventsIndexFactory::expand($small->shippedIndex));
+        self::assertSame($weekly->index, EventsIndexFactory::expand($weekly->shippedIndex));
+        self::assertSame('/series/lantern-weekly-jam/jam-no-153', $expanded[0][0]['u'], 'the link rebuilt from its series\' link');
+        self::assertSame('Innsbruck, Austria', $expanded[0][1]['p'], 'its own place');
+        self::assertSame('Online', $expanded[0][0]['p'], 'its series\' place');
+    }
+
+    /**
+     * Every typed word in the edition's own words or its series' - its round puzzle's name too; the server's search
+     * (`?q=`, EventsSearchTwigExtension over EventsPage::$index) finds the same entries
+     */
+    public function testAnEditionIsFoundThroughItsSeriesAndByItsPuzzle(): void
+    {
+        $page = EventsIndexExamples::smallPage();
+        $queries = [
+            'lantern 153' => [0],
+            'copper lighthouse' => [0],
+            'innsbruck harbor' => [1],
+            // the series' own town finds its editions too
+            'harbor town' => [1, 3],
+            'lantern' => [0, 4],
+            'riverside' => [2],
+            'velvet' => [],
+        ];
+
+        $results = $this->runInNode(['search' => array_map(
+            static fn (string $query): array => ['index' => $page->shippedIndex, 'query' => $query],
+            array_keys($queries),
+        )])['searched'];
+
+        $server = new EventsSearchTwigExtension();
+
+        foreach (array_keys($queries) as $position => $query) {
+            self::assertSame($queries[$query], $results[$position], $query);
+            self::assertSame($queries[$query], $server->searchIds($page->index, $query), 'server: ' . $query);
+        }
+    }
+
+    /**
+     * 200 editions of one series are still one archive line per year (docs/features/events-page/README.md "Every kind
+     * of event") - the server's lines (EventsPageBuilder::archiveYears()) and the browser's (archiveLinesOf()) agree
+     */
+    public function testTwoHundredEditionsAreOneArchiveLinePerYearOnBothSides(): void
+    {
+        $page = EventsIndexExamples::weeklySeriesPage(200);
+        $years = $page->archiveYears;
+
+        self::assertGreaterThanOrEqual(2, count($years));
+
+        $archives = $this->runInNode(['archive' => array_map(
+            static fn ($year): array => ['index' => $page->shippedIndex, 'year' => $year->year],
+            $years,
+        )])['archives'];
+
+        $editions = 0;
+
+        foreach ($years as $position => $year) {
+            self::assertCount(1, $year->lines, (string) $year->year);
+            self::assertCount(1, $archives[$position], (string) $year->year);
+            self::assertTrue($year->lines[0]->isRollUp());
+            self::assertSame($year->lines[0]->indexIds, $archives[$position][0]['ids']);
+            self::assertSame($year->lines[0]->editionCount, $archives[$position][0]['editions']);
+            self::assertSame('Lantern Weekly Jam', $archives[$position][0]['title']);
+            self::assertSame('online', $archives[$position][0]['scope']);
+            $editions += $year->lines[0]->editionCount;
+        }
+
+        self::assertSame(200, $editions);
+    }
+
+    /**
+     * An edition rebuilt from its compact entry is dated like the server dates its line, in all six languages
+     */
+    public function testCompactEntriesAreDatedLikeTheServerInEveryLanguage(): void
+    {
+        $page = EventsIndexExamples::weeklySeriesPage(200);
+        $dates = new EventsPageDates(self::translator());
+        $utc = new DateTimeZone('UTC');
+        $ids = [0, 57, 199];
+        $cases = [];
+        $expected = [];
+
+        foreach (['en', 'cs', 'de', 'es', 'fr', 'ja'] as $lang) {
+            $cases[] = ['index' => $page->shippedIndex, 'ids' => $ids, 'lang' => $lang];
+            $expected[] = array_map(static function (int $id) use ($page, $dates, $utc, $lang): string {
+                $entry = $page->index[$id];
+                self::assertIsString($entry['f']);
+
+                return $dates->range(new DateTimeImmutable($entry['f'], $utc), is_string($entry['t']) ? new DateTimeImmutable($entry['t'], $utc) : null, 'MMMd', $lang);
+            }, $ids);
+        }
+
+        self::assertSame($expected, $this->runInNode(['expandedDays' => $cases])['expandedDays']);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $index
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function viaJson(array $index): array
+    {
+        /** @var list<array<string, mixed>> $decoded */
+        $decoded = json_decode(json_encode($index, JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR);
+
+        return $decoded;
+    }
+
     private static function translator(): TranslatorInterface
     {
         return new class implements TranslatorInterface {
@@ -307,9 +434,9 @@ final class EventsIndexScriptTest extends TestCase
     }
 
     /**
-     * @param array<string, list<array<string, mixed>>> $input
+     * @param array<string, list<mixed>> $input
      *
-     * @return array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>, times: list<string>, zones: list<string>, visitor: list<null|array{time: string, zone: string, dayShift: int}>}
+     * @return array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>, times: list<string>, zones: list<string>, visitor: list<null|array{time: string, zone: string, dayShift: int}>, expanded: list<list<array<string, mixed>>>, searched: list<list<int>>, archives: list<list<array{ids: list<int>, editions: int, title: string, scope: string}>>, expandedDays: list<list<string>>}
      */
     private function runInNode(array $input, string $zone = 'UTC'): array
     {
@@ -318,10 +445,10 @@ final class EventsIndexScriptTest extends TestCase
         self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
 
         $process = new Process([$node, __DIR__ . '/events-index-harness.mjs'], env: ['TZ' => $zone]);
-        $process->setInput(json_encode($input + ['scopes' => [], 'queries' => [], 'days' => [], 'months' => [], 'formatted' => [], 'dates' => [], 'times' => [], 'zones' => [], 'visitor' => []], JSON_THROW_ON_ERROR));
+        $process->setInput(json_encode($input + ['scopes' => [], 'queries' => [], 'days' => [], 'months' => [], 'formatted' => [], 'dates' => [], 'times' => [], 'zones' => [], 'visitor' => [], 'expand' => [], 'search' => [], 'archive' => [], 'expandedDays' => []], JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>, times: list<string>, zones: list<string>, visitor: list<null|array{time: string, zone: string, dayShift: int}>} $results */
+        /** @var array{scopes: list<bool>, queries: list<bool>, days: list<bool>, months: list<bool>, formatted: list<string>, dates: list<string>, times: list<string>, zones: list<string>, visitor: list<null|array{time: string, zone: string, dayShift: int}>, expanded: list<list<array<string, mixed>>>, searched: list<list<int>>, archives: list<list<array{ids: list<int>, editions: int, title: string, scope: string}>>, expandedDays: list<list<string>>} $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
         return $results;

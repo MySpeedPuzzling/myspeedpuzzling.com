@@ -54,6 +54,10 @@ readonly final class RemovedResultSnapshot
         public null|TimePredictionSource $predictionSource,
         public null|DateTimeImmutable $predictionComputedAt,
         public null|int $predictionModelVersion,
+        // A series pick (docs/features/events-page/high-frequency-series.md) - snapshots older than series picks have
+        // neither key, read as null. Undo restores the pick and matches its edition again (P9)
+        public null|string $competitionSeriesId = null,
+        public null|SeriesEditionMatchKind $seriesEditionMatch = null,
     ) {
     }
 
@@ -101,6 +105,8 @@ readonly final class RemovedResultSnapshot
             predictionSource: $time->predictionSource,
             predictionComputedAt: $time->predictionComputedAt,
             predictionModelVersion: $time->predictionModelVersion,
+            competitionSeriesId: $time->competitionSeries?->id->toString(),
+            seriesEditionMatch: $time->seriesEditionMatch,
         );
     }
 
@@ -162,6 +168,8 @@ readonly final class RemovedResultSnapshot
             'prediction_source' => $this->predictionSource?->value,
             'prediction_computed_at' => $this->predictionComputedAt?->format(self::DATE_FORMAT),
             'prediction_model_version' => $this->predictionModelVersion,
+            'competition_series_id' => $this->competitionSeriesId,
+            'series_edition_match' => $this->seriesEditionMatch?->value,
         ];
     }
 
@@ -170,7 +178,7 @@ readonly final class RemovedResultSnapshot
      */
     public static function fromArray(array $data): self
     {
-        /** @var array{id: string, seconds_to_solve: null|int, player_id: string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int} $data */
+        /** @var array{id: string, seconds_to_solve: null|int, player_id: string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int, competition_series_id?: null|string, series_edition_match?: null|string} $data */
 
         return new self(
             id: $data['id'],
@@ -204,6 +212,8 @@ readonly final class RemovedResultSnapshot
             predictionSource: $data['prediction_source'] !== null ? TimePredictionSource::from($data['prediction_source']) : null,
             predictionComputedAt: $data['prediction_computed_at'] !== null ? new DateTimeImmutable($data['prediction_computed_at']) : null,
             predictionModelVersion: $data['prediction_model_version'],
+            competitionSeriesId: $data['competition_series_id'] ?? null,
+            seriesEditionMatch: isset($data['series_edition_match']) ? SeriesEditionMatchKind::from($data['series_edition_match']) : null,
         );
     }
 }

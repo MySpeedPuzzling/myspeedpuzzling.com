@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
+use SpeedPuzzling\Web\Value\CompetitionPick;
 use SpeedPuzzling\Web\Value\FinishedPuzzlePhoto;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Component\Form\AbstractType;
@@ -49,11 +50,13 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
     {
         $brandChoices = $this->brandChoicesBuilder->build();
 
-        // The competition this time is linked to is always offered, even when it is not publicly
-        // visible (any more) — otherwise the control renders empty and a re-save detaches the time
-        /** @var null|string $currentCompetitionId */
-        $currentCompetitionId = $options['current_competition_id'] ?? null;
-        $competitionChoices = $this->competitionChoicesBuilder->build($currentCompetitionId);
+        // What this time is linked to (a one-time event, its series pick or an explicit edition) is always offered, even
+        // when it is not publicly visible (any more) — otherwise the control renders empty and a re-save detaches the time
+        /** @var null|CompetitionPick $currentCompetitionPick */
+        $currentCompetitionPick = $options['current_competition_pick'] ?? null;
+        /** @var null|CompetitionPick $submittedCompetitionPick */
+        $submittedCompetitionPick = $options['submitted_competition_pick'] ?? null;
+        $competitionChoices = $this->competitionChoicesBuilder->build($currentCompetitionPick, $submittedCompetitionPick);
 
         // Mode field (hidden, controlled by JS) - only Speed and Relax modes for editing
         $builder->add('mode', EnumType::class, [
@@ -223,14 +226,18 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => EditPuzzleSolvingTimeFormData::class,
-            // The competition the edited time is currently linked to (server-derived by the controller,
-            // never from the request) — the picker always offers it, see CompetitionChoicesBuilder
-            'current_competition_id' => null,
+            // What the edited time is currently linked to (server-derived by the controller, never from the request:
+            // CompetitionPick::ofTime()) — the picker always offers it, see CompetitionChoicesBuilder
+            'current_competition_pick' => null,
+            // What a refused submit held — an edition picked by typing or from the short list is offered again while it
+            // is publicly visible
+            'submitted_competition_pick' => null,
             // Only whoever tracked the result (EditTimeController)
             'can_change_puzzle' => false,
         ]);
 
-        $resolver->setAllowedTypes('current_competition_id', ['null', 'string']);
+        $resolver->setAllowedTypes('current_competition_pick', ['null', CompetitionPick::class]);
+        $resolver->setAllowedTypes('submitted_competition_pick', ['null', CompetitionPick::class]);
         $resolver->setAllowedTypes('can_change_puzzle', 'bool');
     }
 
@@ -252,9 +259,14 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             $form->get('puzzle')->addError(new FormError($this->translator->trans('edit_time_puzzle.choose_from_list')));
         }
 
-        // Competition: only an id the picker offered — selectable OR the currently linked one
-        if ($data->competition !== null && $competitionChoices->contains($data->competition) === false) {
-            $form->get('competition')->addError(new FormError($this->translator->trans('forms.competition_not_selectable')));
+        // Competition: an offered one-time event or series, the current link, or a publicly visible edition (typed or
+        // picked from the short list) - never echoes a name
+        if ($data->competition !== null && trim($data->competition) !== '') {
+            $competitionPick = CompetitionPick::tryFrom($data->competition);
+
+            if ($competitionPick === null || $competitionChoices->accepts($competitionPick) === false) {
+                $form->get('competition')->addError(new FormError($this->translator->trans('forms.competition_not_selectable')));
+            }
         }
     }
 }

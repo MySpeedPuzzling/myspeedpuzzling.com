@@ -40,6 +40,9 @@ readonly final class AddPuzzleSolvingTime
         // (docs/features/suspicious-time-review.md, "Catch it while typing"): the time the form compared it with -
         // stored with the result as a SuspiciousTimeConfirmation. Null = not asked
         public null|int $paceConfirmedExpectedSeconds = null,
+        // A series pick (docs/features/events-page/high-frequency-series.md): MySpeedPuzzling finds the edition. Only
+        // when neither roundId nor competitionId is given - those are explicit links and win
+        public null|string $seriesId = null,
     ) {
     }
 }

@@ -109,6 +109,8 @@ SELECT
     first_attempt,
     puzzle_solving_time.unboxed,
     competition.id AS competition_id,
+    puzzle_solving_time.competition_series_id AS series_pick_id,
+    (competition.series_id IS NOT NULL) AS competition_is_edition,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN
             JSON_AGG(
@@ -157,6 +159,8 @@ SQL;
          *     first_attempt: bool,
          *     unboxed: bool,
          *     competition_id: null|string,
+         *     series_pick_id: null|string,
+         *     competition_is_edition: bool,
          * } $row
          */
         $row = $this->database
@@ -237,7 +241,7 @@ FROM puzzle_solving_time
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
-    LEFT JOIN competition_series cs ON cs.id = competition.series_id
+    LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzling_type = 'solo'
@@ -379,7 +383,7 @@ FROM puzzle_solving_time
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
-    LEFT JOIN competition_series cs ON cs.id = competition.series_id
+    LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzle_id = :puzzleId
@@ -522,7 +526,7 @@ INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
-LEFT JOIN competition_series cs ON cs.id = competition.series_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
 ORDER BY pst.seconds_to_solve ASC
 SQL;
 
@@ -673,7 +677,7 @@ INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
-LEFT JOIN competition_series cs ON cs.id = competition.series_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
 ORDER BY pst.seconds_to_solve ASC
 SQL;
 

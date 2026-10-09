@@ -11,7 +11,8 @@ use SpeedPuzzling\Web\Services\Drafts\UnpublishBlockers;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Back to draft only while none of its editions has participants, results or linked solving times (P8).
+ * Back to draft only while none of its editions has participants, results or linked solving times and no solving time
+ * is a series pick of it (P8; high-frequency-series.md P20).
  */
 #[AsMessageHandler]
 readonly final class UnpublishCompetitionSeriesHandler

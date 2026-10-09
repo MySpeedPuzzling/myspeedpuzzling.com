@@ -31,6 +31,9 @@ readonly final class GetRecentIdenticalSolvingTime
      * @param null|string $teamCompositionKey TeamComposition key of the group, null for solo
      * @param null|string $roundId Only an explicitly chosen round - otherwise the round follows from competition,
      *                             puzzle and group, which are compared already
+     * @param null|string $seriesId A series pick (docs/features/events-page/high-frequency-series.md): compared instead
+     *                              of the competition - its edition is derived, the same save may have been matched
+     *                              differently a moment ago
      */
     public function savedBy(
         string $playerId,
@@ -44,6 +47,7 @@ readonly final class GetRecentIdenticalSolvingTime
         bool $unboxed,
         null|string $comment,
         bool $hasPhoto,
+        null|string $seriesId = null,
     ): null|string {
         $query = <<<SQL
 SELECT pst.id
@@ -55,7 +59,10 @@ WHERE pst.player_id = :playerId
     AND pst.seconds_to_solve = :secondsToSolve
     AND CAST(pst.finished_at AS DATE) IS NOT DISTINCT FROM CAST(:finishedOn AS DATE)
     AND team.composition_key IS NOT DISTINCT FROM CAST(:teamKey AS VARCHAR)
-    AND pst.competition_id IS NOT DISTINCT FROM CAST(:competitionId AS UUID)
+    AND (
+        (CAST(:seriesId AS UUID) IS NOT NULL AND pst.competition_series_id = CAST(:seriesId AS UUID))
+        OR (CAST(:seriesId AS UUID) IS NULL AND pst.competition_series_id IS NULL AND pst.competition_id IS NOT DISTINCT FROM CAST(:competitionId AS UUID))
+    )
     AND (CAST(:roundId AS UUID) IS NULL OR pst.competition_round_id = CAST(:roundId AS UUID))
     AND pst.first_attempt = :firstAttempt
     AND pst.unboxed = :unboxed
@@ -75,6 +82,7 @@ SQL;
                 'finishedOn' => $finishedAt?->format('Y-m-d'),
                 'teamKey' => $teamCompositionKey,
                 'competitionId' => $competitionId,
+                'seriesId' => $seriesId,
                 'roundId' => $roundId,
                 'firstAttempt' => $firstAttempt,
                 'unboxed' => $unboxed,

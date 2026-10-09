@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -11,7 +12,9 @@ use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -405,6 +408,37 @@ final class EventPagesUiTest extends WebTestCase
             strpos($content, 'class="ev-crumbs"'),
             strpos($content, sprintf('href="/en/puzzle/%s"', PuzzleFixture::PUZZLE_500_01)),
         );
+    }
+
+    /**
+     * A one-round edition's header also says when its round starts, in the event's zone, named (docs/features/
+     * events-page/high-frequency-series.md P30) - with two or more rounds each round's row says it
+     */
+    public function testAOneRoundEditionsHeaderSaysItsStartTime(): void
+    {
+        $browser = self::createClient();
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $day = new DateTimeImmutable('+5 days')->format('Y-m-d');
+        $editionId = $scenario->edition($scenario->series(), 'Jam No. 219', $day);
+        $scenario->round($editionId, RoundCategory::Duo, $day . ' 19:00', 'Europe/Berlin');
+        $path = self::getContainer()->get(Connection::class)->fetchOne(
+            "SELECT cs.slug || '/' || c.slug FROM competition c INNER JOIN competition_series cs ON cs.id = c.series_id WHERE c.id = :id",
+            ['id' => $editionId],
+        );
+        self::assertIsString($path);
+
+        $crawler = $browser->request('GET', '/en/series/' . $path);
+
+        $this->assertResponseIsSuccessful();
+        $time = $crawler->filter('.ev-detail-facts [data-header-round-time]');
+        self::assertCount(1, $time);
+        self::assertSame('19:00', $time->filter('time[data-event-time]')->text());
+        self::assertSame('Central European Time', $time->filter('[data-round-zone]')->text());
+        self::assertCount(1, $time->filter('[data-local-time][hidden]'), 'online: the visitor\'s own time is filled in the browser');
+        // The round's category pill in the timeline, as before
+        self::assertSame('Pair', trim($crawler->filter('li.ev-round [data-round-category]')->text()));
+
+        self::assertCount(0, $browser->request('GET', self::SEASON_ONE_URL)->filter('[data-header-round-time]'), 'four rounds');
     }
 
     public function testWithoutAReturnUrlThereIsNoBackButton(): void

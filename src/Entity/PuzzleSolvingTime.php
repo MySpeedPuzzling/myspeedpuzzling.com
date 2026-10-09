@@ -13,6 +13,7 @@ use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
+use LogicException;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -26,6 +27,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
+use SpeedPuzzling\Web\Value\SeriesEditionMatchKind;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
@@ -91,6 +93,14 @@ class PuzzleSolvingTime implements EntityWithEvents
     #[Column(type: Types::SMALLINT, nullable: true)]
     public null|int $predictionModelVersion = null;
 
+    // How the edition of a series pick was found (docs/features/events-page/high-frequency-series.md): by a revealed
+    // round puzzle or by the solve day - set exactly while a series pick has an edition, null on an explicit link and
+    // on a series-level time. Changed only through seriesEditionResolved() (and modify() / takeOverFrom()); the
+    // reconciler keeps it in SQL
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, nullable: true, enumType: SeriesEditionMatchKind::class)]
+    public null|SeriesEditionMatchKind $seriesEditionMatch = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -143,7 +153,19 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[Immutable]
         #[Column(type: Types::STRING, nullable: true, enumType: SolvingTimeSource::class)]
         public null|SolvingTimeSource $createdVia = null,
+        // A series pick (docs/features/events-page/high-frequency-series.md): the player picked the series and
+        // MySpeedPuzzling finds the edition - $competition is then null (series-level) or an edition of it, matched as
+        // $seriesEditionMatch says. Null on an explicit link (every time saved before series picks existed). Set it at
+        // construction with $competition null, then seriesEditionResolved()
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[ManyToOne]
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|CompetitionSeries $competitionSeries = null,
     ) {
+        if ($competitionSeries !== null && $competition !== null) {
+            throw new LogicException('A series pick starts without an edition - seriesEditionResolved() links it.');
+        }
+
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
 
@@ -163,6 +185,8 @@ class PuzzleSolvingTime implements EntityWithEvents
         Puzzle $puzzle,
         null|Competition $competition,
         null|PuzzlingTeam $puzzlingTeam,
+        // The snapshot's series pick, when the series still exists - its edition is resolved again by the caller (P9)
+        null|CompetitionSeries $competitionSeries = null,
     ): self {
         $group = $snapshot->group();
 
@@ -186,6 +210,7 @@ class PuzzleSolvingTime implements EntityWithEvents
             finishedLaterSeconds: $snapshot->finishedLaterSeconds,
             puzzlingTeam: $group === null ? null : $puzzlingTeam,
             createdVia: $snapshot->createdVia,
+            competitionSeries: $competitionSeries,
         );
 
         $time->predictable = $snapshot->predictable;
@@ -211,6 +236,10 @@ class PuzzleSolvingTime implements EntityWithEvents
      * twins the first one in the list that has it wins. The first-try tag only when the caller checked that it
      * may move here. The round follows from the competition; the caller resolves it once this is done.
      *
+     * The event link moves whole - competition, series pick and how its edition was matched together - and only to
+     * a copy without any event link: an explicit edition never mixes with another series' pick
+     * (docs/features/events-page/high-frequency-series.md P10).
+     *
      * @param list<self> $copies
      * @return bool whether anything was taken over
      */
@@ -234,8 +263,14 @@ class PuzzleSolvingTime implements EntityWithEvents
                 $changed = true;
             }
 
-            if ($this->competition === null && $copy->competition !== null) {
+            if (
+                $this->competition === null
+                && $this->competitionSeries === null
+                && ($copy->competition !== null || $copy->competitionSeries !== null)
+            ) {
                 $this->competition = $copy->competition;
+                $this->competitionSeries = $copy->competitionSeries;
+                $this->seriesEditionMatch = $copy->seriesEditionMatch;
                 $changed = true;
             }
         }
@@ -404,7 +439,38 @@ class PuzzleSolvingTime implements EntityWithEvents
      */
     public function competitionRoundMovedTo(Competition $competition): void
     {
+        // A series pick's edition is derived - it follows the matching rule, not the round (P29)
+        if ($this->competitionSeries !== null) {
+            throw new LogicException('A series pick does not move with a round - the reconcile re-matches it.');
+        }
+
         $this->competition = $competition;
+    }
+
+    /**
+     * The edition MySpeedPuzzling found for this series pick (SeriesEditionResolver, docs/features/events-page/
+     * high-frequency-series.md "The matching rule") - null = series-level, no edition identified. Records no domain
+     * event: nothing about the time itself changed. The round follows from the edition - the caller resolves it
+     * afterwards (SolvingTimeRoundResolver).
+     */
+    public function seriesEditionResolved(null|Competition $edition, null|SeriesEditionMatchKind $match): void
+    {
+        $series = $this->competitionSeries;
+
+        if ($series === null) {
+            throw new LogicException('Only a series pick has an edition to resolve - an explicit link stays as it is.');
+        }
+
+        if (($edition === null) !== ($match === null)) {
+            throw new LogicException('An edition and how it was matched go together.');
+        }
+
+        if ($edition !== null && ($edition->series === null || $edition->series->id->equals($series->id) === false)) {
+            throw new LogicException('The edition belongs to another series.');
+        }
+
+        $this->competition = $edition;
+        $this->seriesEditionMatch = $match;
     }
 
     /**
@@ -451,7 +517,14 @@ class PuzzleSolvingTime implements EntityWithEvents
         bool $unboxed,
         null|Competition $competition,
         null|PuzzlingTeam $puzzlingTeam,
+        // A series pick (then $competition is null): the caller resolves its edition afterwards
+        // (seriesEditionResolved()) - an edit is always a fresh evaluation
+        null|CompetitionSeries $competitionSeries = null,
     ): void {
+        if ($competitionSeries !== null && $competition !== null) {
+            throw new LogicException('A series pick starts without an edition - seriesEditionResolved() links it.');
+        }
+
         $puzzlingTypeBefore = $this->puzzlingType;
         $finishedAtBefore = $this->finishedAt;
         $hadSecondsBefore = $this->secondsToSolve !== null;
@@ -465,6 +538,8 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->firstAttempt = $firstAttempt;
         $this->unboxed = $unboxed;
         $this->competition = $competition;
+        $this->competitionSeries = $competitionSeries;
+        $this->seriesEditionMatch = null;
 
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);

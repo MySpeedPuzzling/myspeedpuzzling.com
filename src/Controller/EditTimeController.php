@@ -27,6 +27,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
+use SpeedPuzzling\Web\Value\CompetitionPick;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
@@ -122,7 +123,12 @@ final class EditTimeController extends AbstractController
         $data->brand = $solvedPuzzle->manufacturerId;
         $data->firstAttempt = $solvedPuzzle->firstAttempt;
         $data->unboxed = $solvedPuzzle->unboxed;
-        $data->competition = $solvedPuzzle->competitionId;
+
+        // Its link as the picker shows it: a series pick as the series (the edition MySpeedPuzzling found is only named
+        // by the preview), an explicit edition as `edition:<uuid>`, a one-time event as itself
+        // (docs/features/events-page/high-frequency-series.md "Validation, submit, prefill")
+        $currentCompetitionPick = CompetitionPick::ofTime($solvedPuzzle->competitionId, $solvedPuzzle->seriesPickId, $solvedPuzzle->competitionIsEdition);
+        $data->competition = $currentCompetitionPick?->fieldValue();
 
         $groupPlayers = [];
         foreach ($solvedPuzzle->players ?? [] as $groupPlayer) {
@@ -148,8 +154,9 @@ final class EditTimeController extends AbstractController
 
         $editTimeForm = $this->createForm(EditPuzzleSolvingTimeFormType::class, $data, [
             // Server-derived from the access-checked row, never from the request: the picker must
-            // keep offering the linked competition even when it is not publicly selectable
-            'current_competition_id' => $solvedPuzzle->competitionId,
+            // keep offering the linked competition, series or edition even when it is not publicly selectable
+            'current_competition_pick' => $currentCompetitionPick,
+            'submitted_competition_pick' => $this->submittedCompetitionPick($request),
             'can_change_puzzle' => $canChangePuzzle,
         ]);
         // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)
@@ -335,6 +342,22 @@ final class EditTimeController extends AbstractController
         }
 
         return $this->render('edit-time.html.twig', $templateParams);
+    }
+
+    /**
+     * The "Competition / event" value a submit holds, read before the form is built: an edition picked by typing or
+     * from the short list is offered again on a refused submit (only while publicly visible - GetSelectableCompetitions)
+     */
+    private function submittedCompetitionPick(Request $request): null|CompetitionPick
+    {
+        if ($request->isMethod('POST') === false) {
+            return null;
+        }
+
+        $form = $request->request->all()['edit_puzzle_solving_time_form'] ?? null;
+        $submitted = is_array($form) ? ($form['competition'] ?? null) : null;
+
+        return is_string($submitted) ? CompetitionPick::tryFrom($submitted) : null;
     }
 
     private function resolveReturnUrl(EditTimeReturnContext $context, SolvedPuzzleDetail $solvedPuzzle): string

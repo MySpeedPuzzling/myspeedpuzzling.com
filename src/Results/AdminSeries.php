@@ -38,6 +38,11 @@ readonly final class AdminSeries
         public null|string $addedByPlayerId,
         public null|string $addedByPlayerName,
         public int $editionsCount,
+        // The series' results, each time once: linked to one of its editions (explicitly or matched by MySpeedPuzzling)
+        // or a series pick without an edition (docs/features/events-page/high-frequency-series.md)
+        public int $resultsCount = 0,
+        // Of those, the series picks no edition was found for (yet)
+        public int $resultsWithoutEditionCount = 0,
     ) {
     }
 
@@ -68,6 +73,8 @@ readonly final class AdminSeries
      *     added_by_player_id: null|string,
      *     added_by_player_name: null|string,
      *     editions_count: int,
+     *     results_count?: int,
+     *     results_without_edition_count?: int,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -98,6 +105,8 @@ readonly final class AdminSeries
             addedByPlayerId: $row['added_by_player_id'],
             addedByPlayerName: $row['added_by_player_name'],
             editionsCount: $row['editions_count'],
+            resultsCount: $row['results_count'] ?? 0,
+            resultsWithoutEditionCount: $row['results_without_edition_count'] ?? 0,
         );
     }
 
@@ -148,6 +157,8 @@ readonly final class AdminSeries
             'addedByPlayerId' => $this->addedByPlayerId,
             'addedByPlayerName' => $this->addedByPlayerName,
             'editionsCount' => $this->editionsCount,
+            'resultsCount' => $this->resultsCount,
+            'resultsWithoutEditionCount' => $this->resultsWithoutEditionCount,
         ];
     }
 }

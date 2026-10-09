@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Value\OccurrenceDates;
 use SpeedPuzzling\Web\Value\OccurrenceRound;
 use SpeedPuzzling\Web\Value\OccurrenceSession;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
@@ -21,6 +22,9 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  */
 readonly final class EventOccurrence
 {
+    /**
+     * @param list<OccurrenceRound> $rounds
+     */
     public function __construct(
         public string $competitionId,
         public string $name,
@@ -59,7 +63,46 @@ readonly final class EventOccurrence
         public bool $isDraft = false,
         // the zone its days are in (OccurrenceDates::$zone) - its "today" is today there
         public null|string $zone = null,
+        // its own rounds (of a session of several: the session's), in start order - their categories and revealed
+        // puzzle names (docs/features/events-page/high-frequency-series.md "Events pages")
+        public array $rounds = [],
     ) {
+    }
+
+    /**
+     * The categories of its rounds (RoundCategory values), each once, in the enum's order: solo, duo, team
+     *
+     * @return list<string>
+     */
+    public function roundCategories(): array
+    {
+        $present = array_map(static fn (OccurrenceRound $round): null|string => $round->category, $this->rounds);
+
+        return array_values(array_filter(
+            array_map(static fn (RoundCategory $category): string => $category->value, RoundCategory::cases()),
+            static fn (string $category): bool => in_array($category, $present, true),
+        ));
+    }
+
+    /**
+     * The names of its rounds' revealed puzzles, each once, in round order - never a puzzle a round keeps secret
+     * (OccurrenceRounds::SQL_JOIN_WITH_RESULTS leaves those out)
+     *
+     * @return list<string>
+     */
+    public function puzzleNames(): array
+    {
+        $names = [];
+
+        foreach ($this->rounds as $round) {
+            foreach ($round->puzzleNames as $name) {
+                if (in_array($name, $names, true) === false) {
+                    $names[] = $name;
+                }
+            }
+        }
+
+        return $names;
     }
 
     public function isEdition(): bool

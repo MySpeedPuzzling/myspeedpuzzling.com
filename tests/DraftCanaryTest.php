@@ -43,6 +43,8 @@ final class DraftCanaryTest extends WebTestCase
     private const string RIVERBEND_PAGE = '/en/organizations/' . OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG;
     private const string PUZZLE_PAGE = '/en/puzzle/' . PuzzleFixture::PUZZLE_3000;
     private const string ADD_TIME = '/en/puzzle-add';
+    private const string PICKER_EDITIONS = '/en/competition-picker/editions?q=';
+    private const string PICKER_PREVIEW = '/en/competition-picker/series-preview?people=0&series=';
     private const string SITEMAP = '/sitemap-events.xml';
     // Replaced by last year (the clock's) - the past draft is dated in it
     private const string ARCHIVE = '/en/events/archive/{lastYear}';
@@ -123,6 +125,8 @@ final class DraftCanaryTest extends WebTestCase
 
         // The puzzle of the draft event's round: "used at" (GetPuzzleSummary) - in the guests' part of the page
         yield 'puzzle page (guest) - draft event using the puzzle' => [...$draftNight, self::PUZZLE_PAGE, null, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME];
+        // ... and its round line in a signed-in player's Details (docs/features/events-page/high-frequency-series.md P24)
+        yield 'puzzle page (player) - Details: draft event using the puzzle' => [...$draftNight, self::PUZZLE_PAGE, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME, '#puzzleDetails'];
 
         yield 'sitemap - draft one-time event' => [...$draftNight, self::SITEMAP, null, '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '<'];
         yield 'sitemap - draft edition' => [...$lanternDraft, self::SITEMAP, null, '/' . OrganizationFixture::EDITION_LANTERN_DRAFT_SLUG . '<'];
@@ -130,12 +134,17 @@ final class DraftCanaryTest extends WebTestCase
         yield 'sitemap - draft organization' => [...$harborClub, self::SITEMAP, null, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_SLUG];
         yield 'sitemap - past draft event' => [...$draftPast, self::SITEMAP, null, 'old-harbor-draft-classic'];
 
-        // The add-time form's "Competition / event" picker - and a ?competition= pre-selection does not sneak one in
+        // The add-time form's "Competition / event" picker (docs/features/events-page/high-frequency-series.md "The form"):
+        // one-time events and series in the page, editions only by typing (S1) or in a series' preview list - and a
+        // ?competition= / ?series= pre-selection does not sneak one in
         yield 'add-time picker - draft one-time event' => [...$draftNight, self::ADD_TIME, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME];
-        yield 'add-time picker - draft edition' => [...$lanternDraft, self::ADD_TIME, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME];
-        yield 'add-time picker - edition of a draft series' => [...$quietPines, self::ADD_TIME, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_QUIET_PINES_1_NAME];
+        yield 'add-time picker - draft series' => [...$quietPines, self::ADD_TIME, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::SERIES_QUIET_PINES_DRAFT_NAME];
+        yield 'add-time typed search (S1) - draft edition' => [...$lanternDraft, self::PICKER_EDITIONS . rawurlencode(OrganizationFixture::EDITION_LANTERN_DRAFT_NAME), PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME];
+        yield 'add-time typed search (S1) - edition of a draft series' => [...$quietPines, self::PICKER_EDITIONS . rawurlencode(OrganizationFixture::EDITION_QUIET_PINES_1_NAME), PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_QUIET_PINES_1_NAME];
+        yield 'add-time series preview list - draft edition' => [...$lanternDraft, self::PICKER_PREVIEW . OrganizationFixture::SERIES_LANTERN_NIGHTS, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME];
         yield 'add-time pre-selection - draft one-time event' => [...$draftNight, self::ADD_TIME . '?competition=' . OrganizationFixture::COMPETITION_DRAFT_NIGHT, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME];
         yield 'add-time pre-selection - draft edition' => [...$lanternDraft, self::ADD_TIME . '?competition=' . OrganizationFixture::EDITION_LANTERN_DRAFT, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME];
+        yield 'add-time pre-selection - draft series' => [...$quietPines, self::ADD_TIME . '?series=' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT, PlayerFixture::PLAYER_REGULAR, 'value="series:' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT . '"'];
     }
 
     public function testApiV1ListsNoDraftAndAnswers404ForOne(): void
@@ -158,6 +167,27 @@ final class DraftCanaryTest extends WebTestCase
         self::assertStringNotContainsString(OrganizationFixture::COMPETITION_DRAFT_NIGHT, (string) $browser->getResponse()->getContent());
         $browser->request('GET', $detail);
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
+    /**
+     * API v1's series list (GET /api/v1/series, docs/features/events-page/high-frequency-series.md "API v1") - the ids a
+     * client links solving times to: a draft series is not among them
+     */
+    public function testApiV1SeriesListLeavesADraftSeriesOut(): void
+    {
+        $browser = self::createClient();
+        $token = OAuth2TestHelper::createAccessToken($browser, OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID, OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID);
+        OAuth2TestHelper::addBearerToken($browser, $token);
+
+        $this->setDraft(self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, false);
+        $browser->request('GET', '/api/v1/series');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(OrganizationFixture::SERIES_QUIET_PINES_DRAFT, (string) $browser->getResponse()->getContent(), 'No canary: the published series is not listed.');
+
+        $this->setDraft(self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, true);
+        $browser->request('GET', '/api/v1/series');
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString(OrganizationFixture::SERIES_QUIET_PINES_DRAFT, (string) $browser->getResponse()->getContent());
     }
 
     /**

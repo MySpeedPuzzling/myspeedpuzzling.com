@@ -281,6 +281,11 @@ $ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px)
     }
 }
 
+// "Online" has no part to shorten - it keeps its width, the time beside it wraps instead (a phone at 360 px)
+.ev-place-online {
+    flex: none;
+}
+
 .ev-place-city {
     min-width: 0;
     overflow: hidden;

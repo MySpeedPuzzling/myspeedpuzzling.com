@@ -15,7 +15,8 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
  * Safety net for the round each solving time belongs to (see RoundResultsReconciler) - the write paths keep
- * it current, this repairs anything they cannot see, e.g. rounds or round puzzles changed by direct SQL.
+ * it current, this repairs anything they cannot see, e.g. rounds or round puzzles changed by direct SQL. Every series'
+ * picks are re-matched first (SeriesEditionReconciler): a secret round puzzle revealed by time records no event.
  */
 #[AsCommand('myspeedpuzzling:reconcile-round-results')]
 final class ReconcileRoundResultsConsoleCommand extends Command
@@ -30,13 +31,16 @@ final class ReconcileRoundResultsConsoleCommand extends Command
     {
         $envelope = $this->messageBus->dispatch(new ReconcileRoundResults());
 
-        /** @var null|array{linked: int, unlinked: int} $result */
+        /** @var null|array{linked: int, moved: int, released: int, roundsLinked: int, roundsUnlinked: int} $result */
         $result = $envelope->last(HandledStamp::class)?->getResult();
 
         (new SymfonyStyle($input, $output))->success(sprintf(
-            'Round results reconciled: %d linked, %d unlinked.',
+            'Round results reconciled: %d linked, %d unlinked. Series picks: %d linked, %d moved, %d back to series level.',
+            $result['roundsLinked'] ?? 0,
+            $result['roundsUnlinked'] ?? 0,
             $result['linked'] ?? 0,
-            $result['unlinked'] ?? 0,
+            $result['moved'] ?? 0,
+            $result['released'] ?? 0,
         ));
 
         return self::SUCCESS;

@@ -1,0 +1,54 @@
+{#
+    The line under the add-time picker (SeriesEditionPreviewController, docs/features/events-page/high-frequency-series.md
+    "The preview line and S2"):
+    - matched: "<series> · <edition> · <date> · <category>" + "change" opening the short list;
+    - picked (an explicit edition): "<series> · <edition> · <date>" + "change" + "Let MySpeedPuzzling match it";
+    - not identified: the short list openly, optional, nothing preselected;
+    - no publicly visible editions: the neutral line only.
+    Variables: series_id, editions (list of {edition, option, optgroup}), matched / picked (SeriesEditionChoice, optional),
+    category (PuzzlingType, with matched)
+#}
+{% set matched = matched|default(null) %}
+{% set picked = picked|default(null) %}
+{% set chosen = picked ?? matched %}
+<div class="sp-preview-body" data-series-preview-series="{{ series_id }}">
+    {% if chosen is not null %}
+        <div class="sp-line">
+            <i class="ci-check-circle sp-line-icon" aria-hidden="true"></i>
+            <span class="sp-line-text"><span class="visually-hidden">{{ (picked is not null ? 'series_picker.picked' : 'series_picker.matched')|trans }} </span>
+                {{- chosen.seriesName }} · {{ chosen.name -}}
+                {%- if chosen.dayFrom is not null %} · {{ picker_date(chosen.dayFrom, chosen.dayTo) }}{% endif -%}
+                {%- if picked is null and category is defined %} · {{ ('competition.round.category.' ~ category.value)|trans }}{% endif -%}
+            </span>
+            {#- Two actions take a row of their own - the line keeps the card's whole width (desktop) -#}
+            <span class="sp-line-actions{{ picked is not null ? ' sp-line-actions-row' }}">
+                {% if editions|length > 1 or picked is null %}
+                    <button type="button" class="btn btn-link sp-link" data-action="series-edition-preview#toggleList" aria-expanded="false">{{ 'series_picker.change'|trans }}</button>
+                {% endif %}
+                {% if picked is not null %}
+                    <button type="button" class="btn btn-link sp-link" data-action="series-edition-preview#matchAutomatically" data-series-edition-preview-value-param="series:{{ series_id }}">{{ 'series_picker.let_us_match'|trans }}</button>
+                {% endif %}
+            </span>
+        </div>
+    {% elseif editions is empty %}
+        <p class="sp-note mb-0">{{ 'series_picker.no_editions'|trans }}</p>
+    {% else %}
+        <p class="sp-note">{{ 'series_picker.not_identified'|trans }}</p>
+    {% endif %}
+
+    {% if editions is not empty %}
+        <div class="sp-list{{ chosen is not null ? ' d-none' }}" data-series-edition-preview-target="list">
+            <input type="search"
+                   class="form-control form-control-sm sp-search"
+                   placeholder="{{ 'series_picker.search_placeholder'|trans }}"
+                   aria-label="{{ 'series_picker.search_placeholder'|trans }}"
+                   autocomplete="off"
+                   enterkeyhint="search"
+                   data-series-edition-preview-target="search"
+                   data-action="input->series-edition-preview#search change->series-edition-preview#stop keydown.enter->series-edition-preview#ignoreEnter">
+            <div data-series-edition-preview-target="items" aria-live="polite">
+                {{ include('competition_picker/_edition_list.html.twig', {editions: editions, searched: false}) }}
+            </div>
+        </div>
+    {% endif %}
+</div>

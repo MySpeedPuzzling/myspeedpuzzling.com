@@ -74,6 +74,36 @@ final class EventsPageBuilderTest extends TestCase
         self::assertSame('Session 3', $december->rows[0]->editionName);
     }
 
+    /**
+     * A month roll-up shows at most MAX_SESSION_CHIPS date chips, then "+N more" to the series page - the row still
+     * stands for every session (docs/features/events-page/high-frequency-series.md "Events page agenda")
+     */
+    public function testAMonthRollUpShowsSixChipsAndTheRestAsMore(): void
+    {
+        $editions = [];
+
+        foreach (['03', '05', '07', '10', '12', '14', '17', '19', '21', '24', '26'] as $number => $day) {
+            $editions[] = $this->edition('lw', 'Jam No. ' . (150 + $number), '2026-11-' . $day, series: 'Lantern Weekly Jam');
+        }
+
+        $page = $this->build($editions, [$this->series('lw', 'Lantern Weekly Jam', online: true)]);
+
+        self::assertCount(1, $page->months);
+        self::assertCount(1, $page->months[0]->rows);
+        $row = $page->months[0]->rows[0];
+
+        self::assertTrue($row->isGroup);
+        self::assertCount(EventsPageBuilder::MAX_SESSION_CHIPS, $row->sessions);
+        self::assertSame(['Jam No. 150', 'Jam No. 151', 'Jam No. 152', 'Jam No. 153', 'Jam No. 154', 'Jam No. 155'], array_map(static fn ($session): string => $session->title, $row->sessions));
+        self::assertSame(5, $row->moreSessionsCount());
+        self::assertSame(11, $row->datesCount());
+        self::assertSame(11, $page->months[0]->visibleCount, 'the month counts every date');
+        self::assertCount(11, $row->indexIds, 'a search hit on a session behind "+5 more" still shows the row');
+        self::assertSame(array_slice($row->indexIds, 6), $row->moreSessionIds);
+        self::assertSame('/series/lantern-weekly-jam', $row->url, '"+5 more" opens the series page');
+        self::assertSame('2026-11-26', $row->to);
+    }
+
     public function testLiveEditionsAreNeverRolledUp(): void
     {
         $page = $this->build([

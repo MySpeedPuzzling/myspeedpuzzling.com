@@ -26,21 +26,21 @@
             <p class="ev-series-none" data-series-no-upcoming>{{ 'series_page.no_upcoming'|trans }}</p>
         {% endif %}
         {% for month in page.months %}
-            <h3 class="ev-month-header"><span>{{ month.firstDay|events_date('yMMMM') }}</span><span class="ev-month-n">{{ 'events_page.agenda.dates_count'|trans({'%count%': month.rows|length}) }}</span></h3>
+            <h3 class="ev-month-header"{% if page.filter %} data-series-jump="upcoming-{{ month.firstDay|date('Y-m', false) }}" data-series-filter-group{% endif %}><span>{{ month.firstDay|events_date('yMMMM') }}</span><span class="ev-month-n">{{ 'events_page.agenda.dates_count'|trans({'%count%': month.rows|length}) }}</span></h3>
             <ol class="ev-rows">
-                {% for row in month.rows %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+                {% for row in month.rows %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true, row_details: page.detailsOf(row.indexIds), show_categories: page.showsCategories, filterable: page.filter is not null}) }}{% endfor %}
             </ol>
         {% endfor %}
         {% if page.ongoing is not empty %}
-            <h3 class="ev-month-header" data-series-ongoing><span>{{ 'series_page.ongoing'|trans }}</span><span class="ev-month-n">{{ page.ongoing|length }}</span></h3>
+            <h3 class="ev-month-header" data-series-ongoing{% if page.filter %} data-series-filter-group{% endif %}><span>{{ 'series_page.ongoing'|trans }}</span><span class="ev-month-n">{{ page.ongoing|length }}</span></h3>
             <ol class="ev-rows">
-                {% for row in page.ongoing %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+                {% for row in page.ongoing %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true, row_details: page.detailsOf(row.indexIds), show_categories: page.showsCategories, filterable: page.filter is not null}) }}{% endfor %}
             </ol>
         {% endif %}
         {% if page.dateNotSet is not empty %}
-            <h3 class="ev-month-header" data-series-date-not-set><span>{{ 'series_page.date_not_set'|trans }}</span><span class="ev-month-n">{{ page.dateNotSet|length }}</span></h3>
+            <h3 class="ev-month-header" data-series-date-not-set{% if page.filter %} data-series-filter-group{% endif %}><span>{{ 'series_page.date_not_set'|trans }}</span><span class="ev-month-n">{{ page.dateNotSet|length }}</span></h3>
             <ol class="ev-rows">
-                {% for row in page.dateNotSet %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+                {% for row in page.dateNotSet %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true, row_details: page.detailsOf(row.indexIds), show_categories: page.showsCategories, filterable: page.filter is not null}) }}{% endfor %}
             </ol>
         {% endif %}
     </section>

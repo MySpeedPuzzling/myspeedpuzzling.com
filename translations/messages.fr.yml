@@ -141,7 +141,6 @@
   "no_puzzle_yet": "Le puzzle de cette manche n'a pas encore été dévoilé."
   "column_result": "Résultat"
   "unofficial_note": "Temps ajoutés par les puzzleurs sur MySpeedPuzzling, du plus rapide au plus lent - il ne s'agit pas du classement officiel, et seuls ceux qui ont ajouté leur temps y figurent."
-  "see_official_results": "Voir les résultats officiels"
   "pieces_placed": "%placed% / %total% pièces"
   "finished_later": "terminé en %time%"
   "section":
@@ -500,7 +499,6 @@
   "tag": "Tag"
   "competition": "Compétition / événement"
   "competition_help": "Choisissez la compétition, lorsque ce résultat provient d'une compétition ou d'un événement en ligne."
-  "competition_hint_series": "Pour les événements récurrents, choisissez l'édition précise (date) à laquelle vous avez participé."
   "competition_live_badge": "en direct"
   "competition_not_selectable": "Cette compétition ou cet événement ne peut pas être sélectionné. Veuillez en choisir un dans la liste."
   "tags": "Tags"
@@ -8064,3 +8062,37 @@ restructure:
         flash:
             created: "L'organisation a été créée. Sa série en fait partie."
             created_waiting: "L'organisation a été créée. Tout le monde pourra la voir une fois qu'un administrateur l'aura approuvée."
+series_picker:
+    hint: "Pour une série, choisissez la série – nous retrouvons la date à partir du puzzle et du jour où vous l'avez terminé. Pour choisir une date vous-même, tapez son nom ou son numéro."
+    next: "Prochaine : %date%"
+    last: "Dernière : %date%"
+    no_dates: "Pas encore de dates"
+    online: "En ligne"
+    matched: "Votre temps sera associé à :"
+    picked: "Vous avez choisi :"
+    not_identified: "Choisissez la date si vous la connaissez – ou enregistrez simplement, nous associerons votre temps plus tard."
+    no_editions: "Aucune date n'est encore indiquée pour cette série – enregistrez simplement, nous associerons votre temps dès qu'il y en aura."
+    change: "modifier"
+    let_us_match: "Laisser MySpeedPuzzling l'associer"
+    search_placeholder: "Rechercher une date ou un puzzle…"
+    no_match: "Aucun résultat – essayez un autre mot."
+    undated: "Date non fixée"
+    dates_count: "%count% date|%count% dates"
+series_pages:
+    more_sessions: "+%count% de plus"
+    filter_label: "Filtrer les dates"
+    categories_label: "Catégorie"
+    all: "Toutes"
+    solo: "Solo"
+    pairs: "Duos"
+    teams: "Équipes"
+    search_placeholder: "Rechercher une date ou un puzzle…"
+    jump_to: "Aller à un mois"
+    no_match: "Aucune date ne correspond."
+    show_all: "Tout afficher"
+    round_results:
+        unofficial_label: "Temps ajoutés sur MySpeedPuzzling – pas les résultats officiels"
+series_readers:
+    used_at:
+        more: "et %count% autre|et %count% autres"
+    series_delete_note: "Les résultats enregistrés pour cette série ou ses éditions restent sur les profils des puzzleurs, mais sans l'événement."

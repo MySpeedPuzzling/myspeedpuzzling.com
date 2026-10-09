@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Tests\UploadsCompetitionLogos;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -25,6 +26,25 @@ final class EditCompetitionSeriesControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         self::assertSame('euro-jigsaw-jam-series', $crawler->filter('#competition_form_slug')->attr('value'));
         $this->assertSelectorTextSame('[data-slug-prefix]', 'localhost/en/series/');
+    }
+
+    /**
+     * Deleting a series drops the link of every time linked to it (FK SET NULL for series picks, its editions' times as
+     * today) - the confirmation says so in one static sentence (docs/features/events-page/high-frequency-series.md P21)
+     */
+    public function testTheDeleteConfirmationSaysResultsStayWithoutTheEvent(): void
+    {
+        $browser = self::createClient();
+        $seriesId = new SeriesEditionScenario(self::getContainer())->series();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/en/edit-series/' . $seriesId);
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextSame(
+            '#deleteCompetitionSeriesModal-' . $seriesId . ' [data-series-delete-note]',
+            'Results logged at this series or its editions stay on the players\' profiles, without the event.',
+        );
     }
 
     public function testRenamingASeriesKeepsItsUrl(): void

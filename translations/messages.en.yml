@@ -163,7 +163,6 @@ round_results:
     no_puzzle_yet: "The puzzle for this round has not been revealed yet."
     column_result: "Result"
     unofficial_note: "Times added by puzzlers on MySpeedPuzzling, fastest first - not the official placings, and only for those who added their time."
-    see_official_results: "See the official results"
     pieces_placed: "%placed% / %total% pcs"
     finished_later: "finished in %time%"
     section:
@@ -557,7 +556,6 @@ forms:
     tag: "Tag"
     competition: "Competition / event"
     competition_help: "Choose competition, when this result is from a competition or an online event."
-    competition_hint_series: "For recurring events, pick the specific edition (date) you took part in."
     competition_live_badge: "live"
     competition_not_selectable: "This competition or event can't be selected. Please pick one from the list."
     tags: "Tags"
@@ -8415,3 +8413,37 @@ restructure:
         flash:
             created: "The organization was created. Its series is part of it."
             created_waiting: "The organization was created. Everyone can see it once an admin approves it."
+series_picker:
+    hint: "For a series, pick the series - we work out the date from your puzzle and day. To pick a date yourself, type its name or number."
+    next: "Next: %date%"
+    last: "Last: %date%"
+    no_dates: "No dates yet"
+    online: "Online"
+    matched: "Your time goes to:"
+    picked: "You picked:"
+    not_identified: "Pick the date if you know it - or just save, and we'll match it later."
+    no_editions: "No dates are listed for this series yet - just save, and we'll match your time once they are."
+    change: "change"
+    let_us_match: "Let MySpeedPuzzling match it"
+    search_placeholder: "Search dates or puzzles…"
+    no_match: "Nothing matches - try another word."
+    undated: "Date not set"
+    dates_count: "%count% date|%count% dates"
+series_pages:
+    more_sessions: "+%count% more"
+    filter_label: "Filter the dates"
+    categories_label: "Category"
+    all: "All"
+    solo: "Solo"
+    pairs: "Pairs"
+    teams: "Teams"
+    search_placeholder: "Search dates or puzzles…"
+    jump_to: "Jump to a month"
+    no_match: "No date matches."
+    show_all: "Show all"
+    round_results:
+        unofficial_label: "Times logged on MySpeedPuzzling - not the official results"
+series_readers:
+    used_at:
+        more: "and %count% more|and %count% more"
+    series_delete_note: "Results logged at this series or its editions stay on the players' profiles, without the event."

@@ -455,6 +455,7 @@ Competition answer (`GET`, and the answer of create / update / set puzzles):
   "roundsCount": 1,
   "resultsCount": 3,
   "resultsWithoutRoundCount": 0,
+  "seriesPickResultsCount": 0,
   "participantsCount": 4,
   "maintainers": [{"playerId": "018d0000-0000-0000-0000-000000000001", "name": "John Doe", "code": "player1"}],
   "rounds": [{
@@ -501,7 +502,10 @@ flag, `hiddenAsDraft` = it or its series is a draft, `publiclyVisible` the whole
 drafts included). `organizationId` / `organization` is a one-time event's own organization (always `null` for an
 edition - `series.organizationId` is its organization); `series` also carries `draft`. `resultsCount` counts the
 solving times linked to the competition, `resultsWithoutRoundCount` those of them in none of its rounds (their puzzle is
-in no round of their category), `participantsCount` the people who joined (not removed). The list answers
+in no round of their category), `seriesPickResultsCount` those of them that are series picks MySpeedPuzzling matched to
+this edition (the player picked the series, not the edition - [high-frequency-series.md](./events-page/high-frequency-series.md);
+always `0` for a one-time event; a series pick without an edition is in no competition's counts - the series answer
+counts it), `participantsCount` the people who joined (not removed). The list answers
 `{"total", "limit", "offset", "competitions": [...]}` with the same fields minus `maintainers`, `rounds` and `puzzles`;
 its `status` filter takes `all`, `approved`, `pending` (not approved, not rejected - drafts included), `rejected` and
 `draft` (the competition or its series is a draft). `GET …/{idOrSlug}` takes a slug too: a standalone competition's
@@ -617,11 +621,13 @@ listed in `errors`, JSON refusals, every write in the audit log (with `createdId
 | `POST` | `/internal-api/competitions/{competitionId}/publish` · `/unpublish` | Draft off / on (unpublish `409` while somebody joined, results or solving times are linked) | `204` |
 | `POST` | `/internal-api/competitions/{competitionId}/move` | Move an edition to another series `{"seriesId", "slug"?}` | `200` competition |
 | `POST` | `/internal-api/rounds/{roundId}/move` | Move a round to another event or edition `{"competitionId"}` | `200` round |
+| `POST` | `/internal-api/competitions/{competitionId}/convert-to-series` | Turn a one-time event into a series `{"keepAsEdition"?, "dropParticipants"?}` - see [Converting an event into a series](#converting-an-event-into-a-series) | `201` series |
 
 The writes that act as somebody need `INTERNAL_API_REVIEWER_PLAYER_ID` (an admin): creating an organization or a series
 (its creator), approving an organization, assigning an organization (the `organization` PUTs, a `PATCH` changing
 `organizationId`), both moves and turning a series into an organization (the acting player - `400` while it is empty).
-Publish / unpublish (also a `PATCH` of only `draft`), team changes, editions and deletes do not. Putting an item under
+Publish / unpublish (also a `PATCH` of only `draft`), team changes, editions, deletes and converting an event into a
+series do not. Putting an item under
 an organization answers `403` when the reviewer player is neither an admin nor on that organization's team
 (`OrganizationNotManaged`) - configure an admin.
 
@@ -699,12 +705,19 @@ list answers `{"total", "limit", "offset", "organizations": [...]}` without `mai
 The series answer: `seriesId`, `name`, `slug`, `shortcut`, `description`, `link`, `isOnline`, `location`,
 `locationCountryCode`, `logo`, `organizationId`, `organization` (`organizationId`, `name`, `slug`), `eligibility`,
 `schedule`, `status`, `draft`, `approvedAt`, `approvedByPlayerId`, `rejectedAt`, `rejectionReason`, `publiclyVisible`
-(`IsSeriesPubliclyVisible`), `createdAt`, `addedByPlayerId`, `addedByPlayerName`, `editionsCount`, `maintainers` and
-`editions` - every edition with
+(`IsSeriesPubliclyVisible`), `createdAt`, `addedByPlayerId`, `addedByPlayerName`, `editionsCount`, `resultsCount`,
+`resultsWithoutEditionCount`, `maintainers` and `editions` - every edition with
 the competition list's fields (`competitionId`, `name`, `slug`, `dateFrom`, `dateTo`, `status`, `draft`,
-`roundsCount`, `resultsCount`, `participantsCount`, …; read one with `GET /internal-api/competitions/{id}` for its
-rounds), by date, undated ones last. The list answers `{"total", "limit", "offset", "series": [...]}` without
-`maintainers` and `editions`.
+`roundsCount`, `resultsCount`, `seriesPickResultsCount`, `participantsCount`, …; read one with
+`GET /internal-api/competitions/{id}` for its rounds), by date, undated ones last. The list answers
+`{"total", "limit", "offset", "series": [...]}` without `maintainers` and `editions`.
+
+The series' `resultsCount` is all its results, **each time once**: the times linked to one of its editions (explicitly
+or matched by MySpeedPuzzling) and its series picks no edition was found for - those also as
+`resultsWithoutEditionCount` (a normal, permanent state, matched as soon as an edition fits -
+[high-frequency-series.md](./events-page/high-frequency-series.md)). After a conversion with `"keepAsEdition": false`
+every result of the event is in `resultsWithoutEditionCount` until editions exist; the editions' `seriesPickResultsCount`
+tells how many the reconcile has matched since.
 
 **Creating an edition** (`POST …/series/{seriesId}/editions`): `name` (required), `dateFrom` and `dateTo` (required,
 ISO days, `dateTo` not before `dateFrom` - like the "Add edition" form; a `PATCH` of the competition can clear them
@@ -723,10 +736,12 @@ listings would show its name; an empty edition may move into a draft); `400` for
 competition where it is now.
 
 **Moving a round** (`POST …/rounds/{roundId}/move`, `{"competitionId": "…"}`): the round moves with its puzzles (and their
-secret reveal), its table layout and **every solving time that belongs to it** - their `competitionId` changes, their
-round stays. "Belongs" is the round results rule ([round-results.md](./competitions-management/round-results.md)): a
+secret reveal), its table layout and **every explicit solving time that belongs to it** - their `competitionId` changes,
+their round stays. "Belongs" is the round results rule ([round-results.md](./competitions-management/round-results.md)): a
 time linked to the round, and a time of the old competition solved in the round's category on one of its puzzles that was
-not linked yet (it gets the link). Both competitions' round results are reconciled afterwards
+not linked yet (it gets the link). Series picks matched to the old edition (automatic links,
+[high-frequency-series.md](./events-page/high-frequency-series.md) P29) do not move with the round - the series
+reconcile both competitions get matches them again by the series' rule. Both competitions' round results are reconciled afterwards
 (`CompetitionRoundsChanged` → `RoundResultsReconciler`). The round keeps the wall-clock zone it is shown in and its slug
 (`-2`, `-3`, … when the target has it). Refused with `409`, nothing changed: the target is the same competition;
 participants are entered in the round (round entries or pairs/teams - they belong to the competition, moving them is a
@@ -751,6 +766,40 @@ approved by the policy) and renamed / re-slugged when asked - with a new slug, i
 results' old addresses to where they are now. `409` for a series that has an organization already or a taken slug (an
 organization's or a series'). Social links and the rest follow with a `PATCH` of the organization. The answer is the
 organization (with its series).
+
+#### Converting an event into a series
+
+`POST …/competitions/{competitionId}/convert-to-series`, body `{"keepAsEdition"?: true, "dropParticipants"?: false}`
+(`ConvertCompetitionToSeries`; design of record [high-frequency-series.md](./events-page/high-frequency-series.md) "The
+conversion tool"). The series is created from the one-time event like the web's "Convert to series" button does: its
+name, slug (the event's when free), logo, description, website, place, shortcut, tag, maintainers, creator, approval or
+rejection, draft state, organization and "Who can enter"; the event's followers follow the series. Then:
+
+- `"keepAsEdition": true` (the default, the web button): the event becomes the series' first edition - its rounds,
+  participants and solving times stay with it, its old address answers 301 to the edition page;
+- `"keepAsEdition": false` - **the event becomes the series** (an umbrella event whose results belong to many contests):
+  every solving time of the event becomes a **series-level** result of the new series (`competition_series_id`, no
+  edition - matched to an edition by the series reconcile once editions exist), its old address `/events/{slug}` and
+  every old address that led to it answer 301 to the series page (`event_url_redirect`), and the competition row is
+  deleted. **Refused** with `409` (`CompetitionNotConvertible`, the reasons in `error`, nothing changes) while the event
+  has rounds, official results, referees, page sections, marketplace marks (listings people bring to it) or
+  participants - participants only without `"dropParticipants": true`, which deletes them (and the participant sheet's
+  change trail; removed participants never refuse it).
+
+`409` (`CompetitionAlreadyInSeries`) for an edition, `404` for an unknown competition, `400` for an unknown field or a
+non-boolean value. No reviewer player is needed - the series takes the event's creator and approval. The answer (`201`)
+is the series answer (`GET /internal-api/series/{seriesId}`), the audit log's `createdId` is the new series. Every
+`FOREIGN KEY` to `competition` is listed with what the conversion does with it in
+`tests/ConvertCompetitionForeignKeyCoverageTest.php`.
+
+```bash
+# The umbrella event becomes the series - its results become series-level results of it
+curl -X POST "$API/competitions/019a0000-0000-7000-8000-000000000031/convert-to-series" -H "$AUTH" -H "$JSON" \
+  -d '{"keepAsEdition": false}'
+# 409 "it has: participants. Send \"dropParticipants\": true to delete its participants." - when they may go:
+curl -X POST "$API/competitions/019a0000-0000-7000-8000-000000000031/convert-to-series" -H "$AUTH" -H "$JSON" \
+  -d '{"keepAsEdition": false, "dropParticipants": true}'
+```
 
 #### Restructuring example
 

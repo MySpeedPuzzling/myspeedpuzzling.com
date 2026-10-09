@@ -9,9 +9,12 @@ use SpeedPuzzling\Web\Query\GetExportableSolvingTimes;
 use SpeedPuzzling\Web\Query\GetPuzzleResultDetail;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\ExportableSolvingTime;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TestingViewer;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -99,6 +102,45 @@ final class GetExportableSolvingTimesTest extends KernelTestCase
         $rows = $this->rowsById($this->query->byPlayerId(PlayerFixture::PLAYER_ADMIN));
 
         self::assertNull($rows[PuzzleSolvingTimeFixture::TIME_32]->playerRank);
+    }
+
+    /**
+     * H12 scenario 14 / P22 (docs/features/events-page/high-frequency-series.md): the result's event in every state - an
+     * edition found for a series pick reads like an edition the player picked, a series-level time names its series
+     */
+    public function testEventColumnsInEveryLinkState(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $player = PlayerFixture::PLAYER_REGULAR_USER_ID;
+        $puzzleId = $scenario->puzzle();
+        $seriesId = $scenario->series();
+        $editionId = $scenario->edition($seriesId, 'Jam No. 154', '2026-09-10');
+        $scenario->round($editionId, RoundCategory::Solo, '2026-09-10 19:00', puzzleIds: [$puzzleId]);
+
+        $times = [
+            'none' => $scenario->addTime($player, $puzzleId, '2026-09-01', time: '00:51:00'),
+            'one-time event' => $scenario->addTime($player, $puzzleId, '2026-09-02', competitionId: CompetitionFixture::COMPETITION_WJPC_2024, time: '00:52:00'),
+            'explicit edition' => $scenario->addTime($player, $puzzleId, '2026-09-10', competitionId: $editionId, time: '00:53:00'),
+            'automatic' => $scenario->addTime($player, $puzzleId, '2026-09-10', seriesId: $seriesId, time: '00:54:00'),
+            // Another puzzle, far from the jam: neither rule finds an edition
+            'series-level' => $scenario->addTime($player, $scenario->puzzle('Quiet Harbor'), '2026-08-01', seriesId: $seriesId, time: '00:55:00'),
+        ];
+        self::assertSame($editionId, $scenario->link($times['automatic'])['competition_id']);
+        self::assertNull($scenario->link($times['series-level'])['competition_id']);
+
+        $rows = $this->rowsById($this->query->byPlayerId(PlayerFixture::PLAYER_REGULAR));
+        $events = array_map(
+            static fn (string $timeId): array => [$rows[$timeId]->eventId, $rows[$timeId]->eventName, $rows[$timeId]->eventSeriesId, $rows[$timeId]->eventSeriesName],
+            $times,
+        );
+
+        self::assertSame([
+            'none' => [null, null, null, null],
+            'one-time event' => [CompetitionFixture::COMPETITION_WJPC_2024, 'WJPC 2024', null, null],
+            'explicit edition' => [$editionId, 'Jam No. 154', $seriesId, 'Lantern Weekly Jam'],
+            'automatic' => [$editionId, 'Jam No. 154', $seriesId, 'Lantern Weekly Jam'],
+            'series-level' => [null, null, $seriesId, 'Lantern Weekly Jam'],
+        ], $events);
     }
 
     private function markSuspicious(string $timeId): void

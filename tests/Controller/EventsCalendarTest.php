@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Services\EventsPage\EventsIndexFactory;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -166,8 +167,11 @@ final class EventsCalendarTest extends WebTestCase
      */
     private static function index(Crawler $crawler): array
     {
+        /** @var list<array<string, mixed>> $shipped */
+        $shipped = json_decode($crawler->filter('script[data-events-index]')->text(), true, flags: JSON_THROW_ON_ERROR);
+        // The page ships it compact - the full entries as the browser rebuilds them (expandEventsIndex())
         /** @var list<array{id: int, k: string, n: string, f: null|string, sc: string, lr: bool, st: null|string, u: null|string}> $index */
-        $index = json_decode($crawler->filter('script[data-events-index]')->text(), true, flags: JSON_THROW_ON_ERROR);
+        $index = EventsIndexFactory::expand($shipped);
 
         return $index;
     }

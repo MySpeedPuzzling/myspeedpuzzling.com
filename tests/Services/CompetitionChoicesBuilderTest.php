@@ -4,75 +4,128 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\GetSeriesEditionChoices;
 use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
+use SpeedPuzzling\Web\Services\CompetitionPickerDate;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
-use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
+use SpeedPuzzling\Web\Value\CompetitionPick;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+/**
+ * The picker's TomSelect payload and what it accepts (docs/features/events-page/high-frequency-series.md "The form").
+ */
 final class CompetitionChoicesBuilderTest extends KernelTestCase
 {
     private const string HTML_NAMED_COMPETITION = '018d0004-0000-0000-0000-0000000000b1';
+    private const string UNKNOWN_ID = '019999aa-0000-7000-8000-000000000000';
 
     private CompetitionChoicesBuilder $builder;
     private Connection $database;
+    private SeriesEditionScenario $scenario;
+    private DateTimeImmutable $today;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $this->builder = self::getContainer()->get(CompetitionChoicesBuilder::class);
         $this->database = self::getContainer()->get(Connection::class);
+        $this->scenario = new SeriesEditionScenario(self::getContainer());
+        $this->today = self::getContainer()->get(ClockInterface::class)->now();
     }
 
-    public function testEditionsAreGroupedUnderTheirSeries(): void
+    public function testASeriesIsOneUngroupedOptionWithItsCard(): void
     {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $this->scenario->edition($seriesId, 'Jam No. 153', $this->day(-9));
+        $this->scenario->edition($seriesId, 'Jam No. 155', $this->day(5));
+
         $choices = $this->builder->build();
+        $option = $this->option($choices, 'series:' . $seriesId);
 
-        $edition = $this->option($choices, CompetitionSeriesFixture::EDITION_EJJ_68);
-        self::assertSame(CompetitionSeriesFixture::SERIES_EJJ, $edition['optgroup'] ?? null);
-
-        $standalone = $this->option($choices, CompetitionFixture::COMPETITION_WJPC_2024);
-        self::assertArrayNotHasKey('optgroup', $standalone);
-
-        $optgroupsByValue = [];
-        foreach ($choices->optgroups as $optgroup) {
-            $optgroupsByValue[$optgroup['value']] = $optgroup;
-        }
-
-        self::assertArrayHasKey(CompetitionSeriesFixture::SERIES_EJJ, $optgroupsByValue);
-        self::assertSame('Euro Jigsaw Jam', $optgroupsByValue[CompetitionSeriesFixture::SERIES_EJJ]['label']);
-        self::assertArrayHasKey(CompetitionSeriesFixture::SERIES_OFFLINE, $optgroupsByValue);
-        self::assertArrayHasKey(CompetitionSeriesFixture::SERIES_PAST_ONLY, $optgroupsByValue);
-        // Exactly one optgroup per series, no matter how many editions it has
-        self::assertCount(count($optgroupsByValue), $choices->optgroups);
+        self::assertArrayNotHasKey('optgroup', $option);
+        self::assertStringContainsString('sp-series-option', $option['text']);
+        self::assertStringContainsString('Lantern Weekly Jam', $option['text']);
+        // The picker's one date style, and how many dates the series has - like a one-time event's dates
+        $next = self::getContainer()->get(CompetitionPickerDate::class)->format(new DateTimeImmutable($this->day(5)));
+        self::assertStringContainsString('Next: ' . $next . ' · 2 dates', $option['text']);
+        self::assertStringContainsString('Online', $option['text']);
+        self::assertStringNotContainsString('Jam No.', $option['text'], 'No edition on the series card');
+        self::assertSame([], array_filter($choices->optgroups, static fn (array $optgroup): bool => $optgroup['value'] === $seriesId));
     }
 
-    public function testUnapprovedSeriesHasNoOptgroupAndItsEditionIsNotOffered(): void
+    public function testASeriesCardSaysLastOrNoDatesYetAndLive(): void
     {
+        $past = $this->scenario->series('Moonlit Puzzle Sprints', online: false);
+        $this->scenario->edition($past, 'Sprint 1', $this->day(-4));
+
+        // H13: a series without editions
+        $empty = $this->scenario->series('Copper Kettle Puzzle Cup');
+
+        $live = $this->scenario->series('Starling Puzzle Afternoons');
+        $this->scenario->edition($live, 'Afternoon 1', $this->day(0));
+
+        $undated = $this->scenario->series('Moonlit Pier Puzzle Club');
+        $this->scenario->edition($undated, 'Pier Meet 1', null);
+
         $choices = $this->builder->build();
 
-        foreach ($choices->optgroups as $optgroup) {
-            self::assertNotSame(CompetitionSeriesFixture::SERIES_UNAPPROVED, $optgroup['value']);
-        }
+        $pastCard = $this->option($choices, 'series:' . $past)['text'];
+        self::assertStringContainsString('Last: ', $pastCard);
+        self::assertStringContainsString(' · 1 date<', $pastCard);
+        // An offline series shows its place, not "Online"
+        self::assertStringContainsString('Harbor Town', $pastCard);
+        self::assertStringContainsString('fi-cz', $pastCard);
 
-        self::assertFalse($choices->contains(CompetitionSeriesFixture::EDITION_UNAPPROVED_1));
+        $emptyCard = $this->option($choices, 'series:' . $empty)['text'];
+        self::assertStringContainsString('No dates yet', $emptyCard);
+        self::assertStringNotContainsString(' date<', $emptyCard);
+        $undatedCard = $this->option($choices, 'series:' . $undated)['text'];
+        self::assertStringContainsString('No dates yet', $undatedCard, 'an undated edition is no date');
+        self::assertStringNotContainsString(' date<', $undatedCard);
+
+        $liveCard = $this->option($choices, 'series:' . $live)['text'];
+        self::assertStringContainsString('>live</span>', $liveCard);
+        self::assertStringContainsString('>1 date<', $liveCard, 'a live series shows its count - neither next nor last');
+        self::assertStringNotContainsString('>live</span>', $pastCard);
     }
 
-    public function testContainsReflectsExactlyTheOfferedOptions(): void
+    /**
+     * Every date of the picker in one style (CompetitionPickerDate): a one-time event's days, an edition's
+     */
+    public function testCardsShowDatesInThePickersStyle(): void
     {
-        $choices = $this->builder->build();
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $editionId = $this->scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+        $date = self::getContainer()->get(CompetitionPickerDate::class);
 
-        self::assertTrue($choices->contains(CompetitionFixture::COMPETITION_WJPC_2024));
-        self::assertTrue($choices->contains(CompetitionSeriesFixture::EDITION_EJJ_69));
-        self::assertFalse($choices->contains(CompetitionFixture::COMPETITION_UNAPPROVED));
-        self::assertFalse($choices->contains('not-a-uuid'));
+        $edition = $this->option($this->builder->build(CompetitionPick::edition($editionId)), 'edition:' . $editionId)['text'];
+        self::assertStringContainsString('>' . $date->format(new DateTimeImmutable($this->day(-2))) . '</small>', $edition);
 
-        $withCurrent = $this->builder->build(CompetitionFixture::COMPETITION_UNAPPROVED);
+        $typed = $this->builder->editionsPayload(self::getContainer()->get(GetSeriesEditionChoices::class)->search('jam no. 154'))['options'][0]['text'];
+        self::assertStringContainsString('>' . $date->format(new DateTimeImmutable($this->day(-2))) . '</small>', $typed);
 
-        self::assertTrue($withCurrent->contains(CompetitionFixture::COMPETITION_UNAPPROVED));
-        $values = array_column($withCurrent->options, 'value');
-        self::assertCount(1, array_keys($values, CompetitionFixture::COMPETITION_UNAPPROVED, true));
+        $this->database->executeStatement(
+            'UPDATE competition SET date_from = :from, date_to = :to WHERE id = :id',
+            ['from' => '2025-10-10', 'to' => '2025-10-12', 'id' => EventDetailFixture::COMPETITION_HILLTOP_WEEKEND],
+        );
+        $oneTime = $this->option($this->builder->build(), EventDetailFixture::COMPETITION_HILLTOP_WEEKEND)['text'];
+        self::assertStringContainsString('>10–12 Oct 2025</small>', $oneTime);
+    }
+
+    public function testASeriesIsFoundByItsOrganizationsNames(): void
+    {
+        $keywords = $this->option($this->builder->build(), 'series:' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL)['keywords'];
+
+        self::assertStringContainsString(OrganizationFixture::SERIES_RIVERBEND_VIRTUAL_NAME, $keywords);
+        self::assertStringContainsString(OrganizationFixture::ORGANIZATION_RIVERBEND_NAME, $keywords);
+        self::assertStringContainsString('RJA', $keywords);
     }
 
     public function testOrganiserAuthoredStringsAreEscaped(): void
@@ -84,87 +137,157 @@ final class CompetitionChoicesBuilderTest extends KernelTestCase
             SQL,
             ['id' => self::HTML_NAMED_COMPETITION],
         );
+        $seriesId = $this->scenario->series('<b>Lantern</b> & "Jam"');
 
-        $option = $this->option($this->builder->build(), self::HTML_NAMED_COMPETITION);
+        $choices = $this->builder->build();
 
+        $option = $this->option($choices, self::HTML_NAMED_COMPETITION);
         self::assertStringContainsString('&lt;b&gt;x&lt;/b&gt;', $option['text']);
         self::assertStringNotContainsString('<b>x</b>', $option['text']);
         self::assertStringContainsString('&lt;i&gt;Nowhere&lt;/i&gt; &amp; &quot;there&quot;', $option['text']);
         // keywords are plain text - TomSelect matches them as-is, they are never rendered
         self::assertSame('<b>x</b> <i>Nowhere</i> & "there"', $option['keywords']);
+
+        $series = $this->option($choices, 'series:' . $seriesId);
+        self::assertStringContainsString('&lt;b&gt;Lantern&lt;/b&gt; &amp; &quot;Jam&quot;', $series['text']);
+        self::assertStringNotContainsString('<b>Lantern</b>', $series['text']);
     }
 
-    public function testKeywordsCarrySeriesAndEditionNames(): void
+    public function testTheCurrentEditionIsGroupedUnderItsSeries(): void
     {
-        $option = $this->option($this->builder->build(), CompetitionSeriesFixture::EDITION_EJJ_68);
-
-        self::assertStringContainsString('Euro Jigsaw Jam', $option['keywords']);
-        self::assertStringContainsString('EJJ #68', $option['keywords']);
-        // The card itself names the series so the selected item stays self-descriptive
-        self::assertStringContainsString('Euro Jigsaw Jam', $option['text']);
-        self::assertStringContainsString('competition-option', $option['text']);
-    }
-
-    public function testLogoIsLazyLoadedAndFallsBackToTheSeriesLogo(): void
-    {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $editionId = $this->scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
         $this->database->executeStatement(
             'UPDATE competition_series SET logo = :logo WHERE id = :id',
-            ['logo' => 'competitions/ejj-series.png', 'id' => CompetitionSeriesFixture::SERIES_EJJ],
-        );
-        $this->database->executeStatement(
-            'UPDATE competition SET logo = :logo WHERE id = :id',
-            ['logo' => 'competitions/wjpc.png', 'id' => CompetitionFixture::COMPETITION_WJPC_2024],
+            ['logo' => 'competitions/lantern-series.png', 'id' => $seriesId],
         );
 
-        $choices = $this->builder->build();
+        $choices = $this->builder->build(CompetitionPick::edition($editionId));
+        $option = $this->option($choices, 'edition:' . $editionId);
 
-        $standalone = $this->option($choices, CompetitionFixture::COMPETITION_WJPC_2024);
-        self::assertStringContainsString('loading="lazy"', $standalone['text']);
-        self::assertStringContainsString('competition-option-logo', $standalone['text']);
-        self::assertStringContainsString('competitions/wjpc.png', $standalone['text']);
+        self::assertSame($seriesId, $option['optgroup'] ?? null);
+        self::assertStringContainsString('Jam No. 154', $option['text']);
+        // The card names the series, so the selected item stays self-descriptive
+        self::assertStringContainsString('Lantern Weekly Jam', $option['text']);
+        // The edition has no logo of its own - the series' one, lazy loaded
+        self::assertStringContainsString('competitions/lantern-series.png', $option['text']);
+        self::assertStringContainsString('loading="lazy"', $option['text']);
 
-        $edition = $this->option($choices, CompetitionSeriesFixture::EDITION_EJJ_68);
-        self::assertStringContainsString('competitions/ejj-series.png', $edition['text']);
-        self::assertStringContainsString('loading="lazy"', $edition['text']);
-
-        $ejjOptgroup = null;
-        foreach ($choices->optgroups as $optgroup) {
-            if ($optgroup['value'] === CompetitionSeriesFixture::SERIES_EJJ) {
-                $ejjOptgroup = $optgroup;
-            }
-        }
-        self::assertNotNull($ejjOptgroup);
-        self::assertStringContainsString('competitions/ejj-series.png', $ejjOptgroup['logo'] ?? '');
-
-        // No logo anywhere - no <img> at all
-        $czech = $this->option($choices, CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024);
-        self::assertStringNotContainsString('<img', $czech['text']);
+        $optgroups = array_values(array_filter($choices->optgroups, static fn (array $optgroup): bool => $optgroup['value'] === $seriesId));
+        self::assertCount(1, $optgroups);
+        self::assertSame('Lantern Weekly Jam', $optgroups[0]['label']);
+        self::assertStringContainsString('competitions/lantern-series.png', $optgroups[0]['logo'] ?? '');
     }
 
-    public function testLiveEventsCarryTheLiveBadge(): void
+    public function testAcceptsMatrix(): void
+    {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $publicEdition = $this->scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+        $draftEdition = $this->scenario->edition($seriesId, 'Jam No. 163', $this->day(7), draft: true);
+        $pendingSeries = $this->scenario->series('Willow Lane Puzzle Nights', public: false);
+        $pendingSeriesEdition = $this->scenario->edition($pendingSeries, 'Night 1', $this->day(-1));
+
+        $choices = $this->builder->build();
+
+        // One-time events and series: what was offered
+        self::assertTrue($choices->accepts(CompetitionPick::event(EventDetailFixture::COMPETITION_HILLTOP_WEEKEND)));
+        self::assertFalse($choices->accepts(CompetitionPick::event(CompetitionFixture::COMPETITION_UNAPPROVED)));
+        self::assertTrue($choices->accepts(CompetitionPick::series($seriesId)));
+        self::assertFalse($choices->accepts(CompetitionPick::series($pendingSeries)));
+        self::assertFalse($choices->accepts(CompetitionPick::series($publicEdition)), 'An edition id is no series');
+        self::assertFalse($choices->accepts(CompetitionPick::event(self::UNKNOWN_ID)));
+
+        // Editions: publicly visible ones (typed or picked from the short list), never a draft or a pending series' one
+        self::assertTrue($choices->accepts(CompetitionPick::edition($publicEdition)));
+        self::assertFalse($choices->accepts(CompetitionPick::edition($draftEdition)));
+        self::assertFalse($choices->accepts(CompetitionPick::edition($pendingSeriesEdition)));
+        self::assertFalse($choices->accepts(CompetitionPick::edition(EventDetailFixture::COMPETITION_HILLTOP_WEEKEND)), 'A one-time event is no edition');
+
+        // P2: a bare uuid of an edition, posted by a form an older release rendered
+        self::assertTrue($choices->accepts(CompetitionPick::event($publicEdition)));
+        self::assertFalse($choices->accepts(CompetitionPick::event($draftEdition)));
+
+        // The edited time's current link is accepted whatever its state - also as a bare uuid
+        $withCurrent = $this->builder->build(CompetitionPick::edition($draftEdition));
+        self::assertTrue($withCurrent->offers('edition:' . $draftEdition));
+        self::assertTrue($withCurrent->accepts(CompetitionPick::edition($draftEdition)));
+        self::assertTrue($withCurrent->accepts(CompetitionPick::event($draftEdition)));
+        self::assertFalse($withCurrent->accepts(CompetitionPick::series($draftEdition)));
+
+        $withCurrentSeries = $this->builder->build(CompetitionPick::series($pendingSeries));
+        self::assertTrue($withCurrentSeries->accepts(CompetitionPick::series($pendingSeries)));
+
+        $withCurrentEvent = $this->builder->build(CompetitionPick::event(CompetitionFixture::COMPETITION_UNAPPROVED));
+        self::assertTrue($withCurrentEvent->accepts(CompetitionPick::event(CompetitionFixture::COMPETITION_UNAPPROVED)));
+        $values = array_column($withCurrentEvent->options, 'value');
+        self::assertCount(1, array_keys($values, CompetitionFixture::COMPETITION_UNAPPROVED, true));
+    }
+
+    public function testARefusedSubmitsEditionIsOfferedAgainOnlyWhilePublic(): void
+    {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $publicEdition = $this->scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+        $draftEdition = $this->scenario->edition($seriesId, 'Jam No. 164', $this->day(8), draft: true);
+
+        self::assertTrue($this->builder->build(null, CompetitionPick::edition($publicEdition))->offers('edition:' . $publicEdition));
+        self::assertFalse($this->builder->build(null, CompetitionPick::edition($draftEdition))->offers('edition:' . $draftEdition));
+        // Never baked in otherwise
+        self::assertFalse($this->builder->build()->offers('edition:' . $publicEdition));
+    }
+
+    public function testTypedSearchPayloadGroupsEditionsUnderTheirSeries(): void
+    {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $this->scenario->edition($seriesId, 'Jam No. 153', $this->day(-9));
+        $this->scenario->edition($seriesId, 'Jam No. 154 <script>', $this->day(-2));
+
+        $editions = self::getContainer()->get(GetSeriesEditionChoices::class)->search('jam no. 15');
+        $payload = $this->builder->editionsPayload($editions);
+
+        self::assertCount(2, $payload['options']);
+        self::assertCount(1, $payload['optgroups']);
+        self::assertSame(['value' => $seriesId, 'label' => 'Lantern Weekly Jam'], $payload['optgroups'][0]);
+
+        foreach ($payload['options'] as $option) {
+            self::assertStringStartsWith('edition:', $option['value']);
+            self::assertSame($seriesId, $option['optgroup']);
+            self::assertStringContainsString('Lantern Weekly Jam', $option['keywords']);
+            self::assertStringNotContainsString('<script>', $option['text']);
+        }
+    }
+
+    public function testOneTimeEventLogoIsLazyLoaded(): void
     {
         $this->database->executeStatement(
-            "UPDATE competition SET date_from = now(), date_to = now() + INTERVAL '2 days' WHERE id = :id",
-            ['id' => CompetitionFixture::COMPETITION_RECURRING_ONLINE],
+            'UPDATE competition SET logo = :logo WHERE id = :id',
+            ['logo' => 'competitions/hilltop.png', 'id' => EventDetailFixture::COMPETITION_HILLTOP_WEEKEND],
         );
 
         $choices = $this->builder->build();
 
-        self::assertStringContainsString('>live</span>', $this->option($choices, CompetitionFixture::COMPETITION_RECURRING_ONLINE)['text']);
-        self::assertStringNotContainsString('>live</span>', $this->option($choices, CompetitionFixture::COMPETITION_WJPC_2024)['text']);
+        $option = $this->option($choices, EventDetailFixture::COMPETITION_HILLTOP_WEEKEND);
+        self::assertStringContainsString('loading="lazy"', $option['text']);
+        self::assertStringContainsString('competition-option-logo', $option['text']);
+        self::assertStringContainsString('competitions/hilltop.png', $option['text']);
+        self::assertArrayNotHasKey('optgroup', $option);
+    }
+
+    private function day(int $offset): string
+    {
+        return $this->today->modify(sprintf('%+d days', $offset))->format('Y-m-d');
     }
 
     /**
      * @return array{value: string, text: string, keywords: string, optgroup?: string}
      */
-    private function option(CompetitionChoices $choices, string $competitionId): array
+    private function option(CompetitionChoices $choices, string $value): array
     {
         foreach ($choices->options as $option) {
-            if ($option['value'] === $competitionId) {
+            if ($option['value'] === $value) {
                 return $option;
             }
         }
 
-        self::fail(sprintf('Option %s is not offered', $competitionId));
+        self::fail(sprintf('Option %s is not offered', $value));
     }
 }

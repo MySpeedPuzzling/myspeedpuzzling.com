@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\DuplicateCaseNotFound;
 use SpeedPuzzling\Web\Message\ConfirmDuplicateIsReal;
 use SpeedPuzzling\Web\Message\KeepDuplicateCopy;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Value\DuplicateResolvedVia;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -58,6 +59,49 @@ final class DuplicateCaseActionsTest extends KernelTestCase
         self::assertTrue($kept['first_attempt']);
 
         self::assertSame(['copy_deleted', 'review_page'], $this->statusOf($caseId));
+    }
+
+    /**
+     * P10 (docs/features/events-page/high-frequency-series.md): the copy's whole event link moves - its series pick,
+     * the edition it was matched to and how - to a kept copy without one.
+     */
+    public function testKeepingACopyTakesOverTheOthersSeriesPickWhole(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $series = $scenario->series();
+        $edition = $scenario->edition($series, 'Jam No. 1', '2026-03-02');
+        $this->database->executeStatement(
+            "UPDATE puzzle_solving_time SET competition_series_id = :series, competition_id = :edition, series_edition_match = 'date' WHERE id = :id",
+            ['series' => $series, 'edition' => $edition, 'id' => DuplicateResultsFixture::TIME_STRONG_B],
+        );
+        $caseId = $this->caseId(self::DANA, DuplicateResultsFixture::TIME_STRONG_A);
+
+        $this->messageBus->dispatch(new KeepDuplicateCopy($caseId, DuplicateResultsFixture::TIME_STRONG_A, self::DANA));
+
+        self::assertSame(
+            ['competition_id' => $edition, 'competition_series_id' => $series, 'series_edition_match' => 'date', 'competition_round_id' => null],
+            $scenario->link(DuplicateResultsFixture::TIME_STRONG_A),
+        );
+    }
+
+    /**
+     * P10: a kept copy with an explicit edition keeps it - another series' pick never mixes into it.
+     */
+    public function testAKeptExplicitLinkDoesNotTakeASeriesPick(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $explicit = $scenario->edition($scenario->series('Moonlit Puzzle Sprint'), 'Sprint No. 1', '2026-03-02');
+        $series = $scenario->series();
+        $this->database->executeStatement('UPDATE puzzle_solving_time SET competition_id = :edition WHERE id = :id', ['edition' => $explicit, 'id' => DuplicateResultsFixture::TIME_STRONG_A]);
+        $this->database->executeStatement('UPDATE puzzle_solving_time SET competition_series_id = :series WHERE id = :id', ['series' => $series, 'id' => DuplicateResultsFixture::TIME_STRONG_B]);
+        $caseId = $this->caseId(self::DANA, DuplicateResultsFixture::TIME_STRONG_A);
+
+        $this->messageBus->dispatch(new KeepDuplicateCopy($caseId, DuplicateResultsFixture::TIME_STRONG_A, self::DANA));
+
+        self::assertSame(
+            ['competition_id' => $explicit, 'competition_series_id' => null, 'series_edition_match' => null, 'competition_round_id' => null],
+            $scenario->link(DuplicateResultsFixture::TIME_STRONG_A),
+        );
     }
 
     public function testKeptCopyKeepsItsOwnComment(): void

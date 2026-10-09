@@ -1,0 +1,107 @@
+// The add-time picker's series option, preview line and short edition list (high-frequency series, WS-A) - classes sp-
+// docs/features/events-page/high-frequency-series.md "The form"; markup: CompetitionChoicesBuilder (series card),
+// templates/competition_picker/_series_preview.html.twig + _edition_list.html.twig (series_edition_preview_controller.js)
+
+.sp-preview:empty {
+    display: none;
+}
+
+.sp-preview {
+    margin-top: 0.75rem;
+    font-size: $font-size-sm;
+}
+
+.sp-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.5rem;
+    row-gap: 0.125rem;
+    min-width: 0;
+}
+
+.sp-line-icon {
+    color: $success;
+    flex: 0 0 auto;
+}
+
+.sp-line-text {
+    flex: 1 1 12rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.sp-line-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    column-gap: 0.75rem;
+}
+
+// "change" + "Let MySpeedPuzzling match it": a row of their own under the text (lined up with it), so the line keeps
+// the card's whole width instead of three narrow lines beside them
+.sp-line-actions-row {
+    flex-basis: 100%;
+    padding-inline-start: calc(1em + 0.5rem);
+}
+
+// Text links, but 44 px tall to tap
+.sp-link {
+    min-height: 44px;
+    padding: 0;
+    font-size: $font-size-sm;
+    white-space: normal;
+    text-align: start;
+}
+
+.sp-note {
+    color: $gray-600;
+    margin-bottom: 0.5rem;
+}
+
+.sp-list {
+    margin-top: 0.5rem;
+}
+
+.sp-search {
+    margin-bottom: 0.5rem;
+}
+
+.sp-editions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: 22rem;
+    overflow-y: auto;
+}
+
+.sp-edition {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    background: $white;
+    color: $body-color;
+    text-align: start;
+    line-height: 1.3;
+
+    &:hover,
+    &:focus-visible {
+        border-color: $primary;
+        background: rgba($primary, 0.05);
+    }
+}
+
+.sp-edition-name {
+    font-weight: $font-weight-medium;
+    overflow-wrap: anywhere;
+}
+
+.sp-edition-meta {
+    color: $gray-600;
+    font-size: $font-size-xs;
+    overflow-wrap: anywhere;
+}

@@ -1,8 +1,11 @@
 {# One agenda row (owner: workstream A). Variables: row (AgendaRow); search_ids from the page (null without a query).
+   A month roll-up shows at most 6 date chips, then "+N more" to the series page (high-frequency-series.md).
    No id attributes - the calendar clones rows. One link per row: the name, stretched over the row; the session chips,
    the star and the ⋯ sit above it. No star on a row waiting for approval (admins only).
    Optional: series_rows (bool, the series page: `data-series-edition` = the competition id on the row), show_logo (bool,
-   the occurrence's own logo in the side column). The events page passes neither. #}
+   the occurrence's own logo in the side column), row_details (SeriesRowDetails, the series page: its rounds' category
+   pills when show_categories, its revealed round puzzles; with filterable the filter bar's `data-categories`,
+   `data-search` (+ the date in the page's language), `data-month`). The events page passes none. #}
 {% set shown = row.visible and ((search_ids ?? null) is null or row.indexIds|filter(id => id in search_ids)|length > 0) %}
 <li class="ev-row{{ row.isGroup ? ' ev-row-group' }}{{ row.isPending ? ' ev-row-pending' }}{{ row.place.isOnline ? ' ev-row-online' }}"
     data-ev-ids="{{ row.idsAttribute }}"
@@ -11,6 +14,7 @@
     data-ev-to="{{ row.to }}"
     data-ev-status="{{ row.status.value }}"
     {%- if series_rows|default(false) and row.manage %} data-series-edition="{{ row.manage.id }}"{% endif %}
+    {%- if filterable|default(false) and row_details|default(null) %} data-categories="{{ row_details.categoriesAttribute }}" data-search="{{ row_details.search }}{{ row.leaf.from ? ' ' ~ row.leaf.from|events_date('yMMMMd')|search_fold }}" data-month="{{ row_details.month }}"{% endif %}
     {{ shown ? '' : 'hidden' }}>
     {{ include('event_parts/_date_leaf.html.twig', {leaf: row.leaf}) }}
     <div class="ev-row-body">
@@ -18,7 +22,7 @@
             <span class="visually-hidden">
                 {{- row.leaf.from|events_date('yMMMMEEEEd') -}}
                 {%- if row.leaf.to %} – {{ row.leaf.to|events_date('yMMMMEEEEd') }}{% endif -%}
-                {%- if row.isGroup %} ({{ 'events_page.row.sessions'|trans({'%count%': row.sessions|length}) }}){% endif %}: </span>
+                {%- if row.isGroup %} ({{ 'events_page.row.sessions'|trans({'%count%': row.datesCount}) }}){% endif %}: </span>
         {% endif %}
         {% if row.url %}
             <a class="ev-row-name" href="{{ row.url }}">{{ row.title }}</a>
@@ -26,6 +30,7 @@
             <span class="ev-row-name">{{ row.title }}</span>
         {% endif %}
         {% if row.editionName %}<div class="ev-row-edition">{{ row.editionName }}</div>{% endif %}
+        {%- if row_details|default(null) %}{{ include('event_parts/_row_rounds.html.twig', {details: row_details, show_categories: show_categories|default(false), class: 'ev-row-rounds'}) }}{% endif %}
         <div class="ev-row-meta">
             {{ include('event_parts/_place.html.twig', {place: row.place}) }}
             {%- if row.time %}{{ include('event_parts/_event_time.html.twig', {time: row.time, online: row.place.isOnline}) }}{% endif %}
@@ -33,7 +38,7 @@
         </div>
         {% if row.isGroup %}
             <div class="ev-sessions">
-                <span class="ev-sessions-n">{{ 'events_page.row.sessions'|trans({'%count%': row.sessions|length}) }}</span>
+                <span class="ev-sessions-n">{{ 'events_page.row.sessions'|trans({'%count%': row.datesCount}) }}</span>
                 {% for session in row.sessions %}
                     {% set label = session.date|events_date('Ed') %}
                     {% set full = session.title ~ ', ' ~ session.date|events_date('yMMMMEEEEd') %}
@@ -43,6 +48,16 @@
                         <span class="ev-session" data-ev-ids="{{ session.indexId }}" title="{{ full }}">{{ label }}</span>
                     {% endif %}
                 {% endfor %}
+                {#- At most EventsPageBuilder::MAX_SESSION_CHIPS chips; the rest opens the series page. It carries their ids, so
+                    the calendar's day highlights it like a chip. The label and the arrow share one inline box - as items of
+                    the flex chip the space between them would be dropped -#}
+                {% if row.moreSessionsCount > 0 %}
+                    {% if row.url %}
+                        <a class="ev-session ev-session-more" href="{{ row.url }}" data-ev-ids="{{ row.moreIdsAttribute }}" data-ev-more-sessions><span>{{ 'series_pages.more_sessions'|trans({'%count%': row.moreSessionsCount}) }} <span aria-hidden="true">→</span></span></a>
+                    {% else %}
+                        <span class="ev-session ev-session-more" data-ev-ids="{{ row.moreIdsAttribute }}" data-ev-more-sessions>{{ 'series_pages.more_sessions'|trans({'%count%': row.moreSessionsCount}) }}</span>
+                    {% endif %}
+                {% endif %}
             </div>
         {% endif %}
         {{ include('event_parts/_row_tags.html.twig', {tags: row.tags}) }}

@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
+use SpeedPuzzling\Web\Value\OccurrenceRound;
 use SpeedPuzzling\Web\Value\OccurrenceSession;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RequestContext;
@@ -55,7 +56,8 @@ final class EventsIndexFactoryTest extends TestCase
             'n' => 'Harbor Jigsaw Nights',
             'en' => 'Session 3',
             'sl' => null,
-            'cm' => '018d0099-0000-0000-0000-000000000001',
+            // only a competition with two or more sessions names it - the archive counts the others by their id
+            'cm' => null,
             'sid' => 40,
             'u' => '/en/series/harbor-jigsaw-nights/session-3',
             'f' => '2026-12-05',
@@ -236,6 +238,86 @@ final class EventsIndexFactoryTest extends TestCase
         // A series line carries only a publicly visible organization (EventsPageBuilder) - nothing to fold
         $series = new EventSeriesRow('018d0099-0000-0000-0000-000000000015', 'Club Meets', 'club-meets', true, organization: $organization);
         self::assertSame('club meets online', $this->factory()->series($this->seriesLine($series, null), $series, 'en')['x']);
+    }
+
+    /**
+     * A past (or revealed) occurrence is found by its revealed round puzzles' names (high-frequency-series.md "Events
+     * search by puzzle") - the query never hands over a secret one (GetEventOccurrencesTest)
+     */
+    public function testRevealedRoundPuzzleNamesAreInTheSearchText(): void
+    {
+        $event = new EventOccurrence(
+            competitionId: '018d0099-0000-0000-0000-000000000020',
+            name: 'Riverside Puzzle Open',
+            slug: 'riverside-puzzle-open',
+            location: 'Riverside',
+            countryCode: CountryCode::us,
+            startDate: new DateTimeImmutable('2026-03-14', new DateTimeZone('UTC')),
+            rounds: [
+                new OccurrenceRound('r1', 'Qualifier', new DateTimeImmutable('2026-03-14 15:00', new DateTimeZone('UTC')), 'America/New_York', category: 'solo', puzzleNames: ['Copper Lighthouse']),
+                new OccurrenceRound('r2', 'Final', new DateTimeImmutable('2026-03-14 19:00', new DateTimeZone('UTC')), 'America/New_York', category: 'duo', puzzleNames: ['Ærø Harbor', 'Copper Lighthouse']),
+            ],
+        );
+
+        $entry = $this->factory()->occurrence(0, $event, EventOccurrenceStatus::Past, '/en/events/riverside-puzzle-open', EventsPageBuilder::place(false, 'Riverside', CountryCode::us, 'en'), null, 'en');
+
+        self::assertSame('riverside puzzle open riverside united states united states of america 2026 copper lighthouse aero harbor', $entry['x']);
+        self::assertSame(['solo', 'duo'], $event->roundCategories());
+    }
+
+    /**
+     * The page ships the index compact (P25): defaults left out, an edition relative to its series entry - its name,
+     * scope, country and place from the series unless its own differ, its link as the path after the series', only its
+     * own words in `x`. EventsPage::$index keeps the full entries the server reads; EventsIndexScriptTest checks the
+     * browser rebuilds exactly those.
+     */
+    public function testTheShippedIndexIsCompact(): void
+    {
+        $page = EventsIndexExamples::smallPage();
+        $shipped = $page->shippedIndex;
+
+        self::assertSame([
+            'id' => 0,
+            'k' => 'd',
+            'en' => 'Jam No. 153',
+            // the series lines follow the occurrences, the newest last date first: Harbor (10 Oct) 3, Lantern 4
+            'sid' => 4,
+            'es' => 'jam-no-153',
+            'f' => '2026-10-05',
+            'st' => 'past',
+            'r' => true,
+            // "jam", "lantern", "weekly", "online" are its series' words
+            'x' => 'no. 153 2026 copper lighthouse',
+        ], $shipped[0]);
+
+        // An edition held elsewhere than its series keeps its own place, country and scope
+        self::assertSame([
+            'id' => 1,
+            'k' => 'd',
+            'en' => 'Harbor Special',
+            'sid' => 3,
+            'es' => 'harbor-special',
+            'f' => '2026-10-10',
+            'sc' => 'at',
+            'c' => 'at',
+            'p' => 'Innsbruck, Austria',
+            'st' => 'past',
+            'x' => 'special innsbruck austria 2026',
+        ], $shipped[1]);
+
+        // A one-time event: only what is not a default
+        self::assertSame(['id', 'k', 'n', 'u', 'f', 'sc', 'c', 'p', 'st', 'x'], array_keys($shipped[2]));
+
+        // The series entries carry their own name, link, place and text
+        self::assertSame(['id' => 4, 'k' => 's', 'n' => 'Lantern Weekly Jam', 'u' => '/series/lantern-weekly-jam', 'sc' => 'online', 'p' => 'Online', 'x' => 'lantern weekly jam online'], $shipped[4]);
+        self::assertSame('cz', $shipped[3]['sc']);
+
+        // The full entries the server reads: the edition's text is its own words, then its series'
+        self::assertSame('Lantern Weekly Jam', $page->index[0]['n']);
+        self::assertSame('/series/lantern-weekly-jam/jam-no-153', $page->index[0]['u']);
+        self::assertSame('no. 153 2026 copper lighthouse lantern weekly jam online', $page->index[0]['x']);
+        self::assertNull($page->index[0]['cm']);
+        self::assertSame('online', $page->index[0]['sc']);
     }
 
     private function seriesLine(EventSeriesRow $series, null|OrganizationRef $organization): SeriesLine

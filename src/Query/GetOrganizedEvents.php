@@ -182,12 +182,15 @@ SQL;
         }
 
         $rounds = OccurrenceRounds::SQL_JOIN;
-        // Per edition - summed per series: a series goes back to draft only when none of its editions holds anything
+        // Per edition - summed per series: a series goes back to draft only when none of its editions holds anything,
+        // and no series pick without an edition (series-level) either - repeated on every row of the series, added once
         $blocking = UnpublishBlockers::sqlColumns('c.id');
+        $seriesLevelTimes = UnpublishBlockers::sqlSeriesLevelColumn('cs.id');
 
         $query = <<<SQL
 SELECT cs.id AS series_id, cs.name AS series_name, cs.slug AS series_slug, cs.is_online, cs.location,
     {$blocking},
+    {$seriesLevelTimes},
     cs.location_country_code AS series_country_code,
     (cs.approved_at IS NOT NULL) AS is_approved, (cs.rejected_at IS NOT NULL) AS is_rejected, cs.rejection_reason,
     cs.is_draft, cs.organization_id,
@@ -207,7 +210,14 @@ SQL;
 
         foreach ($this->database->executeQuery($query, ['ids' => $ids], ['ids' => ArrayParameterType::STRING])->fetchAllAssociative() as $row) {
             $id = (string) $row['series_id'];
-            $series[$id] ??= ['row' => $row, 'count' => 0, 'next' => null, 'nextZone' => null, 'last' => null, 'blocking' => [0, 0, 0]];
+            $series[$id] ??= [
+                'row' => $row,
+                'count' => 0,
+                'next' => null,
+                'nextZone' => null,
+                'last' => null,
+                'blocking' => [0, 0, is_numeric($row['blocking_series_level_times']) ? (int) $row['blocking_series_level_times'] : 0],
+            ];
 
             if ($row['edition_id'] === null) {
                 continue;

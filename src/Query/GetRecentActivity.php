@@ -91,7 +91,7 @@ INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
-LEFT JOIN competition_series cs ON cs.id = competition.series_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE
     (puzzle_solving_time.player_id = :playerId OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
@@ -214,7 +214,7 @@ INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
-LEFT JOIN competition_series cs ON cs.id = competition.series_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE {$this->privateProfileAccess->sqlIsPublic('player')}
     AND puzzle_solving_time.suspicious = false
@@ -378,7 +378,7 @@ INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN player ON pst.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
-LEFT JOIN competition_series cs ON cs.id = competition.series_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE {$this->privateProfileAccess->sqlIsPublic('player')}
 ORDER BY pst.tracked_at DESC

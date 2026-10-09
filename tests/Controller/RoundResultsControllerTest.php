@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -12,7 +13,9 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -43,7 +46,7 @@ final class RoundResultsControllerTest extends WebTestCase
         self::assertCount(2, $crawler->filter('[data-round-result-status="finished"]'));
         // Only puzzlers who added a time are listed - no positions that could pass for official placings
         $this->assertSelectorNotExists('td.rank');
-        $this->assertSelectorTextContains('main', 'not the official placings');
+        $this->assertSelectorTextContains('[data-round-unofficial]', 'Times logged on MySpeedPuzzling - not the official results');
         $this->assertSelectorTextContains('title', 'Qualification Round');
     }
 
@@ -183,6 +186,54 @@ final class RoundResultsControllerTest extends WebTestCase
         $browser->request('GET', '/en/events/ejj-68-february-2026/results/main-round');
 
         $this->assertResponseRedirects('/en/series/euro-jigsaw-jam-series/ejj-68-february-2026/results/main-round', 301);
+    }
+
+    /**
+     * Whenever the times puzzlers logged are listed, a label says they are not the official results, with the
+     * organiser's results right next to it - the round's link, else the edition's, both with utm_source
+     * (docs/features/events-page/high-frequency-series.md "Edition page and round results")
+     */
+    public function testTheTimesAreLabelledUnofficialNextToTheOfficialResults(): void
+    {
+        $browser = self::createClient();
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $day = new DateTimeImmutable('-3 days')->format('Y-m-d');
+        $seriesId = $scenario->series();
+        $editionId = $scenario->edition($seriesId, 'Jam No. 153', $day);
+        $roundId = $scenario->round($editionId, RoundCategory::Solo, $day . ' 19:00', puzzleIds: [$scenario->puzzle()]);
+        $path = $connection->fetchOne(
+            "SELECT cs.slug || '/' || c.slug || '/results/' || cr.slug FROM competition_round cr
+             INNER JOIN competition c ON c.id = cr.competition_id
+             INNER JOIN competition_series cs ON cs.id = c.series_id
+             WHERE cr.id = :id",
+            ['id' => $roundId],
+        );
+        self::assertIsString($path);
+        $url = '/en/series/' . $path;
+
+        // No time logged yet, no results link: the label alone
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertSame('Times logged on MySpeedPuzzling - not the official results', trim($crawler->filter('[data-round-unofficial]')->text()));
+        self::assertCount(0, $crawler->filter('[data-round-official-link]'));
+
+        $connection->executeStatement("UPDATE competition SET results_link = 'https://results.example/jam-153' WHERE id = :id", ['id' => $editionId]);
+        $crawler = $browser->request('GET', $url);
+        $link = $crawler->filter('[data-round-unofficial] [data-round-official-link]');
+        self::assertSame('https://results.example/jam-153?utm_source=myspeedpuzzling', $link->attr('href'), 'the edition\'s results');
+        self::assertSame('Official results ↗', trim($link->text()));
+        // Only there - the header has no button of its own while the label carries the link
+        self::assertCount(1, $crawler->filter('a[href="https://results.example/jam-153?utm_source=myspeedpuzzling"]'));
+
+        $connection->executeStatement("UPDATE competition_round SET results_link = 'https://results.example/jam-153/solo?lang=en' WHERE id = :id", ['id' => $roundId]);
+        $crawler = $browser->request('GET', $url);
+        self::assertSame(
+            'https://results.example/jam-153/solo?lang=en&utm_source=myspeedpuzzling',
+            $crawler->filter('[data-round-unofficial] [data-round-official-link]')->attr('href'),
+            'the round\'s own link wins',
+        );
     }
 
     private function startQualificationRound(KernelBrowser $browser): void

@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { readEventsIndex, scopeMatches, createQueryMatcher, fillArchiveLine, dateLocale, formatDate, formatDayRange, formatDays } from '../events_index.js';
+import { readEventsIndex, scopeMatches, createQueryMatcher, fillArchiveLine, dateLocale, formatDate, formatDayRange, formatDays, archiveLinesOf } from '../events_index.js';
 import { guessCountry } from '../country_guess.js';
 import { foldSearchText } from '../search_fold.js';
 import { chooseTranslation } from '../translation_choice.js';
@@ -782,41 +782,9 @@ export default class extends Controller {
         return [...new Set(this.pastEntries().map((entry) => Number(entry.f.slice(0, 4))))].sort((a, b) => b - a);
     }
 
-    // EventsPageBuilder::archiveYears() for one year: several editions of one series are one line placed at its newest
-    // edition, lines newest first; each line belongs to the scope of its (newest) occurrence. The sessions of one
-    // edition or one-time event (same `cm`) are one line too; `editions` counts competitions, never sessions.
+    // EventsPageBuilder::archiveYears() for one year (archiveLinesOf() of assets/events_index.js, tested under node)
     archiveLines(entries) {
-        const keyOf = (entry) => (entry.k === 'd' && entry.sid !== null && entry.sid !== undefined ? `s${entry.sid}` : `c${entry.cm ?? entry.id}`);
-        const byKey = new Map();
-
-        entries.forEach((entry) => {
-            byKey.set(keyOf(entry), [...(byKey.get(keyOf(entry)) ?? []), entry]);
-        });
-
-        const lines = [];
-        const rolledUp = new Set();
-
-        entries.forEach((entry) => {
-            const key = keyOf(entry);
-            const grouped = byKey.get(key);
-
-            if (grouped.length >= 2) {
-                if (!rolledUp.has(key)) {
-                    rolledUp.add(key);
-                    const sorted = [...grouped].sort((a, b) => (a.f < b.f ? -1 : a.f > b.f ? 1 : 0));
-                    const newest = sorted[sorted.length - 1];
-                    const editions = new Set(sorted.map((item) => item.cm ?? item.id)).size;
-                    lines.push({ entries: sorted, newest, editions, sort: newest.f, title: newest.n, scope: newest.sc ?? '' });
-                }
-
-                return;
-            }
-
-            lines.push({ entries: [entry], newest: entry, editions: 1, sort: entry.f, title: entry.n, scope: entry.sc ?? '' });
-        });
-
-        return lines.sort((a, b) => (a.sort < b.sort ? 1 : a.sort > b.sort ? -1 : 0)
-            || foldSearchText(a.title).localeCompare(foldSearchText(b.title)));
+        return archiveLinesOf(entries);
     }
 
     // The events held in a year: competitions, the sessions of one counted once (ArchiveYear::occurrenceCount())

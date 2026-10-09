@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Exceptions\AutomaticRevealChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\CompetitionAlreadyInSeries;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotApprovable;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotConvertible;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
@@ -97,6 +99,10 @@ return App::config([
             CompetitionTagShared::class => ['log_level' => 'info'],
             PuzzleInTwoRoundsOfCategory::class => ['log_level' => 'info'],
             PuzzleEanAlreadyInCatalogue::class => ['log_level' => 'info'],
+            // Turning an event into a series refused - an edition already, or the event holds what would be lost
+            // (docs/features/events-page/high-frequency-series.md "The conversion tool")
+            CompetitionAlreadyInSeries::class => ['log_level' => 'info'],
+            CompetitionNotConvertible::class => ['log_level' => 'info'],
             // A secret competition puzzle guarding itself - answered 409 with the reason, nothing applied: a change
             // that would reveal it unconfirmed, an automatic reveal saved from a page showing another moment, a hidden
             // puzzle attached unhidden, a placeholder hidden by hand, a personal record before the reveal

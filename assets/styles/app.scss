@@ -89,6 +89,8 @@
 @import "tom-select";
 @import "country-typeahead";
 @import "copuzzler-picker";
+// The add-time event picker's series option, preview line and edition list (docs/features/events-page/high-frequency-series.md)
+@import "series-picker";
 @import "moderation";
 @import "names-editor";
 @import "optional-rows";
@@ -1262,20 +1264,6 @@ canvas {
         dd {
             margin-top: 0;
         }
-    }
-}
-
-.puzzle-summary-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .375rem;
-
-    .badge {
-        font-size: .75rem;
-        font-weight: 400;
-        white-space: normal;
-        text-align: left;
-        text-decoration: none;
     }
 }
 

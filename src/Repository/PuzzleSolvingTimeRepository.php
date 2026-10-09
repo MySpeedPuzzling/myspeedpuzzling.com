@@ -141,6 +141,9 @@ readonly final class PuzzleSolvingTimeRepository
      * RoundResultsReconciler (a puzzle is in at most one round per category per competition, so such a time can only
      * belong to this round). MoveRoundToCompetition moves them all with the round.
      *
+     * Explicit links only: a series pick's edition follows the matching rule, not the round - the reconcile both
+     * competitions get after the move re-matches it (docs/features/events-page/high-frequency-series.md P29).
+     *
      * @return list<PuzzleSolvingTime>
      */
     public function findByCompetitionRound(CompetitionRound $round): array
@@ -150,6 +153,7 @@ readonly final class PuzzleSolvingTimeRepository
             ->select('time')
             ->from(PuzzleSolvingTime::class, 'time')
             ->where('time.competition = :competition')
+            ->andWhere('time.competitionSeries IS NULL')
             ->andWhere(
                 'time.competitionRound = :round OR (time.competitionRound IS NULL AND time.puzzlingType = :category AND time.puzzle IN ('
                 . 'SELECT IDENTITY(roundPuzzle.puzzle) FROM ' . CompetitionRoundPuzzle::class . ' roundPuzzle WHERE roundPuzzle.round = :round'

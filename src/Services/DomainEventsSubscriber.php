@@ -13,6 +13,7 @@ use Doctrine\ORM\Events;
 use ReflectionClass;
 use SpeedPuzzling\Web\Attribute\HasDeleteDomainEvent;
 use SpeedPuzzling\Web\Entity\EntityWithEvents;
+use SpeedPuzzling\Web\Events\DeduplicatedDomainEvent;
 use SpeedPuzzling\Web\Events\DeleteDomainEvent;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Service\ResetInterface;
@@ -97,8 +98,22 @@ final class DomainEventsSubscriber implements ResetInterface
         $deleteEvents = $this->deleteEvents;
         $this->deleteEvents = [];
 
+        // An idempotent event about the same thing goes out once per flush (DeduplicatedDomainEvent) - "Add several
+        // dates" creates 24 editions of one series in one flush, one reconcile of the series is enough
+        $dispatchedKeys = [];
+
         foreach ($entities as $entity) {
             foreach ($entity->popEvents() as $event) {
+                if ($event instanceof DeduplicatedDomainEvent) {
+                    $key = $event::class . '|' . $event->deduplicationKey();
+
+                    if (isset($dispatchedKeys[$key])) {
+                        continue;
+                    }
+
+                    $dispatchedKeys[$key] = true;
+                }
+
                 $this->messageBus->dispatch($event);
             }
         }

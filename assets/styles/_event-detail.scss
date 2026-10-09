@@ -90,10 +90,12 @@
     color: $ev-ink-2;
     font-size: .875rem;
 
-    // The dot ends the fact it follows - a wrapped line never starts with one (a phone at 360 px)
+    // The dot ends the fact it follows - a wrapped line never starts with one (a phone at 360 px). A no-break space ties
+    // it to the fact's last word, so a fact that wraps inside (a round's time with the visitor's own) never leaves it
+    // alone on a line
     > *:not(:last-child)::after {
-        content: "·";
-        margin-left: .5rem;
+        content: "\00a0·";
+        margin-left: .25rem;
         color: $ev-muted;
     }
 
@@ -274,17 +276,19 @@
 .ev-time {
     white-space: nowrap;
 
-    .ev-row-meta &,
-    .ev-detail-facts & {
+    // Beside the place on a row: it wraps rather than run under "Online" or out of the row (a phone at 360 px, ja)
+    .ev-row-meta & {
         margin-left: .5rem;
+        white-space: normal;
     }
 }
 
 .ev-time-yours {
     white-space: normal;
 
+    // Tied to the zone before it by a no-break space: a wrapped line starts with the visitor's time, never with the dot
     &::before {
-        content: " · ";
+        content: "\00a0· ";
     }
 }
 

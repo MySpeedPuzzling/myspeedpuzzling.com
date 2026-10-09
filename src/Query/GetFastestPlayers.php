@@ -104,7 +104,7 @@ INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON player.id = puzzle_solving_time.player_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
-LEFT JOIN competition_series cs ON cs.id = competition.series_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id, competition.id, cs.id, ps.skill_tier
 ORDER BY puzzle_solving_time.seconds_to_solve

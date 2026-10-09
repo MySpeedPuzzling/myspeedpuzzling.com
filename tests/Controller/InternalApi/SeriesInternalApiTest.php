@@ -8,6 +8,8 @@ use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -234,6 +236,48 @@ final class SeriesInternalApiTest extends WebTestCase
 
         self::callInternalApi($browser, 'POST', '/internal-api/series/018d0042-0000-0000-0000-00000000ffff/editions', ['name' => 'X', 'dateFrom' => '2027-01-04', 'dateTo' => '2027-01-04']);
         self::assertResponseStatusCodeSame(404);
+    }
+
+    /**
+     * docs/features/events-page/high-frequency-series.md P19: the series' results are its editions' (explicit links
+     * and series picks matched to one) and its series picks without an edition - each time once - the latter also on
+     * their own; an edition counts the series picks matched to it
+     */
+    public function testTheResultsCountsIncludeSeriesPicksEachOnce(): void
+    {
+        $browser = self::createClient();
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $series = $scenario->series();
+        $puzzle = $scenario->puzzle();
+        $explicitEdition = $scenario->edition($series, 'Jam No. 1', '2026-03-02');
+        $matchedEdition = $scenario->edition($series, 'Jam No. 2', '2026-03-20');
+        $scenario->round($matchedEdition, RoundCategory::Solo, '2026-03-20 19:00', puzzleIds: [$puzzle]);
+        $scenario->edition($series, 'Jam No. 3', null);
+        $scenario->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, $scenario->puzzle('Silver Harbor'), '2026-03-02', competitionId: $explicitEdition);
+        $scenario->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, $puzzle, '2026-03-20', seriesId: $series);
+        $scenario->addTime(PlayerFixture::PLAYER_PRIVATE_USER_ID, $puzzle, '2026-03-03', seriesId: $series, groupPlayers: ['Guest Puzzler']);
+        $scenario->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, $scenario->puzzle('Amber Windmill'), '2026-05-01', seriesId: $series);
+
+        $answer = self::callInternalApi($browser, 'GET', '/internal-api/series/' . $series);
+        self::assertResponseIsSuccessful();
+        self::assertSame(4, $answer['resultsCount']);
+        self::assertSame(1, $answer['resultsWithoutEditionCount']);
+
+        $editions = array_column(self::list($answer['editions']), null, 'competitionId');
+        // The explicit time and the pair's series pick, matched by its day (the edition has no rounds)
+        self::assertSame(2, $editions[$explicitEdition]['resultsCount']);
+        self::assertSame(1, $editions[$explicitEdition]['seriesPickResultsCount']);
+        // The solo series pick, matched by its puzzle
+        self::assertSame(1, $editions[$matchedEdition]['resultsCount']);
+        self::assertSame(1, $editions[$matchedEdition]['seriesPickResultsCount']);
+
+        // The list carries the same counts; a series without results answers zeros
+        $listed = self::callInternalApi($browser, 'GET', '/internal-api/series?limit=100');
+        $byId = array_column(self::list($listed['series']), null, 'seriesId');
+        self::assertSame(4, $byId[$series]['resultsCount']);
+        self::assertSame(1, $byId[$series]['resultsWithoutEditionCount']);
+        self::assertSame(0, $byId[OrganizationFixture::SERIES_QUIET_PINES_DRAFT]['resultsCount']);
+        self::assertSame(0, $byId[OrganizationFixture::SERIES_QUIET_PINES_DRAFT]['resultsWithoutEditionCount']);
     }
 
     /**

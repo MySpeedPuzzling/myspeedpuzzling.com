@@ -31,6 +31,10 @@ class Organization
 {
     // The team besides its creator (docs/features/organizations/README.md "Data model")
     public const int MAX_MAINTAINERS = 10;
+    // The limits of the forms and the internal API (P14)
+    public const int ABOUT_MAX_LENGTH = 5000;
+    public const int REGION_MAX_LENGTH = 120;
+    public const int WEBSITE_MAX_LENGTH = 255;
 
     /**
      * When it entered the approval queue (docs/features/organizations/README.md "Approval"): created published, first
@@ -178,6 +182,53 @@ class Organization
         }
 
         return array_values($team);
+    }
+
+    /**
+     * A text copied into "About" from elsewhere (a series' description), cut to its limit at a word - so a later edit
+     * that does not touch it never fails on it
+     */
+    public static function fittedAbout(null|string $text): null|string
+    {
+        $text = trim((string) $text);
+
+        if ($text === '') {
+            return null;
+        }
+
+        if (mb_strlen($text) <= self::ABOUT_MAX_LENGTH) {
+            return $text;
+        }
+
+        // Room for the ellipsis; back to the last space or line break when there is one near the end
+        $cut = mb_substr($text, 0, self::ABOUT_MAX_LENGTH - 1);
+        $lastBreak = max((int) mb_strrpos($cut, ' '), (int) mb_strrpos($cut, "\n"));
+
+        if ($lastBreak > self::ABOUT_MAX_LENGTH - 200) {
+            $cut = mb_substr($cut, 0, $lastBreak);
+        }
+
+        return rtrim($cut) . '…';
+    }
+
+    /**
+     * A place copied into "Region" from elsewhere (a series' location) - only when it fits, else none
+     */
+    public static function fittedRegion(null|string $place): null|string
+    {
+        $place = trim((string) $place);
+
+        return $place !== '' && mb_strlen($place) <= self::REGION_MAX_LENGTH ? $place : null;
+    }
+
+    /**
+     * A link copied into "Website" from elsewhere (a series' link) - only an http(s) address that fits, else none
+     */
+    public static function fittedWebsite(null|string $link): null|string
+    {
+        $link = trim((string) $link);
+
+        return $link !== '' && mb_strlen($link) <= self::WEBSITE_MAX_LENGTH && SocialLinks::isWebAddress($link) ? $link : null;
     }
 
     /**

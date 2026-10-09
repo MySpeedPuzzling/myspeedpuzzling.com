@@ -26,10 +26,10 @@ final class OrganizationFormData
         public null|string $name = null,
         #[Assert\Length(max: 30)]
         public null|string $shortName = null,
-        #[Assert\Length(max: 5000)]
+        #[Assert\Length(max: Organization::ABOUT_MAX_LENGTH)]
         public null|string $about = null,
         #[Assert\Url(protocols: ['http', 'https'])]
-        #[Assert\Length(max: 255)]
+        #[Assert\Length(max: Organization::WEBSITE_MAX_LENGTH)]
         public null|string $website = null,
         #[Assert\Count(max: SocialLinks::MAX, maxMessage: 'organization_fields.social_links_too_many')]
         #[Assert\All([
@@ -38,7 +38,7 @@ final class OrganizationFormData
         ])]
         public array $socialLinks = [],
         public null|string $countryCode = null,
-        #[Assert\Length(max: 120)]
+        #[Assert\Length(max: Organization::REGION_MAX_LENGTH)]
         public null|string $region = null,
         public null|OrganizationKind $kind = null,
         public null|UploadedFile $logo = null,

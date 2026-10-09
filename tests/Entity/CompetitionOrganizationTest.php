@@ -158,8 +158,8 @@ final class CompetitionOrganizationTest extends TestCase
     {
         $event = self::competition();
 
-        $event->changeEligibility('21+');
-        self::assertSame('21+', $event->eligibility);
+        $event->changeEligibility('18+');
+        self::assertSame('18+', $event->eligibility);
 
         $event->changeEligibility(null);
         self::assertNull($event->eligibility);

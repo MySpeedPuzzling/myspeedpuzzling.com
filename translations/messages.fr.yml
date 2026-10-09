@@ -7870,10 +7870,10 @@ organizer_tools:
         organization_not_managed: "Vous ne faites plus partie de l'équipe de cette organisation – choisissez-en une autre."
         edition_organization: "%name% – l'organisation de sa série"
         eligibility: "Qui peut participer"
-        eligibility_help: "Laissez vide si tout le monde peut participer. Affiché comme une étiquette, par ex. « Résidents de l'État », « 21 ans et plus »."
+        eligibility_help: "Laissez vide si tout le monde peut participer. Affiché comme une étiquette, par ex. « Membres du club », « 18 ans et plus »."
         eligibility_edition_help: "Laissez vide pour reprendre le réglage de la série."
         schedule: "Quand ça a lieu"
-        schedule_help: "Pour une série, par ex. « Le troisième mercredi du mois, 18 h 45 » – chaque date reste une édition à part entière."
+        schedule_help: "Pour une série, par ex. « Le quatrième vendredi du mois, 20 h » – chaque date reste une édition à part entière."
         save_draft: "Enregistrer comme brouillon"
         save_draft_help: "Un brouillon n'est visible que par vous et votre équipe – publiez-le quand il est prêt."
     flash:
@@ -7884,7 +7884,7 @@ organizer_tools:
     add_editions:
         title: "Ajouter plusieurs dates"
         link: "Ajouter plusieurs dates d'un coup"
-        link_hint: "– chaque semaine, le premier lundi ou le dernier mardi du mois… ou les dates de votre choix."
+        link_hint: "– chaque semaine, le deuxième jeudi ou le dernier vendredi du mois… ou les dates de votre choix."
         intro: "Chaque date devient une édition à part. Rien ne se répète tout seul : quand un lieu déplace une date, modifiez cette édition-là."
         how: "Comment"
         how_repeat: "Répéter"

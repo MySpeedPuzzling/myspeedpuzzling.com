@@ -236,9 +236,9 @@ About                                                          (plain text, line
 Coming up                                                      (rows like the series page: leaf · name · place · tags (Who can enter, Recurring, registration…) · when · ⋯)
 What we run                                                    (cards)
    Lantern Brewing Puzzle Night            ☆                   one card per series: name; place or Online · When it happens;
-   Riverbend · Once a month, 7 pm                              Who can enter · N editions; "Next: Mon 2 Nov" (or "Last: …",
-   21+ · 4 editions                                            "No dates yet"); a follow star per series
-   Next: Mon 2 Nov
+   Riverbend · Second Thursday, 7:30 pm                        Who can enter · N editions; "Next: Thu 12 Nov" (or "Last: …",
+   18+ · 4 editions                                            "No dates yet"); a follow star per series
+   Next: Thu 12 Nov
    One-time events: Riverbend Spring Open · Sat 12 Dec ☆      upcoming one-time events, one card each
 Past                                                           year chips; newest year open, 5 lines + "Show all 2026 (N)"
 ```
@@ -277,7 +277,7 @@ once it lists an organization - while it lists none it is `noindex` and left out
 The series, edition and event pages gain a **byline** under the H1 (each part only when it has something):
 "Organized by **Riverbend Jigsaw Association**" (a link; publicly visible organizations only - its team also sees it
 while it is not, with one "Not public" tag) · "Who can enter: Residents of Riverbend Valley" (an edition's own, else its
-series') · on the series page "When it happens: Once a month, 7 pm". Crumbs follow P20 with the same rule as the
+series') · on the series page "When it happens: Second Thursday of the month, 7:30 pm". Crumbs follow P20 with the same rule as the
 byline (public, or the viewer is on the organization's team). No extra statement: the organization rides on the
 statement each page runs anyway; the voter is asked only for a non-public organization.
 

@@ -173,8 +173,8 @@ final class RestructureWalkThroughInternalApiTest extends WebTestCase
 
         // --- 2. Two in-person series under the organization - approved at once (the reviewer is an admin) ----------
 
-        $breweryNights = $this->createSeries($browser, $organizationId, 'Copper Kettle Puzzle Night', 'Copper Kettle Brewing, Millbrook', 'First Monday of the month, 7 pm');
-        $pubPuzzles = $this->createSeries($browser, $organizationId, 'Old Mill Pub Puzzle', 'Old Mill Taproom, Millbrook', 'Last Tuesday of the month, 6:30 pm');
+        $breweryNights = $this->createSeries($browser, $organizationId, 'Copper Kettle Puzzle Night', 'Copper Kettle Brewing, Millbrook', 'Second Thursday of the month, 7:30 pm');
+        $pubPuzzles = $this->createSeries($browser, $organizationId, 'Old Mill Pub Puzzle', 'Old Mill Taproom, Millbrook', 'Every other Sunday, 2 pm');
 
         // --- 3. An edition with a round -------------------------------------------------------------------------------
 
@@ -186,13 +186,13 @@ final class RestructureWalkThroughInternalApiTest extends WebTestCase
             'resultsLink' => 'https://quarry-hollow.example/results/november',
             'link' => 'https://quarry-hollow.example/nights',
             'description' => 'A casual night.',
-            'eligibility' => '21+',
+            'eligibility' => '18+',
         ]);
         self::assertResponseStatusCodeSame(201);
         self::assertSame('copper-kettle-puzzle-night-november', $firstNight['slug']);
         self::assertSame('approved', $firstNight['status']);
         self::assertTrue($firstNight['publiclyVisible']);
-        self::assertSame('21+', $firstNight['eligibility']);
+        self::assertSame('18+', $firstNight['eligibility']);
         self::assertSame('Copper Kettle Brewing, Millbrook', $firstNight['location']);
         self::assertIsArray($firstNight['series']);
         self::assertSame($organizationId, $firstNight['series']['organizationId']);
@@ -357,7 +357,7 @@ final class RestructureWalkThroughInternalApiTest extends WebTestCase
             'location' => $location,
             'locationCountryCode' => 'us',
             'link' => 'https://quarry-hollow.example/nights',
-            'eligibility' => '21+',
+            'eligibility' => '18+',
             'schedule' => $schedule,
             'description' => 'Casual puzzle nights - no results kept.',
         ]);
@@ -366,7 +366,7 @@ final class RestructureWalkThroughInternalApiTest extends WebTestCase
         self::assertTrue($series['publiclyVisible']);
         self::assertSame($organizationId, $series['organizationId']);
         self::assertSame($schedule, $series['schedule']);
-        self::assertSame('21+', $series['eligibility']);
+        self::assertSame('18+', $series['eligibility']);
         self::assertSame([], $series['editions']);
 
         return self::string($series['seriesId']);

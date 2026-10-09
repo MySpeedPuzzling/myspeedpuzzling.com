@@ -18,6 +18,26 @@ use SpeedPuzzling\Web\Value\SocialLinks;
  */
 final class OrganizationTest extends TestCase
 {
+    public function testCopiedTextsFitTheOrganizationsLimits(): void
+    {
+        self::assertNull(Organization::fittedAbout(null));
+        self::assertNull(Organization::fittedAbout('   '));
+        self::assertSame('Puzzle evenings by the lake.', Organization::fittedAbout(' Puzzle evenings by the lake. '));
+
+        // Cut at a word, with an ellipsis, never over the limit
+        $long = Organization::fittedAbout(str_repeat('lantern ', 1000));
+        self::assertNotNull($long);
+        self::assertLessThanOrEqual(Organization::ABOUT_MAX_LENGTH, mb_strlen($long));
+        self::assertStringEndsWith('lantern…', $long);
+
+        self::assertSame('Riverbend Valley', Organization::fittedRegion('Riverbend Valley'));
+        self::assertNull(Organization::fittedRegion(str_repeat('a', Organization::REGION_MAX_LENGTH + 1)), 'too long - none, never cut');
+
+        self::assertSame('https://riverbend.example', Organization::fittedWebsite('https://riverbend.example'));
+        self::assertNull(Organization::fittedWebsite('riverbend.example'));
+        self::assertNull(Organization::fittedWebsite('https://riverbend.example/' . str_repeat('a', 250)));
+    }
+
     public function testTheTeamIsTheCreatorAndTheMaintainers(): void
     {
         $creator = self::player('creator');

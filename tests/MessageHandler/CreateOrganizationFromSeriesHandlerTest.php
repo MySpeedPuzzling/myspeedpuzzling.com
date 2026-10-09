@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\OrganizationSlugTaken;
@@ -147,6 +148,34 @@ final class CreateOrganizationFromSeriesHandlerTest extends KernelTestCase
         self::assertSame('puzzle-meetup-prague', $series->slug);
         self::assertTrue($series->isApproved());
         self::assertNull(self::getContainer()->get(GetEventUrlRedirect::class)->target(EventUrlPath::series('puzzle-meetup-prague')));
+    }
+
+    public function testCopiedFieldsFitTheOrganizationsLimits(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE competition_series SET description = :description WHERE id = :id',
+            ['description' => str_repeat('Monthly online jigsaw contest. ', 300), 'id' => CompetitionSeriesFixture::SERIES_EJJ],
+        );
+        $organizationId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new CreateOrganizationFromSeries(
+            seriesId: CompetitionSeriesFixture::SERIES_EJJ,
+            organizationId: $organizationId,
+            actingPlayerId: PlayerFixture::PLAYER_ADMIN,
+            name: 'Euro Jigsaw Jam Association',
+            shortName: null,
+            slug: null,
+            kind: null,
+            countryCode: null,
+            region: null,
+            approve: true,
+        ));
+        $this->clearEntityManager();
+
+        $about = self::getContainer()->get(OrganizationRepository::class)->get($organizationId->toString())->about;
+        self::assertNotNull($about);
+        self::assertLessThanOrEqual(Organization::ABOUT_MAX_LENGTH, mb_strlen($about));
+        self::assertStringEndsWith('…', $about);
     }
 
     public function testAPendingSeriesUnderTheApprovedOrganizationIsApproved(): void

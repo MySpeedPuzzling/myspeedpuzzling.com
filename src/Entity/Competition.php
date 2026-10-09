@@ -130,7 +130,7 @@ class Competition
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(options: ['default' => false])]
         public bool $isDraft = false,
-        // "Who can enter" ("Residents of the state", "21+") - an edition without its own shows its series' -
+        // "Who can enter" ("Members of the club", "18+") - an edition without its own shows its series' -
         // changeEligibility()
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 120, nullable: true)]

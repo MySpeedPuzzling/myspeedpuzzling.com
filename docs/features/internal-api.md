@@ -298,7 +298,7 @@ is no JSON object (`{"error": "The body must be a JSON object."}`). Every invali
 | `slug` | See above |
 | `maintainerIds` | Player ids who may manage the event - a list replaces the whole list, `[]` removes everyone, left out or `null` keeps it |
 | `approve` | Create only: `true` approves right away (no "approved" e-mail - the reviewer player is the creator, `ApproveCompetition::$notifyCreator = false`). Not needed under an approved organization - it is approved at once there |
-| `eligibility` | "Who can enter" (≤ 120 characters, `"21+"`, `"Residents of the state"`) - an edition without its own shows its series' |
+| `eligibility` | "Who can enter" (≤ 120 characters, `"18+"`, `"Members of the club"`) - an edition without its own shows its series' |
 | `organizationId` | A one-time event's organization: on create it is created under it (approved at once when the organization is approved - the reviewer player is an admin, `OrganizationApprovalPolicy`), on `PATCH` it moves into it or out of it (`null`, `AssignEventToOrganization`). An edition refuses one (`409` - it is its series'). An unknown id is a `400`; `403` when the reviewer player is neither an admin nor on the organization's team |
 | `draft` | Create: `true` creates a draft (only its team sees it). `PATCH`: `false` publishes, `true` takes it back to draft - `409` while somebody joined it or official results / solving times are linked to it (checked before anything of the `PATCH` is written) |
 
@@ -691,7 +691,7 @@ list answers `{"total", "limit", "offset", "organizations": [...]}` without `mai
 | `isOnline` | `false` by default; `true` clears `location` |
 | `location`, `locationCountryCode` | An in-person series needs a location; editions take the series' place when they are created |
 | `eligibility` | "Who can enter", ≤ 120 characters - shown by editions without their own |
-| `schedule` | "When it happens", ≤ 160 characters ("First Monday of the month, 7 pm") - free text, each date is still its own edition |
+| `schedule` | "When it happens", ≤ 160 characters ("Second Thursday of the month, 7:30 pm") - free text, each date is still its own edition |
 | `slug`, `maintainerIds` | As for competitions |
 | `organizationId` | Create: under that organization; `PATCH`: moves it (`null` = out). An unknown id is a `400` |
 | `draft`, `approve` | See Drafts and Approval (`approve` on create only) |
@@ -783,17 +783,17 @@ curl -X PATCH "$API/organizations/019a0000-0000-7000-8000-000000000002" -H "$AUT
 curl -X POST "$API/series" -H "$AUTH" -H "$JSON" -d '{
   "name": "Copper Kettle Puzzle Night", "organizationId": "019a0000-0000-7000-8000-000000000002",
   "isOnline": false, "location": "Copper Kettle Brewing, Millbrook", "locationCountryCode": "us",
-  "link": "https://quarry-hollow.example/nights", "eligibility": "21+",
-  "schedule": "First Monday of the month, 7 pm", "description": "Casual puzzle nights - no results kept."
+  "link": "https://quarry-hollow.example/nights", "eligibility": "18+",
+  "schedule": "Second Thursday of the month, 7:30 pm", "description": "Casual puzzle nights - no results kept."
 }'
 
 # 3. An edition with a round
 curl -X POST "$API/series/019a0000-0000-7000-8000-000000000003/editions" -H "$AUTH" -H "$JSON" -d '{
-  "name": "Copper Kettle Puzzle Night - November", "dateFrom": "2026-11-02", "dateTo": "2026-11-02",
-  "registrationLink": "https://quarry-hollow.example/register/november", "eligibility": "21+"
+  "name": "Copper Kettle Puzzle Night - November", "dateFrom": "2026-11-12", "dateTo": "2026-11-12",
+  "registrationLink": "https://quarry-hollow.example/register/november", "eligibility": "18+"
 }'
 curl -X POST "$API/competitions/019a0000-0000-7000-8000-000000000004/rounds" -H "$AUTH" -H "$JSON" \
-  -d '{"name": "Night Round", "startsAt": "2026-11-02T19:00", "timezone": "America/New_York", "minutesLimit": 60}'
+  -d '{"name": "Night Round", "startsAt": "2026-11-12T19:30", "timezone": "America/New_York", "minutesLimit": 60}'
 
 # 4. A round without a puzzle gets the puzzle of the results linked to the edition only - they join the round -
 #    then the round moves to its own edition, its results with it

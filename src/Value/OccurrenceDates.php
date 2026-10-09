@@ -26,7 +26,7 @@ use DateTimeZone;
  *
  * Its days are days in its own zone (`zone`: the zone of its first round, else of the event's / series' country, else
  * the assumed one - exactly the zone that dates its rounds), so status() compares them with today in that zone: a
- * 6:45 pm Eastern round stays live after midnight UTC, an Auckland event is live while UTC still says yesterday.
+ * 7:30 pm Eastern round stays live after midnight UTC, an Auckland event is live while UTC still says yesterday.
  */
 readonly final class OccurrenceDates
 {

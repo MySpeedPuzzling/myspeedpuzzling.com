@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\EventSubscriber\InternalApiAuditSubscriber;
 use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
 use SpeedPuzzling\Web\Query\GetAdminOrganizations;
@@ -94,7 +95,7 @@ final class CreateOrganizationFromSeriesController extends AbstractController
 
         // Left out = the series' own; sent as null = none
         $organizationCountry = $input->has('countryCode') ? $country?->name : $series->locationCountryCode;
-        $organizationRegion = $input->has('region') ? $region : $series->location;
+        $organizationRegion = $input->has('region') ? $region : Organization::fittedRegion($series->location);
 
         $input->throwIfInvalid();
         assert($name !== null);

@@ -7868,10 +7868,10 @@ organizer_tools:
         organization_not_managed: "Sie gehören nicht mehr zum Team dieser Organisation – wählen Sie eine andere."
         edition_organization: "%name% – die Organisation ihrer Serie"
         eligibility: "Wer teilnehmen kann"
-        eligibility_help: "Leer lassen, wenn jeder teilnehmen kann. Wird als Label angezeigt, z.B. „Einwohner des Bundesstaates“, „ab 21“."
+        eligibility_help: "Leer lassen, wenn jeder teilnehmen kann. Wird als Label angezeigt, z.B. „Mitglieder des Vereins“, „ab 18“."
         eligibility_edition_help: "Leer lassen, um die Einstellung der Serie zu übernehmen."
         schedule: "Wann es stattfindet"
-        schedule_help: "Bei einer Serie z.B. „Dritter Mittwoch im Monat, 18:45 Uhr“ – jeder Termin bleibt eine eigene Ausgabe."
+        schedule_help: "Bei einer Serie z.B. „Vierter Freitag im Monat, 20 Uhr“ – jeder Termin bleibt eine eigene Ausgabe."
         save_draft: "Als Entwurf speichern"
         save_draft_help: "Einen Entwurf sehen nur Sie und Ihr Team – veröffentlichen Sie ihn, wenn er fertig ist."
     flash:
@@ -7882,7 +7882,7 @@ organizer_tools:
     add_editions:
         title: "Mehrere Termine hinzufügen"
         link: "Mehrere Termine auf einmal hinzufügen"
-        link_hint: "– jede Woche, den ersten Montag oder den letzten Dienstag im Monat … oder Termine Ihrer Wahl."
+        link_hint: "– jede Woche, den zweiten Donnerstag oder den letzten Freitag im Monat … oder Termine Ihrer Wahl."
         intro: "Jeder Termin wird zu einer eigenen Ausgabe. Nichts wiederholt sich von selbst: Wenn ein Termin verschoben wird, bearbeiten Sie genau diese eine Ausgabe."
         how: "Wie"
         how_repeat: "Wiederholen"

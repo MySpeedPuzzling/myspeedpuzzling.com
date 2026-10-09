@@ -740,12 +740,12 @@ final class CompetitionsInternalApiTest extends WebTestCase
 
         $in = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED, [
             'organizationId' => OrganizationFixture::ORGANIZATION_RIVERBEND,
-            'eligibility' => '21+',
+            'eligibility' => '18+',
         ]);
         self::assertResponseIsSuccessful();
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $in['organizationId']);
         self::assertSame('approved', $in['status']);
-        self::assertSame('21+', $in['eligibility']);
+        self::assertSame('18+', $in['eligibility']);
 
         $out = self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED, [
             'organizationId' => null,
@@ -760,6 +760,25 @@ final class CompetitionsInternalApiTest extends WebTestCase
         ]);
         self::assertResponseStatusCodeSame(409);
         self::assertSame('Lantern Night One', self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . OrganizationFixture::EDITION_LANTERN_1)['name']);
+    }
+
+    public function testAnEditionFollowsTheApprovalStateOfItsSeries(): void
+    {
+        $browser = self::createClient();
+
+        self::assertSame('pending', self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . OrganizationFixture::EDITION_MAPLE_PENDING_1)['status']);
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition_series SET rejected_at = NOW(), rejection_reason = 'A duplicate.' WHERE id = :id",
+            ['id' => OrganizationFixture::SERIES_MAPLE_PENDING],
+        );
+
+        self::assertSame('rejected', self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . OrganizationFixture::EDITION_MAPLE_PENDING_1)['status']);
+
+        $rejected = array_column(self::list(self::callInternalApi($browser, 'GET', '/internal-api/competitions?status=rejected&limit=100')['competitions']), 'competitionId');
+        self::assertContains(OrganizationFixture::EDITION_MAPLE_PENDING_1, $rejected);
+        $pending = array_column(self::list(self::callInternalApi($browser, 'GET', '/internal-api/competitions?status=pending&limit=100')['competitions']), 'competitionId');
+        self::assertNotContains(OrganizationFixture::EDITION_MAPLE_PENDING_1, $pending);
     }
 
     public function testAnOrganizationTheReviewerCannotManageIsRefusedBeforeAnythingIsSaved(): void

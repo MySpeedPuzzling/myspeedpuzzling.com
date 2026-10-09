@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
@@ -122,6 +123,17 @@ final class MovesInternalApiTest extends WebTestCase
 
         self::callInternalApi($browser, 'POST', '/internal-api/series/' . CompetitionSeriesFixture::SERIES_OFFLINE . '/create-organization', ['name' => 'Twice']);
         self::assertResponseStatusCodeSame(409);
+
+        // A location too long for a region is left out, never cut
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition_series SET location = :location WHERE id = :id',
+            ['location' => str_repeat('Long Valley ', 15), 'id' => CompetitionSeriesFixture::SERIES_UNAPPROVED],
+        );
+        $longPlace = self::callInternalApi($browser, 'POST', '/internal-api/series/' . CompetitionSeriesFixture::SERIES_UNAPPROVED . '/create-organization', [
+            'name' => 'Long Valley Puzzlers',
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        self::assertNull($longPlace['region']);
 
         // Sent as null = none (left out = the series' own, above)
         $without = self::callInternalApi($browser, 'POST', '/internal-api/series/' . CompetitionSeriesFixture::SERIES_EJJ . '/create-organization', [

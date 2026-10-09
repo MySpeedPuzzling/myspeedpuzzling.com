@@ -7869,10 +7869,10 @@ organizer_tools:
         organization_not_managed: "Ya no formas parte del equipo de esta organización: elige otra."
         edition_organization: "%name%: la organización de su serie"
         eligibility: "Quién puede participar"
-        eligibility_help: "Déjalo vacío si puede participar cualquiera. Se muestra como etiqueta, p.ej. «Residentes del estado», «Mayores de 21»."
+        eligibility_help: "Déjalo vacío si puede participar cualquiera. Se muestra como etiqueta, p.ej. «Socios del club», «Mayores de 18»."
         eligibility_edition_help: "Déjalo vacío para usar el ajuste de la serie."
         schedule: "Cuándo se celebra"
-        schedule_help: "Para una serie, p.ej. «El tercer miércoles del mes, 18:45»: cada fecha sigue siendo una edición propia."
+        schedule_help: "Para una serie, p.ej. «El cuarto viernes del mes, 20:00»: cada fecha sigue siendo una edición propia."
         save_draft: "Guardar como borrador"
         save_draft_help: "Solo tú y tu equipo pueden ver un borrador: publícalo cuando esté listo."
     flash:
@@ -7883,7 +7883,7 @@ organizer_tools:
     add_editions:
         title: "Añadir varias fechas"
         link: "Añadir varias fechas a la vez"
-        link_hint: "– cada semana, el primer lunes o el último martes del mes… o las fechas que elijas."
+        link_hint: "– cada semana, el segundo jueves o el último viernes del mes… o las fechas que elijas."
         intro: "Cada fecha se convierte en una edición propia. Nada se repite solo: si una sede cambia una fecha, edita esa edición."
         how: "Cómo"
         how_repeat: "Repetir"

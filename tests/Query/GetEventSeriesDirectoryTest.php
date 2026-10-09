@@ -75,8 +75,8 @@ final class GetEventSeriesDirectoryTest extends KernelTestCase
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_NAME, $lantern->organization->name);
         self::assertSame('RJA', $lantern->organization->shortName);
         self::assertTrue($lantern->organization->isPublic);
-        self::assertSame('21+', $lantern->eligibility);
-        self::assertSame('First Monday of the month, 7 pm', $lantern->schedule);
+        self::assertSame('18+', $lantern->eligibility);
+        self::assertSame('Second Thursday of the month, 7:30 pm', $lantern->schedule);
         self::assertFalse($lantern->isDraft);
         self::assertSame(CountryCode::us, $lantern->countryCode);
 

@@ -59,6 +59,8 @@ readonly final class AdminCompetition
         public int $resultsWithoutRoundCount = 0,
         // Participants who joined (not removed)
         public int $participantsCount = 0,
+        // An edition's series rejected - the edition is rejected with it
+        public bool $seriesRejected = false,
     ) {
     }
 
@@ -83,6 +85,7 @@ readonly final class AdminCompetition
      *     series_slug: null|string,
      *     series_organization_id: null|string,
      *     series_is_draft: null|bool,
+     *     series_rejected_at?: null|string,
      *     organization_id: null|string,
      *     organization_name: null|string,
      *     organization_slug: null|string,
@@ -148,6 +151,7 @@ readonly final class AdminCompetition
             resultsCount: $row['results_count'],
             resultsWithoutRoundCount: $row['results_without_round_count'],
             participantsCount: $row['participants_count'],
+            seriesRejected: ($row['series_rejected_at'] ?? null) !== null,
         );
     }
 
@@ -178,7 +182,8 @@ readonly final class AdminCompetition
      */
     public function status(): string
     {
-        if ($this->rejectedAt !== null) {
+        // An edition follows its series: rejected with it, pending while it waits (`approved` reads the series)
+        if ($this->rejectedAt !== null || $this->seriesRejected) {
             return 'rejected';
         }
 

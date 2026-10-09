@@ -8221,10 +8221,10 @@ organizer_tools:
         organization_not_managed: "You are not on this organization's team any more - choose another one."
         edition_organization: "%name% - the organization of its series"
         eligibility: "Who can enter"
-        eligibility_help: "Leave empty when anyone can enter. Shown as a tag, e.g. “Residents of the state”, “21+”."
+        eligibility_help: "Leave empty when anyone can enter. Shown as a tag, e.g. “Members of the club”, “18+”."
         eligibility_edition_help: "Leave empty to use the series' setting."
         schedule: "When it happens"
-        schedule_help: "For a series, e.g. “Third Wednesday of the month, 6:45 pm” - each date is still its own edition."
+        schedule_help: "For a series, e.g. “Fourth Friday of the month, 8 pm” - each date is still its own edition."
         save_draft: "Save as draft"
         save_draft_help: "A draft is seen only by you and your team - publish it when it is ready."
     flash:
@@ -8235,7 +8235,7 @@ organizer_tools:
     add_editions:
         title: "Add several dates"
         link: "Add several dates at once"
-        link_hint: "- every week, the first Monday or the last Tuesday of the month… or dates you pick."
+        link_hint: "- every week, the second Thursday or the last Friday of the month… or dates you pick."
         intro: "Each date becomes an edition of its own. Nothing repeats by itself: when a venue moves a date, edit that one edition."
         how: "How"
         how_repeat: "Repeat"

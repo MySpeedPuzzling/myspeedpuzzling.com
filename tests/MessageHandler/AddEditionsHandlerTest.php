@@ -44,7 +44,7 @@ final class AddEditionsHandlerTest extends KernelTestCase
                 new NewEdition($first, 'Lantern Night 2 March', new DateTimeImmutable('2030-03-04 19:00', $evening)),
                 new NewEdition($second, 'Lantern Night 1 April', new DateTimeImmutable('2030-04-01 23:30', $evening)),
             ],
-            eligibility: ' 21+ ',
+            eligibility: ' 18+ ',
         ));
 
         $edition = $this->competitionRepository->get($first->toString());
@@ -57,7 +57,7 @@ final class AddEditionsHandlerTest extends KernelTestCase
         self::assertSame('Riverbend', $edition->location);
         self::assertSame('us', $edition->locationCountryCode);
         self::assertFalse($edition->isOnline);
-        self::assertSame('21+', $edition->eligibility);
+        self::assertSame('18+', $edition->eligibility);
         self::assertFalse($edition->isDraft);
         // An edition never has its own organization - it is its series'
         self::assertNull($edition->organization);

@@ -28,8 +28,8 @@ final class EligibilityScheduleTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         $byline = $crawler->filter('.ev-detail-header .ev-detail-byline');
-        self::assertSame('Who can enter: 21+', $byline->filter('[data-eligibility]')->text());
-        self::assertSame('When it happens: First Monday of the month, 7 pm', $byline->filter('[data-schedule]')->text());
+        self::assertSame('Who can enter: 18+', $byline->filter('[data-eligibility]')->text());
+        self::assertSame('When it happens: Second Thursday of the month, 7:30 pm', $byline->filter('[data-schedule]')->text());
     }
 
     public function testAnEditionShowsItsOwnElseItsSeries(): void
@@ -39,18 +39,18 @@ final class EligibilityScheduleTest extends WebTestCase
 
         $crawler = $browser->request('GET', $url);
         self::assertResponseIsSuccessful();
-        self::assertSame('Who can enter: 21+', $crawler->filter('.ev-detail-byline [data-eligibility]')->text());
+        self::assertSame('Who can enter: 18+', $crawler->filter('.ev-detail-byline [data-eligibility]')->text());
         // "When it happens" belongs to the series page
         self::assertCount(0, $crawler->filter('[data-schedule]'));
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $browser->request('GET', '/en/edit-event/' . OrganizationFixture::EDITION_LANTERN_1);
         self::assertSelectorTextContains('form', "Leave empty to use the series' setting.");
-        $browser->submitForm('Save Changes', ['competition_form[eligibility]' => '21+, ID at the door']);
+        $browser->submitForm('Save Changes', ['competition_form[eligibility]' => '18+, ID at the door']);
         self::assertResponseRedirects();
 
         $crawler = $browser->request('GET', $url);
-        self::assertSame('Who can enter: 21+, ID at the door', $crawler->filter('.ev-detail-byline [data-eligibility]')->text());
+        self::assertSame('Who can enter: 18+, ID at the door', $crawler->filter('.ev-detail-byline [data-eligibility]')->text());
     }
 
     public function testTheEventPageAndTheEventsPageRows(): void
@@ -64,7 +64,7 @@ final class EligibilityScheduleTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/events');
         $tags = $crawler->filter('.ev-tag-eligibility')->each(static fn (Crawler $tag): string => trim($tag->text()));
         self::assertContains('Who can enter: Residents of Riverbend Valley', $tags);
-        self::assertContains('Who can enter: 21+', $tags);
+        self::assertContains('Who can enter: 18+', $tags);
     }
 
     public function testNothingToShowNoByline(): void
@@ -82,19 +82,19 @@ final class EligibilityScheduleTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $crawler = $browser->request('GET', '/en/edit-series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS);
-        self::assertSame('21+', $crawler->filter('input[name="competition_form[eligibility]"]')->attr('value'));
-        self::assertSame('First Monday of the month, 7 pm', $crawler->filter('input[name="competition_form[schedule]"]')->attr('value'));
+        self::assertSame('18+', $crawler->filter('input[name="competition_form[eligibility]"]')->attr('value'));
+        self::assertSame('Second Thursday of the month, 7:30 pm', $crawler->filter('input[name="competition_form[schedule]"]')->attr('value'));
 
         $browser->submitForm('Save Changes', [
             'competition_form[eligibility]' => '',
-            'competition_form[schedule]' => 'First Monday of the month, 6:30 pm',
+            'competition_form[schedule]' => 'Second Thursday of the month, 8 pm',
         ]);
         self::assertResponseRedirects();
 
         /** @var array{eligibility: null|string, schedule: null|string} $row */
         $row = $this->connection()->fetchAssociative('SELECT eligibility, schedule FROM competition_series WHERE id = ?', [OrganizationFixture::SERIES_LANTERN_NIGHTS]);
         self::assertNull($row['eligibility']);
-        self::assertSame('First Monday of the month, 6:30 pm', $row['schedule']);
+        self::assertSame('Second Thursday of the month, 8 pm', $row['schedule']);
     }
 
     public function testTooLongIsAFormError(): void
@@ -145,14 +145,14 @@ final class EligibilityScheduleTest extends WebTestCase
             'edition_form[name]' => 'Lantern Night Halloween',
             'edition_form[dateFrom]' => '30.10.2027',
             'edition_form[dateTo]' => '30.10.2027',
-            'edition_form[eligibility]' => '21+, costumes welcome',
+            'edition_form[eligibility]' => '18+, costumes welcome',
         ]);
         self::assertResponseRedirects('/en/manage-series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS);
         self::assertQueuedEmailCount(0);
 
         /** @var array{eligibility: null|string, is_draft: bool} $row */
         $row = $this->connection()->fetchAssociative('SELECT eligibility, is_draft FROM competition WHERE name = ?', ['Lantern Night Halloween']);
-        self::assertSame('21+, costumes welcome', $row['eligibility']);
+        self::assertSame('18+, costumes welcome', $row['eligibility']);
         self::assertTrue($row['is_draft']);
 
         $browser->followRedirect();

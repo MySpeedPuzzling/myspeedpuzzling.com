@@ -256,7 +256,7 @@ final class GetEventOccurrencesTest extends KernelTestCase
         self::assertSame('RJA', $lantern->organization->shortName);
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG, $lantern->organization->slug);
         self::assertTrue($lantern->organization->isPublic);
-        self::assertSame('21+', $lantern->eligibility, 'the series\' eligibility');
+        self::assertSame('18+', $lantern->eligibility, 'the series\' eligibility');
         self::assertFalse($lantern->isDraft);
 
         $open = $occurrences[OrganizationFixture::COMPETITION_RIVERBEND_OPEN];
@@ -287,7 +287,7 @@ final class GetEventOccurrencesTest extends KernelTestCase
         $occurrences = $this->byId($this->query->all(false));
 
         self::assertSame('Members only', $occurrences[OrganizationFixture::EDITION_LANTERN_2]->eligibility);
-        self::assertSame('21+', $occurrences[OrganizationFixture::EDITION_LANTERN_1]->eligibility);
+        self::assertSame('18+', $occurrences[OrganizationFixture::EDITION_LANTERN_1]->eligibility);
     }
 
     /**

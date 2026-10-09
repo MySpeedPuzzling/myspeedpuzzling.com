@@ -105,8 +105,9 @@ readonly final class CreateOrganizationFromSeriesHandler
             createdAt: $now,
             shortName: $message->shortName,
             logo: $series->logo,
-            about: $series->description,
-            website: $series->link,
+            // Within the organization's limits, so a later edit never fails on what was copied
+            about: Organization::fittedAbout($series->description),
+            website: Organization::fittedWebsite($series->link),
             links: new SocialLinks([]),
             countryCode: $message->countryCode,
             region: $message->region,

@@ -45,6 +45,7 @@ cs.name AS series_name,
 cs.slug AS series_slug,
 cs.organization_id AS series_organization_id,
 cs.is_draft AS series_is_draft,
+cs.rejected_at AS series_rejected_at,
 c.organization_id,
 o.name AS organization_name,
 o.slug AS organization_slug,
@@ -455,8 +456,9 @@ SQL;
         $notDraft = IsCompetitionPubliclyVisible::SQL_NOT_DRAFT;
         $conditions[] = match ($status) {
             'approved' => $approved,
-            'pending' => "(c.rejected_at IS NULL AND NOT {$approved})",
-            'rejected' => 'c.rejected_at IS NOT NULL',
+            // An edition is rejected with its series
+            'pending' => "(c.rejected_at IS NULL AND cs.rejected_at IS NULL AND NOT {$approved})",
+            'rejected' => '(c.rejected_at IS NOT NULL OR cs.rejected_at IS NOT NULL)',
             'draft' => "(NOT {$notDraft})",
             default => 'TRUE',
         };
@@ -490,6 +492,7 @@ SQL;
          *     series_slug: null|string,
          *     series_organization_id: null|string,
          *     series_is_draft: null|bool,
+         *     series_rejected_at: null|string,
          *     organization_id: null|string,
          *     organization_name: null|string,
          *     organization_slug: null|string,

@@ -7866,10 +7866,10 @@ organizer_tools:
         organization_not_managed: "V týmu této organizace už nejste – zvolte jinou."
         edition_organization: "%name% – organizace její série"
         eligibility: "Kdo se může zúčastnit"
-        eligibility_help: "Nechte prázdné, pokud se může zúčastnit kdokoli. Zobrazí se jako štítek, např. „Obyvatelé státu“, „21+“."
+        eligibility_help: "Nechte prázdné, pokud se může zúčastnit kdokoli. Zobrazí se jako štítek, např. „Členové klubu“, „18+“."
         eligibility_edition_help: "Nechte prázdné, aby se použilo nastavení série."
         schedule: "Kdy se koná"
-        schedule_help: "U série např. „Třetí středa v měsíci, 18:45“ – každý termín je přesto samostatná edice."
+        schedule_help: "U série např. „Čtvrtý pátek v měsíci, 20:00“ – každý termín je přesto samostatná edice."
         save_draft: "Uložit jako koncept"
         save_draft_help: "Koncept vidíte jen vy a váš tým – zveřejněte ho, až bude hotový."
     flash:
@@ -7880,7 +7880,7 @@ organizer_tools:
     add_editions:
         title: "Přidat více termínů"
         link: "Přidat více termínů najednou"
-        link_hint: "– každý týden, první pondělí nebo poslední úterý v měsíci… nebo termíny, které si vyberete."
+        link_hint: "– každý týden, druhý čtvrtek nebo poslední pátek v měsíci… nebo termíny, které si vyberete."
         intro: "Každý termín se stane samostatnou edicí. Nic se samo neopakuje: když se termín posune, upravte právě tu jednu edici."
         how: "Jak"
         how_repeat: "Opakovat"

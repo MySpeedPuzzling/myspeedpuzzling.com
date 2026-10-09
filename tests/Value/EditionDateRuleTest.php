@@ -29,17 +29,17 @@ final class EditionDateRuleTest extends TestCase
         yield 'weekly: Sunday' => [EditionDateRuleKind::Weekly, 7, '2026-10-05', 1, 1, ['2026-10-11']];
         yield 'weekly over the new year' => [EditionDateRuleKind::Weekly, 4, '2026-12-20', 3, 1, ['2026-12-24', '2026-12-31', '2027-01-07']];
 
-        // First Monday of the month
-        yield 'first Monday, starting on one' => [EditionDateRuleKind::NthWeekday, 1, '2026-10-05', 3, 1, ['2026-10-05', '2026-11-02', '2026-12-07']];
-        yield 'first Monday, starting after this month\'s' => [EditionDateRuleKind::NthWeekday, 1, '2026-10-06', 2, 1, ['2026-11-02', '2026-12-07']];
+        // First Saturday of the month
+        yield 'first Saturday, starting on one' => [EditionDateRuleKind::NthWeekday, 6, '2026-10-03', 3, 1, ['2026-10-03', '2026-11-07', '2026-12-05']];
+        yield 'first Saturday, starting after this month\'s' => [EditionDateRuleKind::NthWeekday, 6, '2026-10-04', 2, 1, ['2026-11-07', '2026-12-05']];
         yield 'second Tuesday' => [EditionDateRuleKind::NthWeekday, 2, '2026-10-01', 2, 2, ['2026-10-13', '2026-11-10']];
-        yield 'third Wednesday over the new year' => [EditionDateRuleKind::NthWeekday, 3, '2026-12-01', 3, 3, ['2026-12-16', '2027-01-20', '2027-02-17']];
+        yield 'third Sunday over the new year' => [EditionDateRuleKind::NthWeekday, 7, '2026-12-01', 3, 3, ['2026-12-20', '2027-01-17', '2027-02-21']];
         // A month starting on the weekday itself; the 4th always exists
         yield 'fourth Thursday' => [EditionDateRuleKind::NthWeekday, 4, '2026-10-01', 2, 4, ['2026-10-22', '2026-11-26']];
 
-        // Last Tuesday: October 2026 has 5 Tuesdays (27th), February 2027 four
-        yield 'last Tuesday' => [EditionDateRuleKind::LastWeekday, 2, '2026-10-01', 6, 1, ['2026-10-27', '2026-11-24', '2026-12-29', '2027-01-26', '2027-02-23', '2027-03-30']];
-        yield 'last Tuesday, starting after this month\'s' => [EditionDateRuleKind::LastWeekday, 2, '2026-10-28', 1, 1, ['2026-11-24']];
+        // Last Thursday: October 2026 has 5 Thursdays (29th), February 2027 four
+        yield 'last Thursday' => [EditionDateRuleKind::LastWeekday, 4, '2026-10-01', 6, 1, ['2026-10-29', '2026-11-26', '2026-12-31', '2027-01-28', '2027-02-25', '2027-03-25']];
+        yield 'last Thursday, starting after this month\'s' => [EditionDateRuleKind::LastWeekday, 4, '2026-10-30', 1, 1, ['2026-11-26']];
         yield 'last Sunday on the last day of the month' => [EditionDateRuleKind::LastWeekday, 7, '2026-05-01', 1, 1, ['2026-05-31']];
         yield 'last Friday of a leap February' => [EditionDateRuleKind::LastWeekday, 5, '2028-02-01', 1, 1, ['2028-02-25']];
     }

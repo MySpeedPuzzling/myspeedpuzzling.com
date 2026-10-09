@@ -96,7 +96,7 @@ class CompetitionSeries
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 120, nullable: true)]
         public null|string $eligibility = null,
-        // "When it happens" ("Third Wednesday of the month, 6:45 pm") - free text, each date is still its own edition
+        // "When it happens" ("Fourth Friday of the month, 8 pm") - free text, each date is still its own edition
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 160, nullable: true)]
         public null|string $schedule = null,

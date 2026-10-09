@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormData;
 
 use SpeedPuzzling\Web\Entity\CompetitionSeries;
+use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Value\OrganizationKind;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -40,7 +41,7 @@ final class CreateOrganizationFromSeriesFormData
         return new self(
             name: $series->name,
             countryCode: $series->locationCountryCode,
-            region: $series->location,
+            region: Organization::fittedRegion($series->location),
             newSeriesName: $series->name,
             newSeriesSlug: $series->slug,
         );

@@ -1403,8 +1403,8 @@ paths:
               location: Copper Kettle Brewing, Millbrook
               locationCountryCode: us
               link: https://riverbend-jigsaw.example/nights
-              eligibility: 21+
-              schedule: First Monday of the month, 7 pm
+              eligibility: 18+
+              schedule: Second Thursday of the month, 7:30 pm
               description: Casual puzzle nights - no results kept.
       responses:
         "201":
@@ -2000,7 +2000,7 @@ components:
         eligibility:
           type: [string, "null"]
           maxLength: 120
-          description: '"Who can enter" ("Residents of the state", "21+") - an edition without its own shows its series''.'
+          description: '"Who can enter" ("Members of the club", "18+") - an edition without its own shows its series''.'
         slug:
           type: string
           pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
@@ -2282,12 +2282,12 @@ components:
           type: [string, "null"]
           maxLength: 120
           description: '"Who can enter" - editions without their own show it.'
-          example: 21+
+          example: 18+
         schedule:
           type: [string, "null"]
           maxLength: 160
           description: '"When it happens" - free text; each date is still its own edition.'
-          example: First Monday of the month, 7 pm
+          example: Second Thursday of the month, 7:30 pm
         slug:
           type: string
           pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"

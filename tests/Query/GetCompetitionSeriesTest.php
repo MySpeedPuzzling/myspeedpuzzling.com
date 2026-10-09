@@ -54,8 +54,8 @@ final class GetCompetitionSeriesTest extends KernelTestCase
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_NAME, $lantern->organization->name);
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG, $lantern->organization->slug);
         self::assertTrue($lantern->organization->isPublic);
-        self::assertSame('21+', $lantern->eligibility);
-        self::assertSame('First Monday of the month, 7 pm', $lantern->schedule);
+        self::assertSame('18+', $lantern->eligibility);
+        self::assertSame('Second Thursday of the month, 7:30 pm', $lantern->schedule);
         self::assertFalse($lantern->isDraft);
         self::assertTrue($lantern->isPubliclyVisible());
         self::assertEquals($lantern, $this->query->byId(OrganizationFixture::SERIES_LANTERN_NIGHTS));

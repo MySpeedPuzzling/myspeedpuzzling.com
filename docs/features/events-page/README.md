@@ -143,7 +143,7 @@ JSON list of every round inside the same single statement).
 
 **"Today" is today in the occurrence's own zone** - the zone its days are in (`OccurrenceDates::zone()`: its first
 round's zone, else the event's or the series' country zone, else the assumed one - exactly the zone that dates its
-rounds). `status()` takes the request's instant, never a pre-computed day: a 6:45 pm Eastern contest (23:45 UTC in
+rounds). `status()` takes the request's instant, never a pre-computed day: a 7:30 pm Eastern contest (00:30 UTC in
 winter) stays live after UTC midnight, an Auckland event is live while the UTC date still says yesterday. The "Tomorrow",
 "This weekend", "In 3 days" labels and the calendar's "Today" cell count from the server's UTC date, from the
 controller's clock.

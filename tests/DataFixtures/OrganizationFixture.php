@@ -33,7 +33,7 @@ final class OrganizationFixture extends Fixture implements DependentFixtureInter
     public const string ORGANIZATION_RIVERBEND = '018d0042-0000-0000-0000-000000000001';
     public const string ORGANIZATION_RIVERBEND_NAME = 'Riverbend Jigsaw Association';
     public const string ORGANIZATION_RIVERBEND_SLUG = 'riverbend-jigsaw-association';
-    // In person (us), under Riverbend: schedule "First Monday of the month, 7 pm", eligibility "21+"
+    // In person (us), under Riverbend: schedule "Second Thursday of the month, 7:30 pm", eligibility "18+"
     public const string SERIES_LANTERN_NIGHTS = '018d0042-0000-0000-0000-000000000002';
     public const string SERIES_LANTERN_NIGHTS_NAME = 'Lantern Brewing Puzzle Night';
     public const string SERIES_LANTERN_NIGHTS_SLUG = 'lantern-brewing-puzzle-night';
@@ -44,7 +44,7 @@ final class OrganizationFixture extends Fixture implements DependentFixtureInter
     public const string EDITION_LANTERN_DRAFT = '018d0042-0000-0000-0000-000000000005';
     public const string EDITION_LANTERN_DRAFT_NAME = 'Lantern Night Special';
     public const string EDITION_LANTERN_DRAFT_SLUG = 'lantern-night-special';
-    // Online (us), under Riverbend: eligibility "Residents of Riverbend Valley", schedule "Third Wednesday…"
+    // Online (us), under Riverbend: eligibility "Residents of Riverbend Valley", schedule "Fourth Friday…"
     public const string SERIES_RIVERBEND_VIRTUAL = '018d0042-0000-0000-0000-000000000006';
     public const string SERIES_RIVERBEND_VIRTUAL_NAME = 'Riverbend Virtual Contest';
     public const string SERIES_RIVERBEND_VIRTUAL_SLUG = 'riverbend-virtual-contest';
@@ -151,7 +151,7 @@ final class OrganizationFixture extends Fixture implements DependentFixtureInter
         $manager->persist($riverbend);
         $this->addReference(self::ORGANIZATION_RIVERBEND, $riverbend);
 
-        $lantern = $this->series(self::SERIES_LANTERN_NIGHTS, self::SERIES_LANTERN_NIGHTS_NAME, self::SERIES_LANTERN_NIGHTS_SLUG, false, 'Riverbend', 'us', $stripe, $now, $admin, organization: $riverbend, eligibility: '21+', schedule: 'First Monday of the month, 7 pm');
+        $lantern = $this->series(self::SERIES_LANTERN_NIGHTS, self::SERIES_LANTERN_NIGHTS_NAME, self::SERIES_LANTERN_NIGHTS_SLUG, false, 'Riverbend', 'us', $stripe, $now, $admin, organization: $riverbend, eligibility: '18+', schedule: 'Second Thursday of the month, 7:30 pm');
         $manager->persist($lantern);
         $this->addReference(self::SERIES_LANTERN_NIGHTS, $lantern);
 
@@ -167,7 +167,7 @@ final class OrganizationFixture extends Fixture implements DependentFixtureInter
         $manager->persist($lanternDraft);
         $this->addReference(self::EDITION_LANTERN_DRAFT, $lanternDraft);
 
-        $virtual = $this->series(self::SERIES_RIVERBEND_VIRTUAL, self::SERIES_RIVERBEND_VIRTUAL_NAME, self::SERIES_RIVERBEND_VIRTUAL_SLUG, true, null, 'us', $stripe, $now, $admin, organization: $riverbend, eligibility: 'Residents of Riverbend Valley', schedule: 'Third Wednesday of the month, 6:45 pm');
+        $virtual = $this->series(self::SERIES_RIVERBEND_VIRTUAL, self::SERIES_RIVERBEND_VIRTUAL_NAME, self::SERIES_RIVERBEND_VIRTUAL_SLUG, true, null, 'us', $stripe, $now, $admin, organization: $riverbend, eligibility: 'Residents of Riverbend Valley', schedule: 'Fourth Friday of the month, 8 pm');
         $manager->persist($virtual);
         $this->addReference(self::SERIES_RIVERBEND_VIRTUAL, $virtual);
 

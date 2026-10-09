@@ -86,24 +86,24 @@ final class AddEditionsControllerTest extends WebTestCase
             'how' => 'repeat',
             'rule' => 'nth_weekday',
             'nth' => 1,
-            'weekday' => 1,
+            'weekday' => 6,
             'starting' => '01.01.2028',
             'count' => 3,
-            'namePattern' => 'First Monday Night',
+            'namePattern' => 'First Saturday Night',
             'eligibility' => 'Residents of Riverbend Valley',
         ]));
         // Without {date} the date goes at the end - every edition gets a name of its own
-        self::assertSame(['2028-01-03', '2028-02-07', '2028-03-06'], $this->checkedDays($crawler));
-        self::assertSame('First Monday Night 3 January 2028', $crawler->filter('[data-date="2028-01-03"] .ev-add-editions-name')->text());
+        self::assertSame(['2028-01-01', '2028-02-05', '2028-03-04'], $this->checkedDays($crawler));
+        self::assertSame('First Saturday Night 1 January 2028', $crawler->filter('[data-date="2028-01-01"] .ev-add-editions-name')->text());
 
         // February unchecked
-        $this->post($browser, $crawler, ['2028-01-03', '2028-03-06']);
+        $this->post($browser, $crawler, ['2028-01-01', '2028-03-04']);
 
         self::assertResponseRedirects('/en/manage-series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS);
-        $rows = $this->editionsNamed('First Monday Night%');
+        $rows = $this->editionsNamed('First Saturday Night%');
         self::assertSame([
-            ['name' => 'First Monday Night 3 January 2028', 'date_from' => '2028-01-03 00:00:00', 'date_to' => '2028-01-03 00:00:00', 'is_draft' => false, 'eligibility' => 'Residents of Riverbend Valley', 'slug' => 'first-monday-night-3-january-2028', 'location' => 'Riverbend'],
-            ['name' => 'First Monday Night 6 March 2028', 'date_from' => '2028-03-06 00:00:00', 'date_to' => '2028-03-06 00:00:00', 'is_draft' => false, 'eligibility' => 'Residents of Riverbend Valley', 'slug' => 'first-monday-night-6-march-2028', 'location' => 'Riverbend'],
+            ['name' => 'First Saturday Night 1 January 2028', 'date_from' => '2028-01-01 00:00:00', 'date_to' => '2028-01-01 00:00:00', 'is_draft' => false, 'eligibility' => 'Residents of Riverbend Valley', 'slug' => 'first-saturday-night-1-january-2028', 'location' => 'Riverbend'],
+            ['name' => 'First Saturday Night 4 March 2028', 'date_from' => '2028-03-04 00:00:00', 'date_to' => '2028-03-04 00:00:00', 'is_draft' => false, 'eligibility' => 'Residents of Riverbend Valley', 'slug' => 'first-saturday-night-4-march-2028', 'location' => 'Riverbend'],
         ], $rows);
 
         $browser->followRedirect();

@@ -54,8 +54,8 @@ final class SeriesInternalApiTest extends WebTestCase
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $answer['organizationId']);
         self::assertIsArray($answer['organization']);
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG, $answer['organization']['slug']);
-        self::assertSame('21+', $answer['eligibility']);
-        self::assertSame('First Monday of the month, 7 pm', $answer['schedule']);
+        self::assertSame('18+', $answer['eligibility']);
+        self::assertSame('Second Thursday of the month, 7:30 pm', $answer['schedule']);
         self::assertSame('approved', $answer['status']);
         self::assertFalse($answer['draft']);
         self::assertSame(3, $answer['editionsCount']);
@@ -201,14 +201,14 @@ final class SeriesInternalApiTest extends WebTestCase
             'resultsLink' => 'https://riverbend-jigsaw.example/results',
             'link' => 'https://riverbend-jigsaw.example/lantern',
             'description' => 'The December night.',
-            'eligibility' => '21+ with ID',
+            'eligibility' => '18+ with ID',
         ]);
         self::assertResponseStatusCodeSame(201);
         self::assertSame('lantern-night-three', $answer['slug']);
         self::assertSame('2026-12-07', $answer['dateFrom']);
         self::assertSame('Riverbend', $answer['location']);
         self::assertFalse($answer['isOnline']);
-        self::assertSame('21+ with ID', $answer['eligibility']);
+        self::assertSame('18+ with ID', $answer['eligibility']);
         self::assertSame('approved', $answer['status']);
         self::assertTrue($answer['publiclyVisible']);
         self::assertFalse($answer['draft']);

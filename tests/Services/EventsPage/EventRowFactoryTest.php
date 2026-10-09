@@ -157,7 +157,7 @@ final class EventRowFactoryTest extends TestCase
             seriesSlug: 'lantern-brewing-test-nights',
             startDate: self::day('2026-07-06'),
             hasRegistrationLink: true,
-            eligibility: '21+',
+            eligibility: '18+',
         );
         $factory = $this->factory();
 
@@ -166,9 +166,9 @@ final class EventRowFactoryTest extends TestCase
         $organization = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::OrganizationPage);
 
         self::assertSame([RowTagType::Recurring, RowTagType::Eligibility, RowTagType::Registration], self::tagTypes($events->tags));
-        self::assertSame('21+', $events->tags[1]->text);
+        self::assertSame('18+', $events->tags[1]->text);
         self::assertSame([RowTagType::Eligibility, RowTagType::Registration], self::tagTypes($series->tags));
-        self::assertSame('21+', $series->tags[0]->text);
+        self::assertSame('18+', $series->tags[0]->text);
         self::assertSame([RowTagType::Recurring, RowTagType::Eligibility, RowTagType::Registration], self::tagTypes($organization->tags));
 
         // A past occurrence keeps it too (the archive line has no tags, the row does)

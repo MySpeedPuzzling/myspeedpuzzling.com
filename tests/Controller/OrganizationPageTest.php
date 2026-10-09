@@ -67,7 +67,7 @@ final class OrganizationPageTest extends WebTestCase
         self::assertStringContainsString('Lantern Night One', $lanternRow->filter('.ev-row-edition')->text());
         $tags = $lanternRow->filter('.ev-tag')->each(static fn (Crawler $tag): string => $tag->text());
         self::assertContains('Recurring', $tags);
-        self::assertContains('Who can enter: 21+', $tags);
+        self::assertContains('Who can enter: 18+', $tags);
         self::assertCount(0, $lanternRow->filter('.ev-star'), 'no star on a row');
 
         // The one-time event and the online edition are rows too; the past edition is not
@@ -89,15 +89,15 @@ final class OrganizationPageTest extends WebTestCase
         $lantern = $crawler->filter('[data-org-series="' . OrganizationFixture::SERIES_LANTERN_NIGHTS . '"]');
         self::assertCount(1, $lantern);
         self::assertSame('/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG, $lantern->filter('.ev-org-card-name')->attr('href'));
-        self::assertStringContainsString('First Monday of the month, 7 pm', $lantern->filter('[data-org-schedule]')->text());
-        self::assertStringContainsString('21+', $lantern->filter('[data-org-eligibility]')->text());
+        self::assertStringContainsString('Second Thursday of the month, 7:30 pm', $lantern->filter('[data-org-schedule]')->text());
+        self::assertStringContainsString('18+', $lantern->filter('[data-org-eligibility]')->text());
         self::assertStringContainsString('2 editions', $lantern->text(), 'the draft edition is not counted for a guest');
         self::assertStringStartsWith('Next:', trim($lantern->filter('[data-org-next="next"]')->text()));
         self::assertCount(1, $lantern->filter('.ev-star'), 'a follow star per series');
 
         $virtual = $crawler->filter('[data-org-series="' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL . '"]');
         self::assertStringContainsString('Online', $virtual->text());
-        self::assertStringContainsString('Third Wednesday of the month, 6:45 pm', $virtual->text());
+        self::assertStringContainsString('Fourth Friday of the month, 8 pm', $virtual->text());
 
         // Ordered by their next date: the Lantern nights (+22 days) before the virtual contest (+30 days)
         self::assertSame(

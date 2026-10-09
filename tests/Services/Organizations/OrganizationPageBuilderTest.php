@@ -66,7 +66,7 @@ final class OrganizationPageBuilderTest extends TestCase
         self::assertSame('Lantern Nights', $row->title);
         self::assertSame('Night 2', $row->editionName);
         self::assertSame([RowTagType::Recurring, RowTagType::Eligibility], self::tagTypes($row->tags));
-        self::assertSame('21+', $row->tags[1]->text);
+        self::assertSame('18+', $row->tags[1]->text);
         self::assertNull($row->followTarget);
         self::assertSame('/series/lantern-nights/night-2', $row->url);
     }
@@ -119,7 +119,7 @@ final class OrganizationPageBuilderTest extends TestCase
     public function testSeriesCardsShowTheNextDateElseTheLastElseNone(): void
     {
         $series = [
-            $this->series(self::SERIES_NIGHTS, 'Lantern Nights', eligibility: '21+', schedule: 'First Monday of the month, 7 pm'),
+            $this->series(self::SERIES_NIGHTS, 'Lantern Nights', eligibility: '18+', schedule: 'Second Thursday of the month, 7:30 pm'),
             $this->series(self::SERIES_ONLINE, 'Riverbend Contest', online: true),
             $this->series('s-empty', 'Brand New Series'),
             $this->series('s-later', 'August Evenings'),
@@ -140,8 +140,8 @@ final class OrganizationPageBuilderTest extends TestCase
         self::assertSame(SeriesNext::NEXT, $nights->next->type);
         self::assertSame('2026-07-06', $nights->next->date?->format('Y-m-d'));
         self::assertSame(3, $nights->editionCount);
-        self::assertSame('21+', $nights->eligibility);
-        self::assertSame('First Monday of the month, 7 pm', $nights->schedule);
+        self::assertSame('18+', $nights->eligibility);
+        self::assertSame('Second Thursday of the month, 7:30 pm', $nights->schedule);
         self::assertSame('series:' . self::SERIES_NIGHTS, $nights->followTarget?->toString());
         self::assertSame('/series/lantern-nights', $nights->url);
         self::assertSame('Riverbend', $nights->place->city);
@@ -374,7 +374,7 @@ final class OrganizationPageBuilderTest extends TestCase
             isOnline: $online,
             startDate: $from !== null ? new DateTimeImmutable($from, new DateTimeZone('UTC')) : null,
             endDate: $from !== null ? new DateTimeImmutable($from, new DateTimeZone('UTC')) : null,
-            eligibility: $seriesId === self::SERIES_NIGHTS ? '21+' : null,
+            eligibility: $seriesId === self::SERIES_NIGHTS ? '18+' : null,
         );
     }
 

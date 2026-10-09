@@ -49,10 +49,11 @@
                     {% endif %}
                 {% endfor %}
                 {#- At most EventsPageBuilder::MAX_SESSION_CHIPS chips; the rest opens the series page. It carries their ids, so
-                    the calendar's day highlights it like a chip -#}
+                    the calendar's day highlights it like a chip. The label and the arrow share one inline box - as items of
+                    the flex chip the space between them would be dropped -#}
                 {% if row.moreSessionsCount > 0 %}
                     {% if row.url %}
-                        <a class="ev-session ev-session-more" href="{{ row.url }}" data-ev-ids="{{ row.moreIdsAttribute }}" data-ev-more-sessions>{{ 'series_pages.more_sessions'|trans({'%count%': row.moreSessionsCount}) }}<span aria-hidden="true"> →</span></a>
+                        <a class="ev-session ev-session-more" href="{{ row.url }}" data-ev-ids="{{ row.moreIdsAttribute }}" data-ev-more-sessions><span>{{ 'series_pages.more_sessions'|trans({'%count%': row.moreSessionsCount}) }} <span aria-hidden="true">→</span></span></a>
                     {% else %}
                         <span class="ev-session ev-session-more" data-ev-ids="{{ row.moreIdsAttribute }}" data-ev-more-sessions>{{ 'series_pages.more_sessions'|trans({'%count%': row.moreSessionsCount}) }}</span>
                     {% endif %}

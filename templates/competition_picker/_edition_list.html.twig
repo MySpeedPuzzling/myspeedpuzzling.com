@@ -18,7 +18,7 @@
                         data-series-edition-preview-optgroup-param="{{ item.optgroup }}">
                     <span class="sp-edition-name">{{ edition.name }}</span>
                     <span class="sp-edition-meta">
-                        {{- edition.dayFrom is not null ? events_date_range(edition.dayFrom, edition.dayTo, 'yMMMEd') : 'series_picker.undated'|trans -}}
+                        {{- edition.dayFrom is not null ? picker_date(edition.dayFrom, edition.dayTo) : 'series_picker.undated'|trans -}}
                         {%- for category in edition.categories %} · {{ ('competition.round.category.' ~ category.value)|trans }}{% endfor -%}
                         {%- if edition.puzzleNames is not empty %} · {{ edition.puzzleNames|join(', ') }}{% endif -%}
                     </span>

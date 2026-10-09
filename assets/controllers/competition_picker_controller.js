@@ -13,8 +13,14 @@ import { Controller } from '@hotwired/stimulus';
  * events and series only - from two typed characters the editions whose name matches are fetched from
  * `editionsUrl` and shown under their series. ux-autocomplete sets `shouldLoad = () => false` for local pickers,
  * so it is overridden here. Fetched editions leave the list again when the search is cleared, when the dropdown
- * closes and when the value changes - except the chosen one: the default list never grows.
+ * closes, when the value changes and when the next answer arrives - except the chosen one: the default list never
+ * grows. They are shown in the server's order (an edition named by every typed word first: "No. 1" is Jam No. 1, not
+ * Jam No. 15), after the one-time events and series TomSelect matches itself.
  */
+
+// Below any score TomSelect gives a matching one-time event or series - and above 0, which would hide the edition
+const FETCHED_EDITION_SCORE = 0.0001;
+
 export default class extends Controller {
     static values = {
         editionsUrl: { type: String, default: '' },
@@ -67,15 +73,63 @@ export default class extends Controller {
 
         options.shouldLoad = (query) => query.trim().length >= 2;
         options.loadThrottle = 300;
-        // `this` of TomSelect is not needed: the callback adds the options and their series' optgroups
+        // The callback adds the options and their series' optgroups. Each fetched option remembers the words it was
+        // fetched for: the server already chose and ranked it for them (whole-token matches first, then nearest to
+        // today) - TomSelect's own scoring would drop "#160" or re-sort the answer
         options.load = (query, callback) => {
-            fetch(url + (url.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(query.trim()), {
+            const typed = query.trim();
+
+            fetch(url + (url.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(typed), {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
             })
                 .then((response) => (response.ok ? response.json() : { options: [], optgroups: [] }))
-                .then((json) => callback(json.options || [], json.optgroups || []))
+                .then((json) => {
+                    const tomSelect = event.target.tomselect;
+
+                    // An answer to words no longer typed (a slower, older request) is dropped
+                    if (tomSelect && tomSelect.inputValue().trim() !== typed) {
+                        callback([], []);
+
+                        return;
+                    }
+
+                    const fetched = (json.options || []).map((option) => ({ ...option, fetchedFor: typed }));
+
+                    if (tomSelect) {
+                        // The previous answer's editions go, so this one's are added - and ordered - as answered
+                        this._forgetFetched(tomSelect);
+                        // The chosen edition stays and is answered again - it belongs to this answer too (an edition
+                        // the page offered keeps TomSelect's own scoring)
+                        fetched.forEach((option) => {
+                            const kept = tomSelect.options[option.value];
+
+                            if (kept && kept.fetchedFor !== undefined) {
+                                kept.fetchedFor = typed;
+                            }
+                        });
+                    }
+
+                    callback(fetched, json.optgroups || []);
+                })
                 .catch(() => callback([], []));
+        };
+
+        // Fetched editions keep the server's choice and order: one equal score for the current answer (TomSelect then
+        // sorts by the order options were added), nothing for an older one. One-time events and series are scored by
+        // TomSelect as always and come first - the score is below any of theirs
+        const scoreOffered = options.score;
+        options.score = function (search) {
+            const score = scoreOffered ? scoreOffered.call(this, search) : this.getScoreFunction(search);
+            const typed = String(search).trim();
+
+            return (item) => {
+                if (item.fetchedFor === undefined) {
+                    return score(item);
+                }
+
+                return item.fetchedFor === typed ? FETCHED_EDITION_SCORE : 0;
+            };
         };
     }
 
@@ -87,23 +141,8 @@ export default class extends Controller {
         }
 
         // What the page offered: one-time events, series and an included edition (the current one) stay for good
-        const offered = new Set(Object.keys(tomSelect.options));
-        const forgetFetched = () => {
-            const selected = new Set(tomSelect.items);
-            let removed = false;
-
-            Object.keys(tomSelect.options).forEach((value) => {
-                if (!offered.has(value) && !selected.has(value)) {
-                    tomSelect.removeOption(value, true);
-                    removed = true;
-                }
-            });
-
-            // Typing the same words again must fetch again
-            tomSelect.loadedSearches = {};
-
-            return removed;
-        };
+        this._offered = new Set(Object.keys(tomSelect.options));
+        const forgetFetched = () => this._forgetFetched(tomSelect);
 
         tomSelect.on('dropdown_close', forgetFetched);
         tomSelect.on('change', forgetFetched);
@@ -112,5 +151,31 @@ export default class extends Controller {
                 tomSelect.refreshOptions(false);
             }
         });
+    }
+
+    /**
+     * Removes every fetched edition except the chosen one; true when something went
+     */
+    _forgetFetched(tomSelect) {
+        const offered = this._offered;
+
+        if (!offered) {
+            return false;
+        }
+
+        const selected = new Set(tomSelect.items);
+        let removed = false;
+
+        Object.keys(tomSelect.options).forEach((value) => {
+            if (!offered.has(value) && !selected.has(value)) {
+                tomSelect.removeOption(value, true);
+                removed = true;
+            }
+        });
+
+        // Typing the same words again must fetch again
+        tomSelect.loadedSearches = {};
+
+        return removed;
     }
 }

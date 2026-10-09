@@ -10,7 +10,8 @@ namespace SpeedPuzzling\Web\Query;
  * "The default list") and API v1's series list. An edition's days are the ones the picker has always used:
  * COALESCE(date_from, date_to, its first round's start) .. COALESCE(date_to, date_from, its first round's start).
  *
- * Columns on the alias: edition_count (publicly visible editions), has_live (an edition whose days hold today),
+ * Columns on the alias: edition_count (publicly visible editions), dated_edition_count (those of them with a day),
+ * has_live (an edition whose days hold today),
  * last_past_day (the first day of the latest edition that is over - NULL when none), next_day (the first day of the
  * soonest edition that starts after today - NULL when none). Undated editions only count.
  */
@@ -27,6 +28,7 @@ readonly final class SeriesEditionDays
         return <<<SQL
 LEFT JOIN LATERAL (
     SELECT COUNT(*) AS edition_count,
+        COUNT(ed.day_from) AS dated_edition_count,
         COALESCE(bool_or(ed.day_from IS NOT NULL AND CAST({$todayParameter} AS DATE) BETWEEN ed.day_from AND ed.day_to), false) AS has_live,
         MAX(ed.day_from) FILTER (WHERE ed.day_to < CAST({$todayParameter} AS DATE)) AS last_past_day,
         MIN(ed.day_from) FILTER (WHERE ed.day_from > CAST({$todayParameter} AS DATE)) AS next_day

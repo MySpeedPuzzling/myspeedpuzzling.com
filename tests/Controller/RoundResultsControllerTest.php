@@ -224,6 +224,8 @@ final class RoundResultsControllerTest extends WebTestCase
         $link = $crawler->filter('[data-round-unofficial] [data-round-official-link]');
         self::assertSame('https://results.example/jam-153?utm_source=myspeedpuzzling', $link->attr('href'), 'the edition\'s results');
         self::assertSame('Official results ↗', trim($link->text()));
+        // Only there - the header has no button of its own while the label carries the link
+        self::assertCount(1, $crawler->filter('a[href="https://results.example/jam-153?utm_source=myspeedpuzzling"]'));
 
         $connection->executeStatement("UPDATE competition_round SET results_link = 'https://results.example/jam-153/solo?lang=en' WHERE id = :id", ['id' => $roundId]);
         $crawler = $browser->request('GET', $url);

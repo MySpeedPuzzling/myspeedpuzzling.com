@@ -8066,6 +8066,7 @@ series_picker:
     search_placeholder: "日程やパズルを検索…"
     no_match: "一致するものがありません。別の言葉で試してください。"
     undated: "日程未定"
+    dates_count: "日程%count%件"
 series_pages:
     more_sessions: "ほか%count%件"
     filter_label: "日程を絞り込む"

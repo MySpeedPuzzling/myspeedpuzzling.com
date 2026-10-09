@@ -8077,6 +8077,7 @@ series_picker:
     search_placeholder: "Rechercher une date ou un puzzle…"
     no_match: "Aucun résultat – essayez un autre mot."
     undated: "Date non fixée"
+    dates_count: "%count% date|%count% dates"
 series_pages:
     more_sessions: "+%count% de plus"
     filter_label: "Filtrer les dates"

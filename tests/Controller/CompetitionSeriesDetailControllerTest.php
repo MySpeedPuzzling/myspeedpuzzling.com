@@ -282,9 +282,10 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
     }
 
     /**
-     * "Add my time" (P27): a series pick - signed in, a publicly visible series, an edition has started
+     * "Add my time" (P27): a series pick - signed in, a publicly visible series, unless every dated edition is still to
+     * come: a series without editions or with undated ones only offers it too (H13)
      */
-    public function testAddMyTimeOnceAnEditionHasStarted(): void
+    public function testAddMyTimeUnlessEveryDatedEditionIsStillToCome(): void
     {
         $browser = self::createClient();
         $scenario = new SeriesEditionScenario(self::getContainer());
@@ -292,23 +293,31 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         $scenario->edition($started, 'Jam No. 1', new DateTimeImmutable('-3 days')->format('Y-m-d'));
         $coming = $scenario->series('Moonlit Sprint Cup');
         $scenario->edition($coming, 'Round One', new DateTimeImmutable('+3 days')->format('Y-m-d'));
+        $undated = $scenario->series('Moonlit Pier Puzzle Club');
+        $scenario->edition($undated, 'Pier Meet 1', null);
+        $empty = $scenario->series('Copper Kettle Puzzle Circle');
         $pending = $scenario->series('Harbor Puzzle Evenings', public: false);
         $scenario->edition($pending, 'Evening 1', new DateTimeImmutable('-3 days')->format('Y-m-d'));
 
-        $guest = $browser->request('GET', $this->seriesUrl($started));
-        self::assertCount(0, $guest->filter('[data-series-add-time]'), 'guests get no "Add my time"');
+        foreach ([$started, $undated, $empty] as $seriesId) {
+            $guest = $browser->request('GET', $this->seriesUrl($seriesId));
+            self::assertCount(0, $guest->filter('[data-series-add-time]'), 'guests get no "Add my time"');
+        }
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $crawler = $browser->request('GET', $this->seriesUrl($started));
-        self::assertSame('/en/puzzle-add?series=' . $started, $crawler->filter('.ev-detail-actions [data-series-add-time]')->attr('href'));
+        foreach (['an edition has started' => $started, 'undated editions only' => $undated, 'no editions' => $empty] as $case => $seriesId) {
+            $crawler = $browser->request('GET', $this->seriesUrl($seriesId));
+            self::assertSame('/en/puzzle-add?series=' . $seriesId, $crawler->filter('.ev-detail-actions [data-series-add-time]')->attr('href'), $case);
+        }
 
-        self::assertCount(0, $browser->request('GET', $this->seriesUrl($coming))->filter('[data-series-add-time]'), 'nothing has started');
+        self::assertCount(0, $browser->request('GET', $this->seriesUrl($coming))->filter('[data-series-add-time]'), 'every dated edition is still to come');
         self::assertCount(0, $browser->request('GET', $this->seriesUrl($pending))->filter('[data-series-add-time]'), 'not public');
     }
 
     /**
-     * A series without editions is first class (H13): its page says so - no filter bar, no "Add my time"
+     * A series without editions is first class (H13): its page says so - no filter bar; "Add my time" is offered, a time
+     * of it is a result of the series
      */
     public function testASeriesWithoutEditionsSaysSo(): void
     {
@@ -321,7 +330,7 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame('No editions yet.', trim($crawler->filter('[data-series-empty] p')->text()));
         self::assertCount(0, $crawler->filter('[data-series-filter-target="bar"]'));
-        self::assertCount(0, $crawler->filter('[data-series-add-time]'));
+        self::assertCount(1, $crawler->filter('[data-series-add-time]'));
         self::assertCount(0, $crawler->filter('[data-series-past]'));
     }
 

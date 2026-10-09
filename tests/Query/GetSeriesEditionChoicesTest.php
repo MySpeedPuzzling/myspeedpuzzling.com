@@ -176,6 +176,75 @@ final class GetSeriesEditionChoicesTest extends KernelTestCase
     }
 
     /**
+     * An edition named by every typed word as a whole token comes first - a number is that number, never the start of a
+     * longer one; `#`, `.` and `-` separate words - then the other matches, nearest to today (S1) / the solve day (the
+     * short list), even when 20 or 10 nearer editions also hold the digits
+     */
+    public function testTypingAnEditionsNameOrNumberFindsItFirst(): void
+    {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $this->database->executeStatement('UPDATE competition_series SET shortcut = :shortcut WHERE id = :id', ['shortcut' => 'LWJ', 'id' => $seriesId]);
+
+        // 25 recent editions holding "1", "2", "5" and "16" in longer numbers, nearer to today than the ones searched for
+        $recent = [];
+
+        for ($i = 1; $i <= 25; $i++) {
+            $recent[] = $this->scenario->edition($seriesId, 'Jam No. ' . (100 + $i), $this->day(-$i));
+        }
+
+        // Two days ago like Jam No. 102, created later - listed before it
+        $no1605 = $this->scenario->edition($seriesId, 'Jam No. 1605', $this->day(-2));
+        $no1 = $this->scenario->edition($seriesId, 'Jam No. 1', $this->day(-400));
+        $no2 = $this->scenario->edition($seriesId, 'Jam No. 2', $this->day(-397));
+        $no5 = $this->scenario->edition($seriesId, 'Jam No. 5', $this->day(-388));
+        $no10 = $this->scenario->edition($seriesId, 'Jam No. 10', $this->day(-373));
+        $no21 = $this->scenario->edition($seriesId, 'Jam No. 21', $this->day(-340));
+        $no160 = $this->scenario->edition($seriesId, 'Jam No. 160', $this->day(-60));
+
+        $cases = [
+            ['No. 1', $no1],
+            ['Jam No. 2', $no2],
+            ['jam no 21', $no21],
+            ['160', $no160],
+            ['#160', $no160],
+            ['No.10', $no10],
+            ['LWJ 5', $no5],
+        ];
+
+        foreach ($cases as [$query, $expected]) {
+            self::assertSame($expected, $this->query->search($query)[0]->id ?? null, 'S1: ' . $query);
+            self::assertSame($expected, $this->query->closest($seriesId, $this->today, $query)[0]->id ?? null, 'Short list: ' . $query);
+        }
+
+        // Then the other matches, nearest first: Jam No. 101 (yesterday), not Jam No. 10 or 21
+        self::assertSame([$no1, $recent[0], $no1605], array_slice($this->ids($this->query->search('No. 1')), 0, 3));
+        self::assertSame([$no1, $recent[0], $no1605], array_slice($this->ids($this->query->closest($seriesId, $this->today, 'No. 1')), 0, 3));
+        self::assertNotContains($no1, $this->ids($this->query->search('No. 10')), 'Every word still has to match');
+    }
+
+    /**
+     * The short list's field says "Search dates or puzzles…": an edition is found by its year, its month (in the page's
+     * language and in English) and its day with the month - those holding every word as a whole word first
+     */
+    public function testTheShortListSearchFindsDates(): void
+    {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $march2025 = $this->scenario->edition($seriesId, 'Jam No. 30', '2025-03-04');
+        $october2025 = $this->scenario->edition($seriesId, 'Jam No. 31', '2025-10-08');
+        $october2026 = $this->scenario->edition($seriesId, 'Jam No. 32', '2026-10-08');
+        $lateOctober2026 = $this->scenario->edition($seriesId, 'Jam No. 33', '2026-10-20');
+        $solveDay = new DateTimeImmutable('2026-10-10');
+
+        self::assertSame([$march2025], $this->ids($this->query->closest($seriesId, $solveDay, 'March')));
+        self::assertSame([$october2025, $march2025], $this->ids($this->query->closest($seriesId, $solveDay, '2025')));
+        self::assertSame([$october2026, $lateOctober2026, $october2025], $this->ids($this->query->closest($seriesId, $solveDay, 'Oct')));
+        self::assertSame([$october2026, $lateOctober2026, $october2025], $this->ids($this->query->closest($seriesId, $solveDay, 'october')));
+        self::assertSame([$october2026, $october2025], $this->ids($this->query->closest($seriesId, $solveDay, '8 Oct')));
+        self::assertSame([$october2026, $lateOctober2026], $this->ids($this->query->closest($seriesId, $solveDay, 'Oct 2026')));
+        self::assertSame([$october2026], $this->ids($this->query->closest($seriesId, $solveDay, '8 October 2026')));
+    }
+
+    /**
      * H12 scenario 9 for the short list; H12 scenario 6: a series without editions lists nothing
      */
     public function testTheShortListLeavesOutDraftsAndSeriesThatAreNotPublic(): void

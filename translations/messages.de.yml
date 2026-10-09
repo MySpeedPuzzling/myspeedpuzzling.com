@@ -8075,6 +8075,7 @@ series_picker:
     search_placeholder: "Termine oder Puzzles suchen…"
     no_match: "Keine Treffer – versuchen Sie ein anderes Wort."
     undated: "Termin noch offen"
+    dates_count: "%count% Termin|%count% Termine"
 series_pages:
     more_sessions: "+%count% weitere"
     filter_label: "Termine filtern"

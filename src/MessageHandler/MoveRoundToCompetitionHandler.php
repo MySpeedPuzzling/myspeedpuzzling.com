@@ -26,8 +26,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * docs/features/organizations/README.md "Restructuring tools", D7: the round row moves (its puzzles with their reveal
- * settings and its table layout hang on it), and so does every solving time that belongs to it - their competition
- * changes, their round link stays. A time of the old competition that belongs to the round by the derived rule but was
+ * settings and its table layout hang on it), and so does every explicit solving time that belongs to it - their
+ * competition changes, their round link stays. Series picks of the edition do not move: the series reconcile both
+ * competitions get matches them again (docs/features/events-page/high-frequency-series.md P29). A time of the old competition that belongs to the round by the derived rule but was
  * not linked yet (SolvingTimeRoundResolver) moves too and gets the link, so no result of the round stays behind. Both
  * competitions' round results are reconciled after the flush (CompetitionRoundsChanged, recorded by the round). The
  * round keeps the wall-clock zone it is shown in (P22) and its slug - with `-2`, `-3`, … when the target has it. A

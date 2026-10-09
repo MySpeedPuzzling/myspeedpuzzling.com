@@ -74,7 +74,7 @@ SQL;
         $query = <<<SQL
 SELECT s.kind, s.id, s.name, s.shortcut, s.logo, s.series_logo, s.location, s.location_country_code, s.date_from,
     s.date_to, s.is_online, s.series_id, s.series_name, s.series_shortcut, s.event_status, s.next_day, s.last_day,
-    s.edition_count, s.organization_name, s.organization_short_name
+    s.edition_count, s.dated_edition_count, s.organization_name, s.organization_short_name
 FROM (
     SELECT 'event' AS kind,
         c.id,
@@ -94,6 +94,7 @@ FROM (
         CAST(NULL AS DATE) AS next_day,
         CAST(NULL AS DATE) AS last_day,
         CAST(0 AS BIGINT) AS edition_count,
+        CAST(0 AS BIGINT) AS dated_edition_count,
         CAST(NULL AS VARCHAR) AS organization_name,
         CAST(NULL AS VARCHAR) AS organization_short_name,
         CASE
@@ -132,6 +133,7 @@ FROM (
         sed.next_day,
         sed.last_past_day AS last_day,
         sed.edition_count,
+        sed.dated_edition_count,
         o.name AS organization_name,
         o.short_name AS organization_short_name,
         {$seriesBucket} AS sort_bucket,
@@ -164,6 +166,7 @@ FROM (
         NULL AS next_day,
         NULL AS last_day,
         0 AS edition_count,
+        0 AS dated_edition_count,
         NULL AS organization_name,
         NULL AS organization_short_name,
         {$seriesBucket} AS sort_bucket,

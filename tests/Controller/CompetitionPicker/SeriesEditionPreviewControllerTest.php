@@ -274,6 +274,25 @@ final class SeriesEditionPreviewControllerTest extends WebTestCase
         self::assertStringContainsString('Nothing matches', (string) $this->browser->getResponse()->getContent());
     }
 
+    /**
+     * "Search dates or puzzles…": a month is found in the page's language and in English
+     */
+    public function testTheListSearchFindsAMonthInThePagesLanguageAndInEnglish(): void
+    {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $this->scenario->edition($seriesId, 'Jam No. 30', '2025-03-04');
+        $this->scenario->edition($seriesId, 'Jam No. 31', '2025-10-08');
+
+        foreach (['Oktober', 'October', 'okt'] as $query) {
+            $crawler = $this->browser->request('GET', '/de/competition-picker/series-preview?' . http_build_query(['series' => $seriesId, 'part' => 'list', 'q' => $query, 'date' => '10.10.2025', 'people' => '0']));
+            self::assertResponseIsSuccessful();
+            self::assertSame(['Jam No. 31'], $crawler->filter('.sp-edition-name')->each(static fn (Crawler $node): string => $node->text()), $query);
+        }
+
+        $crawler = $this->browser->request('GET', '/de/competition-picker/series-preview?' . http_build_query(['series' => $seriesId, 'part' => 'list', 'q' => 'März', 'people' => '0']));
+        self::assertSame(['Jam No. 30'], $crawler->filter('.sp-edition-name')->each(static fn (Crawler $node): string => $node->text()));
+    }
+
     public function testNothingWithoutASeriesOrEdition(): void
     {
         self::assertSame('', $this->previewHtml(['people' => '0']));

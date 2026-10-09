@@ -233,15 +233,19 @@ final class SeriesPageBuilderTest extends TestCase
     }
 
     /**
-     * "Add my time" in the header (P27) once a public edition has started
+     * "Add my time" in the header (P27) unless every dated public edition is still to come - a series without editions
+     * or with undated ones only offers it too (H13)
      */
-    public function testAddMyTimeOnceAPublicEditionHasStarted(): void
+    public function testAddMyTimeUnlessEveryDatedEditionIsStillToCome(): void
     {
-        self::assertFalse($this->build([$this->edition('Next week', '2026-06-17')])->hasStartedEdition);
-        self::assertFalse($this->build([$this->edition('Not approved', '2026-05-01', public: false), $this->edition('Undated', null)])->hasStartedEdition);
-        self::assertTrue($this->build([$this->edition('Today', '2026-06-10')])->hasStartedEdition, 'live');
-        self::assertTrue($this->build([$this->edition('Last month', '2026-05-01'), $this->edition('Next week', '2026-06-17')])->hasStartedEdition);
-        self::assertTrue($this->build([$this->edition('All year', '2026-01-01', '2026-12-31')])->hasStartedEdition, 'a long span running');
+        self::assertFalse($this->build([$this->edition('Next week', '2026-06-17')])->offersAddMyTime);
+        self::assertFalse($this->build([$this->edition('Next week', '2026-06-17'), $this->edition('Undated', null)])->offersAddMyTime, 'the dated one is still to come');
+        self::assertTrue($this->build([])->offersAddMyTime, 'no editions');
+        self::assertTrue($this->build([$this->edition('Undated', null)])->offersAddMyTime, 'undated editions only');
+        self::assertTrue($this->build([$this->edition('Not approved', '2026-07-01', public: false), $this->edition('Undated', null)])->offersAddMyTime, 'no dated public edition');
+        self::assertTrue($this->build([$this->edition('Today', '2026-06-10')])->offersAddMyTime, 'live');
+        self::assertTrue($this->build([$this->edition('Last month', '2026-05-01'), $this->edition('Next week', '2026-06-17')])->offersAddMyTime);
+        self::assertTrue($this->build([$this->edition('All year', '2026-01-01', '2026-12-31')])->offersAddMyTime, 'a long span running');
     }
 
     public function testAnEmptySeries(): void

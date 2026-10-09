@@ -81,7 +81,7 @@ list of 200 jams in the form; **(2)** well arranged on the events pages - a jam 
 | P24 | Puzzle page "Used at" rides on `GetPuzzleSummary` (no new statement); guests see the lines in "About this puzzle", signed-in players in the header's "Details" collapse. | It is computed for everyone already (meta description). |
 | P25 | Events index: an edition entry carries only what differs from its series' entry (`sid` → name, place, scope, country, organization; URL rebuilt from the series URL + edition slug when the paths agree in all 6 locales; `cm` only for competitions with 2+ sessions); target ≤ 200 B raw per past edition including puzzle names. | ~400 B per edition today = ~80 KB per 200 editions. |
 | P26 | Series `EventSeries` JSON-LD: at most 50 `subEvent`s (every upcoming session, then the newest past ones). | 200+ sessions would add ~60 KB of JSON-LD to one page. |
-| P27 | The series page header gets **"Add my time"** (`puzzle_add?series=<id>`) for signed-in viewers of a publicly visible series with an edition that has started. | The series pick's natural entry point; the edition pages keep their explicit links. |
+| P27 | The series page header gets **"Add my time"** (`puzzle_add?series=<id>`) for signed-in viewers of a publicly visible series unless every dated edition is still to come (also without editions or with undated ones only - [Fix-up](#fix-up-after-review)). | The series pick's natural entry point; the edition pages keep their explicit links. |
 | P28 | A series' reconcile also runs after a puzzle merge (with the global round reconcile it already triggers). | A merge changes the puzzle of series picks. |
 | P29 | `MoveRoundToCompetition` moves **explicit** times only; series picks of the round's edition are re-matched by the reconcile both competitions get. | A series pick's edition is derived - it follows the rule, not the round. |
 | P30 | One-round editions: the edition header's facts line also shows the round's start time in the event's zone (missing today). | H8 "date and time in its zone"; the round row has it, the header did not. |
@@ -714,3 +714,28 @@ and the PR's workstream commits).
 - **Budgets** unchanged and pinned: series page guest 3 / signed in 9 for 2 and for 203 editions
   (`DetailPagesQueryBudgetTest::testTwoHundredEditionsCostWhatTwoCost`), events page as before
   (`EventsPageQueryBudgetTest`).
+
+### Fix-up after review
+
+- **API `PUT` echoing an automatic link** (A1): `competition_id` and `series_id` both unchanged, or the time's own
+  `series_id` alone, keep the series pick; `competition_id` alone makes the link explicit
+  (`SolvingTimeEventLinkResolver::forUpdate()`).
+- **Typed searches find a name or number first** (B2): whitespace, `#`, `.` and `-` separate words; an edition whose
+  name (with its series' name and shortcut) holds every word as a whole token ranks first - "No. 1" is Jam No. 1, not
+  No. 10 or 100; "#160", "LWJ 5" - then the other matches, nearest to today (S1) / the solve day (short list)
+  (`SeriesEditionSearch`; S1 in SQL: `regexp_split_to_array(…) @> ARRAY[…]`). TomSelect keeps the server's order for
+  fetched editions: each carries the words it was fetched for and gets one equal score below any matching one-time
+  event or series (those come first); an answer to words no longer typed is dropped.
+- **The short list's search finds dates** (B3): each edition's year, month (page language and English) and day with
+  the month (`yMMMMd`, `yMMMd`, `MMMM`, `MMM` in both, folded) plus its series' name and shortcut - "March", "2025",
+  "Oct", "Oktober" on a German page.
+- **"Add my time" on the series page** (B4) unless every dated public edition is still to come - a series without
+  editions or with undated ones only gets it too (H13; `SeriesPage::$offersAddMyTime`); guests still do not.
+- **Series cards count their dates** (B5b): "Next: Tue, 13 Oct · 169 dates" - `series_picker.dates_count` = publicly
+  visible editions with a day (`SeriesEditionDays` `dated_edition_count`, same statement); a live series with neither
+  a next nor a last date shows the count alone.
+- Also: one date style for the whole picker (`CompetitionPickerDate`, Twig `picker_date()`: a day `MMMEd`, several days
+  an `MMMd` range, with the year only when not this year - cards, preview line, short list); the preview's two actions
+  take a row of their own; the round results header has no "Official results" button while the label carries the link;
+  "Online" no longer runs over a row's time on phones; "+N more →" keeps its space; the header facts' dots are tied to
+  the fact before them by a no-break space.

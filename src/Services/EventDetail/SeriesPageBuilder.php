@@ -153,7 +153,7 @@ readonly final class SeriesPageBuilder
             hasOccurrences: $occurrences !== [],
             filter: $filter,
             pastMonths: $filter !== null ? self::pastMonths($pastYears) : [],
-            hasStartedEdition: array_any($items, static fn (array $item): bool => self::hasStarted($item)),
+            offersAddMyTime: self::offersAddMyTime($items),
             rowDetails: self::rowDetails($items),
             categories: self::categories($items),
         );
@@ -302,16 +302,25 @@ readonly final class SeriesPageBuilder
     }
 
     /**
-     * A public occurrence that has started: live, past, or a long span running now
+     * "Add my time" in the header (P27): unless every dated public edition is still to come - a series without editions
+     * or with undated ones only offers it too, a time of it is first class without an edition (H13)
+     *
+     * @param list<SeriesItem> $items
+     */
+    private static function offersAddMyTime(array $items): bool
+    {
+        $dated = array_filter($items, static fn (array $item): bool => $item['occurrence']->isPublic && $item['occurrence']->startDate !== null);
+
+        return $dated === [] || array_any($dated, static fn (array $item): bool => self::hasStarted($item));
+    }
+
+    /**
+     * A dated occurrence that has started: live, past, or a long span running now
      *
      * @param SeriesItem $item
      */
     private static function hasStarted(array $item): bool
     {
-        if ($item['occurrence']->isPublic === false || $item['occurrence']->startDate === null) {
-            return false;
-        }
-
         return in_array($item['status'], [EventOccurrenceStatus::Live, EventOccurrenceStatus::Past, EventOccurrenceStatus::Ongoing], true);
     }
 

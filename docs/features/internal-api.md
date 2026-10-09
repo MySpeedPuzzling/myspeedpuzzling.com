@@ -736,10 +736,12 @@ listings would show its name; an empty edition may move into a draft); `400` for
 competition where it is now.
 
 **Moving a round** (`POST …/rounds/{roundId}/move`, `{"competitionId": "…"}`): the round moves with its puzzles (and their
-secret reveal), its table layout and **every solving time that belongs to it** - their `competitionId` changes, their
-round stays. "Belongs" is the round results rule ([round-results.md](./competitions-management/round-results.md)): a
+secret reveal), its table layout and **every explicit solving time that belongs to it** - their `competitionId` changes,
+their round stays. "Belongs" is the round results rule ([round-results.md](./competitions-management/round-results.md)): a
 time linked to the round, and a time of the old competition solved in the round's category on one of its puzzles that was
-not linked yet (it gets the link). Both competitions' round results are reconciled afterwards
+not linked yet (it gets the link). Series picks matched to the old edition (automatic links,
+[high-frequency-series.md](./events-page/high-frequency-series.md) P29) do not move with the round - the series
+reconcile both competitions get matches them again by the series' rule. Both competitions' round results are reconciled afterwards
 (`CompetitionRoundsChanged` → `RoundResultsReconciler`). The round keeps the wall-clock zone it is shown in and its slug
 (`-2`, `-3`, … when the target has it). Refused with `409`, nothing changed: the target is the same competition;
 participants are entered in the round (round entries or pairs/teams - they belong to the competition, moving them is a

@@ -37,6 +37,13 @@
     column-gap: 0.75rem;
 }
 
+// "change" + "Let MySpeedPuzzling match it": a row of their own under the text (lined up with it), so the line keeps
+// the card's whole width instead of three narrow lines beside them
+.sp-line-actions-row {
+    flex-basis: 100%;
+    padding-inline-start: calc(1em + 0.5rem);
+}
+
 // Text links, but 44 px tall to tap
 .sp-link {
     min-height: 44px;

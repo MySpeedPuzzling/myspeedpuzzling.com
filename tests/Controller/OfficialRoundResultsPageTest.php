@@ -124,9 +124,13 @@ final class OfficialRoundResultsPageTest extends WebTestCase
         self::assertCount(1, $link);
         self::assertSame("Organiser's results", trim($link->text()));
 
-        // Without official results the same link is still "the official results"
+        // Without official results the same link is still "the official results" - once, next to the label saying the
+        // times listed are not
         $crawler = $browser->request('GET', self::GROUP_B_URL);
-        self::assertSame('Official results', trim($crawler->filter('a[href="https://example.com/cup/group-a?utm_source=myspeedpuzzling"]')->text()));
+        $link = $crawler->filter('a[href="https://example.com/cup/group-a?utm_source=myspeedpuzzling"]');
+        self::assertCount(1, $link);
+        self::assertSame('Official results ↗', trim($link->text()));
+        self::assertCount(1, $crawler->filter('[data-round-unofficial] [data-round-official-link]'));
     }
 
     public function testPairsShowTheirNameAndMembers(): void

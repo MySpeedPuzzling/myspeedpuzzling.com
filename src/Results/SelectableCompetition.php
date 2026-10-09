@@ -14,7 +14,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *
  * - kind 'event': a one-time event (series columns empty);
  * - kind 'series': a series - MySpeedPuzzling finds the edition (id = series id, seriesId = the same, nextDay /
- *   lastDay / editionCount from its publicly visible editions, organization names for the search);
+ *   lastDay / editionCount / datedEditionCount from its publicly visible editions, organization names for the search);
  * - kind 'edition': an edition offered only as the current pick (edit form, deep link) or a refused submit's own
  *   choice - never part of the default list. Logo and location already fall back to the series values.
  *
@@ -37,6 +37,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     next_day: null|string,
  *     last_day: null|string,
  *     edition_count: null|int|string,
+ *     dated_edition_count?: null|int|string,
  *     organization_name: null|string,
  *     organization_short_name: null|string,
  * }
@@ -71,6 +72,8 @@ readonly final class SelectableCompetition
         public null|DateTimeImmutable $lastDay = null,
         /** A series: its publicly visible editions, undated ones too */
         public int $editionCount = 0,
+        /** A series: its publicly visible editions with a day - "169 dates" on its card */
+        public int $datedEditionCount = 0,
         /** A series: its organization's names, only when the organization is publicly visible */
         public null|string $organizationName = null,
         public null|string $organizationShortName = null,
@@ -106,6 +109,7 @@ readonly final class SelectableCompetition
             nextDay: $row['next_day'] !== null ? new DateTimeImmutable($row['next_day']) : null,
             lastDay: $row['last_day'] !== null ? new DateTimeImmutable($row['last_day']) : null,
             editionCount: (int) ($row['edition_count'] ?? 0),
+            datedEditionCount: (int) ($row['dated_edition_count'] ?? 0),
             organizationName: $row['organization_name'],
             organizationShortName: $row['organization_short_name'],
         );

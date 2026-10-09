@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
-use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetSelectableCompetitions;
 use SpeedPuzzling\Web\Query\GetSeriesEditionChoices;
 use SpeedPuzzling\Web\Results\SelectableCompetition;
 use SpeedPuzzling\Web\Results\SeriesEditionChoice;
-use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
 use SpeedPuzzling\Web\Value\CompetitionPick;
@@ -37,7 +35,7 @@ readonly final class CompetitionChoicesBuilder
         private GetSeriesEditionChoices $getSeriesEditionChoices,
         private ImageThumbnailTwigExtension $imageThumbnail,
         private TranslatorInterface $translator,
-        private EventsPageDates $dates,
+        private CompetitionPickerDate $dates,
         private ClockInterface $clock,
     ) {
     }
@@ -134,7 +132,7 @@ readonly final class CompetitionChoicesBuilder
             'text' => $this->card(
                 $edition->logo,
                 $edition->name,
-                self::dateRange($edition->dayFrom, $edition->dayTo),
+                $edition->dayFrom !== null ? self::escape($this->dates->format($edition->dayFrom, $edition->dayTo)) : '',
                 $edition->isLiveOn($this->clock->now()),
                 $parts,
             ),
@@ -173,15 +171,7 @@ readonly final class CompetitionChoicesBuilder
      */
     private function renderCompetitionCard(SelectableCompetition $competition): string
     {
-        $date = '';
-
-        if ($competition->dateFrom !== null) {
-            $date = $competition->dateFrom->format('d.m.Y');
-
-            if ($competition->dateTo !== null) {
-                $date .= ' - ' . $competition->dateTo->format('d.m.Y');
-            }
-        }
+        $date = $competition->dateFrom !== null ? $this->dates->format($competition->dateFrom, $competition->dateTo) : '';
 
         $descriptionParts = [];
 
@@ -201,17 +191,22 @@ readonly final class CompetitionChoicesBuilder
     }
 
     /**
-     * A series: logo, name, its next or last date ("No dates yet" without any), a live badge while an edition is live,
-     * "Online" or its place
+     * A series: logo, name, its next or last date and how many dates it has ("Next: Tue, 13 Oct · 169 dates" - "No
+     * dates yet" without any), a live badge while an edition is live, "Online" or its place
      */
     private function renderSeriesCard(SelectableCompetition $series): string
     {
         $date = match (true) {
-            $series->nextDay !== null => $this->translator->trans('series_picker.next', ['%date%' => $this->dates->format($series->nextDay, 'yMMMd')]),
-            $series->lastDay !== null => $this->translator->trans('series_picker.last', ['%date%' => $this->dates->format($series->lastDay, 'yMMMd')]),
-            $series->eventStatus === 'live' => '',
+            $series->nextDay !== null => $this->translator->trans('series_picker.next', ['%date%' => $this->dates->format($series->nextDay)]),
+            $series->lastDay !== null => $this->translator->trans('series_picker.last', ['%date%' => $this->dates->format($series->lastDay)]),
+            $series->eventStatus === 'live' || $series->datedEditionCount > 0 => '',
             default => $this->translator->trans('series_picker.no_dates'),
         };
+
+        if ($series->datedEditionCount > 0) {
+            $count = $this->translator->trans('series_picker.dates_count', ['%count%' => $series->datedEditionCount]);
+            $date = $date !== '' ? $date . ' · ' . $count : $count;
+        }
 
         $description = $series->isOnline
             ? self::escape($this->translator->trans('series_picker.online'))
@@ -307,21 +302,6 @@ HTML;
         $parts = array_filter($parts, static fn (null|string $part): bool => $part !== null && trim($part) !== '');
 
         return trim(implode(' ', $parts));
-    }
-
-    private static function dateRange(null|DateTimeImmutable $from, null|DateTimeImmutable $to): string
-    {
-        if ($from === null) {
-            return '';
-        }
-
-        $date = $from->format('d.m.Y');
-
-        if ($to !== null && $to->format('Y-m-d') !== $from->format('Y-m-d')) {
-            $date .= ' - ' . $to->format('d.m.Y');
-        }
-
-        return $date;
     }
 
     private static function escape(string $value): string

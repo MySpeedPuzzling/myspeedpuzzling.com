@@ -1267,20 +1267,6 @@ canvas {
     }
 }
 
-.puzzle-summary-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .375rem;
-
-    .badge {
-        font-size: .75rem;
-        font-weight: 400;
-        white-space: normal;
-        text-align: left;
-        text-decoration: none;
-    }
-}
-
 .puzzle-summary-times {
     width: 100%;
     margin: 0;

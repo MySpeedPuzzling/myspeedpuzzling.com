@@ -163,7 +163,8 @@ Past · 14             year chips [2026 · 5] [2025 · 9]; newest year open, 5 l
   events page), and a month select that scrolls to (and opens) that month. Rows and lines carry `data-categories`,
   `data-search`, `data-month`; while filtering every year shows and "No date matches. Show all" appears when nothing is
   left. The Next card is not filtered.
-- **"Add my time"** in the header for signed-in visitors of a publicly visible series once an edition has started:
+- **"Add my time"** in the header for signed-in visitors of a publicly visible series unless every dated edition is
+  still to come (a series without editions, or with undated ones only, offers it too):
   `puzzle_add?series=<id>` - a series pick, MySpeedPuzzling finds the edition.
 - **A series without editions**: header, "No editions yet.", sections. Organisers find "Add edition" in ⋯.
 - **An unapproved or rejected series** is reachable at its URL as today (`noindex, nofollow`), without the follow star.

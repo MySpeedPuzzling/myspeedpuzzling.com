@@ -278,6 +278,41 @@ final class UpdateSolvingTimeEndpointTest extends WebTestCase
     }
 
     /**
+     * A client echoing the answer of an automatic link - competition_id and series_id unchanged, or series_id alone -
+     * keeps the series pick; competition_id alone makes it an explicit link to that edition
+     */
+    public function testEchoingAnAutomaticLinkKeepsTheSeriesPick(): void
+    {
+        $browser = self::createClient();
+        $scenario = $this->scenario();
+        $series = $scenario->series();
+        $puzzle = $scenario->puzzle();
+        $edition = $scenario->edition($series, 'Jam No. 153', '2026-03-02');
+        $round = $scenario->round($edition, RoundCategory::Solo, '2026-03-02 19:00', puzzleIds: [$puzzle]);
+        $time = $scenario->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, $puzzle, '2026-03-02', seriesId: $series);
+        $this->authenticate($browser);
+        $body = ['time' => '01:05:00', 'finished_at' => '2026-03-02T00:00:00+00:00'];
+        $automatic = ['competition_id' => $edition, 'competition_series_id' => $series, 'series_edition_match' => 'puzzle', 'competition_round_id' => $round];
+
+        foreach (['both ids echoed' => ['competition_id' => $edition, 'series_id' => $series], 'series_id alone' => ['series_id' => $series]] as $case => $ids) {
+            $response = $this->putTime($browser, $time, [...$body, ...$ids]);
+
+            self::assertResponseIsSuccessful($case);
+            self::assertSame(['round_id' => $round, 'competition_id' => $edition, 'series_id' => $series], self::linkOf($response), $case);
+            self::assertSame($automatic, $this->scenario()->link($time), $case);
+        }
+
+        $response = $this->putTime($browser, $time, [...$body, 'competition_id' => $edition]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['round_id' => $round, 'competition_id' => $edition, 'series_id' => $series], self::linkOf($response));
+        self::assertSame(
+            ['competition_id' => $edition, 'competition_series_id' => null, 'series_edition_match' => null, 'competition_round_id' => $round],
+            $this->scenario()->link($time),
+        );
+    }
+
+    /**
      * P18: the response's round_id is the stored round - it used to be null on every PUT
      */
     public function testTheResponseCarriesTheStoredLink(): void

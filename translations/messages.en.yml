@@ -8428,6 +8428,7 @@ series_picker:
     search_placeholder: "Search dates or puzzles…"
     no_match: "Nothing matches - try another word."
     undated: "Date not set"
+    dates_count: "%count% date|%count% dates"
 series_pages:
     more_sessions: "+%count% more"
     filter_label: "Filter the dates"

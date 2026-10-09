@@ -1041,10 +1041,13 @@ paths:
       operationId: moveRound
       description: |
         `MoveRoundToCompetition`: the round moves with its puzzles (and their reveal
-        settings), its table layout and every solving time that belongs to it -
-        linked to it, or (not linked yet) of the old competition on one of its
+        settings), its table layout and every **explicit** solving time that belongs
+        to it - linked to it, or (not linked yet) of the old competition on one of its
         puzzles in its category. Their `competition_id` changes, their round stays;
-        both competitions' round results are reconciled. The round keeps its slug
+        both competitions' round results are reconciled. Series picks matched to the
+        old edition (automatic links) do not move with the round: the series
+        reconcile both competitions get matches them again by the series' rule
+        (high-frequency-series.md P29). The round keeps its slug
         (`-2`, `-3`, … when the target has it) and the wall-clock zone it is shown in.
         Its old results address answers 301 to the new one.
 

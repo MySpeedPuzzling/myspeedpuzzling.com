@@ -44,8 +44,9 @@ readonly final class SeriesPage
         // the filter bar and the past in month sections - a series with many sessions only
         public null|SeriesFilter $filter = null,
         public array $pastMonths = [],
-        // a public edition has started - "Add my time" in the header (docs/features/events-page/high-frequency-series.md P27)
-        public bool $hasStartedEdition = false,
+        // "Add my time" in the header (docs/features/events-page/high-frequency-series.md P27): unless every dated public
+        // edition is still to come - also without editions or with undated ones only (H13)
+        public bool $offersAddMyTime = false,
         public array $rowDetails = [],
         public array $categories = [],
     ) {

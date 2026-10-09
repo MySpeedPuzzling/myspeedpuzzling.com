@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetSeriesEditionChoices;
 use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
+use SpeedPuzzling\Web\Services\CompetitionPickerDate;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
@@ -51,7 +52,9 @@ final class CompetitionChoicesBuilderTest extends KernelTestCase
         self::assertArrayNotHasKey('optgroup', $option);
         self::assertStringContainsString('sp-series-option', $option['text']);
         self::assertStringContainsString('Lantern Weekly Jam', $option['text']);
-        self::assertStringContainsString('Next: ', $option['text']);
+        // The picker's one date style, and how many dates the series has - like a one-time event's dates
+        $next = self::getContainer()->get(CompetitionPickerDate::class)->format(new DateTimeImmutable($this->day(5)));
+        self::assertStringContainsString('Next: ' . $next . ' · 2 dates', $option['text']);
         self::assertStringContainsString('Online', $option['text']);
         self::assertStringNotContainsString('Jam No.', $option['text'], 'No edition on the series card');
         self::assertSame([], array_filter($choices->optgroups, static fn (array $optgroup): bool => $optgroup['value'] === $seriesId));
@@ -68,17 +71,52 @@ final class CompetitionChoicesBuilderTest extends KernelTestCase
         $live = $this->scenario->series('Starling Puzzle Afternoons');
         $this->scenario->edition($live, 'Afternoon 1', $this->day(0));
 
+        $undated = $this->scenario->series('Moonlit Pier Puzzle Club');
+        $this->scenario->edition($undated, 'Pier Meet 1', null);
+
         $choices = $this->builder->build();
 
         $pastCard = $this->option($choices, 'series:' . $past)['text'];
         self::assertStringContainsString('Last: ', $pastCard);
+        self::assertStringContainsString(' · 1 date<', $pastCard);
         // An offline series shows its place, not "Online"
         self::assertStringContainsString('Harbor Town', $pastCard);
         self::assertStringContainsString('fi-cz', $pastCard);
 
-        self::assertStringContainsString('No dates yet', $this->option($choices, 'series:' . $empty)['text']);
-        self::assertStringContainsString('>live</span>', $this->option($choices, 'series:' . $live)['text']);
+        $emptyCard = $this->option($choices, 'series:' . $empty)['text'];
+        self::assertStringContainsString('No dates yet', $emptyCard);
+        self::assertStringNotContainsString(' date<', $emptyCard);
+        $undatedCard = $this->option($choices, 'series:' . $undated)['text'];
+        self::assertStringContainsString('No dates yet', $undatedCard, 'an undated edition is no date');
+        self::assertStringNotContainsString(' date<', $undatedCard);
+
+        $liveCard = $this->option($choices, 'series:' . $live)['text'];
+        self::assertStringContainsString('>live</span>', $liveCard);
+        self::assertStringContainsString('>1 date<', $liveCard, 'a live series shows its count - neither next nor last');
         self::assertStringNotContainsString('>live</span>', $pastCard);
+    }
+
+    /**
+     * Every date of the picker in one style (CompetitionPickerDate): a one-time event's days, an edition's
+     */
+    public function testCardsShowDatesInThePickersStyle(): void
+    {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $editionId = $this->scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+        $date = self::getContainer()->get(CompetitionPickerDate::class);
+
+        $edition = $this->option($this->builder->build(CompetitionPick::edition($editionId)), 'edition:' . $editionId)['text'];
+        self::assertStringContainsString('>' . $date->format(new DateTimeImmutable($this->day(-2))) . '</small>', $edition);
+
+        $typed = $this->builder->editionsPayload(self::getContainer()->get(GetSeriesEditionChoices::class)->search('jam no. 154'))['options'][0]['text'];
+        self::assertStringContainsString('>' . $date->format(new DateTimeImmutable($this->day(-2))) . '</small>', $typed);
+
+        $this->database->executeStatement(
+            'UPDATE competition SET date_from = :from, date_to = :to WHERE id = :id',
+            ['from' => '2025-10-10', 'to' => '2025-10-12', 'id' => EventDetailFixture::COMPETITION_HILLTOP_WEEKEND],
+        );
+        $oneTime = $this->option($this->builder->build(), EventDetailFixture::COMPETITION_HILLTOP_WEEKEND)['text'];
+        self::assertStringContainsString('>10–12 Oct 2025</small>', $oneTime);
     }
 
     public function testASeriesIsFoundByItsOrganizationsNames(): void

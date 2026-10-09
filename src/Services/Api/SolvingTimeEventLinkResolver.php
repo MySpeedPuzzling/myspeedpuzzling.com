@@ -78,7 +78,8 @@ final readonly class SolvingTimeEventLinkResolver
      * What an edited time is linked with. Neither id sent: the link it has, exactly - an explicit one stays explicit,
      * a series pick stays a series pick (the handler finds its edition again, like every edit); there is no way to
      * remove a link (P17). An id sent changes the link - the time's current competition or series is accepted even when
-     * it is no longer publicly visible, like the edit form's include-current rule.
+     * it is no longer publicly visible, like the edit form's include-current rule - except a series pick's own
+     * series_id, alone or with its current competition_id (an echoed answer): it stays a series pick.
      *
      * @throws CompetitionNotFound
      * @throws CompetitionSeriesNotFound
@@ -99,6 +100,17 @@ final readonly class SolvingTimeEventLinkResolver
 
         if ($series !== null) {
             self::assertEditionOf($competition, $series, $seriesId);
+        }
+
+        // A client echoing the answer of an automatic link (its competition_id and series_id, both unchanged) keeps the
+        // series pick - only a competition_id the time is not linked to, or one sent without its series pick, makes
+        // the link explicit
+        if (
+            $series !== null
+            && $solvingTime->competitionSeries?->id->equals($series->id) === true
+            && ($competition === null || $solvingTime->competition?->id->equals($competition->id) === true)
+        ) {
+            return CompetitionPick::series($series->id->toString());
         }
 
         if ($competition !== null) {

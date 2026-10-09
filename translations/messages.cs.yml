@@ -8073,6 +8073,7 @@ series_picker:
     search_placeholder: "Hledat termíny nebo puzzle…"
     no_match: "Nic neodpovídá – zkuste jiné slovo."
     undated: "Termín zatím neurčen"
+    dates_count: "%count% termín|%count% termíny|%count% termínů"
 series_pages:
     more_sessions: "+%count% další|+%count% další|+%count% dalších"
     filter_label: "Filtrovat termíny"

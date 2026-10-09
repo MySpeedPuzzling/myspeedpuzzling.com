@@ -9,7 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\SeriesEditionChoice;
-use SpeedPuzzling\Web\Value\SearchText;
+use SpeedPuzzling\Web\Services\SeriesEditions\SeriesEditionSearch;
 
 /**
  * The editions a player picks explicitly on the add-time form (docs/features/events-page/high-frequency-series.md
@@ -18,7 +18,11 @@ use SpeedPuzzling\Web\Value\SearchText;
  * - search() (S1): typing two or more characters in the picker finds editions by name - every typed word in the
  *   edition's name, its series' name or shortcut;
  * - closest() (the short list under a series' preview, S2): one series' editions, closest to the solve day first;
+ *   its search also reads revealed round puzzle names and the editions' dates;
  * - seriesOfSelectableEdition(): whether an `edition:<uuid>` value may be picked, and its series.
+ *
+ * Both searches rank an edition whose name holds every typed word as a whole token first ("No. 1" is Jam No. 1, not
+ * Jam No. 15) - SeriesEditionSearch.
  *
  * Only publicly visible editions of publicly visible series, never a draft, pending or rejected one - the candidates of
  * the matching rule (SeriesEditionMatch::sqlCandidates(), which also gives the day span and the REVEALED round
@@ -39,21 +43,21 @@ readonly final class GetSeriesEditionChoices
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private SeriesEditionSearch $seriesEditionSearch,
     ) {
     }
 
     /**
-     * S1: editions whose name, series name or series shortcut contains every typed word (accents and case ignored),
-     * nearest to today first, undated last. Nothing for fewer than two characters.
+     * S1: editions whose name, series name or series shortcut contains every typed word (accents and case ignored;
+     * whitespace, `#`, `.` and `-` separate the words). Those holding every word as a whole token first ("No. 1" finds
+     * Jam No. 1 before Jam No. 10 or 15), then the others - each group nearest to today first, undated last. Nothing
+     * for fewer than two characters.
      *
      * @return list<SeriesEditionChoice>
      */
     public function search(string $query, int $limit = self::SEARCH_LIMIT): array
     {
-        $words = array_slice(array_values(array_filter(
-            preg_split('/\s+/u', trim($query)) ?: [],
-            static fn (string $word): bool => $word !== '',
-        )), 0, self::MAX_SEARCH_WORDS);
+        $words = array_slice(SeriesEditionSearch::words($query), 0, self::MAX_SEARCH_WORDS);
 
         if (mb_strlen(trim($query)) < self::MIN_SEARCH_LENGTH || $words === []) {
             return [];
@@ -61,11 +65,25 @@ readonly final class GetSeriesEditionChoices
 
         $parameters = [];
         $conditions = [];
+        $text = "immutable_unaccent(c.name || ' ' || cs.name || ' ' || COALESCE(cs.shortcut, ''))";
 
         foreach ($words as $index => $word) {
-            $conditions[] = "immutable_unaccent(c.name || ' ' || cs.name || ' ' || COALESCE(cs.shortcut, '')) ILIKE immutable_unaccent(:word{$index})";
+            $conditions[] = "{$text} ILIKE immutable_unaccent(:word{$index})";
             $parameters['word' . $index] = '%' . addcslashes($word, '\\%_') . '%';
         }
+
+        // Whole tokens: the name's runs of letters and digits hold every typed word's (SeriesEditionSearch::tokens())
+        $tokens = array_values(array_unique(array_merge(...array_map(SeriesEditionSearch::tokens(...), $words))));
+        $tokenParameters = [];
+
+        foreach ($tokens as $index => $token) {
+            $tokenParameters[] = "lower(immutable_unaccent(CAST(:token{$index} AS TEXT)))";
+            $parameters['token' . $index] = $token;
+        }
+
+        $wholeTokens = $tokenParameters === []
+            ? 'false'
+            : "regexp_split_to_array(lower({$text}), '[^[:alnum:]]+') @> ARRAY[" . implode(', ', $tokenParameters) . ']';
 
         // The words narrow the candidates right where they are read (the CTE's own competition c and series cs)
         $scope = 'c.series_id IS NOT NULL AND ' . implode(' AND ', $conditions);
@@ -91,7 +109,7 @@ SELECT c.id,
 FROM series_match_edition e
 INNER JOIN competition c ON c.id = e.competition_id
 INNER JOIN competition_series cs ON cs.id = c.series_id
-ORDER BY e.span_from IS NULL, {$distance}, e.span_from DESC, c.id DESC
+ORDER BY {$wholeTokens} DESC, e.span_from IS NULL, {$distance}, e.span_from DESC, c.id DESC
 LIMIT :limit
 SQL,
             [
@@ -112,9 +130,11 @@ SQL,
      * The short list: the series' editions, closest to the solve day first (dated ones by their distance in days to
      * their span, then undated ones newest first), each with its categories and revealed round puzzle names.
      *
-     * $query narrows it to editions whose name or revealed round puzzle names hold every typed word (folded like every
-     * other event search, SearchText::fold()). $alwaysIncludeId (the matched or the picked edition) is listed even
-     * beyond $limit - in its own place, so the line above the list can name it without another statement.
+     * $query narrows it to editions whose name, series name or shortcut, revealed round puzzle names or date words hold
+     * every typed word (folded like every other event search, SearchText::fold()) - those holding them as whole tokens
+     * of the name first, then the others, each group closest to the solve day first (SeriesEditionSearch::rank()).
+     * $alwaysIncludeId (the matched or the picked edition) is listed even beyond $limit - in its own place, so the line
+     * above the list can name it without another statement.
      *
      * @return list<SeriesEditionChoice>
      */
@@ -129,12 +149,12 @@ SQL,
             return [];
         }
 
-        $words = $query !== null ? array_values(array_filter(explode(' ', SearchText::fold($query)), static fn (string $word): bool => $word !== '')) : [];
+        $searched = $query !== null && SeriesEditionSearch::words($query) !== [];
         $candidates = SeriesEditionMatch::sqlCandidates('c.series_id = CAST(:seriesId AS UUID)');
         $distance = self::sqlDistance('CAST(:day AS DATE)');
 
         // A search is applied below, in PHP, with the one fold of puzzle text - the whole series is read for it
-        $cut = $words === [] ? 'WHERE x.position <= :limit OR x.id = CAST(:includeId AS UUID)' : '';
+        $cut = $searched ? '' : 'WHERE x.position <= :limit OR x.id = CAST(:includeId AS UUID)';
 
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
@@ -184,23 +204,11 @@ SQL,
             return SeriesEditionChoice::fromDatabaseRow($row);
         }, $rows);
 
-        if ($words === []) {
+        if ($searched === false) {
             return $choices;
         }
 
-        $found = array_values(array_filter($choices, static function (SeriesEditionChoice $choice) use ($words): bool {
-            $haystack = SearchText::fold($choice->name . ' ' . implode(' ', $choice->puzzleNames));
-
-            foreach ($words as $word) {
-                if (str_contains($haystack, $word) === false) {
-                    return false;
-                }
-            }
-
-            return true;
-        }));
-
-        return array_slice($found, 0, $limit);
+        return array_slice($this->seriesEditionSearch->rank($choices, (string) $query), 0, $limit);
     }
 
     /**

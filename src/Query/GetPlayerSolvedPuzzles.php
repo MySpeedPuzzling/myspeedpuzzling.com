@@ -241,7 +241,7 @@ FROM puzzle_solving_time
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
-    LEFT JOIN competition_series cs ON cs.id = competition.series_id
+    LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzling_type = 'solo'
@@ -383,7 +383,7 @@ FROM puzzle_solving_time
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
-    LEFT JOIN competition_series cs ON cs.id = competition.series_id
+    LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzle_id = :puzzleId
@@ -526,7 +526,7 @@ INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
-LEFT JOIN competition_series cs ON cs.id = competition.series_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
 ORDER BY pst.seconds_to_solve ASC
 SQL;
 
@@ -677,7 +677,7 @@ INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
-LEFT JOIN competition_series cs ON cs.id = competition.series_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
 ORDER BY pst.seconds_to_solve ASC
 SQL;
 

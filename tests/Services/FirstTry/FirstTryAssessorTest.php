@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Services\FirstTry;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\FirstTryScenario;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\FirstTryAssessment;
 use SpeedPuzzling\Web\Value\FirstTryEntry;
@@ -49,6 +50,29 @@ final class FirstTryAssessorTest extends KernelTestCase
         self::assertCount(1, $assessment->holdLines);
         self::assertSame(FirstTryNoticeLine::OWN, $assessment->holdLines[0]->kind);
         self::assertSame([], $assessment->holdLines[0]->with);
+    }
+
+    /**
+     * H12 scenario 14 (docs/features/events-page/high-frequency-series.md): first tries read no event column - a
+     * series-level time (a series pick no edition holds) is a first try like any other result
+     */
+    public function testSeriesLevelFirstTryBlocksLikeAnyOther(): void
+    {
+        $series = new SeriesEditionScenario(self::getContainer());
+        $old = $series->addTime(
+            PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
+            FirstTryScenario::PUZZLE,
+            $this->scenario->daysAgo(10)->format('Y-m-d'),
+            seriesId: $series->series(),
+        );
+        self::assertNull($series->link($old)['competition_id']);
+        $this->scenario->markFirstTry($old);
+
+        $assessment = $this->assess(PlayerFixture::PLAYER_WITH_STRIPE, [PlayerFixture::PLAYER_WITH_STRIPE]);
+
+        self::assertTrue($assessment->blocks(FirstTryResolution::None));
+        self::assertSame([$old], $assessment->timeIdsToUnmark(FirstTryResolution::MoveHere));
+        self::assertSame(FirstTryNoticeLine::OWN, $assessment->holdLines[0]->kind);
     }
 
     public function testOwnPairFirstTryBlocksASoloAttempt(): void

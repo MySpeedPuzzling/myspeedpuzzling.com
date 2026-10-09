@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\Reader\Xlsx as XlsxReader;
 use SpeedPuzzling\Web\Results\ExportableSolvingTime;
 use SpeedPuzzling\Web\Services\PuzzlerDataExporter;
 use SpeedPuzzling\Web\Value\ExportFormat;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class PuzzlerDataExporterTest extends TestCase
@@ -66,7 +67,7 @@ final class PuzzlerDataExporterTest extends TestCase
         $this->assertSame('Test Puzzle', $decoded[0]['puzzle_name']);
     }
 
-    public function testPpmIsTheLastColumnPerPerson(): void
+    public function testPpmFollowsTheRankColumnsPerPerson(): void
     {
         $data = $this->createSampleData();
 
@@ -77,7 +78,7 @@ final class PuzzlerDataExporterTest extends TestCase
 
         $csv = $this->exporter->export($data, ExportFormat::Csv);
         $header = explode("\n", $csv)[0];
-        self::assertStringEndsWith('"puzzle_total_solved","ppm"', trim($header));
+        self::assertStringContainsString('"puzzle_total_solved","ppm",', trim($header));
 
         $pair = new ExportableSolvingTime(
             timeId: '018d0000-0000-0000-0000-000000000003',
@@ -104,6 +105,58 @@ final class PuzzlerDataExporterTest extends TestCase
             puzzleTotalSolved: 1,
         );
         self::assertSame(10.0, $pair->ppm);
+    }
+
+    /**
+     * The result's event (docs/features/events-page/high-frequency-series.md P22): four columns appended after every
+     * existing one - people's scripts read the CSV by column position, nothing is renamed or moved
+     */
+    public function testEventColumnsAreAppendedAtTheEnd(): void
+    {
+        $csv = $this->exporter->export($this->createSampleData(), ExportFormat::Csv);
+
+        self::assertSame(
+            '"result_id","puzzle_id","puzzle_name","brand_name","pieces_count","seconds_to_solve","time_formatted",'
+            . '"finished_at","tracked_at","type","first_attempt","unboxed","players_count","team_members",'
+            . '"finished_puzzle_photo_url","comment","puzzle_fastest_time","puzzle_fastest_time_formatted",'
+            . '"puzzle_average_time","puzzle_average_time_formatted","player_rank","puzzle_total_solved","ppm",'
+            . '"event_id","event_name","event_series_id","event_series_name"',
+            trim(explode("\n", $csv)[0]),
+        );
+    }
+
+    /**
+     * @return iterable<string, array{null|string, null|string, null|string, null|string}>
+     */
+    public static function provideEvents(): iterable
+    {
+        yield 'no event' => [null, null, null, null];
+        yield 'one-time event' => ['event-1', 'Riverside Puzzle Open', null, null];
+        // An edition the player picked, or the one MySpeedPuzzling found for a series pick - the same columns
+        yield 'edition' => ['edition-1', 'Jam No. 154', 'series-1', 'Lantern Weekly Jam'];
+        // A series pick no edition holds: a normal, permanent result of the series
+        yield 'series-level' => [null, null, 'series-1', 'Lantern Weekly Jam'];
+    }
+
+    #[DataProvider('provideEvents')]
+    public function testEventColumnsInEveryFormat(null|string $eventId, null|string $eventName, null|string $seriesId, null|string $seriesName): void
+    {
+        $time = $this->timeOfEvent($eventId, $eventName, $seriesId, $seriesName);
+
+        /** @var array<int, array<string, mixed>> $json */
+        $json = json_decode($this->exporter->export([$time], ExportFormat::Json), true);
+        self::assertSame(
+            ['event_id' => $eventId, 'event_name' => $eventName, 'event_series_id' => $seriesId, 'event_series_name' => $seriesName],
+            array_slice($json[0], -4, preserve_keys: true),
+        );
+
+        $csvRows = array_map(static fn (string $line): array => str_getcsv($line, ',', '"', ''), array_values(array_filter(explode("\n", $this->exporter->export([$time], ExportFormat::Csv)))));
+        self::assertSame([$eventId ?? '', $eventName ?? '', $seriesId ?? '', $seriesName ?? ''], array_slice($csvRows[1], -4));
+
+        $xml = simplexml_load_string($this->exporter->export([$time], ExportFormat::Xml));
+        self::assertNotFalse($xml);
+        self::assertSame($seriesName ?? '', (string) $xml->record->event_series_name);
+        self::assertSame($eventName ?? '', (string) $xml->record->event_name);
     }
 
     public function testCsvExportContainsHeaders(): void
@@ -185,6 +238,38 @@ final class PuzzlerDataExporterTest extends TestCase
 
         self::assertStringContainsString('"\'=HYPERLINK(""http://evil.example"",""x"")"', $content);
         self::assertStringContainsString('"1500"', $content);
+    }
+
+    private function timeOfEvent(null|string $eventId, null|string $eventName, null|string $seriesId, null|string $seriesName): ExportableSolvingTime
+    {
+        return new ExportableSolvingTime(
+            timeId: 'time-1',
+            puzzleId: 'puzzle-1',
+            puzzleName: 'Copper Lighthouse',
+            brandName: 'Lantern Puzzle Works',
+            piecesCount: 500,
+            secondsToSolve: 1500,
+            timeFormatted: '00:25:00',
+            finishedAt: new DateTimeImmutable('2026-10-07 21:40:00'),
+            trackedAt: new DateTimeImmutable('2026-10-07 21:45:00'),
+            type: 'solo',
+            firstAttempt: false,
+            unboxed: false,
+            playersCount: 1,
+            teamMembers: '',
+            finishedPuzzlePhotoUrl: null,
+            comment: null,
+            puzzleFastestTime: null,
+            puzzleFastestTimeFormatted: '',
+            puzzleAverageTime: null,
+            puzzleAverageTimeFormatted: '',
+            playerRank: 1,
+            puzzleTotalSolved: 1,
+            eventId: $eventId,
+            eventName: $eventName,
+            eventSeriesId: $seriesId,
+            eventSeriesName: $seriesName,
+        );
     }
 
     private function timeWithFormulaTeamMembers(): ExportableSolvingTime

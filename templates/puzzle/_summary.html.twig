@@ -34,14 +34,11 @@
     {% set facts = facts|merge([{label: 'puzzle_detail.summary.facts.also_known_as'|trans, html: other_names_html}]) %}
 {% endif %}
 {% if summary.usedAt is not empty %}
-    {# The same badges as the competition tags in the header's Details #}
-    {% set used_at_badges = summary.usedAt|map(competition => competition.routeName is not null
-        ? '<a class="badge bg-primary badge-shadow rounded-pill text-white link-light" href="' ~ path(competition.routeName, competition.routeParameters)|e ~ '"><i class="ci-diamond" aria-hidden="true"></i> ' ~ competition.displayName|e ~ '</a>'
-        : '<span class="badge bg-primary badge-shadow rounded-pill text-white"><i class="ci-diamond" aria-hidden="true"></i> ' ~ competition.displayName|e ~ '</span>'
-    ) %}
+    {# Lines, newest round first, then the tags no round names (docs/features/events-page/high-frequency-series.md P24) #}
+    {% set used_at_html %}{{ include('puzzle/_used_at_lines.html.twig', {lines: summary.usedAt, more: summary.usedAtMore}, with_context = false) }}{% endset %}
     {% set facts = facts|merge([{
         label: 'puzzle_detail.summary.facts.used_at'|trans,
-        html: '<span class="puzzle-summary-badges">' ~ used_at_badges|join(' ') ~ '</span>',
+        html: used_at_html,
     }]) %}
 {% endif %}
 

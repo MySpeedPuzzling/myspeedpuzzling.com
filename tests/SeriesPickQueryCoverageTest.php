@@ -21,7 +21,6 @@ final class SeriesPickQueryCoverageTest extends TestCase
     private const string PARTICIPANTS = 'Reads event participants or who took part in an event (competition_participant), not the event of a time.';
     private const string NOT_A_TIMES_EVENT = 'competition_id here is not the event of a solving time (another table\'s column, or a reference only).';
     private const string RELEASES_ON_DELETE = 'Write side: deleting an edition releases its automatic links to series-level together with their match kind; the series reconcile re-matches them.';
-    private const string TODO_WS_D = 'TODO WS-D: the reader shows a series-level time as the series\' result (high-frequency-series-plan.md section D).';
 
     /** Files reading puzzle_solving_time with competition_id that do not need to know about series picks */
     private const array NOT_SERIES_AWARE = [
@@ -30,22 +29,12 @@ final class SeriesPickQueryCoverageTest extends TestCase
         'Query/GetCompetitionParticipants.php' => self::PARTICIPANTS,
         'Query/GetCompetitionPuzzles.php' => self::PER_COMPETITION,
         'Query/GetCompetitionSlugsForSitemap.php' => self::ROUND_LEVEL,
-        'Query/GetDuplicateCandidates.php' => self::TODO_WS_D,
-        'Query/GetFastestGroups.php' => self::TODO_WS_D,
-        'Query/GetFastestPairs.php' => self::TODO_WS_D,
-        'Query/GetFastestPlayers.php' => self::TODO_WS_D,
         'Query/GetNotifications.php' => self::NOT_A_TIMES_EVENT,
         'Query/GetParticipantsSheetState.php' => self::ROUND_LEVEL,
-        'Query/GetPlayerDuplicateCases.php' => self::TODO_WS_D,
         'Query/GetPublishedRoundResults.php' => self::ROUND_LEVEL,
-        'Query/GetPuzzleResultDetail.php' => self::TODO_WS_D,
-        'Query/GetPuzzleSolvers.php' => self::TODO_WS_D,
-        'Query/GetRecentActivity.php' => self::TODO_WS_D,
         'Query/GetSuggestedPlayers.php' => self::PARTICIPANTS,
-        'Query/GetSuspiciousTimeCaseDetail.php' => self::TODO_WS_D,
         'Query/OccurrenceRounds.php' => self::ROUND_LEVEL,
         'Query/SearchPuzzle.php' => self::NOT_A_TIMES_EVENT,
-        'Services/Drafts/UnpublishBlockers.php' => self::TODO_WS_D,
         'Services/ParticipantImport/SiteSnapshotReader.php' => self::ROUND_LEVEL,
     ];
 

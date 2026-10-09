@@ -399,6 +399,10 @@
             {% set has_codes = not is_image_hidden and (puzzle.puzzleIdentificationNumber is not null or puzzle.puzzleEan) %}
             {# "Also known as": guests (and crawlers) get it in "About this puzzle" at the bottom, once #}
             {% set has_other_names = not show_seo_sections and not puzzle.puzzleAlternativeNames.isEmpty() %}
+            {# "Used at" rounds: guests (and crawlers) get every line in "About this puzzle", signed-in players here - the
+               tags are the badges below (docs/features/events-page/high-frequency-series.md P24) #}
+            {% set used_at_rounds = show_seo_sections ? [] : puzzle_summary.usedAtRounds %}
+            {% set has_used_at = used_at_rounds is not empty %}
             {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
             <div class="puzzle-head-toggles" data-nosnippet>
                 <button class="puzzle-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#puzzleInsights" aria-expanded="false" aria-controls="puzzleInsights">
@@ -407,7 +411,7 @@
                     {% if not is_member %}<i class="ci-locked" aria-hidden="true"></i>{% endif %}
                     <i class="bi bi-chevron-down puzzle-toggle-chevron" aria-hidden="true"></i>
                 </button>
-                {% if has_codes or tags or has_other_names %}
+                {% if has_codes or tags or has_other_names or has_used_at %}
                     <button class="puzzle-toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#puzzleDetails" aria-expanded="false" aria-controls="puzzleDetails">
                         {{ 'puzzle_detail.details'|trans }}
                         <i class="bi bi-chevron-down puzzle-toggle-chevron" aria-hidden="true"></i>
@@ -415,7 +419,7 @@
                 {% endif %}
             </div>
 
-            {% if has_codes or tags or has_other_names %}
+            {% if has_codes or tags or has_other_names or has_used_at %}
                 <div class="collapse" id="puzzleDetails">
                     <div class="puzzle-details-body">
                         {% if has_other_names %}
@@ -445,6 +449,12 @@
                                     {% endif %}
                                 {% endfor %}
                             </p>
+                        {% endif %}
+                        {% if has_used_at %}
+                            <div class="puzzle-details-used-at small mt-1" data-puzzle-details-used-at>
+                                <span class="d-block text-muted">{{ 'puzzle_detail.summary.facts.used_at'|trans }}</span>
+                                {{ include('puzzle/_used_at_lines.html.twig', {lines: used_at_rounds, more: puzzle_summary.usedAtMore}, with_context = false) }}
+                            </div>
                         {% endif %}
                     </div>
                 </div>

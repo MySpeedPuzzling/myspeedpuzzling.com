@@ -41,6 +41,11 @@ readonly final class PuzzlerDataExporter
         'puzzle_total_solved',
         // new columns go at the end: people's scripts read the CSV by column position
         'ppm',
+        // the result's event (docs/features/events-page/high-frequency-series.md P22)
+        'event_id',
+        'event_name',
+        'event_series_id',
+        'event_series_name',
     ];
 
     /**

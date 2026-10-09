@@ -8444,3 +8444,7 @@ series_pages:
     show_all: "Show all"
     round_results:
         unofficial_label: "Times logged on MySpeedPuzzling - not the official results"
+series_readers:
+    used_at:
+        more: "and %count% more|and %count% more"
+    series_delete_note: "Results logged at this series or its editions stay on the players' profiles, without the event."

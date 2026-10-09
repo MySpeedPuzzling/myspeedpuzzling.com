@@ -12,12 +12,16 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleRedirect;
 use SpeedPuzzling\Web\Tests\CatalogueTestData;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -237,16 +241,24 @@ final class PuzzleDetailControllerTest extends WebTestCase
 
         // One sentence, then the codes and events as a list and the solves as a table - never one wall of text
         self::assertSame('Puzzle 1 is a 500-piece jigsaw puzzle by Ravensburger.', $summary->filter('p.puzzle-summary-intro')->text());
+        self::assertSame(['Product number' => 'RB-500-001', 'Used at' => self::usedAtFact($summary)], self::summaryFacts($summary));
+        // "Used at" lines (docs/features/events-page/high-frequency-series.md P24): the rounds, newest first
         self::assertSame([
-            'Product number' => 'RB-500-001',
-            'Used at' => 'Moonlight Sprint League · Season One WJPC 2024 Czech National Championship 2024',
-        ], self::summaryFacts($summary));
+            'Czech National Championship 2024 · <day> · Solo',
+            'WJPC 2024 · <day> · Solo',
+            'Moonlight Sprint League · Season One · <day> · Solo',
+        ], self::usedAtLines($summary));
         self::assertSame([
             ['', 'Solves', 'Median', 'Fastest'],
             ['Solo', '12', '01:02:05', '00:27:46'],
         ], self::summaryTimes($summary));
         self::assertSame(
-            ['/en/puzzle/brand/ravensburger', '/en/series/moonlight-sprint-league/season-one', '/en/events/wjpc-2024', '/en/events/czech-nationals-2024'],
+            [
+                '/en/puzzle/brand/ravensburger',
+                '/en/events/czech-nationals-2024#round-' . CompetitionRoundFixture::ROUND_CZECH_FINAL,
+                '/en/events/wjpc-2024#round-' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
+                '/en/series/moonlight-sprint-league/season-one#round-' . EventsPageFixture::ROUND_SPRINT_1,
+            ],
             $summary->filter('a')->each(static fn (Crawler $link): null|string => $link->attr('href')),
         );
 
@@ -293,8 +305,9 @@ final class PuzzleDetailControllerTest extends WebTestCase
             'EAN' => '4005556175895 4005555008385',
             'Product number' => 'RB-500-001',
             'Also known as' => 'Bayerische Romanze · German Bavorská romance · Czech',
-            'Used at' => 'Moonlight Sprint League · Season One WJPC 2024 Czech National Championship 2024',
+            'Used at' => self::usedAtFact($crawler->filter('section.puzzle-summary')),
         ], self::summaryFacts($crawler->filter('section.puzzle-summary')));
+        self::assertCount(3, $crawler->filter('section.puzzle-summary [data-used-at-line="round"]'));
 
         // One EAN is enough for the meta description - at its end, after the times and the call to action
         self::assertStringStartsWith('Ravensburger Puzzle 1 (500 pieces): fastest solo ', $this->metaDescription($crawler));
@@ -502,6 +515,78 @@ final class PuzzleDetailControllerTest extends WebTestCase
     }
 
     /**
+     * "Used at" lines for guests (docs/features/events-page/high-frequency-series.md P24): "<series> · <edition> · <day>
+     * · <category>" linking the edition page at the round, at most 10 rounds, then "and N more" - and none of it in the
+     * header's Details, which a guest reads in "About this puzzle" at the bottom
+     */
+    public function testGuestSummaryListsTheRoundsAndHowManyMore(): void
+    {
+        $browser = self::createClient();
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $puzzleId = $scenario->puzzle();
+        $seriesId = $scenario->series();
+        $editionId = $scenario->edition($seriesId, 'Jam No. 154', '2026-10-07');
+        $roundId = $scenario->round($editionId, RoundCategory::Duo, '2026-10-07 19:00', puzzleIds: [$puzzleId]);
+
+        for ($jam = 1; $jam <= 11; $jam++) {
+            $day = sprintf('2026-08-%02d', $jam);
+            $scenario->round($scenario->edition($seriesId, 'Jam No. ' . $jam, $day), RoundCategory::Solo, $day . ' 19:00', puzzleIds: [$puzzleId]);
+        }
+
+        $crawler = $browser->request('GET', '/en/puzzle/' . $puzzleId);
+
+        $this->assertResponseIsSuccessful();
+        $summary = $crawler->filter('section.puzzle-summary');
+        $lines = $summary->filter('[data-used-at-line="round"]');
+        self::assertCount(10, $lines);
+        self::assertSame('Lantern Weekly Jam · Jam No. 154 · Wed, 7 Oct 2026 · Pair', self::normalizedSpaces($lines->first()->text()));
+        $href = (string) $lines->first()->filter('a')->attr('href');
+        self::assertStringStartsWith('/en/series/hfs-', $href);
+        self::assertStringEndsWith('#round-' . $roundId, $href);
+        self::assertSame('and 2 more', $summary->filter('[data-used-at-more]')->text());
+
+        self::assertCount(0, $crawler->filter('[data-puzzle-details-used-at]'));
+        self::assertCount(0, $crawler->filter('[data-bs-target="#puzzleDetails"]'), 'Nothing else for the Details of a puzzle without codes or tags');
+    }
+
+    /**
+     * A signed-in player has no "About this puzzle" - the round lines are in the header's Details, collapsed until
+     * opened; the toggle is there for them even when the puzzle has no codes, names or tags
+     */
+    public function testSignedInPlayerFindsTheRoundsInTheDetails(): void
+    {
+        $browser = self::createClient();
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $puzzleId = $scenario->puzzle();
+        $scenario->round($scenario->edition($scenario->series(), 'Jam No. 154', '2026-10-07'), RoundCategory::Team, '2026-10-07 19:00', puzzleIds: [$puzzleId]);
+        $unusedPuzzleId = $scenario->puzzle('Quiet Harbor');
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle/' . $puzzleId);
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('section.puzzle-summary'));
+        self::assertCount(1, $crawler->filter('button[data-bs-target="#puzzleDetails"]'));
+        $details = $crawler->filter('div.collapse#puzzleDetails');
+        self::assertCount(1, $details);
+        self::assertStringNotContainsString('show', (string) $details->attr('class'), 'Collapsed until opened');
+        self::assertSame(['Lantern Weekly Jam · Jam No. 154 · <day> · Team'], self::usedAtLines($details->filter('[data-puzzle-details-used-at]')));
+
+        // PUZZLE_500_01: its three rounds, newest first
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+        self::assertSame([
+            'Czech National Championship 2024 · <day> · Solo',
+            'WJPC 2024 · <day> · Solo',
+            'Moonlight Sprint League · Season One · <day> · Solo',
+        ], self::usedAtLines($crawler->filter('#puzzleDetails')));
+
+        // Used nowhere, nothing else to show: no Details at all
+        $crawler = $browser->request('GET', '/en/puzzle/' . $unusedPuzzleId);
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('button[data-bs-target="#puzzleDetails"]'));
+    }
+
+    /**
      * Every locale has the summary, title and description translated - no raw placeholder, no missing key.
      */
     #[DataProvider('localesAndPuzzles')]
@@ -559,10 +644,11 @@ final class PuzzleDetailControllerTest extends WebTestCase
         ));
         self::assertSame('Ravensburger Puzzle 11 – puzzle 300 dílků', $crawler->filter('title')->text());
 
-        // PUZZLE_1000_01: used at one competition
+        // PUZZLE_1000_01: used at one competition, its round's category in Czech
         $crawler = $browser->request('GET', '/puzzle/' . PuzzleFixture::PUZZLE_1000_01);
         $this->assertResponseIsSuccessful();
-        self::assertSame('WJPC 2024', self::summaryFacts($crawler->filter('section.puzzle-summary'))['Použito na'] ?? null);
+        self::assertArrayHasKey('Použito na', self::summaryFacts($crawler->filter('section.puzzle-summary')));
+        self::assertSame(['WJPC 2024 · <day> · Sólo'], self::usedAtLines($crawler->filter('section.puzzle-summary')));
     }
 
     public function testBreadcrumbLeadsThroughTheIndexableBrandPiecesPage(): void
@@ -1008,6 +1094,26 @@ final class PuzzleDetailControllerTest extends WebTestCase
             $summary->filter('dl.puzzle-summary-facts dt')->each(static fn (Crawler $label): string => $label->text()),
             $summary->filter('dl.puzzle-summary-facts dd')->each(static fn (Crawler $value): string => $value->text()),
         );
+    }
+
+    /**
+     * The "Used at" lines of a summary or of the Details, each round's day (which moves with the clock) as "<day>"
+     *
+     * @return list<string>
+     */
+    private static function usedAtLines(Crawler $within): array
+    {
+        return $within->filter('[data-used-at-line]')->each(
+            static fn (Crawler $line): string => (string) preg_replace('/ · [^·]+ \d{4}(?= · )/u', ' · <day>', self::normalizedSpaces(trim($line->text()))),
+        );
+    }
+
+    /**
+     * The text of the summary's "Used at" value as summaryFacts() reads it
+     */
+    private static function usedAtFact(Crawler $summary): string
+    {
+        return $summary->filter('[data-puzzle-used-at]')->text();
     }
 
     /**

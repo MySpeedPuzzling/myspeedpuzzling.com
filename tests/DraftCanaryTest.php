@@ -125,6 +125,8 @@ final class DraftCanaryTest extends WebTestCase
 
         // The puzzle of the draft event's round: "used at" (GetPuzzleSummary) - in the guests' part of the page
         yield 'puzzle page (guest) - draft event using the puzzle' => [...$draftNight, self::PUZZLE_PAGE, null, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME];
+        // ... and its round line in a signed-in player's Details (docs/features/events-page/high-frequency-series.md P24)
+        yield 'puzzle page (player) - Details: draft event using the puzzle' => [...$draftNight, self::PUZZLE_PAGE, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME, '#puzzleDetails'];
 
         yield 'sitemap - draft one-time event' => [...$draftNight, self::SITEMAP, null, '/en/events/' . OrganizationFixture::COMPETITION_DRAFT_NIGHT_SLUG . '<'];
         yield 'sitemap - draft edition' => [...$lanternDraft, self::SITEMAP, null, '/' . OrganizationFixture::EDITION_LANTERN_DRAFT_SLUG . '<'];

@@ -130,7 +130,7 @@ player_data AS (
     INNER JOIN player ON pst.player_id = player.id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN competition ON pst.competition_id = competition.id
-    LEFT JOIN competition_series cs ON cs.id = competition.series_id
+    LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
     LEFT JOIN player_skill ps_main ON ps_main.player_id = player.id,
     LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID

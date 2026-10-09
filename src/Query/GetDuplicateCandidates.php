@@ -190,7 +190,8 @@ SQL;
     {$alias}.first_attempt AS {$alias}_first_attempt,
     {$alias}.unboxed AS {$alias}_unboxed,
     {$alias}.competition_id AS {$alias}_competition_id,
-    {$alias}.competition_round_id AS {$alias}_competition_round_id
+    {$alias}.competition_round_id AS {$alias}_competition_round_id,
+    {$alias}.competition_series_id AS {$alias}_competition_series_id
 SQL;
     }
 
@@ -241,6 +242,8 @@ SQL;
         $competitionId = $row["{$alias}_competition_id"];
         /** @var null|string $competitionRoundId */
         $competitionRoundId = $row["{$alias}_competition_round_id"];
+        /** @var null|string $competitionSeriesId */
+        $competitionSeriesId = $row["{$alias}_competition_series_id"];
 
         // A solo result's only person is its tracker; a group's people are its registered members (guests left out)
         if ($teamId === null || $peopleJson === null) {
@@ -266,6 +269,7 @@ SQL;
             unboxed: (bool) $row["{$alias}_unboxed"],
             competitionId: $competitionId,
             competitionRoundId: $competitionRoundId,
+            competitionSeriesId: $competitionSeriesId,
         );
     }
 

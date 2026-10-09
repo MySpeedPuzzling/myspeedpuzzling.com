@@ -134,7 +134,7 @@ FROM focus
     LEFT JOIN player_skill ps ON ps.player_id = focus_player.id
     LEFT JOIN puzzling_team ON puzzling_team.id = focus.puzzling_team_id
     LEFT JOIN competition ON competition.id = pst.competition_id
-    LEFT JOIN competition_series cs ON cs.id = competition.series_id
+    LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
     LEFT JOIN focus_members ON true
 WHERE true
     {$notHidden}

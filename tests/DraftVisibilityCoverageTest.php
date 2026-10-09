@@ -42,6 +42,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetEditionRounds.php' => self::PAGE_GATED,
         'Query/GetEventAttendance.php' => self::PAGE_GATED,
         'Query/GetEventsViewerData.php' => self::OWN,
+        'Query/GetExportableSolvingTimes.php' => self::VIA_SOLVING_TIMES,
         'Query/GetFastestGroups.php' => self::VIA_SOLVING_TIMES,
         'Query/GetFastestPairs.php' => self::VIA_SOLVING_TIMES,
         'Query/GetFastestPlayers.php' => self::VIA_SOLVING_TIMES,

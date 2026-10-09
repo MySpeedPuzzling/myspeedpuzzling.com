@@ -16,6 +16,7 @@ use ReflectionNamedType;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Events\PuzzleMergeApproved;
+use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\AddPuzzle;
@@ -36,6 +37,7 @@ use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
 use SpeedPuzzling\Web\Message\CheckInParticipant;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
+use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
 use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
@@ -174,6 +176,9 @@ final class SerializedByLockMessagesTest extends TestCase
 
         self::assertSame($key, (new MoveEditionToSeries($competitionId, 'series', 'player'))->lockKey());
         self::assertSame($key, (new MoveRoundToCompetition('round', $competitionId, 'target', 'player'))->lockKey());
+        // Turning the event into a series may delete its participants (dropParticipants) - the ones it checked
+        // (docs/features/events-page/high-frequency-series.md P11)
+        self::assertSame($key, (new ConvertCompetitionToSeries($competitionId, Uuid::uuid7(), keepAsEdition: false, dropParticipants: true))->lockKey());
     }
 
     /**
@@ -245,6 +250,7 @@ final class SerializedByLockMessagesTest extends TestCase
         CompetitionRoundsChanged::class => 're-links players\' own times to rounds (puzzle_solving_time) - never entries or official results',
         PuzzleMergeApproved::class => 're-links players\' own times to rounds (puzzle_solving_time) - never entries or official results',
         ReconcileRoundResults::class => 'console reconcile of players\' own times and their rounds (puzzle_solving_time) - never entries or official results',
+        SeriesEditionsChanged::class => 're-matches players\' series picks to editions and their rounds (puzzle_solving_time) - never entries or official results',
         EditPuzzleSolvingTime::class => 'a player\'s own time - reads the rounds to link it, never writes entries or official results',
         KeepDuplicateCopy::class => 'a player\'s own times (duplicate results) - reads the rounds to link them, never writes entries or official results',
         UndoAutoRemoval::class => 'a player\'s own time restored (duplicate results) - reads the rounds to link it, never writes entries or official results',

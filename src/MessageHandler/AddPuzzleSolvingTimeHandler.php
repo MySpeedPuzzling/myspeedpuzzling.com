@@ -11,6 +11,7 @@ use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionSeries;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
@@ -21,6 +22,7 @@ use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
+use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
@@ -34,6 +36,7 @@ use SpeedPuzzling\Web\Query\GetRecentIdenticalSolvingTime;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -48,6 +51,7 @@ use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
+use SpeedPuzzling\Web\Services\SeriesEditions\SeriesEditionResolver;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
@@ -83,6 +87,8 @@ readonly final class AddPuzzleSolvingTimeHandler
         private SecretPuzzleAccess $secretPuzzleAccess,
         private SuspiciousTimeConfirmationRepository $suspiciousTimeConfirmationRepository,
         private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        private CompetitionSeriesRepository $competitionSeriesRepository,
+        private SeriesEditionResolver $seriesEditionResolver,
     ) {
     }
 
@@ -152,6 +158,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         $puzzlersCount = 1;
         $competitionRound = null;
         $competition = null;
+        $competitionSeries = null;
 
         if ($message->roundId !== null) {
             // The round's competition is derived; both are written together so they cannot disagree.
@@ -178,6 +185,10 @@ readonly final class AddPuzzleSolvingTimeHandler
                     'exception' => $e,
                 ]);
             }
+        } elseif ($message->seriesId !== null) {
+            // A series pick (docs/features/events-page/high-frequency-series.md) - the edition is found below, once
+            // the time is final
+            $competitionSeries = $this->publiclyVisibleSeries($message);
         }
 
         if ($group !== null) {
@@ -198,6 +209,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             unboxed: $message->unboxed,
             comment: $message->comment,
             hasPhoto: $message->finishedPuzzlesPhoto !== null,
+            seriesId: $competitionSeries?->id->toString(),
         );
 
         if ($recentTwinId !== null) {
@@ -263,11 +275,21 @@ readonly final class AddPuzzleSolvingTimeHandler
             // the unit of work
             puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $player->id->toString()),
             createdVia: $message->createdVia,
+            competitionSeries: $competitionSeries,
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing
         if (PuzzlingTeam::cleanName($message->teamName) !== null) {
             $puzzlingTeam?->nameIfUnnamed($player, $message->teamName, $trackedAt);
+        }
+
+        // A series pick's edition, by the one rule - the puzzle, the group (solo/duo/team) and the day are final now
+        if ($competitionSeries !== null) {
+            $resolution = $this->seriesEditionResolver->resolve($solvingTime);
+            $solvingTime->seriesEditionResolved(
+                $resolution->competitionId !== null ? $this->competitionRepository->get($resolution->competitionId) : null,
+                $resolution->kind,
+            );
         }
 
         $solvingTime->changeCompetitionRound($this->roundResolver->resolve($solvingTime));
@@ -310,6 +332,41 @@ readonly final class AddPuzzleSolvingTimeHandler
                 confirmedAt: $trackedAt,
             ));
         }
+    }
+
+    /**
+     * The form offers publicly visible series only, so a series that is unknown or not public (any more) is reachable
+     * only when it changed between render and submit: the time is saved without the link - losing the upload would be
+     * worse - but not silently. The API refuses such a series before it dispatches.
+     */
+    private function publiclyVisibleSeries(AddPuzzleSolvingTime $message): null|CompetitionSeries
+    {
+        $exception = null;
+
+        try {
+            $series = $this->competitionSeriesRepository->get((string) $message->seriesId);
+
+            if ($series->isPubliclyVisible()) {
+                return $series;
+            }
+        } catch (CompetitionSeriesNotFound $e) {
+            $exception = $e;
+        }
+
+        $context = [
+            'timeId' => $message->timeId->toString(),
+            'puzzleId' => $message->puzzleId,
+            'seriesId' => $message->seriesId,
+            'userId' => $message->userId,
+        ];
+
+        if ($exception !== null) {
+            $context['exception'] = $exception;
+        }
+
+        $this->logger->warning('Solving time saved without series: the submitted series does not exist or is not publicly visible', $context);
+
+        return null;
     }
 
     /**

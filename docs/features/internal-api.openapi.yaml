@@ -994,6 +994,47 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /internal-api/competitions/{competitionId}/convert-to-series:
+    post:
+      summary: Turn a one-time event into a series
+      operationId: convertCompetitionToSeries
+      description: |
+        `ConvertCompetitionToSeries` (docs/features/events-page/high-frequency-series.md, "The conversion
+        tool"). The series is created from the event like the web's "Convert to series" button does (name,
+        slug when free, logo, description, website, place, shortcut, tag, maintainers, creator, approval or
+        rejection, draft state, organization, "Who can enter"; the followers follow the series).
+
+        `keepAsEdition: true` (default): the event becomes the series' first edition with its rounds,
+        participants and solving times. `keepAsEdition: false`: the event becomes the series - its solving
+        times become series-level results of the new series, its old address (and every old address that
+        led to it) answers 301 to the series page, the competition is deleted. Refused (409, nothing changes)
+        while the event has rounds, official results, referees, page sections, marketplace marks or
+        participants (participants only without `dropParticipants: true`, which deletes them). 409 for an
+        edition. No reviewer player needed. The audit log's `createdId` is the new series.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompetitionToSeriesConversion"
+      responses:
+        "201":
+          description: The new series
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeriesDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /internal-api/rounds/{roundId}/move:
     post:
       summary: Move a round to another one-time event or edition
@@ -2409,6 +2450,19 @@ components:
           type: string
           pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           description: A new slug for the edition - only needed when its own is taken in the target series (409 otherwise).
+
+    CompetitionToSeriesConversion:
+      type: object
+      additionalProperties: false
+      properties:
+        keepAsEdition:
+          type: boolean
+          default: true
+          description: true = the event becomes the series' first edition (the web button); false = the event becomes the series itself, its solving times series-level results of it, the competition is deleted.
+        dropParticipants:
+          type: boolean
+          default: false
+          description: With keepAsEdition false - delete the event's participants instead of refusing (409).
 
     RoundMove:
       type: object

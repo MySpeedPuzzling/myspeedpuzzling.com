@@ -61,7 +61,9 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Services/CompetitionSlugGenerator.php' => self::WRITE,
         'Services/Drafts/UnpublishBlockers.php' => self::WRITE,
         'Services/ParticipantsSheet/SheetChangesPlanner.php' => self::ORGANISER,
+        'Services/RoundResults/RoundResultsReconciler.php' => self::WRITE,
         'Services/SecretPuzzleAccess.php' => self::SECRECY,
+        'Services/SeriesEditions/SeriesEditionReconciler.php' => self::WRITE,
         'Value/RoundPuzzleOwnership.php' => self::SECRECY,
     ];
 

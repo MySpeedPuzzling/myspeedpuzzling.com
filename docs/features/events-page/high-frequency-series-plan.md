@@ -498,7 +498,106 @@ triggers, conversion tool").
 
 ### Foundation deviations (filled by the foundation - binding for A-D)
 
-(empty)
+Everything of §0 and §1 exists under the names and signatures above, except what this list says.
+
+**Data model and entities**
+
+- Migration `migrations/Version20261009090901.php` (generated against the scratch DB `speedpuzzling_hfsfmig_test`, then
+  dropped): exactly `series_edition_match VARCHAR(255)`, `competition_series_id UUID`, `FK_FE83A93CF9987DFE … ON DELETE
+  SET NULL NOT DEFERRABLE`, `IDX_FE83A93CF9987DFE` - as separate statements. The two `ADD` are metadata-only; the FK
+  validation and the (non-concurrent) index build scan `puzzle_solving_time` once (seconds on production).
+- `PuzzleSolvingTime::$competitionSeries` is `#[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]` - read it, never write it.
+  The **constructor**, `modify()` and `restore()` throw `LogicException` when an explicit `competition` and a
+  `competitionSeries` are given together: a series pick is constructed series-level, then `seriesEditionResolved()`.
+  `restore()` gained `null|CompetitionSeries $competitionSeries = null` as its last (named) parameter.
+  `competitionRoundMovedTo()` throws `LogicException` for a series pick (P29 - only explicit times move with a round).
+- What records an event (stricter than "when the flag changes", exact for the candidates): `Competition::publish()`,
+  `unpublish()`, `reject()` record `SeriesEditionsChanged` only when the **edition's** public visibility
+  (`isPubliclyVisible()`) actually changes; `CompetitionSeries::approve()`, `reject()`, `publish()`, `unpublish()` when
+  `isPubliclyVisible()` changes; `Competition::edit()` when the **day** of `dateFrom` or `dateTo` changes;
+  `CompetitionRound::edit()` when the category, the start instant or the zone string changes;
+  `CompetitionRoundPuzzle::changeReveal()` / `revealNow()` always. A one-time event records nothing. The
+  `CompetitionRound` constructor now records `CompetitionRoundsChanged` - every new round runs its competition's
+  reconcile (2 UPDATEs for a one-time event, the series reconcile for an edition).
+- `SolvedPuzzleDetail` gained `seriesPickId` (`null|string`) and `competitionIsEdition` (`bool`) as defaulted last
+  constructor parameters (`fromDatabaseRow()` reads optional keys `series_pick_id`, `competition_is_edition`).
+
+**Values**
+
+- `CompetitionPick`: `kind` and `id` are public readonly but not constructor-promoted - the constructor lower-cases the
+  id and throws `InvalidArgumentException` for a non-uuid. `tryFrom()` trims the value. Same public API otherwise.
+- `RemovedResultSnapshot` gained `competitionSeriesId` and `seriesEditionMatch` as defaulted last constructor
+  parameters.
+
+**SQL and services**
+
+- `SeriesEditionMatch` also has `DATE_FORMAT = 'Y-m-d H:i:s'` (the format of `:seriesMatchNow`). Small differences to
+  §0.4: `categories` = `array_agg(DISTINCT CAST(cr.category AS VARCHAR))`; `series_match_round_puzzle.category` is cast
+  to VARCHAR; rule 1 counts `COUNT(DISTINCT d.competition_id)` at the best distance (a competition with the puzzle in
+  two rounds of the category is one candidate) and compares `IS NOT DISTINCT FROM`.
+- `SeriesEditionReconciler::reconcile()`: an `evaluated` CTE computes `holds` once, `decided` applies the stickiness;
+  `RETURNING` casts the ids to VARCHAR. `reconcileCompetition()` reads `competition.series_id` with one SELECT. Both
+  are idempotent; the global `reconcile()` runs `RoundResultsReconciler::reconcile()` (every competition) after the
+  picks, a scoped one `reconcileSeries()`.
+- `SeriesEditionResolver::preview()`: a non-uuid series answers not identified without a statement; a non-uuid puzzle
+  counts as none (only the date can match).
+- `SeriesEditionDays::sqlJoin()`: `has_live` is `COALESCE`d to `false`; `edition_count` counts undated editions too;
+  `last_past_day` = the first day of the latest edition whose last day is before today, `next_day` = the first day of
+  the soonest edition starting after today (an edition live today is in neither); `{$todayParameter}` is used as
+  `CAST(… AS DATE)` (pass `'Y-m-d'`).
+- `RoundResultsReconciler`: both public methods share a private `run()`; `reconcile()` behaves as before.
+- `GetRecentIdenticalSolvingTime::savedBy(…, null|string $seriesId = null)`: one static SQL (both `:seriesId` and
+  `:competitionId` always bound).
+- `EventUrlRedirectRepository::findPointingAtCompetition(Competition $competition): list<EventUrlRedirect>` is new.
+
+**Handlers**
+
+- Add/edit warnings when a series is unknown or not public (edit: and not the current one): message `Solving time saved
+  without series: the submitted series does not exist or is not publicly visible`, context `timeId`, `seriesId`,
+  `userId` (+ `puzzleId` on add), `exception` only when `CompetitionSeriesNotFound` was thrown.
+- `EditPuzzleSolvingTime::fromFormData()` parses the field with `CompetitionPick::tryFrom()`: a malformed value saves
+  without a link (before: the raw value went to the handler and was logged as an unknown competition).
+- **Not changed by the foundation, owned by the workstreams** - until they land, a series value is not understood
+  there: `PuzzleAddController` still passes `$formData->competition` raw as `competitionId` (WS-A maps it with
+  `CompetitionPick`); `UpdateSolvingTimeProcessor` keeps a link by passing the stored competition id - for a series pick
+  it must pass `seriesId: $time->competitionSeries?->id` (WS-B), or the pick becomes an explicit edition.
+- `ConvertCompetitionToSeriesHandler`: the blockers are checked before anything is created (a refusal changes nothing,
+  no series). Removed participants (`deleted_at` set) never block; with `keepAsEdition: false` every participant row of
+  the event is deleted (active ones only reachable with `dropParticipants`) together with their
+  `competition_participant_round` rows and the event's `participant_sheet_change_receipt` rows. Blocker order = the
+  enum's case order; `CompetitionNotConvertible::$blockers` is public; its message lists the values and, when only
+  participants block, names `"dropParticipants": true`.
+- Internal API `…/convert-to-series`: `keepAsEdition` / `dropParticipants` must be booleans (400 otherwise); an empty
+  body is the defaults.
+
+**Assets and tests**
+
+- `assets/styles/_series-page.scss` **already existed** (the series page's sections) and is imported already - nothing
+  was created; WS-C extends that file. Only `_series-picker.scss` is new, imported right after `copuzzler-picker`.
+- `SeriesEditionScenario` extras: `ADMIN_PLAYER_ID`; `roundPuzzleId(string $roundId, string $puzzleId): string`;
+  `dispatch(object $message): void` (dispatches and clears the entity manager - every helper clears it, so a handler
+  never works on an entity a reconcile changed in SQL; clear it yourself after your own SQL); `link()` is
+  `@phpstan-impure`. Series get a unique slug `hfs-<12 hex>` (offline: "Harbor Town", `cz`), editions `edition-<12
+  hex>`; `round(secret: true)` makes its puzzles a **manual** reveal through the entity (no message makes a past round's
+  puzzle secret - reveal them with `RevealRoundPuzzleNow` + `roundPuzzleId()`); `puzzle()` uses the brand "Lantern
+  Puzzle Works"; `addTime()` finishes at midnight of `$day`. Two `addTime()` calls with equal data within 10 s are one
+  save (the twin net) - vary the player or the time.
+- `SeriesPickQueryCoverageTest`: `GetPlayersDirectory.php` and `GetStoredFileReferences.php` are no hits (not listed).
+  `TODO_WS_B`: `GetAdminCompetitions.php`. `TODO_WS_D`: `GetDuplicateCandidates.php`, `GetFastestGroups.php`,
+  `GetFastestPairs.php`, `GetFastestPlayers.php`, `GetPlayerDuplicateCases.php`, `GetPuzzleResultDetail.php`,
+  `GetPuzzleSolvers.php`, `GetRecentActivity.php`, `GetSuspiciousTimeCaseDetail.php`, `Services/Drafts/UnpublishBlockers.php`.
+- Appended to the shared lists: `DraftVisibilityCoverageTest` (`RoundResultsReconciler`, `SeriesEditionReconciler` -
+  WRITE), `SuspiciousTimeQueryCoverageTest` (`ConvertCompetitionToSeriesHandler`, `SeriesEditionReconciler` - WRITE),
+  `SerializedByLockMessagesTest` (`NOT_LOCKED`: `SeriesEditionsChanged`; the conversion's lock key asserted),
+  `ClientErrorLogLevelTest` (both 409s).
+- Extra foundation tests: `tests/Query/SeriesEditionDaysTest.php`, `tests/Services/DomainEventsSubscriberDeduplicationTest.php`.
+
+**Reconcile measurement** (§1.4, local Docker PostgreSQL 16, one series with 200 dated editions of one solo round and
+one puzzle each, 5,000 series picks - 4 of 5 on an edition's puzzle 0-2 days after it, 1 of 5 on another puzzle - plus
+the fixtures): the first `reconcile($seriesId)` of 5,000 series-level picks **553 ms** (4,667 linked, 4,000 rounds
+linked); every further `reconcile($seriesId)` with nothing to change **~122 ms**; the global `reconcile()` (every series
+and every round) **~121 ms**; after one edition's dates moved **~122 ms**. Below the ~1 s of risk 1 - no scoping needed
+now.
 
 ## 2. Workstreams (parallel, after the foundation commit)
 

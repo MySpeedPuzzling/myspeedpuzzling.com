@@ -23,7 +23,9 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Value\EventUrlPath;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundNotMovableReason;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -193,6 +195,34 @@ final class MoveRoundToCompetitionHandlerTest extends KernelTestCase
 
         // Asked for with the competition it was in before
         $this->move($roundId, $target, $source);
+    }
+
+    /**
+     * P29 (docs/features/events-page/high-frequency-series.md): explicit times move with the round; a series pick's
+     * edition follows the matching rule, not the round - out of the series, it is series-level again, never linked to
+     * the one-time event the round went to.
+     */
+    public function testASeriesPickDoesNotMoveWithTheRoundButIsMatchedAgain(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $series = $scenario->series();
+        $puzzle = $scenario->puzzle();
+        $edition = $scenario->edition($series, 'Jam No. 1', '2026-03-02');
+        $roundId = $scenario->round($edition, RoundCategory::Solo, '2026-03-02 19:00', puzzleIds: [$puzzle]);
+        $explicit = $scenario->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, $puzzle, '2026-03-02', competitionId: $edition);
+        $pick = $scenario->addTime(PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID, $puzzle, '2026-03-10', seriesId: $series);
+        self::assertSame($edition, $this->competitionOf($pick));
+        self::assertSame($roundId, $this->roundOf($pick));
+        $target = $this->createEvent('Granite Falls Puzzle Open', 'granite-falls-puzzle-open', 'cz');
+
+        $this->move($roundId, $edition, $target);
+
+        self::assertSame($target, $this->competitionOf($explicit));
+        self::assertSame($roundId, $this->roundOf($explicit));
+        self::assertSame(
+            ['competition_id' => null, 'competition_series_id' => $series, 'series_edition_match' => null, 'competition_round_id' => null],
+            $scenario->link($pick),
+        );
     }
 
     private function createEvent(string $name, string $slug, string $countryCode): string

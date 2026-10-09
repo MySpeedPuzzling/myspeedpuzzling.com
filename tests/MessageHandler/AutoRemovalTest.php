@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Message\UndoAutoRemoval;
 use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
 use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Value\DuplicateDetectedBy;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -226,6 +227,51 @@ final class AutoRemovalTest extends KernelTestCase
         assert(is_string($removalId));
 
         return $removalId;
+    }
+
+    /**
+     * P9 (docs/features/events-page/high-frequency-series.md): the snapshot of a removed series pick carries the pick;
+     * Undo restores it and matches its edition again - the editions may have changed meanwhile.
+     */
+    public function testUndoRestoresASeriesPickAndMatchesItsEditionAgain(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $day = $this->database->fetchOne('SELECT CAST(finished_at AS DATE) FROM puzzle_solving_time WHERE id = :id', ['id' => DuplicateResultsFixture::TIME_CERTAIN_B]);
+        self::assertIsString($day);
+        $series = $scenario->series();
+        $first = $scenario->edition($series, 'Jam No. 1', $day);
+        // Both copies are series picks matched to the edition of their day (the fixture saved them without an event)
+        $this->database->executeStatement(
+            "UPDATE puzzle_solving_time SET competition_series_id = :series, competition_id = :edition, series_edition_match = 'date' WHERE id IN (:a, :b)",
+            ['series' => $series, 'edition' => $first, 'a' => DuplicateResultsFixture::TIME_CERTAIN_A, 'b' => DuplicateResultsFixture::TIME_CERTAIN_B],
+        );
+
+        self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
+        self::assertFalse($this->row(DuplicateResultsFixture::TIME_CERTAIN_B));
+
+        /** @var array{id: string, snapshot: string} $removal */
+        $removal = $this->database->fetchAssociative(
+            'SELECT id, snapshot FROM result_auto_removal WHERE removed_time_id = :id',
+            ['id' => DuplicateResultsFixture::TIME_CERTAIN_B],
+        );
+        $snapshot = json_decode($removal['snapshot'], true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($snapshot);
+        self::assertSame($series, $snapshot['competition_series_id']);
+        self::assertSame('date', $snapshot['series_edition_match']);
+
+        // Meanwhile the edition moved a week and another one took the day
+        $this->database->executeStatement(
+            "UPDATE competition SET date_from = date_from + INTERVAL '7 days', date_to = date_to + INTERVAL '7 days' WHERE id = :id",
+            ['id' => $first],
+        );
+        $second = $scenario->edition($series, 'Jam No. 2', $day);
+
+        $this->messageBus->dispatch(new UndoAutoRemoval($removal['id'], DuplicateResultsFixture::PLAYER_TWINS));
+
+        self::assertSame(
+            ['competition_id' => $second, 'competition_series_id' => $series, 'series_edition_match' => 'date', 'competition_round_id' => null],
+            $scenario->link(DuplicateResultsFixture::TIME_CERTAIN_B),
+        );
     }
 
     /**

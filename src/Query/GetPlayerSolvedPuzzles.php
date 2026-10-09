@@ -109,6 +109,8 @@ SELECT
     first_attempt,
     puzzle_solving_time.unboxed,
     competition.id AS competition_id,
+    puzzle_solving_time.competition_series_id AS series_pick_id,
+    (competition.series_id IS NOT NULL) AS competition_is_edition,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN
             JSON_AGG(
@@ -157,6 +159,8 @@ SQL;
          *     first_attempt: bool,
          *     unboxed: bool,
          *     competition_id: null|string,
+         *     series_pick_id: null|string,
+         *     competition_is_edition: bool,
          * } $row
          */
         $row = $this->database

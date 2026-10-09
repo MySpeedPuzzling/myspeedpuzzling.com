@@ -77,6 +77,9 @@ return App::config([
                 'SpeedPuzzling\Web\Events\PuzzleMergeApproved' => 'sync',
                 // Reconciles solving times to rounds on postFlush, inside the transaction that changed the rounds
                 'SpeedPuzzling\Web\Events\CompetitionRoundsChanged' => 'sync',
+                // Re-matches series picks to the series' editions on postFlush, in the same transaction
+                // (docs/features/events-page/high-frequency-series.md)
+                'SpeedPuzzling\Web\Events\SeriesEditionsChanged' => 'sync',
                 // All other events can run asynchronously
                 'SpeedPuzzling\Web\Events\*' => 'async',
             ],

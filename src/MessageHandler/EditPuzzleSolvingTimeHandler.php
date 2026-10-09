@@ -8,12 +8,15 @@ use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionSeries;
+use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
 use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
 use SpeedPuzzling\Web\Entity\SuspiciousTimeConfirmation;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
+use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -22,6 +25,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -35,6 +39,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\SolvingTimePredictor;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
+use SpeedPuzzling\Web\Services\SeriesEditions\SeriesEditionResolver;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\MarkedTimeEditRecheck;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
@@ -64,6 +69,8 @@ readonly final class EditPuzzleSolvingTimeHandler
         private SecretPuzzleAccess $secretPuzzleAccess,
         private MarkedTimeEditRecheck $markedTimeEditRecheck,
         private SuspiciousTimeConfirmationRepository $suspiciousTimeConfirmationRepository,
+        private CompetitionSeriesRepository $competitionSeriesRepository,
+        private SeriesEditionResolver $seriesEditionResolver,
     ) {
     }
 
@@ -110,6 +117,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         $group = $this->puzzlersGrouping->assembleGroup($solvingTime->player, $message->groupPlayers);
 
         $competition = null;
+        $competitionSeries = null;
 
         if ($message->competitionId !== null) {
             try {
@@ -125,6 +133,9 @@ readonly final class EditPuzzleSolvingTimeHandler
                     'exception' => $e,
                 ]);
             }
+        } elseif ($message->seriesId !== null) {
+            // A series pick (docs/features/events-page/high-frequency-series.md) - its edition is found again below
+            $competitionSeries = $this->seriesForEdit($message, $solvingTime);
         }
 
         $finishedAt = $this->mistypedYearNormalizer->normalizeFinishedAt($message->finishedAt);
@@ -204,6 +215,7 @@ readonly final class EditPuzzleSolvingTimeHandler
             $message->unboxed,
             competition: $competition,
             puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $currentPlayer->id->toString()),
+            competitionSeries: $competitionSeries,
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing
@@ -219,6 +231,16 @@ readonly final class EditPuzzleSolvingTimeHandler
         // The first try moved here
         foreach ($unmarkFirstTryOf as $timeId) {
             $this->puzzleSolvingTimeRepository->get($timeId)->unmarkFirstAttempt($currentPlayer);
+        }
+
+        // After modify(): a series pick's edition depends on the puzzle, solo/duo/team and the day - always the rule's
+        // current answer, an edit is a fresh evaluation
+        if ($competitionSeries !== null) {
+            $resolution = $this->seriesEditionResolver->resolve($solvingTime);
+            $solvingTime->seriesEditionResolved(
+                $resolution->competitionId !== null ? $this->competitionRepository->get($resolution->competitionId) : null,
+                $resolution->kind,
+            );
         }
 
         // After modify(): the round depends on the competition and on solo/duo/team, both final only now
@@ -258,5 +280,41 @@ readonly final class EditPuzzleSolvingTimeHandler
                 confirmedAt: $this->clock->now(),
             ));
         }
+    }
+
+    /**
+     * A series pick needs a publicly visible series - or the series the time is in now (its series pick, or the series
+     * of the edition it is linked to): the edit form offers it even when it is no longer public (include-current).
+     * Anything else is reachable only when the series changed between render and submit: saved without the link, not
+     * silently.
+     */
+    private function seriesForEdit(EditPuzzleSolvingTime $message, PuzzleSolvingTime $solvingTime): null|CompetitionSeries
+    {
+        $exception = null;
+
+        try {
+            $series = $this->competitionSeriesRepository->get((string) $message->seriesId);
+            $currentSeries = $solvingTime->competitionSeries ?? $solvingTime->competition?->series;
+
+            if ($series->isPubliclyVisible() || $currentSeries?->id->equals($series->id) === true) {
+                return $series;
+            }
+        } catch (CompetitionSeriesNotFound $e) {
+            $exception = $e;
+        }
+
+        $context = [
+            'timeId' => $message->puzzleSolvingTimeId,
+            'seriesId' => $message->seriesId,
+            'userId' => $message->currentUserId,
+        ];
+
+        if ($exception !== null) {
+            $context['exception'] = $exception;
+        }
+
+        $this->logger->warning('Solving time saved without series: the submitted series does not exist or is not publicly visible', $context);
+
+        return null;
     }
 }

@@ -98,6 +98,19 @@ class CompetitionRound implements EntityWithEvents
     ) {
         RoundPuzzleReveal::assertValidDelay($revealDelayMinutes);
         self::assertValidTeamSize($teamSize);
+
+        // A new round changes the round days and categories of its competition - series picks of an edition may move
+        // (docs/features/events-page/high-frequency-series.md)
+        $this->recordThat(new CompetitionRoundsChanged($this->competition->id));
+    }
+
+    /**
+     * Call right before removing it (DeleteCompetitionRoundHandler) - the times of its competition (and the series picks
+     * of an edition's series) are reconciled after the flush.
+     */
+    public function recordRemoval(): void
+    {
+        $this->recordThat(new CompetitionRoundsChanged($this->competition->id));
     }
 
     /**
@@ -264,7 +277,13 @@ class CompetitionRound implements EntityWithEvents
         RoundCategory $category = RoundCategory::Solo,
         null|string $resultsLink = null,
     ): void {
-        if ($category !== $this->category) {
+        // The category decides which times belong to the round; its start and zone its local day, which the date
+        // matching of series picks reads (docs/features/events-page/high-frequency-series.md)
+        if (
+            $category !== $this->category
+            || $startsAt->getTimestamp() !== $this->startsAt->getTimestamp()
+            || $timezone !== $this->timezone
+        ) {
             $this->recordThat(new CompetitionRoundsChanged($this->competition->id));
         }
 

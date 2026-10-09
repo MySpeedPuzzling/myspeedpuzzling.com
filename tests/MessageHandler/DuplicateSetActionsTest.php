@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\DuplicateReviewCopy;
 use SpeedPuzzling\Web\Results\DuplicateReviewSet;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\FirstTryScenario;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -186,6 +187,38 @@ final class DuplicateSetActionsTest extends KernelTestCase
 
         self::assertFalse($outcome->firstTryLeftOff);
         self::assertTrue($this->scenario->isFirstTry($kept));
+    }
+
+    /**
+     * P10 (docs/features/events-page/high-frequency-series.md): with several copies the oldest one with an event link
+     * hands over its whole link - a series pick stays a series pick, it never mixes with the next copy's explicit edition.
+     */
+    public function testTheKeptCopyTakesTheOldestCopysWholeEventLink(): void
+    {
+        $series = new SeriesEditionScenario(self::getContainer());
+        $pickedSeries = $series->series();
+        $otherEdition = $series->edition($series->series('Moonlit Puzzle Sprint'), 'Sprint No. 1', '2026-03-02');
+        $kept = $this->scenario->add(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, daysAgo: 2, comment: 'kept');
+        $seriesPick = $this->scenario->add(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, daysAgo: 2, comment: 'series pick');
+        $explicit = $this->scenario->add(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID, daysAgo: 2, comment: 'explicit');
+        $this->database->executeStatement(
+            "UPDATE puzzle_solving_time SET competition_series_id = :series, tracked_at = tracked_at - INTERVAL '2 minutes' WHERE id = :id",
+            ['series' => $pickedSeries, 'id' => $seriesPick],
+        );
+        $this->database->executeStatement(
+            "UPDATE puzzle_solving_time SET competition_id = :edition, tracked_at = tracked_at - INTERVAL '1 minute' WHERE id = :id",
+            ['edition' => $otherEdition, 'id' => $explicit],
+        );
+        // The saved copies are still loaded - they would not know
+        self::getContainer()->get('doctrine')->getManager()->clear();
+        $set = $this->setOf(self::SARAH);
+
+        $this->keep($set->caseId(), $kept, self::SARAH, $set->timeIds());
+
+        self::assertSame(
+            ['competition_id' => null, 'competition_series_id' => $pickedSeries, 'series_edition_match' => null, 'competition_round_id' => null],
+            $series->link($kept),
+        );
     }
 
     /**

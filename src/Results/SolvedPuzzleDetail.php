@@ -35,6 +35,11 @@ readonly final class SolvedPuzzleDetail
         public bool $puzzleImageHidden = false,
         // When the result was saved - with finishedAt where it sits in the player's history (SolveMoment)
         public null|DateTimeImmutable $trackedAt = null,
+        // The series of a series pick (docs/features/events-page/high-frequency-series.md) - then competitionId is the
+        // edition MySpeedPuzzling found, or null (series-level). Null for an explicit link
+        public null|string $seriesPickId = null,
+        // competitionId is an edition of a series (picked explicitly unless seriesPickId is set) - CompetitionPick::ofTime()
+        public bool $competitionIsEdition = false,
     ) {
     }
 
@@ -61,6 +66,8 @@ readonly final class SolvedPuzzleDetail
      *     first_attempt: bool,
      *     unboxed: bool,
      *     competition_id: null|string,
+     *     series_pick_id?: null|string,
+     *     competition_is_edition?: null|bool,
      *  } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -92,6 +99,8 @@ readonly final class SolvedPuzzleDetail
             competitionId: $row['competition_id'],
             puzzleImageHidden: $row['puzzle_image_hidden'],
             trackedAt: isset($row['tracked_at']) ? new DateTimeImmutable($row['tracked_at']) : null,
+            seriesPickId: $row['series_pick_id'] ?? null,
+            competitionIsEdition: ($row['competition_is_edition'] ?? false) === true,
         );
     }
 

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\Value\CompetitionPick;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -38,6 +39,9 @@ readonly final class EditPuzzleSolvingTime
         // (docs/features/suspicious-time-review.md, "Catch it while typing"): the time the form compared it with -
         // stored with the edit as a SuspiciousTimeConfirmation. Null = not asked
         public null|int $paceConfirmedExpectedSeconds = null,
+        // A series pick (docs/features/events-page/high-frequency-series.md): MySpeedPuzzling finds the edition again
+        // on every save. Only when competitionId is null - an explicit link wins
+        public null|string $seriesId = null,
     ) {
     }
 
@@ -54,10 +58,13 @@ readonly final class EditPuzzleSolvingTime
         bool $duplicateConfirmed = false,
         null|int $paceConfirmedExpectedSeconds = null,
     ): self {
+        // `<uuid>` / `edition:<uuid>` link the competition explicitly, `series:<uuid>` is a series pick
+        $competitionPick = CompetitionPick::tryFrom($formData->competition);
+
         return new self(
             currentUserId: $userId,
             puzzleSolvingTimeId: $timeId,
-            competitionId: $formData->competition,
+            competitionId: $competitionPick?->competitionId(),
             time: $formData->mode === PuzzleAddMode::Relax ? null : $formData->getTimeAsString(),
             comment: $formData->comment,
             groupPlayers: $groupPlayers,
@@ -70,6 +77,7 @@ readonly final class EditPuzzleSolvingTime
             duplicateConfirmed: $duplicateConfirmed,
             puzzleId: $formData->puzzle,
             paceConfirmedExpectedSeconds: $paceConfirmedExpectedSeconds,
+            seriesId: $competitionPick?->seriesId(),
         );
     }
 }

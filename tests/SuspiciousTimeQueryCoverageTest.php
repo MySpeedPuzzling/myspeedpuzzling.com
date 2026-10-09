@@ -28,6 +28,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'MessageHandler/BackfillPuzzlingTeamsHandler.php' => self::WRITE,
         'MessageHandler/BackfillRoundPuzzleRevealsHandler.php' => self::WRITE,
         'MessageHandler/CleanupEmptyPuzzlingTeamsHandler.php' => self::WRITE,
+        'MessageHandler/ConvertCompetitionToSeriesHandler.php' => self::WRITE,
         'MessageHandler/DeleteCompetitionHandler.php' => self::WRITE,
         'MessageHandler/DeleteCompetitionRoundHandler.php' => self::WRITE,
         'MessageHandler/DeleteCompetitionSeriesHandler.php' => self::WRITE,
@@ -69,6 +70,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => 'Background: picks the players and puzzles to recompute - the calculators leave suspicious results out.',
         'Services/PuzzlingTeamMemberConversion.php' => self::WRITE,
         'Services/RoundResults/RoundResultsReconciler.php' => self::WRITE,
+        'Services/SeriesEditions/SeriesEditionReconciler.php' => self::WRITE,
     ];
 
     public function testEveryReadOfSolvingResultsIsADecision(): void

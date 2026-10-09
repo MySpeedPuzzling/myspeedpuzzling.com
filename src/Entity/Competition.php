@@ -21,15 +21,23 @@ use JetBrains\PhpStorm\Immutable;
 use LogicException;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 use SpeedPuzzling\Web\Exceptions\OrganizationOnEdition;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
+/**
+ * An edition records SeriesEditionsChanged whenever a change can move its series' picks between editions - created,
+ * moved, its days changed, published / unpublished / rejected, removed (docs/features/events-page/
+ * high-frequency-series.md "Where the rule runs and when it reconciles"). A one-time event records nothing.
+ */
 #[Entity]
 #[Table]
 #[UniqueConstraint(columns: ['series_id', 'slug'])]
-class Competition
+class Competition implements EntityWithEvents
 {
+    use HasEvents;
+
     /**
      * When it entered the approval queue (docs/features/organizations/README.md "Approval"): created published, first
      * published, approved, or created or published by an admin or the internal API. The admins' "submitted" e-mail
@@ -141,6 +149,8 @@ class Competition
         }
 
         $this->locationCountryCode = self::normalizeCountryCode($locationCountryCode);
+
+        $this->recordSeriesEditionsChanged();
     }
 
     /**
@@ -160,12 +170,25 @@ class Competition
 
     public function publish(): void
     {
+        $wasVisible = $this->isEditionPubliclyVisible();
         $this->isDraft = false;
+        $this->recordSeriesEditionsChangedUnless($wasVisible);
     }
 
     public function unpublish(): void
     {
+        $wasVisible = $this->isEditionPubliclyVisible();
         $this->isDraft = true;
+        $this->recordSeriesEditionsChangedUnless($wasVisible);
+    }
+
+    /**
+     * Call right before removing it (DeleteCompetitionHandler) - its series' picks matched to it are re-matched after
+     * the flush.
+     */
+    public function recordRemoval(): void
+    {
+        $this->recordSeriesEditionsChanged();
     }
 
     /**
@@ -222,6 +245,10 @@ class Competition
         $this->series = $target;
         $this->slug = $slug;
         $this->isOnline = $target->isOnline;
+
+        // Picks of both series may move: the old series lost an edition, the new one gained it
+        $this->recordThat(new SeriesEditionsChanged($oldSeries->id));
+        $this->recordThat(new SeriesEditionsChanged($target->id));
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void
@@ -242,9 +269,13 @@ class Competition
 
     public function reject(Player $rejectedBy, DateTimeImmutable $rejectedAt, string $reason): void
     {
+        $wasVisible = $this->isEditionPubliclyVisible();
+
         $this->rejectedAt = $rejectedAt;
         $this->rejectedByPlayer = $rejectedBy;
         $this->rejectionReason = $reason;
+
+        $this->recordSeriesEditionsChangedUnless($wasVisible);
     }
 
     public function isApproved(): bool
@@ -272,6 +303,10 @@ class Competition
         null|DateTimeImmutable $dateTo,
         bool $isOnline,
     ): void {
+        // The days decide the date matching of series picks - a time of day typed differently changes nothing
+        $daysChanged = $this->dateFrom?->format('Y-m-d') !== $dateFrom?->format('Y-m-d')
+            || $this->dateTo?->format('Y-m-d') !== $dateTo?->format('Y-m-d');
+
         $this->name = $name;
         $this->slug = $slug;
         $this->shortcut = $shortcut;
@@ -285,6 +320,10 @@ class Competition
         $this->dateFrom = $dateFrom;
         $this->dateTo = $dateTo;
         $this->isOnline = $isOnline;
+
+        if ($daysChanged) {
+            $this->recordSeriesEditionsChanged();
+        }
     }
 
     /**
@@ -345,6 +384,29 @@ class Competition
         $endsAt = $this->endsAt();
 
         return $endsAt !== null && $now >= $endsAt;
+    }
+
+    /**
+     * An edition's own visibility as a match candidate (IsCompetitionPubliclyVisible) - false for a one-time event,
+     * which is never one
+     */
+    private function isEditionPubliclyVisible(): bool
+    {
+        return $this->series !== null && $this->isPubliclyVisible();
+    }
+
+    private function recordSeriesEditionsChangedUnless(bool $wasVisible): void
+    {
+        if ($wasVisible !== $this->isEditionPubliclyVisible()) {
+            $this->recordSeriesEditionsChanged();
+        }
+    }
+
+    private function recordSeriesEditionsChanged(): void
+    {
+        if ($this->series !== null) {
+            $this->recordThat(new SeriesEditionsChanged($this->series->id));
+        }
     }
 
     private static function normalizeCountryCode(null|string $countryCode): null|string

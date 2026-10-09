@@ -56,8 +56,10 @@ readonly final class DeleteCompetitionHandler
              WHERE competition_round_id IN (SELECT id FROM competition_round WHERE competition_id = :id)',
             $params,
         );
+        // An explicit link loses the event; a series pick matched to this edition becomes series-level (the match kind
+        // goes with the edition) and is re-matched after the flush (recordRemoval() below)
         $this->database->executeStatement(
-            'UPDATE puzzle_solving_time SET competition_id = NULL WHERE competition_id = :id',
+            'UPDATE puzzle_solving_time SET competition_id = NULL, series_edition_match = NULL WHERE competition_id = :id',
             $params,
         );
 
@@ -87,6 +89,8 @@ readonly final class DeleteCompetitionHandler
         );
 
         $competition = $this->competitionRepository->get($competitionId);
+        // An edition: its series' picks are re-matched once it is gone (SeriesEditionsChanged)
+        $competition->recordRemoval();
         $this->competitionRepository->delete($competition);
 
         $this->secretPuzzleHides->resyncByIds($secretPuzzleIds);

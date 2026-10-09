@@ -102,12 +102,19 @@ class CompetitionRoundPuzzle implements EntityWithEvents
         $this->revealAt = $revealMode === RoundPuzzleReveal::Scheduled
             ? $scheduledAt->setTimezone(new DateTimeZone('UTC'))
             : null;
+
+        // A revealed round puzzle matches series picks by puzzle, a hidden one does not
+        // (docs/features/events-page/high-frequency-series.md, "Secret puzzles")
+        $this->recordThat(new CompetitionRoundsChanged($this->round->competition->id));
     }
 
     public function revealNow(DateTimeImmutable $now): void
     {
         $this->revealMode = RoundPuzzleReveal::Scheduled;
         $this->revealAt = $now->setTimezone(new DateTimeZone('UTC'));
+
+        // Revealed: series picks on the puzzle are matched to the edition by puzzle now
+        $this->recordThat(new CompetitionRoundsChanged($this->round->competition->id));
     }
 
     /**

@@ -99,6 +99,8 @@ readonly final class DeleteCompetitionRoundHandler
         );
 
         $round = $this->competitionRoundRepository->get($message->roundId);
+        // Its competition's times - and an edition's series picks - are reconciled once it is gone (CompetitionRoundsChanged)
+        $round->recordRemoval();
         $this->competitionRoundRepository->delete($round);
 
         $this->secretPuzzleHides->resyncByIds($secretPuzzleIds);

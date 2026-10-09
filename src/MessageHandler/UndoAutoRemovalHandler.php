@@ -10,9 +10,11 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\AutoRemovalCanNotBeUndone;
 use SpeedPuzzling\Web\Exceptions\AutoRemovalNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
+use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
@@ -21,6 +23,7 @@ use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
 use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
+use SpeedPuzzling\Web\Services\SeriesEditions\SeriesEditionResolver;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -28,8 +31,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * Undo of an automatic removal: the copy comes back with its own id and everything it had, the case becomes
  * `undone` (docs/features/duplicate-results.md). Only the tracker of the copy may bring it back.
  *
- * A competition deleted meanwhile is dropped; the round follows from competition + puzzle + group as on every
- * save, and the pair/team is resolved again from the stored group (the same people = the same team). A member of
+ * A competition deleted meanwhile is dropped; a series pick comes back as a series pick (when its series still
+ * exists) and its edition is matched again - the editions may have changed since (docs/features/events-page/
+ * high-frequency-series.md P9); the round follows from competition + puzzle + group as on every save, and the pair/team is resolved again from the stored group (the same people = the same team). A member of
  * that group who deleted their account meanwhile refuses the undo (AutoRemovalCanNotBeUndone): the snapshot knows
  * them only by id, so they could come back neither as themselves nor as a named guest - and the kept copy, the very
  * same result, already carries the group as the deletion left it.
@@ -50,6 +54,8 @@ readonly final class UndoAutoRemovalHandler
         private ResultReviewReactions $resultReviewReactions,
         private ClockInterface $clock,
         private PlayerRepository $playerRepository,
+        private CompetitionSeriesRepository $competitionSeriesRepository,
+        private SeriesEditionResolver $seriesEditionResolver,
     ) {
     }
 
@@ -86,8 +92,15 @@ readonly final class UndoAutoRemovalHandler
         }
 
         $competition = null;
+        $competitionSeries = null;
 
-        if ($snapshot->competitionId !== null) {
+        if ($snapshot->competitionSeriesId !== null) {
+            try {
+                $competitionSeries = $this->competitionSeriesRepository->get($snapshot->competitionSeriesId);
+            } catch (CompetitionSeriesNotFound) {
+                // Deleted meanwhile - the result comes back without an event
+            }
+        } elseif ($snapshot->competitionId !== null) {
             try {
                 $competition = $this->competitionRepository->get($snapshot->competitionId);
             } catch (CompetitionNotFound) {
@@ -102,7 +115,17 @@ readonly final class UndoAutoRemovalHandler
             competition: $competition,
             // Last: the team is created outside the unit of work
             puzzlingTeam: $this->puzzlingTeamResolver->resolve($snapshot->group(), usedByPlayerId: $removal->player->id->toString()),
+            competitionSeries: $competitionSeries,
         );
+
+        if ($competitionSeries !== null) {
+            $resolution = $this->seriesEditionResolver->resolve($time);
+            $time->seriesEditionResolved(
+                $resolution->competitionId !== null ? $this->competitionRepository->get($resolution->competitionId) : null,
+                $resolution->kind,
+            );
+        }
+
         $time->changeCompetitionRound($this->roundResolver->resolve($time));
 
         $this->puzzleSolvingTimeRepository->save($time);

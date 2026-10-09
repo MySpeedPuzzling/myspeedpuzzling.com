@@ -617,11 +617,13 @@ listed in `errors`, JSON refusals, every write in the audit log (with `createdId
 | `POST` | `/internal-api/competitions/{competitionId}/publish` · `/unpublish` | Draft off / on (unpublish `409` while somebody joined, results or solving times are linked) | `204` |
 | `POST` | `/internal-api/competitions/{competitionId}/move` | Move an edition to another series `{"seriesId", "slug"?}` | `200` competition |
 | `POST` | `/internal-api/rounds/{roundId}/move` | Move a round to another event or edition `{"competitionId"}` | `200` round |
+| `POST` | `/internal-api/competitions/{competitionId}/convert-to-series` | Turn a one-time event into a series `{"keepAsEdition"?, "dropParticipants"?}` - see [Converting an event into a series](#converting-an-event-into-a-series) | `201` series |
 
 The writes that act as somebody need `INTERNAL_API_REVIEWER_PLAYER_ID` (an admin): creating an organization or a series
 (its creator), approving an organization, assigning an organization (the `organization` PUTs, a `PATCH` changing
 `organizationId`), both moves and turning a series into an organization (the acting player - `400` while it is empty).
-Publish / unpublish (also a `PATCH` of only `draft`), team changes, editions and deletes do not. Putting an item under
+Publish / unpublish (also a `PATCH` of only `draft`), team changes, editions, deletes and converting an event into a
+series do not. Putting an item under
 an organization answers `403` when the reviewer player is neither an admin nor on that organization's team
 (`OrganizationNotManaged`) - configure an admin.
 
@@ -751,6 +753,40 @@ approved by the policy) and renamed / re-slugged when asked - with a new slug, i
 results' old addresses to where they are now. `409` for a series that has an organization already or a taken slug (an
 organization's or a series'). Social links and the rest follow with a `PATCH` of the organization. The answer is the
 organization (with its series).
+
+#### Converting an event into a series
+
+`POST …/competitions/{competitionId}/convert-to-series`, body `{"keepAsEdition"?: true, "dropParticipants"?: false}`
+(`ConvertCompetitionToSeries`; design of record [high-frequency-series.md](./events-page/high-frequency-series.md) "The
+conversion tool"). The series is created from the one-time event like the web's "Convert to series" button does: its
+name, slug (the event's when free), logo, description, website, place, shortcut, tag, maintainers, creator, approval or
+rejection, draft state, organization and "Who can enter"; the event's followers follow the series. Then:
+
+- `"keepAsEdition": true` (the default, the web button): the event becomes the series' first edition - its rounds,
+  participants and solving times stay with it, its old address answers 301 to the edition page;
+- `"keepAsEdition": false` - **the event becomes the series** (an umbrella event whose results belong to many contests):
+  every solving time of the event becomes a **series-level** result of the new series (`competition_series_id`, no
+  edition - matched to an edition by the series reconcile once editions exist), its old address `/events/{slug}` and
+  every old address that led to it answer 301 to the series page (`event_url_redirect`), and the competition row is
+  deleted. **Refused** with `409` (`CompetitionNotConvertible`, the reasons in `error`, nothing changes) while the event
+  has rounds, official results, referees, page sections, marketplace marks (listings people bring to it) or
+  participants - participants only without `"dropParticipants": true`, which deletes them (and the participant sheet's
+  change trail; removed participants never refuse it).
+
+`409` (`CompetitionAlreadyInSeries`) for an edition, `404` for an unknown competition, `400` for an unknown field or a
+non-boolean value. No reviewer player is needed - the series takes the event's creator and approval. The answer (`201`)
+is the series answer (`GET /internal-api/series/{seriesId}`), the audit log's `createdId` is the new series. Every
+`FOREIGN KEY` to `competition` is listed with what the conversion does with it in
+`tests/ConvertCompetitionForeignKeyCoverageTest.php`.
+
+```bash
+# The umbrella event becomes the series - its results become series-level results of it
+curl -X POST "$API/competitions/019a0000-0000-7000-8000-000000000031/convert-to-series" -H "$AUTH" -H "$JSON" \
+  -d '{"keepAsEdition": false}'
+# 409 "it has: participants. Send \"dropParticipants\": true to delete its participants." - when they may go:
+curl -X POST "$API/competitions/019a0000-0000-7000-8000-000000000031/convert-to-series" -H "$AUTH" -H "$JSON" \
+  -d '{"keepAsEdition": false, "dropParticipants": true}'
+```
 
 #### Restructuring example
 

@@ -18,6 +18,8 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] API v1: a way to **remove** a time's event link on `PUT` (today omitted/null keeps it - P17).
 - [ ] Picker cards: `SeriesEditionDays` dates an edition without `date_from`/`date_to` by the UTC day of its first round
   (the matching rule uses the round's local day) - only the card label can differ by a day for far-zone evening rounds.
+- [ ] Picker: a series card whose only current edition is live shows the live badge and "1 date" but no date
+  (one-time live events show theirs) - show the live edition's day (`SeriesEditionDays` would need it).
 - [ ] Puzzle page "Used at": round lines are capped at 10 + "and N more", tag lines are not (harmless today).
 - [ ] Performance: a flush touching rounds of N editions of one series runs N series reconciles
   (`CompetitionRoundsChanged` deduplicates per competition). Nothing does this today; if a bulk path appears, key the

@@ -280,8 +280,11 @@ a.ev-next-title {
     min-width: 0;
 }
 
+// Sized to its longest label ("Zu einem Monat springen"), wrapping below the search field when it does not fit
 .ev-series-filter-month {
-    flex: 0 1 13rem;
+    flex: 0 1 auto;
+    width: auto;
+    max-width: 100%;
     min-width: 0;
 }
 

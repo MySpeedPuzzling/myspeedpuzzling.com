@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class GetCompetitionSlugsForSitemap
 {
@@ -190,7 +191,7 @@ WHERE {$visibility}
     AND (c.date_from IS NOT NULL OR c.date_to IS NOT NULL OR r.rounds IS NOT NULL)
 SQL;
 
-        $today = OccurrenceDates::today($this->clock->now());
+        $now = $this->clock->now();
         $years = [];
 
         /** @var array{series_id: null|string, date_from: null|string, date_to: null|string, own_country_code: null|string, series_country_code: null|string, rounds: null|string} $row */
@@ -201,10 +202,11 @@ SQL;
                 self::instant($row['date_from']),
                 self::instant($row['date_to']),
                 OccurrenceRounds::fromJson($row['rounds'], $row['own_country_code'], $row['series_country_code']),
+                RoundTimezone::resolve(null, $row['own_country_code'], $row['series_country_code']),
             );
 
             foreach ($sessions as $dates) {
-                if ($dates->start === null || $dates->status($today, $isEdition, false) !== EventOccurrenceStatus::Past) {
+                if ($dates->start === null || $dates->status($now, $isEdition, false) !== EventOccurrenceStatus::Past) {
                     continue;
                 }
 

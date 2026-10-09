@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Value\OccurrenceRound;
 
 /**
@@ -212,6 +213,7 @@ SQL;
             self::instant($row['date_from']),
             self::instant($row['date_to']),
             $rounds,
+            RoundTimezone::resolve(null, $ownCountry, $seriesCountry),
         );
 
         $capacity = $row['capacity'];
@@ -246,6 +248,7 @@ SQL;
             organization: OrganizationRef::fromRow($row),
             eligibility: self::nullableString($row['eligibility']),
             isDraft: (bool) $row['is_draft'],
+            zone: $dates->zone(),
         ), $sessions);
     }
 

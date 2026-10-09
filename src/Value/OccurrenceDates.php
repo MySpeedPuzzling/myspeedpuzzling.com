@@ -23,6 +23,10 @@ use DateTimeZone;
  *
  * A span over LONG_SPAN_DAYS that its rounds do not define - no rounds, or date_to more than LONG_SPAN_DAYS after the
  * last round - is never live: while it runs it is ongoing (status()).
+ *
+ * Its days are days in its own zone (`zone`: the zone of its first round, else of the event's / series' country, else
+ * the assumed one - exactly the zone that dates its rounds), so status() compares them with today in that zone: a
+ * 6:45 pm Eastern round stays live after midnight UTC, an Auckland event is live while UTC still says yesterday.
  */
 readonly final class OccurrenceDates
 {
@@ -42,17 +46,29 @@ readonly final class OccurrenceDates
         public null|OccurrenceSession $session = null,
         // the first round of the occurrence (or of the session) - its start time; null without rounds
         public null|OccurrenceRound $firstRound = null,
+        // the zone its days are in (RoundTimezone::resolve()) - null: its first round's, else UTC
+        public null|string $zone = null,
     ) {
+    }
+
+    /**
+     * The zone its days are in: the given one, else its first round's, else UTC
+     */
+    public function zone(): string
+    {
+        return $this->zone ?? $this->firstRound->zone ?? 'UTC';
     }
 
     /**
      * Every dated occurrence of one competition: one, or one per session when its rounds fall on separate days.
      *
      * @param list<OccurrenceRound> $rounds
+     * @param string $zone the competition's zone when it has no round - RoundTimezone::resolve(null, its country, its
+     *     series' country), the zone its rounds would be read in
      *
      * @return non-empty-list<self>
      */
-    public static function sessions(null|DateTimeImmutable $dateFrom, null|DateTimeImmutable $dateTo, array $rounds): array
+    public static function sessions(null|DateTimeImmutable $dateFrom, null|DateTimeImmutable $dateTo, array $rounds, string $zone = 'UTC'): array
     {
         $groups = self::roundGroups($rounds, self::dayOf($dateFrom ?? $dateTo), self::dayOf($dateTo ?? $dateFrom));
 
@@ -75,6 +91,7 @@ readonly final class OccurrenceDates
                         hasResults: array_any($group, static fn (array $item): bool => $item['round']->hasResults),
                     ),
                     $first['round'],
+                    $first['round']->zone,
                 );
             }
 
@@ -85,7 +102,7 @@ readonly final class OccurrenceDates
         $start = $group !== [] ? $group[0]['day'] : self::dayOf($dateFrom ?? $dateTo);
 
         if ($start === null) {
-            return [new self(null, null)];
+            return [new self(null, null, zone: $zone)];
         }
 
         $lastRoundDay = $group !== [] ? $group[count($group) - 1]['day'] : null;
@@ -95,7 +112,14 @@ readonly final class OccurrenceDates
             $end = $lastRoundDay;
         }
 
-        return [new self($start, $end !== null && $end > $start ? $end : null, $lastRoundDay, null, $group !== [] ? $group[0]['round'] : null)];
+        return [new self(
+            $start,
+            $end !== null && $end > $start ? $end : null,
+            $lastRoundDay,
+            null,
+            $group !== [] ? $group[0]['round'] : null,
+            $group !== [] ? $group[0]['round']->zone : $zone,
+        )];
     }
 
     /**
@@ -104,10 +128,10 @@ readonly final class OccurrenceDates
      *
      * @param non-empty-list<self> $sessions in date order
      */
-    public static function current(array $sessions, DateTimeImmutable $today, bool $isEdition, bool $isOnline): self
+    public static function current(array $sessions, DateTimeImmutable $now, bool $isEdition, bool $isOnline): self
     {
         foreach ($sessions as $session) {
-            if ($session->status($today, $isEdition, $isOnline) !== EventOccurrenceStatus::Past) {
+            if ($session->status($now, $isEdition, $isOnline) !== EventOccurrenceStatus::Past) {
                 return $session;
             }
         }
@@ -136,7 +160,8 @@ readonly final class OccurrenceDates
     }
 
     /**
-     * Today's date (UTC), at 00:00 UTC - "today" of the events page is the server's UTC date.
+     * Today's date (UTC), at 00:00 UTC - what the "Tomorrow", "This weekend", "In 3 days" labels count from. Never a
+     * status: status() compares with today in the occurrence's own zone.
      */
     public static function today(DateTimeImmutable $now): DateTimeImmutable
     {
@@ -156,7 +181,10 @@ readonly final class OccurrenceDates
         return $this->lastRoundDay === null || (int) $this->lastRoundDay->diff($this->end)->days > self::LONG_SPAN_DAYS;
     }
 
-    public function status(DateTimeImmutable $today, bool $isEdition, bool $isOnline): EventOccurrenceStatus
+    /**
+     * @param DateTimeImmutable $now the instant (never a day - the day is read in the occurrence's zone)
+     */
+    public function status(DateTimeImmutable $now, bool $isEdition, bool $isOnline): EventOccurrenceStatus
     {
         if ($this->start === null) {
             if ($isEdition) {
@@ -166,7 +194,7 @@ readonly final class OccurrenceDates
             return $isOnline ? EventOccurrenceStatus::Ongoing : EventOccurrenceStatus::Tba;
         }
 
-        $day = self::today($today);
+        $day = self::localDay($now, $this->zone());
 
         if (($this->end ?? $this->start) < $day) {
             return EventOccurrenceStatus::Past;

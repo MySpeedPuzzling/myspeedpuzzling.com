@@ -7,12 +7,14 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
@@ -245,9 +247,13 @@ final class SeriesPageUiTest extends WebTestCase
         $browser = self::createClient();
         /** @var Connection $connection */
         $connection = $browser->getContainer()->get(Connection::class);
+        // A fixed clock at 00:30 UTC: the New York round started at 20:20 the evening before - still its day there, so
+        // still live (today is today in the event's zone), whenever the test runs
+        $now = EventsPageFixture::builtOn($connection)->setTime(0, 30);
+        self::getContainer()->set(ClockInterface::class, new MockClock($now));
         $connection->executeStatement(
-            "UPDATE competition_round SET starts_at = NOW() - INTERVAL '10 minutes' WHERE id = :id",
-            ['id' => EventsPageFixture::ROUND_SPRINT_3],
+            'UPDATE competition_round SET starts_at = :startsAt WHERE id = :id',
+            ['startsAt' => $now->modify('-10 minutes')->format('Y-m-d H:i:s'), 'id' => EventsPageFixture::ROUND_SPRINT_3],
         );
 
         $crawler = $this->page($browser, self::SPRINT);

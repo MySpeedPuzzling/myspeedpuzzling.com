@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\OrganizedEvent;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
  * The items of "You organize" (docs/features/events-page/implementation-plan.md, 1.4) for the ids of
@@ -147,6 +148,7 @@ SQL;
                 endDate: $dates->end,
                 roundCount: is_numeric($row['round_count']) ? (int) $row['round_count'] : 0,
                 lastRoundDay: $dates->lastRoundDay,
+                zone: $dates->zone(),
                 isApproved: (bool) $row['is_approved'],
                 rejectionReason: self::string($row['rejection_reason']),
                 isRejected: (bool) $row['is_rejected'],
@@ -188,15 +190,15 @@ LEFT JOIN competition c ON c.series_id = cs.id
 WHERE cs.id IN (:ids)
 SQL;
 
-        $today = OccurrenceDates::today($this->clock->now());
-        /** @var array<string, array{row: array<string, null|string|int|bool>, count: int, next: null|DateTimeImmutable, last: null|DateTimeImmutable}> $series */
+        $now = $this->clock->now();
+        /** @var array<string, array{row: array<string, null|string|int|bool>, count: int, next: null|DateTimeImmutable, nextZone: null|string, last: null|DateTimeImmutable}> $series */
         $series = [];
 
         /** @var array<string, null|string|int|bool> $row */
 
         foreach ($this->database->executeQuery($query, ['ids' => $ids], ['ids' => ArrayParameterType::STRING])->fetchAllAssociative() as $row) {
             $id = (string) $row['series_id'];
-            $series[$id] ??= ['row' => $row, 'count' => 0, 'next' => null, 'last' => null];
+            $series[$id] ??= ['row' => $row, 'count' => 0, 'next' => null, 'nextZone' => null, 'last' => null];
 
             if ($row['edition_id'] === null) {
                 continue;
@@ -209,12 +211,13 @@ SQL;
                     continue;
                 }
 
-                if ($dates->status($today, true, (bool) $row['is_online']) === EventOccurrenceStatus::Past) {
+                if ($dates->status($now, true, (bool) $row['is_online']) === EventOccurrenceStatus::Past) {
                     if ($series[$id]['last'] === null || $dates->start > $series[$id]['last']) {
                         $series[$id]['last'] = $dates->start;
                     }
                 } elseif ($series[$id]['next'] === null || $dates->start < $series[$id]['next']) {
                     $series[$id]['next'] = $dates->start;
+                    $series[$id]['nextZone'] = $dates->zone();
                 }
             }
         }
@@ -240,6 +243,7 @@ SQL;
                 isRejected: (bool) $row['is_rejected'],
                 editionCount: $item['count'],
                 nextEditionDate: $item['next'],
+                nextEditionZone: $item['nextZone'],
                 lastEditionDate: $item['last'],
                 isDraft: (bool) $row['is_draft'],
                 organizationId: self::string($row['organization_id']),
@@ -261,6 +265,7 @@ SQL;
             self::instant($row['date_from']),
             self::instant($row['date_to']),
             OccurrenceRounds::fromJson($row['rounds'], self::string($row['own_country_code']), self::string($row['series_country_code'] ?? null)),
+            RoundTimezone::resolve(null, self::string($row['own_country_code']), self::string($row['series_country_code'] ?? null)),
         );
     }
 

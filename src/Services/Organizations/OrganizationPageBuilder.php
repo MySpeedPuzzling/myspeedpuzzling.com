@@ -67,7 +67,8 @@ readonly final class OrganizationPageBuilder
         $items = [];
 
         foreach ($occurrences as $occurrence) {
-            $items[] = ['occurrence' => $occurrence, 'status' => $occurrence->status($day), 'id' => count($items)];
+            // Today in the occurrence's own zone - $day (UTC) only counts the "In 3 days" labels
+            $items[] = ['occurrence' => $occurrence, 'status' => $occurrence->status($now), 'id' => count($items)];
         }
 
         $rowOf = function (array $item) use ($goingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
@@ -104,7 +105,7 @@ readonly final class OrganizationPageBuilder
             comingUp: $this->months($upcoming, $rowOf),
             ongoing: array_map($rowOf, $ongoing),
             dateNotSet: array_map($rowOf, $dateNotSet),
-            seriesCards: $this->seriesCards($series, $occurrences, $viewer, $day, $locale),
+            seriesCards: $this->seriesCards($series, $occurrences, $viewer, $now, $locale),
             eventCards: $this->eventCards($items, $viewer, $locale),
             pastYears: $this->pastYears($past, $locale),
             followTarget: $followTarget,
@@ -117,8 +118,9 @@ readonly final class OrganizationPageBuilder
      * running now, else the last one, else none - as the events page's series lines (EventsPageBuilder).
      *
      * @param list<EventOccurrence> $occurrences
+     * @param DateTimeImmutable $now the instant - each occurrence reads its day in its own zone
      */
-    public static function nextOf(array $occurrences, DateTimeImmutable $day): SeriesNext
+    public static function nextOf(array $occurrences, DateTimeImmutable $now): SeriesNext
     {
         $next = null;
         $live = null;
@@ -128,7 +130,7 @@ readonly final class OrganizationPageBuilder
         foreach ($occurrences as $occurrence) {
             $start = $occurrence->startDate;
 
-            match ($occurrence->status($day)) {
+            match ($occurrence->status($now)) {
                 EventOccurrenceStatus::Upcoming => $next = $next === null || $start < $next ? $start : $next,
                 EventOccurrenceStatus::Live => $live = $live === null || $start < $live ? $start : $live,
                 EventOccurrenceStatus::Ongoing => $ongoing = $ongoing === null || $start < $ongoing ? $start : $ongoing,
@@ -166,7 +168,7 @@ readonly final class OrganizationPageBuilder
      *
      * @return list<OrganizationSeriesCard>
      */
-    private function seriesCards(array $series, array $occurrences, null|EventsViewerData $viewer, DateTimeImmutable $day, string $locale): array
+    private function seriesCards(array $series, array $occurrences, null|EventsViewerData $viewer, DateTimeImmutable $now, string $locale): array
     {
         /** @var array<string, list<EventOccurrence>> $bySeries */
         $bySeries = [];
@@ -199,7 +201,7 @@ readonly final class OrganizationPageBuilder
                 schedule: $row->schedule,
                 eligibility: $row->eligibility,
                 editionCount: count($editionIds),
-                next: self::nextOf($editions, $day),
+                next: self::nextOf($editions, $now),
                 followTarget: $followTarget,
                 following: $followTarget !== null && $viewer !== null && $viewer->follows($followTarget),
                 manage: new ManageRef(ManageRef::KIND_SERIES, $row->id, $row->name),

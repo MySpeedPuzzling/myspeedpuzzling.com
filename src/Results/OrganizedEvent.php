@@ -41,12 +41,16 @@ readonly final class OrganizedEvent
         public int $roundCount = 0,
         // the day of the last round dating it (OccurrenceDates::$lastRoundDay)
         public null|DateTimeImmutable $lastRoundDay = null,
+        // the zone its days are in (OccurrenceDates::$zone)
+        public null|string $zone = null,
         public bool $isApproved = false,
         public null|string $rejectionReason = null,
         public bool $isRejected = false,
         public int $editionCount = 0,
         // Series: the start of the earliest edition that is not over (live or upcoming)
         public null|DateTimeImmutable $nextEditionDate = null,
+        // Series: the zone that edition's days are in
+        public null|string $nextEditionZone = null,
         // Series: the start of the latest edition that is over
         public null|DateTimeImmutable $lastEditionDate = null,
         // A draft itself - for an edition also when its series is one
@@ -95,7 +99,10 @@ readonly final class OrganizedEvent
         return $this->kind === self::KIND_ORGANIZATION;
     }
 
-    public function badge(DateTimeImmutable $today): OrganizerBadge
+    /**
+     * @param DateTimeImmutable $now the instant - a day is read in the event's (the next edition's) own zone
+     */
+    public function badge(DateTimeImmutable $now): OrganizerBadge
     {
         if ($this->isRejected) {
             return OrganizerBadge::Rejected;
@@ -117,13 +124,13 @@ readonly final class OrganizedEvent
 
         if ($this->isSeries()) {
             if ($this->nextEditionDate !== null) {
-                return $this->nextEditionDate <= OccurrenceDates::today($today) ? OrganizerBadge::Live : OrganizerBadge::Upcoming;
+                return $this->nextEditionDate <= OccurrenceDates::localDay($now, $this->nextEditionZone ?? 'UTC') ? OrganizerBadge::Live : OrganizerBadge::Upcoming;
             }
 
             return $this->lastEditionDate !== null ? OrganizerBadge::Past : OrganizerBadge::DateNotSet;
         }
 
-        $status = new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay)->status($today, $this->kind === self::KIND_EDITION, $this->isOnline);
+        $status = new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay, zone: $this->zone)->status($now, $this->kind === self::KIND_EDITION, $this->isOnline);
 
         return match ($status) {
             EventOccurrenceStatus::Live => OrganizerBadge::Live,

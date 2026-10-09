@@ -234,6 +234,42 @@ final class OccurrenceDatesTest extends TestCase
         self::assertSame([true, false], array_map(static fn (OccurrenceDates $dates): bool => (bool) $dates->session?->hasResults, $sessions));
     }
 
+    /**
+     * "Today" is today in the occurrence's own zone - not the UTC date (docs/features/events-page/README.md, "Dates")
+     */
+    public function testARunningRoundIsLiveInItsOwnZoneWhateverTheUtcDate(): void
+    {
+        // 6:20 pm in New York on 14 January = 23:20 UTC; at 00:30 UTC on the 15th it is 7:30 pm the 14th there
+        [$newYork] = OccurrenceDates::sessions(null, null, [self::round('a', 'Evening', '2026-01-14 23:20')]);
+        $afterUtcMidnight = new DateTimeImmutable('2026-01-15 00:30', new DateTimeZone('UTC'));
+        self::assertSame('America/New_York', $newYork->zone());
+        self::assertSame(EventOccurrenceStatus::Live, $newYork->status($afterUtcMidnight, true, true));
+
+        // 12:20 pm in Auckland on 16 January = 23:20 UTC on the 15th; at 23:30 UTC it is running there already
+        [$auckland] = OccurrenceDates::sessions(null, null, [self::round('a', 'Noon', '2026-01-15 23:20', 'Pacific/Auckland')]);
+        $beforeUtcMidnight = new DateTimeImmutable('2026-01-15 23:30', new DateTimeZone('UTC'));
+        self::assertSame('2026-01-16', $auckland->start?->format('Y-m-d'));
+        self::assertSame(EventOccurrenceStatus::Live, $auckland->status($beforeUtcMidnight, false, false));
+        self::assertSame(EventOccurrenceStatus::Upcoming, $auckland->status(new DateTimeImmutable('2026-01-15 10:00', new DateTimeZone('UTC')), false, false));
+    }
+
+    public function testWithoutRoundsTheEventsCountryZoneDatesIt(): void
+    {
+        // A one-day event in New York, no rounds: still its day there at 03:00 UTC the next day
+        [$event] = OccurrenceDates::sessions(self::day('2026-01-14'), self::day('2026-01-14'), [], 'America/New_York');
+        self::assertSame('America/New_York', $event->zone());
+        self::assertSame(EventOccurrenceStatus::Live, $event->status(new DateTimeImmutable('2026-01-15 03:00', new DateTimeZone('UTC')), false, false));
+        self::assertSame(EventOccurrenceStatus::Past, $event->status(new DateTimeImmutable('2026-01-15 06:00', new DateTimeZone('UTC')), false, false));
+
+        // Not dated: the zone is kept all the same
+        [$undated] = OccurrenceDates::sessions(null, null, [], 'Pacific/Auckland');
+        self::assertSame('Pacific/Auckland', $undated->zone());
+
+        // Rounds date it in their own zone, whatever the event's
+        [$withRound] = OccurrenceDates::sessions(self::day('2026-01-14'), null, [self::round('a', 'Evening', '2026-01-14 23:20')], 'Europe/Prague');
+        self::assertSame('America/New_York', $withRound->zone());
+    }
+
     private static function round(string $id, string $name, string $startsAtUtc, string $zone = 'America/New_York'): OccurrenceRound
     {
         return new OccurrenceRound($id, $name, new DateTimeImmutable($startsAtUtc, new DateTimeZone('UTC')), $zone);

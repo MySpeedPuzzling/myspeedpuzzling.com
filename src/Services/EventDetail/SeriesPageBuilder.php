@@ -60,7 +60,8 @@ readonly final class SeriesPageBuilder
         $items = [];
 
         foreach ($occurrences as $occurrence) {
-            $items[] = ['occurrence' => $occurrence, 'status' => $occurrence->status($day), 'id' => count($items)];
+            // Today in the occurrence's own zone - $day (UTC) only counts the "In 3 days" labels
+            $items[] = ['occurrence' => $occurrence, 'status' => $occurrence->status($now), 'id' => count($items)];
         }
 
         $rowOf = function (array $item) use ($goingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
@@ -144,11 +145,10 @@ readonly final class SeriesPageBuilder
      */
     public static function comingCompetitionIds(array $occurrences, DateTimeImmutable $now): array
     {
-        $day = OccurrenceDates::today($now);
         $ids = [];
 
         foreach ($occurrences as $occurrence) {
-            $status = $occurrence->status($day);
+            $status = $occurrence->status($now);
 
             if ($status->isComing() || $status === EventOccurrenceStatus::Ongoing) {
                 $ids[strtolower($occurrence->competitionId)] = true;

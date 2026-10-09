@@ -57,6 +57,8 @@ readonly final class EventOccurrence
         public null|string $eligibility = null,
         // a draft itself, or an edition of a draft series - only its team ever gets such a row
         public bool $isDraft = false,
+        // the zone its days are in (OccurrenceDates::$zone) - its "today" is today there
+        public null|string $zone = null,
     ) {
     }
 
@@ -65,14 +67,17 @@ readonly final class EventOccurrence
         return $this->seriesId !== null;
     }
 
-    public function status(DateTimeImmutable $today): EventOccurrenceStatus
+    /**
+     * @param DateTimeImmutable $now the instant - its day is read in the occurrence's own zone
+     */
+    public function status(DateTimeImmutable $now): EventOccurrenceStatus
     {
-        return $this->dates()->status($today, $this->isEdition(), $this->isOnline);
+        return $this->dates()->status($now, $this->isEdition(), $this->isOnline);
     }
 
     public function dates(): OccurrenceDates
     {
-        return new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay, $this->session, $this->firstRound);
+        return new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay, $this->session, $this->firstRound, $this->zone);
     }
 
     public function isLongRunning(): bool

@@ -261,7 +261,8 @@ readonly final class EventRowFactory
             return null;
         }
 
-        $days = (int) $day->diff($start)->days;
+        // Counted from today in UTC - upcoming in a zone behind UTC, it may start on the UTC day itself: tomorrow there
+        $days = $start > $day ? (int) $day->diff($start)->days : 1;
 
         if ($days === 1) {
             return new WhenLabel(WhenLabel::TOMORROW, 1, true);

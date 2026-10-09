@@ -94,7 +94,8 @@ readonly final class EventsPageBuilder
         $editionsBySeries = [];
 
         foreach ($occurrences as $occurrence) {
-            $status = $occurrence->status($day);
+            // Today in the occurrence's own zone - $day (UTC) only counts the "In 3 days" labels
+            $status = $occurrence->status($now);
 
             if ($occurrence->seriesId !== null) {
                 $editionsBySeries[$occurrence->seriesId][] = ['occurrence' => $occurrence, 'status' => $status];
@@ -257,12 +258,11 @@ readonly final class EventsPageBuilder
      */
     public function buildArchive(array $occurrences, int $year, DateTimeImmutable $today, string $locale): null|EventsArchivePage
     {
-        $day = OccurrenceDates::today($today);
         $past = [];
         $id = 0;
 
         foreach ($occurrences as $occurrence) {
-            if ($occurrence->isPublic === false || $occurrence->status($day) !== EventOccurrenceStatus::Past) {
+            if ($occurrence->isPublic === false || $occurrence->status($today) !== EventOccurrenceStatus::Past) {
                 continue;
             }
 

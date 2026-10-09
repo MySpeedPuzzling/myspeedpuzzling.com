@@ -29,6 +29,7 @@ use SpeedPuzzling\Web\Services\EventJustJoinedFlash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EventTitle;
 use SpeedPuzzling\Web\Value\FollowTarget;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -133,6 +134,7 @@ final class EditionDetailController extends AbstractController
             dateFrom: $competitionEvent->dateFrom,
             dateTo: $competitionEvent->dateTo,
             now: $now,
+            zone: RoundTimezone::resolve(null, $competitionEvent->locationCountryCode?->name, $seriesOverview->locationCountryCode?->name),
         );
 
         $attendance = $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible);

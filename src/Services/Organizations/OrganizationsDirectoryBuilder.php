@@ -9,7 +9,6 @@ use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Results\OrganizationDirectoryRow;
 use SpeedPuzzling\Web\Results\Organizations\OrganizationsDirectory;
 use SpeedPuzzling\Web\Results\Organizations\OrganizationsDirectoryItem;
-use SpeedPuzzling\Web\Value\OccurrenceDates;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -31,8 +30,6 @@ readonly final class OrganizationsDirectoryBuilder
      */
     public function build(array $organizations, array $occurrences, DateTimeImmutable $now, string $locale): OrganizationsDirectory
     {
-        $day = OccurrenceDates::today($now);
-
         /** @var array<string, list<EventOccurrence>> $byOrganization */
         $byOrganization = [];
 
@@ -55,7 +52,7 @@ readonly final class OrganizationsDirectoryBuilder
                 place: OrganizationPageBuilder::placeOf($organization->region, $organization->countryCode, $locale),
                 seriesCount: $organization->seriesCount,
                 eventCount: $organization->eventCount,
-                next: OrganizationPageBuilder::nextOf($byOrganization[strtolower($organization->id)] ?? [], $day),
+                next: OrganizationPageBuilder::nextOf($byOrganization[strtolower($organization->id)] ?? [], $now),
             );
         }
 

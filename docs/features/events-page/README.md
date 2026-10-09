@@ -141,7 +141,12 @@ JSON list of every round inside the same single statement).
   the summary, the chips and the country counts (something is on there), but is not an upcoming *date* in the month
   headers. "You organize" shows it as Live.
 
-"Today" is the server's UTC date, as the old listing - the calendars take it from the controller's clock too.
+**"Today" is today in the occurrence's own zone** - the zone its days are in (`OccurrenceDates::zone()`: its first
+round's zone, else the event's or the series' country zone, else the assumed one - exactly the zone that dates its
+rounds). `status()` takes the request's instant, never a pre-computed day: a 6:45 pm Eastern contest (23:45 UTC in
+winter) stays live after UTC midnight, an Auckland event is live while the UTC date still says yesterday. The "Tomorrow",
+"This weekend", "In 3 days" labels and the calendar's "Today" cell count from the server's UTC date, from the
+controller's clock.
 
 **Written in the page's language.** Every date on the events pages comes from an ICU skeleton (`yMMMM` month headers,
 `MMMd` / `yMMMd` days, `MMMEd` next editions, `E` / `MMM` leaf parts), never a hand-written pattern:

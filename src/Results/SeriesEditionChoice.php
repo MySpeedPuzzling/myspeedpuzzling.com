@@ -92,6 +92,19 @@ readonly final class SeriesEditionChoice
         );
     }
 
+    /**
+     * The edition with its series in front - "Lantern Weekly Jam · Spring Final" - unless the edition's name already
+     * mentions the series ("Lantern Weekly Jam #164"), the rule of EventTitle::forCompetition().
+     */
+    public function label(): string
+    {
+        if (mb_stripos($this->name, $this->seriesName) !== false) {
+            return $this->name;
+        }
+
+        return $this->seriesName . ' · ' . $this->name;
+    }
+
     public function pick(): CompetitionPick
     {
         return CompetitionPick::edition($this->id);

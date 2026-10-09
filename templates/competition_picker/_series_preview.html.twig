@@ -1,7 +1,8 @@
 {#
     The line under the add-time picker (SeriesEditionPreviewController, docs/features/events-page/high-frequency-series.md
     "The preview line and S2"):
-    - matched: "<series> · <edition> · <date> · <category>" + "change" opening the short list;
+    - matched: "<series> · <edition> · <date> · <category>" + "change" opening the short list (the series only when the
+      edition's name does not mention it - SeriesEditionChoice::label());
     - picked (an explicit edition): "<series> · <edition> · <date>" + "change" + "Let MySpeedPuzzling match it";
     - not identified: the short list openly, optional, nothing preselected;
     - no publicly visible editions: the neutral line only.
@@ -16,7 +17,7 @@
         <div class="sp-line">
             <i class="ci-check-circle sp-line-icon" aria-hidden="true"></i>
             <span class="sp-line-text"><span class="visually-hidden">{{ (picked is not null ? 'series_picker.picked' : 'series_picker.matched')|trans }} </span>
-                {{- chosen.seriesName }} · {{ chosen.name -}}
+                {{- chosen.label -}}
                 {%- if chosen.dayFrom is not null %} · {{ picker_date(chosen.dayFrom, chosen.dayTo) }}{% endif -%}
                 {%- if picked is null and category is defined %} · {{ ('competition.round.category.' ~ category.value)|trans }}{% endif -%}
             </span>

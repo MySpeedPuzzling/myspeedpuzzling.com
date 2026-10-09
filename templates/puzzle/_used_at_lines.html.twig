@@ -1,0 +1,32 @@
+{#
+    "Used at" of a puzzle page as lines (PuzzleSummary, docs/features/events-page/high-frequency-series.md P24):
+    a round line "<series> · <edition> · <day> · <category>" (a one-time event: "<event> · <day> · <category>"), the day
+    in the round's own zone, linking the event or edition page at #round-<id>; a tag line "<event>" linking its page.
+    Guests read every line in "About this puzzle", signed-in players the round lines in the header's Details (the tags
+    are badges there already).
+
+    Expects: lines (list<PuzzleUsedAtLine>), more (int - round lines beyond the ones shown), class (optional, the list's)
+#}
+<ul class="puzzle-used-at list-unstyled mb-0{{ class is defined ? ' ' ~ class }}" data-puzzle-used-at>
+    {% for line in lines %}
+        {% set parts = [line.displayName] %}
+        {% if line.isRound %}
+            {% if line.startsAt is not null %}
+                {% set parts = parts|merge([line.startsAt|events_date('yMMMEd')]) %}
+            {% endif %}
+            {% if line.category is not null %}
+                {% set parts = parts|merge([('competition.round.category.' ~ line.category.value)|trans]) %}
+            {% endif %}
+        {% endif %}
+        <li class="mb-1" data-used-at-line="{{ line.isRound ? 'round' : 'tag' }}">
+            {%- if line.routeName is not null -%}
+                <a href="{{ path(line.routeName, line.routeParameters) }}">{{ parts|join(' · ') }}</a>
+            {%- else -%}
+                {{ parts|join(' · ') }}
+            {%- endif -%}
+        </li>
+    {% endfor %}
+    {% if more > 0 %}
+        <li class="text-muted" data-used-at-more>{{ 'series_readers.used_at.more'|trans({'%count%': more}) }}</li>
+    {% endif %}
+</ul>

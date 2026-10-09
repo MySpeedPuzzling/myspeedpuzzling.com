@@ -72,7 +72,8 @@ readonly final class DuplicateCandidate
             $differences[] = self::DIFFERENCE_GROUP;
         }
 
-        if ($older->competitionId !== $newer->competitionId || $older->competitionRoundId !== $newer->competitionRoundId) {
+        // A series pick compares its series, an explicit link its competition and round (P23)
+        if ($older->eventIdentity() !== $newer->eventIdentity()) {
             $differences[] = self::DIFFERENCE_COMPETITION;
         }
 

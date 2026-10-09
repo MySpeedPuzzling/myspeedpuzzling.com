@@ -15,7 +15,15 @@ namespace SpeedPuzzling\Web\Results;
 readonly final class PuzzleSummary
 {
     /**
-     * @param list<CompetitionReference> $usedAt publicly visible competitions (by tag or round), oldest first
+     * At most this many round lines in "Used at" - the rest is "and N more" (usedAtMore)
+     */
+    public const int USED_AT_ROUNDS_LIMIT = 10;
+
+    /**
+     * @param list<PuzzleUsedAtLine> $usedAt "Used at" (docs/features/events-page/high-frequency-series.md P24): the
+     *     rounds of publicly visible events holding the revealed puzzle, newest first, at most USED_AT_ROUNDS_LIMIT,
+     *     then the tags of publicly visible events and series no round line names
+     * @param int $usedAtMore round lines beyond the first USED_AT_ROUNDS_LIMIT
      */
     public function __construct(
         public int $soloSolvesCount,
@@ -28,6 +36,7 @@ readonly final class PuzzleSummary
         public null|int $medianTimeTeam,
         public null|int $fastestTimeTeam,
         public array $usedAt,
+        public int $usedAtMore = 0,
     ) {
     }
 
@@ -45,6 +54,16 @@ readonly final class PuzzleSummary
             fastestTimeTeam: null,
             usedAt: [],
         );
+    }
+
+    /**
+     * The round lines alone - a signed-in player's Details shows the puzzle's tags as badges already
+     *
+     * @return list<PuzzleUsedAtLine>
+     */
+    public function usedAtRounds(): array
+    {
+        return array_values(array_filter($this->usedAt, static fn (PuzzleUsedAtLine $line): bool => $line->isRound()));
     }
 
     /**

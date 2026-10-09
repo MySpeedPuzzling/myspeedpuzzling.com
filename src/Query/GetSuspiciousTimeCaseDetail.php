@@ -178,7 +178,8 @@ SELECT
     ps.solved_times_team_count, ps.median_time_team, ps.fastest_time_team,
     pd.difficulty_score,
     pl.id AS player_id, pl.name AS player_name, pl.code AS player_code, pl.is_private,
-    comp.name AS competition_name, cr.name AS round_name,
+    -- A series-level time (a series pick without an edition) names its series
+    COALESCE(comp.name, pick_series.name) AS competition_name, cr.name AS round_name,
     CASE WHEN c.direction IS DISTINCT FROM :slow THEN board.ahead END AS ahead
 FROM suspicious_time_case c
 JOIN puzzle_solving_time pst ON pst.id = c.time_id
@@ -189,6 +190,7 @@ LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id
 LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id
 LEFT JOIN player decider ON decider.id = c.decided_by_id
 LEFT JOIN competition comp ON comp.id = pst.competition_id
+LEFT JOIN competition_series pick_series ON pick_series.id = pst.competition_series_id
 LEFT JOIN competition_round cr ON cr.id = pst.competition_round_id
 LEFT JOIN LATERAL (
     SELECT COUNT(DISTINCT COALESCE(o.puzzling_team_id, o.player_id)) AS ahead

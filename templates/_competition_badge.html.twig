@@ -3,17 +3,24 @@
 
     `time` is any read model exposing competitionName / competitionShortcut / competitionSlug and
     competitionSeriesName / competitionSeriesShortcut / competitionSeriesSlug
-    (SolvedPuzzle, PuzzleSolver, PuzzleSolversGroup, RecentActivityItem).
+    (SolvedPuzzle, PuzzleSolver, PuzzleSolversGroup, RecentActivityItem, PuzzleResultAttempt).
 
     - Standalone competition: label = shortcut ?? name, links to event_detail.
     - Series edition: label = "<series shortcut ?? series name> · <edition name>" (series label only when the
       edition is named like its series, e.g. competitions converted to a series), links to edition_detail —
-      never to event_detail, an edition slug is only unique within its series.
-    - Renders nothing when the time is not linked to any competition.
+      never to event_detail, an edition slug is only unique within its series. An edition MySpeedPuzzling found for a
+      series pick looks the same (docs/features/events-page/high-frequency-series.md).
+    - Series-level time (the player picked a series, no edition identified - a normal, permanent result of the series):
+      label = series shortcut ?? series name, links to competition_series_detail. The readers join the series through
+      COALESCE(competition.series_id, puzzle_solving_time.competition_series_id).
+    - Renders nothing when the time is not linked to any competition or series.
     - links_turbo_frame (optional, may come from the including context): data-turbo-frame of the link - "_top" inside a modal
 #}
-{% if time.competitionName %}
-    {% if time.competitionSeriesName %}
+{% if time.competitionName or time.competitionSeriesName %}
+    {% if time.competitionName is empty %}
+        {% set label = time.competitionSeriesShortcut ?? time.competitionSeriesName %}
+        {% set href = time.competitionSeriesSlug ? path('competition_series_detail', {slug: time.competitionSeriesSlug}) : null %}
+    {% elseif time.competitionSeriesName %}
         {% set series_label = time.competitionSeriesShortcut ?? time.competitionSeriesName %}
         {% if time.competitionName|lower == time.competitionSeriesName|lower %}
             {% set label = series_label %}

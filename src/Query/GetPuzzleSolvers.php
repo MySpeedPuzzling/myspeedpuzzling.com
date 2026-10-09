@@ -79,7 +79,7 @@ SELECT
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
-LEFT JOIN competition_series cs ON cs.id = competition.series_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
     AND puzzle_solving_time.puzzling_type = 'solo'
@@ -179,7 +179,7 @@ SELECT
 FROM
     puzzle_solving_time pst
     LEFT JOIN competition ON competition.id = pst.competition_id
-    LEFT JOIN competition_series cs ON cs.id = competition.series_id,
+    LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id),
     {$groupMembers}
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id
@@ -276,7 +276,7 @@ SELECT
 FROM
     puzzle_solving_time pst
     LEFT JOIN competition ON competition.id = pst.competition_id
-    LEFT JOIN competition_series cs ON cs.id = competition.series_id,
+    LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id),
     {$groupMembers}
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id

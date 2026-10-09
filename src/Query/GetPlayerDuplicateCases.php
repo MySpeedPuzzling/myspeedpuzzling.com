@@ -220,7 +220,8 @@ SELECT
     pst.finished_puzzle_photo,
     pst.first_attempt,
     pst.unboxed,
-    competition.name AS competition_name,
+    -- A series-level time (a series pick without an edition) is the series' result: its name stands for the event
+    COALESCE(competition.name, cs.name) AS competition_name,
     participant.player_id AS participant_player_id,
     participant.guest_name AS participant_guest_name,
     participant_player.code AS participant_code,
@@ -228,6 +229,7 @@ SELECT
     COALESCE({$isPrivate}, false) AS participant_private
 FROM puzzle_solving_time pst
 LEFT JOIN competition ON competition.id = pst.competition_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
 INNER JOIN LATERAL (
     SELECT pst.player_id AS player_id, CAST(NULL AS VARCHAR) AS guest_name, 0 AS position
     WHERE pst.puzzling_team_id IS NULL

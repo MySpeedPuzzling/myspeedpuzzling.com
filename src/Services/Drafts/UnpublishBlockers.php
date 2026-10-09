@@ -14,6 +14,10 @@ use SpeedPuzzling\Web\Services\OfficialResultsGuard;
  * README.md "Drafts"): participants who joined (not deleted), entries with official results or qualified marks, and
  * linked solving times - suspicious ones included: a hidden page must not hold anybody's result. An organization can
  * always go back (it hides only its own page). One statement for an event and for a whole series alike.
+ *
+ * A series also counts its series picks (docs/features/events-page/high-frequency-series.md P20): a time linked to the
+ * series itself - matched to an edition or not (series-level, a normal and permanent result of the series) - is the
+ * series' result. A competition counts every time linked to it, automatic links to an edition included (unchanged).
  */
 readonly final class UnpublishBlockers
 {
@@ -58,11 +62,12 @@ SQL;
             return new UnpublishCheck(0, 0, 0);
         }
 
-        return $this->check('SELECT c.id FROM competition c WHERE c.id = :id', $competitionId);
+        return $this->check('SELECT c.id FROM competition c WHERE c.id = :id', $competitionId, 'false');
     }
 
     /**
-     * Every edition of the series - one statement, however many editions it has
+     * Every edition of the series and the series' own picks - one statement, however many editions it has; each time
+     * counted once
      */
     public function forSeries(string $seriesId): UnpublishCheck
     {
@@ -70,13 +75,24 @@ SQL;
             return new UnpublishCheck(0, 0, 0);
         }
 
-        return $this->check('SELECT c.id FROM competition c WHERE c.series_id = :id', $seriesId);
+        return $this->check('SELECT c.id FROM competition c WHERE c.series_id = :id', $seriesId, 'pst.competition_series_id = :id');
+    }
+
+    /**
+     * The series picks of a series that no edition holds (series-level times) as a column `blocking_series_level_times`
+     * of a statement listing series - "You organize" adds it to the sum of the editions' sqlColumns(), which count the
+     * picks matched to an edition already. `$seriesId` is the SQL expression of the series' id.
+     */
+    public static function sqlSeriesLevelColumn(string $seriesId): string
+    {
+        return "(SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_series_id = {$seriesId} AND pst.competition_id IS NULL) AS blocking_series_level_times";
     }
 
     /**
      * @param string $competitions the competitions checked, as a statement with the parameter `:id`
+     * @param string $alsoTimes an SQL condition on `pst` for more times that block (`:id` available), 'false' for none
      */
-    private function check(string $competitions, string $id): UnpublishCheck
+    private function check(string $competitions, string $id, string $alsoTimes): UnpublishCheck
     {
         $entryHolds = OfficialResultsGuard::sqlEntryHoldsOfficialData('cpr');
         $teamHolds = OfficialResultsGuard::sqlEntryHoldsOfficialData('ct');
@@ -92,7 +108,8 @@ SELECT
         + (SELECT COUNT(*) FROM competition_team ct WHERE ct.round_id IN (SELECT id FROM checked_rounds) AND {$teamHolds}) AS results,
     (SELECT COUNT(*) FROM puzzle_solving_time pst
         WHERE pst.competition_id IN (SELECT id FROM checked)
-            OR pst.competition_round_id IN (SELECT id FROM checked_rounds)) AS solving_times
+            OR pst.competition_round_id IN (SELECT id FROM checked_rounds)
+            OR {$alsoTimes}) AS solving_times
 SQL,
             ['id' => $id],
         );

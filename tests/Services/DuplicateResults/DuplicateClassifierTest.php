@@ -64,6 +64,68 @@ final class DuplicateClassifierTest extends TestCase
         ));
     }
 
+    /**
+     * P23 (docs/features/events-page/high-frequency-series.md): a series pick's edition and round are derived - two
+     * copies of one series pick are one event whichever edition each was matched to, or none yet
+     *
+     * @return iterable<string, array{array<string, mixed>, array<string, mixed>}>
+     */
+    public static function provideCopiesOfOneSeriesPick(): iterable
+    {
+        yield 'matched and series-level' => [
+            ['competitionSeriesId' => 'series', 'competitionId' => 'edition', 'competitionRoundId' => 'round'],
+            ['competitionSeriesId' => 'series'],
+        ];
+        yield 'matched to different editions' => [
+            ['competitionSeriesId' => 'series', 'competitionId' => 'edition', 'competitionRoundId' => 'round'],
+            ['competitionSeriesId' => 'series', 'competitionId' => 'other edition'],
+        ];
+        yield 'both series-level' => [['competitionSeriesId' => 'series'], ['competitionSeriesId' => 'series']];
+    }
+
+    /**
+     * @param array<string, mixed> $older
+     * @param array<string, mixed> $newer
+     */
+    #[DataProvider('provideCopiesOfOneSeriesPick')]
+    public function testCopiesOfOneSeriesPickAreTheSameEvent(array $older, array $newer): void
+    {
+        $this->assertClassified(DuplicateTier::Certain, DuplicateKind::SameTracker, $this->candidate(
+            older: $this->time(savedAt: '10:00:00', overrides: $older),
+            newer: $this->time(savedAt: '10:00:05', overrides: $newer),
+        ));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, array<string, mixed>}>
+     */
+    public static function provideDifferentEvents(): iterable
+    {
+        // The player picked the edition once and the series once - they decide which copy is right
+        yield 'explicit edition and a series pick matched to it' => [
+            ['competitionId' => 'edition', 'competitionRoundId' => 'round'],
+            ['competitionSeriesId' => 'series', 'competitionId' => 'edition', 'competitionRoundId' => 'round'],
+        ];
+        yield 'two series' => [['competitionSeriesId' => 'series'], ['competitionSeriesId' => 'other series']];
+        yield 'a series pick and no event' => [['competitionSeriesId' => 'series'], []];
+    }
+
+    /**
+     * @param array<string, mixed> $older
+     * @param array<string, mixed> $newer
+     */
+    #[DataProvider('provideDifferentEvents')]
+    public function testDifferentEventsAreOnlyStrong(array $older, array $newer): void
+    {
+        $candidate = $this->candidate(
+            older: $this->time(savedAt: '10:00:00', overrides: $older),
+            newer: $this->time(savedAt: '10:00:05', overrides: $newer),
+        );
+
+        self::assertSame([DuplicateCandidate::DIFFERENCE_COMPETITION], $candidate->differences());
+        $this->assertClassified(DuplicateTier::Strong, DuplicateKind::SameTracker, $candidate);
+    }
+
     public function testEmptyAndMissingCommentAreTheSame(): void
     {
         $this->assertClassified(DuplicateTier::Certain, DuplicateKind::SameTracker, $this->candidate(
@@ -277,9 +339,10 @@ final class DuplicateClassifierTest extends TestCase
             'unboxed' => false,
             'competitionId' => null,
             'competitionRoundId' => null,
+            'competitionSeriesId' => null,
         ], $overrides);
 
-        /** @var array{teamId: null|string, solvedDay: string, finishedAt: null|DateTimeImmutable, comment: null|string, hasPhoto: bool, firstAttempt: bool, unboxed: bool, competitionId: null|string, competitionRoundId: null|string} $values */
+        /** @var array{teamId: null|string, solvedDay: string, finishedAt: null|DateTimeImmutable, comment: null|string, hasPhoto: bool, firstAttempt: bool, unboxed: bool, competitionId: null|string, competitionRoundId: null|string, competitionSeriesId: null|string} $values */
         return new DuplicateCandidateTime(
             timeId: $tracker . $savedAt . ($values['teamId'] ?? ''),
             trackerId: $tracker,
@@ -296,6 +359,7 @@ final class DuplicateClassifierTest extends TestCase
             unboxed: $values['unboxed'],
             competitionId: $values['competitionId'],
             competitionRoundId: $values['competitionRoundId'],
+            competitionSeriesId: $values['competitionSeriesId'],
         );
     }
 }

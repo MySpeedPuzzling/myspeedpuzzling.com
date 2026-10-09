@@ -8,19 +8,25 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
 use SpeedPuzzling\Web\Query\GetPuzzleSummary;
-use SpeedPuzzling\Web\Results\CompetitionReference;
+use SpeedPuzzling\Web\Results\PuzzleSummary;
+use SpeedPuzzling\Web\Results\PuzzleUsedAtLine;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\TagFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * Public facts of the puzzle page summary: puzzle_statistics plus the publicly visible competitions the puzzle
- * was used at (by tag or by round), in one query.
+ * Public facts of the puzzle page summary: puzzle_statistics plus where the puzzle was used, in one query - "Used at"
+ * lines (docs/features/events-page/high-frequency-series.md P24): the rounds of publicly visible events holding the
+ * revealed puzzle, newest first and at most 10, then the tags no round line names.
  */
 final class GetPuzzleSummaryTest extends KernelTestCase
 {
@@ -105,17 +111,31 @@ final class GetPuzzleSummaryTest extends KernelTestCase
         self::assertTrue($summary->hasSingleSoloTime());
     }
 
-    public function testCompetitionsFromRoundsAreListedOldestFirst(): void
+    public function testRoundLinesAreListedNewestFirst(): void
     {
-        // PUZZLE_500_01 is in a Moonlight Sprint League round (60 days ago, EventDetailFixture), a WJPC 2024 round (in 30
-        // days) and a Czech Nationals 2024 round (in 60 days)
-        $usedAt = $this->query->forPuzzle(PuzzleFixture::PUZZLE_500_01)->usedAt;
+        // PUZZLE_500_01 is in a Czech Nationals 2024 round (in 60 days), a WJPC 2024 round (in 30 days) and a Moonlight
+        // Sprint League round (60 days ago, EventDetailFixture) - solo rounds
+        $summary = $this->query->forPuzzle(PuzzleFixture::PUZZLE_500_01);
+        $usedAt = $summary->usedAt;
 
-        self::assertSame(['Moonlight Sprint League · Season One', 'WJPC 2024', 'Czech National Championship 2024'], $this->displayNames($usedAt));
-        self::assertSame('edition_detail', $usedAt[0]->routeName());
-        self::assertSame('event_detail', $usedAt[1]->routeName());
-        self::assertSame(['slug' => 'wjpc-2024'], $usedAt[1]->routeParameters());
-        self::assertSame(['slug' => 'czech-nationals-2024'], $usedAt[2]->routeParameters());
+        self::assertSame(['Czech National Championship 2024', 'WJPC 2024', 'Moonlight Sprint League · Season One'], $this->displayNames($usedAt));
+        self::assertSame(0, $summary->usedAtMore);
+        self::assertSame([true, true, true], array_map(static fn (PuzzleUsedAtLine $line): bool => $line->isRound(), $usedAt));
+        self::assertSame(
+            [RoundCategory::Solo, RoundCategory::Solo, RoundCategory::Solo],
+            array_map(static fn (PuzzleUsedAtLine $line): null|RoundCategory => $line->category, $usedAt),
+        );
+
+        self::assertSame('event_detail', $usedAt[0]->routeName());
+        self::assertSame(['slug' => 'czech-nationals-2024', '_fragment' => 'round-' . CompetitionRoundFixture::ROUND_CZECH_FINAL], $usedAt[0]->routeParameters());
+        self::assertSame(['slug' => 'wjpc-2024', '_fragment' => 'round-' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION], $usedAt[1]->routeParameters());
+        self::assertSame('edition_detail', $usedAt[2]->routeName());
+        self::assertSame(
+            ['seriesSlug' => 'moonlight-sprint-league', 'editionSlug' => 'season-one', '_fragment' => 'round-' . EventsPageFixture::ROUND_SPRINT_1],
+            $usedAt[2]->routeParameters(),
+        );
+        self::assertNotNull($usedAt[1]->startsAt);
+        self::assertGreaterThan($usedAt[2]->startsAt, $usedAt[1]->startsAt);
     }
 
     public function testCompetitionOfATagIsListed(): void
@@ -125,6 +145,10 @@ final class GetPuzzleSummaryTest extends KernelTestCase
         $usedAt = $this->query->forPuzzle(PuzzleFixture::PUZZLE_1000_04)->usedAt;
 
         self::assertSame(['WJPC 2024'], $this->displayNames($usedAt));
+        // A tag line: no round, no date - the event's page without an anchor
+        self::assertFalse($usedAt[0]->isRound());
+        self::assertNull($usedAt[0]->startsAt);
+        self::assertSame(['slug' => 'wjpc-2024'], $usedAt[0]->routeParameters());
     }
 
     public function testCompetitionFoundByTagAndByRoundIsListedOnce(): void
@@ -133,7 +157,9 @@ final class GetPuzzleSummaryTest extends KernelTestCase
 
         $usedAt = $this->query->forPuzzle(PuzzleFixture::PUZZLE_500_01)->usedAt;
 
-        self::assertSame(['Moonlight Sprint League · Season One', 'WJPC 2024', 'Czech National Championship 2024'], $this->displayNames($usedAt));
+        // The round line names WJPC 2024 - no tag line for it
+        self::assertSame(['Czech National Championship 2024', 'WJPC 2024', 'Moonlight Sprint League · Season One'], $this->displayNames($usedAt));
+        self::assertTrue($usedAt[1]->isRound());
     }
 
     public function testCompetitionsThatAreNotPubliclyVisibleAreLeftOut(): void
@@ -180,10 +206,10 @@ final class GetPuzzleSummaryTest extends KernelTestCase
             ['competitionId' => OrganizationFixture::COMPETITION_DRAFT_NIGHT],
         );
 
-        self::assertSame(
-            [OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME, 'Puzzle Meetup Prague'],
-            $this->displayNames($this->query->forPuzzle(PuzzleFixture::PUZZLE_3000)->usedAt),
-        );
+        $published = $this->query->forPuzzle(PuzzleFixture::PUZZLE_3000);
+        self::assertSame([OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME, 'Puzzle Meetup Prague'], $this->displayNames($published->usedAt));
+        // The night's round, then the series' tag
+        self::assertCount(1, $published->usedAtRounds());
     }
 
     public function testEditionOfASeriesLinksToTheEditionPage(): void
@@ -215,10 +241,124 @@ final class GetPuzzleSummaryTest extends KernelTestCase
 
         $usedAt = $this->query->forPuzzle(PuzzleFixture::PUZZLE_500_01)->usedAt;
 
-        self::assertSame(['Moonlight Sprint League · Season One', 'WJPC 2024', 'Czech National Championship 2024', 'Puzzle Meetup Prague'], $this->displayNames($usedAt));
+        self::assertSame(['Czech National Championship 2024', 'WJPC 2024', 'Moonlight Sprint League · Season One', 'Puzzle Meetup Prague'], $this->displayNames($usedAt));
         self::assertTrue($usedAt[3]->isSeries);
+        self::assertFalse($usedAt[3]->isRound());
         self::assertSame('competition_series_detail', $usedAt[3]->routeName());
         self::assertSame(['slug' => 'puzzle-meetup-prague'], $usedAt[3]->routeParameters());
+    }
+
+    public function testRoundOfAnEditionLinksToTheEditionPageAtTheRound(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $puzzleId = $scenario->puzzle();
+        $editionId = $scenario->edition($scenario->series(), 'Jam No. 154', '2026-10-07');
+        $roundId = $scenario->round($editionId, RoundCategory::Duo, '2026-10-07 19:00', puzzleIds: [$puzzleId]);
+
+        $usedAt = $this->query->forPuzzle($puzzleId)->usedAt;
+
+        self::assertSame(['Lantern Weekly Jam · Jam No. 154'], $this->displayNames($usedAt));
+        self::assertSame(RoundCategory::Duo, $usedAt[0]->category);
+        self::assertSame('2026-10-07', $usedAt[0]->startsAt?->format('Y-m-d'));
+        self::assertSame('edition_detail', $usedAt[0]->routeName());
+        self::assertSame(
+            [...$this->editionSlugs($editionId), '_fragment' => 'round-' . $roundId],
+            $usedAt[0]->routeParameters(),
+        );
+    }
+
+    /**
+     * A round starting late in the evening in Toronto starts the next day in UTC - the line names the local day
+     */
+    public function testTheDayIsTheRoundsLocalDay(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $puzzleId = $scenario->puzzle();
+        $editionId = $scenario->edition($scenario->series(), 'Jam No. 155', '2026-10-08');
+        $scenario->round($editionId, RoundCategory::Solo, '2026-10-08 23:30', 'America/Toronto', [$puzzleId]);
+
+        $startsAt = $this->query->forPuzzle($puzzleId)->usedAt[0]->startsAt;
+
+        self::assertNotNull($startsAt);
+        self::assertSame('2026-10-08 23:30', $startsAt->format('Y-m-d H:i'));
+    }
+
+    public function testAtMostTenRoundLinesTheRestCounted(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $puzzleId = $scenario->puzzle();
+        $seriesId = $scenario->series();
+
+        for ($jam = 1; $jam <= 12; $jam++) {
+            $day = sprintf('2026-09-%02d', $jam);
+            $scenario->round($scenario->edition($seriesId, 'Jam No. ' . $jam, $day), RoundCategory::Solo, $day . ' 19:00', puzzleIds: [$puzzleId]);
+        }
+
+        $summary = $this->query->forPuzzle($puzzleId);
+
+        self::assertCount(PuzzleSummary::USED_AT_ROUNDS_LIMIT, $summary->usedAt);
+        self::assertSame(2, $summary->usedAtMore);
+        // Newest first: jams 12 down to 3, the two oldest are "and 2 more"
+        self::assertSame('Lantern Weekly Jam · Jam No. 12', $summary->usedAt[0]->displayName());
+        self::assertSame('Lantern Weekly Jam · Jam No. 3', $summary->usedAt[9]->displayName());
+        self::assertCount(PuzzleSummary::USED_AT_ROUNDS_LIMIT, $summary->usedAtRounds());
+    }
+
+    /**
+     * H12 scenario 4: a round that keeps its puzzle secret never names it - until it is revealed
+     */
+    public function testSecretRoundIsLeftOutUntilRevealed(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $puzzleId = $scenario->puzzle();
+        $seriesId = $scenario->series();
+        $scenario->round($scenario->edition($seriesId, 'Jam No. 160', '2026-09-20'), RoundCategory::Solo, '2026-09-20 19:00', puzzleIds: [$puzzleId]);
+        $secretRoundId = $scenario->round($scenario->edition($seriesId, 'Jam No. 161', '2026-09-22'), RoundCategory::Duo, '2026-09-22 19:00', puzzleIds: [$puzzleId], secret: true);
+
+        $summary = $this->query->forPuzzle($puzzleId);
+        self::assertSame(['Lantern Weekly Jam · Jam No. 160'], $this->displayNames($summary->usedAt));
+        self::assertSame(0, $summary->usedAtMore, 'A secret round is not even counted');
+
+        $scenario->dispatch(new RevealRoundPuzzleNow($scenario->roundPuzzleId($secretRoundId, $puzzleId)));
+
+        self::assertSame(
+            ['Lantern Weekly Jam · Jam No. 161', 'Lantern Weekly Jam · Jam No. 160'],
+            $this->displayNames($this->query->forPuzzle($puzzleId)->usedAt),
+        );
+    }
+
+    public function testRoundsOfDraftsAreLeftOut(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $puzzleId = $scenario->puzzle();
+        $draftEditionId = $scenario->edition($scenario->series(), 'Jam No. 170', '2026-09-24', draft: true);
+        $scenario->round($draftEditionId, RoundCategory::Solo, '2026-09-24 19:00', puzzleIds: [$puzzleId]);
+        $draftSeriesEditionId = $scenario->edition($scenario->series('Moonlit Draft Sprints', draft: true), 'Sprint 1', '2026-09-25');
+        $scenario->round($draftSeriesEditionId, RoundCategory::Solo, '2026-09-25 19:00', puzzleIds: [$puzzleId]);
+
+        $summary = $this->query->forPuzzle($puzzleId);
+
+        self::assertSame([], $summary->usedAt);
+        self::assertSame(0, $summary->usedAtMore);
+    }
+
+    /**
+     * A series tag a round line already names (a round of one of its editions) adds no second line
+     */
+    public function testSeriesTagNamedByARoundLineOfItsEditionIsNotRepeated(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $puzzleId = $scenario->puzzle();
+        $seriesId = $scenario->series();
+        $scenario->round($scenario->edition($seriesId, 'Jam No. 180', '2026-09-26'), RoundCategory::Team, '2026-09-26 19:00', puzzleIds: [$puzzleId]);
+
+        $this->database->executeStatement(
+            'UPDATE competition_series SET tag_id = :tagId WHERE id = :seriesId',
+            ['tagId' => TagFixture::TAG_ONLINE, 'seriesId' => $seriesId],
+        );
+        $this->tagPuzzle(TagFixture::TAG_ONLINE, $puzzleId);
+
+        self::assertSame(['Lantern Weekly Jam · Jam No. 180'], $this->displayNames($this->query->forPuzzle($puzzleId)->usedAt));
     }
 
     public function testRoundPuzzleHiddenUntilItsRoundStartsStaysOutUntilRevealed(): void
@@ -287,11 +427,25 @@ final class GetPuzzleSummaryTest extends KernelTestCase
     }
 
     /**
-     * @param list<CompetitionReference> $competitions
+     * @param list<PuzzleUsedAtLine> $lines
      * @return list<string>
      */
-    private function displayNames(array $competitions): array
+    private function displayNames(array $lines): array
     {
-        return array_map(static fn (CompetitionReference $competition): string => $competition->displayName(), $competitions);
+        return array_map(static fn (PuzzleUsedAtLine $line): string => $line->displayName(), $lines);
+    }
+
+    /**
+     * @return array{seriesSlug: string, editionSlug: string}
+     */
+    private function editionSlugs(string $editionId): array
+    {
+        /** @var array{series_slug: string, edition_slug: string} $row */
+        $row = $this->database->fetchAssociative(
+            'SELECT cs.slug AS series_slug, c.slug AS edition_slug FROM competition c INNER JOIN competition_series cs ON cs.id = c.series_id WHERE c.id = :id',
+            ['id' => $editionId],
+        );
+
+        return ['seriesSlug' => $row['series_slug'], 'editionSlug' => $row['edition_slug']];
     }
 }

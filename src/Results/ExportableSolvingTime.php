@@ -37,6 +37,12 @@ readonly final class ExportableSolvingTime
         public string $puzzleAverageTimeFormatted,
         public null|int $playerRank,
         public int $puzzleTotalSolved,
+        // The one-time event or edition of the result, and its series - a series pick without an edition (series-level)
+        // has the series only (docs/features/events-page/high-frequency-series.md P22)
+        public null|string $eventId = null,
+        public null|string $eventName = null,
+        public null|string $eventSeriesId = null,
+        public null|string $eventSeriesName = null,
     ) {
         $this->ppm = $secondsToSolve !== null && $secondsToSolve > 0
             ? (new SolvingTime($secondsToSolve))->calculatePpm($piecesCount, $playersCount)
@@ -64,6 +70,10 @@ readonly final class ExportableSolvingTime
      *     puzzle_average_time: null|int,
      *     player_rank: null|int,
      *     puzzle_total_solved: int,
+     *     event_id?: null|string,
+     *     event_name?: null|string,
+     *     event_series_id?: null|string,
+     *     event_series_name?: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row, string $baseUrl): self
@@ -98,6 +108,10 @@ readonly final class ExportableSolvingTime
             puzzleAverageTimeFormatted: self::formatTime($puzzleAverageTime),
             playerRank: $row['player_rank'],
             puzzleTotalSolved: $row['puzzle_total_solved'],
+            eventId: $row['event_id'] ?? null,
+            eventName: $row['event_name'] ?? null,
+            eventSeriesId: $row['event_series_id'] ?? null,
+            eventSeriesName: $row['event_series_name'] ?? null,
         );
     }
 
@@ -143,6 +157,10 @@ readonly final class ExportableSolvingTime
             'player_rank' => $this->playerRank,
             'puzzle_total_solved' => $this->puzzleTotalSolved,
             'ppm' => $this->ppm,
+            'event_id' => $this->eventId,
+            'event_name' => $this->eventName,
+            'event_series_id' => $this->eventSeriesId,
+            'event_series_name' => $this->eventSeriesName,
         ];
     }
 }

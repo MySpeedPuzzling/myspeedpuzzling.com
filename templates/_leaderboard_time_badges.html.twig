@@ -12,7 +12,8 @@
 {%- set team_link = team_page_label is defined and time.teamId is defined and time.teamId is not null -%}
 {%- set show_first_try = time.firstAttempt and not (skip_first_try is defined and skip_first_try) -%}
 {%- set suspicious = time.suspicious is defined and time.suspicious -%}
-{%- if show_first_try or time.unboxed or time.competitionName or attempts > 1 or team_link or suspicious -%}
+{#- A series-level time (a series pick without an edition) has a series but no competition - its badge still shows -#}
+{%- if show_first_try or time.unboxed or time.competitionName or time.competitionSeriesName or attempts > 1 or team_link or suspicious -%}
     <div class="lb-badges">
         {%- if team_link -%}
             <a href="{{ path('puzzling_team_detail', {teamId: time.teamId}) }}" data-testid="team-link">

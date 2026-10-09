@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeDecisionRecorder;
 use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\HoldsSuspiciousTimeCaseLock;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Value\SuspiciousTimeDecisionKind;
 use SpeedPuzzling\Web\Tests\DataFixtures\SuspiciousTimesFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -118,6 +119,34 @@ final class DetectSuspiciousTimesHandlerTest extends KernelTestCase
         $edition = $this->caseOf(SuspiciousTimesFixture::TIME_EDITION_FAST);
         self::assertSame(['pending', 'fast', 'pace'], [$edition['status'], $edition['direction'], $edition['expected_source']]);
         self::assertSame(['faster_than_usual', 'hours_left_out'], $this->codes($edition['reasons']));
+    }
+
+    /**
+     * H12 scenario 14 (docs/features/events-page/high-frequency-series.md): the scan reads no event column - a
+     * series-level time (a series pick no edition holds) is judged exactly like the same time without an event
+     */
+    public function testASeriesLevelTimeIsJudgedLikeAnyOther(): void
+    {
+        $seriesId = new SeriesEditionScenario(self::getContainer())->series();
+        // The fixture's time made a series pick of a series without editions - what a pick stays when no edition is found
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET competition_series_id = :series WHERE id = :id',
+            ['series' => $seriesId, 'id' => SuspiciousTimesFixture::TIME_EDITION_FAST],
+        );
+
+        $this->scan();
+
+        $edition = $this->caseOf(SuspiciousTimesFixture::TIME_EDITION_FAST);
+        self::assertSame(['pending', 'detector', 'fast', 'strong', 'pace'], [$edition['status'], $edition['origin'], $edition['direction'], $edition['tier'], $edition['expected_source']]);
+        self::assertSame(['faster_than_usual', 'hours_left_out', 'other_edition'], $this->codes($edition['reasons']));
+        self::assertSame(
+            [null, $seriesId],
+            array_values((array) $this->database->fetchAssociative(
+                'SELECT competition_id, competition_series_id FROM puzzle_solving_time WHERE id = :id',
+                ['id' => SuspiciousTimesFixture::TIME_EDITION_FAST],
+            )),
+            'The scan leaves the link alone',
+        );
     }
 
     public function testAGroupResultOfSomebodyTheTrackerBlockedIsNoEvidence(): void

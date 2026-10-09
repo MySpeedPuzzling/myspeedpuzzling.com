@@ -8,6 +8,9 @@
             </div>
             <div class="modal-body">
                 <p>{{ 'series.delete.modal_body'|trans({'%name%': name}) }}</p>
+                {# Every time linked to the series (a series pick) or to one of its editions loses its event, the results
+                   stay - one static sentence, no count, no statement (docs/features/events-page/high-frequency-series.md P21) #}
+                <p class="mb-0 small text-muted" data-series-delete-note>{{ 'series_readers.series_delete_note'|trans }}</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'series.delete.modal_cancel'|trans }}</button>

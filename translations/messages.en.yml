@@ -8415,3 +8415,8 @@ restructure:
         flash:
             created: "The organization was created. Its series is part of it."
             created_waiting: "The organization was created. Everyone can see it once an admin approves it."
+
+series_readers:
+    used_at:
+        more: "and %count% more|and %count% more"
+    series_delete_note: "Results logged at this series or its editions stay on the players' profiles, without the event."

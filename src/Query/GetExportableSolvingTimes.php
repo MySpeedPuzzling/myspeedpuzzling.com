@@ -151,12 +151,20 @@ SELECT
         WHEN 'team' THEN ps.average_time_team
     END AS puzzle_average_time,
     standing.player_rank,
-    standing.puzzle_total_solved
+    standing.puzzle_total_solved,
+    competition.id AS event_id,
+    competition.name AS event_name,
+    cs.id AS event_series_id,
+    cs.name AS event_series_name
 FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = puzzle.id
 INNER JOIN standing ON standing.id = pst.id
+-- The event of the result (docs/features/events-page/high-frequency-series.md P22): a one-time event or an edition
+-- (picked, or found for a series pick) with its series; a series pick without an edition (series-level) only its series
+LEFT JOIN competition ON competition.id = pst.competition_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
 ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, tracked_at DESC
 SQL;
 
@@ -181,6 +189,10 @@ SQL;
          *     puzzle_average_time: null|int,
          *     player_rank: null|int,
          *     puzzle_total_solved: int,
+         *     event_id: null|string,
+         *     event_name: null|string,
+         *     event_series_id: null|string,
+         *     event_series_name: null|string,
          * }> $data
          */
         $data = $this->database

@@ -31,7 +31,16 @@ use Symfony\Component\Validator\Constraints as Assert;
                     . 'creates nothing and answers with the result the first request saved (same status, same body) - as long as it is the same '
                     . 'result (puzzle_id, time and finish day); a key reused for a different result is refused with 422 '
                     . 'application/problem+json, type "/errors/idempotency_key_reused", and nothing is saved. '
-                    . 'Without the key, an identical request sent again within 10 seconds is answered the same way.',
+                    . 'Without the key, an identical request sent again within 10 seconds is answered the same way. '
+                    . 'Linking the time to an event (all optional): round_id - that competition round, and its competition; '
+                    . 'competition_id - a one-time event or an edition of a series (GET /api/v1/competitions, the competition detail); '
+                    . 'series_id - a series (GET /api/v1/series): MySpeedPuzzling finds the edition by the puzzle (an edition with a round '
+                    . 'of the time\'s category holding it) or else by the finish day; when it cannot tell, the time is a result of the series '
+                    . 'without an edition - a valid answer, matched later when the edition appears. Precedence round_id > competition_id > series_id: '
+                    . 'the most specific one links the time explicitly, and when several are sent they must agree (competition_id = the round\'s competition, '
+                    . 'series_id = the series of that competition) - else 422. An unknown, malformed or not publicly visible id is a 404 and nothing is saved. '
+                    . 'The response carries the link as saved: round_id, competition_id (the event or the edition found) and series_id '
+                    . '(the series picked, else the series of the linked edition).',
                 parameters: [
                     new Parameter(
                         name: 'Idempotency-Key',
@@ -44,7 +53,9 @@ use Symfony\Component\Validator\Constraints as Assert;
                 ],
                 responses: [
                     '422' => new OpenApiResponse(description: 'Invalid input (application/problem+json with "violations"), a first attempt already recorded '
-                        . '(firstAttempt=true), or an Idempotency-Key already used for a different result (type "/errors/idempotency_key_reused").'),
+                        . '(firstAttempt=true), or an Idempotency-Key already used for a different result (type "/errors/idempotency_key_reused"). '
+                        . 'Event ids that disagree are a violation on competition_id or series_id.'),
+                    '404' => new OpenApiResponse(description: 'round_id, competition_id or series_id is unknown, malformed or not publicly visible - nothing is saved.'),
                 ],
             ),
             security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_SOLVING-TIMES:WRITE')",
@@ -71,6 +82,12 @@ final class CreateSolvingTimeInput
     public bool $unboxed = false;
 
     public null|string $roundId = null;
+
+    // A one-time event or an edition of a series, linked explicitly (docs/features/events-page/high-frequency-series.md)
+    public null|string $competitionId = null;
+
+    // A series: MySpeedPuzzling finds the edition (else the time is a result of the series without an edition)
+    public null|string $seriesId = null;
 
     /** @var array<string> */
     public array $groupPlayers = [];

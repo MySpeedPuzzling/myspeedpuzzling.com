@@ -2114,8 +2114,11 @@ components:
         addedByPlayerId: { type: [string, "null"] }
         addedByPlayerName: { type: [string, "null"] }
         roundsCount: { type: integer }
-        resultsCount: { type: integer, description: Solving times linked to the competition (suspicious ones included) }
+        resultsCount: { type: integer, description: Solving times linked to the competition (suspicious ones included) - explicit links and series picks matched to this edition }
         resultsWithoutRoundCount: { type: integer, description: Of those, the ones in no round (their puzzle is in none of its rounds of their category) }
+        seriesPickResultsCount:
+          type: integer
+          description: Of those, the series picks MySpeedPuzzling matched to this edition (docs/features/events-page/high-frequency-series.md) - always 0 for a one-time event
         participantsCount: { type: integer, description: Participants who joined (not removed) }
 
     CompetitionList:
@@ -2378,6 +2381,12 @@ components:
         addedByPlayerId: { type: [string, "null"] }
         addedByPlayerName: { type: [string, "null"] }
         editionsCount: { type: integer }
+        resultsCount:
+          type: integer
+          description: The series' results, each time once - linked to one of its editions (explicitly or matched) or a series pick without an edition
+        resultsWithoutEditionCount:
+          type: integer
+          description: Of those, the series picks no edition was found for (yet) - a normal, permanent state (docs/features/events-page/high-frequency-series.md)
 
     SeriesList:
       type: object

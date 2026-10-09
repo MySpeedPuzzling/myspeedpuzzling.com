@@ -35,6 +35,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'MessageHandler/DeletePlayerHandler.php' => self::WRITE,
         'Query/GetAccountDeletionSummary.php' => 'Counts what an account deletion removes - everything.',
         'Query/GetAdminCompetitions.php' => self::ADMIN,
+        'Query/GetAdminSeries.php' => self::ADMIN,
         'Query/GetBorrowedPuzzles.php' => self::OWN,
         'Query/GetComparisonPeople.php' => self::OWN,
         'Query/GetCompetitionSlugsForSitemap.php' => self::BACKGROUND,

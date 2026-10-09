@@ -455,6 +455,7 @@ Competition answer (`GET`, and the answer of create / update / set puzzles):
   "roundsCount": 1,
   "resultsCount": 3,
   "resultsWithoutRoundCount": 0,
+  "seriesPickResultsCount": 0,
   "participantsCount": 4,
   "maintainers": [{"playerId": "018d0000-0000-0000-0000-000000000001", "name": "John Doe", "code": "player1"}],
   "rounds": [{
@@ -501,7 +502,10 @@ flag, `hiddenAsDraft` = it or its series is a draft, `publiclyVisible` the whole
 drafts included). `organizationId` / `organization` is a one-time event's own organization (always `null` for an
 edition - `series.organizationId` is its organization); `series` also carries `draft`. `resultsCount` counts the
 solving times linked to the competition, `resultsWithoutRoundCount` those of them in none of its rounds (their puzzle is
-in no round of their category), `participantsCount` the people who joined (not removed). The list answers
+in no round of their category), `seriesPickResultsCount` those of them that are series picks MySpeedPuzzling matched to
+this edition (the player picked the series, not the edition - [high-frequency-series.md](./events-page/high-frequency-series.md);
+always `0` for a one-time event; a series pick without an edition is in no competition's counts - the series answer
+counts it), `participantsCount` the people who joined (not removed). The list answers
 `{"total", "limit", "offset", "competitions": [...]}` with the same fields minus `maintainers`, `rounds` and `puzzles`;
 its `status` filter takes `all`, `approved`, `pending` (not approved, not rejected - drafts included), `rejected` and
 `draft` (the competition or its series is a draft). `GET …/{idOrSlug}` takes a slug too: a standalone competition's
@@ -701,12 +705,19 @@ list answers `{"total", "limit", "offset", "organizations": [...]}` without `mai
 The series answer: `seriesId`, `name`, `slug`, `shortcut`, `description`, `link`, `isOnline`, `location`,
 `locationCountryCode`, `logo`, `organizationId`, `organization` (`organizationId`, `name`, `slug`), `eligibility`,
 `schedule`, `status`, `draft`, `approvedAt`, `approvedByPlayerId`, `rejectedAt`, `rejectionReason`, `publiclyVisible`
-(`IsSeriesPubliclyVisible`), `createdAt`, `addedByPlayerId`, `addedByPlayerName`, `editionsCount`, `maintainers` and
-`editions` - every edition with
+(`IsSeriesPubliclyVisible`), `createdAt`, `addedByPlayerId`, `addedByPlayerName`, `editionsCount`, `resultsCount`,
+`resultsWithoutEditionCount`, `maintainers` and `editions` - every edition with
 the competition list's fields (`competitionId`, `name`, `slug`, `dateFrom`, `dateTo`, `status`, `draft`,
-`roundsCount`, `resultsCount`, `participantsCount`, …; read one with `GET /internal-api/competitions/{id}` for its
-rounds), by date, undated ones last. The list answers `{"total", "limit", "offset", "series": [...]}` without
-`maintainers` and `editions`.
+`roundsCount`, `resultsCount`, `seriesPickResultsCount`, `participantsCount`, …; read one with
+`GET /internal-api/competitions/{id}` for its rounds), by date, undated ones last. The list answers
+`{"total", "limit", "offset", "series": [...]}` without `maintainers` and `editions`.
+
+The series' `resultsCount` is all its results, **each time once**: the times linked to one of its editions (explicitly
+or matched by MySpeedPuzzling) and its series picks no edition was found for - those also as
+`resultsWithoutEditionCount` (a normal, permanent state, matched as soon as an edition fits -
+[high-frequency-series.md](./events-page/high-frequency-series.md)). After a conversion with `"keepAsEdition": false`
+every result of the event is in `resultsWithoutEditionCount` until editions exist; the editions' `seriesPickResultsCount`
+tells how many the reconcile has matched since.
 
 **Creating an edition** (`POST …/series/{seriesId}/editions`): `name` (required), `dateFrom` and `dateTo` (required,
 ISO days, `dateTo` not before `dateFrom` - like the "Add edition" form; a `PATCH` of the competition can clear them

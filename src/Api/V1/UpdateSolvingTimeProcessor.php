@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
+use SpeedPuzzling\Web\Services\Api\SolvingTimeEventLinkResolver;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -26,6 +27,7 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
         private Security $security,
         private MessageBusInterface $messageBus,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
+        private SolvingTimeEventLinkResolver $eventLinkResolver,
     ) {
     }
 
@@ -59,18 +61,18 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
 
         $finishedAt = $data->finishedAt !== null ? new DateTimeImmutable($data->finishedAt) : null;
 
-        // The API payload has no notion of the event link, but the handler passes the message's
-        // competition straight to PuzzleSolvingTime::modify(), which assigns it unconditionally —
-        // so `null` here would silently detach the time from its competition on every PUT.
-        // Carry the current link through; the round link is never touched by modify().
-        $competitionId = $solvingTime->competition?->id->toString();
+        // The handler passes the message's link straight to PuzzleSolvingTime::modify(), which assigns it
+        // unconditionally - so without competition_id and series_id the current link is carried through exactly:
+        // an explicit competition as competitionId, a series pick as seriesId (as competitionId it would turn into an
+        // explicit link to the edition found for it). Ids sent are checked here: 404 / 422 before anything is saved
+        $eventLink = $this->eventLinkResolver->forUpdate($solvingTime, $data->competitionId, $data->seriesId);
 
         try {
             $this->messageBus->dispatch(
                 new EditPuzzleSolvingTime(
                     currentUserId: $userId,
                     puzzleSolvingTimeId: $timeId,
-                    competitionId: $competitionId,
+                    competitionId: $eventLink?->competitionId(),
                     time: $data->time,
                     comment: $data->comment,
                     groupPlayers: $data->groupPlayers,
@@ -78,6 +80,7 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
                     finishedPuzzlesPhoto: null,
                     firstAttempt: $data->firstAttempt,
                     unboxed: $data->unboxed,
+                    seriesId: $eventLink?->seriesId(),
                 ),
             );
         } catch (HandlerFailedException $exception) {
@@ -89,6 +92,9 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
             throw $exception;
         }
 
+        // The event link as saved: the handler finds a series pick's edition again and derives the round (P18)
+        $solvingTime = $this->puzzleSolvingTimeRepository->get($timeId);
+
         return new SolvingTimeResponse(
             timeId: $timeId,
             puzzleId: $solvingTime->puzzle->id->toString(),
@@ -97,6 +103,9 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
             firstAttempt: $data->firstAttempt,
             unboxed: $data->unboxed,
             comment: $data->comment,
+            roundId: $solvingTime->competitionRound?->id->toString(),
+            competitionId: $solvingTime->competition?->id->toString(),
+            seriesId: ($solvingTime->competitionSeries ?? $solvingTime->competition?->series)?->id->toString(),
         );
     }
 }

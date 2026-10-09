@@ -9,18 +9,16 @@ use ApiPlatform\State\ProcessorInterface;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
-use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeAlreadySaved;
 use SpeedPuzzling\Web\Exceptions\SolvingTimeIdReused;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
-use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
-use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
 use SpeedPuzzling\Web\Services\Api\ApiTokenOwner;
+use SpeedPuzzling\Web\Services\Api\SolvingTimeEventLinkResolver;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
@@ -41,12 +39,11 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
     public function __construct(
         private Security $security,
         private MessageBusInterface $messageBus,
-        private CompetitionRoundRepository $competitionRoundRepository,
         private ApiTokenOwner $tokenOwner,
         private GetSolvingTimePrediction $getSolvingTimePrediction,
         private RequestStack $requestStack,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
-        private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        private SolvingTimeEventLinkResolver $eventLinkResolver,
     ) {
     }
 
@@ -69,18 +66,9 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         $playerId = $user->getPlayer()->id->toString();
         $timeId = $this->timeId($playerId);
 
-        // Validate the optional round here so an invalid/unknown id surfaces as 404
-        // (CompetitionRoundNotFound is a NotFoundHttpException) - a round of an event that is not
-        // publicly visible (a draft, waiting for approval, rejected) too: for the API it does not
-        // exist. The handler re-resolves the round to wire it onto the entity, and refuses the same
-        // (its 404 reaches the client unwrapped - UnwrapHttpExceptionMiddleware).
-        if ($data->roundId !== null) {
-            $round = $this->competitionRoundRepository->get($data->roundId);
-
-            if ($this->isCompetitionPubliclyVisible->check($round->competition->id->toString()) === false) {
-                throw new CompetitionRoundNotFound();
-            }
-        }
+        // The optional round, competition and series, checked here so an unknown id or one of an event that is not
+        // publicly visible surfaces as 404 and ids that disagree as 422 - before anything is saved
+        $eventLink = $this->eventLinkResolver->forCreate($data->roundId, $data->competitionId, $data->seriesId);
 
         $finishedAt = $data->finishedAt !== null ? new DateTimeImmutable($data->finishedAt) : null;
 
@@ -90,7 +78,8 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
                     timeId: $timeId,
                     userId: $userId,
                     puzzleId: $data->puzzleId,
-                    competitionId: null,
+                    // Only without a round: the handler derives the round's competition
+                    competitionId: $eventLink?->competitionId(),
                     time: $data->time,
                     comment: $data->comment,
                     finishedPuzzlesPhoto: null,
@@ -100,6 +89,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
                     unboxed: $data->unboxed,
                     roundId: $data->roundId,
                     createdVia: SolvingTimeSource::Api,
+                    seriesId: $eventLink?->seriesId(),
                 ),
             );
         } catch (HandlerFailedException $exception) {
@@ -126,6 +116,9 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         // the input regex guarantees the HH:MM:SS / MM:SS shape it asserts.
         $timeSeconds = SolvingTime::fromUserInput($data->time)->seconds;
 
+        // The event link as saved: the handler finds a series pick's edition and the round (P18)
+        $solvingTime = $this->puzzleSolvingTimeRepository->get($timeId->toString());
+
         return new SolvingTimeResponse(
             timeId: $timeId->toString(),
             puzzleId: $data->puzzleId,
@@ -134,7 +127,9 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
             firstAttempt: $data->firstAttempt,
             unboxed: $data->unboxed,
             comment: $data->comment,
-            roundId: $data->roundId,
+            roundId: $solvingTime->competitionRound?->id->toString(),
+            competitionId: $solvingTime->competition?->id->toString(),
+            seriesId: ($solvingTime->competitionSeries ?? $solvingTime->competition?->series)?->id->toString(),
             prediction: $this->predictionBefore($data->groupPlayers !== [], $timeSeconds, $timeId->toString()),
         );
     }
@@ -176,6 +171,8 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
             unboxed: $solvingTime->unboxed,
             comment: $solvingTime->comment,
             roundId: $solvingTime->competitionRound?->id->toString(),
+            competitionId: $solvingTime->competition?->id->toString(),
+            seriesId: ($solvingTime->competitionSeries ?? $solvingTime->competition?->series)?->id->toString(),
             prediction: $this->predictionBefore($solvingTime->puzzlingTeam !== null, $solvingTime->secondsToSolve, $resend->timeId),
         );
     }

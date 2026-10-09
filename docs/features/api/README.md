@@ -80,8 +80,8 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 | GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read`. Each result also carries the puzzle's `statistics` (public) and `difficulty` (members, else `null`) - see Insights on lists below - and, for a duo/team result, `team_id` + `team_name` (the pair/team it belongs to: same people = same `team_id`; the name is optional; both `null` for solo). Added 2026-09-21, purely additive |
 | GET | `/api/v1/me/puzzles/{puzzleId}/predicted-time` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
-| POST | `/api/v1/me/solving-times` | PAT or `solving-times:write`. The response carries the parsed `time_seconds` and `prediction` - the time prediction that applied *before* this solve (solo times, token owner a member who has not opted out, PAT or `results:read`; else `null`) - see the POST section below |
-| PUT | `/api/v1/me/solving-times/{timeId}` | PAT or `solving-times:write` |
+| POST | `/api/v1/me/solving-times` | PAT or `solving-times:write`. The response carries the parsed `time_seconds`, the event link as saved (`round_id`, `competition_id`, `series_id`) and `prediction` - the time prediction that applied *before* this solve (solo times, token owner a member who has not opted out, PAT or `results:read`; else `null`) - see the POST section below |
+| PUT | `/api/v1/me/solving-times/{timeId}` | PAT or `solving-times:write`. Without `competition_id` / `series_id` the event link stays exactly as it is - see Linking a time to an event below |
 | GET | `/api/v1/me/collections` | PAT or `collections:read` |
 | GET | `/api/v1/me/collections/{id}/items` | PAT or `collections:read`. Each item also carries `statistics` (public), `difficulty` (members), `prediction` (members, not opted out, PAT or `results:read`) and `solves` (own history, PAT or `results:read`) - see Insights on lists below |
 | POST | `/api/v1/me/collections` | PAT or `collections:write` (members only) |
@@ -116,6 +116,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 |--------|----------|------|
 | GET | `/api/v1/competitions?status=all\|live\|upcoming\|past&online=true&country=cz` | Any valid PAT or OAuth2 token (no specific scope) |
 | GET | `/api/v1/competitions/{id}` | Any valid PAT or OAuth2 token (no specific scope) |
+| GET | `/api/v1/series` | Any valid PAT or OAuth2 token (no specific scope) |
 
 - **List** returns basic info for **approved, standalone** competitions only (mirrors the public website listing). Series editions are not listed, but they are reachable by id through the detail endpoint. Optional filters: `status` (default `all`), `online` (default `false`), `country` (ISO 3166-1 alpha-2). Response shape: `{ "count": N, "competitions": [ ... ] }`. Participants are never returned.
 - **Detail** returns the competition metadata plus its `rounds` and a `series` object. Each round exposes `id`, `name`, `starts_at`, `minutes_limit`, `category`, and `puzzles`. `series` is `{ "id", "name", "slug" }` for an edition of a competition series and `null` for a standalone competition (an edition's own `slug` is only unique within its series — build links as `/series/{series.slug}/{slug}`). **Participants are never returned.**
@@ -129,6 +130,7 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
   - `hideMode = Entirely` → the puzzle is **omitted entirely** from the round's `puzzles`.
   - `hideMode = ImageOnly` → the puzzle is returned but `image` is `null` (name, pieces count, manufacturer remain visible).
   - After reveal, everything is visible. This behavior is covered by dedicated tests in `CompetitionDetailEndpointTest`.
+- **Series** (`GET /api/v1/series`, added 2026-10 with [high-frequency series](../events-page/high-frequency-series.md), P16): every **publicly visible** series of competitions - never a draft, one waiting for approval or a rejected one - by name, `{ "count": N, "series": [ ... ] }`. The competition list holds one-time events only, so this is where a client finds the `series_id` to link a solving time to. Each item: `id`, `name`, `shortcut`, `slug`, `logo`, `is_online`, `location`, `country_code`, `link` (with `utm_source`, like the competition list), `organization_name` (only for a publicly visible organization), `editions_count` (its publicly visible editions, undated ones included - `0` is a valid series too), `next_date` / `last_date` (days, `YYYY-MM-DD`: the first day of the soonest edition starting after today / of the latest edition that is over; an edition held today is in neither; an edition without dates is dated by its first round). One statement (`GetApiSeriesList`, `SeriesEditionDays`) whatever the number of series - `SeriesListEndpointTest`. No `access_control` row: the operation's own `IS_AUTHENTICATED_FULLY` answers 401 without a token; any token (a `client_credentials` one too) may list.
 
 ### Puzzle Endpoints (any authenticated token)
 
@@ -327,14 +329,15 @@ The favorites link (`player.favorite_players`, a JSON array of player ids - no j
     "first_attempt": true,
     "unboxed": false,
     "round_id": "uuid",
+    "competition_id": "uuid",
+    "series_id": "uuid",
     "group_players": ["#PLAYER_CODE", "Guest Name"]
 }
 ```
 
 - `time` format: `HH:MM:SS` or `MM:SS`
 - `group_players`: player codes prefixed with `#`, or plain names for unregistered players
-- `round_id`: optional, nullable. When set, the time is linked to that competition round and automatically to its competition. An invalid or unknown `round_id` returns 404.
-- `PUT` never changes the event link: the payload has no `round_id`/competition field, and the processor carries the time's current competition through to the handler (`PuzzleSolvingTime::modify()` assigns whatever it is given, and the round link is never touched by it). Before 2026-08-19 a `PUT` silently detached the time from its competition.
+- `round_id`, `competition_id`, `series_id`: optional, nullable - the event the time belongs to, see **Linking a time to an event** below.
 - Photo uploads not supported via API (use the website)
 - **`Idempotency-Key` header** (optional, any string, e.g. a UUID the app generates once per result and reuses on every retry): the result id is derived from it - UUIDv5 of `<playerId>|<key>` in a fixed namespace (`CreateSolvingTimeProcessor::IDEMPOTENCY_NAMESPACE`) - so a retry of a request whose answer got lost creates nothing and is answered with the saved result: same status (201), same body, built from the stored result. A retry is recognised by its content: the same `puzzle_id`, `time` and finish day as the stored result (other fields may differ - the stored result wins). A key reused for a **different** result is refused: `422 application/problem+json`, `"type": "/errors/idempotency_key_reused"`, nothing saved (`IdempotencyKeyReused`). Keys are per player and never expire; two requests with the same key in flight at once are serialised by a transaction-scoped advisory lock, so the second one gets the replay, never an error. Without the key, an identical request (every field) sent again within 10 s gets the same answer (the add handler's safety net, `GetRecentIdenticalSolvingTime`). Both are logged as `resend_caught` in `result_duplicate_prevention` - see `docs/features/duplicate-results.md`. Results created through the API carry `created_via = api`.
 
@@ -343,15 +346,49 @@ Response (`SolvingTimeResponse`, shared with `PUT …/solving-times/{timeId}`):
 ```json
 {
     "time_id": "uuid", "puzzle_id": "uuid", "time_seconds": 5025, "finished_at": "2025-12-01T14:30:00+00:00",
-    "first_attempt": true, "unboxed": false, "comment": "Optional comment", "round_id": null,
+    "first_attempt": true, "unboxed": false, "comment": "Optional comment",
+    "round_id": null, "competition_id": null, "series_id": null,
     "prediction": { "predicted_seconds": 1890, "range_low_seconds": 1607, "range_high_seconds": 2174,
                     "is_personalized": true, "personal_solve_count": 1, "predicted_attempt_number": 2, "last_time_seconds": 2100 }
 }
 ```
 
+- `round_id`, `competition_id`, `series_id` - the event link **as saved**, read from the stored time after the save (also on `PUT` and on the `Idempotency-Key` replay): the round the time is in, the one-time event or edition it is linked to (picked, or the edition MySpeedPuzzling found for a series), and the series picked - else the series of the linked edition. Until 2026-10 a `PUT` always answered `round_id: null` and neither carried the other two.
 - `time_seconds` - the submitted `time` parsed with the same parser the handler stores from (`SolvingTime::fromUserInput`), so it is the number that lands in the database (`"1:23:45"` ⇒ `5025`, `"25:10"` ⇒ `1510`). Filled on `POST` since PR 4 of the expansion plan (it used to be `null`); still `null` on `PUT`.
 - `prediction` - the time prediction that applied **before** this solve, the one the website shows on the added-time recap page (`AddedTimeRecapController`): the new time is excluded from the prediction query, so `personal_solve_count` is the count before it, `predicted_attempt_number` the attempt this time was, and `last_time_seconds` the previous solve - an app can show "12% faster than predicted" right after submitting. Same shape as the `prediction` object on puzzle cards (Puzzles above). Gates, exactly as on the recap page plus the API's own read rule: **solo** time (`group_players` empty), a time present, the token owner a **member** who has **not opted out** of time predictions, and PAT or `results:read` on the token (`solving-times:write` alone writes, it does not read insights) - `null` otherwise; a `client_credentials` token never reaches `/me/*` at all. When present, the object is always complete: the statistical (baseline × difficulty) estimate comes with `is_personalized: false` and the three `personal_*`/`last_*` fields `null`; every field `null` when there is nothing to predict from. Always `null` on `PUT` (the "before" prediction is a property of creating a time).
 - **Query cost** (asserted in `CreateSolvingTimePredictionEndpointTest`, request only, PAT): the create itself already runs the `PuzzleSolved` event's synchronous recalculations (statistics, intelligence, wishlist removal, notifications), so its count depends on the data - measured 2026-08-19 with the prediction switched off: 28-35 for a solo time, 21 for a duo time. On top of that the feature adds the owner profile (1, `ApiTokenOwner`, only when the time is solo and the token may read results) and `GetPlayerPrediction::forPuzzle` (≤ 5: personal - solves, pieces, player ratio, global ratio(s); statistical - solves + 1) only for an eligible request; a group time adds nothing.
+
+### Linking a time to an event
+
+Design of record: [high-frequency-series.md](../events-page/high-frequency-series.md) "API v1" (2026-10). Three optional fields on `POST /api/v1/me/solving-times`; `competition_id` and `series_id` on `PUT …/{timeId}` too (`round_id` is POST only - on an edit the round always follows the competition):
+
+| Field | Links the time to | Kind of link |
+|---|---|---|
+| `round_id` | that competition round and its competition | explicit |
+| `competition_id` | a one-time event or an **edition** of a series (ids: `GET /api/v1/competitions`, a competition detail) | explicit |
+| `series_id` | a **series** (ids: `GET /api/v1/series`) - MySpeedPuzzling finds the edition | a *series pick*: matched to an edition, or a result of the series without one |
+
+- **A series pick**: MySpeedPuzzling finds the edition by the website's one matching rule (`SeriesEditionMatch`): (1) by the puzzle - an edition with a round of the time's category (solo / pair / team, from `group_players`) holding the puzzle, the one nearest to the finish day; (2) else by the date - exactly one edition whose days ±1 day hold the finish day (`finished_at`, else when it was saved) and whose rounds, if any, accept the category; (3) else **no edition** - `competition_id: null`, `series_id` set. That is a valid, permanent answer, never an error: the result counts for the series and is matched later, as soon as a fitting edition appears (the series reconcile). The API never asks to choose. The round follows the edition found.
+- **Precedence** `round_id` > `competition_id` > `series_id`: the most specific one links the time, **explicitly** (never a series pick). Sent together they must agree - `competition_id` = the round's competition, `series_id` = the series the round's competition / `competition_id` is an edition of - else **`422`** `application/problem+json` with one violation whose `propertyPath` is `competition_id` (not the round's competition) or `series_id`; nothing is saved.
+- **`404`** before anything is saved for an unknown, malformed or **not publicly visible** id (a draft, waiting for approval, rejected, an edition of such a series): `CompetitionRoundNotFound`, `CompetitionNotFound`, `CompetitionSeriesNotFound`. A `404` wins over a disagreement.
+- **`PUT`**: both fields omitted (or `null`) keep the link **exactly** - an explicit link stays explicit, a series pick stays a series pick (passed on as the series, so its edition is found again for the edited time like on every web edit; passing the edition found would turn it into an explicit link). Either field changes the link by the rules above; the time's **current** competition or series (its series pick, or the series of its linked edition) is accepted even when it is no longer publicly visible - the edit form's include-current rule. A link cannot be removed through the API (P17). Before 2026-08-19 a `PUT` silently detached the time from its competition.
+- Checked in the processors before dispatching (`SolvingTimeEventLinkResolver`): the handlers save a time without a link they cannot use (the web form's fallback), and their exceptions would reach the client wrapped. No membership gate - events are public.
+- **Query cost** (asserted in `CreateSolvingTimeEndpointTest` / `UpdateSolvingTimeEndpointTest`): `competition_id` adds the competition and its visibility (2) plus the round derived from it (2) - what linking a competition costs anyway; `series_id` adds the series, the matching rule and the edition found (3) plus the same round derivation (2). Keeping a series pick on `PUT` costs 2 more than keeping an explicit link to the same edition (the series, the rule). The response reads the saved time from memory.
+
+```http
+POST /api/v1/me/solving-times
+{"puzzle_id": "01999d3c-0000-7000-8000-00000000a001", "time": "1:12:09", "finished_at": "2026-10-07T21:40:00+02:00",
+ "group_players": ["Guest Puzzler"], "series_id": "01999d3c-0000-7000-8000-00000000b001"}
+
+201
+{"time_id": "01999d3c-0000-7000-8000-00000000c001", "puzzle_id": "01999d3c-0000-7000-8000-00000000a001",
+ "time_seconds": 4329, "finished_at": "2026-10-07T21:40:00+02:00", "first_attempt": false, "unboxed": false,
+ "comment": null, "round_id": "01999d3c-0000-7000-8000-00000000d001",
+ "competition_id": "01999d3c-0000-7000-8000-00000000e001", "series_id": "01999d3c-0000-7000-8000-00000000b001",
+ "prediction": null}
+```
+
+The pair's time of the series "Lantern Weekly Jam" (`…b001`) was matched to its edition "Jam No. 154" (`…e001`), whose pairs round (`…d001`) holds the puzzle. Not identified: `"round_id": null, "competition_id": null, "series_id": "…b001"`. `{"competition_id": "…e001", "series_id": "…f001"}` with another series: `422`, `"violations": [{"propertyPath": "series_id", "message": "series_id must be the series the competition is an edition of."}]`.
 
 ### Privacy
 
@@ -367,8 +404,9 @@ Response (`SolvingTimeResponse`, shared with `PUT …/solving-times/{timeId}`):
 - Missing scope: 403
 - `client_credentials` token on any `/api/v1/me/*` endpoint: 403 (no user context)
 - Non-existent player UUID: 404
+- Unknown, malformed or not publicly visible `round_id` / `competition_id` / `series_id` on a solving-time write: 404, nothing saved
 - Membership required: 403 with message
-- Validation error: 422
+- Validation error: 422 (event ids that disagree: a violation on `competition_id` / `series_id`)
 - Error format: `application/json` and `application/problem+json` (RFC 7807)
 
 ## OAuth2 Client Registration
@@ -438,6 +476,7 @@ Access control:
 - `^/api/v1/players/.*/(library|wishlist|unsolved-puzzles|lend-borrow|sell-swap)` → `ROLE_OAUTH2_COLLECTIONS:READ` (the puzzle library)
 - `^/api/v1/competitions` → `IS_AUTHENTICATED_FULLY` (PAT or any OAuth2 token, no specific scope)
 - `^/api/v1/puzzles` → `IS_AUTHENTICATED_FULLY` (PAT or any OAuth2 token, no specific scope; members-only parts of the response are gated per token owner inside the providers)
+- `/api/v1/series` has no `access_control` row - its operation's own `security: IS_AUTHENTICATED_FULLY` (PAT or any OAuth2 token, no specific scope; 401 without a token - `SeriesListEndpointTest`)
 
 ## Fair Use Policy
 
@@ -528,6 +567,8 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Api/V1/LibraryResponse.php`, `WishlistResponse.php`, `UnsolvedPuzzlesResponse.php`, `LendBorrowResponse.php`, `SellSwapResponse.php` | The puzzle-library resources, each with its `/me/…` and `/players/{playerId}/…` operation (providers `My*ResponseProvider` / `Player*ResponseProvider`) |
 | `src/Api/V1/PlayerConnectionsResponse.php`, `PlayerConnectionResponse.php`, `src/Query/GetPlayerConnections.php` | `/me/favorites` + `/me/followers` (providers `MyFavoritesResponseProvider` / `MyFollowersResponseProvider`); `countsOf()` feeds `favorites_count` / `followers_count` on `/me` |
 | `src/Services/Api/PuzzleLibraryVisibility.php`, `PuzzleLibraryItemsFactory.php`, `PuzzleLibrarySummaryFactory.php` | The website's library visibility rule; the list items (one insights batch per list); the summary counts |
+| `src/Api/V1/SeriesListResponse.php`, `SeriesListItemResponse.php`, `src/Query/GetApiSeriesList.php` | `GET /api/v1/series` (provider `SeriesListResponseProvider`) - the publicly visible series, one statement |
+| `src/Services/Api/SolvingTimeEventLinkResolver.php` | The event link of the solving-time writes: `round_id` / `competition_id` / `series_id` checked (404 / 422) before dispatching, the precedence, `PUT` keeping the link |
 | `src/Api/V1/PuzzleResponse.php` | The puzzle card (+ `PuzzleNameResponse`, `PuzzleStatisticsResponse`, `PuzzleDifficultyResponse`, `TimePredictionResponse`, `PlayerSolvesResponse`) |
 | `src/Services/Api/ApiTokenOwner.php` | The single membership / scope gate behind every provider |
 | `src/Services/Api/PuzzleResponseFactory.php` | Builds puzzle cards for the calling token at a fixed query cost (one batch call per object); `insightsFor()` + `PuzzleInsightsBatch` serve the collection-item and result lists with the same batch |

@@ -181,6 +181,15 @@ class Organization
     }
 
     /**
+     * May the player put a series or an event under it: its team, or an admin (docs/features/organizations/README.md
+     * "Permissions")
+     */
+    public function isManagedBy(Player $player): bool
+    {
+        return $player->isAdmin || $this->isOnTeam($player);
+    }
+
+    /**
      * Its creator or one of its maintainers
      */
     public function isOnTeam(Player $player): bool

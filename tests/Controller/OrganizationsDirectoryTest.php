@@ -42,6 +42,27 @@ final class OrganizationsDirectoryTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-org-add]'), '"Add organization" is for signed-in players');
     }
 
+    public function testAnEmptyDirectoryIsNotIndexedNorInTheSitemap(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/sitemap-static.xml');
+        self::assertStringContainsString('/en/organizations<', (string) $browser->getResponse()->getContent());
+
+        // Nothing publicly visible any more
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE organization SET is_draft = true');
+
+        $browser->request('GET', '/en/organizations');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('meta[name="robots"][content="noindex, follow"]');
+        self::assertSelectorExists('[data-org-directory-empty]');
+
+        $browser->request('GET', '/sitemap-static.xml');
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString('/en/organizations<', (string) $browser->getResponse()->getContent());
+        self::assertStringContainsString('/en/events<', (string) $browser->getResponse()->getContent());
+    }
+
     public function testASignedInPlayerCanAddOne(): void
     {
         $browser = self::createClient();

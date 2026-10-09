@@ -27,6 +27,15 @@ SQL;
     }
 
     /**
+     * An entry (`competition_participant_round` or `competition_team`, by its alias) holding official data: a result,
+     * a did-not-start or a qualified mark
+     */
+    public static function sqlEntryHoldsOfficialData(string $alias): string
+    {
+        return "({$alias}.result_seconds IS NOT NULL OR {$alias}.result_pieces_placed IS NOT NULL OR {$alias}.result_did_not_start OR {$alias}.qualified_at IS NOT NULL)";
+    }
+
+    /**
      * The round's entries with a result or a qualified mark, ranked - what deleting the round takes away, listed for
      * the organiser to confirm.
      *

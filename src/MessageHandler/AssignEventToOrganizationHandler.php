@@ -68,7 +68,7 @@ readonly final class AssignEventToOrganizationHandler
      */
     private static function assertOnTeam(Organization $organization, Player $actor): void
     {
-        if ($actor->isAdmin === false && $organization->isOnTeam($actor) === false) {
+        if ($organization->isManagedBy($actor) === false) {
             throw new OrganizationNotManaged();
         }
     }

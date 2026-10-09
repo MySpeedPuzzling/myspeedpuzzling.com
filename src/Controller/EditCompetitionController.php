@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
+use SpeedPuzzling\Web\Security\OrganizationEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionUrlField;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
@@ -103,8 +104,19 @@ final class EditCompetitionController extends AbstractController
             $data = $form->getData();
             $slug = $this->urlField->competitionSlug($form->get('slug'), $competition->slug, $seriesId, $competitionId);
 
+            // Into an organization the player is no longer on the team of (left it since the form was opened): refused
+            // before anything is saved
+            if (
+                $form->has('organizationId')
+                && $data->organizationId !== null
+                && $data->organizationId !== $currentOrganizationId
+                && $this->isGranted(OrganizationEditVoter::ORGANIZATION_EDIT, $data->organizationId) === false
+            ) {
+                $form->get('organizationId')->addError(new FormError($this->translator->trans('organizer_tools.form.organization_not_managed')));
+            }
+
             // The URL field holds an error when the typed URL cannot be used
-            if ($form->get('slug')->getErrors()->count() === 0) {
+            if ($form->get('slug')->getErrors()->count() === 0 && ($form->has('organizationId') === false || $form->get('organizationId')->getErrors()->count() === 0)) {
                 try {
                     $this->messageBus->dispatch(new EditCompetition(
                         competitionId: $competitionId,
@@ -147,7 +159,7 @@ final class EditCompetitionController extends AbstractController
                     // Taken by another save since the check above
                     $this->urlField->markTaken($form->get('slug'));
                 } catch (OrganizationNotManaged) {
-                    // Left the organization's team since the form was opened - the other changes are saved
+                    // Left the organization's team in the very moment of the save - the other changes are saved
                     $form->get('organizationId')->addError(new FormError($this->translator->trans('organizer_tools.form.organization_not_managed')));
                 }
             }

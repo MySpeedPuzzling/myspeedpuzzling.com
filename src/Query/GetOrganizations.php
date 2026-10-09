@@ -24,6 +24,17 @@ readonly final class GetOrganizations
     }
 
     /**
+     * Whether the directory lists anything - without a publicly visible organization it is `noindex` and left out of
+     * the sitemap
+     */
+    public function anyPublic(): bool
+    {
+        $visible = IsOrganizationPubliclyVisible::SQL_CONDITION;
+
+        return (bool) $this->database->fetchOne("SELECT EXISTS (SELECT 1 FROM organization o WHERE {$visible})");
+    }
+
+    /**
      * Publicly visible organizations by name, with the counts of their publicly visible series and one-time events
      *
      * @return list<OrganizationDirectoryRow>

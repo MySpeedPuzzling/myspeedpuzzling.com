@@ -762,6 +762,36 @@ final class CompetitionsInternalApiTest extends WebTestCase
         self::assertSame('Lantern Night One', self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . OrganizationFixture::EDITION_LANTERN_1)['name']);
     }
 
+    public function testAnOrganizationTheReviewerCannotManageIsRefusedBeforeAnythingIsSaved(): void
+    {
+        $browser = self::createClient();
+        // The reviewer is no admin and not on the draft organization's team
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE player SET is_admin = false WHERE id = :id',
+            ['id' => PlayerFixture::PLAYER_ADMIN],
+        );
+
+        self::callInternalApi($browser, 'PATCH', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED, [
+            'name' => 'Renamed Before The Refusal',
+            'organizationId' => OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT,
+        ]);
+        self::assertResponseStatusCodeSame(403);
+
+        $competition = self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED);
+        self::assertNotSame('Renamed Before The Refusal', $competition['name']);
+        self::assertNull($competition['organizationId']);
+
+        self::callInternalApi($browser, 'PATCH', '/internal-api/series/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT, [
+            'name' => 'Renamed Series Before The Refusal',
+            'organizationId' => OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT,
+        ]);
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame(
+            OrganizationFixture::SERIES_QUIET_PINES_DRAFT_NAME,
+            self::callInternalApi($browser, 'GET', '/internal-api/series/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT)['name'],
+        );
+    }
+
     /**
      * Records what the audit channel logs during the next request (the first of a client keeps its container).
      */

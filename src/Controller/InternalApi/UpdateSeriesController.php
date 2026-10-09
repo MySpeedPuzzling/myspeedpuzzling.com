@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\CannotUnpublish;
+use SpeedPuzzling\Web\Exceptions\OrganizationNotManaged;
 use SpeedPuzzling\Web\Message\AssignEventToOrganization;
 use SpeedPuzzling\Web\Message\EditCompetitionSeries;
 use SpeedPuzzling\Web\Message\PublishCompetitionSeries;
@@ -13,6 +14,8 @@ use SpeedPuzzling\Web\Message\UnpublishCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetAdminOrganizations;
 use SpeedPuzzling\Web\Query\GetAdminSeries;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
+use SpeedPuzzling\Web\Repository\OrganizationRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\Drafts\UnpublishBlockers;
 use SpeedPuzzling\Web\Value\OrganizationItemKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -40,6 +43,8 @@ final class UpdateSeriesController extends AbstractController
         private readonly GetAdminSeries $getAdminSeries,
         private readonly GetAdminOrganizations $getAdminOrganizations,
         private readonly UnpublishBlockers $unpublishBlockers,
+        private readonly OrganizationRepository $organizationRepository,
+        private readonly PlayerRepository $playerRepository,
         #[Autowire(env: 'INTERNAL_API_REVIEWER_PLAYER_ID')]
         private readonly string $reviewerPlayerId,
     ) {
@@ -81,6 +86,16 @@ final class UpdateSeriesController extends AbstractController
 
         if ($changesOrganization && $this->reviewerPlayerId === '') {
             throw new BadRequestHttpException('INTERNAL_API_REVIEWER_PLAYER_ID is not configured - no player to act as.');
+        }
+
+        // The reviewer must be able to move it there - checked before anything is saved (AssignEventToOrganization
+        // refuses too, but after the fields would have been saved)
+        if ($changesOrganization && $organizationId !== null) {
+            $organization = $this->organizationRepository->get($organizationId);
+
+            if ($organization->isManagedBy($this->playerRepository->get($this->reviewerPlayerId)) === false) {
+                throw new OrganizationNotManaged();
+            }
         }
 
         if ($changesDraft && $draft === true) {

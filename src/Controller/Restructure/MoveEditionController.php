@@ -106,6 +106,11 @@ final class MoveEditionController extends AbstractController
                     $moved = $this->competitionRepository->get($competitionId);
                     assert($moved->series !== null);
 
+                    // A series (or an edition) without a slug has no page address - its manage page instead
+                    if ($moved->series->slug === null || $moved->slug === null) {
+                        return $this->redirectToRoute('manage_competition_series', ['seriesId' => $moved->series->id->toString()]);
+                    }
+
                     return $this->redirectToRoute('edition_detail', [
                         'seriesSlug' => $moved->series->slug,
                         'editionSlug' => $moved->slug,

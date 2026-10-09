@@ -229,6 +229,27 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         self::assertStringContainsString(OrganizationFixture::ORGANIZATION_RIVERBEND_NAME, $crawler->filter('[data-series-organization]')->text());
     }
 
+    public function testADraftOrganizationIsNamedOnTheEditionFormForItsTeamOnly(): void
+    {
+        $browser = self::createClient();
+        // A maintainer of the series who is not on the (draft) organization's team
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'INSERT INTO competition_series_maintainer (competition_series_id, player_id) VALUES (:seriesId, :playerId)',
+            ['seriesId' => OrganizationFixture::SERIES_HARBOR_CLUB_MEETS, 'playerId' => PlayerFixture::PLAYER_REGULAR],
+        );
+        $url = '/en/edit-event/' . OrganizationFixture::EDITION_HARBOR_CLUB_1;
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-series-organization]'));
+        self::assertStringNotContainsString(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME, (string) $browser->getResponse()->getContent());
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', $url);
+        self::assertStringContainsString(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME, $crawler->filter('[data-series-organization]')->text());
+    }
+
     public function testAdminsChooseAnyOrganizationAndEmailNobody(): void
     {
         $browser = self::createClient();

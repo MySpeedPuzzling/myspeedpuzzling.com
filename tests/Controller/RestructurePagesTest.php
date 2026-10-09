@@ -78,6 +78,24 @@ final class RestructurePagesTest extends WebTestCase
         self::assertResponseRedirects('/en/series/' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL_SLUG . '/lantern-night-online');
     }
 
+    public function testMoveEditionIntoASeriesWithoutAnAddressGoesToItsManagePage(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition_series SET slug = NULL WHERE id = :id',
+            ['id' => OrganizationFixture::SERIES_RIVERBEND_VIRTUAL],
+        );
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/move-edition/' . OrganizationFixture::EDITION_LANTERN_1);
+        $form = $crawler->selectButton($this->trans('restructure.move_edition.submit'))->form();
+        $form->setValues(['move_edition_form[seriesId]' => OrganizationFixture::SERIES_RIVERBEND_VIRTUAL]);
+        $browser->submit($form);
+
+        self::assertResponseRedirects('/en/manage-series/' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL);
+        self::assertSame(OrganizationFixture::SERIES_RIVERBEND_VIRTUAL, $this->seriesOf(OrganizationFixture::EDITION_LANTERN_1));
+    }
+
     public function testMoveEditionRefusesASeriesItDoesNotOffer(): void
     {
         $browser = self::createClient();

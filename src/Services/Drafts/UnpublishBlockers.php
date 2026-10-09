@@ -13,13 +13,12 @@ use SpeedPuzzling\Web\Services\OfficialResultsGuard;
  * What keeps an event, or a series through any of its editions, from going back to draft (docs/features/organizations/
  * README.md "Drafts"): participants who joined (not deleted), entries with official results or qualified marks, and
  * linked solving times - suspicious ones included: a hidden page must not hold anybody's result. An organization can
- * always go back (it hides only its own page).
+ * always go back (it hides only its own page). One statement for an event and for a whole series alike.
  */
 readonly final class UnpublishBlockers
 {
     public function __construct(
         private Connection $database,
-        private OfficialResultsGuard $officialResultsGuard,
     ) {
     }
 
@@ -29,50 +28,49 @@ readonly final class UnpublishBlockers
             return new UnpublishCheck(0, 0, 0);
         }
 
-        return $this->check([$competitionId]);
+        return $this->check('SELECT c.id FROM competition c WHERE c.id = :id', $competitionId);
     }
 
+    /**
+     * Every edition of the series - one statement, however many editions it has
+     */
     public function forSeries(string $seriesId): UnpublishCheck
     {
         if (Uuid::isValid($seriesId) === false) {
             return new UnpublishCheck(0, 0, 0);
         }
 
-        /** @var list<string> $competitionIds */
-        $competitionIds = $this->database->fetchFirstColumn(
-            'SELECT id FROM competition WHERE series_id = :seriesId',
-            ['seriesId' => $seriesId],
-        );
-
-        return $this->check($competitionIds);
+        return $this->check('SELECT c.id FROM competition c WHERE c.series_id = :id', $seriesId);
     }
 
     /**
-     * @param list<string> $competitionIds
+     * @param string $competitions the competitions checked, as a statement with the parameter `:id`
      */
-    private function check(array $competitionIds): UnpublishCheck
+    private function check(string $competitions, string $id): UnpublishCheck
     {
-        $participants = 0;
-        $results = 0;
-        $solvingTimes = 0;
+        $entryHolds = OfficialResultsGuard::sqlEntryHoldsOfficialData('cpr');
+        $teamHolds = OfficialResultsGuard::sqlEntryHoldsOfficialData('ct');
 
-        foreach ($competitionIds as $competitionId) {
-            $counts = $this->database->fetchAssociative(
-                <<<SQL
+        $counts = $this->database->fetchAssociative(
+            <<<SQL
+WITH checked AS ({$competitions}),
+    checked_rounds AS (SELECT cr.id FROM competition_round cr WHERE cr.competition_id IN (SELECT id FROM checked))
 SELECT
-    (SELECT COUNT(*) FROM competition_participant cp WHERE cp.competition_id = :id AND cp.deleted_at IS NULL) AS participants,
+    (SELECT COUNT(*) FROM competition_participant cp
+        WHERE cp.competition_id IN (SELECT id FROM checked) AND cp.deleted_at IS NULL) AS participants,
+    (SELECT COUNT(*) FROM competition_participant_round cpr WHERE cpr.round_id IN (SELECT id FROM checked_rounds) AND {$entryHolds})
+        + (SELECT COUNT(*) FROM competition_team ct WHERE ct.round_id IN (SELECT id FROM checked_rounds) AND {$teamHolds}) AS results,
     (SELECT COUNT(*) FROM puzzle_solving_time pst
-        WHERE pst.competition_id = :id
-            OR pst.competition_round_id IN (SELECT cr.id FROM competition_round cr WHERE cr.competition_id = :id)) AS solving_times
+        WHERE pst.competition_id IN (SELECT id FROM checked)
+            OR pst.competition_round_id IN (SELECT id FROM checked_rounds)) AS solving_times
 SQL,
-                ['id' => $competitionId],
-            );
+            ['id' => $id],
+        );
 
-            $participants += is_array($counts) && is_numeric($counts['participants']) ? (int) $counts['participants'] : 0;
-            $solvingTimes += is_array($counts) && is_numeric($counts['solving_times']) ? (int) $counts['solving_times'] : 0;
-            $results += $this->officialResultsGuard->countEntriesWithOfficialDataInCompetition($competitionId);
-        }
-
-        return new UnpublishCheck($participants, $results, $solvingTimes);
+        return new UnpublishCheck(
+            is_array($counts) && is_numeric($counts['participants']) ? (int) $counts['participants'] : 0,
+            is_array($counts) && is_numeric($counts['results']) ? (int) $counts['results'] : 0,
+            is_array($counts) && is_numeric($counts['solving_times']) ? (int) $counts['solving_times'] : 0,
+        );
     }
 }

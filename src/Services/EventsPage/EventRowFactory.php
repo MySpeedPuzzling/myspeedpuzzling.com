@@ -147,7 +147,21 @@ readonly final class EventRowFactory
             visible: $onOwnPage || $scope->matches($occurrence->isOnline, $occurrence->countryCode),
             editionName: $onSeriesPage ? null : $occurrence->subtitle(),
             year: (int) $start->format('Y'),
+            stateTag: $onOwnPage ? self::stateTag($occurrence, $onSeriesPage) : null,
         );
+    }
+
+    /**
+     * Draft, else Waiting for approval - the series page leaves the latter out (its editions follow the series), like
+     * tags() does for the rows
+     */
+    private static function stateTag(EventOccurrence $occurrence, bool $onSeriesPage): null|RowTagType
+    {
+        if ($occurrence->isDraft) {
+            return RowTagType::Draft;
+        }
+
+        return $occurrence->isPublic === false && $onSeriesPage === false ? RowTagType::WaitingForApproval : null;
     }
 
     /**

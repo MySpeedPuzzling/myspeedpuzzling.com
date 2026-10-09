@@ -35,6 +35,9 @@ readonly final class ArchiveLine
         // a single occurrence's line under the name (EventOccurrence::subtitle())
         public null|string $editionName = null,
         public int $year = 0,
+        // Draft / Waiting for approval - only on the series and organization pages, which list those for their team only
+        // (docs/features/organizations/README.md, P6)
+        public null|RowTagType $stateTag = null,
     ) {
     }
 

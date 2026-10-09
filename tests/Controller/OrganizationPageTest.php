@@ -278,6 +278,40 @@ final class OrganizationPageTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-series-edition="' . OrganizationFixture::EDITION_QUIET_PINES_1 . '"]'));
     }
 
+    public function testPastLinesCarryTheDraftAndWaitingTagsForTheTeam(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+
+        foreach ([OrganizationFixture::EDITION_LANTERN_DRAFT, OrganizationFixture::EDITION_MAPLE_PENDING_1] as $competitionId) {
+            $connection->executeStatement(
+                'UPDATE competition SET date_from = CURRENT_DATE - 40, date_to = CURRENT_DATE - 40 WHERE id = :id',
+                ['id' => $competitionId],
+            );
+        }
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $past = $this->page($browser, self::RIVERBEND)->filter('[data-org-past]');
+        $draftLine = $past->filter('.ev-line:contains("' . OrganizationFixture::EDITION_LANTERN_DRAFT_NAME . '")');
+        self::assertCount(1, $draftLine);
+        self::assertSame('Draft', $draftLine->filter('[data-ev-state-tag]')->text());
+
+        // The series page too
+        $past = $this->page($browser, '/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG)->filter('.ev-line:contains("' . OrganizationFixture::EDITION_LANTERN_DRAFT_NAME . '")');
+        self::assertSame('Draft', $past->filter('.ev-tag-draft')->text());
+
+        // Waiting for approval on the organization page (the series page leaves it out, as on its rows)
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $past = $this->page($browser, '/en/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING_SLUG)->filter('[data-org-past]');
+        self::assertSame('Waiting for approval', $past->filter('.ev-line:contains("Maple Evening 1") [data-ev-state-tag]')->text());
+
+        // Everybody else sees no draft at all - and no tag on the published lines
+        $browser->getCookieJar()->clear();
+        $past = $this->page($browser, self::RIVERBEND)->filter('[data-org-past]');
+        self::assertCount(0, $past->filter('[data-ev-state-tag]'));
+        self::assertStringNotContainsString(OrganizationFixture::EDITION_LANTERN_DRAFT_NAME, $past->text());
+    }
+
     private function page(KernelBrowser $browser, string $path): Crawler
     {
         $crawler = $browser->request('GET', $path);

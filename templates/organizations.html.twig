@@ -3,13 +3,16 @@
 {#
     The organizations directory (docs/features/organizations/README.md "Directory", owner: workstream A): the publicly
     visible organizations alphabetically - logo, name, kind, flag + region, "3 series · 2 events", the next date (else
-    the last one). "Add organization" for signed-in players. Indexable; nothing per viewer.
+    the last one). "Add organization" for signed-in players. Indexable once it lists anything; nothing per viewer.
     Variables: directory (OrganizationsDirectory)
 #}
 
 {% block title %}{{ 'organization_page.directory.meta_title'|trans }}{% endblock %}
 
 {% block meta_description %}{{ 'organization_page.directory.meta_description'|trans }}{% endblock %}
+
+{# An empty directory is nothing to index #}
+{% block robots %}{% if directory.items is empty %}<meta name="robots" content="noindex, follow">{% else %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block content %}
     <div class="ev-detail ev-organizations">

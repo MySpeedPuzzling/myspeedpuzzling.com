@@ -93,8 +93,9 @@
                             {{ form_row(form.description) }}
                             {% if form.organizationId is defined %}
                                 {{ form_row(form.organizationId) }}
-                            {% elseif series_organization %}
-                                {# An edition belongs to its series' organization (docs/features/organizations/README.md) #}
+                            {% elseif series_organization and (series_organization.isPublic or is_granted('ORGANIZATION_EDIT', series_organization.id)) %}
+                                {# An edition belongs to its series' organization (docs/features/organizations/README.md) - named
+                                   while it is public, else only to its team (a draft's name is theirs to know) #}
                                 <div class="mb-3" data-series-organization>
                                     <span class="form-label d-block">{{ 'organizer_tools.form.organization'|trans }}</span>
                                     <p class="mb-0">{{ 'organizer_tools.form.edition_organization'|trans({'%name%': series_organization.name}) }}</p>

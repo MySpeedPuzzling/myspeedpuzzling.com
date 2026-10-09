@@ -7815,6 +7815,7 @@ drafts_core:
         published_series_draft: "Veröffentlicht – sichtbar, sobald auch die Serie veröffentlicht ist."
         unpublished: "Zurück im Entwurf – nur Sie und Ihr Team können es sehen."
         cannot_unpublish: "Es kann nicht in den Entwurf zurückgesetzt werden: %reasons%."
+        cannot_unpublish_named: "%name% kann nicht in den Entwurf zurückgesetzt werden: %reasons%."
     blocker:
         participants: "Teilnehmer haben sich angemeldet"
         results: "es gibt offizielle Ergebnisse"
@@ -7874,6 +7875,9 @@ organizer_tools:
         schedule_help: "Bei einer Serie z.B. „Vierter Freitag im Monat, 20 Uhr“ – jeder Termin bleibt eine eigene Ausgabe."
         save_draft: "Als Entwurf speichern"
         save_draft_help: "Einen Entwurf sehen nur Sie und Ihr Team – veröffentlichen Sie ihn, wenn er fertig ist."
+        submit_add_event: "Veranstaltung hinzufügen"
+        submit_add_series: "Serie hinzufügen"
+        add_info_approved: "Fügen Sie einen neuen Wettbewerb oder eine Veranstaltung hinzu. Unter Ihrer genehmigten Organisation ist keine Prüfung durch einen Administrator nötig."
     flash:
         saved_as_draft: "Als Entwurf gespeichert – nur Sie und Ihr Team können ihn sehen. Veröffentlichen Sie ihn, wenn er fertig ist."
         created_published: "Hinzugefügt – jetzt kann es jeder sehen."
@@ -7890,8 +7894,8 @@ organizer_tools:
         rule_label: "Wiederholung"
         rule:
             weekly: "Jede Woche"
-            nth_weekday: "Jeden Monat in einer bestimmten Woche"
-            last_weekday: "Jeden Monat in der letzten Woche"
+            nth_weekday: "Monatlich, bestimmte Woche"
+            last_weekday: "Monatlich, letzte Woche"
         nth_label: "Welche Woche"
         nth_help: "Für „Jeden Monat in einer bestimmten Woche“."
         nth:
@@ -7904,8 +7908,9 @@ organizer_tools:
         starting_help: "Der erste Termin liegt an diesem Tag oder danach."
         count: "Wie viele"
         dates: "Termine"
-        dates_help: "Tippen Sie im Kalender jeden Termin an, bis zu %max%. Ohne Kalender geben Sie sie so ein: 05.10.2026, 12.10.2026."
-        dates_placeholder: "05.10.2026, 12.10.2026"
+        dates_help: "Tippen Sie im Kalender jeden Termin an, bis zu %max%."
+        dates_placeholder: "2026-10-05, 2026-10-12"
+        dates_typing: "Ohne Kalender geben Sie die Termine so ein: 2026-10-05, 2026-10-12."
         name_pattern: "Name"
         name_pattern_help: "{date} wird zum Datum, z.B. „Puzzle-Abend 5. Oktober 2026“. Sie können jede Ausgabe später umbenennen."
         show: "Termine anzeigen"
@@ -7921,6 +7926,7 @@ organization_page:
         social_links: "%name% im Web"
         website: "Website"
     coming_up: "Demnächst"
+    about: "Über die Organisation"
     live: "Läuft gerade"
     ongoing: "Laufend"
     date_not_set: "Datum noch offen"

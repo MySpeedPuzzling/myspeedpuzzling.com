@@ -37,8 +37,8 @@ final class AddEditionsFormData
         public null|int $weekday = null,
         public null|DateTimeImmutable $starting = null,
         public null|int $count = 6,
-        // Picked days, as the multi-date picker writes them ("05.10.2026, 12.10.2026"); "5.10.2026", "5. 10. 2026" and
-        // ISO days are read too
+        // Picked days, as the multi-date picker writes them ("05.10.2026; 12.10.2026"); commas, "5.10.2026",
+        // "5. 10. 2026" and ISO days are read too
         public null|string $dates = null,
         #[Assert\NotBlank]
         #[Assert\Length(max: self::NAME_PATTERN_MAX_LENGTH)]

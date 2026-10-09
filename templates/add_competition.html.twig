@@ -11,12 +11,24 @@
     ]}) }}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
 
-    <div class="pb-4">
+    {#- Under an approved organization it is approved at once: no "reviewed by an admin", a neutral button. The state of
+        the submitted form here, approval_note_controller.js follows the select and "Recurring" -#}
+    {%- set approved_at_once = false -%}
+    {%- if form.organizationId is defined -%}
+        {%- for choice in form.organizationId.vars.choices -%}
+            {%- if choice.value == form.organizationId.vars.value and (choice.attr['data-approved-at-once'] ?? null) == '1' -%}
+                {%- set approved_at_once = true -%}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- endif -%}
+    {%- set recurring = form.isRecurring.vars.data is same as(true) -%}
+    <div class="pb-4" data-controller="approval-note" data-action="change->approval-note#update">
         <div class="row gy-3 pb-3">
             <div class="col-lg-8">
                 <h1 class="h2">{{ 'competition.add_event'|trans }}</h1>
 
-                <p class="text-muted">{{ 'competition.add_event_info'|trans }}</p>
+                <p class="text-muted" data-approval-note-target="review"{% if approved_at_once %} hidden{% endif %}>{{ 'competition.add_event_info'|trans }}</p>
+                <p class="text-muted" data-approval-note-target="direct"{% if not approved_at_once %} hidden{% endif %}>{{ 'organizer_tools.form.add_info_approved'|trans }}</p>
 
                 {% for flash_message in app.flashes('success') %}
                     <div class="alert alert-success">
@@ -33,13 +45,13 @@
                             {{ form_row(form.shortcut) }}
                             {{ form_row(form.description) }}
                             {% if form.organizationId is defined %}
-                                {{ form_row(form.organizationId) }}
+                                {{ form_row(form.organizationId, {attr: {'data-approval-note-target': 'organization'}}) }}
                             {% endif %}
                             <div class="required" data-action="change->competition-form#toggle">
                                 {{ form_row(form.isOnline) }}
                             </div>
                             <div data-competition-form-target="recurringField" data-action="change->competition-form#toggle">
-                                {{ form_row(form.isRecurring) }}
+                                {{ form_row(form.isRecurring, {attr: {'data-approval-note-target': 'recurring'}}) }}
                             </div>
                             <div class="mb-3" data-competition-form-target="offlineFields">
                                 {{ form_label(form.location, null, {label_attr: {class: 'form-label required'}}) }}
@@ -103,8 +115,11 @@
                             </div>
 
                             <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
-                                <button type="submit" class="btn btn-primary">
-                                    {{ 'competition.submit_for_approval'|trans }}
+                                <button type="submit" class="btn btn-primary" data-approval-note-target="submit"
+                                        data-review-label="{{ 'competition.submit_for_approval'|trans }}"
+                                        data-event-label="{{ 'organizer_tools.form.submit_add_event'|trans }}"
+                                        data-series-label="{{ 'organizer_tools.form.submit_add_series'|trans }}">
+                                    {{- approved_at_once ? (recurring ? 'organizer_tools.form.submit_add_series'|trans : 'organizer_tools.form.submit_add_event'|trans) : 'competition.submit_for_approval'|trans -}}
                                 </button>
                                 {{ form_widget(form.saveDraft, {attr: {class: 'btn btn-outline-secondary'}}) }}
                             </div>

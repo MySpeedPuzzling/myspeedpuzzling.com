@@ -33,7 +33,8 @@
                     {{ form_start(form) }}
                     {{ form_errors(form) }}
                     {{ form_row(form.seriesId) }}
-                    {{ form_row(form.slug) }}
+                    {% if slug_prefix %}<div class="small text-muted text-break mb-1" data-slug-prefix>{{ slug_prefix }}</div>{% endif %}
+                    {{ form_row(form.slug, suggested_slug ? {value: suggested_slug} : {}) }}
                     <button type="submit" class="btn btn-primary ev-restructure-submit">
                         {{ 'restructure.move_edition.submit'|trans }}
                     </button>

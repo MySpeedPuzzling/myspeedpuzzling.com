@@ -15,9 +15,10 @@
     color: $ev-ink-2;
     font-size: .875rem;
 
-    > .ev-detail-by + .ev-detail-by::before {
+    // The dot ends the part it follows - a wrapped line never starts with one
+    > .ev-detail-by:not(:last-child)::after {
         content: "·";
-        margin-right: .5rem;
+        margin-left: .5rem;
         color: $ev-muted;
     }
 }
@@ -69,6 +70,21 @@
     font-size: .75rem;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+// The organization's name links its page - above the series name's link stretched over the line
+.ev-series-by-link {
+    position: relative;
+    z-index: 1;
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: $ev-line;
+    text-underline-offset: 2px;
+
+    &:hover {
+        color: $ev-coral-ink;
+        text-decoration-color: currentColor;
+    }
 }
 
 // ---- organization page: header -------------------------------------------------------------------------------------------
@@ -278,9 +294,10 @@
     color: $ev-ink-2;
     font-size: .8125rem;
 
-    > * + *::before {
+    // The dot ends the part it follows - a wrapped line never starts with one
+    > *:not(:last-child)::after {
         content: "·";
-        margin-right: .5rem;
+        margin-left: .5rem;
         color: $ev-muted;
     }
 
@@ -437,4 +454,19 @@
     .live-dot {
         margin-right: .375rem;
     }
+}
+
+// The social links textarea (organization/_form.html.twig): one address per line, room for the invalid icon so a long
+// address never runs under it on a 360 px phone
+.ev-org-social-input {
+    overflow-wrap: anywhere;
+
+    &.is-invalid {
+        padding-right: 2.75rem;
+    }
+}
+
+// A pending organization says so in its header - for its team and admins
+.ev-org-state {
+    margin: .5rem 0 0;
 }

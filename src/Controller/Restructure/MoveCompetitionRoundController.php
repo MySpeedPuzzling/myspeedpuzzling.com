@@ -15,7 +15,9 @@ use SpeedPuzzling\Web\Message\MoveRoundToCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionPermissions;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Query\GetRestructureChoices;
+use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
 use SpeedPuzzling\Web\Results\RestructureChoice;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -45,6 +47,8 @@ final class MoveCompetitionRoundController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
+        readonly private CompetitionParticipantRoundRepository $participantRoundRepository,
+        readonly private CompetitionTeamRepository $competitionTeamRepository,
     ) {
     }
 
@@ -77,8 +81,19 @@ final class MoveCompetitionRoundController extends AbstractController
 
         foreach ($choices as $choice) {
             $label = $choice->label() . ($choice->isDraft ? ' (' . $draftMark . ')' : '');
-            $options[isset($options[$label]) ? $label . ' #' . substr($choice->id, -4) : $label] = $choice->id;
+            $unique = $label;
+
+            // The same name, series and day twice: numbered, never an id
+            for ($number = 2; isset($options[$unique]); $number++) {
+                $unique = $label . ' (' . $number . ')';
+            }
+
+            $options[$unique] = $choice->id;
         }
+
+        // A round people have entries in cannot move (participants belong to an event) - said up front, no picker
+        $hasEntries = $this->participantRoundRepository->findByRound($round) !== []
+            || $this->competitionTeamRepository->findByRound($round) !== [];
 
         $form = $this->createForm(MoveRoundFormType::class, new MoveRoundFormData(), [
             'action' => $this->generateUrl('move_competition_round', ['roundId' => $roundId]),
@@ -134,6 +149,7 @@ final class MoveCompetitionRoundController extends AbstractController
             'round' => $round,
             'competition' => $competition,
             'has_choices' => $choices !== [],
+            'has_entries' => $hasEntries,
         ]);
     }
 }

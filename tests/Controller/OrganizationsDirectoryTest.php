@@ -104,6 +104,7 @@ final class OrganizationsDirectoryTest extends WebTestCase
         $by = $crawler->filter('[data-ev-series-by="' . OrganizationFixture::ORGANIZATION_RIVERBEND . '"]');
         self::assertCount(2, $by, 'both Riverbend series');
         self::assertSame('by ' . OrganizationFixture::ORGANIZATION_RIVERBEND_NAME, trim($by->first()->text()));
+        self::assertSame('/en/organizations/' . OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG, $by->first()->filter('a')->attr('href'));
         // The Harbor Puzzle Club is a draft - its published series is listed without it
         self::assertCount(0, $crawler->filter('[data-ev-series-by="' . OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT . '"]'));
         self::assertStringNotContainsString(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME, (string) $browser->getResponse()->getContent());

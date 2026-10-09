@@ -204,8 +204,12 @@ final class OrganizationPageTest extends WebTestCase
     public function testItsTeamSeesTheSeriesWaitingForApprovalTagged(): void
     {
         $browser = self::createClient();
+        // Not the team: no word about its state
+        self::assertCount(0, $this->page($browser, '/en/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING_SLUG)->filter('[data-org-waiting]'));
+
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
         $crawler = $this->page($browser, '/en/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING_SLUG);
+        self::assertSame('Waiting for approval', $crawler->filter('.ev-org-header [data-org-waiting]')->text());
 
         $card = $crawler->filter('[data-org-series="' . OrganizationFixture::SERIES_MAPLE_PENDING . '"]');
         self::assertCount(1, $card);

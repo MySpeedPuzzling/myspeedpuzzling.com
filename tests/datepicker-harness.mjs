@@ -5,7 +5,7 @@
 
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { firstDayOfWeek, formatShown, pickerOptions, regionFirstDay } from '../assets/datepicker_locale.js';
+import { firstDayOfWeek, formatShown, labelShownInput, pickerOptions, regionFirstDay } from '../assets/datepicker_locale.js';
 
 const require = createRequire(import.meta.url);
 const input = JSON.parse(readFileSync(0, 'utf8'));
@@ -73,7 +73,7 @@ function wallTime(day, time) {
 
 function setupDom(lang) {
     const { JSDOM } = require('jsdom');
-    const dom = new JSDOM(`<!doctype html><html lang="${lang}"><body><input type="text" class="date-picker"></body></html>`, { pretendToBeVisual: true });
+    const dom = new JSDOM(`<!doctype html><html lang="${lang}"><body><label for="field">Starting</label><input type="text" id="field" class="date-picker" aria-describedby="field_help"></body></html>`, { pretendToBeVisual: true });
 
     for (const name of ['window', 'document', 'HTMLElement', 'Node', 'Event', 'MouseEvent', 'KeyboardEvent', 'FocusEvent', 'CustomEvent']) {
         Object.defineProperty(globalThis, name, { value: name === 'window' ? dom.window : (name === 'document' ? dom.window.document : dom.window[name]), configurable: true, writable: true });
@@ -94,12 +94,17 @@ function picker({ lang, visitor, options, value, click }) {
     element.value = value;
 
     const instance = flatpickr(element, pickerOptions(options, { pageLang: lang, visitorLocale: visitor, l10n, defaultFormat: flatpickr.formatDate }));
+    labelShownInput(element, instance.altInput);
+    const labelledBy = instance.altInput ? instance.altInput.getAttribute('aria-labelledby') : null;
     const days = () => [...instance.daysContainer.querySelectorAll('.flatpickr-day')];
     const result = {
         weekdays: instance.weekdayContainer ? [...instance.weekdayContainer.querySelectorAll('.flatpickr-weekday')].map((day) => day.textContent.trim()) : [],
         value: element.value,
         shown: instance.altInput ? instance.altInput.value : null,
         shownClass: instance.altInput ? instance.altInput.className : null,
+        // The visible input's accessible name (its aria-labelledby's text) and description
+        shownName: labelledBy ? dom.window.document.getElementById(labelledBy)?.textContent ?? null : null,
+        shownDescribedBy: instance.altInput ? instance.altInput.getAttribute('aria-describedby') : null,
         // The column (0 = first) of every day of the open month, by its aria label ("October 5, 2026")
         columns: instance.daysContainer ? Object.fromEntries(days().filter((day) => !day.classList.contains('prevMonthDay') && !day.classList.contains('nextMonthDay')).map((day) => [day.getAttribute('aria-label'), days().indexOf(day) % 7])) : {},
     };

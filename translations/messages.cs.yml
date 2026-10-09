@@ -7813,6 +7813,7 @@ drafts_core:
         published_series_draft: "Zveřejněno – uvidí to každý, jakmile bude zveřejněna i série."
         unpublished: "Vráceno do konceptu – vidíte to jen vy a váš tým."
         cannot_unpublish: "Do konceptu to vrátit nelze: %reasons%."
+        cannot_unpublish_named: "%name% nelze vrátit do konceptu: %reasons%."
     blocker:
         participants: "přidali se k ní lidé"
         results: "má oficiální výsledky"
@@ -7872,6 +7873,9 @@ organizer_tools:
         schedule_help: "U série např. „Čtvrtý pátek v měsíci, 20:00“ – každý termín je přesto samostatná edice."
         save_draft: "Uložit jako koncept"
         save_draft_help: "Koncept vidíte jen vy a váš tým – zveřejněte ho, až bude hotový."
+        submit_add_event: "Přidat událost"
+        submit_add_series: "Přidat sérii"
+        add_info_approved: "Přidejte novou soutěž nebo událost. Pod vaší schválenou organizací ji nemusí kontrolovat administrátor."
     flash:
         saved_as_draft: "Uloženo jako koncept – vidíte ho jen vy a váš tým. Zveřejněte ho, až bude hotový."
         created_published: "Přidáno – nyní to vidí každý."
@@ -7888,8 +7892,8 @@ organizer_tools:
         rule_label: "Opakuje se"
         rule:
             weekly: "Každý týden"
-            nth_weekday: "Každý měsíc, v daném týdnu"
-            last_weekday: "Každý měsíc, v posledním týdnu"
+            nth_weekday: "Měsíčně, v daném týdnu"
+            last_weekday: "Měsíčně, v posledním týdnu"
         nth_label: "Který týden"
         nth_help: "Pro volbu „Každý měsíc, v daném týdnu“."
         nth:
@@ -7902,8 +7906,9 @@ organizer_tools:
         starting_help: "První termín připadne na tento den nebo později."
         count: "Kolik"
         dates: "Termíny"
-        dates_help: "Klepněte v kalendáři na každý termín, nejvýše %max%. Bez kalendáře je napište ve tvaru 05.10.2026, 12.10.2026."
-        dates_placeholder: "05.10.2026, 12.10.2026"
+        dates_help: "Klepněte v kalendáři na každý termín, nejvýše %max%."
+        dates_placeholder: "2026-10-05, 2026-10-12"
+        dates_typing: "Bez kalendáře napište termíny ve tvaru 2026-10-05, 2026-10-12."
         name_pattern: "Název"
         name_pattern_help: "{date} se nahradí datem, např. „Puzzle večer 5. října 2026“. Každou edici můžete později přejmenovat."
         show: "Zobrazit termíny"
@@ -7919,6 +7924,7 @@ organization_page:
         social_links: "%name% na dalších webech"
         website: "Web"
     coming_up: "Nadcházející"
+    about: "O organizaci"
     live: "Právě probíhá"
     ongoing: "Probíhající"
     date_not_set: "Datum nestanoveno"

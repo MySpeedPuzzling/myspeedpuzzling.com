@@ -7,13 +7,13 @@
     works without JavaScript); every POST carries its per-id session token.
 
     Publish (a draft) comes first, Unpublish (back to draft) before Delete. The ⋯ menu knows whether Unpublish would be
-    refused (unpublish_blockers, UnpublishBlockers) and says why instead; "You organize" offers it on every published
-    item (no statement per item) and a refusal comes back as a flash. Admins approve or reject only what waits for
+    refused (unpublish_blockers, UnpublishBlockers) and says why instead; so does "You organize" (the counts ride on its
+    one statement, OrganizedEvent::$unpublishBlockers) - a refusal in between comes back as a flash naming the item. Admins approve or reject only what waits for
     approval - never a draft (it is submitted by publishing it).
 
     Variables: item (OrganizedEvent), return_url, return_title, layout ('menu'|'inline'), delete_return (optional: where
     Delete returns - the parent of a detail page, which answers 404 once deleted; else return_url), unpublish_blockers
-    (optional, menu only: list<UnpublishBlocker> - empty when Unpublish is allowed)
+    (optional: list<UnpublishBlocker> - empty when Unpublish is allowed)
 #}
 {%- set back = {return: return_url, return_title: return_title} -%}
 {%- set is_admin = is_granted('ADMIN_ACCESS') -%}

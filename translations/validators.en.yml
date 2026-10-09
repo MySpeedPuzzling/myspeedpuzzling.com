@@ -28,7 +28,7 @@ organization_fields:
     social_link_invalid: "{{ value }} is not a web address (http:// or https://)."
     team_too_many: "The team can have at most {{ limit }} people besides you."
 add_editions:
-    dates_invalid: "Some of the dates can't be read - pick them in the calendar or type them like 05.10.2026."
+    dates_invalid: "Some of the dates can't be read - pick them in the calendar or type them like 2026-10-05."
     dates_missing: "Pick at least one date."
     too_many: "At most %max% dates at once."
     rule_missing: "Choose how the dates repeat."

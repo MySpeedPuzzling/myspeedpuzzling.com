@@ -30,8 +30,9 @@
     <div class="ev-organized-sub">
         {%- if item.isOrganization -%}
             {{- 'organizer_tools.type.organization'|trans -}}
-            {{- ' · ' }}{{ 'organizer_tools.organize.series_count'|trans({'%count%': item.seriesCount}) -}}
-            {{- ' · ' }}{{ 'organizer_tools.organize.event_count'|trans({'%count%': item.eventCount}) -}}
+            {#- Only the parts it has - never "0 one-time events" -#}
+            {%- if item.seriesCount > 0 %}{{ ' · ' }}{{ 'organizer_tools.organize.series_count'|trans({'%count%': item.seriesCount}) }}{% endif -%}
+            {%- if item.eventCount > 0 %}{{ ' · ' }}{{ 'organizer_tools.organize.event_count'|trans({'%count%': item.eventCount}) }}{% endif -%}
         {%- else -%}
             {{- ('events_organizer.type.' ~ item.kind)|trans -}}
             {%- if item.isSeries -%}
@@ -49,6 +50,6 @@
     {% if item.isRejected and item.rejectionReason %}
         <p class="ev-organized-reason">{{ 'events_organizer.organize.reason'|trans({'%reason%': item.rejectionReason}) }}</p>
     {% endif %}
-    {{ include('events/_manage_items.html.twig', {item: item, return_url: path('organized_events'), return_title: return_title, layout: 'inline'}) }}
+    {{ include('events/_manage_items.html.twig', {item: item, return_url: path('organized_events'), return_title: return_title, layout: 'inline', unpublish_blockers: item.unpublishBlockers}) }}
     {% if nested is defined %}{{ nested }}{% endif %}
 </li>

@@ -28,7 +28,11 @@
 
         <div class="card shadow-sm my-3">
             <div class="card-body">
-                {% if has_choices %}
+                {% if has_entries %}
+                    {#- Participants belong to an event - moving them with a round is a later step -#}
+                    <p class="mb-0" data-round-has-entries>{{ 'restructure.move_round.refused.has_entries'|trans }}</p>
+                    {% do form.setRendered %}
+                {% elseif has_choices %}
                     {{ form_start(form) }}
                     {{ form_errors(form) }}
                     {{ form_row(form.competitionId) }}

@@ -51,19 +51,24 @@ SQL);
     {
         /** @var list<array{id: string, name: string, series_name: null|string, date_from: null|string, is_draft: bool}> $rows */
         $rows = $this->database->fetchAllAssociative(<<<SQL
-SELECT c.id, c.name, cs.name AS series_name, c.date_from, (c.is_draft OR COALESCE(cs.is_draft, false)) AS is_draft
+SELECT c.id, c.name, cs.name AS series_name,
+    COALESCE(c.date_from, (SELECT MIN(cr.starts_at) FROM competition_round cr WHERE cr.competition_id = c.id)) AS date_from,
+    (c.is_draft OR COALESCE(cs.is_draft, false)) AS is_draft
 FROM competition c
 LEFT JOIN competition_series cs ON cs.id = c.series_id
 WHERE c.rejected_at IS NULL
     AND (c.series_id IS NULL OR cs.rejected_at IS NULL)
-ORDER BY c.date_from DESC NULLS FIRST, c.name, c.id
+ORDER BY 4 DESC NULLS FIRST, c.name, c.id
 SQL);
 
         return array_map(
             static fn (array $row): RestructureChoice => new RestructureChoice(
                 $row['id'],
                 $row['name'],
-                $row['series_name'],
+                // An edition's series - unless its own name says it already ("Lantern Night 5" of "Lantern Night")
+                $row['series_name'] !== null && str_contains(mb_strtolower($row['name']), mb_strtolower($row['series_name'])) === false
+                    ? $row['series_name']
+                    : null,
                 $row['date_from'] !== null ? substr($row['date_from'], 0, 10) : null,
                 $row['is_draft'],
             ),

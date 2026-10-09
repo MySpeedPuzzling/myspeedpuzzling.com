@@ -8168,6 +8168,7 @@ drafts_core:
         published_series_draft: "Published - visible once the series is published too."
         unpublished: "Back to draft - only you and your team can see it."
         cannot_unpublish: "It cannot go back to draft: %reasons%."
+        cannot_unpublish_named: "%name% cannot go back to draft: %reasons%."
     blocker:
         participants: "people have joined it"
         results: "it has official results"
@@ -8227,6 +8228,9 @@ organizer_tools:
         schedule_help: "For a series, e.g. “Fourth Friday of the month, 8 pm” - each date is still its own edition."
         save_draft: "Save as draft"
         save_draft_help: "A draft is seen only by you and your team - publish it when it is ready."
+        submit_add_event: "Add event"
+        submit_add_series: "Add series"
+        add_info_approved: "Add a new competition or event. Under your approved organization it needs no review by an admin."
     flash:
         saved_as_draft: "Saved as a draft - only you and your team can see it. Publish it when it is ready."
         created_published: "Added - everyone can see it now."
@@ -8243,8 +8247,8 @@ organizer_tools:
         rule_label: "Repeats"
         rule:
             weekly: "Every week"
-            nth_weekday: "Every month, on a given week"
-            last_weekday: "Every month, on the last week"
+            nth_weekday: "Monthly, a given week"
+            last_weekday: "Monthly, the last week"
         nth_label: "Which week"
         nth_help: "For “Every month, on a given week”."
         nth:
@@ -8257,8 +8261,9 @@ organizer_tools:
         starting_help: "The first date is on or after this day."
         count: "How many"
         dates: "Dates"
-        dates_help: "Tap every date in the calendar, up to %max%. Without the calendar, type them like 05.10.2026, 12.10.2026."
-        dates_placeholder: "05.10.2026, 12.10.2026"
+        dates_help: "Tap every date in the calendar, up to %max%."
+        dates_placeholder: "2026-10-05, 2026-10-12"
+        dates_typing: "Without the calendar, type the dates like 2026-10-05, 2026-10-12."
         name_pattern: "Name"
         name_pattern_help: "{date} becomes the date, e.g. “Puzzle Night 5 October 2026”. You can rename each edition later."
         show: "Show the dates"
@@ -8274,6 +8279,7 @@ organization_page:
         social_links: "%name% elsewhere"
         website: "Website"
     coming_up: "Coming up"
+    about: "About"
     live: "Live now"
     ongoing: "Ongoing"
     date_not_set: "Date not set"

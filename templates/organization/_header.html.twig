@@ -25,6 +25,10 @@
             {%- if organization.shortName %}<span class="ev-detail-fact" data-org-short-name>{{ organization.shortName }}</span>{% endif -%}
         {%- endset %}
         {% if facts|trim is not empty %}<p class="ev-detail-facts">{{ facts }}</p>{% endif %}
+        {#- Its team and admins learn why it is not public yet (a draft has the draft banner instead) -#}
+        {% if can_manage and organization.isPending and not organization.isDraft %}
+            <ul class="ev-tags ev-org-state"><li class="ev-tag ev-tag-waiting_for_approval" data-org-waiting>{{ 'events_page.tag.waiting_for_approval'|trans }}</li></ul>
+        {% endif %}
         <div class="ev-detail-actions">
             {{- include('event_parts/_follow_action.html.twig', {follow_target: page.followTarget, following: page.following, kind: 'organization', follow_name: organization.name}) -}}
             {%- if organization.website %}

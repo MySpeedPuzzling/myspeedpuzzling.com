@@ -23,18 +23,23 @@
     }
 }
 
-// "Repeat" / "Pick dates" as one segmented control
+// "Repeat" / "Pick dates" as one segmented control - the two halves share the width and may wrap their own text, so
+// no locale is clipped on a 360 px phone
 .ev-segmented {
     display: inline-flex;
-    flex-wrap: wrap;
+    max-width: 100%;
     gap: 0;
 
     .btn {
         display: inline-flex;
+        flex: 1 1 auto;
         align-items: center;
+        justify-content: center;
         min-height: 44px;
-        padding: 0 1rem;
+        padding: .375rem 1rem;
         border-radius: 0;
+        white-space: normal;
+        text-align: center;
     }
 
     .btn:first-of-type {

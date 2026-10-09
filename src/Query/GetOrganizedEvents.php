@@ -11,6 +11,8 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\OrganizedEvent;
+use SpeedPuzzling\Web\Results\UnpublishCheck;
+use SpeedPuzzling\Web\Services\Drafts\UnpublishBlockers;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
@@ -104,9 +106,12 @@ SQL;
         }
 
         $rounds = OccurrenceRounds::SQL_JOIN;
+        // What keeps it from going back to draft - its row offers Unpublish only when nothing does (as the ⋯ menu)
+        $blocking = UnpublishBlockers::sqlColumns('c.id');
 
         $query = <<<SQL
 SELECT c.id, c.name, c.slug, c.series_id, cs.name AS series_name, cs.slug AS series_slug,
+    {$blocking},
     CASE WHEN c.series_id IS NULL THEN c.is_online ELSE cs.is_online END AS is_online,
     COALESCE(c.location, cs.location) AS location,
     COALESCE(c.location_country_code, cs.location_country_code) AS country_code,
@@ -156,6 +161,7 @@ SQL;
                 organizationId: self::string($row['organization_id']),
                 ownDraft: (bool) $row['own_draft'],
                 seriesIsDraft: (bool) $row['series_is_draft'],
+                unpublishBlockers: UnpublishBlockers::checkOf($row)->blockers(),
             );
         }
 
@@ -176,9 +182,12 @@ SQL;
         }
 
         $rounds = OccurrenceRounds::SQL_JOIN;
+        // Per edition - summed per series: a series goes back to draft only when none of its editions holds anything
+        $blocking = UnpublishBlockers::sqlColumns('c.id');
 
         $query = <<<SQL
 SELECT cs.id AS series_id, cs.name AS series_name, cs.slug AS series_slug, cs.is_online, cs.location,
+    {$blocking},
     cs.location_country_code AS series_country_code,
     (cs.approved_at IS NOT NULL) AS is_approved, (cs.rejected_at IS NOT NULL) AS is_rejected, cs.rejection_reason,
     cs.is_draft, cs.organization_id,
@@ -191,18 +200,25 @@ WHERE cs.id IN (:ids)
 SQL;
 
         $now = $this->clock->now();
-        /** @var array<string, array{row: array<string, null|string|int|bool>, count: int, next: null|DateTimeImmutable, nextZone: null|string, last: null|DateTimeImmutable}> $series */
+        /** @var array<string, array{row: array<string, null|string|int|bool>, count: int, next: null|DateTimeImmutable, nextZone: null|string, last: null|DateTimeImmutable, blocking: array{0: int, 1: int, 2: int}}> $series */
         $series = [];
 
         /** @var array<string, null|string|int|bool> $row */
 
         foreach ($this->database->executeQuery($query, ['ids' => $ids], ['ids' => ArrayParameterType::STRING])->fetchAllAssociative() as $row) {
             $id = (string) $row['series_id'];
-            $series[$id] ??= ['row' => $row, 'count' => 0, 'next' => null, 'nextZone' => null, 'last' => null];
+            $series[$id] ??= ['row' => $row, 'count' => 0, 'next' => null, 'nextZone' => null, 'last' => null, 'blocking' => [0, 0, 0]];
 
             if ($row['edition_id'] === null) {
                 continue;
             }
+
+            $check = UnpublishBlockers::checkOf($row);
+            $series[$id]['blocking'] = [
+                $series[$id]['blocking'][0] + $check->participants,
+                $series[$id]['blocking'][1] + $check->results,
+                $series[$id]['blocking'][2] + $check->solvingTimes,
+            ];
 
             $series[$id]['count']++;
 
@@ -248,6 +264,7 @@ SQL;
                 isDraft: (bool) $row['is_draft'],
                 organizationId: self::string($row['organization_id']),
                 ownDraft: (bool) $row['is_draft'],
+                unpublishBlockers: new UnpublishCheck(...$item['blocking'])->blockers(),
             );
         }
 

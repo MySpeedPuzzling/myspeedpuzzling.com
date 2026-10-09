@@ -30,7 +30,7 @@ organization_fields:
     social_link_invalid: "{{ value }}はウェブアドレス（http://またはhttps://）ではありません。"
     team_too_many: "チームには、あなたのほかに最大{{ limit }}人まで追加できます。"
 add_editions:
-    dates_invalid: "読み取れない日付があります。カレンダーで選ぶか、05.10.2026 のように入力してください。"
+    dates_invalid: "読み取れない日付があります。カレンダーで選ぶか、2026-10-05 のように入力してください。"
     dates_missing: "日付を1つ以上選んでください。"
     too_many: "一度に追加できる日付は最大%max%件です。"
     rule_missing: "日付の繰り返し方を選んでください。"

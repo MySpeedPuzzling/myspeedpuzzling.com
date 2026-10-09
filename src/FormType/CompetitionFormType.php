@@ -163,8 +163,15 @@ final class CompetitionFormType extends AbstractType
 
         if ($organizationChoices !== null) {
             $labels = [];
+            // Under an approved organization a series or event is approved at once (OrganizationApprovalPolicy) - the
+            // add form then says no admin review is needed (approval_note_controller.js)
+            $approvedAtOnce = [];
 
             foreach ($organizationChoices as $choice) {
+                if ($choice->isApproved) {
+                    $approvedAtOnce[$choice->id] = true;
+                }
+
                 $labels[$choice->id] = match (true) {
                     $choice->isDraft => $this->translator->trans('organizer_tools.form.organization_draft', ['%name%' => $choice->name]),
                     $choice->isApproved === false => $this->translator->trans('organizer_tools.form.organization_pending', ['%name%' => $choice->name]),
@@ -179,6 +186,7 @@ final class CompetitionFormType extends AbstractType
                 'choices' => array_keys($labels),
                 'choice_label' => static fn (string $id): string => $labels[$id] ?? $id,
                 'choice_translation_domain' => false,
+                'choice_attr' => static fn (string $id): array => isset($approvedAtOnce[$id]) ? ['data-approved-at-once' => '1'] : [],
                 'required' => false,
                 'placeholder' => 'organizer_tools.form.organization_none',
             ]);

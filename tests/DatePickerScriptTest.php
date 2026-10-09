@@ -153,6 +153,9 @@ final class DatePickerScriptTest extends TestCase
         self::assertMatchesRegularExpression('/^Mon,? 5 Oct 2026$/', (string) $american['shown']);
         // ... and a click on the next day submits that day and shows its weekday
         self::assertSame('06.10.2026', $american['clickedValue'] ?? null);
+        // The visible input carries the field's label and description (the <label for> points at the hidden original)
+        self::assertSame('Starting', $american['shownName']);
+        self::assertSame('field_help', $american['shownDescribedBy']);
         self::assertMatchesRegularExpression('/^Tue,? 6 Oct 2026$/', (string) ($american['clickedShown'] ?? ''));
 
         // Monday first for the British visitor (the grid everybody had before): there the second column - Monday for
@@ -173,6 +176,7 @@ final class DatePickerScriptTest extends TestCase
 
         self::assertSame('18:45', $timeOnly['value']);
         self::assertNull($timeOnly['shown']);
+        self::assertNull($timeOnly['shownName'], 'no second input, nothing to label');
 
         self::assertSame('2026-10-05', $comparison['value']);
         self::assertMatchesRegularExpression('/^Mo\.,? 5\. Okt\. 2026$/', (string) $comparison['shown']);
@@ -191,7 +195,7 @@ final class DatePickerScriptTest extends TestCase
      *     regions: list<int>,
      *     mismatches: list<string>,
      *     shown: list<string>,
-     *     pickers: list<array{weekdays: list<string>, value: string, shown: null|string, shownClass: null|string, columns: array<string, int>, clickedValue?: string, clickedShown?: null|string}>,
+     *     pickers: list<array{weekdays: list<string>, value: string, shown: null|string, shownClass: null|string, shownName: null|string, shownDescribedBy: null|string, columns: array<string, int>, clickedValue?: string, clickedShown?: null|string}>,
      * }
      */
     private function runInNode(array $input, string $zone = 'UTC'): array
@@ -204,7 +208,7 @@ final class DatePickerScriptTest extends TestCase
         $process->setInput(json_encode($input, JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var array{firstDays: list<int>, regions: list<int>, mismatches: list<string>, shown: list<string>, pickers: list<array{weekdays: list<string>, value: string, shown: null|string, shownClass: null|string, columns: array<string, int>, clickedValue?: string, clickedShown?: null|string}>} $results */
+        /** @var array{firstDays: list<int>, regions: list<int>, mismatches: list<string>, shown: list<string>, pickers: list<array{weekdays: list<string>, value: string, shown: null|string, shownClass: null|string, shownName: null|string, shownDescribedBy: null|string, columns: array<string, int>, clickedValue?: string, clickedShown?: null|string}>} $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
         return $results;

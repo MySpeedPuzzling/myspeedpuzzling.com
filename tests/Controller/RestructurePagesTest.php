@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -69,6 +70,9 @@ final class RestructurePagesTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString($this->trans('restructure.move_edition.slug_taken'), $crawler->filter('form')->text());
+        // A free address in that series is suggested, with the address it would live at
+        self::assertSame('virtual-contest-1-2', $crawler->filter('input[name="move_edition_form[slug]"]')->attr('value'));
+        self::assertStringEndsWith('/en/series/' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL_SLUG . '/', trim($crawler->filter('[data-slug-prefix]')->text()));
 
         $form = $crawler->selectButton($this->trans('restructure.move_edition.submit'))->form();
         $form->setValues(['move_edition_form[seriesId]' => OrganizationFixture::SERIES_RIVERBEND_VIRTUAL]);
@@ -114,6 +118,11 @@ final class RestructurePagesTest extends WebTestCase
     public function testMoveRoundMovesItAndShowsEveryRefusalAsAFormError(): void
     {
         $browser = self::createClient();
+        // An edition whose own name says its series
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE competition SET name = 'Riverbend Virtual Contest 2' WHERE id = :id",
+            ['id' => OrganizationFixture::EDITION_VIRTUAL_NEXT],
+        );
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $browser->request('GET', '/en/move-round/' . OrganizationFixture::ROUND_DRAFT_NIGHT);
@@ -136,6 +145,12 @@ final class RestructurePagesTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $options = $crawler->filter('select[name="move_round_form[competitionId]"] option')->extract(['value']);
         self::assertContains(OrganizationFixture::COMPETITION_RIVERBEND_OPEN, $options);
+        // An edition whose name says its series: not repeated; the day never breaks (non-breaking hyphens), no ids
+        $labels = $crawler->filter('select[name="move_round_form[competitionId]"] option')->each(static fn (Crawler $option): string => $option->text());
+        self::assertSame([], array_values(array_filter($labels, static fn (string $label): bool => preg_match('/#[0-9a-f]{4}$/', $label) === 1)));
+        $virtualNext = $crawler->filter('select[name="move_round_form[competitionId]"] option[value="' . OrganizationFixture::EDITION_VIRTUAL_NEXT . '"]')->text();
+        self::assertSame(1, substr_count($virtualNext, 'Riverbend Virtual Contest'));
+        self::assertStringNotContainsString(' - ', str_replace("\u{2011}", '', $virtualNext));
         self::assertContains(OrganizationFixture::EDITION_LANTERN_1, $options);
         self::assertNotContains(OrganizationFixture::COMPETITION_DRAFT_NIGHT, $options);
         self::assertNotContains(CompetitionFixture::COMPETITION_WJPC_2024, $options);
@@ -161,13 +176,15 @@ final class RestructurePagesTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
+        // Said up front - no picker
         $crawler = $browser->request('GET', '/en/move-round/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
-        $form = $crawler->selectButton($this->trans('restructure.move_round.submit'))->form();
-        $form->setValues(['move_round_form[competitionId]' => OrganizationFixture::COMPETITION_RIVERBEND_OPEN]);
-        $crawler = $browser->submit($form);
+        self::assertResponseIsSuccessful();
+        self::assertSame($this->trans('restructure.move_round.refused.has_entries'), trim($crawler->filter('[data-round-has-entries]')->text()));
+        self::assertCount(0, $crawler->filter('select[name="move_round_form[competitionId]"]'));
 
+        // A post anyway is refused
+        $browser->request('POST', '/en/move-round/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, ['move_round_form' => ['competitionId' => OrganizationFixture::COMPETITION_RIVERBEND_OPEN]]);
         self::assertResponseStatusCodeSame(422);
-        self::assertStringContainsString($this->trans('restructure.move_round.refused.has_entries'), $crawler->filter('form')->text());
     }
 
     public function testTurnIntoAnOrganizationAsAnAdmin(): void

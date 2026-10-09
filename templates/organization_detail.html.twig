@@ -37,6 +37,8 @@
 {% endblock %}
 
 {% block content %}
+    {#- The ⋯ menus of its rows and cards come back to this page by its name -#}
+    {%- set manage_return_title = organization.name -%}
     <div class="ev-detail ev-organization">
         {{ include('event_parts/_draft_banner.html.twig', {draft_state: draft_state}) }}
         {{ include('organization/_header.html.twig') }}
@@ -44,7 +46,7 @@
         <div class="ev-org-body{{ organization.about ? ' ev-org-body-about' }}{{ page.seriesCards is not empty or page.eventCards is not empty ? ' ev-org-body-run' }}">
             {% if organization.about %}
                 <section class="ev-detail-section ev-org-about" aria-labelledby="org-about-title" data-org-about>
-                    <h2 class="ev-detail-section-title" id="org-about-title">{{ 'series_page.side.about'|trans }}</h2>
+                    <h2 class="ev-detail-section-title" id="org-about-title">{{ 'organization_page.about'|trans }}</h2>
                     <p class="ev-org-about-text">{{ organization.about|nl2br }}</p>
                 </section>
             {% endif %}

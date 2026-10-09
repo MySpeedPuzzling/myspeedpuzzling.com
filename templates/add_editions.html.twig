@@ -63,7 +63,7 @@
                                 {{ form_row(form.nth, {row_attr: {class: 'mb-0'}}) }}
                             </div>
                             <div class="col-12 col-sm-6">{{ form_row(form.weekday, {row_attr: {class: 'mb-0'}}) }}</div>
-                            <div class="col-7 col-sm-6">
+                            <div class="col-12 col-sm-6">
                                 {{ form_label(form.starting) }}
                                 <div class="input-group">
                                     {{ form_widget(form.starting, {attr: {class: 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y"}'}}) }}
@@ -72,15 +72,17 @@
                                 {{ form_help(form.starting) }}
                                 {{ form_errors(form.starting) }}
                             </div>
-                            <div class="col-5 col-sm-6">{{ form_row(form.count, {row_attr: {class: 'mb-0'}}) }}</div>
+                            <div class="col-12 col-sm-6">{{ form_row(form.count, {row_attr: {class: 'mb-0'}}) }}</div>
                         </div>
                     </div>
 
                     <div class="ev-add-editions-pick" data-organizer-form-target="part" data-show-field="how" data-show-values="pick">
                         {{ form_label(form.dates) }}
-                        {# One calendar, tap every day (flatpickr "multiple"); without JavaScript the days are typed #}
-                        {{ form_widget(form.dates, {attr: {class: 'form-control date-picker ev-add-editions-dates', placeholder: 'organizer_tools.add_editions.dates_placeholder'|trans, autocomplete: 'off', 'data-datepicker-options': '{"mode": "multiple", "dateFormat": "d.m.Y", "conjunction": ", ", "inline": true}'}}) }}
+                        {# One calendar, tap every day (flatpickr "multiple"); the picked days are shown in the page's language with
+                           their weekday (altInput), the submitted value stays d.m.Y; without JavaScript the days are typed #}
+                        {{ form_widget(form.dates, {attr: {class: 'form-control date-picker ev-add-editions-dates', placeholder: 'organizer_tools.add_editions.dates_placeholder'|trans, autocomplete: 'off', 'data-datepicker-options': '{"mode": "multiple", "dateFormat": "d.m.Y", "conjunction": "; ", "inline": true, "altInput": true}'}}) }}
                         {{ form_help(form.dates) }}
+                        <noscript><p class="form-text mt-0">{{ 'organizer_tools.add_editions.dates_typing'|trans }}</p></noscript>
                         {{ form_errors(form.dates) }}
                     </div>
 

@@ -7816,6 +7816,7 @@ drafts_core:
         published_series_draft: "Publicado: será visible cuando también se publique la serie."
         unpublished: "Vuelve a ser un borrador: solo tú y tu equipo pueden verlo."
         cannot_unpublish: "No puede volver a ser un borrador: %reasons%."
+        cannot_unpublish_named: "%name% no puede volver a ser un borrador: %reasons%."
     blocker:
         participants: "ya se han unido personas"
         results: "tiene resultados oficiales"
@@ -7875,6 +7876,9 @@ organizer_tools:
         schedule_help: "Para una serie, p.ej. «El cuarto viernes del mes, 20:00»: cada fecha sigue siendo una edición propia."
         save_draft: "Guardar como borrador"
         save_draft_help: "Solo tú y tu equipo pueden ver un borrador: publícalo cuando esté listo."
+        submit_add_event: "Añadir evento"
+        submit_add_series: "Añadir serie"
+        add_info_approved: "Añade una nueva competición o evento. Bajo tu organización aprobada no necesita la revisión de un administrador."
     flash:
         saved_as_draft: "Guardado como borrador: solo tú y tu equipo pueden verlo. Publícalo cuando esté listo."
         created_published: "Añadido: ya lo puede ver todo el mundo."
@@ -7891,8 +7895,8 @@ organizer_tools:
         rule_label: "Se repite"
         rule:
             weekly: "Cada semana"
-            nth_weekday: "Cada mes, en una semana concreta"
-            last_weekday: "Cada mes, en la última semana"
+            nth_weekday: "Mensual, semana concreta"
+            last_weekday: "Mensual, última semana"
         nth_label: "Qué semana"
         nth_help: "Para «Cada mes, en una semana concreta»."
         nth:
@@ -7905,8 +7909,9 @@ organizer_tools:
         starting_help: "La primera fecha cae en este día o después."
         count: "Cuántas"
         dates: "Fechas"
-        dates_help: "Toca cada fecha en el calendario, hasta %max%. Sin el calendario, escríbelas así: 05.10.2026, 12.10.2026."
-        dates_placeholder: "05.10.2026, 12.10.2026"
+        dates_help: "Toca cada fecha en el calendario, hasta %max%."
+        dates_placeholder: "2026-10-05, 2026-10-12"
+        dates_typing: "Sin el calendario, escribe las fechas así: 2026-10-05, 2026-10-12."
         name_pattern: "Nombre"
         name_pattern_help: "{date} se convierte en la fecha, p.ej. «Puzzle Night 5 de octubre de 2026». Puedes cambiar el nombre de cada edición más tarde."
         show: "Mostrar las fechas"
@@ -7922,6 +7927,7 @@ organization_page:
         social_links: "%name% en otros sitios"
         website: "Sitio web"
     coming_up: "Próximamente"
+    about: "Acerca de"
     live: "En directo"
     ongoing: "En curso"
     date_not_set: "Sin fecha"

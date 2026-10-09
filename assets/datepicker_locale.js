@@ -86,6 +86,34 @@ export function formatShown(date, pageLang, withTime = false) {
     return new Intl.DateTimeFormat(displayLocale(pageLang), withTime ? { ...DAY, ...TIME } : DAY).format(date);
 }
 
+/**
+ * The visible input of a field with `altInput` gets the field's accessible name: its <label for> points at the hidden
+ * original, so the shown input is labelled by that label (given an id when it has none) and described like the
+ * original (help, errors). Nothing changes for an input without a label or without a second input.
+ */
+export function labelShownInput(original, shownInput) {
+    if (!original || !shownInput || !original.id) {
+        return;
+    }
+
+    const doc = original.ownerDocument;
+    const label = [...doc.querySelectorAll('label[for]')].find((candidate) => candidate.htmlFor === original.id);
+
+    if (label) {
+        if (!label.id) {
+            label.id = `${original.id}-label`;
+        }
+
+        shownInput.setAttribute('aria-labelledby', label.id);
+    }
+
+    const describedBy = original.getAttribute('aria-describedby');
+
+    if (describedBy) {
+        shownInput.setAttribute('aria-describedby', describedBy);
+    }
+}
+
 // The alt input's "formats": not flatpickr tokens, only recognised by the formatDate hook below
 export const SHOWN_DAY = '[shown-day]';
 export const SHOWN_DAY_TIME = '[shown-day-time]';

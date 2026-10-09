@@ -52,7 +52,7 @@ final class UnpublishCompetitionSeriesController extends AbstractController
             $this->messageBus->dispatch(new UnpublishCompetitionSeries($seriesId));
             $this->addFlash('success', $this->translator->trans('drafts_core.flash.unpublished'));
         } catch (CannotUnpublish $exception) {
-            $this->addFlash('warning', $this->cannotUnpublishMessage->of($exception));
+            $this->addFlash('warning', $this->cannotUnpublishMessage->of($exception, $this->competitionSeriesRepository->get($seriesId)->name));
         }
 
         $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));

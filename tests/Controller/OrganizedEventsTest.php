@@ -145,23 +145,20 @@ final class OrganizedEventsTest extends WebTestCase
         self::assertCount(1, $actions->filter('details[data-unpublish]'));
     }
 
-    public function testAnUnpublishRefusalComesBackAsAFlash(): void
+    public function testAnItemThatCannotGoBackToDraftSaysWhyInsteadOfOfferingIt(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $crawler = $browser->request('GET', '/en/you-organize');
-        // The Results Cup has official results: "You organize" offers Unpublish without asking (no statement per item)
-        $unpublish = $crawler->filter('details[data-unpublish] form[action$="/unpublish-event/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP . '"]');
-        self::assertCount(1, $unpublish);
+        // The Results Cup has official results - the same rule as the ⋯ menu, read in the page's one statement
+        $cup = $this->ownActions($this->item($crawler, OfficialResultsFixture::COMPETITION_RESULTS_CUP));
+        self::assertCount(0, $cup->filter('details[data-unpublish]'));
+        self::assertStringContainsString('it has official results', $cup->filter('[data-cannot-unpublish]')->text());
 
-        $browser->submit($unpublish->form());
-        self::assertResponseRedirects('/en/you-organize');
-        $browser->followRedirect();
-
-        self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.alert-warning', 'It cannot go back to draft:');
-        self::assertSelectorTextContains('.alert-warning', 'it has official results');
+        // An event nothing holds is still offered
+        $riverbendOpen = $this->ownActions($this->item($crawler, OrganizationFixture::COMPETITION_RIVERBEND_OPEN));
+        self::assertCount(1, $riverbendOpen->filter('details[data-unpublish]'));
     }
 
     public function testThePageLinksTheOrganizationsAndTheAddForms(): void

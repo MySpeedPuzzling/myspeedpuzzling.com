@@ -112,7 +112,7 @@ final class OrganizationFormType extends AbstractType
             'help' => 'organization_page.form.social_links_help',
             'help_translation_parameters' => ['%limit%' => SocialLinks::MAX],
             'required' => false,
-            'attr' => ['rows' => 3, 'spellcheck' => 'false', 'autocapitalize' => 'off', 'inputmode' => 'url'],
+            'attr' => ['rows' => 5, 'spellcheck' => 'false', 'autocapitalize' => 'off', 'inputmode' => 'url', 'class' => 'ev-org-social-input'],
         ]);
 
         // One address per line in the textarea, a list in the form data - empty lines and repeats dropped, so the limit

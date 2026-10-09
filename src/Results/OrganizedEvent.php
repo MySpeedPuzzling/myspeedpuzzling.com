@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
 use SpeedPuzzling\Web\Value\OrganizerBadge;
+use SpeedPuzzling\Web\Value\UnpublishBlocker;
 
 /**
  * One item of "You organize" (docs/features/events-page/README.md): a one-time event, an edition the viewer organises
@@ -24,6 +25,7 @@ readonly final class OrganizedEvent
 
     /**
      * @param 'event'|'edition'|'series'|'organization' $kind
+     * @param list<UnpublishBlocker> $unpublishBlockers
      */
     public function __construct(
         public string $kind,
@@ -65,6 +67,8 @@ readonly final class OrganizedEvent
         public bool $ownDraft = false,
         // An edition whose series is a draft - it is published through its series
         public bool $seriesIsDraft = false,
+        // What keeps it from going back to draft (UnpublishBlockers) - "You organize" offers Unpublish only without any
+        public array $unpublishBlockers = [],
     ) {
     }
 

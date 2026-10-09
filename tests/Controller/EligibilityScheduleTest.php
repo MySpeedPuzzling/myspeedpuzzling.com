@@ -147,7 +147,8 @@ final class EligibilityScheduleTest extends WebTestCase
             'edition_form[dateTo]' => '30.10.2027',
             'edition_form[eligibility]' => '18+, costumes welcome',
         ]);
-        self::assertResponseRedirects('/en/manage-series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS);
+        // A draft lands on its own page - the draft banner offers Publish
+        self::assertResponseRedirects('/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG . '/lantern-night-halloween');
         self::assertQueuedEmailCount(0);
 
         /** @var array{eligibility: null|string, is_draft: bool} $row */
@@ -157,6 +158,7 @@ final class EligibilityScheduleTest extends WebTestCase
 
         $browser->followRedirect();
         self::assertSelectorTextContains('.alert-success', 'Saved as a draft');
+        self::assertSelectorExists('[data-draft-banner-own] form');
     }
 
     private function connection(): Connection

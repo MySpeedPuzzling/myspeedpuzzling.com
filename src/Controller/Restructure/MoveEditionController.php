@@ -19,6 +19,8 @@ use SpeedPuzzling\Web\Results\RestructureChoice;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
+use SpeedPuzzling\Web\Services\CompetitionUrlField;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -46,6 +48,8 @@ final class MoveEditionController extends AbstractController
         readonly private CompetitionSlugGenerator $slugGenerator,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
+        readonly private CompetitionSeriesRepository $competitionSeriesRepository,
+        readonly private CompetitionUrlField $urlField,
     ) {
     }
 
@@ -83,6 +87,9 @@ final class MoveEditionController extends AbstractController
             'series_choices' => self::choices($choices, $this->translator->trans('restructure.draft_mark')),
         ]);
         $form->handleRequest($request);
+        // After a taken address: a free one in the chosen series, and the address it would live at
+        $suggestedSlug = null;
+        $slugPrefix = null;
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -117,6 +124,11 @@ final class MoveEditionController extends AbstractController
                     ]);
                 } catch (CompetitionSlugTaken) {
                     $form->get('slug')->addError(new FormError($this->translator->trans('restructure.move_edition.slug_taken')));
+                    $target = $this->competitionSeriesRepository->get($data->seriesId);
+                    $suggestedSlug = $this->freeSlug($slug ?? $edition->slug ?? $this->slugGenerator->normalize($edition->name), $target->id->toString(), $competitionId);
+                    $slugPrefix = $target->slug !== null
+                        ? $this->urlField->prefix('edition_detail', 'editionSlug', ['seriesSlug' => $target->slug])
+                        : null;
                 } catch (InvalidCompetitionSlug) {
                     $form->get('slug')->addError(new FormError($this->translator->trans('restructure.slug_invalid')));
                 } catch (EditionAlreadyInSeries) {
@@ -132,7 +144,25 @@ final class MoveEditionController extends AbstractController
             'edition' => $edition,
             'series' => $series,
             'has_choices' => $choices !== [],
+            'suggested_slug' => $suggestedSlug,
+            'slug_prefix' => $slugPrefix,
         ]);
+    }
+
+    /**
+     * The address itself with `-2`, `-3`, … until one is free in the series
+     */
+    private function freeSlug(string $base, string $seriesId, string $competitionId): string
+    {
+        $base = $base !== '' ? $base : 'edition';
+
+        $suffix = 2;
+
+        while ($this->slugGenerator->isTaken($base . '-' . $suffix, $seriesId, $competitionId)) {
+            $suffix++;
+        }
+
+        return $base . '-' . $suffix;
     }
 
     /**

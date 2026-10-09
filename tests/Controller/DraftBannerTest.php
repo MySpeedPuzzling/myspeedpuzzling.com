@@ -49,6 +49,22 @@ final class DraftBannerTest extends WebTestCase
     }
 
     /**
+     * Joining needs a publicly visible event (P17) - its page offers nobody "I'm going", its team neither
+     */
+    public function testANonPublicEventPageOffersNoJoining(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        foreach ([self::DRAFT_NIGHT, self::LANTERN_DRAFT, self::QUIET_PINES_EDITION] as $url) {
+            $crawler = $browser->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertCount(0, $crawler->filter('#taking-part'), $url);
+            self::assertCount(0, $crawler->filter('a[href*="/join-event/"]'), $url);
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string}>
      */
     public static function provideOwnDrafts(): iterable

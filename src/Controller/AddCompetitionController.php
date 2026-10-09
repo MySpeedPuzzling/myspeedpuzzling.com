@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\ClickableInterface;
 use Symfony\Component\Form\FormError;
@@ -45,6 +46,7 @@ final class AddCompetitionController extends AbstractController
         private readonly OrganizationSelectChoices $organizationSelectChoices,
         private readonly CompetitionRepository $competitionRepository,
         private readonly CompetitionSeriesRepository $competitionSeriesRepository,
+        private readonly CompetitionDetailUrl $competitionDetailUrl,
     ) {
     }
 
@@ -113,7 +115,13 @@ final class AddCompetitionController extends AbstractController
                     ));
 
                     $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
-                    $this->addFlash('success', $this->createdMessage($isDraft, $this->competitionSeriesRepository->get($seriesId->toString())->approvedAt !== null));
+                    $series = $this->competitionSeriesRepository->get($seriesId->toString());
+                    $this->addFlash('success', $this->createdMessage($isDraft, $series->approvedAt !== null));
+
+                    // A draft: its own page, where the draft banner offers Publish
+                    if ($isDraft && $series->slug !== null) {
+                        return $this->redirectToRoute('competition_series_detail', ['slug' => $series->slug]);
+                    }
 
                     return $this->redirectToRoute('manage_competition_series', ['seriesId' => $seriesId->toString()]);
                 }
@@ -145,6 +153,11 @@ final class AddCompetitionController extends AbstractController
 
                 $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
                 $this->addFlash('success', $this->createdMessage($isDraft, $this->competitionRepository->get($competitionId->toString())->approvedAt !== null));
+
+                // A draft: its own page, where the draft banner offers Publish
+                if ($isDraft) {
+                    return $this->redirect($this->competitionDetailUrl->of($competitionId->toString()));
+                }
 
                 return $this->redirectToRoute('edit_competition', ['competitionId' => $competitionId->toString()]);
             } catch (OrganizationNotManaged) {

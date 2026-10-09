@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Drafts;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Exceptions\CannotUnpublish;
 use SpeedPuzzling\Web\Message\UnpublishCompetition;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\Drafts\CannotUnpublishMessage;
@@ -31,6 +32,7 @@ final class UnpublishCompetitionController extends AbstractController
         readonly private CompetitionDetailUrl $competitionDetailUrl,
         readonly private TranslatorInterface $translator,
         readonly private CannotUnpublishMessage $cannotUnpublishMessage,
+        readonly private CompetitionRepository $competitionRepository,
     ) {
     }
 
@@ -52,7 +54,7 @@ final class UnpublishCompetitionController extends AbstractController
             $this->messageBus->dispatch(new UnpublishCompetition($competitionId));
             $this->addFlash('success', $this->translator->trans('drafts_core.flash.unpublished'));
         } catch (CannotUnpublish $exception) {
-            $this->addFlash('warning', $this->cannotUnpublishMessage->of($exception));
+            $this->addFlash('warning', $this->cannotUnpublishMessage->of($exception, $this->competitionRepository->get($competitionId)->name));
         }
 
         $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));

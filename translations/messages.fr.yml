@@ -7817,6 +7817,7 @@ drafts_core:
         published_series_draft: "Publié – visible dès que la série sera publiée elle aussi."
         unpublished: "Repassé en brouillon – il n'est plus visible que par vous et votre équipe."
         cannot_unpublish: "Impossible de le repasser en brouillon : %reasons%."
+        cannot_unpublish_named: "%name% ne peut pas repasser en brouillon : %reasons%."
     blocker:
         participants: "des personnes s'y sont déjà inscrites"
         results: "il a des résultats officiels"
@@ -7876,6 +7877,9 @@ organizer_tools:
         schedule_help: "Pour une série, par ex. « Le quatrième vendredi du mois, 20 h » – chaque date reste une édition à part entière."
         save_draft: "Enregistrer comme brouillon"
         save_draft_help: "Un brouillon n'est visible que par vous et votre équipe – publiez-le quand il est prêt."
+        submit_add_event: "Ajouter l'événement"
+        submit_add_series: "Ajouter la série"
+        add_info_approved: "Ajoutez une nouvelle compétition ou un événement. Sous votre organisation approuvée, aucune vérification par un administrateur n'est nécessaire."
     flash:
         saved_as_draft: "Enregistré comme brouillon – il n'est visible que par vous et votre équipe. Publiez-le quand il est prêt."
         created_published: "Ajouté – tout le monde peut le voir maintenant."
@@ -7892,8 +7896,8 @@ organizer_tools:
         rule_label: "Se répète"
         rule:
             weekly: "Chaque semaine"
-            nth_weekday: "Chaque mois, une semaine donnée"
-            last_weekday: "Chaque mois, la dernière semaine"
+            nth_weekday: "Mensuel, semaine donnée"
+            last_weekday: "Mensuel, dernière semaine"
         nth_label: "Quelle semaine"
         nth_help: "Pour « Chaque mois, une semaine donnée »."
         nth:
@@ -7906,8 +7910,9 @@ organizer_tools:
         starting_help: "La première date tombe ce jour-là ou après."
         count: "Combien"
         dates: "Dates"
-        dates_help: "Touchez chaque date dans le calendrier, jusqu'à %max%. Sans le calendrier, saisissez-les ainsi : 05.10.2026, 12.10.2026."
-        dates_placeholder: "05.10.2026, 12.10.2026"
+        dates_help: "Touchez chaque date dans le calendrier, jusqu'à %max%."
+        dates_placeholder: "2026-10-05, 2026-10-12"
+        dates_typing: "Sans le calendrier, saisissez les dates ainsi : 2026-10-05, 2026-10-12."
         name_pattern: "Nom"
         name_pattern_help: "{date} devient la date, par ex. « Puzzle Night 5 octobre 2026 ». Vous pourrez renommer chaque édition plus tard."
         show: "Afficher les dates"
@@ -7923,6 +7928,7 @@ organization_page:
         social_links: "%name% ailleurs sur le web"
         website: "Site web"
     coming_up: "À venir"
+    about: "À propos"
     live: "En direct"
     ongoing: "En cours"
     date_not_set: "Date non définie"

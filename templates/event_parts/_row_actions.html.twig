@@ -1,12 +1,13 @@
 {#
     The star and the ⋯ button of a row or series line (owner: workstream C, docs/features/events-page/README.md).
-    Variables: follow_target (?FollowTarget), follow_name, following, show_star, manage (?ManageRef)
+    Variables: follow_target (?FollowTarget), follow_name, following, show_star, manage (?ManageRef); from the page's
+    context manage_return_title (optional - what the menu's links come back to, e.g. the organization's name)
 #}
 {%- set star = show_star and follow_target is not null -%}
 {%- set menu = manage is not null and is_granted('IS_AUTHENTICATED_REMEMBERED') and is_granted(manage.kind == 'series' ? 'COMPETITION_SERIES_EDIT' : 'COMPETITION_EDIT', manage.id) -%}
 {% if star or menu %}
     <span class="ev-row-actions">
         {%- if star %}{{ include('event_parts/_follow_star.html.twig', {follow_target: follow_target, follow_name: follow_name, following: following}) }}{% endif -%}
-        {%- if menu %}{{ include('event_parts/_manage_button.html.twig', {manage: manage}) }}{% endif -%}
+        {%- if menu %}{{ include('event_parts/_manage_button.html.twig', {manage: manage, return_title: manage_return_title|default(null)}) }}{% endif -%}
     </span>
 {% endif %}

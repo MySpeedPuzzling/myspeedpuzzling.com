@@ -24,7 +24,7 @@
             </div>
             {% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
                 <a class="ev-action-button" href="{{ path('add_organization', {return: app.request.requestUri, return_title: 'organization.directory_title'|trans}) }}" data-org-add>
-                    <span aria-hidden="true">+ </span>{{ 'organization_page.directory.add'|trans }}
+                    <span aria-hidden="true">+&nbsp;</span>{{ 'organization_page.directory.add'|trans }}
                 </a>
             {% endif %}
         </header>

@@ -22,10 +22,13 @@ readonly final class RestructureChoice
     }
 
     /**
-     * "Name · context · 2026-10-06" - the date as ISO, unambiguous in every language
+     * "Name · context · 2026-10-06" - the date as ISO, unambiguous in every language, with non-breaking hyphens so a
+     * narrow picker never breaks it
      */
     public function label(): string
     {
-        return implode(' · ', array_filter([$this->name, $this->context, $this->date], static fn (null|string $part): bool => $part !== null && $part !== ''));
+        $date = $this->date !== null ? str_replace('-', "\u{2011}", $this->date) : null;
+
+        return implode(' · ', array_filter([$this->name, $this->context, $date], static fn (null|string $part): bool => $part !== null && $part !== ''));
     }
 }

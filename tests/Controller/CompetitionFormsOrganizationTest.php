@@ -88,9 +88,18 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/add-event?organization=' . strtoupper(OrganizationFixture::ORGANIZATION_RIVERBEND));
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $crawler->filter(self::SELECT . ' option[selected]')->attr('value'));
 
-        // Not one of the player's: nothing pre-selected
+        // An approved organization: approved at once - no "reviewed by an admin", a neutral button
+        self::assertSame('1', $crawler->filter(self::SELECT . ' option[value="' . OrganizationFixture::ORGANIZATION_RIVERBEND . '"]')->attr('data-approved-at-once'));
+        self::assertNull($crawler->filter(self::SELECT . ' option[value="' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '"]')->attr('data-approved-at-once'));
+        self::assertSame('Add event', trim($crawler->filter('button[data-approval-note-target="submit"]')->text()));
+        self::assertNotNull($crawler->filter('[data-approval-note-target="review"]')->attr('hidden'));
+        self::assertNull($crawler->filter('[data-approval-note-target="direct"]')->attr('hidden'));
+
+        // Not one of the player's: nothing pre-selected - and it waits for an admin
         $crawler = $browser->request('GET', '/en/add-event?organization=' . OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT);
         self::assertSame([], $this->selectedValues($crawler));
+        self::assertSame('Submit for Approval', trim($crawler->filter('button[data-approval-note-target="submit"]')->text()));
+        self::assertNull($crawler->filter('[data-approval-note-target="review"]')->attr('hidden'));
     }
 
     public function testSaveAsDraftKeepsItToTheTeamAndEmailsNobody(): void
@@ -107,7 +116,8 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
             'competition_form[dateTo]' => '15.06.2027',
         ]);
 
-        self::assertResponseRedirects();
+        // A draft lands on its own page - the draft banner offers Publish
+        self::assertResponseRedirects('/en/events/quiet-draft-evening');
         self::assertQueuedEmailCount(0);
         $row = $this->competitionRow('Quiet Draft Evening');
         self::assertTrue($row['is_draft']);
@@ -115,6 +125,7 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
 
         $browser->followRedirect();
         self::assertSelectorTextContains('.alert-success', 'Saved as a draft');
+        self::assertSelectorExists('[data-draft-banner-own] form');
     }
 
     public function testASeriesSavedAsDraftUnderAnOrganization(): void
@@ -132,7 +143,7 @@ final class CompetitionFormsOrganizationTest extends WebTestCase
             'competition_form[schedule]' => 'Second Saturday of the month, 9 am',
         ]);
 
-        self::assertResponseRedirects();
+        self::assertResponseRedirects('/en/series/riverbend-puzzle-mornings');
         self::assertQueuedEmailCount(0);
 
         /** @var array{organization_id: null|string, approved_at: null|string, is_draft: bool, schedule: null|string} $row */

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\FormData\EditionFormData;
 use SpeedPuzzling\Web\FormType\EditionFormType;
 use SpeedPuzzling\Web\Message\AddEdition;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
+use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\ClickableInterface;
@@ -30,6 +31,7 @@ final class AddEditionController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly GetCompetitionSeries $getCompetitionSeries,
         private readonly TranslatorInterface $translator,
+        private readonly CompetitionDetailUrl $competitionDetailUrl,
     ) {
     }
 
@@ -59,8 +61,10 @@ final class AddEditionController extends AbstractController
             $saveDraft = $form->get('saveDraft');
             $isDraft = $saveDraft instanceof ClickableInterface && $saveDraft->isClicked();
 
+            $competitionId = Uuid::uuid7();
+
             $this->messageBus->dispatch(new AddEdition(
-                competitionId: Uuid::uuid7(),
+                competitionId: $competitionId,
                 seriesId: $seriesId,
                 name: $data->name ?? '',
                 dateFrom: $data->dateFrom,
@@ -74,6 +78,11 @@ final class AddEditionController extends AbstractController
             ));
 
             $this->addFlash('success', $this->translator->trans($isDraft ? 'organizer_tools.flash.saved_as_draft' : 'edition.flash.created'));
+
+            // A draft: its own page, where the draft banner offers Publish
+            if ($isDraft) {
+                return $this->redirect($this->competitionDetailUrl->of($competitionId->toString()));
+            }
 
             return $this->redirectToRoute('manage_competition_series', ['seriesId' => $seriesId]);
         }

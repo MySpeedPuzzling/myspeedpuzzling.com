@@ -180,7 +180,7 @@ final class DraftActionsControllerTest extends WebTestCase
         $warnings = $this->flashes($browser, 'warning');
         self::assertCount(1, $warnings);
         self::assertSame(
-            $this->trans('drafts_core.flash.cannot_unpublish', ['%reasons%' => $this->trans('drafts_core.blocker.participants')]),
+            $this->trans('drafts_core.flash.cannot_unpublish_named', ['%name%' => $this->competitionName(EventsPageFixture::COMPETITION_RIVERSIDE_OPEN), '%reasons%' => $this->trans('drafts_core.blocker.participants')]),
             $warnings[0],
         );
         self::assertFalse($this->isDraft('competition', EventsPageFixture::COMPETITION_RIVERSIDE_OPEN));
@@ -226,7 +226,7 @@ final class DraftActionsControllerTest extends WebTestCase
 
         self::assertResponseRedirects('/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG);
         self::assertSame(
-            [$this->trans('drafts_core.flash.cannot_unpublish', ['%reasons%' => $this->trans('drafts_core.blocker.participants')])],
+            [$this->trans('drafts_core.flash.cannot_unpublish_named', ['%name%' => OrganizationFixture::SERIES_LANTERN_NIGHTS_NAME, '%reasons%' => $this->trans('drafts_core.blocker.participants')])],
             $this->flashes($browser, 'warning'),
         );
         self::assertFalse($this->isDraft('competition_series', OrganizationFixture::SERIES_LANTERN_NIGHTS));
@@ -330,6 +330,14 @@ final class DraftActionsControllerTest extends WebTestCase
     private function trans(string $key, array $parameters = []): string
     {
         return self::getContainer()->get(TranslatorInterface::class)->trans($key, $parameters);
+    }
+
+    private function competitionName(string $competitionId): string
+    {
+        $name = $this->connection()->fetchOne('SELECT name FROM competition WHERE id = :id', ['id' => $competitionId]);
+        self::assertIsString($name);
+
+        return $name;
     }
 
     private function connection(): Connection

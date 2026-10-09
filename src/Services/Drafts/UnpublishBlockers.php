@@ -22,6 +22,36 @@ readonly final class UnpublishBlockers
     ) {
     }
 
+    /**
+     * The same three counts as columns of a statement listing competitions (`blocking_participants`,
+     * `blocking_results`, `blocking_solving_times`) - "You organize" reads them for every row in its one statement.
+     * `$competitionId` is the SQL expression of the competition's id; a NULL id counts nothing.
+     */
+    public static function sqlColumns(string $competitionId): string
+    {
+        $entryHolds = OfficialResultsGuard::sqlEntryHoldsOfficialData('cpr');
+        $teamHolds = OfficialResultsGuard::sqlEntryHoldsOfficialData('ct');
+
+        return <<<SQL
+(SELECT COUNT(*) FROM competition_participant cp WHERE cp.competition_id = {$competitionId} AND cp.deleted_at IS NULL) AS blocking_participants,
+(SELECT COUNT(*) FROM competition_participant_round cpr INNER JOIN competition_round cr ON cr.id = cpr.round_id WHERE cr.competition_id = {$competitionId} AND {$entryHolds})
+    + (SELECT COUNT(*) FROM competition_team ct INNER JOIN competition_round cr ON cr.id = ct.round_id WHERE cr.competition_id = {$competitionId} AND {$teamHolds}) AS blocking_results,
+(SELECT COUNT(*) FROM puzzle_solving_time pst
+    WHERE pst.competition_id = {$competitionId}
+        OR pst.competition_round_id IN (SELECT cr.id FROM competition_round cr WHERE cr.competition_id = {$competitionId})) AS blocking_solving_times
+SQL;
+    }
+
+    /**
+     * @param array<string, mixed> $row a row with the columns of sqlColumns()
+     */
+    public static function checkOf(array $row): UnpublishCheck
+    {
+        $count = static fn (string $column): int => is_numeric($row[$column] ?? null) ? (int) $row[$column] : 0;
+
+        return new UnpublishCheck($count('blocking_participants'), $count('blocking_results'), $count('blocking_solving_times'));
+    }
+
     public function forCompetition(string $competitionId): UnpublishCheck
     {
         if (Uuid::isValid($competitionId) === false) {

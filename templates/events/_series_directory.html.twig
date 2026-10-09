@@ -34,7 +34,7 @@
                                     {{- include('event_parts/_place.html.twig', {place: line.place}) -}}
                                     <span class="ev-series-count">· {{ line.editionCount > 0 ? 'events_page.series.editions'|trans({'%count%': line.editionCount}) : 'events_page.series.no_editions'|trans }}</span>
                                 </span>
-                                {% if line.organization %}<span class="ev-series-by" data-ev-series-by="{{ line.organization.id }}">{{ 'organization_page.series_by'|trans({'%name%': line.organization.name}) }}</span>{% endif %}
+                                {% if line.organization %}<span class="ev-series-by" data-ev-series-by="{{ line.organization.id }}">{{ 'organization_page.series_by'|trans({'%name%': '<a class="ev-series-by-link" href="' ~ path('organization_detail', {slug: line.organization.slug})|e ~ '">' ~ line.organization.name|e ~ '</a>'})|raw }}</span>{% endif %}
                                 {% if line.isPending %}<span class="ev-tag ev-tag-waiting_for_approval">{{ 'events_page.tag.waiting_for_approval'|trans }}</span>{% endif %}
                             </div>
                             <span class="ev-series-next ev-series-next-{{ line.next.type }}">

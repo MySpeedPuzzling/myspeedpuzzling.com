@@ -30,7 +30,7 @@ organization_fields:
     social_link_invalid: "{{ value }} n'est pas une adresse web (http:// ou https://)."
     team_too_many: "L'équipe peut compter au maximum {{ limit }} personnes en plus de vous."
 add_editions:
-    dates_invalid: "Certaines dates sont illisibles – choisissez-les dans le calendrier ou saisissez-les ainsi : 05.10.2026."
+    dates_invalid: "Certaines dates sont illisibles – choisissez-les dans le calendrier ou saisissez-les ainsi : 2026-10-05."
     dates_missing: "Choisissez au moins une date."
     too_many: "%max% dates au maximum à la fois."
     rule_missing: "Choisissez comment les dates se répètent."

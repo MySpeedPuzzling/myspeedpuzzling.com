@@ -4,6 +4,29 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
+
+- [ ] **The converted weekly online series (2026-10-09)**: tell its organiser about the change (Jan, by mail - drafts
+  are Jan's), and ask for (a) the exact start time of each past contest - the backfill gave every round 19:00 Central
+  European Time - and (b) the official number/name of contests whose official results were not published at conversion
+  time (one contest is named by its date only). Fix both through the internal API (round `PATCH`, edition `PATCH`).
+- [ ] **Importing upcoming contests** of a high-frequency series (e.g. from the organiser's shop listing or a feed):
+  not built - editions are added by hand / through the internal API. Decide with the organiser whether they maintain
+  them on MySpeedPuzzling themselves (organization team, "Add several dates").
+- [ ] An organiser view of their series' **series-level results** ("N results not matched to a date yet") with a way to
+  assign them to an edition.
+- [ ] API v1: a way to **remove** a time's event link on `PUT` (today omitted/null keeps it - P17).
+- [ ] Picker cards: `SeriesEditionDays` dates an edition without `date_from`/`date_to` by the UTC day of its first round
+  (the matching rule uses the round's local day) - only the card label can differ by a day for far-zone evening rounds.
+- [ ] Puzzle page "Used at": round lines are capped at 10 + "and N more", tag lines are not (harmless today).
+- [ ] Performance: a flush touching rounds of N editions of one series runs N series reconciles
+  (`CompetitionRoundsChanged` deduplicates per competition). Nothing does this today; if a bulk path appears, key the
+  event by the series. If one series' reconcile ever exceeds ~1 s, scope it to picks near the changed edition.
+- [ ] Other undated one-time "umbrella" events holding results of many separate contests: candidates for
+  `convert-to-series` with `keepAsEdition: false` + an edition backfill (survey production first).
+- [ ] Post-launch (~2026-11-09): how often players use S1 (typing an edition), the open short list and "change";
+  how many new series-level times stay unmatched per series.
+
 ## Organizations and drafts (`docs/features/organizations/README.md`, PR #252)
 
 Replaces "Format chips / an 'Organisation' level above series" - the level is built (one series per format).

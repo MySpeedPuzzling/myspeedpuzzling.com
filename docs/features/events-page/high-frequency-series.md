@@ -554,7 +554,7 @@ every surface.
 | Series page | unchanged: guest 3, signed in 9 (no editions 2 / 8), sections + 1 |
 | Edition / event / round results pages | unchanged (`DetailPagesQueryBudgetTest`) |
 | Puzzle page | unchanged - a new `PuzzleDetailQueryBudgetTest` pins today's numbers first |
-| API create / update with `series_id` | + 1 match + 1 edition + 1 for the response's series |
+| API create / update | `competition_id` + 4 (competition, visibility, round lookup + row); `series_id` + 5 (series, match, edition + the same 2 round statements); a `PUT` keeping a series pick + 2 over one keeping an explicit link |
 | `GET /api/v1/series` | 1 (+ authentication) |
 | Reconcile of one series (~5,000 picks, ~200 editions) | one UPDATE + the round reconcile of its editions; measured by the foundation |
 
@@ -622,8 +622,63 @@ every surface.
 
 ## As built
 
-(Filled at integration: the foundation's and the workstreams' deviations, the measured index weight and reconcile
-time, the pinned budgets.)
+Where the build differs from the text above or settles what it left open (details: the plan's "Foundation deviations"
+and the PR's workstream commits).
+
+### Foundation
+
+- Migration `Version20261009090901`: the two columns, the FK `ON DELETE SET NULL` and its index - the FK validation and
+  the index build scan `puzzle_solving_time` once (seconds).
+- `PuzzleSolvingTime::$competitionSeries` is private-write; the constructor, `modify()` and `restore()` refuse an
+  explicit competition together with a series (a series pick is constructed series-level, then
+  `seriesEditionResolved()`); `competitionRoundMovedTo()` refuses a series pick (P29).
+- Events are recorded only when they change something the rule reads: publish/unpublish/reject/approve when the
+  public visibility actually changes, `Competition::edit()` when a date's **day** changes, `CompetitionRound::edit()`
+  when the category, start instant or zone changes, reveal changes always; every new round records
+  `CompetitionRoundsChanged` (its competition's reconcile runs).
+- Rule 1 counts distinct editions at the best distance (an edition holding the puzzle in two rounds of the category is
+  one candidate).
+- The conversion checks its blockers before anything is created; removed (soft-deleted) participants never block.
+- **Reconcile measurement** (local PostgreSQL 16; one series, 200 dated editions with one solo round and one puzzle
+  each, 5,000 series picks): the first `reconcile($seriesId)` **553 ms** (4,667 linked), every further one with nothing
+  to change **~122 ms**, the global `reconcile()` **~121 ms** - no scoping needed.
+
+### Picker and form (WS-A)
+
+- A refused submit (422) offers the edition the player chose again, but only while it is public. An invalid or
+  non-public `?competition=` falls back to `?series=`.
+- The preview costs 2 statements on top of the signed-in overhead (`closest()` takes `alwaysIncludeId`, so the matched
+  or picked edition is in the list even beyond 10; a non-public series simply has no candidates - the neutral line, no
+  separate statement). An explicit edition that is not public renders an empty fragment.
+- The short list's search folds in PHP (`SearchText::fold()`), the S1 search uses unaccent `ILIKE` on edition and
+  series names only (no `ILIKE` on puzzle columns).
+- Fetched (S1) editions leave the dropdown below two typed characters, when it closes and on any value change.
+- Budgets pinned (`PuzzleAddPageQueryBudgetTest`): the add page 7 / with a puzzle 10 / relax 7 / collection 7 /
+  stopwatch finish 11 / from a one-time event page 8 / from an edition page 8 - all equal to before; `?series=` 8. A
+  save with a series pick costs at most 3 statements more than one with a one-time event, an explicit edition at most 1.
+
+### API v1 (WS-B)
+
+- The event-link checks live in `src/Services/Api/SolvingTimeEventLinkResolver.php` (both processors). A `PUT`
+  sending neither field keeps the link exactly - a series pick is passed on as `seriesId`, never frozen as an explicit
+  edition. `PUT` carries a description only (custom 404/422 response objects dropped the default content in the
+  export).
+- `GET /api/v1/series`: `next_date` / `last_date` are plain days (an edition held today is in neither, as
+  `SeriesEditionDays`); the series `link` gets `utm_source`; the operation's own `IS_AUTHENTICATED_FULLY` answers 401
+  without a token. 2 statements (the series + the token lookup), flat in the number of series.
+- The internal API's competition answer gains `seriesPickResultsCount`, the series answer `resultsCount` (editions'
+  times + series picks, each once) and `resultsWithoutEditionCount`.
+
+### Readers and "Used at" (WS-D)
+
+- "Used at": a series tag line is left out when a round line already belongs to one of its editions, a competition tag
+  line when any of its rounds is listed (also beyond the first 10); signed-in players' Details collapse shows the round
+  lines only (the tags are badges there already). Dates in the events pages' format ("Wed, 7 Oct 2026").
+- Duplicate review copies and time-verification cards name an automatic link by its edition, like an explicit one.
+- Puzzle page budgets pinned (`PuzzleDetailQueryBudgetTest`, unchanged by "Used at"): guest 13, signed in 18, member 22.
+- The results export appends `event_id`, `event_name`, `event_series_id`, `event_series_name` after `ppm`.
+- `SeriesPickQueryCoverageTest` ends with 13 allowlisted files (round-level, per-competition, participants, not a
+  time's event, the delete handler) and no `TODO_WS_*`.
 
 ### Events pages (WS-C)
 

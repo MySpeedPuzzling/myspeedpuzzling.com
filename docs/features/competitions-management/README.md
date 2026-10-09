@@ -156,15 +156,42 @@ A solving time may be linked to a standalone competition **or to a series editio
 
 ### Linking solving times to events
 
-The "Competition / event" picker on the add-time form (`PuzzleAddFormType`, routes `puzzle_add` + `finish_stopwatch`) and the edit-time form (`EditPuzzleSolvingTimeFormType`, route `edit_time`) is one TomSelect field whose options are baked server-side (no remote endpoint, no caching):
+Since the high-frequency series change (design of record:
+[../events-page/high-frequency-series.md](../events-page/high-frequency-series.md)) **a series is one entry** in the
+"Competition / event" picker and MySpeedPuzzling finds the edition. The picker is the add-time form
+(`PuzzleAddFormType`, routes `puzzle_add` + `finish_stopwatch`) and the edit-time form (`EditPuzzleSolvingTimeFormType`,
+route `edit_time`) - one TomSelect field:
 
-- **Selectable set** = exactly `IsCompetitionPubliclyVisible::SQL_CONDITION`: every approved & not-rejected standalone competition regardless of its date (live, past, upcoming, undated) **plus every edition whose series is approved & not rejected** (the edition's own `approved_at` is ignored, its own `rejected_at` is respected). **Drafts are never selectable** - neither a draft event or edition nor an edition of a draft series (and so a draft never gets a linked time, which `Unpublish` relies on). The series umbrella itself is never selectable — a time links to a concrete edition. Read model: `GetSelectableCompetitions::all(?$alwaysIncludeCompetitionId)` → `SelectableCompetition` DTOs. API v1 refuses a solving time in a round of a non-public competition (404).
-- **Include-current rule (edit form)**: `EditTimeController` passes the time's current `competition_id` (server-derived from the owner-checked row, never from the request) as the form option `current_competition_id`; the query adds that row unconditionally, so a link to a competition that is not (or no longer) publicly visible survives a re-save instead of rendering an empty control and silently detaching the time.
-- **Validation**: `CompetitionChoicesBuilder::build()` returns a `CompetitionChoices` value (`options`, `optgroups`, `contains(id)`); the form types' `POST_SUBMIT` rule rejects any non-null submitted id the picker did not offer with the generic `forms.competition_not_selectable` error (never echoes names). The handlers' `CompetitionNotFound → null` fallback stays only for the render→submit race and logs a warning.
-- **Ordering** (global, one SQL `ORDER BY`): live → undated standalone ("perpetual" online umbrellas, the most-used entries) → past (newest first) → upcoming (soonest first) → undated editions. Undated editions with rounds are dated by their first round (`MIN(competition_round.starts_at)`). Editions carry `optgroup` = series id and TomSelect renders a series' block where its best-ranked edition sits (`lockOptgroupOrder` off); standalone events are ungrouped.
-- **Rendering**: option cards are built in `CompetitionChoicesBuilder` (every organiser-authored string HTML-escaped, lazy-loaded 48px logo falling back to the series logo, series name on edition cards, "live" badge, `keywords` = series name/shortcut + name/shortcut + location as extra `searchField`). `assets/controllers/competition_picker_controller.js` patches the TomSelect config on `autocomplete:pre-connect` (`maxOptions: null`, optgroup header with series logo, blur on select) — ux-autocomplete forces `maxOptions: 50` and its own `render` for `<input>`-based pickers, so these cannot come from PHP.
-- **Deep link** `puzzle_add?competition=<uuid>` (`/en/puzzle-add?competition=…`, built with `path('puzzle_add', {competition: id})`): `PuzzleAddController` pre-selects the competition in the picker when the form opens in speed-puzzling mode and `IsCompetitionPubliclyVisible::check()` passes — the `_solving_time_form` template then renders the competition section expanded. Any other value (not a uuid, unknown, unapproved, a draft, edition of an unapproved or draft series, `?mode=relax|collection`) is ignored silently: no flash, no error, the form just opens without a pre-selection. It only seeds the GET render; on POST `handleRequest()` overwrites the data, so a cleared field is never re-filled from the URL.
-- **"Add my time from this event" CTA** (`events.add_my_time`) on the standalone event page and the edition page (in the header's actions once the event is over, on every started round of the timeline - with the round's puzzle pre-selected when it has exactly one with its picture shown - and in Taking part on the event page) links to that deep link. Shown only when `can_add_time` = signed in **and** the competition row is publicly visible (`IsCompetitionPubliclyVisible::check()`) **and** the event has started — `CompetitionEvent::startsAfter(now)` is false, i.e. `COALESCE(date_from, date_to)` is not a later calendar day than today (`ClockInterface`; an undated event is perpetual and always qualifies). No per-edition CTA on the series page or in the editions table — a time links to a concrete edition, so the CTA lives on the edition page.
+- **The field's value** is one of three kinds (`CompetitionPick`): `<uuid>` = a one-time event, `series:<uuid>` = a
+  *series pick* (MySpeedPuzzling finds the edition), `edition:<uuid>` = an explicit edition (a bare edition uuid from an
+  old open form counts as one). One-time events behave exactly as before.
+- **The default list** (one statement, `GetSelectableCompetitions`) = every publicly visible one-time event and every
+  publicly visible **series** (`IsCompetitionPubliclyVisible::SQL_CONDITION` / `IsSeriesPubliclyVisible` - drafts,
+  pending and rejected never; a series without editions is offered too, "No dates yet"). **No edition is in it and no
+  edition list is baked into the page.** Order: live → undated one-time events → recent past (a series by its latest
+  past edition) → upcoming → series without a dated edition.
+- **Editions** are reached by typing ≥ 2 characters (`competition_picker_editions`, fetched through TomSelect's `load`,
+  shown under their series) or through the preview's short list (`competition_picker_series_preview`): a matched line
+  ("<series> · <edition> · <date> · <category>") with "change", or - when nothing matches - the short list of the
+  closest editions shown openly (optional, never preselected; search over edition names and revealed round puzzle
+  names). Saving without a choice stores a **series-level** time - a normal, permanent state, matched later by the
+  reconcile when an edition fits (`SeriesEditionReconciler`).
+- **Include-current rule (edit form)**: the time's current one-time event, series pick or linked edition
+  (`current_competition_pick`, server-derived from the owner-checked row) is offered even when it is no longer public,
+  so a re-save never silently detaches the time.
+- **Validation**: `CompetitionChoices::accepts()`; anything not offered (or a malformed value) gets the generic
+  `forms.competition_not_selectable` (never echoes names). The handlers stay authoritative: precedence `roundId` →
+  `competitionId` (explicit) → `seriesId` (series pick, `SeriesEditionResolver`); a series or competition that stopped
+  being public between render and submit saves the time without a link and logs a warning.
+- **Deep links**: `puzzle_add?competition=<uuid>` pre-selects a public one-time event, or an edition as
+  `edition:<uuid>`; `puzzle_add?series=<uuid>` pre-selects the series (the series page's "Add my time"). Any other value
+  is ignored silently. Only the GET render is seeded.
+- **"Add my time from this event" CTA** (`events.add_my_time`) on the standalone event page and the edition page (in the
+  header once the event is over, on every started round of the timeline - with the round's puzzle pre-selected when it
+  has exactly one with its picture shown - and in Taking part) links the explicit deep link; shown only when signed in,
+  the competition row is publicly visible and the event has started (`CompetitionEvent::startsAfter(now)` false).
+- **API v1**: `competition_id` (explicit), `series_id` (series pick) and `round_id` on `POST/PUT
+  /api/v1/me/solving-times` - see [../api/README.md](../api/README.md).
 
 ## Round Results
 

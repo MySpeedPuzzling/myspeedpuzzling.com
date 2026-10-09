@@ -362,6 +362,17 @@ The recap after saving shows a twin straight away with the same actions. The pla
   first-try conflicts before.
 - Not built yet: the "Possibly saved twice" marker in the results list (`docs/TODO.md`).
 
+### Series picks (high-frequency series, 2026-10)
+
+A time can be linked to a series instead of an edition ([events-page/high-frequency-series.md](events-page/high-frequency-series.md)),
+its edition found automatically (and corrected later by the reconcile). Duplicate detection therefore compares the
+**event identity** (P23): a series pick compares its series - never its derived edition, which may differ between two
+copies of one result only because one was matched later - and an explicit link compares its competition (and round).
+An explicit edition and a series pick of the same series differ (the player decides). The 10-second twin net
+(`GetRecentIdenticalSolvingTime`) compares the series pick for a series pick and the competition for an explicit link;
+"Keep this one" takes a twin's whole event link (competition + series pick + match kind) only when the kept copy has no
+event link at all, and Undo of an automatic removal restores a series pick and matches it again.
+
 ## Telling players
 
 ### Banner

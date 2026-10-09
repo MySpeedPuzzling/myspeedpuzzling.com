@@ -84,6 +84,17 @@ Round and competition deletes already null the column.
 
 **No manual round picker is needed** — with the invariant, the round is fully determined.
 
+### Series picks (high-frequency series)
+
+A time linked to a **series** instead of an edition ([../events-page/high-frequency-series.md](../events-page/high-frequency-series.md))
+first gets its edition from the series matching rule (`SeriesEditionMatch`: a revealed round puzzle of the time's
+category, else exactly one edition on the solve day ±1 accepting the category). Once it has an edition, its round
+follows from this rule exactly like an explicit link's - the series reconcile (`SeriesEditionReconciler`) runs the
+round reconcile of the series' editions right after it (`RoundResultsReconciler::reconcileSeries()`). A series-level
+time (no edition found) is on no round page. Moving a round moves only the explicit times of it; series picks of the
+edition are re-matched instead. The round page labels its list "Times logged on MySpeedPuzzling - not the official
+results", with the official results link (the round's, else the competition's) right next to it.
+
 ## Unfinished results
 
 ### Storage (decided)

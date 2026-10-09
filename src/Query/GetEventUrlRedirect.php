@@ -10,8 +10,12 @@ use SpeedPuzzling\Web\Value\EventUrlPath;
 /**
  * Where an old event URL leads now (docs/features/organizations/README.md, D6): the row of event_url_redirect for the
  * path, its target resolved to the target's CURRENT slugs in one statement - so a target moved again since the row was
- * written (chained moves) is found where it is now. Builds a URL only; whether the target page is public is the target
- * page's own business (a draft answers 404 there).
+ * written (chained moves) is found where it is now.
+ *
+ * Never leads to a draft: a target that is a draft (or sits in a draft series - an edition, a round) has no public
+ * address, so the old path keeps answering 404 - for its team too, who reach the draft from "You organize". The draft
+ * flags are read in the same statement (`is_draft` of the target and of the series above it). Approval is not checked:
+ * a page waiting for approval is reachable at its URL like any other.
  */
 readonly final class GetEventUrlRedirect
 {
@@ -39,6 +43,7 @@ readonly final class GetEventUrlRedirect
          *     round_competition_slug: null|string,
          *     round_competition_series_id: null|string,
          *     round_series_slug: null|string,
+         *     target_is_draft: bool,
          * } $row
          */
         $row = $this->database->fetchAssociative(<<<SQL
@@ -53,7 +58,15 @@ SELECT
     cr.slug AS round_slug,
     r_c.slug AS round_competition_slug,
     r_c.series_id AS round_competition_series_id,
-    r_s.slug AS round_series_slug
+    r_s.slug AS round_series_slug,
+    (
+        COALESCE(o.is_draft, false)
+        OR COALESCE(s.is_draft, false)
+        OR COALESCE(c.is_draft, false)
+        OR COALESCE(c_s.is_draft, false)
+        OR COALESCE(r_c.is_draft, false)
+        OR COALESCE(r_s.is_draft, false)
+    ) AS target_is_draft
 FROM event_url_redirect r
 LEFT JOIN organization o ON o.id = r.organization_id
 LEFT JOIN competition_series s ON s.id = r.series_id
@@ -71,7 +84,7 @@ SQL, [
             'roundSlug' => $path->roundSlug,
         ]);
 
-        if ($row === false) {
+        if ($row === false || $row['target_is_draft'] === true) {
             return null;
         }
 

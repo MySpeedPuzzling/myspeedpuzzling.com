@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\EventUrlPath;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -85,6 +86,39 @@ final class EventUrlRedirectSubscriberTest extends WebTestCase
         // The address it had right before the second move too
         $browser->request('GET', '/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG . '/lantern-night-one');
         self::assertResponseRedirects('/en/series/' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL_SLUG . '/lantern-night-one', 301);
+    }
+
+    public function testAnOldPathNeverLeadsToADraft(): void
+    {
+        $browser = self::createClient();
+
+        // An edition moved into a draft series is hidden with the series - its old path stays a 404
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new MoveEditionToSeries(
+            competitionId: OrganizationFixture::EDITION_LANTERN_1,
+            targetSeriesId: OrganizationFixture::SERIES_QUIET_PINES_DRAFT,
+            actingPlayerId: PlayerFixture::PLAYER_WITH_STRIPE,
+        ));
+
+        $oldPath = '/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG . '/lantern-night-one';
+
+        $browser->request('GET', $oldPath);
+        self::assertResponseStatusCodeSame(404);
+
+        // Its team too: no redirect to the draft, they reach it from "You organize"
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $browser->request('GET', $oldPath);
+        self::assertResponseStatusCodeSame(404);
+
+        // Every kind of draft target: an organization, a series, an event, a round of a draft event
+        $this->remember(EventUrlPath::series('gone-association'), Organization::class, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT);
+        $this->remember(EventUrlPath::series('gone-series'), CompetitionSeries::class, OrganizationFixture::SERIES_QUIET_PINES_DRAFT);
+        $this->remember(EventUrlPath::event('gone-event'), Competition::class, OrganizationFixture::COMPETITION_DRAFT_NIGHT);
+        $this->remember(EventUrlPath::eventRound('gone-event', 'gone-round'), CompetitionRound::class, OrganizationFixture::ROUND_DRAFT_NIGHT);
+
+        foreach (['/en/series/gone-association', '/en/series/gone-series', '/en/events/gone-event', '/en/events/gone-event/results/gone-round'] as $path) {
+            $browser->request('GET', $path);
+            self::assertResponseStatusCodeSame(404, $path);
+        }
     }
 
     public function testTheLivePageWins(): void

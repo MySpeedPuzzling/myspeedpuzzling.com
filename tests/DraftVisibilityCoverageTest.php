@@ -41,7 +41,6 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetCompetitionRoundsForManagement.php' => self::ORGANISER,
         'Query/GetEditionRounds.php' => self::PAGE_GATED,
         'Query/GetEventAttendance.php' => self::PAGE_GATED,
-        'Query/GetEventUrlRedirect.php' => self::URL_ONLY,
         'Query/GetEventsViewerData.php' => self::OWN,
         'Query/GetFastestGroups.php' => self::VIA_SOLVING_TIMES,
         'Query/GetFastestPairs.php' => self::VIA_SOLVING_TIMES,
@@ -62,7 +61,6 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Services/CompetitionSlugGenerator.php' => self::WRITE,
         'Services/Drafts/UnpublishBlockers.php' => self::WRITE,
         'Services/ParticipantsSheet/SheetChangesPlanner.php' => self::ORGANISER,
-        'Services/Restructuring/EventUrlRedirects.php' => self::WRITE,
         'Services/SecretPuzzleAccess.php' => self::SECRECY,
         'Value/RoundPuzzleOwnership.php' => self::SECRECY,
     ];

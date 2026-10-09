@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\Restructuring;
 
-use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
@@ -29,7 +28,6 @@ readonly final class EventUrlRedirects
         private EventUrlRedirectRepository $eventUrlRedirectRepository,
         private CompetitionRepository $competitionRepository,
         private CompetitionRoundRepository $competitionRoundRepository,
-        private Connection $database,
         private ClockInterface $clock,
     ) {
     }
@@ -55,11 +53,10 @@ readonly final class EventUrlRedirects
     {
         $this->remember(EventUrlPath::edition($seriesSlug, $editionSlug), $edition);
 
-        foreach ($this->roundSlugs($edition) as $roundId => $roundSlug) {
-            $this->remember(
-                EventUrlPath::editionRound($seriesSlug, $editionSlug, $roundSlug),
-                $this->competitionRoundRepository->get($roundId),
-            );
+        foreach ($this->competitionRoundRepository->ofCompetition($edition) as $round) {
+            if ($round->slug !== null) {
+                $this->remember(EventUrlPath::editionRound($seriesSlug, $editionSlug, $round->slug), $round);
+            }
         }
     }
 
@@ -71,14 +68,10 @@ readonly final class EventUrlRedirects
     {
         $this->remember(EventUrlPath::series($oldSeriesSlug), $organization);
 
-        /** @var list<array{id: string, slug: string}> $editions */
-        $editions = $this->database->fetchAllAssociative(
-            'SELECT id, slug FROM competition WHERE series_id = :seriesId AND slug IS NOT NULL ORDER BY date_from NULLS LAST, id',
-            ['seriesId' => $series->id->toString()],
-        );
-
-        foreach ($editions as $edition) {
-            $this->rememberEdition($this->competitionRepository->get($edition['id']), $oldSeriesSlug, $edition['slug']);
+        foreach ($this->competitionRepository->editionsOfSeries($series) as $edition) {
+            if ($edition->slug !== null) {
+                $this->rememberEdition($edition, $oldSeriesSlug, $edition->slug);
+            }
         }
     }
 
@@ -89,16 +82,12 @@ readonly final class EventUrlRedirects
      */
     public function roundSlugs(Competition $competition): array
     {
-        /** @var list<array{id: string, slug: string}> $rows */
-        $rows = $this->database->fetchAllAssociative(
-            'SELECT id, slug FROM competition_round WHERE competition_id = :competitionId AND slug IS NOT NULL ORDER BY starts_at, id',
-            ['competitionId' => $competition->id->toString()],
-        );
-
         $slugs = [];
 
-        foreach ($rows as $row) {
-            $slugs[$row['id']] = $row['slug'];
+        foreach ($this->competitionRoundRepository->ofCompetition($competition) as $round) {
+            if ($round->slug !== null) {
+                $slugs[$round->id->toString()] = $round->slug;
+            }
         }
 
         return $slugs;

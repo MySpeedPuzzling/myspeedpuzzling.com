@@ -501,10 +501,10 @@ least 20 days ahead, past = last year). Made-up names.
 | Const (NN) | What | Purpose |
 |---|---|---|
 | `ORGANIZATION_RIVERBEND` (01) "Riverbend Jigsaw Association" | short "RJA", slug `riverbend-jigsaw-association`, association, `us`, region "Riverbend Valley", website `https://riverbend-jigsaw.example`, social links Instagram + Discord, approved, created by PLAYER_WITH_STRIPE, maintainer PLAYER_WITH_FAVORITES | the published organization |
-| `SERIES_LANTERN_NIGHTS` (02) "Lantern Brewing Puzzle Night" | in person, `us`, "Riverbend", approved, org RIVERBEND, schedule "First Monday of the month, 7 pm", eligibility "21+" | series card, schedule, eligibility |
+| `SERIES_LANTERN_NIGHTS` (02) "Lantern Brewing Puzzle Night" | in person, `us`, "Riverbend", approved, org RIVERBEND, schedule "Second Thursday of the month, 7:30 pm", eligibility "18+" | series card, schedule, eligibility |
 | `EDITION_LANTERN_1` (03), `EDITION_LANTERN_2` (04) | +22 / +50 days | Coming up, card "Next" |
 | `EDITION_LANTERN_DRAFT` (05) "Lantern Night Special" | +36 days, **draft** | draft edition in a published series |
-| `SERIES_RIVERBEND_VIRTUAL` (06) "Riverbend Virtual Contest" | online, approved, org RIVERBEND, eligibility "Residents of Riverbend Valley", schedule "Third Wednesday of the month, 6:45 pm" | |
+| `SERIES_RIVERBEND_VIRTUAL` (06) "Riverbend Virtual Contest" | online, approved, org RIVERBEND, eligibility "Residents of Riverbend Valley", schedule "Fourth Friday of the month, 8 pm" | |
 | `EDITION_VIRTUAL_PAST` (07) / `EDITION_VIRTUAL_NEXT` (08) | 15 June last year / +30 days | Past, Coming up |
 | `COMPETITION_RIVERBEND_OPEN` (09) "Riverbend Spring Open" | one-time, in person, `us`, +60..+61 days, approved, org RIVERBEND, eligibility "Residents of Riverbend Valley" | one-time card, byline, eligibility tag |
 | `COMPETITION_DRAFT_NIGHT` (10) "Birchwood Puzzle Draft Night" | one-time, in person, `cz`, +25 days, approved, **draft**, no org, created by PLAYER_WITH_STRIPE | draft one-time event (would be public when published) |
@@ -692,7 +692,7 @@ names in the events page search and on series lines, the `Organization` JSON-LD 
 8. **Admin queue**: an "Organizations" section above series (`GetOrganizations::allUnapproved()`), approve/reject forms
    posting to `admin_approve_organization` / `admin_reject_organization`.
 
-**Tests**: `tests/Controller/OrganizationPageTest.php` (guest: header, social links, About, Coming up rows with "21+"
+**Tests**: `tests/Controller/OrganizationPageTest.php` (guest: header, social links, About, Coming up rows with "18+"
 and "Recurring", the Lantern card "Next", the Riverbend Spring Open card, Past line of EDITION_VIRTUAL_PAST, no
 EDITION_LANTERN_DRAFT; team (PLAYER_WITH_STRIPE): the draft edition tagged Draft, ⋯ present; follower PLAYER_REGULAR:
 "Following" pressed; HARBOR_CLUB_DRAFT: 404 guest / 200 + banner hook for its creator; MAPLE (pending): 200,
@@ -1042,7 +1042,7 @@ admin; 360, 390 and 1280 px; en, de, ja for long labels):
 4. "You organize" for PLAYER_WITH_STRIPE and PLAYER_WITH_FAVORITES; ⋯ on each kind; Publish and an Unpublish refusal
    (an event with participants) - the flash, no blank page.
 5. Add event with an organization + Save as draft (PLAYER_WITH_FAVORITES); add series with When it happens; add
-   edition with Who can enter; Add several dates: rule preview (last Tuesday of the month, 6 dates), uncheck one,
+   edition with Who can enter; Add several dates: rule preview (last Friday of the month, 6 dates), uncheck one,
    create.
 6. Add organization (with social links, one invalid → 422 keeps the input), edit it, the admin queue approves it.
 7. Move edition (slug taken → slug field), move round (a refusal shown as a form error), turn a series into an

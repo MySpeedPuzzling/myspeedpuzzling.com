@@ -159,6 +159,28 @@ final class ConvertCompetitionToSeriesHandlerTest extends KernelTestCase
      * draft state and "Who can enter"; the event, now an edition, keeps none of them (an edition never has its own
      * organization).
      */
+    public function testARejectedEventStaysRejectedAsASeries(): void
+    {
+        $seriesId = Uuid::uuid7();
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE competition SET rejected_at = NOW(), rejection_reason = 'Not a puzzle event' WHERE id = :id",
+            ['id' => CompetitionFixture::COMPETITION_RECURRING_ONLINE],
+        );
+
+        $this->messageBus->dispatch(new ConvertCompetitionToSeries(
+            competitionId: CompetitionFixture::COMPETITION_RECURRING_ONLINE,
+            seriesId: $seriesId,
+        ));
+
+        $series = $this->seriesRepository->get($seriesId->toString());
+
+        self::assertTrue($series->isRejected());
+        self::assertSame('Not a puzzle event', $series->rejectionReason);
+        self::assertFalse($series->isPubliclyVisible());
+    }
+
     public function testOrganizationDraftAndWhoCanEnterMoveToTheSeries(): void
     {
         $seriesId = Uuid::uuid7();

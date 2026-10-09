@@ -62,7 +62,7 @@ to the series), the timeline groups rounds into the same sessions, and the JSON-
 [draft banner, team only]  Draft: only you and your team can see this page.  [Publish]
 Events › Riverbend Jigsaw Association › Harbor Jigsaw Nights   (breadcrumb: links only, the H1 is the current page)
 [logo]  Session 3                                          (H1 = the organiser's name, unchanged)
-        Organized by Riverbend Jigsaw Association · Who can enter: 21+      (byline, each part only when set)
+        Organized by Riverbend Jigsaw Association · Who can enter: 18+      (byline, each part only when set)
         [Online] · 5 Dec 2026 · Recurring · 3 rounds       (facts line)
         [I'm going] [☆ Follow series] [Registration ↗] [Website ↗] [⋯]
         The organiser's description, plain text, line breaks kept.

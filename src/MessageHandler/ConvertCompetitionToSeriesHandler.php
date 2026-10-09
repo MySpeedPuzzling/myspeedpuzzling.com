@@ -51,6 +51,10 @@ readonly final class ConvertCompetitionToSeriesHandler
             addedByPlayer: $competition->addedByPlayer,
             approvedAt: $competition->approvedAt,
             approvedByPlayer: $competition->approvedByPlayer,
+            // A rejection vetoes a stale approval (IsSeriesPubliclyVisible) - converting must not make a rejected event public
+            rejectedAt: $competition->rejectedAt,
+            rejectedByPlayer: $competition->rejectedByPlayer,
+            rejectionReason: $competition->rejectionReason,
             createdAt: $now,
             // The series takes over what belongs to the whole: its organization, its draft state, "Who can enter"
             organization: $competition->organization,

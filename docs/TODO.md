@@ -26,8 +26,9 @@ Replaces "Format chips / an 'Organisation' level above series" - the level is bu
 - [ ] The events page's own month calendar still starts on Monday (the date pickers follow the visitor's locale since
       2026-10-08, `assets/datepicker_locale.js`).
 - [ ] The profile results date filter still shows dd.mm.yyyy.
-- [ ] `ConvertCompetitionToSeriesHandler` copies `approvedAt` but not `rejectedAt` - a rejected event that was once
-      approved becomes public by converting it into a series.
+- [ ] The site's flash colours fail WCAG AA contrast (success and warning about 2.2:1 on their backgrounds) - older
+      than this feature, but its key messages use them ("Saved as a draft", "cannot go back to draft").
+- [ ] Header action buttons and social icons of the event family are 40 px (`ev-action-button`), not the 44 px target.
 - [ ] The `competitionId` branch of `AddPuzzleSolvingTimeHandler` does not re-check visibility (the forms validate the
       picker's set and API v1 checks rounds, but the handler itself would link a time to a draft).
 - [ ] Anonymous pages are shared-cached for 60 s, so an unpublished (or newly hidden) item can linger that long on

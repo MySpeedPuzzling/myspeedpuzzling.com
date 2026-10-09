@@ -27,7 +27,8 @@ use Symfony\Component\HttpFoundation\Response;
  * signed-in player who is not on the item's team (PLAYER_REGULAR) see the same; on the events page admins too.
  *
  * Items: a draft one-time event, a draft edition in a published series, an edition of a draft series (and the draft
- * series itself), a draft organization, a past draft event. **Add every new event-listing surface here.**
+ * series itself), a draft organization, a past draft event; a surface that shows an item only in another place (the
+ * organization page, the past) gets it there by SQL first. **Add every new event-listing surface here.**
  * DraftVisibilityCoverageTest keeps every reader of the event tables decided; DraftPagesTest covers the item pages.
  */
 final class DraftCanaryTest extends WebTestCase
@@ -38,20 +39,28 @@ final class DraftCanaryTest extends WebTestCase
 
     private const string EVENTS = '/en/events';
     private const string LANTERN_SERIES_PAGE = '/en/series/' . OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG;
+    private const string HARBOR_SERIES_PAGE = '/en/series/' . OrganizationFixture::SERIES_HARBOR_CLUB_MEETS_SLUG;
+    private const string RIVERBEND_PAGE = '/en/organizations/' . OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG;
     private const string PUZZLE_PAGE = '/en/puzzle/' . PuzzleFixture::PUZZLE_3000;
     private const string ADD_TIME = '/en/puzzle-add';
     private const string SITEMAP = '/sitemap-events.xml';
     // Replaced by last year (the clock's) - the past draft is dated in it
     private const string ARCHIVE = '/en/events/archive/{lastYear}';
+    private const string QUIET_PINES_UNDER_RIVERBEND = "UPDATE competition_series SET organization_id = :riverbend WHERE id = '" . OrganizationFixture::SERIES_QUIET_PINES_DRAFT . "'";
 
     /**
      * @param self::COMPETITION|self::SERIES|self::ORGANIZATION $table
+     * @param list<string> $setup SQL run first - puts the item where the surface shows it (`:riverbend` = its id)
      */
     #[DataProvider('provideSurfaces')]
-    public function testADraftIsOnNoPublicSurface(string $table, string $id, string $url, null|string $viewer, string $needle, null|string $selector = null): void
+    public function testADraftIsOnNoPublicSurface(string $table, string $id, string $url, null|string $viewer, string $needle, null|string $selector = null, array $setup = []): void
     {
         $browser = self::createClient();
         $url = str_replace('{lastYear}', (string) ((int) self::getContainer()->get(ClockInterface::class)->now()->format('Y') - 1), $url);
+
+        foreach ($setup as $statement) {
+            self::getContainer()->get(Connection::class)->executeStatement($statement, str_contains($statement, ':riverbend') ? ['riverbend' => OrganizationFixture::ORGANIZATION_RIVERBEND] : []);
+        }
 
         if ($viewer !== null) {
             TestingLogin::asPlayer($browser, $viewer);
@@ -65,7 +74,7 @@ final class DraftCanaryTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{0: string, 1: string, 2: string, 3: null|string, 4: string, 5?: string}>
+     * @return iterable<string, array{0: string, 1: string, 2: string, 3: null|string, 4: string, 5?: null|string, 6?: list<string>}>
      */
     public static function provideSurfaces(): iterable
     {
@@ -96,6 +105,20 @@ final class DraftCanaryTest extends WebTestCase
             yield "archive year ({$who}) - past draft event" => [...$draftPast, self::ARCHIVE, $viewer, OrganizationFixture::COMPETITION_DRAFT_PAST_NAME];
             yield "series page ({$who}) - draft edition of the series" => [...$lanternDraft, self::LANTERN_SERIES_PAGE, $viewer, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME];
             yield "organizations directory ({$who}) - draft organization" => [...$harborClub, '/en/organizations', $viewer, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME];
+
+            // The organization page: Coming up, What we run, Past - the draft series moved under Riverbend for it
+            yield "organization page ({$who}) - Coming up: draft edition" => [...$lanternDraft, self::RIVERBEND_PAGE, $viewer, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME, '[data-org-coming]'];
+            yield "organization page ({$who}) - Coming up: edition of a draft series" => [...$quietPines, self::RIVERBEND_PAGE, $viewer, OrganizationFixture::EDITION_QUIET_PINES_1_NAME, '[data-org-coming]', [self::QUIET_PINES_UNDER_RIVERBEND]];
+            yield "organization page ({$who}) - What we run: draft series card" => [...$quietPines, self::RIVERBEND_PAGE, $viewer, OrganizationFixture::SERIES_QUIET_PINES_DRAFT_NAME, '[data-org-run]', [self::QUIET_PINES_UNDER_RIVERBEND]];
+            yield "organization page ({$who}) - Past: draft edition" => [...$lanternDraft, self::RIVERBEND_PAGE, $viewer, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME, '[data-org-past]', [self::inThePast(OrganizationFixture::EDITION_LANTERN_DRAFT)]];
+            yield "organization page ({$who}) - Past: edition of a draft series" => [...$quietPines, self::RIVERBEND_PAGE, $viewer, OrganizationFixture::EDITION_QUIET_PINES_1_NAME, '[data-org-past]', [self::QUIET_PINES_UNDER_RIVERBEND, self::inThePast(OrganizationFixture::EDITION_QUIET_PINES_1)]];
+
+            // A published series of a draft organization: no "Organized by", no crumb
+            yield "series page ({$who}) - \"Organized by\" a draft organization" => [...$harborClub, self::HARBOR_SERIES_PAGE, $viewer, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME, '.ev-organized-by'];
+            yield "series page ({$who}) - crumb of a draft organization" => [...$harborClub, self::HARBOR_SERIES_PAGE, $viewer, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME, '.ev-crumbs'];
+
+            // The events page's search index finds a series by its organization's name - never by a draft's
+            yield "events page ({$who}) - search index: draft organization's name" => [...$harborClub, self::EVENTS, $viewer, mb_strtolower(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME), 'script[data-events-index]'];
         }
 
         // The puzzle of the draft event's round: "used at" (GetPuzzleSummary) - in the guests' part of the page
@@ -260,6 +283,11 @@ final class DraftCanaryTest extends WebTestCase
             'SELECT COUNT(*) FROM puzzle_solving_time WHERE competition_id = :id',
             ['id' => OrganizationFixture::COMPETITION_DRAFT_NIGHT],
         ));
+    }
+
+    private static function inThePast(string $competitionId): string
+    {
+        return "UPDATE competition SET date_from = CURRENT_DATE - 40, date_to = CURRENT_DATE - 40 WHERE id = '{$competitionId}'";
     }
 
     /**

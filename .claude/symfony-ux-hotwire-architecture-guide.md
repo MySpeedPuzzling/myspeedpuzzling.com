@@ -829,6 +829,10 @@ Just target the frame (`data-turbo-frame="modal-frame"`). `dynamic_modal_control
 
 `data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"` inside modal content opens a second Bootstrap modal on top: two backdrops, a stuck `modal-open` body class after one closes. Link to the page with `data-turbo-frame="_top"` instead.
 
+### ❌ Don't: Reset Paging in a LiveProp `onUpdated` Hook
+
+After every render `live_controller.js` writes each prop into its non-multiple `<select data-model>`, reads the select back and re-sends whatever differs from the prop – an "All" option with `value=""` for a null prop is re-sent as `""` with **every** request. The server runs a prop's `onUpdated` hook whenever the prop is in `updated`, changed or not, so a hook must be harmless when nothing changed (deriving one prop from another is fine). A hook resetting the limit therefore undid every "Show more" after the first one – on Compare (2026-10-03) and on the puzzle leaderboard (2026-10-09). Remember which list the pages belong to instead (`$pagedList` = tab + normalised filters, compared in the pre-render hook) and test the component the way the browser drives it: `tests/LiveComponentBrowserRequests.php` (`TestLiveComponent::call()` never sends the re-sent models).
+
 ---
 
 ## Pattern: Form Validation and Modal Behavior

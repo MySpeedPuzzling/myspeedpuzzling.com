@@ -9,6 +9,7 @@ use Doctrine\DBAL\ParameterType;
 use SpeedPuzzling\Web\Component\Comparison;
 use SpeedPuzzling\Web\Tests\DataFixtures\ComparisonSubjectFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\LiveComponentBrowserRequests;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -23,6 +24,7 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 final class ComparisonTest extends WebTestCase
 {
     use InteractsWithLiveComponents;
+    use LiveComponentBrowserRequests;
 
     private const string STRIPE_REF = 'p-' . PlayerFixture::PLAYER_WITH_STRIPE;
     private const string ADMIN_REF = 'p-' . PlayerFixture::PLAYER_ADMIN;
@@ -458,55 +460,11 @@ final class ComparisonTest extends WebTestCase
     }
 
     /**
-     * A live action the way the browser sends it: the props of the last render + the models the browser re-sends on its
-     * own (see modelsTheBrowserResends())
+     * A live action the way the browser sends it, selects re-sent by the browser included (LiveComponentBrowserRequests)
      */
     private function browserAction(KernelBrowser $client, Crawler $crawler, string $action): Crawler
     {
-        $root = $crawler->filter('[data-testid="comparison"]');
-        $props = json_decode((string) $root->attr('data-live-props-value'), true, flags: JSON_THROW_ON_ERROR);
-        self::assertIsArray($props);
-
-        $client->request('POST', '/en/_components/Comparison/' . $action, [
-            'data' => json_encode(['props' => $props, 'updated' => self::modelsTheBrowserResends($root, $props), 'args' => []], JSON_THROW_ON_ERROR),
-        ]);
-        self::assertResponseIsSuccessful();
-
-        return new Crawler((string) $client->getResponse()->getContent(), 'http://localhost/');
-    }
-
-    /**
-     * What live_controller.js (synchronizeValueOfModelFields) marks as changed after a render without anybody touching a
-     * thing: it writes each prop into its non-multiple <select data-model> - `${value}`, so null is "null" - and reads the
-     * select back; a value no option has leaves the browser on the first option, and anything !== the prop is re-sent.
-     *
-     * @param array<mixed> $props
-     * @return array<string, string>
-     */
-    private static function modelsTheBrowserResends(Crawler $root, array $props): array
-    {
-        $updated = [];
-
-        foreach ($root->filter('select[data-model]:not([multiple])') as $select) {
-            assert($select instanceof \DOMElement);
-            $directive = $select->getAttribute('data-model');
-            $model = substr($directive, (int) strrpos('|' . $directive, '|'));
-            $prop = $props[$model] ?? null;
-            $written = match (true) {
-                $prop === null => 'null',
-                is_bool($prop) => $prop ? 'true' : 'false',
-                is_scalar($prop) => (string) $prop,
-                default => '',
-            };
-            $options = (new Crawler($select))->filter('option')->each(static fn (Crawler $option): string => (string) $option->attr('value'));
-            $value = in_array($written, $options, true) ? $written : ($options[0] ?? '');
-
-            if ($value !== $prop) {
-                $updated[$model] = $value;
-            }
-        }
-
-        return $updated;
+        return $this->browserLiveRequest($client, $crawler->filter('[data-testid="comparison"]'), $action);
     }
 
     /**

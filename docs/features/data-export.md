@@ -28,7 +28,9 @@ puzzle facts (names, brand, pieces, EANs, brand code, image) and the player's ow
 spreadsheet answers "what do I own and have I solved it".
 
 The results export keeps its shape **byte-for-byte** (people have spreadsheets and scripts built on its columns);
-it only gets the two safety fixes from Q4. Its `player_rank` / `puzzle_total_solved` are the puzzle page's
+it only gets the two safety fixes from Q4. New columns go at the **end** (scripts read the CSV by position):
+`ppm` (2026-10-09, user request) = pieces per minute per person, `SolvingTime::calculatePpm()` like the website, empty
+when the time is not known. Its `player_rank` / `puzzle_total_solved` are the puzzle page's
 leaderboard (fixed 2026-10-07 after a user report - the rank counted every faster attempt and came out above the
 total): one entry per player (solo) or exact pair/team with its best non-suspicious time, hidden players left out,
 private ones only when the player may see them. A time ranks where it would stand among everybody else's best

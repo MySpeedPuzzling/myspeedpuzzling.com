@@ -240,7 +240,8 @@ then integrated and checked in a browser at 375 px and 1280 px against a copy of
   compared subjects + normalized filters): the same list keeps its pages whatever a request carries, another list
   starts on page one; no hook resets paging any more, and `onPeriodUpdated` acts only on a real change (the same
   re-sent `""` used to close the members' custom range on the next interaction). Regression test drives the component
-  the way the browser does, select read-back included (`ComparisonTest::modelsTheBrowserResends()`).
+  the way the browser does, select read-back included (`modelsTheBrowserResends()` in `tests/LiveComponentBrowserRequests.php`,
+  shared with the puzzle leaderboard, which had the same bug until 2026-10-09).
 - **Bug: "wins don't add up".** No counting error (verified on real data, see "Data rules"); the gaps were ties drawn
   only as a grey bar segment and the Duel view's pair-only list under a whole-line-up league. Ties are now stated in
   the head to head and under the league table.

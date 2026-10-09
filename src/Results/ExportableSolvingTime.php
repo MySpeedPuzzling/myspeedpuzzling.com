@@ -5,9 +5,15 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\SolvingTime;
 
 readonly final class ExportableSolvingTime
 {
+    /**
+     * Pieces per minute per person, the same number the website shows; null when the time is not known.
+     */
+    public null|float $ppm;
+
     public function __construct(
         public string $timeId,
         public string $puzzleId,
@@ -32,6 +38,9 @@ readonly final class ExportableSolvingTime
         public null|int $playerRank,
         public int $puzzleTotalSolved,
     ) {
+        $this->ppm = $secondsToSolve !== null && $secondsToSolve > 0
+            ? (new SolvingTime($secondsToSolve))->calculatePpm($piecesCount, $playersCount)
+            : null;
     }
 
     /**
@@ -133,6 +142,7 @@ readonly final class ExportableSolvingTime
             'puzzle_average_time_formatted' => $this->puzzleAverageTimeFormatted,
             'player_rank' => $this->playerRank,
             'puzzle_total_solved' => $this->puzzleTotalSolved,
+            'ppm' => $this->ppm,
         ];
     }
 }

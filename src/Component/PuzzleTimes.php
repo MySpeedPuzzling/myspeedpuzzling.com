@@ -36,7 +36,8 @@ final class PuzzleTimes
 
     /**
      * Rows shown above and below the viewer's own row when it lies beyond the top rows - so they always see
-     * where they stand and who is right around them (docs/features/puzzle-leaderboard-chart.md)
+     * where they stand and who is right around them (docs/features/puzzle-leaderboard-chart.md). "Show more" adds further
+     * rows below it ($belowOwnRow), the "⋯ N more" row the rows above it.
      */
     public const int NEIGHBOURS = 2;
 
@@ -57,24 +58,47 @@ final class PuzzleTimes
     #[LiveProp]
     public string $category = 'solo';
 
-    // Not writable: changed only by the actions below, and reset whenever the list changes
+    /**
+     * The top rows shown. Not writable, like $belowOwnRow: changed only by the actions below, and back to the start
+     * whenever the list changes ($pagedList)
+     */
     #[LiveProp]
     public int $limit = self::DEFAULT_LIMIT;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    /**
+     * Rows shown below the viewer's own row: its NEIGHBOURS, plus what "Show more" added while the viewer lies beyond the
+     * top rows. Two separate things below the top rows: the "⋯ N more" row fills the gap above the viewer's rows
+     * (revealGap()), the button under the table continues after them (showMore()).
+     */
+    #[LiveProp]
+    public int $belowOwnRow = self::NEIGHBOURS;
+
+    /**
+     * The list the revealed rows belong to - the tab and its filters (keepTheRevealedRowsOfTheSameList()). Another list
+     * starts from its top again, the same list keeps the rows revealed, whatever a request carries.
+     *
+     * Never reset the limit in a filter's onUpdated hook: after every render Live reads each <select data-model> back and
+     * re-sends whatever differs from the prop - the members' country select says "" for "All countries" while the prop
+     * is null - so such a hook runs on every request. It used to undo each "Show more" after the first one (2026-10-09:
+     * the table stuck at 200 rows, the "⋯ N more" row did nothing), the same bug Comparison had.
+     */
+    #[LiveProp]
+    public string $pagedList = '';
+
+    #[LiveProp(writable: true)]
     public bool $onlyFirstTries = false;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true)]
     public bool $onlyUnboxed = false;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true)]
     public bool $onlyFavoritePlayers = false;
 
     // Pair / team tabs only: the results the viewer took part in
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true)]
     public bool $onlyMyTeams = false;
 
-    #[LiveProp(writable: true, onUpdated: 'onFilterUpdated')]
+    #[LiveProp(writable: true)]
     public null|string $country = null;
 
     /**
@@ -121,18 +145,22 @@ final class PuzzleTimes
 
     /**
      * The rows the table renders, in leaderboard order, keys preserved: the first $limit rows of $times plus the
-     * viewer's own row with NEIGHBOURS rows on either side
+     * viewer's own row with NEIGHBOURS rows above it and $belowOwnRow rows below it
      *
      * @var array<string, array<PuzzleSolver|PuzzleSolversGroup>>
      */
     public array $visibleTimes = [];
 
     /**
-     * How many rows are left out right above a visible row - the table shows a "⋯" row there
+     * How many rows are left out right above a visible row - the table shows a "⋯ N more" row there, which reveals them
+     * (revealGap()). Only ever between the top rows and the viewer's own rows.
      *
      * @var array<string, int>
      */
     public array $gapsBefore = [];
+
+    // Rows after the last row shown - what "Show more" / "Show all" under the table reveal
+    public int $rowsBelowCount = 0;
 
     // The viewer's row lies beyond the top rows and is shown with its neighbours, so "Jump to me" always has a target
     public bool $ownRowBeyondLimit = false;
@@ -159,7 +187,9 @@ final class PuzzleTimes
     /** @var array<string, int> */
     public array $availableCountries = [];
 
-    // showAll() runs before the rows are loaded (populate() is a PreReRender hook), so the total is resolved there
+    // The actions run before the rows are loaded (populate() is a PreReRender hook), so the rows they reveal are resolved there
+    private bool $showMoreRequested = false;
+    private bool $revealGapRequested = false;
     private bool $showAllRequested = false;
 
     public function __construct(
@@ -200,33 +230,39 @@ final class PuzzleTimes
         }
     }
 
+    // Another tab is another list: it starts from its top again ($pagedList)
     #[LiveAction]
     public function changeResultsCategory(#[LiveArg] string $category): void
     {
-        if (in_array($category, ['solo', 'duo', 'group'], true) && $category !== $this->category) {
+        if (in_array($category, ['solo', 'duo', 'group'], true)) {
             $this->category = $category;
-            $this->limit = self::DEFAULT_LIMIT;
         }
     }
 
+    /**
+     * The button under the table: the next rows after the last one shown. While the viewer's own rows stand apart from the
+     * top rows, that is after them - the gap above them stays, it has its own row (revealGap()).
+     */
     #[LiveAction]
     public function showMore(): void
     {
-        $this->limit += self::DEFAULT_LIMIT;
+        $this->showMoreRequested = true;
+    }
+
+    /**
+     * The "⋯ N more" row between the top rows and the viewer's own rows: every row it counts, so the ranking runs on
+     * without a break down to the viewer
+     */
+    #[LiveAction]
+    public function revealGap(): void
+    {
+        $this->revealGapRequested = true;
     }
 
     #[LiveAction]
     public function showAll(): void
     {
         $this->showAllRequested = true;
-    }
-
-    /**
-     * LiveProp onUpdated hook of every filter: a differently filtered list starts from its top again
-     */
-    public function onFilterUpdated(): void
-    {
-        $this->limit = self::DEFAULT_LIMIT;
     }
 
     #[PostMount]
@@ -436,6 +472,7 @@ final class PuzzleTimes
             }
         }
 
+        $this->keepTheRevealedRowsOfTheSameList($activeCountry);
         $this->sliceVisibleRows();
     }
 
@@ -466,16 +503,30 @@ final class PuzzleTimes
     }
 
     /**
-     * Rows still hidden below the visible ones (the viewer's own row counts among them even when it is shown out of order)
+     * Runs after the action of the request, so a tab switched by changeResultsCategory() counts as another list as well
      */
-    public function getHiddenRowsCount(): int
+    private function keepTheRevealedRowsOfTheSameList(null|CountryCode $activeCountry): void
     {
-        return max(0, count($this->times) - $this->limit);
+        $listKey = implode('|', [
+            $this->category,
+            $this->onlyFirstTries ? 'first-tries' : '',
+            $this->onlyUnboxed ? 'unboxed' : '',
+            $this->onlyFavoritePlayers ? 'favorites' : '',
+            $this->onlyMyTeams ? 'my-teams' : '',
+            $activeCountry->name ?? '',
+        ]);
+
+        if ($this->pagedList !== '' && $this->pagedList !== $listKey) {
+            $this->limit = self::DEFAULT_LIMIT;
+            $this->belowOwnRow = self::NEIGHBOURS;
+        }
+
+        $this->pagedList = $listKey;
     }
 
     public function getShowMoreCount(): int
     {
-        return min(self::DEFAULT_LIMIT, $this->getHiddenRowsCount());
+        return min(self::DEFAULT_LIMIT, $this->rowsBelowCount);
     }
 
     /**
@@ -515,11 +566,29 @@ final class PuzzleTimes
      */
     private function sliceVisibleRows(): void
     {
+        $rowKeys = array_keys($this->times);
+        $myPosition = $this->myRowKey !== null ? array_search($this->myRowKey, $rowKeys, true) : false;
+
+        if ($this->revealGapRequested === true && is_int($myPosition)) {
+            // The top rows run on to the viewer's own rows
+            $this->limit = max($this->limit, $myPosition - self::NEIGHBOURS);
+        }
+
+        if ($this->showMoreRequested === true) {
+            // The viewer's own rows end the table while they lie beyond the top rows - the next rows come after them
+            if (is_int($myPosition) && $myPosition >= $this->limit) {
+                $this->belowOwnRow += self::DEFAULT_LIMIT;
+            } else {
+                $this->limit += self::DEFAULT_LIMIT;
+            }
+        }
+
         if ($this->showAllRequested === true) {
             $this->limit = count($this->times);
         }
 
         $this->limit = max(1, $this->limit);
+        $this->belowOwnRow = max(self::NEIGHBOURS, $this->belowOwnRow);
         $this->ranks = [];
         $position = 0;
         $rank = 0;
@@ -537,9 +606,6 @@ final class PuzzleTimes
             $previousTime = $time;
         }
 
-        $rowKeys = array_keys($this->times);
-        $myPosition = $this->myRowKey !== null ? array_search($this->myRowKey, $rowKeys, true) : false;
-
         /** @var array<int, true> $visiblePositions */
         $visiblePositions = [];
 
@@ -548,9 +614,9 @@ final class PuzzleTimes
         }
 
         if (is_int($myPosition)) {
-            $lastNeighbour = min(count($rowKeys) - 1, $myPosition + self::NEIGHBOURS);
+            $lastBelowOwnRow = min(count($rowKeys) - 1, $myPosition + $this->belowOwnRow);
 
-            for ($position = max(0, $myPosition - self::NEIGHBOURS); $position <= $lastNeighbour; $position++) {
+            for ($position = max(0, $myPosition - self::NEIGHBOURS); $position <= $lastBelowOwnRow; $position++) {
                 $visiblePositions[$position] = true;
             }
         }
@@ -572,6 +638,7 @@ final class PuzzleTimes
             $previousPosition = $position;
         }
 
+        $this->rowsBelowCount = count($rowKeys) - 1 - $previousPosition;
         $this->ownRowBeyondLimit = is_int($myPosition) && $myPosition >= $this->limit;
 
         $this->describeViewerPosition();

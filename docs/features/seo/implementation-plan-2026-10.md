@@ -145,7 +145,7 @@ Files: `src/Component/PuzzleTimes.php`, `templates/components/PuzzleTimes.html.t
    - `showMore()`: `limit += DEFAULT_LIMIT`.
    - `showAll()`: limit = total.
    - Buttons under the table, only when rows remain: "Show {n} more" and "Show all ({total})". They are `<button>`s, not links.
-4. `limit` resets to `DEFAULT_LIMIT` on `changeResultsCategory` and whenever a filter prop changes (`onUpdated`: onlyFirstTries, onlyUnboxed, onlyFavoritePlayers, onlyMyTeams, country).
+4. `limit` resets to `DEFAULT_LIMIT` on `changeResultsCategory` and whenever a filter prop changes (onlyFirstTries, onlyUnboxed, onlyFavoritePlayers, onlyMyTeams, country). Since 2026-10-09 through the list key `PuzzleTimes::$pagedList`, not an `onUpdated` hook - Live re-sends the country select with every request, so the hook undid every "Show more" after the first (docs/features/puzzle-leaderboard-chart.md).
 5. Unchanged:
    - the chart, which still gets **all** rows;
    - median/average/"your rank X of Y", computed over the full list;

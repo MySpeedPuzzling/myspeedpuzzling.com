@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Services\CompetitionChoicesBuilder;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\CompetitionChoices;
+use SpeedPuzzling\Web\Value\CompetitionPick;
 use SpeedPuzzling\Web\Value\FinishedPuzzlePhoto;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
@@ -54,9 +55,12 @@ final class PuzzleAddFormType extends AbstractType
     {
         $brandChoices = $this->brandChoicesBuilder->build();
 
-        /** @var null|string $currentCompetitionId */
-        $currentCompetitionId = $options['current_competition_id'] ?? null;
-        $competitionChoices = $this->competitionChoicesBuilder->build($currentCompetitionId);
+        // A deep link's pick (`?competition=` / `?series=`) is always offered; a refused submit's edition again while public
+        /** @var null|CompetitionPick $currentCompetitionPick */
+        $currentCompetitionPick = $options['current_competition_pick'] ?? null;
+        /** @var null|CompetitionPick $submittedCompetitionPick */
+        $submittedCompetitionPick = $options['submitted_competition_pick'] ?? null;
+        $competitionChoices = $this->competitionChoicesBuilder->build($currentCompetitionPick, $submittedCompetitionPick);
 
         // Mode field (hidden, controlled by JS)
         $builder->add('mode', EnumType::class, [
@@ -327,14 +331,17 @@ final class PuzzleAddFormType extends AbstractType
             'data_class' => PuzzleAddFormData::class,
             'collections' => [],
             'has_active_membership' => true,
-            // The competition the edited time is linked to — always offered by the picker (edit form);
-            // symmetric with EditPuzzleSolvingTimeFormType, unused by the add form so far
-            'current_competition_id' => null,
+            // The deep link's pick (`?competition=` / `?series=`, PuzzleAddController) — always offered by the picker
+            'current_competition_pick' => null,
+            // What a refused submit held (PuzzleAddController reads it before the form is built) — an edition picked by
+            // typing or from the short list is offered again while it is publicly visible
+            'submitted_competition_pick' => null,
         ]);
 
         $resolver->setAllowedTypes('collections', 'array');
         $resolver->setAllowedTypes('has_active_membership', 'bool');
-        $resolver->setAllowedTypes('current_competition_id', ['null', 'string']);
+        $resolver->setAllowedTypes('current_competition_pick', ['null', CompetitionPick::class]);
+        $resolver->setAllowedTypes('submitted_competition_pick', ['null', CompetitionPick::class]);
     }
 
     /**
@@ -385,9 +392,14 @@ final class PuzzleAddFormType extends AbstractType
             $form->get('collection')->addError(new FormError($this->translator->trans('forms.required_field')));
         }
 
-        // Competition: only an id the picker offered (TomSelect can't create, but the value is user-controlled)
-        if ($data->competition !== null && $competitionChoices->contains($data->competition) === false) {
-            $form->get('competition')->addError(new FormError($this->translator->trans('forms.competition_not_selectable')));
+        // Competition: a one-time event or series the picker offered, or a publicly visible edition (typed or picked from
+        // the short list) - TomSelect can't create, but the value is user-controlled. The error never echoes a name
+        if ($data->competition !== null && trim($data->competition) !== '') {
+            $competitionPick = CompetitionPick::tryFrom($data->competition);
+
+            if ($competitionPick === null || $competitionChoices->accepts($competitionPick) === false) {
+                $form->get('competition')->addError(new FormError($this->translator->trans('forms.competition_not_selectable')));
+            }
         }
     }
 }

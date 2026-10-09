@@ -33,8 +33,9 @@ use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetSelectableCompetitions;
 use SpeedPuzzling\Web\Query\GetStopwatch;
-use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Query\IsSeriesPubliclyVisible;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
@@ -44,6 +45,7 @@ use SpeedPuzzling\Web\Services\RoundResults\OfficialEntryTimePrefill;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
 use SpeedPuzzling\Web\Value\BrandCodeList;
+use SpeedPuzzling\Web\Value\CompetitionPick;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\FirstTryAssessment;
@@ -79,7 +81,8 @@ final class PuzzleAddController extends AbstractController
         readonly private CoPuzzlerPicker $coPuzzlerPicker,
         readonly private LoggerInterface $logger,
         readonly private GetPlayerCollections $getPlayerCollections,
-        readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        readonly private GetSelectableCompetitions $getSelectableCompetitions,
+        readonly private IsSeriesPubliclyVisible $isSeriesPubliclyVisible,
         readonly private FirstTryFormCheck $firstTryFormCheck,
         readonly private FormPhotoStash $formPhotoStash,
         readonly private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
@@ -196,18 +199,28 @@ final class PuzzleAddController extends AbstractController
             $initialMode = 'relax';
         }
 
-        // Deep link from an event page (`?competition=<uuid>`): pre-select the competition in the picker.
-        // Only a publicly visible competition is honoured — anything else is ignored silently, the form
-        // simply opens without a pre-selection. On POST handleRequest() overwrites the data anyway.
-        $queryCompetition = $request->query->getString('competition');
+        // Deep link from an event page: pre-select it in the picker (docs/features/events-page/high-frequency-series.md
+        // "Deep links") - `?competition=<one-time event>` as it is, `?competition=<edition>` as that edition picked
+        // explicitly (`edition:<uuid>`), `?series=<uuid>` as a series pick; `?competition` wins when both are sent.
+        // Only what is publicly visible is honoured — anything else is ignored silently, the form simply opens without
+        // a pre-selection. The pick stays offered by the picker; on POST handleRequest() overwrites the data anyway.
+        $deepLinkPick = null;
 
-        if (
-            $data->mode === PuzzleAddMode::SpeedPuzzling
-            && $queryCompetition !== ''
-            && Uuid::isValid($queryCompetition)
-            && $this->isCompetitionPubliclyVisible->check($queryCompetition)
-        ) {
-            $data->competition = $queryCompetition;
+        if ($data->mode === PuzzleAddMode::SpeedPuzzling) {
+            $queryCompetition = $request->query->getString('competition');
+            $querySeries = $request->query->getString('series');
+
+            if ($queryCompetition !== '' && Uuid::isValid($queryCompetition)) {
+                $deepLinkPick = $this->getSelectableCompetitions->publicPick($queryCompetition);
+            }
+
+            if ($deepLinkPick === null && $querySeries !== '' && Uuid::isValid($querySeries) && $this->isSeriesPubliclyVisible->check($querySeries)) {
+                $deepLinkPick = CompetitionPick::series($querySeries);
+            }
+
+            if ($deepLinkPick !== null) {
+                $data->competition = $deepLinkPick->fieldValue();
+            }
         }
 
         // "Add to my profile" of a round's published official results (`&official_entry=<participant_round|team>:<id>`,
@@ -219,14 +232,17 @@ final class PuzzleAddController extends AbstractController
         $officialEntry = null;
         [$officialEntryRef, $officialMember] = $this->officialEntryParameters($request);
 
+        // The round's competition - a one-time event or an edition (never a series pick)
+        $officialCompetitionId = CompetitionPick::tryFrom($data->competition)?->competitionId();
+
         if (
             $request->isMethod('GET')
-            && $data->competition !== null
+            && $officialCompetitionId !== null
             && $activeStopwatch === null
             && $officialEntryRef !== null
         ) {
             $officialEntry = $this->officialEntryTimePrefill->forViewer(
-                $data->competition,
+                $officialCompetitionId,
                 $officialEntryRef,
                 $userProfile->playerId,
                 $userProfile->playerName,
@@ -307,6 +323,8 @@ final class PuzzleAddController extends AbstractController
         $addTimeForm = $this->createForm(PuzzleAddFormType::class, $data, [
             'collections' => $collections,
             'has_active_membership' => $hasActiveMembership,
+            'current_competition_pick' => $deepLinkPick,
+            'submitted_competition_pick' => $this->submittedCompetitionPick($request),
         ]);
         // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)
         $restoredPhotos = $this->formPhotoStash->restore($request, $addTimeForm, $userProfile->playerId);
@@ -325,15 +343,17 @@ final class PuzzleAddController extends AbstractController
         // added, "Which one are you?" skipped) nor a pair of a team result: the entry the form carries is read again,
         // and the people sent must be as many as the result's category holds. Refused like every other form error -
         // 422, everything typed and the photos kept. A form whose puzzle or competition changed is no longer that entry
+        $officialCompetitionId = CompetitionPick::tryFrom($data->competition)?->competitionId();
+
         if (
             $addTimeForm->isSubmitted()
             && $officialEntryRef !== null
             && $data->mode === PuzzleAddMode::SpeedPuzzling
-            && $data->competition !== null
+            && $officialCompetitionId !== null
             && $activeStopwatch === null
         ) {
             $officialEntry = $this->officialEntryTimePrefill->forViewer(
-                $data->competition,
+                $officialCompetitionId,
                 $officialEntryRef,
                 $userProfile->playerId,
                 $userProfile->playerName,
@@ -634,6 +654,22 @@ final class PuzzleAddController extends AbstractController
         return [$ref?->toString(), $ref !== null && ctype_digit($member) ? (int) $member : null];
     }
 
+    /**
+     * The "Competition / event" value a submit holds, read before the form is built: an edition picked by typing or
+     * from the short list is offered again on a refused submit (only while publicly visible - GetSelectableCompetitions)
+     */
+    private function submittedCompetitionPick(Request $request): null|CompetitionPick
+    {
+        if ($request->isMethod('POST') === false) {
+            return null;
+        }
+
+        $form = $request->request->all()['puzzle_add_form'] ?? null;
+        $submitted = is_array($form) ? ($form['competition'] ?? null) : null;
+
+        return is_string($submitted) ? CompetitionPick::tryFrom($submitted) : null;
+    }
+
     private function submittedIdOrNew(Request $request, string $field): UuidInterface
     {
         $submittedId = $request->request->getString($field);
@@ -684,12 +720,16 @@ final class PuzzleAddController extends AbstractController
         $timeString = $data->getTimeAsString();
         assert($timeString !== null);
 
+        // `<uuid>` / `edition:<uuid>` link the competition explicitly, `series:<uuid>` is a series pick - the handler
+        // finds its edition (docs/features/events-page/high-frequency-series.md "The field")
+        $competitionPick = CompetitionPick::tryFrom($data->competition);
+
         $this->messageBus->dispatch(
             new AddPuzzleSolvingTime(
                 timeId: $timeId,
                 userId: $userId,
                 puzzleId: $data->puzzle,
-                competitionId: $data->competition,
+                competitionId: $competitionPick?->competitionId(),
                 time: $timeString,
                 comment: $data->comment,
                 finishedPuzzlesPhoto: $data->finishedPuzzlesPhoto,
@@ -704,6 +744,7 @@ final class PuzzleAddController extends AbstractController
                 stopwatchId: $stopwatchId,
                 duplicateConfirmed: $duplicateConfirmed,
                 paceConfirmedExpectedSeconds: $paceConfirmedExpectedSeconds,
+                seriesId: $competitionPick?->seriesId(),
             ),
         );
 

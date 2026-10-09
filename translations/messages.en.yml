@@ -8415,3 +8415,18 @@ restructure:
         flash:
             created: "The organization was created. Its series is part of it."
             created_waiting: "The organization was created. Everyone can see it once an admin approves it."
+series_picker:
+    hint: "For a series, pick the series - we work out the date from your puzzle and day. To pick a date yourself, type its name or number."
+    next: "Next: %date%"
+    last: "Last: %date%"
+    no_dates: "No dates yet"
+    online: "Online"
+    matched: "Your time goes to:"
+    picked: "You picked:"
+    not_identified: "Pick the date if you know it - or just save, and we'll match it later."
+    no_editions: "No dates are listed for this series yet - just save, and we'll match your time once they are."
+    change: "change"
+    let_us_match: "Let MySpeedPuzzling match it"
+    search_placeholder: "Search dates or puzzles…"
+    no_match: "Nothing matches - try another word."
+    undated: "Date not set"

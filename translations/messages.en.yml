@@ -8415,3 +8415,18 @@ restructure:
         flash:
             created: "The organization was created. Its series is part of it."
             created_waiting: "The organization was created. Everyone can see it once an admin approves it."
+
+series_pages:
+    more_sessions: "+%count% more"
+    filter_label: "Filter the dates"
+    categories_label: "Category"
+    all: "All"
+    solo: "Solo"
+    pairs: "Pairs"
+    teams: "Teams"
+    search_placeholder: "Search dates or puzzles…"
+    jump_to: "Jump to a month"
+    no_match: "No date matches."
+    show_all: "Show all"
+    round_results:
+        unofficial_label: "Times logged on MySpeedPuzzling - not the official results"

@@ -88,9 +88,10 @@ Events › Riverbend Jigsaw Association › Harbor Jigsaw Nights   (breadcrumb: 
 - **Logo**: the event's own logo, else (edition) the series logo; series page: the series logo. 56 px (64 px from
   992 px), contained, decorative (`alt=""`, the H1 follows). No logo, no tile - nothing is invented.
 - **Facts line**: `Online` tag or the place (`event_parts/_place.html.twig`); the dates (one day, a range, "Date not
-  set", or "Runs until …" for a long span); "Live" with the dot while a session runs; editions: "Recurring"; the series
-  page: how often ("about twice a month", derived from the dates - see "Series page"); event/edition with 2+ rounds:
-  "N rounds".
+  set", or "Runs until …" for a long span); event/edition with exactly one round: its start time in the event's zone,
+  named ("19:00 Central European Time", online: + the visitor's own time - high-frequency-series.md P30); "Live" with
+  the dot while a session runs; editions: "Recurring"; the series page: how often ("about twice a month", derived from
+  the dates - see "Series page"); event/edition with 2+ rounds: "N rounds".
 - **Actions** (wrap on phones, 44 px targets, in this order):
   1. **I'm going** - not past, registration not managed: "I'm going!" (`join_competition`), or "✓ You're going!"
      linking down to "Taking part". Managed registration: **Registration** links down to the registration card
@@ -150,6 +151,20 @@ Past · 14             year chips [2026 · 5] [2025 · 9]; newest year open, 5 l
 - **Side column** (from 992 px): "About" (editions, how often, since, next, website, place or Online) and, for a
   follower, "You get the next date of this series under “Your events” on the events page."
 - **Page sections** (organiser-written) stay, below the upcoming agenda and above the past.
+- **Rounds on rows and lines** (every series page): the category pills of a session's rounds when the series has two
+  or more categories, and the names of its **revealed** round puzzles (never a secret one) - `SeriesRowDetails`,
+  `event_parts/_row_rounds.html.twig`.
+- **A series with many sessions** (13 dated sessions or more, `SeriesPageBuilder::FILTER_FROM_SESSIONS` - a weekly
+  online contest has ~200 a year; [high-frequency-series.md](high-frequency-series.md#series-page-for-200-editions)):
+  each past year is split into **month sections** (native `<details>`, the newest month of each year open, no 5-line
+  preview) and a **filter bar** sits above Upcoming (`series/_filters.html.twig`, lazy `series_filter_controller.js`,
+  hidden without JavaScript - then everything shows): category chips All / Solo / Pairs / Teams (two or more
+  categories), a search over edition names, session labels, revealed round puzzle names and the dates (folded like the
+  events page), and a month select that scrolls to (and opens) that month. Rows and lines carry `data-categories`,
+  `data-search`, `data-month`; while filtering every year shows and "No date matches. Show all" appears when nothing is
+  left. The Next card is not filtered.
+- **"Add my time"** in the header for signed-in visitors of a publicly visible series once an edition has started:
+  `puzzle_add?series=<id>` - a series pick, MySpeedPuzzling finds the edition.
 - **A series without editions**: header, "No editions yet.", sections. Organisers find "Add edition" in ⋯.
 - **An unapproved or rejected series** is reachable at its URL as today (`noindex, nofollow`), without the follow star.
 - **Drafts on the series page**: a draft series answers 404 except for its team (banner + Publish). Its team also sees
@@ -340,8 +355,9 @@ Where the build differs from the text above (details in the plan's "Foundation d
   (`RoundsTimeline::$start`/`$end`, date-only); with two or more sessions it adds a `subEvent` per session named
   "{title} · {the session's one round, else its dates}", `url` = the page `#round-<first round id>`, `endDate` only for a
   session of several days, the page's attendance mode and location. A series `subEvent` is a public dated session
-  (`SeriesPageBuilder`), named "{edition} · {round}" for a session of several, with `endDate` and the attendance mode.
-  Every other field is unchanged. Pinned by `DetailPagesJsonLdTest` (parses, sessions, no `subEvent` for a weekend
+  (`SeriesPageBuilder`), named "{edition} · {round}" for a session of several, with `endDate` and the attendance mode -
+  at most 50 (`SeriesPageBuilder::MAX_JSON_LD_SUB_EVENTS`): every one not over, then the newest past ones, listed by
+  date (high-frequency-series.md P26). Every other field is unchanged. Pinned by `DetailPagesJsonLdTest` (parses, sessions, no `subEvent` for a weekend
   championship, `</script>` in a name, nothing on non-public pages).
 - **Page sections** sit between Upcoming and Past (series) and after Taking part and the marketplace card, before the
   participants (event, edition) - pinned by `PageSectionsOnPagesTest`, also documented in

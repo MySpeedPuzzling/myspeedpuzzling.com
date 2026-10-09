@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use DateTimeZone;
 use SpeedPuzzling\Web\Value\OccurrenceRound;
+use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
@@ -17,8 +18,10 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  *
  * SQL_JOIN_WITH_RESULTS (GetEventOccurrences only - the events page and the series page) adds each round's
  * `has_results`: a time logged in it (not suspicious) or published official results - so a session of several gets its
- * own Results tag (docs/features/events-page/detail-pages.md, conflict 5). The sitemap's years and "You organize" do
- * not need it and keep the lighter join.
+ * own Results tag (docs/features/events-page/detail-pages.md, conflict 5) - its `category` and `puzzles`: the names of
+ * its **revealed** round puzzles (docs/features/events-page/high-frequency-series.md "Events search by puzzle" - never
+ * one the round still keeps secret, RoundPuzzleReveal::sqlHidden(), nor a puzzle hidden on the whole site,
+ * puzzle.hide_until), read at `:now`. The sitemap's years and "You organize" do not need them and keep the lighter join.
  */
 final class OccurrenceRounds
 {
@@ -43,6 +46,15 @@ LEFT JOIN (
             'has_results', (
                 EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr_j.id AND pst.suspicious = false)
                 OR %s
+            ),
+            'category', cr_j.category,
+            'puzzles', (
+                SELECT json_agg(p_j.name ORDER BY crp_j.id)
+                FROM competition_round_puzzle crp_j
+                INNER JOIN puzzle p_j ON p_j.id = crp_j.puzzle_id
+                WHERE crp_j.round_id = cr_j.id
+                    AND NOT %s
+                    AND (p_j.hide_until IS NULL OR p_j.hide_until <= CAST(:now AS TIMESTAMP))
             )
         ) ORDER BY cr_j.starts_at, cr_j.id) AS rounds,
         COUNT(*) AS round_count
@@ -53,12 +65,19 @@ LEFT JOIN (
 SQL;
 
     /**
+     * Needs the parameter `:now` (Y-m-d H:i:s, UTC) - the moment the round puzzles' reveal is read at.
+     *
      * @param string $roundsWhere a WHERE on `cr_j` (competition_round) inside the aggregate - the series page passes
      *     its own competitions so it does not aggregate every round on the site; empty = all rounds (the events page)
      */
     public static function sqlJoinWithResults(string $roundsWhere = ''): string
     {
-        return sprintf(self::SQL_JOIN_WITH_RESULTS, GetPublishedRoundResults::sqlShowsOfficialResults('cr_j'), $roundsWhere);
+        return sprintf(
+            self::SQL_JOIN_WITH_RESULTS,
+            GetPublishedRoundResults::sqlShowsOfficialResults('cr_j'),
+            RoundPuzzleReveal::sqlHidden('crp_j', 'cr_j', ':now'),
+            $roundsWhere,
+        );
     }
 
     /**
@@ -86,6 +105,7 @@ SQL;
             }
 
             $zone = is_string($item['timezone'] ?? null) ? $item['timezone'] : null;
+            $puzzles = is_array($item['puzzles'] ?? null) ? $item['puzzles'] : [];
 
             $rounds[] = new OccurrenceRound(
                 id: is_string($item['id'] ?? null) ? $item['id'] : '',
@@ -94,6 +114,8 @@ SQL;
                 zone: RoundTimezone::resolve($zone, ...$countryCodes),
                 zoneAssumed: RoundTimezone::isAssumed($zone, ...$countryCodes),
                 hasResults: ($item['has_results'] ?? false) === true,
+                category: is_string($item['category'] ?? null) ? $item['category'] : null,
+                puzzleNames: array_values(array_filter($puzzles, static fn (mixed $name): bool => is_string($name) && trim($name) !== '')),
             );
         }
 

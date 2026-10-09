@@ -26,6 +26,8 @@
             {% else %}
                 <span class="ev-next-title">{{ row.title }}</span>
             {% endif %}
+            {#- Its rounds' categories (two or more in the series) and revealed puzzles (high-frequency-series.md) -#}
+            {{ include('event_parts/_row_rounds.html.twig', {details: page.detailsOf(row.indexIds), show_categories: page.showsCategories, class: 'ev-row-rounds'}) }}
             <div class="ev-row-meta ev-next-meta">
                 {{- include('event_parts/_place.html.twig', {place: row.place}) -}}
                 {%- if row.time %}{{ include('event_parts/_event_time.html.twig', {time: row.time, online: row.place.isOnline}) }}{% endif -%}

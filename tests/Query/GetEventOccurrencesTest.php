@@ -8,14 +8,17 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
 use SpeedPuzzling\Web\Query\GetEventOccurrences;
 use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetEventOccurrencesTest extends KernelTestCase
@@ -119,6 +122,43 @@ final class GetEventOccurrencesTest extends KernelTestCase
         );
         self::assertNull($sessions[0]->endDate);
         self::assertSame(4, $sessions[0]->roundCount);
+
+        // Each session carries its own round only (docs/features/events-page/high-frequency-series.md "Events pages")
+        self::assertSame(
+            array_keys(EventsPageFixture::SPRINT_ROUND_DAYS),
+            array_map(static fn (EventOccurrence $occurrence): string => implode(',', array_map(static fn ($round): string => $round->id, $occurrence->rounds)), $sessions),
+        );
+    }
+
+    /**
+     * Every occurrence carries its rounds' categories and the names of their revealed puzzles, inside the one statement -
+     * never a puzzle its round still keeps secret, nor one hidden on the whole site (high-frequency-series.md, H12 4)
+     */
+    public function testRoundsCarryTheirCategoryAndOnlyRevealedPuzzleNames(): void
+    {
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $seriesId = $scenario->series();
+        $day = $this->today->modify('-7 days')->format('Y-m-d');
+        $edition = $scenario->edition($seriesId, 'Jam No. 153', $day);
+        $revealed = $scenario->puzzle('Copper Lighthouse');
+        $secret = $scenario->puzzle('Starry Harbor');
+        $hiddenEverywhere = $scenario->puzzle('Velvet Comet');
+        $scenario->round($edition, RoundCategory::Solo, $day . ' 19:00', puzzleIds: [$revealed, $hiddenEverywhere]);
+        $pairsRound = $scenario->round($edition, RoundCategory::Duo, $day . ' 21:00', puzzleIds: [$secret], secret: true);
+        // A puzzle created for a round stays hidden on the whole site until its reveal (puzzle.hide_until)
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE puzzle SET hide_until = NOW() + INTERVAL '3 days' WHERE id = :id",
+            ['id' => $hiddenEverywhere],
+        );
+
+        $occurrence = $this->byId($this->query->forSeries($seriesId))[$edition];
+        self::assertSame(['solo', 'duo'], $occurrence->roundCategories());
+        self::assertSame(['Copper Lighthouse'], $occurrence->puzzleNames());
+        self::assertSame(['Copper Lighthouse'], $this->byId($this->query->all(false))[$edition]->puzzleNames(), 'the events page reads the same');
+
+        // Revealed now - its name is there
+        $scenario->dispatch(new RevealRoundPuzzleNow($scenario->roundPuzzleId($pairsRound, $secret)));
+        self::assertSame(['Copper Lighthouse', 'Starry Harbor'], $this->byId($this->query->forSeries($seriesId))[$edition]->puzzleNames());
     }
 
     public function testStatuses(): void

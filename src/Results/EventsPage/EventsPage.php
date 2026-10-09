@@ -23,9 +23,12 @@ readonly final class EventsPage
      * @param list<ArchiveYear> $archiveYears all public past, newest first
      * @param list<CountryCount> $countryCounts the sheet: every country with an in-person occurrence
      * @param list<CountryCount> $chipCountries ≤ CHIP_COUNTRIES with upcoming dates, + the active scope's country
-     * @param list<array<string, mixed>> $index the search and calendar index (EventsIndexFactory), position = id
+     * @param list<array<string, mixed>> $index the search and calendar index (EventsIndexFactory), position = id - full
+     *     entries, what the server reads (`?q=` search, the search results)
      * @param list<string> $itemListUrls
      * @param list<CountryRegionGroup> $regions
+     * @param list<array<string, mixed>> $shippedIndex the same index as the page ships it (EventsIndexFactory::compact(),
+     *     rebuilt in the browser by expandEventsIndex() of assets/events_index.js)
      */
     public function __construct(
         public EventsSummary $summary,
@@ -49,6 +52,7 @@ readonly final class EventsPage
         public array $index,
         public array $itemListUrls,
         public array $regions,
+        public array $shippedIndex = [],
     ) {
     }
 }

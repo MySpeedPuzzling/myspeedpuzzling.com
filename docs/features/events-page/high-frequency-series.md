@@ -624,3 +624,38 @@ every surface.
 
 (Filled at integration: the foundation's and the workstreams' deviations, the measured index weight and reconcile
 time, the pinned budgets.)
+
+### Events pages (WS-C)
+
+- **Index weight** (`EventsIndexWeightTest`, `EventsIndexExamples::weeklySeriesPage()`: one online series, 200 past
+  editions of one solo round with one revealed puzzle each, encoded with `json_ld` like the page): the compact entries
+  add **27,661 B raw / 3,264 B gzip** for 200 editions (138 B an edition, P25's ≤ 200 B met); the same editions as
+  full entries would add 60,861 B raw / 3,597 B gzip (400 editions: 55,878 / 6,382 compact, 122,278 / 7,029 full).
+  Budget pinned at 40,000 B raw. A past edition entry ships `id`, `k`, `en`, `sid`, `es`, `f`, `st`, `r`, `x` -
+  e.g. `{"id":100,"k":"d","en":"Jam No. 101","sid":400,"es":"jam-no-101","f":"2023-11-26","st":"past","r":true,"x":"no. 101 2023 starry meadow"}`.
+- **The compact index** is a whole format, not only for editions: `EventsIndexFactory::compact()` leaves out every key
+  holding its default (`DEFAULTS`); an edition takes `n`, `sc`, `c`, `p` from its series entry unless its own differ
+  (an edition held elsewhere than its series keeps its place), its link is `es` = its path after its series' path +
+  "/" (any session `#round-` included), and its `x` holds only the words its series' `x` does not. The full entries
+  stay in `EventsPage::$index` (the server's `?q=` search and search results read them); the page ships
+  `EventsPage::$shippedIndex`; `expandEventsIndex()` (browser, used by `readEventsIndex()`) and
+  `EventsIndexFactory::expand()` (PHP, tests) rebuild exactly `$index` - pinned by `EventsIndexScriptTest`. An
+  edition's full `x` is therefore its own words + its series' text: a series' city finds its editions held elsewhere
+  too (accepted, server and browser agree). `cm` is set only for a competition with 2+ sessions.
+- **Puzzle names in the search** for every occurrence (one-time events too), not only editions.
+- **Archive with 200 editions**: one line per series and year on both sides (`EventsIndexScriptTest`), the
+  client roll-up moved into `archiveLinesOf()` of `assets/events_index.js` (tested under node).
+- **Series page**: the filter bar and the month sections show from **13 dated sessions** on
+  (`SeriesPageBuilder::FILTER_FROM_SESSIONS`); smaller series keep the flat years with the 5-line preview. In month
+  mode the newest month of **each** year is open (one year shows at a time with JavaScript). Category pills on rows
+  and lines (and the chips) only when the series has two or more categories; revealed puzzle names on every series
+  page. The Next card is never filtered; the month select's options are `upcoming-Y-m` / `past-Y-m` (a month can be
+  in both lists) and the select only scrolls - focus stays on it (a closed select fires `change` per arrow key).
+  "Add my time" reuses `event_rounds.add_my_time`.
+- **Round results**: the label replaces the old "Times added by puzzlers…" note on round pages without published
+  official results and shows whenever the round has puzzles (also before the start and with no times yet);
+  `round_results.see_official_results` is no longer rendered (translators can drop it). The competition's results
+  link already carried `utm_source` (`CompetitionEvent`).
+- **Budgets** unchanged and pinned: series page guest 3 / signed in 9 for 2 and for 203 editions
+  (`DetailPagesQueryBudgetTest::testTwoHundredEditionsCostWhatTwoCost`), events page as before
+  (`EventsPageQueryBudgetTest`).

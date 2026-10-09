@@ -1,0 +1,48 @@
+{#
+    The series page's filter bar (docs/features/events-page/high-frequency-series.md "Series page for 200+ editions") -
+    only for a series with many sessions (page.filter). Client-side: series_filter_controller.js (lazy) shows it and
+    filters the rows and past lines by what they carry (data-categories, data-search, data-month); without JavaScript it
+    stays hidden and everything shows. Category chips only when two or more categories occur (a session without rounds
+    has none - it shows under All only). The month select jumps to that month (and opens it).
+    Variables: page (SeriesPage)
+#}
+{% if page.filter %}
+    {% set filter = page.filter %}
+    <div class="ev-series-filters" role="search" aria-label="{{ 'series_pages.filter_label'|trans }}" data-series-filter-target="bar" hidden>
+        {% if page.showsCategories %}
+            <div class="ev-series-filter-chips" role="group" aria-label="{{ 'series_pages.categories_label'|trans }}">
+                <button type="button" class="ev-chip ev-series-filter-chip" aria-pressed="true" data-category="" data-series-filter-target="chip" data-action="series-filter#chooseCategory">{{ 'series_pages.all'|trans }}</button>
+                {% for category in page.categories %}
+                    <button type="button" class="ev-chip ev-series-filter-chip" aria-pressed="false" data-category="{{ category }}" data-series-filter-target="chip" data-action="series-filter#chooseCategory">
+                        {{- ({solo: 'series_pages.solo', duo: 'series_pages.pairs', team: 'series_pages.teams'}[category] ?? category)|trans -}}
+                    </button>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="ev-series-filter-fields">
+            <label class="visually-hidden" for="series-filter-search">{{ 'series_pages.search_placeholder'|trans }}</label>
+            <input type="search" id="series-filter-search" class="form-control ev-series-filter-search" autocomplete="off" enterkeyhint="search"
+                   placeholder="{{ 'series_pages.search_placeholder'|trans }}"
+                   data-series-filter-target="search" data-action="input->series-filter#search keydown.enter->series-filter#keepEnter">
+            {% if filter.upcomingMonths is not empty or filter.pastMonths is not empty %}
+                <label class="visually-hidden" for="series-filter-month">{{ 'series_pages.jump_to'|trans }}</label>
+                <select id="series-filter-month" class="form-select ev-series-filter-month" data-series-filter-target="jump" data-action="series-filter#jump">
+                    <option value="">{{ 'series_pages.jump_to'|trans }}</option>
+                    {% if filter.upcomingMonths is not empty %}
+                        <optgroup label="{{ 'series_page.upcoming'|trans }}">
+                            {% for month in filter.upcomingMonths %}<option value="upcoming-{{ month|date('Y-m', false) }}">{{ month|events_date('yMMMM') }}</option>{% endfor %}
+                        </optgroup>
+                    {% endif %}
+                    {% if filter.pastMonths is not empty %}
+                        <optgroup label="{{ 'series_page.past'|trans }}">
+                            {% for month in filter.pastMonths %}<option value="past-{{ month|date('Y-m', false) }}">{{ month|events_date('yMMMM') }}</option>{% endfor %}
+                        </optgroup>
+                    {% endif %}
+                </select>
+            {% endif %}
+        </div>
+        <p class="ev-series-filter-none" data-series-filter-target="none" role="status" hidden>
+            {{- 'series_pages.no_match'|trans }} <button type="button" class="ev-series-filter-reset" data-action="series-filter#reset">{{ 'series_pages.show_all'|trans }}</button>
+        </p>
+    </div>
+{% endif %}

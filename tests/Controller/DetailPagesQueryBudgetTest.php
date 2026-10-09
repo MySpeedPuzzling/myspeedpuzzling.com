@@ -142,6 +142,27 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         self::assertGreaterThanOrEqual(20, $browser->getCrawler()->filter('[data-series-edition]')->count(), 'every session is listed');
     }
 
+    /**
+     * A series with 200+ editions (docs/features/events-page/high-frequency-series.md): the filter bar, the month
+     * sections, the round puzzle names and the capped JSON-LD come from the same statements - pinned like any series
+     */
+    public function testTwoHundredEditionsCostWhatTwoCost(): void
+    {
+        $browser = self::createClient();
+        $small = WeeklySeriesSeed::create(self::getContainer(), past: 1, upcoming: 1);
+        $large = WeeklySeriesSeed::create(self::getContainer(), past: 200, upcoming: 3);
+
+        self::assertSame(3, $this->measure($browser, '/en/series/' . $small['slug']), 'guest, two editions');
+        self::assertSame(3, $this->measure($browser, '/en/series/' . $large['slug']), 'guest, 203 editions');
+        self::assertCount(1, $browser->getCrawler()->filter('[data-series-filter-target="bar"]'));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        self::assertSame(9, $this->measure($browser, '/en/series/' . $small['slug']), 'player, two editions');
+        self::assertSame(9, $this->measure($browser, '/en/series/' . $large['slug']), 'player, 203 editions');
+        self::assertCount(1, $browser->getCrawler()->filter('[data-series-add-time]'));
+    }
+
     public function testSixMoreRoundsWithPuzzlesAddNoStatementToTheEditionPage(): void
     {
         $browser = self::createClient();

@@ -8,8 +8,11 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\CompetitionSeriesOverview;
 use SpeedPuzzling\Web\Results\EventDetail\JsonLdSubEvent;
 use SpeedPuzzling\Web\Results\EventDetail\SeriesFacts;
+use SpeedPuzzling\Web\Results\EventDetail\SeriesFilter;
 use SpeedPuzzling\Web\Results\EventDetail\SeriesNextCard;
 use SpeedPuzzling\Web\Results\EventDetail\SeriesPage;
+use SpeedPuzzling\Web\Results\EventDetail\SeriesPastMonth;
+use SpeedPuzzling\Web\Results\EventDetail\SeriesRowDetails;
 use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Results\EventsPage\AgendaMonth;
 use SpeedPuzzling\Web\Results\EventsPage\AgendaRow;
@@ -22,6 +25,7 @@ use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RowContext;
 use SpeedPuzzling\Web\Value\SearchText;
 
@@ -31,10 +35,21 @@ use SpeedPuzzling\Web\Value\SearchText;
  * whose rounds fall on separate days - with the events page's rows (EventRowFactory, RowContext::SeriesPage). Pure
  * apart from EventUrls; each rule has a test in SeriesPageBuilderTest.
  *
+ * A series with many sessions (docs/features/events-page/high-frequency-series.md "Series page for 200+ editions" - a
+ * weekly online contest has ~200 a year) also gets the filter bar (SeriesFilter: category chips, a search over edition
+ * names and revealed round puzzle names, a month jump - all in the browser) and its past years in month sections, the
+ * newest month of each year open. Every row and line shows its rounds' categories (when the series has two or more)
+ * and its revealed round puzzles (SeriesRowDetails). At most MAX_JSON_LD_SUB_EVENTS sub-events go into the JSON-LD.
+ *
  * @phpstan-type SeriesItem array{occurrence: EventOccurrence, status: EventOccurrenceStatus, id: int}
  */
 readonly final class SeriesPageBuilder
 {
+    // This many dated sessions or more: the filter bar and the past years in month sections
+    public const int FILTER_FROM_SESSIONS = 13;
+    // The EventSeries JSON-LD lists at most this many sessions (P26: 200+ would add ~60 KB to one page)
+    public const int MAX_JSON_LD_SUB_EVENTS = 50;
+
     public function __construct(
         private EventRowFactory $rows,
         private EventUrls $urls,
@@ -112,12 +127,16 @@ readonly final class SeriesPageBuilder
             $editionIds[strtolower($occurrence->competitionId)] = true;
         }
 
+        $datedCount = count(array_filter($items, static fn (array $item): bool => $item['occurrence']->startDate !== null));
+        $pastYears = $this->pastYears($past, $locale);
+        $filter = $datedCount >= self::FILTER_FROM_SESSIONS ? self::filter($coming, $past) : null;
+
         return new SeriesPage(
             next: $next,
             months: $this->months(array_slice($coming, 1), $rowOf),
             ongoing: array_map($rowOf, $ongoing),
             dateNotSet: array_map($rowOf, $dateNotSet),
-            pastYears: $this->pastYears($past, $locale),
+            pastYears: $pastYears,
             facts: new SeriesFacts(
                 editionCount: count($editionIds),
                 since: $firstDated,
@@ -130,8 +149,13 @@ readonly final class SeriesPageBuilder
             ),
             followTarget: $followTarget,
             following: $followTarget !== null && $viewer !== null && $viewer->follows($followTarget),
-            subEvents: $this->subEvents($occurrences),
+            subEvents: $this->subEvents($items),
             hasOccurrences: $occurrences !== [],
+            filter: $filter,
+            pastMonths: $filter !== null ? self::pastMonths($pastYears) : [],
+            hasStartedEdition: array_any($items, static fn (array $item): bool => self::hasStarted($item)),
+            rowDetails: self::rowDetails($items),
+            categories: self::categories($items),
         );
     }
 
@@ -230,17 +254,21 @@ readonly final class SeriesPageBuilder
     }
 
     /**
-     * Public dated occurrences, one per session: "{event} · {round}" when the session is named by its round
+     * Public dated occurrences, one per session: "{event} · {round}" when the session is named by its round. At most
+     * MAX_JSON_LD_SUB_EVENTS (P26): every one not over (live, upcoming, a long span running), then the newest past
+     * ones - listed by date.
      *
-     * @param list<EventOccurrence> $occurrences
+     * @param list<SeriesItem> $items by start
      *
      * @return list<JsonLdSubEvent>
      */
-    private function subEvents(array $occurrences): array
+    private function subEvents(array $items): array
     {
-        $subEvents = [];
+        $coming = [];
+        $past = [];
 
-        foreach ($occurrences as $occurrence) {
+        foreach ($items as $item) {
+            $occurrence = $item['occurrence'];
             $path = $this->urls->occurrence($occurrence);
 
             if ($occurrence->isPublic === false || $occurrence->startDate === null || $path === null) {
@@ -250,7 +278,7 @@ readonly final class SeriesPageBuilder
             $name = $occurrence->reference()->displayName();
             $label = $occurrence->sessionLabel();
 
-            $subEvents[] = new JsonLdSubEvent(
+            $subEvent = new JsonLdSubEvent(
                 name: $label !== null ? $name . ' · ' . $label : $name,
                 path: $path,
                 startDate: $occurrence->startDate,
@@ -258,9 +286,169 @@ readonly final class SeriesPageBuilder
                 image: $occurrence->logo,
                 isOnline: $occurrence->isOnline,
             );
+
+            if ($item['status'] === EventOccurrenceStatus::Past) {
+                $past[] = $subEvent;
+            } else {
+                $coming[] = $subEvent;
+            }
         }
 
-        return $subEvents;
+        $kept = array_slice($coming, 0, self::MAX_JSON_LD_SUB_EVENTS);
+        $kept = [...array_slice(array_reverse($past), 0, self::MAX_JSON_LD_SUB_EVENTS - count($kept)), ...$kept];
+        usort($kept, static fn (JsonLdSubEvent $a, JsonLdSubEvent $b): int => $a->startDate <=> $b->startDate);
+
+        return $kept;
+    }
+
+    /**
+     * A public occurrence that has started: live, past, or a long span running now
+     *
+     * @param SeriesItem $item
+     */
+    private static function hasStarted(array $item): bool
+    {
+        if ($item['occurrence']->isPublic === false || $item['occurrence']->startDate === null) {
+            return false;
+        }
+
+        return in_array($item['status'], [EventOccurrenceStatus::Live, EventOccurrenceStatus::Past, EventOccurrenceStatus::Ongoing], true);
+    }
+
+    /**
+     * The filter bar: the months to jump to (its chips are the categories that occur)
+     *
+     * @param list<SeriesItem> $coming live and upcoming, by start - the first is the Next card
+     * @param list<SeriesItem> $past by start
+     */
+    private static function filter(array $coming, array $past): SeriesFilter
+    {
+        return new SeriesFilter(
+            // The months of the upcoming list - the Next card above it is not repeated there
+            upcomingMonths: self::monthStarts(array_slice($coming, 1)),
+            pastMonths: array_reverse(self::monthStarts($past)),
+        );
+    }
+
+    /**
+     * What every row and line shows and carries: its rounds' categories, its revealed round puzzles, the filter's
+     * search text and month
+     *
+     * @param list<SeriesItem> $items
+     *
+     * @return array<int, SeriesRowDetails>
+     */
+    private static function rowDetails(array $items): array
+    {
+        $details = [];
+
+        foreach ($items as $item) {
+            $occurrence = $item['occurrence'];
+
+            $details[$item['id']] = new SeriesRowDetails(
+                categories: $occurrence->roundCategories(),
+                puzzleNames: $occurrence->puzzleNames(),
+                search: self::searchText([$occurrence->name, $occurrence->editionName(), $occurrence->sessionLabel(), ...$occurrence->puzzleNames()]),
+                month: $occurrence->startDate?->format('Y-m') ?? '',
+            );
+        }
+
+        return $details;
+    }
+
+    /**
+     * The categories that occur in the sessions' rounds, in the enum's order
+     *
+     * @param list<SeriesItem> $items
+     *
+     * @return list<string>
+     */
+    private static function categories(array $items): array
+    {
+        $present = [];
+
+        foreach ($items as $item) {
+            $present = [...$present, ...$item['occurrence']->roundCategories()];
+        }
+
+        return array_values(array_filter(
+            array_map(static fn (RoundCategory $category): string => $category->value, RoundCategory::cases()),
+            static fn (string $category): bool => in_array($category, $present, true),
+        ));
+    }
+
+    /**
+     * The first days of the months the items start in, each once, in the items' order
+     *
+     * @param list<SeriesItem> $items
+     *
+     * @return list<DateTimeImmutable>
+     */
+    private static function monthStarts(array $items): array
+    {
+        $months = [];
+
+        foreach ($items as $item) {
+            $start = $item['occurrence']->startDate;
+
+            if ($start !== null) {
+                $months[$start->format('Y-m')] ??= $start->modify('first day of this month');
+            }
+        }
+
+        return array_values($months);
+    }
+
+    /**
+     * Each past year's lines by month, newest first; the newest month of each year open
+     *
+     * @param list<ArchiveYear> $pastYears
+     *
+     * @return array<int, list<SeriesPastMonth>>
+     */
+    private static function pastMonths(array $pastYears): array
+    {
+        $months = [];
+
+        foreach ($pastYears as $year) {
+            /** @var array<string, list<ArchiveLine>> $byMonth */
+            $byMonth = [];
+            $firstDays = [];
+
+            foreach ($year->lines as $line) {
+                $key = $line->from->format('Y-m');
+                $byMonth[$key][] = $line;
+                $firstDays[$key] ??= $line->from->modify('first day of this month');
+            }
+
+            $sections = [];
+
+            foreach ($byMonth as $key => $lines) {
+                $sections[] = new SeriesPastMonth($firstDays[$key], $lines, $sections === []);
+            }
+
+            $months[$year->year] = $sections;
+        }
+
+        return $months;
+    }
+
+    /**
+     * @param list<null|string> $parts
+     */
+    private static function searchText(array $parts): string
+    {
+        $texts = [];
+
+        foreach ($parts as $part) {
+            $folded = $part !== null ? SearchText::fold($part) : '';
+
+            if ($folded !== '' && in_array($folded, $texts, true) === false) {
+                $texts[] = $folded;
+            }
+        }
+
+        return implode(' ', $texts);
     }
 
     /**

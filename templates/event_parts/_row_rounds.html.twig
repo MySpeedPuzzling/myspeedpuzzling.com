@@ -1,0 +1,13 @@
+{#
+    A series page row's or past line's rounds (docs/features/events-page/high-frequency-series.md "Series page for 200+
+    editions"): the category pills - only when the series has two or more categories - and the names of its revealed
+    round puzzles (never a secret one: GetEventOccurrences leaves them out). Nothing without either.
+    Variables: details (?SeriesRowDetails), show_categories (bool), class
+#}
+{%- set categories = details is not null and show_categories ? details.categories : [] -%}
+{%- if details is not null and (categories is not empty or details.puzzleNames is not empty) -%}
+    <span class="{{ class }}" data-series-rounds>
+        {%- for category in categories %}<span class="ev-tag ev-round-category" data-round-category="{{ category }}">{{ ('competition.round.category.' ~ category)|trans }}</span>{% endfor -%}
+        {%- if details.puzzleNames is not empty %}<span class="ev-rounds-puzzles" data-series-puzzles>{{ details.puzzleNames|join(', ') }}</span>{% endif -%}
+    </span>
+{%- endif -%}

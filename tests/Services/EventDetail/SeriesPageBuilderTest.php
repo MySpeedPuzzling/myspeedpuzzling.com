@@ -132,6 +132,118 @@ final class SeriesPageBuilderTest extends TestCase
         self::assertSame('2026-06-17', $page->subEvents[1]->startDate->format('Y-m-d'));
     }
 
+    /**
+     * A series with many sessions (high-frequency-series.md "Series page for 200+ editions"): the filter bar's
+     * categories, months and what each row carries; the past years in month sections, the newest month of each open
+     */
+    public function testASeriesWithManySessionsGetsTheFilterAndMonthSections(): void
+    {
+        $occurrences = [
+            $this->jam('Jam No. 1', '2025-11-20'),
+            $this->jam('Jam No. 2', '2025-12-04'),
+            $this->jam('Jam No. 3', '2025-12-18', 'duo'),
+        ];
+
+        foreach (['01-08', '01-22', '02-05', '02-19', '03-05', '03-19', '04-02', '04-16', '05-07'] as $number => $day) {
+            $occurrences[] = $this->jam('Jam No. ' . (4 + $number), '2026-' . $day);
+        }
+
+        $copper = $this->jam('Jam No. 13', '2026-05-21', puzzles: ['Copper Lighthouse', 'Ærø Harbor']);
+        $occurrences[] = $copper;
+        $occurrences[] = $this->jam('Jam No. 14', '2026-06-17');
+        $teams = $this->jam('Jam No. 15', '2026-07-01', 'team');
+        $occurrences[] = $teams;
+        $undated = $this->edition('Summer Special', null);
+        $occurrences[] = $undated;
+
+        $page = $this->build($occurrences);
+        $filter = $page->filter;
+
+        self::assertNotNull($filter);
+        self::assertSame(['solo', 'duo', 'team'], $page->categories);
+        self::assertTrue($page->showsCategories());
+        // Jam No. 14 is the Next card - its month is not in the list below it
+        self::assertSame(['2026-07'], array_map(static fn (DateTimeImmutable $month): string => $month->format('Y-m'), $filter->upcomingMonths));
+        self::assertSame(
+            ['2026-05', '2026-04', '2026-03', '2026-02', '2026-01', '2025-12', '2025-11'],
+            array_map(static fn (DateTimeImmutable $month): string => $month->format('Y-m'), $filter->pastMonths),
+        );
+
+        $copperLine = $page->pastYears[0]->lines[0];
+        $details = $page->detailsOf($copperLine->indexIds);
+        self::assertNotNull($details);
+        self::assertSame(['solo'], $details->categories);
+        self::assertSame(['Copper Lighthouse', 'Ærø Harbor'], $details->puzzleNames);
+        self::assertSame('jam no. 13 copper lighthouse aero harbor', $details->search);
+        self::assertSame('2026-05', $details->month);
+
+        $teamsRow = $page->months[0]->rows[0];
+        self::assertSame(['team'], $page->detailsOf($teamsRow->indexIds)?->categories);
+        self::assertSame(['', [], []], [
+            $page->detailsOf($page->dateNotSet[0]->indexIds)?->month,
+            $page->detailsOf($page->dateNotSet[0]->indexIds)?->categories,
+            $page->detailsOf($page->dateNotSet[0]->indexIds)?->puzzleNames,
+        ]);
+        self::assertNotNull($page->next);
+        self::assertSame(['solo'], $page->detailsOf($page->next->row->indexIds)?->categories, 'the Next card too');
+
+        // Month sections, newest month open in each year
+        self::assertSame(['2026-05', '2026-04', '2026-03', '2026-02', '2026-01'], array_map(static fn ($month): string => $month->key(), $page->monthsOf(2026)));
+        self::assertSame([true, false, false, false, false], array_map(static fn ($month): bool => $month->open, $page->monthsOf(2026)));
+        self::assertSame(['Jam No. 13', 'Jam No. 12'], self::lineTitles($page->monthsOf(2026)[0]->lines));
+        self::assertSame([true, false], array_map(static fn ($month): bool => $month->open, $page->monthsOf(2025)));
+    }
+
+    public function testASeriesWithFewSessionsHasNoFilter(): void
+    {
+        $page = $this->build($this->sessions('Season One', ['2026-04-15', '2026-05-13', '2026-06-17', '2026-07-15']));
+
+        self::assertNull($page->filter);
+        self::assertSame([], $page->monthsOf(2026));
+        self::assertLessThan(SeriesPageBuilder::FILTER_FROM_SESSIONS, 4);
+        // Its rows still name their rounds' puzzles (none here) - and one category says nothing
+        self::assertNotNull($page->next);
+        self::assertSame([], $page->detailsOf($page->next->row->indexIds)?->puzzleNames);
+        self::assertFalse($page->showsCategories());
+    }
+
+    /**
+     * At most 50 sub-events (P26): every coming session, then the newest past ones - by date
+     */
+    public function testJsonLdSubEventsAreCapped(): void
+    {
+        $occurrences = [];
+
+        for ($i = 0; $i < 200; $i++) {
+            $occurrences[] = $this->edition('Jam No. ' . ($i + 1), new DateTimeImmutable('2026-06-01', new DateTimeZone('UTC'))->modify(sprintf('-%d days', 3 * (199 - $i)))->format('Y-m-d'));
+        }
+
+        $occurrences[] = $this->edition('Jam No. 201', '2026-06-12');
+        $occurrences[] = $this->edition('Jam No. 202', '2026-06-15');
+
+        $page = $this->build($occurrences);
+
+        self::assertCount(SeriesPageBuilder::MAX_JSON_LD_SUB_EVENTS, $page->subEvents);
+        self::assertSame('Sprint Series · Jam No. 153', $page->subEvents[0]->name, 'the 48 newest past ones');
+        self::assertSame('Sprint Series · Jam No. 202', $page->subEvents[49]->name);
+        $days = array_map(static fn ($sub): string => $sub->startDate->format('Y-m-d'), $page->subEvents);
+        $sorted = $days;
+        sort($sorted);
+        self::assertSame($sorted, $days, 'by date');
+    }
+
+    /**
+     * "Add my time" in the header (P27) once a public edition has started
+     */
+    public function testAddMyTimeOnceAPublicEditionHasStarted(): void
+    {
+        self::assertFalse($this->build([$this->edition('Next week', '2026-06-17')])->hasStartedEdition);
+        self::assertFalse($this->build([$this->edition('Not approved', '2026-05-01', public: false), $this->edition('Undated', null)])->hasStartedEdition);
+        self::assertTrue($this->build([$this->edition('Today', '2026-06-10')])->hasStartedEdition, 'live');
+        self::assertTrue($this->build([$this->edition('Last month', '2026-05-01'), $this->edition('Next week', '2026-06-17')])->hasStartedEdition);
+        self::assertTrue($this->build([$this->edition('All year', '2026-01-01', '2026-12-31')])->hasStartedEdition, 'a long span running');
+    }
+
     public function testAnEmptySeries(): void
     {
         $page = $this->build([]);
@@ -241,6 +353,39 @@ final class SeriesPageBuilderTest extends TestCase
             startDate: $from !== null ? new DateTimeImmutable($from, new DateTimeZone('UTC')) : null,
             endDate: $to !== null ? new DateTimeImmutable($to, new DateTimeZone('UTC')) : null,
             isPublic: $public,
+        );
+    }
+
+    /**
+     * An edition of one round (20:00 Berlin) of $category with these revealed puzzles
+     *
+     * @param list<string> $puzzles
+     */
+    private function jam(string $name, string $day, string $category = 'solo', array $puzzles = []): EventOccurrence
+    {
+        $round = new OccurrenceRound(
+            id: 'r-' . ($this->ids + 1),
+            name: ucfirst($category),
+            startsAt: new DateTimeImmutable($day . ' 20:00', new DateTimeZone('Europe/Berlin'))->setTimezone(new DateTimeZone('UTC')),
+            zone: 'Europe/Berlin',
+            category: $category,
+            puzzleNames: $puzzles,
+        );
+
+        return new EventOccurrence(
+            competitionId: 'c-' . (++$this->ids),
+            name: $name,
+            slug: strtolower(str_replace([' ', '.'], ['-', ''], $name)),
+            seriesId: 's-1',
+            seriesName: 'Sprint Series',
+            seriesSlug: 'sprint-series',
+            isOnline: true,
+            startDate: new DateTimeImmutable($day, new DateTimeZone('UTC')),
+            roundCount: 1,
+            lastRoundDay: new DateTimeImmutable($day, new DateTimeZone('UTC')),
+            firstRound: $round,
+            zone: 'Europe/Berlin',
+            rounds: [$round],
         );
     }
 

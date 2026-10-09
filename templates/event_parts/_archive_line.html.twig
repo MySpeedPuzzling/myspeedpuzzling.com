@@ -1,5 +1,6 @@
 {#
-    One archive line (owner: workstream A). Variables: line (?ArchiveLine), template (bool), with_year (bool)
+    One archive line (owner: workstream A). Variables: line (?ArchiveLine), template (bool), with_year (bool), optional
+    row_details, show_categories, filterable (the series page - like _row.html.twig)
     Template mode (line null): every value is an empty element with data-slot="date|title|results|place" and the link
     data-slot="link" - fillArchiveLine() in assets/events_index.js fills exactly these.
     The title link is stretched over the line.
@@ -14,7 +15,8 @@
         <span class="ev-line-place" data-slot="place"></span>
     </li>
 {% else %}
-    <li class="ev-line{{ line.isRollUp ? ' ev-line-rollup' }}" data-ev-ids="{{ line.idsAttribute }}" data-ev-scope="{{ line.scopeKey }}" {{ line.visible ? '' : 'hidden' }}>
+    <li class="ev-line{{ line.isRollUp ? ' ev-line-rollup' }}" data-ev-ids="{{ line.idsAttribute }}" data-ev-scope="{{ line.scopeKey }}"
+        {%- if filterable|default(false) and row_details|default(null) %} data-categories="{{ row_details.categoriesAttribute }}" data-search="{{ row_details.search }} {{ line.from|events_date('yMMMMd')|search_fold }}" data-month="{{ row_details.month }}"{% endif %} {{ line.visible ? '' : 'hidden' }}>
         <span class="ev-line-date">
             {#- Like fillArchiveLine() / formatDayRange() in assets/events_index.js -#}
             {%- set with_year = with_year|default(false) -%}
@@ -29,6 +31,7 @@
             : (line.editionName ? line.title ~ ' · ' ~ line.editionName : line.title) %}
         <span class="ev-line-main">
             {% if line.url %}<a class="ev-line-title" href="{{ line.url }}">{{ title }}</a>{% else %}<span class="ev-line-title">{{ title }}</span>{% endif %}
+            {%- if row_details|default(null) %}{{ include('event_parts/_row_rounds.html.twig', {details: row_details, show_categories: show_categories|default(false), class: 'ev-line-rounds'}) }}{% endif %}
             {% if line.stateTag %}<span class="ev-tag ev-tag-{{ line.stateTag.value }}" data-ev-state-tag>{{ line.stateTag.translationKey|trans }}</span>{% endif %}
             {% if line.hasResults %}<span class="ev-tag ev-tag-results">{{ 'events_page.tag.results'|trans }}</span>{% endif %}
         </span>

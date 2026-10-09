@@ -53,6 +53,11 @@
                 {%- if page.facts.nextIsLive %}<span class="ev-detail-fact ev-when-live">{{ include('event_parts/_live.html.twig') }}</span>{% endif -%}
             {% endblock %}
             {% block actions %}
+                {#- "Add my time" (docs/features/events-page/high-frequency-series.md P27): a series pick - MySpeedPuzzling finds
+                    the edition. Signed in, a publicly visible series, an edition has started -#}
+                {% if series_publicly_visible and page.hasStartedEdition and is_granted('IS_AUTHENTICATED_REMEMBERED') %}
+                    <a class="ev-action-button" href="{{ path('puzzle_add', {series: series.id}) }}" data-series-add-time>{{ 'event_rounds.add_my_time'|trans }}</a>
+                {% endif %}
                 {{ include('event_parts/_follow_action.html.twig', {follow_target: page.followTarget, following: page.following, kind: 'series', follow_name: series.name}) }}
                 {% if series.link %}
                     <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ series.link }}">{{ 'events.website_link'|trans }}<span aria-hidden="true"> ↗</span></a>
@@ -64,9 +69,12 @@
         {% endembed %}
 
         <div class="ev-detail-body">
-            <div class="ev-detail-main">
+            {#- A series with many sessions: the filter bar (client-side, series_filter_controller.js) over the upcoming rows and
+                the past lines - the Next card stays -#}
+            <div class="ev-detail-main"{% if page.filter %} data-controller="series-filter"{% endif %}>
                 {{ include('series/_facts_strip.html.twig') }}
                 {{ include('series/_next.html.twig') }}
+                {{ include('series/_filters.html.twig') }}
                 {{ include('series/_upcoming.html.twig') }}
                 {#- Organiser-written sections (docs/features/competitions-management/public-page.md): between Upcoming and
                     Past - nothing at all without them -#}

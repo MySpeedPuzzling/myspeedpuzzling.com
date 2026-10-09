@@ -10,10 +10,14 @@ use DateTimeImmutable;
  * A round as the events page dates it (OccurrenceDates::sessions()): its start instant and the zone its day is read in
  * (RoundTimezone::resolve() of the round's zone, the event's and the series' country). `zoneAssumed`: nobody said where
  * the event is (RoundTimezone::isAssumed()); `hasResults`: the round has a time logged (not suspicious) or published
- * official results - only GetEventOccurrences reads it (OccurrenceRounds::SQL_JOIN_WITH_RESULTS).
+ * official results; `category`: RoundCategory's value; `puzzleNames`: its revealed round puzzles' names (never a secret
+ * one) - those three only GetEventOccurrences reads (OccurrenceRounds::SQL_JOIN_WITH_RESULTS).
  */
 readonly final class OccurrenceRound
 {
+    /**
+     * @param list<string> $puzzleNames
+     */
     public function __construct(
         public string $id,
         public string $name,
@@ -21,6 +25,8 @@ readonly final class OccurrenceRound
         public string $zone,
         public bool $zoneAssumed = false,
         public bool $hasResults = false,
+        public null|string $category = null,
+        public array $puzzleNames = [],
     ) {
     }
 

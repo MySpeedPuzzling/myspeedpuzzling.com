@@ -50,6 +50,9 @@ readonly final class EventsPageBuilder
 {
     public const int LONG_RUN_DAYS = 14;
     public const int CHIP_COUNTRIES = 6;
+    // a month roll-up row shows this many date chips, then "+N more" linking the series page
+    // (docs/features/events-page/high-frequency-series.md "Events page agenda")
+    public const int MAX_SESSION_CHIPS = 6;
     public const int ARCHIVE_PREVIEW_LINES = 5;
     // "In 12 days" in coral
     public const int SOON_DAYS = 14;
@@ -125,27 +128,34 @@ readonly final class EventsPageBuilder
             $seriesRows[$seriesRow->id] = $seriesRow;
         }
 
-        // Index
+        // Index - the series entries first: an edition's entry is built against its series' (EventsIndexFactory)
+        $sortedLines = $seriesLines;
+        usort($sortedLines, static fn (SeriesLine $a, SeriesLine $b): int => $a->indexId <=> $b->indexId);
+        $seriesEntries = [];
+
+        foreach ($sortedLines as $line) {
+            $seriesEntries[$line->indexId] = $this->indexFactory->series($line, $seriesRows[$line->seriesId], $locale);
+        }
+
         $index = [];
 
         foreach ($listed as $item) {
             $occurrence = $item['occurrence'];
+            $seriesIndexId = $occurrence->seriesId !== null ? ($seriesIndexIds[$occurrence->seriesId] ?? null) : null;
             $index[] = $this->indexFactory->occurrence(
                 $item['id'],
                 $occurrence,
                 $item['status'],
                 $this->urls->occurrence($occurrence),
                 self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
-                $occurrence->seriesId !== null ? ($seriesIndexIds[$occurrence->seriesId] ?? null) : null,
+                $seriesIndexId,
                 $locale,
+                $seriesIndexId !== null ? ($seriesEntries[$seriesIndexId] ?? null) : null,
             );
         }
 
-        $sortedLines = $seriesLines;
-        usort($sortedLines, static fn (SeriesLine $a, SeriesLine $b): int => $a->indexId <=> $b->indexId);
-
-        foreach ($sortedLines as $line) {
-            $index[] = $this->indexFactory->series($line, $seriesRows[$line->seriesId], $locale);
+        foreach ($seriesEntries as $seriesEntry) {
+            $index[] = $seriesEntry;
         }
 
         // Agenda
@@ -247,6 +257,7 @@ readonly final class EventsPageBuilder
             index: $index,
             itemListUrls: $this->itemListUrls([...$live, ...$upcoming, ...$tba]),
             regions: $this->regions($countryCounts),
+            shippedIndex: $this->indexFactory->compact($index),
         );
     }
 
@@ -307,7 +318,7 @@ readonly final class EventsPageBuilder
 
     /**
      * Upcoming rows by month; several upcoming editions of one series in one month are one row at the first one's
-     * position.
+     * position, with at most MAX_SESSION_CHIPS date chips.
      *
      * @param list<ListedOccurrence> $upcoming
      * @param callable(ListedOccurrence): AgendaRow $rowOf
@@ -390,10 +401,19 @@ readonly final class EventsPageBuilder
         $going = false;
         $sessions = [];
 
+        $moreSessionIds = [];
+
         foreach ($items as $item) {
             $occurrence = $item['occurrence'];
             $going = $going || ($viewer?->isGoing($occurrence->competitionId) ?? false);
             assert($occurrence->startDate !== null);
+
+            // The first ones as chips, the rest behind "+N more" - the row still stands for (and shows on) every one
+            if (count($sessions) >= self::MAX_SESSION_CHIPS) {
+                $moreSessionIds[] = $item['id'];
+
+                continue;
+            }
 
             $sessions[] = new SessionChip(
                 indexId: $item['id'],
@@ -436,6 +456,7 @@ readonly final class EventsPageBuilder
             manage: new ManageRef(ManageRef::KIND_SERIES, $seriesId, $seriesName),
             isPending: $first->isPublic === false,
             visible: $scope->matches($first->isOnline, $first->countryCode),
+            moreSessionIds: $moreSessionIds,
         );
     }
 

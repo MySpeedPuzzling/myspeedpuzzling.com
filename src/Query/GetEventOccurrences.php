@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Results\OrganizationRef;
@@ -32,11 +33,16 @@ use SpeedPuzzling\Web\Value\OccurrenceRound;
  * Results: a competition has them with a results link, or when one of its rounds has a time or published official
  * results (OccurrenceRounds::SQL_JOIN_WITH_RESULTS); a session of several has them with the link or through its own
  * rounds only.
+ *
+ * Every occurrence carries its own rounds (a session of several: the session's) with their categories and the names of
+ * their revealed puzzles, read now (docs/features/events-page/high-frequency-series.md "Events pages") - inside the same
+ * statement.
  */
 readonly final class GetEventOccurrences
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -178,6 +184,8 @@ WHERE {$where}
 SQL;
 
         $occurrences = [];
+        // The moment the round puzzles' reveal is read at (OccurrenceRounds::sqlJoinWithResults())
+        $parameters['now'] = $this->clock->now()->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 
         /** @var array<string, null|string|int|bool> $row */
 
@@ -249,7 +257,30 @@ SQL;
             eligibility: self::nullableString($row['eligibility']),
             isDraft: (bool) $row['is_draft'],
             zone: $dates->zone(),
+            rounds: self::roundsOf($rounds, $dates),
         ), $sessions);
+    }
+
+    /**
+     * The rounds of one dated occurrence: all of them, or - a session of several - the ones on its days (sessions are
+     * runs of consecutive round days, OccurrenceDates::sessions())
+     *
+     * @param list<OccurrenceRound> $rounds
+     *
+     * @return list<OccurrenceRound>
+     */
+    private static function roundsOf(array $rounds, OccurrenceDates $dates): array
+    {
+        if ($dates->session === null || $dates->start === null) {
+            return $rounds;
+        }
+
+        $last = $dates->end ?? $dates->start;
+
+        return array_values(array_filter(
+            $rounds,
+            static fn (OccurrenceRound $round): bool => $round->localDay() >= $dates->start && $round->localDay() <= $last,
+        ));
     }
 
     /**

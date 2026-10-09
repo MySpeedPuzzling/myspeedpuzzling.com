@@ -6,7 +6,8 @@ import { Controller } from '@hotwired/stimulus';
  * The server renders every year under its own heading with all its lines - that is the page without JavaScript. On
  * connect this shows the year chips (two years or more), keeps one year open (the newest), shows its first `preview`
  * lines and its "Show all 2026 (14)" button. A chip switches the year in place; "Show all" reveals the rest of that
- * year and moves the focus to the first line it revealed. Nothing is fetched, nothing is stored.
+ * year and moves the focus to the first line it revealed. Nothing is fetched, nothing is stored. With `preview` 0 every
+ * line of the chosen year shows (a series with many sessions: its year is in month sections, native <details>).
  */
 export default class extends Controller {
     static targets = ['chips', 'chip', 'year', 'heading', 'more'];
@@ -76,7 +77,8 @@ export default class extends Controller {
     }
 
     showYear(section) {
-        const all = this.expanded.has(section.dataset.year);
+        // preview 0: no preview - a series with many sessions folds its years into month sections instead
+        const all = this.previewValue <= 0 || this.expanded.has(section.dataset.year);
         const lines = this.linesOf(section);
 
         lines.forEach((line, index) => {

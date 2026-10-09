@@ -10,14 +10,16 @@ use SpeedPuzzling\Web\Value\FollowTarget;
 
 /**
  * One row of the agenda (Live, months, TBA, Ongoing, Your events): one occurrence (or session), or a month roll-up
- * of several editions of one series (`isGroup`, `sessions`).
+ * of several editions of one series (`isGroup`, `sessions`) - at most EventsPageBuilder::MAX_SESSION_CHIPS chips, the
+ * rest is "+N more" (`moreSessionIds`; docs/features/events-page/high-frequency-series.md "Events page agenda").
  */
 readonly final class AgendaRow
 {
     /**
-     * @param list<int> $indexIds the index entries the row shows (a group: every session)
+     * @param list<int> $indexIds the index entries the row shows (a group: every session, the ones behind "+N more" too)
      * @param list<RowTag> $tags
-     * @param list<SessionChip> $sessions group only
+     * @param list<SessionChip> $sessions group only - the chips shown
+     * @param list<int> $moreSessionIds group only - the index entries of the sessions behind "+N more"
      */
     public function __construct(
         public array $indexIds,
@@ -49,7 +51,21 @@ readonly final class AgendaRow
         public null|string $logo = null,
         // the series page: the start of the occurrence's first round in its zone (EventRowFactory, RowContext::SeriesPage)
         public null|EventTime $time = null,
+        public array $moreSessionIds = [],
     ) {
+    }
+
+    /**
+     * The sessions of a group behind its "+N more" chip
+     */
+    public function moreSessionsCount(): int
+    {
+        return count($this->moreSessionIds);
+    }
+
+    public function moreIdsAttribute(): string
+    {
+        return implode(' ', $this->moreSessionIds);
     }
 
     public function idsAttribute(): string
@@ -58,10 +74,10 @@ readonly final class AgendaRow
     }
 
     /**
-     * The number of dates the row stands for (a group: its sessions)
+     * The number of dates the row stands for (a group: its sessions, with the ones behind "+N more")
      */
     public function datesCount(): int
     {
-        return $this->isGroup ? count($this->sessions) : 1;
+        return $this->isGroup ? count($this->sessions) + $this->moreSessionsCount() : 1;
     }
 }

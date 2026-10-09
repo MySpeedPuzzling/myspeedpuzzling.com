@@ -226,6 +226,205 @@ a.ev-next-title {
     }
 }
 
+// ---- a series with many sessions: the filter bar and month sections -----------------------------------------------------
+// (docs/features/events-page/high-frequency-series.md "Series page for 200+ editions", series_filter_controller.js)
+
+.ev-series-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .75rem;
+    margin: 0 0 1.25rem;
+    padding: .75rem;
+    border: 1px solid $ev-line;
+    border-radius: 12px;
+    background: $ev-sunken;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.ev-series-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+}
+
+.ev-series-filter-chip {
+    min-height: 44px;
+    cursor: pointer;
+
+    &[aria-pressed="true"] {
+        border-color: $ev-ink;
+        background: $ev-ink;
+        color: $white;
+    }
+}
+
+.ev-series-filter-fields {
+    display: flex;
+    flex: 1 1 18rem;
+    flex-wrap: wrap;
+    gap: .5rem;
+    min-width: 0;
+
+    .form-control,
+    .form-select {
+        min-height: 44px;
+    }
+}
+
+.ev-series-filter-search {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.ev-series-filter-month {
+    flex: 0 1 13rem;
+    min-width: 0;
+}
+
+.ev-series-filter-none {
+    flex-basis: 100%;
+    margin: 0;
+    color: $ev-ink-2;
+    font-size: .9375rem;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.ev-series-filter-reset {
+    min-height: 44px;
+    padding: 0 .25rem;
+    border: 0;
+    background: none;
+    color: $ev-coral-ink;
+    font-weight: 500;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+// What the filter hides - never `hidden`, which series_archive_controller.js owns on the years and lines
+.ev-detail-series [data-filtered-out] {
+    display: none !important;
+}
+
+// While filtering every year with a match shows (the year chips step aside)
+.ev-detail-series .is-filtering {
+    .ev-series-years {
+        display: none;
+    }
+
+    // Bootstrap's reboot hides [hidden] with !important
+    .ev-series-year[hidden]:not([data-filtered-out]) {
+        display: block !important;
+    }
+}
+
+// Where the month select scrolls to - clear of the sticky site header
+.ev-detail-series [data-series-jump] {
+    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
+}
+
+// One month of a past year: a native <details>, the newest month of each year open
+.ev-series-month {
+    border-bottom: 1px solid $ev-line;
+
+    > .ev-lines {
+        margin-bottom: .5rem;
+    }
+}
+
+.ev-series-month-summary {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 44px;
+    color: $ev-ink-2;
+    font-size: .875rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &::before {
+        content: "";
+        flex: none;
+        width: .5rem;
+        height: .5rem;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(-45deg);
+        transition: transform .15s ease;
+    }
+
+    .ev-series-month[open] > &::before {
+        transform: rotate(45deg);
+    }
+
+    .ev-month-n {
+        margin-left: auto;
+        color: $ev-muted;
+        font-weight: 400;
+        font-variant-numeric: tabular-nums;
+    }
+
+    &:focus-visible {
+        outline: 3px solid $ev-sky-ink;
+        outline-offset: 2px;
+        border-radius: 6px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &::before {
+            transition: none;
+        }
+    }
+}
+
+// A row's or past line's rounds: category pills (two or more categories in the series) and revealed puzzle names
+.ev-row-rounds {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .25rem .5rem;
+    margin-top: .25rem;
+    color: $ev-ink-2;
+    font-size: .8125rem;
+
+    .ev-rounds-puzzles {
+        overflow-wrap: anywhere;
+    }
+}
+
+.ev-line-rounds {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .375rem;
+    min-width: 0;
+    color: $ev-muted;
+    font-size: .8125rem;
+
+    .ev-rounds-puzzles {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+// The events page's month roll-up: "+N more" after the sixth date chip, to the series page
+.ev-session-more {
+    background: none;
+    box-shadow: inset 0 0 0 1px $ev-line;
+    color: $ev-coral-ink;
+}
+
 // ---- side column (from 992 px) ------------------------------------------------------------------------------------------
 
 .ev-series-side .ev-side-card + .ev-side-card {

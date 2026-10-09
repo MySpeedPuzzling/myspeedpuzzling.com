@@ -5,12 +5,42 @@
 // tests/EventsIndexScriptTest.php, which runs it under node.
 //
 // Entry keys: id, k (e = one-time event, d = edition, s = series), n (name; an edition's: the series name), en (an
-// edition's own name), sl (a session's label), cm (the competition - sessions of one share it), sid (an edition's
-// series entry), u (link), f / t (first / last day, Y-m-d; t null for one day), lr (long-running), sc (scope key:
-// online / country code / ''), c (country code), p (place label), st (status: live, upcoming, past, tba, ongoing; null
-// for a series), r (results), w (waiting for approval), x (folded search text).
+// edition's own name), sl (a session's label), cm (the competition when it has two or more sessions - they share it;
+// null otherwise), sid (an edition's series entry), u (link), f / t (first / last day, Y-m-d; t null for one day), lr
+// (long-running), sc (scope key: online / country code / ''), c (country code), p (place label), st (status: live,
+// upcoming, past, tba, ongoing; null for a series), r (results), w (waiting for approval), x (folded search text, with
+// the names of revealed round puzzles).
+//
+// The page ships the index compact (EventsIndexFactory::compact(), docs/features/events-page/high-frequency-series.md
+// P25): keys holding their default are left out, and an edition carries only what differs from its series' entry
+// (`n`, `sc`, `c`, `p` when they differ, its link as `es` = its path after its series' path, only its own words in
+// `x`). readEventsIndex() rebuilds the full entries (expandEventsIndex()) - every reader (search, calendar, archive,
+// country views) sees exactly what the server's index holds; tests/EventsIndexScriptTest.php pins that.
 
 import { foldSearchText } from './search_fold.js';
+
+// EventsIndexFactory::DEFAULTS - what a key holds when the shipped entry leaves it out; also the full entry's key order
+const ENTRY_DEFAULTS = {
+    n: null,
+    en: null,
+    sl: null,
+    cm: null,
+    sid: null,
+    u: null,
+    f: null,
+    t: null,
+    lr: false,
+    sc: '',
+    c: null,
+    p: null,
+    st: null,
+    r: false,
+    w: false,
+    x: '',
+};
+
+// EventsIndexFactory::INHERITED - an edition takes these from its series entry when it leaves them out
+const INHERITED = ['n', 'sc', 'c', 'p'];
 
 // EventsPageBuilder::LONG_RUN_DAYS - over this many days an occurrence shows only its first day ("Runs until …")
 export const LONG_RUN_DAYS = 14;
@@ -37,10 +67,98 @@ export function readEventsIndex(root) {
     try {
         const entries = JSON.parse(script.textContent || '[]');
 
-        return Array.isArray(entries) ? entries : [];
+        return Array.isArray(entries) ? expandEventsIndex(entries) : [];
     } catch {
         return [];
     }
+}
+
+/**
+ * The full entries of a compact index (EventsIndexFactory::compact()): every key with its default when left out, and
+ * an edition completed from its series entry (`sid`) - its name, scope, country and place unless it has its own, its
+ * link from its series' link + "/" + `es`, its search text = its own words + its series'. The position is the id.
+ *
+ * @returns {Array<Object>}
+ */
+export function expandEventsIndex(entries) {
+    if (!Array.isArray(entries)) {
+        return [];
+    }
+
+    const has = (entry, key) => Object.prototype.hasOwnProperty.call(entry, key);
+
+    return entries.map((raw) => {
+        const entry = raw && typeof raw === 'object' ? raw : {};
+        const full = { id: entry.id, k: entry.k };
+
+        Object.keys(ENTRY_DEFAULTS).forEach((key) => {
+            full[key] = has(entry, key) ? entry[key] : ENTRY_DEFAULTS[key];
+        });
+
+        const sid = entry.sid;
+        const series = entry.k === 'd' && Number.isInteger(sid) ? entries[sid] : null;
+
+        if (!series || typeof series !== 'object' || series.k !== 's' || series.id !== sid) {
+            return full;
+        }
+
+        INHERITED.forEach((key) => {
+            if (!has(entry, key)) {
+                full[key] = has(series, key) ? series[key] : ENTRY_DEFAULTS[key];
+            }
+        });
+
+        if (!has(entry, 'u') && has(entry, 'es') && typeof series.u === 'string' && series.u !== '') {
+            full.u = `${series.u}/${entry.es}`;
+        }
+
+        const own = typeof entry.x === 'string' ? entry.x : '';
+        const seriesText = typeof series.x === 'string' ? series.x : '';
+        full.x = own !== '' && seriesText !== '' ? `${own} ${seriesText}` : own + seriesText;
+
+        return full;
+    });
+}
+
+/**
+ * EventsPageBuilder::archiveYears() for one year's past entries: several editions of one series are one line placed at
+ * its newest edition, lines newest first; each line belongs to the scope of its (newest) occurrence. The sessions of one
+ * edition or one-time event (same `cm`) are one line too; `editions` counts competitions (`cm ?? id`), never sessions.
+ *
+ * @returns {Array<{entries: Array<Object>, newest: Object, editions: number, sort: string, title: string, scope: string}>}
+ */
+export function archiveLinesOf(entries) {
+    const keyOf = (entry) => (entry.k === 'd' && entry.sid !== null && entry.sid !== undefined ? `s${entry.sid}` : `c${entry.cm ?? entry.id}`);
+    const byKey = new Map();
+
+    entries.forEach((entry) => {
+        byKey.set(keyOf(entry), [...(byKey.get(keyOf(entry)) ?? []), entry]);
+    });
+
+    const lines = [];
+    const rolledUp = new Set();
+
+    entries.forEach((entry) => {
+        const key = keyOf(entry);
+        const grouped = byKey.get(key);
+
+        if (grouped.length >= 2) {
+            if (!rolledUp.has(key)) {
+                rolledUp.add(key);
+                const sorted = [...grouped].sort((a, b) => (a.f < b.f ? -1 : a.f > b.f ? 1 : 0));
+                const newest = sorted[sorted.length - 1];
+                const editions = new Set(sorted.map((item) => item.cm ?? item.id)).size;
+                lines.push({ entries: sorted, newest, editions, sort: newest.f, title: newest.n, scope: newest.sc ?? '' });
+            }
+
+            return;
+        }
+
+        lines.push({ entries: [entry], newest: entry, editions: 1, sort: entry.f, title: entry.n, scope: entry.sc ?? '' });
+    });
+
+    return lines.sort((a, b) => (a.sort < b.sort ? 1 : a.sort > b.sort ? -1 : 0)
+        || foldSearchText(a.title).localeCompare(foldSearchText(b.title)));
 }
 
 /**

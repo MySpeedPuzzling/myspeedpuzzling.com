@@ -106,7 +106,11 @@ counts, and "More countries…") and, in the list view, a **mini calendar** whos
 **Month roll-up**: several upcoming editions of one series in the same month are **one row**: the series name,
 "3 sessions" and a date chip per edition (each chip opens its edition page; the name opens the series page). The leaf
 shows the first date. Sessions of one edition (rounds on separate days, see "Dates") roll up the same way, a chip
-per session linking `#round-<id>` on the edition page. Live editions are never rolled up (they are under Live).
+per session linking `#round-<id>` on the edition page. Live editions are never rolled up (they are under Live). At most
+**6 chips** (`EventsPageBuilder::MAX_SESSION_CHIPS`), then **"+N more →"** to the series page - the row still stands
+for every session (its `data-ev-ids`, the month's date count, a search hit), and "+N more" carries the ids of the
+sessions behind it, so the calendar's day lights it up like a chip
+([high-frequency-series.md](high-frequency-series.md#events-page-agenda)).
 
 ### Registration and results tags
 
@@ -214,8 +218,11 @@ The full table with organizations, drafts and the organization page is in
 ## Search
 
 One field searches every event, edition and series, past included: name, series name, city, country (localised and
-English), year, "online", and the name and short name of its organization (publicly visible organizations only - a
-draft or pending organization's name finds nothing). **Every typed word must match**; `wjpc` and `ejpc` also match their full names. Text is
+English), year, "online", the name and short name of its organization (publicly visible organizations only - a
+draft or pending organization's name finds nothing) and the names of its **revealed** round puzzles (never one a round
+still keeps secret - `RoundPuzzleReveal::sqlHidden()`, `puzzle.hide_until`; they ride in the rounds JSON of the one
+occurrences statement). An edition matches when every word is in its own text or its series' (the index ships an
+edition's own words only). **Every typed word must match**; `wjpc` and `ejpc` also match their full names. Text is
 folded on the server with `SearchText::fold()` and the typed query in the browser with `foldSearchText()`
 (`assets/search_fold.js`) - the same fold. Results: Upcoming (rows), Past (newest 30 lines, editions one by one, with
 the year), Series, Ongoing. Search honours the selected scope.
@@ -344,8 +351,13 @@ step with the state (`history.replaceState`), and the server renders the same st
 
 A fixed number of statements per page view (occurrences, series, going counts; signed in: one viewer statement, plus
 the permissions statement the voters already share), guarded by a query-budget test. The page ships a search and
-calendar index of every occurrence and series (~230 entries, roughly 35 KB raw, under 10 KB gzipped). The page shows
-no player identity - only counts ("41 going").
+calendar index of every occurrence and series (~230 entries, roughly 35 KB raw, under 10 KB gzipped) - **compact**
+(`EventsIndexFactory::compact()`): keys holding their default are left out, and an edition entry carries only what
+differs from its series' entry (name, place, scope and country come from it, the link is the path after the series',
+only its own words in the search text). `expandEventsIndex()` of `assets/events_index.js` rebuilds the full entries on
+read, so search, calendar, archive and country views read what the server's index holds (`EventsIndexScriptTest`). 200
+editions of one series add ~28 KB raw / ~3 KB gzip (`EventsIndexWeightTest`, budget 40 KB). The page shows no player
+identity - only counts ("41 going").
 
 ## Later (phase 2/3, tracked in docs/TODO.md)
 

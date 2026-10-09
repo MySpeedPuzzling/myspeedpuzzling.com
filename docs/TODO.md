@@ -10,6 +10,12 @@ that would otherwise be forgotten. Newest section on top.
   are Jan's), and ask for (a) the exact start time of each past contest - the backfill gave every round 19:00 Central
   European Time - and (b) the official number/name of contests whose official results were not published at conversion
   time (one contest is named by its date only). Fix both through the internal API (round `PATCH`, edition `PATCH`).
+  Result of the conversion: 169 contests created from the organiser's published results (dates and categories
+  checked against the logged results), 5,152 results → 5,026 matched by puzzle, 12 by date, **114 series-level** -
+  110 of them are one team's weekly team-format runs (May-Aug) on the puzzles of a teams-marathon contest that was
+  **not created** (its published sheet carries no puzzle list; creating it would pull all those runs onto it by
+  puzzle). Decide with the organiser whether to add that contest. The pre-conversion snapshot (JSON) and the rollback
+  notes are in `/root` on lily, dated 2026-10-09.
 - [ ] **Importing upcoming contests** of a high-frequency series (e.g. from the organiser's shop listing or a feed):
   not built - editions are added by hand / through the internal API. Decide with the organiser whether they maintain
   them on MySpeedPuzzling themselves (organization team, "Add several dates").

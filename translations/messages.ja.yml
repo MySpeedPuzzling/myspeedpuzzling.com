@@ -7783,6 +7783,7 @@ organization:
     kind:
         association: "協会・連盟"
         club: "クラブ"
+        organizer: "イベント主催者"
         shop: "ショップ・ブランド"
         venue: "会場"
         community: "コミュニティ"

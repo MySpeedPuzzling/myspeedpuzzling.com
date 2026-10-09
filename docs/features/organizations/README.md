@@ -49,7 +49,7 @@ drafts.
 |---|---|
 | Name | **Organization** (American spelling, like "You organize"); entity `Organization`. |
 | Hierarchy | Organization → series → editions, and organization → one-time events. An **edition never has its own organization** - it belongs to its series' (a handler refuses one). One organization per item; co-hosts come later. Deleting an organization leaves its items without one (`ON DELETE SET NULL`). |
-| Fields | Name, short name, slug, logo, about, website, social links (icon from the host), country + region (free text), kind (association/federation, club, shop or brand, venue, community, other), team (maintainers), creator, approval like series, created at, draft. |
+| Fields | Name, short name, slug, logo, about, website, social links (icon from the host), country + region (free text), kind (association/federation, club, event organizer, shop or brand, venue, community, other), team (maintainers), creator, approval like series, created at, draft. |
 | Permissions | The organization's creator and team edit it, manage its team, create/edit/delete series and events under it and manage their editions, rounds and results, exactly like series maintainers do today. Admins can do everything. Implemented as more legs of the one statement in `GetCompetitionPermissions`. |
 | Approval | Any signed-in player can create an organization; it waits for an admin like a series. The internal API (and an admin on the web) creates approved ones. **A series or one-time event created under, or moved into, an approved organization by a member of its team (or an admin) needs no admin approval** - done explicitly in the handlers through one service, `OrganizationApprovalPolicy` (D2). |
 | Organization page | `organization_detail`, `/en/organizations/{slug}`, all 6 locales: header, About, "Coming up", "What we run", "Past". **No public team list** (private profiles and blocks would come into play; the team sees itself on the edit page). Indexable when approved and published, in the sitemap. Unknown slug → 404. |
@@ -109,7 +109,7 @@ drafts.
 | `socialLinks` (`social_links`) | jsonb | no, default `[]` | list of URLs, ≤ 10, http/https, unique - `SocialLinks` value |
 | `countryCode` (`country_code`) | varchar(255) | yes | lower-case ISO 3166-1 alpha-2 (normalised like `Competition::$locationCountryCode`) |
 | `region` | varchar(255) | yes | free text ≤ 120 ("Riverbend Valley", a state, a city) |
-| `kind` | varchar(255) enum `OrganizationKind` | yes | `association`, `club`, `shop`, `venue`, `community`, `other` |
+| `kind` | varchar(255) enum `OrganizationKind` | yes | `association`, `club`, `organizer` (an event organizer), `shop`, `venue`, `community`, `other` |
 | `isDraft` (`is_draft`) | bool | no, default false | |
 | `addedByPlayer` (`added_by_player_id`) | FK player | yes | the creator; nulled on account deletion |
 | `approvedAt`, `approvedByPlayer`, `rejectedAt`, `rejectedByPlayer`, `rejectionReason` | as `CompetitionSeries` | yes | |

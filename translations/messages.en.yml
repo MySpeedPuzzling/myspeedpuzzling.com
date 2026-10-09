@@ -8145,6 +8145,7 @@ organization:
     kind:
         association: "Association or federation"
         club: "Club"
+        organizer: "Event organizer"
         shop: "Shop or brand"
         venue: "Venue"
         community: "Community"

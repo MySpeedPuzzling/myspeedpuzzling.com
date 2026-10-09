@@ -7792,6 +7792,7 @@ organization:
     kind:
         association: "Verband oder Vereinigung"
         club: "Club"
+        organizer: "Veranstalter"
         shop: "Geschäft oder Marke"
         venue: "Veranstaltungsort"
         community: "Community"

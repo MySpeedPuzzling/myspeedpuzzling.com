@@ -7793,6 +7793,7 @@ organization:
     kind:
         association: "Asociación o federación"
         club: "Club"
+        organizer: "Organizador de eventos"
         shop: "Tienda o marca"
         venue: "Sede"
         community: "Comunidad"

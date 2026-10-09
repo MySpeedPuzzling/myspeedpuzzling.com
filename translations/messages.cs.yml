@@ -7790,6 +7790,7 @@ organization:
     kind:
         association: "Asociace nebo federace"
         club: "Klub"
+        organizer: "Pořadatel akcí"
         shop: "Obchod nebo značka"
         venue: "Místo konání"
         community: "Komunita"

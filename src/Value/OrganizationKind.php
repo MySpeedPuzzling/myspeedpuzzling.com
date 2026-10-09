@@ -12,6 +12,8 @@ enum OrganizationKind: string
     // An association or a federation
     case Association = 'association';
     case Club = 'club';
+    // Runs events and competitions as its main activity (online or in person)
+    case Organizer = 'organizer';
     // A shop or a brand
     case Shop = 'shop';
     case Venue = 'venue';

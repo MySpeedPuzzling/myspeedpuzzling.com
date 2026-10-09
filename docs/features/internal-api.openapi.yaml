@@ -2163,7 +2163,7 @@ components:
           description: Free text - a state, a region or a city.
         kind:
           type: [string, "null"]
-          enum: [association, club, shop, venue, community, other, null]
+          enum: [association, club, organizer, shop, venue, community, other, null]
         maintainerIds:
           type: [array, "null"]
           maxItems: 10
@@ -2187,7 +2187,7 @@ components:
           items: { type: string }
         countryCode: { type: [string, "null"] }
         region: { type: [string, "null"] }
-        kind: { type: [string, "null"], enum: [association, club, shop, venue, community, other, null] }
+        kind: { type: [string, "null"], enum: [association, club, organizer, shop, venue, community, other, null] }
         status:
           type: string
           enum: [approved, pending, rejected]
@@ -2438,7 +2438,7 @@ components:
           description: The organization's slug - free among organizations (409 otherwise); may be the series' current slug. Left out, generated from the name.
         kind:
           type: [string, "null"]
-          enum: [association, club, shop, venue, community, other, null]
+          enum: [association, club, organizer, shop, venue, community, other, null]
         countryCode:
           type: [string, "null"]
           description: ISO 3166-1 alpha-2 - left out, the series' country.

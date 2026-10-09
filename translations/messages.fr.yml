@@ -7794,6 +7794,7 @@ organization:
     kind:
         association: "Association ou fédération"
         club: "Club"
+        organizer: "Organisateur d'événements"
         shop: "Boutique ou marque"
         venue: "Lieu"
         community: "Communauté"

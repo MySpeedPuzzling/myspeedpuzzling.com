@@ -672,7 +672,7 @@ answers 404 again). An explicit slug change (`PATCH`) writes no redirect.
 | `socialLinks` | A list of `http(s)` URLs (each ≤ 255 characters), at most 10 after duplicates are dropped (the icon comes from the host: Instagram, Facebook, Discord, YouTube, …). A list replaces the whole list; `[]` or `null` removes every link |
 | `countryCode` | ISO 3166-1 alpha-2, any letter case |
 | `region` | Free text ≤ 120 characters (a state, a region, a city) |
-| `kind` | `association`, `club`, `shop`, `venue`, `community`, `other` - or `null` |
+| `kind` | `association`, `club`, `organizer` (runs events and competitions as its main activity), `shop`, `venue`, `community`, `other` - or `null` |
 | `maintainerIds` | The team besides its creator, at most 10 - a list replaces it, `[]` empties it, left out or `null` keeps it; an unknown player id is a `404` |
 | `draft` | See Drafts |
 

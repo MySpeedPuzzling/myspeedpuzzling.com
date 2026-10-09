@@ -4,7 +4,8 @@
     1. "I'm going!" / "✓ You're going!" / managed: "Registration" (_going_action); once it is over "Add my time" instead.
        An event without rounds that has started also gets "Add my time" here (its rounds carry their own otherwise).
     2. The labelled follow star (an edition follows its series, an event itself).
-    3. Registration ↗ (not managed, not over), Website ↗, Results ↗ (external, once there are results to look at).
+    3. Registration ↗ (not managed, not over), Website ↗, Official results ↗ (external - the organiser's own page, once
+       the event has started: an ongoing online event publishes results after every contest).
     4. ⋯ for the organisers the voter allows, Delete returning to the page's parent.
     Variables: the page's event, attendance, event_title, is_publicly_visible, timeline, can_add_time, follow_target,
     following, manage, delete_return; follow_kind ('series'|'event'), follow_name
@@ -20,7 +21,7 @@
 {% if event.link %}
     <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ event.link }}">{{ 'events.website_link'|trans }}<span class="ev-action-ext" aria-hidden="true">↗</span></a>
 {% endif %}
-{% if event.resultsLink and (event_title.isPast or timeline.roundsWithResults > 0) %}
+{% if event.resultsLink and (not event_title.isUpcoming or timeline.roundsWithResults > 0) %}
     <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ event.resultsLink }}">{{ 'events.results_link'|trans }}<span class="ev-action-ext" aria-hidden="true">↗</span></a>
 {% endif %}
 {% if is_granted('IS_AUTHENTICATED_REMEMBERED') and is_granted('COMPETITION_EDIT', event.id) %}

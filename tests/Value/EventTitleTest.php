@@ -60,6 +60,7 @@ final class EventTitleTest extends TestCase
         $title = EventTitle::forCompetition($this->competition('Northern Puzzle Marathon', '2026-10-24', '2026-10-24'), null, [], $this->today());
 
         self::assertFalse($title->isPast);
+        self::assertTrue($title->isUpcoming);
         self::assertSame('Northern Puzzle Marathon 2026', $title->label());
     }
 
@@ -68,6 +69,7 @@ final class EventTitleTest extends TestCase
         $title = EventTitle::forCompetition($this->competition('Weekend Cup', '2026-09-28', '2026-09-30'), null, [], $this->today());
 
         self::assertFalse($title->isPast);
+        self::assertFalse($title->isUpcoming, 'It has started');
     }
 
     public function testMultiDayEventIsPastOnlyAfterItsLastDay(): void
@@ -86,6 +88,7 @@ final class EventTitleTest extends TestCase
         $title = EventTitle::forCompetition($this->competition('Puzzle Chat Club', null, null), null, [], $this->today());
 
         self::assertFalse($title->isPast);
+        self::assertFalse($title->isUpcoming, 'An ongoing online event is running, not waiting to start');
         self::assertNull($title->year);
         self::assertNull($title->startsAt);
         self::assertSame('Puzzle Chat Club', $title->label());

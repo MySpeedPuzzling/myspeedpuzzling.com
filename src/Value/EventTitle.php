@@ -19,6 +19,8 @@ use SpeedPuzzling\Web\Results\EditionRoundDetail;
  * - The event is over once its last day is before today - date_to ?? date_from, compared by calendar
  *   day like CompetitionEvent::startsAfter() and the event lists. Its pages then say "Results" - but
  *   only when MySpeedPuzzling has results for it (saysResults()).
+ * - It is upcoming while its first day is after today. An undated event is never upcoming - an ongoing
+ *   online event (results published after every contest) is running, not waiting to start.
  *
  * Editions often have no dates of their own, only rounds - the round schedule stands in for them.
  */
@@ -32,6 +34,7 @@ readonly final class EventTitle
         public null|string $year,
         public null|DateTimeImmutable $startsAt,
         public bool $isPast,
+        public bool $isUpcoming,
     ) {
     }
 
@@ -64,6 +67,7 @@ readonly final class EventTitle
             year: $startsAt !== null && preg_match(self::YEAR_PATTERN, $name) !== 1 ? $startsAt->format('Y') : null,
             startsAt: $startsAt,
             isPast: $endsAt !== null && $endsAt->format('Y-m-d') < $today->format('Y-m-d'),
+            isUpcoming: $startsAt !== null && $startsAt->format('Y-m-d') > $today->format('Y-m-d'),
         );
     }
 

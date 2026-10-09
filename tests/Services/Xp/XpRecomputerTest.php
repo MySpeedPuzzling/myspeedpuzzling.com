@@ -38,8 +38,9 @@ final class XpRecomputerTest extends KernelTestCase
         // A pre-existing achievement entry must survive the rebuild untouched.
         $badgeId = $this->insertAchievementEntry($playerId, xp: 25);
 
-        // Two solves after the full-formula cutoff exercise weekly boost + daily warm-up.
-        $afterCutoff = XpCalculator::fullFormulaFrom()->modify('+10 days');
+        // Two solves after the full-formula cutoff exercise weekly boost + daily warm-up - in a week without other
+        // solves of the player: the fixture solves are dated relative to now and would take the warm-up of their day
+        $afterCutoff = $this->wednesdayOfAWeekWithoutSolves($playerId);
         $solveA = $this->insertSolve($playerId, PuzzleFixture::PUZZLE_500_04, 3600, $afterCutoff->setTime(9, 0), 500);
         $solveB = $this->insertSolve($playerId, PuzzleFixture::PUZZLE_1500_02, 7200, $afterCutoff->setTime(15, 0), 1500);
 
@@ -137,6 +138,31 @@ final class XpRecomputerTest extends KernelTestCase
         $this->recompute($playerId);
 
         self::assertSame([], $this->entriesFor($suspicious));
+    }
+
+    private function wednesdayOfAWeekWithoutSolves(string $playerId): \DateTimeImmutable
+    {
+        $monday = XpCalculator::fullFormulaFrom()->modify('monday next week');
+
+        while (true) {
+            $solvesInWeek = (int) $this->database->fetchOne(
+                'SELECT COUNT(*) FROM puzzle_solving_time
+                 WHERE player_id = :playerId
+                   AND COALESCE(finished_at, tracked_at) >= :from
+                   AND COALESCE(finished_at, tracked_at) < :to',
+                [
+                    'playerId' => $playerId,
+                    'from' => $monday->format('Y-m-d H:i:s'),
+                    'to' => $monday->modify('+7 days')->format('Y-m-d H:i:s'),
+                ],
+            );
+
+            if ($solvesInWeek === 0) {
+                return $monday->modify('+2 days');
+            }
+
+            $monday = $monday->modify('+7 days');
+        }
     }
 
     private function recompute(string $playerId): void

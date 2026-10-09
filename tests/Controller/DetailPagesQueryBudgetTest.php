@@ -45,7 +45,8 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         yield 'series, guest' => [self::HARBOR, null, 3];
         // + the viewer's going/follow rows, the permissions statement and the signed-in overhead (4)
         yield 'series, player' => [self::HARBOR, PlayerFixture::PLAYER_REGULAR, 9];
-        yield 'series, organiser' => [self::HARBOR, PlayerFixture::PLAYER_ADMIN, 9];
+        // + the XP ring in the header (GetXpProfile) - admins only while the xp-system flag is on
+        yield 'series, organiser' => [self::HARBOR, PlayerFixture::PLAYER_ADMIN, 10];
         // Nothing coming: no going counts
         yield 'series without editions, guest' => [self::SUMMIT, null, 2];
         yield 'series without editions, player' => [self::SUMMIT, PlayerFixture::PLAYER_REGULAR, 8];
@@ -53,11 +54,13 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         yield 'edition, guest' => [self::SEASON_ONE, null, 12];
         // + the signed-in overhead (4), statuses, attendance and the permissions statement
         yield 'edition, player' => [self::SEASON_ONE, PlayerFixture::PLAYER_REGULAR, 19];
-        yield 'edition, organiser' => [self::SEASON_ONE, PlayerFixture::PLAYER_ADMIN, 19];
+        // + the XP ring in the header (GetXpProfile) - admins only while the xp-system flag is on
+        yield 'edition, organiser' => [self::SEASON_ONE, PlayerFixture::PLAYER_ADMIN, 20];
         // Below the old wjpc-2024 page (16): round puzzles are no longer read a second time; the marketplace card's one
         yield 'event, guest' => [self::HILLTOP, null, 12];
         yield 'event, player' => [self::HILLTOP, PlayerFixture::PLAYER_REGULAR, 19];
-        yield 'event, organiser' => [self::HILLTOP, PlayerFixture::PLAYER_ADMIN, 19];
+        // + the XP ring in the header (GetXpProfile) - admins only while the xp-system flag is on
+        yield 'event, organiser' => [self::HILLTOP, PlayerFixture::PLAYER_ADMIN, 20];
     }
 
     #[DataProvider('providePages')]

@@ -11,6 +11,7 @@ final class FeaturesOptionsFormData
     public bool $streakOptedOut = false;
     public bool $rankingOptedOut = false;
     public bool $timePredictionsOptedOut = false;
+    public bool $experienceSystemOptedOut = false;
 
     public static function fromPlayerProfile(PlayerProfile $playerProfile): self
     {
@@ -18,6 +19,7 @@ final class FeaturesOptionsFormData
         $data->streakOptedOut = $playerProfile->streakOptedOut;
         $data->rankingOptedOut = $playerProfile->rankingOptedOut;
         $data->timePredictionsOptedOut = $playerProfile->timePredictionsOptedOut;
+        $data->experienceSystemOptedOut = $playerProfile->experienceSystemOptedOut;
 
         return $data;
     }

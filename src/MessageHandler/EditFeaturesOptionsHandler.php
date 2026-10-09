@@ -27,5 +27,9 @@ readonly final class EditFeaturesOptionsHandler
         $player->changeStreakOptedOut($message->streakOptedOut);
         $player->changeRankingOptedOut($message->rankingOptedOut);
         $player->changeTimePredictionsOptedOut($message->timePredictionsOptedOut);
+
+        if ($message->experienceSystemOptedOut !== null) {
+            $player->changeExperienceSystemOptedOut($message->experienceSystemOptedOut);
+        }
     }
 }

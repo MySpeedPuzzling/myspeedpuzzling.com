@@ -6,11 +6,20 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Message\DeleteObsoletePuzzleImage;
 use SpeedPuzzling\Web\Message\DeletePageSectionImages;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
+use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
 use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
+use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
+use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
+use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
+use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
+use SpeedPuzzling\Web\Message\SendXpRevealEmail;
+use SpeedPuzzling\Web\Message\SettleXpBonuses;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
 return App::config([
@@ -52,6 +61,17 @@ return App::config([
                         'max_delay' => 1800000,
                     ],
                 ],
+                // Dedicated queue on the same Doctrine table, drained by the digest
+                // consumer container — SMTP pacing stays isolated from transactional mail.
+                'content_digest_emails' => [
+                    'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=content_digest_emails',
+                    'retry_strategy' => [
+                        'max_retries' => 5,
+                        'delay' => 60_000,         // 1m → 4m → 16m → 64m → 4h (capped)
+                        'multiplier' => 4,
+                        'max_delay' => 14_400_000, // 4h
+                    ],
+                ],
             ],
             'routing' => [
                 SendEmailMessage::class => 'async',
@@ -64,6 +84,15 @@ return App::config([
                 DeletePlayerStoredFiles::class => 'async',
                 DeleteObsoletePuzzleImage::class => 'async',
                 DeletePageSectionImages::class => 'async',
+                RecalculateBadgesForPlayer::class => 'async',
+                RecalculateXpForPlayer::class => 'async',
+                AwardXpForSolvingTime::class => 'async',
+                RecalculateXpChainForSolve::class => 'async',
+                CompensateXpForDeletedSolve::class => 'async',
+                SettleXpBonuses::class => 'async',
+                SendPlayerContentDigest::class => 'content_digest_emails',
+                SendBadgeNotificationEmail::class => 'async',
+                SendXpRevealEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

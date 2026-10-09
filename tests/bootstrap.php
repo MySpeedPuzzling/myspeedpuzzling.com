@@ -266,6 +266,17 @@ function createCustomIndexes(): void
     // Review queue counts in the key menu: hidden and unapproved puzzles (Version20261008100000)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_hidden ON puzzle (id) WHERE hide_until IS NOT NULL OR hide_image_until IS NOT NULL');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_unapproved ON puzzle (id) INCLUDE (hide_until, hide_image_until) WHERE approved = false');
+    // Badge uniqueness — partial indexes for tiered vs single-tier badges (Version20260416210601)
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_tiered ON badge (player_id, type, tier) WHERE tier IS NOT NULL');
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_single_tier ON badge (player_id, type) WHERE tier IS NULL');
+
+    // Weekly-delta leaderboard window (Version20260713175512)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_xp_entry_weekly_delta ON xp_entry (earned_at, player_id, amount) WHERE in_weekly_delta = true');
+
+    // XP ledger idempotency anchors (Version20260713131333) — player_id is part of the key
+    // because every team participant earns entries for the same solve.
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_xp_entry_solve_reason ON xp_entry (player_id, solving_time_id, reason) WHERE solving_time_id IS NOT NULL AND reason != 'solve_compensation'");
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_xp_entry_badge ON xp_entry (badge_id) WHERE badge_id IS NOT NULL');
 }
 
 /**

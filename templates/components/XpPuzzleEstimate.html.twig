@@ -1,0 +1,20 @@
+{% if visible %}
+    <div class="fs-sm mt-1" id="xp-puzzle-estimate">
+        <span class="text-muted">
+            <i class="ci-star me-1" aria-hidden="true"></i>
+            {{ 'xp.estimate.line'|trans({'%base%': baseXp, '%bonus%': bonusXp}) }}
+        </span>
+
+        {% if viewerSolveCount > 0 %}
+            <br>
+            <small class="text-muted">
+                {{ 'xp.estimate.repeat_note'|trans({'%multiplier%': viewerSolveCount == 1 ? '50' : '25'}) }}
+            </small>
+        {% endif %}
+
+        {% if this.isUnrated %}
+            <br>
+            <small class="text-muted fst-italic">{{ 'xp.estimate.unrated_note'|trans }}</small>
+        {% endif %}
+    </div>
+{% endif %}

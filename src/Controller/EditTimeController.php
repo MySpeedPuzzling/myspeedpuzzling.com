@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Message\RecordDuplicatePrevention;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetXpEntriesForSolve;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
@@ -29,6 +30,7 @@ use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeFormCheck;
 use SpeedPuzzling\Web\Value\CompetitionPick;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
@@ -64,6 +66,8 @@ final class EditTimeController extends AbstractController
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
         readonly private SuspiciousTimeFormCheck $suspiciousTimeFormCheck,
+        readonly private GetXpEntriesForSolve $getXpEntriesForSolve,
+        readonly private XpFeatureGate $xpFeatureGate,
     ) {
     }
 
@@ -335,6 +339,11 @@ final class EditTimeController extends AbstractController
             'pace_check' => $paceCheck,
             'pace_confirmed' => $paceConfirmed,
             'kept_photos' => $this->formPhotoStash->keep($editTimeForm, $restoredPhotos, $player->playerId),
+            // Delete dialog warning: how much XP disappears with this solve (0 = hide line). Only the tracker gets the
+            // dialog (docs/features/group-time-editing.md), so a group member editing the time costs no query
+            'xp_delete_warning' => $solvedPuzzle->playerId === $player->playerId && $this->xpFeatureGate->isVisibleFor($player)
+                ? max($this->getXpEntriesForSolve->totalForPlayerAndSolvingTime($player->playerId, $timeId), 0)
+                : 0,
         ];
 
         if ($isModalRequest) {

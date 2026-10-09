@@ -4,238 +4,292 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetSelectableCompetitions;
 use SpeedPuzzling\Web\Results\SelectableCompetition;
-use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
-use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
+use SpeedPuzzling\Web\Value\CompetitionPick;
+use SpeedPuzzling\Web\Value\CompetitionPickKind;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
+/**
+ * The "Competition / event" picker's default list (docs/features/events-page/high-frequency-series.md "The default
+ * list"): one-time events and series, one entry each - never an edition unless it is the current pick or a refused
+ * submit's public choice.
+ */
 final class GetSelectableCompetitionsTest extends KernelTestCase
 {
-    private const string UNDATED_STANDALONE = '018d0004-0000-0000-0000-0000000000a1';
-    private const string REJECTED_STANDALONE = '018d0004-0000-0000-0000-0000000000a2';
-    private const string UNDATED_EDITION_WITH_ROUND = '018d0005-0000-0000-0000-0000000000a3';
-    private const string UNDATED_EDITION_ROUND = '018d0005-0000-0000-0000-0000000000a4';
-
     private GetSelectableCompetitions $query;
     private Connection $database;
+    private SeriesEditionScenario $scenario;
+    private DateTimeImmutable $today;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $this->query = self::getContainer()->get(GetSelectableCompetitions::class);
         $this->database = self::getContainer()->get(Connection::class);
+        $this->scenario = new SeriesEditionScenario(self::getContainer());
+        $this->today = self::getContainer()->get(ClockInterface::class)->now();
     }
 
-    public function testApprovedStandaloneCompetitionsAreSelectableRegardlessOfDate(): void
+    public function testNoEditionIsInTheDefaultListOnlyItsSeries(): void
     {
-        $byId = $this->byId($this->query->all());
-
-        // upcoming
-        self::assertArrayHasKey(CompetitionFixture::COMPETITION_WJPC_2024, $byId);
-        self::assertArrayHasKey(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, $byId);
-        self::assertSame('upcoming', $byId[CompetitionFixture::COMPETITION_WJPC_2024]->eventStatus);
-        self::assertNull($byId[CompetitionFixture::COMPETITION_WJPC_2024]->seriesId);
-
-        // live
-        self::assertArrayHasKey(CompetitionFixture::COMPETITION_RECURRING_ONLINE, $byId);
-        self::assertSame('live', $byId[CompetitionFixture::COMPETITION_RECURRING_ONLINE]->eventStatus);
-    }
-
-    public function testUnapprovedAndRejectedStandaloneCompetitionsAreNotSelectable(): void
-    {
-        $this->insertStandalone(self::REJECTED_STANDALONE, 'Rejected Standalone', approved: true, rejected: true);
-
-        $byId = $this->byId($this->query->all());
-
-        self::assertArrayNotHasKey(CompetitionFixture::COMPETITION_UNAPPROVED, $byId);
-        self::assertArrayNotHasKey(self::REJECTED_STANDALONE, $byId);
-        self::assertArrayNotHasKey(CompetitionApiFixture::COMPETITION_API_REJECTED, $byId);
-    }
-
-    public function testEditionsOfApprovedSeriesAreSelectableWithSeriesData(): void
-    {
-        $byId = $this->byId($this->query->all());
-
-        $expectedSeries = [
-            CompetitionSeriesFixture::EDITION_EJJ_68 => CompetitionSeriesFixture::SERIES_EJJ,
-            CompetitionSeriesFixture::EDITION_EJJ_69 => CompetitionSeriesFixture::SERIES_EJJ,
-            CompetitionSeriesFixture::EDITION_OFFLINE_1 => CompetitionSeriesFixture::SERIES_OFFLINE,
-            CompetitionSeriesFixture::EDITION_PAST_ONLY_1 => CompetitionSeriesFixture::SERIES_PAST_ONLY,
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $editions = [
+            $this->scenario->edition($seriesId, 'Jam No. 153', $this->day(-9)),
+            $this->scenario->edition($seriesId, 'Jam No. 154', $this->day(-2)),
+            $this->scenario->edition($seriesId, 'Jam No. 155', $this->day(5)),
         ];
 
-        foreach ($expectedSeries as $editionId => $seriesId) {
-            self::assertArrayHasKey($editionId, $byId);
-            self::assertSame($seriesId, $byId[$editionId]->seriesId);
-            self::assertNotNull($byId[$editionId]->seriesName);
+        $all = $this->query->all();
+        $byValue = $this->byValue($all);
+
+        self::assertArrayHasKey('series:' . $seriesId, $byValue);
+        self::assertSame(SelectableCompetition::KIND_SERIES, $byValue['series:' . $seriesId]->kind);
+        self::assertSame('Lantern Weekly Jam', $byValue['series:' . $seriesId]->name);
+        self::assertSame(3, $byValue['series:' . $seriesId]->editionCount);
+
+        foreach ($all as $competition) {
+            self::assertNotSame(SelectableCompetition::KIND_EDITION, $competition->kind, 'No edition in the default list: ' . $competition->name);
+            self::assertNotContains($competition->id, $editions);
         }
 
-        self::assertSame('Euro Jigsaw Jam', $byId[CompetitionSeriesFixture::EDITION_EJJ_68]->seriesName);
-        self::assertSame('past', $byId[CompetitionSeriesFixture::EDITION_EJJ_68]->eventStatus);
-        self::assertSame('upcoming', $byId[CompetitionSeriesFixture::EDITION_OFFLINE_1]->eventStatus);
-        // Location falls back to the series when the edition has none
-        self::assertSame('Prague', $byId[CompetitionSeriesFixture::EDITION_OFFLINE_1]->location);
-
-        // Editions are never approved individually - the series approval governs them
-        self::assertNull($this->database->fetchOne(
-            'SELECT approved_at FROM competition WHERE id = :id',
-            ['id' => CompetitionSeriesFixture::EDITION_EJJ_68],
-        ));
+        // The fixtures' series are there as series too, their editions are not
+        self::assertArrayHasKey('series:' . EventsPageFixture::SERIES_HARBOR_NIGHTS, $byValue);
+        self::assertArrayNotHasKey(EventsPageFixture::EDITION_HARBOR_1, $byValue);
+        self::assertArrayNotHasKey('edition:' . EventsPageFixture::EDITION_HARBOR_1, $byValue);
     }
 
-    public function testEditionOfUnapprovedSeriesIsNotSelectable(): void
+    public function testOneTimeEventsAreOfferedAsBefore(): void
     {
-        $byId = $this->byId($this->query->all());
+        $byValue = $this->byValue($this->query->all());
 
-        self::assertArrayNotHasKey(CompetitionSeriesFixture::EDITION_UNAPPROVED_1, $byId);
+        self::assertArrayHasKey(EventDetailFixture::COMPETITION_HILLTOP_WEEKEND, $byValue);
+        self::assertSame(SelectableCompetition::KIND_EVENT, $byValue[EventDetailFixture::COMPETITION_HILLTOP_WEEKEND]->kind);
+        self::assertNull($byValue[EventDetailFixture::COMPETITION_HILLTOP_WEEKEND]->seriesId);
+        self::assertArrayHasKey(EventsPageFixture::COMPETITION_RIVERSIDE_OPEN, $byValue);
+
+        // Waiting for approval, rejected, a draft - not offered
+        self::assertArrayNotHasKey(CompetitionFixture::COMPETITION_UNAPPROVED, $byValue);
+        self::assertArrayNotHasKey(EventsPageFixture::COMPETITION_GARDEN_SWAP_REJECTED, $byValue);
+        self::assertArrayNotHasKey(OrganizationFixture::COMPETITION_DRAFT_NIGHT, $byValue);
     }
 
-    public function testEditionOfRejectedSeriesIsNotSelectable(): void
+    public function testASeriesCarriesItsNextAndLastDateOrNone(): void
     {
-        self::assertArrayHasKey(CompetitionSeriesFixture::EDITION_PAST_ONLY_1, $this->byId($this->query->all()));
+        $both = $this->scenario->series('Moonlit Puzzle Sprints');
+        $this->scenario->edition($both, 'Sprint 1', $this->day(-20));
+        $this->scenario->edition($both, 'Sprint 2', $this->day(-6));
+        $this->scenario->edition($both, 'Sprint 3', $this->day(8));
 
+        $upcomingOnly = $this->scenario->series('Harbor Puzzle Club Evenings');
+        $this->scenario->edition($upcomingOnly, 'Evening 1', $this->day(12));
+
+        // H13: a series without editions is offered like any other ("No dates yet"), one with undated editions too
+        $empty = $this->scenario->series('Copper Kettle Puzzle Cup');
+        $undated = $this->scenario->series('Willow Lane Puzzle Nights');
+        $this->scenario->edition($undated, 'Summer Special', null);
+
+        $live = $this->scenario->series('Starling Puzzle Afternoons');
+        $this->scenario->edition($live, 'Afternoon 1', $this->day(0));
+
+        $byValue = $this->byValue($this->query->all());
+
+        $series = $byValue['series:' . $both];
+        self::assertSame('past', $series->eventStatus);
+        self::assertSame($this->day(-6), $series->lastDay?->format('Y-m-d'));
+        self::assertSame($this->day(8), $series->nextDay?->format('Y-m-d'));
+
+        self::assertSame('upcoming', $byValue['series:' . $upcomingOnly]->eventStatus);
+        self::assertNull($byValue['series:' . $upcomingOnly]->lastDay);
+        self::assertSame($this->day(12), $byValue['series:' . $upcomingOnly]->nextDay?->format('Y-m-d'));
+
+        self::assertSame('undated', $byValue['series:' . $empty]->eventStatus);
+        self::assertSame(0, $byValue['series:' . $empty]->editionCount);
+        self::assertNull($byValue['series:' . $empty]->nextDay);
+        self::assertNull($byValue['series:' . $empty]->lastDay);
+
+        self::assertSame('undated', $byValue['series:' . $undated]->eventStatus);
+        self::assertSame(1, $byValue['series:' . $undated]->editionCount);
+
+        self::assertSame('live', $byValue['series:' . $live]->eventStatus);
+    }
+
+    public function testOrderIsLiveThenUndatedOneTimeThenPastThenUpcomingThenSeriesWithoutDates(): void
+    {
+        $liveEvent = $this->insertOneTimeEvent('Lighthouse Live Puzzle Day', 0);
+        $perpetual = $this->insertOneTimeEvent('Ever Open Online Puzzle Room', null);
+        $pastEvent = $this->insertOneTimeEvent('Old Quarry Puzzle Race', -10);
+        $upcomingEvent = $this->insertOneTimeEvent('Pinecone Puzzle Fair', 20);
+
+        $liveSeries = $this->scenario->series('Starling Puzzle Afternoons');
+        $this->scenario->edition($liveSeries, 'Afternoon 1', $this->day(0));
+
+        // A series sorts by its latest past edition - newer than the past one-time event
+        $pastSeries = $this->scenario->series('Moonlit Puzzle Sprints');
+        $this->scenario->edition($pastSeries, 'Sprint 1', $this->day(-3));
+        $this->scenario->edition($pastSeries, 'Sprint 2', $this->day(30));
+
+        $upcomingSeries = $this->scenario->series('Harbor Puzzle Club Evenings');
+        $this->scenario->edition($upcomingSeries, 'Evening 1', $this->day(10));
+
+        $noDates = $this->scenario->series('Copper Kettle Puzzle Cup');
+
+        $index = array_flip(array_map(static fn (SelectableCompetition $c): string => $c->pick()->fieldValue(), $this->query->all()));
+
+        // live: one-time and series alike
+        self::assertLessThan($index[$perpetual], $index[$liveEvent]);
+        self::assertLessThan($index[$perpetual], $index['series:' . $liveSeries]);
+        // perpetual one-time events before the past
+        self::assertLessThan($index[$pastEvent], $index[$perpetual]);
+        // past newest first: the series (-3 days) before the one-time event (-10 days)
+        self::assertLessThan($index[$pastEvent], $index['series:' . $pastSeries]);
+        // upcoming soonest first, after every past entry
+        self::assertLessThan($index['series:' . $upcomingSeries], $index[$pastEvent]);
+        self::assertLessThan($index[$upcomingEvent], $index['series:' . $upcomingSeries]);
+        // a series without any dated edition closes the list
+        self::assertLessThan($index['series:' . $noDates], $index[$upcomingEvent]);
+    }
+
+    public function testTheCurrentPickIsOfferedEvenWhenNotPublic(): void
+    {
+        // A one-time event waiting for approval
+        $values = $this->values($this->query->all(CompetitionPick::event(CompetitionFixture::COMPETITION_UNAPPROVED)));
+        self::assertCount(1, array_keys($values, CompetitionFixture::COMPETITION_UNAPPROVED, true));
+
+        // A series waiting for approval - a series pick of the edited time
+        $pendingSeries = $this->scenario->series('Willow Lane Puzzle Nights', public: false);
+        self::assertNotContains('series:' . $pendingSeries, $this->values($this->query->all()));
+        $values = $this->values($this->query->all(CompetitionPick::series($pendingSeries)));
+        self::assertCount(1, array_keys($values, 'series:' . $pendingSeries, true));
+
+        // A draft edition - an explicit link of the edited time
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $draftEdition = $this->scenario->edition($seriesId, 'Jam No. 160', $this->day(3), draft: true);
+        $all = $this->query->all(CompetitionPick::edition($draftEdition));
+        $values = $this->values($all);
+        self::assertCount(1, array_keys($values, 'edition:' . $draftEdition, true));
+
+        // ... right after its series, carrying it for the optgroup
+        $index = array_flip($values);
+        self::assertSame($index['series:' . $seriesId] + 1, $index['edition:' . $draftEdition]);
+        $edition = $all[$index['edition:' . $draftEdition]];
+        self::assertSame(SelectableCompetition::KIND_EDITION, $edition->kind);
+        self::assertSame($seriesId, $edition->seriesId);
+        self::assertSame('Lantern Weekly Jam', $edition->seriesName);
+        self::assertSame('Jam No. 160', $edition->name);
+
+        // Already offered - never twice
+        $values = $this->values($this->query->all(CompetitionPick::series($seriesId)));
+        self::assertCount(1, array_keys($values, 'series:' . $seriesId, true));
+    }
+
+    public function testARefusedSubmitsEditionIsOfferedOnlyWhilePublic(): void
+    {
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $public = $this->scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+        $draft = $this->scenario->edition($seriesId, 'Jam No. 161', $this->day(4), draft: true);
+
+        self::assertContains('edition:' . $public, $this->values($this->query->all(submittedEditionId: $public)));
+        self::assertNotContains('edition:' . $draft, $this->values($this->query->all(submittedEditionId: $draft)));
+        self::assertNotContains('edition:' . $draft, $this->values($this->query->all(submittedEditionId: 'not-a-uuid')));
+    }
+
+    public function testDraftAndPendingSeriesAreNotOffered(): void
+    {
+        $draft = $this->scenario->series('Quiet Harbor Puzzle Series', draft: true);
+        $pending = $this->scenario->series('Willow Lane Puzzle Nights', public: false);
+
+        $values = $this->values($this->query->all());
+
+        self::assertNotContains('series:' . $draft, $values);
+        self::assertNotContains('series:' . $pending, $values);
+        self::assertNotContains('series:' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT, $values);
+        self::assertNotContains('series:' . EventsPageFixture::SERIES_OLD_MILL_REJECTED, $values);
+    }
+
+    public function testASeriesCarriesThePublicOrganizationsNames(): void
+    {
+        $byValue = $this->byValue($this->query->all());
+
+        $series = $byValue['series:' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL];
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND_NAME, $series->organizationName);
+        self::assertSame('RJA', $series->organizationShortName);
+
+        // A draft organization's names are no keywords
         $this->database->executeStatement(
-            'UPDATE competition_series SET rejected_at = now() WHERE id = :seriesId',
-            ['seriesId' => CompetitionSeriesFixture::SERIES_PAST_ONLY],
+            'UPDATE organization SET is_draft = true WHERE id = :id',
+            ['id' => OrganizationFixture::ORGANIZATION_RIVERBEND],
         );
 
-        self::assertArrayNotHasKey(CompetitionSeriesFixture::EDITION_PAST_ONLY_1, $this->byId($this->query->all()));
+        $series = $this->byValue($this->query->all())['series:' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL];
+        self::assertNull($series->organizationName);
+        self::assertNull($series->organizationShortName);
     }
 
-    public function testRejectedEditionIsNotSelectableEvenWhenItsSeriesIsApproved(): void
+    public function testPublicPickOfADeepLink(): void
     {
-        $this->database->executeStatement(
-            'UPDATE competition SET rejected_at = now() WHERE id = :id',
-            ['id' => CompetitionSeriesFixture::EDITION_EJJ_69],
-        );
+        $seriesId = $this->scenario->series('Lantern Weekly Jam');
+        $edition = $this->scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+        $draftEdition = $this->scenario->edition($seriesId, 'Jam No. 162', $this->day(6), draft: true);
 
-        $byId = $this->byId($this->query->all());
-
-        self::assertArrayNotHasKey(CompetitionSeriesFixture::EDITION_EJJ_69, $byId);
-        self::assertArrayHasKey(CompetitionSeriesFixture::EDITION_EJJ_68, $byId);
+        self::assertSame(CompetitionPickKind::Event, $this->query->publicPick(EventDetailFixture::COMPETITION_HILLTOP_WEEKEND)?->kind);
+        self::assertSame('edition:' . $edition, $this->query->publicPick($edition)?->fieldValue());
+        self::assertNull($this->query->publicPick($draftEdition));
+        self::assertNull($this->query->publicPick(CompetitionFixture::COMPETITION_UNAPPROVED));
+        self::assertNull($this->query->publicPick($seriesId), 'A series id is no competition');
+        self::assertNull($this->query->publicPick('not-a-uuid'));
     }
 
-    public function testGlobalOrderIsLiveThenUndatedStandaloneThenPastDescThenUpcomingAsc(): void
+    private function day(int $offset): string
     {
-        // Pin the live anchor so the assertion does not depend on how old the cached fixture database is
-        $this->database->executeStatement(
-            "UPDATE competition SET date_from = now(), date_to = now() + INTERVAL '2 days' WHERE id = :id",
-            ['id' => CompetitionFixture::COMPETITION_RECURRING_ONLINE],
-        );
-        $this->insertStandalone(self::UNDATED_STANDALONE, 'Perpetual Online Jam', approved: true, rejected: false);
-
-        $ids = array_map(static fn (SelectableCompetition $c): string => $c->id, $this->query->all());
-        $index = array_flip($ids);
-
-        self::assertLessThan($index[self::UNDATED_STANDALONE], $index[CompetitionFixture::COMPETITION_RECURRING_ONLINE]);
-        self::assertLessThan($index[CompetitionSeriesFixture::EDITION_EJJ_68], $index[self::UNDATED_STANDALONE]);
-        // past: newest first (-30 days before -45 days)
-        self::assertLessThan($index[CompetitionSeriesFixture::EDITION_PAST_ONLY_1], $index[CompetitionSeriesFixture::EDITION_EJJ_68]);
-        // upcoming after past, soonest first (+14 < +30 < +60 days)
-        self::assertLessThan($index[CompetitionSeriesFixture::EDITION_OFFLINE_1], $index[CompetitionSeriesFixture::EDITION_PAST_ONLY_1]);
-        self::assertLessThan($index[CompetitionFixture::COMPETITION_WJPC_2024], $index[CompetitionSeriesFixture::EDITION_OFFLINE_1]);
-        self::assertLessThan($index[CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024], $index[CompetitionFixture::COMPETITION_WJPC_2024]);
+        return $this->today->modify(sprintf('%+d days', $offset))->format('Y-m-d');
     }
 
-    public function testUndatedEditionWithRoundsIsDatedByItsFirstRound(): void
+    private function insertOneTimeEvent(string $name, null|int $dayOffset): string
     {
+        $id = Uuid::uuid7()->toString();
+
         $this->database->executeStatement(
             <<<SQL
-            INSERT INTO competition (id, name, is_online, series_id)
-            VALUES (:id, 'EJJ #67 - undated', true, :seriesId)
+            INSERT INTO competition (id, name, is_online, approved_at, date_from, date_to)
+            VALUES (:id, :name, true, NOW(), :day, :day)
             SQL,
-            ['id' => self::UNDATED_EDITION_WITH_ROUND, 'seriesId' => CompetitionSeriesFixture::SERIES_EJJ],
-        );
-        $this->database->executeStatement(
-            <<<SQL
-            INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, category)
-            VALUES (:id, :competitionId, 'EJJ #67', 120, now() - INTERVAL '40 days', 'solo')
-            SQL,
-            ['id' => self::UNDATED_EDITION_ROUND, 'competitionId' => self::UNDATED_EDITION_WITH_ROUND],
+            ['id' => $id, 'name' => $name, 'day' => $dayOffset !== null ? $this->day($dayOffset) : null],
         );
 
-        $all = $this->query->all();
-        $byId = $this->byId($all);
-        $index = array_flip(array_map(static fn (SelectableCompetition $c): string => $c->id, $all));
-
-        self::assertArrayHasKey(self::UNDATED_EDITION_WITH_ROUND, $byId);
-        self::assertNull($byId[self::UNDATED_EDITION_WITH_ROUND]->dateFrom);
-        self::assertSame('past', $byId[self::UNDATED_EDITION_WITH_ROUND]->eventStatus);
-        // -40 days sits between EJJ #68 (-30 days) and Berlin Puzzle Cup 2026 (-45 days)
-        self::assertLessThan($index[self::UNDATED_EDITION_WITH_ROUND], $index[CompetitionSeriesFixture::EDITION_EJJ_68]);
-        self::assertLessThan($index[CompetitionSeriesFixture::EDITION_PAST_ONLY_1], $index[self::UNDATED_EDITION_WITH_ROUND]);
-    }
-
-    public function testUndatedEditionWithoutRoundsSortsLast(): void
-    {
-        $this->database->executeStatement(
-            <<<SQL
-            INSERT INTO competition (id, name, is_online, series_id)
-            VALUES (:id, 'EJJ #?? - undated', true, :seriesId)
-            SQL,
-            ['id' => self::UNDATED_EDITION_WITH_ROUND, 'seriesId' => CompetitionSeriesFixture::SERIES_EJJ],
-        );
-
-        $all = $this->query->all();
-        $index = array_flip(array_map(static fn (SelectableCompetition $c): string => $c->id, $all));
-
-        self::assertArrayHasKey(self::UNDATED_EDITION_WITH_ROUND, $index);
-
-        // Undated ones close the list (EventsPageFixture has another undated edition)
-        foreach (array_slice($all, $index[self::UNDATED_EDITION_WITH_ROUND]) as $competition) {
-            self::assertSame('undated', $competition->eventStatus, $competition->id);
-        }
-    }
-
-    public function testAlwaysIncludedCompetitionIsReturnedExactlyOnce(): void
-    {
-        // Not selectable on its own (unapproved) - included for the edit form of a time linked to it
-        $ids = array_map(static fn (SelectableCompetition $c): string => $c->id, $this->query->all(CompetitionFixture::COMPETITION_UNAPPROVED));
-        self::assertCount(1, array_keys($ids, CompetitionFixture::COMPETITION_UNAPPROVED, true));
-
-        // Already selectable - must not be duplicated
-        $ids = array_map(static fn (SelectableCompetition $c): string => $c->id, $this->query->all(CompetitionFixture::COMPETITION_WJPC_2024));
-        self::assertCount(1, array_keys($ids, CompetitionFixture::COMPETITION_WJPC_2024, true));
-    }
-
-    public function testInvalidAlwaysIncludedIdIsIgnored(): void
-    {
-        $withInvalid = $this->query->all('not-a-uuid');
-        $plain = $this->query->all();
-
-        self::assertCount(count($plain), $withInvalid);
+        return $id;
     }
 
     /**
      * @param list<SelectableCompetition> $competitions
      * @return array<string, SelectableCompetition>
      */
-    private function byId(array $competitions): array
+    private function byValue(array $competitions): array
     {
-        $byId = [];
+        $byValue = [];
 
         foreach ($competitions as $competition) {
-            $byId[$competition->id] = $competition;
+            $byValue[$competition->pick()->fieldValue()] = $competition;
         }
 
-        return $byId;
+        return $byValue;
     }
 
-    private function insertStandalone(string $id, string $name, bool $approved, bool $rejected): void
+    /**
+     * @param list<SelectableCompetition> $competitions
+     * @return list<string>
+     */
+    private function values(array $competitions): array
     {
-        $this->database->executeStatement(
-            <<<SQL
-            INSERT INTO competition (id, name, location, is_online, approved_at, rejected_at)
-            VALUES (:id, :name, 'Online', true, :approvedAt, :rejectedAt)
-            SQL,
-            [
-                'id' => $id,
-                'name' => $name,
-                'approvedAt' => $approved ? '2026-01-01 00:00:00' : null,
-                'rejectedAt' => $rejected ? '2026-01-02 00:00:00' : null,
-            ],
-        );
+        return array_map(static fn (SelectableCompetition $c): string => $c->pick()->fieldValue(), $competitions);
     }
 }

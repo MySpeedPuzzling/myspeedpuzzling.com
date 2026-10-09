@@ -386,12 +386,20 @@
                             <i class="bi-trophy me-1"></i> {{ 'puzzle_add.competition_result'|trans }}
                         </button>
 
-                        <div class="card card-body shadow mb-3 {{ not competition_filled ? 'hidden' }}" data-toggle-target="competition" data-controller="competition-picker">
+                        {# One-time events and series (MySpeedPuzzling finds the edition); editions by typing (competition-picker)
+                           or from the preview's short list (series-edition-preview, fetched only once a series is chosen) -
+                           docs/features/events-page/high-frequency-series.md "The form" #}
+                        <div class="card card-body shadow mb-3 {{ not competition_filled ? 'hidden' }}"
+                             data-toggle-target="competition"
+                             data-controller="competition-picker series-edition-preview"
+                             data-competition-picker-editions-url-value="{{ path('competition_picker_editions') }}"
+                             data-series-edition-preview-url-value="{{ path('competition_picker_series_preview') }}">
                             {{ form_label(solving_time_form.competition) }}
-                            {{ form_widget(solving_time_form.competition) }}
+                            {{ form_widget(solving_time_form.competition, {'attr': {'data-series-edition-preview-target': 'field'}}) }}
                             {{ form_help(solving_time_form.competition) }}
-                            <div class="form-text">{{ 'forms.competition_hint_series'|trans }}</div>
+                            <div class="form-text">{{ 'series_picker.hint'|trans }}</div>
                             {{ form_errors(solving_time_form.competition) }}
+                            <div class="sp-preview" data-series-edition-preview-target="output" aria-live="polite"></div>
                         </div>
                     </div>
                 </div>

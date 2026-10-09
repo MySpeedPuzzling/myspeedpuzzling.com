@@ -6,15 +6,20 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\StopwatchFixture;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -104,7 +109,11 @@ final class PuzzleAddControllerTest extends WebTestCase
         $this->assertSelectorTextContains('form[name="puzzle_add_form"]', 'This field is required!');
     }
 
-    public function testCompetitionPickerOffersSeriesEditionsButNotUnapprovedEvents(): void
+    /**
+     * docs/features/events-page/high-frequency-series.md "The default list": one-time events and series, one option
+     * each - no edition baked into the page (H12 scenario 1: one-time events as before)
+     */
+    public function testCompetitionPickerOffersOneTimeEventsAndSeriesButNoEditions(): void
     {
         $browser = self::createClient();
 
@@ -113,31 +122,36 @@ final class PuzzleAddControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/puzzle-add');
         $this->assertResponseIsSuccessful();
 
-        $tomSelectOptions = $crawler
-            ->filter('#puzzle_add_form_competition')
-            ->attr('data-symfony--ux-autocomplete--autocomplete-tom-select-options-value');
-        self::assertNotNull($tomSelectOptions);
+        $tomSelectOptions = $this->tomSelectOptions($crawler);
 
-        self::assertStringContainsString(CompetitionSeriesFixture::EDITION_EJJ_68, $tomSelectOptions);
-        self::assertStringContainsString(CompetitionSeriesFixture::SERIES_EJJ, $tomSelectOptions);
-        self::assertStringContainsString(CompetitionFixture::COMPETITION_WJPC_2024, $tomSelectOptions);
+        self::assertStringContainsString('"series:' . EventsPageFixture::SERIES_HARBOR_NIGHTS . '"', $tomSelectOptions);
+        self::assertStringContainsString(EventsPageFixture::SERIES_HARBOR_NIGHTS_NAME, $tomSelectOptions);
+        self::assertStringNotContainsString(EventsPageFixture::EDITION_HARBOR_1, $tomSelectOptions);
+        self::assertStringNotContainsString('edition:', $tomSelectOptions);
+        self::assertStringContainsString('"' . EventDetailFixture::COMPETITION_HILLTOP_WEEKEND . '"', $tomSelectOptions);
         self::assertStringNotContainsString(CompetitionFixture::COMPETITION_UNAPPROVED, $tomSelectOptions);
         self::assertStringNotContainsString(CompetitionSeriesFixture::EDITION_UNAPPROVED_1, $tomSelectOptions);
+        self::assertStringNotContainsString(CompetitionSeriesFixture::SERIES_UNAPPROVED, $tomSelectOptions);
+        // S1 and the preview are wired, the old "pick the specific edition" hint is gone (P31)
+        self::assertCount(1, $crawler->filter('[data-competition-picker-editions-url-value="/en/competition-picker/editions"]'));
+        self::assertCount(1, $crawler->filter('[data-series-edition-preview-url-value="/en/competition-picker/series-preview"]'));
+        self::assertStringNotContainsString('pick the specific edition', (string) $browser->getResponse()->getContent());
     }
 
     /**
-     * @return array<string, array{string}>
+     * @return array<string, array{string, string}>
      */
     public static function provideVisibleCompetitionIds(): array
     {
         return [
-            'live standalone competition' => [CompetitionFixture::COMPETITION_RECURRING_ONLINE],
-            'edition of an approved series' => [CompetitionSeriesFixture::EDITION_EJJ_68],
+            'live standalone competition' => [CompetitionFixture::COMPETITION_RECURRING_ONLINE, CompetitionFixture::COMPETITION_RECURRING_ONLINE],
+            // An edition page's "Add my time" stays an explicit edition
+            'edition of an approved series' => [EventsPageFixture::EDITION_SPRINT_SEASON, 'edition:' . EventsPageFixture::EDITION_SPRINT_SEASON],
         ];
     }
 
     #[DataProvider('provideVisibleCompetitionIds')]
-    public function testCompetitionQueryParamPrefillsVisibleCompetition(string $competitionId): void
+    public function testCompetitionQueryParamPrefillsVisibleCompetition(string $competitionId, string $expectedValue): void
     {
         $browser = self::createClient();
 
@@ -147,9 +161,11 @@ final class PuzzleAddControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
 
         self::assertSame(
-            $competitionId,
+            $expectedValue,
             $crawler->filter('input[name="puzzle_add_form[competition]"]')->attr('value'),
         );
+        // The picker offers what it pre-selects - an edition too, though no edition is in the default list
+        self::assertStringContainsString('"' . $expectedValue . '"', $this->tomSelectOptions($crawler));
         self::assertFalse(
             $this->isCompetitionSectionHidden($crawler),
             'The competition section must be expanded when the deep link pre-selects an event',
@@ -702,6 +718,291 @@ final class PuzzleAddControllerTest extends WebTestCase
         $this->assertResponseRedirects('/en/my-profile');
     }
 
+    /**
+     * H12 scenario 1: a one-time event is linked explicitly, exactly as before
+     */
+    public function testScenario1AOneTimeEventIsLinkedAsBefore(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+
+        $timeId = $this->submitTime($browser, EventDetailFixture::COMPETITION_HILLTOP_WEEKEND, $this->formDate(-3));
+
+        self::assertSame(
+            ['competition_id' => EventDetailFixture::COMPETITION_HILLTOP_WEEKEND, 'competition_series_id' => null, 'series_edition_match' => null],
+            $this->linkWithoutRound($scenario, $timeId),
+        );
+    }
+
+    /**
+     * H12 scenario 2: a series pick is saved as one and MySpeedPuzzling finds the edition and its round by the puzzle
+     */
+    public function testScenario2ASeriesPickIsSavedAndMatchedByThePuzzle(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+
+        $seriesId = $scenario->series('Lantern Weekly Jam');
+        $editionId = $scenario->edition($seriesId, 'Jam No. 153', $this->day(-9));
+        $roundId = $scenario->round($editionId, RoundCategory::Solo, $this->day(-9) . ' 19:00', puzzleIds: [PuzzleFixture::PUZZLE_500_01]);
+        $scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+
+        $timeId = $this->submitTime($browser, 'series:' . $seriesId, $this->formDate(-2));
+
+        self::assertSame(
+            ['competition_id' => $editionId, 'competition_series_id' => $seriesId, 'series_edition_match' => 'puzzle', 'competition_round_id' => $roundId],
+            $scenario->link($timeId),
+        );
+    }
+
+    /**
+     * H12 scenario 6 / H13: a series without editions is a normal choice - the time is the series' result
+     */
+    public function testScenario6ASeriesWithoutEditionsSavesASeriesLevelTime(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+
+        $seriesId = $scenario->series('Copper Kettle Puzzle Cup');
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        self::assertStringContainsString('"series:' . $seriesId . '"', $this->tomSelectOptions($crawler));
+        self::assertStringContainsString('No dates yet', $this->tomSelectOptions($crawler));
+
+        $timeId = $this->submitTime($browser, 'series:' . $seriesId, $this->formDate(-1));
+
+        self::assertSame(
+            ['competition_id' => null, 'competition_series_id' => $seriesId, 'series_edition_match' => null, 'competition_round_id' => null],
+            $scenario->link($timeId),
+        );
+    }
+
+    /**
+     * H12 scenario 5: an undated edition is picked explicitly - `edition:<uuid>`, and a bare uuid an older form posts (P2)
+     */
+    public function testScenario5AnEditionPickedExplicitlyIsLinkedExplicitly(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+
+        $seriesId = $scenario->series('Lantern Weekly Jam');
+        $placeholder = $scenario->edition($seriesId, 'Summer Special', null);
+
+        $timeId = $this->submitTime($browser, 'edition:' . $placeholder, $this->formDate(-1));
+        self::assertSame(
+            ['competition_id' => $placeholder, 'competition_series_id' => null, 'series_edition_match' => null],
+            $this->linkWithoutRound($scenario, $timeId),
+        );
+
+        $timeId = $this->submitTime($browser, $placeholder, $this->formDate(-2), timeMinutes: '9');
+        self::assertSame(
+            ['competition_id' => $placeholder, 'competition_series_id' => null, 'series_edition_match' => null],
+            $this->linkWithoutRound($scenario, $timeId),
+        );
+    }
+
+    /**
+     * H13: an edition without rounds keeps working as an explicit pick
+     */
+    public function testAnEditionWithoutRoundsCanBePickedExplicitly(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+
+        $seriesId = $scenario->series('Lantern Weekly Jam');
+        $editionId = $scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+
+        $timeId = $this->submitTime($browser, 'edition:' . $editionId, $this->formDate(-20));
+
+        self::assertSame(
+            ['competition_id' => $editionId, 'competition_series_id' => null, 'series_edition_match' => null, 'competition_round_id' => null],
+            $scenario->link($timeId),
+        );
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function provideMalformedCompetitionValues(): array
+    {
+        return [
+            'series without a uuid' => ['series:not-a-uuid'],
+            'edition without a uuid' => ['edition:'],
+            'garbage' => ['<b>anything</b>'],
+            'unknown edition' => ['edition:019999aa-0000-7000-8000-000000000000'],
+            'unknown series' => ['series:019999aa-0000-7000-8000-000000000000'],
+        ];
+    }
+
+    #[DataProvider('provideMalformedCompetitionValues')]
+    public function testAMalformedOrUnknownValueIsRefusedWithTheGenericError(string $value): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $database = self::getContainer()->get(Connection::class);
+        $timesBefore = $this->countPlayerTimes($database);
+
+        $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => $this->validSpeedPuzzlingSubmission($browser, $value),
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('form[name="puzzle_add_form"]', "This competition or event can't be selected");
+        self::assertSame($timesBefore, $this->countPlayerTimes($database));
+    }
+
+    /**
+     * H12 scenario 9: a draft edition or series is refused like any other value that is not offered - never by name
+     */
+    public function testScenario9ADraftEditionOrSeriesIsRefused(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $database = self::getContainer()->get(Connection::class);
+        $timesBefore = $this->countPlayerTimes($database);
+
+        $seriesId = $scenario->series('Lantern Weekly Jam');
+        $draftEdition = $scenario->edition($seriesId, 'Jam No. 167 Draft', $this->day(-1), draft: true);
+        $draftSeries = $scenario->series('Quiet Harbor Puzzle Series', draft: true);
+
+        foreach (['edition:' . $draftEdition, $draftEdition, 'series:' . $draftSeries] as $value) {
+            $browser->request('POST', '/en/puzzle-add', [
+                'puzzle_add_form' => $this->validSpeedPuzzlingSubmission($browser, $value, $this->formDate(-1)),
+            ]);
+
+            $this->assertResponseStatusCodeSame(422);
+            $this->assertSelectorTextContains('form[name="puzzle_add_form"]', "This competition or event can't be selected");
+            $content = (string) $browser->getResponse()->getContent();
+            self::assertStringNotContainsString('Jam No. 167 Draft', $content);
+            self::assertStringNotContainsString('Quiet Harbor Puzzle Series', $content);
+        }
+
+        self::assertSame($timesBefore, $this->countPlayerTimes($database));
+    }
+
+    public function testARefusedSubmitKeepsTheEditionPickedByTyping(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+
+        $seriesId = $scenario->series('Lantern Weekly Jam');
+        $editionId = $scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+
+        $submission = $this->validSpeedPuzzlingSubmission($browser, 'edition:' . $editionId, $this->formDate(-2));
+        // No time - refused for another reason
+        $submission['timeHours'] = '0';
+        $submission['timeMinutes'] = '0';
+
+        $crawler = $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertSame('edition:' . $editionId, $crawler->filter('input[name="puzzle_add_form[competition]"]')->attr('value'));
+        self::assertStringContainsString('"edition:' . $editionId . '"', $this->tomSelectOptions($crawler));
+        self::assertStringNotContainsString("This competition or event can't be selected", (string) $browser->getResponse()->getContent());
+    }
+
+    public function testSeriesQueryParamPreselectsAPublicSeries(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+
+        $seriesId = $scenario->series('Lantern Weekly Jam');
+        $pendingSeries = $scenario->series('Willow Lane Puzzle Nights', public: false);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add?series=' . $seriesId);
+        $this->assertResponseIsSuccessful();
+        self::assertSame('series:' . $seriesId, $crawler->filter('input[name="puzzle_add_form[competition]"]')->attr('value'));
+        self::assertFalse($this->isCompetitionSectionHidden($crawler));
+
+        // Not public - nothing is pre-selected
+        $crawler = $browser->request('GET', '/en/puzzle-add?series=' . $pendingSeries);
+        self::assertSame('', (string) $crawler->filter('input[name="puzzle_add_form[competition]"]')->attr('value'));
+        self::assertTrue($this->isCompetitionSectionHidden($crawler));
+
+        // ?competition wins when both are sent
+        $crawler = $browser->request('GET', '/en/puzzle-add?competition=' . EventDetailFixture::COMPETITION_HILLTOP_WEEKEND . '&series=' . $seriesId);
+        self::assertSame(EventDetailFixture::COMPETITION_HILLTOP_WEEKEND, $crawler->filter('input[name="puzzle_add_form[competition]"]')->attr('value'));
+    }
+
+    public function testTheStopwatchFinishSavesASeriesPick(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $scenario = new SeriesEditionScenario(self::getContainer());
+
+        $seriesId = $scenario->series('Lantern Weekly Jam');
+        $editionId = $scenario->edition($seriesId, 'Jam No. 154', $this->day(-2));
+
+        $url = '/en/save-stopwatch/' . StopwatchFixture::STOPWATCH_PAUSED;
+        $crawler = $browser->request('GET', $url);
+        $this->assertResponseIsSuccessful();
+        self::assertStringContainsString('"series:' . $seriesId . '"', $this->tomSelectOptions($crawler));
+
+        $timeId = $crawler->filter('input[name="time_id"]')->attr('value');
+        self::assertNotNull($timeId);
+        $submission = $this->submissionOf($crawler);
+        $submission['finishedAt'] = $this->formDate(-2);
+        $submission['competition'] = 'series:' . $seriesId;
+
+        $browser->request('POST', $url, ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+
+        self::assertSame(
+            ['competition_id' => $editionId, 'competition_series_id' => $seriesId, 'series_edition_match' => 'date'],
+            $this->linkWithoutRound($scenario, $timeId),
+        );
+    }
+
+    private function submitTime(KernelBrowser $browser, string $competition, string $finishedAt, string $timeMinutes = '7'): string
+    {
+        $timeId = Uuid::uuid7()->toString();
+        $submission = $this->validSpeedPuzzlingSubmission($browser, $competition, $finishedAt);
+        $submission['timeMinutes'] = $timeMinutes;
+
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+
+        return $timeId;
+    }
+
+    /**
+     * @return array{competition_id: ?string, competition_series_id: ?string, series_edition_match: ?string}
+     */
+    private function linkWithoutRound(SeriesEditionScenario $scenario, string $timeId): array
+    {
+        $link = $scenario->link($timeId);
+        unset($link['competition_round_id']);
+
+        return $link;
+    }
+
+    private function day(int $offset): string
+    {
+        return self::getContainer()->get(ClockInterface::class)->now()->modify(sprintf('%+d days', $offset))->format('Y-m-d');
+    }
+
+    private function formDate(int $offset): string
+    {
+        return self::getContainer()->get(ClockInterface::class)->now()->modify(sprintf('%+d days', $offset))->format('d.m.Y');
+    }
+
+    private function tomSelectOptions(Crawler $crawler): string
+    {
+        $options = $crawler
+            ->filter('input[name="puzzle_add_form[competition]"]')
+            ->attr('data-symfony--ux-autocomplete--autocomplete-tom-select-options-value');
+        self::assertNotNull($options);
+
+        return $options;
+    }
+
     private function boxPhoto(): UploadedFile
     {
         $path = tempnam(sys_get_temp_dir(), 'box_photo_') . '.jpg';
@@ -736,7 +1037,7 @@ final class PuzzleAddControllerTest extends WebTestCase
     /**
      * @return array<string, string>
      */
-    private function validSpeedPuzzlingSubmission(KernelBrowser $browser, string $competitionId): array
+    private function validSpeedPuzzlingSubmission(KernelBrowser $browser, string $competitionId, string $finishedAt = '12.07.2026'): array
     {
         $crawler = $browser->request('GET', '/en/puzzle-add');
         $this->assertResponseIsSuccessful();
@@ -752,7 +1053,7 @@ final class PuzzleAddControllerTest extends WebTestCase
             'timeHours' => '1',
             'timeMinutes' => '7',
             'timeSeconds' => '0',
-            'finishedAt' => '12.07.2026',
+            'finishedAt' => $finishedAt,
             'competition' => $competitionId,
             'collection' => '__system_collection__',
         ];

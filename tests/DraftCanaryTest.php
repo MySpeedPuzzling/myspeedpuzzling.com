@@ -43,6 +43,8 @@ final class DraftCanaryTest extends WebTestCase
     private const string RIVERBEND_PAGE = '/en/organizations/' . OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG;
     private const string PUZZLE_PAGE = '/en/puzzle/' . PuzzleFixture::PUZZLE_3000;
     private const string ADD_TIME = '/en/puzzle-add';
+    private const string PICKER_EDITIONS = '/en/competition-picker/editions?q=';
+    private const string PICKER_PREVIEW = '/en/competition-picker/series-preview?people=0&series=';
     private const string SITEMAP = '/sitemap-events.xml';
     // Replaced by last year (the clock's) - the past draft is dated in it
     private const string ARCHIVE = '/en/events/archive/{lastYear}';
@@ -130,12 +132,17 @@ final class DraftCanaryTest extends WebTestCase
         yield 'sitemap - draft organization' => [...$harborClub, self::SITEMAP, null, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_SLUG];
         yield 'sitemap - past draft event' => [...$draftPast, self::SITEMAP, null, 'old-harbor-draft-classic'];
 
-        // The add-time form's "Competition / event" picker - and a ?competition= pre-selection does not sneak one in
+        // The add-time form's "Competition / event" picker (docs/features/events-page/high-frequency-series.md "The form"):
+        // one-time events and series in the page, editions only by typing (S1) or in a series' preview list - and a
+        // ?competition= / ?series= pre-selection does not sneak one in
         yield 'add-time picker - draft one-time event' => [...$draftNight, self::ADD_TIME, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME];
-        yield 'add-time picker - draft edition' => [...$lanternDraft, self::ADD_TIME, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME];
-        yield 'add-time picker - edition of a draft series' => [...$quietPines, self::ADD_TIME, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_QUIET_PINES_1_NAME];
+        yield 'add-time picker - draft series' => [...$quietPines, self::ADD_TIME, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::SERIES_QUIET_PINES_DRAFT_NAME];
+        yield 'add-time typed search (S1) - draft edition' => [...$lanternDraft, self::PICKER_EDITIONS . rawurlencode(OrganizationFixture::EDITION_LANTERN_DRAFT_NAME), PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME];
+        yield 'add-time typed search (S1) - edition of a draft series' => [...$quietPines, self::PICKER_EDITIONS . rawurlencode(OrganizationFixture::EDITION_QUIET_PINES_1_NAME), PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_QUIET_PINES_1_NAME];
+        yield 'add-time series preview list - draft edition' => [...$lanternDraft, self::PICKER_PREVIEW . OrganizationFixture::SERIES_LANTERN_NIGHTS, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME];
         yield 'add-time pre-selection - draft one-time event' => [...$draftNight, self::ADD_TIME . '?competition=' . OrganizationFixture::COMPETITION_DRAFT_NIGHT, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME];
         yield 'add-time pre-selection - draft edition' => [...$lanternDraft, self::ADD_TIME . '?competition=' . OrganizationFixture::EDITION_LANTERN_DRAFT, PlayerFixture::PLAYER_REGULAR, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME];
+        yield 'add-time pre-selection - draft series' => [...$quietPines, self::ADD_TIME . '?series=' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT, PlayerFixture::PLAYER_REGULAR, 'value="series:' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT . '"'];
     }
 
     public function testApiV1ListsNoDraftAndAnswers404ForOne(): void

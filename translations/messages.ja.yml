@@ -141,7 +141,6 @@
   "no_puzzle_yet": "このラウンドのパズルはまだ公開されていません。"
   "column_result": "結果"
   "unofficial_note": "MySpeedPuzzlingでパズラーが追加したタイムを速い順に表示しています。公式の順位ではなく、タイムを追加した人のみが対象です。"
-  "see_official_results": "公式結果を見る"
   "pieces_placed": "%placed% / %total% ピース"
   "finished_later": "%time% で完成"
   "section":
@@ -499,7 +498,6 @@
   "tag": "タグ"
   "competition": "競技会 / イベント"
   "competition_help": "この結果が競技会やオンラインイベントからのものである場合は、競技会を選択してください。"
-  "competition_hint_series": "定期開催のイベントの場合は、参加したエディション（日付）を選択してください。"
   "competition_live_badge": "開催中"
   "competition_not_selectable": "この競技会・イベントは選択できません。リストから選択してください。"
   "tags": "タグ"
@@ -8053,3 +8051,36 @@ restructure:
         flash:
             created: "団体を作成しました。シリーズは団体に含まれています。"
             created_waiting: "団体を作成しました。管理者が承認すると、誰でも見られるようになります。"
+series_picker:
+    hint: "シリーズの場合はシリーズを選んでください。日程はパズルと完成日から判断します。日程を自分で選ぶには、名前か番号を入力してください。"
+    next: "次回：%date%"
+    last: "前回：%date%"
+    no_dates: "日程はまだありません"
+    online: "オンライン"
+    matched: "タイムの登録先："
+    picked: "選択した日程："
+    not_identified: "日程がわかれば選んでください。そのまま保存しても、後でこちらで割り当てます。"
+    no_editions: "このシリーズの日程はまだ登録されていません。そのまま保存してください。日程が登録され次第、タイムを割り当てます。"
+    change: "変更"
+    let_us_match: "MySpeedPuzzlingに任せる"
+    search_placeholder: "日程やパズルを検索…"
+    no_match: "一致するものがありません。別の言葉で試してください。"
+    undated: "日程未定"
+series_pages:
+    more_sessions: "ほか%count%件"
+    filter_label: "日程を絞り込む"
+    categories_label: "カテゴリ"
+    all: "すべて"
+    solo: "ソロ"
+    pairs: "ペア"
+    teams: "チーム"
+    search_placeholder: "日程やパズルを検索…"
+    jump_to: "月へ移動"
+    no_match: "一致する日程はありません。"
+    show_all: "すべて表示"
+    round_results:
+        unofficial_label: "MySpeedPuzzlingで追加されたタイムです（公式結果ではありません）"
+series_readers:
+    used_at:
+        more: "ほか%count%件"
+    series_delete_note: "このシリーズやそのエディションで記録された結果は、イベントとの紐付けがなくなりますが、パズラーのプロフィールに残ります。"

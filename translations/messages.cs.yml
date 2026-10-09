@@ -139,7 +139,6 @@
   "no_puzzle_yet": "Puzzle pro toto kolo zatím nebylo odhaleno."
   "column_result": "Výsledek"
   "unofficial_note": "Časy přidané puzzlery na MySpeedPuzzling, od nejrychlejšího - nejde o oficiální pořadí a jsou zde jen ti, kteří svůj čas přidali."
-  "see_official_results": "Zobrazit oficiální výsledky"
   "pieces_placed": "%placed% / %total% dílků"
   "finished_later": "dokončeno za %time%"
   "section":
@@ -472,7 +471,6 @@
   "tag": "Tag"
   "competition": "Soutěž / událost"
   "competition_help": "Vyberte soutěž, pokud tento výsledek pochází ze soutěže nebo online události."
-  "competition_hint_series": "U opakujících se událostí vyberte konkrétní edici (datum), které jste se zúčastnili."
   "competition_live_badge": "živě"
   "competition_not_selectable": "Tuto soutěž nebo událost nelze vybrat. Vyberte prosím jednu ze seznamu."
   "tags": "Tagy"
@@ -8060,3 +8058,36 @@ restructure:
         flash:
             created: "Organizace byla vytvořena. Její součástí je tato série."
             created_waiting: "Organizace byla vytvořena. Všichni ji uvidí, jakmile ji schválí administrátor."
+series_picker:
+    hint: "U série vyberte celou sérii – termín dohledáme podle puzzle a data doskládání. Chcete-li termín vybrat sami, napište jeho název nebo číslo."
+    next: "Další: %date%"
+    last: "Poslední: %date%"
+    no_dates: "Zatím bez termínů"
+    online: "Online"
+    matched: "Váš čas přiřadíme k:"
+    picked: "Vybrali jste:"
+    not_identified: "Vyberte termín, pokud ho znáte – nebo jen uložte a čas přiřadíme později."
+    no_editions: "U této série zatím nejsou uvedené žádné termíny – stačí uložit a váš čas přiřadíme, jakmile budou."
+    change: "změnit"
+    let_us_match: "Nechat přiřazení na MySpeedPuzzling"
+    search_placeholder: "Hledat termíny nebo puzzle…"
+    no_match: "Nic neodpovídá – zkuste jiné slovo."
+    undated: "Termín zatím neurčen"
+series_pages:
+    more_sessions: "+%count% další|+%count% další|+%count% dalších"
+    filter_label: "Filtrovat termíny"
+    categories_label: "Kategorie"
+    all: "Vše"
+    solo: "Sólo"
+    pairs: "Dvojice"
+    teams: "Týmy"
+    search_placeholder: "Hledat termíny nebo puzzle…"
+    jump_to: "Přejít na měsíc"
+    no_match: "Žádný termín neodpovídá."
+    show_all: "Zobrazit vše"
+    round_results:
+        unofficial_label: "Časy přidané na MySpeedPuzzling – nejde o oficiální výsledky"
+series_readers:
+    used_at:
+        more: "a %count% další|a %count% další|a %count% dalších"
+    series_delete_note: "Výsledky přidané k této sérii nebo jejím edicím zůstanou na profilech puzzlerů, jen už bez události."

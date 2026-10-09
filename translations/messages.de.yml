@@ -139,7 +139,6 @@
   "no_puzzle_yet": "Das Puzzle für diese Runde wurde noch nicht enthüllt."
   "column_result": "Ergebnis"
   "unofficial_note": "Von Puzzlern auf MySpeedPuzzling eingetragene Zeiten, die schnellsten zuerst - nicht die offizielle Platzierung und nur für diejenigen, die ihre Zeit eingetragen haben."
-  "see_official_results": "Offizielle Ergebnisse ansehen"
   "pieces_placed": "%placed% / %total% Teile"
   "finished_later": "fertig in %time%"
   "section":
@@ -483,7 +482,6 @@
   "tag": "Tag"
   "competition": "Wettbewerb / Veranstaltung"
   "competition_help": "Wählen Sie den Wettbewerb, wenn dieses Ergebnis von einem Wettbewerb oder einer Online-Veranstaltung stammt."
-  "competition_hint_series": "Wählen Sie bei wiederkehrenden Veranstaltungen die konkrete Ausgabe (Datum), an der Sie teilgenommen haben."
   "competition_live_badge": "live"
   "competition_not_selectable": "Dieser Wettbewerb oder diese Veranstaltung kann nicht ausgewählt werden. Bitte wählen Sie eine aus der Liste."
   "tags": "Tags"
@@ -8062,3 +8060,36 @@ restructure:
         flash:
             created: "Die Organisation wurde erstellt. Ihre Serie ist Teil davon."
             created_waiting: "Die Organisation wurde erstellt. Sie ist für alle sichtbar, sobald ein Administrator sie genehmigt hat."
+series_picker:
+    hint: "Bei einer Serie wählen Sie die Serie – den Termin ermitteln wir anhand von Puzzle und Datum. Um einen Termin selbst zu wählen, geben Sie seinen Namen oder seine Nummer ein."
+    next: "Nächste: %date%"
+    last: "Letzte: %date%"
+    no_dates: "Noch keine Termine"
+    online: "Online"
+    matched: "Ihre Zeit gehört zu:"
+    picked: "Ihre Auswahl:"
+    not_identified: "Wählen Sie den Termin, wenn Sie ihn kennen – oder speichern Sie einfach, wir ordnen die Zeit später zu."
+    no_editions: "Für diese Serie sind noch keine Termine eingetragen – speichern Sie einfach, wir ordnen Ihre Zeit zu, sobald es welche gibt."
+    change: "ändern"
+    let_us_match: "Von MySpeedPuzzling zuordnen lassen"
+    search_placeholder: "Termine oder Puzzles suchen…"
+    no_match: "Keine Treffer – versuchen Sie ein anderes Wort."
+    undated: "Termin noch offen"
+series_pages:
+    more_sessions: "+%count% weitere"
+    filter_label: "Termine filtern"
+    categories_label: "Kategorie"
+    all: "Alle"
+    solo: "Solo"
+    pairs: "Paare"
+    teams: "Teams"
+    search_placeholder: "Termine oder Puzzles suchen…"
+    jump_to: "Zu einem Monat springen"
+    no_match: "Kein Termin gefunden."
+    show_all: "Alle anzeigen"
+    round_results:
+        unofficial_label: "Auf MySpeedPuzzling eingetragene Zeiten – nicht die offiziellen Ergebnisse"
+series_readers:
+    used_at:
+        more: "und %count% weitere|und %count% weitere"
+    series_delete_note: "Ergebnisse, die bei dieser Serie oder ihren Ausgaben eingetragen wurden, bleiben in den Profilen der Puzzler erhalten – nur ohne die Veranstaltung."

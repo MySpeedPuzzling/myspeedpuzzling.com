@@ -141,7 +141,6 @@
   "no_puzzle_yet": "El puzzle de esta ronda aún no se ha revelado."
   "column_result": "Resultado"
   "unofficial_note": "Tiempos añadidos por los puzzleros en MySpeedPuzzling, del más rápido al más lento - no es la clasificación oficial y solo incluye a quienes añadieron su tiempo."
-  "see_official_results": "Ver los resultados oficiales"
   "pieces_placed": "%placed% / %total% piezas"
   "finished_later": "terminado en %time%"
   "section":
@@ -499,7 +498,6 @@
   "tag": "Etiqueta"
   "competition": "Competencia / evento"
   "competition_help": "Elige la competencia, cuando este resultado sea de una competencia o un evento online."
-  "competition_hint_series": "Para eventos recurrentes, elige la edición específica (fecha) en la que participaste."
   "competition_live_badge": "en vivo"
   "competition_not_selectable": "Esta competencia o evento no se puede seleccionar. Por favor, elige uno de la lista."
   "tags": "Etiquetas"
@@ -8063,3 +8061,36 @@ restructure:
         flash:
             created: "La organización se ha creado. Su serie forma parte de ella."
             created_waiting: "La organización se ha creado. Todo el mundo podrá verla cuando un administrador la apruebe."
+series_picker:
+    hint: "Si es una serie, elige la serie: calculamos la fecha a partir del puzzle y del día en que lo completaste. Para elegir tú la fecha, escribe su nombre o número."
+    next: "Próxima: %date%"
+    last: "Última: %date%"
+    no_dates: "Aún sin fechas"
+    online: "En línea"
+    matched: "Tu tiempo se asignará a:"
+    picked: "Has elegido:"
+    not_identified: "Elige la fecha si la sabes, o simplemente guarda y asignaremos tu tiempo más tarde."
+    no_editions: "Esta serie aún no tiene fechas: guarda sin más y asignaremos tu tiempo cuando las tenga."
+    change: "cambiar"
+    let_us_match: "Dejar que MySpeedPuzzling lo asigne"
+    search_placeholder: "Buscar fechas o puzzles…"
+    no_match: "No hay coincidencias: prueba con otra palabra."
+    undated: "Fecha sin definir"
+series_pages:
+    more_sessions: "+%count% más"
+    filter_label: "Filtrar las fechas"
+    categories_label: "Categoría"
+    all: "Todas"
+    solo: "Solo"
+    pairs: "Parejas"
+    teams: "Equipos"
+    search_placeholder: "Buscar fechas o puzzles…"
+    jump_to: "Ir a un mes"
+    no_match: "Ninguna fecha coincide."
+    show_all: "Mostrar todo"
+    round_results:
+        unofficial_label: "Tiempos añadidos en MySpeedPuzzling: no son los resultados oficiales"
+series_readers:
+    used_at:
+        more: "y %count% más|y %count% más"
+    series_delete_note: "Los resultados registrados en esta serie o en sus ediciones se quedan en los perfiles de los puzzleros, pero sin el evento."

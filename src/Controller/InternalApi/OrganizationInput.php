@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\FormData\OrganizationFormData;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\OrganizationKind;
+use SpeedPuzzling\Web\Value\SocialLinks;
 
 /**
  * The organization fields of a create / update body, applied onto the web form's data object - so the API validates
@@ -30,9 +32,10 @@ final class OrganizationInput
     ];
 
     /**
+     * @param null|string $creatorId the organization's creator - on its team as its creator, never counted in its limit
      * @return array{slug: null|string, maintainerIds: null|list<string>} the fields that are no part of the form data
      */
-    public static function applyTo(InternalApiInput $input, OrganizationFormData $data): array
+    public static function applyTo(InternalApiInput $input, OrganizationFormData $data, null|string $creatorId): array
     {
         if ($input->has('name')) {
             $data->name = $input->string('name');
@@ -51,8 +54,8 @@ final class OrganizationInput
         }
 
         if ($input->has('socialLinks')) {
-            // null or [] removes every link
-            $data->socialLinks = $input->stringList('socialLinks') ?? [];
+            // null or [] removes every link; a link sent twice counts once
+            $data->socialLinks = SocialLinks::normalize($input->stringList('socialLinks') ?? []);
         }
 
         if ($input->has('region')) {
@@ -88,9 +91,16 @@ final class OrganizationInput
             $input->addError('slug', 'must be lower-case letters and digits in words joined by single hyphens, e.g. "riverbend-jigsaw".');
         }
 
+        $maintainerIds = $input->idList('maintainerIds');
+
+        // The team's limit, the creator not counted (the handlers refuse it too - 409 - should anything get past)
+        if ($maintainerIds !== null && count(Organization::teamIds($maintainerIds, $creatorId)) > Organization::MAX_MAINTAINERS) {
+            $input->addError('maintainerIds', sprintf('at most %d players besides the creator.', Organization::MAX_MAINTAINERS));
+        }
+
         return [
             'slug' => $slug,
-            'maintainerIds' => $input->idList('maintainerIds'),
+            'maintainerIds' => $maintainerIds,
         ];
     }
 }

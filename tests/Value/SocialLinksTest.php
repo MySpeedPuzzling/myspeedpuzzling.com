@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Value;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Value\SocialLink;
 use SpeedPuzzling\Web\Value\SocialLinkPlatform;
 use SpeedPuzzling\Web\Value\SocialLinks;
 
@@ -70,6 +71,22 @@ final class SocialLinksTest extends TestCase
         self::assertSame('instagram.com', $links[0]->host);
         self::assertSame(SocialLinkPlatform::Other, $links[1]->platform);
         self::assertSame('lantern-club.example', $links[1]->host);
+    }
+
+    public function testTwoLinksOfOneNameReadDifferently(): void
+    {
+        $links = SocialLinks::fromInput([
+            'https://www.instagram.com/lanternclub',
+            'https://lantern-club.example/a',
+            'https://www.instagram.com/lanternclub.nights',
+            'https://lantern-club.example/b',
+            'https://www.instagram.com/lanternclub.cups',
+        ])->links();
+
+        self::assertSame(
+            ['Instagram', 'lantern-club.example', 'Instagram 2', 'lantern-club.example 2', 'Instagram 3'],
+            array_map(static fn (SocialLink $link): string => $link->name(), $links),
+        );
     }
 
     public function testNoLinks(): void

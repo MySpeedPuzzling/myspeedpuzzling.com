@@ -39,6 +39,18 @@ readonly final class SocialLinks
      */
     public static function fromInput(array|string $input): self
     {
+        return new self(self::normalize($input));
+    }
+
+    /**
+     * What fromInput() keeps, without its checks - the forms and the internal API count and validate this list, so
+     * a link typed twice counts once.
+     *
+     * @param list<string>|string $input
+     * @return list<string>
+     */
+    public static function normalize(array|string $input): array
+    {
         $lines = is_string($input) ? preg_split('/\R/u', $input) : $input;
         $urls = [];
         $seen = [];
@@ -60,7 +72,7 @@ readonly final class SocialLinks
             $urls[] = $url;
         }
 
-        return new self($urls);
+        return $urls;
     }
 
     /**
@@ -68,7 +80,16 @@ readonly final class SocialLinks
      */
     public function links(): array
     {
-        return array_map(SocialLink::fromUrl(...), $this->urls);
+        $links = [];
+        $seen = [];
+
+        foreach ($this->urls as $url) {
+            $name = SocialLink::baseName(SocialLinkPlatform::fromUrl($url), SocialLinkPlatform::hostOf($url), $url);
+            $seen[$name] = ($seen[$name] ?? 0) + 1;
+            $links[] = SocialLink::fromUrl($url, $seen[$name]);
+        }
+
+        return $links;
     }
 
     public static function isWebAddress(string $url): bool

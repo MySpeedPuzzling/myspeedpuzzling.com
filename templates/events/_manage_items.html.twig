@@ -28,6 +28,8 @@
         {%- set approval = {
             approve_url: path('admin_approve_organization', {organizationId: item.id}),
             reject_url: path('admin_reject_organization', {organizationId: item.id}),
+            approve_token: csrf_token('approve_organization_' ~ item.id),
+            reject_token: csrf_token('reject_organization_' ~ item.id),
             approve_label: 'organizer_tools.menu.approve_organization',
             reject_label: 'organizer_tools.menu.reject_organization',
         } -%}
@@ -127,6 +129,7 @@
         <li>
             <form method="post" action="{{ approval.approve_url }}" data-turbo-frame="_top">
                 <input type="hidden" name="return" value="{{ return_url }}">
+                {% if approval.approve_token is defined %}<input type="hidden" name="_token" value="{{ approval.approve_token }}">{% endif %}
                 <button type="submit" class="ev-action ev-action-approve">{{ approval.approve_label|trans }}</button>
             </form>
         </li>
@@ -135,6 +138,7 @@
                 <summary class="ev-action" data-inline-confirm-target="summary">{{ approval.reject_label|trans }}</summary>
                 <form class="ev-confirm-body" method="post" action="{{ approval.reject_url }}" data-turbo-frame="_top">
                     <input type="hidden" name="return" value="{{ return_url }}">
+                    {% if approval.reject_token is defined %}<input type="hidden" name="_token" value="{{ approval.reject_token }}">{% endif %}
                     <label class="ev-confirm-label">
                         {{ 'events_organizer.menu.reject_reason'|trans }}
                         <textarea class="form-control" name="reason" rows="3" required data-inline-confirm-target="focus"></textarea>
@@ -171,7 +175,7 @@
     {% if draft_routes and not item.isDraft %}
         <li>
             {% if blockers is not null and blockers is not empty %}
-                <p class="ev-action-note" data-cannot-unpublish>{{ 'organizer_tools.menu.cannot_unpublish'|trans({'%reasons%': blockers|map(blocker => blocker.translationKey|trans)|join(', ')}) }}</p>
+                <p class="ev-action-note" data-cannot-unpublish>{{ 'organizer_tools.menu.cannot_unpublish'|trans({'%reasons%': blockers|map(blocker => blocker.translationKey|trans)|join('drafts_core.blocker_separator'|trans)}) }}</p>
             {% else %}
                 <details class="ev-confirm" data-unpublish data-controller="inline-confirm" data-action="toggle->inline-confirm#toggled keydown.esc->inline-confirm#cancel">
                     <summary class="ev-action" data-inline-confirm-target="summary">{{ 'organizer_tools.menu.unpublish'|trans }}</summary>

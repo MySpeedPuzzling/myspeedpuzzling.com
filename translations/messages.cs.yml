@@ -7810,12 +7810,14 @@ drafts_core:
     flash:
         published: "Zveřejněno – nyní to vidí každý."
         published_waiting: "Zveřejněno – každý to uvidí, jakmile to schválí administrátor."
+        published_series_draft: "Zveřejněno – uvidí to každý, jakmile bude zveřejněna i série."
         unpublished: "Vráceno do konceptu – vidíte to jen vy a váš tým."
         cannot_unpublish: "Do konceptu to vrátit nelze: %reasons%."
     blocker:
         participants: "přidali se k ní lidé"
         results: "má oficiální výsledky"
         solving_times: "jsou k ní připojeny časy skládání"
+    blocker_separator: ", "
 drafts:
     banner:
         own: "Koncept: tuto stránku vidíte jen vy a váš tým."
@@ -7907,7 +7909,7 @@ organizer_tools:
         show: "Zobrazit termíny"
         preview_title: "1 termín|%count% termíny|%count% termínů"
         taken: "už má edici"
-        create: "Vytvořit edice"
+        create: "Vytvořit 1 edici|Vytvořit %count% edice|Vytvořit %count% edic"
         create_help: "Vytvoří se jen zaškrtnuté termíny. Jako koncepty je uvidíte jen vy a váš tým, dokud jednotlivé edice nezveřejníte."
 organization_page:
     meta:

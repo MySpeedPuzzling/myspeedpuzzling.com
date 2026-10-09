@@ -107,7 +107,19 @@ final class DraftPublishingHandlersTest extends KernelTestCase
 
         self::assertFalse($this->isDraft('organization', OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT));
         self::assertQueuedEmailCount(1);
-        self::assertEmailAddressContains(self::getMailerMessage() ?? self::fail('No e-mail'), 'To', self::ADMIN_EMAIL);
+        $email = self::getMailerMessage() ?? self::fail('No e-mail');
+        self::assertEmailAddressContains($email, 'To', self::ADMIN_EMAIL);
+        self::assertEmailHeaderSame($email, 'Subject', 'New organization submitted: ' . OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT_NAME);
+    }
+
+    public function testAnAdminPublishingSubmitsWithoutAnEmail(): void
+    {
+        $this->messageBus->dispatch(new PublishOrganization(OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT, notifyAdmin: false));
+        $this->messageBus->dispatch(new PublishCompetition(OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT, notifyAdmin: false));
+
+        self::assertFalse($this->isDraft('organization', OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT));
+        self::assertFalse($this->isDraft('competition', OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT));
+        self::assertQueuedEmailCount(0);
     }
 
     public function testPublishingAnApprovedDraftOrganizationSendsNoEmail(): void

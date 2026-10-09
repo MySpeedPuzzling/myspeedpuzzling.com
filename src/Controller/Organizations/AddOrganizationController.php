@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\FormData\OrganizationFormData;
 use SpeedPuzzling\Web\FormType\OrganizationFormType;
 use SpeedPuzzling\Web\Message\AddOrganization;
 use SpeedPuzzling\Web\Query\GetOrganization;
+use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,7 +23,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Add an organization (docs/features/organizations/README.md "Forms"): any signed-in player; it waits for an admin's
- * approval - or stays a draft ("Save as draft"), submitted once published. Success → the organization's page; a refused
+ * approval - or stays a draft ("Save as draft"), submitted once published. An admin's is approved at once. Success → the organization's page; a refused
  * submit comes back with 422 and keeps the chosen logo (FormPhotoStash).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
@@ -68,6 +69,7 @@ final class AddOrganizationController extends AbstractController
             $organizationId = Uuid::uuid7();
             $saveDraft = $form->get('saveDraft');
             $isDraft = $saveDraft instanceof ClickableInterface && $saveDraft->isClicked();
+            $isAdmin = $this->isGranted(AdminAccessVoter::ADMIN_ACCESS);
 
             $this->messageBus->dispatch(new AddOrganization(
                 organizationId: $organizationId,
@@ -83,10 +85,16 @@ final class AddOrganizationController extends AbstractController
                 logo: $data->logo,
                 maintainerIds: $data->maintainers,
                 isDraft: $isDraft,
+                // An admin's organization needs nobody else's approval (like the internal API's)
+                approve: $isAdmin,
             ));
 
             $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
-            $this->addFlash('success', $this->translator->trans($isDraft ? 'organization_page.flash.saved_as_draft' : 'organization_page.flash.submitted'));
+            $this->addFlash('success', $this->translator->trans(match (true) {
+                $isDraft => 'organization_page.flash.saved_as_draft',
+                $isAdmin => 'organizer_tools.flash.created_published',
+                default => 'organization_page.flash.submitted',
+            }));
 
             // The slug is generated from the name by the handler
             $organization = $this->getOrganization->byId($organizationId->toString());

@@ -8165,12 +8165,14 @@ drafts_core:
     flash:
         published: "Published - everyone can see it now."
         published_waiting: "Published - everyone can see it once an admin approves it."
+        published_series_draft: "Published - visible once the series is published too."
         unpublished: "Back to draft - only you and your team can see it."
         cannot_unpublish: "It cannot go back to draft: %reasons%."
     blocker:
         participants: "people have joined it"
         results: "it has official results"
         solving_times: "solving times are linked to it"
+    blocker_separator: ", "
 drafts:
     banner:
         own: "Draft: only you and your team can see this page."
@@ -8262,7 +8264,7 @@ organizer_tools:
         show: "Show the dates"
         preview_title: "1 date|%count% dates"
         taken: "already has an edition"
-        create: "Create editions"
+        create: "Create 1 edition|Create %count% editions"
         create_help: "Only the checked dates are created. As drafts, only you and your team see them until you publish each one."
 organization_page:
     meta:

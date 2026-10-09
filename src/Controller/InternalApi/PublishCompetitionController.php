@@ -34,7 +34,7 @@ final class PublishCompetitionController extends AbstractController
     {
         $competition = $this->competitionRepository->get($competitionId);
 
-        $this->messageBus->dispatch(new PublishCompetition($competition->id->toString()));
+        $this->messageBus->dispatch(new PublishCompetition($competition->id->toString(), notifyAdmin: false));
 
         return new Response(null, Response::HTTP_NO_CONTENT);
     }

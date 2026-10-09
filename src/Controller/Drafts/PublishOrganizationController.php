@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Drafts;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\PublishOrganization;
 use SpeedPuzzling\Web\Repository\OrganizationRepository;
+use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Security\OrganizationEditVoter;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -45,7 +46,8 @@ final class PublishOrganizationController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $this->messageBus->dispatch(new PublishOrganization($organizationId));
+        // An admin's own publish puts nothing in front of the admins
+        $this->messageBus->dispatch(new PublishOrganization($organizationId, notifyAdmin: $this->isGranted(AdminAccessVoter::ADMIN_ACCESS) === false));
 
         $organization = $this->organizationRepository->get($organizationId);
         $approved = $organization->isApproved() && $organization->isRejected() === false;

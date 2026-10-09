@@ -92,7 +92,11 @@ final class ApproveOrganizationHandlerTest extends KernelTestCase
         ));
 
         self::assertQueuedEmailCount(1);
-        self::assertEmailAddressContains(self::getMailerMessage() ?? self::fail('No e-mail'), 'To', PlayerFixture::PLAYER_WITH_FAVORITES_EMAIL);
+        $email = self::getMailerMessage() ?? self::fail('No e-mail');
+        self::assertEmailAddressContains($email, 'To', PlayerFixture::PLAYER_WITH_FAVORITES_EMAIL);
+        // The organization's own e-mail - never the event one ("Your event ...")
+        self::assertEmailHeaderSame($email, 'Subject', 'Your organization has been approved!');
+        self::assertEmailHtmlBodyContains($email, '/en/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING_SLUG);
     }
 
     public function testTheCreatorIsNotToldWhenLeftOut(): void

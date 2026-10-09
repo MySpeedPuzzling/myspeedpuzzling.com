@@ -42,6 +42,7 @@ final class OrganizationFormData
         public null|string $region = null,
         public null|OrganizationKind $kind = null,
         public null|UploadedFile $logo = null,
+        #[Assert\Count(max: Organization::MAX_MAINTAINERS, maxMessage: 'organization_fields.team_too_many')]
         public array $maintainers = [],
         // The "URL" field of the edit form
         public null|string $slug = null,

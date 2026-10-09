@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Drafts;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\PublishCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Value\ReturnUrl;
@@ -20,7 +21,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Publish a draft one-time event or edition (docs/features/organizations/README.md "Drafts") - from the draft banner,
- * the ⋯ menu or "You organize". Always a redirect: to `return`, else the event's page.
+ * the ⋯ menu or "You organize". Always a redirect: to `return`, else the event's page. The flash says when the event
+ * is not visible yet: waiting for approval, or an edition whose series is still a draft.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class PublishCompetitionController extends AbstractController
@@ -47,14 +49,22 @@ final class PublishCompetitionController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $this->messageBus->dispatch(new PublishCompetition($competitionId));
+        // An admin's own publish puts nothing in front of the admins
+        $this->messageBus->dispatch(new PublishCompetition($competitionId, notifyAdmin: $this->isGranted(AdminAccessVoter::ADMIN_ACCESS) === false));
 
         $competition = $this->competitionRepository->get($competitionId);
         $approved = $competition->series === null
             ? $competition->isApproved() && $competition->isRejected() === false
             : $competition->series->isApproved() && $competition->series->isRejected() === false;
 
-        $this->addFlash('success', $this->translator->trans($approved ? 'drafts_core.flash.published' : 'drafts_core.flash.published_waiting'));
+        // An edition of a draft series stays hidden with its series
+        $flash = match (true) {
+            $competition->series !== null && $competition->series->isDraft => 'drafts_core.flash.published_series_draft',
+            $approved => 'drafts_core.flash.published',
+            default => 'drafts_core.flash.published_waiting',
+        };
+
+        $this->addFlash('success', $this->translator->trans($flash));
 
         $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
 

@@ -33,7 +33,7 @@ final class PublishSeriesController extends AbstractController
     {
         $series = $this->competitionSeriesRepository->get($seriesId);
 
-        $this->messageBus->dispatch(new PublishCompetitionSeries($series->id->toString()));
+        $this->messageBus->dispatch(new PublishCompetitionSeries($series->id->toString(), notifyAdmin: false));
 
         return new Response(null, Response::HTTP_NO_CONTENT);
     }

@@ -69,11 +69,11 @@ readonly final class ApproveOrganizationHandler
         $email = (new TemplatedEmail())
             ->to($creatorEmail)
             ->locale($playerLocale)
-            ->subject($this->translator->trans('competition_approved.subject', domain: 'emails', locale: $playerLocale))
-            ->htmlTemplate('emails/competition_approved.html.twig')
+            ->subject($this->translator->trans('organization_approved.subject', domain: 'emails', locale: $playerLocale))
+            ->htmlTemplate('emails/organization_approved.html.twig')
             ->context([
-                'competitionName' => $organization->name,
-                'eventUrl' => $this->urlGenerator->generate('organization_detail', [
+                'organizationName' => $organization->name,
+                'organizationUrl' => $this->urlGenerator->generate('organization_detail', [
                     'slug' => $organization->slug,
                     '_locale' => $playerLocale,
                 ], UrlGeneratorInterface::ABSOLUTE_URL),

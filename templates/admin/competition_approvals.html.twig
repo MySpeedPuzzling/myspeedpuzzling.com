@@ -158,6 +158,7 @@
                                         <i class="bi bi-eye me-1"></i>View
                                     </a>
                                     <form method="post" action="{{ path('admin_approve_organization', {'organizationId': o.id}) }}" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('approve_organization_' ~ o.id) }}">
                                         <button type="submit" class="btn btn-sm btn-success">
                                             <i class="bi bi-check-lg me-1"></i>Approve
                                         </button>
@@ -170,6 +171,7 @@
                             <tr class="collapse" id="reject-organization-{{ o.id }}">
                                 <td colspan="8">
                                     <form method="post" action="{{ path('admin_reject_organization', {'organizationId': o.id}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('reject_organization_' ~ o.id) }}">
                                         <div class="d-flex gap-2 align-items-end">
                                             <div class="flex-grow-1">
                                                 <label for="reason-organization-{{ o.id }}" class="form-label">Rejection reason</label>

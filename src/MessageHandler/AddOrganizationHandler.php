@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
 use SpeedPuzzling\Web\Exceptions\OrganizationSlugTaken;
+use SpeedPuzzling\Web\Exceptions\OrganizationTeamFull;
 use SpeedPuzzling\Web\Message\AddOrganization;
 use SpeedPuzzling\Web\Repository\OrganizationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -57,6 +58,11 @@ readonly final class AddOrganizationHandler
 
         $slug = $message->slug ?? $this->slugGenerator->generateOrganizationSlug($message->name);
         $socialLinks = SocialLinks::fromInput($message->socialLinks);
+        $maintainerIds = Organization::teamIds($message->maintainerIds, $player->id->toString());
+
+        if (count($maintainerIds) > Organization::MAX_MAINTAINERS) {
+            throw new OrganizationTeamFull();
+        }
 
         $logoPath = null;
         if ($message->logo !== null) {
@@ -90,12 +96,8 @@ readonly final class AddOrganizationHandler
             addedByPlayer: $player,
         );
 
-        foreach (array_unique($message->maintainerIds) as $maintainerId) {
-            // The creator is on the team as its creator - never a maintainer row too
-            if (strtolower($maintainerId) === $player->id->toString()) {
-                continue;
-            }
-
+        // The creator is on the team as its creator - never a maintainer row too (teamIds() leaves it out)
+        foreach ($maintainerIds as $maintainerId) {
             $organization->maintainers->add($this->playerRepository->get($maintainerId));
         }
 
@@ -106,7 +108,7 @@ readonly final class AddOrganizationHandler
         $this->organizationRepository->save($organization);
 
         if ($message->approve === false && $message->isDraft === false) {
-            $this->competitionSubmittedMailer->notifyAdmin($message->name, $player->name ?? 'Unknown', $message->region);
+            $this->competitionSubmittedMailer->notifyAdminOfOrganization($message->name, $player->name ?? 'Unknown', $message->region);
         }
     }
 }

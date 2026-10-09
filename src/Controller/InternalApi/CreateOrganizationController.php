@@ -50,7 +50,7 @@ final class CreateOrganizationController extends AbstractController
         $input = InternalApiInput::fromRequest($request, [...OrganizationInput::FIELDS, 'draft']);
 
         $data = new OrganizationFormData();
-        ['slug' => $slug, 'maintainerIds' => $maintainerIds] = OrganizationInput::applyTo($input, $data);
+        ['slug' => $slug, 'maintainerIds' => $maintainerIds] = OrganizationInput::applyTo($input, $data, strtolower($this->reviewerPlayerId));
         $isDraft = $input->bool('draft') ?? false;
 
         $input->addViolations($this->validator->validate($data));

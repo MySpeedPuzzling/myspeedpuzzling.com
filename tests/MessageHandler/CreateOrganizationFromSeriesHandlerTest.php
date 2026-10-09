@@ -90,6 +90,7 @@ final class CreateOrganizationFromSeriesHandlerTest extends KernelTestCase
         self::assertSame('euro-jigsaw-jam-online', $series->slug);
         self::assertTrue($series->isApproved());
 
+        // A public organization: the follows move, one row per player
         self::assertSame(0, $this->database->fetchOne('SELECT COUNT(*) FROM followed_competition WHERE series_id = :id', ['id' => CompetitionSeriesFixture::SERIES_EJJ]));
         self::assertSame(2, $this->database->fetchOne('SELECT COUNT(*) FROM followed_competition WHERE organization_id = :id', ['id' => $organizationId->toString()]));
 
@@ -110,6 +111,10 @@ final class CreateOrganizationFromSeriesHandlerTest extends KernelTestCase
 
     public function testWithoutApprovalItWaitsAndTheAdminIsTold(): void
     {
+        $this->messageBus->dispatch(new FollowCompetition(PlayerFixture::PLAYER_REGULAR, 'series:' . CompetitionSeriesFixture::SERIES_OFFLINE));
+        $this->messageBus->dispatch(new FollowCompetition(PlayerFixture::PLAYER_WITH_STRIPE, 'series:' . CompetitionSeriesFixture::SERIES_OFFLINE));
+        $this->clearEntityManager();
+
         $organizationId = Uuid::uuid7();
         $this->messageBus->dispatch(new CreateOrganizationFromSeries(
             seriesId: CompetitionSeriesFixture::SERIES_OFFLINE,
@@ -128,10 +133,14 @@ final class CreateOrganizationFromSeriesHandlerTest extends KernelTestCase
         $organization = self::getContainer()->get(OrganizationRepository::class)->get($organizationId->toString());
         self::assertFalse($organization->isApproved());
         self::assertSame('prague-puzzle-club', $organization->slug);
-        // Country and region from the series
-        self::assertSame('cz', $organization->countryCode);
-        self::assertSame('Prague', $organization->region);
+        // Country and region as given - none (the callers prefill them from the series)
+        self::assertNull($organization->countryCode);
+        self::assertNull($organization->region);
         self::assertQueuedEmailCount(1);
+
+        // Nobody can follow an organization waiting for approval: the series follows stay, an organization follow is added
+        self::assertSame(2, $this->database->fetchOne('SELECT COUNT(*) FROM followed_competition WHERE series_id = :id', ['id' => CompetitionSeriesFixture::SERIES_OFFLINE]));
+        self::assertSame(2, $this->database->fetchOne('SELECT COUNT(*) FROM followed_competition WHERE organization_id = :id', ['id' => $organizationId->toString()]));
 
         // The series keeps its name, address and approval - and its old address needs no redirect
         $series = self::getContainer()->get(CompetitionSeriesRepository::class)->get(CompetitionSeriesFixture::SERIES_OFFLINE);

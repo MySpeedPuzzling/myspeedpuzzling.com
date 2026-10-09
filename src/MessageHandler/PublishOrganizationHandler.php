@@ -32,8 +32,8 @@ readonly final class PublishOrganizationHandler
 
         $organization->publish();
 
-        if ($organization->isApproved() === false && $organization->isRejected() === false) {
-            $this->competitionSubmittedMailer->notifyAdmin(
+        if ($message->notifyAdmin && $organization->isApproved() === false && $organization->isRejected() === false) {
+            $this->competitionSubmittedMailer->notifyAdminOfOrganization(
                 $organization->name,
                 $organization->addedByPlayer->name ?? 'Unknown',
                 $organization->region,

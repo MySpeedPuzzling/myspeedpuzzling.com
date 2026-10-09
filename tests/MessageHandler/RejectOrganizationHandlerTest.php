@@ -37,7 +37,10 @@ final class RejectOrganizationHandlerTest extends KernelTestCase
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $organization->rejectedByPlayer?->id->toString());
 
         self::assertQueuedEmailCount(1);
-        self::assertEmailAddressContains(self::getMailerMessage() ?? self::fail('No e-mail'), 'To', PlayerFixture::PLAYER_WITH_FAVORITES_EMAIL);
+        $email = self::getMailerMessage() ?? self::fail('No e-mail');
+        self::assertEmailAddressContains($email, 'To', PlayerFixture::PLAYER_WITH_FAVORITES_EMAIL);
+        self::assertEmailHeaderSame($email, 'Subject', 'Your organization was not approved');
+        self::assertEmailHtmlBodyContains($email, 'Please add a website.');
     }
 
     public function testItsSeriesKeepsItsOwnState(): void

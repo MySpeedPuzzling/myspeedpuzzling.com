@@ -120,6 +120,36 @@ final class DraftActionsControllerTest extends WebTestCase
         self::assertFalse($this->isDraft('competition', OrganizationFixture::EDITION_LANTERN_DRAFT));
     }
 
+    public function testPublishingAnEditionOfADraftSeriesSaysItStaysHiddenWithTheSeries(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE competition SET is_draft = true WHERE id = :id',
+            ['id' => OrganizationFixture::EDITION_QUIET_PINES_1],
+        );
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $token = $this->plantToken($browser, 'publish_competition_' . OrganizationFixture::EDITION_QUIET_PINES_1);
+
+        $browser->request('POST', '/en/publish-event/' . OrganizationFixture::EDITION_QUIET_PINES_1, ['_token' => $token, 'return' => '/en/you-organize']);
+
+        self::assertResponseRedirects('/en/you-organize');
+        self::assertSame([$this->trans('drafts_core.flash.published_series_draft')], $this->flashes($browser, 'success'));
+        self::assertFalse($this->isDraft('competition', OrganizationFixture::EDITION_QUIET_PINES_1));
+    }
+
+    public function testAnAdminPublishingAPendingItemEmailsNobody(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $token = $this->plantToken($browser, 'publish_competition_' . OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT);
+
+        $browser->request('POST', '/en/publish-event/' . OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT, ['_token' => $token]);
+
+        self::assertResponseRedirects();
+        self::assertQueuedEmailCount(0);
+        self::assertFalse($this->isDraft('competition', OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT));
+    }
+
     public function testUnpublishingAnEventNobodyJoinedMakesItADraft(): void
     {
         $browser = self::createClient();

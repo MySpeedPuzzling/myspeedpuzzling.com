@@ -115,22 +115,14 @@ final class OrganizationFormType extends AbstractType
             'attr' => ['rows' => 3, 'spellcheck' => 'false', 'autocapitalize' => 'off', 'inputmode' => 'url'],
         ]);
 
-        // One address per line in the textarea, a list in the form data - empty lines dropped
+        // One address per line in the textarea, a list in the form data - empty lines and repeats dropped, so the limit
+        // counts every link once
         $builder->get('socialLinks')->addModelTransformer(new CallbackTransformer(
             static function (null|array $urls): string {
                 return $urls === null ? '' : implode("\n", array_filter($urls, is_string(...)));
             },
             static function (null|string $text): array {
-                if ($text === null) {
-                    return [];
-                }
-
-                $lines = preg_split('/\R/u', $text);
-
-                return array_values(array_filter(
-                    array_map(trim(...), $lines === false ? [] : $lines),
-                    static fn (string $line): bool => $line !== '',
-                ));
+                return $text === null ? [] : SocialLinks::normalize($text);
             },
         ));
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Entity\Organization;
+use SpeedPuzzling\Web\Exceptions\OrganizationTeamFull;
 use SpeedPuzzling\Web\Message\AddOrganizationMaintainer;
 use SpeedPuzzling\Web\Repository\OrganizationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -28,6 +30,10 @@ readonly final class AddOrganizationMaintainerHandler
 
         if ($organization->isOnTeam($player)) {
             return;
+        }
+
+        if ($organization->maintainers->count() >= Organization::MAX_MAINTAINERS) {
+            throw new OrganizationTeamFull();
         }
 
         $organization->maintainers->add($player);

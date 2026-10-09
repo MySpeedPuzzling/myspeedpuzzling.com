@@ -123,6 +123,16 @@ final class MovesInternalApiTest extends WebTestCase
         self::callInternalApi($browser, 'POST', '/internal-api/series/' . CompetitionSeriesFixture::SERIES_OFFLINE . '/create-organization', ['name' => 'Twice']);
         self::assertResponseStatusCodeSame(409);
 
+        // Sent as null = none (left out = the series' own, above)
+        $without = self::callInternalApi($browser, 'POST', '/internal-api/series/' . CompetitionSeriesFixture::SERIES_EJJ . '/create-organization', [
+            'name' => 'Euro Jigsaw Jam Association',
+            'countryCode' => null,
+            'region' => null,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        self::assertNull($without['countryCode']);
+        self::assertNull($without['region']);
+
         $invalid = self::callInternalApi($browser, 'POST', '/internal-api/series/' . CompetitionSeriesFixture::SERIES_EJJ . '/create-organization', [
             'kind' => 'guild',
             'countryCode' => 'xx',

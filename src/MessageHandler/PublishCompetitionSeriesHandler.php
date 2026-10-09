@@ -40,7 +40,7 @@ readonly final class PublishCompetitionSeriesHandler
 
         $series->publish();
 
-        if ($series->isApproved() === false && $series->isRejected() === false) {
+        if ($message->notifyAdmin && $series->isApproved() === false && $series->isRejected() === false) {
             $this->competitionSubmittedMailer->notifyAdmin(
                 $series->name,
                 $series->addedByPlayer->name ?? 'Unknown',

@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\FormData\AddEditionsFormData;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -183,6 +185,76 @@ final class AddEditionsControllerTest extends WebTestCase
         self::assertCount(1, $this->editionsNamed('Lantern % 2028'));
     }
 
+    public function testAFormSentTwiceCreatesNothingTwice(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028, 12.03.2028', 'namePattern' => 'Twice {date}']));
+        self::assertSame('Create 2 editions', trim($crawler->filter('.ev-add-editions-preview button[name="create"]')->text()));
+
+        $this->post($browser, $crawler, ['2028-03-05', '2028-03-12']);
+        self::assertResponseRedirects();
+        $browser->followRedirect();
+        self::assertSelectorTextContains('.alert-success', '2 editions added.');
+
+        // The same form again (a double click, the back button): the same ids - nothing new, no flash
+        $this->post($browser, $crawler, ['2028-03-05', '2028-03-12']);
+        self::assertResponseRedirects();
+        $browser->followRedirect();
+        self::assertSelectorNotExists('.alert-success');
+        self::assertCount(2, $this->editionsNamed('Twice %'));
+
+        // A fresh preview of the same days (new ids): the days hold editions now - still nothing twice
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Again {date}']));
+        $browser->request('POST', (string) $crawler->filter('.ev-add-editions-preview form')->attr('action'), [
+            '_token' => (string) $crawler->filter('.ev-add-editions-preview input[name="_token"]')->attr('value'),
+            'selected' => ['2028-03-05'],
+            'ids' => ['2028-03-05' => (string) Uuid::uuid7()],
+        ]);
+        self::assertResponseRedirects();
+        self::assertSame([], $this->editionsNamed('Again %'));
+    }
+
+    public function testARefusedPostKeepsTheIdsOfTheDays(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '05.03.2028', 'namePattern' => 'Lantern {date}']));
+        $id = (string) $crawler->filter('input[name="ids[2028-03-05]"]')->attr('value');
+        self::assertTrue(Uuid::isValid($id));
+
+        $this->post($browser, $crawler, []);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('input[name="ids[2028-03-05]"][value="' . $id . '"]');
+    }
+
+    public function testDaysTypedWithSpacesAndAUrlWithoutHowAreRead(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', self::URL . '?' . http_build_query(['how' => 'pick', 'dates' => '5. 3. 2028, 12. 3. 2028.', 'namePattern' => 'Spaced {date}']));
+        self::assertResponseIsSuccessful();
+        self::assertSame(['2028-03-05', '2028-03-12'], $this->checkedDays($crawler));
+
+        // A hand-made URL without `how` repeats
+        $browser->request('GET', self::URL . '?' . http_build_query(['rule' => 'weekly', 'weekday' => '1', 'starting' => '01.01.2028', 'count' => '2', 'namePattern' => 'X {date}']));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(2, '.ev-add-editions-preview input[name="selected[]"]');
+    }
+
+    public function testTheDefaultNameFitsALongSeriesName(): void
+    {
+        $pattern = AddEditionsFormData::defaultNamePattern(str_repeat('Lantern ', 40));
+
+        self::assertLessThanOrEqual(AddEditionsFormData::NAME_PATTERN_MAX_LENGTH, mb_strlen($pattern));
+        self::assertStringEndsWith(' {date}', $pattern);
+        self::assertSame('Lantern Brewing Puzzle Night {date}', AddEditionsFormData::defaultNamePattern('Lantern Brewing Puzzle Night'));
+    }
+
     public function testATokenIsRequired(): void
     {
         $browser = self::createClient();
@@ -243,7 +315,14 @@ final class AddEditionsControllerTest extends WebTestCase
         $form = $crawler->filter('.ev-add-editions-preview form');
         self::assertCount(1, $form);
 
-        $values = ['_token' => (string) $form->filter('input[name="_token"]')->attr('value'), 'selected' => $days];
+        $ids = [];
+
+        foreach ($form->filter('input[name^="ids["]') as $input) {
+            assert($input instanceof \DOMElement);
+            $ids[substr($input->getAttribute('name'), 4, -1)] = $input->getAttribute('value');
+        }
+
+        $values = ['_token' => (string) $form->filter('input[name="_token"]')->attr('value'), 'selected' => $days, 'ids' => $ids];
         $values += $saveDraft ? ['saveDraft' => '1'] : ['create' => '1'];
 
         $browser->request('POST', (string) $form->attr('action'), $values);

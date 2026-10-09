@@ -33,7 +33,7 @@ final class PublishOrganizationController extends AbstractController
     {
         $organization = $this->organizationRepository->get($organizationId);
 
-        $this->messageBus->dispatch(new PublishOrganization($organization->id->toString()));
+        $this->messageBus->dispatch(new PublishOrganization($organization->id->toString(), notifyAdmin: false));
 
         return new Response(null, Response::HTTP_NO_CONTENT);
     }

@@ -25,11 +25,11 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * Turns a series into an organization (CreateOrganizationFromSeries) - **approved at once** (the reviewer player is an
  * admin), created by the series' creator. Copied from the series: logo, about (its description), website (its link),
- * country and region (its location) unless sent, the team (its maintainers). The series' followers follow the
- * organization; the series is attached to it - with `newSeriesName` / `newSeriesSlug` renamed, and with a new slug its
- * old address answers 301 to the organization and its editions' old addresses to where they are now. The organization
- * may take the series' old slug (`slug`) - organizations and series have separate addresses. Social links and the rest
- * follow with PATCH /internal-api/organizations/{id}.
+ * the team (its maintainers), and country and region (its location) when the field is left out (sent as null = none).
+ * The series' followers follow the organization; the series is attached to it - with `newSeriesName` / `newSeriesSlug`
+ * renamed, and with a new slug its old address answers 301 to the organization and its editions' old addresses to where
+ * they are now. The organization may take the series' old slug (`slug`) - organizations and series have separate
+ * addresses. Social links and the rest follow with PATCH /internal-api/organizations/{id}.
  */
 final class CreateOrganizationFromSeriesController extends AbstractController
 {
@@ -92,6 +92,10 @@ final class CreateOrganizationFromSeriesController extends AbstractController
             $input->addError('countryCode', 'must be an ISO 3166-1 alpha-2 country code, e.g. "us".');
         }
 
+        // Left out = the series' own; sent as null = none
+        $organizationCountry = $input->has('countryCode') ? $country?->name : $series->locationCountryCode;
+        $organizationRegion = $input->has('region') ? $region : $series->location;
+
         $input->throwIfInvalid();
         assert($name !== null);
 
@@ -105,8 +109,8 @@ final class CreateOrganizationFromSeriesController extends AbstractController
             shortName: $shortName,
             slug: $slug,
             kind: $kind,
-            countryCode: $country?->name,
-            region: $region,
+            countryCode: $organizationCountry,
+            region: $organizationRegion,
             approve: true,
             newSeriesName: $newSeriesName,
             newSeriesSlug: $newSeriesSlug,

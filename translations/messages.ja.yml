@@ -7803,12 +7803,14 @@ drafts_core:
     flash:
         published: "公開しました。誰でも見られるようになりました。"
         published_waiting: "公開しました。管理者が承認すると、誰でも見られるようになります。"
+        published_series_draft: "公開しました。シリーズも公開されると表示されます。"
         unpublished: "下書きに戻しました。あなたとチームだけが見られます。"
         cannot_unpublish: "下書きに戻せません：%reasons%。"
     blocker:
         participants: "すでに参加者がいる"
         results: "公式結果がある"
         solving_times: "タイム記録が紐付けられている"
+    blocker_separator: "、"
 drafts:
     banner:
         own: "下書き：このページはあなたとチームだけが見られます。"
@@ -7900,7 +7902,7 @@ organizer_tools:
         show: "日程を表示"
         preview_title: "日程%count%件"
         taken: "すでにエディションがあります"
-        create: "エディションを作成"
+        create: "エディションを%count%件作成"
         create_help: "チェックした日程だけが作成されます。下書きの場合は、1件ずつ公開するまで、あなたとチームだけが見られます。"
 organization_page:
     meta:

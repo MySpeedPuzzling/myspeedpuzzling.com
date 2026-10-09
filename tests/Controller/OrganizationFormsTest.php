@@ -79,6 +79,22 @@ final class OrganizationFormsTest extends WebTestCase
         self::assertSelectorExists('meta[name="robots"][content="noindex, nofollow"]');
     }
 
+    public function testAnAdminsOrganizationIsApprovedAtOnce(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', self::ADD);
+
+        $form = $crawler->selectButton('Submit for approval')->form([
+            'organization_form[name]' => 'Larkspur Puzzle Guild',
+        ]);
+        $browser->submit($form);
+
+        self::assertResponseRedirects('/en/organizations/larkspur-puzzle-guild');
+        self::assertQueuedEmailCount(0);
+        self::assertNotNull(self::organizationRow('larkspur-puzzle-guild')['approved_at']);
+    }
+
     public function testSaveAsDraftKeepsItForTheTeam(): void
     {
         $browser = self::createClient();
@@ -150,6 +166,15 @@ final class OrganizationFormsTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('Add at most 10 links.', $crawler->filter('form')->text());
         self::assertCount(1, $crawler->filter('input[name="organization_form[name]"].is-invalid'));
+
+        // A link typed twice counts once: ten different links pass
+        $tenTwice = implode("\n", array_map(static fn (int $i): string => 'https://puzzles-' . min($i, 10) . '.example', range(1, 11)));
+        $browser->submit($crawler->selectButton('Submit for approval')->form([
+            'organization_form[name]' => 'Ten Links Puzzle Club',
+            'organization_form[socialLinks]' => $tenTwice,
+        ]));
+
+        self::assertResponseRedirects('/en/organizations/ten-links-puzzle-club');
     }
 
     public function testTheEditPageIsPrefilledAndListsTheTeamForTheTeamOnly(): void

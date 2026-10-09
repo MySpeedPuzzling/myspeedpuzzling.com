@@ -7,8 +7,11 @@
     posts the checked days to the same URL. organizer_form_controller.js only hides the fields the chosen way does not
     use; the multi-day calendar is the site's .date-picker.
 
+    The button counts the checked dates ("Create 3 editions", checked_count_controller.js keeps it in step); every day
+    carries the id its edition gets, so a form sent twice creates nothing twice.
+
     Variables: form (AddEditionsFormType, no name), series (CompetitionSeriesOverview), preview (null|list<{date, value,
-    name, taken}>), selected (null|list<string> - the days checked in a refused POST), selection_error, csrf_token_id
+    name, taken, id}>), selected (null|list<string> - the days checked in a refused POST), selection_error, csrf_token_id
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -94,7 +97,10 @@
         {% if preview is not null %}
             <section class="ev-add-editions-preview" aria-labelledby="add-editions-preview-title" id="dates">
                 <h2 class="h4" id="add-editions-preview-title">{{ 'organizer_tools.add_editions.preview_title'|trans({'%count%': preview|length}) }}</h2>
-                <form method="post" action="{{ app.request.requestUri }}">
+                {%- set checked_count = preview|filter(item => selected is null ? not item.taken : item.value in selected)|length -%}
+                <form method="post" action="{{ app.request.requestUri }}"
+                      data-controller="checked-count" data-action="change->checked-count#update"
+                      data-checked-count-message-value="{{ browser_translation('organizer_tools.add_editions.create')|json_encode }}">
                     <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
                     {% if selection_error %}
                         <div class="alert alert-danger" role="alert">{{ selection_error }}</div>
@@ -103,6 +109,8 @@
                         {% for item in preview %}
                             {%- set checked = selected is null ? not item.taken : item.value in selected -%}
                             <li>
+                                {# The edition's id travels with the page: a form sent twice creates nothing twice #}
+                                <input type="hidden" name="ids[{{ item.value }}]" value="{{ item.id }}">
                                 <label class="ev-add-editions-date{% if item.taken %} is-taken{% endif %}" data-date="{{ item.value }}">
                                     <input type="checkbox" class="form-check-input" name="selected[]" value="{{ item.value }}"{% if checked %} checked{% endif %}>
                                     <span class="ev-add-editions-date-text">
@@ -115,7 +123,7 @@
                         {% endfor %}
                     </ul>
                     <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
-                        <button type="submit" class="btn btn-primary" name="create" value="1">{{ 'organizer_tools.add_editions.create'|trans }}</button>
+                        <button type="submit" class="btn btn-primary" name="create" value="1" data-checked-count-target="label">{{ 'organizer_tools.add_editions.create'|trans({'%count%': checked_count}) }}</button>
                         <button type="submit" class="btn btn-outline-secondary" name="saveDraft" value="1">{{ 'organizer_tools.form.save_draft'|trans }}</button>
                     </div>
                     <p class="form-text mt-2 mb-0">{{ 'organizer_tools.add_editions.create_help'|trans }}</p>

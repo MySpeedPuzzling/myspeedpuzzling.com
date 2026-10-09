@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Drafts;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\PublishCompetitionSeries;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
+use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -45,7 +46,8 @@ final class PublishCompetitionSeriesController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $this->messageBus->dispatch(new PublishCompetitionSeries($seriesId));
+        // An admin's own publish puts nothing in front of the admins
+        $this->messageBus->dispatch(new PublishCompetitionSeries($seriesId, notifyAdmin: $this->isGranted(AdminAccessVoter::ADMIN_ACCESS) === false));
 
         $series = $this->competitionSeriesRepository->get($seriesId);
         $approved = $series->isApproved() && $series->isRejected() === false;

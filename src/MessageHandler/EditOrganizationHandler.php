@@ -6,8 +6,10 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
 use SpeedPuzzling\Web\Exceptions\OrganizationSlugTaken;
+use SpeedPuzzling\Web\Exceptions\OrganizationTeamFull;
 use SpeedPuzzling\Web\Message\EditOrganization;
 use SpeedPuzzling\Web\Repository\OrganizationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -54,6 +56,12 @@ readonly final class EditOrganizationHandler
 
         // Validated before the logo is stored
         $socialLinks = SocialLinks::fromInput($message->socialLinks);
+        $creatorId = $organization->addedByPlayer?->id->toString();
+        $maintainerIds = Organization::teamIds($message->maintainerIds, $creatorId);
+
+        if (count($maintainerIds) > Organization::MAX_MAINTAINERS) {
+            throw new OrganizationTeamFull();
+        }
 
         $logoPath = $organization->logo;
         if ($message->logo !== null) {
@@ -83,14 +91,9 @@ readonly final class EditOrganizationHandler
             kind: $message->kind,
         );
 
-        $creatorId = $organization->addedByPlayer?->id->toString();
         $organization->maintainers->clear();
 
-        foreach (array_unique($message->maintainerIds) as $maintainerId) {
-            if (strtolower($maintainerId) === $creatorId) {
-                continue;
-            }
-
+        foreach ($maintainerIds as $maintainerId) {
             $organization->maintainers->add($this->playerRepository->get($maintainerId));
         }
     }

@@ -22,7 +22,10 @@
         {% if organization is not null %}
             <div class="alert alert-info" role="status">
                 {{ 'restructure.to_organization.already_in'|trans({'%organization%': organization.name}) }}
-                <a href="{{ path('organization_detail', {slug: organization.slug}) }}">{{ 'restructure.to_organization.open_organization'|trans }}</a>
+                {# A draft organization's page answers 404 to anyone off its team #}
+                {% if organization.isDraft == false or is_granted('ORGANIZATION_EDIT', organization.id.toString) %}
+                    <a href="{{ path('organization_detail', {slug: organization.slug}) }}">{{ 'restructure.to_organization.open_organization'|trans }}</a>
+                {% endif %}
             </div>
             {{ form_errors(form) }}
         {% else %}

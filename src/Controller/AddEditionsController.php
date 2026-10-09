@@ -23,6 +23,7 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -71,7 +72,7 @@ final class AddEditionsController extends AbstractController
         $data = new AddEditionsFormData(
             weekday: (int) $today->format('N'),
             starting: $today,
-            namePattern: $series->name . ' ' . AddEditionsFormData::DATE_PLACEHOLDER,
+            namePattern: AddEditionsFormData::defaultNamePattern($series->name),
         );
 
         /** @var FormInterface<AddEditionsFormData> $form */
@@ -89,7 +90,10 @@ final class AddEditionsController extends AbstractController
             $form->handleRequest($request);
         }
 
-        $preview = $form->isSubmitted() && $form->isValid() ? $this->preview($form->getData(), $seriesId, $request->getLocale()) : null;
+        // The id each day's edition gets - made with the preview, sent back with the form, so a form sent twice creates
+        // nothing twice (AddEditions skips ids that exist)
+        $postedIds = $isPost ? $request->request->all('ids') : [];
+        $preview = $form->isSubmitted() && $form->isValid() ? $this->preview($form->getData(), $seriesId, $request->getLocale(), $postedIds) : null;
         $selectionError = null;
         // The days checked in a refused POST stay checked; a fresh preview checks every free day
         $selected = $isPost ? array_values(array_filter($request->request->all('selected'), is_string(...))) : null;
@@ -99,24 +103,28 @@ final class AddEditionsController extends AbstractController
 
             foreach ($preview as $item) {
                 if (in_array($item['value'], $selected, true)) {
-                    $editions[] = new NewEdition(competitionId: Uuid::uuid7(), name: $item['name'], date: $item['date']);
+                    $editions[] = new NewEdition(competitionId: Uuid::fromString($item['id']), name: $item['name'], date: $item['date']);
                 }
             }
 
             if ($editions !== []) {
                 $isDraft = $request->request->has('saveDraft');
 
-                $this->messageBus->dispatch(new AddEditions(
+                $envelope = $this->messageBus->dispatch(new AddEditions(
                     seriesId: $seriesId,
                     editions: $editions,
                     eligibility: $form->getData()->eligibility,
                     isDraft: $isDraft,
                 ));
+                $created = $envelope->last(HandledStamp::class)?->getResult();
 
-                $this->addFlash('success', $this->translator->trans(
-                    $isDraft ? 'organizer_tools.flash.editions_added_draft' : 'organizer_tools.flash.editions_added',
-                    ['%count%' => count($editions)],
-                ));
+                // A form sent again creates nothing - and says nothing
+                if (is_int($created) && $created > 0) {
+                    $this->addFlash('success', $this->translator->trans(
+                        $isDraft ? 'organizer_tools.flash.editions_added_draft' : 'organizer_tools.flash.editions_added',
+                        ['%count%' => $created],
+                    ));
+                }
 
                 return $this->redirectToRoute('manage_competition_series', ['seriesId' => $seriesId]);
             }
@@ -145,9 +153,10 @@ final class AddEditionsController extends AbstractController
      * The proposed days with the name each edition gets; a day that already holds an edition of the series is marked
      * (and left unchecked by the page)
      *
-     * @return list<array{date: DateTimeImmutable, value: string, name: string, taken: bool}>
+     * @param array<mixed> $postedIds the ids the page carried, by day - a missing or malformed one is made anew
+     * @return list<array{date: DateTimeImmutable, value: string, name: string, taken: bool, id: string}>
      */
-    private function preview(AddEditionsFormData $data, string $seriesId, string $locale): array
+    private function preview(AddEditionsFormData $data, string $seriesId, string $locale, array $postedIds): array
     {
         $taken = $this->takenDays($seriesId);
         $items = [];
@@ -160,6 +169,9 @@ final class AddEditionsController extends AbstractController
                 'value' => $value,
                 'name' => $data->nameFor($this->eventsPageDates->format($date, 'yMMMMd', $locale)),
                 'taken' => isset($taken[$value]),
+                'id' => isset($postedIds[$value]) && is_string($postedIds[$value]) && Uuid::isValid($postedIds[$value])
+                    ? strtolower($postedIds[$value])
+                    : Uuid::uuid7()->toString(),
             ];
         }
 

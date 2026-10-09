@@ -28,6 +28,7 @@ private_profile_viewers:
 organization_fields:
     social_links_too_many: "リンクは最大{{ limit }}件まで追加できます。"
     social_link_invalid: "{{ value }}はウェブアドレス（http://またはhttps://）ではありません。"
+    team_too_many: "チームには、あなたのほかに最大{{ limit }}人まで追加できます。"
 add_editions:
     dates_invalid: "読み取れない日付があります。カレンダーで選ぶか、05.10.2026 のように入力してください。"
     dates_missing: "日付を1つ以上選んでください。"

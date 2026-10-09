@@ -26,6 +26,9 @@ readonly final class CannotUnpublishMessage
             $exception->blockers,
         );
 
-        return $this->translator->trans('drafts_core.flash.cannot_unpublish', ['%reasons%' => implode(', ', $reasons)]);
+        // The joiner is the language's own (Japanese lists with 、)
+        return $this->translator->trans('drafts_core.flash.cannot_unpublish', [
+            '%reasons%' => implode($this->translator->trans('drafts_core.blocker_separator'), $reasons),
+        ]);
     }
 }

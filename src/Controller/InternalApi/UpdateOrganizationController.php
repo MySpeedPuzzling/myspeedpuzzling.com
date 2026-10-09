@@ -46,7 +46,7 @@ final class UpdateOrganizationController extends AbstractController
         $input = InternalApiInput::fromRequest($request, [...OrganizationInput::FIELDS, 'draft']);
 
         $data = OrganizationFormData::fromOrganization($organization);
-        ['slug' => $slug, 'maintainerIds' => $maintainerIds] = OrganizationInput::applyTo($input, $data);
+        ['slug' => $slug, 'maintainerIds' => $maintainerIds] = OrganizationInput::applyTo($input, $data, $organization->addedByPlayer?->id->toString());
 
         if ($input->has('slug') && $slug === null && $input->hasError('slug') === false) {
             $input->addError('slug', 'cannot be cleared - leave it out to keep the slug, or send a new one.');
@@ -81,7 +81,7 @@ final class UpdateOrganizationController extends AbstractController
         if ($draft !== null && $draft !== $organization->isDraft) {
             $this->messageBus->dispatch($draft
                 ? new UnpublishOrganization($organization->id->toString())
-                : new PublishOrganization($organization->id->toString()));
+                : new PublishOrganization($organization->id->toString(), notifyAdmin: false));
         }
 
         return new JsonResponse($this->getAdminOrganizations->detail($organization->id->toString())->toArray());

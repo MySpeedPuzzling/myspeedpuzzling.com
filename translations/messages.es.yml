@@ -7813,12 +7813,14 @@ drafts_core:
     flash:
         published: "Publicado: ya lo puede ver todo el mundo."
         published_waiting: "Publicado: todo el mundo podrá verlo cuando un administrador lo apruebe."
+        published_series_draft: "Publicado: será visible cuando también se publique la serie."
         unpublished: "Vuelve a ser un borrador: solo tú y tu equipo pueden verlo."
         cannot_unpublish: "No puede volver a ser un borrador: %reasons%."
     blocker:
         participants: "ya se han unido personas"
         results: "tiene resultados oficiales"
         solving_times: "hay tiempos de resolución vinculados"
+    blocker_separator: ", "
 drafts:
     banner:
         own: "Borrador: solo tú y tu equipo pueden ver esta página."
@@ -7910,7 +7912,7 @@ organizer_tools:
         show: "Mostrar las fechas"
         preview_title: "%count% fecha|%count% fechas"
         taken: "ya tiene una edición"
-        create: "Crear ediciones"
+        create: "Crear %count% edición|Crear %count% ediciones"
         create_help: "Solo se crean las fechas marcadas. Como borradores, solo tú y tu equipo pueden verlas hasta que publiques cada una."
 organization_page:
     meta:

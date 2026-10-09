@@ -13,6 +13,8 @@ readonly final class PublishCompetition
 {
     public function __construct(
         public string $competitionId,
+        // The admins get the "submitted" e-mail when a pending item is published - never when an admin publishes it
+        public bool $notifyAdmin = true,
     ) {
     }
 }

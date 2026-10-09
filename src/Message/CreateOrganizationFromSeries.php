@@ -26,9 +26,10 @@ readonly final class CreateOrganizationFromSeries
         // series' current slug: organizations and series have separate addresses
         public null|string $slug,
         public null|OrganizationKind $kind,
-        // Null takes the series' country
+        // Taken as given - null = none (the web form is prefilled from the series; the internal API sends the series'
+        // country when the field is left out)
         public null|string $countryCode,
-        // Null takes the series' location
+        // Taken as given - null = none (likewise; the internal API sends the series' location when left out)
         public null|string $region,
         // Approved at once (the internal API, an admin on the web page) - else it waits for an admin, who is e-mailed
         public bool $approve,

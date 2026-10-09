@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Exceptions\OrganizationTeamFull;
 use SpeedPuzzling\Web\Message\AddOrganizationMaintainer;
 use SpeedPuzzling\Web\Message\RemoveOrganizationMaintainer;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
@@ -30,6 +32,39 @@ final class OrganizationMaintainerHandlersTest extends KernelTestCase
         $this->messageBus->dispatch(new AddOrganizationMaintainer(OrganizationFixture::ORGANIZATION_RIVERBEND, PlayerFixture::PLAYER_REGULAR));
 
         self::assertSame([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES], $this->maintainers(OrganizationFixture::ORGANIZATION_RIVERBEND));
+    }
+
+    public function testTheTeamHoldsAtMostTenBesidesTheCreator(): void
+    {
+        // Riverbend's team: PLAYER_WITH_FAVORITES and nine more - ten
+        /** @var list<string> $others */
+        $others = $this->connection->fetchFirstColumn(
+            'SELECT id FROM player WHERE id NOT IN (:taken) ORDER BY id LIMIT 10',
+            ['taken' => [PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_WITH_FAVORITES]],
+            ['taken' => ArrayParameterType::STRING],
+        );
+        self::assertArrayHasKey(9, $others, 'Ten other players are needed');
+
+        foreach (array_slice($others, 0, 9) as $playerId) {
+            $this->messageBus->dispatch(new AddOrganizationMaintainer(OrganizationFixture::ORGANIZATION_RIVERBEND, $playerId));
+        }
+
+        self::assertCount(10, $this->maintainers(OrganizationFixture::ORGANIZATION_RIVERBEND));
+
+        // Somebody on the team already changes nothing - an eleventh is refused
+        $this->messageBus->dispatch(new AddOrganizationMaintainer(OrganizationFixture::ORGANIZATION_RIVERBEND, PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        try {
+            $this->messageBus->dispatch(new AddOrganizationMaintainer(OrganizationFixture::ORGANIZATION_RIVERBEND, $others[9]));
+            self::fail('An eleventh maintainer must be refused');
+        } catch (OrganizationTeamFull) {
+            // Refused, nothing changed
+        }
+
+        self::assertSame(10, $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM organization_maintainer WHERE organization_id = :id',
+            ['id' => OrganizationFixture::ORGANIZATION_RIVERBEND],
+        ));
     }
 
     public function testTheCreatorIsNeverAddedAsAMaintainer(): void

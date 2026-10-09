@@ -29,6 +29,9 @@ use SpeedPuzzling\Web\Value\SocialLinks;
 #[Entity]
 class Organization
 {
+    // The team besides its creator (docs/features/organizations/README.md "Data model")
+    public const int MAX_MAINTAINERS = 10;
+
     /**
      * The other links (Instagram, Discord, …) as plain URLs - read them as socialLinks(), change them with edit()
      *
@@ -134,6 +137,27 @@ class Organization
     public function isPubliclyVisible(): bool
     {
         return $this->approvedAt !== null && $this->rejectedAt === null && $this->isDraft === false;
+    }
+
+    /**
+     * The team's ids, each once, without the creator (the creator is on the team as its creator)
+     *
+     * @param list<string> $maintainerIds
+     * @return list<string>
+     */
+    public static function teamIds(array $maintainerIds, null|string $creatorId): array
+    {
+        $team = [];
+
+        foreach ($maintainerIds as $maintainerId) {
+            $id = strtolower($maintainerId);
+
+            if ($id !== $creatorId) {
+                $team[$id] = $id;
+            }
+        }
+
+        return array_values($team);
     }
 
     /**

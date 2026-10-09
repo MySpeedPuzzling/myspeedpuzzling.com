@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Monolog\Handler\TestHandler;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -331,6 +332,32 @@ final class OrganizationsInternalApiTest extends WebTestCase
         self::callInternalApi($browser, 'DELETE', $uri . '/maintainers/' . PlayerFixture::PLAYER_WITH_FAVORITES);
         self::assertResponseStatusCodeSame(204);
         self::assertSame([PlayerFixture::PLAYER_REGULAR], array_column(self::list(self::callInternalApi($browser, 'GET', $uri)['maintainers']), 'playerId'));
+
+        // At most ten besides the creator: a team of ten takes nobody else (409)
+        $connection = self::getContainer()->get(Connection::class);
+        /** @var list<string> $others */
+        $others = $connection->fetchFirstColumn(
+            'SELECT id FROM player WHERE id NOT IN (:taken) ORDER BY id LIMIT 10',
+            ['taken' => [PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_REGULAR]],
+            ['taken' => ArrayParameterType::STRING],
+        );
+
+        foreach (array_slice($others, 0, 9) as $playerId) {
+            $connection->executeStatement(
+                'INSERT INTO organization_maintainer (organization_id, player_id) VALUES (:organizationId, :playerId)',
+                ['organizationId' => OrganizationFixture::ORGANIZATION_RIVERBEND, 'playerId' => $playerId],
+            );
+        }
+
+        self::callInternalApi($browser, 'POST', $uri . '/maintainers', ['playerId' => $others[9]]);
+        self::assertResponseStatusCodeSame(409);
+
+        // ... and a PATCH or create listing eleven is a 400
+        $eleven = [...$others, PlayerFixture::PLAYER_REGULAR];
+        $invalid = self::callInternalApi($browser, 'PATCH', $uri, ['maintainerIds' => $eleven]);
+        self::assertResponseStatusCodeSame(400);
+        self::assertIsArray($invalid['errors']);
+        self::assertArrayHasKey('maintainerIds', $invalid['errors']);
 
         self::callInternalApi($browser, 'POST', $uri . '/maintainers', ['playerId' => '018d0000-0000-0000-0000-00000000ffff']);
         self::assertResponseStatusCodeSame(404);

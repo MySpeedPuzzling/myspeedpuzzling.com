@@ -47,4 +47,24 @@ readonly final class CompetitionSubmittedMailer
 
         $this->mailer->send($email);
     }
+
+    /**
+     * The organization variant: "New organization submitted" with its region.
+     */
+    public function notifyAdminOfOrganization(string $name, string $submittedBy, null|string $region): void
+    {
+        $email = (new TemplatedEmail())
+            ->to('jan.mikes@myspeedpuzzling.com')
+            ->subject($this->translator->trans('organization_submitted.subject', ['%organizationName%' => $name], domain: 'emails'))
+            ->htmlTemplate('emails/organization_submitted.html.twig')
+            ->context([
+                'playerName' => $submittedBy,
+                'organizationName' => $name,
+                'region' => $region,
+                'adminUrl' => $this->urlGenerator->generate('admin_competition_approvals', [], UrlGeneratorInterface::ABSOLUTE_URL),
+            ]);
+        $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
+
+        $this->mailer->send($email);
+    }
 }

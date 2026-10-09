@@ -24,8 +24,9 @@ final class OrganizationAdminActionsTest extends WebTestCase
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $token = $this->plantToken($browser, 'approve_organization_' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING);
 
-        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/approve');
+        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/approve', ['_token' => $token]);
 
         self::assertResponseRedirects('/admin/competition-approvals');
         self::assertSame([$this->trans('organization.flash.approved')], $this->flashes($browser, 'success'));
@@ -38,13 +39,30 @@ final class OrganizationAdminActionsTest extends WebTestCase
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $token = $this->plantToken($browser, 'approve_organization_' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING);
 
-        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/approve', ['return' => '/en/you-organize']);
+        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/approve', ['_token' => $token, 'return' => '/en/you-organize']);
         self::assertResponseRedirects('/en/you-organize');
 
         // Approved already - nothing to do, still a redirect; an off-site return is ignored
-        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/approve', ['return' => 'https://evil.example/']);
+        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/approve', ['_token' => $token, 'return' => 'https://evil.example/']);
         self::assertResponseRedirects('/admin/competition-approvals');
+    }
+
+    public function testApprovingAndRejectingCheckTheToken(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $this->plantToken($browser, 'approve_organization_' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING);
+
+        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/approve', ['_token' => 'not-the-token']);
+        self::assertResponseStatusCodeSame(403);
+
+        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/reject', ['reason' => 'A duplicate.']);
+        self::assertResponseStatusCodeSame(403);
+
+        self::assertNull($this->column('organization', 'approved_at', OrganizationFixture::ORGANIZATION_MAPLE_PENDING));
+        self::assertNull($this->column('organization', 'rejected_at', OrganizationFixture::ORGANIZATION_MAPLE_PENDING));
     }
 
     public function testOnlyAdminsApproveAndReject(): void
@@ -73,14 +91,16 @@ final class OrganizationAdminActionsTest extends WebTestCase
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $token = $this->plantToken($browser, 'reject_organization_' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING);
 
-        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/reject', ['reason' => '  ']);
+        $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/reject', ['_token' => $token, 'reason' => '  ']);
 
         self::assertResponseRedirects('/admin/competition-approvals');
         self::assertSame([$this->trans('competition.flash.rejection_reason_required')], $this->flashes($browser, 'danger'));
         self::assertNull($this->column('organization', 'rejected_at', OrganizationFixture::ORGANIZATION_MAPLE_PENDING));
 
         $browser->request('POST', '/admin/organizations/' . OrganizationFixture::ORGANIZATION_MAPLE_PENDING . '/reject', [
+            '_token' => $token,
             'reason' => 'Please add a website.',
             'return' => '/en/events',
         ]);

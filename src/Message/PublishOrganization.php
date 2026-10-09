@@ -12,6 +12,8 @@ readonly final class PublishOrganization
 {
     public function __construct(
         public string $organizationId,
+        // The admins get the "submitted" e-mail when a pending item is published - never when an admin publishes it
+        public bool $notifyAdmin = true,
     ) {
     }
 }

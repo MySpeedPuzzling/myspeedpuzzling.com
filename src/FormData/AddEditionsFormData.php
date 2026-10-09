@@ -28,7 +28,8 @@ final class AddEditionsFormData
     private const string PICKED_DATE_FORMAT = 'd.m.Y';
 
     public function __construct(
-        public string $how = self::HOW_REPEAT,
+        // Null (left out of a hand-made URL) = repeat
+        public null|string $how = self::HOW_REPEAT,
         public null|EditionDateRuleKind $rule = EditionDateRuleKind::Weekly,
         // 1-4, for EditionDateRuleKind::NthWeekday
         public null|int $nth = 1,
@@ -36,7 +37,8 @@ final class AddEditionsFormData
         public null|int $weekday = null,
         public null|DateTimeImmutable $starting = null,
         public null|int $count = 6,
-        // Picked days, as the multi-date picker writes them ("05.10.2026, 12.10.2026"); ISO days are read too
+        // Picked days, as the multi-date picker writes them ("05.10.2026, 12.10.2026"); "5.10.2026", "5. 10. 2026" and
+        // ISO days are read too
         public null|string $dates = null,
         #[Assert\NotBlank]
         #[Assert\Length(max: self::NAME_PATTERN_MAX_LENGTH)]
@@ -44,6 +46,17 @@ final class AddEditionsFormData
         #[Assert\Length(max: 120)]
         public null|string $eligibility = null,
     ) {
+    }
+
+    /**
+     * "<series name> {date}" - the series name shortened so the pattern fits NAME_PATTERN_MAX_LENGTH
+     */
+    public static function defaultNamePattern(string $seriesName): string
+    {
+        $suffix = ' ' . self::DATE_PLACEHOLDER;
+        $name = mb_substr(trim($seriesName), 0, self::NAME_PATTERN_MAX_LENGTH - mb_strlen($suffix));
+
+        return rtrim($name) . $suffix;
     }
 
     public function validateDates(ExecutionContextInterface $context): void
@@ -135,7 +148,9 @@ final class AddEditionsFormData
      */
     public function pickedDates(): null|array
     {
-        $tokens = preg_split('/[\s,;]+/', trim($this->dates ?? ''), -1, PREG_SPLIT_NO_EMPTY);
+        // "5. 10. 2026" (spaces after the dots, as Czech writes a date) is one day
+        $typed = preg_replace('/(\d)\.\s+(?=\d)/u', '$1.', trim($this->dates ?? '')) ?? '';
+        $tokens = preg_split('/[\s,;]+/', $typed, -1, PREG_SPLIT_NO_EMPTY);
 
         if ($tokens === false) {
             return null;
@@ -145,6 +160,8 @@ final class AddEditionsFormData
         $days = [];
 
         foreach ($tokens as $token) {
+            // A date may end with a dot ("5. 10. 2026.")
+            $token = rtrim($token, '.');
             $day = null;
 
             foreach ([self::PICKED_DATE_FORMAT, 'Y-m-d'] as $format) {

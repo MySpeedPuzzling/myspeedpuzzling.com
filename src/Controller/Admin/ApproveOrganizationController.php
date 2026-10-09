@@ -37,6 +37,10 @@ final class ApproveOrganizationController extends AbstractController
     #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
     public function __invoke(Request $request, string $organizationId): Response
     {
+        if ($this->isCsrfTokenValid('approve_organization_' . $organizationId, $request->request->getString('_token')) === false) {
+            throw $this->createAccessDeniedException();
+        }
+
         $profile = $this->retrieveLoggedUserProfile->getProfile();
         assert($profile !== null);
 

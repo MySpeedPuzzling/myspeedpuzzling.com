@@ -344,3 +344,30 @@ result_review:
     verification_answer_trusted: "%puzzleName%のタイム%time%を確認しました。再び集計に含まれます。"
     verification_answer_kept: "%puzzleName%のタイム%time%を確認しました。引き続き集計から外しています。"
     verification_answer_kept_note: "%puzzleName%のタイム%time%を確認しました。引き続き集計から外しています：%note%"
+
+organization_submitted:
+    subject: "新しい団体が送信されました: %organizationName%"
+    title: "新しい団体の送信"
+    content: |
+        <p>新しい団体が承認のために送信されました。</p>
+        <p><strong>送信者:</strong> %playerName%<br><strong>団体:</strong> %organizationName%<br><strong>地域:</strong> %region%</p>
+    button: "管理画面で保留中の団体を確認する"
+
+organization_approved:
+    subject: "団体が承認されました！"
+    preheader: "%organizationName%がMySpeedPuzzlingで承認されました。"
+    title: "団体が承認されました！"
+    content: |
+        <p>素晴らしいニュースです！団体 <strong>%organizationName%</strong> が承認されました。</p>
+        <p>チームがこの団体に追加するシリーズやイベントは、これ以上の承認を必要とせず、公開するとすぐに表示されます。</p>
+    button: "団体のページを表示"
+
+organization_rejected:
+    subject: "団体は承認されませんでした"
+    preheader: "%organizationName%は承認されませんでした。理由はメール本文をご覧ください。"
+    title: "団体未承認"
+    content: |
+        <p>残念ながら、団体 <strong>%organizationName%</strong> は承認されませんでした。</p>
+        <p><strong>理由:</strong> %reason%</p>
+        <p>ご質問がある場合やさらに話し合いたい場合は、<a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> までご連絡ください。</p>
+    button: "「主催イベント」を開く"

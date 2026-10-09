@@ -351,3 +351,30 @@ result_review:
     verification_answer_trusted: "Your time %time% on %puzzleName% was checked – it counts again."
     verification_answer_kept: "Your time %time% on %puzzleName% was checked – it stays set aside."
     verification_answer_kept_note: "Your time %time% on %puzzleName% was checked – it stays set aside: %note%"
+
+organization_submitted:
+    subject: "New organization submitted: %organizationName%"
+    title: "New Organization Submission"
+    content: |
+        <p>A new organization has been submitted for approval.</p>
+        <p><strong>Submitted by:</strong> %playerName%<br><strong>Organization:</strong> %organizationName%<br><strong>Region:</strong> %region%</p>
+    button: "Review pending organizations in admin"
+
+organization_approved:
+    subject: "Your organization has been approved!"
+    preheader: "%organizationName% is approved on MySpeedPuzzling."
+    title: "Your organization has been approved!"
+    content: |
+        <p>Great news! Your organization <strong>%organizationName%</strong> has been approved.</p>
+        <p>Series and events your team adds to it need no further approval - they appear as soon as you publish them.</p>
+    button: "View your organization's page"
+
+organization_rejected:
+    subject: "Your organization was not approved"
+    preheader: "%organizationName% was not approved – the reason is inside."
+    title: "Organization not approved"
+    content: |
+        <p>Unfortunately, your organization <strong>%organizationName%</strong> was not approved.</p>
+        <p><strong>Reason:</strong> %reason%</p>
+        <p>If you have questions or would like to discuss this further, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+    button: "Open \"You organize\""

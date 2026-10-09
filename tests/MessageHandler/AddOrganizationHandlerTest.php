@@ -49,7 +49,9 @@ final class AddOrganizationHandlerTest extends KernelTestCase
         self::assertSame(PlayerFixture::PLAYER_REGULAR, $organization->addedByPlayer?->id->toString());
 
         self::assertQueuedEmailCount(1);
-        self::assertEmailAddressContains(self::getMailerMessage() ?? self::fail('No e-mail'), 'To', 'jan.mikes@myspeedpuzzling.com');
+        $email = self::getMailerMessage() ?? self::fail('No e-mail');
+        self::assertEmailAddressContains($email, 'To', 'jan.mikes@myspeedpuzzling.com');
+        self::assertEmailHeaderSame($email, 'Subject', 'New organization submitted: Prairie Puzzle Society');
     }
 
     public function testTheTeamNeverHoldsTheCreatorAsAMaintainer(): void

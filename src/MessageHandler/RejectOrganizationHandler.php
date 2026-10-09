@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -28,6 +29,7 @@ readonly final class RejectOrganizationHandler
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
         private PlayerAccountEmail $playerAccountEmail,
+        private UrlGeneratorInterface $urlGenerator,
     ) {
     }
 
@@ -50,11 +52,13 @@ readonly final class RejectOrganizationHandler
         $email = (new TemplatedEmail())
             ->to($creatorEmail)
             ->locale($playerLocale)
-            ->subject($this->translator->trans('competition_rejected.subject', domain: 'emails', locale: $playerLocale))
-            ->htmlTemplate('emails/competition_rejected.html.twig')
+            ->subject($this->translator->trans('organization_rejected.subject', domain: 'emails', locale: $playerLocale))
+            ->htmlTemplate('emails/organization_rejected.html.twig')
             ->context([
-                'competitionName' => $organization->name,
+                'organizationName' => $organization->name,
                 'reason' => $message->reason,
+                // Its creator sees the reason under "You organize" too
+                'organizedUrl' => $this->urlGenerator->generate('organized_events', ['_locale' => $playerLocale], UrlGeneratorInterface::ABSOLUTE_URL),
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 

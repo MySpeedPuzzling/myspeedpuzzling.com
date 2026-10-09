@@ -140,7 +140,7 @@ final class UpdateCompetitionController extends AbstractController
         if ($changesDraft) {
             $this->messageBus->dispatch($draft === true
                 ? new UnpublishCompetition($competition->id->toString())
-                : new PublishCompetition($competition->id->toString()));
+                : new PublishCompetition($competition->id->toString(), notifyAdmin: false));
         }
 
         return new JsonResponse($this->getAdminCompetitions->detail($competition->id->toString())->toArray());

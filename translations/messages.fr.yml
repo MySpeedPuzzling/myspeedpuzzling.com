@@ -7814,12 +7814,14 @@ drafts_core:
     flash:
         published: "Publié – tout le monde peut le voir maintenant."
         published_waiting: "Publié – tout le monde pourra le voir dès qu'un administrateur l'aura approuvé."
+        published_series_draft: "Publié – visible dès que la série sera publiée elle aussi."
         unpublished: "Repassé en brouillon – il n'est plus visible que par vous et votre équipe."
         cannot_unpublish: "Impossible de le repasser en brouillon : %reasons%."
     blocker:
         participants: "des personnes s'y sont déjà inscrites"
         results: "il a des résultats officiels"
         solving_times: "des temps de résolution y sont associés"
+    blocker_separator: ", "
 drafts:
     banner:
         own: "Brouillon : cette page n'est visible que par vous et votre équipe."
@@ -7911,7 +7913,7 @@ organizer_tools:
         show: "Afficher les dates"
         preview_title: "%count% date|%count% dates"
         taken: "a déjà une édition"
-        create: "Créer les éditions"
+        create: "Créer %count% édition|Créer %count% éditions"
         create_help: "Seules les dates cochées sont créées. En brouillon, elles ne sont visibles que par vous et votre équipe jusqu'à la publication de chacune."
 organization_page:
     meta:

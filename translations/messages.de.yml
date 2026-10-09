@@ -7812,12 +7812,14 @@ drafts_core:
     flash:
         published: "Veröffentlicht – jetzt kann es jeder sehen."
         published_waiting: "Veröffentlicht – alle können es sehen, sobald ein Administrator es genehmigt hat."
+        published_series_draft: "Veröffentlicht – sichtbar, sobald auch die Serie veröffentlicht ist."
         unpublished: "Zurück im Entwurf – nur Sie und Ihr Team können es sehen."
         cannot_unpublish: "Es kann nicht in den Entwurf zurückgesetzt werden: %reasons%."
     blocker:
         participants: "Teilnehmer haben sich angemeldet"
         results: "es gibt offizielle Ergebnisse"
         solving_times: "Lösungszeiten sind damit verknüpft"
+    blocker_separator: ", "
 drafts:
     banner:
         own: "Entwurf: Nur Sie und Ihr Team können diese Seite sehen."
@@ -7909,7 +7911,7 @@ organizer_tools:
         show: "Termine anzeigen"
         preview_title: "1 Termin|%count% Termine"
         taken: "hat bereits eine Ausgabe"
-        create: "Ausgaben erstellen"
+        create: "1 Ausgabe anlegen|%count% Ausgaben anlegen"
         create_help: "Es werden nur die markierten Termine angelegt. Als Entwürfe sehen nur Sie und Ihr Team sie, bis Sie jede einzelne Ausgabe veröffentlichen."
 organization_page:
     meta:

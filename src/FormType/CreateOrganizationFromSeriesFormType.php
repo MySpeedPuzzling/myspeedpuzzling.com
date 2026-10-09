@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\CreateOrganizationFromSeriesFormData;
-use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\OrganizationKind;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -19,6 +18,11 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 final class CreateOrganizationFromSeriesFormType extends AbstractType
 {
+    public function __construct(
+        private readonly CountryChoices $countryChoices,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('name', TextType::class, [
@@ -39,19 +43,14 @@ final class CreateOrganizationFromSeriesFormType extends AbstractType
             'required' => false,
         ]);
 
-        $countries = [];
-
-        foreach (CountryCode::cases() as $country) {
-            $countries[$country->value] = $country->name;
-        }
-
         $builder->add('countryCode', ChoiceType::class, [
             'label' => 'restructure.to_organization.country',
-            'choices' => $countries,
+            'choices' => $this->countryChoices->choices(),
             'placeholder' => 'restructure.to_organization.country_placeholder',
             'required' => false,
             'autocomplete' => true,
             'choice_translation_domain' => false,
+            'choice_attr' => CountryChoices::choiceAttr(...),
         ]);
 
         $builder->add('region', TextType::class, [

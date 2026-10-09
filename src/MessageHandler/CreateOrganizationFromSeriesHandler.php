@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionSeries;
+use SpeedPuzzling\Web\Entity\FollowedCompetition;
 use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
@@ -24,14 +28,18 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * docs/features/organizations/README.md "Restructuring tools": the organization is made from the series - name and the
- * rest from the message, logo (the same stored file), about = the series' description, website = its link, country =
- * its country unless given, region = its location unless given, team = its maintainers, creator = its creator (else the
- * actor). Approved at once when asked (internal API, an admin), else waiting for approval with the admin e-mail.
+ * rest from the message (country and region as given - the callers prefill them from the series), logo (the same
+ * stored file), about = the series' description, website = its link, team = its maintainers, creator = its creator (else
+ * the actor). Approved at once when asked (internal API, an admin), else waiting for approval with the admin e-mail.
  *
- * The series' followers follow the organization from now on (their rows move - the organization is new, so nobody
- * follows it twice). The series is attached to it, so a pending series under an approved organization made by its team
- * or an admin is approved at once (OrganizationApprovalPolicy, D2); an approved series stays approved. With a new
- * slug, the series' old address leads to the organization and its editions' old addresses to where they are now.
+ * Followers: when the organization is publicly visible at the end (approved, not a draft), the series' followers
+ * follow the organization from now on (their rows move - one row per player). While it waits for approval nobody could
+ * follow it on its page, so the series follows stay and every follower gets an organization follow too - "Your events"
+ * reads them once the organization is public.
+ *
+ * The series is attached to it, so a pending series under an approved organization made by its team or an admin is
+ * approved at once (OrganizationApprovalPolicy, D2); an approved series stays approved. With a new slug, the series' old
+ * address leads to the organization and its editions' old addresses to where they are now.
  */
 #[AsMessageHandler]
 readonly final class CreateOrganizationFromSeriesHandler
@@ -100,8 +108,8 @@ readonly final class CreateOrganizationFromSeriesHandler
             about: $series->description,
             website: $series->link,
             links: new SocialLinks([]),
-            countryCode: $message->countryCode ?? $series->locationCountryCode,
-            region: $message->region ?? $series->location,
+            countryCode: $message->countryCode,
+            region: $message->region,
             kind: $message->kind,
             addedByPlayer: $creator,
         );
@@ -119,9 +127,7 @@ readonly final class CreateOrganizationFromSeriesHandler
 
         $this->organizationRepository->save($organization);
 
-        foreach ($this->followedCompetitionRepository->listForSeries($series) as $follow) {
-            $follow->moveToOrganization($organization);
-        }
+        $this->carryFollowsOver($series, $organization, $now);
 
         if ($message->newSeriesName !== null || $newSeriesSlug !== null) {
             $series->edit(
@@ -145,7 +151,26 @@ readonly final class CreateOrganizationFromSeriesHandler
         }
 
         if ($message->approve === false) {
-            $this->competitionSubmittedMailer->notifyAdmin($organization->name, $actor->name ?? 'Unknown', $organization->region);
+            $this->competitionSubmittedMailer->notifyAdminOfOrganization($organization->name, $actor->name ?? 'Unknown', $organization->region);
+        }
+    }
+
+    private function carryFollowsOver(CompetitionSeries $series, Organization $organization, DateTimeImmutable $now): void
+    {
+        $follows = $this->followedCompetitionRepository->listForSeries($series);
+
+        if ($organization->isPubliclyVisible()) {
+            foreach ($follows as $follow) {
+                $follow->moveToOrganization($organization);
+            }
+
+            return;
+        }
+
+        // The organization was made a moment ago - nobody follows it yet, so one new row per follower (a player follows
+        // a series once)
+        foreach ($follows as $follow) {
+            $this->followedCompetitionRepository->save(FollowedCompetition::ofOrganization(Uuid::uuid7(), $follow->player, $organization, $now));
         }
     }
 }

@@ -28,6 +28,7 @@ private_profile_viewers:
 organization_fields:
     social_links_too_many: "Fügen Sie höchstens {{ limit }} Links hinzu."
     social_link_invalid: "{{ value }} ist keine Webadresse (http:// oder https://)."
+    team_too_many: "Das Team kann außer Ihnen höchstens {{ limit }} Personen haben."
 add_editions:
     dates_invalid: "Einige Termine können nicht gelesen werden – wählen Sie sie im Kalender oder geben Sie sie so ein: 05.10.2026."
     dates_missing: "Wählen Sie mindestens einen Termin."

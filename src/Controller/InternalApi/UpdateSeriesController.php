@@ -121,7 +121,7 @@ final class UpdateSeriesController extends AbstractController
         if ($changesDraft) {
             $this->messageBus->dispatch($draft === true
                 ? new UnpublishCompetitionSeries($series->id->toString())
-                : new PublishCompetitionSeries($series->id->toString()));
+                : new PublishCompetitionSeries($series->id->toString(), notifyAdmin: false));
         }
 
         return new JsonResponse($this->getAdminSeries->detail($series->id->toString())->toArray());

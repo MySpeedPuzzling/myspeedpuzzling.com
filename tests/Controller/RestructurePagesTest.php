@@ -199,13 +199,43 @@ final class RestructurePagesTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $crawler = $browser->request('GET', '/en/series-to-organization/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT);
+        // Prefilled from the series; the region cleared = none (never the series' location again)
+        self::assertSame('Quiet Pines', $crawler->filter('input[name="create_organization_from_series_form[region]"]')->attr('value'));
         $form = $crawler->selectButton($this->trans('restructure.to_organization.submit'))->form();
         $form['create_organization_from_series_form[name]'] = 'Quiet Pines Puzzle Guild';
+        $form['create_organization_from_series_form[region]'] = '';
         $browser->submit($form);
 
         self::assertResponseRedirects('/en/organizations/quiet-pines-puzzle-guild');
         self::assertQueuedEmailCount(1);
-        self::assertNull(self::getContainer()->get(Connection::class)->fetchOne("SELECT approved_at FROM organization WHERE slug = 'quiet-pines-puzzle-guild'"));
+        $organization = self::getContainer()->get(Connection::class)->fetchAssociative("SELECT approved_at, region, country_code FROM organization WHERE slug = 'quiet-pines-puzzle-guild'");
+        self::assertIsArray($organization);
+        self::assertNull($organization['approved_at']);
+        self::assertNull($organization['region']);
+        self::assertSame('de', $organization['country_code']);
+    }
+
+    public function testADraftOrganizationIsLinkedOnlyForItsTeam(): void
+    {
+        $browser = self::createClient();
+        $path = '/en/series-to-organization/' . OrganizationFixture::SERIES_HARBOR_CLUB_MEETS;
+        $organizationLink = 'a[href="/en/organizations/' . OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_SLUG . '"]';
+
+        // A maintainer of the series who is not on the organization's team
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'INSERT INTO competition_series_maintainer (competition_series_id, player_id) VALUES (:seriesId, :playerId)',
+            ['seriesId' => OrganizationFixture::SERIES_HARBOR_CLUB_MEETS, 'playerId' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', $path);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME, $crawler->filter('.ev-restructure')->text());
+        self::assertCount(0, $crawler->filter('.ev-restructure ' . $organizationLink));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', $path);
+        self::assertCount(1, $crawler->filter('.ev-restructure ' . $organizationLink));
     }
 
     public function testASeriesOfAnOrganizationShowsWhereItBelongsAndRefusesThePost(): void

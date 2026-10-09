@@ -22,6 +22,9 @@ use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
  * standalone or an edition of a series - with everything the API can edit. Nothing is hidden from an admin, so
  * puzzles of a round still under embargo are listed too. `status` is the approval state (SQL_APPROVED - an approved
  * draft is approved), `draft` the competition's own flag, `publiclyVisible` the whole rule (drafts included).
+ * `resultsCount` counts every time linked to the competition - explicit links and series picks MySpeedPuzzling matched
+ * to this edition (docs/features/events-page/high-frequency-series.md), the latter also as `seriesPickResultsCount`;
+ * a series pick without an edition belongs to no competition (GetAdminSeries counts it).
  */
 readonly final class GetAdminCompetitions
 {
@@ -63,6 +66,7 @@ added_by.name AS added_by_player_name,
 (SELECT COUNT(*) FROM competition_round cr WHERE cr.competition_id = c.id) AS rounds_count,
 (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_id = c.id) AS results_count,
 (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_id = c.id AND pst.competition_round_id IS NULL) AS results_without_round_count,
+(SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_id = c.id AND pst.competition_series_id IS NOT NULL) AS series_pick_results_count,
 (SELECT COUNT(*) FROM competition_participant cp WHERE cp.competition_id = c.id AND cp.deleted_at IS NULL) AS participants_count
 SQL;
 
@@ -512,6 +516,7 @@ SQL;
          *     rounds_count: int,
          *     results_count: int,
          *     results_without_round_count: int,
+         *     series_pick_results_count: int,
          *     participants_count: int,
          * } $row
          */

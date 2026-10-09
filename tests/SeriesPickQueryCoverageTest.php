@@ -21,14 +21,12 @@ final class SeriesPickQueryCoverageTest extends TestCase
     private const string PARTICIPANTS = 'Reads event participants or who took part in an event (competition_participant), not the event of a time.';
     private const string NOT_A_TIMES_EVENT = 'competition_id here is not the event of a solving time (another table\'s column, or a reference only).';
     private const string RELEASES_ON_DELETE = 'Write side: deleting an edition releases its automatic links to series-level together with their match kind; the series reconcile re-matches them.';
-    private const string TODO_WS_B = 'TODO WS-B: the internal API answers count series picks (high-frequency-series-plan.md section B).';
     private const string TODO_WS_D = 'TODO WS-D: the reader shows a series-level time as the series\' result (high-frequency-series-plan.md section D).';
 
     /** Files reading puzzle_solving_time with competition_id that do not need to know about series picks */
     private const array NOT_SERIES_AWARE = [
         'MessageHandler/DeleteCompetitionHandler.php' => self::RELEASES_ON_DELETE,
         'Query/CountCompetitionResults.php' => self::PER_COMPETITION,
-        'Query/GetAdminCompetitions.php' => self::TODO_WS_B,
         'Query/GetCompetitionParticipants.php' => self::PARTICIPANTS,
         'Query/GetCompetitionPuzzles.php' => self::PER_COMPETITION,
         'Query/GetCompetitionSlugsForSitemap.php' => self::ROUND_LEVEL,

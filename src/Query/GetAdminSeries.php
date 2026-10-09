@@ -14,6 +14,9 @@ use SpeedPuzzling\Web\Results\AdminSeriesDetail;
 /**
  * Series as the internal API shows them to an admin: every series - approved, pending, rejected or a draft - with
  * everything the API can edit, and its editions (docs/features/internal-api.md "Organizations, series and drafts").
+ * `resultsCount` = the series' results, each time once: the times linked to its editions (explicitly or matched) and
+ * its series picks without an edition (docs/features/events-page/high-frequency-series.md - a normal, permanent state),
+ * the latter also as `resultsWithoutEditionCount`.
  */
 readonly final class GetAdminSeries
 {
@@ -41,7 +44,14 @@ cs.rejection_reason,
 cs.created_at,
 cs.added_by_player_id,
 added_by.name AS added_by_player_name,
-(SELECT COUNT(*) FROM competition e WHERE e.series_id = cs.id) AS editions_count
+(SELECT COUNT(*) FROM competition e WHERE e.series_id = cs.id) AS editions_count,
+(
+    SELECT COUNT(*)
+    FROM puzzle_solving_time pst
+    WHERE pst.competition_series_id = cs.id
+        OR pst.competition_id IN (SELECT e.id FROM competition e WHERE e.series_id = cs.id)
+) AS results_count,
+(SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.competition_series_id = cs.id AND pst.competition_id IS NULL) AS results_without_edition_count
 SQL;
 
     private const string JOINS = <<<SQL
@@ -246,6 +256,8 @@ SQL;
          *     added_by_player_id: null|string,
          *     added_by_player_name: null|string,
          *     editions_count: int,
+         *     results_count: int,
+         *     results_without_edition_count: int,
          * } $row
          */
         return AdminSeries::fromDatabaseRow($row);

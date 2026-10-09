@@ -161,6 +161,27 @@ final class DraftCanaryTest extends WebTestCase
     }
 
     /**
+     * API v1's series list (GET /api/v1/series, docs/features/events-page/high-frequency-series.md "API v1") - the ids a
+     * client links solving times to: a draft series is not among them
+     */
+    public function testApiV1SeriesListLeavesADraftSeriesOut(): void
+    {
+        $browser = self::createClient();
+        $token = OAuth2TestHelper::createAccessToken($browser, OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID, OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID);
+        OAuth2TestHelper::addBearerToken($browser, $token);
+
+        $this->setDraft(self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, false);
+        $browser->request('GET', '/api/v1/series');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(OrganizationFixture::SERIES_QUIET_PINES_DRAFT, (string) $browser->getResponse()->getContent(), 'No canary: the published series is not listed.');
+
+        $this->setDraft(self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, true);
+        $browser->request('GET', '/api/v1/series');
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString(OrganizationFixture::SERIES_QUIET_PINES_DRAFT, (string) $browser->getResponse()->getContent());
+    }
+
+    /**
      * The marketplace event select and its ?event= filter (GetMarketplaceEvents::SQL_QUALIFIES), the players page's
      * "upcoming events" figure and the admin menu's approval badge - counts and choices, checked at their read model.
      */

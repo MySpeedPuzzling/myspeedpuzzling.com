@@ -6,7 +6,13 @@ https://claude.ai/artifact/KfoHM99HN7LQGd3D6iQ4aD. The build contract is [implem
 
 The series, edition and one-time event pages reuse this page's parts (date leaf, agenda row, tags, when label, archive
 line, follow star, ⋯ menu, place - moved to `templates/event_parts/` and `assets/styles/_event-parts.scss`): see
-[detail-pages.md](detail-pages.md). A change to a shared part changes those pages too.
+[detail-pages.md](detail-pages.md). A change to a shared part changes those pages too - and the organization page,
+which is built from the same parts.
+
+**Organizations and drafts** (PR #252, [../organizations/README.md](../organizations/README.md)) add a level above
+series and one-time events and let every item be prepared as a draft. On this page: organization names in the search,
+"by …" on series lines, organizations as a third follow target, organizations in "You organize", Publish / Unpublish
+and the restructuring tools in the ⋯ menu, a "Who can enter" tag - and **drafts appear nowhere, admins included**.
 
 ## Goal
 
@@ -48,8 +54,8 @@ instead of the prototype's continents; country names are localised (Symfony Intl
 ## Page anatomy (list view, top to bottom)
 
 1. **Header.** Title "Events", a summary line ("21 upcoming dates in 8 countries and online · 15 series"),
-   "+ Add event" and, for anyone who created or maintains an event or series, a labelled **"You organize (n)"**
-   button to the `organized_events` page. Only public items are counted.
+   "+ Add event" and, for anyone who created or maintains an event, series or organization, a labelled **"You
+   organize (n)"** button to the `organized_events` page. Only public items are counted in the summary.
 2. **Toolbar** (sticky under the sticky site header; on phones it slides away while scrolling down and comes back on
    the first scroll up). One search field; then **List | Calendar**; then chips: Everywhere (count), your country
    (signed in: profile; guest: browser guess), Online (count), up to 6 countries by number of upcoming dates, and
@@ -62,8 +68,10 @@ instead of the prototype's continents; country names are localised (Symfony Intl
    block per month under a sticky month header
    that carries the year (and the country when one is selected), then **"Date to be announced"** at the end.
 5. **Series directory.** All public series: "In person", "Online", then **"Ongoing"**: online one-time events without
-   dates, and occurrences without rounds spanning more than a month while they run (place and "Runs until …"). Each
-   line: name, place or Online, edition count (sessions of one edition count once), next date ("Next: Tue 12 Nov"),
+   dates, and occurrences without rounds spanning more than a month while they run (place and "Runs until …"). Its
+   head links the organizations directory ("Organizations →", route `organizations`). Each
+   line: name, "by {organization}" (plain text, publicly visible organizations only), place or Online, edition count
+   (sessions of one edition count once), next date ("Next: Tue 12 Nov"),
    "Live" (with the dot), "Ongoing", last date ("Last: 3 Mar") or "No dates yet". Sorted: series with a next date by that date, then by last date
    (newest first), then by name.
 6. **Archive.** One chip per year with past occurrences. The newest year is open with its 5 latest lines and
@@ -86,8 +94,9 @@ counts, and "More countries…") and, in the list view, a **mini calendar** whos
 - **Place**: `[flag] City, Country`. The city is cut with an ellipsis when too long; the country is always shown in
   full; a location that already contains the country name shows the country only. The flag (`fi fi-xx`) is never the
   only sign of the country. Online occurrences say "Online".
-- **Tags**: Waiting for approval (admins only) · ✓ Going · Recurring (editions) · registration state · Results (past)
-  · Runs until … · "41 going".
+- **Tags**: Waiting for approval (admins only, never a draft) · ✓ Going · Recurring (editions) · Who can enter (the
+  organiser's text - an edition's own, else its series' - with a visually hidden "Who can enter:" before it) ·
+  registration state · Results (past) · Runs until … · "41 going".
 - **When**: "Live" (with the pulsing dot, long-running ones too), "Tomorrow", "This weekend" (a Fri–Sun of the current Monday-first week, so never next week's), "In 16 days"
   (up to 30 days; coral when ≤ 14).
 - **☆** follows the event (an edition's star follows its series). Guests get "Sign in to follow events and series."
@@ -174,11 +183,15 @@ organiser's Monday bar night a Tuesday. The field shows the day with its weekday
 | Edition, date not set | Not in the agenda or calendar (the series page lists it last). Counted in the series' edition count. | series page |
 | Several editions in one month | One row with a chip per date. | name: series; chip: edition |
 | Past editions | Archive and country views: one line per series and year ("Harbor Jigsaw Nights · 5 editions in 2026" - editions, never sessions); a single edition stays its own line, and so do the sessions of one edition (or one-time event), from its first to its last day. The year chip and "Show all 2026 (N)" count events held (editions and one-time events, sessions once) - like the directory's edition counts; month headers count dates. Search lists matching sessions one by one. | series page (single: its page) |
-| Waiting for approval | Only admins see it in the list ("Waiting for approval" tag, Approve/Reject in ⋯); its creator sees it under "You organize". Never counted. | its own page |
+| Waiting for approval | Only admins see it in the list ("Waiting for approval" tag, Approve/Reject in ⋯) - unless it is a draft too; its creator sees it under "You organize". Never counted. | its own page |
+| Draft (a one-time event, an edition, a series and its editions) | **Nowhere** - not in the agenda, calendar, archive, search index, series directory, "Your events" or counts, also not for admins and not for its own team; the team finds it under "You organize" (Draft badge). | its own page (404 except for its team) |
+| Under an organization | As without one; a series line says "by {organization}" and the search finds its items by the organization's name - both only while the organization is publicly visible. | its own page |
 | Rejected | Nobody sees it in the list; its creator sees it under "You organize" with the reason. | - |
 | Series without editions | Series directory, "No dates yet". | series page |
 
 An occurrence without the slugs its route needs (`CompetitionReference::routeName()` is null) is listed without a link.
+The full table with organizations, drafts and the organization page is in
+[../organizations/README.md](../organizations/README.md#every-kind-of-event).
 
 ## Scope: country chips and the sheet
 
@@ -196,7 +209,8 @@ An occurrence without the slugs its route needs (`CompetitionReference::routeNam
 ## Search
 
 One field searches every event, edition and series, past included: name, series name, city, country (localised and
-English), year and "online". **Every typed word must match**; `wjpc` and `ejpc` also match their full names. Text is
+English), year, "online", and the name and short name of its organization (publicly visible organizations only - a
+draft or pending organization's name finds nothing). **Every typed word must match**; `wjpc` and `ejpc` also match their full names. Text is
 folded on the server with `SearchText::fold()` and the typed query in the browser with `foldSearchText()`
 (`assets/search_fold.js`) - the same fold. Results: Upcoming (rows), Past (newest 30 lines, editions one by one, with
 the year), Series, Ongoing. Search honours the selected scope.
@@ -214,12 +228,21 @@ says other months have nothing either.
 
 ## Follow
 
-A new table `followed_competition`: player, **exactly one** of competition (a one-time event) or series, `created_at`;
-unique per player and target; rows cascade with the player, the competition and the series. Messages
-`FollowCompetition` / `UnfollowCompetition` (target = a one-time event or a series). An edition is never followed on
-its own - its star follows the series. Only publicly visible targets can be followed. Converting an event into a series
-(`ConvertCompetitionToSeriesHandler`) moves its followers to the new series. "I'm going" is unchanged and belongs to
-each edition's own competition row.
+A new table `followed_competition`: player, **exactly one** of competition (a one-time event), series or organization
+(`organization_id`, added with organizations), `created_at`; unique per player and target; rows cascade with the
+player, the competition, the series and the organization. Messages `FollowCompetition` / `UnfollowCompetition`
+(target = a one-time event, a series or an organization - `FollowTarget`, `organization:<uuid>` in the forms). An
+edition is never followed on its own - its star follows the series. Only publicly visible targets can be followed
+(drafts never); unfollowing always works. Converting an event into a series (`ConvertCompetitionToSeriesHandler`)
+moves its followers to the new series; turning a series into an organization moves them to the organization when it
+is public at once, else keeps them and adds an organization follow per follower
+([../organizations/README.md](../organizations/README.md#follow)). "I'm going" is unchanged and belongs to each
+edition's own competition row.
+
+**"Your events" and organizations**: a followed, publicly visible organization adds the next live-or-upcoming date of
+each of its series and each of its one-time events that is not over - marked Following, one row per competition, Going
+winning, deduplicated against what is followed directly (a series followed both ways is one row). No statement is
+added - the viewer statement carries the organization follows.
 
 The star is a stateless-CSRF POST form (like the comparison buttons): with JavaScript it is sent with `fetch` and
 flips in place (every star of the same target on the page); without, it redirects back. Guests get the sign-in note.
@@ -227,24 +250,50 @@ flips in place (every star of the same target on the page); without, it redirect
 ## "You organize" (`organized_events`, `/{_locale}/you-organize`)
 
 Every event and series the viewer created or maintains (and an edition they organise directly, when they do not
-organise its series): name, kind, status badge - **Waiting for approval**, **Rejected** with "Reason: …", Live,
-Upcoming, Past, Date not set - date/place or next edition and edition count, and its actions (the ⋯ items). Delete is
-confirmed in place. The header button shows only when the list is not empty; its count and the page use one rule.
+organise its series): name, kind, status badge - **Rejected** with "Reason: …", **Draft**, **Waiting for approval**,
+Live, Upcoming, Past, Date not set - date/place or next edition and edition count, and its actions (the ⋯ items).
+Delete and Unpublish are confirmed in place. The header button shows only when the list is not empty; its count and the
+page use one rule.
+
+**Organizations first**: the organizations the viewer created or is on the team of, each with its badge (Rejected,
+Draft, Waiting for approval), "N series · N one-time events" and its actions, followed by its series and one-time
+events (indented, the lines and actions above); then everything else. The count = organizations + the items not under
+one of the viewer's own organizations. "+ Add organization" sits next to "+ Add event", with a link to the
+organizations directory. Drafts are listed here (and only here, for their team) with Publish first; Unpublish is offered
+on every published item without asking whether it would be refused (no statement per item) - a refusal comes back as
+a flash naming the reasons. Details: [../organizations/README.md](../organizations/README.md#you-organize).
 
 ## The ⋯ menu
 
 A popover on desktop, a bottom sheet on phones, loaded on demand (one Turbo Frame per page, route
 `event_manage_menu`) so the page carries no forms or CSRF tokens for rows nobody opens. Items exist only for real
 routes the viewer may use (voters `COMPETITION_EDIT`, `COMPETITION_DELETE`, `COMPETITION_SERIES_EDIT`,
-`COMPETITION_SERIES_DELETE`, which read `GetCompetitionPermissions::forPlayer()` once per request):
+`COMPETITION_SERIES_DELETE`, `ORGANIZATION_EDIT`, `ORGANIZATION_DELETE`, which read
+`GetCompetitionPermissions::forPlayer()` once per request - the team of an organization has the creator's rights on
+everything under it):
 
+- Every item the viewer can edit: **Publish** first while it is a draft (`publish_competition`,
+  `publish_competition_series`, `publish_organization`); **Unpublish…** before Delete once published, confirmed in
+  place (`unpublish_*`) - when it would be refused (somebody joined, official results or linked solving times;
+  `UnpublishBlockers`) the menu says "Can't go back to draft: …" instead. An edition of a draft series also gets
+  **Publish series** (for the series' team).
 - Event / edition: Edit event (`edit_competition`), Rounds & puzzles (`manage_competition_rounds`), Participants
   (`participants_sheet`), Results (`competition_results_overview`, when it has rounds), Page content
-  (`manage_competition_page`), Delete (`delete_competition` / `delete_competition_edition`, owner only).
-- Series: Manage series (`manage_competition_series`), Add edition (`add_edition`), Page content
-  (`manage_series_page`), Delete series (`delete_competition_series`, owner only).
-- Waiting for approval, admins: Approve / Reject… (`admin_approve_competition`, `admin_reject_competition` and the
-  `_series` routes); Reject asks for the reason in place. Every action returns to the events page.
+  (`manage_competition_page`), **Move to another series** (editions, for the people who can edit its series -
+  `move_edition`), Delete (`delete_competition` / `delete_competition_edition`, owner only).
+- Series: Manage series (`manage_competition_series`), Add edition (`add_edition`), **Add several dates**
+  (`add_editions`), Page content (`manage_series_page`), **Turn into an organization** (no organization yet -
+  `create_organization_from_series`), Delete series (`delete_competition_series`, owner only).
+- Organization ("You organize" and its own page): Edit organization (`edit_organization`), Add event
+  (`add_competition?organization=<id>`), Delete organization (`delete_organization`, its creator, only while it is
+  empty).
+- Waiting for approval, admins: Approve / Reject… (`admin_approve_competition`, `admin_reject_competition`, the
+  `_series` and `_organization` routes) - never on a draft, which is submitted by publishing it; Reject asks for the
+  reason in place. Every action returns to the events page.
+
+The rounds page (`manage_competition_rounds`) adds **Move to another event or edition** per round
+(`move_competition_round`). The three restructuring pages are described in
+[../organizations/README.md](../organizations/README.md#restructuring-tools-and-old-urls).
 
 ## URL parameters and redirects
 
@@ -299,4 +348,7 @@ no player identity - only counts ("41 going").
   events happening now.
 - Notifications for followed series (new edition, registration opens); "3 of your favourite puzzlers are going".
 - Data clean-up: duplicate and empty series, ongoing online events that are really series (`ConvertCompetitionToSeries`
-  exists), annual championships entered as separate one-time events, undated duplicate editions.
+  exists), annual championships entered as separate one-time events, undated duplicate editions. Moving editions and
+  rounds and turning a series into an organization are possible since PR #252
+  ([../organizations/README.md](../organizations/README.md#restructuring-tools-and-old-urls)); moving a one-time event
+  into a series is not yet.

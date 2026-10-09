@@ -34,7 +34,7 @@ Endpoints that perform *moderation* (the puzzle merge queue and the brand endpoi
 INTERNAL_API_REVIEWER_PLAYER_ID=<player uuid>
 ```
 
-Also closed-by-default: while it is empty, the moderation endpoints return `400` and dispatch nothing. The feature-request endpoints do not need it. The competition endpoints need it to create a competition (its creator), approve one and create a puzzle (who added and approved it) - see [Competitions and events](#competitions-and-events). The organization and series endpoints need it to create an organization or a series, approve an organization, assign an organization, move an edition or a round and turn a series into an organization (the acting player - see [Organizations, series and drafts](#organizations-series-and-drafts)). The [time verification](#time-verification) endpoints credit their decisions to it. It is also the player the [audit log](#audit-log-of-every-write) names.
+Also closed-by-default: while it is empty, the moderation endpoints return `400` and dispatch nothing. The feature-request endpoints do not need it. The competition endpoints need it to create a competition (its creator), approve one and create a puzzle (who added and approved it) - see [Competitions and events](#competitions-and-events). The organization and series endpoints need it to create an organization or a series, approve an organization, assign an organization (the `organization` PUTs and a `PATCH` changing `organizationId`), move an edition or a round and turn a series into an organization (the acting player - see [Organizations, series and drafts](#organizations-series-and-drafts)); publishing, unpublishing and a `PATCH` of only `draft` do not. The [time verification](#time-verification) endpoints credit their decisions to it. It is also the player the [audit log](#audit-log-of-every-write) names.
 
 ## Endpoints
 
@@ -269,7 +269,9 @@ their own messages (`SetCompetitionRoundPuzzles`, `SetCompetitionPuzzles`, `AddA
 | `POST` | `/internal-api/puzzles` | Create an approved puzzle without a photo | `201` puzzle |
 
 Creating a competition, approving it and creating a puzzle need `INTERNAL_API_REVIEWER_PLAYER_ID` (the player added as
-the competition's creator / the puzzle's adder, credited with the approval); the other endpoints do not.
+the competition's creator / the puzzle's adder, credited with the approval), and so do a `PATCH` changing
+`organizationId` and moving a round (the acting player); the other endpoints do not - a `PATCH` of only `draft`
+neither.
 
 **Slugs - published URLs depend on them.** This API **keeps the slug when the name changes**, like the web forms
 (their "URL" field is the web counterpart of an explicit `slug`). Only an explicit `slug` changes it: lower-case words joined by hyphens
@@ -297,7 +299,7 @@ is no JSON object (`{"error": "The body must be a JSON object."}`). Every invali
 | `maintainerIds` | Player ids who may manage the event - a list replaces the whole list, `[]` removes everyone, left out or `null` keeps it |
 | `approve` | Create only: `true` approves right away (no "approved" e-mail - the reviewer player is the creator, `ApproveCompetition::$notifyCreator = false`). Not needed under an approved organization - it is approved at once there |
 | `eligibility` | "Who can enter" (≤ 120 characters, `"21+"`, `"Residents of the state"`) - an edition without its own shows its series' |
-| `organizationId` | A one-time event's organization: on create it is created under it (approved at once when the organization is approved - the reviewer player is an admin, `OrganizationApprovalPolicy`), on `PATCH` it moves into it or out of it (`null`, `AssignEventToOrganization`). An edition refuses one (`409` - it is its series'). An unknown id is a `400` |
+| `organizationId` | A one-time event's organization: on create it is created under it (approved at once when the organization is approved - the reviewer player is an admin, `OrganizationApprovalPolicy`), on `PATCH` it moves into it or out of it (`null`, `AssignEventToOrganization`). An edition refuses one (`409` - it is its series'). An unknown id is a `400`; `403` when the reviewer player is neither an admin nor on the organization's team |
 | `draft` | Create: `true` creates a draft (only its team sees it). `PATCH`: `false` publishes, `true` takes it back to draft - `409` while somebody joined it or official results / solving times are linked to it (checked before anything of the `PATCH` is written) |
 
 Not settable here: the logo (upload it in the UI), rejection. An edition moves to another series with
@@ -305,9 +307,12 @@ Not settable here: the logo (upload it in the UI), rejection. An edition moves t
 [Organizations, series and drafts](#organizations-series-and-drafts)); `isRecurring` + `series` in the answer tell an
 edition.
 
-**A `PATCH` validates only when it changes competition fields** - and then the whole record as it would be stored: a
-record saved before a rule existed (a span over 30 days, say) must be fixed in the same `PATCH` that changes any of its
-fields. A `PATCH` of only `organizationId` and / or `draft` validates nothing else.
+**A `PATCH` validates only when it holds competition fields** (any field besides `organizationId` and `draft`, even one
+sent with its stored value) - and then the whole record as it would be stored: a record saved before a rule existed (a
+span over 30 days, say, or an edition created through `POST …/series/{seriesId}/editions`, which does not check the
+span) must be fixed in the same `PATCH` that changes any of its fields. A `PATCH` of only `organizationId` and / or
+`draft` validates nothing else. Everything a `PATCH` checks - the fields, the right to the target organization, whether
+it may go back to draft - is checked before anything of it is written.
 
 | Round field | Notes |
 |---|---|
@@ -597,7 +602,7 @@ listed in `errors`, JSON refusals, every write in the audit log (with `createdId
 | `PATCH` | `/internal-api/organizations/{organizationId}` | Change the fields sent (`draft` publishes / unpublishes) | `200` organization |
 | `POST` | `/internal-api/organizations/{organizationId}/approve` | Approve a pending one - and its pending series and one-time events | `204` |
 | `DELETE` | `/internal-api/organizations/{organizationId}` | Delete an empty organization (`409` while a series or event is under it) | `204` |
-| `POST` | `/internal-api/organizations/{organizationId}/maintainers` | Add `{"playerId"}` to its team (idempotent) | `204` |
+| `POST` | `/internal-api/organizations/{organizationId}/maintainers` | Add `{"playerId"}` to its team (idempotent; `409` for an 11th member) | `204` |
 | `DELETE` | `/internal-api/organizations/{organizationId}/maintainers/{playerId}` | Remove a player from its team (idempotent) | `204` |
 | `POST` | `/internal-api/organizations/{organizationId}/publish` · `/unpublish` | Draft off / on (always allowed) | `204` |
 | `GET` | `/internal-api/series?q=&status=&limit=&offset=` | List / search series (`q`: name, slug, shortcut) | `200` list |
@@ -608,29 +613,33 @@ listed in `errors`, JSON refusals, every write in the audit log (with `createdId
 | `POST` | `/internal-api/series/{seriesId}/editions` | Create an edition | `201` competition |
 | `PUT` | `/internal-api/series/{seriesId}/organization` | `{"organizationId": "…" \| null}` - move the series into / out of an organization | `200` series |
 | `POST` | `/internal-api/series/{seriesId}/create-organization` | Turn the series into an organization | `201` organization |
-| `PUT` | `/internal-api/competitions/{competitionId}/organization` | `{"organizationId": "…" \| null}` - a one-time event into / out of an organization (`409` for an edition) | `200` competition |
+| `PUT` | `/internal-api/competitions/{competitionId}/organization` | `{"organizationId": "…" \| null}` - a one-time event into / out of an organization (`409` for an edition with an id; `null` on an edition changes nothing) | `200` competition |
 | `POST` | `/internal-api/competitions/{competitionId}/publish` · `/unpublish` | Draft off / on (unpublish `409` while somebody joined, results or solving times are linked) | `204` |
 | `POST` | `/internal-api/competitions/{competitionId}/move` | Move an edition to another series `{"seriesId", "slug"?}` | `200` competition |
 | `POST` | `/internal-api/rounds/{roundId}/move` | Move a round to another event or edition `{"competitionId"}` | `200` round |
 
 The writes that act as somebody need `INTERNAL_API_REVIEWER_PLAYER_ID` (an admin): creating an organization or a series
-(its creator), approving an organization, assigning an organization, both moves and turning a series into an
-organization (the acting player - `400` while it is empty). Publish / unpublish, team changes, editions and deletes do
-not.
+(its creator), approving an organization, assigning an organization (the `organization` PUTs, a `PATCH` changing
+`organizationId`), both moves and turning a series into an organization (the acting player - `400` while it is empty).
+Publish / unpublish (also a `PATCH` of only `draft`), team changes, editions and deletes do not. Putting an item under
+an organization answers `403` when the reviewer player is neither an admin nor on that organization's team
+(`OrganizationNotManaged`) - configure an admin.
 
 **Approval.** The reviewer player is an admin, so:
 - an organization created here, or made from a series, is **approved at once** (no e-mail);
 - a series or one-time event created under, or moved into, an approved organization is **approved at once**
-  (`OrganizationApprovalPolicy`, D2) - `"approve": true` is needed only outside an organization; a rejected item stays
-  rejected; an edition is approved through its series;
+  (`OrganizationApprovalPolicy`, D2) - `"approve": true` is needed only outside an approved organization (under a
+  pending one the item stays pending until the organization is approved); a rejected item stays rejected; an edition is
+  approved through its series. There is no endpoint approving an existing pending series: send `"approve": true` on
+  create, move it into an approved organization, or approve its organization;
 - approving an organization (`POST …/approve`) approves its pending series and one-time events too (P2), and its creator
   gets the "approved" e-mail unless that is the reviewer player. `409` for an approved or rejected organization.
 
 **Drafts.** A draft is visible only to its team (and admins): its page answers 404 to everyone else, it is in no list,
 sitemap, picker or public API. `status` stays the approval state - **an approved draft is `approved` with
 `draft: true`** and `publiclyVisible: false`. `"draft": true` on create starts a draft; `draft` on `PATCH` (or the
-`publish` / `unpublish` endpoints) switches it. Publishing an item that still waits for approval submits it to the
-approval queue (the admin e-mail then); publishing a published item changes nothing. Back to draft is refused (`409`,
+`publish` / `unpublish` endpoints) switches it. Publishing an item that still waits for approval puts it into the
+approval queue - nobody is e-mailed (an admin acts through this API); publishing a published item changes nothing. Back to draft is refused (`409`,
 `CannotUnpublish` naming `participants`, `results`, `solving_times`) for a competition somebody joined or with official
 results or linked solving times, and for a series one of whose editions has any; an organization can always go back.
 A draft series hides its editions; a draft organization hides only its own page (its series and events keep their own
@@ -648,8 +657,10 @@ among one-time events). Organizations and series have separate addresses (`/en/o
 | Turn a series into an organization with `newSeriesSlug` | `/series/{old slug}`; every `/series/{old slug}/{edition}` and its round results pages | the organization page; each edition's / round's current page |
 
 A redirect leads to the target's **current** address (chained moves keep working: an edition moved twice is found from
-both old addresses) and only when the old address would answer 404 - a live page, also a draft, always wins. An
-explicit slug change (`PATCH`) writes no redirect.
+both old addresses) and only when the old address would answer 404 - a live page, also a draft, always wins. A redirect
+never leads to a draft: while the target (or its series, or the target organization) is a draft, the old address
+answers 404. Deleting an organization deletes the redirects to it (the old series address of "create-organization"
+answers 404 again). An explicit slug change (`PATCH`) writes no redirect.
 
 | Organization field | Notes |
 |---|---|
@@ -658,11 +669,11 @@ explicit slug change (`PATCH`) writes no redirect.
 | `slug` | Create: generated from the name unless sent; `PATCH`: an explicit change (cannot be cleared) |
 | `about` | Plain text, ≤ 5,000 characters |
 | `website` | `http(s)` URL, ≤ 255 characters |
-| `socialLinks` | A list of `http(s)` URLs, at most 10, each once (the icon comes from the host: Instagram, Facebook, Discord, YouTube, …). A list replaces the whole list; `[]` or `null` removes every link |
+| `socialLinks` | A list of `http(s)` URLs (each ≤ 255 characters), at most 10 after duplicates are dropped (the icon comes from the host: Instagram, Facebook, Discord, YouTube, …). A list replaces the whole list; `[]` or `null` removes every link |
 | `countryCode` | ISO 3166-1 alpha-2, any letter case |
 | `region` | Free text ≤ 120 characters (a state, a region, a city) |
 | `kind` | `association`, `club`, `shop`, `venue`, `community`, `other` - or `null` |
-| `maintainerIds` | The team besides its creator - a list replaces it, `[]` empties it, left out or `null` keeps it |
+| `maintainerIds` | The team besides its creator, at most 10 - a list replaces it, `[]` empties it, left out or `null` keeps it; an unknown player id is a `404` |
 | `draft` | See Drafts |
 
 The logo is uploaded in the UI. The organization answer: `organizationId`, `name`, `shortName`, `slug`, `logo`,
@@ -685,9 +696,11 @@ list answers `{"total", "limit", "offset", "organizations": [...]}` without `mai
 | `organizationId` | Create: under that organization; `PATCH`: moves it (`null` = out). An unknown id is a `400` |
 | `draft`, `approve` | See Drafts and Approval (`approve` on create only) |
 
-The series answer: `seriesId`, the fields above, `organization` (`organizationId`, `name`, `slug`), `status`, `draft`,
-`approvedAt`, `approvedByPlayerId`, `rejectedAt`, `rejectionReason`, `publiclyVisible` (`IsSeriesPubliclyVisible`),
-`createdAt`, `addedByPlayerId`, `addedByPlayerName`, `editionsCount`, `maintainers` and `editions` - every edition with
+The series answer: `seriesId`, `name`, `slug`, `shortcut`, `description`, `link`, `isOnline`, `location`,
+`locationCountryCode`, `logo`, `organizationId`, `organization` (`organizationId`, `name`, `slug`), `eligibility`,
+`schedule`, `status`, `draft`, `approvedAt`, `approvedByPlayerId`, `rejectedAt`, `rejectionReason`, `publiclyVisible`
+(`IsSeriesPubliclyVisible`), `createdAt`, `addedByPlayerId`, `addedByPlayerName`, `editionsCount`, `maintainers` and
+`editions` - every edition with
 the competition list's fields (`competitionId`, `name`, `slug`, `dateFrom`, `dateTo`, `status`, `draft`,
 `roundsCount`, `resultsCount`, `participantsCount`, …; read one with `GET /internal-api/competitions/{id}` for its
 rounds), by date, undated ones last. The list answers `{"total", "limit", "offset", "series": [...]}` without
@@ -697,11 +710,12 @@ rounds), by date, undated ones last. The list answers `{"total", "limit", "offse
 ISO days, `dateTo` not before `dateFrom` - like the "Add edition" form; a `PATCH` of the competition can clear them
 afterwards), `slug` (else generated from the name; `409` when taken in the series or by a one-time event), `link`,
 `registrationLink`, `resultsLink`, `description`, `eligibility`, `draft`. It takes the series' place and online flag.
-Rounds follow with `POST /internal-api/competitions/{competitionId}/rounds`.
+The 30-day span rule of the event form is not checked here - a later `PATCH` of the edition validates the whole record
+with it. Rounds follow with `POST /internal-api/competitions/{competitionId}/rounds`.
 
 **Moving an edition** (`POST …/competitions/{competitionId}/move`, `{"seriesId": "…", "slug": "…"?}`): its rounds,
-participants, results and solving times stay with it. Its slug stays unless the target series has it - then `409`, send
-`slug`. Its place follows the target series where it was its old series' (a place set for the edition stays), it is
+participants, results and solving times stay with it. Its slug stays unless an edition of the target series or a
+one-time event holds it - then `409`, send `slug`. Its place follows the target series where it was its old series' (a place set for the edition stays), it is
 online when the target series is, its organization and visibility are the target series'. `409` for a one-time event
 (moving one into a series is not part of this), for the series it is in already, and for a **draft** target series
 while the edition has participants, official results or linked solving times (a draft never holds those - their
@@ -728,20 +742,21 @@ links it: every attach reconciles the competition's round results, so the round'
 and a move of that round takes it along.
 
 **Turning a series into an organization** (`POST …/series/{seriesId}/create-organization`): `name` (required, ≤ 120),
-`shortName`, `slug` (else from the name - it may be the series' own slug), `kind`, `countryCode` and `region` (else the
-series' country and location), `newSeriesName`, `newSeriesSlug`. The organization gets the series' logo, its description
-as `about`, its link as `website`, its maintainers as the team, its creator as creator; it is **approved**. The series'
-followers follow the organization; the series is attached to it (a pending series is approved by the policy) and renamed
-/ re-slugged when asked - with a new slug, its old address answers 301 to the organization and its editions' and round
+`shortName` (≤ 30), `slug` (else from the name - it may be the series' own slug), `kind`, `countryCode` and `region`
+(≤ 120; left out = the series' country and location, `null` = none), `newSeriesName` (≤ 250), `newSeriesSlug`. The
+organization gets the series' logo, its description as `about`, its link as `website`, its maintainers as the team, its
+creator as creator; it is **approved**. The series' follows **move** to the organization (the followers no longer
+follow the series itself - a player following both keeps one row); the series is attached to it (a pending series is
+approved by the policy) and renamed / re-slugged when asked - with a new slug, its old address answers 301 to the organization and its editions' and round
 results' old addresses to where they are now. `409` for a series that has an organization already or a taken slug (an
 organization's or a series'). Social links and the rest follow with a `PATCH` of the organization. The answer is the
 organization (with its series).
 
 #### Restructuring example
 
-An organiser keeps a monthly online contest and two bar nights in one series `quarry-hollow-puzzlers`, all contests as
-rounds of one undated edition. The organization takes over the series' address, the series becomes the online contest,
-the bar nights get their own series, each contest its own edition:
+An organiser keeps a monthly online contest and two venue nights in one series `quarry-hollow-puzzlers`, all contests
+as rounds of one undated edition, each venue night an edition of its own. The organization takes over the series'
+address, the series becomes the online contest, the venue nights get their own series, each contest its own edition:
 
 ```sh
 API="$APP_URL/internal-api"
@@ -763,7 +778,8 @@ curl -X PATCH "$API/organizations/019a0000-0000-7000-8000-000000000002" -H "$AUT
   "about": "The jigsaw puzzle association of Quarry Hollow.", "website": "https://qhja.example"
 }'
 
-# 2. A series per bar night - approved at once under the approved organization
+# 2. A series per venue night - approved at once under the approved organization (the second one alike:
+#    "Old Mill Pub Puzzle", id …0007)
 curl -X POST "$API/series" -H "$AUTH" -H "$JSON" -d '{
   "name": "Copper Kettle Puzzle Night", "organizationId": "019a0000-0000-7000-8000-000000000002",
   "isOnline": false, "location": "Copper Kettle Brewing, Millbrook", "locationCountryCode": "us",
@@ -788,19 +804,27 @@ curl -X POST "$API/series/019a0000-0000-7000-8000-000000000001/editions" -H "$AU
 curl -X POST "$API/rounds/019a0000-0000-7000-8000-000000000005/move" -H "$AUTH" -H "$JSON" \
   -d '{"competitionId": "019a0000-0000-7000-8000-000000000006"}'
 
-# 5. The old edition keeps its last round - new name, address and date (an explicit slug change writes no redirect,
+# 5. Every other round with results moves the same way, one new edition each (repeat the two calls above per round);
+#    the old edition keeps its last round - new name, address and date (an explicit slug change writes no redirect,
 #    but the addresses the moves and the organization wrote keep leading to it)
 curl -X PATCH "$API/competitions/019a0000-0000-7000-8000-00000000000a" -H "$AUTH" -H "$JSON" -d '{
   "name": "Virtual Contest January 2027", "slug": "virtual-contest-january-2027",
   "dateFrom": "2027-01-20", "dateTo": "2027-01-20", "registrationLink": "https://quarry-hollow.example/register/january"
 }'
 
-# 6. The other editions move to the bar night series, then get a one-day date, a name and an address
+# 6. The venue night editions move to their series, then get a one-day date, a name and an address (a place set by
+#    hand for the edition stays)
 curl -X POST "$API/competitions/019a0000-0000-7000-8000-00000000000b/move" -H "$AUTH" -H "$JSON" \
   -d '{"seriesId": "019a0000-0000-7000-8000-000000000003"}'
 curl -X PATCH "$API/competitions/019a0000-0000-7000-8000-00000000000b" -H "$AUTH" -H "$JSON" -d '{
   "name": "Copper Kettle Puzzle Night - October", "slug": "copper-kettle-october-2026",
   "dateFrom": "2026-10-05", "dateTo": "2026-10-05"
+}'
+curl -X POST "$API/competitions/019a0000-0000-7000-8000-00000000000c/move" -H "$AUTH" -H "$JSON" \
+  -d '{"seriesId": "019a0000-0000-7000-8000-000000000007"}'
+curl -X PATCH "$API/competitions/019a0000-0000-7000-8000-00000000000c" -H "$AUTH" -H "$JSON" -d '{
+  "name": "Old Mill Pub Puzzle - November", "slug": "old-mill-november-2026",
+  "dateFrom": "2026-11-24", "dateTo": "2026-11-24"
 }'
 
 # Check: the organization with its three series, each series with its editions
@@ -808,7 +832,8 @@ curl -s "$API/organizations/quarry-hollow-puzzlers" -H "$AUTH"
 curl -s "$API/series/quarry-hollow-virtual-contest" -H "$AUTH"
 ```
 
-`tests/Controller/InternalApi/RestructureWalkThroughInternalApiTest.php` walks exactly this sequence.
+`tests/Controller/InternalApi/RestructureWalkThroughInternalApiTest.php` walks this sequence in full (every round,
+both venue series, the redirects of the old addresses).
 
 ### Examples
 

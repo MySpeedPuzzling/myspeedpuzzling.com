@@ -4,10 +4,37 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Organizations and drafts (`docs/features/organizations/README.md`, PR #252)
+
+Replaces "Format chips / an 'Organisation' level above series" - the level is built (one series per format).
+
+- [ ] Co-hosts: several organizations on one event (today one organization per series or one-time event).
+- [ ] Notifications for followed organizations (a new date, registration opens) - with the followed-series ones.
+- [ ] A casual/competitive flag on series and events (an event without rounds already shows no results).
+- [ ] Season rankings - only on demand (the motivating organiser does not want them).
+- [ ] Outreach to organisers matching the README's patterns ("Organiser patterns seen in production" - patterns, no
+      names here): one series holding several formats, two series of one brand, a duplicate series, events of one
+      organiser not grouped, annual championships entered as separate one-time events.
+- [ ] Merging duplicate series of other organisers (a merge tool, or moves + delete through the internal API).
+- [ ] Moving participants (round entries, pairs/teams) with a round - `MoveRoundToCompetition` refuses a round with
+      entries today.
+- [ ] Moving a one-time event into a series (P23) - its URL, follows and approval change shape; needs its own rules.
+- [ ] Page sections on organization pages (and an organization's own event calendar export).
+- [ ] The restructuring pages (`move_edition`, `move_competition_round`) load every series / event
+      (`GetRestructureChoices`) and narrow them in PHP to what the actor may edit (admins: all) - fine at today's
+      size; page it or make it an autocomplete once it grows.
+- [ ] The events page's own month calendar still starts on Monday (the date pickers follow the visitor's locale since
+      2026-10-08, `assets/datepicker_locale.js`).
+- [ ] The profile results date filter still shows dd.mm.yyyy.
+- [ ] `ConvertCompetitionToSeriesHandler` copies `approvedAt` but not `rejectedAt` - a rejected event that was once
+      approved becomes public by converting it into a series.
+- [ ] The `competitionId` branch of `AddPuzzleSolvingTimeHandler` does not re-check visibility (the forms validate the
+      picker's set and API v1 checks rounds, but the handler itself would link a time to a draft).
+- [ ] Anonymous pages are shared-cached for 60 s, so an unpublished (or newly hidden) item can linger that long on
+      guests' pages.
+
 ## Series, edition and event pages (`docs/features/events-page/detail-pages.md`)
 
-- [ ] Format chips / an "Organisation" level above series, for organisers running several formats under one name -
-      Jan's decision: nothing is built until the organiser he asked answers whether they want it.
 - [ ] An organiser-only hint on long spans without rounds ("add a round per night"), so a month-long online event
       stops reading as "Ongoing" with no dates.
 - [ ] BreadcrumbList JSON-LD for the crumbs of the three pages (the crumbs are plain links today).

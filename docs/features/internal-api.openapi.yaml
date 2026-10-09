@@ -555,6 +555,8 @@ paths:
           $ref: "#/components/responses/InvalidRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -594,16 +596,19 @@ paths:
         changes it, and it must be free (409 otherwise); old URLs of the event get no
         redirect. The slug cannot be cleared (400). `maintainerIds` replaces the whole
         list (`null` keeps it). `"isOnline": true` clears the location; dates stay.
-        A change of the fields validates the whole record as it would be stored (a
-        stored span over 30 days must be fixed in the same PATCH); a PATCH of only
-        `organizationId` / `draft` validates nothing else.
+        A PATCH holding any competition field (even one sent with its stored value)
+        validates the whole record as it would be stored (a stored span over 30 days
+        must be fixed in the same PATCH); a PATCH of only `organizationId` / `draft`
+        validates nothing else.
 
         `organizationId` moves a one-time event into an organization or out of it
         (`null`, `AssignEventToOrganization`; a pending event under an approved
         organization is approved at once) - an edition refuses one (409, it is its
-        series'). `draft` publishes (false) or takes it back to draft (true - 409 while
-        people joined it or results / solving times are linked to it). Both are
-        checked before anything is written, and need `INTERNAL_API_REVIEWER_PLAYER_ID`.
+        series'); it needs `INTERNAL_API_REVIEWER_PLAYER_ID` (403 when that player is
+        neither an admin nor on the organization's team). `draft` publishes (false) or
+        takes it back to draft (true - 409 while people joined it or results / solving
+        times are linked to it) and needs no reviewer player. Everything is checked
+        before anything is written.
       parameters:
         - $ref: "#/components/parameters/CompetitionId"
       requestBody:
@@ -632,6 +637,8 @@ paths:
           $ref: "#/components/responses/InvalidRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -898,6 +905,8 @@ paths:
           $ref: "#/components/responses/InvalidRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -909,8 +918,9 @@ paths:
       operationId: publishCompetition
       description: |
         The draft flag of a one-time event or an edition goes off (`PublishCompetition`).
-        A pending one-time event enters the approval queue then; official results
-        published while it was hidden are told once it is public. An edition of a
+        A pending one-time event enters the approval queue then (nobody is e-mailed -
+        an admin acts through this API); official results published while it was
+        hidden are told once it is public. An edition of a
         draft series stays hidden until its series is published. Publishing a
         published competition changes nothing.
       parameters:
@@ -949,8 +959,8 @@ paths:
       operationId: moveEdition
       description: |
         `MoveEditionToSeries`: the edition moves with its participants, rounds,
-        results and solving times. Its slug stays unless the target series has it
-        (409 - send `slug`). Its place follows the target series where it was the
+        results and solving times. Its slug stays unless an edition of the target
+        series or a one-time event holds it (409 - send `slug`). Its place follows the target series where it was the
         old series' (a place changed for the edition stays); online follows the
         target; its organization and visibility are the target series'. Its old
         address and its rounds' results addresses answer 301 to the new ones
@@ -1264,7 +1274,7 @@ paths:
     post:
       summary: Add a player to the organization's team
       operationId: addOrganizationMaintainer
-      description: Idempotent. The creator is on the team as its creator and never gets a maintainer row.
+      description: Idempotent. The creator is on the team as its creator and never gets a maintainer row. A team has at most 10 members besides its creator - an 11th is refused (409).
       parameters:
         - $ref: "#/components/parameters/OrganizationId"
       requestBody:
@@ -1288,6 +1298,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
 
   /internal-api/organizations/{organizationId}/maintainers/{playerId}:
     delete:
@@ -1314,7 +1326,7 @@ paths:
         - name: q
           in: query
           required: false
-          description: Part of the name, slug or shortcut (accents and letter case ignored).
+          description: Part of the name, slug or shortcut (letter case ignored; accents ignored in the name).
           schema:
             type: string
         - name: status
@@ -1405,6 +1417,8 @@ paths:
           $ref: "#/components/responses/InvalidRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -1442,9 +1456,12 @@ paths:
         rename keeps the slug**; only an explicit `slug` changes it (unique among
         series, else 409; no redirect; cannot be cleared - 400). `organizationId`
         moves the series into an organization or out of it (`null`,
-        `AssignEventToOrganization`); `draft` publishes (false) or takes it back to
-        draft (true - 409 while an edition has participants, official results or
-        linked solving times). Both are checked before anything is written.
+        `AssignEventToOrganization` - needs `INTERNAL_API_REVIEWER_PLAYER_ID`, 403 when
+        that player is neither an admin nor on the organization's team); `draft`
+        publishes (false) or takes it back to draft (true - 409 while an edition has
+        participants, official results or linked solving times). Both are checked
+        before anything is written. A PATCH holding any series field validates the
+        whole record as it would be stored.
       parameters:
         - $ref: "#/components/parameters/SeriesId"
       requestBody:
@@ -1473,6 +1490,8 @@ paths:
           $ref: "#/components/responses/InvalidRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -1577,6 +1596,8 @@ paths:
           $ref: "#/components/responses/InvalidRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
@@ -1590,9 +1611,10 @@ paths:
         `CreateOrganizationFromSeries` - **approved at once** (the reviewer player is an
         admin), created by the series' creator. Copied from the series: logo, about
         (its description), website (its link), country and region (its location)
-        unless sent, the team (its maintainers). The series' followers follow the
-        organization; the series is attached to it (a pending series is approved by
-        the policy) - with `newSeriesName` / `newSeriesSlug` renamed, and with a new
+        unless sent (`null` = none), the team (its maintainers). The series' follows
+        **move** to the organization (the followers no longer follow the series
+        itself; a player following both keeps one row); the series is attached to it
+        (a pending series is approved by the policy) - with `newSeriesName` / `newSeriesSlug` renamed, and with a new
         slug its old address answers 301 to the organization and its editions' and
         rounds' old addresses to where they are now. The organization may take the
         series' old slug (`slug`) - organizations and series have separate addresses.
@@ -2103,7 +2125,8 @@ components:
       description: |
         Validated by the web form's rules (`OrganizationFormData`): name required,
         1-120 characters; short name ≤ 30; about ≤ 5,000; website and social links
-        http(s) URLs ≤ 255; at most 10 social links; region ≤ 120. `null` or `""`
+        http(s) URLs ≤ 255; at most 10 social links (after duplicates are dropped);
+        region ≤ 120; at most 10 team members besides the creator. `null` or `""`
         clears a field. An unknown field is a 400.
       properties:
         name:
@@ -2126,8 +2149,7 @@ components:
           maxLength: 255
         socialLinks:
           type: [array, "null"]
-          maxItems: 10
-          description: The other links as plain URLs (Instagram, Discord, …) - the icon comes from the host. Each trimmed, empty ones dropped, each URL once. Replaces the whole list; `[]` or `null` removes every link.
+          description: The other links as plain URLs (Instagram, Discord, …) - the icon comes from the host. Each trimmed, empty ones dropped, each URL once; at most 10 once duplicates are dropped. Replaces the whole list; `[]` or `null` removes every link.
           items:
             type: string
             format: uri
@@ -2144,7 +2166,8 @@ components:
           enum: [association, club, shop, venue, community, other, null]
         maintainerIds:
           type: [array, "null"]
-          description: The team besides its creator - replaces the list, `[]` empties it, `null` or left out keeps it.
+          maxItems: 10
+          description: The team besides its creator, at most 10 - replaces the list, `[]` empties it, `null` or left out keeps it. An unknown player id is a 404.
           items:
             type: string
             format: uuid
@@ -3101,7 +3124,13 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     Conflict:
-      description: The request conflicts with the current state (taken slug, round invariant, results in a round, secret puzzles a round change would reveal, a hidden puzzle attached unhidden, shared tag, already approved, known EAN, an organization on an edition, a move that cannot be made, cannot go back to draft, an organization that is not empty)
+      description: The request conflicts with the current state (taken slug, round invariant, results in a round, secret puzzles a round change would reveal, a hidden puzzle attached unhidden, shared tag, already approved, known EAN, an organization on an edition, a move that cannot be made, cannot go back to draft, an organization that is not empty, a full organization team)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: The reviewer player may not put items under this organization - neither an admin nor on its team (`OrganizationNotManaged`)
       content:
         application/json:
           schema:

@@ -4,7 +4,8 @@ The design of record for **organizations** (a new, optional level above series a
 (every event item can be prepared privately and published when it is ready), plus three small extras ("Who can enter",
 "When it happens", "Add several dates") and the tools to restructure existing data (move an edition, move a round,
 turn a series into an organization). Jan approved the proposal on 2026-10-08 with nothing cut. The build contract is
-[implementation-plan.md](implementation-plan.md).
+[implementation-plan.md](implementation-plan.md); where the build differs from the text below, see
+[As built](#as-built-2026-10-09) at the end.
 
 It builds on the events page ([../events-page/README.md](../events-page/README.md)) and the series, edition and event
 pages ([../events-page/detail-pages.md](../events-page/detail-pages.md)): the same parts (`templates/event_parts/`), the
@@ -15,17 +16,16 @@ tests is made up ("Riverbend Jigsaw Association", "Lantern Brewing Puzzle Night"
 
 ## Goal
 
-A state jigsaw association put **all** its events into one series: a monthly online contest and two casual bar nights
-at two breweries. Asked what they need, the organiser answered:
+A regional association put three formats - a monthly online contest and two casual venue nights - into one series.
+Asked what they need, the organiser answered:
 
-1. **The association is the main thing.** A page for the association suits them. Most of their events are open to
-   residents of their state only.
-2. **Every monthly contest stands alone.** They keep rankings internally but deliberately do not publish them (newcomers
-   should not feel scared) - so no season ranking.
-3. **The bar nights are casual.** No results are kept. They happen on the first Monday / last Tuesday of the month, now
-   and then moved by the venue.
-4. **"What does follow mean?" - and "we keep growing".** Another bar competition starts this month; other state
-   associations grow the same way. Everything must scale without an admin approving every new night.
+1. **The association is the main thing.** A page for the association suits them. Some of their events are open to a
+   limited group of people only.
+2. **Every monthly contest stands alone.** No season ranking is wanted.
+3. **The venue nights are casual.** No results are kept. Each happens on a fixed day of the month, now and then moved by
+   the venue.
+4. **"What does follow mean?" - and "we keep growing".** New venue nights keep starting; other associations grow the
+   same way. Everything must scale without an admin approving every new night.
 
 The same confusion is all over production: a series is used both for **who runs it** and for **what repeats**, and
 events of one association that belong together are not grouped at all. An organization separates the two: the
@@ -51,13 +51,13 @@ drafts.
 | Hierarchy | Organization → series → editions, and organization → one-time events. An **edition never has its own organization** - it belongs to its series' (a handler refuses one). One organization per item; co-hosts come later. Deleting an organization leaves its items without one (`ON DELETE SET NULL`). |
 | Fields | Name, short name, slug, logo, about, website, social links (icon from the host), country + region (free text), kind (association/federation, club, shop or brand, venue, community, other), team (maintainers), creator, approval like series, created at, draft. |
 | Permissions | The organization's creator and team edit it, manage its team, create/edit/delete series and events under it and manage their editions, rounds and results, exactly like series maintainers do today. Admins can do everything. Implemented as more legs of the one statement in `GetCompetitionPermissions`. |
-| Approval | Any signed-in player can create an organization; it waits for an admin like a series. The internal API creates approved ones. **A series or one-time event created under, or moved into, an approved organization by a member of its team (or an admin) needs no admin approval** - done explicitly in the handlers through one service, `OrganizationApprovalPolicy` (D2). |
+| Approval | Any signed-in player can create an organization; it waits for an admin like a series. The internal API (and an admin on the web) creates approved ones. **A series or one-time event created under, or moved into, an approved organization by a member of its team (or an admin) needs no admin approval** - done explicitly in the handlers through one service, `OrganizationApprovalPolicy` (D2). |
 | Organization page | `organization_detail`, `/en/organizations/{slug}`, all 6 locales: header, About, "Coming up", "What we run", "Past". **No public team list** (private profiles and blocks would come into play; the team sees itself on the edit page). Indexable when approved and published, in the sitemap. Unknown slug → 404. |
-| Directory | `organizations`, `/en/organizations`: approved, published organizations with counts and the next date. Light. |
+| Directory | `organizations`, `/en/organizations`: approved, published organizations with counts and the next date. Light. (`noindex` and out of the sitemap while it lists none.) |
 | Integration | "Organized by …" on series, edition and event pages; organization names in the events page search; the organization's name on series directory lines; "You organize" groups items under their organizations; the add/edit series and event forms get an "Organization" select. |
 | Follow | A third target: an organization. "Your events" adds, per followed organization, the next date of each of its series and its upcoming one-time events, marked Following and deduplicated against what is followed directly. Only publicly visible organizations can be followed. |
 | Drafts | A `draft` flag on one-time events, editions, series and organizations. "Save as draft" next to the normal submit of every add form. A draft is visible only to its creator, its team (including the series' and organization's teams above it) and admins - its page shows "Draft: only you and your team can see this page." with **Publish**; everyone else gets 404. Never indexed, never in any public list, picker, API, sitemap, follow, join or registration. |
-| Publishing | Publish = the flag goes off. An item that still needs approval then enters the approval queue (and the admin e-mail is sent then). Drafts never appear in the approval queue or in any count. Back to draft ("Unpublish") only while nobody has joined and no result or solving time is linked; an organization can always go back. |
+| Publishing | Publish = the flag goes off. An item that still needs approval then enters the approval queue (and the admin e-mail is sent then - on its first publish only). Drafts never appear in the approval queue or in any count. Back to draft ("Unpublish") only while nobody has joined and no result or solving time is linked; an organization can always go back. |
 | Scope of a draft | A draft series hides its editions. A draft edition in a published series hides only itself. A draft organization hides only its own page, its directory entry and its "Organized by" links - its series and events keep their own state. |
 | One visibility rule | `IsCompetitionPubliclyVisible::SQL_CONDITION` includes drafts; new `IsSeriesPubliclyVisible` and `IsOrganizationPubliclyVisible` constants for series and organization rows. Every reader converted or listed with a reason in a guard test; a canary test proves drafts appear on no public surface. |
 | Who can enter / When it happens | `eligibility` (≤ 120 chars) on series, one-time events and editions (an edition shows its own, else its series'), shown as a tag on rows and on the pages, labelled **"Who can enter"**. `schedule` (≤ 160 chars) on series, shown on the series page and on the organization's cards, labelled **"When it happens"**. Free text, all optional. |
@@ -173,8 +173,11 @@ and of its organization - and admins.
 
 ### Approval
 
-- An organization is created pending (web) or approved (internal API). Admins approve or reject it in the same queue
-  as series (`/admin/competition-approvals`); the creator gets the existing "approved" / "rejected" e-mails.
+- An organization is created pending (web), or approved (internal API, and an admin on the web). Admins approve or
+  reject it in the same queue as series (`/admin/competition-approvals`); the creator gets the organization's own
+  "approved" / "rejected" e-mails (`organization_approved` / `organization_rejected` in `translations/emails.*.yml`,
+  the "approved" one linking the organization page in the creator's locale), and the admins an organization variant of
+  the "submitted" e-mail.
 - **Under an approved organization** (D2): when a series or one-time event is **created under** or **moved into** an
   approved, not rejected organization by its creator, one of its maintainers or an admin, and the item is pending
   (neither approved nor rejected), the handler approves it at once (`approvedBy` = the acting player). A rejected item
@@ -183,8 +186,10 @@ and of its organization - and admins.
   moves an item calls it.
 - **Approving an organization** approves its pending series and one-time events too (P2).
 - **Drafts and the queue.** The approval queue, its admin-menu badge and the admin view of the events page list pending
-  items that are **not** drafts. A pending draft is submitted by publishing it: the admin e-mail goes out then.
-  Approving a draft is allowed (the internal API can; the policy does) - it stays hidden until published.
+  items that are **not** drafts. A pending draft is submitted by publishing it: the admin e-mail goes out on its
+  **first** publish only - unpublishing and publishing it again e-mails nobody, and neither does anything an admin
+  creates or publishes. Approving a draft is allowed (the internal API can; the policy does) - it stays hidden until
+  published.
 
 ## Permissions
 
@@ -205,7 +210,7 @@ organizations the player is on the team of - the choices of the "Organization" s
 
 | Action | Who |
 |---|---|
-| Create an organization | any signed-in player (pending) |
+| Create an organization | any signed-in player (pending; an admin's is approved at once) |
 | Edit it, manage its team, publish/unpublish it | its creator and team, admins |
 | Delete it (only when empty) | its creator, admins |
 | Create a series or one-time event under it | its team, admins (choosing it in the "Organization" select) |
@@ -223,7 +228,7 @@ organizations the player is on the team of - the choices of the "Organization" s
 
 ```
 [draft banner, team only]  Draft: only you and your team can see this page.  [Publish]
-Events › Riverbend Jigsaw Association                         (crumbs)
+Events › Organizations                                         (crumbs; the H1 is the organization)
 [logo]  Riverbend Jigsaw Association                           (H1)
         Association · [us] Riverbend Valley, United States · RJA
         [☆ Follow]  [Website ↗]  [ig] [discord] …  [⋯]        (⋯ for the team: Edit, Add event, Publish/Unpublish, Delete; admins: Approve/Reject while pending)
@@ -231,22 +236,25 @@ About                                                          (plain text, line
 Coming up                                                      (rows like the series page: leaf · name · place · tags (Who can enter, Recurring, registration…) · when · ⋯)
 What we run                                                    (cards)
    Lantern Brewing Puzzle Night            ☆                   one card per series: name; place or Online · When it happens;
-   Riverbend · First Monday, 7 pm                              Who can enter · N editions; "Next: Mon 2 Nov" (or "Last: …",
+   Riverbend · Once a month, 7 pm                              Who can enter · N editions; "Next: Mon 2 Nov" (or "Last: …",
    21+ · 4 editions                                            "No dates yet"); a follow star per series
    Next: Mon 2 Nov
    One-time events: Riverbend Spring Open · Sat 12 Dec ☆      upcoming one-time events, one card each
 Past                                                           year chips; newest year open, 5 lines + "Show all 2026 (N)"
 ```
 
-- **Header**: logo (decorative), H1 = name, a facts line (kind, flag + region and country, short name), actions:
-  the labelled follow star (only when publicly visible), Website ↗, one icon link per social link (its platform's
-  name as the accessible name), ⋯ for the team.
+- **Header**: crumbs "Events › Organizations", logo (decorative), H1 = name, a facts line (kind, flag + region and
+  country, short name), actions: the labelled follow star (only when publicly visible), Website ↗, one icon link per
+  social link (its platform's name as the accessible name, else its host; two links of one platform get distinct
+  names), ⋯ for the team.
 - **Coming up**: every live and upcoming occurrence of the organization's series and one-time events from
-  `GetEventOccurrences::forOrganization()` - the series page's sessions and month headers, Live first, then Ongoing.
-  Rows link the occurrence; no per-row star (P19).
+  `GetEventOccurrences::forOrganization()` - the series page's sessions and month headers: Live first, then by month,
+  then Ongoing, then "Date not set" (editions with neither a date nor a round). Rows link the occurrence; no per-row
+  star (P19).
 - **What we run**: the series cards (public ones; the team also sees drafts and pending ones, tagged), ordered by next
   date, then name; then the upcoming one-time events as cards with a star.
-- **Past**: one archive line per past occurrence, newest first, by year (the series page's rule and markup).
+- **Past**: one archive line per past occurrence, newest first, by year (the series page's rule and markup); for the
+  team a draft's or pending item's line carries its Draft / Waiting for approval tag, like the upcoming rows (P6).
 - **Empty organization**: "Nothing planned yet." and, for the team, "Add event".
 - **SEO**: title "{name} - puzzle events" (`organization_page.meta.title`), meta description from the about text or a
   generic line; `Organization` JSON-LD through `json_ld` (`name`, `alternateName` = short name, `url`, `logo` - the
@@ -260,15 +268,18 @@ Past                                                           year chips; newes
 
 One list of publicly visible organizations, alphabetically: logo, name, kind, flag + region, "3 series · 2 events",
 "Next: Sat 12 Dec" (from the occurrences). "+ Add organization" for signed-in players. Linked from the series
-directory head on the events page ("Organizations →") and from "You organize". Indexable, in `sitemap-static.xml`.
-Two statements (organizations, their occurrences); signed in + 4.
+directory head on the events page ("Organizations →") and from "You organize". Indexable and in `sitemap-static.xml`
+once it lists an organization - while it lists none it is `noindex` and left out of the sitemap. Two statements
+(organizations, their occurrences); signed in + 4.
 
 ### "Organized by", crumbs and the extras on the detail pages
 
 The series, edition and event pages gain a **byline** under the H1 (each part only when it has something):
-"Organized by **Riverbend Jigsaw Association**" (a link; publicly visible organizations only, or for its team) ·
-"Who can enter: Residents of Riverbend Valley" · on the series page "When it happens: First Monday of the month, 7 pm".
-Crumbs follow P20. No extra statement: the organization rides on the statement each page runs anyway.
+"Organized by **Riverbend Jigsaw Association**" (a link; publicly visible organizations only - its team also sees it
+while it is not, with one "Not public" tag) · "Who can enter: Residents of Riverbend Valley" (an edition's own, else its
+series') · on the series page "When it happens: Once a month, 7 pm". Crumbs follow P20 with the same rule as the
+byline (public, or the viewer is on the organization's team). No extra statement: the organization rides on the
+statement each page runs anyway; the voter is asked only for a non-public organization.
 
 ### Events page
 
@@ -281,34 +292,46 @@ Crumbs follow P20. No extra statement: the organization rides on the statement e
 
 ### "You organize"
 
-Organizations first (name, Draft / Waiting for approval / Rejected badge, "3 series · 2 events", their actions), each
-followed by its series and one-time events (indented, the existing lines and actions); then everything else as today.
-New badge **Draft** (before Waiting for approval; an item that is both shows Draft). The header button counts
-organizations plus items not under one of them (P9). "+ Add organization" next to "+ Add event".
+Organizations first (name, Draft / Waiting for approval / Rejected badge, "3 series · 2 one-time events", their
+actions), each followed by its series and one-time events (indented, the existing lines and actions); then everything
+else as today. New badge **Draft** (order: Rejected, Draft, Waiting for approval - an item that is both a draft and
+pending shows Draft). The header button counts organizations plus items not under one of the viewer's own
+organizations (P9; an item under somebody else's organization counts on its own). "+ Add organization" next to
+"+ Add event", and a link to the directory ("All organizations"). Unpublish is offered on every published item without
+asking `UnpublishBlockers` (no statement per item); a refusal comes back as a flash naming the reasons.
 
 ### The ⋯ menu
 
 | Item | Items it appears on | Route |
 |---|---|---|
-| Publish / Unpublish | everything the viewer can edit (in the ⋯ menu Unpublish only while allowed - otherwise the reason; on "You organize" a refusal comes back as a message) | `publish_*` / `unpublish_*` |
-| Edit organization, Add event, Delete organization (creator, empty only), Approve / Reject (admins, pending) | organizations | `edit_organization`, `add_competition?organization=`, `delete_organization`, `admin_approve_organization`, `admin_reject_organization` |
+| Publish (first item) / Unpublish… (before Delete, confirmed in place) | everything the viewer can edit (in the ⋯ menu Unpublish only while allowed - otherwise "Can't go back to draft: …" with the reasons; on "You organize" a refusal comes back as a flash) | `publish_*` / `unpublish_*` |
+| Publish series | an edition of a draft series, for the series' team | `publish_competition_series` |
+| Edit organization, Add event, Delete organization (creator, empty only), Approve / Reject… (admins, pending, never a draft) | organizations | `edit_organization`, `add_competition?organization=`, `delete_organization`, `admin_approve_organization`, `admin_reject_organization` |
 | Add several dates, Turn into an organization (no organization yet) | series | `add_editions`, `create_organization_from_series` |
-| Move to another series | editions | `move_edition` |
+| Move to another series | editions, for the people who can edit the edition's series (the target is another series they manage) | `move_edition` |
 | Move to another event or edition | each round on the rounds page | `move_competition_round` |
+
+Every POST carries a session CSRF token per item; a wrong token answers 403. Admins approve or reject only items that
+wait for approval and are not drafts (a draft is submitted by publishing it).
 
 ### Forms
 
 - **Add event / add series** (`add_competition`), **edit event** (`edit_competition`), **edit series**
   (`edit_competition_series`): an **Organization** select - the organizations the player is on the team of (admins:
-  all not rejected), "None" first; `?organization=<id>` pre-selects it. An edition's edit form shows its series'
-  organization read-only. Changing it moves the item (`AssignEventToOrganization`). **Who can enter** (help: "Leave
-  empty when anyone can enter. Shown as a tag, e.g. 'Residents of the state', '21+'."); series: **When it happens**
-  (help: "e.g. 'Third Wednesday of the month, 6:45 pm' - each date is still its own edition.").
+  all not rejected) plus the item's current one, drafts and pending ones marked in the label, "None" first;
+  `?organization=<id>` pre-selects it. An edition's edit form shows its series' organization read-only - only when that
+  organization is publicly visible or the viewer is on its team. Changing it moves the item
+  (`AssignEventToOrganization`, dispatched after the edit; the actor's right to the target organization is checked
+  before anything is saved - a lost right is a form error, 422). **Who can enter** (help: "Leave empty when anyone can
+  enter. Shown as a tag, …"); series: **When it happens** (help with an example - each date is still its own edition;
+  on the add form shown only while "Recurring" is ticked, dropped otherwise).
 - **Add edition** (`add_edition`): Who can enter (help: "Leave empty to use the series' setting."), and a link "Add
   several dates" to `add_editions`.
 - **Add organization** (`add_organization`) / **edit organization** (`edit_organization`): name, short name, kind,
-  country, region, about, website, social links (one per line), logo, team (the maintainers picker of the event forms);
-  edit adds the "URL" field.
+  country, region, about, website, social links (one per line, at most 10 after duplicates are dropped), logo, team (the
+  maintainers picker of the event forms, at most 10 besides the creator); edit adds the "URL" field and lists the team
+  (for the team only). A player's organization waits for approval ("Submit for approval"); an admin's is approved at
+  once.
 - **Save as draft**: every add form (event, series, edition, several dates, organization) gets a secondary submit
   "Save as draft" next to the primary one. The primary keeps today's behaviour.
 
@@ -320,8 +343,8 @@ organizations plus items not under one of them (P9). "+ Add organization" next t
 | Rule | every week on a weekday; the 1st/2nd/3rd/4th weekday of the month; the last weekday of the month |
 | Starting | a date (first match on or after it) |
 | How many | 1-24 |
-| Picked dates | up to 24 dates (one date field per line, "+ another") |
-| Name | pattern, default "{series name} {date}"; `{date}` → the date in the page's language (`yMMMMd`); without `{date}` every name gets the date appended (editions need distinct slugs) |
+| Picked dates | up to 24 days in one inline calendar (tap every day); without JavaScript typed as a list ("05.10.2026, 12.10.2026" - "5. 10. 2026" works too) |
+| Name | pattern, default "{series name} {date}" (the series name is shortened when the default would not fit the name limit); `{date}` → the date in the page's language (`yMMMMd`); without `{date}` every name gets the date appended (editions need distinct slugs) |
 | Who can enter | optional, for all of them |
 | Draft | "Save as draft" creates them as drafts |
 
@@ -329,6 +352,11 @@ organizations plus items not under one of them (P9). "+ Add organization" next t
 creates the checked ones through one message (`AddEditions`, max 24): each edition is dated `dateFrom = dateTo` = that
 day, gets a slug unique in its series and the series' place, like `AddEdition`. A date already holding an edition of
 the series is marked "already has an edition" and unchecked.
+
+**Saved once.** Building the preview gives every date a UUIDv7 (a hidden field, kept on a 422 re-render), which becomes
+that edition's id (`NewEdition::$competitionId`). `AddEditionsHandler` skips an id that exists already and never creates
+a second edition on a day that has one, so a resent or double-clicked form adds nothing twice; two requests racing each
+other end without a 500.
 
 ### Admin approval queue
 
@@ -348,6 +376,16 @@ occurrence of each of its series and each of its one-time events that is not ove
 Following, Going winning as before. A series followed directly and through its organization is one row. Organization
 follows add no statement (the viewer statement carries them).
 
+**Turning a series into an organization** (`CreateOrganizationFromSeries`) hands its followers on:
+
+| The organization at the end of the step | The series' follows |
+|---|---|
+| publicly visible (approved, not a draft - internal API, an admin on the web) | **move** to the organization (a player following both keeps one row) |
+| not public yet (waiting for approval) | **stay** on the series, and every follower also gets an organization follow (unless they follow it already) |
+
+So nobody loses the series' next dates while the organization waits for an admin, and nobody follows a page they
+cannot open.
+
 ## Drafts
 
 | | One-time event | Edition | Series | Organization |
@@ -357,17 +395,27 @@ follows add no statement (the viewer statement carries them).
 | Visible to | creator, maintainers, series/organization team, admins | the same | creator, maintainers, organization team, admins | creator, team, admins |
 | Its page for others | 404 | 404 | 404 | 404 |
 | Publish | `publish_competition` | `publish_competition` | `publish_competition_series` | `publish_organization` |
-| Publishing a pending one | enters the queue (admin e-mail) | - (approved through its series) | enters the queue | enters the queue |
+| Publishing a pending one | enters the queue (admin e-mail on its first publish only) | - (approved through its series) | enters the queue (the same) | enters the queue (the same) |
 | Unpublish | no participants (not deleted), no official results, no linked solving times | the same | the same for every edition | always |
 
 - The page of a draft renders for its team with the banner and `noindex, nofollow`; nothing that needs a public page
   (follow star, "I'm going", Add my time, Results links, page sections) shows on it - the existing "not public" rules.
+- Publishing says what happens next: "Published - everyone can see it now.", "Published - everyone can see it once an
+  admin approves it." or, for an edition whose series is still a draft, "Published - visible once the series is
+  published too." Unpublish says "Back to draft - only you and your team can see it." or why it cannot ("It cannot go
+  back to draft: people have joined it, it has official results." - the reasons joined by a translated separator).
 - Publishing an event whose official results were published while it was not public tells the players then (as
   approving does).
 - A draft cannot get participants by joining (P17), solving times (the pickers offer public events only; the API
-  refuses a round of a non-public event), follows or marketplace marks.
+  refuses a round of a non-public event), follows or marketplace marks. Registration e-mails are not sent while an event
+  is hidden as a draft (P18).
+- Nothing tells a draft's name or URL to anyone outside its team: the shared round stopwatch page answers 404, a scanned
+  name tag and "Leave" lead to the events page instead of the draft's page, the follow flash names only a public
+  target (or one the player follows), and a competition tag that belongs to drafts only is left out of every tag list
+  (a tag is named after its event).
 - The organisers' tools work on drafts as on any event: rounds, puzzles, participants sheet, seating, results desk,
-  page sections (their content shows once the page is public).
+  page sections (their content shows once the page is public). Their "not public yet" lines say "This is a draft - …"
+  instead of the approval wording (page sections, registration settings, results desk).
 
 ## Restructuring tools and old URLs
 
@@ -377,36 +425,52 @@ follows add no statement (the viewer statement carries them).
 | Move a round to another event or edition | `MoveRoundToCompetition` | `move_competition_round` - `/move-round/{roundId}` | `POST /internal-api/rounds/{id}/move` |
 | Turn a series into an organization | `CreateOrganizationFromSeries` | `create_organization_from_series` - `/series-to-organization/{seriesId}` | `POST /internal-api/series/{id}/create-organization` |
 
-**Moving an edition**: to another series both managed by the actor. Its slug must be free in the target series - else
-the web form asks for a new one and the API answers 409 (or takes `slug`). Its place follows P21; its organization is
-the target series'; its visibility follows the target series. Participants, rounds, results and times stay with it.
-Writes redirect rows: the old edition path and each old round results path.
+**Moving an edition**: to another series both managed by the actor (the ⋯ item shows only for people who can edit the
+edition's series). Its slug must be free in the target series - else the web form asks for a new one and the API
+answers 409 (or takes `slug`). Its place follows P21; its organization is the target series'; its visibility follows
+the target series. Participants, rounds, results and times stay with it. A **draft** target series takes only an
+edition without participants, official results and linked solving times (`EditionNotMovableIntoDraft`, 409 - a draft
+never holds those, their listings would show its name). Writes redirect rows: the old edition path and each old round
+results path.
 
 **Moving a round** (D7): to another one-time event or edition the actor manages. It moves the round row, its puzzles
-(with their reveal settings), its table layout and every solving time linked to it (their `competition_id`; the round
-link stays), then both competitions' round results are reconciled. A slug taken in the target gets `-2`, `-3`, …
-Refused (409, nothing changes) when the target is the same competition; the round has participant entries or teams
-(moving participants is a later step); a puzzle of the round is already in a round of the same category in the target
-(the one-round-per-category invariant); its stopwatch is running. Writes a redirect row for the old round results path.
+(with their reveal settings), its table layout and every solving time that **belongs** to it - linked to it, or a time
+of the old competition solved in the round's category on one of its puzzles that was not linked yet (the round results
+rule, `SolvingTimeRoundResolver`; it gets the link) - their `competition_id` changes, the round link stays. Both
+competitions' round results are reconciled afterwards. The round keeps its wall-clock zone (P22); a slug taken in the
+target gets `-2`, `-3`, … Refused (409, nothing changes) when the target is the same competition; the round has
+participant entries or teams (moving participants is a later step); a puzzle of the round is already in a round of the
+same category in the target (the one-round-per-category invariant); its stopwatch is running; the target is hidden as a
+draft and the round has solving times (`RoundNotMovableReason::DraftTargetWithResults` - an empty round may move into
+a draft); the round was moved meanwhile (`RoundMovedMeanwhile`). The web page shows every refusal as a form error
+(422). Both moves run under the source event's participants lock. Writes a redirect row for the old round results path.
 
 **Turning a series into an organization**: creates the organization from the series (name, logo, about = description,
-website = link, country, maintainers; the series' creator becomes its creator), moves the series' followers to the
-organization (a player following both keeps one row), attaches the series - optionally renamed and with a new slug.
-Web: the organization waits for approval unless an admin does it; internal API: approved. With a new series slug, the
-old series path redirects to the organization and every old edition and round results path to its page.
+website = link, country, maintainers; the series' creator becomes its creator), hands the series' followers on (see
+[Follow](#follow): moved when the organization is public at once, kept and copied while it waits for approval),
+attaches the series - optionally renamed and with a new slug. Web: the organization waits for approval (the admin
+e-mail) unless an admin does it; internal API: approved. The web form takes the region as typed (empty = none, the form
+is prefilled from the series' location); only the internal API falls back to the series' location when `region` is
+not sent. A pending series attached to an approved organization by its team or an admin is approved at once
+(`OrganizationApprovalPolicy`). With a new series slug, the old series path redirects to the organization and every old
+edition and round results path to its page. The page never links an organization the viewer cannot open.
 
-**Redirects** (D6): one exception subscriber, on a 404 of `event_detail`, `competition_series_detail`,
-`edition_detail`, `event_round_results` or `edition_round_results` only, looks the path up and answers **301** to the
-target's **current** URL (so chained moves keep working), keeping the query string. **What still 404s**: an explicit
-slug change through the "URL" field or the API (unchanged rule), deleted items, a path a live item has taken since (the
-live page wins - also a draft, P5), `#round-<id>` anchors of a moved round on its old event page (fragments never reach
-the server), and anything not moved by these three tools.
+**Redirects** (D6): one exception subscriber (`EventUrlRedirectSubscriber`), on a 404 of `event_detail`,
+`competition_series_detail`, `edition_detail`, `event_round_results` or `edition_round_results` only, looks the path up
+(`GetEventUrlRedirect`, one statement) and answers **301** to the target's **current** URL (so chained moves keep
+working), keeping the query string. **What still 404s**: an explicit slug change through the "URL" field or the API
+(unchanged rule); deleted items - the redirect rows cascade with their target, so **deleting an organization also
+removes the redirect of the old series path** "Turn into an organization" wrote; a path a live item has taken since
+(the live page wins - also a draft, P5); an old path whose target is now hidden as a draft (an edition moved into a
+draft series, a round of a draft event, a draft organization) - a redirect never tells a draft's address, not even to
+its team, who reach it from "You organize"; `#round-<id>` anchors of a moved round on its old event page (fragments
+never reach the server); and anything not moved by these three tools.
 
 ## Internal API
 
 Same patterns as the competitions endpoints (`InternalApiInput`, the web forms' validation, JSON errors, the audit log,
-`INTERNAL_API_REVIEWER_PLAYER_ID` as the acting player). Full field tables in
-[../internal-api.md](../internal-api.md) once built; the OpenAPI spec lists every endpoint.
+`INTERNAL_API_REVIEWER_PLAYER_ID` as the acting player). Full field tables, answers and refusals in
+[../internal-api.md](../internal-api.md#organizations-series-and-drafts); the OpenAPI spec lists every endpoint.
 
 | Method | Path | Purpose | Answer | 4xx |
 |---|---|---|---|---|
@@ -416,7 +480,7 @@ Same patterns as the competitions endpoints (`InternalApiInput`, the web forms' 
 | `PATCH` | `/internal-api/organizations/{id}` | change the fields sent (`draft` → publish/unpublish) | `200` | 400, 404, 409 slug |
 | `POST` | `/internal-api/organizations/{id}/approve` | approve a pending one (and its pending items, P2) | `204` | 404, 409 |
 | `DELETE` | `/internal-api/organizations/{id}` | delete an empty organization | `204` | 404, 409 not empty |
-| `POST` | `/internal-api/organizations/{id}/maintainers` | add `{"playerId"}` to the team | `204` | 400, 404 |
+| `POST` | `/internal-api/organizations/{id}/maintainers` | add `{"playerId"}` to the team (at most 10 besides the creator) | `204` | 400, 404, 409 team full |
 | `DELETE` | `/internal-api/organizations/{id}/maintainers/{playerId}` | remove from the team | `204` | 404 |
 | `POST` | `/internal-api/organizations/{id}/publish` · `/unpublish` | draft off / on | `204` | 404 |
 | `GET` | `/internal-api/series?q=&status=&limit=&offset=` | list / search series | `200` list | 400 |
@@ -425,7 +489,7 @@ Same patterns as the competitions endpoints (`InternalApiInput`, the web forms' 
 | `PATCH` | `/internal-api/series/{id}` | change the fields sent | `200` | 400, 404, 409 |
 | `POST` | `/internal-api/series/{id}/publish` · `/unpublish` | | `204` | 404, 409 cannot unpublish |
 | `POST` | `/internal-api/series/{id}/editions` | create an edition (`name`, `dateFrom`, `dateTo`, links, `eligibility`, `draft`, `slug`) | `201` competition | 400, 404, 409 slug |
-| `PUT` | `/internal-api/series/{id}/organization` · `/internal-api/competitions/{id}/organization` | assign `{"organizationId": "…" \| null}` | `200` | 400, 404, 409 edition |
+| `PUT` | `/internal-api/series/{id}/organization` · `/internal-api/competitions/{id}/organization` | assign `{"organizationId": "…" \| null}` | `200` | 400, 403 not on its team, 404, 409 edition |
 | `POST` | `/internal-api/competitions/{id}/publish` · `/unpublish` | | `204` | 404, 409 cannot unpublish |
 | `POST` | `/internal-api/competitions/{id}/move` | move an edition `{"seriesId", "slug"?}` | `200` competition | 400, 404, 409 |
 | `POST` | `/internal-api/rounds/{id}/move` | move a round `{"competitionId"}` | `200` round | 404, 409 |
@@ -441,8 +505,8 @@ Existing competition endpoints gain the fields `organizationId` (create; `PATCH`
 | Kind | Organization page | Series page | Edition / event page | Events page |
 |---|---|---|---|---|
 | Organization, published | its page | "Organized by" in the byline, crumb | byline, crumb | search finds its items by its name; series lines "by …" |
-| Organization, draft | 404 (team: banner) | no "Organized by" (team: shown) | same | its name not searchable; series lines without it |
-| Organization, pending / rejected | reachable, `noindex`, no star | no "Organized by" | same | same |
+| Organization, draft | 404 (team: banner) | no "Organized by" (team: shown, tagged "Not public") | same | its name not searchable; series lines without it |
+| Organization, pending / rejected | reachable, `noindex`, no star | no "Organized by" (team: shown, tagged "Not public") | same | same |
 | Series under an organization | card in "What we run", its dates in Coming up / Past | as today + byline | as today + byline | as today |
 | One-time event under an organization | card while upcoming, Coming up / Past | - | as today + byline | as today |
 | Draft one-time event | team only, tagged Draft | - | 404 (team: banner) | nowhere (not even for admins) |
@@ -457,17 +521,18 @@ Everything else in the events page's and the detail pages' "Every kind of event"
 
 ## Organiser patterns seen in production (outreach candidates)
 
-Their data is not changed by this work; each is a candidate to talk to once organizations ship (`docs/TODO.md`).
+Patterns only - their data is not changed by this work; organisers matching them are candidates to talk to once
+organizations ship (`docs/TODO.md`).
 
-1. **One series holding several formats**: a state association (monthly online contests + two bar nights) - the
-   motivating case; an organiser with about 21 editions in three formats (individual, pairs/teams, a skills format).
+1. **One series holding several formats**: an association running a monthly online contest and venue nights in one
+   series (the motivating case); an organiser running individual, pairs/teams and a skills format as editions of one
+   series.
 2. **One organiser, two series of one brand**: a shop with an online and an in-person series.
-3. **A duplicate series**: one city club with a series and a second "<name> 2026" series.
-4. **Association events not grouped**: a German puzzle club (about 10 one-time events), a national association
-   (nationals, three regionals, online), a national association in the UK, Nordic federations, a Spanish group, a
-   Japanese brand.
-5. **An annual championship entered as separate one-time events**: the world federation (2019-2026), an Australian
-   national association (2022-2026) - needs organization → championship series → yearly edition, i.e. moving a
+3. **A duplicate series**: a club with a series and a second "<name> <year>" series.
+4. **Events of one organiser not grouped**: clubs and national associations whose championships, regionals and online
+   events are separate one-time events; a brand running its own events.
+5. **An annual championship entered as separate one-time events**: a world-level federation's and a national
+   association's yearly championships - needs organization → championship series → yearly edition, i.e. moving a
    one-time event into a series (P23, later).
 
 ## Later (tracked in `docs/TODO.md`)
@@ -475,8 +540,8 @@ Their data is not changed by this work; each is a candidate to talk to once orga
 - Co-hosts: several organizations on one event.
 - Notifications for followed organizations (a new date, registration opens).
 - A casual/competitive flag (an event without rounds already shows no results).
-- Season rankings (the motivating organiser explicitly does not want them).
-- Outreach to the organisers above; merging the duplicate series of other organisers.
+- Season rankings (the motivating organiser does not want them - only on demand).
+- Outreach to organisers matching the patterns above; merging the duplicate series of other organisers.
 - Moving participants (round entries, teams) with a round.
 - Moving a one-time event into a series (P23).
 - Page sections on organization pages; an organization's own event calendar export.
@@ -489,8 +554,90 @@ Their data is not changed by this work; each is a candidate to talk to once orga
 | Organizations directory | 2 | 6 | |
 | Events page | 3 (unchanged) | 8 / admin 9 (unchanged) | archive 1 (unchanged) |
 | Series / edition / event pages | unchanged | unchanged | `DetailPagesQueryBudgetTest` stays green as it is |
-| "You organize" | - | + 1 (organizations) | constant in items |
+| "You organize" | - | + 1 (organizations) | constant in items (`OrganizedEventsQueryBudgetTest`: site overhead 4 + viewer and permissions 2 + one statement per kind of item listed) |
 
 A draft adds no statement for guests (404 before anything else is read); for a signed-in viewer the draft check uses the
 permissions statement the page's ⋯ already runs. No page of this feature shows player identity: no public team list,
 follow counts are not shown, the "Organization" select lists only the player's own organizations.
+
+## As built (2026-10-09)
+
+Where the build differs from the text above or settles what it left open (details in the plan's "Foundation
+deviations" and the workstream commits of PR #252). The sections above are already corrected; this list is the
+summary for a reviewer.
+
+**Foundation**
+
+- Publishing an item that is not a draft changes nothing (no second admin e-mail). Publish, unpublish and delete answer
+  a wrong CSRF token with 403; a second approve of an organization counts as done.
+- Creators are never maintainer rows (the add/edit forms and the team endpoints skip the creator's id).
+- `OrganizationApprovalPolicy` also tells the players about official results of an item that is public after the
+  approval (as approving does) - nothing for a draft, publishing tells them.
+- "Add several dates" slugs are unique through `CompetitionSlugGenerator::isTaken()` (the series' editions and the
+  one-time events) and within the batch (`-2`, `-3`); a name that makes no slug falls back to `edition`.
+- "You organize": badge order Rejected, Draft, Waiting for approval; the header count leaves out only items under one
+  of the viewer's **own** organizations.
+- `UnpublishCompetitionSeries` takes no event lock (a join racing it can leave a participant on a hidden edition - the
+  organiser sees it and can publish again; accepted in the plan's risks).
+
+**Organization pages (workstream A)**
+
+- The header is the organization page's own markup with the detail pages' classes (not the shared
+  `_detail_header.html.twig`); its crumbs are "Events › Organizations".
+- From 992 px "What we run" is a side column beside About, Coming up and Past; phones get one column.
+- "Coming up" ends with a "Date not set" group (editions with neither a date nor a round), like the series page.
+- "Organized by" and the organization crumb show to the team while the organization is not public (draft, pending or
+  rejected) with one "Not public" tag - not separate Draft / Waiting for approval marks.
+- JSON-LD `organizer`: a series names its public organization (`Organization`, name + page) instead of the `Person`
+  who added it; an edition names its public organization, else its series; a one-time event names one only under a
+  public organization.
+- The admin approval queue lists "Pending Organizations" above series; approve / reject carry a CSRF token.
+
+**Drafts (workstream B)**
+
+- Extra guards beyond the planned pages: the shared round stopwatch page (404), the live results name-tag scan and
+  "Leave" (both lead to the events page instead of a draft's URL).
+- A competition tag that belongs to drafts only is left out of every tag reader (`GetTags`).
+- The follow flash names only a publicly visible target or one the player follows ("You no longer follow it."
+  otherwise).
+
+**Organiser surfaces and forms (workstream C)**
+
+- Picked dates are one inline multi-day calendar (flatpickr `multiple`), typed as a list without JavaScript - not one
+  field per line.
+- "Move to another series" shows only for people who can edit the edition's series.
+- Unpublish is confirmed in place (an inline confirmation, like Delete).
+- An event or series that is public at once (created by its organization's team under an approved organization, or by
+  an admin) says "Added - everyone can see it now."; admins' own items e-mail nobody.
+- "When it happens" on the add form shows only while "Recurring" is ticked.
+
+**Restructuring and the internal API (workstream D)**
+
+- A moved round takes the results not linked to it yet that belong to it by the round results rule.
+- A draft target refuses a moved edition carrying participants, official results or linked times, and a moved round
+  carrying solving times.
+- A competition `PATCH` validates the record only when it changes competition fields (a `PATCH` of only
+  `organizationId` / `draft` validates nothing else).
+- Editions created through the API need both dates (like the "Add edition" form).
+- Deleting an organization deletes the redirect rows pointing at it - also the old series path "Turn into an
+  organization" wrote (listed under "What still 404s").
+
+**Decided after the code review (2026-10-09)**
+
+| # | Behaviour |
+|---|---|
+| 1 | A redirect never leads to a target hidden as a draft (the old path answers 404, also to the team). |
+| 2 | Turning a series into an organization moves the follows when the organization is public at the end, else keeps them and adds an organization follow per follower ([Follow](#follow)). |
+| 4 | Organizations get their own e-mails: `organization_approved`, `organization_rejected` and an organization variant of the admins' "submitted" mail, in all 6 locales. |
+| 5 | "Add several dates" is saved once: a UUIDv7 per previewed date is the edition's id; existing ids and days that have an edition are skipped; no 500 on a race. |
+| 8 | The admins' "submitted" e-mail goes out only on the first publish of an item created as a draft; re-publishing, and anything an admin creates or publishes, e-mails nobody. An admin creating an organization on the web gets it approved at once. |
+| 9 | Publishing an edition of a draft series says "Published - visible once the series is published too." |
+| 11 | The team of an organization has at most 10 members besides its creator (form `Count(max: 10)`; `AddOrganizationMaintainer` refuses an 11th - `409` in the internal API); social links are counted after duplicates are dropped. |
+| 13 | Past lines carry their tag for the team like the upcoming rows: Draft / Waiting for approval on the organization page, Draft on the series page. |
+| 14 | An edition's edit form shows its series' organization only when it is public or the viewer is on its team. |
+| 15 | Assigning an organization (web edit forms, internal API `PATCH`) checks the actor's right to the target organization before anything is dispatched; a `PATCH` of only `draft` needs no reviewer player. |
+| 16 | "Add several dates": the default name pattern always fits the name limit; the button says "Create N editions"; typed dates accept "5. 10. 2026". |
+| 18 | "Turn into an organization": the web form takes the region as typed; only the internal API falls back to the series' location. |
+| 19 | The organizations directory is `noindex` and out of the sitemap while it lists no organization. |
+| 20 | The reasons in "cannot go back to draft" are joined by a translated separator (`drafts_core.blocker_separator`). |
+| 23 | An occurrence's "today" is the current day in the zone its days are in (the first round's zone, else the event's or series' country zone) - a round running across UTC midnight stays Live. See [../events-page/README.md](../events-page/README.md) "Dates". |

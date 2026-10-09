@@ -2,9 +2,11 @@
     The EventSeries JSON-LD of the series page (docs/features/events-page/detail-pages.md "SEO"). `subEvent` =
     page.subEvents - one per public dated session (SeriesPageBuilder: an edition, or each session of an edition whose
     rounds fall on separate days, linking `#round-<id>`), undated editions left out. Every value goes through `json_ld`.
-    Variables: the page's (series, page).
+    `organizer`: its organization while that is publicly visible (docs/features/organizations/README.md), else the
+    player who added it.
+    Variables: the page's (series, page, organization).
 #}
-{% if series.approvedAt is not null and series.rejectedAt is null and series.slug is not null %}
+{% if series_publicly_visible and series.slug is not null %}
 {# A schema.org Event needs a startDate - an edition without a round and without its own date is left out #}
 <script type="application/ld+json">
 {
@@ -33,7 +35,13 @@
         }
     }
     {%- endif %}
-    {%- if series.addedByPlayerName %},
+    {%- if organization|default(null) is not null and organization.isPublic %},
+    "organizer": {
+        "@type": "Organization",
+        "name": {{ organization.name|json_ld }},
+        "url": {{ url('organization_detail', {'slug': organization.slug})|json_ld }}
+    }
+    {%- elseif series.addedByPlayerName %},
     "organizer": {
         "@type": "Person",
         "name": {{ series.addedByPlayerName|json_ld }}

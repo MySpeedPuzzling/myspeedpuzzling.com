@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Query\GetOrganizations;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -46,6 +47,11 @@ final class SitemapStaticController extends AbstractController
         'getting_started',
     ];
 
+    public function __construct(
+        private readonly GetOrganizations $getOrganizations,
+    ) {
+    }
+
     #[Route(path: '/sitemap-static.xml', name: 'sitemap_static')]
     public function __invoke(): Response
     {
@@ -53,6 +59,11 @@ final class SitemapStaticController extends AbstractController
 
         foreach (self::STATIC_ROUTES as $route) {
             array_push($entries, ...$this->localizedEntries($route));
+        }
+
+        // The organizations directory (docs/features/organizations/README.md "Directory") - once it lists anything
+        if ($this->getOrganizations->anyPublic()) {
+            array_push($entries, ...$this->localizedEntries('organizations'));
         }
 
         return $this->urlsetResponse($entries);

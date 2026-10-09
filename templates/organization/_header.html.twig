@@ -1,0 +1,43 @@
+{#
+    The organization page's header (owner: workstream A, docs/features/organizations/README.md "Organization page") -
+    the markup and classes of the detail pages' shared header (event_parts/_detail_header.html.twig) with the
+    organization's id on the H1. Crumbs: Events › Organizations. Facts: kind · [flag] region, country · short name.
+    Actions: the labelled Follow star (only while publicly visible), Website ↗, one icon link per social link (its
+    platform's name, else its host, as the accessible name), ⋯ for its team.
+    Variables: organization (OrganizationDetail), page (OrganizationPage), can_manage, manage (ManageRef)
+#}
+{% if app.request.query.has('return') %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('organizations'), fallbackTitle: 'organization.directory_title'|trans}) }}
+{% endif %}
+{{ include('event_parts/_crumbs.html.twig', {items: [
+    {label: 'events.title'|trans, url: path('events')},
+    {label: 'organization.directory_title'|trans, url: path('organizations')},
+]}) }}
+<header class="ev-detail-header ev-org-header">
+    {% if organization.logo %}
+        <div class="ev-detail-logo event-image"><img src="{{ organization.logo|thumbnail('puzzle_small') }}" alt=""></div>
+    {% endif %}
+    <div class="ev-detail-head">
+        <h1 class="ev-detail-name" data-organization-id="{{ organization.id }}">{{ organization.name }}</h1>
+        {% set facts -%}
+            {%- if organization.kind %}<span class="ev-detail-fact" data-org-kind>{{ organization.kind.translationKey|trans }}</span>{% endif -%}
+            {%- if page.place %}{{ include('event_parts/_place.html.twig', {place: page.place}) }}{% endif -%}
+            {%- if organization.shortName %}<span class="ev-detail-fact" data-org-short-name>{{ organization.shortName }}</span>{% endif -%}
+        {%- endset %}
+        {% if facts|trim is not empty %}<p class="ev-detail-facts">{{ facts }}</p>{% endif %}
+        {#- Its team and admins learn why it is not public yet (a draft has the draft banner instead) -#}
+        {% if can_manage and organization.isPending and not organization.isDraft %}
+            <ul class="ev-tags ev-org-state"><li class="ev-tag ev-tag-waiting_for_approval" data-org-waiting>{{ 'events_page.tag.waiting_for_approval'|trans }}</li></ul>
+        {% endif %}
+        <div class="ev-detail-actions">
+            {{- include('event_parts/_follow_action.html.twig', {follow_target: page.followTarget, following: page.following, kind: 'organization', follow_name: organization.name}) -}}
+            {%- if organization.website %}
+                <a class="ev-action-button" target="_blank" rel="noopener noreferrer" href="{{ organization.website }}" data-org-website>{{ 'organization_page.header.website'|trans }}<span aria-hidden="true"> ↗</span></a>
+            {%- endif -%}
+            {{- include('organization/_social_links.html.twig', {links: organization.socialLinks, name: organization.name}) -}}
+            {%- if can_manage %}
+                {{ include('event_parts/_manage_button.html.twig', {manage: manage, return_title: organization.name, delete_return: path('organizations')}) }}
+            {%- endif -%}
+        </div>
+    </div>
+</header>

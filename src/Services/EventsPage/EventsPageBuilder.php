@@ -94,7 +94,8 @@ readonly final class EventsPageBuilder
         $editionsBySeries = [];
 
         foreach ($occurrences as $occurrence) {
-            $status = $occurrence->status($day);
+            // Today in the occurrence's own zone - $day (UTC) only counts the "In 3 days" labels
+            $status = $occurrence->status($now);
 
             if ($occurrence->seriesId !== null) {
                 $editionsBySeries[$occurrence->seriesId][] = ['occurrence' => $occurrence, 'status' => $status];
@@ -257,12 +258,11 @@ readonly final class EventsPageBuilder
      */
     public function buildArchive(array $occurrences, int $year, DateTimeImmutable $today, string $locale): null|EventsArchivePage
     {
-        $day = OccurrenceDates::today($today);
         $past = [];
         $id = 0;
 
         foreach ($occurrences as $occurrence) {
-            if ($occurrence->isPublic === false || $occurrence->status($day) !== EventOccurrenceStatus::Past) {
+            if ($occurrence->isPublic === false || $occurrence->status($today) !== EventOccurrenceStatus::Past) {
                 continue;
             }
 
@@ -496,6 +496,8 @@ readonly final class EventsPageBuilder
                 isPending: $row->isPublic === false,
                 scopeKey: EventsScope::keyOf($row->isOnline, $row->countryCode),
                 visible: $scope->matches($row->isOnline, $row->countryCode),
+                // "by …" under the line - only a publicly visible organization (docs/features/organizations/README.md)
+                organization: $row->organization?->isPublic === true ? $row->organization : null,
             );
         }
 
@@ -537,6 +539,7 @@ readonly final class EventsPageBuilder
                 isPending: $line->isPending,
                 scopeKey: $line->scopeKey,
                 visible: $line->visible,
+                organization: $line->organization,
             );
         }
 
@@ -724,7 +727,9 @@ readonly final class EventsPageBuilder
     /**
      * Going (live, upcoming, TBA, ongoing), followed one-time events (also ongoing ones) and the next live-or-upcoming
      * edition of every followed series - public only, one row per competition (Going wins; of a competition with
-     * several sessions only the next one not over), by start, undated last.
+     * several sessions only the next one not over), by start, undated last. A followed organization (publicly visible,
+     * docs/features/organizations/README.md "Follow") counts as following each of its one-time events and each of its
+     * series: the same rows, so an event or series followed both ways is listed once.
      *
      * @param list<ListedOccurrence> $listed in date order
      * @param callable(ListedOccurrence, null|string): AgendaRow $rowOf
@@ -758,10 +763,15 @@ readonly final class EventsPageBuilder
                 continue;
             }
 
+            // Through its organization: only while the organization itself is public (a draft one hides only itself)
+            $followedOrganization = $occurrence->organization !== null
+                && $occurrence->organization->isPublic
+                && $viewer->followsOrganization($occurrence->organization->id);
+
             if (
                 $occurrence->isEdition() === false
                 && $notOver
-                && $viewer->follows(FollowTarget::competition($occurrence->competitionId))
+                && ($followedOrganization || $viewer->follows(FollowTarget::competition($occurrence->competitionId)))
             ) {
                 $picked[$occurrence->competitionId] = ['item' => $item, 'mark' => YourEvent::MARK_FOLLOWING];
 
@@ -773,7 +783,7 @@ readonly final class EventsPageBuilder
             if (
                 $seriesId !== null
                 && $notOver
-                && $viewer->follows(FollowTarget::series($seriesId))
+                && ($followedOrganization || $viewer->follows(FollowTarget::series($seriesId)))
                 && (isset($nextOfSeries[$seriesId]) === false || $occurrence->startDate < $nextOfSeries[$seriesId]['occurrence']->startDate)
             ) {
                 $nextOfSeries[$seriesId] = $item;

@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The organization page (docs/features/organizations/README.md "Organization page", owner: workstream A): the shared
+    header (logo, name, kind · flag + region · short name, Follow, Website, social links, ⋯ for its team), About,
+    "Coming up" (the series page's rows), "What we run" (a card per series, then the coming one-time events), "Past" by
+    year. No public team list (D19). Phones first: one column; from 992 px "What we run" moves to a side column.
+    Variables: organization (OrganizationDetail), page (OrganizationPage), can_manage, manage (ManageRef), draft_state
+    (null|DraftState - only its team ever gets a draft's page), show_menu.
+#}
+
+{% block title %}{{ 'organization_page.meta.title'|trans({'%name%': organization.name}) }}{% endblock %}
+
+{% block robots %}
+    {# Indexable only while publicly visible - pending, rejected (reachable at the URL, P12) and drafts are not #}
+    {% if not organization.isPublic %}
+        <meta name="robots" content="noindex, nofollow">
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+{% endblock %}
+
+{% block meta_description %}
+    {%- if organization.about -%}
+        {%- set about = organization.about|split("\n")|map(line => line|trim)|filter(line => line is not empty)|join(' ') -%}
+        {{- about|length > 160 ? about|slice(0, 157)|trim ~ '…' : about -}}
+    {%- else -%}
+        {{- 'organization_page.meta.description'|trans({'%name%': organization.name}) -}}
+    {%- endif -%}
+{% endblock %}
+
+{% block og_image %}{% if organization.logo %}{{ organization.logo|thumbnail('puzzle_large') }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+
+{% block json_ld %}
+{{ parent() }}
+{{ include('organization/_json_ld.html.twig') }}
+{% endblock %}
+
+{% block content %}
+    {#- The ⋯ menus of its rows and cards come back to this page by its name -#}
+    {%- set manage_return_title = organization.name -%}
+    <div class="ev-detail ev-organization">
+        {{ include('event_parts/_draft_banner.html.twig', {draft_state: draft_state}) }}
+        {{ include('organization/_header.html.twig') }}
+
+        <div class="ev-org-body{{ organization.about ? ' ev-org-body-about' }}{{ page.seriesCards is not empty or page.eventCards is not empty ? ' ev-org-body-run' }}">
+            {% if organization.about %}
+                <section class="ev-detail-section ev-org-about" aria-labelledby="org-about-title" data-org-about>
+                    <h2 class="ev-detail-section-title" id="org-about-title">{{ 'organization_page.about'|trans }}</h2>
+                    <p class="ev-org-about-text">{{ organization.about|nl2br }}</p>
+                </section>
+            {% endif %}
+            {{ include('organization/_coming_up.html.twig') }}
+            {{ include('organization/_what_we_run.html.twig') }}
+            {{ include('organization/_past.html.twig') }}
+        </div>
+
+        {{ include('event_parts/_manage_menu_host.html.twig', {show_menu: show_menu}) }}
+    </div>
+{% endblock %}

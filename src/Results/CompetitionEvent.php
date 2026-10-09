@@ -42,6 +42,14 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     registration_timezone?: null|string,
  *     has_page_sections?: bool|string,
  *     has_published_official_results?: bool|string,
+ *     organization_id?: null|string,
+ *     is_draft?: bool|string,
+ *     eligibility?: null|string,
+ *     organization_ref_id?: null|string,
+ *     organization_ref_name?: null|string,
+ *     organization_ref_short_name?: null|string,
+ *     organization_ref_slug?: null|string,
+ *     organization_ref_public?: bool|string,
  * }
  */
 readonly final class CompetitionEvent
@@ -87,6 +95,12 @@ readonly final class CompetitionEvent
         // A round shows published official results (GetPublishedRoundResults::sqlShowsOfficialResults()) - only
         // GetCompetitionEvents::byId() reads it, so the result counts look at official results only when there are some
         public bool $hasPublishedOfficialResults = false,
+        // A one-time event's own organization (docs/features/organizations/README.md) - only GetCompetitionEvents::byId()
+        // reads it; an edition's is its series' (CompetitionSeriesOverview::$organization)
+        public null|OrganizationRef $organization = null,
+        // "Who can enter" - its own (an edition without one shows its series')
+        public null|string $eligibility = null,
+        public bool $isDraft = false,
     ) {
         $this->link = $this->appendUtm($link);
         // While the event manages registration on MySpeedPuzzling the external link stays saved but is not shown -
@@ -138,6 +152,9 @@ readonly final class CompetitionEvent
             registrationTimezone: $row['registration_timezone'] ?? null,
             hasPageSections: self::parseBool($row['has_page_sections'] ?? false),
             hasPublishedOfficialResults: self::parseBool($row['has_published_official_results'] ?? false),
+            organization: OrganizationRef::fromRow($row, 'organization_ref_'),
+            eligibility: $row['eligibility'] ?? null,
+            isDraft: self::parseBool($row['is_draft'] ?? false),
         );
     }
 

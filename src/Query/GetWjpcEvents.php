@@ -18,26 +18,29 @@ readonly final class GetWjpcEvents
     }
 
     /**
-     * All World Jigsaw Puzzle Championship editions, newest first.
+     * All World Jigsaw Puzzle Championship editions, newest first - publicly visible one-time events only (never a draft,
+     * IsCompetitionPubliclyVisible).
      *
      * @return array<CompetitionEvent>
      */
     public function allEditions(): array
     {
+        $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
         $query = <<<SQL
-SELECT *
-FROM competition
-WHERE approved_at IS NOT NULL
-    AND rejected_at IS NULL
-    AND series_id IS NULL
+SELECT c.*
+FROM competition c
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+WHERE {$visible}
+    AND c.series_id IS NULL
     AND (
-        name ILIKE '%world jigsaw puzzle championship%'
-        OR name ILIKE '%wjpc%'
-        OR shortcut ILIKE '%wjpc%'
-        OR slug ILIKE '%wjpc%'
-        OR slug ILIKE '%world-jigsaw-puzzle-championship%'
+        c.name ILIKE '%world jigsaw puzzle championship%'
+        OR c.name ILIKE '%wjpc%'
+        OR c.shortcut ILIKE '%wjpc%'
+        OR c.slug ILIKE '%wjpc%'
+        OR c.slug ILIKE '%world-jigsaw-puzzle-championship%'
     )
-ORDER BY date_from DESC NULLS LAST;
+ORDER BY c.date_from DESC NULLS LAST;
 SQL;
 
         $data = $this->database

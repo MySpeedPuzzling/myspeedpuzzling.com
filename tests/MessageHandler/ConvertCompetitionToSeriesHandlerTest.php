@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -151,6 +152,67 @@ final class ConvertCompetitionToSeriesHandlerTest extends KernelTestCase
         self::assertSame($originalLocation, $series->location);
         self::assertSame($originalLocationCountryCode, $series->locationCountryCode);
         self::assertNotNull($series->slug);
+    }
+
+    /**
+     * docs/features/organizations/README.md: what belongs to the whole moves to the new series - its organization, its
+     * draft state and "Who can enter"; the event, now an edition, keeps none of them (an edition never has its own
+     * organization).
+     */
+    public function testARejectedEventStaysRejectedAsASeries(): void
+    {
+        $seriesId = Uuid::uuid7();
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE competition SET rejected_at = NOW(), rejection_reason = 'Not a puzzle event' WHERE id = :id",
+            ['id' => CompetitionFixture::COMPETITION_RECURRING_ONLINE],
+        );
+
+        $this->messageBus->dispatch(new ConvertCompetitionToSeries(
+            competitionId: CompetitionFixture::COMPETITION_RECURRING_ONLINE,
+            seriesId: $seriesId,
+        ));
+
+        $series = $this->seriesRepository->get($seriesId->toString());
+
+        self::assertTrue($series->isRejected());
+        self::assertSame('Not a puzzle event', $series->rejectionReason);
+        self::assertFalse($series->isPubliclyVisible());
+    }
+
+    public function testOrganizationDraftAndWhoCanEnterMoveToTheSeries(): void
+    {
+        $seriesId = Uuid::uuid7();
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            'UPDATE competition SET is_draft = true WHERE id = :id',
+            ['id' => OrganizationFixture::COMPETITION_RIVERBEND_OPEN],
+        );
+
+        $this->messageBus->dispatch(new ConvertCompetitionToSeries(
+            competitionId: OrganizationFixture::COMPETITION_RIVERBEND_OPEN,
+            seriesId: $seriesId,
+        ));
+
+        $series = $this->seriesRepository->get($seriesId->toString());
+
+        self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $series->organization?->id->toString());
+        self::assertTrue($series->isDraft);
+        self::assertSame('Residents of Riverbend Valley', $series->eligibility);
+
+        $competition = $this->competitionRepository->get(OrganizationFixture::COMPETITION_RIVERBEND_OPEN);
+
+        self::assertSame($seriesId->toString(), $competition->series?->id->toString());
+        self::assertNull($competition->organization);
+        self::assertFalse($competition->isDraft);
+        self::assertNull($competition->eligibility);
+
+        self::assertNull($connection->fetchOne(
+            'SELECT organization_id FROM competition WHERE id = :id',
+            ['id' => OrganizationFixture::COMPETITION_RIVERBEND_OPEN],
+        ));
     }
 
     /**

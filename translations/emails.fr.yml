@@ -344,3 +344,30 @@ result_review:
     verification_answer_trusted: "Votre temps %time% sur %puzzleName% a été vérifié – il compte de nouveau."
     verification_answer_kept: "Votre temps %time% sur %puzzleName% a été vérifié – il reste mis de côté."
     verification_answer_kept_note: "Votre temps %time% sur %puzzleName% a été vérifié – il reste mis de côté : %note%"
+
+organization_submitted:
+    subject: "Nouvelle organisation soumise : %organizationName%"
+    title: "Nouvelle organisation soumise"
+    content: |
+        <p>Une nouvelle organisation a été soumise pour approbation.</p>
+        <p><strong>Soumise par :</strong> %playerName%<br><strong>Organisation :</strong> %organizationName%<br><strong>Région :</strong> %region%</p>
+    button: "Examiner les organisations en attente"
+
+organization_approved:
+    subject: "Votre organisation a été approuvée !"
+    preheader: "%organizationName% a été approuvée sur MySpeedPuzzling."
+    title: "Votre organisation a été approuvée !"
+    content: |
+        <p>Bonne nouvelle ! Votre organisation <strong>%organizationName%</strong> a été approuvée.</p>
+        <p>Les séries et événements que votre équipe y ajoute n'ont plus besoin d'approbation : ils apparaissent dès que vous les publiez.</p>
+    button: "Voir la page de l'organisation"
+
+organization_rejected:
+    subject: "Votre organisation n'a pas été approuvée"
+    preheader: "Votre organisation %organizationName% n’a pas été approuvée – la raison est indiquée dans l’e-mail."
+    title: "Organisation non approuvée"
+    content: |
+        <p>Malheureusement, votre organisation <strong>%organizationName%</strong> n'a pas été approuvée.</p>
+        <p><strong>Raison :</strong> %reason%</p>
+        <p>Si vous avez des questions ou souhaitez en discuter, contactez-nous à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+    button: "Ouvrir « Vous organisez »"

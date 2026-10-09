@@ -54,8 +54,10 @@ final class ManageSeriesPageController extends AbstractController
             'sections' => $this->getCompetitionPageSections->forSeriesEditor($owner->id()),
             'section_types' => PageSectionType::availableFor($series->isOnline),
             'series_editor_url' => null,
-            // The sections show on the public page only once the series is approved
-            'publicly_visible' => $series->approvedAt !== null && $series->rejectedAt === null,
+            // The sections show on the public page only once the series is approved and published
+            'publicly_visible' => $series->isPubliclyVisible(),
+            // A draft says so instead of the approval wording (docs/features/organizations/README.md "Drafts")
+            'is_draft' => $series->isDraft,
         ]);
 
         // An organiser's tool: never cached, never indexed (the template says noindex)

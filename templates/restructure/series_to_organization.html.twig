@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'restructure.to_organization.title'|trans }} - {{ series.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    {% set series_url = path('manage_competition_series', {seriesId: series.id}) %}
+
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: series.name, url: series_url},
+        {label: 'restructure.to_organization.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: series_url, fallbackTitle: series.name}) }}
+
+    <div class="ev-restructure pb-4">
+        <h1 class="h2">{{ 'restructure.to_organization.title'|trans }}</h1>
+
+        {% if organization is not null %}
+            <div class="alert alert-info" role="status">
+                {{ 'restructure.to_organization.already_in'|trans({'%organization%': organization.name}) }}
+                {# A draft organization's page answers 404 to anyone off its team #}
+                {% if organization.isDraft == false or is_granted('ORGANIZATION_EDIT', organization.id.toString) %}
+                    <a href="{{ path('organization_detail', {slug: organization.slug}) }}">{{ 'restructure.to_organization.open_organization'|trans }}</a>
+                {% endif %}
+            </div>
+            {{ form_errors(form) }}
+        {% else %}
+            <p class="text-muted mb-3">{{ 'restructure.to_organization.intro'|trans({'%series%': series.name}) }}</p>
+
+            <ul class="ev-restructure-facts small text-muted">
+                <li>{{ 'restructure.to_organization.fact_copied'|trans }}</li>
+                <li>{{ 'restructure.to_organization.fact_followers'|trans }}</li>
+                <li>{{ 'restructure.to_organization.fact_address'|trans }}</li>
+                <li>{{ approved_at_once ? 'restructure.to_organization.fact_approved'|trans : 'restructure.to_organization.fact_approval'|trans }}</li>
+            </ul>
+
+            <div class="card shadow-sm my-3">
+                <div class="card-body">
+                    {{ form_start(form) }}
+                    {{ form_errors(form) }}
+
+                    <fieldset class="mb-3">
+                        <legend class="h5">{{ 'restructure.to_organization.organization_legend'|trans }}</legend>
+                        <div class="required">{{ form_row(form.name) }}</div>
+                        {{ form_row(form.shortName) }}
+                        {{ form_row(form.kind) }}
+                        {{ form_row(form.countryCode) }}
+                        {{ form_row(form.region) }}
+                        {{ form_row(form.slug) }}
+                    </fieldset>
+
+                    <fieldset class="mb-3">
+                        <legend class="h5">{{ 'restructure.to_organization.series_legend'|trans }}</legend>
+                        {{ form_row(form.newSeriesName) }}
+                        {{ form_row(form.newSeriesSlug) }}
+                    </fieldset>
+
+                    <button type="submit" class="btn btn-primary ev-restructure-submit">
+                        {{ 'restructure.to_organization.submit'|trans }}
+                    </button>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

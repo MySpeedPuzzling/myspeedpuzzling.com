@@ -76,7 +76,7 @@ final class OrganizedEventsPageTest extends WebTestCase
         self::assertSame('You organize', $query['return_title'] ?? null);
 
         // The creator deletes it, confirmed in place, back to this page
-        $delete = $item->filter('details.ev-confirm form');
+        $delete = $item->filter('details[data-delete] form');
         self::assertSame('/en/delete-event/' . CompetitionFixture::COMPETITION_RECURRING_ONLINE, $delete->attr('action'));
         self::assertSame('/en/you-organize', $delete->filter('input[name="return"]')->attr('value'));
         self::assertStringContainsString('cannot be undone', $delete->text());
@@ -90,11 +90,12 @@ final class OrganizedEventsPageTest extends WebTestCase
         $browser = self::createClient();
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
+        // A player who organises nothing else (PLAYER_WITH_FAVORITES is on organization teams - OrganizationFixture)
         $connection->insert('competition_maintainer', [
             'competition_id' => EventsPageFixture::EDITION_HARBOR_1,
-            'player_id' => PlayerFixture::PLAYER_WITH_FAVORITES,
+            'player_id' => PlayerFixture::PLAYER_PRIVATE,
         ]);
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
 
         $crawler = $browser->request('GET', '/en/events');
         self::assertSame('1', $crawler->filter('.ev-organize-button .ev-organize-count')->text());
@@ -107,7 +108,7 @@ final class OrganizedEventsPageTest extends WebTestCase
         self::assertStringStartsWith('Edition', $item->filter('.ev-organized-sub')->text());
         self::assertSame('Upcoming', $item->filter('.ev-badge')->text());
         // A maintainer, not the owner: no Delete
-        self::assertCount(0, $item->filter('details.ev-confirm'));
+        self::assertCount(0, $item->filter('details[data-delete]'));
         self::assertGreaterThan(0, $item->filter('a.ev-action')->count());
     }
 

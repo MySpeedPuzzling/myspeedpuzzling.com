@@ -90,9 +90,10 @@
     color: $ev-ink-2;
     font-size: .875rem;
 
-    > * + *::before {
+    // The dot ends the fact it follows - a wrapped line never starts with one (a phone at 360 px)
+    > *:not(:last-child)::after {
         content: "·";
-        margin-right: .5rem;
+        margin-left: .5rem;
         color: $ev-muted;
     }
 

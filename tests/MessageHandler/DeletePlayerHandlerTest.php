@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Query\GetModerationActions;
 use SpeedPuzzling\Web\Tests\DataFixtures\ComparisonSubjectFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ModerationActionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -321,6 +322,50 @@ final class DeletePlayerHandlerTest extends KernelTestCase
 
         self::assertCount(1, $history);
         self::assertNull($history[0]->adminName);
+    }
+
+    /**
+     * docs/features/organizations/README.md: an organization survives its creator - like a series; the deleted player
+     * leaves every organization team.
+     */
+    public function testOrganizationsSurviveTheirCreatorAndLoseTheDeletedMaintainer(): void
+    {
+        // PLAYER_WITH_FAVORITES created Maple and Cedar and maintains Riverbend
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
+        $this->entityManager->clear();
+
+        $connection = $this->entityManager->getConnection();
+
+        foreach ([OrganizationFixture::ORGANIZATION_MAPLE_PENDING, OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT] as $organizationId) {
+            $row = $connection->fetchAssociative('SELECT id, added_by_player_id FROM organization WHERE id = :id', ['id' => $organizationId]);
+            self::assertIsArray($row, $organizationId . ' must survive');
+            self::assertNull($row['added_by_player_id']);
+        }
+
+        self::assertSame(0, $connection->fetchOne(
+            'SELECT COUNT(*) FROM organization_maintainer WHERE player_id = :player',
+            ['player' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        ));
+        self::assertSame(PlayerFixture::PLAYER_WITH_STRIPE, $connection->fetchOne(
+            'SELECT added_by_player_id FROM organization WHERE id = :id',
+            ['id' => OrganizationFixture::ORGANIZATION_RIVERBEND],
+        ));
+    }
+
+    public function testAnApproverOfAnOrganizationCanBeDeleted(): void
+    {
+        // PLAYER_ADMIN approved Riverbend and the Harbor Puzzle Club
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_ADMIN));
+        $this->entityManager->clear();
+
+        $row = $this->entityManager->getConnection()->fetchAssociative(
+            'SELECT approved_at, approved_by_player_id FROM organization WHERE id = :id',
+            ['id' => OrganizationFixture::ORGANIZATION_RIVERBEND],
+        );
+
+        self::assertIsArray($row);
+        self::assertNotNull($row['approved_at']);
+        self::assertNull($row['approved_by_player_id']);
     }
 
     private function insertComparisonRow(string $ownerId, string $teamId): string

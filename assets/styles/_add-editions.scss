@@ -1,0 +1,149 @@
+// "Add several dates" (owner: workstream C, docs/features/organizations/README.md "Add several dates") - the rule or
+// the picked days, then the dates as a checked list. Phone first: one column, 44 px targets, 16 px inputs (no iOS
+// zoom), the multi-day calendar full width.
+
+.ev-add-editions {
+    max-width: 720px;
+    padding-bottom: 3rem;
+}
+
+.ev-add-editions-intro {
+    margin: .5rem 0 1rem;
+    font-size: .9375rem;
+    color: $ev-ink-2;
+}
+
+.ev-add-editions-card {
+    margin-bottom: 1.5rem;
+
+    .form-control,
+    .form-select {
+        min-height: 44px;
+        font-size: 1rem;
+    }
+}
+
+// "Repeat" / "Pick dates" as one segmented control - the two halves share the width and may wrap their own text, so
+// no locale is clipped on a 360 px phone
+.ev-segmented {
+    display: inline-flex;
+    max-width: 100%;
+    gap: 0;
+
+    .btn {
+        display: inline-flex;
+        flex: 1 1 auto;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: .375rem 1rem;
+        border-radius: 0;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .btn:first-of-type {
+        border-radius: 8px 0 0 8px;
+    }
+
+    .btn:last-of-type {
+        border-radius: 0 8px 8px 0;
+    }
+
+    .btn + .btn-check + .btn {
+        margin-left: -1px;
+    }
+}
+
+.ev-add-editions-repeat,
+.ev-add-editions-pick {
+    margin-bottom: .25rem;
+}
+
+// The inline flatpickr calendar of the picked days: as wide as the field on a phone
+.ev-add-editions-pick {
+    .flatpickr-calendar.inline {
+        width: 100%;
+        max-width: 360px;
+        margin-top: .5rem;
+        box-shadow: 0 0 0 1px $ev-line;
+    }
+
+    .flatpickr-calendar.inline .flatpickr-rContainer,
+    .flatpickr-calendar.inline .flatpickr-days,
+    .flatpickr-calendar.inline .dayContainer {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .flatpickr-calendar.inline .flatpickr-day {
+        max-width: none;
+        height: 44px;
+        line-height: 44px;
+    }
+}
+
+.ev-add-editions-preview {
+    margin-top: 1rem;
+}
+
+.ev-add-editions-dates-list {
+    margin: .75rem 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid $ev-line;
+}
+
+.ev-add-editions-date {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    min-height: 48px;
+    padding: .625rem .25rem;
+    border-bottom: 1px solid $ev-line;
+    cursor: pointer;
+
+    .form-check-input {
+        flex: none;
+        width: 1.25rem;
+        height: 1.25rem;
+        margin: .125rem 0 0;
+    }
+
+    &.is-taken {
+        color: $ev-muted;
+    }
+}
+
+.ev-add-editions-date-text {
+    display: grid;
+    gap: .125rem;
+    min-width: 0;
+}
+
+.ev-add-editions-day {
+    color: $ev-ink;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+
+    .is-taken & {
+        color: $ev-ink-2;
+    }
+}
+
+.ev-add-editions-name {
+    font-size: .875rem;
+    color: $ev-ink-2;
+    overflow-wrap: anywhere;
+}
+
+.ev-add-editions-taken {
+    justify-self: start;
+    padding: 1px 7px;
+    border-radius: 6px;
+    background: $ev-amber-soft;
+    color: $ev-amber-ink;
+    font-size: .75rem;
+    font-weight: 500;
+}

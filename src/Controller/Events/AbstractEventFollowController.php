@@ -8,12 +8,20 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Exceptions\FollowTargetNotAvailable;
+use SpeedPuzzling\Web\Exceptions\OrganizationNotFound;
 use SpeedPuzzling\Web\Message\FollowCompetition;
 use SpeedPuzzling\Web\Message\UnfollowCompetition;
+use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Query\IsOrganizationPubliclyVisible;
+use SpeedPuzzling\Web\Query\IsSeriesPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
+use SpeedPuzzling\Web\Repository\FollowedCompetitionRepository;
+use SpeedPuzzling\Web\Repository\OrganizationRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\FollowTarget;
+use SpeedPuzzling\Web\Value\FollowTargetKind;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -40,6 +48,12 @@ abstract class AbstractEventFollowController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private CompetitionRepository $competitionRepository,
         readonly private CompetitionSeriesRepository $competitionSeriesRepository,
+        readonly private OrganizationRepository $organizationRepository,
+        readonly private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        readonly private IsSeriesPubliclyVisible $isSeriesPubliclyVisible,
+        readonly private IsOrganizationPubliclyVisible $isOrganizationPubliclyVisible,
+        readonly private FollowedCompetitionRepository $followedCompetitionRepository,
+        readonly private PlayerRepository $playerRepository,
     ) {
     }
 
@@ -63,6 +77,9 @@ abstract class AbstractEventFollowController extends AbstractController
             return $this->failure($wantsJson, $returnUrl, 'events_organizer.follow.not_available', Response::HTTP_NOT_FOUND, 'danger');
         }
 
+        // The flash names the target - decided before an unfollow removes the row that may allow it (no JavaScript only)
+        $name = $wantsJson ? '' : $this->nameOf($target, $viewer->playerId);
+
         try {
             $this->messageBus->dispatch($follow
                 ? new FollowCompetition($viewer->playerId, $target->toString())
@@ -82,9 +99,15 @@ abstract class AbstractEventFollowController extends AbstractController
             return $this->privateJson(['following' => $follow, 'target' => $target->toString()]);
         }
 
+        if ($name === '' && $follow === false) {
+            $this->addFlash('success', $this->translator->trans('drafts.follow.unfollowed_unnamed'));
+
+            return $this->back($returnUrl);
+        }
+
         $this->addFlash('success', $this->translator->trans(
             $follow ? 'events_organizer.follow.flash_followed' : 'events_organizer.follow.flash_unfollowed',
-            ['%name%' => $this->nameOf($target)],
+            ['%name%' => $name],
         ));
 
         return $this->back($returnUrl);
@@ -110,13 +133,30 @@ abstract class AbstractEventFollowController extends AbstractController
         return $this->redirectToRoute('events', status: Response::HTTP_SEE_OTHER);
     }
 
-    private function nameOf(FollowTarget $target): string
+    /**
+     * The target's name - only of a target the viewer may know: a publicly visible one, or one they follow (a series that
+     * went back to draft after they followed it). Anything else - a draft, one waiting for approval, a guessed id - stays
+     * unnamed (docs/features/organizations/README.md "Drafts").
+     */
+    private function nameOf(FollowTarget $target, string $playerId): string
     {
+        $isPublic = match ($target->kind) {
+            FollowTargetKind::Series => $this->isSeriesPubliclyVisible->check($target->id),
+            FollowTargetKind::Organization => $this->isOrganizationPubliclyVisible->check($target->id),
+            FollowTargetKind::Competition => $this->isCompetitionPubliclyVisible->check($target->id),
+        };
+
+        if ($isPublic === false && $this->followedCompetitionRepository->find($this->playerRepository->get($playerId), $target) === null) {
+            return '';
+        }
+
         try {
-            return $target->isSeries()
-                ? $this->competitionSeriesRepository->get($target->id)->name
-                : $this->competitionRepository->get($target->id)->name;
-        } catch (CompetitionNotFound | CompetitionSeriesNotFound) {
+            return match ($target->kind) {
+                FollowTargetKind::Series => $this->competitionSeriesRepository->get($target->id)->name,
+                FollowTargetKind::Organization => $this->organizationRepository->get($target->id)->name,
+                FollowTargetKind::Competition => $this->competitionRepository->get($target->id)->name,
+            };
+        } catch (CompetitionNotFound | CompetitionSeriesNotFound | OrganizationNotFound) {
             return '';
         }
     }

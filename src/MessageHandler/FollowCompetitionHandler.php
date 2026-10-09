@@ -10,18 +10,23 @@ use SpeedPuzzling\Web\Entity\FollowedCompetition;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Exceptions\FollowTargetNotAvailable;
+use SpeedPuzzling\Web\Exceptions\OrganizationNotFound;
 use SpeedPuzzling\Web\Message\FollowCompetition;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Query\IsOrganizationPubliclyVisible;
+use SpeedPuzzling\Web\Query\IsSeriesPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\FollowedCompetitionRepository;
+use SpeedPuzzling\Web\Repository\OrganizationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Value\FollowTarget;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * A star on the events page (docs/features/events-page/README.md, "Follow"): a publicly visible one-time event or an
- * approved series. An edition is followed through its series. Following twice keeps one row.
+ * A star on the events page (docs/features/events-page/README.md, "Follow"): a publicly visible one-time event, series
+ * or organization (docs/features/organizations/README.md - never a draft). An edition is followed through its series.
+ * Following twice keeps one row.
  */
 #[AsMessageHandler]
 readonly final class FollowCompetitionHandler
@@ -32,6 +37,9 @@ readonly final class FollowCompetitionHandler
         private CompetitionSeriesRepository $competitionSeriesRepository,
         private FollowedCompetitionRepository $followedCompetitionRepository,
         private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        private IsSeriesPubliclyVisible $isSeriesPubliclyVisible,
+        private IsOrganizationPubliclyVisible $isOrganizationPubliclyVisible,
+        private OrganizationRepository $organizationRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -48,6 +56,24 @@ readonly final class FollowCompetitionHandler
             return;
         }
 
+        if ($target->isOrganization()) {
+            if ($this->isOrganizationPubliclyVisible->check($target->id) === false) {
+                throw new FollowTargetNotAvailable();
+            }
+
+            try {
+                $organization = $this->organizationRepository->get($target->id);
+            } catch (OrganizationNotFound) {
+                throw new FollowTargetNotAvailable();
+            }
+
+            $this->followedCompetitionRepository->save(
+                FollowedCompetition::ofOrganization(Uuid::uuid7(), $player, $organization, $this->clock->now()),
+            );
+
+            return;
+        }
+
         if ($target->isSeries()) {
             try {
                 $series = $this->competitionSeriesRepository->get($target->id);
@@ -55,7 +81,7 @@ readonly final class FollowCompetitionHandler
                 throw new FollowTargetNotAvailable();
             }
 
-            if ($series->isApproved() === false || $series->isRejected()) {
+            if ($this->isSeriesPubliclyVisible->check($target->id) === false) {
                 throw new FollowTargetNotAvailable();
             }
 

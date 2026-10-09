@@ -1,0 +1,49 @@
+{#
+    One series card of "What we run" (owner: workstream A, docs/features/organizations/README.md): its name (the link,
+    stretched over the card), place or Online · "When it happens", "Who can enter" · N editions, "Next: Mon 2 Nov" (live
+    now, ongoing, "Last: …" or "No dates yet"), the follow star (public series only) and its ⋯ for its organisers. Its
+    team also gets its drafts and the ones waiting for approval, tagged.
+    Variables: card (OrganizationSeriesCard)
+#}
+<li class="ev-org-card{{ card.isOnline ? ' ev-org-card-online' }}{{ card.isDraft or card.isPending ? ' ev-org-card-pending' }}" data-org-series="{{ card.seriesId }}">
+    <div class="ev-org-card-main">
+        {% if card.url %}
+            <a class="ev-org-card-name" href="{{ card.url }}">{{ card.name }}</a>
+        {% else %}
+            <span class="ev-org-card-name">{{ card.name }}</span>
+        {% endif %}
+        <p class="ev-org-card-line">
+            {{- include('event_parts/_place.html.twig', {place: card.place}) -}}
+            {%- if card.schedule %}<span class="ev-org-card-schedule" data-org-schedule><span class="visually-hidden">{{ 'organization_page.card.when_it_happens'|trans }}: </span>{{ card.schedule }}</span>{% endif -%}
+        </p>
+        <p class="ev-org-card-line">
+            {%- if card.eligibility %}<span class="ev-org-card-eligibility" data-org-eligibility><span class="visually-hidden">{{ 'events_page.tag.eligibility'|trans }}: </span>{{ card.eligibility }}</span>{% endif -%}
+            <span class="ev-org-card-count">{{ card.editionCount > 0 ? 'events_page.series.editions'|trans({'%count%': card.editionCount}) : 'events_page.series.no_editions'|trans }}</span>
+        </p>
+        <p class="ev-org-card-next ev-org-card-next-{{ card.next.type }}" data-org-next="{{ card.next.type }}">
+            {%- if card.next.type == 'next' -%}
+                {{ 'events_page.series.next'|trans({'%date%': card.next.date|events_date('MMMEd')}) }}
+            {%- elseif card.next.type == 'live' -%}
+                <span class="live-dot" aria-hidden="true"></span>{{ 'events_page.series.live'|trans }}
+            {%- elseif card.next.type == 'ongoing' -%}
+                {{ 'events_page.series.ongoing'|trans }}
+            {%- elseif card.next.type == 'last' -%}
+                {{ 'events_page.series.last'|trans({'%date%': card.next.date|events_date('yMMMd')}) }}
+            {%- else -%}
+                {{ 'events_page.series.no_dates'|trans }}
+            {%- endif -%}
+        </p>
+        {% if card.isDraft %}
+            <ul class="ev-tags"><li class="ev-tag ev-tag-draft">{{ 'events_page.tag.draft'|trans }}</li></ul>
+        {% elseif card.isPending %}
+            <ul class="ev-tags"><li class="ev-tag ev-tag-waiting_for_approval">{{ 'events_page.tag.waiting_for_approval'|trans }}</li></ul>
+        {% endif %}
+    </div>
+    {{ include('event_parts/_row_actions.html.twig', {
+        follow_target: card.followTarget,
+        follow_name: card.name,
+        following: card.following,
+        show_star: card.followTarget is not null,
+        manage: card.manage,
+    }) }}
+</li>

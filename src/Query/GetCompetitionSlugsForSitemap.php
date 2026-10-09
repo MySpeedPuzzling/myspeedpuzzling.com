@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class GetCompetitionSlugsForSitemap
 {
@@ -20,20 +21,23 @@ readonly final class GetCompetitionSlugsForSitemap
     }
 
     /**
-     * Approved standalone events (not part of a series) for route event_detail.
+     * Publicly visible standalone events (not part of a series) for route event_detail - approved, not rejected, never a
+     * draft (IsCompetitionPubliclyVisible).
      *
      * @return array<string>
      */
     public function standaloneEventSlugs(): array
     {
+        $visibility = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
         $query = <<<SQL
-SELECT slug
-FROM competition
-WHERE approved_at IS NOT NULL
-    AND rejected_at IS NULL
-    AND series_id IS NULL
-    AND slug IS NOT NULL
-ORDER BY slug
+SELECT c.slug
+FROM competition c
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+WHERE {$visibility}
+    AND c.series_id IS NULL
+    AND c.slug IS NOT NULL
+ORDER BY c.slug
 SQL;
 
         /** @var array<string> $slugs */
@@ -45,19 +49,46 @@ SQL;
     }
 
     /**
-     * Approved competition series for route competition_series_detail.
+     * Publicly visible competition series for route competition_series_detail - approved, not rejected, never a draft
+     * (IsSeriesPubliclyVisible).
      *
      * @return array<string>
      */
     public function seriesSlugs(): array
     {
+        $visibility = IsSeriesPubliclyVisible::SQL_CONDITION;
+
         $query = <<<SQL
-SELECT slug
-FROM competition_series
-WHERE approved_at IS NOT NULL
-    AND rejected_at IS NULL
-    AND slug IS NOT NULL
-ORDER BY slug
+SELECT cs.slug
+FROM competition_series cs
+WHERE {$visibility}
+    AND cs.slug IS NOT NULL
+ORDER BY cs.slug
+SQL;
+
+        /** @var array<string> $slugs */
+        $slugs = $this->database
+            ->executeQuery($query)
+            ->fetchFirstColumn();
+
+        return $slugs;
+    }
+
+    /**
+     * Publicly visible organizations for route organization_detail - approved, not rejected, never a draft
+     * (IsOrganizationPubliclyVisible; docs/features/organizations/README.md "Organization page").
+     *
+     * @return array<string>
+     */
+    public function organizationSlugs(): array
+    {
+        $visibility = IsOrganizationPubliclyVisible::SQL_CONDITION;
+
+        $query = <<<SQL
+SELECT o.slug
+FROM organization o
+WHERE {$visibility}
+ORDER BY o.slug
 SQL;
 
         /** @var array<string> $slugs */
@@ -70,8 +101,8 @@ SQL;
 
     /**
      * Publicly visible series editions for route edition_detail - the rule the edition page itself follows
-     * (IsCompetitionPubliclyVisible): the series approved and not rejected, the edition not rejected.
-     * Editions are never approved individually, their own approved_at stays NULL.
+     * (IsCompetitionPubliclyVisible): the series approved, not rejected and no draft, the edition not rejected and no
+     * draft. Editions are never approved individually, their own approved_at stays NULL.
      *
      * @return list<array{series_slug: string, edition_slug: string}>
      */
@@ -160,7 +191,7 @@ WHERE {$visibility}
     AND (c.date_from IS NOT NULL OR c.date_to IS NOT NULL OR r.rounds IS NOT NULL)
 SQL;
 
-        $today = OccurrenceDates::today($this->clock->now());
+        $now = $this->clock->now();
         $years = [];
 
         /** @var array{series_id: null|string, date_from: null|string, date_to: null|string, own_country_code: null|string, series_country_code: null|string, rounds: null|string} $row */
@@ -171,10 +202,11 @@ SQL;
                 self::instant($row['date_from']),
                 self::instant($row['date_to']),
                 OccurrenceRounds::fromJson($row['rounds'], $row['own_country_code'], $row['series_country_code']),
+                RoundTimezone::resolve(null, $row['own_country_code'], $row['series_country_code']),
             );
 
             foreach ($sessions as $dates) {
-                if ($dates->start === null || $dates->status($today, $isEdition, false) !== EventOccurrenceStatus::Past) {
+                if ($dates->start === null || $dates->status($now, $isEdition, false) !== EventOccurrenceStatus::Past) {
                     continue;
                 }
 

@@ -344,3 +344,30 @@ result_review:
     verification_answer_trusted: "Revisamos tu tiempo %time% en %puzzleName% – vuelve a contar."
     verification_answer_kept: "Revisamos tu tiempo %time% en %puzzleName% – sigue apartado."
     verification_answer_kept_note: "Revisamos tu tiempo %time% en %puzzleName% – sigue apartado: %note%"
+
+organization_submitted:
+    subject: "Nueva organización enviada: %organizationName%"
+    title: "Nueva organización enviada"
+    content: |
+        <p>Se ha enviado una nueva organización para aprobación.</p>
+        <p><strong>Enviado por:</strong> %playerName%<br><strong>Organización:</strong> %organizationName%<br><strong>Región:</strong> %region%</p>
+    button: "Revisar organizaciones pendientes"
+
+organization_approved:
+    subject: "¡Tu organización ha sido aprobada!"
+    preheader: "%organizationName% ha sido aprobada en MySpeedPuzzling."
+    title: "¡Tu organización ha sido aprobada!"
+    content: |
+        <p>¡Buenas noticias! Tu organización <strong>%organizationName%</strong> ha sido aprobada.</p>
+        <p>Las series y los eventos que tu equipo le añada no necesitan otra aprobación: aparecen en cuanto los publiques.</p>
+    button: "Ver la página de la organización"
+
+organization_rejected:
+    subject: "Tu organización no fue aprobada"
+    preheader: "Tu organización %organizationName% no fue aprobada. En el correo te explicamos el motivo."
+    title: "Organización no aprobada"
+    content: |
+        <p>Lamentablemente, tu organización <strong>%organizationName%</strong> no fue aprobada.</p>
+        <p><strong>Razón:</strong> %reason%</p>
+        <p>Si tienes preguntas o deseas discutir esto, contáctanos en <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+    button: "Abrir «Organizas»"

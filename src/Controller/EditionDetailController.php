@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Query\CountCompetitionResults;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
@@ -17,8 +18,10 @@ use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Results\CompetitionReference;
+use SpeedPuzzling\Web\Results\DraftState;
 use SpeedPuzzling\Web\Results\EditionRoundDetail;
 use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
 use SpeedPuzzling\Web\Services\EventDetail\RoundsTimelineBuilder;
 use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
@@ -26,6 +29,7 @@ use SpeedPuzzling\Web\Services\EventJustJoinedFlash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EventTitle;
 use SpeedPuzzling\Web\Value\FollowTarget;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -76,8 +80,16 @@ final class EditionDetailController extends AbstractController
         assert($competition->series !== null);
 
         $competitionId = $competition->id->toString();
-        $competitionEvent = $this->getCompetitionEvents->byId($competitionId);
         $seriesOverview = $this->getCompetitionSeries->byId($competition->series->id->toString());
+
+        // A draft edition, or any edition of a draft series, exists only for its team and admins
+        // (docs/features/organizations/README.md "Drafts", P5/P7) - before anything else is read. The series' flag comes
+        // from the overview: the entity's series is a lazy proxy, reading it would cost a statement
+        if (($competition->isDraft || $seriesOverview->isDraft) && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId) === false) {
+            throw new DraftNotVisible();
+        }
+
+        $competitionEvent = $this->getCompetitionEvents->byId($competitionId);
 
         $rounds = array_values($this->getEditionRounds->forCompetition($competitionId));
         $now = $this->clock->now();
@@ -122,6 +134,7 @@ final class EditionDetailController extends AbstractController
             dateFrom: $competitionEvent->dateFrom,
             dateTo: $competitionEvent->dateTo,
             now: $now,
+            zone: RoundTimezone::resolve(null, $competitionEvent->locationCountryCode?->name, $seriesOverview->locationCountryCode?->name),
         );
 
         $attendance = $this->getEventAttendance->forEvent($competitionEvent, $loggedPlayer?->playerId, $isPubliclyVisible);
@@ -165,6 +178,21 @@ final class EditionDetailController extends AbstractController
             'page_sections' => $competitionEvent->hasPageSections && $isPubliclyVisible
                 ? $this->getCompetitionPageSections->forCompetitionPage($competitionId)
                 : [],
+            // The byline (docs/features/organizations/README.md): an edition is organized by its series' organization,
+            // "Who can enter" is its own, else its series'
+            'organization' => $seriesOverview->organization,
+            'eligibility' => $competitionEvent->eligibility ?? $seriesOverview->eligibility,
+            // The edition is a draft and/or its series is one (P7)
+            'draft_state' => $competition->isDraft || $seriesOverview->isDraft
+                ? new DraftState(
+                    kind: DraftState::KIND_COMPETITION,
+                    id: $competitionId,
+                    name: $competitionEvent->name,
+                    isDraft: $competition->isDraft,
+                    seriesId: $seriesOverview->isDraft ? $seriesOverview->id : null,
+                    seriesName: $seriesOverview->isDraft ? $seriesOverview->name : null,
+                )
+                : null,
         ]);
     }
 }

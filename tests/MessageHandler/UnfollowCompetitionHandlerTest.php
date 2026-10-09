@@ -38,7 +38,8 @@ final class UnfollowCompetitionHandlerTest extends KernelTestCase
         $this->messageBus->dispatch(new UnfollowCompetition(PlayerFixture::PLAYER_REGULAR, 'competition:018d0040-0000-0000-0000-0000000000ff'));
         $this->messageBus->dispatch(new UnfollowCompetition(PlayerFixture::PLAYER_REGULAR, 'garbage'));
 
-        self::assertSame(2, $this->connection->fetchOne(
+        // EventsPageFixture's two follows + OrganizationFixture's three (an organization and two series)
+        self::assertSame(5, $this->connection->fetchOne(
             'SELECT COUNT(*) FROM followed_competition WHERE player_id = :player',
             ['player' => PlayerFixture::PLAYER_REGULAR],
         ));

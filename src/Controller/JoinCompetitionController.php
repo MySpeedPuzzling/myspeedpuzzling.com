@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotOpen;
 use SpeedPuzzling\Web\Message\JoinCompetition;
@@ -62,6 +63,13 @@ final class JoinCompetitionController extends AbstractController
     )]
     public function __invoke(string $competitionId, Request $request): Response
     {
+        // Joining needs a publicly visible event (docs/features/organizations/README.md, P17) - not a draft, not one
+        // waiting for approval or rejected: this page lists the organiser's names, and its page is not public either.
+        // GET and POST, both flows; JoinCompetitionHandler refuses it too
+        if ($this->isCompetitionPubliclyVisible->check($competitionId) === false) {
+            throw new CompetitionNotFound();
+        }
+
         $competition = $this->getCompetitionEvents->byId($competitionId);
         // Every way out leads to the competition's page - for an edition its own page, never event_detail with its slug
         $competitionUrl = $this->competitionDetailUrl->of($competitionId);
@@ -217,8 +225,6 @@ final class JoinCompetitionController extends AbstractController
             return $this->redirect($competitionUrl);
         }
 
-        $isPubliclyVisible = $this->isCompetitionPubliclyVisible->check($competitionId);
-
         return $this->render('join_competition.html.twig', [
             'competition' => $competition,
             'competition_url' => $competitionUrl,
@@ -226,7 +232,8 @@ final class JoinCompetitionController extends AbstractController
             'profile_country' => CountryCode::fromCode($profile->country),
             'not_connected_participants' => $notConnected,
             'is_self_joined' => $this->getCompetitionParticipants->isPlayerSelfJoined($competitionId, $profile->playerId),
-            'registration' => $this->getEventAttendance->forEvent($competition, $profile->playerId, $isPubliclyVisible)->registration,
+            // Publicly visible - checked on the way in
+            'registration' => $this->getEventAttendance->forEvent($competition, $profile->playerId, true)->registration,
             // No auto-connect on a GET - the name found on the list is only pre-selected
             'matching_participant_id' => $profile->playerName !== null && $isConnected === false
                 ? $this->getCompetitionParticipants->findNotConnectedParticipantMatchingName($competitionId, $profile->playerName, $profile->country)

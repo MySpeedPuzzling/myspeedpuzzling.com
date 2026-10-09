@@ -51,7 +51,15 @@ readonly final class ConvertCompetitionToSeriesHandler
             addedByPlayer: $competition->addedByPlayer,
             approvedAt: $competition->approvedAt,
             approvedByPlayer: $competition->approvedByPlayer,
+            // A rejection vetoes a stale approval (IsSeriesPubliclyVisible) - converting must not make a rejected event public
+            rejectedAt: $competition->rejectedAt,
+            rejectedByPlayer: $competition->rejectedByPlayer,
+            rejectionReason: $competition->rejectionReason,
             createdAt: $now,
+            // The series takes over what belongs to the whole: its organization, its draft state, "Who can enter"
+            organization: $competition->organization,
+            isDraft: $competition->isDraft,
+            eligibility: $competition->eligibility,
         );
 
         foreach ($competition->maintainers as $maintainer) {
@@ -61,7 +69,12 @@ readonly final class ConvertCompetitionToSeriesHandler
         $this->entityManager->persist($series);
 
         $competition->maintainers->clear();
+        // An edition never has its own organization - it is the series' from now on (before it gets the series)
+        $competition->assignOrganization(null);
         $competition->series = $series;
+        // Its draft state and "Who can enter" are the series' now
+        $competition->publish();
+        $competition->changeEligibility(null);
         $competition->shortcut = null;
         $competition->logo = null;
         $competition->description = null;

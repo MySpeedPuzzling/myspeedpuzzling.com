@@ -14,7 +14,7 @@ readonly final class FollowCompetition implements SerializedByLock
 {
     public function __construct(
         public string $playerId,
-        // FollowTarget::toString() - "competition:<uuid>" or "series:<uuid>"
+        // FollowTarget::toString() - "competition:<uuid>", "series:<uuid>" or "organization:<uuid>"
         public string $target,
     ) {
     }

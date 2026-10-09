@@ -24,7 +24,8 @@ use SpeedPuzzling\Web\Value\RowContext;
 
 /**
  * The row rules shared by the events page and the series page (detail-pages-plan.md 1.3). The events page's rules are
- * guarded by EventsPageBuilderTest; here the series page's context. Made-up events, a fixed "now".
+ * guarded by EventsPageBuilderTest; here the series page's and the organization page's contexts, and the Draft and
+ * Who can enter tags (docs/features/organizations/README.md). Made-up events, a fixed "now".
  */
 final class EventRowFactoryTest extends TestCase
 {
@@ -114,7 +115,114 @@ final class EventRowFactoryTest extends TestCase
         }
     }
 
-    private function sprintSession(bool $public = true, bool $hasResults = false, string $start = '2026-07-05'): EventOccurrence
+    public function testADraftSaysDraftInEveryContextAndNeverWaitingForApproval(): void
+    {
+        // A draft waiting for approval: only its team ever gets its row
+        $draft = $this->sprintSession(public: false, isDraft: true);
+        $factory = $this->factory();
+
+        $events = $factory->row($draft, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null);
+        $series = $factory->row($draft, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::SeriesPage);
+        $organization = $factory->row($draft, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::OrganizationPage);
+
+        self::assertSame([RowTagType::Draft, RowTagType::Recurring], self::tagTypes($events->tags));
+        self::assertSame([RowTagType::Draft], self::tagTypes($series->tags));
+        self::assertSame([RowTagType::Draft, RowTagType::Recurring], self::tagTypes($organization->tags));
+
+        // isPending stays "not public" - the ⋯ menu decides what to offer from it
+        self::assertTrue($events->isPending);
+    }
+
+    public function testAnApprovedDraftHasOnlyTheDraftTag(): void
+    {
+        $tags = $this->factory()->tags(
+            new EventOccurrence(competitionId: 'c-3', name: 'Birchwood Test Night', slug: 'birchwood-test-night', startDate: self::day('2026-07-01'), isPublic: false, isDraft: true),
+            EventOccurrenceStatus::Upcoming,
+            false,
+            0,
+            self::now(),
+        );
+
+        self::assertSame([RowTagType::Draft], self::tagTypes($tags));
+    }
+
+    public function testWhoCanEnterFollowsRecurringInEveryContext(): void
+    {
+        $edition = new EventOccurrence(
+            competitionId: 'c-2',
+            name: 'Lantern Night One',
+            slug: 'lantern-night-one',
+            seriesId: 's-3',
+            seriesName: 'Lantern Brewing Test Nights',
+            seriesSlug: 'lantern-brewing-test-nights',
+            startDate: self::day('2026-07-06'),
+            hasRegistrationLink: true,
+            eligibility: '18+',
+        );
+        $factory = $this->factory();
+
+        $events = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null);
+        $series = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::SeriesPage);
+        $organization = $factory->row($edition, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::everywhere(), self::now(), self::today(), 'en', null, RowContext::OrganizationPage);
+
+        self::assertSame([RowTagType::Recurring, RowTagType::Eligibility, RowTagType::Registration], self::tagTypes($events->tags));
+        self::assertSame('18+', $events->tags[1]->text);
+        self::assertSame([RowTagType::Eligibility, RowTagType::Registration], self::tagTypes($series->tags));
+        self::assertSame('18+', $series->tags[0]->text);
+        self::assertSame([RowTagType::Recurring, RowTagType::Eligibility, RowTagType::Registration], self::tagTypes($organization->tags));
+
+        // A past occurrence keeps it too (the archive line has no tags, the row does)
+        $past = $factory->tags($edition, EventOccurrenceStatus::Past, false, 0, self::now());
+        self::assertSame([RowTagType::Recurring, RowTagType::Eligibility], self::tagTypes($past));
+    }
+
+    public function testOnTheOrganizationPageARowIsNamedAsOnTheEventsPageWithoutStarAndAlwaysShown(): void
+    {
+        $session = $this->sprintSession();
+
+        $row = $this->factory()->row($session, EventOccurrenceStatus::Upcoming, 3, [], new EventsViewerData(followedSeriesIds: ['s-1']), EventsScope::fromQuery('cz', null), self::now(), self::today(), 'en', null, RowContext::OrganizationPage);
+
+        // Named by its series with the session under it, Recurring kept (several series share the page)
+        self::assertSame('Moonlight Sprint League', $row->title);
+        self::assertSame('Season One · Sprint 3', $row->editionName);
+        self::assertSame([RowTagType::Recurring], self::tagTypes($row->tags));
+        // No star on the row - the series cards and the header carry them (P19)
+        self::assertNull($row->followTarget);
+        self::assertFalse($row->following);
+        // Always shown, whatever the scope; the first round's start like the series page
+        self::assertTrue($row->visible);
+        self::assertNotNull($row->time);
+        self::assertSame('2026-07-06T02:00:00Z', $row->time->isoInstant());
+        self::assertSame('/series/moonlight-sprint-league/season-one#round-sprint-3', $row->url);
+    }
+
+    public function testOnTheOrganizationPageAOneTimeEventIsNamedByItself(): void
+    {
+        $event = new EventOccurrence(competitionId: 'c-4', name: 'Riverbend Test Open', slug: 'riverbend-test-open', countryCode: CountryCode::us, startDate: self::day('2026-08-01'));
+
+        $row = $this->factory()->row($event, EventOccurrenceStatus::Upcoming, 0, [], null, EventsScope::fromQuery('cz', null), self::now(), self::today(), 'en', null, RowContext::OrganizationPage);
+
+        self::assertSame('Riverbend Test Open', $row->title);
+        self::assertNull($row->editionName);
+        self::assertNull($row->followTarget);
+        self::assertTrue($row->visible);
+        self::assertNull($row->time, 'no rounds - no time');
+        self::assertSame([], $row->tags);
+    }
+
+    public function testTheOrganizationPagesArchiveLineIsAlwaysShownAndNamedAsOnTheEventsPage(): void
+    {
+        $session = $this->sprintSession(hasResults: true, start: '2026-04-08');
+
+        $line = $this->factory()->archiveLine($session, 7, EventsScope::fromQuery('cz', null), 'en', RowContext::OrganizationPage);
+
+        self::assertSame('Moonlight Sprint League', $line->title);
+        self::assertSame('Season One · Sprint 3', $line->editionName);
+        self::assertTrue($line->visible);
+        self::assertTrue($line->hasResults);
+    }
+
+    private function sprintSession(bool $public = true, bool $hasResults = false, string $start = '2026-07-05', bool $isDraft = false): EventOccurrence
     {
         $round = new OccurrenceRound('sprint-3', 'Sprint 3', new DateTimeImmutable($start . ' 22:00', new DateTimeZone('America/New_York'))->setTimezone(new DateTimeZone('UTC')), 'America/New_York');
         $sessions = OccurrenceDates::sessions(null, null, [
@@ -140,6 +248,7 @@ final class EventRowFactoryTest extends TestCase
             session: $dates->session,
             lastRoundDay: $dates->lastRoundDay,
             firstRound: $dates->firstRound,
+            isDraft: $isDraft,
         );
     }
 

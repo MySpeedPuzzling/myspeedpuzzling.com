@@ -1,0 +1,51 @@
+{#
+    The draft banner of the organization, series, edition and event pages (docs/features/organizations/README.md
+    "Drafts", P7). Only its team ever renders a hidden draft - everybody else got DraftNotVisible (404) from the
+    controller - so the banner needs no access check of its own; the Publish buttons ask the kind's edit voter.
+
+    Variables: draft_state (null|DraftState): `isDraft` = the item itself is a draft ("Draft: only you and your team can
+    see this page." + Publish), `seriesId` / `seriesName` = an edition whose series is a draft ("This series is a draft…"
+    + Publish series) - both lines when both apply; `kind` picks the publish route.
+
+    Publish = a POST with the route's session CSRF token, back to this page (`return`).
+#}
+{% if draft_state is not null and draft_state.isHidden %}
+    {%- set publish_routes = {
+        organization: {route: 'publish_organization', param: 'organizationId', attribute: 'ORGANIZATION_EDIT'},
+        series: {route: 'publish_competition_series', param: 'seriesId', attribute: 'COMPETITION_SERIES_EDIT'},
+        competition: {route: 'publish_competition', param: 'competitionId', attribute: 'COMPETITION_EDIT'},
+    } -%}
+    <div class="ev-draft-banner" role="status" data-draft-banner>
+        {% if draft_state.isDraft %}
+            {%- set publish = publish_routes[draft_state.kind] -%}
+            <div class="ev-draft-banner-line" data-draft-banner-own>
+                <p class="ev-draft-banner-text">
+                    <i class="bi bi-eye-slash" aria-hidden="true"></i>
+                    <span>{{ 'drafts.banner.own'|trans }}</span>
+                </p>
+                {% if is_granted(publish.attribute, draft_state.id) %}
+                    <form method="post" action="{{ path(publish.route, {(publish.param): draft_state.id}) }}" class="ev-draft-banner-form">
+                        <input type="hidden" name="_token" value="{{ csrf_token(publish.route ~ '_' ~ draft_state.id) }}">
+                        <input type="hidden" name="return" value="{{ app.request.requestUri }}">
+                        <button type="submit" class="btn btn-primary ev-draft-banner-button">{{ 'drafts.banner.publish'|trans }}</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
+        {% if draft_state.seriesId is not null %}
+            <div class="ev-draft-banner-line" data-draft-banner-series>
+                <p class="ev-draft-banner-text">
+                    <i class="bi bi-eye-slash" aria-hidden="true"></i>
+                    <span>{{ 'drafts.banner.series'|trans }}</span>
+                </p>
+                {% if is_granted('COMPETITION_SERIES_EDIT', draft_state.seriesId) %}
+                    <form method="post" action="{{ path('publish_competition_series', {seriesId: draft_state.seriesId}) }}" class="ev-draft-banner-form">
+                        <input type="hidden" name="_token" value="{{ csrf_token('publish_competition_series_' ~ draft_state.seriesId) }}">
+                        <input type="hidden" name="return" value="{{ app.request.requestUri }}">
+                        <button type="submit" class="btn btn-primary ev-draft-banner-button">{{ 'drafts.banner.publish_series'|trans }}</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

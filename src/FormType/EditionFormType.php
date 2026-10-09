@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\EditionFormData;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
@@ -14,6 +15,9 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
+ * Add an edition to a series. docs/features/organizations/README.md "Forms": "Who can enter" (empty = the series') and
+ * "Save as draft" next to the form's own button.
+ *
  * @extends AbstractType<EditionFormData>
  */
 final class EditionFormType extends AbstractType
@@ -64,6 +68,17 @@ final class EditionFormType extends AbstractType
         $builder->add('resultsLink', UrlType::class, [
             'label' => 'edition.form.results_link',
             'required' => false,
+        ]);
+
+        $builder->add('eligibility', TextType::class, [
+            'label' => 'organizer_tools.form.eligibility',
+            'help' => 'organizer_tools.form.eligibility_edition_help',
+            'required' => false,
+            'attr' => ['maxlength' => 120],
+        ]);
+
+        $builder->add('saveDraft', SubmitType::class, [
+            'label' => 'organizer_tools.form.save_draft',
         ]);
     }
 

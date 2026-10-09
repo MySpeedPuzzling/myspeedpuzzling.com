@@ -1,0 +1,48 @@
+{#
+    The organization page's "Coming up" (owner: workstream A, docs/features/organizations/README.md): every live and
+    upcoming occurrence of its series and one-time events - Live now, then by month, then Ongoing (long spans running
+    now), then Date not set. Rows are the series page's (event_parts/_row.html.twig, RowContext::OrganizationPage):
+    named as on the events page with "Recurring" and "Who can enter", no star (the cards and the header carry them), the
+    ⋯ for its organisers. Its team also sees drafts and items waiting for approval, tagged. Nothing coming: says so,
+    and its team gets "Add event".
+    Variables: organization, page (OrganizationPage), can_manage
+#}
+{% set coming_count = page.comingCount %}
+<section class="ev-detail-section ev-org-coming" aria-labelledby="org-coming-title" data-org-coming>
+    <h2 class="ev-detail-section-title" id="org-coming-title">
+        {{- 'organization_page.coming_up'|trans -}}
+        {%- if coming_count > 0 %} <span class="ev-section-n">{{ coming_count }}</span>{% endif -%}
+    </h2>
+    {% if coming_count == 0 %}
+        <div class="ev-org-empty" data-org-nothing-planned>
+            <p class="ev-org-empty-text">{{ 'organization_page.nothing_planned'|trans }}</p>
+            {% if can_manage %}
+                <a class="ev-action-button" href="{{ path('add_competition', {organization: organization.id, return: app.request.requestUri, return_title: organization.name}) }}">{{ 'organization_page.add_event'|trans }}</a>
+            {% endif %}
+        </div>
+    {% endif %}
+    {% if page.live is not empty %}
+        <h3 class="ev-month-header" data-org-live><span><span class="live-dot" aria-hidden="true"></span>{{ 'organization_page.live'|trans }}</span><span class="ev-month-n">{{ 'events_page.agenda.dates_count'|trans({'%count%': page.live|length}) }}</span></h3>
+        <ol class="ev-rows">
+            {% for row in page.live %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+        </ol>
+    {% endif %}
+    {% for month in page.comingUp %}
+        <h3 class="ev-month-header"><span>{{ month.firstDay|events_date('yMMMM') }}</span><span class="ev-month-n">{{ 'events_page.agenda.dates_count'|trans({'%count%': month.rows|length}) }}</span></h3>
+        <ol class="ev-rows">
+            {% for row in month.rows %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+        </ol>
+    {% endfor %}
+    {% if page.ongoing is not empty %}
+        <h3 class="ev-month-header" data-org-ongoing><span>{{ 'organization_page.ongoing'|trans }}</span><span class="ev-month-n">{{ page.ongoing|length }}</span></h3>
+        <ol class="ev-rows">
+            {% for row in page.ongoing %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+        </ol>
+    {% endif %}
+    {% if page.dateNotSet is not empty %}
+        <h3 class="ev-month-header" data-org-date-not-set><span>{{ 'organization_page.date_not_set'|trans }}</span><span class="ev-month-n">{{ page.dateNotSet|length }}</span></h3>
+        <ol class="ev-rows">
+            {% for row in page.dateNotSet %}{{ include('event_parts/_row.html.twig', {row: row, series_rows: true, show_logo: true}) }}{% endfor %}
+        </ol>
+    {% endif %}
+</section>

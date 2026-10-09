@@ -344,3 +344,30 @@ result_review:
     verification_answer_trusted: "Tvůj čas %time% na puzzle %puzzleName% jsme zkontrolovali – zase se počítá."
     verification_answer_kept: "Tvůj čas %time% na puzzle %puzzleName% jsme zkontrolovali – zůstává odložený stranou."
     verification_answer_kept_note: "Tvůj čas %time% na puzzle %puzzleName% jsme zkontrolovali – zůstává odložený stranou: %note%"
+
+organization_submitted:
+    subject: "Nová organizace odeslána: %organizationName%"
+    title: "Nová organizace k posouzení"
+    content: |
+        <p>Nová organizace byla odeslána ke schválení.</p>
+        <p><strong>Odeslal:</strong> %playerName%<br><strong>Organizace:</strong> %organizationName%<br><strong>Region:</strong> %region%</p>
+    button: "Zkontrolovat čekající organizace v administraci"
+
+organization_approved:
+    subject: "Vaše organizace byla schválena!"
+    preheader: "Organizace %organizationName% byla na MySpeedPuzzling schválena."
+    title: "Vaše organizace byla schválena!"
+    content: |
+        <p>Skvělá zpráva! Vaše organizace <strong>%organizationName%</strong> byla schválena.</p>
+        <p>Série a události, které do ní váš tým přidá, už další schválení nepotřebují – objeví se, jakmile je zveřejníte.</p>
+    button: "Zobrazit stránku organizace"
+
+organization_rejected:
+    subject: "Vaše organizace nebyla schválena"
+    preheader: "Organizace %organizationName% nebyla schválena – důvod najdete v e-mailu."
+    title: "Organizace nebyla schválena"
+    content: |
+        <p>Bohužel vaše organizace <strong>%organizationName%</strong> nebyla schválena.</p>
+        <p><strong>Důvod:</strong> %reason%</p>
+        <p>Pokud máte dotazy nebo byste to chtěli probrat, kontaktujte nás na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+    button: "Otevřít „Pořádáte“"

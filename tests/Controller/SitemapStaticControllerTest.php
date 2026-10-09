@@ -29,7 +29,7 @@ final class SitemapStaticControllerTest extends WebTestCase
         $content = $this->fetchStaticSitemap();
 
         foreach (self::LOCALES as $locale) {
-            foreach (['homepage', 'ladder', 'recent_activity', 'puzzle_tracker_app'] as $route) {
+            foreach (['homepage', 'ladder', 'recent_activity', 'puzzle_tracker_app', 'organizations'] as $route) {
                 self::assertStringContainsString(
                     sprintf('<loc>%s</loc>', $this->absoluteUrl($route, $locale)),
                     $content,

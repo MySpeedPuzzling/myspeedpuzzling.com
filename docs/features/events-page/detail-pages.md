@@ -30,7 +30,7 @@ visitor who learned the events page reads these pages without a second look - an
 | Topic | Decision |
 |---|---|
 | Time zones | Every page shows times in the **competition's own time zone, with the zone named** ("18:45 New York Time"). **Online events only:** when the visitor's zone differs, a second time computed in the browser follows, also naming its zone ("00:45 next day, Central European Time (yours)") - the browser can be wrong (travel, VPN, a misconfigured device), so the zone is always named. **In-person events never get a second time.** The server HTML is the same for everyone. |
-| Format chips | **Not now.** A series that runs several formats under one name gets no chips; that waits for an organiser's answer about a possible "Organisation" concept. Nothing of "Organisation" is built. |
+| Format chips | **Not now.** A series that runs several formats under one name gets no chips; that waits for an organiser's answer about a possible "Organisation" concept. Nothing of "Organisation" is built. **Since PR #252 the "Organisation" level exists** ([../organizations/README.md](../organizations/README.md)): an organization runs several series, one per format, so format chips are not needed. |
 | Scope | **All three pages in one change**: the one-time event page is redesigned together with the edition and series pages; they share the header and the rounds timeline. |
 
 Decisions taken while planning (can be revisited, listed again under "Conflicts and open questions"): sections move
@@ -59,15 +59,32 @@ to the series), the timeline groups rounds into the same sessions, and the JSON-
 ## The shared header
 
 ```
-Events › Harbor Jigsaw Nights                              (breadcrumb: links only, the H1 is the current page)
+[draft banner, team only]  Draft: only you and your team can see this page.  [Publish]
+Events › Riverbend Jigsaw Association › Harbor Jigsaw Nights   (breadcrumb: links only, the H1 is the current page)
 [logo]  Session 3                                          (H1 = the organiser's name, unchanged)
+        Organized by Riverbend Jigsaw Association · Who can enter: 18+      (byline, each part only when set)
         [Online] · 5 Dec 2026 · Recurring · 3 rounds       (facts line)
         [I'm going] [☆ Follow series] [Registration ↗] [Website ↗] [⋯]
         The organiser's description, plain text, line breaks kept.
 ```
 
-- **Breadcrumb**: series page "Events"; edition page "Events › {series}"; event page "Events". When the URL carries a
-  valid `?return=` the existing back button (`_return_back_button.html.twig`) shows above it, as today.
+- **Breadcrumb**: series page "Events"; edition page "Events › {series}"; event page "Events". An item under an
+  organization adds it after "Events" (series "Events › {organization}", edition "Events › {organization} › {series}",
+  event "Events › {organization}") while the organization is publicly visible - its team also sees it while it is not.
+  When the URL carries a valid `?return=` the existing back button (`_return_back_button.html.twig`) shows above it, as
+  today.
+- **Byline** (under the H1, `{% block byline %}` of `event_parts/_detail_header.html.twig`, each part only when it has
+  something): **Organized by {organization}** (`_organized_by.html.twig` - a link to `organization_detail`; publicly
+  visible organizations only, its team also sees a non-public one tagged "Not public"; an edition's organization is its
+  series'), **Who can enter: …** (`_eligibility.html.twig` - an edition's own text, else its series'), on the series page
+  **When it happens: …** (`_schedule.html.twig`). The organiser's words, as typed. No extra statement: the organization
+  rides on each page's own statement, the voter is asked only for a non-public organization.
+- **Draft banner** (`event_parts/_draft_banner.html.twig`, `role="status"`, above the crumbs): a draft page renders only
+  for its team (creator, maintainers, the series' and organization's teams, admins) - everybody else gets 404
+  (`DraftNotVisible`) - with "Draft: only you and your team can see this page." and **Publish**; an edition of a draft
+  series says "This series is a draft: only you and your team can see this page." with **Publish series** (both lines
+  when both apply). A draft page is `noindex, nofollow` and shows nothing that needs a public page (follow star, I'm
+  going, Add my time, Results links, page sections). Design: [../organizations/README.md](../organizations/README.md#drafts).
 - **Logo**: the event's own logo, else (edition) the series logo; series page: the series logo. 56 px (64 px from
   992 px), contained, decorative (`alt=""`, the H1 follows). No logo, no tile - nothing is invented.
 - **Facts line**: `Online` tag or the place (`event_parts/_place.html.twig`); the dates (one day, a range, "Date not
@@ -135,6 +152,9 @@ Past · 14             year chips [2026 · 5] [2025 · 9]; newest year open, 5 l
 - **Page sections** (organiser-written) stay, below the upcoming agenda and above the past.
 - **A series without editions**: header, "No editions yet.", sections. Organisers find "Add edition" in ⋯.
 - **An unapproved or rejected series** is reachable at its URL as today (`noindex, nofollow`), without the follow star.
+- **Drafts on the series page**: a draft series answers 404 except for its team (banner + Publish). Its team also sees
+  the series' draft editions as rows (and past lines) tagged **Draft** - never anyone else; such a row can be the team's
+  Next card.
 
 ## Edition page and one-time event page
 
@@ -243,6 +263,11 @@ participants                          (the CompetitionParticipants component, un
 - **EventSeries JSON-LD** (series page): unchanged in meaning; `subEvent` is one item per dated **session** (today one
   per edition), with the edition's logo as `image`; undated editions stay out.
 - Every value through `json_ld`. Sitemaps unchanged (the URLs are). No new routes, no redirects.
+- **`organizer`** (added with organizations, PR #252): while the item's organization is publicly visible it is that
+  organization (`{"@type": "Organization", "name", "url"}` = its page) - on the series page it replaces the `Person`
+  who added the series, an edition otherwise names its series (as before), a one-time event otherwise has none. A draft
+  page has no JSON-LD (it is not publicly visible). Old addresses of moved editions and rounds answer 301
+  (`event_url_redirect`, [../organizations/README.md](../organizations/README.md#restructuring-tools-and-old-urls)).
 
 ## Accessibility
 
@@ -282,6 +307,10 @@ participants                          (the CompetitionParticipants component, un
 | Official results published | Past line "Results" | Round link "Official results"; the title says Results (unchanged rule) |
 | Secret puzzles | - | Dropped or picture hidden by the read model; "Puzzles not announced yet"; no per-puzzle "Add my time" while hidden |
 | Not public (pending/rejected) | `noindex`; no star; organisers' ⋯ (admins: Approve/Reject) | `noindex`; no star, no Results links, no Add my time (as today) |
+| Draft | 404 except for its team: draft banner + Publish, `noindex` | 404 except for its team: banner + Publish (an edition of a draft series: "This series is a draft" + Publish series), `noindex`, nothing that needs a public page |
+| Draft editions of a public series | Team only: rows and past lines tagged Draft | - |
+| Under an organization | Byline "Organized by …", crumb "Events › {organization}", JSON-LD `organizer` (public organizations; team: shown, "Not public") | The same ("Events › {organization} › {series}" on an edition) |
+| "Who can enter" / "When it happens" set | Byline "Who can enter: …" · "When it happens: …"; rows tagged with "Who can enter" | Byline "Who can enter: …" (an edition's own, else its series') |
 
 ## Performance
 
@@ -326,7 +355,9 @@ Where the build differs from the text above (details in the plan's "Foundation d
 
 ## Not in this change
 
-- Format chips / an "Organisation" level for series running several formats (Jan, waiting for organisers' answers).
+- Format chips / an "Organisation" level for series running several formats - **the "Organisation" level is built**
+  (PR #252, [../organizations/README.md](../organizations/README.md)): the byline, the organization crumb and the draft
+  banner above; format chips are not needed (one series per format).
 - An organiser-only hint on long spans without rounds ("add a round per night"); BreadcrumbList JSON-LD on these pages;
   a live leaderboard link for spectators - tracked in `docs/TODO.md`.
 

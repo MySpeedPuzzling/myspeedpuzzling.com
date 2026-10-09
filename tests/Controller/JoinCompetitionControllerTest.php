@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -117,6 +118,34 @@ final class JoinCompetitionControllerTest extends WebTestCase
         // The breadcrumb and the back button
         $this->assertSelectorCount(2, 'a[href="' . self::UPCOMING_EDITION_URL . '"]');
         $this->assertSelectorNotExists('a[href="/en/events/ejj-69-may-2026"]');
+    }
+
+    /**
+     * The join page lists the organiser's names - only for a publicly visible event (docs/features/organizations/README.md,
+     * P17): one waiting for approval, an edition of a series waiting for it and a draft answer 404, GET and POST alike
+     */
+    public function testAnEventThatIsNotPublicHasNoJoinPage(): void
+    {
+        $browser = self::createClient();
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(new CompetitionParticipant(
+            id: Uuid::uuid7(),
+            name: 'Listed Pending Puzzler',
+            country: 'de',
+            competition: self::getContainer()->get(CompetitionRepository::class)->get(CompetitionFixture::COMPETITION_UNAPPROVED),
+        ));
+        $entityManager->flush();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        foreach ([CompetitionFixture::COMPETITION_UNAPPROVED, CompetitionSeriesFixture::EDITION_UNAPPROVED_1, OrganizationFixture::COMPETITION_DRAFT_NIGHT] as $competitionId) {
+            $browser->request('GET', '/en/join-event/' . $competitionId);
+            $this->assertResponseStatusCodeSame(404);
+
+            $browser->request('POST', '/en/join-event/' . $competitionId, ['self_join' => '1']);
+            $this->assertResponseStatusCodeSame(404);
+            self::assertSame(0, $this->participantRowsOf(PlayerFixture::PLAYER_ADMIN, $competitionId));
+        }
     }
 
     private function participantRowsOf(string $playerId, string $competitionId): int

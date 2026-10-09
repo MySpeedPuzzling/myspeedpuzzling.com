@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\GrantModeratorRole;
 use SpeedPuzzling\Web\Query\GetAdminQueueCounts;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetDuplicatePuzzleSignals;
 use SpeedPuzzling\Web\Query\GetOAuth2ClientRequests;
+use SpeedPuzzling\Web\Query\GetOrganizations;
 use SpeedPuzzling\Web\Query\GetPuzzleApprovals;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeReviewQueue;
 use SpeedPuzzling\Web\Query\GetSuspiciousTimeQueue;
 use SpeedPuzzling\Web\Results\AdminQueueCounts;
 use SpeedPuzzling\Web\Results\OAuth2ClientRequestOverview;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\OAuth2ClientRequestStatus;
@@ -33,6 +36,31 @@ final class GetAdminQueueCountsTest extends WebTestCase
         $counts = self::getContainer()->get(GetAdminQueueCounts::class)->forViewer(isAdmin: true);
 
         self::assertEquals($this->expected(isAdmin: true), $counts);
+    }
+
+    /**
+     * docs/features/organizations/README.md: a pending organization counts, a draft never - not even one waiting for
+     * approval (Cedar Grove, Willow Creek); publishing one submits it
+     */
+    public function testCompetitionApprovalsCountOrganizationsButNoDrafts(): void
+    {
+        self::bootKernel();
+        $database = self::getContainer()->get(Connection::class);
+        $query = self::getContainer()->get(GetAdminQueueCounts::class);
+        $before = $query->forViewer(isAdmin: true)->competitionApprovals;
+
+        self::assertNotNull($before);
+
+        // The Maple organization and its series wait for approval; Cedar and Willow are drafts
+        $database->executeStatement('UPDATE organization SET approved_at = now() WHERE id = :id', ['id' => OrganizationFixture::ORGANIZATION_MAPLE_PENDING]);
+        self::assertSame($before - 1, $query->forViewer(isAdmin: true)->competitionApprovals);
+
+        $database->executeStatement('UPDATE organization SET is_draft = false WHERE id = :id', ['id' => OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT]);
+        $database->executeStatement('UPDATE competition SET is_draft = false WHERE id = :id', ['id' => OrganizationFixture::COMPETITION_WILLOW_PENDING_DRAFT]);
+        self::assertSame($before + 1, $query->forViewer(isAdmin: true)->competitionApprovals);
+
+        $database->executeStatement('UPDATE competition_series SET is_draft = true WHERE id = :id', ['id' => OrganizationFixture::SERIES_MAPLE_PENDING]);
+        self::assertSame($before, $query->forViewer(isAdmin: true)->competitionApprovals);
     }
 
     public function testAModeratorGetsTheirQueuesOnlyAndNoAdminCounts(): void
@@ -106,8 +134,10 @@ final class GetAdminQueueCountsTest extends WebTestCase
     {
         $container = self::getContainer();
 
+        // Events, series and organizations waiting for approval - never drafts (docs/features/organizations/README.md)
         $competitionApprovals = count($container->get(GetCompetitionEvents::class)->allUnapproved())
-            + count($container->get(GetCompetitionSeries::class)->allUnapproved());
+            + count($container->get(GetCompetitionSeries::class)->allUnapproved())
+            + count($container->get(GetOrganizations::class)->allUnapproved());
         $oauth2Requests = count(array_filter(
             $container->get(GetOAuth2ClientRequests::class)->all(),
             static fn (OAuth2ClientRequestOverview $request): bool => $request->status === OAuth2ClientRequestStatus::Pending->value,

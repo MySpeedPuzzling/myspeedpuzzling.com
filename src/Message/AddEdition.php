@@ -19,6 +19,11 @@ readonly final class AddEdition
         public null|string $resultsLink,
         public null|string $link = null,
         public null|string $description = null,
+        // "Who can enter" - null shows its series'
+        public null|string $eligibility = null,
+        public bool $isDraft = false,
+        // An explicitly chosen slug (validated, free in the series) - null generates it from the name
+        public null|string $slug = null,
     ) {
     }
 }

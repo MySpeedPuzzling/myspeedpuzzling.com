@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 
@@ -28,6 +29,27 @@ readonly final class CompetitionRoundRepository
         $round = $this->entityManager->find(CompetitionRound::class, $roundId);
 
         return $round ?? throw new CompetitionRoundNotFound();
+    }
+
+    /**
+     * The competition's rounds, by start
+     *
+     * @return list<CompetitionRound>
+     */
+    public function ofCompetition(Competition $competition): array
+    {
+        /** @var list<CompetitionRound> $rounds */
+        $rounds = $this->entityManager->createQueryBuilder()
+            ->select('r')
+            ->from(CompetitionRound::class, 'r')
+            ->where('r.competition = :competition')
+            ->setParameter('competition', $competition)
+            ->addOrderBy('r.startsAt')
+            ->addOrderBy('r.id')
+            ->getQuery()
+            ->getResult();
+
+        return $rounds;
     }
 
     public function save(CompetitionRound $round): void

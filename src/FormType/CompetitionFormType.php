@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
+use SpeedPuzzling\Web\Results\OrganizationChoice;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Component\Form\AbstractType;
@@ -15,6 +16,7 @@ use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -25,6 +27,13 @@ use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
+ * The event / series form: add (`add_competition` - an event, or a series when "Recurring" is ticked), edit event or
+ * edition, edit series. docs/features/organizations/README.md "Forms" adds the "Organization" select
+ * (`organization_choices`: the organizations the player is on the team of, admins all - null leaves the field out, as
+ * on an edition, which belongs to its series' organization), "Who can enter" (every form), "When it happens"
+ * (`schedule_field`: series only - on the add form shown while "Recurring" is ticked) and "Save as draft"
+ * (`draft_button`: add forms only).
+ *
  * @extends AbstractType<CompetitionFormData>
  */
 final class CompetitionFormType extends AbstractType
@@ -149,6 +158,56 @@ final class CompetitionFormType extends AbstractType
             'required' => false,
         ]);
 
+        /** @var null|list<OrganizationChoice> $organizationChoices */
+        $organizationChoices = $options['organization_choices'];
+
+        if ($organizationChoices !== null) {
+            $labels = [];
+            // Under an approved organization a series or event is approved at once (OrganizationApprovalPolicy) - the
+            // add form then says no admin review is needed (approval_note_controller.js)
+            $approvedAtOnce = [];
+
+            foreach ($organizationChoices as $choice) {
+                if ($choice->isApproved) {
+                    $approvedAtOnce[$choice->id] = true;
+                }
+
+                $labels[$choice->id] = match (true) {
+                    $choice->isDraft => $this->translator->trans('organizer_tools.form.organization_draft', ['%name%' => $choice->name]),
+                    $choice->isApproved === false => $this->translator->trans('organizer_tools.form.organization_pending', ['%name%' => $choice->name]),
+                    default => $choice->name,
+                };
+            }
+
+            // Keyed by id: two organizations may share a name
+            $builder->add('organizationId', ChoiceType::class, [
+                'label' => 'organizer_tools.form.organization',
+                'help' => 'organizer_tools.form.organization_help',
+                'choices' => array_keys($labels),
+                'choice_label' => static fn (string $id): string => $labels[$id] ?? $id,
+                'choice_translation_domain' => false,
+                'choice_attr' => static fn (string $id): array => isset($approvedAtOnce[$id]) ? ['data-approved-at-once' => '1'] : [],
+                'required' => false,
+                'placeholder' => 'organizer_tools.form.organization_none',
+            ]);
+        }
+
+        $builder->add('eligibility', TextType::class, [
+            'label' => 'organizer_tools.form.eligibility',
+            'help' => 'organizer_tools.form.eligibility_help',
+            'required' => false,
+            'attr' => ['maxlength' => 120],
+        ]);
+
+        if ($options['schedule_field'] === true) {
+            $builder->add('schedule', TextType::class, [
+                'label' => 'organizer_tools.form.schedule',
+                'help' => 'organizer_tools.form.schedule_help',
+                'required' => false,
+                'attr' => ['maxlength' => 160],
+            ]);
+        }
+
         // A series has no dates nor registration/results links (its editions have them) and is recurring by
         // definition - the fields are left out, so `isRecurring` keeps the true its form data comes with and the
         // dates of an in-person event are not asked for
@@ -167,6 +226,10 @@ final class CompetitionFormType extends AbstractType
 
                 if (is_array($submitted) && ($submitted['isRecurring'] ?? '') !== '') {
                     unset($submitted['registrationLink'], $submitted['resultsLink'], $submitted['dateFrom'], $submitted['dateTo']);
+                    $event->setData($submitted);
+                } elseif (is_array($submitted) && array_key_exists('schedule', $submitted)) {
+                    // "When it happens" belongs to a series - an event saved without "Recurring" keeps none
+                    unset($submitted['schedule']);
                     $event->setData($submitted);
                 }
             });
@@ -236,6 +299,14 @@ final class CompetitionFormType extends AbstractType
             ],
         ]);
 
+        // A second submit next to the form's own button: the item is saved as a draft (docs/features/organizations/
+        // README.md "Drafts") - the primary button keeps today's behaviour
+        if ($options['draft_button'] === true) {
+            $builder->add('saveDraft', SubmitType::class, [
+                'label' => 'organizer_tools.form.save_draft',
+            ]);
+        }
+
         $builder->get('maintainers')->addModelTransformer(new CallbackTransformer(
             function (null|array $value): string {
                 if ($value === null || $value === []) {
@@ -262,10 +333,16 @@ final class CompetitionFormType extends AbstractType
             'data_class' => CompetitionFormData::class,
             'url_field' => false,
             'series' => false,
+            'organization_choices' => null,
+            'schedule_field' => false,
+            'draft_button' => false,
         ]);
 
         $resolver->setAllowedTypes('url_field', 'bool');
         $resolver->setAllowedTypes('series', 'bool');
+        $resolver->setAllowedTypes('organization_choices', ['null', 'array']);
+        $resolver->setAllowedTypes('schedule_field', 'bool');
+        $resolver->setAllowedTypes('draft_button', 'bool');
     }
 
     private function buildPlayerOptionHtml(

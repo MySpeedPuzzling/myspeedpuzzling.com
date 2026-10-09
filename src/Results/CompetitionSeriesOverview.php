@@ -27,9 +27,22 @@ readonly final class CompetitionSeriesOverview
         public null|string $addedByPlayerName = null,
         // An organiser-written section shows on the series page - only byId()/bySlug() read it
         public bool $hasPageSections = false,
+        // docs/features/organizations/README.md - only byId()/bySlug() read the organization
+        public null|OrganizationRef $organization = null,
+        public null|string $eligibility = null,
+        public null|string $schedule = null,
+        public bool $isDraft = false,
     ) {
         $this->link = $link !== null
             ? $link . (str_contains($link, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'
             : null;
+    }
+
+    /**
+     * IsSeriesPubliclyVisible: approved, not rejected, not a draft
+     */
+    public function isPubliclyVisible(): bool
+    {
+        return $this->approvedAt !== null && $this->rejectedAt === null && $this->isDraft === false;
     }
 }

@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionSeries;
+use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Entity\ComparisonSubject;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Entity\ConversationReport;
@@ -421,9 +422,18 @@ final class DeletePlayerHandler
         $em->createQuery('UPDATE ' . Competition::class . ' c SET c.rejectedByPlayer = NULL WHERE c.rejectedByPlayer = :p')
             ->setParameter('p', $playerId)->execute();
 
+        // An organization survives its creator (docs/features/organizations/README.md) - like a series
+        $em->createQuery('UPDATE ' . Organization::class . ' o SET o.addedByPlayer = NULL WHERE o.addedByPlayer = :p')
+            ->setParameter('p', $playerId)->execute();
+        $em->createQuery('UPDATE ' . Organization::class . ' o SET o.approvedByPlayer = NULL WHERE o.approvedByPlayer = :p')
+            ->setParameter('p', $playerId)->execute();
+        $em->createQuery('UPDATE ' . Organization::class . ' o SET o.rejectedByPlayer = NULL WHERE o.rejectedByPlayer = :p')
+            ->setParameter('p', $playerId)->execute();
+
         $conn = $em->getConnection();
         $conn->executeStatement('DELETE FROM competition_series_maintainer WHERE player_id = :p', ['p' => $playerId]);
         $conn->executeStatement('DELETE FROM competition_maintainer WHERE player_id = :p', ['p' => $playerId]);
+        $conn->executeStatement('DELETE FROM organization_maintainer WHERE player_id = :p', ['p' => $playerId]);
     }
 
     private function anonymizeBulkSimpleFks(string $playerId): void

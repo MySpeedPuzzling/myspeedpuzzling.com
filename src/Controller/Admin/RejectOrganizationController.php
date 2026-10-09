@@ -1,0 +1,63 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Controller\Admin;
+
+use SpeedPuzzling\Web\Message\RejectOrganization;
+use SpeedPuzzling\Web\Security\AdminAccessVoter;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\ReturnUrl;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+final class RejectOrganizationController extends AbstractController
+{
+    public function __construct(
+        private readonly MessageBusInterface $messageBus,
+        private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        private readonly TranslatorInterface $translator,
+    ) {
+    }
+
+    #[Route(
+        path: '/admin/organizations/{organizationId}/reject',
+        name: 'admin_reject_organization',
+        methods: ['POST'],
+    )]
+    #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
+    public function __invoke(Request $request, string $organizationId): Response
+    {
+        if ($this->isCsrfTokenValid('reject_organization_' . $organizationId, $request->request->getString('_token')) === false) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
+        assert($profile !== null);
+
+        $reason = trim($request->request->getString('reason'));
+        // The ⋯ menu returns to where it was opened (docs/features/events-page/README.md)
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
+
+        if ($reason === '') {
+            $this->addFlash('danger', $this->translator->trans('competition.flash.rejection_reason_required'));
+
+            return $returnUrl !== null ? $this->redirect($returnUrl->path) : $this->redirectToRoute('admin_competition_approvals');
+        }
+
+        $this->messageBus->dispatch(new RejectOrganization(
+            organizationId: $organizationId,
+            rejectedByPlayerId: $profile->playerId,
+            reason: $reason,
+        ));
+
+        $this->addFlash('success', $this->translator->trans('organization.flash.rejected'));
+
+        return $returnUrl !== null ? $this->redirect($returnUrl->path) : $this->redirectToRoute('admin_competition_approvals');
+    }
+}

@@ -309,6 +309,32 @@ Made-up names.
 
 PLAYER_REGULAR now has one more solo time (`TIME_SPRINT_1`); `PuzzleStatisticsFixture` runs after this fixture.
 
+### Organizations and drafts (`OrganizationFixture`, ids `018d0042-…`)
+
+docs/features/organizations/ (implementation-plan.md 1.14), on top of `EventsPageFixture`. Made-up names. Upcoming dates
+are at least 20 days ahead, past ones in last year. Approvals are by PLAYER_ADMIN.
+
+| Const | What | Purpose |
+|---|---|---|
+| `ORGANIZATION_RIVERBEND` "Riverbend Jigsaw Association" | short "RJA", slug `riverbend-jigsaw-association`, association, `us`, region "Riverbend Valley", website `https://riverbend-jigsaw.example`, social links Instagram + Discord, about (two lines), approved, created by **PLAYER_WITH_STRIPE**, maintainer **PLAYER_WITH_FAVORITES** | the published organization; its team has the creator's rights on everything under it |
+| `SERIES_LANTERN_NIGHTS` "Lantern Brewing Puzzle Night" | in person, `us`, "Riverbend", approved, under Riverbend, schedule "First Monday of the month, 7 pm", eligibility "21+", created by PLAYER_WITH_STRIPE | series card, schedule, eligibility |
+| `EDITION_LANTERN_1` / `EDITION_LANTERN_2` | "Lantern Night One" +22 days / "Lantern Night Two" +50 days | Coming up, the card's "Next" |
+| `EDITION_LANTERN_DRAFT` "Lantern Night Special" | +36 days, **draft** | a draft edition in a published series |
+| `SERIES_RIVERBEND_VIRTUAL` "Riverbend Virtual Contest" | online (`us`), approved, under Riverbend, eligibility "Residents of Riverbend Valley", schedule "Third Wednesday of the month, 6:45 pm" | |
+| `EDITION_VIRTUAL_PAST` / `EDITION_VIRTUAL_NEXT` | "Virtual Contest 1" 15 June last year / "Virtual Contest 2" +30 days | Past, Coming up |
+| `COMPETITION_RIVERBEND_OPEN` "Riverbend Spring Open" | one-time, in person, `us`, "Riverbend", +60..+61 days, approved, under Riverbend, eligibility "Residents of Riverbend Valley", created by PLAYER_WITH_STRIPE | one-time card, byline, eligibility tag |
+| `COMPETITION_DRAFT_NIGHT` "Birchwood Puzzle Draft Night" | one-time, in person, `cz`, +25 days, approved, **draft**, no organization, created by PLAYER_WITH_STRIPE; `ROUND_DRAFT_NIGHT` "Main round" (19:00 Prague) + `ROUND_PUZZLE_DRAFT_NIGHT` = `PUZZLE_3000` | a draft one-time event that would be public once published; the puzzle page must not name it |
+| `SERIES_QUIET_PINES_DRAFT` "Quiet Pines Puzzle Series" | in person, `de`, approved, **draft**, created by PLAYER_WITH_STRIPE; `EDITION_QUIET_PINES_1` "Quiet Pines Evening 1" +27 days (no draft itself) | editions of a draft series are hidden too |
+| `ORGANIZATION_HARBOR_CLUB_DRAFT` "Harbor Puzzle Club" | club, `ie`, region "Harborside", approved, **draft**, created by PLAYER_WITH_STRIPE; `SERIES_HARBOR_CLUB_MEETS` "Harbor Club Meets" (approved, published, under it, `ie`) with `EDITION_HARBOR_CLUB_1` "Harbor Club Meet 1" +33 days | a draft organization hides only itself |
+| `ORGANIZATION_MAPLE_PENDING` "Maple Leaf Puzzlers" | community, `ca`, **waiting for approval**, created by PLAYER_WITH_FAVORITES; `SERIES_MAPLE_PENDING` "Maple Leaf Puzzle Evenings" (waiting, under it) with `EDITION_MAPLE_PENDING_1` "Maple Evening 1" +40 days | the approval queue; approving the organization approves the series (P2) |
+| `ORGANIZATION_CEDAR_PENDING_DRAFT` "Cedar Grove Puzzle Guild" | club, `us`, waiting for approval **and** a draft, created by PLAYER_WITH_FAVORITES | never in the approval queue, no items (deletable) |
+| `COMPETITION_WILLOW_PENDING_DRAFT` "Willow Creek Draft Cup" | one-time, `at`, +45 days, waiting for approval **and** a draft, created by PLAYER_WITH_STRIPE | not in the queue, not on the admin events page |
+| `COMPETITION_DRAFT_PAST` "Old Harbor Draft Classic" | one-time, `cz`, 20 May last year, approved, **draft**, created by PLAYER_WITH_STRIPE | not in the archive |
+| `FOLLOW_REGULAR_RIVERBEND` / `FOLLOW_REGULAR_LANTERN` / `FOLLOW_REGULAR_QUIET_PINES` | PLAYER_REGULAR follows Riverbend, the Lantern nights and Quiet Pines (a row from before it went back to draft) | "Your events" through an organization, deduplication, a draft never reaches it |
+
+PLAYER_REGULAR's "You organize (3)" is unchanged; PLAYER_REGULAR now has 5 follows. PLAYER_WITH_FAVORITES is on the
+teams of Riverbend, Maple and Cedar; PLAYER_WITH_STRIPE of Riverbend and the Harbor Puzzle Club.
+
 ### Official results (`OfficialResultsFixture`, ids `018d0020-…`)
 
 `COMPETITION_RESULTS_CUP` "Results Cup" (slug `results-cup`) - a past (-10 days), approved, in-person event in Brno, CZ,

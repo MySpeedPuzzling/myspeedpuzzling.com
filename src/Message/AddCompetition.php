@@ -33,6 +33,13 @@ readonly final class AddCompetition
         public null|string $slug = null,
         // The e-mail asking an admin to review the new competition - pointless when an admin creates it
         public bool $notifyAdmin = true,
+        // docs/features/organizations/README.md: under an organization the creator is on the team of (admins: any) -
+        // approved at once when the organization is approved (OrganizationApprovalPolicy)
+        public null|string $organizationId = null,
+        // "Who can enter"
+        public null|string $eligibility = null,
+        // "Save as draft" - only its team sees it, no admin e-mail until it is published
+        public bool $isDraft = false,
     ) {
     }
 }

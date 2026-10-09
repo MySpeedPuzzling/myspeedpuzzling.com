@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionPageSections;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Value\PageSectionOwner;
@@ -29,6 +30,7 @@ final class ManageCompetitionPageController extends AbstractController
         private readonly GetCompetitionPageSections $getCompetitionPageSections,
         private readonly CompetitionDetailUrl $competitionDetailUrl,
         private readonly IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
+        private readonly CompetitionRepository $competitionRepository,
     ) {
     }
 
@@ -52,6 +54,7 @@ final class ManageCompetitionPageController extends AbstractController
 
         $competition = $this->getCompetitionEvents->byId($owner->id());
         $seriesId = $competition->seriesId;
+        $isPubliclyVisible = $this->isCompetitionPubliclyVisible->check($owner->id());
 
         $response = $this->render('manage_page_sections.html.twig', [
             'owner' => $owner,
@@ -60,8 +63,11 @@ final class ManageCompetitionPageController extends AbstractController
             'view_url' => $this->competitionDetailUrl->of($owner->id()),
             'sections' => $this->getCompetitionPageSections->forCompetitionEditor($owner->id()),
             'section_types' => PageSectionType::availableFor($competition->isOnline),
-            // The sections show on the public page only once the event (or its series) is approved
-            'publicly_visible' => $this->isCompetitionPubliclyVisible->check($owner->id()),
+            // The sections show on the public page only once the event (or its series) is approved and published
+            'publicly_visible' => $isPubliclyVisible,
+            // A draft (or an edition of a draft series) says so instead of the approval wording
+            // (docs/features/organizations/README.md "Drafts") - asked only of an event that is not public
+            'is_draft' => $isPubliclyVisible === false && $this->competitionRepository->get($owner->id())->isHiddenAsDraft(),
             'series_editor_url' => $seriesId !== null && $this->isGranted(CompetitionSeriesEditVoter::COMPETITION_SERIES_EDIT, $seriesId)
                 ? $this->generateUrl('manage_series_page', ['seriesId' => $seriesId])
                 : null,

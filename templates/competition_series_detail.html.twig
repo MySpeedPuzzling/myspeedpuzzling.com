@@ -3,8 +3,9 @@
 {% block title %}{{ 'series.meta.title'|trans({'%name%': series.name}) }}{% endblock %}
 
 {% block robots %}
-    {# Unapproved/rejected series are publicly reachable at their slug URL - keep them out of the index #}
-    {% if series.approvedAt is null or series.rejectedAt is not null %}
+    {# Unapproved/rejected series are publicly reachable at their slug URL - keep them out of the index; a draft is seen only
+       by its team (IsSeriesPubliclyVisible) #}
+    {% if not series_publicly_visible %}
         <meta name="robots" content="noindex, nofollow">
     {% else %}
         {{ parent() }}
@@ -30,14 +31,22 @@
             yours_next_day: 'event_detail.time.yours_next_day'|trans,
             yours_previous_day: 'event_detail.time.yours_previous_day'|trans,
         }|json_encode }}"{% endif %}>
+        {{ include('event_parts/_draft_banner.html.twig', {draft_state: draft_state}) }}
+        {#- The organization in the crumbs (P20): while it is publicly visible, or for its team -#}
+        {%- set show_organization = organization is not null and (organization.isPublic or is_granted('ORGANIZATION_EDIT', organization.id)) -%}
         {% embed 'event_parts/_detail_header.html.twig' with {
-            crumbs: [{label: 'events.title'|trans, url: path('events')}],
+            crumbs: [{label: 'events.title'|trans, url: path('events')}]|merge(show_organization ? [{label: organization.name, url: path('organization_detail', {slug: organization.slug})}] : []),
             logo: series.logo,
             name: series.name,
             description: series.description,
             return_fallback_url: path('events'),
             return_fallback_title: 'events.title'|trans,
         } %}
+            {% block byline %}
+                {{- include('event_parts/_organized_by.html.twig', {organization: organization}) -}}
+                {{- include('event_parts/_eligibility.html.twig', {eligibility: eligibility}) -}}
+                {{- include('event_parts/_schedule.html.twig', {schedule: schedule}) -}}
+            {% endblock %}
             {% block facts %}
                 {{- include('event_parts/_place.html.twig', {place: page.facts.place}) -}}
                 <span class="ev-detail-fact">{{ 'event_detail.facts.recurring'|trans }}</span>

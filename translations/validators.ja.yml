@@ -25,4 +25,17 @@ admin:
         choose_player: "プレイヤーを1人以上選択してください。"
 private_profile_viewers:
     choose_player: "プレイヤーを1人以上選んでください。"
-
+organization_fields:
+    social_links_too_many: "リンクは最大{{ limit }}件まで追加できます。"
+    social_link_invalid: "{{ value }}はウェブアドレス（http://またはhttps://）ではありません。"
+    team_too_many: "チームには、あなたのほかに最大{{ limit }}人まで追加できます。"
+add_editions:
+    dates_invalid: "読み取れない日付があります。カレンダーで選ぶか、2026-10-05 のように入力してください。"
+    dates_missing: "日付を1つ以上選んでください。"
+    too_many: "一度に追加できる日付は最大%max%件です。"
+    rule_missing: "日付の繰り返し方を選んでください。"
+    weekday_missing: "曜日を選んでください。"
+    nth_missing: "月の第何週かを選んでください。"
+    starting_missing: "日付の開始日を選んでください。"
+    count_range: "日付は1〜%max%件の範囲で選んでください。"
+    none_selected: "日付を1つ以上チェックしてください。"

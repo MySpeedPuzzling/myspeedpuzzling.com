@@ -1,0 +1,9 @@
+{#
+    "When it happens: …" in the byline of the series page (owner: workstream C, docs/features/organizations/README.md
+    "When it happens"): the organiser's own words, as typed - each date is still an edition of its own.
+
+    Variables: schedule (null|string)
+#}
+{%- if schedule is not empty -%}
+    <span class="ev-detail-by ev-detail-schedule" data-schedule>{{ 'organization.byline.when_it_happens'|trans({'%text%': schedule}) }}</span>
+{%- endif -%}

@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The organizations directory (docs/features/organizations/README.md "Directory", owner: workstream A): the publicly
+    visible organizations alphabetically - logo, name, kind, flag + region, "3 series · 2 events", the next date (else
+    the last one). "Add organization" for signed-in players. Indexable once it lists anything; nothing per viewer.
+    Variables: directory (OrganizationsDirectory)
+#}
+
+{% block title %}{{ 'organization_page.directory.meta_title'|trans }}{% endblock %}
+
+{% block meta_description %}{{ 'organization_page.directory.meta_description'|trans }}{% endblock %}
+
+{# An empty directory is nothing to index #}
+{% block robots %}{% if directory.items is empty %}<meta name="robots" content="noindex, follow">{% else %}{{ parent() }}{% endif %}{% endblock %}
+
+{% block content %}
+    <div class="ev-detail ev-organizations">
+        {{ include('event_parts/_crumbs.html.twig', {items: [{label: 'events.title'|trans, url: path('events')}]}) }}
+        <header class="ev-org-dir-head">
+            <div class="ev-org-dir-heading">
+                <h1 class="ev-detail-name">{{ 'organization.directory_title'|trans }}</h1>
+                <p class="ev-org-dir-intro">{{ 'organization_page.directory.intro'|trans }}</p>
+            </div>
+            {% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
+                <a class="ev-action-button" href="{{ path('add_organization', {return: app.request.requestUri, return_title: 'organization.directory_title'|trans}) }}" data-org-add>
+                    <span aria-hidden="true">+&nbsp;</span>{{ 'organization_page.directory.add'|trans }}
+                </a>
+            {% endif %}
+        </header>
+
+        {% if directory.items is empty %}
+            <p class="ev-org-empty-text" data-org-directory-empty>{{ 'organization_page.directory.empty'|trans }}</p>
+        {% else %}
+            <ul class="ev-org-dir-list">
+                {% for item in directory.items %}
+                    <li class="ev-org-dir-item" data-org-directory-item="{{ item.id }}">
+                        <div class="ev-org-dir-logo" aria-hidden="true">
+                            {%- if item.logo %}<img src="{{ item.logo|thumbnail('puzzle_small') }}" alt="" loading="lazy">{% else %}<span class="ev-org-dir-initial">{{ item.name|first|upper }}</span>{% endif -%}
+                        </div>
+                        <div class="ev-org-dir-main">
+                            <a class="ev-org-dir-name" href="{{ item.url }}">{{ item.name }}</a>
+                            {% set facts -%}
+                                {%- if item.kind %}<span class="ev-detail-fact">{{ item.kind.translationKey|trans }}</span>{% endif -%}
+                                {%- if item.place %}{{ include('event_parts/_place.html.twig', {place: item.place}) }}{% endif -%}
+                            {%- endset %}
+                            {% if facts|trim is not empty %}<p class="ev-org-dir-facts">{{ facts }}</p>{% endif %}
+                            <p class="ev-org-dir-counts">
+                                {%- if item.seriesCount > 0 %}<span>{{ 'organization_page.directory.series_count'|trans({'%count%': item.seriesCount}) }}</span>{% endif -%}
+                                {%- if item.eventCount > 0 %}<span>{{ 'organization_page.directory.events_count'|trans({'%count%': item.eventCount}) }}</span>{% endif -%}
+                                <span class="ev-org-dir-next ev-org-card-next-{{ item.next.type }}" data-org-next="{{ item.next.type }}">
+                                    {%- if item.next.type == 'next' -%}
+                                        {{ 'events_page.series.next'|trans({'%date%': item.next.date|events_date('MMMEd')}) }}
+                                    {%- elseif item.next.type == 'live' -%}
+                                        <span class="live-dot" aria-hidden="true"></span>{{ 'events_page.series.live'|trans }}
+                                    {%- elseif item.next.type == 'ongoing' -%}
+                                        {{ 'events_page.series.ongoing'|trans }}
+                                    {%- elseif item.next.type == 'last' -%}
+                                        {{ 'events_page.series.last'|trans({'%date%': item.next.date|events_date('yMMMd')}) }}
+                                    {%- else -%}
+                                        {{ 'events_page.series.no_dates'|trans }}
+                                    {%- endif -%}
+                                </span>
+                            </p>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+{% endblock %}

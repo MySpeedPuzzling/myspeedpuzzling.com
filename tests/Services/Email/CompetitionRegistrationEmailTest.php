@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Email;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Dom\HTMLDocument;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\JoinCompetition;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\CompetitionRegistrationMailer;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\RegistrationEmail;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -72,6 +80,30 @@ final class CompetitionRegistrationEmailTest extends KernelTestCase
         self::assertStringNotContainsString('/en/', $button);
         self::assertStringNotContainsString('/events/', $button);
         self::assertStringContainsString($button, (string) $email->getTextBody());
+    }
+
+    /**
+     * An organiser may prepare participants on a draft - nobody gets an e-mail pointing at a page that answers 404 until it
+     * is published (docs/features/organizations/README.md, P18)
+     */
+    public function testNothingIsSentWhileTheEventIsADraft(): void
+    {
+        $competition = self::getContainer()->get(CompetitionRepository::class)->get(OrganizationFixture::COMPETITION_DRAFT_NIGHT);
+        $participant = new CompetitionParticipant(
+            id: Uuid::uuid7(),
+            name: 'Prepared Puzzler',
+            country: 'cz',
+            competition: $competition,
+        );
+        $participant->connect(self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR), new DateTimeImmutable());
+        $mailer = self::getContainer()->get(CompetitionRegistrationMailer::class);
+
+        $mailer->send($participant, RegistrationEmail::Reserved);
+        self::assertQueuedEmailCount(0);
+
+        $competition->publish();
+        $mailer->send($participant, RegistrationEmail::Reserved);
+        self::assertQueuedEmailCount(1);
     }
 
     private function manage(string $competitionId, null|string $entryFee = null, null|string $paymentInstructions = null): void

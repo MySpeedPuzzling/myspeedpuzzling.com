@@ -9,19 +9,23 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
 use SpeedPuzzling\Web\Value\OrganizerBadge;
+use SpeedPuzzling\Web\Value\UnpublishBlocker;
 
 /**
  * One item of "You organize" (docs/features/events-page/README.md): a one-time event, an edition the viewer organises
- * directly, or a series - waiting for approval and rejected ones included.
+ * directly, a series or an organization (docs/features/organizations/README.md) - drafts, waiting for approval and
+ * rejected ones included.
  */
 readonly final class OrganizedEvent
 {
     public const string KIND_EVENT = 'event';
     public const string KIND_EDITION = 'edition';
     public const string KIND_SERIES = 'series';
+    public const string KIND_ORGANIZATION = 'organization';
 
     /**
-     * @param 'event'|'edition'|'series' $kind
+     * @param 'event'|'edition'|'series'|'organization' $kind
+     * @param list<UnpublishBlocker> $unpublishBlockers
      */
     public function __construct(
         public string $kind,
@@ -39,15 +43,54 @@ readonly final class OrganizedEvent
         public int $roundCount = 0,
         // the day of the last round dating it (OccurrenceDates::$lastRoundDay)
         public null|DateTimeImmutable $lastRoundDay = null,
+        // the zone its days are in (OccurrenceDates::$zone)
+        public null|string $zone = null,
         public bool $isApproved = false,
         public null|string $rejectionReason = null,
         public bool $isRejected = false,
         public int $editionCount = 0,
         // Series: the start of the earliest edition that is not over (live or upcoming)
         public null|DateTimeImmutable $nextEditionDate = null,
+        // Series: the zone that edition's days are in
+        public null|string $nextEditionZone = null,
         // Series: the start of the latest edition that is over
         public null|DateTimeImmutable $lastEditionDate = null,
+        // A draft itself - for an edition also when its series is one
+        public bool $isDraft = false,
+        // The organization it is under (a one-time event's own, a series' or an edition's series'), null for an
+        // organization itself
+        public null|string $organizationId = null,
+        // Organization: its series and one-time events
+        public int $seriesCount = 0,
+        public int $eventCount = 0,
+        // Its own draft flag (Publish acts on it) - an edition of a draft series may be published itself already
+        public bool $ownDraft = false,
+        // An edition whose series is a draft - it is published through its series
+        public bool $seriesIsDraft = false,
+        // What keeps it from going back to draft (UnpublishBlockers) - "You organize" offers Unpublish only without any
+        public array $unpublishBlockers = [],
     ) {
+    }
+
+    public function isEdition(): bool
+    {
+        return $this->kind === self::KIND_EDITION;
+    }
+
+    /**
+     * Not empty: an organization with series or one-time events can't be deleted (OrganizationNotEmpty)
+     */
+    public function isEmptyOrganization(): bool
+    {
+        return $this->isOrganization() && $this->seriesCount === 0 && $this->eventCount === 0;
+    }
+
+    /**
+     * Waiting for an admin's approval - a draft is not submitted yet, so an admin has nothing to decide
+     */
+    public function awaitsApproval(): bool
+    {
+        return $this->isApproved === false && $this->isRejected === false && $this->isDraft === false;
     }
 
     public function isSeries(): bool
@@ -55,25 +98,43 @@ readonly final class OrganizedEvent
         return $this->kind === self::KIND_SERIES;
     }
 
-    public function badge(DateTimeImmutable $today): OrganizerBadge
+    public function isOrganization(): bool
+    {
+        return $this->kind === self::KIND_ORGANIZATION;
+    }
+
+    /**
+     * @param DateTimeImmutable $now the instant - a day is read in the event's (the next edition's) own zone
+     */
+    public function badge(DateTimeImmutable $now): OrganizerBadge
     {
         if ($this->isRejected) {
             return OrganizerBadge::Rejected;
+        }
+
+        // A draft that also waits for approval shows Draft - it is submitted by publishing it
+        if ($this->isDraft) {
+            return OrganizerBadge::Draft;
         }
 
         if ($this->isApproved === false) {
             return OrganizerBadge::WaitingForApproval;
         }
 
+        // An approved, published organization has no dates of its own
+        if ($this->isOrganization()) {
+            return OrganizerBadge::DateNotSet;
+        }
+
         if ($this->isSeries()) {
             if ($this->nextEditionDate !== null) {
-                return $this->nextEditionDate <= OccurrenceDates::today($today) ? OrganizerBadge::Live : OrganizerBadge::Upcoming;
+                return $this->nextEditionDate <= OccurrenceDates::localDay($now, $this->nextEditionZone ?? 'UTC') ? OrganizerBadge::Live : OrganizerBadge::Upcoming;
             }
 
             return $this->lastEditionDate !== null ? OrganizerBadge::Past : OrganizerBadge::DateNotSet;
         }
 
-        $status = new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay)->status($today, $this->kind === self::KIND_EDITION, $this->isOnline);
+        $status = new OccurrenceDates($this->startDate, $this->endDate, $this->lastRoundDay, zone: $this->zone)->status($now, $this->kind === self::KIND_EDITION, $this->isOnline);
 
         return match ($status) {
             EventOccurrenceStatus::Live => OrganizerBadge::Live,
@@ -87,6 +148,11 @@ readonly final class OrganizedEvent
 
     public function reference(): CompetitionReference
     {
+        // An organization's page is organization_detail - the reference only names it (C links it)
+        if ($this->isOrganization()) {
+            return new CompetitionReference(name: $this->name, slug: null);
+        }
+
         if ($this->isSeries()) {
             return new CompetitionReference(name: $this->name, slug: $this->slug, isSeries: true);
         }

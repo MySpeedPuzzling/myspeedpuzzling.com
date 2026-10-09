@@ -4,75 +4,79 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\MessengerMiddleware;
 
-use PHPUnit\Framework\TestCase;
 use Closure;
 use FilesystemIterator;
+use PHPUnit\Framework\TestCase;
+use Ramsey\Uuid\Uuid;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionNamedType;
-use SplFileInfo;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Events\PuzzleMergeApproved;
-use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
-use SpeedPuzzling\Web\Message\KeepDuplicateCopy;
-use SpeedPuzzling\Web\Message\ReconcileRoundResults;
-use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
-use SpeedPuzzling\Web\Message\UndoAutoRemoval;
+use SpeedPuzzling\Web\Message\AddComparisonSubject;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
+use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\AddTableRow;
-use SpeedPuzzling\Web\Message\BackfillCompetitionRoundSlugs;
-use SpeedPuzzling\Web\Message\BackfillRoundTimezones;
-use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
-use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
-use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
-use SpeedPuzzling\Web\Message\DeletePlayer;
-use SpeedPuzzling\Web\Message\EditCompetitionRound;
-use SpeedPuzzling\Web\Message\GenerateTableLayout;
-use SpeedPuzzling\Web\Message\PublishRoundResults;
-use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
-use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
-use SpeedPuzzling\Web\Message\StartRoundStopwatch;
-use SpeedPuzzling\Web\Message\StopRoundStopwatch;
-use SpeedPuzzling\Web\Message\UnpublishRoundResults;
-use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
-use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
-use SpeedPuzzling\Web\Message\KeepRoundPuzzleHiddenEverywhere;
-use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
-use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
-use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
-use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Message\AddComparisonSubject;
-use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\ApplyParticipantImport;
 use SpeedPuzzling\Web\Message\ApplyParticipantSheetChanges;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
 use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\BackfillCompetitionRoundSlugs;
+use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
+use SpeedPuzzling\Web\Message\BackfillRoundTimezones;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
+use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
+use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
 use SpeedPuzzling\Web\Message\CheckInParticipant;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
+use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
+use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
+use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
+use SpeedPuzzling\Web\Message\DeletePlayer;
+use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\EditPuzzle;
+use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\GenerateTableLayout;
 use SpeedPuzzling\Web\Message\JoinCompetition;
+use SpeedPuzzling\Web\Message\KeepDuplicateCopy;
+use SpeedPuzzling\Web\Message\KeepRoundPuzzleHiddenEverywhere;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Message\LinkEanToPuzzle;
 use SpeedPuzzling\Web\Message\MarkParticipantPaid;
+use SpeedPuzzling\Web\Message\MoveEditionToSeries;
+use SpeedPuzzling\Web\Message\MoveRoundToCompetition;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
+use SpeedPuzzling\Web\Message\PublishRoundResults;
+use SpeedPuzzling\Web\Message\ReconcileRoundResults;
+use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
+use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
+use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
+use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
+use SpeedPuzzling\Web\Message\StartRoundStopwatch;
+use SpeedPuzzling\Web\Message\StopRoundStopwatch;
+use SpeedPuzzling\Web\Message\UndoAutoRemoval;
 use SpeedPuzzling\Web\Message\UndoParticipantCheckIn;
 use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
+use SpeedPuzzling\Web\Message\UnpublishCompetition;
+use SpeedPuzzling\Web\Message\UnpublishRoundResults;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
+use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
+use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\ComparisonKind;
+use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use SplFileInfo;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class SerializedByLockMessagesTest extends TestCase
@@ -154,6 +158,22 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new UndoParticipantCheckIn($competitionId, $participantId))->lockKey());
         self::assertSame($key, (new ChangeCompetitionRegistrationSettings($competitionId, true, 10, null, null, 'Europe/Prague', null, null))->lockKey());
         self::assertSame($key, (new ApplyParticipantSheetChanges($competitionId, 'player', null, [], dryRun: true))->lockKey());
+        // Back to draft only while nobody joined - a join waits for the check (docs/features/organizations/README.md)
+        self::assertSame($key, (new UnpublishCompetition($competitionId))->lockKey());
+    }
+
+    /**
+     * The restructuring moves take the lock of the event the edition or round is in when the move is asked for
+     * (docs/features/organizations/README.md "Restructuring tools", D7) - a registration or a round entry never lands
+     * half way through a move.
+     */
+    public function testTheMovesLockTheEventTheyMoveFrom(): void
+    {
+        $competitionId = '018D0004-0000-0000-0000-000000000002';
+        $key = CompetitionParticipantsLock::key($competitionId);
+
+        self::assertSame($key, (new MoveEditionToSeries($competitionId, 'series', 'player'))->lockKey());
+        self::assertSame($key, (new MoveRoundToCompetition('round', $competitionId, 'target', 'player'))->lockKey());
     }
 
     /**
@@ -211,6 +231,7 @@ final class SerializedByLockMessagesTest extends TestCase
         BackfillCompetitionRoundSlugs::class => 'console backfill of round slugs - no entry, no result',
         BackfillRoundTimezones::class => 'console backfill of round time zones - no entry, no result',
         ChangeRoundTableNumbersUsage::class => 'a display switch of the round - the table numbers stay on the entries as they are',
+        CreateOrganizationFromSeries::class => 'turns a series into an organization: writes the organization, follows and redirect rows for the old addresses of every edition and round (EventUrlRedirects reads their slugs) - several events in one message, and no spot, entry or result changes',
         DeleteCompetitionSeries::class => 'deletes whole editions with everything they hold - several events in one message (one lock key per message), and nothing of theirs is meant to stay',
         DeletePlayer::class => 'account deletion only clears the player link on the rows of every event the player was in - an unbounded set of events; no spot, entry or result changes',
         OfficialRoundResultsPublished::class => 'the notification after a publish - reads only',

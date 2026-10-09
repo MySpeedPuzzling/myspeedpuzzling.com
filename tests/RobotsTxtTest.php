@@ -143,6 +143,9 @@ final class RobotsTxtTest extends KernelTestCase
             'pieces hub' => ['pieces_puzzles', ['pieces' => '750']],
             'brand directory' => ['puzzle_brands', []],
             'event' => ['event_detail', ['slug' => 'world-jigsaw-puzzle-championship-2025']],
+            // docs/features/organizations/README.md - both indexable while public
+            'organization' => ['organization_detail', ['slug' => 'riverbend-jigsaw-association']],
+            'organizations directory' => ['organizations', []],
         ];
     }
 

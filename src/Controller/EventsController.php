@@ -73,7 +73,7 @@ final class EventsController extends AbstractController
         $comingIds = [];
 
         foreach ($occurrences as $occurrence) {
-            $status = $occurrence->status($today);
+            $status = $occurrence->status($now);
 
             // Ongoing online events take registrations too: "N going", Full/waitlist
             if ($status->isComing() || $status === EventOccurrenceStatus::Ongoing) {

@@ -11,6 +11,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\ManyToOne;
@@ -21,6 +22,16 @@ use Ramsey\Uuid\UuidInterface;
 #[Entity]
 class CompetitionSeries
 {
+    /**
+     * When it entered the approval queue (docs/features/organizations/README.md "Approval"): created published, first
+     * published, approved, or created or published by an admin or the internal API. The admins' "submitted" e-mail
+     * goes out only while it is null, so going back to draft and publishing again never e-mails them twice. Rows from
+     * before the column are null.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $submittedAt = null;
+
     /**
      * @param Collection<int, Player> $maintainers
      */
@@ -71,14 +82,75 @@ class CompetitionSeries
         #[ManyToMany(targetEntity: Player::class)]
         #[JoinTable(name: 'competition_series_maintainer')]
         public Collection $maintainers = new ArrayCollection(),
+        // The organization running it (docs/features/organizations/README.md) - its editions are under it too.
+        // assignOrganization()
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[ManyToOne]
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|Organization $organization = null,
+        // A draft series hides itself and every edition (IsSeriesPubliclyVisible) - publish() / unpublish()
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(options: ['default' => false])]
+        public bool $isDraft = false,
+        // "Who can enter" - shown by editions without their own
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(length: 120, nullable: true)]
+        public null|string $eligibility = null,
+        // "When it happens" ("Fourth Friday of the month, 8 pm") - free text, each date is still its own edition
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(length: 160, nullable: true)]
+        public null|string $schedule = null,
     ) {
         $this->locationCountryCode = self::normalizeCountryCode($locationCountryCode);
+    }
+
+    /**
+     * Moves the series into an organization (or out of it, null). The caller checks who may (AssignEventToOrganization)
+     * and runs OrganizationApprovalPolicy afterwards.
+     */
+    public function assignOrganization(null|Organization $organization): void
+    {
+        $this->organization = $organization;
+    }
+
+    public function publish(): void
+    {
+        $this->isDraft = false;
+    }
+
+    public function unpublish(): void
+    {
+        $this->isDraft = true;
+    }
+
+    /**
+     * The PHP mirror of IsSeriesPubliclyVisible::SQL_CONDITION (VisibilityParityTest keeps them equal)
+     */
+    public function isPubliclyVisible(): bool
+    {
+        return $this->approvedAt !== null && $this->rejectedAt === null && $this->isDraft === false;
+    }
+
+    public function changeEligibilityAndSchedule(null|string $eligibility, null|string $schedule): void
+    {
+        $this->eligibility = $eligibility;
+        $this->schedule = $schedule;
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void
     {
         $this->approvedAt = $approvedAt;
         $this->approvedByPlayer = $approvedBy;
+        // An approved item is past the queue - publishing it later e-mails nobody
+        $this->markSubmitted($approvedAt);
+    }
+
+    /**
+     * It entered the approval queue (or skipped it) - kept at the first time
+     */
+    public function markSubmitted(DateTimeImmutable $submittedAt): void
+    {
+        $this->submittedAt ??= $submittedAt;
     }
 
     public function reject(Player $rejectedBy, DateTimeImmutable $rejectedAt, string $reason): void

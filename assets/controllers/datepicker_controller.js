@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { pickerOptions } from '../datepicker_locale.js';
+import { labelShownInput, pickerOptions } from '../datepicker_locale.js';
 
 // The page language's month and weekday names, loaded only on a page that needs them (English is flatpickr's own)
 const L10N = {
@@ -36,12 +36,15 @@ export default class extends Controller {
 
             const userOptions = picker.dataset.datepickerOptions !== undefined ? JSON.parse(picker.dataset.datepickerOptions) : {};
 
-            flatpickr(picker, pickerOptions(userOptions, {
+            const instance = flatpickr(picker, pickerOptions(userOptions, {
                 pageLang,
                 visitorLocale: navigator.language,
                 l10n,
                 defaultFormat: flatpickr.formatDate,
             }));
+
+            // The label points at the hidden original - the visible input gets its name
+            labelShownInput(picker, instance.altInput);
         }
     }
 }

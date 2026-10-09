@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\RoundResults\RoundResultsPageBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,6 +34,13 @@ final class EditionRoundResultsController extends AbstractController
     public function __invoke(string $seriesSlug, string $editionSlug, string $roundSlug): Response
     {
         $competition = $this->competitionRepository->getBySeriesAndEditionSlug($seriesSlug, $editionSlug);
+
+        // A draft edition, or an edition of a draft series, exists only for its team and admins
+        // (docs/features/organizations/README.md "Drafts", P5). The team gets the page builder's 404 below: round results of
+        // an event that is not public are never shown
+        if ($competition->isHiddenAsDraft() && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString()) === false) {
+            throw new DraftNotVisible();
+        }
 
         $page = $this->roundResultsPageBuilder->build($competition->id->toString(), $roundSlug, $competition->series?->name);
 

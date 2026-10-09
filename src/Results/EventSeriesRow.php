@@ -16,6 +16,11 @@ readonly final class EventSeriesRow
         public null|string $location = null,
         public null|CountryCode $countryCode = null,
         public bool $isPublic = true,
+        // docs/features/organizations/README.md - the organization, "Who can enter", "When it happens", draft
+        public null|OrganizationRef $organization = null,
+        public null|string $eligibility = null,
+        public null|string $schedule = null,
+        public bool $isDraft = false,
     ) {
     }
 }

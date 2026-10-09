@@ -344,3 +344,30 @@ result_review:
     verification_answer_trusted: "Deine Zeit %time% bei %puzzleName% wurde geprüft – sie zählt wieder."
     verification_answer_kept: "Deine Zeit %time% bei %puzzleName% wurde geprüft – sie bleibt beiseitegelegt."
     verification_answer_kept_note: "Deine Zeit %time% bei %puzzleName% wurde geprüft – sie bleibt beiseitegelegt: %note%"
+
+organization_submitted:
+    subject: "Neue Organisation eingereicht: %organizationName%"
+    title: "Neue Organisation eingereicht"
+    content: |
+        <p>Eine neue Organisation wurde zur Genehmigung eingereicht.</p>
+        <p><strong>Eingereicht von:</strong> %playerName%<br><strong>Organisation:</strong> %organizationName%<br><strong>Region:</strong> %region%</p>
+    button: "Ausstehende Organisationen prüfen"
+
+organization_approved:
+    subject: "Ihre Organisation wurde genehmigt!"
+    preheader: "%organizationName% wurde auf MySpeedPuzzling genehmigt."
+    title: "Ihre Organisation wurde genehmigt!"
+    content: |
+        <p>Tolle Neuigkeiten! Ihre Organisation <strong>%organizationName%</strong> wurde genehmigt.</p>
+        <p>Serien und Veranstaltungen, die Ihr Team ihr hinzufügt, brauchen keine weitere Genehmigung – sie erscheinen, sobald Sie sie veröffentlichen.</p>
+    button: "Seite der Organisation anzeigen"
+
+organization_rejected:
+    subject: "Ihre Organisation wurde nicht genehmigt"
+    preheader: "%organizationName% wurde nicht genehmigt – den Grund finden Sie in der E-Mail."
+    title: "Organisation nicht genehmigt"
+    content: |
+        <p>Leider wurde Ihre Organisation <strong>%organizationName%</strong> nicht genehmigt.</p>
+        <p><strong>Grund:</strong> %reason%</p>
+        <p>Bei Fragen oder wenn Sie dies besprechen möchten, kontaktieren Sie uns unter <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+    button: "„Von Ihnen organisiert“ öffnen"

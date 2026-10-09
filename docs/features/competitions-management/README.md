@@ -1,6 +1,6 @@
 # Competitions Management
 
-Community-driven competition and event management. Any logged-in player can submit a competition; it becomes publicly visible after admin approval. Maintainers (the creator + named co-maintainers) can then manage rounds, assign puzzles, plan table layouts, run a live stopwatch during the event, manage registrations, enter official results, and compose the public page.
+Community-driven competition and event management. Any logged-in player can submit a competition; it becomes publicly visible after admin approval (at once when its organization's team creates it under an approved organization). Maintainers (the creator + named co-maintainers, plus the team of its series and organization) can then manage rounds, assign puzzles, plan table layouts, run a live stopwatch during the event, manage registrations, enter official results, and compose the public page. Every event, edition, series and organization can be prepared as a **draft** and published when it is ready - see [../organizations/README.md](../organizations/README.md) (organizations, drafts, "Who can enter", "Add several dates", moving editions and rounds).
 
 The feature set is **tiered and opt-in**: a competition with everything off is just a listing with the lightweight "I'm going" flow. Each capability is enabled separately:
 
@@ -20,19 +20,21 @@ One permanent product boundary: **MySpeedPuzzling never processes payments.** Ma
 
 Any authenticated player can submit a new competition with:
 - **Required:** name, location
-- **Optional:** shortcut (e.g. "WJPC"), description, website/registration/results links, country, date range, online flag, recurring flag, logo image
+- **Optional:** shortcut (e.g. "WJPC"), description, website/registration/results links, country, date range, online flag, recurring flag, logo image, **Organization** (the organizations the player is on the team of), **Who can enter** (`eligibility`), for a series **When it happens** (`schedule`)
 - **Maintainers:** other players who should have edit access (searchable autocomplete)
 
-A URL slug is auto-generated from the name (with a random suffix if collisions exist). The competition is stored with `approvedAt = null` (pending state) and is **not visible** in the public listing.
+A URL slug is auto-generated from the name (with a random suffix if collisions exist). The competition is stored with `approvedAt = null` (pending state) and is **not visible** in the public listing - unless it is created under an approved organization by a member of its team or by an admin: then it is approved at once (`OrganizationApprovalPolicy`, the one place of that rule, called by every handler that creates an event or series or moves one into an organization).
+
+**Save as draft** (a second submit button on every add form - event, series, edition, several dates, organization) stores it with `is_draft = true`: only its team (creator, maintainers, the teams of its series and organization) and admins see it, its page answers 404 to everybody else, and it is not submitted for approval yet. **Publish** (banner on its page, the ⋯ menu, "You organize") turns the flag off; an item still waiting for approval is submitted then - it enters the approval queue and the admins get the "submitted" e-mail on its first publish only (re-publishing and anything an admin publishes e-mail nobody). **Unpublish** takes it back to draft only while nobody joined it (participants not removed), no official result is recorded and no solving time is linked - for a series, the same for every edition (`UnpublishBlockers`); an organization can always go back. A draft series hides its editions; a draft edition hides only itself. Design: [../organizations/README.md](../organizations/README.md#drafts).
 
 ### 2. Admin Review (Approve or Reject)
 
-Admins see all pending competitions in a dedicated approval queue (`/admin/competition-approvals`).
+Admins see all pending competitions in a dedicated approval queue (`/admin/competition-approvals`) - with pending organizations above the series. **Drafts are never in the queue nor in its admin-menu badge**: they are submitted by publishing them. Approving an organization approves its pending series and one-time events too.
 
 - **Approve:** Sets `approvedAt`, makes the competition publicly visible. The creator receives an email notification with a link to the public event page.
 - **Reject:** Admin must provide a reason. Sets `rejectedAt` and `rejectionReason`. The creator receives an email notification with the rejection reason. Rejected competitions are removed from the approval queue and remain invisible in public listings. The rejection reason is displayed on the edit page.
 
-An admin notification email is sent automatically when a new competition is submitted, linking to the approval queue.
+An admin notification email is sent automatically when a new competition is submitted (created without "Save as draft", or published for the first time), linking to the approval queue - never for anything an admin creates or publishes, nor for an item approved at once under its organization.
 
 ### 3. Editing
 
@@ -44,7 +46,7 @@ The edit forms show the current logo above the file input ("Leave empty to keep 
 
 ### 4. Public Listing
 
-The events page (`/en/events`) is described in [../events-page/README.md](../events-page/README.md): one agenda of one-time events and series editions, a series directory, follow + "Your events", the calendar view, the year archive and the organiser tools ("You organize", the ⋯ menu). Only publicly visible competitions are listed (`IsCompetitionPubliclyVisible`); admins also see the ones waiting for approval, with Approve / Reject in the row's ⋯ menu. External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. An online event never prints its location (older online events still carry location "Online" in the data - no migration): the events page, "You organize", the event page header and the admin approval queue show Online instead; the event page JSON-LD of an online event is a `VirtualLocation`, never a `Place`.
+The events page (`/en/events`) is described in [../events-page/README.md](../events-page/README.md): one agenda of one-time events and series editions, a series directory, follow + "Your events", the calendar view, the year archive and the organiser tools ("You organize", the ⋯ menu). Only publicly visible competitions are listed (`IsCompetitionPubliclyVisible`); admins also see the ones waiting for approval, with Approve / Reject in the row's ⋯ menu - never drafts, which appear in no listing, admins included (their team finds them under "You organize"). External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. An online event never prints its location (older online events still carry location "Online" in the data - no migration): the events page, "You organize", the event page header and the admin approval queue show Online instead; the event page JSON-LD of an online event is a `VirtualLocation`, never a `Place`.
 
 ## Access Control
 
@@ -61,8 +63,12 @@ The events page (`/en/events`) is described in [../events-page/README.md](../eve
 | View public stopwatch page | Everyone (no auth required) |
 | View published official results (round results page) | Everyone, while the competition is publicly visible |
 | Approve or reject a competition | Admin only |
+| Create an organization | Any authenticated player (waits for approval; an admin's is approved at once) |
+| Edit an organization, its team; create, edit and delete the series and events under it | Admin, its creator, or its team (`ORGANIZATION_EDIT`; deleting the organization itself: its creator or an admin, only while empty) |
+| See and publish/unpublish a draft | Whoever can edit it (`COMPETITION_EDIT`, `COMPETITION_SERIES_EDIT`, `ORGANIZATION_EDIT`) |
+| Move an edition / a round, turn a series into an organization | Whoever can edit both sides - [../organizations/README.md](../organizations/README.md#permissions) |
 
-Access is enforced via a `CompetitionEditVoter` that checks whether the player is admin, the creator, or in the maintainers list. All management controllers use this same voter, including round-level controllers (which resolve the competition from the round).
+Access is enforced via a `CompetitionEditVoter` that checks whether the player is admin, the creator, or in the maintainers list - of the competition, of its series, or of its organization (`GetCompetitionPermissions`, one statement per request). All management controllers use this same voter, including round-level controllers (which resolve the competition from the round).
 
 **Referees** (`CompetitionReferee`, per competition - an edition is a competition) are volunteers who enter results on their phones and nothing else: `CompetitionResultsEntryVoter` (`COMPETITION_RESULTS_ENTRY` = everybody with `COMPETITION_EDIT` plus the referees) guards only the live entry, its round state and result changes; a referee's table number and qualified changes are refused. Organisers add them on the event's Referees page (linked from the edit page and the results overview), which also shows the link for referees with a QR. Details: [live-results.md](live-results.md) "Referees".
 
@@ -146,18 +152,18 @@ A solving time may be linked to a standalone competition **or to a series editio
 - **Link** — standalone: `event_detail` (`/en/events/{slug}`); edition: `edition_detail` (`/en/series/{seriesSlug}/{editionSlug}`) — **never** `event_detail`, an edition slug is only unique within its series. An edition whose series has no slug renders the badge unlinked.
 - Nothing is rendered when the time has no competition.
 
-**Public visibility of a competition row** (standalone or edition) is decided in one place, `IsCompetitionPubliclyVisible` (`check($competitionId)` + the reusable `SQL_CONDITION` fragment): a standalone competition is visible when approved and not rejected; an edition is visible iff its **series** is approved and not rejected — editions are never approved individually (their own `approved_at` stays `NULL`). The API competition detail uses this rule to decide what is readable.
+**Public visibility of a competition row** (standalone or edition) is decided in one place, `IsCompetitionPubliclyVisible` (`check($competitionId)` + the reusable `SQL_CONDITION` fragment, aliases `c` / `cs`): a standalone competition is visible when approved, not rejected and **not a draft**; an edition is visible iff it is not rejected and not a draft and its **series** is approved, not rejected and not a draft — editions are never approved individually (their own `approved_at` stays `NULL`). The two halves are there on their own too: `SQL_APPROVED` (the approval part alone - what "pending" means for the approval queue, admin filters and organiser badges; an approved draft is not pending) and `SQL_NOT_DRAFT`. Series rows use `IsSeriesPubliclyVisible` (approved, not rejected, not a draft), organization rows `IsOrganizationPubliclyVisible`; an organization's own state never hides its series or events. Every reader of `competition` / `competition_series` / `organization` uses one of them or is listed with a reason in `DraftVisibilityCoverageTest`, and `DraftCanaryTest` proves that no public surface shows a draft (add every new event-listing surface there). The API competition detail uses this rule to decide what is readable.
 
 ### Linking solving times to events
 
 The "Competition / event" picker on the add-time form (`PuzzleAddFormType`, routes `puzzle_add` + `finish_stopwatch`) and the edit-time form (`EditPuzzleSolvingTimeFormType`, route `edit_time`) is one TomSelect field whose options are baked server-side (no remote endpoint, no caching):
 
-- **Selectable set** = exactly `IsCompetitionPubliclyVisible::SQL_CONDITION`: every approved & not-rejected standalone competition regardless of its date (live, past, upcoming, undated) **plus every edition whose series is approved & not rejected** (the edition's own `approved_at` is ignored, its own `rejected_at` is respected). The series umbrella itself is never selectable — a time links to a concrete edition. Read model: `GetSelectableCompetitions::all(?$alwaysIncludeCompetitionId)` → `SelectableCompetition` DTOs.
+- **Selectable set** = exactly `IsCompetitionPubliclyVisible::SQL_CONDITION`: every approved & not-rejected standalone competition regardless of its date (live, past, upcoming, undated) **plus every edition whose series is approved & not rejected** (the edition's own `approved_at` is ignored, its own `rejected_at` is respected). **Drafts are never selectable** - neither a draft event or edition nor an edition of a draft series (and so a draft never gets a linked time, which `Unpublish` relies on). The series umbrella itself is never selectable — a time links to a concrete edition. Read model: `GetSelectableCompetitions::all(?$alwaysIncludeCompetitionId)` → `SelectableCompetition` DTOs. API v1 refuses a solving time in a round of a non-public competition (404).
 - **Include-current rule (edit form)**: `EditTimeController` passes the time's current `competition_id` (server-derived from the owner-checked row, never from the request) as the form option `current_competition_id`; the query adds that row unconditionally, so a link to a competition that is not (or no longer) publicly visible survives a re-save instead of rendering an empty control and silently detaching the time.
 - **Validation**: `CompetitionChoicesBuilder::build()` returns a `CompetitionChoices` value (`options`, `optgroups`, `contains(id)`); the form types' `POST_SUBMIT` rule rejects any non-null submitted id the picker did not offer with the generic `forms.competition_not_selectable` error (never echoes names). The handlers' `CompetitionNotFound → null` fallback stays only for the render→submit race and logs a warning.
 - **Ordering** (global, one SQL `ORDER BY`): live → undated standalone ("perpetual" online umbrellas, the most-used entries) → past (newest first) → upcoming (soonest first) → undated editions. Undated editions with rounds are dated by their first round (`MIN(competition_round.starts_at)`). Editions carry `optgroup` = series id and TomSelect renders a series' block where its best-ranked edition sits (`lockOptgroupOrder` off); standalone events are ungrouped.
 - **Rendering**: option cards are built in `CompetitionChoicesBuilder` (every organiser-authored string HTML-escaped, lazy-loaded 48px logo falling back to the series logo, series name on edition cards, "live" badge, `keywords` = series name/shortcut + name/shortcut + location as extra `searchField`). `assets/controllers/competition_picker_controller.js` patches the TomSelect config on `autocomplete:pre-connect` (`maxOptions: null`, optgroup header with series logo, blur on select) — ux-autocomplete forces `maxOptions: 50` and its own `render` for `<input>`-based pickers, so these cannot come from PHP.
-- **Deep link** `puzzle_add?competition=<uuid>` (`/en/puzzle-add?competition=…`, built with `path('puzzle_add', {competition: id})`): `PuzzleAddController` pre-selects the competition in the picker when the form opens in speed-puzzling mode and `IsCompetitionPubliclyVisible::check()` passes — the `_solving_time_form` template then renders the competition section expanded. Any other value (not a uuid, unknown, unapproved, edition of an unapproved series, `?mode=relax|collection`) is ignored silently: no flash, no error, the form just opens without a pre-selection. It only seeds the GET render; on POST `handleRequest()` overwrites the data, so a cleared field is never re-filled from the URL.
+- **Deep link** `puzzle_add?competition=<uuid>` (`/en/puzzle-add?competition=…`, built with `path('puzzle_add', {competition: id})`): `PuzzleAddController` pre-selects the competition in the picker when the form opens in speed-puzzling mode and `IsCompetitionPubliclyVisible::check()` passes — the `_solving_time_form` template then renders the competition section expanded. Any other value (not a uuid, unknown, unapproved, a draft, edition of an unapproved or draft series, `?mode=relax|collection`) is ignored silently: no flash, no error, the form just opens without a pre-selection. It only seeds the GET render; on POST `handleRequest()` overwrites the data, so a cleared field is never re-filled from the URL.
 - **"Add my time from this event" CTA** (`events.add_my_time`) on the standalone event page and the edition page (in the header's actions once the event is over, on every started round of the timeline - with the round's puzzle pre-selected when it has exactly one with its picture shown - and in Taking part on the event page) links to that deep link. Shown only when `can_add_time` = signed in **and** the competition row is publicly visible (`IsCompetitionPubliclyVisible::check()`) **and** the event has started — `CompetitionEvent::startsAfter(now)` is false, i.e. `COALESCE(date_from, date_to)` is not a later calendar day than today (`ClockInterface`; an undated event is perpetual and always qualifies). No per-edition CTA on the series page or in the editions table — a time links to a concrete edition, so the CTA lives on the edition page.
 
 ## Round Results
@@ -500,6 +506,8 @@ A Stimulus controller handles the display:
 
 This eliminates all behavioral branching — the same participant handlers, queries, and components work for both standalone events and series editions.
 
+**Joining needs a publicly visible event.** The "I'm going" page and its POST answer 404 for an event that is not publicly visible - a draft, but also one waiting for approval or rejected - and `JoinCompetitionHandler` refuses it (`CompetitionNotFound`) for every caller: the join page of a non-public event used to show its participant names to anyone with the id. Organisers can still prepare participants on a draft (participants sheet, import); "Leave" on a draft sends anyone outside its team to the events page, never to the draft's URL.
+
 **Full specification:** See [participants.md](participants.md) for the complete participant management design including:
 - Unified "I'm going" + pairing flow (replaces old `CompetitionConnectionController`)
 - Organizer management UI with inline editing (Live Component)
@@ -534,11 +542,13 @@ Email notifications sent during the competition lifecycle:
 4. **Registration confirmed / waitlisted (to player):** on managed registration, with entry fee and payment instructions, or waitlist position.
 5. **Payment confirmed / promoted from waitlist (to player):** when the organizer marks them paid or promotes them.
 
+Registration e-mails (4, 5) are **not sent while the event is hidden as a draft** (it or its series is a draft): an organiser may prepare participants on a draft, and those people would get e-mails pointing at a page that answers 404. Organizations have their own e-mails (`organization_approved`, `organization_rejected`, and an organization variant of the admins' "submitted" mail - [../organizations/README.md](../organizations/README.md#approval)).
+
 All emails use the `transactional` mailer transport and follow the standard Inky email template structure. Player-facing emails are sent in the player's locale and only when an email address exists.
 
 ## Key Business Rules
 
-1. **Unapproved competitions are invisible** in public listings but accessible to their maintainers
+1. **Unapproved competitions are invisible** in public listings but accessible to their maintainers; **drafts** are invisible everywhere (also to admins in listings) and their pages answer 404 to everybody but their team
 2. **Table layout is only for in-person events** — the tables button is hidden when `isOnline = true`
 3. **Layout generation is destructive** — it wipes the entire existing layout before creating a new grid
 4. **`times_up` is client-only** — the server does not track when time expires; it's purely a display state
@@ -549,13 +559,13 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 9. **Email notifications require creator to have an email** — if the creator has no email on their profile, no notification is sent (no error)
 10. **Series get their own listing section** — `CompetitionSeries` appear in a dedicated "Recurring" section; editions are excluded from Live/Upcoming/Past
 11. **Online and offline are mutually exclusive** — one competition cannot be both; users create separate events. Both types can be recurring.
-12. **Series editions don't need individual approval** — the series approval controls visibility for all editions
+12. **Series editions don't need individual approval** — the series approval controls visibility for all editions (an edition can still be a draft on its own; a draft series hides every edition)
 13. **Series maintainers manage all editions** — `GetCompetitionPermissions` (behind `CompetitionEditVoter`) counts series owners and maintainers for edition-level operations. It loads everything the player may manage in one query per request, because the event listings ask the voters about every card they render
 14. **Each edition is a full Competition** — has its own participants, rounds, registration/results links
 15. **Editions never auto-create rounds** — the edition form creates only the Competition, rounds are always managed separately via the round management UI
 16. **Round category defaults to solo** — existing rounds get `solo` category via migration default
 18. **Teams are scoped to rounds** — `CompetitionTeam` belongs to a `CompetitionRound`, participants are assigned to teams via `CompetitionParticipantRound.team_id`
-19. **A solving time can be linked to any publicly visible competition row** — the add/edit-time picker offers every approved & not-rejected standalone competition (any date) and every edition of an approved & not-rejected series (`IsCompetitionPubliclyVisible::SQL_CONDITION`), never the series umbrella itself; the edit form additionally keeps the currently linked competition selectable; the submitted id is validated against exactly that set
+19. **A solving time can be linked to any publicly visible competition row** — the add/edit-time picker offers every approved & not-rejected standalone competition (any date) and every edition of an approved & not-rejected series (`IsCompetitionPubliclyVisible::SQL_CONDITION`, drafts never), never the series umbrella itself; the edit form additionally keeps the currently linked competition selectable; the submitted id is validated against exactly that set
 20. **MSP never processes payments** — managed registration only records the organizer's manual payment confirmation
 21. **Managed registration keeps the external registration link** — saved as it is, hidden on every page while registration is managed (one way to register), back when management is switched off
 22. **Official results are the organiser's record** — stored on the round entry (`CompetitionParticipantRound` / `CompetitionTeam`), never written onto players' profiles

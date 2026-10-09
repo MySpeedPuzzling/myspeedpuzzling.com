@@ -25,4 +25,17 @@ admin:
         choose_player: "Choisissez au moins un joueur."
 private_profile_viewers:
     choose_player: "Choisissez au moins un joueur."
-
+organization_fields:
+    social_links_too_many: "Ajoutez {{ limit }} liens au maximum."
+    social_link_invalid: "{{ value }} n'est pas une adresse web (http:// ou https://)."
+    team_too_many: "L'équipe peut compter au maximum {{ limit }} personnes en plus de vous."
+add_editions:
+    dates_invalid: "Certaines dates sont illisibles – choisissez-les dans le calendrier ou saisissez-les ainsi : 2026-10-05."
+    dates_missing: "Choisissez au moins une date."
+    too_many: "%max% dates au maximum à la fois."
+    rule_missing: "Choisissez comment les dates se répètent."
+    weekday_missing: "Choisissez le jour de la semaine."
+    nth_missing: "Choisissez la semaine du mois."
+    starting_missing: "Choisissez le jour à partir duquel les dates commencent."
+    count_range: "Choisissez de 1 à %max% dates."
+    none_selected: "Cochez au moins une date."

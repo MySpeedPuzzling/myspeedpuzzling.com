@@ -1,21 +1,56 @@
 {#
-    The actions of one organiser item (owner: workstream C, docs/features/events-page/README.md "The ⋯ menu"): the ⋯ menu
-    (layout 'menu') and "You organize" (layout 'inline') list the same ones, each only when its voter allows it
-    (GetCompetitionPermissions is read once per request). Links and forms leave any Turbo Frame (_top) and carry
-    return/return_title back to the page they were opened from. Delete and Reject are confirmed in place
-    (<details> + inline_confirm_controller.js - also works without JavaScript); Delete posts the existing per-id token.
+    The actions of one organiser item (owner: workstream C, docs/features/events-page/README.md "The ⋯ menu",
+    docs/features/organizations/README.md "The ⋯ menu"): the ⋯ menu (layout 'menu') and "You organize" (layout
+    'inline') list the same ones, each only when its voter allows it (GetCompetitionPermissions is read once per
+    request). Links and forms leave any Turbo Frame (_top) and carry return/return_title back to the page they were
+    opened from. Delete, Reject and Unpublish are confirmed in place (<details> + inline_confirm_controller.js - also
+    works without JavaScript); every POST carries its per-id session token.
+
+    Publish (a draft) comes first, Unpublish (back to draft) before Delete. The ⋯ menu knows whether Unpublish would be
+    refused (unpublish_blockers, UnpublishBlockers) and says why instead; so does "You organize" (the counts ride on its
+    one statement, OrganizedEvent::$unpublishBlockers) - a refusal in between comes back as a flash naming the item. Admins approve or reject only what waits for
+    approval - never a draft (it is submitted by publishing it).
 
     Variables: item (OrganizedEvent), return_url, return_title, layout ('menu'|'inline'), delete_return (optional: where
-    Delete returns - the parent of a detail page, which answers 404 once deleted; else return_url)
+    Delete returns - the parent of a detail page, which answers 404 once deleted; else return_url), unpublish_blockers
+    (optional: list<UnpublishBlocker> - empty when Unpublish is allowed)
 #}
 {%- set back = {return: return_url, return_title: return_title} -%}
-{%- set pending = not item.isApproved and not item.isRejected -%}
 {%- set is_admin = is_granted('ADMIN_ACCESS') -%}
 {%- set approval = null -%}
 {%- set links = [] -%}
 {%- set delete = null -%}
-{%- if item.isSeries -%}
-    {%- if is_admin and pending -%}
+{#- The routes of the item's own draft flag: {publish, unpublish, param} -#}
+{%- set draft_routes = null -%}
+{%- set publish_series = false -%}
+{%- if item.isOrganization -%}
+    {%- if is_admin and item.awaitsApproval -%}
+        {%- set approval = {
+            approve_url: path('admin_approve_organization', {organizationId: item.id}),
+            reject_url: path('admin_reject_organization', {organizationId: item.id}),
+            approve_token: csrf_token('approve_organization_' ~ item.id),
+            reject_token: csrf_token('reject_organization_' ~ item.id),
+            approve_label: 'organizer_tools.menu.approve_organization',
+            reject_label: 'organizer_tools.menu.reject_organization',
+        } -%}
+    {%- endif -%}
+    {%- if is_granted('ORGANIZATION_EDIT', item.id) -%}
+        {%- set links = [
+            {label: 'organization.menu.edit', url: path('edit_organization', {organizationId: item.id}|merge(back))},
+            {label: 'organizer_tools.menu.add_event', url: path('add_competition', {organization: item.id}|merge(back))},
+        ] -%}
+        {%- set draft_routes = {publish: 'publish_organization', unpublish: 'unpublish_organization', param: 'organizationId'} -%}
+    {%- endif -%}
+    {#- Only an empty organization can be deleted (OrganizationNotEmpty) -#}
+    {%- if item.isEmptyOrganization and is_granted('ORGANIZATION_DELETE', item.id) -%}
+        {%- set delete = {
+            url: path('delete_organization', {organizationId: item.id}),
+            token: csrf_token('delete_organization_' ~ item.id),
+            label: 'organizer_tools.menu.delete_organization',
+        } -%}
+    {%- endif -%}
+{%- elseif item.isSeries -%}
+    {%- if is_admin and item.awaitsApproval -%}
         {%- set approval = {
             approve_url: path('admin_approve_competition_series', {seriesId: item.id}),
             reject_url: path('admin_reject_competition_series', {seriesId: item.id}),
@@ -27,8 +62,13 @@
         {%- set links = [
             {label: 'events_organizer.menu.manage_series', url: path('manage_competition_series', {seriesId: item.id}|merge(back))},
             {label: 'events_organizer.menu.add_edition', url: path('add_edition', {seriesId: item.id}|merge(back))},
+            {label: 'organizer_tools.menu.add_editions', url: path('add_editions', {seriesId: item.id}|merge(back))},
             {label: 'events_organizer.menu.page_content', url: path('manage_series_page', {seriesId: item.id}|merge(back))},
         ] -%}
+        {%- if item.organizationId is null -%}
+            {%- set links = links|merge([{label: 'organizer_tools.menu.to_organization', url: path('create_organization_from_series', {seriesId: item.id}|merge(back))}]) -%}
+        {%- endif -%}
+        {%- set draft_routes = {publish: 'publish_competition_series', unpublish: 'unpublish_competition_series', param: 'seriesId'} -%}
     {%- endif -%}
     {%- if is_granted('COMPETITION_SERIES_DELETE', item.id) -%}
         {%- set delete = {
@@ -38,7 +78,7 @@
         } -%}
     {%- endif -%}
 {%- else -%}
-    {%- if is_admin and pending -%}
+    {%- if is_admin and item.awaitsApproval -%}
         {#- An edition waits for its series' approval: editions are never approved on their own (IsCompetitionPubliclyVisible) -#}
         {%- if item.seriesId -%}
             {%- set approval = {
@@ -66,6 +106,13 @@
             {%- set links = links|merge([{label: 'events_organizer.menu.results', url: path('competition_results_overview', {competitionId: item.id}|merge(back))}]) -%}
         {%- endif -%}
         {%- set links = links|merge([{label: 'events_organizer.menu.page_content', url: path('manage_competition_page', {competitionId: item.id}|merge(back))}]) -%}
+        {#- Moving an edition is for its series' team: the target is another series they manage -#}
+        {%- if item.isEdition and item.seriesId and is_granted('COMPETITION_SERIES_EDIT', item.seriesId) -%}
+            {%- set links = links|merge([{label: 'organizer_tools.menu.move_edition', url: path('move_edition', {competitionId: item.id}|merge(back))}]) -%}
+        {%- endif -%}
+        {%- set draft_routes = {publish: 'publish_competition', unpublish: 'unpublish_competition', param: 'competitionId'} -%}
+        {#- An edition of a draft series is published through its series -#}
+        {%- set publish_series = item.seriesIsDraft and item.seriesId and is_granted('COMPETITION_SERIES_EDIT', item.seriesId) -%}
     {%- endif -%}
     {%- if is_granted('COMPETITION_DELETE', item.id) -%}
         {%- set delete = {
@@ -76,19 +123,22 @@
     {%- endif -%}
 {%- endif -%}
 {%- set name = item.reference.displayName -%}
+{%- set blockers = unpublish_blockers|default(null) -%}
 <ul class="ev-actions ev-actions-{{ layout }}" aria-label="{{ 'events_organizer.organize.actions'|trans({'%name%': name}) }}">
     {% if approval %}
         <li>
             <form method="post" action="{{ approval.approve_url }}" data-turbo-frame="_top">
                 <input type="hidden" name="return" value="{{ return_url }}">
+                {% if approval.approve_token is defined %}<input type="hidden" name="_token" value="{{ approval.approve_token }}">{% endif %}
                 <button type="submit" class="ev-action ev-action-approve">{{ approval.approve_label|trans }}</button>
             </form>
         </li>
         <li>
-            <details class="ev-confirm" data-controller="inline-confirm" data-action="toggle->inline-confirm#toggled keydown.esc->inline-confirm#cancel">
+            <details class="ev-confirm" data-reject data-controller="inline-confirm" data-action="toggle->inline-confirm#toggled keydown.esc->inline-confirm#cancel">
                 <summary class="ev-action" data-inline-confirm-target="summary">{{ approval.reject_label|trans }}</summary>
                 <form class="ev-confirm-body" method="post" action="{{ approval.reject_url }}" data-turbo-frame="_top">
                     <input type="hidden" name="return" value="{{ return_url }}">
+                    {% if approval.reject_token is defined %}<input type="hidden" name="_token" value="{{ approval.reject_token }}">{% endif %}
                     <label class="ev-confirm-label">
                         {{ 'events_organizer.menu.reject_reason'|trans }}
                         <textarea class="form-control" name="reason" rows="3" required data-inline-confirm-target="focus"></textarea>
@@ -101,12 +151,50 @@
             </details>
         </li>
     {% endif %}
+    {% if draft_routes and item.ownDraft %}
+        <li>
+            <form method="post" action="{{ path(draft_routes.publish, {(draft_routes.param): item.id}) }}" data-turbo-frame="_top">
+                <input type="hidden" name="_token" value="{{ csrf_token(draft_routes.publish ~ '_' ~ item.id) }}">
+                <input type="hidden" name="return" value="{{ return_url }}">
+                <button type="submit" class="ev-action ev-action-publish" data-publish>{{ 'organizer_tools.menu.publish'|trans }}</button>
+            </form>
+        </li>
+    {% endif %}
+    {% if publish_series %}
+        <li>
+            <form method="post" action="{{ path('publish_competition_series', {seriesId: item.seriesId}) }}" data-turbo-frame="_top">
+                <input type="hidden" name="_token" value="{{ csrf_token('publish_competition_series_' ~ item.seriesId) }}">
+                <input type="hidden" name="return" value="{{ return_url }}">
+                <button type="submit" class="ev-action ev-action-publish" data-publish-series>{{ 'organizer_tools.menu.publish_series'|trans }}</button>
+            </form>
+        </li>
+    {% endif %}
     {% for link in links %}
         <li><a class="ev-action" href="{{ link.url }}" data-turbo-frame="_top">{{ link.label|trans }}</a></li>
     {% endfor %}
+    {% if draft_routes and not item.isDraft %}
+        <li>
+            {% if blockers is not null and blockers is not empty %}
+                <p class="ev-action-note" data-cannot-unpublish>{{ 'organizer_tools.menu.cannot_unpublish'|trans({'%reasons%': blockers|map(blocker => blocker.translationKey|trans)|join('drafts_core.blocker_separator'|trans)}) }}</p>
+            {% else %}
+                <details class="ev-confirm" data-unpublish data-controller="inline-confirm" data-action="toggle->inline-confirm#toggled keydown.esc->inline-confirm#cancel">
+                    <summary class="ev-action" data-inline-confirm-target="summary">{{ 'organizer_tools.menu.unpublish'|trans }}</summary>
+                    <form class="ev-confirm-body" method="post" action="{{ path(draft_routes.unpublish, {(draft_routes.param): item.id}) }}" data-turbo-frame="_top">
+                        <input type="hidden" name="_token" value="{{ csrf_token(draft_routes.unpublish ~ '_' ~ item.id) }}">
+                        <input type="hidden" name="return" value="{{ return_url }}">
+                        <p class="ev-confirm-text">{{ 'organizer_tools.menu.unpublish_confirm'|trans({'%name%': name}) }}</p>
+                        <div class="ev-confirm-buttons">
+                            <button type="button" class="ev-action" data-action="inline-confirm#cancel" data-inline-confirm-target="cancel" hidden>{{ 'events_organizer.menu.cancel'|trans }}</button>
+                            <button type="submit" class="ev-action ev-action-solid" data-inline-confirm-target="focus">{{ 'organizer_tools.menu.unpublish_submit'|trans }}</button>
+                        </div>
+                    </form>
+                </details>
+            {% endif %}
+        </li>
+    {% endif %}
     {% if delete %}
         <li>
-            <details class="ev-confirm" data-controller="inline-confirm" data-action="toggle->inline-confirm#toggled keydown.esc->inline-confirm#cancel">
+            <details class="ev-confirm" data-delete data-controller="inline-confirm" data-action="toggle->inline-confirm#toggled keydown.esc->inline-confirm#cancel">
                 <summary class="ev-action ev-action-danger" data-inline-confirm-target="summary">{{ delete.label|trans }}</summary>
                 <form class="ev-confirm-body" method="post" action="{{ delete.url }}" data-turbo-frame="_top">
                     <input type="hidden" name="_token" value="{{ delete.token }}">

@@ -1,0 +1,36 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'organization_rejected.preheader'|trans({'%organizationName%': organizationName})}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'organization_rejected.title'|trans }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {{ 'organization_rejected.content'|trans({
+                        '%organizationName%': organizationName|e,
+                        '%reason%': reason|e,
+                    })|raw }}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <center>
+                        <button href="{{ organizedUrl }}">{{ 'organization_rejected.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

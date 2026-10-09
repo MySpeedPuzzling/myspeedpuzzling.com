@@ -11,6 +11,8 @@
                     {{ tag.type.translationKey|trans({'%date%': tag.date|events_date('yMMMd')}) }}
                 {%- elseif tag.type.value == 'going_count' -%}
                     {{ tag.type.translationKey|trans({'%count%': tag.count}) }}
+                {%- elseif tag.type.value == 'eligibility' -%}
+                    <span class="visually-hidden">{{ 'events_page.tag.eligibility'|trans }}: </span>{{ tag.text }}
                 {%- else -%}
                     {{ tag.type.translationKey|trans }}
                 {%- endif -%}

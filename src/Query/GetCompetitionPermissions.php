@@ -13,6 +13,9 @@ use Symfony\Contracts\Service\ResetInterface;
  * listings ask the voters about every card they render, so a per-id lookup
  * would be an N+1 (Sentry WEB-BZ). The set is small - only what the player
  * owns, maintains or referees - so it is loaded whole and cached until the next request.
+ *
+ * Organizations (docs/features/organizations/README.md "Permissions"): its creator edits and deletes it, a maintainer
+ * edits it; both have the creator's rights (edit + delete) on its series, their editions and its one-time events.
  */
 final class GetCompetitionPermissions implements ResetInterface
 {
@@ -49,6 +52,19 @@ UNION ALL
 SELECT 'series', competition_series_id::text, false FROM competition_series_maintainer WHERE player_id = :playerId
 UNION ALL
 SELECT 'referee', competition_id::text, false FROM competition_referee WHERE player_id = :playerId
+UNION ALL
+SELECT 'organization', id::text, true FROM organization WHERE added_by_player_id = :playerId
+UNION ALL
+SELECT 'organization', organization_id::text, false FROM organization_maintainer WHERE player_id = :playerId
+UNION ALL
+SELECT 'series', cs.id::text, true FROM competition_series cs
+WHERE cs.organization_id IN (SELECT o.id FROM organization o WHERE o.added_by_player_id = :playerId
+                             UNION SELECT om.organization_id FROM organization_maintainer om WHERE om.player_id = :playerId)
+UNION ALL
+SELECT 'competition', c.id::text, true FROM competition c
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+WHERE COALESCE(c.organization_id, cs.organization_id) IN (SELECT o.id FROM organization o WHERE o.added_by_player_id = :playerId
+                                                          UNION SELECT om.organization_id FROM organization_maintainer om WHERE om.player_id = :playerId)
 SQL;
 
         /** @var list<array{kind: string, id: string, owner: bool}> $rows */
@@ -61,10 +77,22 @@ SQL;
         $editableSeriesIds = [];
         $deletableSeriesIds = [];
         $refereeCompetitionIds = [];
+        $editableOrganizationIds = [];
+        $deletableOrganizationIds = [];
 
         foreach ($rows as $row) {
             if ($row['kind'] === 'referee') {
                 $refereeCompetitionIds[$row['id']] = true;
+
+                continue;
+            }
+
+            if ($row['kind'] === 'organization') {
+                $editableOrganizationIds[$row['id']] = true;
+
+                if ($row['owner'] === true) {
+                    $deletableOrganizationIds[$row['id']] = true;
+                }
 
                 continue;
             }
@@ -92,6 +120,8 @@ SQL;
             editableSeriesIds: $editableSeriesIds,
             deletableSeriesIds: $deletableSeriesIds,
             refereeCompetitionIds: $refereeCompetitionIds,
+            editableOrganizationIds: $editableOrganizationIds,
+            deletableOrganizationIds: $deletableOrganizationIds,
         );
 
         $this->cache[$playerId] = $permissions;

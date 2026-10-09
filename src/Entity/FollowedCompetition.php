@@ -17,13 +17,15 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
 /**
- * A player follows a one-time event or a whole series (docs/features/events-page/README.md, "Follow"). Exactly one
- * of the two targets is set - the named constructors are the only way in. An edition is never followed on its own:
- * its star follows the series. Rows cascade with the player, the competition and the series.
+ * A player follows a one-time event, a whole series (docs/features/events-page/README.md, "Follow") or an
+ * organization (docs/features/organizations/README.md, "Follow"). Exactly one of the three targets is set - the named
+ * constructors are the only way in (no DB check). An edition is never followed on its own: its star follows the
+ * series. Rows cascade with the player, the competition, the series and the organization.
  */
 #[Entity]
 #[UniqueConstraint(columns: ['player_id', 'competition_id'])]
 #[UniqueConstraint(columns: ['player_id', 'series_id'])]
+#[UniqueConstraint(columns: ['player_id', 'organization_id'])]
 class FollowedCompetition
 {
     private function __construct(
@@ -46,6 +48,10 @@ class FollowedCompetition
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $createdAt,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[ManyToOne]
+        #[JoinColumn(name: 'organization_id', nullable: true, onDelete: 'CASCADE')]
+        public null|Organization $organization = null,
     ) {
     }
 
@@ -57,6 +63,22 @@ class FollowedCompetition
     public static function ofSeries(UuidInterface $id, Player $player, CompetitionSeries $series, DateTimeImmutable $createdAt): self
     {
         return new self($id, $player, null, $series, $createdAt);
+    }
+
+    public static function ofOrganization(UuidInterface $id, Player $player, Organization $organization, DateTimeImmutable $createdAt): self
+    {
+        return new self($id, $player, null, null, $createdAt, $organization);
+    }
+
+    /**
+     * CreateOrganizationFromSeries: the followed series became an organization's - its followers follow the
+     * organization from now on (a player following both keeps one row: the caller removes this one instead).
+     */
+    public function moveToOrganization(Organization $organization): void
+    {
+        $this->competition = null;
+        $this->series = null;
+        $this->organization = $organization;
     }
 
     /**

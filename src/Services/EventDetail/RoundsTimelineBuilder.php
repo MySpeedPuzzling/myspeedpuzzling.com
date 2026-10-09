@@ -47,6 +47,8 @@ readonly final class RoundsTimelineBuilder
         null|DateTimeImmutable $dateFrom,
         null|DateTimeImmutable $dateTo,
         DateTimeImmutable $now,
+        // the zone of an event without rounds - RoundTimezone::resolve(null, its country, its series' country)
+        string $zone = 'UTC',
     ): RoundsTimeline {
         $isPastAt = static fn (EditionRoundDetail $round): bool => $round->startsAt->modify('+' . $round->minutesLimit . ' minutes') <= $now;
 
@@ -116,7 +118,7 @@ readonly final class RoundsTimelineBuilder
                 zoneAssumed: $round->timezoneAssumed,
             ),
             $rounds,
-        ));
+        ), $zone);
 
         $first = $sessions[0];
         $last = $sessions[count($sessions) - 1];
@@ -128,7 +130,8 @@ readonly final class RoundsTimelineBuilder
         }
 
         $firstRound = $rounds[0] ?? null;
-        $today = OccurrenceDates::today($now);
+        // Today in the event's zone, like its status
+        $today = OccurrenceDates::localDay($now, $first->zone());
         $runsUntilEnd = $rounds === []
             && $first->start !== null
             && $first->end !== null

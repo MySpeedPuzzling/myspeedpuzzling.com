@@ -3,9 +3,13 @@
     detail-pages.md "The shared header"). Used with embed:
 
     {% embed 'event_parts/_detail_header.html.twig' with {crumbs, logo, name, description, return_fallback_url, return_fallback_title} %}
+        {% block byline %}…{% endblock %}
         {% block facts %}…{% endblock %}
         {% block actions %}…{% endblock %}
     {% endembed %}
+
+    The byline (docs/features/organizations/README.md: "Organized by", "Who can enter", "When it happens") sits between
+    the H1 and the facts, as <p class="ev-detail-byline"> - only when it has content.
 
     The ?return= back button only when the URL carries one; the breadcrumb always. The logo is decorative (the H1 follows).
     H1 = the organiser's name. Description: plain text, line breaks kept (nl2br escapes first).
@@ -20,6 +24,8 @@
     {% endif %}
     <div class="ev-detail-head">
         <h1 class="ev-detail-name">{{ name }}</h1>
+        {%- set byline -%}{% block byline %}{% endblock %}{%- endset -%}
+        {% if byline|trim is not empty %}<p class="ev-detail-byline">{{ byline }}</p>{% endif %}
         <p class="ev-detail-facts">{% block facts %}{% endblock %}</p>
         <div class="ev-detail-actions">{% block actions %}{% endblock %}</div>
     </div>

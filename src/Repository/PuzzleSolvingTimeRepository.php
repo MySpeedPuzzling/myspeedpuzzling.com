@@ -8,6 +8,8 @@ use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeamMember;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
@@ -130,6 +132,34 @@ readonly final class PuzzleSolvingTimeRepository
         return $queryBuilder
             ->getQuery()
             ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->getResult();
+    }
+
+    /**
+     * The times that belong to the round, in its current competition: linked to it (competition_round_id), or - not
+     * linked yet - solved in its category on one of its puzzles, the rule of SolvingTimeRoundResolver /
+     * RoundResultsReconciler (a puzzle is in at most one round per category per competition, so such a time can only
+     * belong to this round). MoveRoundToCompetition moves them all with the round.
+     *
+     * @return list<PuzzleSolvingTime>
+     */
+    public function findByCompetitionRound(CompetitionRound $round): array
+    {
+        /** @var list<PuzzleSolvingTime> */
+        return $this->entityManager->createQueryBuilder()
+            ->select('time')
+            ->from(PuzzleSolvingTime::class, 'time')
+            ->where('time.competition = :competition')
+            ->andWhere(
+                'time.competitionRound = :round OR (time.competitionRound IS NULL AND time.puzzlingType = :category AND time.puzzle IN ('
+                . 'SELECT IDENTITY(roundPuzzle.puzzle) FROM ' . CompetitionRoundPuzzle::class . ' roundPuzzle WHERE roundPuzzle.round = :round'
+                . '))',
+            )
+            ->setParameter('competition', $round->competition->id->toString())
+            ->setParameter('round', $round->id->toString())
+            ->setParameter('category', PuzzlingType::from($round->category->value))
+            ->orderBy('time.id')
+            ->getQuery()
             ->getResult();
     }
 }

@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Message\RecordPlayerActivity;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -153,6 +159,48 @@ final class JoinCompetitionHandlerTest extends KernelTestCase
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             playerId: PlayerFixture::PLAYER_ADMIN,
             participantId: CompetitionParticipantFixture::PARTICIPANT_DELETED,
+        ));
+    }
+
+    /**
+     * Only a publicly visible event can be joined (docs/features/organizations/README.md, P17) - not one waiting for
+     * approval, not a draft
+     */
+    public function testAnEventThatIsNotPublicCannotBeJoined(): void
+    {
+        foreach ([CompetitionFixture::COMPETITION_UNAPPROVED, OrganizationFixture::COMPETITION_DRAFT_NIGHT] as $competitionId) {
+            try {
+                $this->messageBus->dispatch(new JoinCompetition(competitionId: $competitionId, playerId: PlayerFixture::PLAYER_ADMIN));
+                self::fail('A player joined an event that is not public.');
+            } catch (CompetitionNotFound) {
+                // Refused
+            }
+        }
+
+        self::assertSame(0, $this->database->fetchOne(
+            'SELECT COUNT(*) FROM competition_participant WHERE player_id = :pid AND competition_id IN (:unapproved, :draft)',
+            ['pid' => PlayerFixture::PLAYER_ADMIN, 'unapproved' => CompetitionFixture::COMPETITION_UNAPPROVED, 'draft' => OrganizationFixture::COMPETITION_DRAFT_NIGHT],
+        ));
+    }
+
+    public function testANameOnTheListOfADraftCannotBePicked(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $participant = new CompetitionParticipant(
+            id: Uuid::uuid7(),
+            name: 'Prepared Puzzler',
+            country: 'cz',
+            competition: self::getContainer()->get(CompetitionRepository::class)->get(OrganizationFixture::COMPETITION_DRAFT_NIGHT),
+        );
+        $entityManager->persist($participant);
+        $entityManager->flush();
+
+        $this->expectException(CompetitionNotFound::class);
+
+        $this->messageBus->dispatch(new JoinCompetition(
+            competitionId: OrganizationFixture::COMPETITION_DRAFT_NIGHT,
+            playerId: PlayerFixture::PLAYER_ADMIN,
+            participantId: $participant->id->toString(),
         ));
     }
 

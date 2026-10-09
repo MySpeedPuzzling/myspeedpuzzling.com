@@ -33,12 +33,21 @@ readonly final class GetCompetitionEvents
         // same for the official results (docs/features/competitions-management/official-results.md)
         $shownOnPage = GetCompetitionPageSections::sqlShownOnCompetitionPage('s', 'c');
         $showsOfficialResults = GetPublishedRoundResults::sqlShowsOfficialResults('official_round');
+        $organizationVisible = IsOrganizationPubliclyVisible::SQL_CONDITION;
+        // A one-time event's own organization (an edition's is its series' - GetCompetitionSeries) rides on this statement:
+        // the "Organized by" byline costs no query (docs/features/organizations/README.md)
         $query = <<<SQL
 SELECT
     c.*,
     EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections,
-    EXISTS (SELECT 1 FROM competition_round official_round WHERE official_round.competition_id = c.id AND {$showsOfficialResults}) AS has_published_official_results
+    EXISTS (SELECT 1 FROM competition_round official_round WHERE official_round.competition_id = c.id AND {$showsOfficialResults}) AS has_published_official_results,
+    o.id AS organization_ref_id,
+    o.name AS organization_ref_name,
+    o.short_name AS organization_ref_short_name,
+    o.slug AS organization_ref_slug,
+    COALESCE(({$organizationVisible}), false) AS organization_ref_public
 FROM competition c
+LEFT JOIN organization o ON o.id = c.organization_id
 WHERE c.id = :id
 SQL;
 
@@ -103,7 +112,9 @@ SQL;
         $date = $this->clock->now()->format('Y-m-d');
         $params = ['date' => $date];
 
-        $cte = <<<'SQL'
+        $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        // Standalone (one-time) events only, publicly visible - drafts never reach the API
+        $cte = <<<SQL
         WITH event_classified AS (
             SELECT c.*,
                 CASE
@@ -116,8 +127,8 @@ SQL;
                 END AS event_status,
                 COALESCE(c.date_from, c.date_to) AS sort_date
             FROM competition c
-            WHERE c.approved_at IS NOT NULL
-                AND c.rejected_at IS NULL
+            LEFT JOIN competition_series cs ON cs.id = c.series_id
+            WHERE {$visible}
                 AND c.series_id IS NULL
         )
         SQL;
@@ -165,6 +176,8 @@ SQL;
     }
 
     /**
+     * The admin approval queue - never a draft: it is submitted by publishing it (docs/features/organizations/README.md).
+     *
      * @return array<CompetitionEvent>
      */
     public function allUnapproved(): array
@@ -176,6 +189,7 @@ LEFT JOIN player p ON p.id = c.added_by_player_id
 WHERE c.approved_at IS NULL
     AND c.rejected_at IS NULL
     AND c.series_id IS NULL
+    AND c.is_draft = false
 ORDER BY c.created_at DESC;
 SQL;
 

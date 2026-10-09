@@ -9,7 +9,7 @@ use SpeedPuzzling\Web\Value\FollowTargetKind;
 
 /**
  * What the events page needs to know about the signed-in viewer (GetEventsViewerData): what they are going to, what
- * they follow, what they organise. Ids are lower case.
+ * they follow, what they organise - organizations included (docs/features/organizations/README.md). Ids are lower case.
  */
 readonly final class EventsViewerData
 {
@@ -19,6 +19,9 @@ readonly final class EventsViewerData
      * @param list<string> $followedSeriesIds
      * @param array<string, null|string> $organizedCompetitions competition id => its series id (null for a one-time event)
      * @param list<string> $organizedSeriesIds
+     * @param list<string> $followedOrganizationIds
+     * @param list<string> $organizedOrganizationIds the organizations the viewer is on the team of
+     * @param array<string, string> $organizationOfItem organized competition or series id => the organization it is under
      */
     public function __construct(
         public array $goingCompetitionIds = [],
@@ -26,6 +29,9 @@ readonly final class EventsViewerData
         public array $followedSeriesIds = [],
         public array $organizedCompetitions = [],
         public array $organizedSeriesIds = [],
+        public array $followedOrganizationIds = [],
+        public array $organizedOrganizationIds = [],
+        public array $organizationOfItem = [],
     ) {
     }
 
@@ -36,11 +42,40 @@ readonly final class EventsViewerData
 
     public function follows(FollowTarget $target): bool
     {
-        if ($target->kind === FollowTargetKind::Series) {
-            return in_array($target->id, $this->followedSeriesIds, true);
-        }
+        return match ($target->kind) {
+            FollowTargetKind::Series => in_array($target->id, $this->followedSeriesIds, true),
+            FollowTargetKind::Organization => in_array($target->id, $this->followedOrganizationIds, true),
+            FollowTargetKind::Competition => in_array($target->id, $this->followedCompetitionIds, true),
+        };
+    }
 
-        return in_array($target->id, $this->followedCompetitionIds, true);
+    public function followsOrganization(string $organizationId): bool
+    {
+        return in_array(strtolower($organizationId), $this->followedOrganizationIds, true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function followedOrganizationIds(): array
+    {
+        return $this->followedOrganizationIds;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function organizedOrganizationIds(): array
+    {
+        return $this->organizedOrganizationIds;
+    }
+
+    /**
+     * The organization an organized competition or series is under - null when none
+     */
+    public function organizationOf(string $itemId): null|string
+    {
+        return $this->organizationOfItem[strtolower($itemId)] ?? null;
     }
 
     /**
@@ -86,10 +121,17 @@ readonly final class EventsViewerData
     }
 
     /**
-     * The one rule shared by the "You organize (n)" button and the "You organize" page.
+     * The one rule shared by the "You organize (n)" button and the "You organize" page (docs/features/organizations/
+     * README.md, P9): the viewer's organizations, plus the series and events not under one of them (those are listed
+     * under their organization).
      */
     public function organizedCount(): int
     {
-        return count($this->organizedCompetitionIds()) + count($this->organizedSeriesIds());
+        $notUnderOwnOrganization = fn (string $itemId): bool => $this->organizationOf($itemId) === null
+            || in_array($this->organizationOf($itemId), $this->organizedOrganizationIds, true) === false;
+
+        return count($this->organizedOrganizationIds)
+            + count(array_filter($this->organizedCompetitionIds(), $notUnderOwnOrganization))
+            + count(array_filter($this->organizedSeriesIds(), $notUnderOwnOrganization));
     }
 }

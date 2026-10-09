@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionSeries;
+use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 
 readonly final class CompetitionSeriesRepository
@@ -38,5 +39,23 @@ readonly final class CompetitionSeriesRepository
     public function delete(CompetitionSeries $series): void
     {
         $this->entityManager->remove($series);
+    }
+
+    /**
+     * @return list<CompetitionSeries>
+     */
+    public function listByOrganization(Organization $organization): array
+    {
+        /** @var list<CompetitionSeries> $series */
+        $series = $this->entityManager->createQueryBuilder()
+            ->select('s')
+            ->from(CompetitionSeries::class, 's')
+            ->where('s.organization = :organization')
+            ->setParameter('organization', $organization)
+            ->orderBy('s.name')
+            ->getQuery()
+            ->getResult();
+
+        return $series;
     }
 }

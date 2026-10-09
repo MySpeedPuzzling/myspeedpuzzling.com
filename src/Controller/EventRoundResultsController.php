@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
+use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\RoundResults\RoundResultsPageBuilder;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,6 +36,13 @@ final class EventRoundResultsController extends AbstractController
         #[MapEntity(expr: 'repository.findOneBy({"slug": slug}, {"series": "DESC"})')] Competition $competition,
         string $roundSlug,
     ): Response {
+        // A draft exists only for its team and admins - not even the redirect of an edition's results, which would tell
+        // the draft's series URL (docs/features/organizations/README.md "Drafts", P5). The team gets the page builder's
+        // 404 below: round results of an event that is not public are never shown
+        if ($competition->isHiddenAsDraft() && $this->isGranted(CompetitionEditVoter::COMPETITION_EDIT, $competition->id->toString()) === false) {
+            throw new DraftNotVisible();
+        }
+
         // A series edition's slug is only unique within its series - its results live under the series URL
         if ($competition->series !== null && $competition->series->slug !== null && $competition->slug !== null) {
             return $this->redirectToRoute('edition_round_results', [

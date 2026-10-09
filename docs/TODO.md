@@ -137,6 +137,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       slowest attempt (usually the first try). Promised to Šárka (MSP #194, follow-up F60).
 - [ ] A player setting to hide other puzzlers' skill tiers / rating shields across the site (ladder, leaderboards,
       profiles) - today ranking opt-out hides only your own. Promised to Martine (MSP #125, follow-up F66).
+- [ ] Brand doughnut chart on player statistics: with 7+ brands the legend overflows and the last line is cut off
+      (Android Chromium) - give the chart container a height that fits the legend
+      (PlayerStatistics::getManufacturersChart, _player_statistics_category.html.twig). Promised to Fredrik (MSP #216,
+      follow-up F77).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

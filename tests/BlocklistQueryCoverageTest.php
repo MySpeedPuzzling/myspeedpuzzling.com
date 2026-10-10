@@ -59,6 +59,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetFreeTrialStatistics' => self::ADMIN,
         'GetGettingStartedProgress' => self::OWN_DATA,
         'GetPlayerKarma' => self::OWN_DATA,
+        'GetProgressionDrift' => 'Nightly safety net (cron, no viewer): player ids whose stored progression disagrees with their records - nothing is shown to anybody.',
         'GetProposerTrackRecords' => 'Review queues: the proposer of a request a moderator is deciding, by id, with no identity - their karma and accepted/declined counts.',
         'GetLendBorrowCounterparties' => self::BILATERAL,
         'GetLendBorrowHistory' => self::BILATERAL,

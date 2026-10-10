@@ -36,8 +36,6 @@
                             <a href="{{ path('puzzle_detail', {puzzleId: block.puzzleId}) }}">{{ block.puzzleName }}</a>
                         {% elseif block.isDeletedSolve() %}
                             <span class="text-body-secondary">{{ 'xp.history.deleted_solve_title'|trans }}</span>
-                        {% elseif block.badgeType is not null %}
-                            {{ 'xp.history.achievement_title'|trans({'%achievement%': block.badgeType.translationKey()|trans}) }}{% if block.badgeTier is not null %} ({{ block.badgeTier.translationKey()|trans }}){% endif %}
                         {% else %}
                             {{ ('xp.line.' ~ block.lines[0].reason.value)|trans }}
                         {% endif %}

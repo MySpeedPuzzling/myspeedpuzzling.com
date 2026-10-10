@@ -9,6 +9,7 @@ use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -38,6 +39,8 @@ final class MyActivityControllerTest extends WebTestCase
 
     public function testThePageFollowsTheLaunchSwitch(): void
     {
+        // Before the XP launch (the switch off): only admins see progression
+        FixedXpLaunchReadiness::$ready = false;
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $browser->request('GET', '/en/my/activity');
@@ -117,7 +120,8 @@ final class MyActivityControllerTest extends WebTestCase
         self::assertSame($withOne, $withThree, 'One statement for the results, whatever their number');
         // Measured 2026-10-10 for a member: the signed-in overhead + player row, results, places, achievements, rating
         // snapshots + ladder place, streak, favourites, most solved, next achievement tiers. Higher = a bug to explain
-        self::assertSame(24, $withThree, 'The page budget');
+        // (23 since the navbar ring reads the viewer's profile row)
+        self::assertSame(23, $withThree, 'The page budget');
     }
 
     private function measure(KernelBrowser $browser, string $url): int

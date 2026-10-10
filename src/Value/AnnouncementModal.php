@@ -11,7 +11,18 @@ namespace SpeedPuzzling\Web\Value;
  */
 enum AnnouncementModal: string
 {
+    // The XP / levels / achievements launch (docs/features/xp-levels/launch-2026-10.md): one-time, so it goes first
+    case XpLaunchReveal = 'xp_launch_reveal';
     case FreeTrialOffer = 'free_trial_offer';
+
+    /**
+     * The launch modal is the first thing a player sees after the launch: the pause between two announcement modals
+     * (ResolveAnnouncementModal::COOLDOWN_DAYS) does not hold it back - the next modal's pause counts from it.
+     */
+    public function ignoresCooldown(): bool
+    {
+        return $this === self::XpLaunchReveal;
+    }
 
     public function template(): string
     {

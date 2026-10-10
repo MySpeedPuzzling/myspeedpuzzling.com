@@ -1,25 +1,20 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 
-const COUNT_MS = 650;
-
 /**
  * The XP launch reveal of a member (templates/xp_launch_reveal.html.twig): every achievement, one card at a time in
  * crescendo order. Each card assembles by itself (the last-piece reveal, driven through the outlet), then its name,
- * tier, the requirement it met and the XP it brought appear and the XP counter at the top grows by that much. A tap
- * anywhere (or the big button) goes on - while a card still assembles, the first tap completes it. The level
- * medallion is the finale (the counter lands on the player's XP), a summary of everything ends it; "Skip to summary"
+ * tier, the requirement it met and the Achievement Points it brought appear. The XP in the bar stays the player's XP
+ * from puzzles - achievements grant none. A tap anywhere (or the big button) goes on - while a card still assembles,
+ * the first tap completes it. The level medallion is the finale, a summary of everything ends it; "Skip to summary"
  * is there all the time. Reduced motion: every card is complete at once (the reveal controller decides).
  */
 export default class extends Controller {
-    static targets = ['intro', 'deck', 'card', 'counter', 'progress', 'next', 'summary', 'summaryHeading'];
+    static targets = ['intro', 'deck', 'card', 'progress', 'next', 'summary', 'summaryHeading'];
 
     static outlets = ['last-piece-reveal'];
 
     static values = {
-        start: Number,                                     // the counter's first value: what the puzzles alone brought
-        total: Number,                                     // the player's XP: where the counter lands with the level
-        totalText: String,                                 // the same, as the server printed it ("3 500")
         progress: String,                                  // "%current% / %total%"
         nextLabel: String,
         levelLabel: String,
@@ -29,15 +24,6 @@ export default class extends Controller {
     connect() {
         this.index = -1;
         this.queued = false;
-        this.shown = this.startValue;
-        this.aim = this.startValue;
-        this.frame = 0;
-        // thousands grouped exactly like the server groups them (number_format in the template)
-        this.separator = this.totalTextValue.match(/\d(\D+)\d{3}$/)?.[1] ?? '';
-    }
-
-    disconnect() {
-        cancelAnimationFrame(this.frame);
     }
 
     lastPieceRevealOutletConnected() {
@@ -126,8 +112,6 @@ export default class extends Controller {
         }
 
         card.classList.add('is-revealed');
-        const isLevel = card.classList.contains('xpl-card-level');
-        this.countTo(isLevel ? this.totalValue : this.aim + Number(card.dataset.xp || 0), event.detail.instant);
 
         if (!event.detail.instant && !prefersReducedMotion()) {
             card.querySelector('.xpl-card-text')?.animate(
@@ -159,7 +143,6 @@ export default class extends Controller {
     }
 
     finish() {
-        cancelAnimationFrame(this.frame);
         this.introTarget.hidden = true;
         this.deckTarget.hidden = true;
         this.summaryTarget.hidden = false;
@@ -173,38 +156,6 @@ export default class extends Controller {
         if (!this.deckTarget.hidden && !this.deckTarget.contains(document.activeElement)) {
             this.nextTarget.focus({ preventScroll: true });
         }
-    }
-
-    countTo(value, instant) {
-        this.aim = value;
-        cancelAnimationFrame(this.frame);
-
-        if (instant || prefersReducedMotion()) {
-            this.shown = value;
-            this.counterTarget.textContent = this.format(value);
-            return;
-        }
-
-        const from = this.shown;
-        const started = performance.now();
-        const tick = (now) => {
-            const progress = Math.min((now - started) / COUNT_MS, 1);
-            this.shown = Math.round(from + (value - from) * (1 - Math.pow(1 - progress, 3)));
-            this.counterTarget.textContent = this.format(this.shown);
-
-            if (progress < 1) {
-                this.frame = requestAnimationFrame(tick);
-            }
-        };
-        this.frame = requestAnimationFrame(tick);
-        this.counterTarget.parentElement?.animate(
-            [{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }],
-            { duration: 420, easing: 'ease-out' },
-        );
-    }
-
-    format(value) {
-        return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, this.separator);
     }
 }
 

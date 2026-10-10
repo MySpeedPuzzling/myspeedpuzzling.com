@@ -7,9 +7,9 @@ namespace SpeedPuzzling\Web\Tests\Services\Xp;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Services\Xp\XpCalculator;
 use SpeedPuzzling\Web\Services\Xp\XpChainRecomputer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\XpSettingsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -115,7 +115,7 @@ final class XpAntiAbuseTest extends KernelTestCase
     private function insertSolve(string $playerId, string $puzzleId, null|int $seconds, int $pieces): string
     {
         $solveId = Uuid::uuid7()->toString();
-        $at = XpCalculator::fullFormulaFrom()->modify('+5 days')->format('Y-m-d H:i:s');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+5 days')->format('Y-m-d H:i:s');
 
         $this->database->executeStatement(
             'INSERT INTO puzzle_solving_time

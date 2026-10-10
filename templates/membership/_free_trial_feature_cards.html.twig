@@ -1,6 +1,7 @@
 {# What a membership unlocks, as places to go - shown right after the free trial starts. Parameter: player_id
    rel: nofollow on player statistics, like every link to it (a crawl trap, see public/robots.txt) #}
 {% set features = [
+    {key: 'achievements', icon: 'bi bi-award', url: path('badge_reveals')},
     {key: 'insights', icon: 'bi bi-graph-up-arrow', url: path('my_profile')},
     {key: 'statistics', icon: 'bi bi-bar-chart', url: path('player_statistics', {playerId: player_id}), rel: 'nofollow'},
     {key: 'picker', icon: 'bi bi-shuffle', url: path('puzzle_picker')},

@@ -1584,7 +1584,6 @@ competition_referees:
     "solve_daily_warmup": "Échauffement du jour"
     "difficulty_settlement": "Bonus de difficulté (régularisé)"
     "speed_settlement": "Bonus de vitesse (régularisé)"
-    "achievement": "Succès obtenu"
     "solve_compensation": "Résolution supprimée"
     "difficulty_pending": "Bonus de difficulté en attente — versé dès que ce puzzle sera noté"
     "speed_pending": "Bonus de vitesse en attente — il faut les temps de 3 puzzleurs"
@@ -1624,7 +1623,6 @@ competition_referees:
     "to_summary": "Tout voir"
     "tap_hint": "Touchez n'importe où pour continuer"
     "progress": "%current% / %total%"
-    "badge_xp": "+%xp% XP"
     "summary_title": "Tout ce que vous avez gagné"
     "counter_title": "Vos XP"
   "explainer":

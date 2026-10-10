@@ -1,0 +1,36 @@
+{# The level medallion, drawn in the 300-unit square of the last-piece reveal: the site's XP ring (arc colours per
+   milestone like _xp.scss .xp-ring-milestone-*, XpRing::milestoneClass) around "LEVEL" and the number. #}
+{% macro level_medallion(xp_profile, gradient_id) %}
+    {% set milestone = xp_profile.isMaxLevel ? 50 : xp_profile.level // 10 * 10 %}
+    {% set arc = {
+        0: ['#69b3fe', '#69b3fe'],
+        10: ['#69b3fe', '#4e54c8'],
+        20: ['#4e54c8', '#ec726f'],
+        30: ['#ec726f', '#4e54c8'],
+        40: ['#ec726f', '#69b3fe'],
+        50: ['#f0a500', '#ffd700'],
+    }[milestone] %}
+    {% set arc_length = 841.95 %}{# 2 pi x 134 #}
+    <defs>
+        <linearGradient id="{{ gradient_id }}" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="{{ arc[0] }}"/>
+            <stop offset="1" stop-color="{{ arc[1] }}"/>
+        </linearGradient>
+    </defs>
+    <g class="lpr-emblem-art">
+        <circle cx="150" cy="150" r="140" fill="#ffffff"/>
+        <circle cx="150" cy="150" r="134" fill="none" stroke="#2b3445" stroke-opacity=".14" stroke-width="12"/>
+        <circle
+            cx="150"
+            cy="150"
+            r="134"
+            fill="none"
+            stroke="url(#{{ gradient_id }})"
+            stroke-width="12"
+            stroke-dasharray="{{ ((xp_profile.progressToNext ?? 1) * arc_length)|round(2) }} {{ arc_length }}"
+            transform="rotate(-90 150 150)"
+        />
+        <text x="150" y="101" text-anchor="middle" font-family="Rubik, sans-serif" font-size="22" font-weight="500" letter-spacing="2" fill="#7d879c">{{ 'xp.reveal.level_label'|trans|upper }}</text>
+        <text x="150" y="177" text-anchor="middle" font-family="Rubik, sans-serif" font-size="76" font-weight="700" fill="#373f50">{{ xp_profile.level }}</text>
+    </g>
+{% endmacro %}

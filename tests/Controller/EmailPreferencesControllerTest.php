@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
@@ -141,9 +142,11 @@ final class EmailPreferencesControllerTest extends WebTestCase
 
     public function testTheActivityEmailHasItsOwnFrequencyOnceTheLaunchSwitchShowsIt(): void
     {
+        // Before the XP launch (the switch off): only admins see progression
+        FixedXpLaunchReadiness::$ready = false;
         $browser = self::createClient();
 
-        // A player: the switch follows the XP launch switch (off in tests) - not on the page, saving keeps the value
+        // A player: the switch follows the XP launch switch (off here) - not on the page, saving keeps the value
         $crawler = $browser->request('GET', '/en/email-preferences/' . $this->preferencesToken());
         self::assertCount(0, $crawler->filter('select[name="content_digest_frequency"]'));
 

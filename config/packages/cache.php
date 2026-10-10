@@ -74,6 +74,11 @@ return App::config([
                 'name_tag_qr_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // The XP launch switch (XpLaunchReadiness): one shared entry, so every worker and container sees the
+                // switch within a request of it being flipped. Clear it after setting xp_settings.launch_ready_at by hand
+                'xp_launch_readiness_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

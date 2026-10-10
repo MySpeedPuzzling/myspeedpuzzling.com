@@ -9,13 +9,11 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\XpHistoryBlock;
 use SpeedPuzzling\Web\Results\XpHistoryEntry;
-use SpeedPuzzling\Web\Value\BadgeTier;
-use SpeedPuzzling\Web\Value\BadgeType;
 use SpeedPuzzling\Web\Value\XpReason;
 
 /**
  * XP ledger for the audit page "where did my XP come from?" — every entry with reason, amount and a link back to its
- * solve or achievement. User-facing auditability is a locked requirement. The page reads it grouped: one block per
+ * solve. User-facing auditability is a locked requirement. The page reads it grouped: one block per
  * solve (blocksForPlayer), newest change first, so a bonus settled today shows up on top with its solve.
  */
 readonly class GetXpHistory
@@ -37,19 +35,16 @@ SELECT
     e.earned_at,
     e.solving_time_id,
     pst.puzzle_id,
-    p.name AS puzzle_name,
-    b.type AS badge_type,
-    b.tier AS badge_tier
+    p.name AS puzzle_name
 FROM xp_entry e
 LEFT JOIN puzzle_solving_time pst ON pst.id = e.solving_time_id
 LEFT JOIN puzzle p ON p.id = pst.puzzle_id
-LEFT JOIN badge b ON b.id = e.badge_id
 WHERE e.player_id = :playerId
 ORDER BY e.earned_at DESC, e.created_at DESC, e.id DESC
 LIMIT :limit OFFSET :offset
 SQL;
 
-        /** @var list<array{reason: string, amount: int, earned_at: string, solving_time_id: null|string, puzzle_id: null|string, puzzle_name: null|string, badge_type: null|string, badge_tier: null|int}> $rows */
+        /** @var list<array{reason: string, amount: int, earned_at: string, solving_time_id: null|string, puzzle_id: null|string, puzzle_name: null|string}> $rows */
         $rows = $this->database
             ->executeQuery($sql, [
                 'playerId' => $playerId,
@@ -68,8 +63,6 @@ SQL;
                 solvingTimeId: $row['solving_time_id'],
                 puzzleId: $row['puzzle_id'],
                 puzzleName: $row['puzzle_name'],
-                badgeType: $row['badge_type'] === null ? null : BadgeType::tryFrom($row['badge_type']),
-                badgeTier: $row['badge_tier'] === null ? null : BadgeTier::from($row['badge_tier']),
             );
         }
 
@@ -165,17 +158,14 @@ SELECT
     e.reason,
     e.amount,
     e.earned_at,
-    e.solving_time_id,
-    b.type AS badge_type,
-    b.tier AS badge_tier
+    e.solving_time_id
 FROM xp_entry e
-LEFT JOIN badge b ON b.id = e.badge_id
 WHERE e.player_id = :playerId
   AND (e.solving_time_id IN (:solvingTimeIds) OR e.id IN (:entryIds))
 ORDER BY e.earned_at ASC, e.created_at ASC, e.id ASC
 SQL;
 
-        /** @var list<array{id: string, reason: string, amount: int, earned_at: string, solving_time_id: null|string, badge_type: null|string, badge_tier: null|int}> $lineRows */
+        /** @var list<array{id: string, reason: string, amount: int, earned_at: string, solving_time_id: null|string}> $lineRows */
         $lineRows = $this->database
             ->executeQuery($linesSql, [
                 'playerId' => $playerId,
@@ -206,15 +196,8 @@ SQL;
             }
 
             $lines = [];
-            $badgeType = null;
-            $badgeTier = null;
 
             foreach ($rows as $row) {
-                $lineBadgeType = $row['badge_type'] === null ? null : BadgeType::tryFrom($row['badge_type']);
-                $lineBadgeTier = $row['badge_tier'] === null ? null : BadgeTier::from($row['badge_tier']);
-                $badgeType ??= $lineBadgeType;
-                $badgeTier ??= $lineBadgeTier;
-
                 $lines[] = new XpHistoryEntry(
                     reason: XpReason::from($row['reason']),
                     amount: $row['amount'],
@@ -222,8 +205,6 @@ SQL;
                     solvingTimeId: $row['solving_time_id'],
                     puzzleId: $blockRow['puzzle_id'],
                     puzzleName: $blockRow['puzzle_name'],
-                    badgeType: $lineBadgeType,
-                    badgeTier: $lineBadgeTier,
                 );
             }
 
@@ -235,8 +216,6 @@ SQL;
                 puzzlingType: $blockRow['puzzling_type'],
                 isTimed: $blockRow['seconds_to_solve'] !== null,
                 occurrenceIndex: $blockRow['puzzle_id'] !== null && is_numeric($blockRow['earlier_solves']) ? (int) $blockRow['earlier_solves'] + 1 : null,
-                badgeType: $badgeType,
-                badgeTier: $badgeTier,
                 lines: $lines,
             );
         }

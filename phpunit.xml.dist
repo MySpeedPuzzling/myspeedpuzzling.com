@@ -24,5 +24,6 @@
         <bootstrap class="Symfony\Component\Panther\ServerExtension" />
         <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension"/>
         <bootstrap class="SpeedPuzzling\Web\Tests\Panther\Extension\PantherDatabaseExtension"/>
+        <bootstrap class="SpeedPuzzling\Web\Tests\Extension\XpLaunchSwitchResetExtension"/>
     </extensions>
 </phpunit>

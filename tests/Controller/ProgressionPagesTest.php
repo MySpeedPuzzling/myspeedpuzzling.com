@@ -9,9 +9,9 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetXpHistory;
-use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Services\Xp\XpRecomputer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -19,8 +19,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 /**
  * Workstream D of the progression launch (docs/features/xp-levels/launch-2026-10.md): the "How progress works" hub,
  * the achievements catalogue, the holders page, the leaderboards, the grouped XP history and the puzzle page's XP
- * estimate. Most tests open the xp-system gate the way the launch does (XpFeatureGate visible for everybody) and look
- * at the pages as a guest, a free player and a member.
+ * estimate. The tests run launched (the switch on, FixedXpLaunchReadiness) and look at the pages as a guest, a free
+ * player and a member.
  */
 final class ProgressionPagesTest extends WebTestCase
 {
@@ -28,6 +28,8 @@ final class ProgressionPagesTest extends WebTestCase
 
     public function testHubIsPublicAndGroupedByFamily(): void
     {
+        // Before the XP launch (the switch off): only admins see progression
+        FixedXpLaunchReadiness::$ready = false;
         $browser = self::createClient();
 
         $crawler = $browser->request('GET', '/en/how-progress-works');
@@ -49,7 +51,6 @@ final class ProgressionPagesTest extends WebTestCase
     public function testHubCardsLinkTheDeepPagesOnceTheGateIsOpen(): void
     {
         $browser = self::createClient();
-        $this->openXpGate();
 
         $crawler = $browser->request('GET', '/en/how-progress-works');
 
@@ -70,7 +71,6 @@ final class ProgressionPagesTest extends WebTestCase
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $this->openXpGate();
 
         $crawler = $browser->request('GET', '/en/faq');
 
@@ -84,7 +84,6 @@ final class ProgressionPagesTest extends WebTestCase
     public function testCatalogueForAGuestShowsTheAchievementsButNothingPersonal(): void
     {
         $browser = self::createClient();
-        $this->openXpGate();
 
         $crawler = $browser->request('GET', '/en/achievements');
 
@@ -106,7 +105,6 @@ final class ProgressionPagesTest extends WebTestCase
         $browser = self::createClient();
         $this->insertBadge(PlayerFixture::PLAYER_REGULAR, 'puzzles_solved', 1);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        $this->openXpGate();
 
         // Asking for the personal filter falls back to "All"
         $crawler = $browser->request('GET', '/en/achievements?show=earned');
@@ -124,7 +122,6 @@ final class ProgressionPagesTest extends WebTestCase
         $browser = self::createClient();
         $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $this->openXpGate();
 
         $crawler = $browser->request('GET', '/en/achievements?show=earned');
 
@@ -147,7 +144,6 @@ final class ProgressionPagesTest extends WebTestCase
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $this->openXpGate();
 
         $this->startCountingQueries($browser);
         $browser->request('GET', '/en/achievements?show=all');
@@ -163,7 +159,6 @@ final class ProgressionPagesTest extends WebTestCase
         $browser = self::createClient();
         $this->insertBadge(PlayerFixture::PLAYER_REGULAR, 'puzzles_solved', 1);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        $this->openXpGate();
 
         $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
 
@@ -180,7 +175,6 @@ final class ProgressionPagesTest extends WebTestCase
         $browser = self::createClient();
         $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $this->openXpGate();
 
         $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
 
@@ -195,7 +189,6 @@ final class ProgressionPagesTest extends WebTestCase
         $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1);
         $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 2);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $this->openXpGate();
 
         $crawler = $browser->request('GET', '/en/achievements/puzzles_solved');
 
@@ -242,7 +235,6 @@ final class ProgressionPagesTest extends WebTestCase
         $browser = self::createClient();
         $this->setXp([PlayerFixture::PLAYER_REGULAR => 900, PlayerFixture::PLAYER_WITH_STRIPE => 400, PlayerFixture::PLAYER_ADMIN => 100]);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $this->openXpGate();
 
         $this->startCountingQueries($browser);
         $crawler = $browser->request('GET', '/en/players/xp-leaderboard?favorites=1');
@@ -263,7 +255,6 @@ final class ProgressionPagesTest extends WebTestCase
         $browser = self::createClient();
         $this->setXp([PlayerFixture::PLAYER_REGULAR => 900, PlayerFixture::PLAYER_WITH_STRIPE => 400]);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $this->openXpGate();
 
         // A Czech board: the British viewer is not on it, so no pinned row
         $crawler = $browser->request('GET', '/en/players/xp-leaderboard?country=cz');
@@ -277,7 +268,6 @@ final class ProgressionPagesTest extends WebTestCase
     public function testApTabAsksAGuestToSignInWithAReturnLink(): void
     {
         $browser = self::createClient();
-        $this->openXpGate();
 
         $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=achievement-points');
 
@@ -290,7 +280,6 @@ final class ProgressionPagesTest extends WebTestCase
     public function testXpHistoryShowsOneBlockPerSolveWithItsTotal(): void
     {
         $browser = self::createClient();
-        $this->openXpGate();
         self::getContainer()->get(XpRecomputer::class)->recomputeForPlayer(PlayerFixture::PLAYER_REGULAR);
         self::getContainer()->get(EntityManagerInterface::class)->flush();
         $expectedBlocks = min(20, self::getContainer()->get(GetXpHistory::class)->countBlocksForPlayer(PlayerFixture::PLAYER_REGULAR));
@@ -364,7 +353,6 @@ final class ProgressionPagesTest extends WebTestCase
             TestingLogin::asPlayer($browser, $viewer);
         }
 
-        $this->openXpGate();
         $crawler = $browser->request('GET', '/en/puzzle/' . $puzzleId);
         self::assertResponseIsSuccessful();
 
@@ -375,10 +363,6 @@ final class ProgressionPagesTest extends WebTestCase
      * What the launch does: the xp-system gate opens for everybody. The browser keeps this kernel for its first
      * request only - one request per gate opening.
      */
-    private function openXpGate(): void
-    {
-        self::getContainer()->set(XpFeatureGate::class, new XpFeatureGate(adminOnly: false));
-    }
 
     private function insertBadge(string $playerId, string $type, int $tier): void
     {

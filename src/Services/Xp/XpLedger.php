@@ -46,7 +46,6 @@ readonly final class XpLedger
                 earnedAt: $draft->earnedAt,
                 createdAt: $now,
                 solvingTimeId: $draft->solvingTimeId,
-                badgeId: $draft->badgeId,
             ));
 
             $delta += $draft->amount;

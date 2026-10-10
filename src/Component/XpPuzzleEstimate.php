@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Query\GetSolveXpDisplayInfo;
-use SpeedPuzzling\Web\Query\GetXpProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpCalculator;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
@@ -44,7 +43,6 @@ final class XpPuzzleEstimate
     public function __construct(
         readonly private XpCalculator $xpCalculator,
         readonly private GetSolveXpDisplayInfo $getSolveXpDisplayInfo,
-        readonly private GetXpProfile $getXpProfile,
         readonly private XpFeatureGate $xpFeatureGate,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
@@ -63,7 +61,8 @@ final class XpPuzzleEstimate
             return;
         }
 
-        if ($viewer !== null && $this->getXpProfile->byPlayerId($viewer->playerId)->optedOut) {
+        // The opt-out rides on the viewer's own profile row - no query of its own
+        if ($viewer !== null && $viewer->experienceSystemOptedOut) {
             return;
         }
 

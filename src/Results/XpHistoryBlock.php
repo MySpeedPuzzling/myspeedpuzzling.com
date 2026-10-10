@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
-use SpeedPuzzling\Web\Value\BadgeTier;
-use SpeedPuzzling\Web\Value\BadgeType;
 use SpeedPuzzling\Web\Value\XpReason;
 
 /**
  * One block of the XP history ("where did my XP come from?"): every ledger line of one solve - the solve's own lines,
- * the bonuses that settled later and the compensation when it was deleted - or one stand-alone entry (an achievement
- * from before achievements stopped granting XP).
+ * the bonuses that settled later and the compensation when it was deleted - or one stand-alone entry (every entry
+ * comes from a solve; a stand-alone one is a line whose solve reference is missing).
  */
 readonly final class XpHistoryBlock
 {
@@ -29,8 +27,6 @@ readonly final class XpHistoryBlock
         public bool $isTimed,
         /** 1 = the player's first solve of this puzzle, 2 = the second, … (null for deleted solves) */
         public null|int $occurrenceIndex,
-        public null|BadgeType $badgeType,
-        public null|BadgeTier $badgeTier,
         public array $lines,
     ) {
     }

@@ -1568,7 +1568,6 @@ xp:
         solve_daily_warmup: "Tägliches Warm-up"
         difficulty_settlement: "Schwierigkeitsbonus (nachgereicht)"
         speed_settlement: "Tempobonus (nachgereicht)"
-        achievement: "Erfolg erhalten"
         solve_compensation: "Ergebnis gelöscht"
         difficulty_pending: "Schwierigkeitsbonus ausstehend — wird nachgereicht, sobald dieses Puzzle bewertet ist"
         speed_pending: "Tempobonus ausstehend — braucht Zeiten von 3 Puzzlern"
@@ -1608,7 +1607,6 @@ xp:
         to_summary: "Alles ansehen"
         tap_hint: "Tippe irgendwo, um weiterzumachen"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
         summary_title: "Alles, was du dir verdient hast"
         counter_title: "Deine XP"
     explainer:

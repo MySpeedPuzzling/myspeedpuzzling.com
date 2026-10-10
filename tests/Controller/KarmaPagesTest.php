@@ -6,8 +6,8 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\Karma\KarmaRecalculator;
-use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -43,6 +43,8 @@ final class KarmaPagesTest extends WebTestCase
 
     public function testBeforeTheLaunchOnlyAdminsReachTheHistory(): void
     {
+        // Before the XP launch (the switch off): only admins see progression
+        FixedXpLaunchReadiness::$ready = false;
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
@@ -140,8 +142,8 @@ final class KarmaPagesTest extends WebTestCase
 
     private function launch(KernelBrowser $browser): void
     {
+        // The tests run launched (FixedXpLaunchReadiness) - one kernel for the SQL log across requests
         $browser->disableReboot();
-        $browser->getContainer()->set(XpFeatureGate::class, new XpFeatureGate(adminOnly: false));
     }
 
     private function derivationRuns(KernelBrowser $browser): int

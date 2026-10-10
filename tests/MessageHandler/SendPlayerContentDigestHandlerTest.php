@@ -22,6 +22,8 @@ use SpeedPuzzling\Web\Services\Digest\PlayerPeriodActivityReader;
 use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
+use SpeedPuzzling\Web\Tests\TestDouble\XpLaunchReadinessStub;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
@@ -137,6 +139,23 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
 
         self::assertStringContainsString('/en/achievements/puzzles_solved', $html);
         self::assertStringContainsString(' AP', $html);
+    }
+
+    public function testAchievementsEarnedBeforeTheLaunchSwitchAreNotNews(): void
+    {
+        // The launch backfill stamped this achievement; the switch went on after it
+        $this->insertSolve(self::MEMBER, '2030-03-06 18:00:00');
+        $this->insertBadge(self::MEMBER, '2030-03-06 18:00:01');
+        FixedXpLaunchReadiness::$readyAt = new DateTimeImmutable('2030-03-06 19:00:00');
+
+        $transport = new TransportSpy();
+        ($this->handler($transport))(new SendPlayerContentDigest(self::MEMBER, self::PERIOD, ContentDigestKind::Activity, $this->insertRun()));
+
+        $email = $transport->sent[0];
+        self::assertInstanceOf(TemplatedEmail::class, $email);
+        $this->render($email);
+
+        self::assertStringNotContainsString('/en/achievements/puzzles_solved', (string) $email->getHtmlBody());
     }
 
     public function testTheNoActivityEmailGoesToAQuietPlayer(): void
@@ -322,7 +341,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
             clock: $this->clock,
             logger: $logger ?? new NullLogger(),
             playerAccountEmail: $container->get(PlayerAccountEmail::class),
-            xpFeatureGate: new XpFeatureGate(adminOnly: $launchReady === false),
+            xpFeatureGate: new XpFeatureGate(new XpLaunchReadinessStub($launchReady)),
         );
     }
 

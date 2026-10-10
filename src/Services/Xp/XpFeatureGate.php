@@ -7,44 +7,29 @@ namespace SpeedPuzzling\Web\Services\Xp;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 
 /**
- * Feature flag `xp-system` (docs/features/feature_flags.md) for the XP / Levels / Achievements
- * launch.
+ * Who sees XP, levels and achievements (`xp-launch` switch, docs/features/feature_flags.md): everybody once the launch
+ * backfill was verified (XpLaunchReadiness), admins always - so they can check production before the switch.
  *
- * While $adminOnly is true, every user-facing surface of the gamification bundle — levels,
- * XP receipts, achievements/badges, leaderboards, digests and outbound emails — renders/sends
- * for admins only. Persistence (badge rows, XP ledger) keeps running for everyone so production
- * accumulates data silently before the launch reveal.
- *
- * The value comes from the XP_SYSTEM_ADMIN_ONLY env var (config/services.php), so the
- * launch flip needs no code change; the constructor default keeps the flag ACTIVE for
- * anything that builds the gate directly.
- *
- * Launch day: flip the env var, then remove this gate and all its call sites — the full
- * surface checklist lives in docs/features/xp-levels/leak-inventory.md.
+ * There is no environment flag any more: the deploy ships everything, `myspeedpuzzling:xp-backfill` calculates the
+ * history, verifies it and flips the switch. Remove this gate with its call sites once the launch is settled.
  */
 readonly final class XpFeatureGate
 {
     public function __construct(
-        private bool $adminOnly = true,
+        private XpLaunchReadiness $xpLaunchReadiness,
     ) {
     }
 
     public function isVisibleFor(null|PlayerProfile $viewer): bool
     {
-        if ($this->adminOnly === false) {
-            return true;
-        }
-
-        return $viewer?->isAdmin === true;
+        return $viewer?->isAdmin === true || $this->xpLaunchReadiness->isReady();
     }
 
     /**
-     * Outbound email traffic belonging to this feature (achievement congratulations, weekly
-     * content digest, reveal emails) is suppressed entirely while the flag is active —
-     * for everyone, admins included.
+     * E-mails about XP (the activity digest) go out only after the launch - for everybody, admins included.
      */
     public function isEmailSendingEnabled(): bool
     {
-        return $this->adminOnly === false;
+        return $this->xpLaunchReadiness->isReady();
     }
 }

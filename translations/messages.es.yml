@@ -1584,7 +1584,6 @@ xp:
         solve_daily_warmup: "Calentamiento diario"
         difficulty_settlement: "Bonus por dificultad (liquidado)"
         speed_settlement: "Bonus por velocidad (liquidado)"
-        achievement: "Logro conseguido"
         solve_compensation: "Resolución eliminada"
         difficulty_pending: "Bonus por dificultad pendiente — se liquida cuando este puzzle reciba valoración"
         speed_pending: "Bonus por velocidad pendiente — necesita tiempos de 3 puzzleros"
@@ -1624,7 +1623,6 @@ xp:
         to_summary: "Verlo todo"
         tap_hint: "Toca en cualquier lugar para continuar"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
         summary_title: "Todo lo que has conseguido"
         counter_title: "Tus XP"
     explainer:

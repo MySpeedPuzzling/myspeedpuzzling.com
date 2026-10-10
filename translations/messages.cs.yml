@@ -1582,7 +1582,6 @@ xp:
         solve_daily_warmup: "Denní rozcvička"
         difficulty_settlement: "Bonus za obtížnost (doúčtováno)"
         speed_settlement: "Bonus za rychlost (doúčtováno)"
-        achievement: "Získaný úspěch"
         solve_compensation: "Smazané složení"
         difficulty_pending: "Bonus za obtížnost čeká — doúčtuje se, jakmile puzzle získá hodnocení"
         speed_pending: "Bonus za rychlost čeká — potřebuje časy od 3 puzzlerů"
@@ -1622,7 +1621,6 @@ xp:
         to_summary: "Zobrazit vše"
         tap_hint: "Pokračuj klepnutím kamkoli"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
         summary_title: "Tvoje úspěchy a úroveň"
         counter_title: "Tvoje XP"
     explainer:

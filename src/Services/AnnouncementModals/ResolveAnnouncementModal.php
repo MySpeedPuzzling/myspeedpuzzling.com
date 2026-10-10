@@ -32,7 +32,7 @@ final class ResolveAnnouncementModal implements ResetInterface
     public const int COOLDOWN_DAYS = 14;
 
     /**
-     * Pages in the middle of something: paying, signing in, timing a puzzle, filling a form, running an
+     * Pages in the middle of something: paying, signing in, timing a puzzle, filling a form, a reveal moment, running an
      * event (the organisers' tools - an offer over the participants sheet or the results desk on event
      * day is in the way). A modal skipped here is not lost - it waits for the next page that can take
      * the interruption.
@@ -45,7 +45,8 @@ final class ResolveAnnouncementModal implements ResetInterface
         'request_password_reset', 'password_reset', 'account_set_password', 'change_account_password',
         'change_account_email', 'request_account_deletion', 'confirm_account_deletion', 'account_deleted',
         'social_register_confirm', 'oauth2_authorize', 'oauth2_device_code', 'claim_oauth2_credentials',
-        'edit_profile', 'puzzle_add', 'legacy_add_time', 'edit_time', 'delete_time', 'added_time_recap', 'added_tracking_recap',
+        'edit_profile', 'puzzle_add', 'legacy_add_time', 'edit_time', 'delete_time', 'added_time_recap',
+        'added_tracking_recap', 'xp_launch_reveal', 'badge_reveals',
         'stopwatch', 'stopwatch_puzzle', 'finish_stopwatch', 'round_stopwatch', 'manage_round_stopwatch',
         'participants_sheet', 'results_desk', 'round_seating', 'live_results', 'competition_results_overview',
         'competition_check_in', 'competition_name_tags',
@@ -123,10 +124,11 @@ final class ResolveAnnouncementModal implements ResetInterface
     private function firstModalFor(PlayerProfile $viewer, \DateTimeImmutable $now): null|AnnouncementModal
     {
         $cooldownStart = $now->modify('-' . self::COOLDOWN_DAYS . ' days');
+        $inCooldown = false;
 
         foreach ($viewer->modalImpressions as $displayedAt) {
             if ($displayedAt > $cooldownStart) {
-                return null;
+                $inCooldown = true;
             }
         }
 
@@ -141,6 +143,10 @@ final class ResolveAnnouncementModal implements ResetInterface
             $rule = $rules[$modal->value] ?? null;
 
             if ($rule === null || isset($viewer->modalImpressions[$modal->value])) {
+                continue;
+            }
+
+            if ($inCooldown && $modal->ignoresCooldown() === false) {
                 continue;
             }
 

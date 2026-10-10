@@ -11,8 +11,8 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * Membership-page invite to the achievement reveal moment — shown to fresh (and
- * returning) members who still have unrevealed medallions waiting.
+ * Invite to the achievement reveal moment (badge_reveals) — on the membership page (where Stripe checkout lands) and
+ * the free trial's welcome page, for members who still have unrevealed achievements waiting.
  */
 #[AsTwigComponent]
 final class XpRevealInvite

@@ -7,10 +7,10 @@ namespace SpeedPuzzling\Web\Tests\Services\Xp;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Services\Xp\XpCalculator;
 use SpeedPuzzling\Web\Services\Xp\XpRecomputer;
 use SpeedPuzzling\Web\Value\LevelTable;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\XpSettingsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -35,8 +35,8 @@ final class XpRecomputerTest extends KernelTestCase
     {
         $playerId = PlayerFixture::PLAYER_REGULAR;
 
-        // A pre-existing achievement entry must survive the rebuild untouched.
-        $badgeId = $this->insertAchievementEntry($playerId, xp: 25);
+        // An achievement entry from before achievements stopped granting XP is dropped by the rebuild
+        $this->insertLegacyAchievementEntry($playerId, xp: 25);
 
         // Two solves after the full-formula cutoff exercise weekly boost + daily warm-up - in a week without other
         // solves of the player: the fixture solves are dated relative to now and would take the warm-up of their day
@@ -46,7 +46,7 @@ final class XpRecomputerTest extends KernelTestCase
 
         // A solve logged before the cutoff, built here: the fixture solves are dated relative to now, so they are
         // past the cutoff once it is more than a few weeks old and cannot stand for the backfill formula
-        $beforeCutoff = XpCalculator::fullFormulaFrom()->modify('-10 days');
+        $beforeCutoff = XpSettingsFixture::fullFormulaFrom()->modify('-10 days');
         $backfillSolve = $this->insertSolve($playerId, PuzzleFixture::PUZZLE_500_05, 3600, $beforeCutoff->setTime(9, 0), 500);
 
         $this->recompute($playerId);
@@ -77,12 +77,12 @@ final class XpRecomputerTest extends KernelTestCase
             $this->entriesFor($solveB),
         );
 
-        // Achievement entry preserved.
-        $achievementCount = $this->database->fetchOne(
-            'SELECT COUNT(*) FROM xp_entry WHERE badge_id = :badgeId',
-            ['badgeId' => $badgeId],
+        // Every entry left comes from a solve
+        $notFromSolve = $this->database->fetchOne(
+            'SELECT COUNT(*) FROM xp_entry WHERE player_id = :playerId AND solving_time_id IS NULL',
+            ['playerId' => $playerId],
         );
-        self::assertSame(1, (int) (is_numeric($achievementCount) ? $achievementCount : 0));
+        self::assertSame(0, (int) (is_numeric($notFromSolve) ? $notFromSolve : -1));
 
         // Denormalized totals match the ledger and the level curve.
         $this->assertTotalsMatchLedger($playerId);
@@ -130,7 +130,7 @@ final class XpRecomputerTest extends KernelTestCase
             $playerId,
             PuzzleFixture::PUZZLE_500_04,
             600,
-            XpCalculator::fullFormulaFrom()->modify('+20 days'),
+            XpSettingsFixture::fullFormulaFrom()->modify('+20 days'),
             500,
             suspicious: true,
         );
@@ -142,7 +142,7 @@ final class XpRecomputerTest extends KernelTestCase
 
     private function wednesdayOfAWeekWithoutSolves(string $playerId): \DateTimeImmutable
     {
-        $monday = XpCalculator::fullFormulaFrom()->modify('monday next week');
+        $monday = XpSettingsFixture::fullFormulaFrom()->modify('monday next week');
 
         while (true) {
             $solvesInWeek = $this->database->fetchOne(
@@ -207,7 +207,7 @@ final class XpRecomputerTest extends KernelTestCase
     private function ledgerSnapshot(string $playerId): array
     {
         return $this->database->fetchAllAssociative(
-            'SELECT reason, amount, solving_time_id, badge_id, in_weekly_delta, earned_at
+            'SELECT reason, amount, solving_time_id, in_weekly_delta, earned_at
              FROM xp_entry WHERE player_id = :playerId
              ORDER BY earned_at, solving_time_id, reason',
             ['playerId' => $playerId],
@@ -242,23 +242,13 @@ final class XpRecomputerTest extends KernelTestCase
         self::assertSame(LevelTable::levelForXp($totals['xp_total']), $totals['level']);
     }
 
-    private function insertAchievementEntry(string $playerId, int $xp): string
+    private function insertLegacyAchievementEntry(string $playerId, int $xp): void
     {
-        $badgeId = Uuid::uuid7()->toString();
-
         $this->database->executeStatement(
-            "INSERT INTO badge (id, player_id, type, earned_at, tier)
-             VALUES (:id, :playerId, 'puzzles_solved', NOW(), 1)",
-            ['id' => $badgeId, 'playerId' => $playerId],
+            "INSERT INTO xp_entry (id, player_id, amount, reason, in_weekly_delta, earned_at, created_at)
+             VALUES (:id, :playerId, :amount, 'achievement', true, NOW(), NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'amount' => $xp],
         );
-
-        $this->database->executeStatement(
-            "INSERT INTO xp_entry (id, player_id, amount, reason, in_weekly_delta, earned_at, created_at, badge_id)
-             VALUES (:id, :playerId, :amount, 'achievement', true, NOW(), NOW(), :badgeId)",
-            ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'amount' => $xp, 'badgeId' => $badgeId],
-        );
-
-        return $badgeId;
     }
 
     private function insertSolve(

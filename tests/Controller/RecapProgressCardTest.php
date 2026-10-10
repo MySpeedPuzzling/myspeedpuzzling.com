@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\AnnouncementModals\ResolveAnnouncementModal;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\LevelTable;
@@ -223,6 +224,8 @@ final class RecapProgressCardTest extends WebTestCase
 
     public function testWithoutTheProgressionTheRecapShowsOnlyThePlace(): void
     {
+        // Before the XP launch (the switch off): only admins see progression
+        FixedXpLaunchReadiness::$ready = false;
         $browser = self::createClient();
         // PLAYER_REGULAR is no admin: the xp-system gate hides every XP and achievement trace
         $this->giveXp(PlayerFixture::PLAYER_REGULAR, PuzzleSolvingTimeFixture::TIME_01, [5], total: 5);

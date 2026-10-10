@@ -2090,7 +2090,6 @@ xp:
         solve_daily_warmup: "Daily warm-up"
         difficulty_settlement: "Difficulty bonus (settled)"
         speed_settlement: "Speed bonus (settled)"
-        achievement: "Achievement earned"
         solve_compensation: "Solve deleted"
         difficulty_pending: "Difficulty bonus pending — settles when this puzzle gets rated"
         speed_pending: "Speed bonus pending — needs times from 3 puzzlers"
@@ -2132,7 +2131,6 @@ xp:
         player: "Puzzler"
     history:
         deleted_solve_title: "Deleted solve"
-        achievement_title: "Achievement: %achievement%"
         relax: "Relax"
         type:
             solo: "Solo"
@@ -2146,6 +2144,14 @@ xp:
         empty: "No XP yet — your first solve changes that."
         pagination: "XP history pages"
         note: "Wondering about a line?"
+    launch_modal:
+        title: "Your puzzling journey just turned into XP"
+        text: "Every puzzle you ever logged counts. Here is your level:"
+        button_member: "Reveal your achievements"
+        button_continue: "See everything"
+        later: "Maybe later"
+        member_tease: "{1}You also earned 1 achievement - become a member to find out which.|]1,Inf[You also earned %count% achievements - become a member to find out which."
+        member_tease_zero: "Members also collect achievements and Achievement Points for what they complete."
     reveal:
         meta_title: "Your puzzling journey, revealed"
         title: "Your whole journey just turned into XP ✨"
@@ -2166,7 +2172,7 @@ xp:
         to_summary: "See everything"
         tap_hint: "Tap anywhere to continue"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
+        badge_points: "+%points% AP"
         summary_title: "Everything you've earned"
         counter_title: "Your XP"
     explainer:
@@ -6836,6 +6842,9 @@ free_trial:
         where_to_look: "Where to look first"
         membership_link: "Membership options and the state of your trial"
     features:
+        achievements:
+            title: "Your achievements"
+            text: "The achievements you already earned are waiting for their reveal - one little puzzle each."
         insights:
             title: "Insights on your profile"
             text: "Your skill tier, puzzle difficulty and how long a puzzle should take you."

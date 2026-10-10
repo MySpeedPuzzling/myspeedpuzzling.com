@@ -42,6 +42,10 @@ return App::config([
                 'marketplace_events_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                // A test flips the XP launch switch in its rolled-back transaction
+                'xp_launch_readiness_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
             ],
         ],
     ],

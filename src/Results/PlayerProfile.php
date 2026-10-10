@@ -72,6 +72,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     leaderboard_chart_view?: null|string,
  *     comparison_view?: null|string,
  *     comparison_line_up?: null|string,
+ *     has_solving_time?: bool,
  *     xp_total?: int|string,
  *     level?: int|string,
  *     achievement_points?: int|string,
@@ -181,6 +182,11 @@ readonly final class PlayerProfile
          */
         public ComparisonView $comparisonView = ComparisonView::Table,
         public ComparisonLineUp $comparisonLineUp = new ComparisonLineUp(),
+        /**
+         * The signed-in player's own profile only: they logged at least one counted (not suspicious) solving time - the
+         * audience of the XP launch announcement modal (XpLaunchRevealRule). One index probe on the viewer's own row.
+         */
+        public bool $hasSolvingTime = false,
         /** Accepted contributions to the puzzle database (docs/features/karma.md) - public, 0 for admins */
         public int $karma = 0,
         /**
@@ -402,6 +408,7 @@ readonly final class PlayerProfile
                 $hiddenPlayerIds,
                 $revealedPrivatePlayerIds,
             ),
+            hasSolvingTime: $row['has_solving_time'] ?? false,
             karma: (int) ($row['karma'] ?? 0),
             xpTotal: (int) ($row['xp_total'] ?? 0),
             level: (int) ($row['level'] ?? 1),

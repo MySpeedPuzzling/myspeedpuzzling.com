@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\RecalculateCommunityStats;
 use SpeedPuzzling\Web\MessageHandler\RecalculateCommunityStatsHandler;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\SkillTier;
@@ -66,6 +67,8 @@ final class PlayerCardControllerTest extends WebTestCase
 
     public function testAGuestSeesTheActivityAndTheTierLocked(): void
     {
+        // Before the XP launch (the switch off): only admins see progression
+        FixedXpLaunchReadiness::$ready = false;
         $browser = $this->browser();
         $this->rate(PlayerFixture::PLAYER_REGULAR);
 

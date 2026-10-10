@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\LevelTable;
@@ -144,6 +145,8 @@ final class ProfileProgressionTest extends WebTestCase
 
     public function testWhileXpIsNotVisibleTheAvatarsStayPlainAndAlone(): void
     {
+        // Before the XP launch (the switch off): only admins see progression
+        FixedXpLaunchReadiness::$ready = false;
         $browser = self::createClient();
         $this->setXp(PlayerFixture::PLAYER_WITH_STRIPE, LevelTable::xpForLevel(12) + 1);
         $this->earnStreak(PlayerFixture::PLAYER_WITH_STRIPE);
@@ -167,8 +170,9 @@ final class ProfileProgressionTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        // Guest on a member's profile: the profile row (header chips + ring included) and the page's own statements
-        self::assertSame(10, $this->measure($browser, null, PlayerFixture::PLAYER_WITH_STRIPE));
+        // Guest on a member's profile: the profile row (header chips + ring included), the page's own statements and,
+        // since the XP launch, the member's achievements showcase (page content, one statement)
+        self::assertSame(11, $this->measure($browser, null, PlayerFixture::PLAYER_WITH_STRIPE));
         // A member viewer: + the signed-in overhead, the achievements showcase and the skill / rating cards; the
         // header's tier and the rings cost nothing
         self::assertSame(22, $this->measure($browser, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE));

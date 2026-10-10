@@ -9,39 +9,27 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * While the xp-system feature flag is active, the fair-play page must be invisible
- * to everyone except admins. Delete the flag-related tests on launch day.
+ * The fair-play page is public since the launch (no feature flag).
  */
 final class FairPlayXpControllerTest extends WebTestCase
 {
-    public function testAnonymousVisitorGets404WhileFlagged(): void
+    public function testAnonymousVisitorSeesTheFairPlayPage(): void
     {
         $browser = self::createClient();
 
         $browser->request('GET', '/en/fair-play-xp');
 
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Fair play &amp; trust', (string) $browser->getResponse()->getContent());
     }
 
-    public function testNonAdminGets404WhileFlagged(): void
+    public function testSignedInPlayerSeesTheFairPlayPage(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         $browser->request('GET', '/en/fair-play-xp');
 
-        self::assertResponseStatusCodeSame(404);
-    }
-
-    public function testAdminSeesFairPlayPageWhileFlagged(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
-
-        $browser->request('GET', '/en/fair-play-xp');
-
         self::assertResponseIsSuccessful();
-        $content = (string) $browser->getResponse()->getContent();
-        self::assertStringContainsString('Fair play &amp; trust', $content);
     }
 }

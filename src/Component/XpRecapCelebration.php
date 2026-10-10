@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Query\GetAchievementsEarnedWithSolve;
+use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetSolveXpDisplayInfo;
 use SpeedPuzzling\Web\Query\GetXpEntriesForSolve;
 use SpeedPuzzling\Web\Query\GetXpProfile;
@@ -70,9 +70,9 @@ final class XpRecapCelebration
 
     public function __construct(
         readonly private GetXpProfile $getXpProfile,
+        readonly private GetBadges $getBadges,
         readonly private GetXpEntriesForSolve $getXpEntriesForSolve,
         readonly private GetSolveXpDisplayInfo $getSolveXpDisplayInfo,
-        readonly private GetAchievementsEarnedWithSolve $getAchievementsEarnedWithSolve,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
     ) {
@@ -229,10 +229,7 @@ final class XpRecapCelebration
             return $this->loadedAchievements = [];
         }
 
-        return $this->loadedAchievements = $this->getAchievementsEarnedWithSolve->forPlayerAndSolvingTime(
-            $profile->playerId,
-            $this->solvingTimeId,
-        );
+        return $this->loadedAchievements = $this->getBadges->earnedWithSolve($profile->playerId, $this->solvingTimeId);
     }
 
     public function pointsOf(BadgeResult $badge): int

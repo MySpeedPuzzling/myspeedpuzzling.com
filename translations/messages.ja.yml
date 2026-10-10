@@ -1661,7 +1661,6 @@ xp:
         solve_daily_warmup: "デイリーウォームアップ"
         difficulty_settlement: "難易度ボーナス（確定）"
         speed_settlement: "スピードボーナス（確定）"
-        achievement: "実績獲得"
         solve_compensation: "記録の削除"
         difficulty_pending: "難易度ボーナスは保留中 — このパズルが評価されると確定します"
         speed_pending: "スピードボーナスは保留中 — 3人のパズラーのタイムが必要です"
@@ -1701,7 +1700,6 @@ xp:
         to_summary: "すべて見る"
         tap_hint: "どこかをタップして次へ"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
         summary_title: "あなたが手にしたすべて"
         counter_title: "あなたのXP"
     explainer:

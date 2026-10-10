@@ -1,8 +1,8 @@
 //
 // XP / Levels / Achievements
 // --------------------------------------------------
-// Everything here is CSS-only by design (locked decision): milestone rings, receipt
-// entrance, level-up celebration and confetti ship zero images and zero JS animation.
+// Everything here is CSS-only by design (locked decision): milestone rings and confetti ship zero
+// images and zero JS animation. The recap after logging a time: assets/styles/_xp-recap.scss.
 
 $xp-coral:  #ec726f;
 $xp-sky:    #69b3fe;
@@ -150,56 +150,13 @@ $xp-gold-deep: #f0a500;
 }
 
 
-// Post-solve receipt — additive lines with a staggered CSS entrance;
-// the progress bar fills after the total lands.
-
-.xp-receipt-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: .75rem;
-  min-height: 44px; // thumb-friendly tap target
-  padding: .3rem .25rem;
-  opacity: 0;
-  transform: translateY(6px);
-  animation: xp-line-in .3s ease-out forwards;
-
-  @for $i from 1 through 8 {
-    &:nth-child(#{$i}) {
-      animation-delay: #{$i * 0.07}s;
-    }
-  }
-}
-
-@keyframes xp-line-in {
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
+// The XP amount next to a line (XP leaderboard)
 
 .xp-receipt-amount {
   font-weight: 700;
   color: $xp-indigo;
   white-space: nowrap;
 }
-
-.xp-receipt-total {
-  border-top: 2px solid rgba($xp-navy, .15);
-  font-weight: 700;
-
-  .xp-receipt-amount {
-    color: $xp-navy;
-    font-size: 1.1rem;
-  }
-}
-
-// Pending settlement line ("settles when this puzzle gets rated") — visible but calm.
-.xp-receipt-pending {
-  opacity: .55;
-  font-style: italic;
-}
-
 
 // Free-user teaser (the locked badges themselves: .badge-art-waiting in _badge-art.scss)
 
@@ -214,54 +171,7 @@ $xp-gold-deep: #f0a500;
 }
 
 
-// Level-up celebration — full-screen interstitial, tap anywhere to dismiss.
-
-.xp-levelup-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1090;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: .75rem;
-  padding: 1.5rem;
-  text-align: center;
-  color: #fff;
-  background: radial-gradient(circle at 50% 35%, rgba($xp-indigo, .92), rgba($xp-navy, .96));
-  cursor: pointer;
-  animation: xp-fade-in .25s ease-out;
-}
-
-.xp-levelup-overlay-max {
-  background: radial-gradient(circle at 50% 35%, rgba($xp-gold-deep, .94), rgba($xp-navy, .97));
-}
-
-.xp-levelup-label {
-  font-size: 1rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  opacity: .85;
-}
-
-.xp-levelup-number {
-  font-size: 5rem;
-  font-weight: 800;
-  line-height: 1;
-  animation: xp-pop .55s cubic-bezier(.2, 1.6, .4, 1);
-}
-
-.xp-levelup-hint {
-  font-size: .8rem;
-  opacity: .7;
-  margin-top: 1rem;
-}
-
-@keyframes xp-fade-in {
-  from {
-    opacity: 0;
-  }
-}
+// Pop-in (the recap's "Level up!" pill, assets/styles/_xp-recap.scss)
 
 @keyframes xp-pop {
   0% {
@@ -383,10 +293,7 @@ $xp-gold-deep: #f0a500;
 // Accessibility: celebrations stay, motion goes.
 
 @media (prefers-reduced-motion: reduce) {
-  .xp-receipt-line,
   .xp-progressbar-fill,
-  .xp-levelup-number,
-  .xp-levelup-overlay,
   .badge-flip-back {
     animation: none;
     opacity: 1;

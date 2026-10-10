@@ -81,8 +81,19 @@ picks it up automatically.
 
 ### Surfaces
 
-Recap receipt + celebration (`XpSolveReceipt` inside the `XpRecapCelebration`
-LiveComponent — one poll bridges the async award), profile/header rings (`XpRing`,
+Recap after logging a time = **one progress card** (launch-2026-10.md "After logging a time"): the live rows come
+from the `XpRecapCelebration` LiveComponent (achievements this time earned + the level line with the receipt one tap
+away in a `<details>`), the page adds the place on the puzzle and - for piece counts with a rating (500) - MSP Rating /
+skill tier (members; free players one locked line). XP is awarded asynchronously: the component polls with a growing
+delay (`POLL_DELAYS_MS`, ~30 s) and then says the XP is on its way; the render showing the XP is the last one.
+"This time earned an achievement" = badge rows stamped within `GetAchievementsEarnedWithSolve::WINDOW` after the
+time's `tracked_at` (badges do not point at a solve; the badge message is queued before the XP one). Members reveal it
+in place with the last-piece puzzle (`reveal_badge`, so a reload shows the badge); free players read "You earned an
+achievement with this time. Become a member to find out which." Level-up: the "Level up!" pill always; the motion
+(bar fill, number tick, burst) and the milestone bottom sheet (10/20/30/40/50) only on a fresh recap
+(`RecapProgress::isFresh`, 60 min) and once per time id, remembered in localStorage by
+`recap_celebration_controller.js` - no server state, closing needs no request, nothing replays on reload or Back.
+Both recap routes are quiet routes (no announcement modal). Profile/header rings (`XpRing`,
 CSS-only milestone styling; the arc is a masked `::before`, so transparent avatars never
 show a filled disc), achievements catalog `/achievements` + holders directory
 `/achievements/{type}` + explainer modal `/achievements/{type}/info`

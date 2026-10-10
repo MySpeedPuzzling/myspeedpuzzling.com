@@ -131,6 +131,9 @@
 // The last-piece reveal of a new achievement and of the XP launch level (docs/features/xp-levels/)
 @import "last-piece-reveal";
 
+// The recap after logging a time: one progress card (docs/features/xp-levels/launch-2026-10.md)
+@import "xp-recap";
+
 @import "flag-icons/sass/flag-icons";
 
 // Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen

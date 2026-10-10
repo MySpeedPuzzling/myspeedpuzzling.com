@@ -34,7 +34,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.player-tab.active', 'Achievements');
-        self::assertSelectorTextContains('.achievements-summary', '2 of 17 earned');
+        self::assertSelectorTextContains('.achievements-summary', '2 of 16 earned');
         self::assertSelectorExists('.achievements-summary .ap-chip');
         self::assertCount(2, $crawler->filter('.achievement-row'));
         // The unrevealed tier is a "?" leading to the reveal page, the revealed one opens the info modal

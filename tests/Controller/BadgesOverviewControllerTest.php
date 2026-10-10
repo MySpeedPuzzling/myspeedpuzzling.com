@@ -57,6 +57,6 @@ final class BadgesOverviewControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('.achievements-showcase .achievements-showcase-item'));
-        self::assertCount(1, $crawler->filter('.achievements-showcase a.achievements-showcase-summary[href="/en/achievements"]'));
+        self::assertCount(1, $crawler->filter('.achievements-showcase a.achievements-showcase-summary[href="/en/player-achievements/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]'));
     }
 }

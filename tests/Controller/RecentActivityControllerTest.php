@@ -51,13 +51,15 @@ final class RecentActivityControllerTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        // Translated only in English so far: a Czech page must pick its plural form by English rules, as PHP does
+        // The text carries the locale of the catalogue that defines it, so the browser picks the plural form by that
+        // locale's rules (a page whose catalogue lacks the text falls back to English rules, as PHP does)
         $crawler = $browser->request('GET', '/nedavna-aktivita');
 
         /** @var array<string, array{message: string, locale: string}> $texts */
         $texts = json_decode((string) $crawler->filter('.live-refresh-status')->attr('data-texts'), true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(['running', 'refreshing', 'paused', 'idle', 'failed'], array_keys($texts));
-        self::assertSame(['message' => 'Auto-update in 1 second|Auto-update in %count% seconds', 'locale' => 'en'], $texts['running']);
+        self::assertSame('cs', $texts['running']['locale']);
+        self::assertSame(3, substr_count($texts['running']['message'], '|') + 1, 'Czech has three plural forms');
     }
 
     public function testLoggedInUserCanAccessPage(): void

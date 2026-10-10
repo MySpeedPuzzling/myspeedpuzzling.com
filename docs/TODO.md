@@ -4,6 +4,13 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Progression pages (`docs/features/xp-levels/launch-2026-10.md` §3, workstream D)
+
+- [ ] Paging past the top 100 on the XP / AP leaderboard (the MSP Rating ladder pages already)
+- [ ] XP leaderboard default "people you follow" (draft D6) - not decided, the board still opens on the world
+- [ ] Karma deep page replaces the `karma_explainer` placeholder (workstream F) and the karma board joins `ProgressLeaderboardTab`
+- [ ] Visual check of the hub, catalogue and XP history at 320/375 px on the integrated branch (not done in the workstream)
+
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 
 - [ ] **The converted weekly online series (2026-10-09)**: tell its organiser about the change (Jan, by mail - drafts

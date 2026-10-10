@@ -64,7 +64,6 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetUnsolvedPuzzles.php' => self::OWN,
         'Query/GetUserPuzzleStatuses.php' => self::OWN,
         'Query/GetUserSolvedPuzzles.php' => self::OWN,
-        'Query/GetXpHistory.php' => 'The player\'s own XP ledger, joined to the time only for the puzzle name - which times earn XP is decided when the ledger is written.',
         'Query/IsPuzzleInUse.php' => self::WRITE,
         'Query/SearchPuzzle.php' => self::OWN,
         'Repository/PuzzlingTeamRepository.php' => self::WRITE,

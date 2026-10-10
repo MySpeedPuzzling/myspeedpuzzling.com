@@ -18,6 +18,10 @@ readonly final class CompensateXpForDeletedSolveHandler
 
     public function __invoke(CompensateXpForDeletedSolve $message): void
     {
-        $this->xpChainRecomputer->compensateAndRebuildAfterDeletion($message->solvingTimeId, $message->puzzleId);
+        $this->xpChainRecomputer->compensateAndRebuildAfterDeletion(
+            $message->solvingTimeId,
+            $message->puzzleId,
+            $message->memberPlayerIds,
+        );
     }
 }

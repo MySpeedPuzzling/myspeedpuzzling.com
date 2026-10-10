@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle;
+use SpeedPuzzling\Web\Events\PuzzleSolvingTimeSuspicionChanged;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
@@ -406,6 +407,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+        $this->recordThat(new PuzzleSolvingTimeSuspicionChanged($this->id));
     }
 
     /**
@@ -422,6 +424,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+        $this->recordThat(new PuzzleSolvingTimeSuspicionChanged($this->id));
     }
 
     /**
@@ -434,6 +437,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+        $this->recordThat(new PuzzleSolvingTimeSuspicionChanged($this->id));
     }
 
     public function changeCompetitionRound(null|CompetitionRound $competitionRound): void

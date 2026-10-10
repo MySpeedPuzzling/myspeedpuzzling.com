@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
-use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
@@ -144,11 +144,11 @@ readonly final class UndoAutoRemovalHandler
 
         $this->resultReviewReactions->recordFor($removal->player->id->toString());
 
-        // The same id comes back: its XP was compensated at the removal, and neither a re-award (the id already
-        // has ledger history) nor a chain rebuild (keeps compensations) gives it back - the full rebuild does
-        // (docs/features/xp-levels/README.md). Badges follow the restored result too
+        // The same id comes back: the award drops its compensated history and writes it again like a new result
+        // (docs/features/xp-levels/README.md §Anti-farming). Badges follow the restored result too
+        $this->messageBus->dispatch(new AwardXpForSolvingTime($time->id->toString()));
+
         foreach ($time->memberPlayerIds() as $memberPlayerId) {
-            $this->messageBus->dispatch(new RecalculateXpForPlayer($memberPlayerId));
             $this->messageBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
         }
     }

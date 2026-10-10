@@ -297,7 +297,7 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         if ($solvingTime->puzzle->id->toString() === $puzzleIdBeforeEdit) {
             // Edit is semantically delete+re-add for XP — rebuild the affected chains.
-            $this->commandBus->dispatch(new RecalculateXpChainForSolve($message->puzzleSolvingTimeId));
+            $this->commandBus->dispatch(new RecalculateXpChainForSolve($message->puzzleSolvingTimeId, $membersBeforeEdit));
         } else {
             // Moved to another puzzle: the chain on the puzzle it left changes too (a repeat there may be the first
             // solve now), which the chain rebuild of the moved result does not see - full rebuilds do

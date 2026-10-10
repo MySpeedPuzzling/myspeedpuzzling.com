@@ -13,6 +13,13 @@ readonly final class RecalculateXpChainForSolve
 {
     public function __construct(
         public string $solvingTimeId,
+        /**
+         * Members before the edit (whoever left the group may have earned nothing for it and still has a chain on
+         * the puzzle that changes).
+         *
+         * @var list<string>
+         */
+        public array $memberPlayerIds = [],
     ) {
     }
 }

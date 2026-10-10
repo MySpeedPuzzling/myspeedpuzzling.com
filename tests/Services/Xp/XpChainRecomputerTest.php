@@ -150,7 +150,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testDeleteCompensatesAndPromotesRemainingChain(): void
     {
-        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+3 days'); // a week without fixture solves of the player
         $solveA = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at->setTime(9, 0), 500);
         $solveB = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3500, $at->modify('+1 day')->setTime(9, 0), 500);
         $this->award($solveA);

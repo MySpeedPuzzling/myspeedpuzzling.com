@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\DuplicateCaseChanged;
 use SpeedPuzzling\Web\Exceptions\DuplicateCaseNotFound;
 use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
 use SpeedPuzzling\Web\Message\KeepDuplicateCopy;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
@@ -94,14 +95,26 @@ readonly final class KeepDuplicateCopyHandler
             $openCase->copyDeleted($now, $message->via);
         }
 
+        $badgePlayerIds = [];
+
         foreach ($deleted as $copy) {
             $copyPuzzleId = $copy->puzzle->id->toString();
+            $memberPlayerIds = $copy->memberPlayerIds();
 
             $this->puzzleSolvingTimeRepository->delete($copy);
 
             // Every member of a pair/team copy earned XP for it (docs/features/xp-levels/README.md) - compensated
             // like a result deleted by hand
-            $this->messageBus->dispatch(new CompensateXpForDeletedSolve($copy->id->toString(), $copyPuzzleId));
+            $this->messageBus->dispatch(new CompensateXpForDeletedSolve($copy->id->toString(), $copyPuzzleId, $memberPlayerIds));
+
+            foreach ($memberPlayerIds as $memberPlayerId) {
+                $badgePlayerIds[$memberPlayerId] = true;
+            }
+        }
+
+        // Achievements follow the current results (docs/features/badges.md)
+        foreach (array_keys($badgePlayerIds) as $badgePlayerId) {
+            $this->messageBus->dispatch(new RecalculateBadgesForPlayer((string) $badgePlayerId));
         }
 
         $this->resultReviewReactions->recordFor($player->id->toString());

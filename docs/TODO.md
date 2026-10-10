@@ -882,3 +882,15 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 - [ ] Check the 48 px e-mail PNGs in Gmail/Outlook dark mode
 - [ ] `EligibilityScheduleTest::testTheEventPageAndTheEventsPageRows` fails on origin/main too (2026-10-10): its two
       events 22 and 50 days out both fall in November and merge into one events-page row - make it date-proof
+
+## XP launch - after the switch is on (`docs/features/xp-levels/launch-2026-10.md`, `feature_flags.md` `xp-launch`)
+
+- [ ] Remove `XpFeatureGate`, the `{% if xp_system_visible() %}` wrappers and the readiness check in `XpLaunchRevealRule`
+      once the launch is settled; `XpLaunchReadiness` + `xp_settings.launch_ready_at` go with them
+- [ ] Add `xp_leaderboard` (both tabs) and `achievement_detail` to `BlocklistCanaryTest` + `PrivateProfileCanaryTest`
+      (needs fixture players with XP / achievements as positive controls)
+- [ ] Query budgets of signed-in pages carry +1 for the header XP ring (`GetXpProfile`) since the gate opened for
+      everybody - gone once the level rides on the viewer's profile row
+- [ ] Re-run `myspeedpuzzling:xp-distribution` after the launch backfill: without achievement XP a local copy gave 112
+      players at Level 50 and median level 10 (the curve was calibrated to a median of 13-14 with achievement XP) -
+      decide whether the curve needs a touch

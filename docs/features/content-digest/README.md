@@ -500,10 +500,10 @@ absorbs the newsletter too.
       failure classification per §6, log row) — note: 554 is treated as TRANSIENT (bubbles to retry)
       because it cannot be distinguished from MAIL FROM relay-denied at submission time
 - [x] `GetPlayersForContentDigest` query (preferences + period log + no-activity rule + experienceSystemOptedOut exclusion)
-- [x] `SendContentDigestConsoleCommand` with `DelayStamp` stagger (weekly only; refuses while xp-system flag active)
+- [x] `SendContentDigestConsoleCommand` with `DelayStamp` stagger (weekly only; refuses before the XP launch switch is on)
 - [x] Preference in `MessagingSettingsFormType`/`FormData`/`EditMessagingSettings`(+Handler)/
       `PlayerProfile`/`GetPlayerProfile`/`EditProfileController`/edit-profile template + translations
-      (field hidden while the xp-system flag is active)
+      (field hidden before the XP launch switch is on)
 - [x] Unsubscribe controller + `ChangeContentDigestFrequency` message + signed URLs +
       `List-Unsubscribe`/`Precedence` headers
 - [x] Tests: handler (KernelTestCase, direct invoke), query, unsubscribe controller, form flow (settings visibility)

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\Badges;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\BadgeConditions\BadgeConditionInterface;
@@ -18,6 +19,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\BadgeResult;
 use SpeedPuzzling\Web\Results\PlayerStatsSnapshot;
 use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
+use SpeedPuzzling\Web\Services\Progression\PlayerProgressionLock;
 use SpeedPuzzling\Web\Tests\TestDouble\FakeBadgeCondition;
 use SpeedPuzzling\Web\Tests\TestDouble\SavedBadgeRecorder;
 use SpeedPuzzling\Web\Value\BadgeTier;
@@ -171,6 +173,54 @@ final class BadgeEvaluatorTest extends TestCase
         self::assertSame([1, 2], $byType['pieces_solved']);
     }
 
+    public function testRemovesTiersTheCurrentRecordsNoLongerQualifyFor(): void
+    {
+        $recorder = new SavedBadgeRecorder();
+        $player = $this->fakePlayer();
+
+        $evaluator = $this->evaluator(
+            conditions: [
+                new FakeBadgeCondition(BadgeType::PuzzlesSolved, [BadgeTier::Bronze]),
+            ],
+            existingBadges: [
+                new BadgeResult(BadgeType::PuzzlesSolved, BadgeTier::Bronze, new DateTimeImmutable('2026-01-01'), id: 'b1'),
+                new BadgeResult(BadgeType::PuzzlesSolved, BadgeTier::Silver, new DateTimeImmutable('2026-01-01'), id: 'b2'),
+                new BadgeResult(BadgeType::PuzzlesSolved, BadgeTier::Gold, new DateTimeImmutable('2026-01-01'), id: 'b3'),
+            ],
+            playerRepository: $this->playerRepositoryReturning($player),
+            recorder: $recorder,
+        );
+
+        self::assertSame([], $evaluator->recalculateForPlayer(self::PLAYER_ID));
+        self::assertSame([2, 3], array_map(static fn (Badge $badge): null|int => $badge->tier, $recorder->deleted));
+        // Only the Bronze that still qualifies counts
+        self::assertSame(5, $player->achievementPoints);
+    }
+
+    public function testNeverRemovesAnAchievementWithoutACondition(): void
+    {
+        // Early Adopter (supporter) is granted by an admin - no records decide it
+        $recorder = new SavedBadgeRecorder();
+        $player = $this->fakePlayer();
+
+        $evaluator = $this->evaluator(
+            conditions: [
+                new FakeBadgeCondition(BadgeType::PuzzlesSolved, []),
+            ],
+            existingBadges: [
+                new BadgeResult(BadgeType::Supporter, null, new DateTimeImmutable('2026-01-01'), id: 's1'),
+                new BadgeResult(BadgeType::PuzzlesSolved, BadgeTier::Bronze, new DateTimeImmutable('2026-01-01'), id: 'b1'),
+            ],
+            playerRepository: $this->playerRepositoryReturning($player),
+            recorder: $recorder,
+        );
+
+        $evaluator->recalculateForPlayer(self::PLAYER_ID);
+
+        self::assertSame([BadgeType::PuzzlesSolved], array_map(static fn (Badge $badge): BadgeType => $badge->type, $recorder->deleted));
+        self::assertSame(BadgeTier::SINGLE_TIER_POINTS, $player->achievementPoints);
+    }
+
     /**
      * @param iterable<BadgeConditionInterface> $conditions
      * @param list<BadgeResult> $existingBadges
@@ -191,6 +241,18 @@ final class BadgeEvaluatorTest extends TestCase
         $badgeRepository->method('save')->willReturnCallback(function (Badge $badge) use ($recorder): void {
             $recorder->saved[] = $badge;
         });
+        $badgeRepository->method('get')->willReturnCallback(function (string $badgeId) use ($existingBadges): Badge {
+            foreach ($existingBadges as $existing) {
+                if ($existing->id === $badgeId) {
+                    return Badge::earn($this->fakePlayer(), $existing->type, $existing->earnedAt, $existing->tier);
+                }
+            }
+
+            throw new \LogicException('Unknown badge ' . $badgeId);
+        });
+        $badgeRepository->method('delete')->willReturnCallback(function (Badge $badge) use ($recorder): void {
+            $recorder->deleted[] = $badge;
+        });
 
         return new BadgeEvaluator(
             conditions: $conditions,
@@ -199,6 +261,8 @@ final class BadgeEvaluatorTest extends TestCase
             badgeRepository: $badgeRepository,
             playerRepository: $playerRepository,
             clock: new MockClock('2026-04-16 12:00:00'),
+            playerProgressionLock: $this->createStub(PlayerProgressionLock::class),
+            database: $this->createStub(Connection::class),
         );
     }
 

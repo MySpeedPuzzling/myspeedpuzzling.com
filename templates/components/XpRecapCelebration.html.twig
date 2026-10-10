@@ -50,9 +50,8 @@
             <div class="toast show align-items-center border-0 shadow mb-3" role="status" aria-live="polite">
                 <div class="d-flex align-items-center gap-2 p-2">
                     {% set tier = recent_badge.tier %}
-                    <span class="badge-medallion badge-medallion-sm {{ tier ? tier.cssClass() : 'badge-tier-supporter' }}">
-                        {% if tier %}<span class="badge-medallion-tier">{{ tier.romanNumeral() }}</span>{% else %}<i class="ci-heart"></i>{% endif %}
-                    </span>
+                    {# The text beside it names the achievement and tier - the live region must not say it twice #}
+                    {{ badge_art(recent_badge.type, tier, 48, attrs = {alt: '', class: 'flex-shrink-0', loading: 'eager'}) }}
                     <div class="fs-sm">
                         <strong>{{ 'xp.achievement_toast.title'|trans }}</strong><br>
                         {{ recent_badge.type.translationKey()|trans }}{% if tier %} — {{ tier.translationKey()|trans }}{% endif %}

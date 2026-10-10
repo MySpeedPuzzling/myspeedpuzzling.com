@@ -86,8 +86,9 @@ LiveComponent — one poll bridges the async award), profile/header rings (`XpRi
 CSS-only milestone styling; the arc is a masked `::before`, so transparent avatars never
 show a filled disc), achievements catalog `/achievements` + holders directory
 `/achievements/{type}` + explainer modal `/achievements/{type}/info`
-(`AchievementInfoController`, opened from every medallion on a profile through the shared
-`modal-frame`), the XP + Achievement Points ladders `/players/xp-leaderboard`, audit page
+(`AchievementInfoController`, opened from every badge on a profile through the shared
+`modal-frame`; `?tier=` = the clicked badge, shown big at the top - badge art:
+`docs/features/badges.md` §Badge art), the XP + Achievement Points ladders `/players/xp-leaderboard`, audit page
 `/my/xp-history`, explainer `/how-xp-works`, fair-play `/fair-play-xp`, one-time launch
 reveal `/my/xp-reveal` (DismissedHint-backed), share cards
 `/xp-card/{playerId}/{launch|level-up}`.

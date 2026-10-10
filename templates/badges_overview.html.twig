@@ -43,33 +43,38 @@
             <div class="col-12 col-md-6 col-xl-4">
                 <div class="card shadow-custom h-100">
                     <div class="card-body">
-                        <div class="d-flex align-items-start justify-content-between mb-2">
-                            <div>
+                        {# The card's badge: the highest tier earned (members see it in colour), else the first one locked #}
+                        {% set highest_earned = group.highestEarnedTier() %}
+                        {% set earned_count = group.earnedCount() %}
+
+                        <div class="d-flex align-items-start gap-3 mb-2">
+                            {# Same page as the title link next to it - one tab stop is enough #}
+                            <a href="{{ path('achievement_detail', {type: group.type.value}) }}" class="flex-shrink-0" tabindex="-1">
+                                {{ badge_art(group.type, highest_earned ?? 1, 96, locked = highest_earned is null or not is_member) }}
+                            </a>
+
+                            <div class="flex-grow-1">
                                 <h3 class="h5 mb-1">
                                     <a href="{{ path('achievement_detail', {type: group.type.value}) }}" class="text-decoration-none">
                                         {{ (group.type.translationKey())|trans }}
                                     </a>
                                 </h3>
-                                <p class="text-body-secondary small mb-0">
+                                <p class="text-body-secondary small mb-2">
                                     {{ ('badges.description.' ~ group.type.value)|trans }}
                                 </p>
+                                <span class="badge rounded-pill {% if earned_count > 0 %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ earned_count }} / {{ group.tiers|length }}
+                                </span>
                             </div>
-
-                            {% set earned_count = group.earnedCount() %}
-                            <span class="badge rounded-pill {% if earned_count > 0 %}bg-primary{% else %}bg-secondary{% endif %}">
-                                {{ earned_count }} / {{ group.tiers|length }}
-                            </span>
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 my-3">
                             {% for entry in group.tiers %}
                                 {% set earned_but_locked = entry.earned and logged_in and not is_member %}
-                                <div class="text-center {% if entry.earned == false or earned_but_locked %}badge-locked{% endif %}"
+                                <div class="text-center"
                                      title="{{ (entry.requirementTranslationKey)|trans }}{% if earned_but_locked %} — {{ 'badges.earned_waiting'|trans }}{% endif %}">
                                     <div class="position-relative d-inline-block">
-                                        <div class="badge-medallion badge-medallion-sm {{ entry.tier.cssClass() }}">
-                                            <span class="badge-medallion-tier">{{ entry.tier.romanNumeral() }}</span>
-                                        </div>
+                                        {{ badge_art(entry.type, entry.tier, 48, locked = entry.earned == false or earned_but_locked) }}
                                         {% if earned_but_locked %}
                                             <span class="badge bg-success badge-new-pill" title="{{ 'badges.earned_waiting'|trans }}">✓ <i class="ci-locked"></i></span>
                                         {% endif %}

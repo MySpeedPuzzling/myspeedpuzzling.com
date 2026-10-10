@@ -52,8 +52,8 @@ _Last updated: 2026-07-13 — implementation COMPLETE (all phases P0–P8 of imp
   Private profiles / opted-out players excluded from public lists.
 - Achievement XP per tier — **locked**: Bronze 5 / Silver 10 / Gold 25 / Platinum 50 / Diamond 100
   (single-tier achievements: 25). Full ladder of one achievement = 190 XP.
-- **Terminology — locked**: the system is called **Achievements**; "badge" refers only to the earned graphic
-  medallion. Catalog page becomes "Achievements"; UI copy follows this rule.
+- **Terminology — locked**: the system is called **Achievements**; "badge" refers only to the earned picture
+  (the badge art). Catalog page becomes "Achievements"; UI copy follows this rule.
 - Existing admin-granted **Supporter** achievement renamed to **"Early Adopter"**.
 - Achievements with non-obvious rules get a short rule-clarifying description (already supported by the
   per-achievement description + per-tier requirement translation keys — content task, not architecture).
@@ -86,19 +86,26 @@ Team Spirit — plus admin-granted Supporter.
 
   **Final calibration verified (2026-07-12):** with this full lineup's achievement XP included, curve v4
   (Level 50 = 3,160) yields **exactly 115 instant-max players (1.6%)** — no curve adjustment needed.
-- [ ] **Jan: provide badge images** (outstanding — medallion fallback covers absence) — decided: produced all at once **after the lineup locks**.
-  **Launch approach (updated 2026-07-16): generated locally via ComfyUI on Jan's M3 Max** — replaces the
-  ChatGPT pipeline; model research + candidate stacks + bake-off protocol in
-  `docs/design-system/badge-generation-comfyui.md`. Visual spec still `docs/design-system/prompts/badges.md`.
-  - [x] Run the model bake-off (4 stacks) → winner FLUX.2 Klein 9B; full Speed Demon set produced
-    end-to-end 2026-07-17 — recipe + findings + scripts in `docs/design-system/badge-pipeline/README.md`.
-    Jan's pick pending: style Row B (pure flat) vs Row C (hand-illustrated polish)
-  - [ ] 5 AI-generated puzzle-piece tier frames (socket→tab progression) — ONE image/grid
-    (single-generation consistency, technique #1 from `docs/design-system/badges-conversation.md`) or
-    control-image-guided geometry, then crop
-  - [ ] 1 center icon per badge type (grid batches + verbatim style prefix from `docs/design-system/prompts/badges.md`) — 10+ icons;
-    never include puzzle-piece shapes inside icon subjects
-  - Template falls back to tier-colored medallions, so missing art blocks polish, not functionality.
+- [x] **Badge images** — done 2026-10-10 as a deterministic SVG pipeline instead of AI generation: F1 seal ladder v2
+  (Jan's pick; the tier is the seal's outline, T5 = crown + sunburst + tails) around 17 illustrated icons (approved as
+  v1), Early Adopter on the single-tier base. Generator, frozen tier bases and QA gate in `tools/badge-art/` (how to
+  add or change a badge: [`tools/badge-art/README.md`](../../../tools/badge-art/README.md)); the art is committed in
+  `public/img/badges/` - `svg/`, `webp/<px>/` (site), `png/<px>/` (e-mails), files `<type>-t1`…`-t5` / `<type>-single`,
+  `manifest.json` whose `version` is every URL's `?v=`. Templates use `badge_art()` / `badge_art_url()`
+  (`docs/features/badges.md` §Badge art). **No fallback picture**: `BadgeArtCoverageTest` fails for an achievement
+  without art; a missing picture throws in debug, production logs a warning and leaves it out. Locked = CSS only
+  (greyscale at 45 %). History of the earlier AI route, not used:
+    **Launch approach (updated 2026-07-16): generated locally via ComfyUI on Jan's M3 Max** — replaces the
+    ChatGPT pipeline; model research + candidate stacks + bake-off protocol in
+    `docs/design-system/badge-generation-comfyui.md`. Visual spec still `docs/design-system/prompts/badges.md`.
+    - [x] Run the model bake-off (4 stacks) → winner FLUX.2 Klein 9B; full Speed Demon set produced
+      end-to-end 2026-07-17 — recipe + findings + scripts in `docs/design-system/badge-pipeline/README.md`.
+      Jan's pick pending: style Row B (pure flat) vs Row C (hand-illustrated polish)
+    - dropped: 5 AI-generated puzzle-piece tier frames (socket→tab progression) — ONE image/grid
+      (single-generation consistency, technique #1 from `docs/design-system/badges-conversation.md`) or
+      control-image-guided geometry, then crop
+    - dropped: 1 center icon per badge type (grid batches + verbatim style prefix from `docs/design-system/prompts/badges.md`) — 10+ icons;
+      never include puzzle-piece shapes inside icon subjects
 
 ## 2. Other artwork
 
@@ -141,7 +148,7 @@ Everything (UI texts, emails, explainer, fair-play policy, badge names/descripti
   = "Průkopník"). Translator flags for the review pass: (a) new gamification texts use informal
   "ty" while older settings/emails use "vy" — decide on a global voice; (b) "achievement" = "úspěch"
   everywhere new, verify no leftover "odznak" wording reads oddly next to it (emails.badges_earned
-  still speaks of "odznaky" = the medallions, which matches the locked terminology);
+  still speaks of "odznaky" = the badge pictures, which matches the locked terminology);
   (c) `emails.badges_earned.title` rendered count-neutrally as "%count%× nový odznak!".
 
 ## Ideas noted for technical planning

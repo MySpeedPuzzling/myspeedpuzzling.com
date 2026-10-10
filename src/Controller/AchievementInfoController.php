@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Query\GetBadgeCatalog;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,9 +15,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * "What is this achievement for?" — the explainer behind every medallion on a profile:
- * what it rewards, all five tiers with their requirement and AP, which ones the viewer
- * already holds and how far the next one is.
+ * "What is this achievement for?" — the explainer behind every badge on a profile:
+ * the clicked badge big (`?tier=`), what it rewards, all five tiers with their requirement
+ * and AP, which ones the viewer already holds and how far the next one is.
  *
  * Rendered into the shared `modal-frame`, so a reader never leaves the profile; opening
  * it in its own tab renders the same content as a normal page.
@@ -56,7 +57,7 @@ final class AchievementInfoController extends AbstractController
         }
 
         // The modal is a fragment for the shared modal-frame - opened any other way (a new tab, a crawler following
-        // the medallion's href) the achievement's own page answers instead
+        // the badge's href) the achievement's own page answers instead
         if ($request->headers->get('Turbo-Frame') !== 'modal-frame') {
             $response = $this->redirectToRoute('achievement_detail', ['type' => $badgeType->value]);
             $response->setVary('Turbo-Frame');
@@ -70,9 +71,15 @@ final class AchievementInfoController extends AbstractController
             ? $this->getBadgeCatalog->forPlayerAndType($profile?->playerId, $badgeType)
             : null;
 
+        // The badge that was clicked (someone's profile) is the modal's big picture; without one the viewer's own
+        // highest tier stands for the achievement
+        $tier = $request->query->getString('tier');
+        $heroTier = $badgeType->isTiered() && ctype_digit($tier) ? BadgeTier::tryFrom((int) $tier) : null;
+
         $response = $this->render('_achievement_info_modal.html.twig', [
             'type' => $badgeType,
             'group' => $group,
+            'hero_tier' => $heroTier,
             'logged_in' => $profile !== null,
         ]);
         $response->setVary('Turbo-Frame');

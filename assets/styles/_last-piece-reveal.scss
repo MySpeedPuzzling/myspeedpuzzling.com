@@ -1,0 +1,552 @@
+//
+// Last-piece reveal - assets/controllers/last_piece_reveal_controller.js + assets/last_piece_reveal/
+// --------------------------------------------------
+// The badge reveal page and the XP launch reveal. The unrevealed look (the empty puzzle with its "?") is plain CSS,
+// so a page full of unrevealed badges costs one element each and nothing pops in when the lazy controller arrives;
+// the pieces, the burst and the final picture are built by the controller on the first play. The stage size is
+// --lpr-size; the controller computes every transform from the stage's width.
+
+$lpr-navy: $gray-900;
+
+// Flying pieces and the burst reach outside the stages: they are clipped at the page edge instead of widening the page
+// (a horizontal scroll on phones). The wrapper spans the container padding too, so on phones it is the screen width.
+// `clip` is not a scroll container: sticky elements and vertical overflow are untouched.
+.lpr-page {
+  overflow-x: clip;
+  margin-inline: -1rem;
+  padding-inline: 1rem;
+}
+
+// Two badges side by side on a phone (160 px each, smaller on screens under 368 px), more from tablets up
+.lpr-grid {
+  --lpr-size: min(160px, calc((100vw - 3rem) / 2));
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--lpr-size), 1fr));
+  gap: 2rem 1rem;
+  justify-items: center;
+  padding-top: 1.75rem;                  // headroom: the icon piece hovers above its stage before it clicks in
+
+  @media (min-width: 768px) {
+    --lpr-size: 200px;
+  }
+}
+
+// The XP launch reveal: one level medallion
+.lpr-level {
+  --lpr-size: 200px;
+}
+
+.lpr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--lpr-size, 160px);
+  text-align: center;
+}
+
+.lpr-name {
+  margin: .75rem 0 0;
+  color: $headings-color;
+  font-weight: $font-weight-medium;
+  line-height: 1.3;
+}
+
+// The tier appears when the last piece clicks in (an aria-live region; its height is kept, nothing below moves)
+.lpr-result {
+  min-height: 1.5em;
+  margin: .125rem 0 0;
+  color: $gray-600;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+}
+
+.lpr-sound {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+
+  &.is-on {
+    color: $headings-color;
+  }
+}
+
+
+// ------------------------------------------------------------------ the stage
+
+.lpr-stage {
+  position: relative;
+  z-index: 2;                            // above the confetti canvas (z 1): the confetti bursts from behind the badge
+  display: block;
+  flex-shrink: 0;
+  width: var(--lpr-size, 160px);
+  height: var(--lpr-size, 160px);
+  padding: 0;
+  border: 0;
+  border-radius: 8.7%;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba($primary, .45);
+  }
+}
+
+// The empty puzzle: tray, seams and "?" are one SVG (2 units wider than the 300-unit square on every side for the
+// outline). The 3x3 cut is the one of assets/last_piece_reveal/geometry.json.
+.lpr-tray {
+  position: absolute;
+  inset: -.6667%;
+  display: block;
+  background: url('../img/last-piece-reveal-tray.svg') center / 100% 100% no-repeat;
+}
+
+// The level medallion of the XP launch reveal (inline SVG, shown when its last piece is in)
+.lpr-stage > .lpr-emblem {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+}
+
+.lpr-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.lpr-board,
+.lpr-layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.lpr-board {
+  will-change: transform;
+}
+
+.lpr-piece,
+.lpr-shadow {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  will-change: transform, opacity;
+
+  svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+}
+
+.lpr-shadow {
+  filter: blur(4px);
+
+  &.is-hero {
+    filter: blur(7px);
+  }
+
+  path {
+    fill: $lpr-navy;
+    fill-opacity: .26;
+  }
+}
+
+.lpr-edge {
+  fill: none;
+  stroke: $lpr-navy;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+}
+
+.lpr-final {
+  opacity: 0;
+}
+
+.lpr-final-card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+// a badge image sits at 95.3 % of the puzzle picture, like inside the pieces
+.lpr-final-badge,
+.lpr-shine {
+  position: absolute;
+  top: 2.3333%;
+  left: 2.3333%;
+  display: block;
+  width: 95.3333%;
+  height: 95.3333%;
+}
+
+.lpr-final-badge {
+  max-width: none;
+  pointer-events: none;
+  will-change: transform;
+  -webkit-user-drag: none;
+}
+
+.lpr-final-emblem {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  will-change: transform;
+}
+
+// the glint / shimmer sweeps over the badge only (mask = the badge without its navy ink, set by the controller)
+.lpr-shine {
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+
+  &.is-emblem {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    -webkit-mask-image: radial-gradient(circle closest-side, #000 95%, transparent 95.5%);
+    mask-image: radial-gradient(circle closest-side, #000 95%, transparent 95.5%);
+  }
+}
+
+.lpr-band {
+  position: absolute;
+  top: -30%;
+  left: 0;
+  display: block;
+  width: 34%;
+  height: 160%;
+  transform: translateX(-170%) rotate(20deg);
+  will-change: transform;
+}
+
+.lpr-band-white {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .62) 50%, rgba(255, 255, 255, 0) 100%);
+}
+
+.lpr-band-prism {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 186, 214, 0) 0%,
+    rgba(255, 186, 214, .42) 18%,
+    rgba(255, 226, 168, .46) 34%,
+    rgba(196, 244, 212, .46) 50%,
+    rgba(186, 230, 250, .46) 66%,
+    rgba(206, 196, 255, .42) 82%,
+    rgba(206, 196, 255, 0) 100%
+  );
+}
+
+.lpr-burst {
+  position: absolute;
+  top: -25%;
+  left: -25%;
+  width: 150%;
+  height: 150%;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.lpr-flash {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(.8px);
+  will-change: opacity;
+}
+
+// The end state without any running animation (also the reduced-motion state)
+.lpr-stage.is-final {
+  .lpr-final {
+    opacity: 1;
+  }
+
+  .lpr-final-card,
+  .lpr-tray,
+  .lpr-pieces {
+    opacity: 0;
+  }
+}
+
+.lpr-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+// The XP launch reveal: what the level brings shows once the level is complete
+.lpr-after:not(.is-shown) {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lpr-stage:not(.is-final):not(.is-running):hover .lpr-tray {
+    transform: scale(1.012);
+    transition: transform .25s ease;
+  }
+
+  // An invitation, twice and then still: the first puzzle on arrival, the next one after each reveal
+  .lpr-card:first-child .lpr-stage:not(.is-revealed):not(.is-running) .lpr-tray {
+    animation: lpr-nudge 1.2s ease-in-out 1.2s 2;
+  }
+
+  .lpr-stage.is-next:not(.is-running) .lpr-tray {
+    animation: lpr-nudge 1.2s ease-in-out .3s 2;
+  }
+}
+
+@keyframes lpr-nudge {
+  0%,
+  55%,
+  100% {
+    transform: rotate(0);
+  }
+
+  66% {
+    transform: rotate(-2.5deg);
+  }
+
+  78% {
+    transform: rotate(2.5deg);
+  }
+
+  90% {
+    transform: rotate(-1deg);
+  }
+}
+
+
+// ------------------------------------------------------------------ the XP launch reveal (xp_launch_reveal.html.twig)
+// A member's achievements one card at a time (xp_launch_reveal_controller.js), then a summary. Phone first: the bar,
+// the puzzle, the texts and the big button fit one screen at 375 x 667 below the site header.
+
+$xpl-indigo: #4e54c8;
+
+.xpl {
+  max-width: 560px;
+  text-align: center;
+}
+
+.xpl-hero {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+}
+
+.xpl-waiting {
+  margin: 1rem 0 .75rem;
+  color: $headings-color;
+  font-weight: $font-weight-medium;
+}
+
+.xpl-start {
+  min-width: 14rem;
+}
+
+.xpl-deck,
+.xpl-summary {
+  scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+}
+
+.xpl-deck {
+  --lpr-size: min(240px, calc(100vw - 6rem));
+}
+
+.xpl-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem .5rem;
+  min-height: 2.75rem;
+}
+
+.xpl-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .75rem;
+  border-radius: 999px;
+  background: rgba($xpl-indigo, .1);
+  color: $xpl-indigo;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.xpl-progress {
+  color: $gray-600;
+  font-size: $font-size-sm;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.xpl-bar-end {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.xpl-sound {
+  padding-inline: .4rem;
+}
+
+.xpl-skip {
+  padding-right: 0;
+  white-space: nowrap;
+}
+
+// The whole card is the "continue" button for a thumb (the big button below is the one for keyboards)
+.xpl-cards {
+  padding-top: 2.75rem;                  // headroom: the icon piece hovers above its stage before it clicks in
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.xpl-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// Kept in the layout while hidden, so neither the card nor the button jumps when the texts appear
+.xpl-card-text {
+  min-height: 9.5rem;
+  margin-top: 1rem;
+}
+
+.xpl-card-reveal {
+  visibility: hidden;
+}
+
+.xpl-card.is-revealed .xpl-card-reveal {
+  visibility: visible;
+}
+
+.xpl-name {
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+.xpl-tier {
+  margin: .125rem 0 0;
+  color: $gray-600;
+  font-weight: $font-weight-medium;
+}
+
+.xpl-why {
+  max-width: 22rem;
+  margin: .625rem auto 0;
+  color: $body-color;
+  font-size: $font-size-sm;
+
+  i {
+    margin-right: .25rem;
+    color: $success;
+  }
+}
+
+.xpl-gain {
+  display: inline-block;
+  margin: .75rem 0 0;
+  padding: .2rem .75rem;
+  border-radius: 999px;
+  background: rgba($xpl-indigo, .1);
+  color: $xpl-indigo;
+  font-weight: 700;
+}
+
+.xpl-total {
+  margin: .25rem 0 0;
+  color: $headings-color;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.xpl-next {
+  margin-top: .5rem;
+}
+
+.xpl-hint {
+  margin: .5rem 0 0;
+  color: $gray-600;
+  font-size: .8125rem;
+}
+
+.xpl-summary h2:focus {
+  outline: none;
+}
+
+.xpl-medallion {
+  display: block;
+  width: 160px;
+  height: 160px;
+  margin: 0 auto .5rem;
+}
+
+.xpl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 1.25rem .5rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.xpl-grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .25rem;
+  font-size: $font-size-sm;
+  line-height: 1.25;
+}
+
+.xpl-grid-name {
+  color: $headings-color;
+  font-weight: $font-weight-medium;
+}
+
+.xpl-grid-tier {
+  color: $gray-600;
+  font-size: .8125rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .xpl-summary.is-shown .xpl-grid-item {
+    animation: xpl-in .35s ease-out backwards;
+    animation-delay: calc(var(--xpl-i, 0) * 45ms + .1s);
+  }
+}
+
+@keyframes xpl-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(.94);
+  }
+}

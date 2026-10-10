@@ -6,43 +6,64 @@
     <h1 class="h2">{{ 'badges.reveals.title'|trans }}</h1>
 
     {% if badges|length > 0 %}
-        <p class="text-muted">{{ 'badges.reveals.intro'|trans({'%count%': badges|length}) }}</p>
+        {# Every earned-but-unrevealed badge as its own little puzzle: a tap flies the pieces in, the icon piece clicks in
+           last (last_piece_reveal_controller.js). The first tap POSTs reveal_badge, as the flip did. #}
+        <div
+            class="lpr-page"
+            data-controller="last-piece-reveal"
+            data-last-piece-reveal-skip-label-value="{{ 'badges.reveals.stage_running'|trans }}"
+        >
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+                <p class="text-muted mb-0">{{ 'badges.reveals.intro'|trans({'%count%': badges|length}) }}</p>
 
-        <div class="d-flex flex-wrap gap-4 mt-4">
-            {% for badge in badges %}
-                {% set tier = badge.tier %}
-                {% set tier_class = tier ? tier.cssClass() : 'badge-tier-supporter' %}
-                {% set label = (badge.type.translationKey())|trans %}
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary rounded-pill lpr-sound"
+                    data-last-piece-reveal-target="soundToggle"
+                    data-action="last-piece-reveal#toggleSound"
+                    aria-pressed="false"
+                    title="{{ 'badges.reveals.sound_title'|trans }}"
+                >
+                    <i class="bi bi-volume-mute" aria-hidden="true"></i>
+                    {{ 'badges.reveals.sound'|trans }}
+                </button>
+            </div>
 
-                <div class="badge-earned text-center">
-                    <button
-                        type="button"
-                        class="badge-flip"
-                        data-controller="badge-reveal"
-                        data-badge-reveal-url-value="{{ path('reveal_badge', {badgeId: badge.id}) }}"
-                        data-action="click->badge-reveal#reveal"
-                        aria-label="{{ 'badges.reveal'|trans }}"
-                    >
-                        <span class="badge-flip-inner">
-                            <span class="badge-flip-back badge-medallion" aria-hidden="true">?</span>
-                            <span class="badge-flip-front badge-medallion {{ tier_class }}">
-                                {% if tier %}
-                                    <span class="badge-medallion-tier">{{ tier.romanNumeral() }}</span>
-                                {% else %}
-                                    <i class="ci-heart"></i>
-                                {% endif %}
-                            </span>
-                        </span>
-                    </button>
+            <div class="lpr-grid">
+                {% for badge in badges %}
+                    {% set tier = badge.tier %}
+                    {% set name = (badge.type.translationKey())|trans %}
+                    {% set tier_name = tier ? (tier.translationKey())|trans : null %}
 
-                    <div class="small mt-1 text-body-secondary" style="max-width: 90px;">
-                        {{ label }}
+                    <div class="lpr-card">
+                        <button
+                            type="button"
+                            class="lpr-stage"
+                            data-last-piece-reveal-target="stage"
+                            data-action="last-piece-reveal#play"
+                            data-last-piece-reveal-look-param="{{ tier ? tier.value : 'single' }}"
+                            data-last-piece-reveal-url-param="{{ path('reveal_badge', {badgeId: badge.id}) }}"
+                            data-last-piece-reveal-image-param="{{ badge_art_url(badge.type, tier, 'webp', 320) }}"
+                            data-last-piece-reveal-image-large-param="{{ badge_art_url(badge.type, tier, 'webp', 480) }}"
+                            data-last-piece-reveal-done-label-param="{{ tier_name ? 'badges.reveals.stage_done'|trans({'%achievement%': name, '%tier%': tier_name}) : name }}"
+                            aria-label="{{ 'badges.reveals.stage_label'|trans({'%achievement%': name}) }}"
+                        >
+                            <span class="lpr-tray" aria-hidden="true"></span>
+                        </button>
+
+                        <p class="lpr-name">{{ name }}</p>
+                        <p class="lpr-result" aria-live="polite">
+                            {% if tier_name %}
+                                <span class="lpr-result-text" hidden><span class="visually-hidden">{{ name }}: </span>{{ tier_name }}</span>
+                            {% endif %}
+                        </p>
                     </div>
-                    {% if tier %}
-                        <div class="small fw-semibold">{{ (tier.translationKey())|trans }}</div>
-                    {% endif %}
-                </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
+
+            <p class="text-muted fs-sm mt-4 mb-0" role="status" data-last-piece-reveal-target="done" hidden>
+                {{ 'badges.reveals.all_done'|trans }}
+            </p>
         </div>
 
         <p class="text-muted fs-sm mt-4">{{ 'badges.reveals.hint'|trans }}</p>

@@ -2,76 +2,315 @@
 
 {% block title %}{{ 'xp.reveal.meta_title'|trans }}{% endblock %}
 
+{# The level medallion, drawn in the 300-unit square of the last-piece reveal: the site's XP ring (arc colours per
+   milestone like _xp.scss .xp-ring-milestone-*, XpRing::milestoneClass) around "LEVEL" and the number. #}
+{% macro level_medallion(xp_profile, gradient_id) %}
+    {% set milestone = xp_profile.isMaxLevel ? 50 : xp_profile.level // 10 * 10 %}
+    {% set arc = {
+        0: ['#69b3fe', '#69b3fe'],
+        10: ['#69b3fe', '#4e54c8'],
+        20: ['#4e54c8', '#ec726f'],
+        30: ['#ec726f', '#4e54c8'],
+        40: ['#ec726f', '#69b3fe'],
+        50: ['#f0a500', '#ffd700'],
+    }[milestone] %}
+    {% set arc_length = 841.95 %}{# 2 pi x 134 #}
+    <defs>
+        <linearGradient id="{{ gradient_id }}" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="{{ arc[0] }}"/>
+            <stop offset="1" stop-color="{{ arc[1] }}"/>
+        </linearGradient>
+    </defs>
+    <g class="lpr-emblem-art">
+        <circle cx="150" cy="150" r="140" fill="#ffffff"/>
+        <circle cx="150" cy="150" r="134" fill="none" stroke="#2b3445" stroke-opacity=".14" stroke-width="12"/>
+        <circle
+            cx="150"
+            cy="150"
+            r="134"
+            fill="none"
+            stroke="url(#{{ gradient_id }})"
+            stroke-width="12"
+            stroke-dasharray="{{ ((xp_profile.progressToNext ?? 1) * arc_length)|round(2) }} {{ arc_length }}"
+            transform="rotate(-90 150 150)"
+        />
+        <text x="150" y="101" text-anchor="middle" font-family="Rubik, sans-serif" font-size="22" font-weight="500" letter-spacing="2" fill="#7d879c">{{ 'xp.reveal.level_label'|trans|upper }}</text>
+        <text x="150" y="177" text-anchor="middle" font-family="Rubik, sans-serif" font-size="76" font-weight="700" fill="#373f50">{{ xp_profile.level }}</text>
+    </g>
+{% endmacro %}
+
 {% block content %}
-    <div class="text-center mx-auto" style="max-width: 560px;">
-        <img
-            src="{{ asset('img/xp/xp-hero-1200.webp') }}"
-            alt=""
-            width="1200"
-            height="675"
-            style="width: 100%; height: auto; max-width: 480px;"
-            class="rounded-3 mb-3"
-            fetchpriority="high"
+    {% import _self as reveal %}
+    {% set level = xp_profile.level %}
+    {% set xp_total = xp_profile.xpTotal|number_format(0, '.', ' ') %}
+    {# A member meets every achievement one by one (the deck); the achievement detail is a member feature, so a free
+       player gets the level medallion and their achievements locked #}
+    {% set has_deck = is_member and badges|length > 0 %}
+
+    <div
+        class="xpl mx-auto"
+        {% if has_deck %}
+            data-controller="xp-launch-reveal"
+            data-xp-launch-reveal-last-piece-reveal-outlet="#xpl-deck"
+            data-xp-launch-reveal-start-value="{{ start_xp }}"
+            data-xp-launch-reveal-total-value="{{ xp_profile.xpTotal }}"
+            data-xp-launch-reveal-total-text-value="{{ xp_total }}"
+            data-xp-launch-reveal-progress-value="{{ 'xp.reveal.progress'|trans }}"
+            data-xp-launch-reveal-next-label-value="{{ 'xp.reveal.next'|trans }}"
+            data-xp-launch-reveal-level-label-value="{{ 'xp.reveal.next_level'|trans }}"
+            data-xp-launch-reveal-summary-label-value="{{ 'xp.reveal.to_summary'|trans }}"
+            data-action="last-piece-reveal:revealed->xp-launch-reveal#cardRevealed"
+        {% endif %}
+    >
+        <section class="xpl-intro" {% if has_deck %}data-xp-launch-reveal-target="intro"{% endif %}>
+            <img
+                src="{{ asset('img/xp/xp-hero-1200.webp') }}"
+                alt=""
+                width="1200"
+                height="675"
+                class="xpl-hero rounded-3 mb-3"
+                fetchpriority="high"
+            >
+
+            <h1 class="h3 mb-2">{{ 'xp.reveal.title'|trans }}</h1>
+            <p class="text-body-secondary">{{ 'xp.reveal.intro'|trans }}</p>
+
+            {% if has_deck %}
+                <p class="xpl-waiting">{{ 'xp.reveal.waiting'|trans({'%count%': badges|length}) }}</p>
+                <button type="button" class="btn btn-primary btn-lg xpl-start" data-action="xp-launch-reveal#start">
+                    <i class="bi bi-stars me-1" aria-hidden="true"></i>
+                    {{ 'xp.reveal.start'|trans }}
+                </button>
+            {% endif %}
+        </section>
+
+        {% if has_deck %}
+            {# One card at a time: the achievement assembles by itself (last_piece_reveal_controller.js, driven by
+               xp_launch_reveal_controller.js), the texts and its XP follow; a tap anywhere goes on #}
+            <section
+                id="xpl-deck"
+                class="xpl-deck lpr-page"
+                hidden
+                data-xp-launch-reveal-target="deck"
+                data-controller="last-piece-reveal"
+                data-last-piece-reveal-skip-label-value="{{ 'badges.reveals.stage_running'|trans }}"
+            >
+                <div class="xpl-bar">
+                    <span class="xpl-counter" title="{{ 'xp.reveal.counter_title'|trans }}">
+                        <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+                        <span data-xp-launch-reveal-target="counter">{{ start_xp|number_format(0, '.', ' ') }}</span>
+                        XP
+                    </span>
+                    <span class="xpl-progress" data-xp-launch-reveal-target="progress"></span>
+                    <span class="xpl-bar-end">
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-link text-muted xpl-sound lpr-sound"
+                            data-last-piece-reveal-target="soundToggle"
+                            data-action="last-piece-reveal#toggleSound"
+                            aria-pressed="false"
+                            aria-label="{{ 'badges.reveals.sound'|trans }}"
+                            title="{{ 'badges.reveals.sound_title'|trans }}"
+                        >
+                            <i class="bi bi-volume-mute" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-link xpl-skip" data-action="xp-launch-reveal#skip">
+                            {{ 'xp.reveal.skip'|trans }}
+                        </button>
+                    </span>
+                </div>
+
+                <div class="xpl-cards" data-action="click->xp-launch-reveal#tap">
+                    {% for badge in badges %}
+                        {% set name = (badge.type.translationKey())|trans %}
+                        {% set tier_name = badge.tier ? (badge.tier.translationKey())|trans : null %}
+
+                        <article class="xpl-card" data-xp-launch-reveal-target="card" data-xp="{{ badge.xp }}" hidden>
+                            <div
+                                class="lpr-stage"
+                                role="img"
+                                data-last-piece-reveal-target="stage"
+                                data-last-piece-reveal-look-param="{{ badge.tier ? badge.tier.value : 'single' }}"
+                                {% if not badge.revealed %}data-last-piece-reveal-url-param="{{ path('reveal_badge', {badgeId: badge.badgeId}) }}"{% endif %}
+                                data-last-piece-reveal-image-param="{{ badge_art_url(badge.type, badge.tier, 'webp', 320) }}"
+                                data-last-piece-reveal-image-large-param="{{ badge_art_url(badge.type, badge.tier, 'webp', 480) }}"
+                                data-last-piece-reveal-done-label-param="{{ tier_name ? 'badges.reveals.stage_done'|trans({'%achievement%': name, '%tier%': tier_name}) : name }}"
+                                aria-label="{{ 'badges.reveals.stage_label'|trans({'%achievement%': name}) }}"
+                            >
+                                <span class="lpr-tray" aria-hidden="true"></span>
+                            </div>
+
+                            <div class="xpl-card-text" aria-live="polite">
+                                <div class="xpl-card-reveal">
+                                    <h2 class="xpl-name">{{ name }}</h2>
+                                    {% if tier_name %}
+                                        <p class="xpl-tier">{{ tier_name }}</p>
+                                    {% endif %}
+                                    <p class="xpl-why">
+                                        <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                                        {{ (badge.requirementTranslationKey())|trans }}
+                                    </p>
+                                    <p class="xpl-gain">{{ 'xp.reveal.badge_xp'|trans({'%xp%': badge.xp}) }}</p>
+                                </div>
+                            </div>
+                        </article>
+                    {% endfor %}
+
+                    <article class="xpl-card xpl-card-level" data-xp-launch-reveal-target="card" data-xp="0" hidden>
+                        <div
+                            class="lpr-stage"
+                            role="img"
+                            data-last-piece-reveal-target="stage"
+                            data-last-piece-reveal-look-param="{{ xp_profile.isMaxLevel ? 'level-max' : 'level' }}"
+                            data-last-piece-reveal-done-label-param="{{ 'xp.reveal.stage_done'|trans({'%level%': level}) }}"
+                            aria-label="{{ 'xp.reveal.stage_label'|trans }}"
+                        >
+                            <span class="lpr-tray" aria-hidden="true"></span>
+                            <svg class="lpr-emblem" viewBox="0 0 300 300" aria-hidden="true" focusable="false">
+                                {{ reveal.level_medallion(xp_profile, 'xpl-arc-finale') }}
+                            </svg>
+                        </div>
+
+                        <div class="xpl-card-text" aria-live="polite">
+                            <div class="xpl-card-reveal">
+                                <h2 class="xpl-name">{{ 'xp.reveal.stage_done'|trans({'%level%': level}) }}</h2>
+                                <p class="xpl-total">{{ xp_total }} XP</p>
+                                <p class="xpl-why">{{ 'xp.reveal.xp_note'|trans }}</p>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-primary btn-lg w-100 xpl-next"
+                    data-xp-launch-reveal-target="next"
+                    data-action="xp-launch-reveal#next"
+                >{{ 'xp.reveal.next'|trans }}</button>
+                <p class="xpl-hint">{{ 'xp.reveal.tap_hint'|trans }}</p>
+            </section>
+        {% endif %}
+
+        <section
+            class="xpl-summary"
+            {% if has_deck %}hidden data-xp-launch-reveal-target="summary"{% endif %}
         >
+            {% if has_deck %}
+                <h2
+                    class="h4 mb-3"
+                    tabindex="-1"
+                    data-xp-launch-reveal-target="summaryHeading"
+                >{{ 'xp.reveal.summary_title'|trans }}</h2>
 
-        <h1 class="h3 mb-2">{{ 'xp.reveal.title'|trans }}</h1>
-        <p class="text-body-secondary">{{ 'xp.reveal.intro'|trans }}</p>
+                <svg class="xpl-medallion" viewBox="0 0 300 300" role="img" aria-label="{{ 'xp.reveal.stage_done'|trans({'%level%': level}) }}">
+                    {{ reveal.level_medallion(xp_profile, 'xpl-arc-summary') }}
+                </svg>
+                <p class="xpl-total mb-0">{{ xp_total }} XP</p>
+                <p class="text-body-secondary fs-sm">{{ 'xp.reveal.xp_note'|trans }}</p>
+            {% else %}
+                {# The level medallion arrives as a puzzle and its number clicks in last, by itself once it is on
+                   screen; then the XP counter spins up. Reduced motion: the medallion right away. #}
+                <div
+                    class="lpr-page lpr-level my-4"
+                    data-controller="last-piece-reveal"
+                    data-last-piece-reveal-autoplay-value="true"
+                    data-last-piece-reveal-skip-label-value="{{ 'badges.reveals.stage_running'|trans }}"
+                >
+                    <button
+                        type="button"
+                        class="lpr-stage mx-auto"
+                        data-last-piece-reveal-target="stage"
+                        data-action="last-piece-reveal#play"
+                        data-last-piece-reveal-look-param="{{ xp_profile.isMaxLevel ? 'level-max' : 'level' }}"
+                        data-last-piece-reveal-done-label-param="{{ 'xp.reveal.stage_done'|trans({'%level%': level}) }}"
+                        aria-label="{{ 'xp.reveal.stage_label'|trans }}"
+                    >
+                        <span class="lpr-tray" aria-hidden="true"></span>
+                        <svg class="lpr-emblem" viewBox="0 0 300 300" aria-hidden="true" focusable="false">
+                            {{ reveal.level_medallion(xp_profile, 'xpl-arc-level') }}
+                        </svg>
+                    </button>
 
-        <div class="my-4">
-            <span class="xp-ring {{ xp_profile.isMaxLevel ? 'xp-ring-milestone-50' }}" style="--xp-progress: {{ xp_profile.progressToNext ?? 1 }}; --xp-ring-width: 6px;">
-                <span class="d-inline-flex flex-column align-items-center justify-content-center bg-white" style="width: 120px; height: 120px;">
-                    <span class="fs-xs text-body-secondary text-uppercase">{{ 'xp.reveal.level_label'|trans }}</span>
-                    <span class="display-5 fw-bold lh-1">{{ xp_profile.level }}</span>
-                </span>
-            </span>
+                    <div class="lpr-after" data-last-piece-reveal-target="after">
+                        <div class="mt-3 h4 mb-0">
+                            <span data-last-piece-reveal-target="count" data-xp-count-amount-value="{{ xp_profile.xpTotal }}">{{ xp_total }}</span>
+                            XP
+                        </div>
+                        <p class="text-body-secondary fs-sm mb-2">{{ 'xp.reveal.xp_note'|trans }}</p>
+                    </div>
 
-            <div class="mt-3 h4 mb-0">
-                <span data-controller="xp-count" data-xp-count-amount-value="{{ xp_profile.xpTotal }}">{{ xp_profile.xpTotal|number_format(0, '.', ' ') }}</span>
-                XP
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-link text-muted text-decoration-none lpr-sound"
+                        data-last-piece-reveal-target="soundToggle"
+                        data-action="last-piece-reveal#toggleSound"
+                        aria-pressed="false"
+                        title="{{ 'badges.reveals.sound_title'|trans }}"
+                    >
+                        <i class="bi bi-volume-mute" aria-hidden="true"></i>
+                        {{ 'badges.reveals.sound'|trans }}
+                    </button>
+                </div>
+            {% endif %}
+
+            {% if badges|length > 0 and is_member %}
+                <ul class="xpl-grid" aria-label="{{ 'badges.title'|trans }}">
+                    {% for badge in badges %}
+                        <li class="xpl-grid-item" style="--xpl-i: {{ loop.index0 }}">
+                            {{ badge_art(badge.type, badge.tier, 72, attrs = {alt: ''}) }}
+                            <span class="xpl-grid-name">{{ (badge.type.translationKey())|trans }}</span>
+                            {% if badge.tier %}
+                                <span class="xpl-grid-tier">{{ (badge.tier.translationKey())|trans }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p class="text-body-secondary fs-sm">{{ 'xp.reveal.achievements_member'|trans({'%count%': badges|length}) }}</p>
+            {% elseif badges|length > 0 %}
+                {# Their own achievements, greyed out with a lock (the profile teaser's look); the sentence says it #}
+                <div class="d-flex flex-wrap gap-2 justify-content-center mb-2 xp-locked-strip" aria-hidden="true">
+                    {% for badge in badges %}
+                        <span class="badge-art-waiting">
+                            {{ badge_art(badge.type, badge.tier, 48, locked = true, attrs = {alt: ''}) }}
+                            <span class="badge-art-waiting-lock"><i class="ci-locked"></i></span>
+                        </span>
+                    {% endfor %}
+                </div>
+                <div class="xp-teaser justify-content-center mb-4">
+                    <i class="bi bi-award" aria-hidden="true"></i>
+                    <span>{{ 'badges.waiting_teaser'|trans({'%count%': badges|length}) }}</span>
+                </div>
+            {% else %}
+                <div class="xp-teaser justify-content-center mb-4">
+                    <i class="bi bi-award" aria-hidden="true"></i>
+                    <span>{{ 'badges.waiting_teaser_zero'|trans }}</span>
+                </div>
+            {% endif %}
+
+            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                <button
+                    data-controller="share-image"
+                    data-share-image-title-value="{{ 'xp.reveal.share_title'|trans({'%level%': level}) }}"
+                    data-share-image-image-url-value="{{ path('xp_share_card', {playerId: player_id, variant: 'launch'}) }}"
+                    data-action="click->share-image#shareImageAsset"
+                    class="btn btn-primary"
+                >
+                    <i class="ci-share me-1"></i> {{ 'xp.reveal.share_button'|trans }}
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-primary"
+                    data-controller="xp-reveal-finish"
+                    data-xp-reveal-finish-url-value="{{ path('dismiss_hint') }}"
+                    data-xp-reveal-finish-redirect-value="{{ path('my_profile') }}"
+                    data-action="click->xp-reveal-finish#finish"
+                >
+                    {{ 'xp.reveal.continue'|trans }}
+                </button>
             </div>
-            <p class="text-body-secondary fs-sm">{{ 'xp.reveal.xp_note'|trans }}</p>
-        </div>
-
-        {% if badges_count > 0 %}
-            <div class="xp-teaser justify-content-center mb-4">
-                <i class="bi bi-award" aria-hidden="true"></i>
-                <span>
-                    {% if is_member %}
-                        {{ 'xp.reveal.achievements_member'|trans({'%count%': badges_count}) }}
-                    {% else %}
-                        {{ 'badges.waiting_teaser'|trans({'%count%': badges_count}) }}
-                    {% endif %}
-                </span>
-            </div>
-        {% endif %}
-
-        <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
-            <button
-                data-controller="share-image"
-                data-share-image-title-value="{{ 'xp.reveal.share_title'|trans({'%level%': xp_profile.level}) }}"
-                data-share-image-image-url-value="{{ path('xp_share_card', {playerId: player_id, variant: 'launch'}) }}"
-                data-action="click->share-image#shareImageAsset"
-                class="btn btn-primary"
-            >
-                <i class="ci-share me-1"></i> {{ 'xp.reveal.share_button'|trans }}
-            </button>
-
-            <button
-                type="button"
-                class="btn btn-outline-primary"
-                data-controller="xp-reveal-finish"
-                data-xp-reveal-finish-url-value="{{ path('dismiss_hint') }}"
-                data-xp-reveal-finish-redirect-value="{{ path('my_profile') }}"
-                data-action="click->xp-reveal-finish#finish"
-            >
-                {{ 'xp.reveal.continue'|trans }}
-            </button>
-        </div>
-
-        {% if is_member %}
-            <p class="mt-3 fs-sm">
-                <a href="{{ path('badge_reveals') }}">{{ 'xp.reveal.to_badge_reveals'|trans }}</a>
-            </p>
-        {% endif %}
+        </section>
     </div>
+    {# Without JavaScript: the end state - the summary, the medallion, the XP #}
+    <noscript><style>.xpl-start{display:none}.xpl-summary[hidden]{display:block!important}.lpr-level .lpr-tray{display:none}.lpr-level .lpr-emblem{opacity:1!important}.lpr-level .lpr-after{visibility:visible!important}.lpr-level .lpr-sound{display:none}</style></noscript>
 {% endblock %}

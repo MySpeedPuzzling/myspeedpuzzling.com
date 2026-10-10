@@ -201,7 +201,7 @@ $xp-gold-deep: #f0a500;
 }
 
 
-// Free-user teaser & locked achievement strip
+// Free-user teaser (the locked badges themselves: .badge-art-waiting in _badge-art.scss)
 
 .xp-teaser {
   display: flex;
@@ -211,13 +211,6 @@ $xp-gold-deep: #f0a500;
   border-radius: .5rem;
   padding: .6rem .8rem;
   font-size: .875rem;
-}
-
-.xp-locked-strip {
-  .badge-medallion {
-    filter: grayscale(100%);
-    opacity: .4;
-  }
 }
 
 

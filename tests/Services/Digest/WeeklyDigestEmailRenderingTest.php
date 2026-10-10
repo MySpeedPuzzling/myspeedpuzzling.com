@@ -19,9 +19,15 @@ final class WeeklyDigestEmailRenderingTest extends KernelTestCase
         $html = $this->render(memberVariant: true, data: $this->activityData());
 
         self::assertStringContainsString('+42 XP', $html);
+        self::assertStringContainsString('4 solves — 2500 pieces placed.', $html);
+        self::assertStringNotContainsString(']1,Inf[', $html, 'A plural message rendered raw');
         self::assertStringContainsString('Puzzle Explorer', $html);
         self::assertStringContainsString('unsubscribe', $html);
         self::assertStringContainsString('https://example.com/unsubscribe', $html);
+
+        // Badges as 48 px PNGs at absolute URLs: the earned one and the one being worked toward
+        self::assertMatchesRegularExpression('~<img src="https?://[^"/]+/img/badges/png/96/puzzles_solved-t2\.png\?v=[^"]+" alt="" width="48" height="48"~', $html);
+        self::assertMatchesRegularExpression('~<img src="https?://[^"/]+/img/badges/png/96/streak-t3\.png\?v=[^"]+"~', $html);
     }
 
     public function testFreeTeaserVariantRenders(): void
@@ -30,6 +36,8 @@ final class WeeklyDigestEmailRenderingTest extends KernelTestCase
 
         self::assertStringContainsString('waiting for you', $html);
         self::assertStringNotContainsString('Within your reach', $html);
+        // Achievements are members-only - the teaser shows no badge
+        self::assertStringNotContainsString('/img/badges/', $html);
     }
 
     public function testNoActivityVariantRenders(): void
@@ -71,7 +79,9 @@ final class WeeklyDigestEmailRenderingTest extends KernelTestCase
             previousPiecesCount: 1000,
             currentStreakDays: 5,
             favoritesActivity: [['name' => 'Jane', 'solves' => 3]],
-            nextAchievements: [],
+            nextAchievements: [
+                ['type' => \SpeedPuzzling\Web\Value\BadgeType::Streak, 'progress' => new \SpeedPuzzling\Web\Results\BadgeProgress(\SpeedPuzzling\Web\Value\BadgeTier::Gold, 60, 90, 66)],
+            ],
             mostSolvedPuzzleName: 'Colorful Cats',
             mostSolvedPuzzleSolvers: 12,
         );

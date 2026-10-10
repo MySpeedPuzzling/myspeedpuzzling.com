@@ -145,7 +145,7 @@ final class XpRecomputerTest extends KernelTestCase
         $monday = XpCalculator::fullFormulaFrom()->modify('monday next week');
 
         while (true) {
-            $solvesInWeek = (int) $this->database->fetchOne(
+            $solvesInWeek = $this->database->fetchOne(
                 'SELECT COUNT(*) FROM puzzle_solving_time
                  WHERE player_id = :playerId
                    AND COALESCE(finished_at, tracked_at) >= :from
@@ -157,7 +157,7 @@ final class XpRecomputerTest extends KernelTestCase
                 ],
             );
 
-            if ($solvesInWeek === 0) {
+            if (is_numeric($solvesInWeek) && (int) $solvesInWeek === 0) {
                 return $monday->modify('+2 days');
             }
 

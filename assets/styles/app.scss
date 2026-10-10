@@ -128,6 +128,9 @@
 // Select several puzzles on a collection page (docs/features/collections/bulk-actions.md)
 @import "collection-selection";
 
+// The last-piece reveal of a new achievement and of the XP launch level (docs/features/xp-levels/)
+@import "last-piece-reveal";
+
 @import "flag-icons/sass/flag-icons";
 
 // Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen

@@ -395,7 +395,7 @@ content_digest:
         achievements_intro: "{1}Máš 1 nový úspěch:|{2,3,4}Máš %count% nové úspěchy:|[5,Inf[Máš %count% nových úspěchů:"
         achievements_teaser: "{1}Čeká na tebe 1 nový úspěch — staň se členem a odhal ho!|{2,3,4}Čekají na tebe %count% nové úspěchy — staň se členem a odhal je!|[5,Inf[Čeká na tebe %count% nových úspěchů — staň se členem a odhal je!"
         numbers_title: "Tvůj týden v číslech"
-        numbers_line: "{1}1 složení|]1,Inf[%solves% složení — %pieces% dílků na svém místě."
+        numbers_line: "{1}1 složení — %pieces% dílků na svém místě.|]1,Inf[%solves% složení — %pieces% dílků na svém místě."
         numbers_minutes: "Zhruba %minutes% minut čistého skládání."
         numbers_previous: "Minulý týden: %solves% složení, %pieces% dílků."
         streak_line: "Jedeš %days%denní sérii — krásná vytrvalost!"

@@ -33,22 +33,6 @@ enum BadgeTier: int
         };
     }
 
-    public function romanNumeral(): string
-    {
-        return match ($this) {
-            self::Bronze => 'I',
-            self::Silver => 'II',
-            self::Gold => 'III',
-            self::Platinum => 'IV',
-            self::Diamond => 'V',
-        };
-    }
-
-    public function cssClass(): string
-    {
-        return 'badge-tier-' . strtolower($this->name);
-    }
-
     public function translationKey(): string
     {
         return 'badges.tier.' . strtolower($this->name);

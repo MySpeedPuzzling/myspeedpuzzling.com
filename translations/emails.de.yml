@@ -395,7 +395,7 @@ content_digest:
         achievements_intro: "{1}Du hast 1 neuen Erfolg verdient:|]1,Inf[Du hast %count% neue Erfolge verdient:"
         achievements_teaser: "{1}1 neuer Erfolg wartet auf dich — werde Mitglied, um ihn aufzudecken!|]1,Inf[%count% neue Erfolge warten auf dich — werde Mitglied, um sie aufzudecken!"
         numbers_title: "Deine Woche in Zahlen"
-        numbers_line: "{1}1 Ergebnis|]1,Inf[%solves% Ergebnisse — %pieces% Teile gelegt."
+        numbers_line: "{1}1 Ergebnis — %pieces% Teile gelegt.|]1,Inf[%solves% Ergebnisse — %pieces% Teile gelegt."
         numbers_minutes: "Rund %minutes% Minuten pures Puzzeln."
         numbers_previous: "Letzte Woche: %solves% Ergebnisse, %pieces% Teile."
         streak_line: "Deine Serie läuft seit %days% Tagen — wunderbar beständig!"

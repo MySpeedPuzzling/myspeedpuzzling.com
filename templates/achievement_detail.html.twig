@@ -12,12 +12,14 @@
         </ol>
     </nav>
 
-    <header class="mb-4">
-        <h1 class="h3 mb-1">
-            <i class="bi bi-award me-1"></i>
-            {{ type_label }}
-        </h1>
-        <p class="text-body-secondary mb-0">{{ ('badges.description.' ~ type.value)|trans }}</p>
+    <header class="mb-4 d-flex flex-column flex-sm-row align-items-sm-center gap-3">
+        {# The top tier stands for the achievement; each tier's own badge heads its section below #}
+        {{ badge_art(type, 5, 160, attrs = {class: 'flex-shrink-0', loading: 'eager', fetchpriority: 'high'}) }}
+
+        <div>
+            <h1 class="h3 mb-1">{{ type_label }}</h1>
+            <p class="text-body-secondary mb-0">{{ ('badges.description.' ~ type.value)|trans }}</p>
+        </div>
     </header>
 
     {% if countries|length > 0 %}
@@ -43,7 +45,7 @@
                 {% for earner in newest_earners %}
                     <a href="{{ path('player_profile', {playerId: earner.playerId}) }}" class="d-inline-flex align-items-center gap-1 badge bg-secondary text-dark text-decoration-none">
                         {% if earner.tier is not null %}
-                            <span class="badge-medallion badge-medallion-sm {{ earner.tier.cssClass() }}" style="width: 18px; height: 18px; font-size: .55rem;">{{ earner.tier.romanNumeral() }}</span>
+                            {{ badge_art(type, earner.tier, 24) }}
                         {% endif %}
                         {{ earner.playerName ?? ('#' ~ earner.playerCode|upper) }}
                         {% if earner.countryCode is not null %}
@@ -59,9 +61,7 @@
         <section class="card shadow-sm mb-3">
             <div class="card-body">
                 <div class="d-flex align-items-center gap-3 mb-2">
-                    <div class="badge-medallion badge-medallion-sm {{ section.tier.cssClass() }}">
-                        <span class="badge-medallion-tier">{{ section.tier.romanNumeral() }}</span>
-                    </div>
+                    {{ badge_art(type, section.tier, 72, attrs = {class: 'flex-shrink-0'}) }}
                     <div>
                         <h2 class="h6 mb-0">{{ (section.tier.translationKey())|trans }} <span class="text-body-secondary fw-normal">· +{{ section.tier.points }} AP</span></h2>
                         <small class="text-body-secondary">{{ ('badges.requirement.' ~ type.value ~ '_' ~ section.tier.value)|trans }}</small>

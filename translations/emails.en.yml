@@ -402,7 +402,7 @@ content_digest:
         achievements_intro: "{1}You earned 1 new achievement:|]1,Inf[You earned %count% new achievements:"
         achievements_teaser: "{1}1 new achievement is waiting for you — become a member to reveal it!|]1,Inf[%count% new achievements are waiting for you — become a member to reveal them!"
         numbers_title: "Your week in numbers"
-        numbers_line: "{1}1 solve|]1,Inf[%solves% solves — %pieces% pieces placed."
+        numbers_line: "{1}1 solve — %pieces% pieces placed.|]1,Inf[%solves% solves — %pieces% pieces placed."
         numbers_minutes: "About %minutes% minutes of pure puzzling."
         numbers_previous: "Last week: %solves% solves, %pieces% pieces."
         streak_line: "You are on a %days%-day streak — beautifully steady!"

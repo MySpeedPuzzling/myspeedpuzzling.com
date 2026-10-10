@@ -869,3 +869,16 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 
 - [ ] Compare activation (share of registrations with a solving time within 7 days) before vs after 2026-09-20 -
       SQL in the feature doc. If people stall at the fifth checklist step, drop "Add a favorite puzzler"
+
+## Badge UI fine-tuning (`docs/features/badges-ui-handoff.md`, art: `tools/badge-art/README.md`)
+
+- [ ] Real-device pass of the badge reveal page + XP launch reveal (iPhone Safari, Android Chrome): haptics, sound
+      toggle, tap targets, hover space above the stage, locked look on OLED
+- [ ] Holo tilt + medal back in the achievement modal (prototype P3; precompute the bitmap analysis in tools/badge-art;
+      own code, not the GPL pokemon-cards-css); needs rarity + serial numbers
+- [ ] Self-animating T4/T5 SVG shine as an extra tools/badge-art output (prototype P5; loop only in modal/reveal)
+- [ ] Badge cabinet as a jigsaw board on the profile (prototype P1) - decide yearly reset / picture / 40 types on phones
+- [ ] Event passport for one-off event badges (prototype P6), spinning medal for the reveal (prototype P4) - optional
+- [ ] Check the 48 px e-mail PNGs in Gmail/Outlook dark mode
+- [ ] `EligibilityScheduleTest::testTheEventPageAndTheEventsPageRows` fails on origin/main too (2026-10-10): its two
+      events 22 and 50 days out both fall in November and merge into one events-page row - make it date-proof

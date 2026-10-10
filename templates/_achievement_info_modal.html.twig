@@ -7,6 +7,16 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
+        {# The big picture: the badge that was clicked (?tier=), else the viewer's highest tier, else the first one locked #}
+        {% if group is null %}
+            {{ badge_art(type, null, 160, attrs = {class: 'badge-art-hero mb-3', loading: 'eager'}) }}
+        {% elseif hero_tier is not null %}
+            {{ badge_art(type, hero_tier, 160, attrs = {class: 'badge-art-hero mb-3', loading: 'eager'}) }}
+        {% else %}
+            {% set highest_earned = group.highestEarnedTier() %}
+            {{ badge_art(type, highest_earned ?? 1, 160, locked = highest_earned is null, attrs = {class: 'badge-art-hero mb-3', loading: 'eager'}) }}
+        {% endif %}
+
         <p class="text-body-secondary">{{ ('badges.description.' ~ type.value)|trans }}</p>
 
         {% if group is null %}
@@ -15,8 +25,8 @@
             <ul class="list-unstyled mb-0">
                 {% for entry in group.tiers %}
                     <li class="d-flex align-items-center gap-3 py-2 {{ not loop.last ? 'border-bottom' }}">
-                        <div class="badge-medallion badge-medallion-sm {{ entry.tier.cssClass() }} {{ entry.earned ? '' : 'badge-locked' }}">
-                            <span class="badge-medallion-tier">{{ entry.tier.romanNumeral() }}</span>
+                        <div class="flex-shrink-0">
+                            {{ badge_art(entry.type, entry.tier, 48, locked = not entry.earned) }}
                         </div>
 
                         <div class="flex-grow-1">

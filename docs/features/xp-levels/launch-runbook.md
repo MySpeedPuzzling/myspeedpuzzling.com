@@ -9,7 +9,9 @@ admins see anything and no emails leave the system.
 ## 0. Prerequisites (before launch day)
 
 - [ ] Branch merged + deployed (flag active) — migrations run automatically on container boot
-- [ ] Jan: badge tier-frame + icon images dropped into `public/img/badges/` (optional — medallion fallback covers absence)
+- [x] Badge art committed with the branch: `public/img/badges/**` + `manifest.json`, built by `tools/badge-art/build.py`
+  ([`tools/badge-art/README.md`](../../../tools/badge-art/README.md)). Required, not optional - there is no fallback
+  picture; `BadgeArtCoverageTest` must be green (every achievement × tier in every format/size)
 - [ ] Jan: copy approvals — explainer + fair-play pages (`<!-- COPY:pending-jan-approval -->` markers), reveal email, launch reveal page
 - [ ] Jan: cs native review of achievement names (after P8 translation fill)
 - [ ] Cron rows from `README.md` §Cron added to `apps/myspeedpuzzling/cron.d/myspeedpuzzling` in the lily.srv repo

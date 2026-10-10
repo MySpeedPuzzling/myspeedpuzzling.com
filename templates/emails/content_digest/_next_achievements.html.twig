@@ -3,15 +3,17 @@
     <row>
         <columns>
             <h4>{{ 'content_digest.weekly.next_achievements_title'|trans }}</h4>
-            <ul>
+            {# The badge of the tier being worked toward #}
+            <table style="border-collapse: collapse;">
                 {% for candidate in data.nextAchievements %}
-                    <li>
-                        <strong>{{ (candidate.type.translationKey())|trans({}, 'messages', locale) }}</strong>
-                        — {{ (candidate.progress.nextTier.translationKey())|trans({}, 'messages', locale) }}
-                        ({{ candidate.progress.percent }}%)
-                    </li>
+                    {{ include('emails/_badge_row.html.twig', {
+                        type: candidate.type,
+                        tier: candidate.progress.nextTier,
+                        label: (candidate.type.translationKey())|trans({}, 'messages', locale),
+                        detail: (candidate.progress.nextTier.translationKey())|trans({}, 'messages', locale) ~ ' (' ~ candidate.progress.percent ~ '%)',
+                    }) }}
                 {% endfor %}
-            </ul>
+            </table>
         </columns>
     </row>
 {% endif %}

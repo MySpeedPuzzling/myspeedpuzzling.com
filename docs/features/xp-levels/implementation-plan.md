@@ -591,7 +591,7 @@ Follow `docs/features/content-digest/README.md` §16 Phase 1 + Phase 2 checklist
 
 ## 3. OUT OF SCOPE (do not build)
 
-Jan's deliverables: badge tier-frame + icon images (fallback medallions cover absence), final copy
+Jan's deliverables: badge art (done 2026-10-10: `tools/badge-art/`, no fallback picture - `docs/features/badges.md`), final copy
 approvals, cs native review, Seznam inquiry, FB posts, prod cron entries, running prod backfill/
 migrations. Deferred features: everything listed in §1.6-deferred. MSP Points/Rating: untouched.
 Listmonk: untouched. Daily digest: untouched (design exists, build later).

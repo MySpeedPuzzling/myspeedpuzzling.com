@@ -16,19 +16,23 @@ export default class extends Controller {
             return;
         }
 
+        // Thousands grouped with the separator of the server-rendered number in this element (the template's
+        // number_format, the same in every locale), so the spin ends on exactly the text the server printed
+        const separator = this.element.textContent.trim().match(/\d(\D+)\d{3}$/)?.[1] ?? '';
+        const format = (value) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, separator);
         const start = performance.now();
-        const formatter = new Intl.NumberFormat('en-US');
 
         const tick = (now) => {
             const progress = Math.min((now - start) / this.durationValue, 1);
             const eased = 1 - Math.pow(1 - progress, 3);
-            this.element.textContent = formatter.format(Math.round(eased * this.amountValue));
+            this.element.textContent = format(Math.round(eased * this.amountValue));
 
             if (progress < 1) {
                 requestAnimationFrame(tick);
             }
         };
 
+        this.element.textContent = format(0);
         requestAnimationFrame(tick);
     }
 }

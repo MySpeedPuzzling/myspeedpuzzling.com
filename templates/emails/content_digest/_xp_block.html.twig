@@ -12,16 +12,16 @@
         {% if data.achievementsEarned|length > 0 %}
             {% if isMember %}
                 <p>{{ 'content_digest.weekly.achievements_intro'|trans({'%count%': data.achievementsEarned|length}) }}</p>
-                <ul>
+                <table style="border-collapse: collapse;">
                     {% for entry in data.achievementsEarned %}
-                        {% set type_label = (entry.type.translationKey())|trans({}, 'messages', locale) %}
-                        {% if entry.tier %}
-                            <li><strong>{{ type_label }}</strong> — {{ (entry.tier.translationKey())|trans({}, 'messages', locale) }}</li>
-                        {% else %}
-                            <li><strong>{{ type_label }}</strong></li>
-                        {% endif %}
+                        {{ include('emails/_badge_row.html.twig', {
+                            type: entry.type,
+                            tier: entry.tier,
+                            label: (entry.type.translationKey())|trans({}, 'messages', locale),
+                            detail: entry.tier ? (entry.tier.translationKey())|trans({}, 'messages', locale) : null,
+                        }) }}
                     {% endfor %}
-                </ul>
+                </table>
             {% else %}
                 <p>{{ 'content_digest.weekly.achievements_teaser'|trans({'%count%': data.achievementsEarned|length}) }}</p>
             {% endif %}

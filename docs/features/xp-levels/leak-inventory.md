@@ -22,7 +22,7 @@ Rules while flagged:
 - [x] Post-solve XP receipt on recap page (`added_time_recap` + `added_tracking_recap`) — verified: `XpSurfacesTest::testRecapShowsNoXpTracesToNonAdminOwner`
 - [x] Lazy Live Component `XpRecapCelebration` — gate-checked in every render incl. the live endpoint; renders nothing for non-admins (covered by the recap assertions)
 - [x] Profile: avatar XP ring + level chip + progress bar — verified: `XpSurfacesTest::testProfileShowsNoXpTracesToNonAdmins`
-- [x] Profile: achievements strip (incl. free-user locked strip + "N waiting" teaser) — matrix inside `BadgesProfileSection`; verified: xp-teaser + medallion absence for non-admins
+- [x] Profile: achievements strip (incl. free-user locked strip + "N waiting" teaser) — matrix inside `BadgesProfileSection`; verified: xp-teaser + badge art (`badge-art`, `/img/badges/`) absence for non-admins
 - [x] Badge reveal endpoint (POST, `revealed_at` flip) — 404 while flagged: `XpSurfacesTest::testRevealEndpointIs404ForNonAdmins`
 - [x] Membership-activation reveal page (`/my/achievement-reveals` + membership-page invite) — 404/hidden while flagged: `XpSurfacesTest`
 - [x] Header avatar XP ring — verified: `XpSurfacesTest::testHeaderShowsNoRingToNonAdmins`

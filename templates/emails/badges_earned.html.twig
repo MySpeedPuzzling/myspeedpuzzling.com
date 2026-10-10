@@ -20,17 +20,16 @@
 
             <row>
                 <columns>
-                    <ul>
+                    <table style="border-collapse: collapse;">
                         {% for entry in badges %}
-                            {% set type_label = (entry.type.translationKey())|trans({}, 'messages', locale) %}
-                            {% if entry.tier %}
-                                {% set tier_label = (entry.tier.translationKey())|trans({}, 'messages', locale) %}
-                                <li><strong>{{ type_label }}</strong> — {{ tier_label }} ({{ entry.tier.romanNumeral() }})</li>
-                            {% else %}
-                                <li><strong>{{ type_label }}</strong></li>
-                            {% endif %}
+                            {{ include('emails/_badge_row.html.twig', {
+                                type: entry.type,
+                                tier: entry.tier,
+                                label: (entry.type.translationKey())|trans({}, 'messages', locale),
+                                detail: entry.tier ? (entry.tier.translationKey())|trans({}, 'messages', locale) : null,
+                            }) }}
                         {% endfor %}
-                    </ul>
+                    </table>
                 </columns>
             </row>
 

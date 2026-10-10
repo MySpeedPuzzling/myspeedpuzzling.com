@@ -395,7 +395,7 @@ content_digest:
         achievements_intro: "{1}Conseguiste 1 nuevo logro:|]1,Inf[Conseguiste %count% nuevos logros:"
         achievements_teaser: "{1}1 nuevo logro te está esperando — ¡hazte miembro para revelarlo!|]1,Inf[%count% nuevos logros te están esperando — ¡hazte miembro para revelarlos!"
         numbers_title: "Tu semana en números"
-        numbers_line: "{1}1 resolución|]1,Inf[%solves% resoluciones — %pieces% piezas colocadas."
+        numbers_line: "{1}1 resolución — %pieces% piezas colocadas.|]1,Inf[%solves% resoluciones — %pieces% piezas colocadas."
         numbers_minutes: "Unos %minutes% minutos de puzzle en estado puro."
         numbers_previous: "La semana pasada: %solves% resoluciones, %pieces% piezas."
         streak_line: "Llevas una racha de %days% días — ¡qué constancia tan bonita!"

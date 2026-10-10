@@ -395,7 +395,7 @@ content_digest:
         achievements_intro: "{1}新しい実績を1個獲得しました：|]1,Inf[新しい実績を%count%個獲得しました："
         achievements_teaser: "{1}新しい実績1個があなたを待っています — メンバーになってお披露目しましょう！|]1,Inf[新しい実績%count%個があなたを待っています — メンバーになってお披露目しましょう！"
         numbers_title: "数字で見る今週"
-        numbers_line: "{1}完成1回|]1,Inf[完成%solves%回 — %pieces%ピースをはめました。"
+        numbers_line: "{1}完成1回 — %pieces%ピースをはめました。|]1,Inf[完成%solves%回 — %pieces%ピースをはめました。"
         numbers_minutes: "純粋なパズル時間はおよそ%minutes%分。"
         numbers_previous: "先週：完成%solves%回、%pieces%ピース。"
         streak_line: "現在%days%日連続でパズル中 — 見事な安定感です！"

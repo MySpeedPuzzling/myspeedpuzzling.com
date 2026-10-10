@@ -13,8 +13,8 @@ use DateTimeImmutable;
  */
 final readonly class MissYouRun
 {
-    /** A Tuesday - the week after the launch newsletter. No run before it (a guard in code, not only a cron date). */
-    public const string FIRST_DAY = '2026-10-20';
+    /** A Tuesday - two weeks after the launch newsletter (Jan). No run before it (a guard in code, not only a cron date). */
+    public const string FIRST_DAY = '2026-10-27';
 
     /** A queued e-mail later than this many days after its run day is dropped, never delivered late. */
     public const int STALE_AFTER_DAYS = 2;

@@ -43,7 +43,8 @@ that would otherwise be forgotten. Newest section on top.
 
 - [ ] Karma: workstream F wires karma gained in a period into `GetContentDigestRecipients::activitySql()` (karma = activity) and `PlayerPeriodActivityReader::karmaGained()` (the thanks line, linking F's karma history)
 - [ ] Launch badge backfill vs the first digest: achievements count by `badge.earned_at` = backfill run time - run it before Mon 12 Oct 00:00 Prague, or filter backfilled badges out of the 12-18 Oct period
-- [ ] First "We miss you" Tuesday (20 Oct) reaches every dormant account with a result once - `miss-you --dry-run` on the box, then slice the first waves with `--max-recipients`
+- [ ] "We miss you" waves by hand (README wave plan): Tue 27 Oct 28d-6m, Tue 3 Nov 6-12m, Tue 10 Nov 1-2y only if bounces < 2 % and complaints ≈ 0; cron row off or on `--last-activity-after="12 months"` until then
+- [ ] Holdout comparison (README §Holdout SQL) once the first spells are 8 weeks old (late December)
 - [ ] Link the page (`my_activity`) from the app: user menu / own profile / the recap ("See your week") - nothing links it yet besides the e-mail
 - [ ] Visual check of the page and both e-mails at 375 / 320 px and in a long locale (not done in WS-E: no isolated browser run)
 - [ ] Admin line with per-run counts (`content_digest_run`) on the e-mail audit page

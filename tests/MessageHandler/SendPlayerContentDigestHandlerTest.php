@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Repository\ContentDigestRunRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\ContentDigestRunCounts;
 use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
+use SpeedPuzzling\Web\Services\Digest\MissYouHoldout;
 use SpeedPuzzling\Web\Services\Digest\PlayerPeriodActivityReader;
 use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
@@ -208,19 +209,43 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         self::assertCount(0, $transport->sent);
     }
 
-    public function testWeMissYouNeverRunsBeforeTwentiethOctober(): void
+    public function testWeMissYouNeverRunsBeforeTwentySeventhOctober(): void
     {
         $this->onlyResult(self::FREE_PLAYER, '2026-08-01 18:00:00');
-        $this->clock = new MockClock(new DateTimeImmutable('2026-10-13 08:00:00', new DateTimeZone('Europe/Prague')));
+        $this->clock = new MockClock(new DateTimeImmutable('2026-10-20 08:00:00', new DateTimeZone('Europe/Prague')));
 
         $transport = new TransportSpy();
-        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2026-10-13', ContentDigestKind::MissYou, $this->insertRun()));
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2026-10-20', ContentDigestKind::MissYou, $this->insertRun()));
         self::assertCount(0, $transport->sent);
 
         // A stale message of a valid run is dropped too
-        $this->clock = new MockClock(new DateTimeImmutable('2026-10-22 08:00:00', new DateTimeZone('Europe/Prague')));
-        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2026-10-20', ContentDigestKind::MissYou, $this->insertRun()));
+        $this->clock = new MockClock(new DateTimeImmutable('2026-10-29 08:00:00', new DateTimeZone('Europe/Prague')));
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2026-10-27', ContentDigestKind::MissYou, $this->insertRun()));
         self::assertCount(0, $transport->sent);
+
+        // The first run day itself sends
+        $this->clock = new MockClock(new DateTimeImmutable('2026-10-27 08:00:00', new DateTimeZone('Europe/Prague')));
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2026-10-27', ContentDigestKind::MissYou, $this->insertRun()));
+        self::assertCount(1, $transport->sent);
+    }
+
+    public function testTheHoldoutIsLoggedOncePerSpellAndNeverMailed(): void
+    {
+        $this->onlyResult(self::FREE_PLAYER, '2030-02-01 18:00:00');
+        $this->clock = new MockClock(new DateTimeImmutable('2030-03-12 08:00:00', new DateTimeZone('Europe/Prague')));
+
+        $transport = new TransportSpy();
+        ($this->handler($transport, holdoutPercent: 100))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2030-03-12', ContentDigestKind::MissYou, $this->insertRun()));
+
+        self::assertCount(0, $transport->sent);
+        self::assertSame(['status' => 'holdout', 'had_activity' => false], $this->logRow(self::FREE_PLAYER, 'miss-you:2030-02-01T18:00:00'));
+
+        // Once per spell, like a send: not picked again next week
+        self::assertFalse(self::getContainer()->get(GetContentDigestRecipients::class)->isMissed(
+            self::FREE_PLAYER,
+            \SpeedPuzzling\Web\Value\ContentDigestFrequency::Weekly,
+            new DateTimeImmutable('2030-03-19 08:00:00'),
+        ));
     }
 
     public function testASwitchedOffPlayerIsNotMissed(): void
@@ -377,7 +402,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         self::getContainer()->get('twig.mime_body_renderer')->render($email);
     }
 
-    private function handler(TransportInterface $transport, bool $launchReady = true, null|InMemoryLogger $logger = null): SendPlayerContentDigestHandler
+    private function handler(TransportInterface $transport, bool $launchReady = true, null|InMemoryLogger $logger = null, int $holdoutPercent = 0): SendPlayerContentDigestHandler
     {
         $container = self::getContainer();
 
@@ -397,6 +422,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
             logger: $logger ?? new NullLogger(),
             playerAccountEmail: $container->get(PlayerAccountEmail::class),
             xpFeatureGate: new XpFeatureGate(new XpLaunchReadinessStub($launchReady)),
+            missYouHoldout: new MissYouHoldout($holdoutPercent),
         );
     }
 

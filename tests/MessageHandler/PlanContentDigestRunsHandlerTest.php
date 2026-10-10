@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Query\GetContentDigestRecipients;
 use SpeedPuzzling\Web\Repository\ContentDigestRunRepository;
 use SpeedPuzzling\Web\Results\ContentDigestRunPlan;
 use SpeedPuzzling\Web\Services\Digest\DigestPacing;
+use SpeedPuzzling\Web\Services\Digest\MissYouHoldout;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Tests\TestDouble\XpLaunchReadinessStub;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -99,27 +100,63 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
         self::assertSame([], $this->queued());
     }
 
-    public function testTheFirstMissYouRunIsTuesdayTwentiethOctober(): void
+    public function testTheFirstMissYouRunIsTuesdayTwentySeventhOctober(): void
     {
-        $before = $this->plan(ContentDigestKind::MissYou, '2026-10-19 07:01', dryRun: true);
+        $before = $this->plan(ContentDigestKind::MissYou, '2026-10-20 07:01', dryRun: true);
         self::assertSame(['weekly' => 'paused', 'every_two_weeks' => 'paused', 'monthly' => 'paused'], $this->outcomes($before));
 
-        $first = $this->plan(ContentDigestKind::MissYou, '2026-10-20 07:01', dryRun: true);
+        $first = $this->plan(ContentDigestKind::MissYou, '2026-10-27 07:01', dryRun: true);
         self::assertSame('dry_run', $first[0]->outcome);
-        self::assertSame('miss-you-2026-10-20', $first[0]->periodKey);
+        self::assertSame('miss-you-2026-10-27', $first[0]->periodKey);
     }
 
     public function testMissYouIsQueuedMostRecentlyActiveFirstAndCanBeCapped(): void
     {
+        $this->onlyResult(PlayerFixture::PLAYER_REGULAR, '2030-01-20 12:00:00');
+        $this->onlyResult(PlayerFixture::PLAYER_WITH_STRIPE, '2030-02-01 12:00:00');
+        $this->onlyResult(PlayerFixture::PLAYER_ADMIN, '2029-12-01 12:00:00');
+
         $plans = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', maxRecipients: 2);
 
         self::assertSame(2, array_sum(array_map(static fn (ContentDigestRunPlan $plan): int => $plan->recipients, $plans)));
-        $queued = $this->queued();
+        $queued = array_map(static fn (Envelope $envelope): object => $envelope->getMessage(), $this->queued());
         self::assertCount(2, $queued);
-        $first = $queued[0]->getMessage();
-        self::assertInstanceOf(SendPlayerContentDigest::class, $first);
-        self::assertSame(ContentDigestKind::MissYou, $first->kind);
-        self::assertSame('miss-you-2030-03-12', $first->periodKey);
+        self::assertInstanceOf(SendPlayerContentDigest::class, $queued[0]);
+        self::assertSame(PlayerFixture::PLAYER_WITH_STRIPE, $queued[0]->playerId, 'Most recently active first');
+        self::assertSame(ContentDigestKind::MissYou, $queued[0]->kind);
+        self::assertSame('miss-you-2030-03-12', $queued[0]->periodKey);
+    }
+
+    public function testMissYouCanBeSlicedByRecencyAndNeverReachesAccountsQuietForTwoYears(): void
+    {
+        $this->onlyResult(PlayerFixture::PLAYER_REGULAR, '2030-01-20 12:00:00');      // 7 weeks
+        $this->onlyResult(PlayerFixture::PLAYER_WITH_STRIPE, '2029-07-01 12:00:00'); // 8 months
+        $this->onlyResult(PlayerFixture::PLAYER_ADMIN, '2028-09-01 12:00:00');       // 18 months
+        $this->onlyResult(PlayerFixture::PLAYER_PRIVATE, '2028-01-01 12:00:00');     // 26 months - never
+        $now = new DateTimeImmutable('2030-03-12 07:01', new DateTimeZone('Europe/Prague'));
+
+        $all = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', dryRun: true);
+        self::assertSame(['28d-3m' => 1, '3-6m' => 0, '6-12m' => 1, '1-2y' => 1], $all[0]->buckets);
+
+        $firstSlice = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', dryRun: true, lastActivityAfter: $now->modify('-6 months'));
+        self::assertSame(['28d-3m' => 1, '3-6m' => 0, '6-12m' => 0, '1-2y' => 0], $firstSlice[0]->buckets);
+
+        $secondSlice = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', dryRun: true, lastActivityAfter: $now->modify('-12 months'), lastActivityBefore: $now->modify('-6 months'));
+        self::assertSame(1, $secondSlice[0]->recipients);
+        self::assertSame(['28d-3m' => 0, '3-6m' => 0, '6-12m' => 1, '1-2y' => 0], $secondSlice[0]->buckets);
+    }
+
+    public function testTheHoldoutIsQueuedWithoutTakingAPacingSlot(): void
+    {
+        $this->onlyResult(PlayerFixture::PLAYER_REGULAR, '2030-01-20 12:00:00');
+        $this->onlyResult(PlayerFixture::PLAYER_WITH_STRIPE, '2030-02-01 12:00:00');
+
+        $plans = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', holdoutPercent: 100);
+
+        self::assertSame(2, $plans[0]->recipients);
+        self::assertSame(2, $plans[0]->heldOut);
+        $delays = array_map(static fn (Envelope $envelope): null|int => $envelope->last(DelayStamp::class)?->getDelay(), $this->queued());
+        self::assertSame([null, null], $delays);
     }
 
     public function testTheFirstMondayOfTheMonthPlansTheMonth(): void
@@ -134,7 +171,7 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
     /**
      * @return list<ContentDigestRunPlan>
      */
-    private function plan(ContentDigestKind $kind, string $praguetime, bool $dryRun = false, bool $launchReady = true, null|int $maxRecipients = null): array
+    private function plan(ContentDigestKind $kind, string $praguetime, bool $dryRun = false, bool $launchReady = true, null|int $maxRecipients = null, null|DateTimeImmutable $lastActivityAfter = null, null|DateTimeImmutable $lastActivityBefore = null, int $holdoutPercent = 0): array
     {
         $container = self::getContainer();
         $handler = new PlanContentDigestRunsHandler(
@@ -144,9 +181,10 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
             messageBus: $container->get(MessageBusInterface::class),
             clock: new MockClock(new DateTimeImmutable($praguetime, new DateTimeZone('Europe/Prague'))),
             xpFeatureGate: new XpFeatureGate(new XpLaunchReadinessStub($launchReady)),
+            missYouHoldout: new MissYouHoldout($holdoutPercent),
         );
 
-        $plans = $handler(new PlanContentDigestRuns($kind, $dryRun, $maxRecipients));
+        $plans = $handler(new PlanContentDigestRuns($kind, $dryRun, $maxRecipients, $lastActivityAfter, $lastActivityBefore));
         $container->get('doctrine.orm.entity_manager')->flush();
 
         return $plans;
@@ -184,6 +222,13 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
             'INSERT INTO player_activity_day (id, player_id, day, first_seen_at) VALUES (:id, :playerId, :day, NOW()) ON CONFLICT DO NOTHING',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'day' => $day],
         );
+    }
+
+    private function onlyResult(string $playerId, string $at): void
+    {
+        $this->database->executeStatement('DELETE FROM puzzle_solving_time WHERE player_id = :id', ['id' => $playerId]);
+        $this->database->executeStatement('DELETE FROM puzzling_team_member WHERE player_id = :id', ['id' => $playerId]);
+        $this->insertSolve($playerId, $at);
     }
 
     private function insertSolve(string $playerId, string $at): void

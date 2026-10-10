@@ -33,11 +33,12 @@ readonly final class ContentDigestLogRepository
         string $periodKey,
         bool $hadActivity,
         DateTimeImmutable $now,
+        string $status = ContentDigestLog::STATUS_SENT,
     ): bool {
         $affectedRows = $this->database->executeStatement(
             <<<SQL
 INSERT INTO content_digest_log (id, player_id, frequency, period_key, sent_at, had_activity, status)
-VALUES (:id, :playerId, :frequency, :periodKey, :now, :hadActivity, :sent)
+VALUES (:id, :playerId, :frequency, :periodKey, :now, :hadActivity, :status)
 ON CONFLICT (player_id, period_key) DO UPDATE
     SET status = EXCLUDED.status, sent_at = EXCLUDED.sent_at, had_activity = EXCLUDED.had_activity
     WHERE content_digest_log.status = :deferred
@@ -49,7 +50,7 @@ SQL,
                 'periodKey' => $periodKey,
                 'now' => $now->format(DATE_ATOM),
                 'hadActivity' => $hadActivity ? 'true' : 'false',
-                'sent' => ContentDigestLog::STATUS_SENT,
+                'status' => $status,
                 'deferred' => ContentDigestLog::STATUS_DEFERRED,
             ],
         );

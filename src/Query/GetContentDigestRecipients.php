@@ -25,12 +25,19 @@ use SpeedPuzzling\Web\Value\DigestPeriod;
  * activitySql()). Nobody without activity gets a digest - no empty or "quiet" variant.
  *
  * "We miss you": the last result the player logged (any, solo or in a pair/team, a back-dated or not yet verified one
- * too) is at least MISS_YOU_AFTER_DAYS old - players who never logged a result are not missed - and they were not told
- * since: no "We miss you" e-mail after that last result (once per inactive spell; activity restarts the clock).
+ * too) is at least MISS_YOU_AFTER_DAYS old but not older than MISS_YOU_MAX_DORMANCY_MONTHS - players who never logged a
+ * result are not missed - and they were not told since: no "We miss you" e-mail (or holdout row) after that last result
+ * (once per inactive spell; activity restarts the clock).
  */
 readonly final class GetContentDigestRecipients
 {
     public const int MISS_YOU_AFTER_DAYS = 28;
+
+    /**
+     * Never mailed when the last result is older than this: those accounts are left to the newsletter - old addresses
+     * bounce, end in spam traps or complain, and that hurts the deliverability of every other e-mail.
+     */
+    public const int MISS_YOU_MAX_DORMANCY_MONTHS = 24;
 
     public function __construct(
         private Connection $database,
@@ -58,7 +65,47 @@ readonly final class GetContentDigestRecipients
      */
     public function missed(ContentDigestFrequency $frequency, DateTimeImmutable $now): array
     {
-        return $this->ids($this->missYouSql(onePlayer: false), $this->missYouParameters($frequency, $now));
+        return array_keys($this->missedWithLastLogged($frequency, $now));
+    }
+
+    /**
+     * Optionally sliced by the last result's moment, for sending the first wave in recency slices
+     * (`--last-activity-after` / `--last-activity-before`).
+     *
+     * @return array<string, DateTimeImmutable> player id => last logged result (UTC), most recently active first
+     */
+    public function missedWithLastLogged(
+        ContentDigestFrequency $frequency,
+        DateTimeImmutable $now,
+        null|DateTimeImmutable $lastActivityAfter = null,
+        null|DateTimeImmutable $lastActivityBefore = null,
+    ): array {
+        $parameters = $this->missYouParameters($frequency, $now);
+        $slice = '';
+
+        if ($lastActivityAfter !== null) {
+            $slice .= ' AND last_logged_at > CAST(:lastActivityAfter AS TIMESTAMP)';
+            $parameters['lastActivityAfter'] = self::utc($lastActivityAfter);
+        }
+
+        if ($lastActivityBefore !== null) {
+            $slice .= ' AND last_logged_at < CAST(:lastActivityBefore AS TIMESTAMP)';
+            $parameters['lastActivityBefore'] = self::utc($lastActivityBefore);
+        }
+
+        /** @var list<array{id: string, last_logged_at: string}> $rows */
+        $rows = $this->database->executeQuery(
+            str_replace('{slice}', $slice, $this->missYouSql(onePlayer: false, withLastLogged: true)),
+            $parameters,
+        )->fetchAllAssociative();
+
+        $missed = [];
+
+        foreach ($rows as $row) {
+            $missed[$row['id']] = new DateTimeImmutable($row['last_logged_at'], new DateTimeZone('UTC'));
+        }
+
+        return $missed;
     }
 
     public function isMissed(string $playerId, ContentDigestFrequency $frequency, DateTimeImmutable $now): bool
@@ -66,7 +113,7 @@ readonly final class GetContentDigestRecipients
         $parameters = $this->missYouParameters($frequency, $now);
         $parameters['playerId'] = $playerId;
 
-        return $this->database->executeQuery($this->missYouSql(onePlayer: true), $parameters)->fetchOne() !== false;
+        return $this->database->executeQuery(str_replace('{slice}', '', $this->missYouSql(onePlayer: true)), $parameters)->fetchOne() !== false;
     }
 
     /**
@@ -141,14 +188,15 @@ ORDER BY last_seen_day DESC NULLS LAST, registered_at ASC, id
 SQL;
     }
 
-    private function missYouSql(bool $onePlayer): string
+    private function missYouSql(bool $onePlayer, bool $withLastLogged = false): string
     {
         $onePlayerCondition = $onePlayer ? 'AND p.id = :playerId' : '';
+        $columns = $withLastLogged ? 'id, last_logged_at' : 'id';
 
         // Any logged result counts as activity here, a not yet verified (suspicious) one too: it is what "active
         // again" means, and nobody is missed the week after logging something
         return <<<SQL
-SELECT id FROM (
+SELECT {$columns} FROM (
     SELECT DISTINCT ON (LOWER(TRIM(ua.email))) p.id, p.registered_at, last_logged.at AS last_logged_at
     FROM player p
     INNER JOIN user_account ua ON ua.user_id = p.user_id
@@ -158,15 +206,17 @@ SELECT id FROM (
       AND p.content_digest_frequency = :frequency
       AND last_logged.at IS NOT NULL
       AND last_logged.at <= CAST(:missedSince AS TIMESTAMP)
+      AND last_logged.at > CAST(:tooOldBefore AS TIMESTAMP)
       AND NOT EXISTS (
         SELECT 1 FROM content_digest_log told
         WHERE told.player_id = p.id
           AND told.had_activity = false
-          AND told.status IN (:sentStatus, :failedStatus)
+          AND told.status IN (:sentStatus, :failedStatus, :holdoutStatus)
           AND told.sent_at > last_logged.at AT TIME ZONE 'UTC'
       )
     ORDER BY LOWER(TRIM(ua.email)), p.registered_at ASC
 ) eligible
+WHERE true{slice}
 ORDER BY last_logged_at DESC, registered_at ASC, id
 SQL;
     }
@@ -205,9 +255,16 @@ SQL;
     {
         return [
             'frequency' => $frequency->value,
-            'missedSince' => $now->setTimezone(new DateTimeZone('UTC'))->modify(sprintf('-%d days', self::MISS_YOU_AFTER_DAYS))->format('Y-m-d H:i:s'),
+            'missedSince' => self::utc($now->modify(sprintf('-%d days', self::MISS_YOU_AFTER_DAYS))),
+            'tooOldBefore' => self::utc($now->modify(sprintf('-%d months', self::MISS_YOU_MAX_DORMANCY_MONTHS))),
             'sentStatus' => ContentDigestLog::STATUS_SENT,
             'failedStatus' => ContentDigestLog::STATUS_FAILED_PERMANENT,
+            'holdoutStatus' => ContentDigestLog::STATUS_HOLDOUT,
         ];
+    }
+
+    private static function utc(DateTimeImmutable $moment): string
+    {
+        return $moment->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
     }
 }

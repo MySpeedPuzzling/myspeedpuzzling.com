@@ -95,6 +95,32 @@ final class GetContentDigestRecipientsTest extends KernelTestCase
         self::assertEquals($this->utc('2030-02-01 18:00:00'), $this->query->lastLoggedAt($player));
     }
 
+    public function testAccountsQuietForMoreThanTwoYearsAreLeftToTheNewsletter(): void
+    {
+        $player = PlayerFixture::PLAYER_REGULAR;
+        $this->onlyResult($player, '2028-03-01 12:00:00');
+
+        self::assertTrue($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-02-28 12:00:00')));
+        self::assertFalse($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-03-01 12:00:00')), 'Exactly 24 months: no more');
+        self::assertNotContains($player, $this->query->missed(ContentDigestFrequency::Weekly, $this->utc('2030-06-01 12:00:00')));
+    }
+
+    public function testTheFirstWaveCanBeSlicedByTheLastResult(): void
+    {
+        $this->onlyResult(PlayerFixture::PLAYER_REGULAR, '2030-01-20 12:00:00');
+        $this->onlyResult(PlayerFixture::PLAYER_WITH_STRIPE, '2029-07-01 12:00:00');
+        $now = $this->utc('2030-03-12 06:00:00');
+
+        $recent = $this->query->missedWithLastLogged(ContentDigestFrequency::Weekly, $now, lastActivityAfter: $now->modify('-6 months'));
+        self::assertArrayHasKey(PlayerFixture::PLAYER_REGULAR, $recent);
+        self::assertArrayNotHasKey(PlayerFixture::PLAYER_WITH_STRIPE, $recent);
+        self::assertEquals($this->utc('2030-01-20 12:00:00'), $recent[PlayerFixture::PLAYER_REGULAR]);
+
+        $older = $this->query->missedWithLastLogged(ContentDigestFrequency::Weekly, $now, lastActivityBefore: $now->modify('-6 months'));
+        self::assertArrayHasKey(PlayerFixture::PLAYER_WITH_STRIPE, $older);
+        self::assertArrayNotHasKey(PlayerFixture::PLAYER_REGULAR, $older);
+    }
+
     public function testOncePerSpellAndAgainOnlyAfterTheNextActivity(): void
     {
         $player = PlayerFixture::PLAYER_REGULAR;

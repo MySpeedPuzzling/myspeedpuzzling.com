@@ -34,6 +34,8 @@ class ContentDigestLog
     public const string STATUS_SENT = 'sent';
     public const string STATUS_FAILED_PERMANENT = 'failed_permanent';
     public const string STATUS_DEFERRED = 'deferred';
+    /** "We miss you" holdout: deliberately not mailed (MissYouHoldout), logged like a send - once per spell */
+    public const string STATUS_HOLDOUT = 'holdout';
 
     public function __construct(
         #[Id]

@@ -71,7 +71,7 @@
                    (competition, coral), karma (community, teal). The XP level is on the avatar ring. #}
                 {% set tier_pieces = constant('SpeedPuzzling\\Web\\Component\\PlayerHeader::TIER_PIECES_COUNT') %}
                 {# Karma launches with XP: the one launch switch (docs/features/karma.md) #}
-                {% set show_karma = player.karma > 0 and not this.isHidden and xp_system_visible() %}
+                {% set show_karma = player.karma > 0 and not player.karmaOptedOut and not this.isHidden and xp_system_visible() %}
                 {% if this.tierChip is not null or this.mspRatingRank is not null or show_karma %}
                     <ul class="player-head-chips">
                         {% if this.tierChip == 'tier' %}

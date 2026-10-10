@@ -86,3 +86,17 @@ Columns on `player` table:
 | Affects ladders | No | Yes (excluded from MSP Rating) | No |
 | Affects predictions | No | No | Yes (hidden) |
 | Data still used | Yes | Yes (for difficulty/ranking calculations) | Yes |
+
+### Karma Opt-Out (`karma_opted_out`)
+
+"Hide my karma" - hides the player's karma from others (docs/features/karma.md). Independent of the XP and ranking
+opt-outs.
+
+- **Data keeps counting** - karma is still derived and stored on `player.karma`; switching back shows everything again
+- **Query-level filtering** - `GetXpLeaderboard::karma()` leaves opted-out players out of the karma list (every kind and period)
+- **UI** - `templates/components/PlayerHeader.html.twig`: no karma chip for anybody, owner included;
+  `templates/karma/history.html.twig`: the owner still sees everything, with a "hidden from others" note
+- **Not affected** - review queues and admin pages (moderation context), the owner's own hub / activity / digest lines
+- **Form** - `FeaturesOptionsFormType::karmaOptedOut`, shown together with the XP switch (karma launches with XP);
+  `EditFeaturesOptions::$karmaOptedOut` null = keep the stored value
+

@@ -140,6 +140,75 @@ final class KarmaPagesTest extends WebTestCase
         self::assertSelectorExists('.karma-proposer');
     }
 
+    public function testHideMyKarmaRoundTripsThroughTheSettings(): void
+    {
+        $browser = self::createClient();
+        $this->launch($browser);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $database = $browser->getContainer()->get(Connection::class);
+
+        foreach ([true, false] as $hide) {
+            $crawler = $browser->request('GET', '/en/edit-profile');
+            self::assertResponseIsSuccessful();
+            $form = $crawler->filter('form[name="features_options_form"]')->form();
+            $checkbox = $form['features_options_form[karmaOptedOut]'];
+            self::assertInstanceOf(\Symfony\Component\DomCrawler\Field\ChoiceFormField::class, $checkbox);
+            $hide ? $checkbox->tick() : $checkbox->untick();
+            $browser->submit($form);
+
+            self::assertResponseRedirects();
+            self::assertSame($hide, (bool) $database->fetchOne('SELECT karma_opted_out FROM player WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]));
+        }
+    }
+
+    public function testHiddenKarmaHasNoChipForAnybodyAndANoteOnTheOwnersHistory(): void
+    {
+        $browser = self::createClient();
+        $this->launch($browser);
+        $database = $browser->getContainer()->get(Connection::class);
+        $database->executeStatement('UPDATE player SET karma = 5, karma_opted_out = true WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('.player-chip-karma');
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
+        self::assertSelectorNotExists('.player-chip-karma');
+
+        $browser->request('GET', '/en/my/karma');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('#karma-hidden-note');
+    }
+
+    public function testHiddenKarmaIsLeftOutOfTheKarmaListWhateverTheFilter(): void
+    {
+        $browser = self::createClient();
+        $this->launch($browser);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $database = $browser->getContainer()->get(Connection::class);
+        // The fixtures' approved change request is PLAYER_REGULAR's - a fixes karma of their own
+        $browser->getContainer()->get(KarmaRecalculator::class)->recalculateAll();
+        $profileLink = '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR;
+
+        $browser->request('GET', '/en/players/xp-leaderboard?tab=karma&kind=fixes');
+        self::assertStringContainsString($profileLink, (string) $browser->getResponse()->getContent());
+
+        $database->executeStatement('UPDATE player SET karma_opted_out = true WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+
+        foreach (['', '&kind=fixes', '&period=12m'] as $filter) {
+            $browser->request('GET', '/en/players/xp-leaderboard?tab=karma' . $filter);
+            self::assertResponseIsSuccessful();
+            self::assertStringNotContainsString($profileLink, (string) $browser->getResponse()->getContent(), $filter);
+        }
+
+        // Still recalculated - nothing is lost
+        $karma = $database->fetchOne('SELECT karma FROM player WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+        self::assertIsNumeric($karma);
+        self::assertGreaterThan(0, (int) $karma);
+    }
+
     private function launch(KernelBrowser $browser): void
     {
         // The tests run launched (FixedXpLaunchReadiness) - one kernel for the SQL log across requests

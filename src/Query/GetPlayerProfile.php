@@ -88,6 +88,7 @@ SELECT
     referral_program_suspended,
     moderator_since,
     player.karma,
+    player.karma_opted_out,
     (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
@@ -177,6 +178,7 @@ SELECT
     referral_program_suspended,
     moderator_since,
     player.karma,
+    player.karma_opted_out,
     (SELECT json_agg(user_block.blocked_id) FROM user_block WHERE user_block.blocker_id = player.id) AS hidden_player_ids,
     player.registered_at,
     (membership.id IS NOT NULL) AS has_membership_row,

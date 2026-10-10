@@ -205,6 +205,7 @@ final class EditProfileController extends AbstractController
                     $featuresOptionsFormData->rankingOptedOut,
                     $featuresOptionsFormData->timePredictionsOptedOut,
                     $xpSurfacesVisible ? $featuresOptionsFormData->experienceSystemOptedOut : null,
+                    $xpSurfacesVisible ? $featuresOptionsFormData->karmaOptedOut : null,
                 )
             );
 

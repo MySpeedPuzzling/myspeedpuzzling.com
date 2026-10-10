@@ -186,6 +186,8 @@ SELECT * FROM (
     JOIN player p ON p.id = b.player_id
     WHERE p.is_private = false
       AND p.is_admin = false
+      -- "Hide my karma" (docs/features/karma.md) - every filter
+      AND p.karma_opted_out = false
       {$hidden}
       AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
       {$favoritesCondition}

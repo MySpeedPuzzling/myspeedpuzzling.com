@@ -31,5 +31,9 @@ readonly final class EditFeaturesOptionsHandler
         if ($message->experienceSystemOptedOut !== null) {
             $player->changeExperienceSystemOptedOut($message->experienceSystemOptedOut);
         }
+
+        if ($message->karmaOptedOut !== null) {
+            $player->changeKarmaOptedOut($message->karmaOptedOut);
+        }
     }
 }

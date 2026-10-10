@@ -45,6 +45,13 @@ final class FeaturesOptionsFormType extends AbstractType
                 'help' => 'xp_opt_out.help',
                 'required' => false,
             ]);
+
+            // Karma launches with XP (docs/features/karma.md) - its own switch, independent of the XP one
+            $builder->add('karmaOptedOut', CheckboxType::class, [
+                'label' => 'karma.opt_out.label',
+                'help' => 'karma.opt_out.help',
+                'required' => false,
+            ]);
         }
     }
 

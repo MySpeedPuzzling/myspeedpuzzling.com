@@ -244,6 +244,14 @@ class Player
     #[Column(type: Types::INTEGER, options: ['default' => 0])]
     public int $karma = 0;
 
+    /**
+     * "Hide my karma" (docs/features/karma.md): no chip, left out of the karma list - the contributions still count
+     * and the total is still kept, so switching it back shows everything again
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $karmaOptedOut = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -509,6 +517,11 @@ class Player
     public function changeExperienceSystemOptedOut(bool $optedOut): void
     {
         $this->experienceSystemOptedOut = $optedOut;
+    }
+
+    public function changeKarmaOptedOut(bool $optedOut): void
+    {
+        $this->karmaOptedOut = $optedOut;
     }
 
     /**

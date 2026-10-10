@@ -24,6 +24,13 @@
         </div>
     </header>
 
+    {% if player.karmaOptedOut %}
+        <div class="alert alert-secondary fs-sm" id="karma-hidden-note">
+            {{ 'karma.history.hidden_note'|trans }}
+            <a href="{{ path('edit_profile') }}">{{ 'karma.history.hidden_change'|trans }}</a>
+        </div>
+    {% endif %}
+
     {% if player.isAdmin %}
         <div class="alert alert-info fs-sm">{{ 'karma.history.admin_note'|trans }}</div>
     {% endif %}

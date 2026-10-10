@@ -8884,6 +8884,9 @@ progression_hub:
     help_label: "How progress works"
 karma:
     chip: "%karma% karma"
+    opt_out:
+        label: "Hide my karma"
+        help: "Your contributions still count and are kept, but your karma is hidden from your profile and you are left out of the karma list. Turning this off shows everything again."
     chip_title: "Karma: accepted contributions to the puzzle database"
     leaderboard:
         kind_label: "What counts"
@@ -8929,6 +8932,8 @@ karma:
         previous: "Previous page"
         next: "Next page"
         admin_note: "Admins have no karma - their work is part of running the site."
+        hidden_note: "Your karma is hidden from others: it is not on your profile and you are not on the karma list. Your contributions still count."
+        hidden_change: "Change in settings"
     explainer:
         title: "How karma works"
         intro: "Karma thanks the people who keep the puzzle database right. One point for every accepted contribution - a public count of who helps."

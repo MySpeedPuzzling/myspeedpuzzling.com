@@ -83,6 +83,16 @@ lily.srv cron row (add to `apps/myspeedpuzzling/cron.d/myspeedpuzzling`):
 
 Launch: run the command once before the XP readiness marker flips (`docs/features/xp-levels/launch-runbook.md` §1b).
 
+## Hide my karma (opt-out)
+
+`player.karma_opted_out` (Jan, 2026-10-11) - its own switch in edit-profile → feature options ("Hide my karma",
+`EditFeaturesOptions::$karmaOptedOut`, shown with the other progression switches once XP is launched), independent of
+the XP opt-out and the ranking opt-out (karma ignores both). Opted out: no karma chip on the profile for anybody (the
+owner included), left out of the karma list under every filter (`GetXpLeaderboard::karma()`). Kept as before: the
+derivation and `player.karma` (recalculated as usual - switching it back shows everything again), the owner's history
+page (with a "hidden from others" note), the hub/digest lines about the owner's own week, the review queues and admin
+pages (moderation context, not public).
+
 ## Surfaces
 
 | Where | What |

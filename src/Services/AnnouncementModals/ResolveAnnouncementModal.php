@@ -45,7 +45,7 @@ final class ResolveAnnouncementModal implements ResetInterface
         'request_password_reset', 'password_reset', 'account_set_password', 'change_account_password',
         'change_account_email', 'request_account_deletion', 'confirm_account_deletion', 'account_deleted',
         'social_register_confirm', 'oauth2_authorize', 'oauth2_device_code', 'claim_oauth2_credentials',
-        'edit_profile', 'puzzle_add', 'legacy_add_time', 'edit_time', 'delete_time', 'added_time_recap',
+        'edit_profile', 'puzzle_add', 'legacy_add_time', 'edit_time', 'delete_time', 'added_time_recap', 'added_tracking_recap',
         'stopwatch', 'stopwatch_puzzle', 'finish_stopwatch', 'round_stopwatch', 'manage_round_stopwatch',
         'participants_sheet', 'results_desk', 'round_seating', 'live_results', 'competition_results_overview',
         'competition_check_in', 'competition_name_tags',

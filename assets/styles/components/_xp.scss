@@ -1,8 +1,8 @@
 //
 // XP / Levels / Achievements
 // --------------------------------------------------
-// Everything here is CSS-only by design (locked decision): milestone rings, receipt
-// entrance, level-up celebration and confetti ship zero images and zero JS animation.
+// Everything here is CSS-only by design (locked decision): milestone rings and confetti ship zero
+// images and zero JS animation. The recap after logging a time: assets/styles/_xp-recap.scss.
 
 $xp-coral:  #ec726f;
 $xp-sky:    #69b3fe;
@@ -92,14 +92,6 @@ $xp-gold-deep: #f0a500;
   box-shadow: 0 0 8px rgba($xp-gold, .65);
 }
 
-// Ambient variant (site header): full quiet ring, no progress, no numbers.
-.xp-ring-ambient {
-  --xp-progress: 1;
-  --xp-ring-width: 2px;
-  opacity: .9;
-}
-
-
 // Level chip
 // Usage: <span class="xp-level-chip">Lv 12</span>
 
@@ -150,56 +142,13 @@ $xp-gold-deep: #f0a500;
 }
 
 
-// Post-solve receipt — additive lines with a staggered CSS entrance;
-// the progress bar fills after the total lands.
-
-.xp-receipt-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: .75rem;
-  min-height: 44px; // thumb-friendly tap target
-  padding: .3rem .25rem;
-  opacity: 0;
-  transform: translateY(6px);
-  animation: xp-line-in .3s ease-out forwards;
-
-  @for $i from 1 through 8 {
-    &:nth-child(#{$i}) {
-      animation-delay: #{$i * 0.07}s;
-    }
-  }
-}
-
-@keyframes xp-line-in {
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
+// The XP amount next to a line (XP leaderboard)
 
 .xp-receipt-amount {
   font-weight: 700;
   color: $xp-indigo;
   white-space: nowrap;
 }
-
-.xp-receipt-total {
-  border-top: 2px solid rgba($xp-navy, .15);
-  font-weight: 700;
-
-  .xp-receipt-amount {
-    color: $xp-navy;
-    font-size: 1.1rem;
-  }
-}
-
-// Pending settlement line ("settles when this puzzle gets rated") — visible but calm.
-.xp-receipt-pending {
-  opacity: .55;
-  font-style: italic;
-}
-
 
 // Free-user teaser (the locked badges themselves: .badge-art-waiting in _badge-art.scss)
 
@@ -214,54 +163,7 @@ $xp-gold-deep: #f0a500;
 }
 
 
-// Level-up celebration — full-screen interstitial, tap anywhere to dismiss.
-
-.xp-levelup-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1090;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: .75rem;
-  padding: 1.5rem;
-  text-align: center;
-  color: #fff;
-  background: radial-gradient(circle at 50% 35%, rgba($xp-indigo, .92), rgba($xp-navy, .96));
-  cursor: pointer;
-  animation: xp-fade-in .25s ease-out;
-}
-
-.xp-levelup-overlay-max {
-  background: radial-gradient(circle at 50% 35%, rgba($xp-gold-deep, .94), rgba($xp-navy, .97));
-}
-
-.xp-levelup-label {
-  font-size: 1rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  opacity: .85;
-}
-
-.xp-levelup-number {
-  font-size: 5rem;
-  font-weight: 800;
-  line-height: 1;
-  animation: xp-pop .55s cubic-bezier(.2, 1.6, .4, 1);
-}
-
-.xp-levelup-hint {
-  font-size: .8rem;
-  opacity: .7;
-  margin-top: 1rem;
-}
-
-@keyframes xp-fade-in {
-  from {
-    opacity: 0;
-  }
-}
+// Pop-in (the recap's "Level up!" pill, assets/styles/_xp-recap.scss)
 
 @keyframes xp-pop {
   0% {
@@ -276,74 +178,7 @@ $xp-gold-deep: #f0a500;
 }
 
 
-// First-click badge reveal — 3D medallion flip, front face hidden until revealed.
-
-.badge-flip {
-  border: 0;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  perspective: 400px;
-  display: inline-block;
-  position: relative;
-}
-
-.badge-flip-inner {
-  display: inline-block;
-  position: relative;
-  transition: transform .6s cubic-bezier(.3, 1.4, .4, 1);
-  transform-style: preserve-3d;
-
-  .is-revealed & {
-    transform: rotateY(180deg);
-  }
-}
-
-.badge-flip-back,
-.badge-flip-front {
-  backface-visibility: hidden;
-}
-
-.badge-flip-back {
-  background: radial-gradient(circle at 35% 30%, lighten($xp-navy, 25%), $xp-navy 75%);
-  color: rgba(255, 255, 255, .85);
-  animation: badge-flip-wiggle 2.4s ease-in-out infinite;
-}
-
-.badge-flip-front {
-  position: absolute;
-  inset: 0;
-  transform: rotateY(180deg);
-}
-
-@keyframes badge-flip-wiggle {
-  0%, 88%, 100% {
-    transform: rotate(0);
-  }
-
-  92% {
-    transform: rotate(-4deg);
-  }
-
-  96% {
-    transform: rotate(4deg);
-  }
-}
-
-// Small localized confetti burst (badge reveal) — same pieces, contained.
-.xp-confetti-burst {
-  position: absolute;
-  inset: -20px;
-  overflow: visible;
-
-  i {
-    animation-duration: 1.6s;
-    animation-iteration-count: 1;
-  }
-}
-
-
-// CSS-only confetti (brand colors) — used by level-up + badge reveal moments.
+// CSS-only confetti (brand colors) — used by the level-up moment.
 
 .xp-confetti {
   position: absolute;
@@ -383,18 +218,10 @@ $xp-gold-deep: #f0a500;
 // Accessibility: celebrations stay, motion goes.
 
 @media (prefers-reduced-motion: reduce) {
-  .xp-receipt-line,
-  .xp-progressbar-fill,
-  .xp-levelup-number,
-  .xp-levelup-overlay,
-  .badge-flip-back {
+  .xp-progressbar-fill {
     animation: none;
     opacity: 1;
     transform: none;
-  }
-
-  .badge-flip-inner {
-    transition: none;
   }
 
   .xp-confetti {

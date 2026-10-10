@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetXpLeaderboard;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Results\XpLeaderboardRow;
 use SpeedPuzzling\Web\Services\CountryFilterOptions;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Value\KarmaGroup;
+use SpeedPuzzling\Web\Value\KarmaPeriod;
 use SpeedPuzzling\Web\Value\ProgressLeaderboardTab;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,10 +26,13 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class XpLeaderboardController extends AbstractController
 {
+    private const int LIMIT = 100;
+
     public function __construct(
         readonly private GetXpLeaderboard $getXpLeaderboard,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -58,12 +64,16 @@ final class XpLeaderboardController extends AbstractController
         // The favorites board is "me and the people I follow" - the viewer is on it too
         $favoriteIds = $favoritesOnly ? array_values(array_unique([...array_values($profile->favoritePlayers), $profile->playerId])) : null;
 
+        // Karma (docs/features/karma.md): filtered by kind and period
+        $karmaGroup = KarmaGroup::tryFrom($request->query->getString('kind'));
+        $karmaPeriod = KarmaPeriod::tryFrom($request->query->getString('period')) ?? KarmaPeriod::AllTime;
+
         $loginRequired = $tab->requiresLogin() && $profile === null;
-        $rows = $loginRequired ? [] : $this->rows($tab, $country, $favoriteIds);
+        [$rows, $selfRow] = $loginRequired
+            ? [[], null]
+            : $this->rows($tab, $country, $favoriteIds, $profile?->playerId, $karmaGroup, $karmaPeriod);
 
-        $selfRow = null;
-
-        if ($profile !== null && $loginRequired === false && $this->isOnRows($rows, $profile->playerId) === false) {
+        if ($selfRow === null && $profile !== null && $loginRequired === false && $tab->hasSelfRankQuery() && $this->isOnRows($rows, $profile->playerId) === false) {
             $selfRank = $this->getXpLeaderboard->selfRank($profile->playerId, $tab->value, $country, $favoriteIds);
 
             if ($selfRank !== null) {
@@ -80,20 +90,46 @@ final class XpLeaderboardController extends AbstractController
             'selected_country' => $country,
             'favorites_only' => $favoritesOnly,
             'self_row' => $selfRow,
+            'karma_group' => $karmaGroup,
+            'karma_period' => $karmaPeriod,
             'viewer' => $profile,
         ]);
     }
 
     /**
+     * The board's rows (top LIMIT) and, when its query brings it along, the viewer's own row from below them.
+     *
      * @param null|list<string> $favoriteIds
-     * @return list<XpLeaderboardRow>
+     * @return array{list<XpLeaderboardRow>, null|XpLeaderboardRow}
      */
-    private function rows(ProgressLeaderboardTab $tab, null|string $country, null|array $favoriteIds): array
-    {
-        return match ($tab) {
-            ProgressLeaderboardTab::Xp => $this->getXpLeaderboard->xp($country, $favoriteIds),
-            ProgressLeaderboardTab::AchievementPoints => $this->getXpLeaderboard->achievementPoints($country, $favoriteIds),
-        };
+    private function rows(
+        ProgressLeaderboardTab $tab,
+        null|string $country,
+        null|array $favoriteIds,
+        null|string $viewerId,
+        null|KarmaGroup $karmaGroup,
+        KarmaPeriod $karmaPeriod,
+    ): array {
+        if ($tab === ProgressLeaderboardTab::Karma) {
+            // One statement: the top of the board plus the viewer's own row (rank > LIMIT) within the same filters
+            $rows = [];
+            $selfRow = null;
+
+            foreach ($this->getXpLeaderboard->karma($karmaGroup, $karmaPeriod->since($this->clock->now()), $country, $favoriteIds, $viewerId, self::LIMIT) as $row) {
+                if ($row->rank > self::LIMIT) {
+                    $selfRow = $row;
+                } else {
+                    $rows[] = $row;
+                }
+            }
+
+            return [$rows, $selfRow];
+        }
+
+        return [match ($tab) {
+            ProgressLeaderboardTab::Xp => $this->getXpLeaderboard->xp($country, $favoriteIds, self::LIMIT),
+            ProgressLeaderboardTab::AchievementPoints => $this->getXpLeaderboard->achievementPoints($country, $favoriteIds, self::LIMIT),
+        }, null];
     }
 
     /**

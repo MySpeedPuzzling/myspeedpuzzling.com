@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
+use SpeedPuzzling\Web\Query\GetProposerTrackRecords;
 use SpeedPuzzling\Web\Query\GetPuzzleApprovals;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,6 +17,7 @@ final class PuzzleApprovalsController extends AbstractController
 {
     public function __construct(
         private readonly GetPuzzleApprovals $getPuzzleApprovals,
+        private readonly GetProposerTrackRecords $getProposerTrackRecords,
     ) {
     }
 
@@ -28,12 +30,15 @@ final class PuzzleApprovalsController extends AbstractController
     {
         $page = max(1, $request->query->getInt('page', 1));
         $pendingCount = $this->getPuzzleApprovals->countPending();
+        $pending = $this->getPuzzleApprovals->pending($page);
 
         return $this->render('admin/puzzle_approvals.html.twig', [
             'page' => $page,
             'pages' => max(1, (int) ceil($pendingCount / GetPuzzleApprovals::PAGE_SIZE)),
             'pending_count' => $pendingCount,
-            'pending' => $this->getPuzzleApprovals->pending($page),
+            'pending' => $pending,
+            // Karma (docs/features/karma.md): one statement for the whole page
+            'track_records' => $this->getProposerTrackRecords->forPlayers(array_map(static fn ($puzzle): null|string => $puzzle->addedById, $pending)),
         ]);
     }
 }

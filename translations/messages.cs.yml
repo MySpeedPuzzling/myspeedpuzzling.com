@@ -1251,7 +1251,6 @@ competition_referees:
     "millions": "%count% mil."
     "activity_label": "Puzzle po měsících"
     "activity_bar": "%month%: %count% puzzle|%month%: %count% puzzle|%month%: %count% puzzlí"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Úroveň dovedností"
     "competes": "Závodí na eventech"
     "swaps": "Vyměňuje puzzle"
@@ -1566,15 +1565,9 @@ xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"
     total_tooltip: "Celkem získáno %xp% XP"
-    max_level_reached: "Vrchol hory — úroveň 50!"
     progress_label: "%xp% XP do úrovně %level%"
     receipt:
-        title: "Tvoje XP za toto složení"
         total: "Celkem"
-        waiting_teaser: "{1}Toto složení se započítalo do 1 čekajícího úspěchu 🔒|]1,Inf[Toto složení se započítalo do %count% čekajících úspěchů 🔒"
-        max_level_title: "Úroveň 50 — XP se stále počítají, sláva je navždy"
-        nearest_achievements: "Tvoje další úspěchy jsou na dosah:"
-        max_level_all_done: "Máš dobyto vše, co se dobýt dalo. Upřímně smekáme."
         relax_repeat: "Známé puzzle, čistě pro radost — tentokrát bez XP, a přesně tak to má být."
         counting: "Počítáme tvoje XP…"
     line:
@@ -1594,21 +1587,14 @@ xp:
         difficulty_pending: "Bonus za obtížnost čeká — doúčtuje se, jakmile puzzle získá hodnocení"
         speed_pending: "Bonus za rychlost čeká — potřebuje časy od 3 puzzlerů"
     levelup:
-        aria: "Nová úroveň! Jsi na úrovni %level%"
         label: "Nová úroveň!"
         max_label: "Vrchol!"
         message: "Tvoje puzzle cesta stoupá výš a výš. Krásná práce!"
-        max_message: "Úroveň 50. Výš to nejde. Odteď je tvojí horou žebříček bodů za úspěchy."
         enter_ap_ladder: "Vstoupit na žebříček AP"
-        view_ap_ladder: "Zobrazit žebříček AP"
-        skip_hint: "Pokračuj klepnutím kamkoli"
-    achievement_toast:
-        title: "Nový úspěch!"
     estimate:
     leaderboard:
         favorites_only: "Pouze oblíbení"
         player: "Puzzler"
-        empty: "Zatím tu nic není — zaznamenej složení a otevři žebříček!"
     history:
         meta_title: "Moje XP historie"
         title: "Moje XP historie"
@@ -1705,7 +1691,6 @@ content_digest:
 badges:
     title: "Úspěchy"
     my_title: "Moje úspěchy"
-    new: "NOVÉ"
     browse_all: "Procházet všechny úspěchy"
     reveal: "Odhal svůj nový úspěch"
     waiting_teaser: "{1}Čeká na tebe 1 úspěch — staň se členem a odhal ho!|{2,3,4}Čekají na tebe %count% úspěchy — staň se členem a odhal je!|[5,Inf[Čeká na tebe %count% úspěchů — staň se členem a odhal je!"
@@ -1928,12 +1913,6 @@ badges:
     "prediction_unavailable_baseline": "Složte více prvních pokusů na %pieces%-dílkových puzzlích pro odemknutí predikcí časů."
     "prediction_unavailable_difficulty": "Toto puzzle zatím nesložilo dostatek hráčů pro generování predikcí."
     "prediction_unavailable_opted_out": "Hodnocení je vypnuté v nastavení vašeho profilu."
-  "ranking":
-    "title": "Vaše pořadí"
-    "position": "#%rank% z %total% hráčů"
-    "first_place": "Máte nejrychlejší čas na tomto puzzle!"
-    "first_solver": "Jste první, kdo toto puzzle složil!"
-    "top_percent": "Top %percent%%"
   "history":
     "title": "Vaše historie s tímto puzzle"
     "first_time": "Toto puzzle skládáte poprvé! Složte ho znovu a sledujte své zlepšení."
@@ -1945,15 +1924,6 @@ badges:
     "difficulty": "Obtížnost"
     "predicted_range": "Předpovězené rozmezí"
     "need_more_solvers": "Pro výpočet obtížnosti tohoto puzzle je potřeba více hráčů."
-  "progress":
-    "title": "Váš celkový pokrok (%pieces%-dílkové)"
-    "skill_tier": "Úroveň dovedností"
-    "skill_percentile": "Top %percent%% hráčů"
-    "skill_tier_unavailable": "Složte ještě %count% kvalifikačních %pieces%-dílkových puzzlí pro odemknutí úrovně dovedností."
-    "elo_title": "MSP Rating hodnocení"
-    "elo_first_attempts": "První pokusy"
-    "elo_total_solves": "Celkem složení"
-    "elo_unavailable": "Složte více %pieces%-dílkových puzzlí pro kvalifikaci do MSP Rating žebříčku."
 "added_tracking_recap":
   "meta":
     "title": "Puzzle zaznamenáno"
@@ -3440,8 +3410,6 @@ puzzle_intelligence:
         predictability_desc: "Jak předvídatelná je obtížnost tohoto puzzle?"
         skill_sensitivity: "Citlivost na dovednosti"
         skill_sensitivity_desc: "Rozhodují na tomto puzzle hodně dovednosti?"
-    player_insights:
-        title: "Statistiky hráče"
     prediction:
         title: "Vaše predikce"
         estimated_time: "Odhadovaný čas"

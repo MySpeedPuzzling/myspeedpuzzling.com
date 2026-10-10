@@ -81,6 +81,9 @@
                                 {{ request.reporterName ? request.reporterName ~ ' #' ~ request.reporterCode : '#' ~ request.reporterCode }}
                                 &bull; {{ request.submittedAt|ago }}
                             </div>
+                            {% if request.reporterId %}
+                                {{ include('admin/_proposer_track_record.html.twig', {record: track_records[request.reporterId|lower] ?? null}) }}
+                            {% endif %}
                             {% if request.status.value == 'outdated' %}
                                 <div class="small text-muted">
                                     {{ request.outdatedReason ? request.outdatedReason.label() : 'Already done' }} &bull; closed {{ request.reviewedAt|ago }}

@@ -11,12 +11,12 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * The badge pictures on the profile strip and in the explainer modal (badge_art(), public/img/badges/). Admin viewer
- * while the xp-system flag is active - the admin fixture is also a member.
+ * The badge pictures in the profile's achievements showcase and in the explainer modal (badge_art(),
+ * public/img/badges/). The admin fixture is also a member.
  */
 final class BadgeArtSurfacesTest extends WebTestCase
 {
-    public function testTheProfileStripShowsEachBadgeAndHidesAnUnrevealedOneBehindTheFlip(): void
+    public function testTheProfileShowcaseShowsEachBadgeBestFirstAndAnUnrevealedOneAsAQuestionMark(): void
     {
         $browser = self::createClient();
         $this->earn('streak', 3, revealed: true);
@@ -27,40 +27,43 @@ final class BadgeArtSurfacesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_ADMIN);
 
         self::assertResponseIsSuccessful();
-        $strip = $crawler->filter('.xp-achievements-strip');
+        $showcase = $crawler->filter('.achievements-showcase');
+        $items = $showcase->filter('.achievements-showcase-item');
+        self::assertCount(3, $items);
 
-        // A badge opens the explainer with itself as the big picture
-        $streak = $strip->filter('a[href="/en/achievements/streak/info?tier=3"] img.badge-art');
-        self::assertCount(1, $streak);
+        // Highest tier first: Gold streak, then the owner's unrevealed Bronze, then the single-tier one
+        $streak = $items->eq(0)->filter('img.badge-art');
+        self::assertSame('/en/achievements/streak/info?tier=3', $items->eq(0)->attr('href'));
         self::assertStringStartsWith('/img/badges/webp/144/streak-t3.webp?v=', (string) $streak->attr('src'));
-        self::assertSame('72', $streak->attr('width'));
+        self::assertSame('56', $streak->attr('width'));
 
-        self::assertCount(1, $strip->filter('img.badge-art[src^="/img/badges/webp/144/supporter-single.webp"]'));
+        // The owner's unrevealed badge: a question mark that leads to the reveal page, its picture is not in the page
+        self::assertSame('/en/my/achievement-reveals', $items->eq(1)->attr('href'));
+        self::assertCount(1, $items->eq(1)->filter('.badge-art-mystery'));
+        self::assertCount(0, $showcase->filter('img[src*="speed_500_pieces"]'));
 
-        // The owner's unrevealed badge: a question mark until the first click turns it over
-        self::assertCount(1, $strip->filter('.badge-flip .badge-flip-back.badge-art-mystery'));
-        self::assertCount(1, $strip->filter('.badge-flip .badge-flip-front img.badge-art[src*="speed_500_pieces-t1.webp"]'));
+        self::assertCount(1, $items->eq(2)->filter('img.badge-art[src^="/img/badges/webp/144/supporter-single.webp"]'));
     }
 
-    public function testAFreeOwnerSeesTheirBestBadgesLocked(): void
+    public function testAFreeOwnerGetsOneQuietLineInsteadOfTheirBadges(): void
     {
         $browser = self::createClient();
         $this->earn('team_player', 1, revealed: false);
-        $this->earn('puzzles_solved', 5, revealed: false);
-        $this->earn('streak', 2, revealed: false);
-        self::getContainer()->get(Connection::class)->executeStatement(
-            'DELETE FROM membership WHERE player_id = :player',
-            ['player' => PlayerFixture::PLAYER_ADMIN],
-        );
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement('UPDATE player SET achievement_points = 5 WHERE id = :player', ['player' => PlayerFixture::PLAYER_ADMIN]);
+        $connection->executeStatement('DELETE FROM membership WHERE player_id = :player', ['player' => PlayerFixture::PLAYER_ADMIN]);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_ADMIN);
 
         self::assertResponseIsSuccessful();
-        $locked = $crawler->filter('.xp-locked-strip img.badge-art.badge-art-locked');
-        self::assertCount(3, $locked);
-        self::assertStringContainsString('puzzles_solved-t5', (string) $locked->first()->attr('src'));
-        self::assertStringContainsString('team_player-t1', (string) $locked->last()->attr('src'));
+        self::assertCount(0, $crawler->filter('.achievements-showcase'));
+        self::assertCount(0, $crawler->filter('main img.badge-art, .container img.badge-art'));
+        $teaser = $crawler->filter('.achievements-teaser');
+        self::assertCount(1, $teaser);
+        self::assertStringContainsString('You have earned achievements.', $teaser->text());
+        self::assertCount(1, $teaser->filter('a[href="/en/membership"]'));
+        self::assertCount(0, $teaser->filter('.ci-locked'));
     }
 
     public function testTheExplainerShowsTheClickedBadgeBigElseTheFirstTierLocked(): void

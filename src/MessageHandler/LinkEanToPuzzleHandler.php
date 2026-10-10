@@ -22,7 +22,9 @@ use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Value\Ean;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Linking policy (docs/features/multiscan/README.md §6):
@@ -41,6 +43,7 @@ readonly final class LinkEanToPuzzleHandler
         private FindPuzzlesByExactEan $findPuzzlesByExactEan,
         private ClockInterface $clock,
         private SecretPuzzleAccess $secretPuzzleAccess,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -94,6 +97,9 @@ readonly final class LinkEanToPuzzleHandler
             $audit = $this->changeRequest($puzzle, $player, $now, $ean->normalized(), originalEan: $storedEan);
             $audit->approve($player, $now);
             $this->puzzleChangeRequestRepository->save($audit);
+
+            // Karma (docs/features/karma.md): the scan approves itself, and the puzzle now has an EAN for its adder
+            $this->messageBus->dispatch(RecalculateKarma::forPlayers($player, $puzzle->addedByUser));
 
             return;
         }

@@ -1747,7 +1747,6 @@ players:
         millions: "%count%M"
         activity_label: "Puzzles per month"
         activity_bar: "%month%: %count% puzzle|%month%: %count% puzzles"
-        rating: "MSP Rating %rating%"
         tier_locked: "Skill tier"
         competes: "Competes in events"
         swaps: "Swaps puzzles"
@@ -2081,15 +2080,9 @@ xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"
     total_tooltip: "%xp% XP earned in total"
-    max_level_reached: "Top of the mountain — level 50!"
     progress_label: "%xp% XP to level %level%"
     receipt:
-        title: "Your XP for this solve"
         total: "Total"
-        waiting_teaser: "{1}This solve counted toward 1 waiting achievement 🔒|]1,Inf[This solve counted toward %count% waiting achievements 🔒"
-        max_level_title: "Level 50 — XP still counts, glory is forever"
-        nearest_achievements: "Your next achievements are within reach:"
-        max_level_all_done: "You have conquered everything there is to conquer. We are honestly impressed."
         relax_repeat: "A familiar puzzle, purely for the joy of it — no XP this time, and that's the point."
         counting: "Counting your XP…"
     line:
@@ -2109,16 +2102,10 @@ xp:
         difficulty_pending: "Difficulty bonus pending — settles when this puzzle gets rated"
         speed_pending: "Speed bonus pending — needs times from 3 puzzlers"
     levelup:
-        aria: "Level up! You reached level %level%"
         label: "Level up!"
         max_label: "The summit!"
         message: "Your puzzling journey keeps climbing. Beautifully done!"
-        max_message: "Level 50. The highest there is. From here on, the Achievement Points ladder is your mountain."
         enter_ap_ladder: "Enter the AP ladder"
-        view_ap_ladder: "See the AP ladder"
-        skip_hint: "Tap anywhere to continue"
-    achievement_toast:
-        title: "New achievement!"
     estimate:
         line_first: "Solving this earns ~%xp% XP,"
         line_repeat: "Solving this again earns ~%xp% XP (%percent%% for a repeat),"
@@ -2131,17 +2118,25 @@ xp:
                 subtitle: "Ranked by total XP: how much each puzzler has puzzled, all time."
                 column: "XP"
                 value: "%value% XP"
+                empty: "Nothing here yet — log a solve and open the board!"
             achievement-points:
                 tab: "Achievement Points"
                 title: "Achievement Points leaderboard"
                 subtitle: "Members ranked by their Achievement Points, all time."
                 column: "AP"
                 value: "%value% AP"
+                empty: "Nothing here yet — log a solve and open the board!"
                 login_required: "Sign in to see the Achievement Points leaderboard."
+            karma:
+                tab: "Karma"
+                title: "Who helps the database most"
+                subtitle: "1 karma for every accepted contribution to the puzzle database. Free and public for everyone."
+                column: "Karma"
+                value: "%value%"
+                empty: "Nobody here yet."
         level: "Level %level%"
         favorites_only: "Favorites only"
         player: "Puzzler"
-        empty: "Nothing here yet — log a solve and open the board!"
     history:
         deleted_solve_title: "Deleted solve"
         achievement_title: "Achievement: %achievement%"
@@ -2255,7 +2250,6 @@ content_digest:
 badges:
     title: "Achievements"
     my_title: "My achievements"
-    new: "NEW"
     browse_all: "Browse all achievements"
     reveal: "Reveal your new achievement"
     waiting_teaser: "{1}1 achievement is waiting for you — become a member to reveal it!|]1,Inf[%count% achievements are waiting for you — become a member to reveal them!"
@@ -2504,12 +2498,6 @@ added_time_recap:
         prediction_unavailable_baseline: "Complete more first-attempt solves on %pieces%-piece puzzles to unlock time predictions."
         prediction_unavailable_difficulty: "Not enough solvers have completed this puzzle yet to generate predictions."
         prediction_unavailable_opted_out: "Ranking is disabled in your profile settings."
-    ranking:
-        title: "Your Ranking"
-        position: "#%rank% out of %total% solvers"
-        first_place: "You have the fastest time on this puzzle!"
-        first_solver: "You're the first solver of this puzzle!"
-        top_percent: "Top %percent%%"
     history:
         title: "Your History on This Puzzle"
         first_time: "This is your first time solving this puzzle! Solve it again to track your improvement."
@@ -2521,15 +2509,6 @@ added_time_recap:
         difficulty: "Difficulty"
         predicted_range: "Predicted range"
         need_more_solvers: "More solvers are needed to compute difficulty for this puzzle."
-    progress:
-        title: "Your Overall Progress (%pieces%-piece)"
-        skill_tier: "Skill Tier"
-        skill_percentile: "Top %percent%% of players"
-        skill_tier_unavailable: "Complete %count% more qualifying %pieces%-piece puzzles to unlock your Skill Tier."
-        elo_title: "MSP Rating"
-        elo_first_attempts: "First attempts"
-        elo_total_solves: "Total solves"
-        elo_unavailable: "Solve more %pieces%-piece puzzles to qualify for the MSP Rating ladder."
 
 added_tracking_recap:
     meta:
@@ -2541,6 +2520,45 @@ added_tracking_recap:
     manufacturer: "Manufacturer"
     pieces: "Pieces"
     group_puzzlers: "Puzzled with"
+
+recap_progress:
+    title: "Your progress"
+    level:
+        title: "Level %level%"
+        xp_gained: "+%xp% XP"
+        to_next: "%current% of %needed% XP to Level %level%"
+        max: "The top level - your XP keeps counting"
+        late: "Your XP for this time is still being counted. It shows up in your XP history in a moment."
+        announce: "+%xp% XP for this time."
+        announce_level_up: "+%xp% XP for this time. Level %level%!"
+    receipt:
+        summary: "How your XP was counted"
+        history_link: "Your XP history"
+    sheet:
+        continue: "Continue"
+        max_message: "Level 50, the top level. Your XP keeps counting from here."
+    achievement:
+        new: "New achievement"
+        tap: "Tap the puzzle to reveal your tier"
+        points: "+%points% AP"
+        see: "See the achievement"
+    tease:
+        title: "You earned an achievement with this time."
+        text: "Become a member to find out which."
+        button: "Become a member"
+    place:
+        title: "#%rank% of %total% on this puzzle"
+        first_solver: "You are the first to solve this puzzle"
+        fastest: "The fastest time on this puzzle"
+        faster_than: "Faster than %percent% % of puzzlers"
+    competition:
+        rating: "MSP Rating %rating% · #%rank% of %total%"
+        rating_progress: "MSP Rating: %first% of %first_needed% first tries, %solves% of %solves_needed% puzzles"
+        skill: "Skill tier %tier% · top %percent% %"
+        skill_progress: "{1}1 more qualifying puzzle to your skill tier|]1,Inf[%count% more qualifying puzzles to your skill tier"
+        skill_soon: "Your skill tier shows up within 15 minutes"
+        locked_title: "Skill tier and MSP Rating"
+        locked_text: "See where you stand among %pieces%-piece puzzlers. For members."
 
 global_search:
     info: "Welcome new search! Search by puzzle name, ean or code. Search player by name or code. Please let us know your feedback."
@@ -3566,6 +3584,7 @@ admin:
         column_change_requests: "Change requests reviewed"
         column_merge_requests: "Merge requests reviewed"
         column_last_review: "Last review"
+        column_karma: "Karma"
         never: "never"
 
 pending_proposals:
@@ -3987,8 +4006,6 @@ puzzle_intelligence:
     insights:
         title: "Puzzle Insights"
         no_data: "Not enough data yet. Insights will appear as more players solve this puzzle."
-    player_insights:
-        title: "Player Insights"
     difficulty:
         title: "Puzzle Difficulty"
         score_label: "Difficulty Score"
@@ -7200,6 +7217,19 @@ player_header:
     compare: "Add to comparison"
     compare_open: "Open comparison"
 
+player_progress:
+    ring_label: "Level %level%, %xp% XP. How levels work"
+    ring_label_own: "Level %level%, %xp% XP. Where your XP came from"
+    msp_chip: "#%rank% MSP Rating"
+    msp_chip_title: "Place %rank% on the MSP Rating ladder (%pieces% pieces)"
+    how_it_works: "How it works"
+    showcase:
+        earned: "%earned% of %total%"
+        teaser: "You have earned achievements."
+        teaser_link: "Become a member to see them."
+        teaser_none: "Members collect achievements as they puzzle."
+        teaser_none_link: "See them all"
+
 marketplace_events:
     label:
         bringing_to: "Bringing to %event% · %date%"
@@ -8860,3 +8890,90 @@ progression_hub:
     leaderboards_link: "See the leaderboards"
     fair_play_link: "Fair play & trust"
     help_label: "How progress works"
+karma:
+    chip: "%karma% karma"
+    chip_title: "Karma: accepted contributions to the puzzle database"
+    leaderboard:
+        kind_label: "What counts"
+        period_label: "Period"
+    kind_filter:
+        all: "All"
+        puzzles: "New puzzles"
+        fixes: "Fixes & merges"
+        moderation: "Moderation"
+    period:
+        all: "All time"
+        12m: "Last 12 months"
+    breakdown:
+        puzzle_added: "%count% new puzzle|%count% new puzzles"
+        change_request: "%count% accepted change|%count% accepted changes"
+        merge_request: "%count% merged duplicate|%count% merged duplicates"
+        decision: "%count% decision|%count% decisions"
+        direct_edit: "%count% edit|%count% edits"
+    item:
+        puzzle_added: "New puzzle with its EAN"
+        change_request: "Your suggested change was accepted"
+        merge_request: "Your duplicate report was merged"
+        direct_edit: "You edited a puzzle"
+        duplicate_puzzle: "Merged into a puzzle added earlier"
+        decision:
+            change_request_approved: "You accepted a suggested change"
+            change_request_rejected: "You declined a suggested change"
+            merge_request_approved: "You merged reported duplicates"
+            merge_request_rejected: "You declined a duplicate report"
+            puzzle_approved: "You approved a new puzzle"
+    history:
+        title: "What did I get my karma for?"
+        total_label: "karma"
+        breakdown_label: "Your karma by kind"
+        empty: "No karma yet. Add a puzzle with its EAN, or suggest a fix to one - each accepted contribution is 1 karma."
+        what_counts: "What counts"
+        undated: "Earlier"
+        not_counted: "not counted"
+        note: "Suggestions count once a moderator accepts them. Declined ones never take karma away."
+        how_it_works: "How karma works"
+        list_link: "Karma list"
+        pagination: "Karma history pages"
+        previous: "Previous page"
+        next: "Next page"
+        admin_note: "Admins have no karma - their work is part of running the site."
+    explainer:
+        title: "How karma works"
+        intro: "Karma thanks the people who keep the puzzle database right. One point for every accepted contribution - a public count of who helps."
+        your_karma: "your karma"
+        history_link: "What did I get it for?"
+        what_counts: "What counts"
+        rules:
+            puzzle:
+                what: "A new puzzle with its EAN"
+                when: "Once it is approved. The barcode makes it findable by scanning."
+                value: "+1"
+            change:
+                what: "A suggested change"
+                when: "Once a moderator accepts it."
+                value: "+1"
+            merge:
+                what: "A reported duplicate"
+                when: "Once the puzzles are merged."
+                value: "+1"
+            decision:
+                what: "A moderator's decision"
+                when: "Accepting or declining a suggestion, a duplicate report or a new puzzle."
+                value: "+1"
+            edit:
+                what: "A moderator's direct edit"
+                when: "Correcting a puzzle without a suggestion."
+                value: "+1"
+            own_proposal:
+                what: "A moderator deciding their own suggestion"
+                when: "The suggestion and the decision count together."
+                value: "+1 in total"
+        no_caps: "No caps and no weights: every accepted contribution counts the same."
+        duplicates_heading: "When a puzzle turns out to be a duplicate"
+        duplicates: "When two puzzles are merged, the person who added the puzzle first keeps the karma for it. The later copy stops counting, and whoever reported the duplicate gets 1. Your karma history shows such a copy as not counted."
+        not_heading: "What karma is not"
+        never_negative: "Declined work never takes karma away. There is no negative karma."
+        no_xp: "Karma is credit, not a currency: it buys nothing and gives no XP."
+        not_counted: "Brands, events and suggestions that something else already took care of do not count."
+        find_puzzle: "Find a puzzle to improve"
+        list_link: "Karma list"

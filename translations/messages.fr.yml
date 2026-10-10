@@ -1240,7 +1240,6 @@ competition_referees:
     "millions": "%count% M"
     "activity_label": "Puzzles par mois"
     "activity_bar": "%month% : %count% puzzle|%month% : %count% puzzles"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Niveau"
     "competes": "Participe à des événements"
     "swaps": "Échange des puzzles"
@@ -1568,15 +1567,9 @@ competition_referees:
   "level_chip": "Niv. %level%"
   "total": "%xp% XP"
   "total_tooltip": "%xp% XP gagnés au total"
-  "max_level_reached": "Le sommet de la montagne — niveau 50 !"
   "progress_label": "%xp% XP avant le niveau %level%"
   "receipt":
-    "title": "Vos XP pour cette résolution"
     "total": "Total"
-    "waiting_teaser": "{1}Cette résolution a compté pour 1 succès en attente 🔒|]1,Inf[Cette résolution a compté pour %count% succès en attente 🔒"
-    "max_level_title": "Niveau 50 — les XP comptent toujours, la gloire est éternelle"
-    "nearest_achievements": "Vos prochains succès sont à portée de main :"
-    "max_level_all_done": "Vous avez conquis tout ce qu'il y avait à conquérir. Nous sommes sincèrement impressionnés."
     "relax_repeat": "Un puzzle familier, juste pour le plaisir — pas d'XP cette fois, et c'est justement l'idée."
     "counting": "Calcul de vos XP…"
   "line":
@@ -1596,21 +1589,14 @@ competition_referees:
     "difficulty_pending": "Bonus de difficulté en attente — versé dès que ce puzzle sera noté"
     "speed_pending": "Bonus de vitesse en attente — il faut les temps de 3 puzzleurs"
   "levelup":
-    "aria": "Niveau supérieur ! Vous avez atteint le niveau %level%"
     "label": "Niveau supérieur !"
     "max_label": "Le sommet !"
     "message": "Votre parcours puzzle continue de grimper. Magnifique !"
-    "max_message": "Niveau 50. Le plus haut qui existe. Désormais, le classement des points de succès est votre montagne."
     "enter_ap_ladder": "Entrer dans le classement AP"
-    "view_ap_ladder": "Voir le classement AP"
-    "skip_hint": "Touchez n'importe où pour continuer"
-  "achievement_toast":
-    "title": "Nouveau succès !"
   "estimate":
   "leaderboard":
     "favorites_only": "Favoris uniquement"
     "player": "Puzzleur"
-    "empty": "Rien ici pour l'instant — enregistrez une résolution et inaugurez le tableau !"
   "history":
     "meta_title": "Mon historique d'XP"
     "title": "Mon historique d'XP"
@@ -1705,7 +1691,6 @@ competition_referees:
 "badges":
   "title": "Succès"
   "my_title": "Mes succès"
-  "new": "NOUVEAU"
   "browse_all": "Parcourir tous les succès"
   "reveal": "Révélez votre nouveau succès"
   "waiting_teaser": "{1}1 succès vous attend — devenez membre pour le révéler !|]1,Inf[%count% succès vous attendent — devenez membre pour les révéler !"
@@ -1927,12 +1912,6 @@ competition_referees:
     "prediction_unavailable_baseline": "Complétez davantage de premières tentatives sur des puzzles de %pieces% pièces pour débloquer les prédictions de temps."
     "prediction_unavailable_difficulty": "Pas assez de joueurs ont complété ce puzzle pour générer des prédictions."
     "prediction_unavailable_opted_out": "Le classement est désactivé dans les paramètres de votre profil."
-  "ranking":
-    "title": "Votre classement"
-    "position": "#%rank% sur %total% joueurs"
-    "first_place": "Vous avez le temps le plus rapide sur ce puzzle !"
-    "first_solver": "Vous êtes le premier à résoudre ce puzzle !"
-    "top_percent": "Top %percent%%"
   "history":
     "title": "Votre historique sur ce puzzle"
     "first_time": "C'est la première fois que vous résolvez ce puzzle ! Résolvez-le à nouveau pour suivre votre progression."
@@ -1944,15 +1923,6 @@ competition_referees:
     "difficulty": "Difficulté"
     "predicted_range": "Fourchette prévue"
     "need_more_solvers": "Plus de joueurs sont nécessaires pour calculer la difficulté de ce puzzle."
-  "progress":
-    "title": "Votre progression globale (%pieces% pièces)"
-    "skill_tier": "Niveau de compétence"
-    "skill_percentile": "Top %percent%% des joueurs"
-    "skill_tier_unavailable": "Complétez %count% puzzles de %pieces% pièces qualifiants supplémentaires pour débloquer votre niveau de compétence."
-    "elo_title": "Classement MSP Rating"
-    "elo_first_attempts": "Premières tentatives"
-    "elo_total_solves": "Résolutions totales"
-    "elo_unavailable": "Résolvez plus de puzzles de %pieces% pièces pour accéder au classement MSP Rating."
 "added_tracking_recap":
   "meta":
     "title": "Puzzle suivi"
@@ -3509,8 +3479,6 @@ puzzle_intelligence:
         predictability_desc: "La difficulté de ce puzzle est-elle prévisible ?"
         skill_sensitivity: "Sensibilité à la compétence"
         skill_sensitivity_desc: "La compétence fait-elle une grande différence sur ce puzzle ?"
-    player_insights:
-        title: "Statistiques du joueur"
     prediction:
         title: "Votre prédiction"
         estimated_time: "Temps estimé"

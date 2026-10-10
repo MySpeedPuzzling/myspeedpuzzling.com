@@ -34,6 +34,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'MessageHandler/DeleteCompetitionSeriesHandler.php' => self::WRITE,
         'MessageHandler/DeletePlayerHandler.php' => self::WRITE,
         'Query/GetAccountDeletionSummary.php' => 'Counts what an account deletion removes - everything.',
+        'Query/GetAchievementsEarnedWithSolve.php' => 'Reads only when the time was saved, to date the achievements it earned - the badge conditions leave suspicious results out themselves.',
         'Query/GetAdminCompetitions.php' => self::ADMIN,
         'Query/GetAdminSeries.php' => self::ADMIN,
         'Query/GetBorrowedPuzzles.php' => self::OWN,

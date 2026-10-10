@@ -1372,7 +1372,6 @@ competition_referees:
     "millions": "%count%M"
     "activity_label": "月ごとのパズル数"
     "activity_bar": "%month%：%count%個のパズル"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "スキルティア"
     "competes": "イベントに参加"
     "swaps": "パズルを交換"
@@ -1645,15 +1644,9 @@ xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"
     total_tooltip: "合計%xp% XPを獲得"
-    max_level_reached: "山の頂上に到達 — レベル50！"
     progress_label: "レベル%level%まであと%xp% XP"
     receipt:
-        title: "今回の完成で獲得したXP"
         total: "合計"
-        waiting_teaser: "{1}この完成は、お披露目待ちの実績1個にカウントされました 🔒|]1,Inf[この完成は、お披露目待ちの実績%count%個にカウントされました 🔒"
-        max_level_title: "レベル50 — XPはこれからも貯まり、栄光は永遠に"
-        nearest_achievements: "次の実績はもう目前です："
-        max_level_all_done: "制覇できるものはすべて制覇しました。正直、脱帽です。"
         relax_repeat: "おなじみのパズルを、純粋に楽しむために — 今回はXPなし。それがいいんです。"
         counting: "XPを集計中…"
     line:
@@ -1673,21 +1666,14 @@ xp:
         difficulty_pending: "難易度ボーナスは保留中 — このパズルが評価されると確定します"
         speed_pending: "スピードボーナスは保留中 — 3人のパズラーのタイムが必要です"
     levelup:
-        aria: "レベルアップ！レベル%level%に到達しました"
         label: "レベルアップ！"
         max_label: "頂上です！"
         message: "あなたのパズルの旅は登り続けています。お見事です！"
-        max_message: "レベル50。ここが最高峰です。ここから先は、実績ポイントのラダーがあなたの山になります。"
         enter_ap_ladder: "APラダーへ進む"
-        view_ap_ladder: "APラダーを見る"
-        skip_hint: "どこでもタップして続行"
-    achievement_toast:
-        title: "新しい実績！"
     estimate:
     leaderboard:
         favorites_only: "お気に入りのみ"
         player: "パズラー"
-        empty: "まだ何もありません — 記録を追加して、ボードの幕を開けましょう！"
     history:
         meta_title: "マイXP履歴"
         title: "マイXP履歴"
@@ -1784,7 +1770,6 @@ content_digest:
 badges:
     title: "実績"
     my_title: "マイ実績"
-    new: "NEW"
     browse_all: "すべての実績を見る"
     reveal: "新しい実績をお披露目する"
     waiting_teaser: "{1}実績1個があなたを待っています — メンバーになってお披露目しましょう！|]1,Inf[実績%count%個があなたを待っています — メンバーになってお披露目しましょう！"
@@ -2006,12 +1991,6 @@ badges:
     "prediction_unavailable_baseline": "%pieces%ピースパズルの初回ソロ完成をもっと増やすと、タイム予測が利用可能になります。"
     "prediction_unavailable_difficulty": "まだこのパズルの完成者が少なく、予測を生成できません。"
     "prediction_unavailable_opted_out": "プロフィール設定でランキングが無効になっています。"
-  "ranking":
-    "title": "あなたの順位"
-    "position": "%total%人中 #%rank%位"
-    "first_place": "このパズルで最速タイムです！"
-    "first_solver": "このパズルの最初の完成者です！"
-    "top_percent": "上位%percent%%"
   "history":
     "title": "このパズルの履歴"
     "first_time": "このパズルの初完成です！もう一度解いて、上達を追跡しましょう。"
@@ -2023,15 +2002,6 @@ badges:
     "difficulty": "難易度"
     "predicted_range": "予測範囲"
     "need_more_solvers": "このパズルの難易度を計算するには、もっと多くの完成者が必要です。"
-  "progress":
-    "title": "あなたの全体的な進捗（%pieces%ピース）"
-    "skill_tier": "スキルティア"
-    "skill_percentile": "上位%percent%%のプレイヤー"
-    "skill_tier_unavailable": "あと%count%個の%pieces%ピース対象パズルを完成させると、スキルティアが解放されます。"
-    "elo_title": "MSP Ratingレーティング"
-    "elo_first_attempts": "初回挑戦"
-    "elo_total_solves": "総完成数"
-    "elo_unavailable": "MSP Ratingラダーに参加するには、%pieces%ピースパズルをもっと解く必要があります。"
 "added_tracking_recap":
   "meta":
     "title": "パズル記録済み"
@@ -3501,8 +3471,6 @@ puzzle_intelligence:
         predictability_desc: "このパズルの難易度はどれだけ予測しやすいですか？"
         skill_sensitivity: "スキル感度"
         skill_sensitivity_desc: "スキルがこのパズルで大きな差を生みますか？"
-    player_insights:
-        title: "プレイヤーインサイト"
     prediction:
         title: "あなたの予測"
         estimated_time: "推定タイム"

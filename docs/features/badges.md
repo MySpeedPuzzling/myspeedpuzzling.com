@@ -19,9 +19,11 @@ thresholds is in `docs/features/xp-levels/launch-checklist.md`.
 ## Visibility rules
 
 - A player's badges appear on their profile **only if the profile owner has an active membership** - for everyone
-  allowed to see the profile (a private one: its owner only). A free player sees their own earned badges as a locked
-  strip (greyed out, the best six) with "N achievements waiting for you" and the membership button; nobody else sees
-  anything (`BadgesProfileSection`).
+  allowed to see the profile (a private one: its owner only), as the **achievements showcase** near the top
+  (`AchievementsShowcase`, 2026-10-10): one sideways-scrolling row, highest tier first, "11 of 17 · 640 AP ›" to the
+  catalogue; the owner's unrevealed ones are "?" medallions leading to the reveal page. A free owner gets one quiet
+  line ("You have earned achievements. Become a member to see them." - from their AP, no query), never a lock; nobody
+  else sees anything.
 - Badges are evaluated for *all* players regardless of membership — records accumulate silently. They become visible the moment the player's membership activates.
 - The catalog `/en/achievements` (old `/en/badges` links 301 there) is public. Logged-in users see per-badge progress bars toward the next tier; logged-out users see the catalog without progress. A free player's earned tiers show locked with a "✓ 🔒" mark.
 - While the `xp-system` flag is active, every one of these surfaces is admins-only (`docs/features/feature_flags.md`).

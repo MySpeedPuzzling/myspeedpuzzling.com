@@ -62,6 +62,7 @@
 @import 'comparison';
 @import 'compact-bar';
 @import 'player-header';
+@import 'progression-profile';
 @import 'puzzle-result';
 @import 'favorite-puzzlers';
 @import 'comparison-charts';
@@ -133,6 +134,8 @@
 
 // How progress works, achievements catalogue, holders, XP history (docs/features/xp-levels/launch-2026-10.md)
 @import "progression-pages";
+// The recap after logging a time: one progress card (docs/features/xp-levels/launch-2026-10.md)
+@import "xp-recap";
 
 @import "flag-icons/sass/flag-icons";
 

@@ -1237,7 +1237,6 @@ competition_referees:
     "millions": "%count% Mio."
     "activity_label": "Puzzles pro Monat"
     "activity_bar": "%month%: %count% Puzzle|%month%: %count% Puzzles"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Skill-Stufe"
     "competes": "Nimmt an Veranstaltungen teil"
     "swaps": "Tauscht Puzzles"
@@ -1552,15 +1551,9 @@ xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"
     total_tooltip: "%xp% XP insgesamt verdient"
-    max_level_reached: "Gipfel erreicht — Level 50!"
     progress_label: "%xp% XP bis Level %level%"
     receipt:
-        title: "Deine XP für dieses Puzzle"
         total: "Gesamt"
-        waiting_teaser: "{1}Dieses Ergebnis zählt für 1 wartenden Erfolg 🔒|]1,Inf[Dieses Ergebnis zählt für %count% wartende Erfolge 🔒"
-        max_level_title: "Level 50 — XP zählen weiter, der Ruhm bleibt für immer"
-        nearest_achievements: "Deine nächsten Erfolge sind zum Greifen nah:"
-        max_level_all_done: "Du hast alles erobert, was es zu erobern gibt. Wir sind ehrlich beeindruckt."
         relax_repeat: "Ein vertrautes Puzzle, einfach nur zum Genießen — diesmal keine XP, und genau darum geht's."
         counting: "Wir zählen deine XP…"
     line:
@@ -1580,21 +1573,14 @@ xp:
         difficulty_pending: "Schwierigkeitsbonus ausstehend — wird nachgereicht, sobald dieses Puzzle bewertet ist"
         speed_pending: "Tempobonus ausstehend — braucht Zeiten von 3 Puzzlern"
     levelup:
-        aria: "Level-up! Du hast Level %level% erreicht"
         label: "Level-up!"
         max_label: "Der Gipfel!"
         message: "Deine Puzzle-Reise klettert weiter nach oben. Wunderbar gemacht!"
-        max_message: "Level 50. Höher geht es nicht. Ab jetzt ist die Erfolgspunkte-Rangliste dein Berg."
         enter_ap_ladder: "Zur AP-Rangliste"
-        view_ap_ladder: "AP-Rangliste ansehen"
-        skip_hint: "Tippe irgendwo, um fortzufahren"
-    achievement_toast:
-        title: "Neuer Erfolg!"
     estimate:
     leaderboard:
         favorites_only: "Nur Favoriten"
         player: "Puzzler"
-        empty: "Noch nichts zu sehen — erfasse ein Ergebnis und eröffne die Bestenliste!"
     history:
         meta_title: "Mein XP-Verlauf"
         title: "Mein XP-Verlauf"
@@ -1691,7 +1677,6 @@ content_digest:
 badges:
     title: "Erfolge"
     my_title: "Meine Erfolge"
-    new: "NEU"
     browse_all: "Alle Erfolge durchstöbern"
     reveal: "Deck deinen neuen Erfolg auf"
     waiting_teaser: "{1}1 Erfolg wartet auf dich — werde Mitglied, um ihn aufzudecken!|]1,Inf[%count% Erfolge warten auf dich — werde Mitglied, um sie aufzudecken!"
@@ -1914,12 +1899,6 @@ badges:
     "prediction_unavailable_baseline": "Löse mehr Erstversuche mit %pieces%-Teile-Puzzles, um Zeitvorhersagen freizuschalten."
     "prediction_unavailable_difficulty": "Noch nicht genügend Löser haben dieses Puzzle abgeschlossen, um Vorhersagen zu erstellen."
     "prediction_unavailable_opted_out": "Ranking ist in deinen Profileinstellungen deaktiviert."
-  "ranking":
-    "title": "Deine Platzierung"
-    "position": "#%rank% von %total% Lösern"
-    "first_place": "Du hast die schnellste Zeit bei diesem Puzzle!"
-    "first_solver": "Du bist der erste Löser dieses Puzzles!"
-    "top_percent": "Top %percent%%"
   "history":
     "title": "Deine Geschichte mit diesem Puzzle"
     "first_time": "Dies ist dein erstes Mal bei diesem Puzzle! Löse es erneut, um deine Verbesserung zu verfolgen."
@@ -1931,15 +1910,6 @@ badges:
     "difficulty": "Schwierigkeit"
     "predicted_range": "Vorhergesagter Bereich"
     "need_more_solvers": "Mehr Löser werden benötigt, um die Schwierigkeit für dieses Puzzle zu berechnen."
-  "progress":
-    "title": "Dein Gesamtfortschritt (%pieces%-Teile)"
-    "skill_tier": "Skill-Stufe"
-    "skill_percentile": "Top %percent%% der Spieler"
-    "skill_tier_unavailable": "Löse %count% weitere qualifizierende %pieces%-Teile-Puzzles, um deine Skill-Stufe freizuschalten."
-    "elo_title": "MSP Rating Bewertung"
-    "elo_first_attempts": "Erstversuche"
-    "elo_total_solves": "Gesamtlösungen"
-    "elo_unavailable": "Löse mehr %pieces%-Teile-Puzzles, um dich für die MSP Rating Rangliste zu qualifizieren."
 "global_search":
   "info": "Willkommen bei der neuen Suche! Suchen Sie nach Puzzle-Namen, EAN oder Code. Suchen Sie Spieler nach Namen oder Code. Bitte lassen Sie uns Ihr Feedback wissen."
   "no_player_found": "Kein Spieler gefunden :-("
@@ -3511,8 +3481,6 @@ puzzle_intelligence:
         predictability_desc: "Wie vorhersagbar ist die Schwierigkeit dieses Puzzles?"
         skill_sensitivity: "Können-Empfindlichkeit"
         skill_sensitivity_desc: "Macht Können einen großen Unterschied bei diesem Puzzle?"
-    player_insights:
-        title: "Spieler-Einblicke"
     prediction:
         title: "Deine Vorhersage"
         estimated_time: "Geschätzte Zeit"

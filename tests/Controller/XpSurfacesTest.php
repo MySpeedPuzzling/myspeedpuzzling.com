@@ -27,7 +27,8 @@ final class XpSurfacesTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringNotContainsString('xp-ring', $content);
-        self::assertStringNotContainsString('xp-level-chip', $content);
+        self::assertStringNotContainsString('xp-level-tab', $content);
+        self::assertStringNotContainsString('achievements-showcase', $content);
         self::assertStringNotContainsString('xp-teaser', $content);
     }
 
@@ -40,8 +41,8 @@ final class XpSurfacesTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
-        self::assertStringContainsString('xp-ring', $content);
-        self::assertStringContainsString('xp-level-chip', $content);
+        self::assertStringContainsString('xp-avatar-ring', $content);
+        self::assertStringContainsString('xp-level-tab', $content);
     }
 
     public function testRecapShowsNoXpTracesToNonAdminOwner(): void
@@ -140,10 +141,12 @@ final class XpSurfacesTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/faq');
+        $crawler = $browser->request('GET', '/en/faq');
 
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringNotContainsString('xp-ring', $content);
+        // The avatar (or initial) itself is not gated - only its ring
+        self::assertCount(1, $crawler->filter('.navbar-avatar-box > .lb-avatar'));
     }
 }

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Component\PlayerHeader;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\ComparisonLineUp;
 use SpeedPuzzling\Web\Results\PlayerProfile;
@@ -23,6 +24,7 @@ readonly final class GetPlayerProfile
         private ClockInterface $clock,
         private HiddenPlayers $hiddenPlayers,
         private PrivateProfileAccess $privateProfileAccess,
+        private GetPlayerRatingRanking $getPlayerRatingRanking,
     ) {
     }
 
@@ -40,6 +42,8 @@ readonly final class GetPlayerProfile
         }
 
         $isPrivate = $this->privateProfileAccess->sqlIsPrivate('player');
+        $mspRatingRank = $this->getPlayerRatingRanking->sqlRankOf('header_elo');
+        $headerPieces = PlayerHeader::TIER_PIECES_COUNT;
 
         $query = <<<SQL
 SELECT
@@ -83,14 +87,26 @@ SELECT
     referral_program_joined_at,
     referral_program_suspended,
     moderator_since,
+    player.karma,
     (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
         COALESCE(membership.granted_until, '1970-01-01'::timestamp)
-    ) AS membership_ends_at
+    ) AS membership_ends_at,
+    player.xp_total,
+    player.level,
+    player.achievement_points,
+    -- The header's chips (docs/features/player-header.md) ride on this row: the MSP Rating place only while the player
+    -- is on the ladder, the skill tier for PlayerHeader::tierChip() (members-only, its rules decide who sees it)
+    CASE WHEN player.is_private = false AND player.ranking_opted_out = false AND header_elo.id IS NOT NULL
+        THEN {$mspRatingRank}
+    END AS msp_rating_rank,
+    header_skill.skill_tier
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id
+LEFT JOIN player_elo header_elo ON header_elo.player_id = player.id AND header_elo.pieces_count = {$headerPieces}
+LEFT JOIN player_skill header_skill ON header_skill.player_id = player.id AND header_skill.pieces_count = {$headerPieces}
 WHERE player.id = :playerId
 SQL;
 
@@ -160,6 +176,7 @@ SELECT
     referral_program_joined_at,
     referral_program_suspended,
     moderator_since,
+    player.karma,
     (SELECT json_agg(user_block.blocked_id) FROM user_block WHERE user_block.blocker_id = player.id) AS hidden_player_ids,
     player.registered_at,
     (membership.id IS NOT NULL) AS has_membership_row,
@@ -172,7 +189,10 @@ SELECT
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
         COALESCE(membership.granted_until, '1970-01-01'::timestamp)
-    ) AS membership_ends_at
+    ) AS membership_ends_at,
+    player.xp_total,
+    player.level,
+    player.achievement_points
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id

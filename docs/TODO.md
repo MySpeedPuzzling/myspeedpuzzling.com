@@ -10,6 +10,34 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] XP leaderboard default "people you follow" (draft D6) - not decided, the board still opens on the world
 - [ ] Karma deep page replaces the `karma_explainer` placeholder (workstream F) and the karma board joins `ProgressLeaderboardTab`
 - [ ] Visual check of the hub, catalogue and XP history at 320/375 px on the integrated branch (not done in the workstream)
+## Recap progress card (`docs/features/xp-levels/README.md` §Surfaces, launch 2026-10)
+
+- [ ] "Earned with this time" is a 10-minute window after `tracked_at` (`GetAchievementsEarnedWithSolve`), because a badge row does not point at the solve that earned it. If a cron run of the badge evaluation lands in that window, its tiers are credited to the time. A `badge.solving_time_id` written by `RecalculateBadgesForPlayer` (dispatched with the time id) would make it exact.
+- [ ] Real-device pass of the recap reveal (88/144 px stages inside the card) and the milestone sheet on iPhone Safari + Android Chrome.
+
+## Karma (`docs/features/karma.md`)
+
+- [ ] **v2: events** - approved events, series and organizations could count once the events catalogue is part of
+  "the database" (Jan, 2026-10-10: not in v1).
+- [ ] **Trusted contributors** - high karma and >= 95 % accepted: small fixes applied at once, still listed for review
+  afterwards. Moderator invitations suggested from karma (appointing stays a human decision).
+- [ ] **Admins: each moderator's accept/decline split** (the guard against rubber-stamping now that decisions have no cap) -
+  in the drafts, not built.
+- [ ] Review queues sorted by the proposer's acceptance (drafts) - only shown, not sorted, in v1.
+- [ ] If the filtered karma list (a kind or the last 12 months, ~110 ms on the dev copy) gets slow on production, store
+  per-kind totals next to `player.karma` instead of deriving them per request.
+- [ ] lily.srv: add the `recalculate-karma` cron row (in `docs/features/karma.md`).
+## Progression on the profile header and navbar (`docs/features/player-header.md` "Progression", workstream C 2026-10-10)
+
+- [ ] Karma chip in the header's chip row (teal `.player-chip-karma`, only when > 0) - the slot is marked in
+  `templates/components/PlayerHeader.html.twig`, needs `player.karma` on the `byId()` row (workstream F)
+- [ ] Point the tier chip, the ring's visitor link and the cards' "?" links to the "How it works" hub once it exists
+  (today `methodology` / `xp_explainer`)
+- [ ] Pinning achievements in the showcase (today: highest tier first, newest first within a tier)
+- [ ] `PlayerCard::$mspRating` is no longer shown on the player card (Level + tier only) - drop it from
+  `GetPlayerCard` or show it elsewhere
+- [ ] Player profile at 320 px: the page is 5 px too wide - measured on a static render (no JS), the chart card's
+  row, not the header; check on a real device
 
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 

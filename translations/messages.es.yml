@@ -1239,7 +1239,6 @@ competition_referees:
     "millions": "%count% M"
     "activity_label": "Puzzles por mes"
     "activity_bar": "%month%: %count% puzzle|%month%: %count% puzzles"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Nivel de habilidad"
     "competes": "Compite en eventos"
     "swaps": "Intercambia puzzles"
@@ -1568,15 +1567,9 @@ xp:
     level_chip: "Nv %level%"
     total: "%xp% XP"
     total_tooltip: "%xp% XP ganados en total"
-    max_level_reached: "La cima de la montaña — ¡nivel 50!"
     progress_label: "%xp% XP para el nivel %level%"
     receipt:
-        title: "Tu XP por esta resolución"
         total: "Total"
-        waiting_teaser: "{1}Esta resolución contó para 1 logro en espera 🔒|]1,Inf[Esta resolución contó para %count% logros en espera 🔒"
-        max_level_title: "Nivel 50 — el XP sigue contando, la gloria es para siempre"
-        nearest_achievements: "Tus próximos logros están al alcance de la mano:"
-        max_level_all_done: "Has conquistado todo lo que había por conquistar. Estamos sinceramente impresionados."
         relax_repeat: "Un puzzle conocido, por puro placer — esta vez sin XP, y de eso se trata."
         counting: "Contando tu XP…"
     line:
@@ -1596,21 +1589,14 @@ xp:
         difficulty_pending: "Bonus por dificultad pendiente — se liquida cuando este puzzle reciba valoración"
         speed_pending: "Bonus por velocidad pendiente — necesita tiempos de 3 puzzleros"
     levelup:
-        aria: "¡Subiste de nivel! Alcanzaste el nivel %level%"
         label: "¡Subiste de nivel!"
         max_label: "¡La cima!"
         message: "Tu recorrido puzzlero sigue subiendo. ¡Bien hecho!"
-        max_message: "Nivel 50. El más alto que existe. A partir de aquí, tu montaña es la escalera de Puntos de Logro."
         enter_ap_ladder: "Entrar a la escalera de AP"
-        view_ap_ladder: "Ver la escalera de AP"
-        skip_hint: "Toca en cualquier parte para continuar"
-    achievement_toast:
-        title: "¡Nuevo logro!"
     estimate:
     leaderboard:
         favorites_only: "Solo favoritos"
         player: "Puzzlero"
-        empty: "Aún no hay nada por aquí — ¡registra una resolución e inaugura el tablero!"
     history:
         meta_title: "Mi historial de XP"
         title: "Mi historial de XP"
@@ -1707,7 +1693,6 @@ content_digest:
 badges:
     title: "Logros"
     my_title: "Mis logros"
-    new: "NUEVO"
     browse_all: "Explorar todos los logros"
     reveal: "Revela tu nuevo logro"
     waiting_teaser: "{1}1 logro te está esperando — ¡hazte miembro para revelarlo!|]1,Inf[%count% logros te están esperando — ¡hazte miembro para revelarlos!"
@@ -1930,12 +1915,6 @@ badges:
     "prediction_unavailable_baseline": "Completa más resoluciones de primer intento en puzzles de %pieces% piezas para desbloquear predicciones de tiempo."
     "prediction_unavailable_difficulty": "Aún no hay suficientes resolutores que hayan completado este puzzle para generar predicciones."
     "prediction_unavailable_opted_out": "La clasificación está desactivada en los ajustes de tu perfil."
-  "ranking":
-    "title": "Tu Clasificación"
-    "position": "#%rank% de %total% resolutores"
-    "first_place": "¡Tienes el tiempo más rápido en este puzzle!"
-    "first_solver": "¡Eres el primer resolutor de este puzzle!"
-    "top_percent": "Top %percent%%"
   "history":
     "title": "Tu Historial en Este Puzzle"
     "first_time": "¡Esta es tu primera vez resolviendo este puzzle! Resuélvelo de nuevo para seguir tu mejora."
@@ -1947,15 +1926,6 @@ badges:
     "difficulty": "Dificultad"
     "predicted_range": "Rango predicho"
     "need_more_solvers": "Se necesitan más resolutores para calcular la dificultad de este puzzle."
-  "progress":
-    "title": "Tu Progreso General (%pieces% piezas)"
-    "skill_tier": "Nivel de Habilidad"
-    "skill_percentile": "Top %percent%% de jugadores"
-    "skill_tier_unavailable": "Completa %count% puzzles más de %pieces% piezas que califiquen para desbloquear tu Nivel de Habilidad."
-    "elo_title": "Puntuación MSP Rating"
-    "elo_first_attempts": "Primeros intentos"
-    "elo_total_solves": "Total de resoluciones"
-    "elo_unavailable": "Resuelve más puzzles de %pieces% piezas para calificar en la escalera MSP Rating."
 "global_search":
   "info": "¡Bienvenida nueva búsqueda! Busca por nombre del puzzle, ean o código. Busca jugador por nombre o código. Por favor déjanos saber tus comentarios."
   "no_player_found": "No se encontró jugador :-("
@@ -3512,8 +3482,6 @@ puzzle_intelligence:
         predictability_desc: "¿Qué tan predecible es la dificultad de este puzzle?"
         skill_sensitivity: "Sensibilidad a la Habilidad"
         skill_sensitivity_desc: "¿La habilidad marca una gran diferencia en este puzzle?"
-    player_insights:
-        title: "Información del Jugador"
     prediction:
         title: "Tu Predicción"
         estimated_time: "Tiempo estimado"

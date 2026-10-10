@@ -32,7 +32,7 @@
 
     <p class="text-body-secondary fs-sm mb-3">
         {{ (board ~ '.subtitle')|trans }}
-        <a href="{{ path('progression_hub') }}" class="text-nowrap">{{ 'progression_hub.title'|trans }}</a>
+        <a href="{{ path(tab.hasKarmaFilters() ? 'karma_explainer' : 'progression_hub') }}" class="text-nowrap">{{ (tab.hasKarmaFilters() ? 'karma.explainer.title' : 'progression_hub.title')|trans }}</a>
     </p>
 
     <ul class="nav nav-tabs mb-3">
@@ -58,6 +58,9 @@
     {% else %}
         <form method="get" class="d-flex flex-wrap align-items-center gap-3 mb-3" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
             <input type="hidden" name="tab" value="{{ tab.value }}">
+            {% if tab.hasKarmaFilters() %}
+                {{ include('karma/_leaderboard_filters.html.twig') }}
+            {% endif %}
 
             <div class="d-flex align-items-center gap-2">
                 <label for="board-country" class="form-label fs-sm mb-0 text-nowrap">{{ 'badges.detail.country_filter'|trans }}</label>
@@ -82,7 +85,7 @@
         {% if rows|length == 0 and self_row is null %}
             <div class="xp-teaser">
                 <i class="ci-star" aria-hidden="true"></i>
-                <span>{{ 'xp.leaderboard.empty'|trans }}</span>
+                <span>{{ (board ~ '.empty')|trans }}</span>
             </div>
         {% else %}
             <div class="custom-table-wrapper lb-wrapper">

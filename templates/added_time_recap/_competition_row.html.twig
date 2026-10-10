@@ -1,0 +1,53 @@
+{#
+    MSP Rating and skill tier in the recap's progress card - only for piece counts that have them
+    (PuzzleIntelligenceRecalculator::RATING_PIECES_COUNTS / SKILL_PIECES_COUNTS, 500 today). Members see their values,
+    free players one locked line.
+#}
+{% if is_timed_solo and not player.rankingOptedOut and (has_rating or has_skill_tier) %}
+    {% if viewer_is_member %}
+        <a class="recap-row" href="{{ path('msp_rating_ladder') }}" data-testid="recap-competition">
+            <span class="recap-row-icon recap-icon-competition" aria-hidden="true"><i class="bi bi-graph-up-arrow"></i></span>
+            <span class="recap-row-body">
+                {% if has_rating %}
+                    <span class="recap-row-title">
+                        {%- if rating is not null -%}
+                            {{ 'recap_progress.competition.rating'|trans({'%rating%': (rating.elo_rating * 1000)|round, '%rank%': rating.rank, '%total%': rating.total}) }}
+                        {%- else -%}
+                            {{ 'recap_progress.competition.rating_progress'|trans({
+                                '%first%': rating_progress.first_attempts ?? 0,
+                                '%first_needed%': constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS'),
+                                '%solves%': rating_progress.total_solves ?? 0,
+                                '%solves_needed%': constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingCalculator::MINIMUM_TOTAL_SOLVES'),
+                            }) }}
+                        {%- endif -%}
+                    </span>
+                {% endif %}
+                {% if has_skill_tier %}
+                    <span class="recap-row-sub">
+                        {%- if player_skill is not null -%}
+                            {{ 'recap_progress.competition.skill'|trans({
+                                '%tier%': ('puzzle_intelligence.skill.tiers.' ~ player_skill.skillTier.name|lower)|trans,
+                                '%percent%': (100 - player_skill.skillPercentile)|round,
+                            }) }}
+                        {%- elseif (skill_qualifying_count ?? 0) >= skill_minimum -%}
+                            {# Enough puzzles - the tier is computed every 15 minutes #}
+                            {{ 'recap_progress.competition.skill_soon'|trans }}
+                        {%- else -%}
+                            {{ 'recap_progress.competition.skill_progress'|trans({'%count%': skill_minimum - (skill_qualifying_count ?? 0)}) }}
+                        {%- endif -%}
+                    </span>
+                {% endif %}
+            </span>
+            <i class="ci-arrow-right recap-row-chevron" aria-hidden="true"></i>
+        </a>
+    {% else %}
+        <button type="button" class="recap-row recap-row-locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="recap-competition-locked">
+            <span class="recap-row-icon recap-icon-competition" aria-hidden="true"><i class="ci-locked"></i></span>
+            <span class="recap-row-body">
+                <span class="recap-row-title">{{ 'recap_progress.competition.locked_title'|trans }}</span>
+                <span class="recap-row-sub">{{ 'recap_progress.competition.locked_text'|trans({'%pieces%': solved_puzzle.piecesCount}) }}</span>
+            </span>
+            <i class="ci-arrow-right recap-row-chevron" aria-hidden="true"></i>
+        </button>
+    {% endif %}
+{% endif %}

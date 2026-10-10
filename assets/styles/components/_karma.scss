@@ -1,0 +1,74 @@
+//
+// Karma (docs/features/karma.md): the profile chip, the karma list's filters, the history page
+// --------------------------------------------------
+
+$karma-color: #0f766e;
+$karma-tint: #e3f4f1;
+
+.player-chip-karma {
+    background: $karma-tint;
+    color: $karma-color;
+
+    &:hover {
+        color: #0b5e58 !important;
+    }
+}
+
+.karma-board-filters {
+    display: flex;
+    gap: .375rem;
+    overflow-x: auto;
+    padding-bottom: .125rem;
+
+    .btn {
+        min-height: 36px;
+        white-space: nowrap;
+    }
+}
+
+.karma-total {
+    color: $karma-color;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.karma-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+        padding: .25rem .625rem;
+        border-radius: 999px;
+        background: $karma-tint;
+        color: $karma-color;
+        font-size: .8125rem;
+        font-weight: 500;
+    }
+}
+
+.karma-item-not-counted {
+    color: $gray-600;
+
+    a {
+        color: inherit;
+    }
+}
+
+.karma-proposer {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    font-size: .75rem;
+    color: $gray-700;
+
+    .karma-proposer-karma {
+        color: $karma-color;
+        font-weight: 600;
+    }
+}

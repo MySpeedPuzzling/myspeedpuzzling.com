@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
@@ -86,6 +87,8 @@ return App::config([
                 DeletePageSectionImages::class => 'async',
                 RecalculateBadgesForPlayer::class => 'async',
                 RecalculateXpForPlayer::class => 'async',
+                // Karma after a moderation decision - never in the way of the decision (docs/features/karma.md)
+                RecalculateKarma::class => 'async',
                 AwardXpForSolvingTime::class => 'async',
                 RecalculateXpChainForSolve::class => 'async',
                 CompensateXpForDeletedSolve::class => 'async',

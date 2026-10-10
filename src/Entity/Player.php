@@ -31,6 +31,7 @@ use DateTimeImmutable;
 #[Entity]
 #[Index(columns: ['xp_total'])]
 #[Index(columns: ['achievement_points'])]
+#[Index(columns: ['karma'])]
 class Player
 {
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -234,6 +235,14 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::INTEGER, options: ['default' => 0])]
     public int $achievementPoints = 0;
+
+    /**
+     * Denormalized karma (docs/features/karma.md) - a cache of KarmaDerivation, written only by KarmaRecalculator's
+     * set-based UPDATE (never through this entity). Admins stay at 0.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::INTEGER, options: ['default' => 0])]
+    public int $karma = 0;
 
     public function __construct(
         #[Id]

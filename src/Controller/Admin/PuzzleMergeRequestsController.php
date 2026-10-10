@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Admin;
 
 use Symfony\Component\Security\Core\User\UserInterface;
+use SpeedPuzzling\Web\Query\GetProposerTrackRecords;
 use SpeedPuzzling\Web\Query\GetPuzzleMergeRequests;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,6 +19,7 @@ final class PuzzleMergeRequestsController extends AbstractController
 {
     public function __construct(
         private readonly GetPuzzleMergeRequests $getPuzzleMergeRequests,
+        private readonly GetProposerTrackRecords $getProposerTrackRecords,
     ) {
     }
 
@@ -41,6 +43,8 @@ final class PuzzleMergeRequestsController extends AbstractController
 
         return $this->render('admin/puzzle_merge_requests.html.twig', [
             'requests' => $requests,
+            // Karma (docs/features/karma.md): one statement for the whole page
+            'track_records' => $this->getProposerTrackRecords->forPlayers(array_map(static fn ($request): null|string => $request->reporterId, $requests)),
             'active_tab' => $tab,
             'counts' => $this->getPuzzleMergeRequests->countByStatus(),
         ]);

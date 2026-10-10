@@ -20,15 +20,17 @@ XP is never purchasable. Levels gate nothing functional. Level 50 = 3,160 XP
 ### Ledger
 
 - `xp_entry` — one row per receipt line (`src/Value/XpReason.php`), amounts are signed
-  ints. References to solves/badges are **plain uuid columns without FKs** so deleted
-  solves keep their audit history. `Player.xpTotal`/`level` are denormalized and always
+  ints. **Every entry comes from a logged puzzle** - achievements grant Achievement Points
+  only, no XP (`launch-2026-10.md`; the old achievement entries and the `badge_id` column
+  were dropped at the launch). The solve reference is a **plain uuid column without FK** so
+  deleted solves keep their audit history. `Player.xpTotal`/`level` are denormalized and always
   equal `SUM(xp_entry.amount)` / `LevelTable::levelForXp()` — every write goes through
   `src/Services/Xp/XpLedger.php`.
-- Idempotency anchors: unique partial indexes `custom_xp_entry_solve_reason
-  (player_id, solving_time_id, reason) WHERE … reason != 'solve_compensation'` and
-  `custom_xp_entry_badge (badge_id)` (mirrored in `tests/bootstrap.php`).
+- Idempotency anchor: unique partial index `custom_xp_entry_solve_reason
+  (player_id, solving_time_id, reason) WHERE … reason != 'solve_compensation'` (mirrored
+  in `tests/bootstrap.php`).
 - `earned_at` carries the SOLVE's timestamp (`COALESCE(finished_at, tracked_at)`) for
-  solve-derived entries, the badge's `earned_at` for achievements, clock-now only for
+  solve-derived entries, clock-now only for
   settlements (which are excluded from weekly deltas via `in_weekly_delta = false`).
 - Leaderboards never aggregate at scale: both ladders read the denormalized
   `player.xp_total` / `player.achievement_points` columns (both indexed), and the weekly
@@ -41,7 +43,8 @@ XP is never purchasable. Levels gate nothing functional. Level 50 = 3,160 XP
 
 `core = base × difficulty × team × unboxed × occurrence`, decomposed into separate
 entries (base / difficulty / unboxed), plus full-formula extras for solves tracked at or
-after `XpCalculator::FULL_FORMULA_FROM`: speed bonus (5/10/15% vs puzzle percentiles,
+after the formula cutoff (`xp_settings.full_formula_from`, read through `XpFormulaCutoff` - the
+deploy moment, see "Formula cutoff" below): speed bonus (5/10/15% vs puzzle percentiles,
 solo timed, median from ≥3 distinct solvers, PPM plausibility guard), weekly boost
 (+50% core for the first 5 XP-earning solves per ISO week) and daily warm-up (+2 flat).
 Occurrence positions count ALL solves of the (player, puzzle) pair in canonical order
@@ -81,10 +84,22 @@ picks it up automatically.
 
 ### Surfaces
 
-Recap receipt + celebration (`XpSolveReceipt` inside the `XpRecapCelebration`
-LiveComponent — one poll bridges the async award), profile/header rings (`XpRing`,
-CSS-only milestone styling; the arc is a masked `::before`, so transparent avatars never
-show a filled disc), achievements catalog `/achievements` + holders directory
+Recap after logging a time = **one progress card** (launch-2026-10.md "After logging a time"): the live rows come
+from the `XpRecapCelebration` LiveComponent (achievements this time earned + the level line with the receipt one tap
+away in a `<details>`), the page adds the place on the puzzle and - for piece counts with a rating (500) - MSP Rating /
+skill tier (members; free players one locked line). XP is awarded asynchronously: the component polls with a growing
+delay (`POLL_DELAYS_MS`, ~30 s) and then says the XP is on its way; the render showing the XP is the last one.
+"This time earned an achievement" = badge rows stamped within 10 minutes after the time's
+`tracked_at` and before the player's next time (`GetBadges::earnedWithSolve()` / `countTiersEarnedWithSolve()`;
+badges do not point at a solve; the badge message is queued before the XP one). Members reveal it
+in place with the last-piece puzzle (`reveal_badge`, so a reload shows the badge); free players read "You earned an
+achievement with this time. Become a member to find out which." Level-up: the "Level up!" pill always; the motion
+(bar fill, number tick, burst) and the milestone bottom sheet (10/20/30/40/50) only on a fresh recap
+(`RecapProgress::isFresh`, 60 min) and once per time id, remembered in localStorage by
+`recap_celebration_controller.js` - no server state, closing needs no request, nothing replays on reload or Back.
+Both recap routes are quiet routes (no announcement modal). The level ring around the player header's
+avatar and the navbar avatar (`XpRing`, read from the profile row - no query; the arc is a masked
+`::before` outside the avatar, milestone colours per 10 levels, a gold "Lv 50" tab), achievements catalog `/achievements` + holders directory
 `/achievements/{type}` + explainer modal `/achievements/{type}/info`
 (`AchievementInfoController`, opened from every badge on a profile through the shared
 `modal-frame`; `?tier=` = the clicked badge, shown big at the top - badge art:
@@ -106,7 +121,7 @@ Discovery: both boards are linked from `/ladder` (CTA banner + two entries in th
 switcher dropdown) and the footer leaderboards list; the achievements catalog links the AP
 board; the audit page is linked from the owner's own profile next to the ring. Every one of
 those links is wrapped in `xp_system_visible()` (`XpTwigExtension`) so nothing points at a
-page that 404s while the flag is active.
+page that 404s before the launch switch is on (wrappers to be removed after the launch).
 
 ### Weekly digest
 
@@ -143,11 +158,39 @@ file's header; free minutes as of 2026-10-04: :01 :06 :12 :16 :21 :27 :31 :36 :4
 # digest-consumer service they need) are in docs/features/content-digest/README.md §"Production"
 ```
 
-## Feature flag
+## Launch switch
 
-`xp-system` — `src/Services/Xp/XpFeatureGate.php`, admin-only visibility + full email
-suppression while active. Surface checklist: `leak-inventory.md`. Registry:
-`docs/features/feature_flags.md`. Removal = launch day (see `launch-runbook.md`).
+No feature flag (the `xp-system` env flag was removed at the launch, `launch-2026-10.md`). The launch switch
+`xp_settings.launch_ready_at` keeps XP / levels / achievements admin-only until `myspeedpuzzling:xp-backfill` has
+calculated and verified the history, then flips itself (`XpLaunchReadiness`, `XpFeatureGate` = switch on OR admin).
+Registry + rollback: `docs/features/feature_flags.md` (`xp-launch`). Order of the launch: `launch-runbook.md`.
+
+### The launch reveal
+
+`/{_locale}/my/xp-reveal` (`xp_launch_reveal`) is the one door to the launch moment: members meet their achievements
+one by one (with the Achievement Points each brought - the XP shown is the XP from puzzles), then their level; free
+players get their level and a count of the achievements waiting (never which) with a membership button. Ways in:
+
+- the **launch announcement modal** (`AnnouncementModal::XpLaunchReveal`, `XpLaunchRevealRule`): every player with at
+  least one counted solving time, not opted out, once ever, after the switch is on. It goes first and ignores the
+  pause between announcement modals (`AnnouncementModal::ignoresCooldown()`); quiet routes still apply. The modal is the
+  reveal's first step (`XpLaunchRevealModal`: the level assembles and the XP counts up, then on to the deck / the
+  member tease). "Has a solving time" rides on the viewer's own profile row (`PlayerProfile::$hasSolvingTime`, an
+  `EXISTS` probe in `GetPlayerProfile::byUserId()`), the switch on the shared cache - no query per page view.
+- the **newsletter link** (one URL for everybody): a guest goes through the sign-in and back (`LoginEntryPoint`,
+  `?return=`); the page stays viewable after it was seen; opening it claims the launch modal's impression, so the modal
+  never offers a reveal already seen. Before the switch non-admins are sent to their profile.
+- newly joined members: Stripe checkout lands on `/membership` (`XpRevealInvite` → `badge_reveals`), the free trial's
+  welcome page has the invite and an "Your achievements" card.
+
+The reveal page and `badge_reveals` are quiet routes (no other announcement modal on top of them).
+
+### Achievements for free players
+
+Achievements are evaluated and stored for everybody, shown to members only. A free player is teased without learning
+which: `GetBadges::countTiersEarnedWithSolve(playerId, solvingTimeId)` = how many tiers were earned with that solve
+(earned within 10 minutes after the solve was logged, before the player's next one; 0 until the async evaluation ran) for the
+recap teaser; `GetBadges::earnedWithSolve()` is the same set for members (highest new tier per type, best first) - the recap (`XpRecapCelebration`) uses it.
 
 ## Rebase onto main 2026-10-04 — what changed, what is open
 
@@ -181,7 +224,8 @@ Main gained ~330 commits while this branch waited. Adapted in the rebase (own co
    `email_notifications_enabled` from `GetPlayersForContentDigest` / `SendPlayerContentDigestHandler`); the digest
    switch also appears on main's per-type token page (`email_preferences`, `EditEmailPreferences`) next to the
    newsletter, the unread-messages digest and the result e-mails.
-2. **No per-achievement e-mails.** One initial e-mail at launch (the XP reveal), afterwards new achievements reach
+2. **No per-achievement e-mails** (done at the launch - and the XP reveal e-mail was dropped too, `launch-2026-10.md`).
+   One initial e-mail at launch (the XP reveal), afterwards new achievements reach
    players only through the weekly digest (its "achievements earned" block / members-only teaser already exists).
    → Remove `SendBadgeNotificationEmail` + handler + `emails/badges_earned.html.twig` + the `badges_earned.*` keys;
    `RecalculateBadgesForPlayerHandler` keeps persisting badges and stops mailing. The reveal mail is gated by the
@@ -223,26 +267,22 @@ Main gained ~330 commits while this branch waited. Adapted in the rebase (own co
    database (a run writes badge rows): wall time of `myspeedpuzzling:recalculate-badges` with the messages routed
    `sync`, plus the same for `myspeedpuzzling:xp-backfill`.
 
-**Formula cutoff (`XpCalculator::FULL_FORMULA_FROM`).** XP for history is deliberately smaller than XP for new
+**Formula cutoff = the deploy moment (built at the launch).** XP for history is deliberately smaller than XP for new
 solves: a solve *logged* (`tracked_at`) before the cutoff earns the base + difficulty + unboxed parts only, one logged
 from the cutoff on also the incentives - speed bonus, weekly boost (+50 % for the first 5 solves of an ISO week),
 daily warm-up (+2) and the ex-post difficulty / speed settlements (`SettleXpBonuses` only looks at solves after it).
 The incentives reward behaviour the player could see and react to, so they must not be paid retroactively - otherwise
-every past week of every veteran gets boosts and the launch ladder is flooded. Today the cutoff is a hard-coded
-`2026-08-01`, i.e. already two months of history would count as "new". Proposal for "fully live from the deploy": the
-cutoff becomes the moment the feature reaches production, set by the deploy itself - a migration stores `NOW()` once
-(e.g. `xp_settings.full_formula_from`, read through a small cached service instead of the constant; tests insert
-their own value). Every solve logged before the deploy is history, every solve after it gets the full formula, the
-launch backfill (`myspeedpuzzling:xp-backfill`) can run any time after the deploy, and nobody has to remember to edit a
-constant. With "fully live", `XP_SYSTEM_ADMIN_ONLY` ships as `0` (or the gate is removed before the merge) and the
-reveal mail goes out the same day.
+every past week of every veteran gets boosts and the launch ladder is flooded. The cutoff is
+`xp_settings.full_formula_from`, stored once by the migration that created the table (`NOW()` of the deploy), read
+through `XpFormulaCutoff` (cached per worker process - it never changes). Tests use their own value
+(`XpSettingsFixture`, 2026-08-01). The launch backfill runs after the deploy (`launch-runbook.md`).
 
 **Open - follow-ups (no decision needed):**
 
 - Production: `content_digest_emails` consumer + `deploy.sh` restart + the cron rows above, in lily.srv, with the merge.
-- Per-page cost after launch: the header ring runs `GetXpProfile` on every signed-in page; the estimate / receipt /
-  celebration re-query the opt-out. Carry `xp_total`, `level`, `experience_system_opted_out` on the viewer's
-  `PlayerProfile` row (main's zero-query pattern).
+- Per-page cost after launch: the estimate / receipt / celebration re-query the opt-out. (Done for the rings,
+  2026-10-10: `xp_total`, `level`, `achievement_points` ride on both `PlayerProfile` rows - `XpRing` and the navbar no
+  longer run `GetXpProfile`.)
 - One subscriber on main's result events (`PuzzleSolvingTimeDeleted` / `Modified` / `MovedToOtherPuzzle`) would cover
   future write paths without per-handler dispatches; plus an XP safety-net cron that rebuilds players with entries on
   results that are gone, suspicious or no longer theirs (nothing heals XP today).

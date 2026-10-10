@@ -16,12 +16,12 @@ use SpeedPuzzling\Web\Value\LevelTable;
 use SpeedPuzzling\Web\Value\SolveXpContext;
 use SpeedPuzzling\Web\Value\SpeedPercentile;
 use SpeedPuzzling\Web\Value\XpEntryDraft;
-use SpeedPuzzling\Web\Value\XpReason;
 
 /**
- * Deterministic full-ledger rebuild for one player: wipes all solve-derived entries
- * (achievement entries are preserved — never revoked), replays the complete solve history
- * in canonical order (COALESCE(finished_at, tracked_at), id) and restores Player totals.
+ * Deterministic full-ledger rebuild for one player: wipes every ledger entry, replays the
+ * complete solve history in canonical order (COALESCE(finished_at, tracked_at), id) and
+ * restores Player totals. Every entry comes from a solve - achievements grant no XP, so a
+ * rebuild also drops achievement entries written before that decision.
  *
  * Running it twice in a row yields an identical ledger — difficulty tiers and speed medians
  * are read as of the run ("tier at backfill run time, settled immediately, frozen forever").
@@ -37,6 +37,7 @@ readonly final class XpRecomputer
         private XpLedger $xpLedger,
         private GetPuzzleSpeedPercentiles $getPuzzleSpeedPercentiles,
         private LoggerInterface $logger,
+        private XpFormulaCutoff $xpFormulaCutoff,
     ) {
     }
 
@@ -48,11 +49,11 @@ readonly final class XpRecomputer
             return;
         }
 
-        // Wipe everything solve-derived (incl. settlements and compensations); the
+        // Wipe the whole ledger (incl. settlements and compensations); the
         // doctrine_transaction middleware makes wipe + rebuild atomic.
         $this->database->executeStatement(
-            'DELETE FROM xp_entry WHERE player_id = :playerId AND reason != :achievement',
-            ['playerId' => $playerId, 'achievement' => XpReason::Achievement->value],
+            'DELETE FROM xp_entry WHERE player_id = :playerId',
+            ['playerId' => $playerId],
         );
 
         $solves = $this->loadSolveHistory($playerId);
@@ -60,7 +61,6 @@ readonly final class XpRecomputer
         $puzzleIds = array_values(array_unique(array_column($solves, 'puzzle_id')));
         $percentilesByPuzzle = $this->getPuzzleSpeedPercentiles->forPuzzles($puzzleIds);
 
-        $cutoff = XpCalculator::fullFormulaFrom();
         $drafts = [];
 
         /** @var array<string, int> $occurrenceByPuzzle */
@@ -75,7 +75,7 @@ readonly final class XpRecomputer
             $occurrenceByPuzzle[$solve['puzzle_id']] = $occurrence;
 
             $earnedAt = new DateTimeImmutable($solve['earned_at']);
-            $isBackfill = new DateTimeImmutable($solve['tracked_at']) < $cutoff;
+            $isBackfill = $this->xpFormulaCutoff->isHistory(new DateTimeImmutable($solve['tracked_at']));
             $isTimed = $solve['seconds_to_solve'] !== null;
             $isTeamOrDuo = $solve['puzzling_type'] !== 'solo';
             $weekKey = $earnedAt->format('o-\WW');
@@ -124,10 +124,9 @@ readonly final class XpRecomputer
             }
         }
 
-        // Reset totals to the preserved achievement entries, then let the ledger append
-        // the rebuilt solve entries on top — xpTotal ends as SUM(all entries) again.
-        $achievementTotal = $this->preservedAchievementTotal($playerId);
-        $player->updateExperience($achievementTotal, LevelTable::levelForXp($achievementTotal));
+        // Reset totals to the empty ledger, then let the ledger append the rebuilt
+        // entries on top — xpTotal ends as SUM(all entries) again.
+        $player->updateExperience(0, LevelTable::levelForXp(0));
 
         $this->xpLedger->append($player, $drafts);
     }
@@ -186,17 +185,5 @@ SQL;
         }
 
         return $percentiles->percentileFor($secondsToSolve);
-    }
-
-    private function preservedAchievementTotal(string $playerId): int
-    {
-        $value = $this->database
-            ->executeQuery(
-                'SELECT COALESCE(SUM(amount), 0) FROM xp_entry WHERE player_id = :playerId',
-                ['playerId' => $playerId],
-            )
-            ->fetchOne();
-
-        return is_numeric($value) ? (int) $value : 0;
     }
 }

@@ -144,14 +144,14 @@ SQL;
      */
     public function allForPlayer(string $playerId): array
     {
-        $rankPool = $this->sqlOnLadder('p2');
+        $rank = $this->sqlRankOf('pe');
         $totalPool = $this->sqlOnLadder('p3');
 
         $query = <<<SQL
 SELECT
     pe.pieces_count,
     pe.elo_rating,
-    1 + (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pe.pieces_count AND pe2.elo_rating > pe.elo_rating AND {$rankPool}) AS rank,
+    {$rank} AS rank,
     (SELECT COUNT(*) FROM player_elo pe3 INNER JOIN player p3 ON p3.id = pe3.player_id WHERE pe3.pieces_count = pe.pieces_count AND (({$totalPool}) OR p3.id = :playerId)) AS total
 FROM player_elo pe
 WHERE pe.player_id = :playerId
@@ -174,6 +174,18 @@ SQL;
         }
 
         return $result;
+    }
+
+    /**
+     * "#rank" of one player_elo row (RANK()'s: one more than the players on the ladder rated higher) - for
+     * allForPlayer() and the player header's MSP Rating chip, which reads it from the profile row
+     * (GetPlayerProfile::byId()) so both show the same number.
+     */
+    public function sqlRankOf(string $eloAlias): string
+    {
+        $rankPool = $this->sqlOnLadder('rank_p');
+
+        return "(1 + (SELECT COUNT(*) FROM player_elo rank_pe INNER JOIN player rank_p ON rank_p.id = rank_pe.player_id WHERE rank_pe.pieces_count = {$eloAlias}.pieces_count AND rank_pe.elo_rating > {$eloAlias}.elo_rating AND {$rankPool}))";
     }
 
     /**

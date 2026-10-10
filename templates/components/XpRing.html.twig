@@ -1,32 +1,20 @@
+{#
+    The XP level ring around an avatar (src/Component/XpRing.php). The avatar is the content: when the ring is not
+    shown (opted out, hidden private profile) the avatar renders exactly as it would without the ring.
+#}
 {% set inner %}{% block content %}{% endblock %}{% endset %}
 
 {% if this.visible %}
-    {% if ambient %}
-        <span class="xp-ring xp-ring-ambient {{ this.milestoneClass }}" style="--xp-progress: 1">{{ inner }}</span>
+    {% set level_text = 'xp.level_chip'|trans({'%level%': player.level}) %}
+    {% set ring_class = 'xp-avatar-ring xp-avatar-ring-' ~ variant ~ ' ' ~ this.milestoneClass %}
+    {% if variant == 'header' %}
+        {% set ring_label = (this.isOwn ? 'player_progress.ring_label_own' : 'player_progress.ring_label')|trans({'%level%': player.level, '%xp%': player.xpTotal|format_number}) %}
+        <a class="{{ ring_class }}" style="--xp-progress: {{ this.progress }}" href="{{ this.isOwn ? path('xp_history') : path('xp_explainer') }}" aria-label="{{ ring_label }}" title="{{ ring_label }}">
+            {{ inner }}
+            <span class="xp-level-tab{{ player.maxLevel ? ' xp-level-tab-max' }}" aria-hidden="true">{{ level_text }}</span>
+        </a>
     {% else %}
-        <div class="d-inline-flex align-items-center gap-2">
-            <span class="xp-ring {{ this.milestoneClass }}" style="--xp-progress: {{ this.progressValue }}">{{ inner }}</span>
-
-            <div class="d-flex flex-column gap-1" style="min-width: 130px;">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="xp-level-chip {{ this.profile.isMaxLevel ? 'xp-level-chip-max' }}" title="{{ 'xp.total_tooltip'|trans({'%xp%': this.profile.xpTotal}) }}">
-                        {{ 'xp.level_chip'|trans({'%level%': this.profile.level}) }}
-                    </span>
-                    <span class="text-muted fs-xs text-nowrap">{{ 'xp.total'|trans({'%xp%': this.profile.xpTotal}) }}</span>
-                </div>
-
-                {% if showProgress %}
-                    {% if this.profile.isMaxLevel %}
-                        <small class="text-muted fs-xs">{{ 'xp.max_level_reached'|trans }}</small>
-                    {% else %}
-                        <div class="xp-progressbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ (this.progressValue * 100)|round }}" aria-label="{{ 'xp.progress_label'|trans({'%xp%': this.profile.xpToNextLevel, '%level%': this.profile.level + 1}) }}">
-                            <div class="xp-progressbar-fill" style="--xp-progress: {{ this.progressValue }}"></div>
-                        </div>
-                        <small class="text-muted fs-xs">{{ 'xp.progress_label'|trans({'%xp%': this.profile.xpToNextLevel, '%level%': this.profile.level + 1}) }}</small>
-                    {% endif %}
-                {% endif %}
-            </div>
-        </div>
+        <span class="{{ ring_class }}" style="--xp-progress: {{ this.progress }}">{{ inner }}</span>
     {% endif %}
 {% else %}
     {{ inner }}

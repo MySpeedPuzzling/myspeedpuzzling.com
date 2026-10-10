@@ -38,7 +38,7 @@ final class GetXpLaunchRevealBadgesTest extends KernelTestCase
         self::assertCount(1, $badges);
         self::assertSame(BadgeType::PuzzlesSolved, $badges[0]->type);
         self::assertSame(BadgeTier::Gold, $badges[0]->tier);
-        self::assertSame(5 + 10 + 25, $badges[0]->xp);
+        self::assertSame(5 + 10 + 25, $badges[0]->points);
         self::assertSame($goldId, $badges[0]->badgeId, 'The highest tier row is the one the reveal endpoint flips');
         self::assertFalse($badges[0]->revealed);
         self::assertSame('badges.requirement.puzzles_solved_3', $badges[0]->requirementTranslationKey());
@@ -66,7 +66,7 @@ final class GetXpLaunchRevealBadgesTest extends KernelTestCase
         );
         self::assertSame(
             [5, 15, 15, BadgeTier::SINGLE_TIER_POINTS, 190],
-            array_map(static fn (XpLaunchRevealBadge $badge): int => $badge->xp, $badges),
+            array_map(static fn (XpLaunchRevealBadge $badge): int => $badge->points, $badges),
         );
         self::assertSame('badges.description.supporter', $badges[3]->requirementTranslationKey());
     }
@@ -79,7 +79,7 @@ final class GetXpLaunchRevealBadgesTest extends KernelTestCase
 
         self::assertCount(1, $badges);
         self::assertNull($badges[0]->tier);
-        self::assertSame(BadgeTier::SINGLE_TIER_POINTS, $badges[0]->xp);
+        self::assertSame(BadgeTier::SINGLE_TIER_POINTS, $badges[0]->points);
     }
 
     public function testRevealedFollowsTheHighestTier(): void

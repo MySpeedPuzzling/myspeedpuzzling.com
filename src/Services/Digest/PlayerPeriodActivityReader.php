@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Results\PeriodResult;
 use SpeedPuzzling\Web\Results\PlayerPeriodActivity;
 use SpeedPuzzling\Web\Services\ActivityCalendarStreakCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use SpeedPuzzling\Web\Value\DigestPeriod;
@@ -57,6 +58,7 @@ readonly final class PlayerPeriodActivityReader
         private GetRanking $getRanking,
         private ActivityCalendarStreakCalculator $streakCalculator,
         private ClockInterface $clock,
+        private XpLaunchReadiness $xpLaunchReadiness,
     ) {
     }
 
@@ -256,13 +258,24 @@ SQL;
     }
 
     /**
+     * The tiers earned in the period - never one earned before the XP launch switch went on: the launch backfill
+     * stamped every achievement of the history with its run time, and those are the launch reveal's, not news.
+     *
      * @return list<BadgeResult>
      */
     private function achievementsEarned(string $playerId, DigestPeriod $period): array
     {
+        $launchedAt = $this->xpLaunchReadiness->readyAt();
+
+        if ($launchedAt === null) {
+            return [];
+        }
+
+        $from = max($period->start, $launchedAt);
+
         return array_values(array_filter(
             $this->getBadges->allEarnedTiers($playerId),
-            static fn (BadgeResult $badge): bool => $badge->earnedAt >= $period->start && $badge->earnedAt < $period->end,
+            static fn (BadgeResult $badge): bool => $badge->earnedAt >= $from && $badge->earnedAt < $period->end,
         ));
     }
 

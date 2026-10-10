@@ -14,7 +14,9 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\FreeTrial;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
+use SpeedPuzzling\Web\Value\LevelTable;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
+use SpeedPuzzling\Web\Value\SkillTier;
 
 /**
  * @phpstan-type PlayerProfileRow array{
@@ -62,6 +64,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     referral_program_joined_at: null|string,
  *     referral_program_suspended: bool,
  *     moderator_since: null|string,
+ *     karma?: int,
  *     registered_at?: null|string,
  *     has_membership_row?: bool,
  *     free_trial_ends_at?: null|string,
@@ -69,6 +72,12 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     leaderboard_chart_view?: null|string,
  *     comparison_view?: null|string,
  *     comparison_line_up?: null|string,
+ *     has_solving_time?: bool,
+ *     xp_total?: int|string,
+ *     level?: int|string,
+ *     achievement_points?: int|string,
+ *     msp_rating_rank?: null|int|string,
+ *     skill_tier?: null|int|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -173,7 +182,57 @@ readonly final class PlayerProfile
          */
         public ComparisonView $comparisonView = ComparisonView::Table,
         public ComparisonLineUp $comparisonLineUp = new ComparisonLineUp(),
+        /**
+         * The signed-in player's own profile only: they logged at least one counted (not suspicious) solving time - the
+         * audience of the XP launch announcement modal (XpLaunchRevealRule). One index probe on the viewer's own row.
+         */
+        public bool $hasSolvingTime = false,
+        /** Accepted contributions to the puzzle database (docs/features/karma.md) - public, 0 for admins */
+        public int $karma = 0,
+        /**
+         * Progression on the row itself (docs/features/xp-levels/launch-2026-10.md): the header ring, the navbar avatar
+         * ring and the achievements showcase read them - no query of their own. Denormalised player columns.
+         */
+        public int $xpTotal = 0,
+        public int $level = 1,
+        public int $achievementPoints = 0,
+        /**
+         * GetPlayerProfile::byId() only: the player's place on the MSP Rating ladder (PlayerHeader::TIER_PIECES_COUNT
+         * pieces) - the same number as the profile's rating card (GetPlayerRatingRanking::sqlRankOf()); null when not
+         * on the ladder (unrated, private, opted out of rankings). Public, like the ladder.
+         */
+        public null|int $mspRatingRank = null,
+        /**
+         * GetPlayerProfile::byId() only: the skill tier at PlayerHeader::TIER_PIECES_COUNT pieces. Members-only data -
+         * shown through PlayerHeader::tierChip() and the player card's rules, never on its own.
+         */
+        public null|SkillTier $skillTier = null,
     ) {
+    }
+
+    /**
+     * Fraction (0.0–1.0) toward the next level, 1.0 at the top level - the XP ring's arc.
+     */
+    public function levelProgress(): float
+    {
+        return LevelTable::progressToNext($this->xpTotal) ?? 1.0;
+    }
+
+    public function isMaxLevel(): bool
+    {
+        return $this->level >= LevelTable::MAX_LEVEL;
+    }
+
+    /**
+     * XP still missing to the next level; null at the top level.
+     */
+    public function xpToNextLevel(): null|int
+    {
+        if ($this->isMaxLevel()) {
+            return null;
+        }
+
+        return LevelTable::xpForLevel($this->level + 1) - $this->xpTotal;
     }
 
     /**
@@ -349,6 +408,13 @@ readonly final class PlayerProfile
                 $hiddenPlayerIds,
                 $revealedPrivatePlayerIds,
             ),
+            hasSolvingTime: $row['has_solving_time'] ?? false,
+            karma: (int) ($row['karma'] ?? 0),
+            xpTotal: (int) ($row['xp_total'] ?? 0),
+            level: (int) ($row['level'] ?? 1),
+            achievementPoints: (int) ($row['achievement_points'] ?? 0),
+            mspRatingRank: isset($row['msp_rating_rank']) ? (int) $row['msp_rating_rank'] : null,
+            skillTier: isset($row['skill_tier']) ? SkillTier::tryFrom((int) $row['skill_tier']) : null,
         );
     }
 

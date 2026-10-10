@@ -13,14 +13,14 @@ enum BadgeTier: int
     case Diamond = 5;
 
     /**
-     * Achievement Points AND achievement XP granted by a single-tier achievement
+     * Achievement Points granted by a single-tier achievement
      * (e.g. Early Adopter) — tiered achievements use points().
      */
     public const int SINGLE_TIER_POINTS = 25;
 
     /**
-     * Locked values (§1.6): each earned tier grants this many Achievement Points and
-     * the same amount of XP, once, forever.
+     * Locked values (§1.6): each earned tier grants this many Achievement Points, once, forever. No XP - achievements
+     * feed AP only (docs/features/xp-levels/launch-2026-10.md).
      */
     public function points(): int
     {

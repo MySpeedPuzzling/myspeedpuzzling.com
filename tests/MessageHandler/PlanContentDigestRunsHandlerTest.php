@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Repository\ContentDigestRunRepository;
 use SpeedPuzzling\Web\Results\ContentDigestRunPlan;
 use SpeedPuzzling\Web\Services\Digest\DigestPacing;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Tests\TestDouble\XpLaunchReadinessStub;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\ContentDigestKind;
@@ -142,7 +143,7 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
             pacing: new DigestPacing(),
             messageBus: $container->get(MessageBusInterface::class),
             clock: new MockClock(new DateTimeImmutable($praguetime, new DateTimeZone('Europe/Prague'))),
-            xpFeatureGate: new XpFeatureGate(adminOnly: $launchReady === false),
+            xpFeatureGate: new XpFeatureGate(new XpLaunchReadinessStub($launchReady)),
         );
 
         $plans = $handler(new PlanContentDigestRuns($kind, $dryRun, $maxRecipients));

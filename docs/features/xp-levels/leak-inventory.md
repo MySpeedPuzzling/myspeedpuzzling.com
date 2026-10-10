@@ -1,5 +1,9 @@
 # XP / Achievements — Leak-Surface Inventory
 
+> **Historical (2026-10-10).** The `xp-system` env flag this inventory checked is gone; the launch switch
+> `xp_settings.launch_ready_at` (`docs/features/feature_flags.md` `xp-launch`) gates the same call sites until the
+> backfill verified the history. The reveal and per-achievement e-mails listed below were removed.
+
 Every user-facing surface of the gamification bundle must be gated by `XpFeatureGate`
 (`src/Services/Xp/XpFeatureGate.php`, flag `xp-system` in `docs/features/feature_flags.md`) while
 the flag is active. **Tick a row ONLY after verifying the surface as a non-admin (and as anonymous

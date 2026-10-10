@@ -1,0 +1,61 @@
+{#
+    The achievements this time earned, for members, at the top of the recap's progress card (rendered by
+    XpRecapCelebration). Not revealed yet: the last-piece puzzle (last_piece_reveal_controller.js) - the first tap
+    POSTs reveal_badge, so a reload shows the badge itself. Gold and above (and single-tier achievements) get the
+    bigger stage.
+#}
+{% set unrevealed = achievements|filter(badge => not badge.revealed) %}
+<div class="recap-achievements" data-testid="recap-achievements"
+    {% if unrevealed is not empty %}
+        data-controller="last-piece-reveal"
+        data-last-piece-reveal-skip-label-value="{{ 'badges.reveals.stage_running'|trans }}"
+    {% endif %}
+>
+    {% for badge in achievements %}
+        {% set tier = badge.tier %}
+        {% set name = badge.type.translationKey()|trans %}
+        {% set tier_name = tier ? tier.translationKey()|trans : null %}
+        {% set home = badge.type.isTiered() ? path('achievement_detail', {type: badge.type.value}) : path('badges_overview') %}
+        {% set points = 'recap_progress.achievement.points'|trans({'%points%': component.pointsOf(badge)}) %}
+
+        {% if badge.revealed %}
+            <a class="recap-row recap-row-achievement" href="{{ home }}" data-testid="recap-achievement-revealed">
+                {{ badge_art(badge.type, tier, 48, attrs = {alt: '', class: 'recap-row-badge flex-shrink-0'}) }}
+                <span class="recap-row-body">
+                    <span class="recap-row-title">{{ name }}{% if tier_name %} · {{ tier_name }}{% endif %}</span>
+                    <span class="recap-row-sub">{{ 'recap_progress.achievement.new'|trans }} · {{ points }}</span>
+                </span>
+                <i class="ci-arrow-right recap-row-chevron" aria-hidden="true"></i>
+            </a>
+        {% else %}
+            <div class="recap-achievement lpr-card{{ component.isBigMoment(badge) ? ' is-big' }}" data-testid="recap-achievement-reveal">
+                <button
+                    type="button"
+                    class="lpr-stage"
+                    data-last-piece-reveal-target="stage"
+                    data-action="last-piece-reveal#play"
+                    data-last-piece-reveal-look-param="{{ tier ? tier.value : 'single' }}"
+                    data-last-piece-reveal-url-param="{{ path('reveal_badge', {badgeId: badge.id}) }}"
+                    data-last-piece-reveal-image-param="{{ badge_art_url(badge.type, tier, 'webp', 320) }}"
+                    data-last-piece-reveal-image-large-param="{{ badge_art_url(badge.type, tier, 'webp', 480) }}"
+                    data-last-piece-reveal-done-label-param="{{ tier_name ? 'badges.reveals.stage_done'|trans({'%achievement%': name, '%tier%': tier_name}) : name }}"
+                    aria-label="{{ 'badges.reveals.stage_label'|trans({'%achievement%': name}) }}"
+                >
+                    <span class="lpr-tray" aria-hidden="true"></span>
+                </button>
+
+                <div class="recap-achievement-text">
+                    <p class="recap-achievement-kicker">{{ 'recap_progress.achievement.new'|trans }}</p>
+                    <p class="recap-achievement-name">{{ name }}</p>
+                    <p class="recap-achievement-hint">{{ 'recap_progress.achievement.tap'|trans }}</p>
+                    <p class="lpr-result recap-achievement-result" aria-live="polite">
+                        <span class="lpr-result-text" hidden>
+                            {% if tier_name %}<span class="visually-hidden">{{ name }}: </span>{{ tier_name }} · {% endif %}{{ points }}
+                            <a href="{{ home }}" class="recap-achievement-link">{{ 'recap_progress.achievement.see'|trans }}</a>
+                        </span>
+                    </p>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>

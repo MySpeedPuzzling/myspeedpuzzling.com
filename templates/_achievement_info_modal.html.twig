@@ -1,85 +1,81 @@
 <turbo-frame id="modal-frame">
     <div class="modal-header">
         <h5 class="modal-title">
-            <i class="bi bi-award me-1"></i>
+            <i class="bi bi-award me-1" aria-hidden="true"></i>
             {{ (type.translationKey())|trans }}
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
     </div>
     <div class="modal-body">
-        {# The big picture: the badge that was clicked (?tier=), else the viewer's highest tier, else the first one locked #}
-        {% if group is null %}
-            {{ badge_art(type, null, 160, attrs = {class: 'badge-art-hero mb-3', loading: 'eager'}) }}
-        {% elseif hero_tier is not null %}
-            {{ badge_art(type, hero_tier, 160, attrs = {class: 'badge-art-hero mb-3', loading: 'eager'}) }}
-        {% else %}
-            {% set highest_earned = group.highestEarnedTier() %}
-            {{ badge_art(type, highest_earned ?? 1, 160, locked = highest_earned is null, attrs = {class: 'badge-art-hero mb-3', loading: 'eager'}) }}
-        {% endif %}
+        {# The big picture: the badge that was clicked (?tier=), else the viewer's highest tier (members), else Bronze #}
+        {% set highest_earned = group is not null and is_member ? group.highestEarnedTier() : null %}
+        <div class="d-flex align-items-center gap-3 mb-3">
+            {% if group is null %}
+                {{ badge_art(type, null, 96, attrs = {class: 'badge-art-hero mx-0 flex-shrink-0', loading: 'eager'}) }}
+            {% elseif hero_tier is not null %}
+                {{ badge_art(type, hero_tier, 96, attrs = {class: 'badge-art-hero mx-0 flex-shrink-0', loading: 'eager'}) }}
+            {% else %}
+                {{ badge_art(type, highest_earned ?? 1, 96, locked = is_member and highest_earned is null, attrs = {class: 'badge-art-hero mx-0 flex-shrink-0', loading: 'eager'}) }}
+            {% endif %}
 
-        <p class="text-body-secondary">{{ ('badges.description.' ~ type.value)|trans }}</p>
+            <div>
+                <p class="text-body-secondary mb-1">{{ ('badges.description.' ~ type.value)|trans }}</p>
+                {% if highest_earned is not null %}
+                    <p class="mb-0 fs-sm">{{ 'badges.info.you_hold'|trans({'%tier%': highest_earned.translationKey()|trans}) }}</p>
+                {% endif %}
+            </div>
+        </div>
 
         {% if group is null %}
             <p class="fs-sm text-body-secondary mb-0">{{ 'badges.info.single_tier_note'|trans }}</p>
         {% else %}
+            {# One row per tier: tier · requirement as text · share of puzzlers holding it · ✓ or the progress #}
             <ul class="list-unstyled mb-0">
                 {% for entry in group.tiers %}
-                    <li class="d-flex align-items-center gap-3 py-2 {{ not loop.last ? 'border-bottom' }}">
-                        <div class="flex-shrink-0">
-                            {{ badge_art(entry.type, entry.tier, 48, locked = not entry.earned) }}
-                        </div>
-
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="{{ entry.earned ? 'fw-semibold' }}">{{ (entry.tier.translationKey())|trans }}</span>
-                                {% if entry.earned %}
-                                    <i class="ci-check-circle text-success" title="{{ 'badges.info.earned'|trans }}" aria-label="{{ 'badges.info.earned'|trans }}"></i>
-                                {% endif %}
-                                <span class="ms-auto small text-body-secondary text-nowrap">+{{ entry.tier.points }} AP</span>
-                            </div>
-                            <div class="small text-body-secondary">{{ (entry.requirementTranslationKey)|trans }}</div>
-                        </div>
+                    {% set is_next = is_member and group.progressToNext is not null and group.progressToNext.nextTier == entry.tier %}
+                    <li class="achievement-tier-row">
+                        <span class="achievement-tier-name {{ is_member and entry.earned ? '' : 'text-body-secondary' }}">{{ (entry.tier.translationKey())|trans }}</span>
+                        <span class="flex-grow-1 fs-sm">
+                            {{ (entry.requirementTranslationKey)|trans }}
+                            {% if is_member %}<span class="text-body-secondary text-nowrap">· +{{ entry.tier.points }} AP</span>{% endif %}
+                            {% if is_next %}
+                                {% set progress = group.progressToNext %}
+                                <span class="achievement-progress d-block" role="progressbar"
+                                      aria-label="{{ 'badges.catalogue.progress_label'|trans({'%achievement%': type.translationKey()|trans, '%tier%': entry.tier.translationKey()|trans}) }}"
+                                      aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100">
+                                    <span style="width: {{ progress.percent }}%"></span>
+                                </span>
+                                <span class="text-body-secondary">{{ include('_achievement_progress_numbers.html.twig', {progress: progress}) }}</span>
+                            {% endif %}
+                        </span>
+                        <span class="achievement-tier-rarity">{{ include('_achievement_rarity.html.twig', {percent: rarity[entry.tier.value] ?? 0}) }}</span>
+                        {% if is_member and entry.earned %}
+                            <i class="ci-check-circle text-success flex-shrink-0" role="img" aria-label="{{ 'badges.info.earned'|trans }}"></i>
+                        {% endif %}
                     </li>
                 {% endfor %}
             </ul>
 
-            {% if group.progressToNext is not null %}
-                {% set progress = group.progressToNext %}
-                <div class="mt-3">
-                    <div class="d-flex justify-content-between small text-body-secondary mb-1">
-                        <span>{{ 'badges.info.next_tier'|trans({'%tier%': (progress.nextTier.translationKey())|trans}) }}</span>
-                        <span class="fw-semibold text-nowrap">
-                            {{ include('_achievement_progress_numbers.html.twig', {progress: progress}) }}
-                            <span class="text-body-secondary fw-normal">({{ progress.percent }}%)</span>
-                        </span>
-                    </div>
-                    <div class="progress" role="progressbar"
-                         aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100"
-                         style="height: 10px;">
-                        <div class="progress-bar bg-primary" style="width: {{ progress.percent }}%"></div>
-                    </div>
-                </div>
-            {% elseif logged_in and group.hasAnyEarned() %}
-                <p class="small text-success mb-0 mt-3">
-                    <i class="ci-check-circle me-1"></i>
+            {% if is_member and group.progressToNext is null and group.hasAnyEarned() %}
+                <p class="small text-success mb-0 mt-2">
+                    <i class="ci-check-circle me-1" aria-hidden="true"></i>
                     {{ 'badges.highest_earned'|trans }}
                 </p>
-            {% elseif logged_in == false %}
-                <p class="small text-body-secondary mb-0 mt-3">
-                    <i class="ci-user me-1"></i>
-                    {{ 'badges.login_to_track'|trans }}
+            {% elseif not is_member %}
+                <p class="small text-body-secondary mb-0 mt-2">
+                    {{ (logged_in ? 'badges.catalogue.tease_free' : 'badges.catalogue.tease_guest')|trans }}
+                    <a href="{{ path('membership') }}" data-turbo-frame="_top">{{ 'badges.catalogue.become_member'|trans }}</a>
                 </p>
             {% endif %}
         {% endif %}
 
         <div class="mt-3 d-flex flex-wrap gap-2">
             {% if type.isTiered() %}
-                <a href="{{ path('achievement_detail', {type: type.value}) }}" data-turbo-frame="_top" class="btn btn-sm btn-outline-primary">
+                <a href="{{ path('achievement_detail', {type: type.value}) }}" data-turbo-frame="_top" class="btn btn-outline-primary">
                     {{ 'badges.view_holders'|trans }}
                 </a>
             {% endif %}
-            <a href="{{ path('badges_overview') }}" data-turbo-frame="_top" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-trophy me-1"></i>
+            <a href="{{ path('badges_overview') }}" data-turbo-frame="_top" class="btn btn-outline-secondary">
                 {{ 'badges.browse_all'|trans }}
             </a>
         </div>

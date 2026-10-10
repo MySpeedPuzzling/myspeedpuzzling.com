@@ -13,12 +13,11 @@ use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
-use SpeedPuzzling\Web\Message\SendBadgeNotificationEmail;
 use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
-use SpeedPuzzling\Web\Message\SendXpRevealEmail;
 use SpeedPuzzling\Web\Message\SettleXpBonuses;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
@@ -86,13 +85,13 @@ return App::config([
                 DeletePageSectionImages::class => 'async',
                 RecalculateBadgesForPlayer::class => 'async',
                 RecalculateXpForPlayer::class => 'async',
+                // Karma after a moderation decision - never in the way of the decision (docs/features/karma.md)
+                RecalculateKarma::class => 'async',
                 AwardXpForSolvingTime::class => 'async',
                 RecalculateXpChainForSolve::class => 'async',
                 CompensateXpForDeletedSolve::class => 'async',
                 SettleXpBonuses::class => 'async',
                 SendPlayerContentDigest::class => 'content_digest_emails',
-                SendBadgeNotificationEmail::class => 'async',
-                SendXpRevealEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

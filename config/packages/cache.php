@@ -50,6 +50,11 @@ return App::config([
                 'difficulty_rankings_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Share of puzzlers holding each achievement tier (AchievementRarityProvider):
+                // one aggregate over the badge table, the same for everybody, 15 minutes.
+                'achievement_rarity_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
                 // Global improvement ratios as they were at the start of a month
                 // (PredictionReconstructor) - recomputing one takes a second or two
                 // over every repeat solve, and the messenger worker resets the
@@ -67,6 +72,11 @@ return App::config([
                 // one costs ~15 ms: a sheet of a few hundred tags would hold a worker for seconds on every view.
                 // 90-day TTL.
                 'name_tag_qr_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
+                // The XP launch switch (XpLaunchReadiness): one shared entry, so every worker and container sees the
+                // switch within a request of it being flipped. Clear it after setting xp_settings.launch_ready_at by hand
+                'xp_launch_readiness_cache' => [
                     'adapters' => ['cache.app'],
                 ],
             ],

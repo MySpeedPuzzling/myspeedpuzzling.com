@@ -1,0 +1,17 @@
+{# The proposer's karma and acceptance rate next to a request (docs/features/karma.md, "Review queues").
+   Nothing decided yet = a kind "First suggestion", never a low number. #}
+{% if record is defined and record is not null %}
+    <div class="karma-proposer mt-1">
+        {% if record.karma > 0 %}
+            <span class="karma-proposer-karma">{{ record.karma|format_number }} karma</span>
+        {% endif %}
+        {% if record.isFirstSuggestion %}
+            {# The approval queue: someone with karma has contributed before, whatever it was #}
+            {% if not (first_only_without_karma|default(false) and record.karma > 0) %}
+                <span>{{ first_label|default('First suggestion') }}</span>
+            {% endif %}
+        {% else %}
+            <span title="{{ record.accepted }} of {{ record.decided }} decided suggestions accepted">{{ record.acceptancePercent }} % accepted</span>
+        {% endif %}
+    </div>
+{% endif %}

@@ -58,6 +58,13 @@
         {# Same row as the puzzle leaderboards (_leaderboard_player.html.twig, _leaderboard.scss): never scrolls sideways #}
         <div class="custom-table-wrapper lb-wrapper">
             <table class="table custom-table table-hover lb-table mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col" class="lb-rank-head">#</th>
+                        <th scope="col">{{ 'puzzle_intelligence.elo.player'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'puzzle_intelligence.elo.rating'|trans }}</th>
+                    </tr>
+                </thead>
                 <tbody>
                     {% for entry in entries %}
                         {% set is_current_player = logged_user.profile is not null and entry.playerId == logged_user.profile.playerId %}

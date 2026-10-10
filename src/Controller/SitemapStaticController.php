@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetOrganizations;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -16,6 +17,18 @@ final class SitemapStaticController extends AbstractController
     /**
      * @var list<string>
      */
+    /**
+     * The progression pages (docs/features/xp-levels/launch-2026-10.md) - listed once the xp-system gate opens for
+     * guests (launch ready), never before: until then they answer 404 to anybody but admins
+     */
+    private const array PROGRESSION_ROUTES = [
+        'progression_hub',
+        'xp_explainer',
+        'xp_fair_play',
+        'badges_overview',
+        'xp_leaderboard',
+    ];
+
     private const array STATIC_ROUTES = [
         'homepage',
         'faq',
@@ -49,6 +62,7 @@ final class SitemapStaticController extends AbstractController
 
     public function __construct(
         private readonly GetOrganizations $getOrganizations,
+        private readonly XpFeatureGate $xpFeatureGate,
     ) {
     }
 
@@ -59,6 +73,12 @@ final class SitemapStaticController extends AbstractController
 
         foreach (self::STATIC_ROUTES as $route) {
             array_push($entries, ...$this->localizedEntries($route));
+        }
+
+        if ($this->xpFeatureGate->isVisibleFor(null)) {
+            foreach (self::PROGRESSION_ROUTES as $route) {
+                array_push($entries, ...$this->localizedEntries($route));
+            }
         }
 
         // The organizations directory (docs/features/organizations/README.md "Directory") - once it lists anything

@@ -24,6 +24,17 @@ readonly final class XpLeaderboardRow
     ) {
     }
 
+    /** The shared leaderboard row (_leaderboard_player.html.twig) reads the country and avatar under these names */
+    public function getPlayerCountry(): null|CountryCode
+    {
+        return $this->countryCode;
+    }
+
+    public function getPlayerAvatar(): null|string
+    {
+        return $this->avatar;
+    }
+
     public function isMaxLevel(): bool
     {
         return $this->level >= LevelTable::MAX_LEVEL;

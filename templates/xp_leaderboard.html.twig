@@ -1,118 +1,116 @@
 {% extends 'base.html.twig' %}
 
-{% set is_ap = tab == 'achievement-points' %}
+{% set board = tab.translationPrefix() %}
 
-{% block title %}{{ (is_ap ? 'xp.leaderboard.ap_title' : 'xp.leaderboard.meta_title')|trans }}{% endblock %}
+{% block title %}{{ (board ~ '.title')|trans }}{% endblock %}
+
+{#
+    Progression leaderboards: a tab per board (ProgressLeaderboardTab - tabs, titles and values come from that list),
+    the shared leaderboard row (_leaderboard_player.html.twig, _leaderboard.scss), the viewer's own row pinned under the
+    list on the same board the filters show.
+#}
+{% macro board_row(row, tab, board, is_viewer) %}
+    <tr class="{{ is_viewer ? 'table-active-player' }}">
+        <td class="rank"><span class="lb-rank{{ row.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ row.rank }}">{{ row.rank }}</span></td>
+        <td class="lb-solver">
+            {{ include('_leaderboard_player.html.twig', {player: row, show_tier: false}) }}
+        </td>
+        <td class="lb-time">
+            <span class="lb-time-value">{{ (board ~ '.value')|trans({'%value%': row.value|format_number}) }}</span>
+            {% if tab.showsLevel() %}
+                <span class="lb-gap">{{ 'xp.leaderboard.level'|trans({'%level%': row.level}) }}</span>
+            {% endif %}
+        </td>
+    </tr>
+{% endmacro %}
 
 {% block content %}
-    <header class="mb-3">
-        <h1 class="h3 mb-1">
-            <i class="bi bi-trophy me-1"></i>
-            {{ (is_ap ? 'xp.leaderboard.ap_title' : 'xp.leaderboard.title')|trans }}
-        </h1>
-        <p class="text-body-secondary fs-sm mb-0">
-            {{ (is_ap ? 'xp.leaderboard.ap_subtitle' : 'xp.leaderboard.subtitle')|trans }}
-            <a href="{{ path('xp_explainer') }}">{{ 'badges.how_it_works_link'|trans }}</a>
-            <span class="mx-1">·</span>
-            <a href="{{ path('ladder') }}">{{ 'xp.leaderboard.all_leaderboards'|trans }}</a>
-        </p>
-    </header>
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+        <h1 class="mb-0">{{ 'ladder.title'|trans }}</h1>
+        {{ include('_ladder_dropdown.html.twig') }}
+    </div>
 
-    {# Two disciplines, deliberately separate boards - chase XP, chase AP, or both. #}
+    <p class="text-body-secondary fs-sm mb-3">
+        {{ (board ~ '.subtitle')|trans }}
+        <a href="{{ path(tab.hasKarmaFilters() ? 'karma_explainer' : 'progression_hub') }}" class="text-nowrap">{{ (tab.hasKarmaFilters() ? 'karma.explainer.title' : 'progression_hub.title')|trans }}</a>
+    </p>
+
     <ul class="nav nav-tabs mb-3">
-        {% for tab_option in ['xp', 'achievement-points'] %}
+        {% for tab_option in tabs %}
             <li class="nav-item">
                 <a class="nav-link {{ tab == tab_option ? 'active' }}"
-                   href="{{ path('xp_leaderboard', {tab: tab_option, country: selected_country, favorites: favorites_only ? 1 : null}) }}">
-                    {{ ('xp.leaderboard.tab.' ~ tab_option)|trans }}
+                   {% if tab == tab_option %}aria-current="page"{% endif %}
+                   href="{{ path('xp_leaderboard', {tab: tab_option.value, country: selected_country, favorites: favorites_only ? 1 : null}) }}">
+                    {{ (tab_option.translationPrefix() ~ '.tab')|trans }}
                 </a>
             </li>
         {% endfor %}
     </ul>
 
-    <form method="get" class="d-flex flex-wrap align-items-center gap-3 mb-3" data-turbo="false">
-        <input type="hidden" name="tab" value="{{ tab }}">
-
-        <div class="d-flex align-items-center gap-2">
-            <label for="board-country" class="form-label fs-sm mb-0 text-nowrap">{{ 'badges.detail.country_filter'|trans }}</label>
-            <select id="board-country" name="country" class="form-select form-select-sm" onchange="this.form.submit()">
-                <option value="">{{ 'badges.detail.all_countries'|trans }}</option>
-                {% for country in countries %}
-                    <option value="{{ country }}" {{ selected_country == country ? 'selected' }}>{{ country|upper }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        {% if viewer is not null %}
-            <div class="form-check form-switch fs-sm">
-                <input class="form-check-input" type="checkbox" id="favorites-only" name="favorites" value="1"
-                       {{ favorites_only ? 'checked' }} onchange="this.form.submit()">
-                <label class="form-check-label" for="favorites-only">{{ 'xp.leaderboard.favorites_only'|trans }}</label>
-            </div>
-        {% endif %}
-    </form>
-
-    {% if is_ap and viewer is null %}
+    {% if login_required %}
         <div class="xp-teaser">
             <i class="ci-user" aria-hidden="true"></i>
-            <span>{{ 'xp.leaderboard.ap_login_required'|trans }}</span>
-        </div>
-    {% elseif rows|length == 0 %}
-        <div class="xp-teaser">
-            <i class="ci-star" aria-hidden="true"></i>
-            <span>{{ 'xp.leaderboard.empty'|trans }}</span>
+            <span>
+                {{ (board ~ '.login_required')|trans }}
+                <a href="{{ path('login', {return: app.request.requestUri}) }}" rel="nofollow">{{ 'menu.sign_in'|trans }}</a>
+            </span>
         </div>
     {% else %}
-        {% if self_rank is not null %}
-            <div class="card shadow-sm mb-2 border-primary" id="xp-self-row">
-                <div class="card-body py-2 px-3 d-flex align-items-center gap-2 fs-sm">
-                    <strong>#{{ self_rank.rank }}</strong>
-                    <span>{{ 'xp.leaderboard.your_position'|trans }}</span>
-                    <span class="ms-auto xp-receipt-amount">
-                        {{ is_ap
-                            ? 'xp.leaderboard.ap_value'|trans({'%points%': self_rank.value})
-                            : 'xp.leaderboard.xp_value'|trans({'%xp%': self_rank.value}) }}
-                    </span>
+        <form method="get" class="d-flex flex-wrap align-items-center gap-3 mb-3" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
+            <input type="hidden" name="tab" value="{{ tab.value }}">
+            {% if tab.hasKarmaFilters() %}
+                {{ include('karma/_leaderboard_filters.html.twig') }}
+            {% endif %}
+
+            <div class="d-flex align-items-center gap-2">
+                <label for="board-country" class="form-label fs-sm mb-0 text-nowrap">{{ 'badges.detail.country_filter'|trans }}</label>
+                <select id="board-country" name="country" class="form-select" style="max-width: 240px;">
+                    <option value="">{{ 'badges.detail.all_countries'|trans }}</option>
+                    {% for country in countries %}
+                        <option value="{{ country.code }}" {{ selected_country == country.code ? 'selected' }}>{{ country.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if viewer is not null %}
+                <div class="form-check form-switch fs-sm mb-0 d-flex align-items-center gap-2" style="min-height: 44px;">
+                    <input class="form-check-input mt-0" type="checkbox" id="favorites-only" name="favorites" value="1" {{ favorites_only ? 'checked' }}>
+                    <label class="form-check-label py-2" for="favorites-only">{{ 'xp.leaderboard.favorites_only'|trans }}</label>
                 </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-outline-secondary" data-auto-submit-target="fallback">{{ 'badges.detail.apply_filter'|trans }}</button>
+        </form>
+
+        {% if rows|length == 0 and self_row is null %}
+            <div class="xp-teaser">
+                <i class="ci-star" aria-hidden="true"></i>
+                <span>{{ (board ~ '.empty')|trans }}</span>
+            </div>
+        {% else %}
+            <div class="custom-table-wrapper lb-wrapper">
+                <table class="table custom-table lb-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="lb-rank-head">#</th>
+                            <th scope="col">{{ 'xp.leaderboard.player'|trans }}</th>
+                            <th scope="col" class="text-end">{{ (board ~ '.column')|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            {{ _self.board_row(row, tab, board, viewer is not null and row.playerId == viewer.playerId) }}
+                        {% endfor %}
+
+                        {% if self_row is not null %}
+                            <tr aria-hidden="true">
+                                <td colspan="3" class="text-center text-body-secondary py-1">⋯</td>
+                            </tr>
+                            {{ _self.board_row(self_row, tab, board, true) }}
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
         {% endif %}
-
-        <div class="custom-table-wrapper">
-            <table class="table table-striped mb-0">
-                <thead>
-                    <tr class="fs-sm">
-                        <th scope="col" style="width: 3.5rem;">#</th>
-                        <th scope="col">{{ 'xp.leaderboard.player'|trans }}</th>
-                        <th scope="col" class="text-end">{{ ('xp.leaderboard.value.' ~ tab)|trans }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in rows %}
-                        <tr class="{{ viewer is not null and row.playerId == viewer.playerId ? 'table-primary' }}">
-                            <td class="fs-sm">
-                                {% if row.rank == 1 %}🥇{% elseif row.rank == 2 %}🥈{% elseif row.rank == 3 %}🥉{% else %}{{ row.rank }}{% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ path('player_profile', {playerId: row.playerId}) }}" class="d-inline-flex align-items-center gap-2 text-decoration-none">
-                                    {% if row.avatar is not null %}
-                                        <img src="{{ row.avatar|thumbnail('avatar') }}" alt="" width="24" height="24" class="rounded-circle" style="object-fit: cover;">
-                                    {% endif %}
-                                    <span>{{ row.playerName ?? ('#' ~ row.playerCode|upper) }}</span>
-                                    {% if row.countryCode is not null %}
-                                        <span class="fi fi-{{ row.countryCode.name }}"></span>
-                                    {% endif %}
-                                    <span class="xp-level-chip {{ row.isMaxLevel ? 'xp-level-chip-max' }}">{{ 'xp.level_chip'|trans({'%level%': row.level}) }}</span>
-                                </a>
-                            </td>
-                            <td class="text-end fw-semibold">
-                                {{ is_ap
-                                    ? 'xp.leaderboard.ap_value'|trans({'%points%': row.value})
-                                    : 'xp.leaderboard.xp_value'|trans({'%xp%': row.value}) }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
     {% endif %}
 {% endblock %}

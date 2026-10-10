@@ -9,34 +9,22 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * The digest + experience-system preferences are hidden while the xp-system flag is
- * active — settings must not leak the feature to non-admins.
+ * The digest and experience-system preferences are in every player's settings since the launch (no feature flag).
  */
 final class DigestSettingsVisibilityTest extends WebTestCase
 {
-    public function testNonAdminSeesNoDigestOrXpPreferences(): void
+    public function testEveryPlayerSeesTheDigestAndXpPreferences(): void
     {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        foreach ([PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_REGULAR] as $playerId) {
+            $browser = self::createClient();
+            TestingLogin::asPlayer($browser, $playerId);
 
-        $browser->request('GET', '/en/edit-profile');
+            $browser->request('GET', '/en/edit-profile');
 
-        self::assertResponseIsSuccessful();
-        $content = (string) $browser->getResponse()->getContent();
-        self::assertStringNotContainsString('contentDigestFrequency', $content);
-        self::assertStringNotContainsString('experienceSystemOptedOut', $content);
-    }
-
-    public function testAdminSeesDigestAndXpPreferences(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
-
-        $browser->request('GET', '/en/edit-profile');
-
-        self::assertResponseIsSuccessful();
-        $content = (string) $browser->getResponse()->getContent();
-        self::assertStringContainsString('contentDigestFrequency', $content);
-        self::assertStringContainsString('experienceSystemOptedOut', $content);
+            self::assertResponseIsSuccessful();
+            $content = (string) $browser->getResponse()->getContent();
+            self::assertStringContainsString('experienceSystemOptedOut', $content);
+            self::ensureKernelShutdown();
+        }
     }
 }

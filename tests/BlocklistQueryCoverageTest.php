@@ -24,6 +24,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'FindPlayerByNameAndCountry' => self::BACKGROUND,
         'FindSimilarSpeedPuzzler' => 'Filters on user_block itself, in both directions, for the viewer id it is given - a random suggestion must not depend on a security token.',
         'GetAchievementPoints' => self::OWN_DATA,
+        'GetAchievementRarity' => self::AGGREGATE,
         'GetAdminCompetitions' => self::ADMIN,
         'GetAdminOrganizations' => self::ADMIN,
         'GetAdminReferralDetail' => self::ADMIN,
@@ -57,6 +58,8 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetFreeTrialsEndingSoon' => self::BACKGROUND,
         'GetFreeTrialStatistics' => self::ADMIN,
         'GetGettingStartedProgress' => self::OWN_DATA,
+        'GetPlayerKarma' => self::OWN_DATA,
+        'GetProposerTrackRecords' => 'Review queues: the proposer of a request a moderator is deciding, by id, with no identity - their karma and accepted/declined counts.',
         'GetLendBorrowCounterparties' => self::BILATERAL,
         'GetLendBorrowHistory' => self::BILATERAL,
         'GetLentPuzzleHistory' => self::BILATERAL,
@@ -73,7 +76,6 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetPlayerIdsForSitemap' => self::BACKGROUND,
         'GetPlayerProfile' => 'Is the gate: byId() answers PlayerNotFound for a hidden player.',
         'GetPlayersForWjpfSync' => self::BACKGROUND,
-        'GetPlayersForXpRevealEmail' => self::BACKGROUND,
         'GetPlayersPerCountry' => 'Countries and counts only (sitemap, country filters, the country page\'s robots rule) - no player identity; the country page lists people through GetPlayersDirectory.',
         'GetPlayerStatistics' => self::OWN_DATA,
         'GetPlayersWithUnreadMessages' => 'Filters on user_block itself (predates HiddenPlayers).',
@@ -101,6 +103,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetUserBlocks' => 'The blocklist itself.',
         'GetUserPuzzleStatuses' => self::BILATERAL,
         'GetUserSolvedPuzzles' => self::OWN_DATA,
+        'GetXpLaunchVerification' => self::AGGREGATE,
         'GetXpProfile' => self::OWN_DATA,
     ];
 

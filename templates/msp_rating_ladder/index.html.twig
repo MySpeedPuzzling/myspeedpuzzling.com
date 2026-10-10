@@ -8,13 +8,14 @@
 
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
         <div>
-            <div class="d-flex align-items-center mb-1">
-                <h1 class="h2 mb-0">{{ 'puzzle_intelligence.elo.title'|trans }}</h1>
-                <span class="badge bg-info ms-2">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <h1 class="h2 mb-0">{{ 'puzzle_intelligence.elo.heading_500'|trans }}</h1>
+                <span class="badge bg-info">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
+                {{ include('_ladder_dropdown.html.twig') }}
             </div>
             <p class="text-muted mb-0 fs-sm">
-                {{ 'puzzle_intelligence.elo.subtitle'|trans }}
-                <a href="{{ path('methodology') }}" class="ms-1">{{ 'puzzle_intelligence.elo.how_it_works'|trans }}</a>
+                {{ 'puzzle_intelligence.elo.subtitle_portfolio'|trans }}
+                <a href="{{ path('methodology') }}#msp-rating" class="ms-1">{{ 'puzzle_intelligence.elo.how_it_works'|trans }}</a>
             </p>
         </div>
 
@@ -41,11 +42,6 @@
                 </div>
             </a>
         {% endif %}
-    </div>
-
-    <div class="alert alert-primary d-flex align-items-center gap-2 py-2 mb-3 fs-sm" role="alert">
-        <i class="bi bi-info-circle flex-shrink-0"></i>
-        <div>{{ 'puzzle_intelligence.elo.fresh_notice'|trans }}</div>
     </div>
 
     <p class="text-muted fs-sm text-center mb-3" data-controller="next-quarter-countdown">

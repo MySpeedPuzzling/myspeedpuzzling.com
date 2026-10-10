@@ -55,7 +55,7 @@ final class XpQueriesTest extends KernelTestCase
         $lines = $query->forPlayerAndSolvingTime(PlayerFixture::PLAYER_REGULAR, PuzzleSolvingTimeFixture::TIME_06);
 
         // The first solve of a 500-piece puzzle: base 5. The fixtures are dated relative to now, so once the
-        // full-formula cutoff (XpCalculator::FULL_FORMULA_FROM) is weeks old the weekly boost + daily warm-up
+        // full-formula cutoff (the deploy moment, XpSettingsFixture in the tests) is weeks old the weekly boost + daily warm-up
         // lines come along too - the total is whatever the lines add up to
         $amounts = [];
         foreach ($lines as $line) {

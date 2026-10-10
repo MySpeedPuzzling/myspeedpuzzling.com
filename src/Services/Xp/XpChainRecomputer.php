@@ -90,6 +90,7 @@ SQL;
         private GetPuzzleSpeedPercentiles $getPuzzleSpeedPercentiles,
         private ClockInterface $clock,
         private LoggerInterface $logger,
+        private XpFormulaCutoff $xpFormulaCutoff,
     ) {
     }
 
@@ -305,7 +306,7 @@ SQL;
             $sql,
             [
                 'solveBase' => XpReason::SolveBase->value,
-                'cutoff' => XpCalculator::FULL_FORMULA_FROM,
+                'cutoff' => $this->xpFormulaCutoff->fullFormulaFrom()->format('Y-m-d H:i:s'),
                 'difficultyReasons' => [XpReason::SolveDifficultyBonus->value, XpReason::DifficultySettlement->value],
             ],
             ['difficultyReasons' => ArrayParameterType::STRING],
@@ -339,7 +340,7 @@ SQL;
             $sql,
             [
                 'solveBase' => XpReason::SolveBase->value,
-                'cutoff' => XpCalculator::FULL_FORMULA_FROM,
+                'cutoff' => $this->xpFormulaCutoff->fullFormulaFrom()->format('Y-m-d H:i:s'),
                 'speedReasons' => [XpReason::SolveSpeedBonus->value, XpReason::SpeedSettlement->value],
             ],
             ['speedReasons' => ArrayParameterType::STRING],
@@ -499,7 +500,7 @@ SQL;
         int $weeklyExtra = 0,
         bool $dayAlreadyReplayed = false,
     ): SolveXpContext {
-        $isBackfill = new DateTimeImmutable($solve['tracked_at']) < XpCalculator::fullFormulaFrom();
+        $isBackfill = $this->xpFormulaCutoff->isHistory(new DateTimeImmutable($solve['tracked_at']));
         $isTimed = $solve['seconds_to_solve'] !== null;
         $isTeamOrDuo = $solve['puzzling_type'] !== 'solo';
 

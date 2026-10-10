@@ -4,68 +4,59 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * While the xp-system feature flag is active, badge surfaces must be invisible
- * to everyone except admins. Delete the flag-related tests on launch day.
+ * The achievements catalogue is public since the launch (no feature flag) - guests, free players and members alike.
  */
 final class BadgesOverviewControllerTest extends WebTestCase
 {
-    public function testAnonymousVisitorGets404WhileFlagged(): void
+    public function testAnonymousVisitorSeesTheCatalogue(): void
     {
         $browser = self::createClient();
 
         $browser->request('GET', '/en/achievements');
 
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseIsSuccessful();
     }
 
-    public function testNonAdminMemberGets404WhileFlagged(): void
+    public function testFreePlayerSeesTheCatalogue(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/achievements');
+
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testMemberSeesTheCatalogue(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $browser->request('GET', '/en/achievements');
 
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseIsSuccessful();
     }
 
-    public function testAdminSeesCatalogWhileFlagged(): void
+    public function testAMembersProfileShowsTheirAchievementsShowcase(): void
     {
         $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :player, 'streak', NOW(), 1, NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_WITH_STRIPE],
+        );
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $browser->request('GET', '/en/achievements');
+        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
 
         self::assertResponseIsSuccessful();
-    }
-
-    public function testProfileBadgesSectionHiddenFromNonAdminsWhileFlagged(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
-
-        self::assertResponseIsSuccessful();
-        $content = (string) $browser->getResponse()->getContent();
-        self::assertStringNotContainsString('xp-achievements-strip', $content);
-        self::assertStringNotContainsString('/en/achievements', $content);
-    }
-
-    public function testProfileBadgesSectionVisibleToAdminWhileFlagged(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
-
-        $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
-
-        self::assertResponseIsSuccessful();
-        $content = (string) $browser->getResponse()->getContent();
-        self::assertStringContainsString('xp-achievements-strip', $content);
-        self::assertStringContainsString('/en/achievements', $content);
+        self::assertCount(1, $crawler->filter('.achievements-showcase .achievements-showcase-item'));
+        self::assertCount(1, $crawler->filter('.achievements-showcase a.achievements-showcase-summary[href="/en/achievements"]'));
     }
 }

@@ -17,7 +17,6 @@ readonly final class XpEntryLine
         public int $amount,
         public DateTimeImmutable $earnedAt,
         public null|string $solvingTimeId,
-        public null|string $badgeId,
     ) {
     }
 }

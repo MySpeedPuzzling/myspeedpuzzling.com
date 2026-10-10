@@ -8,8 +8,7 @@
                 <li><a href="{{ path('puzzles') }}">{{ 'footer.puzzle_database'|trans }}</a></li>
                 <li><a href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
                 {% if xp_system_visible() %}
-                    <li><a href="{{ path('xp_leaderboard') }}">{{ 'xp.leaderboard.title'|trans }}</a></li>
-                    <li><a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}">{{ 'xp.leaderboard.ap_title'|trans }}</a></li>
+                    <li><a href="{{ path('badges_overview') }}">{{ 'badges.overview_title'|trans }}</a></li>
                 {% endif %}
                 <li><a href="{{ path('players') }}">{{ 'menu.players'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
                 <li><a href="{{ path('recent_activity') }}">{{ 'footer.latest_puzzle_times'|trans }}</a></li>
@@ -33,6 +32,9 @@
         <div>
             <h2 class="footer-heading">{{ 'footer.column.learn'|trans }}</h2>
             <ul class="footer-links">
+                {% if xp_system_visible() %}
+                    <li><a href="{{ path('progression_hub') }}">{{ 'progression_hub.menu_label'|trans }}</a></li>
+                {% endif %}
                 <li><a href="{{ path('getting_started') }}">{{ 'onboarding.guide.link'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
                 <li><a href="{{ path('guides') }}">{{ 'footer.guides'|trans }}</a></li>
                 <li><a href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>

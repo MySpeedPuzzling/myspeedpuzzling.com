@@ -37,8 +37,8 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertSame('page', $crawler->filter('.player-head-tabs .player-tab.active')->attr('aria-current'));
         self::assertSame('nofollow', $crawler->filter('.player-head-tabs .player-tab[href*="/en/player-statistics/"]')->attr('rel'));
 
-        // The member chip; the tier chip says "not yet" to a member viewer when there is no tier
-        self::assertCount(1, $crawler->filter('.player-head .player-chip-member'));
+        // Membership is a word on the #CODE line; the tier chip says "not yet" to a member viewer when there is no tier
+        self::assertCount(1, $crawler->filter('.player-head-meta a.player-head-member[href="/en/membership"]'));
         self::assertStringContainsString('No tier yet', $crawler->filter('.player-head .player-head-chips')->text());
 
         // The name is the page's one H1
@@ -106,7 +106,7 @@ final class PlayerHeaderTest extends WebTestCase
     {
         $crawler = $this->page(PlayerFixture::PLAYER_PRIVATE, '/en/player-profile/' . PlayerFixture::PLAYER_PRIVATE);
 
-        self::assertCount(1, $crawler->filter('.player-head-chips a.player-chip[href="/en/who-can-see-my-profile"]'));
+        self::assertCount(1, $crawler->filter('.player-head-meta a.player-head-private[href="/en/who-can-see-my-profile"]'));
         self::assertCount(1, $crawler->filter('.player-head .dropdown-menu a[href="/en/who-can-see-my-profile"]'));
         self::assertCount(0, $crawler->filter('.player-chip-tier'));
         self::assertStringNotContainsString('No tier yet', $crawler->filter('.player-head')->text());

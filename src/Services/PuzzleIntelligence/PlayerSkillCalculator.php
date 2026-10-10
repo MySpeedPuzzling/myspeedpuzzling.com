@@ -209,6 +209,15 @@ final class PlayerSkillCalculator implements ResetInterface
     }
 
     /**
+     * How many of the player's puzzles count toward the skill tier right now - the recap's "N more to your skill tier"
+     * before the batch has a tier for them (MINIMUM_QUALIFYING_PUZZLES).
+     */
+    public function qualifyingPuzzlesCount(string $playerId, int $piecesCount): int
+    {
+        return count($this->computeWeightedPercentileEntries($playerId, $piecesCount));
+    }
+
+    /**
      * For each puzzle the player solved (first attempt), compute:
      *   percentile among all first-attempt solvers
      *   difficulty_weight with confidence scaling

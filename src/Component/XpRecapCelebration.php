@@ -4,74 +4,84 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use DateTimeImmutable;
-use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetBadges;
+use SpeedPuzzling\Web\Query\GetSolveXpDisplayInfo;
 use SpeedPuzzling\Web\Query\GetXpEntriesForSolve;
 use SpeedPuzzling\Web\Query\GetXpProfile;
 use SpeedPuzzling\Web\Results\BadgeResult;
+use SpeedPuzzling\Web\Results\SolveXpDisplayInfo;
+use SpeedPuzzling\Web\Results\XpEntryLine;
 use SpeedPuzzling\Web\Results\XpProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\LevelTable;
+use SpeedPuzzling\Web\Value\RecapProgress;
+use SpeedPuzzling\Web\Value\XpReason;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
- * Recap-page celebration bridge (§1.9): XP is awarded asynchronously, so this lazy
- * Live Component renders the receipt slot, polls exactly once to pick up async-granted
- * XP/achievements, then pops the celebration. Queueing rule: level-up interstitial
- * first (full-screen, tap anywhere to skip), achievement toast underneath.
+ * The live part of the recap's progress card (docs/features/xp-levels/launch-2026-10.md, "After logging a time"):
+ * the achievements this time earned and the level line. The page renders the card around it, with the rows that are
+ * known at render time (place on the puzzle, MSP Rating / skill tier).
  *
- * Level 50 is golden for EVERYONE (never paywalled), followed by a fork screen:
- * members enter the AP ladder, free players see the same ladder read-only + a
- * membership CTA.
+ * XP and achievements are awarded asynchronously (AwardXpForSolvingTime, RecalculateBadgesForPlayer - the badge
+ * message is queued first), so while the solve has no XP lines yet the component polls with a growing delay
+ * (POLL_DELAYS_MS) and then says the XP is still on its way. The render that shows the XP is the last one: nothing
+ * re-renders under the achievement reveal or the level-up celebration afterwards.
  *
- * Level-up detection is ledger-derived and race-free: the solve's own XP total is
- * subtracted from the player's total to reconstruct the pre-solve level.
+ * Every registered member of a pair/team time sees their own lines, level and achievements (the viewer, never the
+ * tracker). Achievement names are for members only; a free player learns that this time earned one. Nothing at all
+ * while XpFeatureGate hides the progression from the viewer.
  */
 #[AsLiveComponent]
 final class XpRecapCelebration
 {
     use DefaultActionTrait;
 
+    /** About 30 s of polling in total, quick at first: the worker usually answers within a second or two */
+    public const array POLL_DELAYS_MS = [1200, 2000, 3000, 5000, 8000, 11000];
+
     #[LiveProp]
     public string $solvingTimeId = '';
 
+    /** Set by the page: the time was saved a moment ago (RecapProgress::isFresh), so a level-up may celebrate */
     #[LiveProp]
-    public bool $checked = false;
+    public bool $celebrate = false;
 
     #[LiveProp]
-    public bool $celebrationDismissed = false;
+    public int $attempts = 0;
+
+    private bool $loaded = false;
 
     private null|XpProfile $loadedProfile = null;
 
-    private bool $profileLoaded = false;
+    private null|SolveXpDisplayInfo $loadedInfo = null;
+
+    /** @var list<XpEntryLine> */
+    private array $loadedLines = [];
+
+    /** @var null|list<BadgeResult> */
+    private null|array $loadedAchievements = null;
 
     public function __construct(
         readonly private GetXpProfile $getXpProfile,
-        readonly private GetXpEntriesForSolve $getXpEntriesForSolve,
         readonly private GetBadges $getBadges,
-        readonly private XpFeatureGate $xpFeatureGate,
+        readonly private GetXpEntriesForSolve $getXpEntriesForSolve,
+        readonly private GetSolveXpDisplayInfo $getSolveXpDisplayInfo,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private ClockInterface $clock,
+        readonly private XpFeatureGate $xpFeatureGate,
     ) {
     }
 
     #[LiveAction]
     public function checkProgress(): void
     {
-        $this->checked = true;
-    }
-
-    #[LiveAction]
-    public function dismissCelebration(): void
-    {
-        $this->celebrationDismissed = true;
-        $this->checked = true;
+        $this->attempts++;
     }
 
     public function isVisible(): bool
@@ -81,33 +91,58 @@ final class XpRecapCelebration
 
     public function profile(): null|XpProfile
     {
-        if ($this->profileLoaded) {
-            return $this->loadedProfile;
+        $this->load();
+
+        return $this->loadedProfile;
+    }
+
+    public function info(): null|SolveXpDisplayInfo
+    {
+        $this->load();
+
+        return $this->loadedInfo;
+    }
+
+    /**
+     * @return list<XpEntryLine>
+     */
+    public function lines(): array
+    {
+        $this->load();
+
+        return $this->loadedLines;
+    }
+
+    /**
+     * receipt (XP counted), relax_repeat (counted, worth nothing on purpose), pending (still polling), late (polling
+     * gave up - the worker is slow), hidden
+     */
+    public function mode(): string
+    {
+        $info = $this->info();
+
+        if ($this->profile() === null || $info === null) {
+            return 'hidden';
         }
 
-        $this->profileLoaded = true;
+        if ($this->lines() !== []) {
+            return 'receipt';
+        }
 
-        $viewer = $this->retrieveLoggedUserProfile->getProfile();
+        if ($info->isTimed === false && $info->occurrenceIndex > 1) {
+            return 'relax_repeat';
+        }
 
-        if ($viewer === null || $this->solvingTimeId === '') {
+        return $this->attempts < count(self::POLL_DELAYS_MS) ? 'pending' : 'late';
+    }
+
+    public function pollDelay(): null|int
+    {
+        if ($this->mode() !== 'pending') {
             return null;
         }
 
-        if ($this->xpFeatureGate->isVisibleFor($viewer) === false) {
-            return null;
-        }
-
-        try {
-            $profile = $this->getXpProfile->byPlayerId($viewer->playerId);
-        } catch (PlayerNotFound) {
-            return null;
-        }
-
-        if ($profile->optedOut) {
-            return null;
-        }
-
-        return $this->loadedProfile = $profile;
+        return self::POLL_DELAYS_MS[$this->attempts] ?? null;
     }
 
     public function viewerIsMember(): bool
@@ -115,74 +150,193 @@ final class XpRecapCelebration
         return $this->retrieveLoggedUserProfile->getProfile()?->activeMembership === true;
     }
 
-    /**
-     * True when THIS solve's XP pushed the player over a level boundary.
-     */
-    public function showLevelUp(): bool
+    public function solveXp(): int
     {
-        if ($this->celebrationDismissed) {
-            return false;
+        $total = 0;
+
+        foreach ($this->lines() as $line) {
+            $total += $line->amount;
+        }
+
+        return $total;
+    }
+
+    /** The level before this solve's XP - the ledger is the truth, the player's total minus this solve */
+    public function previousLevel(): int
+    {
+        $profile = $this->profile();
+
+        if ($profile === null) {
+            return 1;
+        }
+
+        return LevelTable::levelForXp(max(0, $profile->xpTotal - $this->solveXp()));
+    }
+
+    public function leveledUp(): bool
+    {
+        $profile = $this->profile();
+
+        return $profile !== null && $this->solveXp() > 0 && $profile->level > $this->previousLevel();
+    }
+
+    public function isMilestoneLevelUp(): bool
+    {
+        $profile = $this->profile();
+
+        return $profile !== null && $this->leveledUp() && RecapProgress::isMilestoneLevel($profile->level);
+    }
+
+    /** Bar position before this solve (0-1), so the bar fills from there; 0 after a level-up */
+    public function previousProgress(): float
+    {
+        $profile = $this->profile();
+
+        if ($profile === null || $this->leveledUp()) {
+            return 0.0;
+        }
+
+        return LevelTable::progressToNext(max(0, $profile->xpTotal - $this->solveXp())) ?? 1.0;
+    }
+
+    /** XP still needed for the next level and the size of the current level */
+    public function levelSpan(): int
+    {
+        $profile = $this->profile();
+
+        if ($profile === null || $profile->isMaxLevel()) {
+            return 0;
+        }
+
+        return LevelTable::xpForLevel($profile->level + 1) - LevelTable::xpForLevel($profile->level);
+    }
+
+    /**
+     * The tiers this solve earned (members see them, free players only learn that there is one). Not before the XP is
+     * counted: the badge message is queued before the XP one, so once the XP is there, so are the achievements.
+     *
+     * @return list<BadgeResult>
+     */
+    public function achievements(): array
+    {
+        if ($this->loadedAchievements !== null) {
+            return $this->loadedAchievements;
         }
 
         $profile = $this->profile();
 
-        if ($profile === null) {
-            return false;
+        if ($profile === null || in_array($this->mode(), ['receipt', 'relax_repeat', 'late'], true) === false) {
+            return $this->loadedAchievements = [];
         }
 
-        $solveTotal = $this->getXpEntriesForSolve->totalForPlayerAndSolvingTime($profile->playerId, $this->solvingTimeId);
-
-        if ($solveTotal <= 0) {
-            return false;
-        }
-
-        return LevelTable::levelForXp($profile->xpTotal) > LevelTable::levelForXp($profile->xpTotal - $solveTotal);
+        return $this->loadedAchievements = $this->getBadges->earnedWithSolve($profile->playerId, $this->solvingTimeId);
     }
 
-    public function isMaxLevelCelebration(): bool
+    public function pointsOf(BadgeResult $badge): int
     {
-        return ($this->profile()?->isMaxLevel() ?? false) && $this->showLevelUp();
+        return $badge->tier?->points() ?? BadgeTier::SINGLE_TIER_POINTS;
     }
 
-    /**
-     * Newest achievement earned in the last few minutes — the async badge evaluation
-     * usually lands between page render and the single poll. Members only (§1.7).
-     */
-    public function recentBadge(): null|BadgeResult
+    /** Gold and above (and single-tier achievements) get the bigger reveal */
+    public function isBigMoment(BadgeResult $badge): bool
     {
-        if ($this->profile() === null || $this->viewerIsMember() === false) {
-            return null;
+        return $badge->tier === null || $badge->tier->value >= BadgeTier::Gold->value;
+    }
+
+    public function lineLabelKey(XpEntryLine $line): string
+    {
+        if ($line->reason === XpReason::SolveBase) {
+            $info = $this->info();
+
+            if ($info !== null && $info->isTimed === false) {
+                return 'xp.line.base_relax';
+            }
+
+            return match (true) {
+                $info === null || $info->occurrenceIndex <= 1 => 'xp.line.base',
+                $info->occurrenceIndex === 2 => 'xp.line.base_repeat_second',
+                default => 'xp.line.base_repeat_later',
+            };
         }
+
+        return 'xp.line.' . $line->reason->value;
+    }
+
+    public function showDifficultyPending(): bool
+    {
+        $info = $this->info();
+
+        return $info !== null
+            && $this->lines() !== []
+            && $info->isBackfill === false
+            && $info->puzzleHasDifficultyTier === false
+            && $this->hasLine(XpReason::SolveDifficultyBonus) === false
+            && $this->hasLine(XpReason::DifficultySettlement) === false;
+    }
+
+    public function showSpeedPending(): bool
+    {
+        $info = $this->info();
+
+        return $info !== null
+            && $this->lines() !== []
+            && $info->isBackfill === false
+            && $info->isSolo
+            && $info->isTimed
+            && $info->speedMedianReliable === false
+            && $this->hasLine(XpReason::SolveSpeedBonus) === false
+            && $this->hasLine(XpReason::SpeedSettlement) === false;
+    }
+
+    private function hasLine(XpReason $reason): bool
+    {
+        foreach ($this->lines() as $line) {
+            if ($line->reason === $reason) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function load(): void
+    {
+        if ($this->loaded) {
+            return;
+        }
+
+        $this->loaded = true;
 
         $viewer = $this->retrieveLoggedUserProfile->getProfile();
 
-        if ($viewer === null) {
-            return null;
+        if ($viewer === null || $this->solvingTimeId === '') {
+            return;
         }
 
-        $cutoff = $this->clock->now()->modify('-3 minutes');
-        $newest = null;
-
-        foreach ($this->getBadges->forPlayer($viewer->playerId) as $badge) {
-            if ($badge->earnedAt < $cutoff) {
-                continue;
-            }
-
-            if ($newest === null || $badge->earnedAt > $newest->earnedAt) {
-                $newest = $badge;
-            }
+        // Launch ready or admin (xp-system, docs/features/feature_flags.md) - otherwise the recap shows no progression
+        if ($this->xpFeatureGate->isVisibleFor($viewer) === false) {
+            return;
         }
 
-        return $newest;
-    }
+        try {
+            $profile = $this->getXpProfile->byPlayerId($viewer->playerId);
+        } catch (PlayerNotFound) {
+            return;
+        }
 
-    public function currentLevel(): int
-    {
-        return $this->profile()->level ?? 1;
-    }
+        if ($profile->optedOut) {
+            return;
+        }
 
-    public function earnedAtIso(DateTimeImmutable $moment): string
-    {
-        return $moment->format(DATE_ATOM);
+        // Null when the viewer is not a participant of this time - nothing of theirs to show
+        $info = $this->getSolveXpDisplayInfo->forPlayerAndSolvingTime($viewer->playerId, $this->solvingTimeId);
+
+        if ($info === null) {
+            return;
+        }
+
+        $this->loadedProfile = $profile;
+        $this->loadedInfo = $info;
+        $this->loadedLines = $this->getXpEntriesForSolve->forPlayerAndSolvingTime($viewer->playerId, $this->solvingTimeId);
     }
 }

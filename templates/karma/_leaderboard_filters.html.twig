@@ -1,0 +1,19 @@
+{# The karma list's filters (docs/features/karma.md): kind and period, inside the leaderboard's GET form (auto-submitted by its auto-submit controller) #}
+<div class="karma-board-filters w-100" role="group" aria-label="{{ 'karma.leaderboard.kind_label'|trans }}">
+    {% for kind_option in ['', 'puzzles', 'fixes', 'moderation'] %}
+        {% set checked = (karma_group is null and kind_option == '') or (karma_group is not null and karma_group.value == kind_option) %}
+        <input type="radio" class="btn-check" name="kind" id="karma-kind-{{ kind_option ?: 'all' }}" value="{{ kind_option }}"
+               {{ checked ? 'checked' }}>
+        <label class="btn btn-outline-secondary rounded-pill" for="karma-kind-{{ kind_option ?: 'all' }}">
+            {{ ('karma.kind_filter.' ~ (kind_option ?: 'all'))|trans }}
+        </label>
+    {% endfor %}
+</div>
+
+<div class="d-flex align-items-center gap-2">
+    <label for="karma-period" class="form-label fs-sm mb-0 text-nowrap">{{ 'karma.leaderboard.period_label'|trans }}</label>
+    <select id="karma-period" name="period" class="form-select">
+        <option value="all" {{ karma_period.value == 'all' ? 'selected' }}>{{ 'karma.period.all'|trans }}</option>
+        <option value="12m" {{ karma_period.value == '12m' ? 'selected' }}>{{ 'karma.period.12m'|trans }}</option>
+    </select>
+</div>

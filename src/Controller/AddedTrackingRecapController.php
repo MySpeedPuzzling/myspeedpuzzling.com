@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Value\RecapProgress;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,6 +20,7 @@ final class AddedTrackingRecapController extends AbstractController
 {
     public function __construct(
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -41,6 +44,7 @@ final class AddedTrackingRecapController extends AbstractController
 
         return $this->render('added_tracking_recap.html.twig', [
             'tracked_puzzle' => $trackedPuzzle,
+            'celebrate' => $trackedPuzzle->trackedAt !== null && RecapProgress::isFresh($trackedPuzzle->trackedAt, $this->clock->now()),
         ]);
     }
 }

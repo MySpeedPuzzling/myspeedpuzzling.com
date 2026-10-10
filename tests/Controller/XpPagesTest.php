@@ -10,15 +10,15 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * P5 pages: all 404 for non-admins while the xp-system flag is active; admins see
- * the real pages. Delete the flag-related assertions on launch day.
+ * The XP / achievements pages, public since the launch (no feature flag): every signed-in player and, where the page
+ * is public, guests too.
  */
 final class XpPagesTest extends WebTestCase
 {
     /**
      * @return array<string, array{string}>
      */
-    public static function provideGatedPages(): array
+    public static function providePublicPages(): array
     {
         return [
             'leaderboard' => ['/en/players/xp-leaderboard'],
@@ -31,22 +31,32 @@ final class XpPagesTest extends WebTestCase
         ];
     }
 
-    #[DataProvider('provideGatedPages')]
-    public function testPageIs404ForNonAdmins(string $url): void
+    #[DataProvider('providePublicPages')]
+    public function testPageRendersForAFreePlayer(string $url): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', $url);
+
+        self::assertResponseIsSuccessful();
+    }
+
+    #[DataProvider('providePublicPages')]
+    public function testPageRendersForAMember(string $url): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $browser->request('GET', $url);
 
-        self::assertResponseStatusCodeSame(404);
+        self::assertResponseIsSuccessful();
     }
 
-    #[DataProvider('provideGatedPages')]
-    public function testPageRendersForAdmin(string $url): void
+    #[DataProvider('providePublicPages')]
+    public function testPageRendersForAGuest(string $url): void
     {
         $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         $browser->request('GET', $url);
 
@@ -70,50 +80,29 @@ final class XpPagesTest extends WebTestCase
         self::assertResponseRedirects('/en/achievements/puzzles_solved');
     }
 
-    public function testXpHistoryIs404ForNonAdmins(): void
+    public function testXpHistoryRendersForItsOwner(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $browser->request('GET', '/en/my/xp-history');
 
-        self::assertResponseStatusCodeSame(404);
-    }
-
-    public function testXpHistoryRendersForAdmin(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
-
-        $browser->request('GET', '/en/my/xp-history');
-
         self::assertResponseIsSuccessful();
     }
 
-    public function testLaunchRevealIs404ForNonAdmins(): void
+    public function testLaunchRevealRendersForAFreePlayer(): void
     {
         $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-
-        $browser->request('GET', '/en/my/xp-reveal');
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
-    public function testLaunchRevealRendersForAdmin(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
         $browser->request('GET', '/en/my/xp-reveal');
 
         self::assertResponseIsSuccessful();
     }
 
-    public function testShareCardReturnsPngForAdmin(): void
+    public function testShareCardIsAPng(): void
     {
         $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         $browser->request('GET', '/xp-card/' . PlayerFixture::PLAYER_ADMIN . '/level-up');
 
@@ -139,16 +128,5 @@ final class XpPagesTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(301);
         self::assertResponseRedirects('/en/achievements');
-    }
-
-    public function testAnonymousGets404OnGatedPages(): void
-    {
-        $browser = self::createClient();
-
-        $browser->request('GET', '/en/players/xp-leaderboard');
-        self::assertResponseStatusCodeSame(404);
-
-        $browser->request('GET', '/xp-card/' . PlayerFixture::PLAYER_ADMIN . '/launch');
-        self::assertResponseStatusCodeSame(404);
     }
 }

@@ -156,7 +156,12 @@
                 {% endif %}
 
                 <h2 class="mt-4">{{ 'membership.description_title'|trans }}</h2>
-                {{ 'membership.full_description'|trans|raw }}
+                {{ 'membership.perks_description'|trans|raw }}
+                {# Achievements are a member perk from the progression launch on - described once they are live #}
+                {% if xp_system_visible() %}
+                    {{ 'membership.progression_perks'|trans|raw }}
+                {% endif %}
+                {{ 'membership.coming_soon_description'|trans|raw }}
 
             </div>
 

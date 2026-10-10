@@ -1,0 +1,8 @@
+{# Karma on the player header (docs/features/karma.md): the owner opens "What did I get my karma for?", anybody else
+   the karma list #}
+<a class="player-chip player-chip-karma"
+   href="{{ own ? path('karma_history') : path('xp_leaderboard', {tab: 'karma'}) }}"
+   title="{{ 'karma.chip_title'|trans }}">
+    <i class="bi bi-hand-thumbs-up" aria-hidden="true"></i>
+    {{ 'karma.chip'|trans({'%karma%': karma|format_number}) }}
+</a>

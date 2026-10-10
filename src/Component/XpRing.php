@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Query\GetXpProfile;
-use SpeedPuzzling\Web\Results\XpProfile;
+use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\LevelTable;
@@ -14,38 +12,47 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * Avatar/icon XP ring — the shared visual identity element (§1.9): thin progress ring,
- * level chip and optional progress bar. Milestone ring styling is CSS-only, intensifying
- * at levels 10/20/30/40 and golden at 50.
+ * The XP level ring around a player's avatar (docs/features/xp-levels/launch-2026-10.md, "Profile header" and
+ * "Navbar"): an arc showing the progress toward the next level, its colours richer every 10 levels and golden at 50.
  *
- * Self-gating: renders its inner content unchanged (no ring, no numbers) whenever the
- * xp-system flag hides XP from the viewer, the subject opted out of the experience
- * system, or the subject's profile is private and the viewer is somebody else.
+ * Variants:
+ *  - header: the player header's avatar - the arc, a "Lv 12" tab under it, the whole avatar a link (own XP history,
+ *    or how levels work for anybody else)
+ *  - bar: the compact bar's small avatar - the arc only
+ *  - nav: the navbar avatar of the signed-in player - the arc only
+ *
+ * Reads the player's profile row only (xp_total, level, experience_system_opted_out ride on it) - no query. Renders
+ * its content unchanged while XP is not visible to this viewer (XpFeatureGate: launch ready or admin), when the player
+ * opted out of the experience system, or when a private profile is hidden from this viewer (PlayerProfile::$isPrivate -
+ * PrivateProfileAccess decided it).
  */
 #[AsTwigComponent]
 final class XpRing
 {
-    public null|string $playerId = null;
+    public const string VARIANT_HEADER = 'header';
+    public const string VARIANT_BAR = 'bar';
+    public const string VARIANT_NAV = 'nav';
 
-    /** Ambient variant (site header): quiet full ring, no chip, no numbers. */
-    public bool $ambient = false;
+    public null|PlayerProfile $player = null;
 
-    /** Show the progress bar toward the next level under the chip (profile page). */
-    public bool $showProgress = false;
+    public string $variant = self::VARIANT_HEADER;
 
-    public null|XpProfile $profile = null;
+    public bool $visible = false;
+
+    public bool $isOwn = false;
 
     public function __construct(
-        readonly private GetXpProfile $getXpProfile,
-        readonly private XpFeatureGate $xpFeatureGate,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private XpFeatureGate $xpFeatureGate,
     ) {
     }
 
     #[PostMount]
-    public function load(): void
+    public function decide(): void
     {
-        if ($this->playerId === null) {
+        $player = $this->player;
+
+        if ($player === null || $player->experienceSystemOptedOut) {
             return;
         }
 
@@ -55,31 +62,13 @@ final class XpRing
             return;
         }
 
-        try {
-            $profile = $this->getXpProfile->byPlayerId($this->playerId);
-        } catch (PlayerNotFound) {
-            return;
-        }
-
-        if ($profile->optedOut) {
-            return;
-        }
-
-        if ($profile->private && $viewer?->playerId !== $this->playerId) {
-            return;
-        }
-
-        $this->profile = $profile;
-    }
-
-    public function isVisible(): bool
-    {
-        return $this->profile !== null;
+        $this->isOwn = $viewer?->playerId === $player->playerId;
+        $this->visible = $player->isPrivate === false || $this->isOwn;
     }
 
     public function milestoneClass(): string
     {
-        $level = $this->profile->level ?? 1;
+        $level = $this->player->level ?? 1;
 
         return match (true) {
             $level >= LevelTable::MAX_LEVEL => 'xp-ring-milestone-50',
@@ -91,12 +80,11 @@ final class XpRing
         };
     }
 
-    public function progressValue(): float
+    /**
+     * 0.0-1.0 toward the next level, rounded for the inline style; full at the top level
+     */
+    public function progress(): float
     {
-        if ($this->profile === null) {
-            return 0.0;
-        }
-
-        return $this->profile->progressToNext() ?? 1.0;
+        return round($this->player?->levelProgress() ?? 0.0, 3);
     }
 }

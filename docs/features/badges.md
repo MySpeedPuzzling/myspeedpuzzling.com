@@ -19,12 +19,15 @@ thresholds is in `docs/features/xp-levels/launch-checklist.md`.
 ## Visibility rules
 
 - A player's badges appear on their profile **only if the profile owner has an active membership** - for everyone
-  allowed to see the profile (a private one: its owner only). A free player sees their own earned badges as a locked
-  strip (greyed out, the best six) with "N achievements waiting for you" and the membership button; nobody else sees
-  anything (`BadgesProfileSection`).
+  allowed to see the profile (a private one: its owner only), as the **achievements showcase** near the top
+  (`AchievementsShowcase`, 2026-10-10): one sideways-scrolling row, highest tier first, "11 of 17 · 640 AP ›" to the
+  catalogue; the owner's unrevealed ones are "?" medallions leading to the reveal page. A free owner gets one quiet
+  line ("You have earned achievements. Become a member to see them." - from their AP, no query), never a lock; nobody
+  else sees anything.
 - Badges are evaluated for *all* players regardless of membership — records accumulate silently. They become visible the moment the player's membership activates.
 - The catalog `/en/achievements` (old `/en/badges` links 301 there) is public. Logged-in users see per-badge progress bars toward the next tier; logged-out users see the catalog without progress. A free player's earned tiers show locked with a "✓ 🔒" mark.
-- While the `xp-system` flag is active, every one of these surfaces is admins-only (`docs/features/feature_flags.md`).
+- Until the XP launch switch is on (`xp-launch`, `docs/features/feature_flags.md`) every one of these surfaces is admins-only.
+- Achievements grant **Achievement Points only, never XP** (`docs/features/xp-levels/launch-2026-10.md`), and nobody gets an e-mail per achievement - they reach players in the app (post-solve recap, profile, reveal pages) and in the activity digest. A free player learns *that* a solve earned an achievement, never which (`GetBadges::countTiersEarnedWithSolve()`).
 
 ## Architecture
 
@@ -165,17 +168,12 @@ profile 72, catalogue card 96 + its tier row 48, explainer modal 160 + its list 
 sections 72, toasts 48, holder chips 24. A picture that does not exist throws `BadgeArtMissing` in debug; production
 logs a warning and leaves it out (never a broken image).
 
-## Email template
+## In e-mails
 
-`templates/emails/badges_earned.html.twig` — Inky-based, uses the shared `_header.html.twig` / `_footer.html.twig`. Subject via `emails.en.yml › badges_earned.subject`. Header `X-Transport: transactional` so it hits the transactional mail transport (not the bulk notifications transport).
-
-Each achievement is a row with its badge (`templates/emails/_badge_row.html.twig`: the 96 px PNG at 48 px, absolute
+There is no per-achievement e-mail (removed at the launch). The activity digest shows achievements as rows with their
+badge (`templates/emails/_badge_row.html.twig`: the 96 px PNG at 48 px, absolute
 URL, `alt=""` on purpose - the name and tier stand beside it, so the plain-text part and mail apps that block images
-would otherwise say them twice). The weekly digest's earned and "within your reach" achievements use the same row.
-
-## Opt-out
-
-Not currently offered. If player frustration over email volume surfaces, add a `badgesOptedOut` boolean on `Player` (following the existing `streakOptedOut` / `rankingOptedOut` pattern) and short-circuit the mailer call at the top of the handler.
+would otherwise say them twice). The weekly digest's earned and "within your reach" achievements use it.
 
 ## Cron
 

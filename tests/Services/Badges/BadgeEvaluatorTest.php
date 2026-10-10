@@ -15,11 +15,9 @@ use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
 use SpeedPuzzling\Web\Repository\BadgeRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
-use SpeedPuzzling\Web\Repository\XpEntryRepository;
 use SpeedPuzzling\Web\Results\BadgeResult;
 use SpeedPuzzling\Web\Results\PlayerStatsSnapshot;
 use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
-use SpeedPuzzling\Web\Services\Xp\XpLedger;
 use SpeedPuzzling\Web\Tests\TestDouble\FakeBadgeCondition;
 use SpeedPuzzling\Web\Tests\TestDouble\SavedBadgeRecorder;
 use SpeedPuzzling\Web\Value\BadgeTier;
@@ -62,6 +60,25 @@ final class BadgeEvaluatorTest extends TestCase
         self::assertCount(3, $result);
         self::assertSame([1, 2, 3], array_map(static fn (Badge $b): null|int => $b->tier, $recorder->saved));
         self::assertSame(BadgeType::PuzzlesSolved, $recorder->saved[0]->type);
+    }
+
+    public function testNewTiersGrantAchievementPointsButNoXp(): void
+    {
+        $player = $this->fakePlayer();
+
+        $evaluator = $this->evaluator(
+            conditions: [
+                new FakeBadgeCondition(BadgeType::PuzzlesSolved, [BadgeTier::Bronze, BadgeTier::Silver, BadgeTier::Gold]),
+            ],
+            existingBadges: [],
+            playerRepository: $this->playerRepositoryReturning($player),
+            recorder: new SavedBadgeRecorder(),
+        );
+
+        $evaluator->recalculateForPlayer(self::PLAYER_ID);
+
+        self::assertSame(5 + 10 + 25, $player->achievementPoints);
+        self::assertSame(0, $player->xpTotal, 'Achievements grant Achievement Points only, never XP');
     }
 
     public function testSkipsTiersAlreadyInDatabase(): void
@@ -182,7 +199,6 @@ final class BadgeEvaluatorTest extends TestCase
             badgeRepository: $badgeRepository,
             playerRepository: $playerRepository,
             clock: new MockClock('2026-04-16 12:00:00'),
-            xpLedger: new XpLedger($this->createStub(XpEntryRepository::class), new MockClock('2026-04-16 12:00:00')),
         );
     }
 

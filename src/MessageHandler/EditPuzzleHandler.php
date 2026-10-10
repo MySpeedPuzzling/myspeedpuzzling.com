@@ -15,7 +15,9 @@ use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleRecordUpdater;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * A moderator's direct edit of a puzzle (docs/features/puzzle-approvals.md). Saved the same way as an
@@ -31,6 +33,7 @@ readonly final class EditPuzzleHandler
         private PuzzleRecordUpdater $puzzleRecordUpdater,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
         private OutdatedPuzzleRequests $outdatedPuzzleRequests,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -66,5 +69,8 @@ readonly final class EditPuzzleHandler
             note: $note !== '' ? $note : null,
             details: ['image' => $message->values->image->value] + $change,
         );
+
+        // Karma (docs/features/karma.md): the editor - and the puzzle's adder, its EAN may have changed
+        $this->messageBus->dispatch(RecalculateKarma::forPlayers($editor, $puzzle->addedByUser));
     }
 }

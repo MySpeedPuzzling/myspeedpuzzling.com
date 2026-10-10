@@ -31,6 +31,8 @@ final class PlayerRatingProfile
 
     public int $minFirstAttempts = MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS;
 
+    public int $minTotalSolves = MspRatingCalculator::MINIMUM_TOTAL_SOLVES;
+
     public function __construct(
         readonly private GetPlayerRatingRanking $getPlayerRatingRanking,
         readonly private MspRatingCalculator $mspRatingCalculator,

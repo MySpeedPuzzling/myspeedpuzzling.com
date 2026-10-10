@@ -23,7 +23,9 @@ previous one, no targeting, marked as "displayed" by any HTML response - even wi
 2. no `?return=` (a step of a flow), route not on `QUIET_ROUTES` (membership, checkout, voucher, sign-in/registration/password/account, edit profile, add/edit time, stopwatch), not admin / API
 3. web only - native apps sell membership through their stores
 4. signed in
-5. no announcement modal shown to this player in the last `COOLDOWN_DAYS` (14)
+5. no announcement modal shown to this player in the last `COOLDOWN_DAYS` (14) - except a modal whose
+   `AnnouncementModal::ignoresCooldown()` says so (the XP launch reveal: the first thing a player sees after the
+   launch; the next modal's pause then counts from it)
 6. first enum case with no impression yet whose rule says yes
 7. **claim**
 
@@ -55,6 +57,16 @@ on `shown.bs.modal`). It can only confirm a claimed impression and decides nothi
 - SQL: `SELECT modal, count(*) AS displayed, count(seen_at) AS seen FROM player_modal_impression GROUP BY 1;`
 
 `displayed` is a number of *players*, since nobody gets a modal twice.
+
+## The modals
+
+| Case (priority order) | Rule | Audience |
+|---|---|---|
+| `xp_launch_reveal` | `XpLaunchRevealRule` | every player with a counted solving time (`PlayerProfile::$hasSolvingTime`), not opted out of XP, once the XP launch switch is on; ignores the pause. Its template is the reveal's first step (`XpLaunchRevealModal` component - its queries run on that one page view only). Opening `/my/xp-reveal` claims the same impression (docs/features/xp-levels/README.md "The launch reveal") |
+| `free_trial_offer` | `FreeTrialOfferRule` | players who can start the free trial right now |
+
+Tests: every fixture player has seen `xp_launch_reveal` long ago (`XpLaunchRevealSeenFixture`), otherwise it would open
+on the first page view of nearly every test; the modal's own tests delete that row first.
 
 ## Adding a modal
 
